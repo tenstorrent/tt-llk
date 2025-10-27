@@ -36,30 +36,6 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool, rep
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    # src_A = (
-    #     torch.arange(0, 32, dtype=format_dict[formats.input_format])
-    #     .repeat(32, 1)
-    #     .T.flatten()
-    # )
-    # src_A = src_A.repeat(4)
-
-    # src_A = torch.cat(
-    #     [
-    #         torch.ones(1024, dtype=format_dict[formats.input_format]),
-    #         torch.ones(1024, dtype=format_dict[formats.input_format]) * 2,
-    #         torch.ones(1024, dtype=format_dict[formats.input_format]) * 3,
-    #         torch.ones(1024, dtype=format_dict[formats.input_format]) * 4,
-    #     ]
-    # )
-
-    # # Each row is an array from 1 to 32, repeated for 128 rows (128x32)
-
-    # src_A = (
-    #     torch.arange(1, 33, dtype=format_dict[formats.input_format])
-    #     .repeat(input_dimensions[0], 1)
-    #     .flatten()
-    # )
-
     src_A = tilize_block(src_A, input_dimensions).flatten()
 
     # Generate dummy src_B
@@ -107,11 +83,6 @@ def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool, rep
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize_block(res_tensor, formats.output_format, input_dimensions)
-
-    # print("First row of golden:")
-    # print([round(x, 3) for x in golden_tensor[0].tolist()])
-    # print("First row of result:")
-    # print([round(x, 3) for x in res_tensor[0].tolist()])
 
     # Check only the first row for correctness, not full tensors
     assert passed_test(golden_tensor[0], res_tensor[0], formats.output_format)
