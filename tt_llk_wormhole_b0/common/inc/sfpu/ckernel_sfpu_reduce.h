@@ -385,14 +385,14 @@ inline void _init_reduce_sdpa_()
     TTI_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG0 /*lreg_src_c*/, p_sfpu::LREG4 /*lreg_dest*/, 1 /*instr_mod1*/);
 
-    TTI_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG1 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG1 /*lreg_src_c*/, p_sfpu::LREG4 /*lreg_dest*/, 1 /*instr_mod1*/);
 
-    TTI_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG2 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG2 /*lreg_src_c*/, p_sfpu::LREG4 /*lreg_dest*/, 1 /*instr_mod1*/);
 
-    TTI_SFPLOAD(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG3 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG3 /*lreg_src_c*/, p_sfpu::LREG4 /*lreg_dest*/, 1 /*instr_mod1*/);
 
     // Dummy loads used to increment dest counters
     TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
