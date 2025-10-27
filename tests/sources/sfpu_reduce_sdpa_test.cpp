@@ -72,23 +72,6 @@ void run_kernel()
             i, formats.math, formats.math);
     }
 
-    // SFPU part
-
-    constexpr uint32_t block_height = BLOCK_RT_DIM;
-    _init_reduce_sdpa_<DataFormat::Float16_b>();
-
-    // Initialize SFPU for reduce operation
-    _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
-
-    // left part of subblock
-    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
-    _calculate_reduce_sdpa_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
-
-    // right part of subblock
-    ckernel::math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(1);
-    _calculate_reduce_sdpa_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
-
-    _llk_math_eltwise_unary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -96,6 +79,8 @@ void run_kernel()
 
 #ifdef LLK_TRISC_PACK
 
+#include "ckernel_sfpu_reduce.h"
+#include "llk_math_eltwise_unary_sfpu.h"
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 #include "params.h"
@@ -118,8 +103,30 @@ void run_kernel()
     _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
 #endif
 
-    // Wait for math to finish and pack tiles back to L1
     _llk_packer_wait_for_math_done_();
+
+    // SFPU part
+
+    constexpr uint32_t block_height = BLOCK_RT_DIM;
+    ckernel::sfpu::_init_reduce_sdpa_<DataFormat::Float16_b>();
+
+    // Initialize SFPU for reduce operation
+    _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
+
+    // left part of subblock
+    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
+    ckernel::sfpu::_calculate_reduce_sdpa_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
+
+    // right part of subblock
+    ckernel::math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(1);
+    ckernel::sfpu::_calculate_reduce_sdpa_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
+
+    _llk_math_eltwise_unary_sfpu_done_();
+
+    // _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+
+    // Wait for math to finish and pack tiles back to L1
+
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
