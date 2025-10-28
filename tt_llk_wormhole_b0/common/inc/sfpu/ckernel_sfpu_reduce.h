@@ -390,6 +390,23 @@ inline void _init_reduce_sdpa_()
 {
     static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
+    // Setup LOADMACRO sequence 0
+    // First, backdoor load SWAP instruction into macro slot 0
+    // Original: TTI_SFPSWAP(0, LREG4, LREG0, 1)
+    // With instr_mod1=1: smaller to lreg_dest (LREG0), larger to lreg_src_c (LREG4)
+    // For macro: encode the exact same SWAP but backdoor load it
+    // Note: In macro context, LREG0 will have the loaded value
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, (0xC | p_sfpu::LREG0) /*backdoor + dest*/, 1 /*instr_mod1*/);
+
+    // Configure macro sequence register 0 for LOAD->SWAP
+    // Slot 0 (SIMPLE unit): SWAP from macro slot 4, delay=0
+    // Bit encoding: [7]=1 (use loaded value as srcb), [6]=0 (no staging), [5:3]=000 (delay=0), [2:0]=100 (select macro 4)
+    TTI_SFPLOADI(0, 0xA, 0x0084); // Lower 16 bits: slot0=0x84 (bit 7 set), slot1=0x00
+    TTI_SFPLOADI(0, 0x8, 0x0000); // Upper 16 bits: slot2=0x00, slot3=0x00
+    TTI_SFPCONFIG(0, 4, 0);       // Store in Macro Sequence Register 0 (dest=4)
+
+    TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
+
     _init_sfpu_config_reg();
     sfpu_reduce_sdpa_configure_addrmod();
 
@@ -397,8 +414,9 @@ inline void _init_reduce_sdpa_()
     lltt::record<lltt::NoExec>(0, 11);
     TTI_INCRWC(0, 4, 0, 0); // increment dest counter by 4
 
-    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
+    // Use LOADMACRO with lreg_ind=0 (loads to LREG0, uses sequence 0)
+    TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+    TTI_SFPNOP;
 
     TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
