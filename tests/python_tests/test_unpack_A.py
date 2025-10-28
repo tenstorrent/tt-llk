@@ -439,6 +439,7 @@ def test_unpack_comprehensive(
         formats.input_format,
         input_dimensions=input_dimensions,
         face_r_dim=face_r_dim,
+        num_faces=num_faces,
     )
 
     # generate golden tensor with proper broadcast and transpose handling
