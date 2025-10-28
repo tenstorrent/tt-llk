@@ -29,9 +29,13 @@ def _mask_tile(tile: torch.Tensor, num_faces: int, is_matrix_A: bool) -> torch.T
 
 
 def generate_random_face(
-    stimuli_format=DataFormat.Float16_b, const_value=1, const_face=False, sfpu=True
+    stimuli_format=DataFormat.Float16_b,
+    const_value=1,
+    const_face=False,
+    sfpu=True,
+    face_r_dim=16,
 ):
-    size = 256
+    size = face_r_dim * 16  # face_r_dim rows × 16 columns
     if stimuli_format != DataFormat.Bfp8_b:
         if stimuli_format.is_integer():
             max = 127 if stimuli_format == DataFormat.Int8 else 255
@@ -67,10 +71,13 @@ def generate_random_face_ab(
     const_value_A=1,
     const_value_B=2,
     sfpu=True,
+    face_r_dim=16,
 ):
     return generate_random_face(
-        stimuli_format_A, const_value_A, const_face, sfpu
-    ), generate_random_face(stimuli_format_B, const_value_B, const_face, sfpu)
+        stimuli_format_A, const_value_A, const_face, sfpu, face_r_dim
+    ), generate_random_face(
+        stimuli_format_B, const_value_B, const_face, sfpu, face_r_dim
+    )
 
 
 def generate_face_matmul_data(
@@ -147,6 +154,7 @@ def generate_stimuli(
             const_value_A,
             const_value_B,
             sfpu,
+            face_r_dim,
         )
         srcA.extend(face_a.tolist())
         srcB.extend(face_b.tolist())
