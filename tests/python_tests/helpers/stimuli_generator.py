@@ -122,6 +122,7 @@ def generate_stimuli(
     const_value_B=1,
     sfpu=True,
     face_r_dim=16,  # Add face_r_dim parameter
+    num_faces=4,  # Add num_faces parameter for partial faces
 ):
 
     srcA = []
@@ -131,11 +132,8 @@ def generate_stimuli(
     height, width = input_dimensions
     if face_r_dim < 16:
         # Partial face case: generate exactly num_faces worth of data
-        # But we don't know num_faces here, so generate for 4 faces and truncate later
         tile_cnt = 1
-        faces_to_generate = (
-            4  # Generate max possible, golden will select correct amount
-        )
+        faces_to_generate = num_faces  # Generate exactly the right number of faces
     else:
         # Full tile case
         tile_cnt = height // 32 * width // 32
