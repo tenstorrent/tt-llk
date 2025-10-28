@@ -26,7 +26,6 @@ from helpers.perf import (
         [DataFormat.Float16_b],  # Only Float16_b is supported for SDPA reduce
         same=True,
     ),
-    tile_count=4,  # Using 4 tiles (128x32 shape) for meaningful performance measurement
     dest_acc=[DestAccumulation.No],
     mathop=[MathOperation.ReduceColumn],
     reduce_pool=[ReducePool.Max],  # Only MAX is supported for SDPA reduce
@@ -38,7 +37,6 @@ def test_perf_sfpu_reduce_sdpa(
     perf_report,
     test_name,
     formats,
-    tile_count,
     dest_acc,
     mathop,
     reduce_pool,
@@ -55,7 +53,8 @@ def test_perf_sfpu_reduce_sdpa(
     max reduction, which is the typical operation in SDPA softmax computation.
     """
 
-    input_dimensions = [128, 32]
+    input_dimensions = [128, 64]
+    tile_count = input_dimensions[1] // 32 * input_dimensions[0] // 32
 
     test_config = {
         "testname": test_name,
