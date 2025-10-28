@@ -6,7 +6,7 @@
 # Toolchain and Directories
 # =========================
 CXX_VERSION     := c++17
-TOOL_PATH       ?= sfpi/compiler/bin
+TOOL_PATH       ?= $(realpath ../../tt-exalens/build/riscv-src/sfpi/compiler/bin)
 
 # =========================
 # Architecture Selection
@@ -35,6 +35,7 @@ endif
 BUILD_DIR       ?= build/$(ARCH)
 
 SHARED_DIR      := $(BUILD_DIR)/shared
+COVERAGE_DIR	:= $(BUILD_DIR)/coverage
 SHARED_OBJ_DIR  := $(SHARED_DIR)/obj
 SHARED_DEPS_DIR := $(SHARED_DIR)/deps
 SHARED_DIS_DIR  := $(SHARED_DIR)/dis
@@ -54,9 +55,10 @@ LINKER_SCRIPTS  := $(HELPERS)/ld
 HEADER_DIR      := hw_specific/$(ARCH)/inc
 RMDIR           := rm -rf
 
-GXX             := $(TOOL_PATH)/riscv-tt-elf-g++
-OBJDUMP         := $(TOOL_PATH)/riscv-tt-elf-objdump
-OBJCOPY         := $(TOOL_PATH)/riscv-tt-elf-objcopy
+GXX             := $(TOOL_PATH)/riscv32-tt-elf-g++
+OBJDUMP         := $(TOOL_PATH)/riscv32-tt-elf-objdump
+OBJCOPY         := $(TOOL_PATH)/riscv32-tt-elf-objcopy
+GCOV			:= $(TOOL_PATH)/riscv32-tt-elf-gcov
 
 # =========================
 # Compiler and Linker Flags
@@ -185,12 +187,12 @@ $(SHARED_OBJ_DIR)/tmu-crt0.o: $(HELPERS)/tmu-crt0.S  $(SHARED_OBJ_DIR)/gcov.o $(
 	-c -o $@ $<
 
 #build coverage.o
-$(SHARED_OBJ_DIR)/coverage.o: $(RISCV_SOURCES)/coverage.c $(BUILD_DIR)/params.stamp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
+$(SHARED_OBJ_DIR)/coverage.o: $(RISCV_SOURCES)/coverage.c $(BUILD_DIR)/params.stamp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(COVERAGE_DIR)
 	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) -fno-strict-aliasing \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
 
-$(SHARED_OBJ_DIR)/gcov.o: $(RISCV_SOURCES)/gcov.c $(BUILD_DIR)/params.stamp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
+$(SHARED_OBJ_DIR)/gcov.o: $(RISCV_SOURCES)/gcov.c $(BUILD_DIR)/params.stamp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(COVERAGE_DIR)
 	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
@@ -205,13 +207,18 @@ $(BUILD_DIR):
 	mkdir -p $@
 
 # create folder structure for shared files
-$(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR):
+$(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR) $(COVERAGE_DIR):
 	mkdir -p $@
 
 # create folder structure for test specific files
 $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR):
 	mkdir -p $@
 
+
+# GCOV :=  ../../tt-exalens/build/riscv-src/sfpi/compiler/bin/riscv32-tt-elf-gcov
+
+coverage:
+	lcov --gcov-tool $(realpath $(GCOV)) --capture --directory $(COVERAGE_DIR) --directory $(OBJ_DIR) --output-file coverage.info
 
 # =========================
 # Clean

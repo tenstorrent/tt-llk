@@ -35,7 +35,7 @@ static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 void run_kernel()
 {
-    constexpr uint32_t src = 0x1A000;
+    constexpr uint32_t src = 0x64000; // 0x1A000
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);

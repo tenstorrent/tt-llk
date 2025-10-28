@@ -5,6 +5,7 @@ import inspect
 import os
 import time
 from enum import Enum, IntEnum
+from hashlib import md5
 from pathlib import Path
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
@@ -12,7 +13,9 @@ from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.debug_tensix import TensixDebug
 from ttexalens.tt_exalens_lib import (
     check_context,
+    coverage,
     load_elf,
+    parse_elf,
     read_from_device,
     read_word_from_device,
     write_to_device,
@@ -136,7 +139,7 @@ def set_tensix_soft_reset(
 def collect_results(
     formats: FormatConfig,
     tile_count: int,
-    address: int = 0x1C000,
+    address: int = 0x66000,
     location: str = "0,0",
     sfpu: bool = False,
     tile_dimensions=[32, 32],
@@ -274,7 +277,8 @@ def write_stimuli_to_l1(
     tile_size_A_bytes = stimuli_A_format.num_bytes_per_tile(TILE_ELEMENTS)
     tile_size_B_bytes = stimuli_B_format.num_bytes_per_tile(TILE_ELEMENTS)
 
-    buffer_A_address = 0x1A000
+    # buffer_A_address = 0x1A000
+    buffer_A_address = 0x64000
     buffer_B_address = buffer_A_address + tile_size_A_bytes * tile_count_A
 
     # Handle optional third buffer
@@ -521,3 +525,26 @@ def reset_mailboxes():
     mailboxes = [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]
     for mailbox in mailboxes:
         write_words_to_device(location=location, addr=mailbox.value, data=reset_value)
+
+
+def pull_coverage_data(test_config, device_id=0, location="0,0"):
+    coverage_file_id = md5(
+        f"{test_config['testname']} - {test_config['formats']} - {test_config['tile_cnt']} {time.clock_gettime(0)}".encode()
+    ).hexdigest()
+
+    CHIP_ARCH = get_chip_architecture()
+    LLK_HOME = os.environ.get("LLK_HOME")
+    BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
+    COVERAGE_DIR = BUILD_DIR / "coverage"
+
+    trisc_names = ["unpack", "math", "pack"]
+    for i, trisc_name in enumerate(trisc_names):
+        elf_path = (
+            BUILD_DIR / "tests" / test_config["testname"] / "elf" / f"{trisc_name}.elf"
+        )
+
+        elf_file = parse_elf(elf_path)
+
+        gcda_path = f"{COVERAGE_DIR}/{test_config['testname']}_{coverage_file_id}_{trisc_name}.gcda"
+        gcno_path = f"{COVERAGE_DIR}/{test_config['testname']}_{coverage_file_id}_{trisc_name}.gcno"
+        coverage(location, elf_file, gcda_path, gcno_path, device_id, None)

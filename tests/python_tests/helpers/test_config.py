@@ -9,6 +9,7 @@ from .chip_architecture import get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     BootMode,
+    pull_coverage_data,
     resolve_default_boot_mode,
     run_elf_files,
     wait_for_tensix_operations_finished,
@@ -416,10 +417,10 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr int TILE_CNT = {tile_cnt};")
 
     # Unpack + result buffer addresses arrays generations
-    buffer_A_address = test_config.get("buffer_A_address", 0x1A000)
-    buffer_B_address = test_config.get("buffer_B_address", 0x1B000)
+    buffer_A_address = test_config.get("buffer_A_address", 0x64000)  # 0x1A000
+    buffer_B_address = test_config.get("buffer_B_address", 0x65000)  # 0x1B000
     buffer_C_address = test_config.get("buffer_C_address", None)
-    result_buffer_address = test_config.get("result_buffer_address", 0x1C000)
+    result_buffer_address = test_config.get("result_buffer_address", 0x66000)  # 0x1C000
 
     # Generate buffer declarations with optional buffer_C
     buffer_A_line = f"constexpr Operand buffer_A({hex(buffer_A_address)}, {format_tile_sizes[formats.input_format if formats is not None else DataFormat.Float16_b]});"
@@ -497,9 +498,7 @@ def generate_make_command(
     boot_mode = resolve_default_boot_mode(boot_mode)
 
     # Simplified make command - only basic build parameters
-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} all "
-
-    print(make_cmd)
+    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} coverage_build=true all "
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
@@ -532,3 +531,5 @@ def run_test(
     # run test
     run_elf_files(test_config["testname"], boot_mode)
     wait_for_tensix_operations_finished()
+
+    pull_coverage_data(test_config)
