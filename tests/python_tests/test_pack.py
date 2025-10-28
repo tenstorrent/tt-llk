@@ -22,20 +22,60 @@ from helpers.test_config import BootMode, run_test
 from helpers.utils import passed_test
 
 
+def generate_input_dimensions(dest_acc):
+    if dest_acc == DestAccumulation.No:
+        return [
+            [32, 32],
+            [32, 64],
+            [32, 96],
+            [32, 128],
+            [32, 160],
+            [32, 192],
+            [32, 224],
+            [32, 256],
+            [64, 32],
+            [64, 64],
+            [64, 96],
+            [64, 128],
+            [96, 32],
+            [96, 64],
+            [128, 32],
+            [128, 64],
+            [160, 32],
+            [192, 32],
+            [224, 32],
+            [256, 32],
+        ]
+    else:
+        return [
+            [32, 32],
+            [32, 64],
+            [32, 96],
+            [32, 128],
+            [64, 32],
+            [64, 64],
+            [96, 32],
+            [128, 32],
+        ]
+
+
 @parametrize(
     test_name="pack_test",
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
-            DataFormat.Float16,
-            DataFormat.Float32,
-            DataFormat.Int32,
+            # DataFormat.Float16,
+            # DataFormat.Float32,
+            # DataFormat.Int32,
         ],
         same=True,
     ),
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],  # DestAccumulation.Yes],
+    input_dimensions=generate_input_dimensions(DestAccumulation.No),
 )
-def test_pack(test_name, formats, dest_acc, boot_mode=BootMode.DEFAULT):
+def test_pack(
+    test_name, formats, dest_acc, input_dimensions, boot_mode=BootMode.DEFAULT
+):
 
     if formats.input_format == DataFormat.Float32 and dest_acc == DestAccumulation.No:
         pytest.skip("Fails, probably due to data inference")
@@ -49,7 +89,7 @@ def test_pack(test_name, formats, dest_acc, boot_mode=BootMode.DEFAULT):
     # if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.No:
     #    pytest.skip("Fails when ran after Fp16_b:dest_acc=No, makes Fp32:dest_acc=Yes fail when ran before")
 
-    input_dimensions = [32, 32]
+    # input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,

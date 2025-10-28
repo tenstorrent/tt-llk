@@ -29,7 +29,7 @@ inline void _llk_pack_untilize_mop_config_()
     // reset_src_reg_instrn will increment Dst (L1) counter, and reset Src (DEST reg) counter when the DEST reg bank is flipped aka at the last tile of the
     // block
     constexpr static uint reset_src_reg_instrn =
-        TT_OP_PACR_UNTILIZE(0, 1 /*Cntr_Reset_Mask*/, 1 /*inc Dst (L1) ctr*/, 0 /*inc Src ctr*/, 0, BUF_DESC_ID, 0 /*Clr Dvalid*/);
+        TT_OP_PACR_UNTILIZE(0, 3 /*Cntr_Reset_Mask*/, 0 /*inc Dst (L1) ctr*/, 0 /*inc Src ctr*/, 0, BUF_DESC_ID, 0 /*Clr Dvalid*/);
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pack_instrn);
     temp.set_last_outer_loop_instr(reset_src_reg_instrn);
 
@@ -57,8 +57,10 @@ inline void _llk_pack_untilize_init_(const TileShape& tile_shape)
 /**
  * @brief Packs out tiles and untilizes, always use PCK0 for untilize
  */
-inline void _llk_pack_untilize_()
+inline void _llk_pack_untilize_(const uint l1_tile_idx, const uint dest_tile_offset)
 {
+    TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, p_pacr::PACK0, dest_tile_offset);
+    TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, p_pacr::PACK0, l1_tile_idx * 32); // 32 -> TILE_R_DIM
     // Runs MOP
     ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
 }
