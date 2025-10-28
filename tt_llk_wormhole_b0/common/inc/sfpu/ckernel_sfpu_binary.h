@@ -144,7 +144,7 @@ inline void _calculate_sfpu_binary_(const std::uint32_t dst_index_in0, const std
             v_else
             {
                 sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = in1;
-                _calculate_log_body_<ApproximationMode::Precise>(0, dst_index_out);
+                _calculate_log_body_<false>(0, dst_index_out);
                 result = sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] * in0;
             }
             v_endif;
