@@ -78,6 +78,14 @@ ifeq ($(PROFILER_BUILD),true)
 	OPTIONS_COMPILE += -DLLK_PROFILER
 endif
 
+
+COVERAGE_OPTIONS_COMPILE := $(OPTIONS_COMPILE)
+
+COVERAGE_BUILD := $(if $(coverage_build),$(coverage_build),false)
+ifeq ($(COVERAGE_BUILD),true)
+	OPTIONS_COMPILE += -fprofile-arcs -ftest-coverage -fprofile-info-section -DCOVERAGE
+endif
+
 OPTIONS_LINK	:= -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
 
 INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
@@ -136,12 +144,12 @@ $(SHARED_DIS_DIR)/%.S: $(SHARED_ELF_DIR)/%.elf | $(SHARED_DIS_DIR)
 	$(OBJDUMP) -t $< | sort >> $@
 
 # link unpack.elf, math.elf, pack.elf
-$(ELF_DIR)/%.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/main_%.o $(OBJ_DIR)/kernel_%.o | $(ELF_DIR)
-	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(ARCH).ld -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
+$(ELF_DIR)/%.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/main_%.o $(OBJ_DIR)/kernel_%.o $(SHARED_OBJ_DIR)/gcov.o $(SHARED_OBJ_DIR)/coverage.o | $(ELF_DIR)
+	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(ARCH).coverage.ld -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 # link brisc.elf
-$(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/brisc.o | $(SHARED_ELF_DIR)
-	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(ARCH).ld -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
+$(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/brisc.o $(SHARED_OBJ_DIR)/gcov.o $(SHARED_OBJ_DIR)/coverage.o | $(SHARED_ELF_DIR)
+	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(ARCH).coverage.ld -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 # disable make automatically deleting important intermediate files
 .SECONDARY: $(SHARED_OBJ_DIR)/*.o $(OBJ_DIR)/*.o
@@ -171,8 +179,19 @@ $(SHARED_OBJ_DIR)/brisc.o: $(RISCV_SOURCES)/brisc.cpp $(BUILD_DIR)/params.stamp 
 	-c -o $@ $<
 
 # build c runtime library
-$(SHARED_OBJ_DIR)/tmu-crt0.o: $(HELPERS)/tmu-crt0.S | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
+$(SHARED_OBJ_DIR)/tmu-crt0.o: $(HELPERS)/tmu-crt0.S  $(SHARED_OBJ_DIR)/gcov.o $(SHARED_OBJ_DIR)/coverage.o | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
 	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) \
+	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
+	-c -o $@ $<
+
+#build coverage.o
+$(SHARED_OBJ_DIR)/coverage.o: $(RISCV_SOURCES)/coverage.c $(BUILD_DIR)/params.stamp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
+	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) -fno-strict-aliasing \
+	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
+	-c -o $@ $<
+
+$(SHARED_OBJ_DIR)/gcov.o: $(RISCV_SOURCES)/gcov.c $(BUILD_DIR)/params.stamp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
+	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
 

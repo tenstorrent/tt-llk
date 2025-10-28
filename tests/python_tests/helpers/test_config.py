@@ -499,6 +499,8 @@ def generate_make_command(
     # Simplified make command - only basic build parameters
     make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} all "
 
+    print(make_cmd)
+
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
 
