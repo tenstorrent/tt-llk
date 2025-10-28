@@ -42,8 +42,6 @@ volatile uint *const reg_base        = (volatile uint *)0xFFB10000;
 volatile uint *const pc_buf_base     = (volatile uint *)PC_BUF_BASE;
 volatile uint *const regfile         = (volatile uint *)REGFILE_BASE;
 volatile uint *const instrn_buffer   = (volatile uint *)INSTRN_BUF_BASE;
-volatile uint *const mailbox_base[4] = {
-    (volatile uint *)TENSIX_MAILBOX0_BASE, (volatile uint *)TENSIX_MAILBOX1_BASE, (volatile uint *)TENSIX_MAILBOX2_BASE, (volatile uint *)TENSIX_MAILBOX3_BASE};
 volatile uint *const replay_mmap = (uint32_t volatile *)(INSTRN_BUF_BASE + (1 << 10));
 
 inline void mmio_register_write(register_space_e space, uint addr, uint data)
@@ -243,22 +241,6 @@ inline void cfg_rmw(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask, 
 // 	TTI_WRCFG(tmp_gpr2,p_cfg::WRCFG_32b,cfg_addr32);
 // }
 
-// CHECKME: does this need to change now that BRISC is gone?
-inline void mailbox_write(const uint8_t thread, const uint32_t data)
-{
-    mailbox_base[thread][0] = data;
-}
-
-// Blocking read
-inline uint32_t mailbox_read(const uint8_t thread)
-{
-    return mailbox_base[thread][0];
-}
-
-inline bool mailbox_not_empty(const uint8_t thread)
-{
-    return mailbox_base[thread][1] > 0;
-}
 
 // If the TRACK_x bit is set, then the Tensix hardware will automatically
 // stall TRISC memory accesses and/or Tensix instructions to x in order

@@ -42,13 +42,6 @@ enum DstClear
     ClearFull   = 3
 };
 
-enum ThreadId
-{
-    UnpackThreadId = 0,
-    MathThreadId   = 1,
-    PackThreadId   = 2
-};
-
 enum DstTileLayout
 {
     Default,
