@@ -808,8 +808,14 @@ class DataCopyGolden:
         torch_format = format_dict[data_format]
 
         height, width = input_dimensions[0], input_dimensions[1]
-        tile_cnt = (height // 32) * (width // 32)
-        tile_size = height * width // tile_cnt
+
+        # Handle partial faces (face_r_dim < 16) as single tiles
+        if face_r_dim < 16:
+            tile_cnt = 1
+            tile_size = height * width
+        else:
+            tile_cnt = (height // 32) * (width // 32)
+            tile_size = height * width // tile_cnt
 
         # Calculate elements based on variable face dimensions
         # Each face is face_r_dim × 16, and we have num_faces

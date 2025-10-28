@@ -319,6 +319,11 @@ def filter_params_with_z3(all_params):
             )
         )
 
+        # For partial faces (face_r_dim < 16), require num_faces = 2
+        partial_face_num_faces_constraint = Implies(
+            face_r_dim_z3 < 16, num_faces_z3 == 2
+        )
+
         # Add all constraints to solver
         s.add(
             constraint1,
@@ -334,6 +339,7 @@ def filter_params_with_z3(all_params):
             wormhole_row_outlier_constraint,
             hardware_regression_constraint,
             transpose_face_size_constraint,
+            partial_face_num_faces_constraint,
         )
 
         # Check if this parameter combination is valid
@@ -419,15 +425,20 @@ def test_unpack_comprehensive(
     # Note: All constraint validation has been done by Z3 during parameter generation
     # No need for pytest.skip() calls - invalid combinations have been filtered out
 
-    input_dimensions = [32, 32]
-
-    # Determine if this is a partial face configuration
-    partial_face = face_r_dim < 16
+    # Configure input dimensions based on face_r_dim
+    # For partial faces (face_r_dim < 16), use [face_r_dim x 32] input tensors
+    if face_r_dim < 16:
+        input_dimensions = [face_r_dim, 32]  # [1x32], [2x32], [4x32], [8x32]
+        partial_face = True
+    else:
+        input_dimensions = [32, 32]
+        partial_face = False
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
         formats.input_format,
         input_dimensions=input_dimensions,
+        face_r_dim=face_r_dim,
     )
 
     # generate golden tensor with proper broadcast and transpose handling
