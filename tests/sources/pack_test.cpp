@@ -24,7 +24,7 @@ void run_kernel()
 {
     tdma_descriptor_t td_val;
     const uint BUF_DESC_ID          = 0;
-    const uint num_tiles_per_unpack = 1;
+    const uint num_tiles_per_unpack = TILE_CNT;
 
     // Setup data valid scheme
     if (unpack_to_dest)
@@ -63,10 +63,11 @@ void run_kernel()
         _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, BUF_DESC_ID, false /*transpose*/, is_fp32_dest_acc_en>(num_tiles_per_unpack);
     }
 
-    for (int i = 0; i < TILE_CNT; ++i)
-    {
-        _llk_unpack_unary_operand_<p_unpacr::UNP_A>(i);
-    }
+    // for (int i = 0; i < TILE_CNT; ++i)
+    //{
+    //     _llk_unpack_unary_operand_<p_unpacr::UNP_A>(i);
+    _llk_unpack_unary_operand_<p_unpacr::UNP_A>(0);
+    //}
 
     if (unpack_to_dest)
     {
@@ -154,12 +155,13 @@ void run_kernel()
     tdma_desc.reg_data_format = static_cast<uint8_t>(formats.pack_src);
 
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
-    _llk_pack_init_<p_pacr::PACK0, BUF_DESC>(1);
+    _llk_pack_init_<p_pacr::PACK0, BUF_DESC>(TILE_CNT);
 
-    for (int i = 0; i < TILE_CNT; ++i)
-    {
-        _llk_pack_<p_pacr::PACK0>(i, i);
-    }
+    // for (int i = 0; i < TILE_CNT; ++i)
+    //{
+    //_llk_pack_<p_pacr::PACK0>(i, i);
+    _llk_pack_<p_pacr::PACK0>(0, 0);
+    //}
     _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 #endif
