@@ -27,7 +27,9 @@ def matmul_combos(
         _dest_bank_max_tiles(fmt, acc) for fmt in formats for acc in dest_acc
     )
     dimensions = {
-        max_tiles: generate_matmul_dimension_combinations(max_tiles)
+        max_tiles: generate_matmul_dimension_combinations(
+            max_tiles, kt_dims=range(1, 9)
+        )
         for max_tiles in unique_max_tiles
     }
 

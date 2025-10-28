@@ -85,7 +85,9 @@ def validate_tile_dimensions(dimension: int, row_col_dim: int):
         )
 
 
-def generate_matmul_dimension_combinations(max_tiles: int) -> List[tuple]:
+def generate_matmul_dimension_combinations(
+    max_tiles: int, kt_dims: List[int] = range(1, 9)
+) -> List[tuple]:
     """
     Generate all valid matrix multiplication dimension combinations.
 
@@ -117,27 +119,16 @@ def generate_matmul_dimension_combinations(max_tiles: int) -> List[tuple]:
     tile_rows = 32
     tile_cols = 32
 
-    for m_tiles in range(1, max_tiles + 1):
-        for k_tiles in range(1, max_tiles + 1):
-            # Check if matrix A is valid: m_tiles * k_tiles <= max_tiles
-            if m_tiles * k_tiles > max_tiles:
-                break  # Early termination - larger k_tiles will also be invalid
-
-            # Calculate maximum valid n_tiles based on constraints
-            max_n_from_B = (
-                max_tiles // k_tiles
-            )  # From B constraint: k_tiles * n_tiles <= max_tiles
-            max_n_from_C = (
-                max_tiles // m_tiles
-            )  # From C constraint: m_tiles * n_tiles <= max_tiles
-            max_n_tiles = min(max_n_from_B, max_n_from_C)
-
-            # Generate all valid n_tiles values
-            for n_tiles in range(1, max_n_tiles + 1):
+    # there are no constraints on kt_dim
+    # assume we don't need to test anything above 8.
+    for kt_dim in kt_dims:
+        # mt_dim * nt_dim <= max_tiles
+        for mt_dim in range(1, max_tiles + 1):
+            for nt_dim in range(1, max_tiles // mt_dim + 1):
                 # Convert tile counts to actual dimensions
-                m_dim = m_tiles * tile_cols
-                k_dim = k_tiles * tile_cols
-                n_dim = n_tiles * tile_rows
+                k_dim = kt_dim * tile_cols
+                m_dim = mt_dim * tile_cols
+                n_dim = nt_dim * tile_rows
 
                 inputA_dims = [m_dim, k_dim]
                 inputB_dims = [k_dim, n_dim]
