@@ -385,11 +385,34 @@ inline void _init_reduce_sdpa_()
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, (0xC | p_sfpu::LREG0) /*backdoor + dest*/, 1 /*instr_mod1*/);
 
     // Configure macro sequence register 0 for LOAD->SWAP
+    // We'll configure it to handle multiple cases based on which LREG is being loaded
+    // For now, keep original for LREG0: SWAP from macro slot 4
     // Slot 0 (SIMPLE unit): SWAP from macro slot 4, delay=0
     // Bit encoding: [7]=1 (use loaded value as srcb), [6]=0 (no staging), [5:3]=000 (delay=0), [2:0]=100 (select macro 4)
     TTI_SFPLOADI(0, 0xA, 0x0084); // Lower 16 bits: slot0=0x84 (bit 7 set), slot1=0x00
     TTI_SFPLOADI(0, 0x8, 0x0000); // Upper 16 bits: slot2=0x00, slot3=0x00
     TTI_SFPCONFIG(0, 4, 0);       // Store in Macro Sequence Register 0 (dest=4)
+
+    // Setup LOADMACRO sequence 1
+    // We'll use lreg_ind=4 (LREG4 as temp) which has bits[3:2]=01 -> sequence 1
+    // Backdoor load SWAP instruction into macro slot 1
+    // Original: TTI_SFPSWAP(0, LREG5, LREG1, 1) but we load into LREG4 as temp
+    // So: TTI_SFPSWAP(0, LREG5, LREG4, 1) -> smaller to LREG4, larger to LREG5
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, (0xD | p_sfpu::LREG4) /*backdoor + dest*/, 1 /*instr_mod1*/);
+
+    // Configure macro sequence register 1 for LOAD->SWAP with LREG1
+    // Slot 0 (SIMPLE unit): SWAP from macro slot 5, delay=0
+    // Bit encoding: [7]=1 (use loaded value as srcb), [6]=0 (no staging), [5:3]=000 (delay=0), [2:0]=101 (select macro 5)
+    TTI_SFPLOADI(0, 0xA, 0x0085); // Lower 16 bits: slot0=0x85 (bit 7 set), slot1=0x00
+    TTI_SFPLOADI(0, 0x8, 0x0000); // Upper 16 bits: slot2=0x00, slot3=0x00
+    TTI_SFPCONFIG(0, 5, 0);       // Store in Macro Sequence Register 1 (dest=5)
+
+    // For the third LOADMACRO, we'll also use sequence 1 but with a different SWAP
+    // Use lreg_ind=6 (loads to LREG6, uses sequence 1 since bits[3:2]=01)
+    // We already have a SWAP in slot 1 for LREG4/LREG5
+    // Let's add another SWAP in slot 2 for when using LREG6
+    // But sequence 1 can only execute one instruction, so we need a different approach
+    // Let's overload sequence 1 to work for both cases
 
     TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
 
@@ -404,9 +427,14 @@ inline void _init_reduce_sdpa_()
     TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
     TTI_SFPNOP;
 
-    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
+    // Use LOADMACRO with lreg_ind=4 (loads to LREG4, uses sequence 1 since bits[3:2]=01)
+    TTI_SFPLOADMACRO(4, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+    TTI_SFPNOP;
 
+    // Use LOADMACRO with lreg_ind=6 (loads to LREG6, uses sequence 1 since bits[3:2]=01)
+    // This will use the same sequence 1 as lreg_ind=4, but loads into LREG6
+    // The SWAP in sequence 1 compares LREG4 with LREG5, which isn't what we want for LREG6
+    // So we need to go back to traditional LOAD+SWAP for this case
     TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
 
