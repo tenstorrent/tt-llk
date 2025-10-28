@@ -6,9 +6,9 @@ from typing import List
 import pytest
 import torch
 from helpers.device import BootMode, collect_results, write_stimuli_to_l1
-from helpers.format_arg_mapping import DestAccumulation, MathFidelity, format_dict
 from helpers.format_config import DataFormat
 from helpers.golden_generators import MatmulGolden, get_golden_generator
+from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
 from helpers.matmul_sweep import (
     generate_matmul_dimension_combinations,
     generate_tile_dims,
@@ -19,12 +19,12 @@ from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
-from tests.python_tests.helpers.format_arg_mapping import (
+from tests.python_tests.helpers.golden_generators import TransposeGolden
+from tests.python_tests.helpers.llk_params import (
     DestSync,
     ImpliedMathFormat,
     Transpose,
 )
-from tests.python_tests.helpers.golden_generators import TransposeGolden
 
 
 def generate_format_aware_matmul_combinations(
