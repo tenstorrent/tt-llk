@@ -212,6 +212,10 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr bool PARTIAL_FACE_A = {partial_face_A};")
     header_content.append(f"constexpr bool PARTIAL_FACE_B = {partial_face_B};")
 
+    # General partial_face constant for unpack_A operations
+    partial_face = str(test_config.get("partial_face", False)).lower()
+    header_content.append(f"constexpr bool PARTIAL_FACE = {partial_face};")
+
     header_content.append(f"constexpr bool PARTIAL_FACE_PACK = {partial_face_A};")
     header_content.append(f"constexpr bool PARTIAL_FACE_MATH = {partial_face_B};")
 
