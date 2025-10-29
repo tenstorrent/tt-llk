@@ -45,6 +45,7 @@ void run_kernel()
             TILE_SIZE_UNPACK_B);
         _llk_unpack_AB_matmul_init_<>(UNPACK_TRANSPOSE_FACES, CT_DIM, RT_DIM, KT_DIM, FACE_R_DIM, FACE_R_DIM, TILE_NUM_FACES, TILE_NUM_FACES);
         PROFILER_SYNC();
+        // asm volatile("ebreak");
     }
     {
         ZONE_SCOPED("TILE_LOOP")
@@ -104,6 +105,7 @@ void run_kernel()
             KT_DIM);
 
         PROFILER_SYNC();
+        // asm volatile("ebreak");
     }
     {
         ZONE_SCOPED("TILE_LOOP")
@@ -151,6 +153,7 @@ void run_kernel()
             /* write_tile_header */ false>(formats.pack_dst);
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         PROFILER_SYNC();
+        // asm volatile("ebreak");
     }
     {
         ZONE_SCOPED("TILE_LOOP")

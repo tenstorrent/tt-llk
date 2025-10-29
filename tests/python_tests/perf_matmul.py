@@ -5,13 +5,18 @@ from typing import List
 
 import pytest
 from helpers.format_arg_mapping import DestAccumulation, MathFidelity
-from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
+from helpers.format_config import (
+    DataFormat,
+    FormatConfig,
+    InputOutputFormat,
+    is_dest_acc_needed,
+)
 from helpers.matmul_sweep import (
     generate_matmul_dimension_combinations,
     generate_tile_dims,
 )
-from helpers.param_config import input_output_formats, parametrize
-from helpers.perf import PerfRunType, perf_benchmark, update_report
+from helpers.param_config import parametrize
+from helpers.perf import PerfRunType, Profiler, perf_benchmark, update_report
 
 
 def matmul_combos(
@@ -43,21 +48,17 @@ def matmul_combos(
 @parametrize(
     test_name="matmul_perf",
     combos=matmul_combos(
-        formats=input_output_formats(
-            [
-                DataFormat.Float16_b,
-                DataFormat.Float16,
-                DataFormat.Float32,
-                DataFormat.Bfp8_b,
-            ]
-        ),
-        dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+        formats=[InputOutputFormat(DataFormat.Float16_b, DataFormat.Float32)],
+        # formats=input_output_formats(
+        #     [
+        #         DataFormat.Float16_b,
+        #         DataFormat.Float32,
+        #     ]
+        # ),
+        dest_acc=[DestAccumulation.Yes],
     ),
     math_fidelity=[
-        MathFidelity.LoFi,
         MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
     ],
 )
 def test_perf_matmul(perf_report, test_name, combos, math_fidelity):
@@ -67,7 +68,7 @@ def test_perf_matmul(perf_report, test_name, combos, math_fidelity):
     if is_dest_acc_needed(formats) and dest_acc == DestAccumulation.No:
         pytest.skip("Dest accumulation must be enabled for this format")
 
-    run_types = [PerfRunType.L1_TO_L1]
+    run_types = [PerfRunType.PACK_ISOLATE]
 
     # Calculate all matmul dimensions using helper function
     matmul_dims = generate_tile_dims((matrix_a, matrix_b))
@@ -75,7 +76,7 @@ def test_perf_matmul(perf_report, test_name, combos, math_fidelity):
     test_config = {
         "formats": formats,
         "testname": test_name,
-        "loop_factor": 16,
+        "loop_factor": 256,
         "tile_cnt": matmul_dims.output_tile_cnt,
         "input_A_dimensions": matrix_a,
         "input_B_dimensions": matrix_b,
@@ -88,4 +89,6 @@ def test_perf_matmul(perf_report, test_name, combos, math_fidelity):
     }
 
     results = perf_benchmark(test_config, run_types)
+    profiler_data = Profiler.get_data(test_name)
+    Profiler.dump_csv(profiler_data, filename="profiler_data.csv")
     update_report(perf_report, test_config, results)

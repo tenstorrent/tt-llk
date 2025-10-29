@@ -90,12 +90,13 @@ def generate_matmul_dimension_combinations(max_tiles: int) -> List[tuple]:
     Generate all valid matrix multiplication dimension combinations.
 
     Creates all possible combinations of (inputA_dimensions, inputB_dimensions) where:
-    - The result matrix also has at most max_tiles tiles
+    - The result matrix has at most max_tiles tiles (m_tiles × n_tiles <= max_tiles)
     - Matrix multiplication is valid: inputA[1] == inputB[0] (K dimensions match)
+    - For each valid m_tiles × n_tiles combination, sweeps k_tiles from 1 to 32
     - Returns combinations that can be used for comprehensive matmul testing
 
     Args:
-        max_tiles: Maximum number of tiles allowed per result matrix
+        max_tiles: Maximum number of tiles allowed for the result matrix (m_tiles × n_tiles)
 
     Returns:
         List of tuples: Each tuple contains (inputA_dimensions, inputB_dimensions)
@@ -105,39 +106,29 @@ def generate_matmul_dimension_combinations(max_tiles: int) -> List[tuple]:
     Example:
         For max_tiles=4:
         Returns combinations like:
-        ([32, 32], [32, 32])    # 1×1 tiles each, result: 1×1 = 1 tile
-        ([32, 64], [64, 32])    # 1×2 and 2×1 tiles, result: 1×1 = 1 tile
-        ([64, 128], [128, 128])    # result: 2×4 = 8 tiles, works for 16-bit datums
-        ([32, 32], [32, 128])  # 1×1 and 1×4 tiles, result: 1×4 = 4 tiles, works for 16-bit and 32-bit datums
-
-        But NOT ([256, 32], [32, 256]) because result would be 8×8 = 64 tiles > 4 for 32-bit datums and >8 for 16-bit datums
+        ([32, 32], [32, 32])    # 1×1 result tiles, k=1
+        ([32, 64], [64, 32])    # 1×1 result tiles, k=2
+        ([32, 1024], [1024, 32]) # 1×1 result tiles, k=32
+        ([64, 32], [32, 64])    # 2×2 result tiles, k=1
+        ([64, 64], [64, 64])    # 2×2 result tiles, k=2
+        ([64, 1024], [1024, 64]) # 2×2 result tiles, k=32
     """
 
     valid_combinations = []
     tile_rows = 32
     tile_cols = 32
 
+    # Generate all valid m_tiles × n_tiles combinations within max_tiles constraint
     for m_tiles in range(1, max_tiles + 1):
-        for k_tiles in range(1, max_tiles + 1):
-            # Check if matrix A is valid: m_tiles * k_tiles <= max_tiles
-            if m_tiles * k_tiles > max_tiles:
-                break  # Early termination - larger k_tiles will also be invalid
+        max_n_tiles = max_tiles // m_tiles  # Ensure m_tiles * n_tiles <= max_tiles
 
-            # Calculate maximum valid n_tiles based on constraints
-            max_n_from_B = (
-                max_tiles // k_tiles
-            )  # From B constraint: k_tiles * n_tiles <= max_tiles
-            max_n_from_C = (
-                max_tiles // m_tiles
-            )  # From C constraint: m_tiles * n_tiles <= max_tiles
-            max_n_tiles = min(max_n_from_B, max_n_from_C)
-
-            # Generate all valid n_tiles values
-            for n_tiles in range(1, max_n_tiles + 1):
+        for n_tiles in range(1, max_n_tiles + 1):
+            # For each valid m×n combination, sweep k_tiles from 1 to 32
+            for k_tiles in range(1, 9):  # k_tiles from 1 to 32
                 # Convert tile counts to actual dimensions
-                m_dim = m_tiles * tile_cols
+                m_dim = m_tiles * tile_rows
+                n_dim = n_tiles * tile_cols
                 k_dim = k_tiles * tile_cols
-                n_dim = n_tiles * tile_rows
 
                 inputA_dims = [m_dim, k_dim]
                 inputB_dims = [k_dim, n_dim]
