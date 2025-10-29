@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
+from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     DestAccumulation,
@@ -19,6 +20,7 @@ from helpers.perf import (
 )
 
 
+@skip_for_blackhole
 @pytest.mark.perf
 @parametrize(
     test_name="sfpu_reduce_sdpa_perf",

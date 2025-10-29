@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+from conftest import skip_for_blackhole
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
@@ -17,6 +18,7 @@ from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
 
 
+@skip_for_blackhole
 @parametrize(
     test_name="sfpu_reduce_sdpa_test",
     formats=input_output_formats(
