@@ -266,3 +266,13 @@ class EltwiseBinaryReuseDestType(Enum):
     NONE = 0
     DEST_TO_SRCA = 1
     DEST_TO_SRCB = 2
+
+
+class UnpackerEngine(Enum):
+    """
+    Enum for unpacker engine selection.
+    """
+
+    UNP_A = 0
+    UNP_B = 1
+    UNP_S = 2

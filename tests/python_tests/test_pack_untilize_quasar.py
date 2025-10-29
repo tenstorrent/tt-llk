@@ -32,7 +32,7 @@ def generate_dest_acc_and_input_dimensions():
 
 
 @parametrize(
-    test_name="pack_untilize_quasar_test",
+    test_name="quasar_pack_untilize_test",
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
