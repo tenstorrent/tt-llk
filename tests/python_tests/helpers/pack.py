@@ -94,8 +94,9 @@ def pack_bfp8_b(tensor, block_size=16, num_faces=4):
     """
     flattened_tensor = tensor.flatten()
 
-    # Only pack the first (256 * num_faces) elements
-    elements_to_pack = 256 * num_faces
+    # Full faces are always 16x16 = 256 elements
+    elements_per_face = 256
+    elements_to_pack = elements_per_face * num_faces
     assert (
         len(flattened_tensor) >= elements_to_pack
     ), f"Tensor has {len(flattened_tensor)} elements, but need at least {elements_to_pack} for {num_faces} face(s)"

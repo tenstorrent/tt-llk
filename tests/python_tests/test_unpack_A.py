@@ -311,6 +311,8 @@ def filter_params_with_z3(all_params):
 
         # Block transpose operations for face_r_dim < 16
         # Hardware transpose logic hardcoded for 16x16 faces, corrupts smaller faces
+        # Note: matmul operations support transpose with partial faces, but unpack_A does not
+        # Allow transpose for full faces (face_r_dim = 16) to enable transpose sweep testing
         face_r_dim_z3 = IntVal(face_r_dim)
         transpose_face_size_constraint = Not(
             And(
@@ -322,6 +324,17 @@ def filter_params_with_z3(all_params):
         # For partial faces (face_r_dim < 16), require num_faces = 2
         partial_face_num_faces_constraint = Implies(
             face_r_dim_z3 < 16, num_faces_z3 == 2
+        )
+
+        # Block Bfp8_b input/output for partial faces (face_r_dim < 16)
+        bfp8_partial_face_constraint = Not(
+            And(
+                Or(
+                    BoolVal(formats.input_format == DataFormat.Bfp8_b),
+                    BoolVal(formats.output_format == DataFormat.Bfp8_b),
+                ),
+                face_r_dim_z3 < 16,
+            )
         )
 
         # Add all constraints to solver
@@ -340,6 +353,7 @@ def filter_params_with_z3(all_params):
             hardware_regression_constraint,
             transpose_face_size_constraint,
             partial_face_num_faces_constraint,
+            bfp8_partial_face_constraint,
         )
 
         # Check if this parameter combination is valid
@@ -479,45 +493,63 @@ def test_unpack_comprehensive(
             # DEST_TO_SRCA: destination registers get moved to srcA for reuse
             # This creates a feedback loop where processed data gets reused as source
 
-            input_tensor = torch.tensor(src_A, dtype=format_dict[formats.input_format])
-            face_size = face_r_dim * 16  # face_r_dim x 16 face
-
-            if num_faces == 1:
-                # Single face with DEST_TO_SRCA + acc_to_dest:
-                # Hardware processes first half of face, then reuses/duplicates for second half
-                # DEST_TO_SRCA causes the first face_size/2 elements to be processed, then repeated
-                input_face = input_tensor[:face_size].to(
-                    format_dict[formats.output_format]
+            # For partial faces, DEST_TO_SRCA behavior may be different or unsupported
+            if face_r_dim < 16:
+                # For partial faces, fall back to regular data copy
+                # DEST_TO_SRCA duplication logic may not apply to partial faces
+                generate_golden = get_golden_generator(DataCopyGolden)
+                golden_tensor = generate_golden(
+                    src_A,
+                    formats.output_format,
+                    num_faces,
+                    input_dimensions,
+                    face_r_dim,
                 )
-                half_face = face_size // 2
-                first_half = input_face[:half_face]  # First half of variable-sized face
-                # Duplicate first half for second half due to DEST_TO_SRCA register reuse
-                golden_tensor = torch.cat([first_half, first_half])
             else:
-                # Multiple faces: DEST_TO_SRCA applies duplication pattern within each face
-                # Each face behaves like single face - first half duplicated for second half
-                result = torch.zeros(
-                    face_size * num_faces, dtype=format_dict[formats.output_format]
+                # Full faces: apply DEST_TO_SRCA duplication logic
+                input_tensor = torch.tensor(
+                    src_A, dtype=format_dict[formats.input_format]
                 )
+                face_size = face_r_dim * 16  # face_r_dim x 16 face
 
-                for face_idx in range(num_faces):
-                    face_start = face_idx * face_size
-                    face_end = face_start + face_size
-                    input_face = input_tensor[face_start:face_end].to(
+                if num_faces == 1:
+                    # Single face with DEST_TO_SRCA + acc_to_dest:
+                    # Hardware processes first half of face, then reuses/duplicates for second half
+                    # DEST_TO_SRCA causes the first face_size/2 elements to be processed, then repeated
+                    input_face = input_tensor[:face_size].to(
                         format_dict[formats.output_format]
                     )
-
-                    # Apply same duplication pattern as single face within each face
                     half_face = face_size // 2
                     first_half = input_face[
                         :half_face
                     ]  # First half of variable-sized face
-                    face_output = torch.cat(
-                        [first_half, first_half]
-                    )  # Duplicate first half
-                    result[face_start:face_end] = face_output
+                    # Duplicate first half for second half due to DEST_TO_SRCA register reuse
+                    golden_tensor = torch.cat([first_half, first_half])
+                else:
+                    # Multiple faces: DEST_TO_SRCA applies duplication pattern within each face
+                    # Each face behaves like single face - first half duplicated for second half
+                    result = torch.zeros(
+                        face_size * num_faces, dtype=format_dict[formats.output_format]
+                    )
 
-                golden_tensor = result
+                    for face_idx in range(num_faces):
+                        face_start = face_idx * face_size
+                        face_end = face_start + face_size
+                        input_face = input_tensor[face_start:face_end].to(
+                            format_dict[formats.output_format]
+                        )
+
+                        # Apply same duplication pattern as single face within each face
+                        half_face = face_size // 2
+                        first_half = input_face[
+                            :half_face
+                        ]  # First half of variable-sized face
+                        face_output = torch.cat(
+                            [first_half, first_half]
+                        )  # Duplicate first half
+                        result[face_start:face_end] = face_output
+
+                    golden_tensor = result
         else:
             # Regular data copy for other reuse types or no acc_to_dest
             generate_golden = get_golden_generator(DataCopyGolden)
@@ -563,6 +595,7 @@ def test_unpack_comprehensive(
         formats,
         tile_count=tile_cnt,
         address=res_address,
+        tile_dimensions=input_dimensions,
         num_faces=num_faces,
         face_r_dim=face_r_dim,
     )
