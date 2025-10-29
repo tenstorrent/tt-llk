@@ -29,12 +29,10 @@ sfpi_inline void _ema_load_current_input_()
     constexpr uint32_t offset2        = dst_reg_offset + 16;
     constexpr uint32_t offset3        = dst_reg_offset + 18;
 
-    TTI_SFPTRANSP(0, 0, 0, 0);
     TTI_SFPLOAD(ckernel::p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_FLOATB, ckernel::ADDR_MOD_3, offset0); // row0
     TTI_SFPLOAD(ckernel::p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, ckernel::ADDR_MOD_3, offset1); // row1
     TTI_SFPLOAD(ckernel::p_sfpu::LREG2, sfpi::SFPLOADI_MOD0_FLOATB, ckernel::ADDR_MOD_3, offset2); // row2
     TTI_SFPLOAD(ckernel::p_sfpu::LREG3, sfpi::SFPLOADI_MOD0_FLOATB, ckernel::ADDR_MOD_3, offset3); // row3
-    TTI_SFPTRANSP(0, 0, 0, 0);
 }
 
 /**
@@ -57,12 +55,10 @@ sfpi_inline void _ema_store_current_input_()
     constexpr uint32_t offset2        = dst_reg_offset + 16;
     constexpr uint32_t offset3        = dst_reg_offset + 18;
 
-    TTI_SFPTRANSP(0, 0, 0, 0);
     TTI_SFPSTORE(ckernel::p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_FLOATB, ckernel::ADDR_MOD_3, offset0); // row0
     TTI_SFPSTORE(ckernel::p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, ckernel::ADDR_MOD_3, offset1); // row1
     TTI_SFPSTORE(ckernel::p_sfpu::LREG2, sfpi::SFPLOADI_MOD0_FLOATB, ckernel::ADDR_MOD_3, offset2); // row2
     TTI_SFPSTORE(ckernel::p_sfpu::LREG3, sfpi::SFPLOADI_MOD0_FLOATB, ckernel::ADDR_MOD_3, offset3); // row3
-    TTI_SFPTRANSP(0, 0, 0, 0);
 }
 
 /*
@@ -75,6 +71,9 @@ sfpi_inline void _ema_store_current_input_()
  */
 sfpi_inline void _compute_ema_math_()
 {
+    // Transpose the input data to the correct order
+    TTI_SFPTRANSP(0, 0, 0, 0);
+
     // EMA equation: EMA_new = α * EMA_old + β * input
     // Where: LREG0=input, LREG4=EMA_old, LREG5=α, LREG6=(1-α), LREG7=EMA_new
     // Thus, LREG7 = LREG5 * LREG4 + LREG6 * LREG0
@@ -115,6 +114,9 @@ sfpi_inline void _compute_ema_math_()
     // Update EMA_old for next iteration
     // LREG4 = LREG3 (copy new EMA to old EMA register)
     TTI_SFPMOV(0, ckernel::p_sfpu::LREG3, ckernel::p_sfpu::LREG4, 0);
+
+    // Transpose the output data to the correct order
+    TTI_SFPTRANSP(0, 0, 0, 0);
 }
 
 /**
@@ -181,6 +183,9 @@ sfpi_inline void _clear_previous_output_()
  */
 sfpi_inline void _calculate_ema_tile_()
 {
+    // Transpose the input data to the correct order
+    TTI_SFPTRANSP(0, 0, 0, 0);
+
     // We load 4 rows of a tile (with 32 columns each) at a time and process them.
     // To finish the entire tile, we need to repeat this process 8 times.
 
@@ -196,6 +201,9 @@ sfpi_inline void _calculate_ema_tile_()
     _process_ema_block_<1, 1>();
     _process_ema_block_<1, 2>();
     _process_ema_block_<1, 3>();
+
+    // Transpose the output data to the correct order
+    TTI_SFPTRANSP(0, 0, 0, 0);
 }
 } // namespace sfpu
 } // namespace ckernel
