@@ -27,6 +27,7 @@ from .llk_params import (
     StochasticRounding,
     Tilize,
     Transpose,
+    UnpackerEngine,
     format_tile_sizes,
 )
 from .matmul_sweep import validate_tile_dimensions
@@ -131,6 +132,11 @@ def generate_build_header(test_config):
     )
     header_content.append(
         f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face.value};"
+    )
+
+    unpacker_engine_sel = test_config.get("unpacker_engine_sel", UnpackerEngine.UNP_A)
+    header_content.append(
+        f"constexpr auto UNPACKER_ENGINE_SEL = p_unpacr::{unpacker_engine_sel.name};"
     )
 
     # Throttle level
