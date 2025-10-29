@@ -7,6 +7,7 @@
 # =========================
 CXX_VERSION     := c++17
 TOOL_PATH       ?= $(realpath ../../tt-exalens/build/riscv-src/sfpi/compiler/bin)
+# TOOL_PATH       ?= $(realpath ./sfpi/compiler/bin)
 
 # =========================
 # Architecture Selection
@@ -63,7 +64,7 @@ GCOV			:= $(TOOL_PATH)/riscv32-tt-elf-gcov
 # =========================
 # Compiler and Linker Flags
 # =========================
-OPTIONS_ALL	:= -g -O3 -mabi=ilp32 -std=$(CXX_VERSION) -ffast-math
+OPTIONS_ALL	:= -g -O3 -mabi=ilp32 -std=$(CXX_VERSION) -ffast-math $(ARCH_NON_COMPUTE)
 OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Werror -Wunused-parameter \
 				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized \
 				   -Wmaybe-uninitialized -DTENSIX_FIRMWARE $(ARCH_DEFINE)
@@ -147,53 +148,53 @@ $(SHARED_DIS_DIR)/%.S: $(SHARED_ELF_DIR)/%.elf | $(SHARED_DIS_DIR)
 
 # link unpack.elf, math.elf, pack.elf
 $(ELF_DIR)/%.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/main_%.o $(OBJ_DIR)/kernel_%.o $(SHARED_OBJ_DIR)/gcov.o $(SHARED_OBJ_DIR)/coverage.o | $(ELF_DIR)
-	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(ARCH).coverage.ld -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(ARCH).coverage.ld -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 # link brisc.elf
 $(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/brisc.o $(SHARED_OBJ_DIR)/gcov.o $(SHARED_OBJ_DIR)/coverage.o | $(SHARED_ELF_DIR)
-	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(ARCH).coverage.ld -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(ARCH).coverage.ld -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 # disable make automatically deleting important intermediate files
 .SECONDARY: $(SHARED_OBJ_DIR)/*.o $(OBJ_DIR)/*.o
 
 # build kernel_unpack.o, kernel_math.o, kernel_pack.o from ai_gen subdirectory
 $(OBJ_DIR)/kernel_%.o: sources/ai_gen/$(testname).cpp $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $(DEPS_DIR)
-	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DCOMPILE_FOR_TRISC= \
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DCOMPILE_FOR_TRISC= \
 	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
 
 # build kernel_unpack.o, kernel_math.o, kernel_pack.o from main sources directory
 $(OBJ_DIR)/kernel_%.o: sources/$(testname).cpp $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $(DEPS_DIR)
-	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DCOMPILE_FOR_TRISC= \
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DCOMPILE_FOR_TRISC= \
 	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
 
 # build main_unpack.o, main_math.o, main_pack.o
 $(SHARED_OBJ_DIR)/main_%.o: $(RISCV_SOURCES)/trisc.cpp $(BUILD_DIR)/params.stamp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
-	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DCOMPILE_FOR_TRISC= \
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DCOMPILE_FOR_TRISC= \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
 
 # build brisc.o
 $(SHARED_OBJ_DIR)/brisc.o: $(RISCV_SOURCES)/brisc.cpp $(BUILD_DIR)/params.stamp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
-	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) \
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
 
 # build c runtime library
 $(SHARED_OBJ_DIR)/tmu-crt0.o: $(HELPERS)/tmu-crt0.S  $(SHARED_OBJ_DIR)/gcov.o $(SHARED_OBJ_DIR)/coverage.o | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
-	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) \
+	$(GXX) $(OPTIONS_ALL) $(OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
 
 #build coverage.o
 $(SHARED_OBJ_DIR)/coverage.o: $(RISCV_SOURCES)/coverage.c $(BUILD_DIR)/params.stamp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(COVERAGE_DIR)
-	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) -fno-strict-aliasing \
+	$(GXX) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) -fno-strict-aliasing \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
 
 $(SHARED_OBJ_DIR)/gcov.o: $(RISCV_SOURCES)/gcov.c $(BUILD_DIR)/params.stamp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(COVERAGE_DIR)
-	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) \
+	$(GXX) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
 

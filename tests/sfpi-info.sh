@@ -91,9 +91,14 @@ if [[ -r /etc/os-release ]] ; then
 fi
 sfpi_arch=$(uname -m)
 
+# https://github.com/tenstorrent/sfpi/releases/download/v7.1.0/sfpi_7.1.0_x86_64.txz
+# https://github.com/tenstorrent/sfpi/releases/download/v7.1.0/sfpi_7.1.0_x86_64.txz \
+# https://github.com/tenstorrent/sfpi/releases/download/v6.11.1/sfpi-x86_64_Linux.txz
+# https://github.com/tenstorrent/sfpi/releases/download/v6.11.1/sfpi_x86_64_Linux.txz
+
 # define download location & name
-sfpi_url=$sfpi_repo/releases/download/$sfpi_version
-sfpi_filename=sfpi_${sfpi_version}_${sfpi_arch}_${sfpi_dist}
+sfpi_url=$sfpi_repo/releases/download/v$sfpi_version
+sfpi_filename=sfpi-${sfpi_arch}_Linux
 
 if [[ ${1-} != RELEASE ]] ; then
     # querier of sfpi-version
