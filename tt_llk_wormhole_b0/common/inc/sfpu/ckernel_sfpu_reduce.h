@@ -376,6 +376,9 @@ inline void _init_reduce_sdpa_()
 {
     static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
+    // ***********************************************************
+    // SFPU LOADMACRO CONFIGURATION
+
     // Setup LOADMACRO sequence 0
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, (0xC | p_sfpu::LREG0) /*backdoor + dest*/, 1 /*instr_mod1*/);
     TTI_SFPLOADI(0, 0xA, 0x0084); // Lower 16 bits: slot0=0x84 (bit 7 set), slot1=0x00
@@ -390,30 +393,32 @@ inline void _init_reduce_sdpa_()
 
     TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
 
+    // ***********************************************************
+
     _init_sfpu_config_reg();
     sfpu_reduce_sdpa_configure_addrmod();
 
+    // ***********************************************************
     // Record replay buffer
-    lltt::record<lltt::NoExec>(0, 11);
+    lltt::record<lltt::NoExec>(0, 10);
     TTI_INCRWC(0, 4, 0, 0); // increment dest counter by 4
 
     // Use LOADMACRO with lreg_ind=0 (loads to LREG0, uses sequence 0)
     TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
     TTI_SFPNOP;
 
-    // Use LOADMACRO with lreg_ind=4 (loads to LREG4, uses sequence 1 since bits[3:2]=01)
-    TTI_SFPLOADMACRO(4, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
-    TTI_SFPNOP;
+    // Use LOADMACRO with lreg_ind=5 (loads to LREG5, uses sequence 1 since bits[3:2]=01)
+    TTI_SFPLOADMACRO(5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
 
     TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
+    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG1 /*lreg_dest*/, 1 /*instr_mod1*/);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
-
-    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
 
     // Dummy loads used to increment dest counters
     TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
     TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_1, 0);
+    // ***********************************************************
 }
 
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
@@ -422,6 +427,9 @@ inline void _calculate_reduce_sdpa_(const uint32_t block_height /*, const uint32
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
     static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
     static_assert(format == DataFormat::Float16_b, "SFPU reduce SDPA only supports Float16_b format");
+
+    constexpr uint32_t replay_buffer_offset    = 8;
+    constexpr uint32_t replay_buffer_next_face = 9;
 
     /*
     Initial loads of LREGS 0-3 which will hold maximul values of columns
@@ -438,30 +446,30 @@ inline void _calculate_reduce_sdpa_(const uint32_t block_height /*, const uint32
 
     // Do the first tile since it differs a bit from the rest
     // F0 and F1
-    lltt::replay(0, 9);
-    lltt::replay(0, 9);
-    lltt::replay(0, 10);
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_next_face);
 
     // F2 and F3
-    lltt::replay(0, 9);
-    lltt::replay(0, 9);
-    lltt::replay(0, 9);
-    lltt::replay(0, 11);
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_next_face + 1);
 
     // All other tiles but first one
     for (uint32_t i = 0; i < block_height - 1; i++)
     {
         // F0 and F1
-        lltt::replay(0, 9);
-        lltt::replay(0, 9);
-        lltt::replay(0, 9);
-        lltt::replay(0, 10);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_next_face);
 
         // F2 and F3
-        lltt::replay(0, 9);
-        lltt::replay(0, 9);
-        lltt::replay(0, 9);
-        lltt::replay(0, 11);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_next_face + 1);
     }
 
     // Reset dest RWC back to 0
