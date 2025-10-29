@@ -497,8 +497,6 @@ inline void _calculate_reduce_sdpa_(const uint32_t block_height /*, const uint32
     // F1
     TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
     TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
-
-    // Do tiles on the right side of subblock
 }
 
 } // namespace sfpu
