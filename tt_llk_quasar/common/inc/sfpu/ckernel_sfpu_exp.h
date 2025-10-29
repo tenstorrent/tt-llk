@@ -3,7 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-// #include "ckernel_ops.h"
 #include "ckernel_trisc_common.h"
 #include "cmath_common.h"
 
