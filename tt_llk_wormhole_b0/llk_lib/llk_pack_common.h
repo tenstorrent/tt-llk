@@ -291,6 +291,13 @@ inline void _llk_pack_reduce_mask_config_()
 }
 
 // OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+/**
+ * Configures pack masking for specialized reduce_max_row operations.
+ *
+ * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
+ * and should NOT be used as a substitute for native reduce pack configuration.
+ * Use the standard _llk_pack_reduce_mask_config_ for general-purpose reduction operations.
+ */
 inline void _llk_pack_reduce_max_row_mask_config_()
 {
     ckernel::packer::pck_edge_offset_u pack_edge_offset = {.val = 0};
