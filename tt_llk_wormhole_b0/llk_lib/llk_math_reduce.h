@@ -69,7 +69,6 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             // Move back to B and transpose in 2 parts, first hi16 bits then lo16 bits
             constexpr int dest_32b_hi = 0;
             constexpr int dest_32b_lo = 1;
-
             // move hi16 bits D2B
             // we avoid clobbering weights in src B by moving to rows 16 - 31
             TTI_MOVD2B(dest_32b_hi, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
@@ -443,6 +442,13 @@ inline void reduce_configure_mop()
 }
 
 // OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+/**
+ * Configures address modifiers for specialized reduce_max_row operations.
+ *
+ * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
+ * and should NOT be used as a substitute for native reduce LLK configuration.
+ * Use the standard reduce configuration functions for general-purpose reduction operations.
+ */
 inline void reduce_max_row_configure_addrmod()
 {
     addr_mod_t {
@@ -468,6 +474,13 @@ inline void reduce_max_row_configure_addrmod()
 }
 
 // OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+/**
+ * Performs specialized reduce_max_row operation on a single tile.
+ *
+ * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
+ * and should NOT be used as a substitute for the native _llk_math_reduce_ LLK.
+ * Use the standard _llk_math_reduce_<PoolType::MAX, ReduceDim::REDUCE_ROW>() for general-purpose reduction.
+ */
 inline void _llk_math_reduce_max_row_(const uint dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
@@ -554,16 +567,35 @@ inline void _llk_math_reduce_init_([[maybe_unused]] const std::uint32_t within_f
 }
 
 // OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+/**
+ * Initializes specialized reduce_max_row operation for single tile processing.
+ *
+ * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
+ * and should NOT be used as a substitute for the native _llk_math_reduce_init_ LLK.
+ * Use the standard _llk_math_reduce_init_<PoolType::MAX, ReduceDim::REDUCE_ROW>() for general-purpose reduction.
+ */
+template <bool is_fp32_dest_acc_en = false>
 inline void _llk_math_reduce_max_row_init_()
 {
     reduce_max_row_configure_addrmod();
+
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>((uint)DataFormat::Float32);
+    }
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-// MOP configuration function for block-based reduce
+/**
+ * Configures MOP (Macro Operation) for block-based reduce_max_row operations.
+ *
+ * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
+ * and should NOT be used as a substitute for native reduce LLK MOP configuration.
+ * Use the standard reduce MOP configuration with _llk_math_reduce_init_ for general-purpose reduction.
+ */
 template <uint32_t block_ct_dim>
 inline void _llk_math_reduce_block_max_row_mop_config_()
 {
@@ -615,28 +647,139 @@ inline void _llk_math_reduce_block_max_row_mop_config_()
     mop_template.program();
 }
 
-// Block-based reduce row max functions
-template <uint32_t block_ct_dim>
+/**
+ * Initializes block-based reduce_max_row operation for processing multiple tiles.
+ *
+ * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
+ * and should NOT be used as a substitute for the native _llk_math_reduce_init_ LLK.
+ * Use the standard _llk_math_reduce_init_<PoolType::MAX, ReduceDim::REDUCE_ROW>() with multiple
+ * _llk_math_reduce_() calls in a loop for general-purpose block reduction.
+ */
+template <uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
 inline void _llk_math_reduce_block_max_row_init_()
 {
     reduce_max_row_configure_addrmod();
+
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        // MOVB2D/D2B depends on SrcA ALU Format - Hi/Lo16 does not work with Tf32 (only on WH)
+        // This is needed because FP32 data from L1 that is unpacked to Src registers is reduced to Tf32
+        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>((uint)DataFormat::Float32);
+    }
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 
-    // Call the MOP configuration function
-    _llk_math_reduce_block_max_row_mop_config_<block_ct_dim>();
+    // Call the MOP configuration function if DEST is in 16-bit mode
+    if constexpr (!is_fp32_dest_acc_en)
+    {
+        _llk_math_reduce_block_max_row_mop_config_<block_ct_dim>();
+    }
 }
 
-template <uint32_t block_ct_dim>
+/**
+ * Performs block-based reduce_max_row operation across multiple tiles in the width dimension.
+ *
+ * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
+ * and should NOT be used as a substitute for the native _llk_math_reduce_ LLK.
+ * Use the standard _llk_math_reduce_<PoolType::MAX, ReduceDim::REDUCE_ROW>() in a loop
+ * for general-purpose block reduction across multiple tiles.
+ */
+template <uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
 inline void _llk_math_reduce_block_max_row_(const uint dst_index)
 {
     math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
 
-    // Execute the MOP that was configured in the init function
-    ckernel::ckernel_template::run();
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        // FP32 destination mode: Execute discrete TTI instructions matching native reduce pattern
+        // Based on _llk_math_reduce_ with enforce_fp32_accumulation=true
+        // Must process ALL 4 faces (F0+F1, then F2+F3) for each tile in the block
+        constexpr int dest_32b_hi = 0;
+        constexpr int dest_32b_lo = 1;
 
-    // Clear B valid at the end
-    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD);
+        // Process each tile in the block
+        for (uint32_t i = 0; i < block_ct_dim; i++)
+        {
+            // ===== Process F0 and F1 (first half of tile) =====
+            // Pool faces F0 and F1
+            TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+            TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+
+            // Move high 16 bits to B and transpose
+            TTI_MOVD2B(dest_32b_hi, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+            TTI_TRNSPSRCB;
+            TTI_MOVD2B(dest_32b_hi, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+
+            // Move high 16 bits back to Dest
+            TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
+            TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4);
+            TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
+            TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
+
+            // Move low 16 bits to B and transpose
+            TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+            TTI_TRNSPSRCB;
+            TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+
+            // Move low 16 bits back to Dest
+            // ADDR_MOD_2 increments CR_D and Dest counter val by 4, so that's why we always
+            // move SrcB to DEST location '0'. It's not really 0, but 0, 4, 8, 12
+            TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+            TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+            TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+            TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+
+            // Update counters to point to F2 (increment DEST by 8 rows, increment SrcA by 8)
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_AD, 8, 0, 8, p_setrwc::SET_AD);
+
+            // ===== Process F2 and F3 (second half of tile) =====
+            // Pool faces F2 and F3
+            TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
+            TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+
+            // Move high 16 bits to B and transpose
+            TTI_MOVD2B(dest_32b_hi, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+            TTI_TRNSPSRCB;
+            TTI_MOVD2B(dest_32b_hi, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+
+            // Move high 16 bits back to Dest
+            TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
+            TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4);
+            TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
+            TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
+
+            // Move low 16 bits to B and transpose
+            TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+            TTI_TRNSPSRCB;
+            TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+
+            // Move low 16 bits back to Dest
+            TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+            TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+            TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+            TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+
+            // Update counters for next tile (increment DEST by 8 to skip to next tile, increment SrcA by 8)
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_AD, 8, 0, 8, p_setrwc::SET_AD);
+
+            TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_ABD);
+        }
+
+        // Clear counters at the end
+        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    }
+    else
+    {
+        // BF16 destination mode: Execute the MOP that was configured in the init function
+        ckernel::ckernel_template::run();
+
+        // Clear B valid at the end
+        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    }
 }
