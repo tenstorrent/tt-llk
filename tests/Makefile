@@ -6,7 +6,7 @@
 # Toolchain and Directories
 # =========================
 CXX_VERSION     := c++17
-TOOL_PATH       ?= $(realpath ../../tt-exalens/build/riscv-src/sfpi/compiler/bin)
+TOOL_PATH		?= $(realpath ./sfpi/compiler/bin)
 
 # =========================
 # Architecture Selection
@@ -55,10 +55,10 @@ LINKER_SCRIPTS  := $(HELPERS)/ld
 HEADER_DIR      := hw_specific/$(ARCH)/inc
 RMDIR           := rm -rf
 
-GXX             := $(TOOL_PATH)/riscv32-tt-elf-g++
-OBJDUMP         := $(TOOL_PATH)/riscv32-tt-elf-objdump
-OBJCOPY         := $(TOOL_PATH)/riscv32-tt-elf-objcopy
-GCOV			:= $(TOOL_PATH)/riscv32-tt-elf-gcov
+GXX             := $(TOOL_PATH)/riscv-tt-elf-g++
+OBJDUMP         := $(TOOL_PATH)/riscv-tt-elf-objdump
+OBJCOPY         := $(TOOL_PATH)/riscv-tt-elf-objcopy
+GCOV			:= $(TOOL_PATH)/riscv-tt-elf-gcov
 
 # =========================
 # Compiler and Linker Flags
