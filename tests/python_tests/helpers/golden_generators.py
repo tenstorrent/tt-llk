@@ -41,10 +41,6 @@ def apply_masks(mantissas_1, mantissas_2, math_fidelity_phase):
 
 def check_bfp8_b(operand: list) -> list:
     """Check if datum is BFP8_B there is a +/- inf then zero out entire row of 16 elements because they inherit the same exponent and therefore get zeroed out in tensix."""
-    # tensor_bytes = pack_bfp8_b(torch.tensor(operand, dtype=torch.bfloat16))
-    # tensor = unpack_bfp8_b(tensor_bytes)
-    # return tensor
-
     not_finite = [math.inf, -math.inf]
     for i, x in enumerate(operand):
         if x in not_finite or math.isnan(x):
@@ -52,7 +48,9 @@ def check_bfp8_b(operand: list) -> list:
             for col in range(16):
                 row = i // 16
                 index = row * 16 + col
-                if not (operand[index] in not_finite or math.isnan(operand[index])):
+                if index < len(operand) and not (
+                    operand[index] in not_finite or math.isnan(operand[index])
+                ):
                     operand[index] = 0.0
 
     return operand
@@ -910,7 +908,7 @@ class UnarySFPUGolden:
             result = [self.ops[operation](x) for x in tensor.tolist()]
 
         if self.data_format == DataFormat.Bfp8_b:
-            check_bfp8_b(result)
+            result = check_bfp8_b(result)
 
         match (dst_format, data_format):
             # in the following cases, nans are preserved
