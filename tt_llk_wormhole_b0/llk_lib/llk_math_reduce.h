@@ -69,6 +69,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             // Move back to B and transpose in 2 parts, first hi16 bits then lo16 bits
             constexpr int dest_32b_hi = 0;
             constexpr int dest_32b_lo = 1;
+
             // move hi16 bits D2B
             // we avoid clobbering weights in src B by moving to rows 16 - 31
             TTI_MOVD2B(dest_32b_hi, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
