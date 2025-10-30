@@ -55,14 +55,11 @@ class ProfilerData:
 
     def __init__(self, df: pd.DataFrame, mask: pd.Series | None = None):
         self.df = df
-        self.mask = mask
+        self.mask = mask if mask is not None else pd.Series(True, index=df.index)
 
     def _apply_mask(self):
-        if self.mask is None:
-            return
-
         self.df = self.df[self.mask]
-        self.mask = None
+        self.mask = pd.Series(True, index=self.df.index)
 
     def _assert_zones_valid(
         self, start_entries: pd.DataFrame, end_entries: pd.DataFrame
@@ -144,31 +141,32 @@ class ProfilerData:
     # Filter by thread
     def unpack(self) -> "ProfilerData":
         """Filter: Unpack thread data"""
-        return ProfilerData(self.df, self.df["thread"] == "UNPACK")
+        return ProfilerData(self.df, self.mask & (self.df["thread"] == "UNPACK"))
 
     def math(self) -> "ProfilerData":
         """Filter: Math thread data"""
-        return ProfilerData(self.df, self.df["thread"] == "MATH")
+        return ProfilerData(self.df, self.mask & (self.df["thread"] == "MATH"))
 
     def pack(self) -> "ProfilerData":
         """Filter: Pack thread data"""
-        return ProfilerData(self.df, self.df["thread"] == "PACK")
+        return ProfilerData(self.df, self.mask & (self.df["thread"] == "PACK"))
 
     # Filter by type
     def zones(self) -> "ProfilerData":
         """Filter: Profiler zones"""
-        return ProfilerData(
-            self.df, (self.df["type"] == "ZONE_START") | (self.df["type"] == "ZONE_END")
+        zone_filter = (self.df["type"] == "ZONE_START") | (
+            self.df["type"] == "ZONE_END"
         )
+        return ProfilerData(self.df, self.mask & zone_filter)
 
     def timestamps(self) -> "ProfilerData":
         """Filter: Profiler timestamps"""
-        return ProfilerData(self.df, self.df["type"] == "TIMESTAMP")
+        return ProfilerData(self.df, self.mask & (self.df["type"] == "TIMESTAMP"))
 
     # Filter by marker
     def marker(self, marker: str) -> "ProfilerData":
         """Filter: Marker"""
-        return ProfilerData(self.df, self.df["marker"] == marker)
+        return ProfilerData(self.df, self.mask & (self.df["marker"] == marker))
 
 
 class Profiler:
