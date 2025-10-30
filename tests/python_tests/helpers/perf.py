@@ -3,10 +3,10 @@
 
 import os
 import shutil
-from dataclasses import dataclass, field, fields, is_dataclass
+from dataclasses import fields, is_dataclass
 from enum import Enum
 from pathlib import Path
-from statistics import mean, stdev
+from typing import Any
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -123,19 +123,6 @@ def _stats_l1_congestion(data: ProfilerData) -> pd.DataFrame:
     return pd.concat(stats, ignore_index=True)
 
 
-def process_runs(runs, test_config):
-    loop_factor = test_config.get("loop_factor", 1)
-    tile_cnt = test_config.get("tile_cnt", 1)
-
-    return tuple(
-        {
-            "mean": mean(column) / loop_factor / tile_cnt,
-            "stddev": stdev(column) / loop_factor / tile_cnt,
-        }
-        for column in zip(*runs)
-    )
-
-
 def perf_benchmark(
     test_config, run_types: list[PerfRunType], run_count=2, boot_mode=BootMode.DEFAULT
 ):  # global override boot mode for perf tests here
@@ -179,9 +166,51 @@ def perf_benchmark(
     return report
 
 
-@dataclass
 class PerfReport:
-    frame: pd.DataFrame | None = field(default_factory=lambda: None)
+    """
+    Lazy evaluation container for performance benchmark data.
+
+    Allows for lazy evaluated query and append operation to the report.
+
+    """
+
+    def __init__(
+        self,
+        frames: list[pd.DataFrame] | None = None,
+        masks: list[pd.Series] | None = None,
+    ):
+        self._frames = frames or [pd.DataFrame()]
+        self._masks = masks or [pd.Series()]
+
+    def append(self, frame: pd.DataFrame) -> None:
+        self._frames.append(frame)
+        self._masks.append(pd.Series(True, index=frame.index))
+
+    def frame(self) -> pd.DataFrame:
+        # merge
+        frame = pd.concat(self._frames, ignore_index=True)
+        mask = pd.concat(self._masks, ignore_index=True)
+
+        # apply masks
+        frame = frame[mask]
+
+        # save
+        self._frames = [frame]
+        self._masks = [pd.Series(True, index=frame.index)]
+
+        return frame
+
+    def filter(self, column: str, value: Any) -> "PerfReport":
+        """Filter: Generic column filter"""
+        mask_chain = [
+            mask & (frame[column] == value)
+            for frame, mask in zip(self._frames, self._masks)
+        ]
+        return PerfReport(frames=self._frames, masks=mask_chain)
+
+    def marker(self, marker: str) -> "PerfReport":
+        """Filter: Marker"""
+        return self.filter("marker", marker)
 
 
 @pytest.fixture(scope="module")
@@ -256,10 +285,7 @@ def update_report(report: PerfReport, test_config, results):
 
     combined = sweep.merge(results, how="cross")
 
-    if report.frame is None:
-        report.frame = combined
-    else:
-        report.frame = pd.concat([report.frame, combined], ignore_index=True)
+    report.append(combined)
 
 
 def delete_benchmark_dir(testname: str):
@@ -292,7 +318,7 @@ def dump_report(testname: str, report: PerfReport):
     benchmark_dir = create_benchmark_dir(testname)
     output_path = benchmark_dir / f"{testname}.csv"
 
-    report.frame.to_csv(output_path, index=False)
+    report.frame().to_csv(output_path, index=False)
 
 
 def dump_scatter(testname: str, report: PerfReport):
