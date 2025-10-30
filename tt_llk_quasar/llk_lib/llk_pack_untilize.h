@@ -57,10 +57,10 @@ inline void _llk_pack_untilize_init_(const TileShape& tile_shape)
 /**
  * @brief Packs out tiles and untilizes, always use PCK0 for untilize
  */
-inline void _llk_pack_untilize_(const uint rt_offset)
+inline void _llk_pack_untilize_(const uint dest_idx, const uint l1_rt_offset)
 {
-    TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, p_pacr::PACK0, rt_offset);
-    TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, p_pacr::PACK0, rt_offset * 32);
+    TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, p_pacr::PACK0, dest_idx);
+    TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, p_pacr::PACK0, l1_rt_offset);
     // Runs MOP
     ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
 }

@@ -158,7 +158,7 @@ void run_kernel()
     _llk_pack_untilize_init_<BUF_DESC, FULL_CT_DIM /*full_ct_dim*/, BLOCK_CT_DIM /*block_ct_dim */, C_DIM_FACES>(tile_shape);
     for (uint block_rt = 0; block_rt < BLOCK_RT_DIM; block_rt++)
     {
-        _llk_pack_untilize_(block_rt * FULL_CT_DIM);
+        _llk_pack_untilize_(0, block_rt * FULL_CT_DIM * 32);
     }
     _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }

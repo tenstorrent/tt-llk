@@ -11,11 +11,10 @@ from helpers.device import (
 )
 from helpers.format_config import DataFormat, FormatConfig
 from helpers.golden_generators import (
-    DataCopyGolden,
-    TransposeGolden,
+    TilizeGolden,
     get_golden_generator,
 )
-from helpers.llk_params import DestAccumulation, Transpose, UnpackerEngine, format_dict
+from helpers.llk_params import DestAccumulation, UnpackerEngine, format_dict
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -25,15 +24,15 @@ from helpers.test_config import BootMode, run_test
 from helpers.utils import passed_test
 
 
-def generate_unpack_unary_operand_combinations(
+def generate_unpack_tilize_combinations(
     formats_list: List[FormatConfig],
 ):
     """
-    Generate unpack_unary_operand combinations.
+    Generate unpack_tilize combinations.
 
     Rules:
-    1. When unpacking to dest, UNP_A is used.
-    2. When unpacking to dest, transpose is not supported.
+    1.
+    2.
     3.
 
     Returns: List of (format, dest_acc, transpose, unpacker_sel) tuples
@@ -45,53 +44,65 @@ def generate_unpack_unary_operand_combinations(
             continue
 
         if fmt.input_format.is_32_bit():
-            dest_acc_modes = [DestAccumulation.Yes]
-            transpose_modes = [Transpose.No]
-            unpacker_engines = [UnpackerEngine.UNP_A]
+            continue  # Tilize 32b data into dest not supported
         else:
-            dest_acc_modes = [
-                DestAccumulation.No
-            ]  # Cannot use unary_operand hw config if dest_acc is Yes and unpack_to_dest is False
-            transpose_modes = [Transpose.No, Transpose.Yes]
+            dest_acc_modes = [DestAccumulation.No]  # DestAccumulation.Yes]
             unpacker_engines = [UnpackerEngine.UNP_A, UnpackerEngine.UNP_B]
 
         for dest_acc in dest_acc_modes:
-            for transpose in transpose_modes:
-                for unpacker_sel in unpacker_engines:
-                    combinations.extend([(fmt, dest_acc, transpose, unpacker_sel)])
+            for unpacker_sel in unpacker_engines:
+                dimensions_list = generate_dest_acc_and_input_dimensions(dest_acc)
+                # dimensions_list = [[64, 64]] #generate_dest_acc_and_input_dimensions(dest_acc)
+                for dimensions in dimensions_list:
+                    combinations.extend([(fmt, dest_acc, unpacker_sel, dimensions)])
 
     return combinations
 
 
-UNPACK_FORMATS = input_output_formats(
+def generate_dest_acc_and_input_dimensions(dest_acc_mode):
+    """Generate all combinations of dest_acc and input dimensions."""
+    num_tile_rows = 32
+    num_tile_cols = 32
+    combinations = []
+
+    max_tiles_in_dest = 8 if dest_acc_mode == DestAccumulation.No else 4
+    for rows in range(1, max_tiles_in_dest + 1):
+        for cols in range(1, (max_tiles_in_dest // rows) + 1):
+            dimensions = [rows * num_tile_rows, cols * num_tile_cols]
+            combinations.append(dimensions)
+
+    return combinations
+
+
+UNPACK_TILIZE_FORMATS = input_output_formats(
     [
+        # DataFormat.Float16_b,
         DataFormat.Float16_b,
         DataFormat.Float16,
-        DataFormat.Float32,
+        # DataFormat.Float32,
     ]
 )
-DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
-ALL_UNPACK_UNARY_OPERAND_COMBINATIONS = generate_unpack_unary_operand_combinations(
-    UNPACK_FORMATS
+ALL_UNPACK_TILIZE_COMBINATIONS = generate_unpack_tilize_combinations(
+    UNPACK_TILIZE_FORMATS
 )
 
 
 @parametrize(
-    test_name="quasar_unpack_unary_operand_test",
-    formats_dest_acc_and_transpose_unpack_sel=ALL_UNPACK_UNARY_OPERAND_COMBINATIONS,
+    test_name="quasar_unpack_tilize_test",
+    formats_dest_acc_unpack_sel_dimensions=ALL_UNPACK_TILIZE_COMBINATIONS,
 )
-def test_unpack_unary_operand_quasar(
-    test_name, formats_dest_acc_and_transpose_unpack_sel, boot_mode=BootMode.DEFAULT
+def test_unpack_tilize_quasar(
+    test_name, formats_dest_acc_unpack_sel_dimensions, boot_mode=BootMode.DEFAULT
 ):
-    formats = formats_dest_acc_and_transpose_unpack_sel[0]
-    dest_acc = formats_dest_acc_and_transpose_unpack_sel[1]
-    transpose = formats_dest_acc_and_transpose_unpack_sel[2]
-    unpacker_sel = formats_dest_acc_and_transpose_unpack_sel[3]
+    formats = formats_dest_acc_unpack_sel_dimensions[0]
+    dest_acc = formats_dest_acc_unpack_sel_dimensions[1]
+    unpacker_sel = formats_dest_acc_unpack_sel_dimensions[2]
+    input_dimensions = formats_dest_acc_unpack_sel_dimensions[3]
 
     if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
         pytest.skip("Does not work")
 
-    input_dimensions = [32, 32]
+    # input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
@@ -99,29 +110,18 @@ def test_unpack_unary_operand_quasar(
         input_dimensions=input_dimensions,
     )
 
-    if transpose == Transpose.Yes:
-        generate_golden = get_golden_generator(TransposeGolden)
-        golden_tensor = generate_golden.transpose_faces_multi_tile(
-            src_A if unpacker_sel == UnpackerEngine.UNP_A else src_B,
-            formats.output_format,
-            num_tiles=tile_cnt,
-            tilize=False,
-            input_dimensions=input_dimensions,
-        )
-        golden_tensor = generate_golden.transpose_within_faces_multi_tile(
-            golden_tensor,
-            formats.output_format,
-            num_tiles=tile_cnt,
-            untilize=False,
-            input_dimensions=input_dimensions,
+    # Create test pattern: repeat [1,2,3,4] pattern for each tile's worth of data (1024 elements per tile)
+    # src_A = torch.arange(1, 5).repeat_interleave(256).repeat(tile_cnt)
+    # src_B = torch.arange(1, 5).repeat_interleave(256).repeat(tile_cnt)
+
+    generate_golden = get_golden_generator(TilizeGolden)
+    if unpacker_sel == UnpackerEngine.UNP_A:
+        golden_tensor = generate_golden(
+            src_A, input_dimensions, formats.output_format, 4
         )
     else:
-        generate_golden = get_golden_generator(DataCopyGolden)
         golden_tensor = generate_golden(
-            src_A if unpacker_sel == UnpackerEngine.UNP_A else src_B,
-            formats.output_format,
-            4,
-            input_dimensions,
+            src_B, input_dimensions, formats.output_format, 4
         )
 
     unpack_to_dest = (
@@ -136,8 +136,6 @@ def test_unpack_unary_operand_quasar(
         "input_B_dimensions": input_dimensions,
         "unpack_to_dest": unpack_to_dest,
         "tile_cnt": tile_cnt,
-        "unpack_transpose_faces": transpose,
-        "unpack_transpose_within_face": transpose,
         "unpacker_engine_sel": unpacker_sel,
     }
 
