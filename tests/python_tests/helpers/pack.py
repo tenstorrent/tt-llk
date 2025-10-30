@@ -15,31 +15,31 @@ def pack_bfp16(torch_tensor):
 
 
 def pack_fp16(torch_tensor):
-    return list(torch_tensor.cpu().numpy().astype(np.float16).tobytes())
+    return torch_tensor.cpu().numpy().astype(np.float16).tobytes()
 
 
 def pack_fp32(torch_tensor):
-    return list(torch_tensor.cpu().numpy().astype(np.float32).tobytes())
+    return torch_tensor.cpu().numpy().astype(np.float32).tobytes()
 
 
 def pack_int32(torch_tensor):
-    return list(torch_tensor.cpu().numpy().astype(np.int32).tobytes())
+    return torch_tensor.cpu().numpy().astype(np.int32).tobytes()
 
 
 def pack_uint32(torch_tensor):
-    return list(torch_tensor.cpu().numpy().astype(np.uint32).tobytes())
+    return torch_tensor.cpu().numpy().astype(np.uint32).tobytes()
 
 
 def pack_uint16(torch_tensor):
-    return list(torch_tensor.cpu().numpy().astype(np.uint16).tobytes())
+    return torch_tensor.cpu().numpy().astype(np.uint16).tobytes()
 
 
 def pack_int8(torch_tensor):
-    return list(torch_tensor.cpu().numpy().astype(np.int8).tobytes())
+    return torch_tensor.cpu().numpy().astype(np.int8).tobytes()
 
 
 def pack_uint8(torch_tensor):
-    return list(torch_tensor.cpu().numpy().astype(np.uint8).tobytes())
+    return torch_tensor.cpu().numpy().astype(np.uint8).tobytes()
 
 
 def float_to_bfp8_block(block):
