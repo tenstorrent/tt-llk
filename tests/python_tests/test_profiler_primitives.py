@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pandas as pd
-
 from helpers.profiler import Profiler
 from helpers.test_config import ProfilerBuild, run_test
 
