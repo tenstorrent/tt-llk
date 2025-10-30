@@ -19,6 +19,7 @@ pre-commit==4.3.0
 pygments==2.19.2
 pytest==8.4.1
 pytest-cov==6.1.1
+pytest-forked==1.6.0
 pytest-github-actions-annotate-failures==0.3.0
 pytest-random-order==1.2.0
 pytest-repeat==0.9.4
