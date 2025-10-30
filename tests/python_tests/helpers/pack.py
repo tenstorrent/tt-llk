@@ -9,9 +9,9 @@ import torch
 
 
 def pack_bfp16(torch_tensor):
-    arr32 = torch_tensor.cpu().to(torch.float32).numpy()
-    arr_bf16 = arr32.astype(ml_dtypes.bfloat16)
-    return arr_bf16.tobytes()
+    fp32_array = torch_tensor.cpu().to(torch.float32).numpy()
+    bfp16_array = fp32_array.astype(ml_dtypes.bfloat16)
+    return bfp16_array.tobytes()
 
 
 def pack_fp16(torch_tensor):
