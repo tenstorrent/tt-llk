@@ -37,6 +37,7 @@ void run_kernel()
         bd_val.words[i] = 0;
     }
 
+    constexpr TRANSPOSE_EN = UNPACK_TRANSPOSE_FACES && UNPACK_TRANSPOSE_WITHIN_FACE;
     unsigned l1_addr_16B;
     if constexpr (UNPACKER_ENGINE_SEL == p_unpacr::UNP_A)
     {
@@ -65,7 +66,7 @@ void run_kernel()
     }
     else
     {
-        _llk_unpack_unary_operand_init_<UNPACKER_ENGINE_SEL, BUF_DESC_ID, UNPACK_TRANSPOSE_FACES /*transpose*/, is_fp32_dest_acc_en>(num_tiles_per_unpack);
+        _llk_unpack_unary_operand_init_<UNPACKER_ENGINE_SEL, BUF_DESC_ID, TRANSPOSE_EN /*transpose*/, is_fp32_dest_acc_en>(num_tiles_per_unpack);
     }
 
     _llk_unpack_unary_operand_<UNPACKER_ENGINE_SEL>(0);
