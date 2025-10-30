@@ -23,6 +23,8 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
+    ckernel::init_prng_seed(0x12345678);
+
     _llk_unpack_A_init_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(
         UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, FACE_R_DIM, NUM_FACES, formats.unpack_src, formats.unpack_dst);
     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, STOCHASTIC_RND, disable_src_zero_flag>(
@@ -53,7 +55,8 @@ using namespace ckernel;
 
 void run_kernel()
 {
-    // Test configuration constants
+    ckernel::init_prng_seed(0x12345678);
+
     constexpr DstSync sync_mode = DstSync::SyncHalf;
 
     // copy srca to dest
@@ -84,7 +87,8 @@ void run_kernel()
 
 void run_kernel()
 {
-    // Test configuration constants
+    ckernel::init_prng_seed(0x12345678);
+
     constexpr DstSync sync_mode = DstSync::SyncHalf;
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, NUM_FACES);

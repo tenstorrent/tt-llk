@@ -317,7 +317,7 @@ def filter_params_with_z3(all_params):
             datacopy_acc_to_dest_constraint,
             bfp8_stochastic_constraint,
             wormhole_row_outlier_constraint,
-            hardware_regression_constraint,
+            # hardware_regression_constraint,
         )
 
         # Check if this parameter combination is valid
@@ -393,6 +393,9 @@ def test_unpack_comprehensive(
     num_faces,
 ):
     import torch
+
+    # PyTorch seed controls random stimuli generation
+    torch.manual_seed(0)
 
     # Compute unpack_to_dest based on format and accumulation mode
     unpack_to_dest = formats.input_format.is_32_bit() and acc_to_dest
