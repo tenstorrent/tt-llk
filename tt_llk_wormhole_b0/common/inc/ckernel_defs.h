@@ -44,9 +44,10 @@ enum DstClear
 
 enum ThreadId
 {
-    UnpackThreadId = 0,
-    MathThreadId   = 1,
-    PackThreadId   = 2
+    BriscThreadId  = 0,
+    UnpackThreadId = 1,
+    MathThreadId   = 2,
+    PackThreadId   = 3
 };
 
 enum DstTileLayout
@@ -65,6 +66,12 @@ enum DstTileFaceLayout
 {
     RowMajor, // default
     ColMajor,
+};
+
+enum class DataLayout
+{
+    TILE      = 0,
+    ROW_MAJOR = 1
 };
 
 enum DstTileShape
