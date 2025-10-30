@@ -8,6 +8,7 @@ iniconfig==2.1.0
 jinja2==3.1.6
 loguru==0.7.3
 markupsafe==3.0.2
+ml_dtypes==0.5.3
 mpmath==1.3.0
 narwhals==1.46.0
 networkx==3.4.2
