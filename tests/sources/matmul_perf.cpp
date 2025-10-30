@@ -163,7 +163,24 @@ void run_kernel()
             {
                 for (uint32_t tile = 0; tile < CT_DIM * RT_DIM; tile++)
                 {
+                    // Testing packer implementation
                     _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
+
+                    // Testing RISC counter
+                    // volatile uint32_t counter = 0;
+                    // for (uint32_t i = 0; i < 1000; i++)
+                    // {
+                    //     counter++;
+                    // }
+
+                    // Testing initialization in loop
+                    // _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_C_DIM * TILE_R_DIM);
+                    // _llk_pack_init_<
+                    //     /* untilize */ false,
+                    //     /* zero_output */ false,
+                    //     DstTileFaceLayout::RowMajor,
+                    //     /* write_tile_header */ false>(formats.pack_dst);
+                    // _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
                 }
             }
         }
