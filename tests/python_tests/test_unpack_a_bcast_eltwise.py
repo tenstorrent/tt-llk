@@ -14,6 +14,7 @@ from helpers.llk_params import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
+from helpers.target_config import TestTargetConfig
 from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test
@@ -131,6 +132,10 @@ def test_unp_bcast_sub_sdpa(
     )
 
     run_test(test_config)
+
+    test_target = TestTargetConfig()
+    if test_target.with_coverage:
+        return
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)

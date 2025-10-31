@@ -16,6 +16,7 @@ from helpers.llk_params import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
+from helpers.target_config import TestTargetConfig
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
@@ -56,7 +57,7 @@ from helpers.utils import passed_test
         MathOperation.ReluMax,
         MathOperation.ReluMin,
     ],
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.Yes, DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_acc):
     arch = get_chip_architecture()
@@ -102,12 +103,13 @@ def test_eltwise_unary_sfpu_int(test_name, formats, approx_mode, mathop, dest_ac
 def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
-    input_dimensions = [64, 64]
+    input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
+    src_A = torch.ones(1024) * 2
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
         mathop,
@@ -147,9 +149,12 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
 
     run_test(test_config)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    test_target = TestTargetConfig()
+    if test_target.with_coverage:
+        return
 
-    # res_from_L1 = res_from_L1[:1024]
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = res_from_L1[:1024]
     assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]

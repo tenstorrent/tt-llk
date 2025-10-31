@@ -14,7 +14,12 @@ class TestTargetConfig:
         return cls._instance
 
     def __init__(
-        self, run_simulator=False, simulator_port=5555, device_id=0, log_level="INFO"
+        self,
+        run_simulator=False,
+        simulator_port=5555,
+        device_id=0,
+        with_coverage=False,
+        log_level="INFO",
     ):
         """
             Initializes the test configuration in regards to using the simulator.
@@ -29,6 +34,7 @@ class TestTargetConfig:
             self.run_simulator: bool = run_simulator
             self.simulator_port: int = simulator_port
             self.device_id: int = device_id
+            self.with_coverage: bool = with_coverage
             self.log_level: str = log_level
             TestTargetConfig._initialized = True
 
@@ -36,6 +42,7 @@ class TestTargetConfig:
         """Update only the simulator related settings from pytest config"""
         self.run_simulator = config.getoption("--run_simulator", default=False)
         self.simulator_port = config.getoption("--port", default=5555)
+        self.with_coverage = config.getoption("--coverage", default=False)
 
 
 def initialize_test_target_from_pytest(config):

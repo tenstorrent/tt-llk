@@ -17,6 +17,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
+#include "ckernel_debug.h"
 #include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
 #include "params.h"
@@ -33,12 +34,15 @@ void run_kernel()
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }
+
+    // dbg_thread_halt<ThreadId::MathThreadId>();
 }
 
 #endif
 
 #ifdef LLK_TRISC_MATH
 
+#include "ckernel_debug.h"
 #include "ckernel_sfpu.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
@@ -77,6 +81,8 @@ void run_kernel()
 
         _llk_math_eltwise_unary_sfpu_done_();
     }
+
+    // dbg_thread_halt<ThreadId::MathThreadId>();
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

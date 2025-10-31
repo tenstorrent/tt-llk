@@ -21,6 +21,7 @@ from helpers.param_config import (
     parametrize,
 )
 from helpers.stimuli_generator import generate_stimuli
+from helpers.target_config import TestTargetConfig
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
@@ -188,6 +189,10 @@ def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to
     )
 
     run_test(test_config)
+
+    test_target = TestTargetConfig()
+    if test_target.with_coverage:
+        return
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
 

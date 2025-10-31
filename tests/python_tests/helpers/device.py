@@ -8,15 +8,19 @@ from enum import Enum, IntEnum
 from pathlib import Path
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from ttexalens.context import Context
 from helpers.hardware_controller import HardwareController
 from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.debug_tensix import TensixDebug
 from ttexalens.hardware.risc_debug import CallstackEntry, RiscDebug, RiscLocation
 from ttexalens.tt_exalens_lib import (
+    ParsedElfFile,
+    TTException,
     callstack,
     check_context,
     convert_coordinate,
     load_elf,
+    parse_elf,
     read_from_device,
     read_word_from_device,
     validate_device_id,
@@ -50,6 +54,7 @@ from .unpack import (
     unpack_uint16,
     unpack_uint32,
 )
+from .utils import run_shell_command
 
 # Constant - indicates the TRISC kernel run status
 KERNEL_COMPLETE = 1  # Kernel completed its run
@@ -195,11 +200,10 @@ def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
 
 
-def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
+def run_elf_files(testname, variant_id, boot_mode, device_id=0, location="0,0"):
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
     BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
-    TEST_DIR = BUILD_DIR / "tests" / testname
 
     boot_mode = resolve_default_boot_mode(boot_mode)
 
@@ -215,7 +219,7 @@ def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
     is_wormhole = get_chip_architecture() == ChipArchitecture.WORMHOLE
 
     elfs = [
-        str((TEST_DIR / "elf" / f"{trisc_name}.elf").absolute())
+        str((BUILD_DIR / testname / variant_id / "elf" / f"{trisc_name}.elf").absolute())
         for trisc_name in trisc_names
     ]
 
@@ -309,7 +313,7 @@ def write_stimuli_to_l1(
     tile_size_A_bytes = stimuli_A_format.num_bytes_per_tile(TILE_ELEMENTS)
     tile_size_B_bytes = stimuli_B_format.num_bytes_per_tile(TILE_ELEMENTS)
 
-    buffer_A_address = 0x1A000
+    buffer_A_address = 0x64000
     buffer_B_address = buffer_A_address + tile_size_A_bytes * tile_count_A
 
     # Handle optional third buffer
@@ -603,10 +607,54 @@ def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=5, max_bac
     )
 
 
-def reset_mailboxes():
+def reset_mailboxes(location: str = "0,0"):
     """Reset all core mailboxes before each test."""
-    location = "0, 0"
     reset_value = 0  # Constant - indicates the TRISC kernel run status
     mailboxes = [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]
     for mailbox in mailboxes:
         write_words_to_device(location=location, addr=mailbox.value, data=reset_value)
+
+
+def coverage(
+    location: str | OnChipCoordinate,
+    elf: str | ParsedElfFile,
+    stream_path: str,
+    device_id: int = 0,
+    context: Context | None = None,
+) -> None:
+
+    coordinate = convert_coordinate(location, device_id, context)
+    context = coordinate.context
+    if isinstance(elf, str):
+        elf = parse_elf(elf, context)
+
+    coverage_start = elf.symbols["__coverage_start"].value
+    if not coverage_start:
+        raise TTException("__coverage_start not found")
+
+    length = read_word_from_device(location, addr=coverage_start)
+
+    # 0xDEADBEEF will be written in place of length if overflow occurred.
+    if length == 0xDEADBEEF:
+        raise TTException("Coverage region overflowed")
+
+    data = read_from_device(location, coverage_start + 4, num_bytes=length - 4)
+    with open(stream_path, "wb") as f:
+        f.write(data)
+
+
+def pull_coverage_data(testname, variant_id, build_dir, device_id=0, location="0,0"):
+    # please sweep for inconsistencies in variable names
+    trisc_names = ["unpack", "math", "pack"]
+    for trisc_name in trisc_names:
+        elf_path = build_dir / "elf" / f"{trisc_name}.elf"
+        elf_file = parse_elf(elf_path)
+        stream_path = f"{build_dir}/{trisc_name}.raw.stream"
+        coverage(location, elf_file, stream_path, device_id, None)
+
+    LLK_HOME = os.environ.get("LLK_HOME")
+    tests_dir = str(Path(LLK_HOME) / "tests")
+    run_shell_command(
+        f"make testname={testname} info_file_name={testname}_{variant_id}.info variant={variant_id} coverage",
+        cwd=tests_dir,
+    )

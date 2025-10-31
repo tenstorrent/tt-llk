@@ -25,4 +25,4 @@ def test_boot_modes(boot_mode):
 
     HardwareController().reset_card()
 
-    run_matmul(test_name, math_fidelity, format_dest_acc_and_dims, boot_mode[0])
+    run_matmul(test_name, math_fidelity, format_dest_acc_and_dims, "gw0", boot_mode[0])

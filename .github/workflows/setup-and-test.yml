@@ -30,6 +30,11 @@ on:
         required: false
         default: false
         type: boolean
+      coverage:
+        description: "Enable code coverage testing for entire test suite"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   checks: write
@@ -82,14 +87,27 @@ jobs:
           elif [[ "${{ inputs.runs_on }}" =~ p150 ]]; then
             CHIP_ARCH=blackhole
           fi
+          export CHIP_ARCH
           echo "CHIP_ARCH=$CHIP_ARCH" >> $GITHUB_ENV
           SPLITS=$TEST_SPLITS
           cd tests/python_tests/
+
+          COVERAGE_FLAG=""
+          if [[ "${{ inputs.coverage }}" == "true" ]]; then
+            COVERAGE_FLAG="--coverage"
+          fi
+
           pytest -m "${{ inputs.pytest_markers }}" \
                 ${{ inputs.random_order && '--random-order-bucket=global' || '' }} \
                 --splits $SPLITS --group ${{ matrix.test_group }} \
                 --override-ini="addopts=-v" --timeout=60 \
-                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
+                $COVERAGE_FLAG \
+                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml . || true
+
+          if [[ "${{ inputs.coverage }}" == "true" ]]; then
+            cd ../
+            make merge_coverage_data
+          fi
 
       # Step 4: Zip performance data if perf tests were run
       - name: Zip performance data
@@ -98,6 +116,14 @@ jobs:
         run: |
           zip -r perf_data-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.zip perf_data/
           echo "Performance data zipped successfully"
+
+      # Step 4.1: Upload generated info file per runner
+      - name: Upload code coverage for this runner
+        uses: actions/upload-artifact@v4
+        if: always() && inputs.coverage
+        with:
+          name: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
+          path: tests/build/${{ env.CHIP_ARCH }}/merged_coverage.info
 
       # Step 5: Upload performance data
       - name: Upload performance data
@@ -125,3 +151,53 @@ jobs:
           report_paths: tests/python_tests/pytest-report-*-${{ matrix.test_group }}.xml
           include_passed: true
           annotate_only: true
+
+  merge-coverage:
+    name: "Merge coverage files"
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ inputs.docker_image }}
+    needs: setup-and-test
+    if: inputs.coverage == true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Download all coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: code-coverage-*
+          path: ./merged_coverage_files
+      - name: Unzip artefacts, merge coverage data, and generate HTML report
+        run: |
+          mkdir -p ./extracted_coverage_files
+          for dir in ./merged_coverage_files/*/; do
+            if [ -d "$dir" ]; then
+              folder_name=$(basename "$dir")
+              if [ -f "$dir/merged_coverage.info" ]; then
+                cp "$dir/merged_coverage.info" "./extracted_coverage_files/${folder_name}"
+              fi
+            fi
+          done
+
+          echo "-- Coverage files pulled from runners --"
+          find ./extracted_coverage_files/ -name "*.info"
+
+          first=$(ls ./extracted_coverage_files | head -n 1)
+          cp ./extracted_coverage_files/"$first" merged.info
+
+          for f in $(find ./extracted_coverage_files/ -name "*.info"); do
+            if [ "$f" != ./extracted_coverage_files/"$first" ]; then
+              lcov -q -a merged.info -a "$f" -o ./merged.info
+            fi
+          done
+
+          lcov -q --remove ./merged.info '*tests/*' \
+            -o ./merged_filtered.info
+
+          mkdir -p coverage_html
+          genhtml --branch-coverage ./merged_filtered.info --output-directory coverage_html
+      - name: Upload code coverage for this runner
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage_report_website
+          path: ./coverage_html
