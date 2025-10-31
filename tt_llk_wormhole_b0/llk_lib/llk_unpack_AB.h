@@ -82,6 +82,20 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
 
 // OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
 /**
+ * Sets X dimension for specialized reduce_row_max unpacking operations.
+ *
+ * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
+ * and should NOT be used as a substitute for native reduce unpacking LLK configuration.
+ * Use the standard configuration for general-purpose reduction operations.
+ */
+inline void _llk_unpack_AB_reduce_row_max_set_x_dim_()
+{
+    TTI_SETADCXX(p_setadc::UNP_B, FACE_R_DIM * FACE_C_DIM - 1, 0x0);       // Unpack a single face of a scaler
+    TTI_SETADCXX(p_setadc::UNP_A, 4 * (FACE_R_DIM * FACE_C_DIM) - 1, 0x0); // Unpack a whole tile of an operand
+}
+
+// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+/**
  * Configures MOP (Macro Operation) for specialized reduce_row_max unpacking operations.
  *
  * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
