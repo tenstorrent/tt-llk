@@ -34,7 +34,6 @@ def generate_unpack_unary_operand_combinations(
     Rules:
     1. When unpacking to dest, UNP_A is used.
     2. When unpacking to dest, transpose is not supported.
-    3.
 
     Returns: List of (format, dest_acc, transpose, unpacker_sel) tuples
     """

@@ -37,7 +37,10 @@ void run_kernel()
         bd_val.words[i] = 0;
     }
 
+    // Qsr has one argument, if set it does both transpose faces and within face
+    // (these two arguments will always be the same in the test for now)
     constexpr TRANSPOSE_EN = UNPACK_TRANSPOSE_FACES && UNPACK_TRANSPOSE_WITHIN_FACE;
+
     unsigned l1_addr_16B;
     if constexpr (UNPACKER_ENGINE_SEL == p_unpacr::UNP_A)
     {
@@ -58,7 +61,14 @@ void run_kernel()
     td_val.buf_desc_id     = BUF_DESC_ID;
     td_val.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
 
-    _llk_unpack_configure_unary_<UNPACKER_ENGINE_SEL>(td_val);
+    if (is_fp32_dest_acc_en)
+    {
+        _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val, td_val);
+    }
+    else
+    {
+        _llk_unpack_configure_unary_<UNPACKER_ENGINE_SEL>(td_val);
+    }
 
     if (unpack_to_dest)
     {
