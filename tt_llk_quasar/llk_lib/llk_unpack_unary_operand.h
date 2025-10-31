@@ -135,7 +135,7 @@ inline void _llk_unpack_unary_operand_transpose_mop_config_(const uint32_t num_t
 template <uint32_t UNP_SEL, uint32_t BUF_DESC_ID, bool TRANSPOSE_EN, bool IS_32b_DEST_EN>
 inline void _llk_unpack_unary_operand_init_(const uint32_t num_tiles)
 {
-    if constexpr (UNP_SEL == p_unpacr::UNP_A)
+    if constexpr (UNP_SEL == p_unpacr::UNP_A || UNP_SEL == p_unpacr::UNP_DEST)
     {
         cfg_rmw(THCON_UNPACKER0_REG0_TRANSPOSE_RMW, TRANSPOSE_EN);
     }

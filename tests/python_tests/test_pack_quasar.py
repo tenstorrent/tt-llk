@@ -28,15 +28,13 @@ from helpers.utils import passed_test
         [
             DataFormat.Float16_b,
             # DataFormat.Float16,
-            # DataFormat.Float32,
+            DataFormat.Float32,
         ],
         same=True,
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
-def test_pack_quasar(
-    test_name, formats, dest_acc, input_dimensions, boot_mode=BootMode.DEFAULT
-):
+def test_pack_quasar(test_name, formats, dest_acc, boot_mode=BootMode.DEFAULT):
 
     if formats.input_format == DataFormat.Float32 and dest_acc == DestAccumulation.No:
         pytest.skip("Fails")
