@@ -35,6 +35,8 @@ endif
 BUILD_DIR       ?= build/$(ARCH)
 
 SHARED_DIR      := $(BUILD_DIR)/shared
+COVERAGE_DIR	:= $(BUILD_DIR)/coverage
+COVERAGE_REPORT_DIR	:= $(BUILD_DIR)/coverage_report
 SHARED_OBJ_DIR  := $(SHARED_DIR)/obj
 SHARED_DEPS_DIR := $(SHARED_DIR)/deps
 SHARED_DIS_DIR  := $(SHARED_DIR)/dis
@@ -57,14 +59,16 @@ RMDIR           := rm -rf
 GXX             := $(TOOL_PATH)/riscv-tt-elf-g++
 OBJDUMP         := $(TOOL_PATH)/riscv-tt-elf-objdump
 OBJCOPY         := $(TOOL_PATH)/riscv-tt-elf-objcopy
+GCOV			:= $(realpath $(TOOL_PATH)/riscv-tt-elf-gcov)
 
 # =========================
 # Compiler and Linker Flags
 # =========================
-OPTIONS_ALL	:= -g -O3 -std=$(CXX_VERSION) -ffast-math
+OPTIONS_ALL	:= -g -O1 -std=$(CXX_VERSION) -ffast-math
 OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Werror -Wunused-parameter \
 				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized \
 				   -Wmaybe-uninitialized -DTENSIX_FIRMWARE -DENV_LLK_INFRA $(ARCH_DEFINE)
+COVERAGE_OPTIONS_COMPILE := $(OPTIONS_COMPILE)
 
 BOOT_MODE := $(if $(bootmode),$(bootmode),brisc)
 ifeq ($(BOOT_MODE),brisc)
@@ -78,6 +82,15 @@ ifeq ($(PROFILER_BUILD),true)
 	OPTIONS_COMPILE += -DLLK_PROFILER
 endif
 
+COVERAGE_DEPS :=
+MEMORY_LAYOUT_LD_SCRIPT := $(LINKER_SCRIPTS)/memory.$(ARCH).ld
+COVERAGE_BUILD := $(if $(coverage_build),$(coverage_build),false)
+ifeq ($(COVERAGE_BUILD),true)
+	COVERAGE_DEPS := $(SHARED_OBJ_DIR)/gcov.o $(SHARED_OBJ_DIR)/coverage.o
+	MEMORY_LAYOUT_LD_SCRIPT := $(LINKER_SCRIPTS)/memory.$(ARCH).debug.ld
+	OPTIONS_COMPILE += -fprofile-arcs -ftest-coverage -fprofile-info-section -DCOVERAGE
+endif
+
 OPTIONS_LINK	:= -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
 
 INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
@@ -85,6 +98,7 @@ INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
 			-Isfpi/include -Ihelpers/include
 
 OPTIONS_COMPILE += $(INCLUDES)
+COVERAGE_OPTIONS_COMPILE := $(INCLUDES)
 
 TO_UPPER = $(shell echo $(1) | tr '[:lower:]' '[:upper:]')
 
@@ -136,15 +150,16 @@ $(SHARED_DIS_DIR)/%.S: $(SHARED_ELF_DIR)/%.elf | $(SHARED_DIS_DIR)
 	$(OBJDUMP) -t $< | sort >> $@
 
 # link unpack.elf, math.elf, pack.elf
-$(ELF_DIR)/%.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/main_%.o $(OBJ_DIR)/kernel_%.o | $(ELF_DIR)
-	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(ARCH).ld -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
+$(ELF_DIR)/%.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/main_%.o $(OBJ_DIR)/kernel_%.o $(COVERAGE_DEPS) | $(ELF_DIR) $(COVERAGE_DIR) $(COVERAGE_REPORT_DIR)
+	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 # link brisc.elf
-$(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/brisc.o | $(SHARED_ELF_DIR)
-	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(LINKER_SCRIPTS)/memory.$(ARCH).ld -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
+$(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/brisc.o $(COVERAGE_DEPS) | $(SHARED_ELF_DIR) $(COVERAGE_DIR) $(COVERAGE_REPORT_DIR)
+	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 # disable make automatically deleting important intermediate files
 .SECONDARY: $(SHARED_OBJ_DIR)/*.o $(OBJ_DIR)/*.o
+.PRECIOUS: $(OBJ_DIR)/kernel_%.o
 
 # build kernel_unpack.o, kernel_math.o, kernel_pack.o from sources directory (checks ai_gen, quasar, then main)
 # Find which source file exists and determine if COMPILE_FOR_TRISC flag is needed
@@ -168,6 +183,16 @@ $(SHARED_OBJ_DIR)/brisc.o: $(RISCV_SOURCES)/brisc.cpp $(BUILD_DIR)/params.stamp 
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
 
+$(SHARED_OBJ_DIR)/gcov.o: $(HELPERS)/src/gcov.c | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
+	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) \
+	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
+	-c -o $@ $<
+
+$(SHARED_OBJ_DIR)/coverage.o: $(HELPERS)/src/coverage.c | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
+	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) -fno-strict-aliasing \
+	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
+	-c -o $@ $<
+
 # build c runtime library
 $(SHARED_OBJ_DIR)/tmu-crt0.o: $(HELPERS)/tmu-crt0.S | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
 	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) \
@@ -188,8 +213,19 @@ $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR):
 	mkdir -p $@
 
 # create folder structure for test specific files
-$(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR):
+$(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR) $(COVERAGE_DIR) $(COVERAGE_REPORT_DIR):
 	mkdir -p $@
+
+INFO_PATH	:= $(COVERAGE_DIR)/coverage.info
+
+ELF_FILES := $(wildcard $(ELF_DIR)/*.elf)
+
+coverage: $(COVERAGE_DIR) $(COVERAGE_REPORT_DIR)
+	lcov --gcov-tool $(GCOV) --capture \
+	--directory $(COVERAGE_DIR) \
+	--directory $(ELF_DIR) \
+	--output-file $(INFO_PATH) --rc lcov_branch_coverage=1
+	genhtml --branch-coverage $(INFO_PATH) --output-directory $(COVERAGE_REPORT_DIR)
 
 
 # =========================

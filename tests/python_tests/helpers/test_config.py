@@ -12,6 +12,7 @@ from .device import (
     resolve_default_boot_mode,
     run_elf_files,
     wait_for_tensix_operations_finished,
+    pull_coverage_data
 )
 from .format_config import DataFormat, FormatConfig
 from .llk_params import (
@@ -551,7 +552,7 @@ def generate_make_command(
 
     boot_mode = resolve_default_boot_mode(boot_mode)
     # Simplified make command - only basic build parameters
-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} all "
+    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} coverage_build=true all "
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "

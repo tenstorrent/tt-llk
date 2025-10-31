@@ -1,0 +1,1 @@
+cov /proj_sw/user_dev/ajankovic/tt-llk/tests/build/wormhole/tests/matmul_test/elf/math.elf /proj_sw/user_dev/ajankovic/tt-llk/tests/build/wormhole/coverage/math.gcda /proj_sw/user_dev/ajankovic/tt-llk/tests/build/wormhole/coverage/math.gcno
