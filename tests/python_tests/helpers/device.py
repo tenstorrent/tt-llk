@@ -13,6 +13,7 @@ from ttexalens.debug_tensix import TensixDebug
 from ttexalens.tt_exalens_lib import (
     check_context,
     load_elf,
+    coverage,
     read_from_device,
     read_word_from_device,
     write_to_device,
@@ -274,7 +275,7 @@ def write_stimuli_to_l1(
     tile_size_A_bytes = stimuli_A_format.num_bytes_per_tile(TILE_ELEMENTS)
     tile_size_B_bytes = stimuli_B_format.num_bytes_per_tile(TILE_ELEMENTS)
 
-    buffer_A_address = 0x1A000
+    buffer_A_address = 0x64000
     buffer_B_address = buffer_A_address + tile_size_A_bytes * tile_count_A
 
     # Handle optional third buffer
@@ -521,3 +522,7 @@ def reset_mailboxes():
     mailboxes = [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]
     for mailbox in mailboxes:
         write_words_to_device(location=location, addr=mailbox.value, data=reset_value)
+
+def pull_coverage_data():
+    coverage("0,0", )
+    pass

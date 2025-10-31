@@ -12,6 +12,7 @@ from .device import (
     resolve_default_boot_mode,
     run_elf_files,
     wait_for_tensix_operations_finished,
+    pull_coverage_data
 )
 from .format_config import DataFormat, FormatConfig
 from .llk_params import (
