@@ -35,15 +35,14 @@ ALL_RUN_TYPES = [type for type in PerfRunType]
 def _stats_timings(perf_data: pd.DataFrame) -> pd.DataFrame:
 
     # dont aggregate marker column
-    timings = perf_data.columns[1:]
+    timings = perf_data.columns.drop("marker")
+    result = perf_data.groupby("marker", as_index=False)[timings].agg(["mean", "std"])
 
-    # Calculate mean and std for all numeric columns at once
-    aggregations = {timing: ["mean", "std"] for timing in timings}
-    result = perf_data.groupby("marker").agg(aggregations)
+    columns = ["marker"]
+    columns += [f"{stat}({col})" for col in timings for stat in ["mean", "std"]]
 
-    result.columns = [f"{stat}({col})" for col, stat in result.columns]
-
-    return result.reset_index()
+    result.columns = columns
+    return result
 
 
 def _stats_l1_to_l1(data: ProfilerData) -> pd.Series:
@@ -89,6 +88,11 @@ def _stats_thread(stat: str, raw_thread: pd.DataFrame) -> pd.DataFrame:
     )
 
     end_entries = raw_thread[(raw_thread["type"] == "ZONE_END")].reset_index(drop=True)
+
+    if len(start_entries) != len(end_entries):
+        raise ValueError(
+            f"Mismatched start/end zones: {len(start_entries)} != {len(end_entries)}"
+        )
 
     timings = pd.DataFrame(
         {
@@ -250,14 +254,11 @@ def _get_sweep_names(params):
 
 
 def _get_sweep_values(params):
-    sweep_values = []
-    for param in params.values():
-        if is_dataclass(param):
-            sweep_values.extend(_dataclass_values(param))
-        else:
-            sweep_values.append(param)
-
-    return sweep_values
+    return [
+        value
+        for param in params.values()
+        for value in (_dataclass_values(param) if is_dataclass(param) else [param])
+    ]
 
 
 def _get_sweep(params):
