@@ -14,7 +14,7 @@ from helpers.golden_generators import (
     TilizeGolden,
     get_golden_generator,
 )
-from helpers.llk_params import DestAccumulation, UnpackerEngine, format_dict
+from helpers.llk_params import DestAccumulation, DestSync, UnpackerEngine, format_dict
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -31,9 +31,7 @@ def generate_unpack_tilize_combinations(
     Generate unpack_tilize combinations.
 
     Rules:
-    1.
-    2.
-    3.
+    1. Tilize 32b data into dest is not yet supported
 
     Returns: List of (format, dest_acc, transpose, unpacker_sel) tuples
     """
@@ -46,26 +44,44 @@ def generate_unpack_tilize_combinations(
         if fmt.input_format.is_32_bit():
             continue  # Tilize 32b data into dest not supported
         else:
-            dest_acc_modes = [DestAccumulation.No]  # DestAccumulation.Yes]
+            dest_acc_modes = [DestAccumulation.No, DestAccumulation.Yes]
             unpacker_engines = [UnpackerEngine.UNP_A, UnpackerEngine.UNP_B]
 
         for dest_acc in dest_acc_modes:
+            dimensions_list = generate_input_dimensions(dest_acc)
             for unpacker_sel in unpacker_engines:
-                dimensions_list = generate_dest_acc_and_input_dimensions(dest_acc)
-                # dimensions_list = [[64, 64]] #generate_dest_acc_and_input_dimensions(dest_acc)
                 for dimensions in dimensions_list:
                     combinations.extend([(fmt, dest_acc, unpacker_sel, dimensions)])
 
     return combinations
 
 
-def generate_dest_acc_and_input_dimensions(dest_acc_mode):
-    """Generate all combinations of dest_acc and input dimensions."""
+def generate_input_dimensions(dest_acc, dest_sync=DestSync.Half):
+    """Generate all possible input dimensions, depending on dest_acc and dest_sync,
+    that can fit into dest.
+
+    Key rules:
+    1. The possible input dimensions are determined by dest_sync and dest_acc
+
+    Args:
+        dest_acc: Dest accumulation mode
+        dest_sync: Dest sync mode
+
+    Returns:
+        List of input dimensions
+    """
+
+    DEST_SYNC_TILE_LIMITS = {
+        DestSync.Half: 8,
+        DestSync.Full: 16,
+    }
+    capacity_divisor = 2 if dest_acc == DestAccumulation.Yes else 1
+    max_tiles_in_dest = DEST_SYNC_TILE_LIMITS[dest_sync] // capacity_divisor
+
     num_tile_rows = 32
     num_tile_cols = 32
     combinations = []
 
-    max_tiles_in_dest = 8 if dest_acc_mode == DestAccumulation.No else 4
     for rows in range(1, max_tiles_in_dest + 1):
         for cols in range(1, (max_tiles_in_dest // rows) + 1):
             dimensions = [rows * num_tile_rows, cols * num_tile_cols]
@@ -76,7 +92,6 @@ def generate_dest_acc_and_input_dimensions(dest_acc_mode):
 
 UNPACK_TILIZE_FORMATS = input_output_formats(
     [
-        # DataFormat.Float16_b,
         DataFormat.Float16_b,
         DataFormat.Float16,
         # DataFormat.Float32,
@@ -110,19 +125,12 @@ def test_unpack_tilize_quasar(
         input_dimensions=input_dimensions,
     )
 
-    # Create test pattern: repeat [1,2,3,4] pattern for each tile's worth of data (1024 elements per tile)
-    # src_A = torch.arange(1, 5).repeat_interleave(256).repeat(tile_cnt)
-    # src_B = torch.arange(1, 5).repeat_interleave(256).repeat(tile_cnt)
-
     generate_golden = get_golden_generator(TilizeGolden)
-    if unpacker_sel == UnpackerEngine.UNP_A:
-        golden_tensor = generate_golden(
-            src_A, input_dimensions, formats.output_format, 4
-        )
-    else:
-        golden_tensor = generate_golden(
-            src_B, input_dimensions, formats.output_format, 4
-        )
+
+    golden_src = src_A if unpacker_sel == UnpackerEngine.UNP_A else src_B
+    golden_tensor = generate_golden(
+        golden_src, input_dimensions, formats.output_format, 4
+    )
 
     unpack_to_dest = (
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
@@ -160,8 +168,5 @@ def test_unpack_tilize_quasar(
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
-
-    print(res_tensor)
-    print(golden_tensor)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

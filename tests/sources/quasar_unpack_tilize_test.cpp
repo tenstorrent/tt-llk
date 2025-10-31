@@ -75,7 +75,7 @@ void run_kernel()
     for (uint block_rt = 0; block_rt < BLOCK_RT_DIM; block_rt++)
     {
         _llk_unpack_tilize_<UNPACKER_ENGINE_SEL>(block_rt * FULL_CT_DIM * 32, 0);
-    } // Works for UNP_B if addressA, does not work with addressB
+    }
 }
 
 #endif

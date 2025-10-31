@@ -27,27 +27,30 @@ inline void _llk_unpack_tilize_mop_config_()
     static_assert((BUF_DESC_ID < 16 && BUF_DESC_ID >= 0), "BUF_DESC_ID should be between 0-16 for unpackers");
 
     constexpr uint32_t MOP_OUTER_LOOP = 1;
-    // constexpr uint32_t MOP_INNER_LOOP = 1;
     constexpr uint32_t MOP_INNER_LOOP = BLOCK_CT_DIM;
 
     constexpr static uint unpack_tile_instrn = TT_OP_UNPACR_TILIZE(0, 0, 1 /*dst Z increment*/, 1 /*src Z increment*/, UNP_SEL, BUF_DESC_ID, 1 /*Set Dvalid*/);
-    constexpr static uint reset_cntr_instrn =
+
+    constexpr static uint reset_cntrs_instrn =
         TT_OP_UNPACR_TILIZE(0, 3 /*Cntr_Reset_Mask*/, 0 /*dst Z increment*/, 0 /*src Z increment*/, UNP_SEL, BUF_DESC_ID, 1 /*Set Dvalid*/);
 
-    ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, unpack_tile_instrn);
-    temp.set_last_outer_loop_instr(reset_cntr_instrn);
-
-    // FP32 datacopy uses ELWADD, which requires datavalid from both SrcA and SrcB, so need to add SrcB datavalid
-    if constexpr (IS_32b_DEST_EN && UNP_SEL == p_unpacr::UNP_A)
-    { // TODO pgardner: I dont think ill need this for float32 dest
-        temp.set_end_op(TT_OP_UNPACR_NOP(p_unpacr::UNP_B, 1 /*Dvalid*/, 0, 0, 0 /*clear to 0*/, 0 /*clear to 0*/));
-    }
-    else if constexpr (IS_32b_DEST_EN && UNP_SEL == p_unpacr::UNP_B)
+    if constexpr (IS_32b_DEST_EN)
     {
-        temp.set_end_op(TT_OP_UNPACR_NOP(p_unpacr::UNP_A, 1 /*Dvalid*/, 0, 0, 0 /*clear to 0*/, 0 /*clear to 0*/));
-    }
+        // FP32 datacopy uses ELWADD, which requires dvalid from both SrcA and SrcB
+        // Set dvalid for the opposite unpacker (if using UNP_A, set dvalid for UNP_B and vice versa)
+        constexpr uint32_t OPPOSITE_UNP          = (UNP_SEL == p_unpacr::UNP_A) ? p_unpacr::UNP_B : p_unpacr::UNP_A;
+        constexpr static uint fp32_dvalid_instrn = TT_OP_UNPACR_NOP(OPPOSITE_UNP, 1 /*Dvalid*/, 0, 0, 0 /*clear to 0*/, 0 /*UNP_CLR_SRC*/);
 
-    temp.program_bank0_sw_cntl(instrn_buffer);
+        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, fp32_dvalid_instrn, unpack_tile_instrn);
+        temp.set_last_outer_loop_instr(reset_cntrs_instrn);
+        temp.program_bank0_sw_cntl(instrn_buffer);
+    }
+    else
+    {
+        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, unpack_tile_instrn);
+        temp.set_last_outer_loop_instr(reset_cntrs_instrn);
+        temp.program_bank0_sw_cntl(instrn_buffer);
+    }
 }
 
 /**
