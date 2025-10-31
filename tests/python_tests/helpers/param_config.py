@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
+import inspect
 from itertools import product
-from typing import List, Optional, Tuple, TypedDict
+from typing import Dict, List, Optional, Set, Tuple, TypedDict
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.log_utils import add_to_format_log
+from typing_extensions import deprecated
 
 from .format_config import (
     DataFormat,
@@ -96,51 +97,141 @@ class TestParamsConfig(TypedDict):
     dst_idx: Optional[List[int]] = None
 
 
-def generate_params(**kwargs: any) -> List[tuple]:
-    """
-    Generates a list of parameter combinations for test configurations.
+# When reading this file, keep in mind that parameter means FORMAL PARAMETER and argument means ACTUAL PARAMETER
 
-    This function creates all possible combinations of the provided test parameters, including optional ones,
-    while filtering out any None values. The function returns these combinations as tuples, which can be used
-    for setting up tests or experiments.
+
+def _param_dependencies(parameter: str, argument: any) -> Set[str]:
+    """Extract parameter names from a callable using introspection."""
+    if callable(argument):
+        return set(inspect.signature(argument).parameters.keys())
+    return set()
+
+
+def _resolution_map(**kwargs: any) -> Dict[int, Set[int]]:
+    """
+    Builds a map of parameters used to resolve the constrained cartesian product
+
+    The ordering of the keys in the map is the order in which the parameters are resolved.
+
+    The key (int) is the index of the parameter in the result tuple.
+    The values (set[int]) are the indices of the parameters on which the current parameter depends.
+
+    """
+    param_idx = {param: idx for idx, param in enumerate(kwargs.keys())}
+
+    # Build dependency graph: param -> set of dependencies
+    dependency_matrix = {
+        param_idx[param]: set(
+            [param_idx[dependency] for dependency in _param_dependencies(param, value)]
+        )
+        for param, value in kwargs.items()
+    }
+
+    topological = {}
+    resolved = set()
+
+    while dependency_matrix:
+        resolved_next = {
+            param: deps
+            for param, deps in dependency_matrix.items()
+            if not (deps - resolved)
+        }
+
+        if not resolved_next:
+            # convert indices back to parameter names
+            circular_dependencies = [
+                kwargs.keys()[idx] for idx in dependency_matrix.keys()
+            ]
+
+            raise ValueError(
+                f"Circular dependency detected among: {circular_dependencies}"
+            )
+
+        resolved_params = resolved_next.keys()
+
+        # Add newly resolved parameters to topological order and resolved set
+        resolved.update(resolved_params)
+        topological.update(resolved_next)
+
+        # Remove resolved parameters from dependency graph
+        for param in resolved_params:
+            del dependency_matrix[param]
+
+    return topological
+
+
+def _params_solve_dependencies(**kwargs: any) -> List[Tuple]:
+    """
+    Compute constrained cartesian product by resolving parameter dependencies.
+
+    Uses recursive backtracking to generate all valid combinations where
+    callable parameters can depend on previously resolved parameters.
 
     Returns:
-    List[tuple]: A list of tuples, where each tuple represents a combination of parameters with any `None` values filtered out.
-
-    Example:
-    >>> testnames = ["multiple_tiles_eltwise_test", "matmul_test"]
-    >>> format_combos = [FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16)]
-    >>> generate_params(testnames, format_combos, dest_acc=[DestAccumulation.Yes], approx_mode=[ApproximationMode.Yes])
-    [
-        ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproximationMode.Yes, None, None, None, None, None),
-        ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproximationMode.No, None, None, None, None, None)
-    ]
+        List of tuples representing all valid parameter combinations
     """
+    param_order = tuple[str, ...](kwargs.keys())
+    resolution_order = _topsort_dependencies(**kwargs)
 
-    format_combos = kwargs.get("formats", [])
-    dest_acc = kwargs.get("dest_acc", [])
+    def _resolution_to_param_order(resolution: List[Tuple]) -> List[Tuple]:
+        # Create mapping from param name to index in param_order for fast lookup
+        param_to_idx = {param: idx for idx, param in enumerate(param_order)}
+        # Create mapping from topological index to param_order index
+        topo_to_order_idx = [param_to_idx[param] for param in topological]
 
-    for combo in format_combos:
-        if not isinstance(combo, InputOutputFormat):
-            continue
+    def _resolve_param_values(param: str, resolved_list: list) -> list:
+        """Get possible values for a parameter given resolved dependencies."""
+        value = kwargs[param]
 
-        for acc in dest_acc:
-            if acc == DestAccumulation.No and is_dest_acc_needed(combo):
-                key = (combo.input, combo.output)
-                if key not in checked_formats_and_dest_acc:
-                    add_to_format_log(combo.input_format, combo.output_format)
-                    checked_formats_and_dest_acc[key] = True
+        if param in callable_params:
+            deps = callable_params[param]
+            # Build constraint kwargs only for resolved dependencies
+            constraint_kwargs = {}
+            for dep in deps:
+                dep_idx = param_to_idx.get(dep)
+                if dep_idx is not None and resolved_list[dep_idx] is not None:
+                    constraint_kwargs[dep] = resolved_list[dep_idx]
+            result = value(**constraint_kwargs)
+            return result if isinstance(result, list) else [result]
 
-    wrap_list = lambda x: [x] if not isinstance(x, list) else x
-    arguments = [wrap_list(value) for value in kwargs.values() if value is not None]
+        if isinstance(value, list):
+            return value
 
-    return product(*arguments)
+        return [value]
+
+    def _solve_recursive(parameter_idx: int, resolved: list) -> List[Tuple]:
+        """Recursively build combinations starting from parameter at idx."""
+        if parameter_idx >= len(topological):
+            # Return tuple of resolved parameters in the original order
+            return [tuple(resolved)]
+
+        # Get current parameter and its possible values
+        parameter = topological[parameter_idx]
+        param_idx_in_order = topo_to_order_idx[parameter_idx]
+        arguments = _resolve_param_values(parameter, resolved)
+
+        if not arguments:
+            return []
+
+        # For each possible value, recurse with next parameter
+        combinations = []
+        for argument in arguments:
+            # Create new resolved list with updated value
+            resolved_next = list(resolved)
+            resolved_next[param_idx_in_order] = argument
+            combinations.extend(_solve_recursive(parameter_idx + 1, resolved_next))
+
+        return combinations
+
+    # Initialize resolved list with None values
+    initial_resolved = [None] * len(param_order)
+    return _solve_recursive(0, initial_resolved)
 
 
 def parametrize(**kwargs: any):
-    parameters = kwargs.keys()
+    parameters = tuple(kwargs.keys())
     parameters_string = ",".join(parameters)
-    parameter_values = generate_params(**kwargs)
+    parameter_values = _params_solve_dependencies(**kwargs)
 
     def decorator(test_function):
         return pytest.mark.parametrize(parameters_string, parameter_values)(
@@ -148,6 +239,14 @@ def parametrize(**kwargs: any):
         )
 
     return decorator
+
+
+@deprecated("Try using parametrize or python inbuilt product function")
+def generate_params(**kwargs: any) -> List[tuple]:
+    wrap_list = lambda x: [x] if not isinstance(x, list) else x
+    arguments = [wrap_list(value) for value in kwargs.values() if value is not None]
+
+    return product(*arguments)
 
 
 def input_output_formats(
