@@ -22,7 +22,7 @@ sfpi_inline void _calculate_log_body_(const uint log_base_scale_factor, const ui
     // Load From dest + "normalize to calculation range"
     ////////////////////////////
     sfpi::vFloat in = sfpi::dst_reg[dst_idx * dst_tile_size_sfpi];
-    sfpi::vFloat x  = setexp(in, 127); // set exp to exp bias (put in range of 1-2)
+    sfpi::vFloat x  = sfpi::setexp(in, 127); // set exp to exp bias (put in range of 1-2)
 
     // XXXXXX ask Namal? if we can derive the coefficients below to higher precision
     ////////////////////////////
@@ -45,14 +45,14 @@ sfpi_inline void _calculate_log_body_(const uint log_base_scale_factor, const ui
     ////////////////////////////
     // Convert exponent to float
     ////////////////////////////
-    sfpi::vInt exp = exexp(in);
+    sfpi::vInt exp = sfpi::exexp(in);
     v_if (exp < 0)
     {
         exp = sfpi::setsgn(~exp + 1, 1);
     }
     v_endif;
 
-    sfpi::vFloat expf      = int32_to_float(exp, 0);
+    sfpi::vFloat expf      = sfpi::int32_to_float(exp, 0);
     sfpi::vFloat vConstLn2 = sfpi::vConstFloatPrgm0;
     sfpi::vFloat result    = expf * vConstLn2 + series_result; // exp correction: ln(1+x) + exp*ln(2)
 
@@ -76,19 +76,19 @@ sfpi_inline void _calculate_log_body_(const uint log_base_scale_factor, const ui
 sfpi_inline sfpi::vFloat _calculate_log_body_no_init_(sfpi::vFloat base)
 {
     // Normalize base to calculation range
-    sfpi::vFloat x = setexp(base, 127); // set exp to exp bias (put base in range of 1-2)
+    sfpi::vFloat x = sfpi::setexp(base, 127); // set exp to exp bias (put base in range of 1-2)
 
     // 3rd order polynomial approx - determined using rminimax over [1,2]
     sfpi::vFloat series_result = x * (x * (x * 0x2.44734p-4f - 0xd.e712ap-4f) + 0x2.4f5388p+0f) - 0x1.952992p+0f;
 
     // Convert exponent to float
-    sfpi::vInt exp = exexp(base);
+    sfpi::vInt exp = sfpi::exexp(base);
     v_if (exp < 0)
     {
         exp = sfpi::setsgn(~exp + 1, 1);
     }
     v_endif;
-    sfpi::vFloat expf = int32_to_float(exp, 0);
+    sfpi::vFloat expf = sfpi::int32_to_float(exp, 0);
 
     // De-normalize to original range
     sfpi::vFloat vConstLn2  = 0.692871f;

@@ -17,10 +17,10 @@ namespace ckernel::sfpu
 sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
 {
     // If exponent is > -1 extract it and replace with -1
-    sfpi::vInt exp = exexp(val);
+    sfpi::vInt exp = sfpi::exexp(val);
     v_if (exp >= 0)
     {
-        val = setexp(val, 126);
+        val = sfpi::setexp(val, 126);
     }
     v_endif;
 

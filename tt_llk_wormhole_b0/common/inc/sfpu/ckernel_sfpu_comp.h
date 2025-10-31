@@ -389,7 +389,7 @@ inline void apply_unary_comp_int<SfpuType::unary_gt>(sfpi::vInt& val, const sfpi
     {
         v_if (s < 0)
         {
-            sfpi::vInt pos_val = setsgn(v, 0);
+            sfpi::vInt pos_val = sfpi::setsgn(v, 0);
             sfpi::vInt pos_s   = 0 - s;
             v_if (pos_val < pos_s)
             {
@@ -430,7 +430,7 @@ inline void apply_unary_comp_int<SfpuType::unary_lt>(sfpi::vInt& val, const sfpi
     {
         v_if (s < 0)
         {
-            sfpi::vInt pos_val = setsgn(v, 0);
+            sfpi::vInt pos_val = sfpi::setsgn(v, 0);
             sfpi::vInt pos_s   = 0 - s;
             v_if (pos_val > pos_s)
             {
@@ -467,7 +467,7 @@ inline void apply_unary_comp_int<SfpuType::unary_ge>(sfpi::vInt& val, const sfpi
     {
         v_if (s < 0)
         {
-            sfpi::vInt pos_val = setsgn(v, 0);
+            sfpi::vInt pos_val = sfpi::setsgn(v, 0);
             sfpi::vInt pos_s   = 0 - s;
             v_if (pos_val <= pos_s)
             {
@@ -508,7 +508,7 @@ inline void apply_unary_comp_int<SfpuType::unary_le>(sfpi::vInt& val, const sfpi
     {
         v_if (s < 0)
         {
-            sfpi::vInt pos_val = setsgn(v, 0);
+            sfpi::vInt pos_val = sfpi::setsgn(v, 0);
             sfpi::vInt pos_s   = 0 - s;
             v_if (pos_val >= pos_s)
             {
