@@ -9,11 +9,6 @@
 #include "ckernel.h"
 #include "llk_defs.h"
 
-// Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
-
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_common.h"
@@ -63,11 +58,7 @@ void run_kernel()
         _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, BUF_DESC_ID, false /*transpose*/, is_fp32_dest_acc_en>(num_tiles_per_unpack);
     }
 
-    // for (int i = 0; i < TILE_CNT; ++i)
-    //{
-    //     _llk_unpack_unary_operand_<p_unpacr::UNP_A>(i);
-    _llk_unpack_unary_operand_<p_unpacr::UNP_A>(0);
-    //}
+    _llk_unpack_unary_operand_<p_unpacr::UNP_A>(0, 0);
 
     if (unpack_to_dest)
     {
@@ -126,7 +117,8 @@ void run_kernel()
 
 void run_kernel()
 {
-    uint32_t const BUF_DESC = 8;
+    uint32_t const BUF_DESC       = 8;
+    const uint num_tiles_per_pack = TILE_CNT;
 
     if (unpack_to_dest)
     {
@@ -155,13 +147,8 @@ void run_kernel()
     tdma_desc.reg_data_format = static_cast<uint8_t>(formats.pack_src);
 
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
-    _llk_pack_init_<p_pacr::PACK0, BUF_DESC>(TILE_CNT);
-
-    // for (int i = 0; i < TILE_CNT; ++i)
-    //{
-    //_llk_pack_<p_pacr::PACK0>(i, i);
+    _llk_pack_init_<p_pacr::PACK0, BUF_DESC>(num_tiles_per_pack);
     _llk_pack_<p_pacr::PACK0>(0, 0);
-    //}
     _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 #endif

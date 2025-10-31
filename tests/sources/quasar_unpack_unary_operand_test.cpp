@@ -39,7 +39,7 @@ void run_kernel()
 
     // Qsr has one argument, if set it does both transpose faces and within face
     // (these two arguments will always be the same in the test for now)
-    constexpr TRANSPOSE_EN = UNPACK_TRANSPOSE_FACES && UNPACK_TRANSPOSE_WITHIN_FACE;
+    constexpr bool TRANSPOSE_EN = UNPACK_TRANSPOSE_FACES && UNPACK_TRANSPOSE_WITHIN_FACE;
 
     unsigned l1_addr_16B;
     if constexpr (UNPACKER_ENGINE_SEL == p_unpacr::UNP_A)
@@ -79,7 +79,7 @@ void run_kernel()
         _llk_unpack_unary_operand_init_<UNPACKER_ENGINE_SEL, BUF_DESC_ID, TRANSPOSE_EN /*transpose*/, is_fp32_dest_acc_en>(num_tiles_per_unpack);
     }
 
-    _llk_unpack_unary_operand_<UNPACKER_ENGINE_SEL>(0);
+    _llk_unpack_unary_operand_<UNPACKER_ENGINE_SEL>(0, 0);
 
     if (unpack_to_dest)
     {
@@ -114,13 +114,12 @@ void run_kernel()
         set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
     }
 
-    constexpr DataCopyType DATA_COPY_TYPE = (UNPACKER_ENGINE_SEL == p_unpacr::UNP_A) ? DataCopyType::A2D : DataCopyType::B2D;
-
     constexpr DataFormat src_format = static_cast<DataFormat>(formats.math);
     _llk_math_srcAB_hw_configure_<true /*math implied*/, is_fp32_dest_acc_en, is_int_fpu_en, src_format, src_format>();
 
     if (!unpack_to_dest)
     {
+        constexpr DataCopyType DATA_COPY_TYPE = (UNPACKER_ENGINE_SEL == p_unpacr::UNP_A) ? DataCopyType::A2D : DataCopyType::B2D;
         _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(64, 1);
         for (int i = 0; i < TILE_CNT; ++i)
         {

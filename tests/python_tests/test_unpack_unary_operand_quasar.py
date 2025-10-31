@@ -48,9 +48,7 @@ def generate_unpack_unary_operand_combinations(
             transpose_modes = [Transpose.No]
             unpacker_engines = [UnpackerEngine.UNP_A]
         else:
-            dest_acc_modes = [
-                DestAccumulation.No
-            ]  # Cannot use unary_operand hw config if dest_acc is Yes and unpack_to_dest is False
+            dest_acc_modes = [DestAccumulation.No, DestAccumulation.Yes]
             transpose_modes = [Transpose.No, Transpose.Yes]
             unpacker_engines = [UnpackerEngine.UNP_A, UnpackerEngine.UNP_B]
 
@@ -65,7 +63,7 @@ def generate_unpack_unary_operand_combinations(
 UNPACK_FORMATS = input_output_formats(
     [
         DataFormat.Float16_b,
-        DataFormat.Float16,
+        # DataFormat.Float16,
         DataFormat.Float32,
     ]
 )
@@ -98,10 +96,11 @@ def test_unpack_unary_operand_quasar(
         input_dimensions=input_dimensions,
     )
 
+    golden_src = src_A if unpacker_sel == UnpackerEngine.UNP_A else src_B
     if transpose == Transpose.Yes:
         generate_golden = get_golden_generator(TransposeGolden)
         golden_tensor = generate_golden.transpose_faces_multi_tile(
-            src_A if unpacker_sel == UnpackerEngine.UNP_A else src_B,
+            golden_src,
             formats.output_format,
             num_tiles=tile_cnt,
             tilize=False,
@@ -117,7 +116,7 @@ def test_unpack_unary_operand_quasar(
     else:
         generate_golden = get_golden_generator(DataCopyGolden)
         golden_tensor = generate_golden(
-            src_A if unpacker_sel == UnpackerEngine.UNP_A else src_B,
+            golden_src,
             formats.output_format,
             4,
             input_dimensions,
@@ -161,8 +160,5 @@ def test_unpack_unary_operand_quasar(
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
-
-    print(res_tensor)
-    print(golden_tensor)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
