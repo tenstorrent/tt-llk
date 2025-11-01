@@ -11,7 +11,7 @@ namespace ckernel::sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_where_fp16_b_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
+inline void _calculate_where_fp16_b_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2)
 {
     // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size = 64;
@@ -34,15 +34,15 @@ inline void _calculate_where_fp16_b_(const uint dst_index_in0, const uint dst_in
             TT_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_7, dst_index_in1 * dst_tile_size);
         }
         v_endif;
-        // sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = output_tensor;
-        TT_SFPSTORE(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_7, dst_index_out * dst_tile_size);
+        // sfpi::dst_reg[dst_index_in0 * dst_tile_size_sfpi] = output_tensor;
+        TT_SFPSTORE(p_sfpu::LREG3, InstrModLoadStore::LO16, ADDR_MOD_7, dst_index_in0 * dst_tile_size);
 
         sfpi::dst_reg++;
     }
 }
 
 template <typename T, bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_where_impl_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
+inline void _calculate_where_impl_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2)
 {
     constexpr uint dst_tile_size_sfpi = 32;
 
@@ -61,13 +61,13 @@ inline void _calculate_where_impl_(const uint dst_index_in0, const uint dst_inde
         }
         v_endif;
 
-        sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = output_tensor;
+        sfpi::dst_reg[dst_index_in0 * dst_tile_size_sfpi] = output_tensor;
         sfpi::dst_reg++;
     }
 }
 
 template <bool APPROXIMATION_MODE, DataFormat data_format, int ITERATIONS>
-inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
+inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2)
 {
     static_assert(
         data_format == DataFormat::Float32 || data_format == DataFormat::Float16_b || data_format == DataFormat::Int32 || data_format == DataFormat::UInt32,
@@ -75,19 +75,19 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
 
     if constexpr (data_format == DataFormat::Float16_b)
     {
-        _calculate_where_fp16_b_<APPROXIMATION_MODE, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out);
+        _calculate_where_fp16_b_<APPROXIMATION_MODE, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_in2);
     }
     else if constexpr (data_format == DataFormat::Float32)
     {
-        _calculate_where_impl_<sfpi::vFloat, APPROXIMATION_MODE, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out);
+        _calculate_where_impl_<sfpi::vFloat, APPROXIMATION_MODE, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_in2);
     }
     else if constexpr (data_format == DataFormat::Int32)
     {
-        _calculate_where_impl_<sfpi::vInt, APPROXIMATION_MODE, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out);
+        _calculate_where_impl_<sfpi::vInt, APPROXIMATION_MODE, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_in2);
     }
     else if constexpr (data_format == DataFormat::UInt32)
     {
-        _calculate_where_impl_<sfpi::vUInt, APPROXIMATION_MODE, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out);
+        _calculate_where_impl_<sfpi::vUInt, APPROXIMATION_MODE, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_in2);
     }
     else
     {
