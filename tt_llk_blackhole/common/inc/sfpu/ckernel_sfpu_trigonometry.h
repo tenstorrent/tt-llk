@@ -211,7 +211,7 @@ inline void _calculate_atanh_()
             }
             else
             {
-                den = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(tmp, 0));
+                den = sfpi::reinterpret<sfpi::vFloat>(sfpi::float_to_fp16b(tmp, 0));
             }
             num              = num * den;
             den              = _calculate_log_body_no_init_(num);
