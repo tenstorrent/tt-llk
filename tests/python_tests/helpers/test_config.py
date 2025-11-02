@@ -5,7 +5,7 @@ import os
 from enum import Enum
 from pathlib import Path
 
-from .chip_architecture import get_chip_architecture
+from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     BootMode,
@@ -22,6 +22,7 @@ from .llk_params import (
     ApproximationMode,
     DestAccumulation,
     DestSync,
+    ImpliedMathFormat,
     MathFidelity,
     MathOperation,
     StochasticRounding,
@@ -214,6 +215,12 @@ def generate_build_header(test_config):
 
     header_content.append(f"constexpr bool PARTIAL_FACE_PACK = {partial_face_A};")
     header_content.append(f"constexpr bool PARTIAL_FACE_MATH = {partial_face_B};")
+
+    # Implied math format
+    implied_math_format = test_config.get("implied_math_format", ImpliedMathFormat.No)
+    header_content.append(
+        f"constexpr bool IMPLIED_MATH_FORMAT = {implied_math_format.value};"
+    )
 
     # Number of faces - support separate configurations for A and B
     num_faces = test_config.get("num_faces", 4)
@@ -495,7 +502,6 @@ def generate_make_command(
     """Generate make command"""
 
     boot_mode = resolve_default_boot_mode(boot_mode)
-
     # Simplified make command - only basic build parameters
     make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} all "
 
@@ -515,6 +521,15 @@ def build_test(
     tests_dir = str((llk_home / "tests").absolute())
     write_build_header(test_config)
     make_cmd = generate_make_command(test_config, boot_mode, profiler_build)
+
+    if get_chip_architecture() == ChipArchitecture.QUASAR:
+        testname = test_config.get("testname")
+        targeted_clean_cmd = f"make clean_testname={testname}"
+        try:
+            run_shell_command(targeted_clean_cmd, cwd=tests_dir)
+        except Exception:
+            run_shell_command("make clean", cwd=tests_dir)
+
     run_shell_command(make_cmd, cwd=tests_dir)
 
 
