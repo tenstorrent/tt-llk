@@ -15,33 +15,22 @@ uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
-#include "build.h"
 #include "llk_unpack_binary_operands.h"
 #include "llk_unpack_common.h"
-
-// Define formats structure for Quasar (simple, direct format specification)
-struct
-{
-    DataFormat unpack_src = static_cast<DataFormat>(UNPACK_A_IN);
-    DataFormat unpack_dst = static_cast<DataFormat>(UNPACK_A_IN);
-    DataFormat math       = static_cast<DataFormat>(UNPACK_A_IN);
-    DataFormat pack_src   = static_cast<DataFormat>(UNPACK_A_IN);
-    DataFormat pack_dst   = static_cast<DataFormat>(PACK_OUT);
-} formats;
-
-// Define missing constant from params.h
-constexpr bool is_fp32_dest_acc_en = dest_acc_en_input;
+#include "params.h"
 
 void run_kernel()
 {
+    // Configure buffer descriptors for both operands
+    tdma_descriptor_t td_val_A, td_val_B;
     const uint BUF_DESC_ID_A = 0;
     const uint BUF_DESC_ID_B = 1;
 
-    // Setup data valid scheme - eltwise binary always needs FPU coordination
+    // Setup data valid scheme - binary operations always write to SrcA/SrcB, never DEST
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
-    // Configure buffer descriptors for both operands
-    tdma_descriptor_t td_val_A, td_val_B;
+    // Clear source registers
+    _zerosrc_();
 
     // Configure Source A buffer descriptor
     buffer_descriptor_u bd_val_A;
@@ -78,8 +67,8 @@ void run_kernel()
     // Configure hardware for binary operations
     _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val_A, td_val_B);
 
-    // Configure MOP for binary operands
-    _llk_unpack_binary_operands_mop_config_<BUF_DESC_ID_A, BUF_DESC_ID_B>(TILE_CNT);
+    // Configure MOP for binary operands - unpack 1 tile per MOP run
+    _llk_unpack_binary_operands_mop_config_<BUF_DESC_ID_A, BUF_DESC_ID_B>(1);
 
     // Unpack all tiles for both operands
     for (int i = 0; i < TILE_CNT; ++i)
@@ -99,36 +88,23 @@ const bool is_int_fpu_en = true;
 const bool is_int_fpu_en = false;
 #endif
 
-#include "build.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary.h"
-
-// Define formats structure for Quasar (simple, direct format specification)
-struct
-{
-    DataFormat unpack_src = static_cast<DataFormat>(UNPACK_A_IN);
-    DataFormat unpack_dst = static_cast<DataFormat>(UNPACK_A_IN);
-    DataFormat math       = static_cast<DataFormat>(UNPACK_A_IN);
-    DataFormat pack_src   = static_cast<DataFormat>(UNPACK_A_IN);
-    DataFormat pack_dst   = static_cast<DataFormat>(PACK_OUT);
-} formats;
-
-// Define missing constant from params.h
-constexpr bool is_fp32_dest_acc_en = dest_acc_en_input;
+#include "params.h"
 
 using namespace ckernel;
 
 void run_kernel()
 {
-    // Setup synchronization for math operations
+    // Setup synchronization - FPU writes to DEST, PACK reads from DEST
     set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
-    // Initialize pack synchronization
-    _llk_math_pack_sync_init_<DstSync::SyncHalf>();
-
     // Configure math hardware with proper Quasar API
-    constexpr DataFormat src_format = static_cast<DataFormat>(formats.math);
+    constexpr DataFormat src_format = static_cast<DataFormat>(UNPACK_A_IN);
     _llk_math_srcAB_hw_configure_<true /*math implied*/, is_fp32_dest_acc_en, is_int_fpu_en, src_format, src_format>();
+
+    // Clear destination registers
+    _zero_dest_reg_();
 
     // Initialize eltwise binary operation with proper TileShape
     TileShape tile_shape = {.num_faces = num_faces, .face_r_dim = 16, .face_c_dim = 16, .narrow_tile = false};
@@ -141,35 +117,22 @@ void run_kernel()
     }
 
     // Signal math completion
-    _llk_math_dest_section_done_<DstSync::SyncHalf>();
+    _llk_math_set_dvalid_<p_cleardvalid::FPU>();
 }
 
 #endif
 
 #ifdef LLK_TRISC_PACK
 
-#include "build.h"
 #include "llk_pack.h"
 #include "llk_pack_common.h"
-
-// Define formats structure for Quasar (simple, direct format specification)
-struct
-{
-    DataFormat unpack_src = static_cast<DataFormat>(UNPACK_A_IN);
-    DataFormat unpack_dst = static_cast<DataFormat>(UNPACK_A_IN);
-    DataFormat math       = static_cast<DataFormat>(UNPACK_A_IN);
-    DataFormat pack_src   = static_cast<DataFormat>(UNPACK_A_IN);
-    DataFormat pack_dst   = static_cast<DataFormat>(PACK_OUT);
-} formats;
-
-// Define missing constant from params.h
-constexpr bool is_fp32_dest_acc_en = dest_acc_en_input;
+#include "params.h"
 
 void run_kernel()
 {
     uint32_t const BUF_DESC = 8;
 
-    // Setup synchronization for pack operations
+    // Setup synchronization - PACK waits for FPU to write to DEST
     set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
     // Configure output buffer descriptor
@@ -184,7 +147,7 @@ void run_kernel()
     bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
     bd_val.f.x_dim       = 16;
     bd_val.f.y_dim       = 16;
-    bd_val.f.z_dim       = num_faces;
+    bd_val.f.z_dim       = num_faces; // Match matmul pattern: set z_dim to actual num_faces
 
     tdma_desc.buf_desc        = bd_val;
     tdma_desc.buf_desc_id     = BUF_DESC;
@@ -200,7 +163,7 @@ void run_kernel()
         _llk_pack_<p_pacr::PACK0>(i, i);
     }
 
-    // Signal pack completion with proper synchronization
+    // Signal pack completion
     _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 
