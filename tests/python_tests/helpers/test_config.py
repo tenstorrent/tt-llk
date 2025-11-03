@@ -9,10 +9,10 @@ from .chip_architecture import get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     BootMode,
+    pull_coverage_data,
     resolve_default_boot_mode,
     run_elf_files,
     wait_for_tensix_operations_finished,
-    pull_coverage_data
 )
 from .format_config import DataFormat, FormatConfig
 from .llk_params import (
@@ -490,6 +490,7 @@ def write_build_header(test_config):
 
 def generate_make_command(
     test_config,
+    with_coverage,
     boot_mode: BootMode,
     profiler_build: ProfilerBuild,
 ):
@@ -498,7 +499,7 @@ def generate_make_command(
     boot_mode = resolve_default_boot_mode(boot_mode)
 
     # Simplified make command - only basic build parameters
-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} coverage_build=true all "
+    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} coverage_build={str(with_coverage).lower()} all "
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
@@ -508,6 +509,7 @@ def generate_make_command(
 
 def build_test(
     test_config,
+    with_coverage,
     boot_mode: BootMode,
     profiler_build: ProfilerBuild,
 ):
@@ -515,19 +517,25 @@ def build_test(
     llk_home = Path(os.environ.get("LLK_HOME"))
     tests_dir = str((llk_home / "tests").absolute())
     write_build_header(test_config)
-    make_cmd = generate_make_command(test_config, boot_mode, profiler_build)
+    make_cmd = generate_make_command(
+        test_config, with_coverage, boot_mode, profiler_build
+    )
     run_shell_command(make_cmd, cwd=tests_dir)
 
 
 def run_test(
     test_config,
+    with_coverage,
     boot_mode: BootMode = BootMode.DEFAULT,  # global override boot mode here
     profiler_build: ProfilerBuild = ProfilerBuild.No,
 ):
     """Run the test with the given configuration"""
 
-    build_test(test_config, boot_mode, profiler_build)
+    build_test(test_config, with_coverage, boot_mode, profiler_build)
 
     # run test
     run_elf_files(test_config["testname"], boot_mode)
     wait_for_tensix_operations_finished()
+
+    if with_coverage:
+        pull_coverage_data(test_config)

@@ -91,6 +91,11 @@ def reset_mailboxes_fixture():
     yield
 
 
+@pytest.fixture
+def with_coverage(request):
+    return request.config.getoption("--coverage")
+
+
 def pytest_configure(config):
     log_file = "pytest_errors.log"
     # Clear the log file if it exists
@@ -212,6 +217,11 @@ def pytest_addoption(parser):
         type=int,
         default=5555,
         help="Integer number of the server port.",
+    )
+    parser.addoption(
+        "--coverage",
+        action="store_true",
+        help="Enables coverage file generation for every test run",
     )
 
 
