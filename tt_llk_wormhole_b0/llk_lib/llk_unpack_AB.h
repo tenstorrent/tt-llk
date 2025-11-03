@@ -128,8 +128,7 @@ inline void _llk_unpack_AB_reduce_row_max_mop_config_()
  */
 inline void _llk_unpack_AB_reduce_block_max_row_init_()
 {
-    TTI_SETADCXX(p_setadc::UNP_B, FACE_R_DIM * FACE_C_DIM - 1, 0x0);       // Unpack a single face of a scaler
-    TTI_SETADCXX(p_setadc::UNP_A, 4 * (FACE_R_DIM * FACE_C_DIM) - 1, 0x0); // Unpack a tile of an operand
+    _llk_unpack_AB_reduce_row_max_set_x_dim_();
 
     // save the following state that is going to be modified:
     // tile x, y, and z dims for both unpackers
