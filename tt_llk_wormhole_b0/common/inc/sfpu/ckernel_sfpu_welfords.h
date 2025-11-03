@@ -291,11 +291,29 @@ sfpi_inline void _calculate_welfords_tile_(uint32_t start_idx, const std::array<
  */
 sfpi_inline void _store_mean_m2_to_dst_()
 {
-    const uint32_t mean_tile_offset = 0;  // offset for the mean tile in dst
-    const uint32_t m2_tile_offset   = 64; // offset for the m2 tile in dst
+    constexpr uint32_t mean_tile_offset = 0;  // offset for the mean tile in dst
+    constexpr uint32_t m2_tile_offset   = 64; // offset for the m2 tile in dst
 
     TTI_SFPSTORE(ckernel::p_sfpu::LREG4, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset);
     TTI_SFPSTORE(ckernel::p_sfpu::LREG5, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, m2_tile_offset);
+}
+
+/*
+ * @brief Stores the mean and m2 values to the tile in the dst reg at offset 0 and 1 respectively
+ *        for a given group.
+ *
+ * This function does the same as _store_mean_m2_to_dst_ but allows for the data to be stored at an
+ * offset that is dependent on the group id. This allows for data of multiple groups to be stored in
+ * the same tile.
+ * @note Since group_id is known at runtime, we use TT_SFPSTORE instead of TTI_SFPSTORE.
+ */
+sfpi_inline void _store_mean_m2_to_dst_(uint32_t group_id)
+{
+    constexpr uint32_t mean_tile_offset = 0;  // offset for the mean tile in dst
+    constexpr uint32_t m2_tile_offset   = 64; // offset for the m2 tile in dst
+
+    TT_SFPSTORE(ckernel::p_sfpu::LREG4, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset + (group_id << 2));
+    TT_SFPSTORE(ckernel::p_sfpu::LREG5, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, m2_tile_offset + (group_id << 2));
 }
 
 /*
@@ -308,11 +326,28 @@ sfpi_inline void _store_mean_m2_to_dst_()
  */
 sfpi_inline void _load_mean_m2_from_dst_()
 {
-    const uint32_t mean_tile_offset = 0;  // offset for the mean tile in dst
-    const uint32_t m2_tile_offset   = 64; // offset for the m2 tile in dst
+    constexpr uint32_t mean_tile_offset = 0;  // offset for the mean tile in dst
+    constexpr uint32_t m2_tile_offset   = 64; // offset for the m2 tile in dst
 
     TTI_SFPLOAD(ckernel::p_sfpu::LREG4, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset);
     TTI_SFPLOAD(ckernel::p_sfpu::LREG5, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, m2_tile_offset);
+}
+
+/*
+ * @brief Loads the mean and m2 values from the tile in the dst reg into LREGs for a given group.
+ *
+ * This function does the same as _load_mean_m2_from_dst_ but allows for the data to be loaded from
+ * an offset that is dependent on the group id. This allows for data of multiple groups to be loaded
+ * from the same tile.
+ * @note Since group_id is known at runtime, we use TT_SFPLOAD instead of TTI_SFPLOAD.
+ */
+sfpi_inline void _load_mean_m2_from_dst_(uint32_t group_id)
+{
+    constexpr uint32_t mean_tile_offset = 0;  // offset for the mean tile in dst
+    constexpr uint32_t m2_tile_offset   = 64; // offset for the m2 tile in dst
+
+    TT_SFPLOAD(ckernel::p_sfpu::LREG4, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset + (group_id << 2));
+    TT_SFPLOAD(ckernel::p_sfpu::LREG5, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, m2_tile_offset + (group_id << 2));
 }
 
 /*
@@ -327,7 +362,7 @@ sfpi_inline void _load_mean_m2_from_dst_()
  * @param reciprocal_lut The lookup table containing the reciprocals of the sample counts.
  */
 template <std::size_t reciprocal_size>
-sfpi_inline void _store_mean_var_to_dst_(uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+sfpi_inline void _store_mean_var_to_dst_col_(uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
     _load_recip_of_index_(scale_idx, reciprocal_lut);
     // Move mean to LREG0
@@ -342,19 +377,67 @@ sfpi_inline void _store_mean_var_to_dst_(uint32_t scale_idx, const std::array<ui
     constexpr uint32_t offset2 = 16;
     constexpr uint32_t offset3 = 18;
 
-    const uint32_t mean_tile_offset = 0; // offset for the mean tile in dst
+    constexpr uint32_t mean_tile_offset = 0; // offset for the mean tile in dst
 
     TTI_SFPSTORE(ckernel::p_sfpu::LREG0, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset + offset0);
     TTI_SFPSTORE(ckernel::p_sfpu::LREG1, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset + offset1);
     TTI_SFPSTORE(ckernel::p_sfpu::LREG2, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset + offset2);
     TTI_SFPSTORE(ckernel::p_sfpu::LREG3, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset + offset3);
 
-    const uint32_t var_tile_offset = 64; // offset for the var tile in dst
+    constexpr uint32_t var_tile_offset = 64; // offset for the var tile in dst
 
     TTI_SFPSTORE(ckernel::p_sfpu::LREG4, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, var_tile_offset + offset0);
     TTI_SFPSTORE(ckernel::p_sfpu::LREG5, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, var_tile_offset + offset1);
     TTI_SFPSTORE(ckernel::p_sfpu::LREG6, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, var_tile_offset + offset2);
     TTI_SFPSTORE(ckernel::p_sfpu::LREG7, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, var_tile_offset + offset3);
+}
+
+/*
+ * @brief Stores the mean and variance values to the tile in the dst reg.
+ *
+ * This function stores the mean and variance values to the tile in the dst reg.
+ * It assumes that the mean and m2 values are placed in LREG4 and LREG5, respectively.
+ * These values are placed in the first column of the tile in dst. The reciprocal LUT, if provided,
+ * is used to load the reciprocal of the sample count.
+ * @tparam reciprocal_size The size of the reciprocal lookup table.
+ * @param scale_idx The index of the scale value to use for the variance calculation.
+ * @param reciprocal_lut The lookup table containing the reciprocals of the sample counts.
+ */
+template <std::size_t reciprocal_size>
+sfpi_inline void _store_mean_var_to_dst_raw_(uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+{
+    _load_recip_of_index_(scale_idx, reciprocal_lut);
+
+    // Convert M2 to variance in LREG5
+    TTI_SFPMAD(ckernel::p_sfpu::LREG7, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG5, 0);
+
+    constexpr uint32_t mean_tile_offset = 0; // offset for the mean tile in dst
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, mean_tile_offset);
+
+    constexpr uint32_t var_tile_offset = 64; // offset for the var tile in dst
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, var_tile_offset);
+}
+
+/*
+ * @brief Stores the mean and variance values to the tile in the dst reg for a given group.
+ *
+ * This function does the same as _store_mean_var_to_dst_raw_ but allows for the data to be stored
+ * at an offset that is dependent on the group id.
+ * @note Since group_id is known at runtime, we use TT_SFPSTORE instead of TTI_SFPSTORE.
+ */
+template <std::size_t reciprocal_size>
+sfpi_inline void _store_mean_var_to_dst_raw_(uint32_t group_id, uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+{
+    _load_recip_of_index_(scale_idx, reciprocal_lut);
+
+    // Convert M2 to variance in LREG5
+    TTI_SFPMAD(ckernel::p_sfpu::LREG7, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG5, 0);
+
+    constexpr uint32_t mean_tile_offset = 0; // offset for the mean tile in dst
+    TT_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, mean_tile_offset + (group_id << 2));
+
+    constexpr uint32_t var_tile_offset = 64; // offset for the var tile in dst
+    TT_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, var_tile_offset + (group_id << 2));
 }
 } // namespace sfpu
 } // namespace ckernel
