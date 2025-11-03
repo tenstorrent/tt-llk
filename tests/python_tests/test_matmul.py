@@ -76,7 +76,6 @@ def test_matmul(
     test_name,
     math_fidelity,
     format_dest_acc_and_dims,
-    with_coverage,
     boot_mode=BootMode.DEFAULT,
 ):
     torch_format = format_dict[format_dest_acc_and_dims[0].output_format]
@@ -150,7 +149,7 @@ def test_matmul(
         tile_cnt_B,
     )
 
-    run_test(test_config, with_coverage, boot_mode)
+    run_test(test_config, boot_mode)
 
     res_from_L1 = collect_results(
         formats, tile_count=matmul_dims.output_tile_cnt, address=res_address
