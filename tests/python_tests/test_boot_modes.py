@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+from helpers.chip_architecture import get_chip_architecture
 from helpers.device import BootMode
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.hardware_controller import HardwareController
@@ -13,6 +14,10 @@ from test_matmul import test_matmul as run_matmul
     boot_mode=[BootMode.BRISC, BootMode.TRISC, BootMode.EXALENS],
 )
 def test_boot_modes(boot_mode):
+    if (boot_mode == BootMode.TRISC and 
+        get_chip_architecture == ChipArchitecture.WORMHOLE
+       ):
+        pytest.skip("Skip test for Wormhole)
     test_name = "matmul_test"
     math_fidelity = MathFidelity.LoFi
     format_dest_acc_and_dims = (
