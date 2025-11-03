@@ -5,19 +5,23 @@ import inspect
 import os
 import time
 from enum import Enum, IntEnum
+from hashlib import md5
 from pathlib import Path
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from ttexalens.context import Context
 from helpers.hardware_controller import HardwareController
 from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.debug_tensix import TensixDebug
 from ttexalens.hardware.risc_debug import CallstackEntry, RiscDebug, RiscLocation
 from ttexalens.tt_exalens_lib import (
+    ParsedElfFile,
+    TTException,
     callstack,
     check_context,
     convert_coordinate,
     load_elf,
-    coverage,
+    parse_elf,
     read_from_device,
     read_word_from_device,
     validate_device_id,
@@ -51,6 +55,7 @@ from .unpack import (
     unpack_uint16,
     unpack_uint32,
 )
+from .utils import run_shell_command
 
 # Constant - indicates the TRISC kernel run status
 KERNEL_COMPLETE = 1  # Kernel completed its run
@@ -614,6 +619,56 @@ def reset_mailboxes():
     for mailbox in mailboxes:
         write_words_to_device(location=location, addr=mailbox.value, data=reset_value)
 
-def pull_coverage_data():
-    coverage("0,0", )
-    pass
+
+def coverage(
+    location: str | OnChipCoordinate,
+    elf: str | ParsedElfFile,
+    stream_path: str,
+    device_id: int = 0,
+    context: Context | None = None,
+) -> None:
+
+    coordinate = convert_coordinate(location, device_id, context)
+    context = coordinate.context
+    if isinstance(elf, str):
+        elf = parse_elf(elf, context)
+
+    coverage_start = elf.symbols["__coverage_start"].value
+    if not coverage_start:
+        raise TTException("__coverage_start not found")
+
+    length = read_word_from_device(location, addr=coverage_start)
+
+    # 0xDEADBEEF will be written in place of length if overflow occurred.
+    if length == 0xDEADBEEF:
+        raise TTException("Coverage region overflowed")
+
+    data = read_from_device(location, coverage_start + 4, num_bytes=length - 4)
+    with open(stream_path, "wb") as f:
+        f.write(data)
+
+
+def pull_coverage_data(test_config, device_id=0, location="0,0"):
+    test_run_id = md5(
+        f"{test_config['testname']} - {test_config['formats']} - {test_config['tile_cnt']} {time.clock_gettime(0)}".encode()
+    ).hexdigest()
+
+    CHIP_ARCH = get_chip_architecture()
+    LLK_HOME = os.environ.get("LLK_HOME")
+    BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
+    COVERAGE_DIR = BUILD_DIR / "coverage"
+
+    trisc_names = ["unpack", "math", "pack"]
+    for i, trisc_name in enumerate(trisc_names):
+        elf_path = (
+            BUILD_DIR / "tests" / test_config["testname"] / "elf" / f"{trisc_name}.elf"
+        )
+        elf_file = parse_elf(elf_path)
+        stream_path = f"{COVERAGE_DIR}/{trisc_name}.raw.stream"
+        coverage(location, elf_file, stream_path, device_id, None)
+
+    tests_dir = str(Path(LLK_HOME) / "tests")
+    run_shell_command(
+        f"make testname={test_config['testname']} info_file_name=coverage_{test_run_id}.info coverage",
+        cwd=tests_dir,
+    )
