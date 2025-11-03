@@ -197,7 +197,7 @@ def _send_arc_message(message_type: str, device_id: int):
         wait_for_done=True,
         arg0=0,
         arg1=0,
-        timeout=10,
+        timeout=datetime.timedelta(seconds=10),
     )
 
 
