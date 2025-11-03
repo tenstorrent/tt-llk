@@ -44,9 +44,9 @@ dimension_combinations = [
         same=True,
     ),
     mathop=[MathOperation.ReduceColumn],
-    dest_acc=[DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     negative_number=[False, True],
-    reduce_pool=[ReducePool.Sum],
+    reduce_pool=[ReducePool.Sum, ReducePool.Average],
     dimension_combinations=dimension_combinations,
 )
 def test_sfpu_reduce(
