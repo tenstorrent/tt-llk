@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import datetime
 import logging
 import os
 from pathlib import Path
@@ -198,7 +197,7 @@ def _send_arc_message(message_type: str, device_id: int):
         wait_for_done=True,
         arg0=0,
         arg1=0,
-        timeout=datetime.timedelta(seconds=10),
+        timeout=10,
     )
 
 
