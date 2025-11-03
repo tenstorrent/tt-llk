@@ -44,305 +44,317 @@ struct FloatBits
     }
 };
 
+/**
+ * @brief Loads the reciprocal of (index + 1) into LREG7, using a lookup table if available.
+ *
+ * This function either loads a precomputed reciprocal value from the provided lookup table
+ * (reciprocal_lut) into the LREG7 register, or, if the lookup table entry is not available,
+ * computes the reciprocal at runtime as 1.0f/(index + 1) and loads its bit representation
+ * into the register.
+ *
+ * @tparam reciprocal_size The number of entries in the reciprocal lookup table.
+ * @param index The (zero-based) index (in the reciprocal lookup table) of the value to load.
+ * @param reciprocal_lut Lookup table containing precomputed reciprocals packed as uint32_t.
+ *
+ * @note The reciprocal is written to ckernel::p_sfpu::LREG7.
+ */
 template <std::size_t reciprocal_size>
-sfpi_inline void _load_recip_current_sample_(const uint32_t current_sample, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+sfpi_inline void _load_recip_of_index_(const uint32_t index, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
     if constexpr (reciprocal_size > 0)
     {
-        // Use LUT if current_sample is within bounds, otherwise fall back to float division
-        if (current_sample < reciprocal_lut.size())
-        {
-            const auto reciprocal = reciprocal_lut[current_sample];
-            TT_SFPLOADI(ckernel::p_sfpu::LREG7, 8, reciprocal >> 16);
-            TT_SFPLOADI(ckernel::p_sfpu::LREG7, 10, reciprocal & 0xFFFF);
-            return;
-        }
+        const auto reciprocal = reciprocal_lut[index];
+        TT_SFPLOADI(ckernel::p_sfpu::LREG7, sfpi::SFPLOADI_MOD0_UPPER, reciprocal >> 16);
+        TT_SFPLOADI(ckernel::p_sfpu::LREG7, sfpi::SFPLOADI_MOD0_LOWER, reciprocal & 0xFFFF);
+        return;
     }
 
     // Fallback to float division
-    const float reciprocal = 1.0f / static_cast<float>(current_sample + 1);
+    const float reciprocal = 1.0f / static_cast<float>(index + 1);
     const FloatBits reciprocal_bits(reciprocal);
-    TT_SFPLOADI(ckernel::p_sfpu::LREG7, 8, reciprocal_bits.high16);
-    TT_SFPLOADI(ckernel::p_sfpu::LREG7, 10, reciprocal_bits.low16);
+    TT_SFPLOADI(ckernel::p_sfpu::LREG7, sfpi::SFPLOADI_MOD0_UPPER, reciprocal_bits.high16);
+    TT_SFPLOADI(ckernel::p_sfpu::LREG7, sfpi::SFPLOADI_MOD0_LOWER, reciprocal_bits.low16);
 }
 
-sfpi_inline void _compute_welfords_math_()
+/*
+ * @brief Loads the current input at row (I * 4) + J from the current tile in dst reg at offset 0.
+ *
+ * @tparam I
+ * @tparam J
+ * 4 inputs each from 32 columns at the current offset are loaded into the LREG0-3 registers
+ * respectively from the current tile in dst 0.
+ */
+template <uint32_t I, uint32_t J>
+sfpi_inline void _welfords_load_block_()
 {
-    //=========================================
-    // mean calculation start
-    //=========================================
+    constexpr uint32_t tile_offset    = 0; // offset for tile 0 in dst
+    constexpr uint32_t dst_reg_offset = tile_offset + (I * 32) + (4 * J);
+    constexpr uint32_t offset0        = dst_reg_offset;
+    constexpr uint32_t offset1        = dst_reg_offset + 2;
+    constexpr uint32_t offset2        = dst_reg_offset + 16;
+    constexpr uint32_t offset3        = dst_reg_offset + 18;
+
+    TTI_SFPTRANSP(0, 0, 0, 0);
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG0, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, offset0);
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG1, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, offset1);
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG2, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, offset2);
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG3, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, offset3);
+    TTI_SFPTRANSP(0, 0, 0, 0);
+}
+
+/**
+ * @brief Computes a step of Welford's online algorithm for calculating the mean and m2.
+ *
+ * This function applies Welford's algorithm for a new sample. It updates the running mean and the
+ * running (uncorrected) m2 based on the input value in the given LREG and the previous mean
+ * and the running (uncorrected) m2.
+ * The new input value, previous mean, running "population m2" (i.e., M2 sum), and the
+ * reciprocal (1/N) for the sample count are assumed to be already loaded into their corresponding
+ * LREGs as tabulated below.
+ *
+ * - input_lreg: Input value (new sample x_{N+1}) (Either LREG0, LREG1, LREG2, or LREG3)
+ * - LREG4: Mean of previous samples (mean_{N})
+ * - LREG5: Running sum of squared differences from the current mean (M2_{N})
+ * - LREG6: Placeholder for the new mean (mean_{N+1})
+ * - LREG7: Reciprocal of sample count (1/(N+1))
+ *
+ * The computation proceeds as:
+ *   1. mean_{N+1} = mean_{N} + ((1/(N+1)) * (x_{N+1} - mean_{N}))
+ *   2. M2_{N+1} = M2_{N} + (x_{N+1} - mean_{N}) * (x_{N+1} - mean_{N+1})
+ *
+ * The updated mean and M2 are left in LREG4 and LREG5, respectively.
+ *
+ * @tparam input_lreg The input LREG to use for the computation. Either LREG0, LREG1, LREG2, or LREG3.
+ * @return None. The updated mean and M2 are left in LREG4 and LREG5, respectively.
+ */
+template <uint32_t input_lreg>
+sfpi_inline void _compute_welfords_row_()
+{
+    // mean calculation
+    // ----------------
     // mean_{N_+1} = mean_{N} + ((1/N+1) * (x_{N+1} - mean_{N}))
+    // Let α = x_{N+1} - mean_{N} and β = 1/N+1
+    // Then mean_{N+1} = mean_{N} + α * β
 
-    /*mean_{N+1}temp = 1 * (InputLREG + (-mean))*/
-    TTI_SFPMAD(ckernel::p_sfpu::LREG11, ckernel::p_sfpu::LREG4, ckernel::p_sfpu::LREG0, ckernel::p_sfpu::LREG6, 0);
-    // Next cycle cannot read from LREG6 See tt-isa-documentation
+    // 1. Calculate α = x_{N+1} - mean_{N}
+    // LREG6 = -1 * LREG4 + input_lreg
+    TTI_SFPMAD(ckernel::p_sfpu::LREG11 /*-1*/, ckernel::p_sfpu::LREG4, input_lreg, ckernel::p_sfpu::LREG6, 0);
+    TTI_SFPNOP; // Next cycle cannot read from LREG6 (2-cycle operation)
 
-    TTI_SFPNOP;
-
-    /*mean_{N+1} = ((mean_{N+1} = (InputLREG-mean) * (1/N+1)) + mean_{N}*/
+    // 2. Calculate α * β + mean_{N}
+    // LREG6 = LREG6 * LREG7 + LREG4
     TTI_SFPMAD(ckernel::p_sfpu::LREG6, ckernel::p_sfpu::LREG7, ckernel::p_sfpu::LREG4, ckernel::p_sfpu::LREG6, 0);
-    // Next cycle cannot read from LREG6 See tt-isa-documentation
 
-    //=========================================
-    // mean calculation end
-    //=========================================
-    //
-    //=========================================
-    // var calculation start
-    //=========================================
+    // m2 calculation
+    // ---------------
+    // m2_{N+1} = m2_{N} + (x_{N+1} - mean_{N}) * (x_{N+1} - mean_{N+1})
+    // Let α = x_{N+1} - mean_{N} and β = x_{N+1} - mean_{N+1}
+    // Then m2_{N+1} = m2_{N} + α * β
 
-    // var_{N+1} = var_{N} + ...
-    //...(1/N+1) * (((x_{N+1} - mean_{N}) * (x_{N+1} - mean_{N+1})) - var_{N})
+    // 1. Calculate α = x_{N+1} - mean_{N}
+    // LREG4 = -1 * LREG4 + input_lreg
+    TTI_SFPMAD(ckernel::p_sfpu::LREG11 /*-1*/, ckernel::p_sfpu::LREG4, input_lreg, ckernel::p_sfpu::LREG4, 0);
 
-    /*mean_{N} = (Input_LREG - mean_{N})*/
-    TTI_SFPMAD(ckernel::p_sfpu::LREG11, ckernel::p_sfpu::LREG4, ckernel::p_sfpu::LREG0, ckernel::p_sfpu::LREG4, 0);
-    // Next cycle cannot read from LREG4 See tt-isa-documentation
+    // 2. Calculate β = x_{N+1} - mean_{N+1}
+    // input_lreg = -1 * LREG6 + input_lreg
+    TTI_SFPMAD(ckernel::p_sfpu::LREG11 /*-1*/, ckernel::p_sfpu::LREG6, input_lreg, input_lreg, 0);
+    TTI_SFPNOP; // Next cycle cannot read from input_lreg (2-cycle operation)
 
-    /*inputLREG temp = (InputLREG + (-mean_{N+1}))*/
-    TTI_SFPMAD(ckernel::p_sfpu::LREG11 /*LREG11 = <-1>*/, ckernel::p_sfpu::LREG6, ckernel::p_sfpu::LREG0, ckernel::p_sfpu::LREG0, 0);
-    // Next cycle cannot read from InputLREG See tt-isa-documentation
-
-    TTI_SFPNOP;
-
-    TTI_SFPMAD(ckernel::p_sfpu::LREG4, ckernel::p_sfpu::LREG0, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LREG5, 0);
+    // 3. Calculate m2_{N+1} = α * β + m2_{N}
+    // LREG5 = LREG4 * input_lreg + LREG5
+    TTI_SFPMAD(ckernel::p_sfpu::LREG4, input_lreg, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LREG5, 0);
 
     // Moves mean to LREG4 from LREG6 since it now is considered the past mean
-    TTI_SFPMUL(ckernel::p_sfpu::LCONST_1 /*LREG11 = <-1>*/, ckernel::p_sfpu::LREG6, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG4, 0);
-    // Next cycle cannot read from LREG4 See tt-isa-documentation
-    TTI_SFPNOP;
-
-    //=========================================
-    // var calculation end
-    //=========================================
-    // Now past_mean (LREG4) is population
-    // Now past_var (LREG5) is population
+    TTI_SFPMOV(0, ckernel::p_sfpu::LREG6, ckernel::p_sfpu::LREG4, 0);
 }
 
-template <uint32_t I, uint32_t J>
-sfpi_inline void welfords_load_data(const uint32_t group_id)
-{
-    constexpr uint32_t offset1 = (I * 32) + (4 * J);
-    constexpr uint32_t offset2 = offset1 + 2;
-    constexpr uint32_t offset3 = offset1 + 16;
-    constexpr uint32_t offset4 = offset1 + 18;
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG0, 0, ckernel::ADDR_MOD_3, offset1); /*row1*/
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG1, 0, ckernel::ADDR_MOD_3, offset2); /*row2*/
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG2, 0, ckernel::ADDR_MOD_3, offset3); /*row3*/
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG3, 0, ckernel::ADDR_MOD_3, offset4); /*row4*/
-    /*transposes raw mixed data to logical rows*/
-    lltt::replay(18, 3);
-    /*past_mean = dst1*/ TT_SFPLOAD(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64 + (group_id << 2));
-    /*past_var = dst2*/ TT_SFPLOAD(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128 + (group_id << 2));
+/**
+ * @brief The number of instructions required to calculate the running mean and m2 for a single
+ * row of 32 columns. If _compute_welfords_row_ is modified, this value must be updated.
+ */
+constexpr uint32_t WELFORD_INSTR_PER_ROW = 8;
 
+/**
+ * @brief Programs the replay buffer for the Welford's algorithm.
+ *
+ * This function programs the replay buffer for the Welford's algorithm. It places the
+ * _compute_welfords_row_ tailored for each input LREG in the replay buffer.
+ */
+sfpi_inline void _program_welfords_replay_buffer_()
+{
+    lltt::record(0, WELFORD_INSTR_PER_ROW * 4);
+
+    _compute_welfords_row_<ckernel::p_sfpu::LREG0>();
+    _compute_welfords_row_<ckernel::p_sfpu::LREG1>();
+    _compute_welfords_row_<ckernel::p_sfpu::LREG2>();
+    _compute_welfords_row_<ckernel::p_sfpu::LREG3>();
 }
 
-sfpi_inline void _welfords_load_initial_data_()
+/**
+ * @brief Executes the replay buffer for the Welford's algorithm.
+ *
+ * This function replays the instructions in the buffer for the input LREG.
+ *
+ * @tparam input_lreg The index of the input LREG to replay. LREG0-3.
+ */
+template <uint32_t input_lreg>
+sfpi_inline void _execute_welfords_row_replay_buffer_()
 {
-    constexpr uint32_t offset1 = 0;
-    constexpr uint32_t offset2 = offset1 + 2;
-    constexpr uint32_t offset3 = offset1 + 16;
-    constexpr uint32_t offset4 = offset1 + 18;
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG0, 0, ckernel::ADDR_MOD_3, offset1); /*row1*/
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG1, 0, ckernel::ADDR_MOD_3, offset2); /*row2*/
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG2, 0, ckernel::ADDR_MOD_3, offset3); /*row3*/
-    TTI_SFPLOAD(ckernel::p_sfpu::LREG3, 0, ckernel::ADDR_MOD_3, offset4); /*row4*/
-    /*transposes raw mixed data to logical rows*/
-    TTI_SFPTRANSP(0, 0, 0, 0);
-    // Needed since LREGS can maintain state between calls/maybe kernels? So setting them to zero is needed
-    TTI_SFPLOADI(ckernel::p_sfpu::LREG4, 0, 0);
-    TTI_SFPLOADI(ckernel::p_sfpu::LREG5, 0, 0);
-    // wiping LREG 6 and 7 since they may be filled with garbage data
-    TTI_SFPLOADI(ckernel::p_sfpu::LREG6, 0, 0);
-    TTI_SFPLOADI(ckernel::p_sfpu::LREG7, 0, 0);
+    lltt::replay(WELFORD_INSTR_PER_ROW * input_lreg, WELFORD_INSTR_PER_ROW);
 }
 
-// Macro to allow returns to exit main function
-
-#define WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, group_id, reciprocal_lut)                                          \
-    if (current_sample == final_sample)                                                                                                       \
-    {                                                                                                                                         \
-        return current_sample;                                                                                                                \
-    }                                                                                                                                         \
-    if (skip_n_rows == 0)                                                                                                                     \
-    {                                                                                                                                         \
-        _load_recip_current_sample_(current_sample, reciprocal_lut);                                                                          \
-        lltt::replay(0, 9);                                                                                                                   \
-        current_sample++;                                                                                                                     \
-    }                                                                                                                                         \
-    else                                                                                                                                      \
-    {                                                                                                                                         \
-        skip_n_rows--;                                                                                                                        \
-    }                                                                                                                                         \
-    if (current_sample == final_sample)                                                                                                       \
-    {                                                                                                                                         \
-        TT_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64 + (group_id << 2));                                                   \
-        TT_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128 + (group_id << 2));                                                  \
-        return current_sample;                                                                                                                \
-    }                                                                                                                                         \
-    if (skip_n_rows == 0)                                                                                                                     \
-    {                                                                                                                                         \
-        TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG1, ckernel::p_sfpu::LREG0, 0); \
-        _load_recip_current_sample_(current_sample, reciprocal_lut);                                                                          \
-        lltt::replay(0, 9);                                                                                                                   \
-        current_sample++;                                                                                                                     \
-    }                                                                                                                                         \
-    else                                                                                                                                      \
-    {                                                                                                                                         \
-        skip_n_rows--;                                                                                                                        \
-    }                                                                                                                                         \
-    if (current_sample == final_sample)                                                                                                       \
-    {                                                                                                                                         \
-        TT_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64 + (group_id << 2));                                                   \
-        TT_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128 + (group_id << 2));                                                  \
-        return current_sample;                                                                                                                \
-    }                                                                                                                                         \
-    if (skip_n_rows == 0)                                                                                                                     \
-    {                                                                                                                                         \
-        TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG2, ckernel::p_sfpu::LREG0, 0); \
-        _load_recip_current_sample_(current_sample, reciprocal_lut);                                                                          \
-        lltt::replay(0, 9);                                                                                                                   \
-        current_sample++;                                                                                                                     \
-    }                                                                                                                                         \
-    else                                                                                                                                      \
-    {                                                                                                                                         \
-        skip_n_rows--;                                                                                                                        \
-    }                                                                                                                                         \
-    if (current_sample == final_sample)                                                                                                       \
-    {                                                                                                                                         \
-        TT_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64 + (group_id << 2));                                                   \
-        TT_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128 + (group_id << 2));                                                  \
-        return current_sample;                                                                                                                \
-    }                                                                                                                                         \
-    if (skip_n_rows <= 0)                                                                                                                     \
-    {                                                                                                                                         \
-        TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG3, ckernel::p_sfpu::LREG0, 0); \
-        _load_recip_current_sample_(current_sample, reciprocal_lut);                                                                          \
-        lltt::replay(0, 9);                                                                                                                   \
-        current_sample++;                                                                                                                     \
-    }                                                                                                                                         \
-    else                                                                                                                                      \
-    {                                                                                                                                         \
-        skip_n_rows--;                                                                                                                        \
-    }                                                                                                                                         \
-    TT_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64 + (group_id << 2));                                                       \
-    TT_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128 + (group_id << 2));                                                      \
-    if (current_sample == final_sample)                                                                                                       \
-    {                                                                                                                                         \
-        return current_sample;                                                                                                                \
-    }
-
-template <std::size_t reciprocal_size>
-sfpi_inline uint32_t
-_welfords_main_(uint32_t current_sample, const uint32_t final_sample, uint32_t skip_n_rows, uint32_t group_id, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+/**
+ * @brief Calculates running mean and m2 for a single block of 4 rows and 32 columns.
+ *
+ * @tparam I
+ * @tparam J
+ * @param start_idx The index of the first element in the block; used to index the reciprocal lookup table.
+ * @param reciprocal_lut The lookup table containing the reciprocals of the sample counts.
+ *
+ * This is a helper function that performs all three steps for a single block:
+ * load inputs, load reciprocal and compute running mean and m2. Each block has 4 rows of 32 columns.
+ */
+template <std::size_t reciprocal_size, uint32_t I, uint32_t J>
+sfpi_inline void _calculate_welfords_block_(uint32_t start_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
-    // I, J, LOAD_PREVIOUS, N, endN. N can only be zero in first iteration
-    if (current_sample == 0)
-    {
-        lltt::replay(9, 9);
-        WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, group_id, reciprocal_lut)
-    }
-    else
-    {
-        welfords_load_data<0, 0>(group_id);
-        WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, group_id, reciprocal_lut)
-    }
-    welfords_load_data<0, 1>(group_id);
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, group_id, reciprocal_lut)
-    welfords_load_data<0, 2>(group_id);
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, group_id, reciprocal_lut)
-    welfords_load_data<0, 3>(group_id);
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, group_id, reciprocal_lut)
-    welfords_load_data<1, 0>(group_id);
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, group_id, reciprocal_lut)
-    welfords_load_data<1, 1>(group_id);
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, group_id, reciprocal_lut)
-    welfords_load_data<1, 2>(group_id);
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, group_id, reciprocal_lut)
-    welfords_load_data<1, 3>(group_id);
-    WELFORDS_LOOP_ITERATION(current_sample, final_sample, skip_n_rows, group_id, reciprocal_lut)
-    return current_sample;
-}
+    _welfords_load_block_<I, J>();
 
-#undef WELFORDS_LOOP_ITERATION
+    _load_recip_of_index_<reciprocal_size>(start_idx, reciprocal_lut);
+    _execute_welfords_row_replay_buffer_<ckernel::p_sfpu::LREG0>();
 
-sfpi_inline void _save_data_(const bool reformat_dst, const uint32_t group_id)
-{
-    if (reformat_dst)
-    {
-        // This subroutine allows us to save the row of mean vals to the dstreg 1 and row of variance vals to dstreg 2
-        TTI_SFPADD(ckernel::p_sfpu::LCONST_1 /*LREG10 = <1>*/, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG4, ckernel::p_sfpu::LREG0, 0);
-        TTI_SFPLOADI(ckernel::p_sfpu::LREG1, 0, 0);
-        TTI_SFPLOADI(ckernel::p_sfpu::LREG2, 0, 0);
-        TTI_SFPLOADI(ckernel::p_sfpu::LREG3, 0, 0);
+    _load_recip_of_index_<reciprocal_size>(start_idx + 1, reciprocal_lut);
+    _execute_welfords_row_replay_buffer_<ckernel::p_sfpu::LREG1>();
 
-        TTI_SFPMUL(ckernel::p_sfpu::LREG7 /*LREG7 = 1/N*/, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG4, 0);
-        TTI_SFPLOADI(ckernel::p_sfpu::LREG5, 0, 0);
-        TTI_SFPLOADI(ckernel::p_sfpu::LREG6, 0, 0);
-        TTI_SFPLOADI(ckernel::p_sfpu::LREG7, 0, 0);
+    _load_recip_of_index_<reciprocal_size>(start_idx + 2, reciprocal_lut);
+    _execute_welfords_row_replay_buffer_<ckernel::p_sfpu::LREG2>();
 
-        TTI_SFPTRANSP(0, 0, 0, 0);
-
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG0, 0, ckernel::ADDR_MOD_3, 64);
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG1, 0, ckernel::ADDR_MOD_3, 64 + 2);
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG2, 0, ckernel::ADDR_MOD_3, 64 + 16);
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG3, 0, ckernel::ADDR_MOD_3, 64 + 18);
-
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 128);
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128 + 2);
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG6, 0, ckernel::ADDR_MOD_3, 128 + 16);
-        TTI_SFPSTORE(ckernel::p_sfpu::LREG7, 0, ckernel::ADDR_MOD_3, 128 + 18);
-    }
-    else
-    {
-        // saves data raw to dst reg
-        TT_SFPSTORE(ckernel::p_sfpu::LREG4, 0, ckernel::ADDR_MOD_3, 64 + (group_id << 2));
-        TT_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128 + (group_id << 2));
-    }
+    _load_recip_of_index_<reciprocal_size>(start_idx + 3, reciprocal_lut);
+    _execute_welfords_row_replay_buffer_<ckernel::p_sfpu::LREG3>();
 }
 
 namespace ckernel
 {
 namespace sfpu
 {
-sfpi_inline void _program_welfords_replay_()
+/**
+ * @brief Clears the previous Welford's mean and m2 stored in registers LREG4 and LREG5.
+ *
+ * This function zeroes out the registers LREG4 and LREG5 used for storing the previous Welford's
+ * values, preparing for a new calculation cycle. Typically invoked at the beginning of the
+ * calculation for a new group of tiles over which the mean and m2 are calculated.
+ */
+sfpi_inline void _clear_previous_mean_and_m2_()
 {
-    lltt::record(0, 23);
-    _compute_welfords_math_();      // 9 TTI instructions
-    _welfords_load_initial_data_(); // 9 TTI instructions
-    TTI_SFPTRANSP(0, 0, 0, 0);
-    // wiping LREG 6 and 7 since they may be filled with garbage data
-    TTI_SFPLOADI(ckernel::p_sfpu::LREG6, 0, 0);
-    TTI_SFPLOADI(ckernel::p_sfpu::LREG7, 0, 0);
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG4, sfpi::SFPLOADI_MOD0_FLOATB, 0);
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG5, sfpi::SFPLOADI_MOD0_FLOATB, 0);
 }
 
+/*
+ * @brief Calculates the Welford's online algorithm for a tile in the dst reg.
+ *
+ * This function calculates the Welford's online algorithm for a tile in the dst reg.
+ * It assumes that the current mean and m2 values are placed in LREG4 and LREG5, respectively.
+ * It operates on 32 inputs each from 32 columns, present in a 32x32 tile in dst 0. At the end,
+ * the updated mean and m2 values are stored in LREG4 and LREG5, respectively.
+ * @tparam reciprocal_size The size of the reciprocal lookup table.
+ * @param start_idx The index of the first element in the tile; used to index the reciprocal lookup table.
+ * @param reciprocal_lut The lookup table containing the reciprocals of the sample counts.
+ */
 template <std::size_t reciprocal_size>
-void _calculate_welfords_online_(
-    uint32_t current_sample,
-    const uint32_t final_sample,
-    uint32_t skip_n_rows,
-    uint32_t group_id,
-    const std::array<uint32_t, reciprocal_size>& reciprocal_lut,
-    const bool reformat_dst_to_col_on_end,
-    const bool convert_M2_to_var
-)
+sfpi_inline void _calculate_welfords_tile_(uint32_t start_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
-    // Pack the mean into the first face of the mean dst reg. Convert M2 to variance and pack into the first face of the var dst reg.
-    if (convert_M2_to_var)
-    {
-        _load_recip_current_sample_(current_sample - 1, reciprocal_lut);
-        TTI_SFPLOAD(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128 + (group_id << 2));
-        TTI_SFPNOP;
-        TTI_SFPMUL(ckernel::p_sfpu::LREG7 /*LREG7 = 1/N*/, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG5, 0);
-        TTI_SFPNOP;
-        TT_SFPSTORE(ckernel::p_sfpu::LREG5, 0, ckernel::ADDR_MOD_3, 128 + (group_id << 2));
-        return;
-    }
+    // We load 4 rows of a tile (with 32 columns each) at a time and process them.
+    // To finish the entire tile, we need to repeat this process 8 times.
 
-    const uint32_t sample_count = _welfords_main_(current_sample, final_sample, skip_n_rows, group_id, reciprocal_lut);
-    if (sample_count == final_sample)
-    {
-        _save_data_(reformat_dst_to_col_on_end, group_id);
-    }
+    // Process the first block (4 rows of 32 columns)
+    _calculate_welfords_block_<reciprocal_size, 0, 0>(start_idx, reciprocal_lut);
+
+    // Repeat this 7 more times to process the remaining blocks
+    _calculate_welfords_block_<reciprocal_size, 0, 1>(start_idx + 4, reciprocal_lut);
+    _calculate_welfords_block_<reciprocal_size, 0, 2>(start_idx + 8, reciprocal_lut);
+    _calculate_welfords_block_<reciprocal_size, 0, 3>(start_idx + 12, reciprocal_lut);
+
+    _calculate_welfords_block_<reciprocal_size, 1, 0>(start_idx + 16, reciprocal_lut);
+    _calculate_welfords_block_<reciprocal_size, 1, 1>(start_idx + 20, reciprocal_lut);
+    _calculate_welfords_block_<reciprocal_size, 1, 2>(start_idx + 24, reciprocal_lut);
+    _calculate_welfords_block_<reciprocal_size, 1, 3>(start_idx + 28, reciprocal_lut);
+}
+
+/*
+ * @brief Stores the mean and m2 values to the tile in the dst reg at offset 0 and 1 respectively.
+ *
+ * This function stores the mean and m2 values to the tile in the dst reg at offset 0 and 1
+ * respectively. The values are stored in "raw" format. i.e. a total of 32 mean values are stored in
+ * the first face of the tile in dst at offset 0. These values are stored at even indices only.
+ * Thus, the values take up 4 rows in the first face with 8 values per row. The m2 values are stored
+ * in the same way but at tile offset 1.
+ */
+sfpi_inline void _store_mean_m2_to_dst_()
+{
+    const uint32_t mean_tile_offset = 0;  // offset for the mean tile in dst
+    const uint32_t m2_tile_offset   = 64; // offset for the m2 tile in dst
+
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG4, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset);
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG5, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, m2_tile_offset);
+}
+
+/*
+ * @brief Loads the mean and m2 values from the tile in the dst reg into LREGs.
+ *
+ * This function loads the mean and m2 values from the tiles in the dst reg into LREGs.
+ * The mean is loaded into LREG4, and the m2 is loaded into LREG5.
+ * It assumes that the mean and m2 values were stored by _store_mean_m2_to_dst_
+ * (i.e., they are each stored in the "raw" format).
+ */
+sfpi_inline void _load_mean_m2_from_dst_()
+{
+    const uint32_t mean_tile_offset = 0;  // offset for the mean tile in dst
+    const uint32_t m2_tile_offset   = 64; // offset for the m2 tile in dst
+
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG4, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset);
+    TTI_SFPLOAD(ckernel::p_sfpu::LREG5, sfpi::SFPLOAD_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, m2_tile_offset);
+}
+
+/*
+ * @brief Stores the mean and variance values to the tile in the dst reg.
+ *
+ * This function stores the mean and variance values to the tile in the dst reg.
+ * It assumes that the mean and m2 values are placed in LREG4 and LREG5, respectively.
+ * These values are placed in the first column of the tile in dst. The reciprocal LUT, if provided,
+ * is used to load the reciprocal of the sample count.
+ * @tparam reciprocal_size The size of the reciprocal lookup table.
+ * @param scale_idx The index of the scale value to use for the variance calculation.
+ * @param reciprocal_lut The lookup table containing the reciprocals of the sample counts.
+ */
+template <std::size_t reciprocal_size>
+sfpi_inline void _store_mean_var_to_dst_(uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+{
+    _load_recip_of_index_(scale_idx, reciprocal_lut);
+    // Move mean to LREG0
+    TTI_SFPMOV(0, ckernel::p_sfpu::LREG4, ckernel::p_sfpu::LREG0, 0);
+    // Convert M2 to variance and move to LREG4
+    TTI_SFPMAD(ckernel::p_sfpu::LREG7, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG4, 0);
+    // Move all the values to a single column
+    TTI_SFPTRANSP(0, 0, 0, 0);
+
+    constexpr uint32_t offset0 = 0;
+    constexpr uint32_t offset1 = 2;
+    constexpr uint32_t offset2 = 16;
+    constexpr uint32_t offset3 = 18;
+
+    const uint32_t mean_tile_offset = 0; // offset for the mean tile in dst
+
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG0, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset + offset0);
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG1, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset + offset1);
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG2, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset + offset2);
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG3, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, mean_tile_offset + offset3);
+
+    const uint32_t var_tile_offset = 64; // offset for the var tile in dst
+
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG4, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, var_tile_offset + offset0);
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG5, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, var_tile_offset + offset1);
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG6, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, var_tile_offset + offset2);
+    TTI_SFPSTORE(ckernel::p_sfpu::LREG7, sfpi::SFPSTORE_MOD0_FMT_SRCB, ckernel::ADDR_MOD_3, var_tile_offset + offset3);
 }
 } // namespace sfpu
 } // namespace ckernel
