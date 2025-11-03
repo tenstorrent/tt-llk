@@ -14,9 +14,10 @@ from test_matmul import test_matmul as run_matmul
     boot_mode=[BootMode.BRISC, BootMode.TRISC, BootMode.EXALENS],
 )
 def test_boot_modes(boot_mode):
-    if (boot_mode == BootMode.TRISC and
-        get_chip_architecture == ChipArchitecture.WORMHOLE
-       ):
+    if (
+        boot_mode == BootMode.TRISC
+        and get_chip_architecture == ChipArchitecture.WORMHOLE
+    ):
         pytest.skip("Skip test for Wormhole")
     test_name = "matmul_test"
     math_fidelity = MathFidelity.LoFi
