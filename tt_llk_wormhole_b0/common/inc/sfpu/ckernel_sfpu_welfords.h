@@ -306,8 +306,9 @@ sfpi_inline void _store_mean_m2_to_dst_()
  * offset that is dependent on the group id. This allows for data of multiple groups to be stored in
  * the same tile.
  * @note Since group_id is known at runtime, we use TT_SFPSTORE instead of TTI_SFPSTORE.
+ * @param group_id The group id to store the data for.
  */
-sfpi_inline void _store_mean_m2_to_dst_(uint32_t group_id)
+sfpi_inline void _store_mean_m2_to_dst_group_(uint32_t group_id)
 {
     constexpr uint32_t mean_tile_offset = 0;  // offset for the mean tile in dst
     constexpr uint32_t m2_tile_offset   = 64; // offset for the m2 tile in dst
@@ -340,8 +341,9 @@ sfpi_inline void _load_mean_m2_from_dst_()
  * an offset that is dependent on the group id. This allows for data of multiple groups to be loaded
  * from the same tile.
  * @note Since group_id is known at runtime, we use TT_SFPLOAD instead of TTI_SFPLOAD.
+ * @param group_id The group id to load the data for.
  */
-sfpi_inline void _load_mean_m2_from_dst_(uint32_t group_id)
+sfpi_inline void _load_mean_m2_from_dst_group_(uint32_t group_id)
 {
     constexpr uint32_t mean_tile_offset = 0;  // offset for the mean tile in dst
     constexpr uint32_t m2_tile_offset   = 64; // offset for the m2 tile in dst
@@ -424,9 +426,13 @@ sfpi_inline void _store_mean_var_to_dst_raw_(uint32_t scale_idx, const std::arra
  * This function does the same as _store_mean_var_to_dst_raw_ but allows for the data to be stored
  * at an offset that is dependent on the group id.
  * @note Since group_id is known at runtime, we use TT_SFPSTORE instead of TTI_SFPSTORE.
+ * @tparam reciprocal_size The size of the reciprocal lookup table.
+ * @param group_id The group id to store the data for.
+ * @param scale_idx The index of the scale value to use for the variance calculation.
+ * @param reciprocal_lut The lookup table containing the reciprocals of the sample counts.
  */
 template <std::size_t reciprocal_size>
-sfpi_inline void _store_mean_var_to_dst_raw_(uint32_t group_id, uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+sfpi_inline void _store_mean_var_to_dst_raw_group_(uint32_t group_id, uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
     _load_recip_of_index_(scale_idx, reciprocal_lut);
 
