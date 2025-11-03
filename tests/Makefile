@@ -41,6 +41,7 @@ SHARED_OBJ_DIR  := $(SHARED_DIR)/obj
 SHARED_DEPS_DIR := $(SHARED_DIR)/deps
 SHARED_DIS_DIR  := $(SHARED_DIR)/dis
 SHARED_ELF_DIR  := $(SHARED_DIR)/elf
+INFO_FILES_DIR 	:= $(BUILD_DIR)/coverage_info
 
 TEST_DIR        := $(BUILD_DIR)/tests/$(testname)
 OBJ_DIR         := $(TEST_DIR)/obj
@@ -60,11 +61,12 @@ GXX             := $(TOOL_PATH)/riscv-tt-elf-g++
 OBJDUMP         := $(TOOL_PATH)/riscv-tt-elf-objdump
 OBJCOPY         := $(TOOL_PATH)/riscv-tt-elf-objcopy
 GCOV			:= $(realpath $(TOOL_PATH)/riscv-tt-elf-gcov)
+GCOV_TOOL		:= $(realpath $(TOOL_PATH)/riscv-tt-elf-gcov-tool)
 
 # =========================
 # Compiler and Linker Flags
 # =========================
-OPTIONS_ALL	:= -g -O1 -std=$(CXX_VERSION) -ffast-math
+OPTIONS_ALL	:= -g -O3 -std=$(CXX_VERSION) -ffast-math
 OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Werror -Wunused-parameter \
 				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized \
 				   -Wmaybe-uninitialized -DTENSIX_FIRMWARE -DENV_LLK_INFRA $(ARCH_DEFINE)
@@ -121,7 +123,7 @@ ELF_TARGETS += $(SHARED_ELF_DIR)/brisc.elf
 DIS_TARGETS += $(SHARED_DIS_DIR)/brisc.S
 endif
 
-all: $(ELF_TARGETS)
+all: clear_coverage_artefacts $(ELF_TARGETS)
 
 dis: $(DIS_TARGETS)
 
@@ -129,6 +131,13 @@ profiler: $(PROFILER_DIR)/unpack.meta.bin \
 	  $(PROFILER_DIR)/math.meta.bin \
 	  $(PROFILER_DIR)/pack.meta.bin
 
+
+clear_coverage_artefacts:
+	-rm $(COVERAGE_DIR)/*.raw.stream
+	-rm $(OBJ_DIR)/*.gcno
+	-rm $(OBJ_DIR)/*.gcda
+	-rm $(SHARED_OBJ_DIR)/*.gcda
+	-rm $(SHARED_OBJ_DIR)/*.gcda
 
 # =========================
 # Build Rules
@@ -159,7 +168,7 @@ $(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/bris
 
 # disable make automatically deleting important intermediate files
 .SECONDARY: $(SHARED_OBJ_DIR)/*.o $(OBJ_DIR)/*.o
-.PRECIOUS: $(OBJ_DIR)/kernel_%.o
+# .PRECIOUS: $(OBJ_DIR)/kernel_%.o
 
 # build kernel_unpack.o, kernel_math.o, kernel_pack.o from sources directory (checks ai_gen, quasar, then main)
 # Find which source file exists and determine if COMPILE_FOR_TRISC flag is needed
@@ -209,22 +218,42 @@ $(BUILD_DIR):
 	mkdir -p $@
 
 # create folder structure for shared files
-$(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR):
+$(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR) $(INFO_FILES_DIR):
 	mkdir -p $@
 
 # create folder structure for test specific files
 $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR) $(COVERAGE_DIR) $(COVERAGE_REPORT_DIR):
 	mkdir -p $@
 
-INFO_PATH	:= $(COVERAGE_DIR)/coverage.info
+INFO_PATH		:= $(COVERAGE_DIR)/merged_coverage.info
+STREAM_FILES	:= $(wildcard $(COVERAGE_DIR)/*.raw.stream)
 
-ELF_FILES := $(wildcard $(ELF_DIR)/*.elf)
+coverage: $(COVERAGE_DIR) $(INFO_FILES_DIR)
+	@for f in $(STREAM_FILES); do \
+        $(GCOV_TOOL) merge-stream "$$f"; \
+    done
 
-coverage: $(COVERAGE_DIR) $(COVERAGE_REPORT_DIR)
 	lcov --gcov-tool $(GCOV) --capture \
-	--directory $(COVERAGE_DIR) \
-	--directory $(ELF_DIR) \
-	--output-file $(INFO_PATH) --rc lcov_branch_coverage=1
+	--directory $(OBJ_DIR) \
+	--directory $(SHARED_OBJ_DIR) \
+	--output-file $(INFO_FILES_DIR)/$(info_file_name) --rc lcov_branch_coverage=1
+
+
+INFO_FILES	:= $(wildcard $(INFO_FILES_DIR)/coverage_*.info)
+FIRST_INFO	:= $(firstword $(INFO_FILES))
+merge_coverage_data:
+	-rm $(INFO_PATH)
+	@if [ -z "$(INFO_FILES)" ]; then \
+		echo "No coverage files found."; exit 1; \
+	fi; \
+	cp $(FIRST_INFO) $(INFO_PATH)
+	for f in $(INFO_FILES); do \
+        if [ "$$f" != "$(FIRST_INFO)" ]; then \
+            lcov -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH); \
+        fi; \
+    done;
+
+generate_report:
 	genhtml --branch-coverage $(INFO_PATH) --output-directory $(COVERAGE_REPORT_DIR)
 
 
