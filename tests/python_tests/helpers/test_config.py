@@ -5,6 +5,8 @@ import os
 from enum import Enum
 from pathlib import Path
 
+from helpers.target_config import TestTargetConfig
+
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
@@ -579,17 +581,27 @@ def build_test(
 
 def run_test(
     test_config,
-    with_coverage,
     boot_mode: BootMode = BootMode.DEFAULT,  # global override boot mode here
     profiler_build: ProfilerBuild = ProfilerBuild.No,
 ):
     """Run the test with the given configuration"""
 
-    build_test(test_config, with_coverage, boot_mode, profiler_build)
+    test_target = TestTargetConfig()
+
+    build_test(test_config, test_target.with_coverage, boot_mode, profiler_build)
 
     # run test
     elfs = run_elf_files(test_config["testname"], boot_mode)
     wait_for_tensix_operations_finished(elfs)
 
-    if with_coverage:
+    if test_target.with_coverage:
         pull_coverage_data(test_config)
+
+
+def combine_coverage_data():
+    llk_home = Path(os.environ.get("LLK_HOME"))
+    tests_dir = str((llk_home / "tests").absolute())
+
+    make_cmd = "make -j 6 --silent merge_coverage_data"
+
+    run_shell_command(make_cmd, cwd=tests_dir)

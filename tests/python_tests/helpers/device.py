@@ -650,7 +650,7 @@ def coverage(
 
 def pull_coverage_data(test_config, device_id=0, location="0,0"):
     test_run_id = md5(
-        f"{test_config['testname']} - {test_config['formats']} - {test_config['tile_cnt']} {time.clock_gettime(0)}".encode()
+        f"{str(test_config)} - {time.clock_gettime(0)}".encode()
     ).hexdigest()
 
     CHIP_ARCH = get_chip_architecture()

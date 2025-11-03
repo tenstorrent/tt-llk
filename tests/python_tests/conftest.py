@@ -12,6 +12,7 @@ from helpers.device import reset_mailboxes
 from helpers.format_config import InputOutputFormat
 from helpers.log_utils import _format_log
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
+from helpers.test_config import combine_coverage_data
 from ttexalens import tt_exalens_init
 from ttexalens.tt_exalens_lib import arc_msg
 
@@ -95,6 +96,14 @@ def reset_mailboxes_fixture():
 @pytest.fixture
 def with_coverage(request):
     return request.config.getoption("--coverage")
+
+
+@pytest.fixture(scope="module", autouse=True)
+def handle_test_end():
+    yield
+    test_target = TestTargetConfig()
+    if test_target.with_coverage:
+        combine_coverage_data()
 
 
 def pytest_configure(config):
