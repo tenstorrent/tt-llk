@@ -26,7 +26,7 @@ from helpers.test_config import run_test
 from helpers.tilize_untilize import untilize
 from helpers.utils import passed_test
 
-max_tiles = 4  # max number if tiles in 32-it dest is 4
+max_tiles = 4  # max number of tiles in 32-bit dest is 4
 tile_dim = 32
 
 dimension_combinations = [
