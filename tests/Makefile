@@ -227,7 +227,7 @@ $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR) $(INFO_
 $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR) $(COVERAGE_DIR) $(COVERAGE_REPORT_DIR):
 	mkdir -p $@
 
-INFO_PATH		:= $(COVERAGE_DIR)/merged_coverage.info
+INFO_PATH		:= $(BUILD_DIR)/merged_coverage.info
 STREAM_FILES	:= $(wildcard $(COVERAGE_DIR)/*.raw.stream)
 
 coverage: $(COVERAGE_DIR) $(INFO_FILES_DIR)
@@ -244,16 +244,21 @@ coverage: $(COVERAGE_DIR) $(INFO_FILES_DIR)
 INFO_FILES	:= $(wildcard $(INFO_FILES_DIR)/coverage_*.info)
 FIRST_INFO	:= $(firstword $(INFO_FILES))
 merge_coverage_data:
-	-rm $(INFO_PATH)
-	@if [ -z "$(INFO_FILES)" ]; then \
+	if [ -z "$(INFO_FILES)" ]; then \
 		echo "No coverage files found."; exit 1; \
 	fi; \
-	cp $(FIRST_INFO) $(INFO_PATH)
-	for f in $(INFO_FILES); do \
+
+	@if [ ! -f "$(INFO_PATH)" ]; then \
+        cp $(FIRST_INFO) $(INFO_PATH); \
+    fi; \
+
+	@for f in $(INFO_FILES); do \
         if [ "$$f" != "$(FIRST_INFO)" ]; then \
-            lcov -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH); \
+            lcov -q -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH); \
         fi; \
     done;
+
+	@-rm $(INFO_FILES_DIR)/*
 
 generate_report:
 	genhtml --branch-coverage $(INFO_PATH) --output-directory $(COVERAGE_REPORT_DIR)
