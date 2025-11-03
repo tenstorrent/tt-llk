@@ -137,40 +137,6 @@ inline void calculate_reduce_int(const uint tile_idx = 0)
     // Address 18: odd columns,  right half (columns 17,19,21,23,25,27,29,31)
 }
 
-inline void init_reduce_int()
-{
-    // Initialize SFPU configuration register
-    _init_sfpu_config_reg();
-
-    // Program optimized replay buffer for column summation
-    // This replay buffer is called twice per iteration:
-    // 1st call: After first transpose - operates on transposed data where LREG0-3 and LREG4-7 both map to lanes 0→3
-    // 2nd call: After second transpose - operates on data transposed back to original layout, the sum of 4 rows columns stored in lregs, need to sum lregs for
-    // each face to get the final column sums
-
-    // Program replay buffer using Blackhole load_replay_buf API
-    load_replay_buf(
-        0,
-        6,
-        []
-        {
-            // Column summation for upper face data (originally LREG0-3)
-            // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
-            TTI_SFPIADD(0, p_sfpu::LREG3, p_sfpu::LREG2, 4); // LREG2 = LREG2 + LREG3
-            TTI_SFPIADD(0, p_sfpu::LREG2, p_sfpu::LREG1, 4); // LREG1 = LREG1 + LREG2
-            TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4); // LREG0 = LREG0 + LREG1 (upper face column sums)
-
-            // Column summation for lower face data (originally LREG4-7)
-            // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
-            TTI_SFPIADD(0, p_sfpu::LREG7, p_sfpu::LREG6, 4); // LREG6 = LREG6 + LREG7
-            TTI_SFPIADD(0, p_sfpu::LREG6, p_sfpu::LREG5, 4); // LREG5 = LREG5 + LREG6
-            TTI_SFPIADD(0, p_sfpu::LREG5, p_sfpu::LREG4, 4); // LREG4 = LREG4 + LREG5 (lower face column sums)
-
-            // The transpose operation allows both upper and lower face data to be processed
-            // simultaneously in the same lane space, then separated back to their original registers
-        });
-}
-
 /**
  * @brief Generic reduction operation for a 32x32 tile, placing output values into the first row.
  *        Currently able to calculate column-wise sum and/or average of a 32x32 tile, placing output values into the first row.
@@ -264,10 +230,18 @@ inline void calculate_reduce_float(const uint tile_idx = 0)
     // Address 18: odd columns,  right half (columns 17,19,21,23,25,27,29,31)
 }
 
-inline void init_reduce_float()
+template <InstrModLoadStore INSTRUCTION_MODE>
+inline void _init_reduce_()
 {
     // Initialize SFPU configuration register
     _init_sfpu_config_reg();
+
+    // Determine if we're working with integer or float based on INSTRUCTION_MODE
+    constexpr bool is_integer_mode =
+        (INSTRUCTION_MODE == InstrModLoadStore::INT32_2S_COMP || INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::LO16);
+    constexpr bool is_float_mode = (INSTRUCTION_MODE == InstrModLoadStore::FP32);
+
+    static_assert(is_integer_mode || is_float_mode, "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16 (integer) or FP32 (float)");
 
     // Program optimized replay buffer for column summation
     // This replay buffer is called twice per iteration:
@@ -275,34 +249,50 @@ inline void init_reduce_float()
     // 2nd call: After second transpose - operates on data transposed back to original layout, the sum of 4 rows columns stored in lregs, need to sum lregs for
     // each face to get the final column sums
 
-    // Program replay buffer using Blackhole load_replay_buf API
-    load_replay_buf(
-        0,
-        6,
-        []
-        {
-            // Column summation for upper face data (originally LREG0-3)
-            // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
-            TTI_SFPADD(p_sfpu::LREG2, p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG2, 0); // LREG2 = (LREG2 * 1) + LREG3 = LREG2 + LREG3 (float)
-            TTI_SFPADD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG1, 0); // LREG1 = (LREG1 * 1) + LREG2 = LREG1 + LREG2 (float)
-            TTI_SFPADD(
-                p_sfpu::LREG0,
-                p_sfpu::LCONST_1,
-                p_sfpu::LREG1,
-                p_sfpu::LREG0,
-                0); // LREG0 = (LREG0 * 1) + LREG1 = LREG0 + LREG1 (upper face column sums, float)
+    if constexpr (is_integer_mode)
+    {
+        // Program replay buffer for integer operations (6 instructions)
+        lltt::record(0, 6);
 
-            // Column summation for lower face data (originally LREG4-7)
-            // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
-            TTI_SFPADD(p_sfpu::LREG6, p_sfpu::LCONST_1, p_sfpu::LREG7, p_sfpu::LREG6, 0); // LREG6 = (LREG6 * 1) + LREG7 = LREG6 + LREG7 (float)
-            TTI_SFPADD(p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG6, p_sfpu::LREG5, 0); // LREG5 = (LREG5 * 1) + LREG6 = LREG5 + LREG6 (float)
-            TTI_SFPADD(
-                p_sfpu::LREG4,
-                p_sfpu::LCONST_1,
-                p_sfpu::LREG5,
-                p_sfpu::LREG4,
-                0); // LREG4 = (LREG4 * 1) + LREG5 = LREG4 + LREG5 (lower face column sums, float)
-        });
+        // Column summation for upper face data (originally LREG0-3)
+        // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
+        TTI_SFPIADD(0, p_sfpu::LREG3, p_sfpu::LREG2, 4); // LREG2 = LREG2 + LREG3
+        TTI_SFPIADD(0, p_sfpu::LREG2, p_sfpu::LREG1, 4); // LREG1 = LREG1 + LREG2
+        TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4); // LREG0 = LREG0 + LREG1 (upper face column sums)
+
+        // Column summation for lower face data (originally LREG4-7)
+        // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
+        TTI_SFPIADD(0, p_sfpu::LREG7, p_sfpu::LREG6, 4); // LREG6 = LREG6 + LREG7
+        TTI_SFPIADD(0, p_sfpu::LREG6, p_sfpu::LREG5, 4); // LREG5 = LREG5 + LREG6
+        TTI_SFPIADD(0, p_sfpu::LREG5, p_sfpu::LREG4, 4); // LREG4 = LREG4 + LREG5 (lower face column sums)
+    }
+    else // is_float_mode
+    {
+        // Program replay buffer for float operations (6 instructions)
+        lltt::record(0, 6);
+
+        // Column summation for upper face data (originally LREG0-3) - float version
+        // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
+        TTI_SFPADD(p_sfpu::LREG2, p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG2, 0); // LREG2 = (LREG2 * 1) + LREG3 = LREG2 + LREG3 (float)
+        TTI_SFPADD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG1, 0); // LREG1 = (LREG1 * 1) + LREG2 = LREG1 + LREG2 (float)
+        TTI_SFPADD(
+            p_sfpu::LREG0,
+            p_sfpu::LCONST_1,
+            p_sfpu::LREG1,
+            p_sfpu::LREG0,
+            0); // LREG0 = (LREG0 * 1) + LREG1 = LREG0 + LREG1 (upper face column sums, float)
+
+        // Column summation for lower face data (originally LREG4-7) - float version
+        // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
+        TTI_SFPADD(p_sfpu::LREG6, p_sfpu::LCONST_1, p_sfpu::LREG7, p_sfpu::LREG6, 0); // LREG6 = (LREG6 * 1) + LREG7 = LREG6 + LREG7 (float)
+        TTI_SFPADD(p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG6, p_sfpu::LREG5, 0); // LREG5 = (LREG5 * 1) + LREG6 = LREG5 + LREG6 (float)
+        TTI_SFPADD(
+            p_sfpu::LREG4,
+            p_sfpu::LCONST_1,
+            p_sfpu::LREG5,
+            p_sfpu::LREG4,
+            0); // LREG4 = (LREG4 * 1) + LREG5 = LREG4 + LREG5 (lower face column sums, float)
+    }
 }
 
 /**
@@ -360,15 +350,20 @@ inline void _init_reduce_()
 {
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32");
 
-    if constexpr (format == DataFormat::Int32 || format == DataFormat::UInt32)
+    if constexpr (format == DataFormat::Int32)
     {
-        // Use integer initialization for integer formats
-        init_reduce_int();
+        // Use integer initialization for Int32 format
+        _init_reduce_<InstrModLoadStore::INT32>();
+    }
+    else if constexpr (format == DataFormat::UInt32)
+    {
+        // Use integer initialization for UInt32 format
+        _init_reduce_<InstrModLoadStore::INT32_2S_COMP>();
     }
     else if constexpr (format == DataFormat::Float32)
     {
         // Use floating-point initialization for Float32 format
-        init_reduce_float();
+        _init_reduce_<InstrModLoadStore::FP32>();
     }
 }
 
