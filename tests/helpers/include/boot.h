@@ -8,6 +8,16 @@
 
 inline void device_setup()
 {
+#if defined(ARCH_WORMHOLE)
+    volatile std::uint32_t* const trisc0_start_address            = reinterpret_cast<volatile std::uint32_t*>(0x16DFF0);
+    volatile std::uint32_t* const trisc1_start_address            = reinterpret_cast<volatile std::uint32_t*>(0x16DFF4);
+    volatile std::uint32_t* const trisc2_start_address            = reinterpret_cast<volatile std::uint32_t*>(0x16DFF8);
+    volatile uint tt_reg_ptr* cfg_regs                            = reinterpret_cast<volatile uint tt_reg_ptr*>(TENSIX_CFG_BASE);
+    cfg_regs[TRISC_RESET_PC_SEC0_PC_ADDR32]                       = *trisc0_start_address;
+    cfg_regs[TRISC_RESET_PC_SEC1_PC_ADDR32]                       = *trisc1_start_address;
+    cfg_regs[TRISC_RESET_PC_SEC2_PC_ADDR32]                       = *trisc2_start_address;
+    cfg_regs[TRISC_RESET_PC_OVERRIDE_Reset_PC_Override_en_ADDR32] = 0b111;
+#endif
 #if defined(ARCH_BLACKHOLE) && !defined(ARCH_QUASAR) // Ugly hack for now
     ckernel::reg_write(RISCV_DEBUG_REG_DEST_CG_CTRL, 0);
 #endif

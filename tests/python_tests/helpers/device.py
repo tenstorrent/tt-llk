@@ -195,14 +195,18 @@ def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
 
     # Load TRISC ELF files
     trisc_names = ["unpack", "math", "pack"]
+    is_wormhole = get_chip_architecture() == ChipArchitecture.WORMHOLE
     for i, trisc_name in enumerate(trisc_names):
         elf_path = BUILD_DIR / "tests" / testname / "elf" / f"{trisc_name}.elf"
-        load_elf(
+        start_address = load_elf(
             elf_file=str(elf_path.absolute()),
             location=location,
             risc_name=f"trisc{i}",
             neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None,
+            return_start_address=is_wormhole,
         )
+        if is_wormhole:
+            write_words_to_device(location, 0x16DFF0 + i * 4, [start_address])
 
     # Reset the profiler barrier
     TRISC_PROFILER_BARRIE_ADDRESS = 0x16AFF4
