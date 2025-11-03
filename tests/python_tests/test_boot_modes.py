@@ -17,7 +17,7 @@ def test_boot_modes(boot_mode):
     if (boot_mode == BootMode.TRISC and
         get_chip_architecture == ChipArchitecture.WORMHOLE
        ):
-        pytest.skip("Skip test for Wormhole)
+        pytest.skip("Skip test for Wormhole")
     test_name = "matmul_test"
     math_fidelity = MathFidelity.LoFi
     format_dest_acc_and_dims = (
