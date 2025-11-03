@@ -26,14 +26,20 @@ namespace sfpu
  *                          - InstrModLoadStore::INT32: Signed 32-bit integers
  *                          - InstrModLoadStore::INT32_2S_COMP: 32-bit integers in 2's complement (no effect in Wormhole B0)
  *                          - InstrModLoadStore::LO16: Unsigned 16-bit integers (lower 16 bits)
+ * @param tile_idx The index of the tile in the Dest register to operate on. Each tile occupies 64 rows.
+ *                 Defaults to 0 for single-tile operations.
  */
 template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTION_MODE>
-inline void calculate_reduce_int()
+inline void calculate_reduce_int(const uint tile_idx = 0)
 {
     // Compile-time assertions to restrict to currently supported operations
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported on SFPU");
     static_assert(pool_type == SUM || pool_type == AVG, "Only SUM and AVG pool types are currently supported on SFPU");
     static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
+
+    // size of each tile in Dest is 64 rows
+    constexpr uint dst_tile_size = 64;
+    const uint tile_offset       = tile_idx * dst_tile_size;
 
     // Pre-calculated face addresses and column offsets for each iteration
     // Each face is 16 rows, tile has 4 faces arranged as:
@@ -63,16 +69,16 @@ inline void calculate_reduce_int()
         const uint COLUMN_OFFSET   = COLUMN_OFFSETS[i];
 
         // Load upper face data (Face 0 or Face 1)
-        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
-        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
-        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
-        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
+        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + UPPER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
+        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + UPPER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
+        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + UPPER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
+        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + UPPER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
 
         // Load lower face data (Face 2 or Face 3)
-        TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
-        TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
-        TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
-        TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
+        TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + LOWER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
+        TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + LOWER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
+        TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + LOWER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
+        TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + LOWER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
 
         // Process column sums for both faces using transpose and replay buffer
         TT_SFPTRANSP(0, 0, 0, 0); // Transpose: LREG0-3 → lanes 0-3, LREG4-7 → lanes 0-3 (overlapping)
@@ -113,14 +119,14 @@ inline void calculate_reduce_int()
             }
             else
             {
-                // For unsigned formats (UInt16, UInt32), just use logical shift directly
+                // For unsigned formats (UInt32), just use logical shift directly
                 // since they can't be negative
                 TTI_SFPSHFT(-5 & 0xfff, p_sfpu::LREG0, p_sfpu::LREG0, 0b01);
             }
         }
 
         // Store the final combined column sums
-        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET);
+        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + UPPER_FACE_ADDR + COLUMN_OFFSET);
     }
 
     // After this loop, the column sums are stored at first row in dest reg:
@@ -170,14 +176,20 @@ inline void init_reduce_int()
  * @tparam reduce_dim The reduction dimension (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR). Currently only REDUCE_COL is supported.
  * @tparam INSTRUCTION_MODE The instruction modifier that determines the data type and precision.
  *                          For float operations, must be InstrModLoadStore::FP32 for 32-bit floating-point.
+ * @param tile_idx The index of the tile in the Dest register to operate on. Each tile occupies 64 rows.
+ *                 Defaults to 0 for single-tile operations.
  */
 template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTION_MODE>
-inline void calculate_reduce_float()
+inline void calculate_reduce_float(const uint tile_idx = 0)
 {
     // Compile-time assertions to restrict to currently supported operations
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported on SFPU Reduce Kernel");
     static_assert(pool_type == SUM || pool_type == AVG, "Only SUM and AVG pool types are currently supported on SFPU Reduce Kernel");
     static_assert(INSTRUCTION_MODE == InstrModLoadStore::FP32, "Only FP32 instruction mode is currently supported on float SFPU Reduce Kernel");
+
+    // size of each tile in Dest is 64 rows
+    constexpr uint dst_tile_size = 64;
+    const uint tile_offset       = tile_idx * dst_tile_size;
 
     // Pre-calculated face addresses and column offsets for each iteration
     // Each face is 16 rows, tile has 4 faces arranged as:
@@ -207,16 +219,16 @@ inline void calculate_reduce_float()
         const uint COLUMN_OFFSET   = COLUMN_OFFSETS[i];
 
         // Load upper face data (Face 0 or Face 1)
-        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
-        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
-        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
-        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
+        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + UPPER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
+        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + UPPER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
+        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + UPPER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
+        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + UPPER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
 
         // Load lower face data (Face 2 or Face 3)
-        TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
-        TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
-        TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
-        TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
+        TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + LOWER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
+        TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + LOWER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
+        TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + LOWER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
+        TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + LOWER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
 
         // Process column sums for both faces using transpose and replay buffer
         TT_SFPTRANSP(0, 0, 0, 0); // Transpose: LREG0-3 → lanes 0-3, LREG4-7 → lanes 0-3 (overlapping)
@@ -239,7 +251,7 @@ inline void calculate_reduce_float()
             TTI_NOP; // Required after SFPMUL due to 2-cycle latency
         }
         // Store the final combined column sums
-        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET);
+        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset + UPPER_FACE_ADDR + COLUMN_OFFSET);
     }
 
     // After this loop, the column sums are stored at first row in dest reg:
@@ -289,7 +301,7 @@ inline void init_reduce_float()
  */
 constexpr bool is_supported_reduce_format(DataFormat format)
 {
-    return format == DataFormat::Int32 || format == DataFormat::UInt16 || format == DataFormat::UInt32 || format == DataFormat::Float32;
+    return format == DataFormat::Int32 || format == DataFormat::UInt32 || format == DataFormat::Float32;
 }
 
 /**
@@ -301,31 +313,29 @@ constexpr bool is_supported_reduce_format(DataFormat format)
  * @tparam pool_type The pool/reduction pool_type (SUM, AVG, MAX). Currently only SUM and AVG are supported.
  * @tparam reduce_dim The reduction dimension (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR). Currently only REDUCE_COL is supported.
  * @tparam format The data format (DataFormat enum value) that determines which implementation to use:
- *                - DataFormat::Int32, UInt16, UInt32: Use integer implementation
+ *                - DataFormat::Int32, UInt32: Use integer implementation
  *                - DataFormat::Float32: Uses floating-point initialization for 32-bit floating-point used in sfpu
+ * @param tile_idx The index of the tile in the Dest register to operate on. Each tile occupies 64 rows.
+ *                 Defaults to 0 for single-tile operations.
  */
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_()
+inline void _calculate_reduce_(const uint tile_idx = 0)
 {
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
     static_assert(pool_type == SUM || pool_type == AVG, "Only SUM and AVG pool types are currently supported");
-    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt16, UInt32, Float32");
+    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32");
 
     if constexpr (format == DataFormat::Int32)
     {
-        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32>();
-    }
-    else if constexpr (format == DataFormat::UInt16)
-    {
-        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::LO16>();
+        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32>(tile_idx);
     }
     else if constexpr (format == DataFormat::UInt32)
     {
-        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32_2S_COMP>();
+        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32_2S_COMP>(tile_idx);
     }
     else if constexpr (format == DataFormat::Float32)
     {
-        calculate_reduce_float<pool_type, reduce_dim, InstrModLoadStore::FP32>();
+        calculate_reduce_float<pool_type, reduce_dim, InstrModLoadStore::FP32>(tile_idx);
     }
 }
 
@@ -333,15 +343,15 @@ inline void _calculate_reduce_()
  * @brief Unified initialization wrapper for SFPU reduce kernel.
  *        Automatically chooses between integer and floating-point initialization based on the data format.
  * @tparam format The data format (DataFormat enum value) that determines which initialization to use:
- *                - Supported integer formats: Int32, UInt16, UInt32 (uses integer initialization)
+ *                - Supported integer formats: Int32, UInt32 (uses integer initialization)
  *                - Supported floating-point formats: Float32 (uses floating-point initialization)
  */
 template <DataFormat format>
 inline void _init_reduce_()
 {
-    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt16, UInt32, Float32");
+    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32");
 
-    if constexpr (format == DataFormat::Int32 || format == DataFormat::UInt16 || format == DataFormat::UInt32)
+    if constexpr (format == DataFormat::Int32 || format == DataFormat::UInt32)
     {
         // Use integer initialization for integer formats
         init_reduce_int();
