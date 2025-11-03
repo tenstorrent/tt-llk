@@ -16,7 +16,7 @@ from test_matmul import test_matmul as run_matmul
 def test_boot_modes(boot_mode):
     if (
         boot_mode == BootMode.TRISC
-        and get_chip_architecture == ChipArchitecture.WORMHOLE
+        and get_chip_architecture() == ChipArchitecture.WORMHOLE
     ):
         pytest.skip("Skip test for Wormhole")
     test_name = "matmul_test"
