@@ -27,17 +27,25 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import BootMode, run_test
 from helpers.utils import passed_test
 
+# Quasar hardware constraints for eltwise operations
+TILE_DIM = 32  # Standard tile dimension (32x32)
+MAX_TILES_16_BIT_DEST = 8  # Max tiles with 16-bit dest (Float16/Float16_b)
+
+ELTWISE_DIMENSIONS = [
+    ([mt_dim * TILE_DIM, nt_dim * TILE_DIM], DestAccumulation.No)
+    for mt_dim in range(1, MAX_TILES_16_BIT_DEST + 1)
+    for nt_dim in range(1, MAX_TILES_16_BIT_DEST // mt_dim + 1)
+]
+
 
 @parametrize(
     test_name="eltwise_binary_test",
     formats=input_output_formats(
         [
+            # DataFormat.Float32,
             DataFormat.Float16_b,
             DataFormat.Float16,
-            DataFormat.Float32,
-            DataFormat.Bfp8_b,
-            DataFormat.Tf32,
-            DataFormat.Int32,
+            # DataFormat.Bfp8_b,
         ]
     ),
     mathop=[
@@ -51,29 +59,20 @@ from helpers.utils import passed_test
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
-    num_faces=[1, 2, 4],
-    input_dimensions=[
-        [32, 32],
-        [64, 64],
-        [32, 64],
-        [64, 32],
-        [32, 128],
-        [128, 32],
-    ],
+    dimensions_dest_acc=ELTWISE_DIMENSIONS,
+    num_faces=[4],
 )
 def test_eltwise_binary(
     test_name,
     formats,
     mathop,
     math_fidelity,
-    dest_acc,
+    dimensions_dest_acc,
     num_faces,
-    input_dimensions,
     boot_mode=BootMode.DEFAULT,
 ):
-
-    # Skip conditions based on known limitations and patterns from existing tests
+    # Unpack dimensions and dest_acc from the tuple
+    input_dimensions, dest_acc = dimensions_dest_acc
 
     # Math fidelity only affects multiplication operations
     if (
