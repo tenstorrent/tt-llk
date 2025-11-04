@@ -160,6 +160,12 @@ jobs:
         with:
           pattern: code-coverage-*
           path: merged_coverage_files
+      - name: Unzip coverage artifacts
+        run: |
+          for f in merged_coverage_files/*.zip; do
+            unzip -o "$f" -d merged_coverage_files/
+            rm "$f"
+          done
       - name: Merge coverage files
         run: |
           # Example: merge all .info files
