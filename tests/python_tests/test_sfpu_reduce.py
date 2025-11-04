@@ -115,17 +115,31 @@ def test_sfpu_reduce(
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     # collect all only the first row from each tile in result tensor (f0 and f1 row, 32 datums)
+    # SFPU reduce operation stores the result in the top row of each tile:
+    # - 16 datums in face 0 (first 16 elements of top row)
+    # - 16 datums in face 1 (last 16 elements of top row)
+    # However, we pack out the full tile (1024 elements), so we need to extract
+    # only the top row. Since the result is in tilized format, we must untilize
+    # to get row-major ordering, then extract the first 32 elements which
+    # correspond to the first row of face 0 and face 1.
+    # We do so for each tile we reduced
     reduce_result = []
     golden_result = []
     for i in range(tile_cnt):
-        start_res = i * 1024
-        start_golden = i * 32
+        # Calculate starting indices for this tile
+        start_res = i * 1024  # Each tile has 1024 elements in result tensor
+        start_golden = i * 32  # Each tile contributes 32 elements to golden
+
+        # Extract and untilize the current tile, then get first 32 elements (top row)
         result_tile_i = untilize(
             res_tensor[start_res : start_res + 1024], formats.output_format
         ).flatten()[:32]
+
+        # Accumulate results from all tiles
         reduce_result.extend(result_tile_i)
         golden_result.extend(golden_tensor[start_golden : start_golden + 32])
 
+    # Convert to tensors and verify results match expected values
     reduce_tensor = torch.tensor(reduce_result, dtype=torch_format)
     golden_tensor = torch.tensor(golden_result, dtype=torch_format)
     assert passed_test(golden_tensor, reduce_tensor, formats.output_format)
