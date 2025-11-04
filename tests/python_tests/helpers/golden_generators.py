@@ -681,6 +681,12 @@ class ScalarBroadcastGolden:
         # Create output tensor with scalar value replicated across all elements
         result = torch.full((elements_per_tile,), scalar_value, dtype=torch_format)
 
+        # Apply BFP8_B special handling if needed
+        if data_format == DataFormat.Bfp8_b:
+            result_list = result.tolist()
+            result_list = check_bfp8_b(result_list)
+            result = torch.tensor(result_list, dtype=torch_format)
+
         return result
 
 
@@ -739,6 +745,12 @@ class ColumnBroadcastGolden:
                 [face_0_broadcast, face_0_broadcast, face_2_broadcast, face_2_broadcast]
             )
 
+        # Apply BFP8_B special handling if needed
+        if data_format == DataFormat.Bfp8_b:
+            output_list = output.tolist()
+            output_list = check_bfp8_b(output_list)
+            output = torch.tensor(output_list, dtype=torch_format)
+
         return output
 
 
@@ -789,6 +801,12 @@ class RowBroadcastGolden:
                         face_1_broadcast,
                     ]
                 )
+
+        # Apply BFP8_B special handling if needed
+        if data_format == DataFormat.Bfp8_b:
+            output_list = output.tolist()
+            output_list = check_bfp8_b(output_list)
+            output = torch.tensor(output_list, dtype=torch_format)
 
         return output
 
