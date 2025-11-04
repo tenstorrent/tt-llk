@@ -5,7 +5,6 @@ import inspect
 import os
 import time
 from enum import Enum, IntEnum
-from hashlib import md5
 from pathlib import Path
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
@@ -201,11 +200,10 @@ def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
 
 
-def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
+def run_elf_files(testname, variant_id, boot_mode, device_id=0, location="0,0"):
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
     BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
-    TEST_DIR = BUILD_DIR / "tests" / testname
 
     boot_mode = resolve_default_boot_mode(boot_mode)
 
@@ -221,7 +219,7 @@ def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
     is_wormhole = get_chip_architecture() == ChipArchitecture.WORMHOLE
 
     elfs = [
-        str((TEST_DIR / "elf" / f"{trisc_name}.elf").absolute())
+        str((BUILD_DIR / testname / variant_id / "elf" / f"{trisc_name}.elf").absolute())
         for trisc_name in trisc_names
     ]
 
@@ -609,9 +607,8 @@ def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=5, max_bac
     )
 
 
-def reset_mailboxes():
+def reset_mailboxes(location: str = "0,0"):
     """Reset all core mailboxes before each test."""
-    location = "0, 0"
     reset_value = 0  # Constant - indicates the TRISC kernel run status
     mailboxes = [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]
     for mailbox in mailboxes:
@@ -646,27 +643,18 @@ def coverage(
         f.write(data)
 
 
-def pull_coverage_data(test_config, device_id=0, location="0,0"):
-    test_run_id = md5(
-        f"{str(test_config)} - {time.clock_gettime(0)}".encode()
-    ).hexdigest()
-
-    CHIP_ARCH = get_chip_architecture()
-    LLK_HOME = os.environ.get("LLK_HOME")
-    BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
-    COVERAGE_DIR = BUILD_DIR / "coverage"
-
+def pull_coverage_data(testname, variant_id, build_dir, device_id=0, location="0,0"):
+    # please sweep for inconsistencies in variable names
     trisc_names = ["unpack", "math", "pack"]
-    for i, trisc_name in enumerate(trisc_names):
-        elf_path = (
-            BUILD_DIR / "tests" / test_config["testname"] / "elf" / f"{trisc_name}.elf"
-        )
+    for trisc_name in trisc_names:
+        elf_path = build_dir / "elf" / f"{trisc_name}.elf"
         elf_file = parse_elf(elf_path)
-        stream_path = f"{COVERAGE_DIR}/{trisc_name}.raw.stream"
+        stream_path = f"{build_dir}/{trisc_name}.raw.stream"
         coverage(location, elf_file, stream_path, device_id, None)
 
+    LLK_HOME = os.environ.get("LLK_HOME")
     tests_dir = str(Path(LLK_HOME) / "tests")
     run_shell_command(
-        f"make testname={test_config['testname']} info_file_name=coverage_{test_run_id}.info coverage",
+        f"make testname={testname} info_file_name={testname}_{variant_id}.info variant={variant_id} coverage",
         cwd=tests_dir,
     )

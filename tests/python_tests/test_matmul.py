@@ -14,6 +14,7 @@ from helpers.matmul_sweep import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
+from helpers.target_config import TestTargetConfig
 from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
@@ -76,6 +77,7 @@ def test_matmul(
     test_name,
     math_fidelity,
     format_dest_acc_and_dims,
+    worker_index="gw0",
     boot_mode=BootMode.DEFAULT,
 ):
     torch_format = format_dict[format_dest_acc_and_dims[0].output_format]
@@ -138,6 +140,8 @@ def test_matmul(
         "kt_dim": matmul_dims.kt_dim,
     }
 
+    location = f"0,{worker_index[2:]}"
+
     # Use the new helper function for writing stimuli
     res_address = write_stimuli_to_l1(
         test_config,
@@ -147,9 +151,14 @@ def test_matmul(
         formats.input_format,
         tile_cnt_A,
         tile_cnt_B,
+        location,
     )
 
-    run_test(test_config, boot_mode)
+    run_test(test_config, location, boot_mode)
+
+    test_target = TestTargetConfig()
+    if test_target.with_coverage:
+        return
 
     res_from_L1 = collect_results(
         formats, tile_count=matmul_dims.output_tile_cnt, address=res_address
