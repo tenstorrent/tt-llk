@@ -67,13 +67,13 @@ void run_kernel()
     }
 
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
-    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 
     ckernel::sfpu::_init_reduce_<static_cast<DataFormat>(formats.math)>();
     for (int i = 0; i < TILE_CNT; ++i)
     {
         // we have multiple tiles in dest, so we need to calculate the reduce for each tile
-        ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(i);
+        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i); // set dst offset for current tile in dest register
+        ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>();
     }
 
     _llk_math_eltwise_unary_sfpu_done_();
