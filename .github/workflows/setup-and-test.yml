@@ -162,25 +162,25 @@ jobs:
           path: ./merged_coverage_files
       - name: Unzip artefacts, merge coverage data, and generate HTML report
         run: |
-
           for f in $(find ./merged_coverage_files/ -name "*.zip"); do
-              basename=$(basename "$f" .zip)
-              unzip -p "$f" merged_coverage.info > "./merged_coverage_files/${basename}"
-              rm "$f"
+            basename=$(basename "$f" .zip)
+            unzip -p "$f" $basename > "./merged_coverage_files/${basename}"
+            rm "$f"
           done
 
           echo "-- Coverage files pulled from runners --"
-          ls -l ./merged_coverage_files/*.info
+          find ./merged_coverage_files/ -name "*.info"
 
-          first=$(ls ./merged_coverage_files/*.info | head -n 1)
-          cp "$first" ./merged.info
+          first=$(ls ./merged_coverage_files | head -n 1)
+          cp ./merged_coverage_files/"$first" merged.info
+
           for f in $(find ./merged_coverage_files/ -name "*.info"); do
             if [ "$f" != "$first" ]; then
               lcov -q -a merged.info -a "$f" -o ./merged.info
             fi
           done
 
-          lcov -q --remove ./merged.info '*/tt-llk/tests/*' \
+          lcov -q --remove ./merged.info '*tests/*' \
             -o ./merged_filtered.info
 
           mkdir -p coverage_html
