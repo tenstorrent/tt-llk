@@ -12,6 +12,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
+#include "llk_unpack_common.h"
 #include "lltt.h"
 
 using namespace ckernel;
@@ -82,20 +83,6 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
 
 // OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
 /**
- * Sets X dimension for specialized reduce_row_max unpacking operations.
- *
- * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for native reduce unpacking LLK configuration.
- * Use the standard configuration for general-purpose reduction operations.
- */
-inline void _llk_unpack_AB_reduce_row_max_set_x_dim_()
-{
-    TTI_SETADCXX(p_setadc::UNP_B, FACE_R_DIM * FACE_C_DIM - 1, 0x0);       // Unpack a single face of a scaler
-    TTI_SETADCXX(p_setadc::UNP_A, 4 * (FACE_R_DIM * FACE_C_DIM) - 1, 0x0); // Unpack a whole tile of an operand
-}
-
-// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
-/**
  * Configures MOP (Macro Operation) for specialized reduce_row_max unpacking operations.
  *
  * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
@@ -119,29 +106,28 @@ inline void _llk_unpack_AB_reduce_row_max_mop_config_()
 
 // OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
 /**
- * Initializes unpacker configuration for block-based reduce_max_row operations.
- * Sets up tile dimensions and saves unpacker state that will be modified during operation.
+ * Initializes specialized unpack for reduce_row_max operation.
  *
  * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for native reduce unpacking LLK initialization.
- * Use the standard _llk_unpack_AB_reduce_init_ for general-purpose reduction operations.
+ * and should NOT be used as a substitute for native llk_unpack_AB_reduce_init LLK.
+ * Use the standard llk_unpack_AB_reduce_init<ReduceDim::REDUCE_ROW> for general-purpose reduction.
  */
-inline void _llk_unpack_AB_reduce_block_max_row_init_()
+template <bool is_fp32_dest_acc_en = false>
+inline void _llk_unpack_AB_reduce_row_max_init_()
 {
-    _llk_unpack_AB_reduce_row_max_set_x_dim_();
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        // Set necessary config regs for MOVB2D hi16/lo16 to work
+        _llk_unpack_dbg_feature_disable_();
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1);
+    }
+    // REDUCE_ROW requires transpose itself; additionally, within_face_16x16_transpose flag could require transpose;
+    // if we have the flag set with REDUCE_ROW, we don't need to do anything
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(1);
 
-    // save the following state that is going to be modified:
-    // tile x, y, and z dims for both unpackers
-    // CH1 Z stride for both unpackers
-    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
-    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
-
-    TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 1 * FACE_C_DIM * FACE_R_DIM, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_unpack::TMP0));
-    TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 1 * FACE_C_DIM * FACE_R_DIM, p_setdmareg::MODE_IMMEDIATE, HI_16(p_gpr_unpack::TMP0));
-    TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
-    TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 4 /* y_dim */, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_unpack::TMP0));
-    TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 1 /* z_dim */, p_setdmareg::MODE_IMMEDIATE, HI_16(p_gpr_unpack::TMP0));
-    TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
+    TTI_SETADCXX(p_setadc::UNP_B, FACE_R_DIM * FACE_C_DIM - 1, 0x0);       // Unpack a single face of a scaler
+    TTI_SETADCXX(p_setadc::UNP_A, 4 * (FACE_R_DIM * FACE_C_DIM) - 1, 0x0); // Unpack a whole tile of an operand
+    _llk_unpack_AB_reduce_row_max_mop_config_();                           // Unpack operand and scaler
 }
 
 /**
@@ -164,6 +150,47 @@ inline void _llk_unpack_AB_reduce_block_max_row_mop_config_()
     const uint32_t innerloop     = 1; // Unpack tile by tile of the input operand into SrcA
     ckernel_template tmp(outerloop, innerloop, unpack_srca_op);
     tmp.program();
+}
+
+// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
+/**
+ * Initializes unpacker configuration for block-based reduce_max_row operations.
+ * Sets up tile dimensions and saves unpacker state that will be modified during operation.
+ *
+ * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
+ * and should NOT be used as a substitute for native reduce unpacking LLK initialization.
+ * Use the standard _llk_unpack_AB_reduce_init_ for general-purpose reduction operations.
+ */
+template <uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
+inline void _llk_unpack_AB_reduce_block_max_row_init_()
+{
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        // Set necessary config regs for MOVB2D hi16/lo16 to work
+        _llk_unpack_dbg_feature_disable_();
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1);
+    }
+    // REDUCE_ROW requires transpose itself; additionally, within_face_16x16_transpose flag could require transpose;
+    // if we have the flag set with REDUCE_ROW, we don't need to do anything
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(1);
+
+    TTI_SETADCXX(p_setadc::UNP_B, FACE_R_DIM * FACE_C_DIM - 1, 0x0);       // Unpack a single face of a scaler
+    TTI_SETADCXX(p_setadc::UNP_A, 4 * (FACE_R_DIM * FACE_C_DIM) - 1, 0x0); // Unpack a whole tile of an operand
+
+    // save the following state that is going to be modified:
+    // tile x, y, and z dims for both unpackers
+    // CH1 Z stride for both unpackers
+    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
+    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
+
+    TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 1 * FACE_C_DIM * FACE_R_DIM, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_unpack::TMP0));
+    TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 1 * FACE_C_DIM * FACE_R_DIM, p_setdmareg::MODE_IMMEDIATE, HI_16(p_gpr_unpack::TMP0));
+    TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
+    TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 4 /* y_dim */, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_unpack::TMP0));
+    TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 1 /* z_dim */, p_setdmareg::MODE_IMMEDIATE, HI_16(p_gpr_unpack::TMP0));
+    TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
+
+    _llk_unpack_AB_reduce_block_max_row_mop_config_<block_ct_dim>(); // Unpack operand and scaler
 }
 
 template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
