@@ -228,6 +228,7 @@ $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR) $(COVERAGE_DIR) $(C
 	mkdir -p $@
 
 INFO_PATH		:= $(BUILD_DIR)/merged_coverage.info
+INFO_PATH_FILTER		:= $(BUILD_DIR)/merged_coverage_filtered.info
 STREAM_FILES	:= $(wildcard $(COVERAGE_DIR)/*.raw.stream)
 
 coverage: $(COVERAGE_DIR) $(INFO_FILES_DIR)
@@ -261,7 +262,10 @@ merge_coverage_data:
 	@-rm $(INFO_FILES_DIR)/*
 
 generate_report:
-	genhtml --branch-coverage $(INFO_PATH) --output-directory $(COVERAGE_REPORT_DIR)
+	lcov --remove $(INFO_PATH) \
+		'*/tt-llk/tests/*' \
+		-o $(INFO_PATH_FILTER)
+	genhtml --branch-coverage $(INFO_PATH_FILTER) --output-directory $(COVERAGE_REPORT_DIR)
 
 
 # =========================
