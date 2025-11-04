@@ -651,8 +651,7 @@ class ScalarBroadcastGolden:
         scalar_value = operand1.flatten()[0]
 
         # Calculate output size based on variable face dimensions
-        face_c_dim = 16  # Face column dimension is always 16
-        elements_per_tile = face_r_dim * face_c_dim * num_faces
+        elements_per_tile = face_r_dim * FACE_DIM * num_faces
 
         # Create output tensor with scalar value replicated across all elements
         result = torch.full((elements_per_tile,), scalar_value, dtype=torch_format)
@@ -690,13 +689,12 @@ class ColumnBroadcastGolden:
             input_flat = torch.tensor(operand1, dtype=torch_format).flatten()
 
         # Each face is face_r_dim x 16 elements
-        face_c_dim = 16  # Face column dimension is always 16
-        face_size = face_r_dim * face_c_dim
+        face_size = face_r_dim * FACE_DIM
 
         # Process face 0 (used by faces 0-1)
         source_face_0 = input_flat[:face_size]
-        col_values_0 = source_face_0[::face_c_dim]
-        face_0_broadcast = col_values_0.repeat_interleave(face_c_dim)
+        col_values_0 = source_face_0[::FACE_DIM]
+        face_0_broadcast = col_values_0.repeat_interleave(FACE_DIM)
 
         # Handle different face counts efficiently
         if num_faces == 1:
@@ -707,8 +705,8 @@ class ColumnBroadcastGolden:
         else:  # num_faces == 4
             # Process face 2 (used by faces 2-3)
             source_face_2 = input_flat[2 * face_size : 3 * face_size]
-            col_values_2 = source_face_2[::face_c_dim]
-            face_2_broadcast = col_values_2.repeat_interleave(face_c_dim)
+            col_values_2 = source_face_2[::FACE_DIM]
+            face_2_broadcast = col_values_2.repeat_interleave(FACE_DIM)
 
             # Concatenate: face0, face0, face2, face2
             output = torch.cat(
@@ -740,18 +738,17 @@ class RowBroadcastGolden:
             input_flat = torch.tensor(operand1, dtype=torch_format).flatten()
 
         # Each face is face_r_dim x 16 elements
-        face_c_dim = 16  # Face column dimension is always 16
-        face_size = face_r_dim * face_c_dim
+        face_size = face_r_dim * FACE_DIM
 
         # Process face 0: take first row and repeat to fill face
-        face_0_row = input_flat[:face_c_dim]
+        face_0_row = input_flat[:FACE_DIM]
         face_0_broadcast = face_0_row.repeat(face_r_dim)
 
         if num_faces == 1:
             output = face_0_broadcast
         elif num_faces in (2, 4):
             # Extract and repeat face 1 row
-            face_1_row = input_flat[face_size : face_size + face_c_dim]
+            face_1_row = input_flat[face_size : face_size + FACE_DIM]
             face_1_broadcast = face_1_row.repeat(face_r_dim)
 
             if num_faces == 2:
@@ -793,8 +790,7 @@ class DataCopyGolden:
 
         # Calculate elements based on variable face dimensions
         # Each face is face_r_dim × 16, and we have num_faces
-        face_c_dim = 16  # Face column dimension is always 16
-        elements_per_tile_needed = face_r_dim * face_c_dim * num_faces
+        elements_per_tile_needed = face_r_dim * FACE_DIM * num_faces
 
         # Convert input to tensor if needed
         if not isinstance(operand1, torch.Tensor):
