@@ -164,8 +164,9 @@ jobs:
         run: |
 
           for f in $(find ./merged_coverage_files/ -name "*.zip"); do
-            unzip -o "$f" -d merged_coverage_files/
-            rm "$f"
+              basename=$(basename "$f" .zip)
+              unzip -p "$f" merged_coverage.info > "./merged_coverage_files/${basename}"
+              rm "$f"
           done
 
           echo "-- Coverage files pulled from runners --"
