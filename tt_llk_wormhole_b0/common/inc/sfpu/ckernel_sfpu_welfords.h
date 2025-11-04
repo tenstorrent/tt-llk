@@ -45,32 +45,32 @@ struct FloatBits
 };
 
 /**
- * @brief Loads the reciprocal of (index + 1) into LREG7, using a lookup table if available.
+ * @brief Loads the reciprocal of (idx + 1) into LREG7, using a lookup table if available.
  *
  * This function either loads a precomputed reciprocal value from the provided lookup table
  * (reciprocal_lut) into the LREG7 register, or, if the lookup table entry is not available,
- * computes the reciprocal at runtime as 1.0f/(index + 1) and loads its bit representation
+ * computes the reciprocal at runtime as 1.0f/(idx + 1) and loads its bit representation
  * into the register.
  *
  * @tparam reciprocal_size The number of entries in the reciprocal lookup table.
- * @param index The (zero-based) index (in the reciprocal lookup table) of the value to load.
+ * @param idx The (zero-based) index (in the reciprocal lookup table) of the value to load.
  * @param reciprocal_lut Lookup table containing precomputed reciprocals packed as uint32_t.
  *
  * @note The reciprocal is written to ckernel::p_sfpu::LREG7.
  */
 template <std::size_t reciprocal_size>
-sfpi_inline void _load_recip_of_index_(const uint32_t index, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+sfpi_inline void _load_recip_of_idx_(const uint32_t idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
     if constexpr (reciprocal_size > 0)
     {
-        const auto reciprocal = reciprocal_lut[index];
+        const auto reciprocal = reciprocal_lut[idx];
         TT_SFPLOADI(ckernel::p_sfpu::LREG7, sfpi::SFPLOADI_MOD0_UPPER, reciprocal >> 16);
         TT_SFPLOADI(ckernel::p_sfpu::LREG7, sfpi::SFPLOADI_MOD0_LOWER, reciprocal & 0xFFFF);
         return;
     }
 
     // Fallback to float division
-    const float reciprocal = 1.0f / static_cast<float>(index + 1);
+    const float reciprocal = 1.0f / static_cast<float>(idx + 1);
     const FloatBits reciprocal_bits(reciprocal);
     TT_SFPLOADI(ckernel::p_sfpu::LREG7, sfpi::SFPLOADI_MOD0_UPPER, reciprocal_bits.high16);
     TT_SFPLOADI(ckernel::p_sfpu::LREG7, sfpi::SFPLOADI_MOD0_LOWER, reciprocal_bits.low16);
@@ -219,16 +219,16 @@ sfpi_inline void _calculate_welfords_block_(uint32_t start_idx, const std::array
 {
     _welfords_load_block_<I, J>();
 
-    _load_recip_of_index_<reciprocal_size>(start_idx, reciprocal_lut);
+    _load_recip_of_idx_<reciprocal_size>(start_idx, reciprocal_lut);
     _execute_welfords_row_replay_buffer_<ckernel::p_sfpu::LREG0>();
 
-    _load_recip_of_index_<reciprocal_size>(start_idx + 1, reciprocal_lut);
+    _load_recip_of_idx_<reciprocal_size>(start_idx + 1, reciprocal_lut);
     _execute_welfords_row_replay_buffer_<ckernel::p_sfpu::LREG1>();
 
-    _load_recip_of_index_<reciprocal_size>(start_idx + 2, reciprocal_lut);
+    _load_recip_of_idx_<reciprocal_size>(start_idx + 2, reciprocal_lut);
     _execute_welfords_row_replay_buffer_<ckernel::p_sfpu::LREG2>();
 
-    _load_recip_of_index_<reciprocal_size>(start_idx + 3, reciprocal_lut);
+    _load_recip_of_idx_<reciprocal_size>(start_idx + 3, reciprocal_lut);
     _execute_welfords_row_replay_buffer_<ckernel::p_sfpu::LREG3>();
 }
 
@@ -278,6 +278,76 @@ sfpi_inline void _calculate_welfords_tile_(uint32_t start_idx, const std::array<
     _calculate_welfords_block_<reciprocal_size, 1, 1>(start_idx + 20, reciprocal_lut);
     _calculate_welfords_block_<reciprocal_size, 1, 2>(start_idx + 24, reciprocal_lut);
     _calculate_welfords_block_<reciprocal_size, 1, 3>(start_idx + 28, reciprocal_lut);
+}
+
+/*
+ * @brief Calculates the Welford's online algorithm for a tile in the dst reg on a subset of rows.
+ *
+ * This function calculates the Welford's online algorithm for a tile in the dst reg.
+ * It assumes that the current mean and m2 values are placed in LREG4 and LREG5, respectively.
+ * It operates on 32 inputs each from 32 columns, present in a 32x32 tile in dst 0. At the end,
+ * the updated mean and m2 values are stored in LREG4 and LREG5, respectively.
+ * @tparam reciprocal_size The size of the reciprocal lookup table.
+ * @param start_idx The index of the first element in the tile; used to index the reciprocal lookup
+ *                  table.
+ * @param start_row The offset of the row to start from. Only rows starting from this offset are
+ *                   processed in the tile. Should be 0 <= start_row <= 31. start_row should be a
+ *                   multiple of 4.
+ * @param num_rows The number of rows to process. Should be 0 <= num_rows <= 32. num_rows should be
+ *                 a multiple of 4. Also, 0 <= start_row + num_rows <= 32.
+ * @param reciprocal_lut The lookup table containing the reciprocals of the sample counts.
+ */
+template <std::size_t reciprocal_size>
+sfpi_inline void _calculate_welfords_tile_w_offset_(
+    uint32_t start_idx, uint32_t start_row, uint32_t num_rows, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+{
+    // We load 4 rows of a tile (with 32 columns each) at a time and process them.
+    // To finish the entire tile, we need to repeat this process 8 times.
+    // Depending on the start_row, we skip some blocks and adjust start_idx accordingly.
+
+    const uint32_t end_row = start_row + num_rows;
+
+    // A given block is processed if it is within [start_row, end_row)
+    if ((start_row == 0) && (end_row > 0))
+    {
+        _calculate_welfords_block_<reciprocal_size, 0, 0>(start_idx, reciprocal_lut);
+        start_idx += 4;
+    }
+    if ((start_row <= 4) && (end_row > 4))
+    {
+        _calculate_welfords_block_<reciprocal_size, 0, 1>(start_idx, reciprocal_lut);
+        start_idx += 4;
+    }
+    if ((start_row <= 8) && (end_row > 8))
+    {
+        _calculate_welfords_block_<reciprocal_size, 0, 2>(start_idx, reciprocal_lut);
+        start_idx += 4;
+    }
+    if ((start_row <= 12) && (end_row > 12))
+    {
+        _calculate_welfords_block_<reciprocal_size, 0, 3>(start_idx, reciprocal_lut);
+        start_idx += 4;
+    }
+    if ((start_row <= 16) && (end_row > 16))
+    {
+        _calculate_welfords_block_<reciprocal_size, 1, 0>(start_idx, reciprocal_lut);
+        start_idx += 4;
+    }
+    if ((start_row <= 20) && (end_row > 20))
+    {
+        _calculate_welfords_block_<reciprocal_size, 1, 1>(start_idx, reciprocal_lut);
+        start_idx += 4;
+    }
+    if ((start_row <= 24) && (end_row > 24))
+    {
+        _calculate_welfords_block_<reciprocal_size, 1, 2>(start_idx, reciprocal_lut);
+        start_idx += 4;
+    }
+    if ((start_row <= 28) && (end_row > 28))
+    {
+        _calculate_welfords_block_<reciprocal_size, 1, 3>(start_idx, reciprocal_lut);
+        start_idx += 4;
+    }
 }
 
 /*
@@ -366,7 +436,7 @@ sfpi_inline void _load_mean_m2_from_dst_group_(uint32_t group_id)
 template <std::size_t reciprocal_size>
 sfpi_inline void _store_mean_var_to_dst_col_(uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
-    _load_recip_of_index_(scale_idx, reciprocal_lut);
+    _load_recip_of_idx_(scale_idx, reciprocal_lut);
     // Move mean to LREG0
     TTI_SFPMOV(0, ckernel::p_sfpu::LREG4, ckernel::p_sfpu::LREG0, 0);
     // Convert M2 to variance and move to LREG4
@@ -408,7 +478,7 @@ sfpi_inline void _store_mean_var_to_dst_col_(uint32_t scale_idx, const std::arra
 template <std::size_t reciprocal_size>
 sfpi_inline void _store_mean_var_to_dst_raw_(uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
-    _load_recip_of_index_(scale_idx, reciprocal_lut);
+    _load_recip_of_idx_(scale_idx, reciprocal_lut);
 
     // Convert M2 to variance in LREG5
     TTI_SFPMAD(ckernel::p_sfpu::LREG7, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG5, 0);
@@ -434,7 +504,7 @@ sfpi_inline void _store_mean_var_to_dst_raw_(uint32_t scale_idx, const std::arra
 template <std::size_t reciprocal_size>
 sfpi_inline void _store_mean_var_to_dst_raw_group_(uint32_t group_id, uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
-    _load_recip_of_index_(scale_idx, reciprocal_lut);
+    _load_recip_of_idx_(scale_idx, reciprocal_lut);
 
     // Convert M2 to variance in LREG5
     TTI_SFPMAD(ckernel::p_sfpu::LREG7, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG5, 0);
