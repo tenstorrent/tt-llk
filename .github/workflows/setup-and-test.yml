@@ -193,10 +193,8 @@ jobs:
 
           mkdir -p coverage_html
           genhtml --branch-coverage ./merged_filtered.info --output-directory coverage_html
-          zip -r coverage_report.zip ./coverage_html
-
       - name: Upload code coverage for this runner
         uses: actions/upload-artifact@v4
         with:
-          name: coverage_report_website.zip
-          path: coverage_report.zip
+          name: coverage_report_website
+          path: ./coverage_html
