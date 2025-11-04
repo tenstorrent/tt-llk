@@ -253,7 +253,7 @@ def generate_build_header(test_config):
             DataFormat.Bfp8_b: 68,
             DataFormat.Float32: 256,
         }
-        # face_r_dim is now generated directly as FACE_R_DIM above
+        # face_r_dim is now generated directly as TEST_FACE_R_DIM above
 
         pack_size = TILE_SIZES.get(formats.output_format, 128)
         unpack_size_a = TILE_SIZES.get(formats.input_format, 128)
