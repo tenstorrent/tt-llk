@@ -30,6 +30,11 @@ on:
         required: false
         default: false
         type: boolean
+      coverage:
+        description: "Enable code coverage testing for entire test suite"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   checks: write
@@ -56,6 +61,8 @@ jobs:
     container:
       image: harbor.ci.tenstorrent.net/${{ inputs.docker_image }}
       options: "--rm --device /dev/tenstorrent"
+    outputs:
+      coverage_enabled: ${{ inputs.coverage }}
     name: "🦄 Run tests (group ${{ matrix.test_group }}/${{ inputs.test_splits }})"
     steps:
       # Step 1: Checkout the repository
@@ -85,11 +92,19 @@ jobs:
           echo "CHIP_ARCH=$CHIP_ARCH" >> $GITHUB_ENV
           SPLITS=$TEST_SPLITS
           cd tests/python_tests/
+          COVERAGE_FLAG=""
+          if [[ "${{ inputs.coverage }}" == "true" ]]; then
+            COVERAGE_FLAG="--coverage"
+          fi
           pytest -m "${{ inputs.pytest_markers }}" \
                 ${{ inputs.random_order && '--random-order-bucket=global' || '' }} \
                 --splits $SPLITS --group ${{ matrix.test_group }} \
                 --override-ini="addopts=-v" --timeout=60 \
+                $COVERAGE_FLAG \
                 --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
+          if [[ "${{ inputs.coverage }}" == "true" ]]; then
+            COVERAGE_FLAG="--coverage"
+          fi
 
       # Step 4: Zip performance data if perf tests were run
       - name: Zip performance data
@@ -98,6 +113,14 @@ jobs:
         run: |
           zip -r perf_data-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.zip perf_data/
           echo "Performance data zipped successfully"
+
+      # Step 4.1: Upload generated info file per runner
+      - name: Upload code coverage for this runner
+        uses: actions/upload-artifact@v4
+        if: always() && inputs.coverage
+        with:
+          name: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
+          path: tests/build/${{ env.CHIP_ARCH }}/merged_coverage.info
 
       # Step 5: Upload performance data
       - name: Upload performance data
@@ -125,3 +148,39 @@ jobs:
           report_paths: tests/python_tests/pytest-report-*-${{ matrix.test_group }}.xml
           include_passed: true
           annotate_only: true
+
+  merge-coverage:
+    name: "Merge coverage files"
+    runs-on: ubuntu-latest
+    needs: setup-and-test
+    if: needs.setup-and-test.outputs.coverage_enabled == 'true'
+    steps:
+      - name: Download all coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: code-coverage-*
+          path: merged_coverage_files
+      - name: Merge coverage files
+        run: |
+          # Example: merge all .info files
+          echo "-- Coverage files pulled from runners --"
+          ls ./merged_coverage_files/*.info
+          first=$(ls ./merged_coverage_files/*.info | head -n 1)
+          cp "$first" merged.info
+          for f in ./merged_coverage_files/*.info; do
+            if [ "$f" != "$first" ]; then
+              lcov -q -a merged.info -a "$f" -o merged.info
+            fi
+          done
+      - name: Generate HTML coverage report
+        run: |
+          mkdir -p coverage_html
+          genhtml --branch-coverage merged.info --output-directory coverage_html
+          zip -r coverage_report.zip ./coverage_html
+
+      - name: Upload code coverage for this runner
+        uses: actions/upload-artifact@v4
+        if: always() && inputs.coverage
+        with:
+          name: coverage_report_website.zip
+          path: coverage_report.zip
