@@ -159,10 +159,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: code-coverage-*
-          path: merged_coverage_files
+          path: ./merged_coverage_files
       - name: Unzip coverage artifacts
         run: |
-          for f in merged_coverage_files/*.zip; do
+          for f in $(find ./merged_coverage_files/ -name "*.zip"); do
             unzip -o "$f" -d merged_coverage_files/
             rm "$f"
           done
@@ -173,7 +173,7 @@ jobs:
           ls ./merged_coverage_files/*.info
           first=$(ls ./merged_coverage_files/*.info | head -n 1)
           cp "$first" merged.info
-          for f in ./merged_coverage_files/*.info; do
+          for f in $(find ./merged_coverage_files/ -name "*.info"); do
             if [ "$f" != "$first" ]; then
               lcov -q -a merged.info -a "$f" -o merged.info
             fi
