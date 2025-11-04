@@ -153,7 +153,7 @@ jobs:
     name: "Merge coverage files"
     runs-on: ubuntu-latest
     container:
-      image: harbor.ci.tenstorrent.net/${{ inputs.docker_image }}
+      image: ${{ inputs.docker_image }}
     needs: setup-and-test
     if: needs.setup-and-test.outputs.coverage_enabled == 'true'
     steps:
