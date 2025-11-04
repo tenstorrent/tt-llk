@@ -31,7 +31,7 @@ jobs:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-n150-stable
       test_splits: 1
-      pytest_markers: 'coverage'
+      pytest_markers: ${{ inputs.pytest_markers || 'not perf' }}
       random_order: true
       timeout_minutes: 300
       coverage: true
