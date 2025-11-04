@@ -289,7 +289,7 @@ def filter_params_with_z3(all_params):
                 BoolVal(formats.input_format == DataFormat.Float16),
                 BoolVal(
                     formats.output_format == DataFormat.Float32
-                ),  # Changed to Float32
+                ),  # Changed to Float32 (see hardware regression described above: Float16→Float32 transpose produces garbage values on some boards; this constraint blocks those failing combinations)
                 broadcast_none,
                 BoolVal(
                     disable_src_zero == True
