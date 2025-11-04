@@ -482,10 +482,10 @@ def test_unpack_comprehensive(
         transpose_golden = get_golden_generator(TransposeGolden)
         # First apply within-face transpose, then face transpose
         temp_tensor = transpose_golden.transpose_within_faces(
-            src_A, formats.output_format, input_dimensions, num_faces, face_r_dim
+            src_A, formats.output_format, input_dimensions, num_faces
         )
         golden_tensor = transpose_golden.transpose_faces(
-            temp_tensor, formats.output_format, input_dimensions, num_faces, face_r_dim
+            temp_tensor, formats.output_format, input_dimensions, num_faces
         )
     else:
         # No transpose - handle based on reuse_dest behavior

@@ -256,56 +256,37 @@ class TransposeGolden:
         data_format: DataFormat,
         input_dimensions: list[int] = [32, 32],
         num_faces: int = 4,
-        face_r_dim: int = 16,
     ):
         """Transpose a tile tensor by transposing within each face.
-
-        This simulates the hardware's within_face_16x16_transpose behavior, where the unpacker
-        performs XY transpose during unpacking from L1 to destination registers. The transpose
-        operates directly on the face_r_dim × 16 data without any 16×16 padding.
-
+        A tile tensor consists of faces, each face is always 16x16 = 256 elements.
+        For num_faces < 4, we process only the first num_faces faces from the tensor.
         Args:
             operand: Input tensor to transpose
             data_format: Data format for the result
             input_dimensions: Input tensor dimensions (for compatibility)
             num_faces: Number of faces in the tile (1, 2, or 4)
-            face_r_dim: Face row dimension (1, 2, 4, 8, or 16)
         Returns:
-            torch.Tensor: Tensor with each face transposed, result size = num_faces * face_r_dim * 16
+            torch.Tensor: Tensor with each face transposed, result size = num_faces * 256
         """
         if num_faces not in [1, 2, 4]:
             raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
-        if face_r_dim not in [1, 2, 4, 8, 16]:
-            raise ValueError(f"face_r_dim must be 1, 2, 4, 8, or 16, got {face_r_dim}")
 
         tensor = to_tensor(operand, data_format)
         torch_format = format_dict[data_format]
 
-        # Each face is face_r_dim x 16 elements
-        face_c_dim = 16  # Face column dimension is always 16
-        face_size = face_r_dim * face_c_dim
+        # Each face is always 16x16 = 256 elements
+        face_size = ELEMENTS_PER_FACE
+        face_dim = FACE_DIM
         elements_per_tile_needed = face_size * num_faces
 
         # Select first N faces
         tensor_to_process = tensor[:elements_per_tile_needed]
 
-        # Process each face: reshape to (face_r_dim, 16), transpose to (16, face_r_dim), flatten
-        result_faces = []
-        for face_idx in range(num_faces):
-            face_start = face_idx * face_size
-            face_end = face_start + face_size
-            face_data = tensor_to_process[face_start:face_end]
+        # Split into faces and transpose each face individually
+        faces = tensor_to_process.view(num_faces, face_dim, face_dim)
+        transposed_faces = faces.transpose(-2, -1)
+        result = transposed_faces.flatten().to(torch_format)
 
-            # Reshape to 2D: face_r_dim rows × 16 columns
-            face_2d = face_data.view(face_r_dim, face_c_dim)
-
-            # Transpose: now 16 rows × face_r_dim columns
-            transposed_face = face_2d.transpose(0, 1)
-
-            # Flatten back to 1D
-            result_faces.append(transposed_face.flatten())
-
-        result = torch.cat(result_faces).to(torch_format)
         return result
 
     def transpose_faces(
@@ -314,7 +295,6 @@ class TransposeGolden:
         data_format: DataFormat,
         input_dimensions: list[int] = [32, 32],
         num_faces: int = 4,
-        face_r_dim: int = 16,
     ):
         """Transpose the arrangement of faces in a tile tensor.
         Treats each face as a single element and transposes their arrangement.
@@ -334,27 +314,21 @@ class TransposeGolden:
             data_format: Data format for the result
             input_dimensions: Input tensor dimensions (for compatibility)
             num_faces: Number of faces in the tile (1, 2, or 4)
-            face_r_dim: Face row dimension (1, 2, 4, 8, or 16)
         Returns:
             torch.Tensor: Tensor with faces rearranged in transposed order
         """
         if num_faces not in [1, 2, 4]:
             raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
-        if face_r_dim not in [1, 2, 4, 8, 16]:
-            raise ValueError(f"face_r_dim must be 1, 2, 4, 8, or 16, got {face_r_dim}")
 
         torch_format = format_dict[data_format]
         tensor = to_tensor(operand, data_format)
 
-        # Each face is face_r_dim x 16 elements
-        face_size = face_r_dim * 16
-        total_elements = face_size * num_faces
+        total_elements = ELEMENTS_PER_FACE * num_faces
         tensor = tensor[:total_elements]
 
         if num_faces == 4:
             # Reorder faces: f0, f1, f2, f3 -> f0, f2, f1, f3
-            face_size = face_r_dim * 16
-            faces = [tensor[i * face_size : (i + 1) * face_size] for i in range(4)]
+            faces = torch.tensor_split(tensor, 4)
             tensor = torch.cat([faces[0], faces[2], faces[1], faces[3]])
 
         return tensor.to(torch_format)
