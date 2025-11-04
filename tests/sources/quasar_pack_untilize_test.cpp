@@ -9,11 +9,6 @@
 #include "ckernel.h"
 #include "llk_defs.h"
 
-// Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
-
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_common.h"
@@ -44,8 +39,8 @@ void run_kernel()
 
     bd_val.f.l1_addr_16B = buffer_A[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.unpack_src);
-    bd_val.f.x_dim       = 16;
-    bd_val.f.y_dim       = 16;
+    bd_val.f.x_dim       = FACE_C_DIM;
+    bd_val.f.y_dim       = FACE_R_DIM;
     bd_val.f.z_dim       = num_faces;
 
     td_val.buf_desc        = bd_val;
@@ -61,6 +56,7 @@ void run_kernel()
     {
         _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, BUF_DESC_ID, false /*transpose*/, is_fp32_dest_acc_en>(num_tiles_per_unpack);
     }
+
     _llk_unpack_unary_operand_<p_unpacr::UNP_A>(0);
 
     if (unpack_to_dest)
@@ -101,14 +97,17 @@ void run_kernel()
 
     if (!unpack_to_dest)
     {
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(64, 1);
-        for (int i = 0; i < TILE_CNT; ++i)
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(64 /*num_rows_per_matrix*/, 1 /*num_matrices*/);
+        for (uint block_rt = 0; block_rt < BLOCK_RT_DIM; block_rt++)
         {
-            _llk_math_eltwise_unary_datacopy_<64>(i);
+            for (uint ct = 0; ct < FULL_CT_DIM; ct++)
+            {
+                _llk_math_eltwise_unary_datacopy_<64 /*num_rows_per_matrix*/>(ct);
+            }
+            _llk_math_set_dvalid_<p_cleardvalid::FPU>();
         }
     }
-
-    _llk_math_set_dvalid_<p_cleardvalid::FPU>();
+    // _llk_math_set_dvalid_<p_cleardvalid::FPU>();
 }
 
 #endif
@@ -142,25 +141,28 @@ void run_kernel()
 
     bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
-    bd_val.f.x_dim       = 16;
-    bd_val.f.y_dim       = 16;
+    bd_val.f.x_dim       = FACE_C_DIM;
+    bd_val.f.y_dim       = FACE_R_DIM;
     bd_val.f.z_dim       = num_faces;
 
     tdma_desc.buf_desc        = bd_val;
     tdma_desc.buf_desc_id     = BUF_DESC;
     tdma_desc.reg_data_format = static_cast<uint8_t>(formats.pack_src);
 
-    constexpr TileShape tile_shape = {.num_faces = 4, .face_r_dim = 16, .face_c_dim = 16, .narrow_tile = 0};
+    constexpr TileShape tile_shape = {.num_faces = num_faces, .face_r_dim = FACE_R_DIM, .face_c_dim = FACE_C_DIM, .narrow_tile = 0};
 
     constexpr uint32_t C_DIM_FACES = (tile_shape.narrow_tile ? 1 : 2);
 
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
-    _llk_pack_untilize_init_<BUF_DESC, FULL_CT_DIM /*full_ct_dim*/, BLOCK_CT_DIM /*block_ct_dim */, C_DIM_FACES>(tile_shape);
+    _llk_pack_untilize_init_<BUF_DESC, FULL_CT_DIM, BLOCK_CT_DIM, C_DIM_FACES>(tile_shape);
     for (uint block_rt = 0; block_rt < BLOCK_RT_DIM; block_rt++)
     {
+        // if (block_rt != 2)
         _llk_pack_untilize_(0, block_rt * FULL_CT_DIM * 32);
+        // if (block_rt != 2)
+        _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
-    _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
+    //_llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 
 #endif

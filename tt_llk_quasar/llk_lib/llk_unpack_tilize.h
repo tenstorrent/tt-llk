@@ -38,10 +38,10 @@ inline void _llk_unpack_tilize_mop_config_()
     {
         // FP32 datacopy uses ELWADD, which requires dvalid from both SrcA and SrcB
         // Set dvalid for the opposite unpacker (if using UNP_A, set dvalid for UNP_B and vice versa)
-        constexpr uint32_t OPPOSITE_UNP          = (UNP_SEL == p_unpacr::UNP_A) ? p_unpacr::UNP_B : p_unpacr::UNP_A;
-        constexpr static uint fp32_dvalid_instrn = TT_OP_UNPACR_NOP(OPPOSITE_UNP, 1 /*Dvalid*/, 0, 0, 0 /*clear to 0*/, 0 /*UNP_CLR_SRC*/);
+        constexpr uint32_t OPPOSITE_UNP                  = (UNP_SEL == p_unpacr::UNP_A) ? p_unpacr::UNP_B : p_unpacr::UNP_A;
+        constexpr static uint set_opposite_dvalid_instrn = TT_OP_UNPACR_NOP(OPPOSITE_UNP, 1 /*Dvalid*/, 0, 0, 0 /*clear to 0*/, 0 /*UNP_CLR_SRC*/);
 
-        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, fp32_dvalid_instrn, unpack_tile_instrn);
+        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, set_opposite_dvalid_instrn, unpack_tile_instrn);
         temp.set_last_outer_loop_instr(reset_cntrs_instrn);
         temp.program_bank0_sw_cntl(instrn_buffer);
     }
@@ -92,7 +92,7 @@ inline void _llk_unpack_tilize_init_()
  * @param l1_tile_idx: Index into the L1 buffer for a tile
  */
 template <uint32_t UNP_SEL>
-inline void _llk_unpack_tilize_(const uint l1_rt_offset, const uint dest_idx)
+inline void _llk_unpack_tilize_(const uint l1_rt_offset)
 {
     // RT: for the best performance, setting counters should be placed in a REPLAY buffer
     // in the mop_config, but for back compatibility with APIs, the counter functions must
@@ -101,7 +101,7 @@ inline void _llk_unpack_tilize_(const uint l1_rt_offset, const uint dest_idx)
     // Reset Dest counters for Unpacker to 0
     // Set Source counter to L1 base + offset
     TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, UNP_SEL, l1_rt_offset);
-    TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, UNP_SEL, dest_idx);
+    TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, UNP_SEL, 0);
 
     // Runs MOP
     ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);

@@ -159,10 +159,9 @@ inline void _llk_unpack_unary_operand_init_(const uint32_t num_tiles)
  * @tparam UNP_SEL: Selects which unpacker resource to use,
  * values = p_unpacr::UNP_A/p_unpacr::UNP_B/p_unpacr::UNP_DEST
  * @param l1_tile_idx: Index into the L1 buffer for a tile
- * @param dest_idx: Index into the destination register for a tile
  */
 template <uint32_t UNP_SEL>
-inline void _llk_unpack_unary_operand_(const uint l1_tile_idx, const uint dest_idx)
+inline void _llk_unpack_unary_operand_(const uint l1_tile_idx)
 {
     // RT: for the best performance, setting counters should be placed in a REPLAY buffer
     // in the mop_config, but for back compatibility with APIs, the counter functions must
@@ -171,7 +170,7 @@ inline void _llk_unpack_unary_operand_(const uint l1_tile_idx, const uint dest_i
     // Reset Dest counters for Unpacker to 0
     // Set Source counter to L1 base + offset
     TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL == p_unpacr::UNP_DEST ? p_unpacr::UNP_A : UNP_SEL, l1_tile_idx);
-    TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL == p_unpacr::UNP_DEST ? p_unpacr::UNP_A : UNP_SEL, dest_idx);
+    TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL == p_unpacr::UNP_DEST ? p_unpacr::UNP_A : UNP_SEL, 0);
 
     // Runs MOP
     ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);

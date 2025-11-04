@@ -33,9 +33,11 @@ def generate_unpack_unary_operand_combinations(
 
     Rules:
     1. When unpacking to dest, UNP_A is used.
-    2. When unpacking to dest, transpose is not supported.
+    2. When unpacking to dest, transpose is not yet supported.
 
-    Returns: List of (format, dest_acc, transpose, unpacker_sel) tuples
+    Args: List of input-output format pairs
+
+    Returns: List of (format, dest_acc, transpose_en, unpacker_sel) tuples
     """
     combinations = []
 
@@ -53,9 +55,9 @@ def generate_unpack_unary_operand_combinations(
             unpacker_engines = [UnpackerEngine.UNP_A, UnpackerEngine.UNP_B]
 
         for dest_acc in dest_acc_modes:
-            for transpose in transpose_modes:
+            for transpose_en in transpose_modes:
                 for unpacker_sel in unpacker_engines:
-                    combinations.extend([(fmt, dest_acc, transpose, unpacker_sel)])
+                    combinations.extend([(fmt, dest_acc, transpose_en, unpacker_sel)])
 
     return combinations
 
@@ -67,7 +69,6 @@ UNPACK_FORMATS = input_output_formats(
         DataFormat.Float32,
     ]
 )
-DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
 ALL_UNPACK_UNARY_OPERAND_COMBINATIONS = generate_unpack_unary_operand_combinations(
     UNPACK_FORMATS
 )
@@ -82,11 +83,11 @@ def test_unpack_unary_operand_quasar(
 ):
     formats = formats_dest_acc_and_transpose_unpack_sel[0]
     dest_acc = formats_dest_acc_and_transpose_unpack_sel[1]
-    transpose = formats_dest_acc_and_transpose_unpack_sel[2]
+    transpose_en = formats_dest_acc_and_transpose_unpack_sel[2]
     unpacker_sel = formats_dest_acc_and_transpose_unpack_sel[3]
 
     if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
-        pytest.skip("Does not work")
+        pytest.skip("Fails.")
 
     input_dimensions = [32, 32]
 
@@ -97,7 +98,7 @@ def test_unpack_unary_operand_quasar(
     )
 
     golden_src = src_A if unpacker_sel == UnpackerEngine.UNP_A else src_B
-    if transpose == Transpose.Yes:
+    if transpose_en == Transpose.Yes:
         generate_golden = get_golden_generator(TransposeGolden)
         golden_tensor = generate_golden.transpose_faces_multi_tile(
             golden_src,
@@ -118,8 +119,8 @@ def test_unpack_unary_operand_quasar(
         golden_tensor = generate_golden(
             golden_src,
             formats.output_format,
-            4,
-            input_dimensions,
+            num_faces=4,
+            input_dimensions=input_dimensions,
         )
 
     unpack_to_dest = (
@@ -134,8 +135,8 @@ def test_unpack_unary_operand_quasar(
         "input_B_dimensions": input_dimensions,
         "unpack_to_dest": unpack_to_dest,
         "tile_cnt": tile_cnt,
-        "unpack_transpose_faces": transpose,
-        "unpack_transpose_within_face": transpose,
+        "unpack_transpose_faces": transpose_en,
+        "unpack_transpose_within_face": transpose_en,
         "unpacker_engine_sel": unpacker_sel,
     }
 

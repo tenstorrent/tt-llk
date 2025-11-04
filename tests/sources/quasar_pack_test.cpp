@@ -36,11 +36,11 @@ void run_kernel()
     {
         bd_val.words[i] = 0;
     }
-    // Now just plug everything in
+
     bd_val.f.l1_addr_16B = buffer_A[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.unpack_src);
-    bd_val.f.x_dim       = 16;
-    bd_val.f.y_dim       = 16;
+    bd_val.f.x_dim       = FACE_C_DIM;
+    bd_val.f.y_dim       = FACE_R_DIM;
     bd_val.f.z_dim       = num_faces;
 
     td_val.buf_desc        = bd_val;
@@ -58,7 +58,7 @@ void run_kernel()
         _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, BUF_DESC_ID, false /*transpose*/, is_fp32_dest_acc_en>(num_tiles_per_unpack);
     }
 
-    _llk_unpack_unary_operand_<p_unpacr::UNP_A>(0, 0);
+    _llk_unpack_unary_operand_<p_unpacr::UNP_A>(0);
 
     if (unpack_to_dest)
     {
@@ -98,10 +98,10 @@ void run_kernel()
 
     if (!unpack_to_dest)
     {
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(64, 1);
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(64 /*num_rows_per_matrix*/, 1 /*num_matrices*/);
         for (int i = 0; i < TILE_CNT; ++i)
         {
-            _llk_math_eltwise_unary_datacopy_<64>(i);
+            _llk_math_eltwise_unary_datacopy_<64 /*num_rows_per_matrix*/>(i);
         }
     }
     _llk_math_set_dvalid_<p_cleardvalid::FPU>();
@@ -135,11 +135,11 @@ void run_kernel()
         bd_val.words[i] = 0;
     }
     tdma_descriptor_t tdma_desc;
-    // Now just plug everything in
+
     bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
-    bd_val.f.x_dim       = 16;
-    bd_val.f.y_dim       = 16;
+    bd_val.f.x_dim       = FACE_C_DIM;
+    bd_val.f.y_dim       = FACE_R_DIM;
     bd_val.f.z_dim       = num_faces;
 
     tdma_desc.buf_desc        = bd_val;

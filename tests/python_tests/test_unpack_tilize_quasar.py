@@ -33,7 +33,9 @@ def generate_unpack_tilize_combinations(
     Rules:
     1. Tilize 32b data into dest is not yet supported
 
-    Returns: List of (format, dest_acc, transpose, unpacker_sel) tuples
+    Args: List of input-output format pairs
+
+    Returns: List of (format, dest_acc, unpacker_sel, input_dimensions) tuples
     """
     combinations = []
 
@@ -57,15 +59,16 @@ def generate_unpack_tilize_combinations(
 
 
 def generate_input_dimensions(dest_acc, dest_sync=DestSync.Half):
-    """Generate all possible input dimensions, depending on dest_acc and dest_sync,
-    that can fit into dest.
+    """Generate all possible input dimensions. They are determined by the number of tiles that can fit into dest,
+    which is determined by dest_sync and dest_acc.
 
     Key rules:
-    1. The possible input dimensions are determined by dest_sync and dest_acc
+    1. When DestSync.Half:  max_tiles_in_dest=8 (if dest is 16bit) or max_tiles_in_dest=4 (if dest is 32bit)
+    2. When DestSync.Full:  max_tiles_in_dest=16 (if dest is 16bit) or max_tiles_in_dest=8 (if dest is 32bit)
 
     Args:
-        dest_acc: Dest accumulation mode
-        dest_sync: Dest sync mode
+        dest_acc: Dest 16/32 bit mode
+        dest_sync: DestSync mode. If None, uses [DestSync.Half]
 
     Returns:
         List of input dimensions
@@ -115,9 +118,7 @@ def test_unpack_tilize_quasar(
     input_dimensions = formats_dest_acc_unpack_sel_dimensions[3]
 
     if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
-        pytest.skip("Does not work")
-
-    # input_dimensions = [32, 32]
+        pytest.skip("Fails.")
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
@@ -126,10 +127,9 @@ def test_unpack_tilize_quasar(
     )
 
     generate_golden = get_golden_generator(TilizeGolden)
-
     golden_src = src_A if unpacker_sel == UnpackerEngine.UNP_A else src_B
     golden_tensor = generate_golden(
-        golden_src, input_dimensions, formats.output_format, 4
+        golden_src, input_dimensions, formats.output_format, num_faces=4
     )
 
     unpack_to_dest = (

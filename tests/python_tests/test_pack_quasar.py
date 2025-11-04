@@ -54,7 +54,9 @@ def test_pack_quasar(test_name, formats, dest_acc, boot_mode=BootMode.DEFAULT):
     )
 
     generate_golden = get_golden_generator(DataCopyGolden)
-    golden_tensor = generate_golden(src_A, formats.output_format, 4, input_dimensions)
+    golden_tensor = generate_golden(
+        src_A, formats.output_format, num_faces=4, input_dimensions=input_dimensions
+    )
 
     unpack_to_dest = (
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
