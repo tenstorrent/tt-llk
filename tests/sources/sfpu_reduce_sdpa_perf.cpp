@@ -93,7 +93,7 @@ void run_kernel()
         _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
 
         // Initialize SDPA reduce
-        _init_reduce_sdpa_<DataFormat::Float16_b>();
+        _init_reduce_sdpa_<DataFormat::Float16_b>(BLOCK_CT_DIM);
 
         PROFILER_SYNC();
     }

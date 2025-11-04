@@ -28,11 +28,11 @@ from helpers.utils import passed_test
     dest_acc=[DestAccumulation.No],
     mathop=[MathOperation.ReduceColumn],
     reduce_pool=[ReducePool.Max],  # Only MAX is supported for SDPA reduce
-    repeat=[i for i in range(10)],
+    input_dimensions=[[32, 32], [32, 64], [64, 32], [128, 64]],
 )
-def test_sfpu_reduce_sdpa(test_name, formats, dest_acc, mathop, reduce_pool, repeat):
-
-    input_dimensions = [128, 64]
+def test_sfpu_reduce_sdpa(
+    test_name, formats, dest_acc, mathop, reduce_pool, input_dimensions
+):
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
