@@ -3,6 +3,7 @@
 
 from typing import List
 
+import pytest
 import torch
 from helpers.device import BootMode, collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
@@ -72,6 +73,7 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
 # Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
+@pytest.mark.coverage
 def test_matmul(
     test_name,
     math_fidelity,
