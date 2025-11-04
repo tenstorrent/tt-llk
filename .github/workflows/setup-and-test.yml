@@ -162,20 +162,24 @@ jobs:
           path: ./merged_coverage_files
       - name: Unzip artefacts, merge coverage data, and generate HTML report
         run: |
-          for f in $(find ./merged_coverage_files/ -name "*.zip"); do
-            basename=$(basename "$f" .zip)
-            unzip -p "$f" merged_coverage.info > "./merged_coverage_files/${basename}"
-            rm "$f"
+          mkdir -p ./extracted_coverage_files
+          for dir in ./merged_coverage_files/*/; do
+            if [ -d "$dir" ]; then
+              folder_name=$(basename "$dir")
+              if [ -f "$dir/merged_coverage.info" ]; then
+                cp "$dir/merged_coverage.info" "./extracted_coverage_files/${folder_name}"
+              fi
+            fi
           done
 
           echo "-- Coverage files pulled from runners --"
-          find ./merged_coverage_files/ -name "*.info"
+          find ./extracted_coverage_files/ -name "*.info"
 
-          first=$(ls ./merged_coverage_files | head -n 1)
-          cp ./merged_coverage_files/"$first" merged.info
+          first=$(ls ./extracted_coverage_files | head -n 1)
+          cp ./extracted_coverage_files/"$first" merged.info
 
-          for f in $(find ./merged_coverage_files/ -name "*.info"); do
-            if [ "$f" != "$first" ]; then
+          for f in $(find ./extracted_coverage_files/ -name "*.info"); do
+            if [ "$f" != ./extracted_coverage_files/"$first" ]; then
               lcov -q -a merged.info -a "$f" -o ./merged.info
             fi
           done
@@ -189,7 +193,6 @@ jobs:
 
       - name: Upload code coverage for this runner
         uses: actions/upload-artifact@v4
-        if: always() && inputs.coverage
         with:
           name: coverage_report_website.zip
           path: coverage_report.zip
