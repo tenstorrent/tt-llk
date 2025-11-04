@@ -157,6 +157,8 @@ jobs:
     needs: setup-and-test
     if: needs.setup-and-test.outputs.coverage_enabled == 'true'
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v4
         with:
