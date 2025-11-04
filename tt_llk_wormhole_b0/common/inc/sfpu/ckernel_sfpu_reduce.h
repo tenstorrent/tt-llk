@@ -357,12 +357,8 @@ inline void _init_reduce_()
 //**************************************************************
 // SFPU REDUCE COL IMPLEMENTATION FOR SDPA
 //**************************************************************
-inline void sfpu_reduce_sdpa_configure_addrmod()
+inline void sfpu_reduce_sdpa_configure_addrmod(uint32_t num_cols)
 {
-    // NOTE: this kernel is typically used in conjunction with
-    //       A2D, which is using ADDR_MOD_0 and ADDR_MOD_2, so use one
-    //       that doesn't conflict!
-
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
@@ -380,13 +376,13 @@ inline void sfpu_reduce_sdpa_configure_addrmod()
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
-        .dest = {.incr = 64},
+        .dest = {.incr = static_cast<int16_t>(num_cols % 2 == 0 ? 64 : 0)},
     }
         .set(ADDR_MOD_5);
 }
 
 template <DataFormat format>
-inline void _init_reduce_sdpa_()
+inline void _init_reduce_sdpa_(uint32_t num_cols)
 {
     static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
@@ -410,7 +406,7 @@ inline void _init_reduce_sdpa_()
     // ***********************************************************
 
     _init_sfpu_config_reg();
-    sfpu_reduce_sdpa_configure_addrmod();
+    sfpu_reduce_sdpa_configure_addrmod(num_cols);
 
     // ***********************************************************
     // Record replay buffer
