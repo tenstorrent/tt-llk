@@ -10,7 +10,7 @@ from helpers.param_config import parametrize
 from test_matmul import test_matmul as run_matmul
 
 
-skip_for_wormhole
+@skip_for_wormhole
 @parametrize(
     boot_mode=[BootMode.BRISC, BootMode.TRISC, BootMode.EXALENS],
 )
