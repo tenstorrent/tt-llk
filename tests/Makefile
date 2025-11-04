@@ -35,7 +35,6 @@ endif
 BUILD_DIR       ?= build/$(ARCH)
 
 SHARED_DIR      := $(BUILD_DIR)/shared
-COVERAGE_DIR	:= $(BUILD_DIR)/coverage
 COVERAGE_REPORT_DIR	:= $(BUILD_DIR)/coverage_report
 SHARED_OBJ_DIR  := $(SHARED_DIR)/obj
 SHARED_DEPS_DIR := $(SHARED_DIR)/deps
@@ -43,7 +42,7 @@ SHARED_DIS_DIR  := $(SHARED_DIR)/dis
 SHARED_ELF_DIR  := $(SHARED_DIR)/elf
 INFO_FILES_DIR 	:= $(BUILD_DIR)/coverage_info
 
-TEST_DIR        := $(BUILD_DIR)/tests/$(testname)
+TEST_DIR        := $(BUILD_DIR)/$(testname)/$(variant)
 OBJ_DIR         := $(TEST_DIR)/obj
 DEPS_DIR        := $(TEST_DIR)/deps
 DIS_DIR         := $(TEST_DIR)/dis
@@ -123,21 +122,13 @@ ELF_TARGETS += $(SHARED_ELF_DIR)/brisc.elf
 DIS_TARGETS += $(SHARED_DIS_DIR)/brisc.S
 endif
 
-all: clear_coverage_artefacts $(ELF_TARGETS)
+all: $(ELF_TARGETS)
 
 dis: $(DIS_TARGETS)
 
 profiler: $(PROFILER_DIR)/unpack.meta.bin \
 	  $(PROFILER_DIR)/math.meta.bin \
 	  $(PROFILER_DIR)/pack.meta.bin
-
-
-clear_coverage_artefacts:
-	-rm $(COVERAGE_DIR)/*.raw.stream
-	-rm $(OBJ_DIR)/*.gcno
-	-rm $(OBJ_DIR)/*.gcda
-	-rm $(SHARED_OBJ_DIR)/*.gcda
-	-rm $(SHARED_OBJ_DIR)/*.gcda
 
 # =========================
 # Build Rules
@@ -159,16 +150,15 @@ $(SHARED_DIS_DIR)/%.S: $(SHARED_ELF_DIR)/%.elf | $(SHARED_DIS_DIR)
 	$(OBJDUMP) -t $< | sort >> $@
 
 # link unpack.elf, math.elf, pack.elf
-$(ELF_DIR)/%.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/main_%.o $(OBJ_DIR)/kernel_%.o $(COVERAGE_DEPS) | $(ELF_DIR) $(COVERAGE_DIR) $(COVERAGE_REPORT_DIR)
+$(ELF_DIR)/%.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(OBJ_DIR)/main_%.o $(OBJ_DIR)/kernel_%.o $(COVERAGE_DEPS) | $(ELF_DIR) $(COVERAGE_REPORT_DIR)
 	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 # link brisc.elf
-$(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/brisc.o $(COVERAGE_DEPS) | $(SHARED_ELF_DIR) $(COVERAGE_DIR) $(COVERAGE_REPORT_DIR)
+$(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/brisc.o $(COVERAGE_DEPS) | $(SHARED_ELF_DIR) $(COVERAGE_REPORT_DIR)
 	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 # disable make automatically deleting important intermediate files
 .SECONDARY: $(SHARED_OBJ_DIR)/*.o $(OBJ_DIR)/*.o
-# .PRECIOUS: $(OBJ_DIR)/kernel_%.o
 
 # build kernel_unpack.o, kernel_math.o, kernel_pack.o from sources directory (checks ai_gen, quasar, then main)
 # Find which source file exists and determine if COMPILE_FOR_TRISC flag is needed
@@ -181,7 +171,7 @@ $(OBJ_DIR)/kernel_%.o: $(KERNEL_SOURCE) $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $(KERNEL_SOURCE)
 
 # build main_unpack.o, main_math.o, main_pack.o
-$(SHARED_OBJ_DIR)/main_%.o: $(RISCV_SOURCES)/trisc.cpp $(BUILD_DIR)/params.stamp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
+$(OBJ_DIR)/main_%.o: $(RISCV_SOURCES)/trisc.cpp $(BUILD_DIR)/params.stamp | $(SHARED_DEPS_DIR)
 	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DCOMPILE_FOR_TRISC= \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
@@ -222,14 +212,22 @@ $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR) $(INFO_
 	mkdir -p $@
 
 # create folder structure for test specific files
-$(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR) $(COVERAGE_DIR) $(COVERAGE_REPORT_DIR):
+$(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR) $(COVERAGE_REPORT_DIR):
 	mkdir -p $@
+
+do_one_test:
+	pytest -m "not perf and not nightly" \
+        --random-order-bucket=global \
+        --override-ini="addopts=-v" --timeout=60 \
+        --coverage \
+        --junitxml=pytest-report-wormhole-4.xml \
+		./test_matmul.py
 
 INFO_PATH		:= $(BUILD_DIR)/merged_coverage.info
 INFO_PATH_FILTER		:= $(BUILD_DIR)/merged_coverage_filtered.info
-STREAM_FILES	:= $(wildcard $(COVERAGE_DIR)/*.raw.stream)
+STREAM_FILES	:= $(wildcard $(TEST_DIR)/*.raw.stream)
 
-coverage: $(COVERAGE_DIR) $(INFO_FILES_DIR)
+coverage: $(INFO_FILES_DIR)
 	@for f in $(STREAM_FILES); do \
         $(GCOV_TOOL) merge-stream "$$f"; \
     done
@@ -240,24 +238,22 @@ coverage: $(COVERAGE_DIR) $(INFO_FILES_DIR)
 	--output-file $(INFO_FILES_DIR)/$(info_file_name) --rc lcov_branch_coverage=1
 
 
-INFO_FILES	:= $(wildcard $(INFO_FILES_DIR)/coverage_*.info)
+INFO_FILES	:= $(wildcard $(INFO_FILES_DIR)/*.info)
 FIRST_INFO	:= $(firstword $(INFO_FILES))
 merge_coverage_data:
-	if [ -z "$(INFO_FILES)" ]; then \
-		echo "No coverage files found."; exit 1; \
-	fi; \
-
 	@if [ ! -f "$(INFO_PATH)" ]; then \
-        cp $(FIRST_INFO) $(INFO_PATH); \
+        first_file=$$(find $(INFO_FILES_DIR) -name '*.info' | head -n 1); \
+        cp $$first_file $(INFO_PATH); \
     fi; \
-
-	@for f in $(INFO_FILES); do \
-        if [ "$$f" != "$(FIRST_INFO)" ]; then \
-            lcov -q -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH); \
+	idx=0; \
+	total=$$(find $(INFO_FILES_DIR) -name 'coverage_*.info' | wc -l); \
+    find $(INFO_FILES_DIR) -name 'coverage_*.info' | while read f; do \
+		idx=$$((idx+1)); \
+        if [ "$$f" != "$(INFO_PATH)" ]; then \
+			printf "Processing file %s/%s: %s\r" "$$idx" "$$total" "$$f"; \
+            lcov -q -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH) > /dev/null 2>&1; \
         fi; \
     done;
-
-	@-rm $(INFO_FILES_DIR)/*
 
 generate_report:
 	lcov --remove $(INFO_PATH) \

@@ -12,7 +12,6 @@ from helpers.device import reset_mailboxes
 from helpers.format_config import InputOutputFormat
 from helpers.log_utils import _format_log
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
-from helpers.test_config import combine_coverage_data
 from ttexalens import tt_exalens_init
 from ttexalens.tt_exalens_lib import arc_msg
 
@@ -98,12 +97,9 @@ def with_coverage(request):
     return request.config.getoption("--coverage")
 
 
-@pytest.fixture(scope="module", autouse=True)
-def handle_test_end():
-    yield
-    test_target = TestTargetConfig()
-    if test_target.with_coverage:
-        combine_coverage_data()
+@pytest.fixture()
+def worker_index(worker_id):
+    return worker_id
 
 
 def pytest_configure(config):
@@ -126,12 +122,6 @@ def pytest_configure(config):
         tt_exalens_init.init_ttexalens()
 
 
-def pytest_runtest_logreport(report):
-    # Capture errors when tests fail
-    if report.failed:
-        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
-
-
 def _stringify_params(params):
     parts = []
     for name, value in params.items():
@@ -152,14 +142,13 @@ def _stringify_params(params):
 
 
 def pytest_runtest_logreport(report):
+    # Capture errors when tests fail
+    if report.failed:
+        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
+
     if report.when != "call":
         return
-
-    callspec = getattr(report.item, "callspec", None)
-    if callspec is None:
-        return
-
-    print(f"\nParameters: {_stringify_params(callspec.params)}")
+    print(f"\nParameters: {report.test_params}")
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -168,8 +157,11 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
 
-    # Attach the item to the report so it's available in logreport
-    report.item = item
+    if hasattr(item, "callspec") and item.callspec:
+        report.test_params = _stringify_params(item.callspec.params)
+    else:
+        report.test_params = None
+
     return report
 
 

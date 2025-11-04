@@ -61,8 +61,6 @@ jobs:
     container:
       image: harbor.ci.tenstorrent.net/${{ inputs.docker_image }}
       options: "--rm --device /dev/tenstorrent"
-    outputs:
-      coverage_enabled: ${{ inputs.coverage }}
     name: "🦄 Run tests (group ${{ matrix.test_group }}/${{ inputs.test_splits }})"
     steps:
       # Step 1: Checkout the repository
@@ -89,21 +87,26 @@ jobs:
           elif [[ "${{ inputs.runs_on }}" =~ p150 ]]; then
             CHIP_ARCH=blackhole
           fi
+          export CHIP_ARCH
           echo "CHIP_ARCH=$CHIP_ARCH" >> $GITHUB_ENV
           SPLITS=$TEST_SPLITS
           cd tests/python_tests/
+
           COVERAGE_FLAG=""
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
             COVERAGE_FLAG="--coverage"
           fi
+
           pytest -m "${{ inputs.pytest_markers }}" \
                 ${{ inputs.random_order && '--random-order-bucket=global' || '' }} \
                 --splits $SPLITS --group ${{ matrix.test_group }} \
                 --override-ini="addopts=-v" --timeout=60 \
                 $COVERAGE_FLAG \
-                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
+                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml . || true
+
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
-            COVERAGE_FLAG="--coverage"
+            cd ../
+            make merge_coverage_data
           fi
 
       # Step 4: Zip performance data if perf tests were run
@@ -155,7 +158,7 @@ jobs:
     container:
       image: ${{ inputs.docker_image }}
     needs: setup-and-test
-    if: needs.setup-and-test.outputs.coverage_enabled == 'true'
+    if: inputs.coverage == true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

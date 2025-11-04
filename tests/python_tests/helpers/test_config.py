@@ -545,8 +545,12 @@ def write_build_header(test_config):
         f.write(header_content)
 
 
+from hashlib import md5
+
+
 def generate_make_command(
     test_config,
+    variant_id,
     with_coverage,
     boot_mode: BootMode,
     profiler_build: ProfilerBuild,
@@ -555,7 +559,7 @@ def generate_make_command(
 
     boot_mode = resolve_default_boot_mode(boot_mode)
     # Simplified make command - only basic build parameters
-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} coverage_build={str(with_coverage).lower()} all "
+    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} coverage_build={str(with_coverage).lower()} variant={variant_id} all "
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
@@ -565,6 +569,7 @@ def generate_make_command(
 
 def build_test(
     test_config,
+    variant_id,
     with_coverage,
     boot_mode: BootMode,
     profiler_build: ProfilerBuild,
@@ -574,34 +579,44 @@ def build_test(
     tests_dir = str((llk_home / "tests").absolute())
     write_build_header(test_config)
     make_cmd = generate_make_command(
-        test_config, with_coverage, boot_mode, profiler_build
+        test_config, variant_id, with_coverage, boot_mode, profiler_build
     )
     run_shell_command(make_cmd, cwd=tests_dir)
 
 
 def run_test(
     test_config,
+    location="0,0",
     boot_mode: BootMode = BootMode.DEFAULT,  # global override boot mode here
     profiler_build: ProfilerBuild = ProfilerBuild.No,
 ):
     """Run the test with the given configuration"""
 
-    test_target = TestTargetConfig()
+    variant_id = md5(f"{str(test_config)}".encode()).hexdigest()
 
-    build_test(test_config, test_target.with_coverage, boot_mode, profiler_build)
+    test_target = TestTargetConfig()
+    build_test(
+        test_config, variant_id, test_target.with_coverage, boot_mode, profiler_build
+    )
 
     # run test
-    elfs = run_elf_files(test_config["testname"], boot_mode)
+    elfs = run_elf_files(test_config["testname"], variant_id, boot_mode)
     wait_for_tensix_operations_finished(elfs)
 
+    CHIP_ARCH = get_chip_architecture()
+    LLK_HOME = os.environ.get("LLK_HOME")
+    BUILD_DIR = (
+        Path(LLK_HOME)
+        / "tests"
+        / "build"
+        / CHIP_ARCH.value
+        / test_config["testname"]
+        / variant_id
+    )
+
     if test_target.with_coverage:
-        pull_coverage_data(test_config)
+        pull_coverage_data(test_config["testname"], variant_id, BUILD_DIR, 0, location)
 
+    import shutil
 
-def combine_coverage_data():
-    llk_home = Path(os.environ.get("LLK_HOME"))
-    tests_dir = str((llk_home / "tests").absolute())
-
-    make_cmd = "make -j 6 --silent merge_coverage_data"
-
-    run_shell_command(make_cmd, cwd=tests_dir)
+    shutil.rmtree(BUILD_DIR)

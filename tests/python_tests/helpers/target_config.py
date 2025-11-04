@@ -34,8 +34,8 @@ class TestTargetConfig:
             self.run_simulator: bool = run_simulator
             self.simulator_port: int = simulator_port
             self.device_id: int = device_id
-            self.log_level: str = log_level
             self.with_coverage: bool = with_coverage
+            self.log_level: str = log_level
             TestTargetConfig._initialized = True
 
     def update_from_pytest_config(self, config):
