@@ -297,7 +297,7 @@ def filter_params_with_z3(all_params):
                 acc_to_dest_z3,
                 BoolVal(
                     stochastic_rnd == StochasticRounding.All
-                ),  # Specific to failing combinations
+                ),  # This constraint was previously broader (multiple stochastic rounding modes), but was narrowed to only StochasticRounding.All to precisely match the observed failing combinations.
                 transpose_faces,
                 within_face_transpose,
                 Or(
