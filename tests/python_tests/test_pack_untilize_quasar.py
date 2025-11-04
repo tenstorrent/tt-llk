@@ -34,7 +34,7 @@ def generate_pack_untilize_combinations(
         if fmt.input_format.is_32_bit():
             dest_acc_modes = [DestAccumulation.Yes]
         else:
-            dest_acc_modes = [DestAccumulation.No]  # , DestAccumulation.Yes]
+            dest_acc_modes = [DestAccumulation.No, DestAccumulation.Yes]
 
         for dest_acc in dest_acc_modes:
             dimensions_list = generate_input_dimensions(dest_acc)
@@ -83,7 +83,7 @@ def generate_input_dimensions(dest_acc, dest_sync=DestSync.Half):
 PACK_UNTILIZE_FORMATS = input_output_formats(
     [
         DataFormat.Float16_b,
-        # DataFormat.Float16,
+        DataFormat.Float16,
         # DataFormat.Float32,
     ]
 )
@@ -104,6 +104,15 @@ def test_pack_untilize_quasar(test_name, formats_dest_acc_dimensions):
 
     if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
         pytest.skip("Fails.")
+
+    # if input_dimensions[0] == 32:
+    #     pytest.skip("SKIP.")
+
+    # if input_dimensions[0] == 96 and input_dimensions[1] == 32:
+    #    pytest.skip("SKIP.")
+
+    # if (input_dimensions[0] // 32) % 2 == 0:
+    #    pytest.skip("SKIP.")
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
@@ -148,7 +157,7 @@ def test_pack_untilize_quasar(test_name, formats_dest_acc_dimensions):
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
-    print(f"res_tensor: {res_tensor}")
-    print(f"golden_tensor: {golden_tensor}")
+    # print(f"res_tensor: {res_tensor}")
+    # print(f"golden_tensor: {golden_tensor}")
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

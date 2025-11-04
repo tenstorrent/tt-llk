@@ -107,7 +107,13 @@ void run_kernel()
             _llk_math_set_dvalid_<p_cleardvalid::FPU>();
         }
     }
-    // _llk_math_set_dvalid_<p_cleardvalid::FPU>();
+    else //????? does not work, unpack to dest does not write to 0 after each row
+    {
+        for (uint block_rt = 0; block_rt < BLOCK_RT_DIM; block_rt++)
+        {
+            _llk_math_set_dvalid_<p_cleardvalid::FPU>();
+        }
+    }
 }
 
 #endif
