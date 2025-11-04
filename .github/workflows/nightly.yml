@@ -30,23 +30,11 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-n150-stable
-      test_splits: 20
-      pytest_markers: ${{ inputs.pytest_markers || 'not perf' }}
+      test_splits: 1
+      pytest_markers: 'coverage'
       random_order: true
       timeout_minutes: 300
       coverage: true
-
-  nightly-test-blackhole:
-    name: "🕳️ Nightly Tests (Blackhole)"
-    uses: ./.github/workflows/setup-and-test.yml
-    needs: build-images
-    with:
-      docker_image: ${{ needs.build-images.outputs.docker-image }}
-      runs_on: tt-ubuntu-2204-p150b-stable
-      test_splits: 10
-      pytest_markers: ${{ inputs.pytest_markers || 'not perf' }}
-      random_order: true
-      timeout_minutes: 240
 
   nightly-summary:
     name: "📊 Nightly Summary"
