@@ -293,7 +293,7 @@ def filter_params_with_z3(all_params):
                 broadcast_none,
                 BoolVal(
                     disable_src_zero == True
-                ),  # Changed to True (failing combinations have this)
+                ),  # Changed from False to True to match actual failing hardware regression patterns
                 acc_to_dest_z3,
                 BoolVal(
                     stochastic_rnd == StochasticRounding.All
