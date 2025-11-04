@@ -359,6 +359,8 @@ inline void _init_reduce_()
 //**************************************************************
 inline void sfpu_reduce_sdpa_configure_addrmod(uint32_t num_cols)
 {
+    uint32_t skip_rows = (num_cols - 1) * 64;
+
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
@@ -376,7 +378,7 @@ inline void sfpu_reduce_sdpa_configure_addrmod(uint32_t num_cols)
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
-        .dest = {.incr = static_cast<int16_t>(num_cols % 2 == 0 ? 64 : 0)},
+        .dest = {.incr = static_cast<int16_t>(skip_rows)},
     }
         .set(ADDR_MOD_5);
 }
