@@ -115,7 +115,7 @@ inline void _calculate_floor_()
             v_endif;
         }
 
-        v_if (sfpi::vConst0 == _calculate_isfinite_<APPROXIMATION_MODE>(v))
+        v_if (sfpi::vConst0 == _calculate_isfinite_<APPROX_MODE(v))
         {
             result = v;
         }
@@ -215,7 +215,7 @@ inline void _calculate_trunc_()
         }
         v_endif;
 
-        v_if (sfpi::vConst0 == _calculate_isfinite_<APPROXIMATION_MODE>(in))
+        v_if (sfpi::vConst0 == _calculate_isfinite_<APPROX_MODE>(in))
         {
             result = in;
         }
