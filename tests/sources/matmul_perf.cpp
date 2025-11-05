@@ -53,6 +53,10 @@ void run_kernel()
         {
             return;
         }
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
+        {
+            return _perf_unpack_matmul_mock(LOOP_FACTOR, RT_DIM, KT_DIM, CT_DIM);
+        }
         else
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
@@ -112,6 +116,21 @@ void run_kernel()
         {
             return;
         }
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
+        {
+            for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
+            {
+                for (uint32_t j = 0; j < KT_DIM; j++)
+                {
+                    _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor, THROTTLE_LEVEL>(
+                        /* dest_index */ 0,
+                        /* transpose */ false,
+                        CT_DIM,
+                        RT_DIM,
+                        KT_DIM);
+                }
+            }
+        }
         else
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
@@ -155,7 +174,11 @@ void run_kernel()
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
+        if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
+        {
+            return;
+        }
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
             {

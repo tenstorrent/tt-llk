@@ -70,7 +70,11 @@ def test_perf_matmul(perf_report, test_name, combos, math_fidelity):
     if is_dest_acc_needed(formats) and dest_acc == DestAccumulation.No:
         pytest.skip("Dest accumulation must be enabled for this format")
 
-    run_types = [PerfRunType.L1_TO_L1]
+    run_types = [
+        PerfRunType.L1_TO_L1,
+        PerfRunType.MATH_ISOLATE,
+        PerfRunType.PACK_ISOLATE,
+    ]
 
     # Calculate all matmul dimensions using helper function
     dims = generate_tile_dims((matrix_a, matrix_b))
