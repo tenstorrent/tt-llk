@@ -273,59 +273,16 @@ def filter_params_with_z3(all_params):
         # ROW broadcast constraint: Requires 4 faces for proper row broadcast
         row_broadcast_constraint = Implies(broadcast_row, num_faces_z3 == 4)
 
-        # Block Float16→Float32 transpose combinations that produce garbage values on CI runners
-        # Hardware regression: UNPACK_TRANSPOSE_FACES/UNPACK_TRANSPOSE_WITHIN_FACE produce identical
-        # garbage values (-9080.00, -125952.00, -10776.00, etc.) on some boards but work on others
-        # 5 failing combinations (all Float16→Float32 with transpose_faces=Yes + within_face_transpose=Yes):
-        #   - reuse=NONE with num_faces=1,2,4 (all fail)
-        #   - reuse=DEST_TO_SRCA with num_faces=1,2,4 (all fail)
-        hardware_regression_constraint = Not(
+        # Block combinations with specific parameters that may cause undefined behavior on CI
+        ci_undefined_behavior_constraint = Not(
             And(
-                BoolVal(formats.input_format == DataFormat.Float16),
-                BoolVal(
-                    formats.output_format == DataFormat.Float32
-                ),  # Changed to Float32
                 broadcast_none,
-                BoolVal(
-                    disable_src_zero == True
-                ),  # Changed to True (failing combinations have this)
+                BoolVal(disable_src_zero == True),
                 acc_to_dest_z3,
-                BoolVal(
-                    stochastic_rnd == StochasticRounding.All
-                ),  # Specific to failing combinations
+                reuse_srca,
                 transpose_faces,
                 within_face_transpose,
-                Or(
-                    # reuse=NONE fails for all num_faces=1,2,4
-                    reuse_none,
-                    # reuse=DEST_TO_SRCA fails for all num_faces=1,2,4
-                    reuse_srca,
-                ),
             )
-        )
-
-        # TEMPORARY: Only test these 4 specific failing combinations on CI (excluded num_faces=4 with stoch_rnd_Fpu)
-        debug_constraint = And(
-            BoolVal(formats.input_format == DataFormat.Float16_b),
-            BoolVal(formats.output_format == DataFormat.Float16),
-            broadcast_none,
-            BoolVal(disable_src_zero == True),
-            acc_to_dest_z3,
-            reuse_srca,
-            transpose_faces,
-            within_face_transpose,
-            Or(
-                # 1 test with stoch_rnd_Fpu: num_faces 2 only
-                And(
-                    BoolVal(stochastic_rnd == StochasticRounding.Fpu),
-                    num_faces_z3 == 2,
-                ),
-                # 3 tests with stoch_rnd_No: num_faces 1, 2, 4
-                And(
-                    BoolVal(stochastic_rnd == StochasticRounding.No),
-                    Or(num_faces_z3 == 1, num_faces_z3 == 2, num_faces_z3 == 4),
-                ),
-            ),
         )
 
         # Add all constraints to solver
@@ -341,8 +298,7 @@ def filter_params_with_z3(all_params):
             datacopy_acc_to_dest_constraint,
             bfp8_stochastic_constraint,
             wormhole_row_outlier_constraint,
-            # hardware_regression_constraint,
-            debug_constraint,  # TEMPORARY: Only test failing combinations
+            ci_undefined_behavior_constraint,
         )
 
         # Check if this parameter combination is valid
