@@ -290,68 +290,8 @@ inline void init_reduce_float()
  */
 constexpr bool is_supported_reduce_format(DataFormat format)
 {
-    return format == DataFormat::Int32 || format == DataFormat::UInt16 || format == DataFormat::UInt32 || format == DataFormat::Float32;
-}
-
-/**
- * @brief Unified reduction operation wrapper for a 32x32 tile, placing output values into the first row.
- *        Automatically chooses between integer and floating-point implementations based on the data format.
- *        Currently able to calculate column-wise sum and/or average of a 32x32 tile, placing output values into the first row.
- *        Uses an optimized approach that processes vertically aligned face pairs (0+2, 1+3) to minimize
- *        load/store operations and eliminate intermediate storage requirements.
- * @tparam pool_type The pool/reduction pool_type (SUM, AVG, MAX). Currently only SUM and AVG are supported.
- * @tparam reduce_dim The reduction dimension (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR). Currently only REDUCE_COL is supported.
- * @tparam format The data format (DataFormat enum value) that determines which implementation to use:
- *                - DataFormat::Int32, UInt16, UInt32: Use integer implementation
- *                - DataFormat::Float32: Uses floating-point initialization for 32-bit floating-point used in sfpu
- */
-template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_()
-{
-    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
-    static_assert(pool_type == SUM || pool_type == AVG, "Only SUM and AVG pool types are currently supported");
-    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt16, UInt32, Float32");
-
-    if constexpr (format == DataFormat::Int32)
-    {
-        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32>();
-    }
-    else if constexpr (format == DataFormat::UInt16)
-    {
-        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::LO16>();
-    }
-    else if constexpr (format == DataFormat::UInt32)
-    {
-        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32_2S_COMP>();
-    }
-    else if constexpr (format == DataFormat::Float32)
-    {
-        calculate_reduce_float<pool_type, reduce_dim, InstrModLoadStore::FP32>();
-    }
-}
-
-/**
- * @brief Unified initialization wrapper for SFPU reduce kernel.
- *        Automatically chooses between integer and floating-point initialization based on the data format.
- * @tparam format The data format (DataFormat enum value) that determines which initialization to use:
- *                - Supported integer formats: Int32, UInt16, UInt32 (uses integer initialization)
- *                - Supported floating-point formats: Float32 (uses floating-point initialization)
- */
-template <DataFormat format>
-inline void _init_reduce_()
-{
-    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt16, UInt32, Float32");
-
-    if constexpr (format == DataFormat::Int32 || format == DataFormat::UInt16 || format == DataFormat::UInt32)
-    {
-        // Use integer initialization for integer formats
-        init_reduce_int();
-    }
-    else if constexpr (format == DataFormat::Float32)
-    {
-        // Use floating-point initialization for Float32 format
-        init_reduce_float();
-    }
+    return format == DataFormat::Int32 || format == DataFormat::UInt16 || format == DataFormat::UInt32 || format == DataFormat::Float32 ||
+           format == DataFormat::Float16_b;
 }
 
 //**************************************************************
@@ -433,7 +373,7 @@ inline void _init_reduce_max_col_(uint32_t num_cols)
 }
 
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_max_col_(const uint32_t block_height /*, const uint32_t block_width*/)
+inline void _calculate_reduce_max_col_(const uint32_t block_height)
 {
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
     static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
@@ -509,6 +449,84 @@ inline void _calculate_reduce_max_col_(const uint32_t block_height /*, const uin
     // F1
     TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
     TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+}
+
+/**
+ * @brief Unified initialization wrapper for SFPU reduce kernel.
+ *        Automatically chooses between integer and floating-point initialization based on the data format.
+ * @tparam format The data format (DataFormat enum value) that determines which initialization to use:
+ *                - Supported integer formats: Int32, UInt16, UInt32 (uses integer initialization)
+ *                - Supported floating-point formats: Float32 (uses floating-point initialization)
+ */
+template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
+inline void _init_reduce_(uint32_t num_cols /* used in reduce max */)
+{
+    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt16, UInt32, Float32");
+    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
+
+    if constexpr (pool_type == PoolType::MAX)
+    {
+        static_assert(format == DataFormat::Float16_b, "Unsupported data format for MAX pool type. Supported format: Float16_b");
+        _init_reduce_max_col_<format>(num_cols); // Assuming num_cols=32 for 32x32 tile
+    }
+    else
+    {
+        if constexpr (format == DataFormat::Int32 || format == DataFormat::UInt16 || format == DataFormat::UInt32)
+        {
+            // Use integer initialization for integer formats
+            init_reduce_int();
+        }
+        else if constexpr (format == DataFormat::Float32)
+        {
+            // Use floating-point initialization for Float32 format
+            init_reduce_float();
+        }
+    }
+}
+
+/**
+ * @brief Unified reduction operation wrapper for a 32x32 tile, placing output values into the first row.
+ *        Automatically chooses between integer and floating-point implementations based on the data format.
+ *        Currently able to calculate column-wise sum and/or average of a 32x32 tile, placing output values into the first row.
+ *        Uses an optimized approach that processes vertically aligned face pairs (0+2, 1+3) to minimize
+ *        load/store operations and eliminate intermediate storage requirements.
+ * @tparam pool_type The pool/reduction pool_type (SUM, AVG, MAX). Currently only SUM and AVG are supported.
+ * @tparam reduce_dim The reduction dimension (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR). Currently only REDUCE_COL is supported.
+ * @tparam format The data format (DataFormat enum value) that determines which implementation to use:
+ *                - DataFormat::Int32, UInt16, UInt32: Use integer implementation
+ *                - DataFormat::Float32: Uses floating-point initialization for 32-bit floating-point used in sfpu
+ */
+template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
+inline void _calculate_reduce_(uint32_t block_height /* used in reduce max */)
+{
+    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
+    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt16, UInt32, Float32");
+
+    if constexpr (pool_type == PoolType::MAX)
+    {
+        static_assert(format == DataFormat::Float16_b, "Unsupported data format for MAX pool type. Supported format: Float16_b");
+        // Assuming block_height=1 for 32x32 tile
+        _calculate_reduce_max_col_<pool_type, reduce_dim, format>(block_height);
+    }
+    else
+    {
+        if constexpr (format == DataFormat::Int32)
+        {
+            calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32>();
+        }
+        else if constexpr (format == DataFormat::UInt16)
+        {
+            calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::LO16>();
+        }
+        else if constexpr (format == DataFormat::UInt32)
+        {
+            calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32_2S_COMP>();
+        }
+        else if constexpr (format == DataFormat::Float32)
+        {
+            calculate_reduce_float<pool_type, reduce_dim, InstrModLoadStore::FP32>();
+        }
+    }
 }
 
 } // namespace sfpu

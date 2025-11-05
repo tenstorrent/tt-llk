@@ -76,8 +76,6 @@ using namespace ckernel::sfpu;
 
 void run_kernel()
 {
-    constexpr uint32_t block_height = BLOCK_RT_DIM;
-
     {
         ZONE_SCOPED("INIT")
         // Initialize datacopy from srcA to dest
@@ -93,7 +91,7 @@ void run_kernel()
         _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
 
         // Initialize SDPA reduce
-        _init_reduce_max_col_<DataFormat::Float16_b>(BLOCK_CT_DIM);
+        ckernel::sfpu::_init_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(BLOCK_CT_DIM);
 
         PROFILER_SYNC();
     }
@@ -124,7 +122,7 @@ void run_kernel()
                     // Run the SFPU reduce SDPA calculation
                     // This is the core computation we want to measure
 
-                    _calculate_reduce_max_col_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
+                    ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(BLOCK_RT_DIM);
 
                     // Clear the valid flag for source A
                     TTI_CLEARDVALID(1, 0);
@@ -156,8 +154,7 @@ void run_kernel()
                     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 
                     // Call the SFPU SDPA reduce function
-                    constexpr uint32_t block_height = BLOCK_RT_DIM;
-                    _calculate_reduce_max_col_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
+                    ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(BLOCK_RT_DIM);
 
                     _llk_math_eltwise_unary_sfpu_done_();
                     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
