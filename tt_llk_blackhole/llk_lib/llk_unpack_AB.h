@@ -80,12 +80,18 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
     }
 }
 
-// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
 /**
  * Configures MOP (Macro Operation) for specialized reduce_row_max unpacking operations.
  *
- * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for native reduce unpacking LLK MOP configuration.
+ * This function works with the following assumptions:
+ * - Scaler values are 1.0 and are contained inside F0 of the scaler tile
+ * - The scaler doesn't change for the duration of the whole tile operation
+ * - Operand and scaler data format is bfloat16_b
+ * - Operand tile size is 32x32
+ * - Can work on both 16-bit or 32-bit DEST register modes based on is_fp32_dest_acc_en flag
+ * - Does only MAX pool on ROW dimension
+ *
+ * This function should NOT be used as a substitute for native reduce unpacking LLK MOP configuration.
  * Use the standard _llk_unpack_AB_mop_config_ for general-purpose reduction operations.
  */
 inline void _llk_unpack_AB_reduce_row_max_mop_config_()
@@ -103,12 +109,18 @@ inline void _llk_unpack_AB_reduce_row_max_mop_config_()
     tmp.program();
 }
 
-// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
 /**
  * Initializes specialized unpack for reduce_row_max operation.
  *
- * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for native llk_unpack_AB_reduce_init LLK.
+ * This function works with the following assumptions:
+ * - Scaler values are 1.0 and are contained inside F0 of the scaler tile
+ * - The scaler doesn't change for the duration of the whole tile operation
+ * - Operand and scaler data format is bfloat16_b
+ * - Operand tile size is 32x32
+ * - Can work on both 16-bit or 32-bit DEST register modes based on is_fp32_dest_acc_en flag
+ * - Does only MAX pool on ROW dimension
+ *
+ * This function should NOT be used as a substitute for native llk_unpack_AB_reduce_init LLK.
  * Use the standard llk_unpack_AB_reduce_init<ReduceDim::REDUCE_ROW> for general-purpose reduction.
  */
 template <bool is_fp32_dest_acc_en = false>
@@ -132,8 +144,15 @@ inline void _llk_unpack_AB_reduce_row_max_init_()
 /**
  * Configures MOP (Macro Operation) for block-based reduce_max_row unpacking operations.
  *
- * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for native reduce unpacking LLK MOP configuration.
+ * This function works with the following assumptions:
+ * - Scaler values are 1.0 and are contained inside F0 of the scaler tile
+ * - The scaler doesn't change for the duration of the whole block operation
+ * - Operand and scaler data format is bfloat16_b
+ * - Operand tile size is 32x32
+ * - Can work on both 16-bit or 32-bit DEST register modes based on is_fp32_dest_acc_en flag
+ * - Does only MAX pool on ROW dimension
+ *
+ * This function should NOT be used as a substitute for native reduce unpacking LLK MOP configuration.
  * Use the standard _llk_unpack_AB_mop_config_ for general-purpose block reduction operations.
  */
 template <uint32_t block_ct_dim>
@@ -151,13 +170,19 @@ inline void _llk_unpack_AB_reduce_block_max_row_mop_config_()
     tmp.program();
 }
 
-// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
 /**
  * Initializes unpacker configuration for block-based reduce_max_row operations.
  * Sets up tile dimensions and saves unpacker state that will be modified during operation.
  *
- * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for native reduce unpacking LLK initialization.
+ * This function works with the following assumptions:
+ * - Scaler values are 1.0 and are contained inside F0 of the scaler tile
+ * - The scaler doesn't change for the duration of the whole block operation
+ * - Operand and scaler data format is bfloat16_b
+ * - Operand tile size is 32x32
+ * - Can work on both 16-bit or 32-bit DEST register modes based on is_fp32_dest_acc_en flag
+ * - Does only MAX pool on ROW dimension
+ *
+ * This function should NOT be used as a substitute for native reduce unpacking LLK initialization.
  * Use the standard _llk_unpack_AB_reduce_init_ for general-purpose reduction operations.
  */
 template <uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
@@ -268,8 +293,15 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
 /**
  * Performs unpacking for block-based reduce_max_row operation across multiple tiles.
  *
- * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for the native _llk_unpack_AB_ LLK.
+ * This function works with the following assumptions:
+ * - Scaler values are 1.0 and are contained inside F0 of the scaler tile
+ * - The scaler doesn't change for the duration of the whole block operation
+ * - Operand and scaler data format is bfloat16_b
+ * - Operand tile size is 32x32
+ * - Can work on both 16-bit or 32-bit DEST register modes based on is_fp32_dest_acc_en flag
+ * - Does only MAX pool on ROW dimension
+ *
+ * This function should NOT be used as a substitute for the native _llk_unpack_AB_ LLK.
  * Use the standard _llk_unpack_AB_ in a loop for general-purpose block reduction operations.
  */
 inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, const std::uint32_t address_b)
@@ -316,8 +348,15 @@ inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, 
  * Uninitializes block-based reduce_max_row unpacker operation.
  * Restores the unpacker state that was saved during initialization.
  *
- * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for native reduce unpacking cleanup.
+ * This function works with the following assumptions:
+ * - Scaler values are 1.0 and are contained inside F0 of the scaler tile
+ * - The scaler doesn't change for the duration of the whole block operation
+ * - Operand and scaler data format is bfloat16_b
+ * - Operand tile size is 32x32
+ * - Can work on both 16-bit or 32-bit DEST register modes based on is_fp32_dest_acc_en flag
+ * - Does only MAX pool on ROW dimension
+ *
+ * This function should NOT be used as a substitute for native reduce unpacking cleanup.
  * Standard _llk_unpack_AB_reduce_init_ operations typically don't require explicit cleanup.
  */
 inline void _llk_unpack_AB_reduce_block_max_row_uninit_()

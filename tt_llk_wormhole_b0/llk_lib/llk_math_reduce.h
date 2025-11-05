@@ -442,16 +442,25 @@ inline void reduce_configure_mop()
     }
 }
 
-// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
 /**
  * Configures address modifiers for specialized reduce_max_row operations.
  *
- * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for native reduce LLK configuration.
+ * This function works with the following assumptions:
+ * - Scaler values are 1.0 and are contained inside F0 of the scaler tile
+ * - The scaler doesn't change for the duration of the whole block/tile operation
+ * - Operand and scaler data format is bfloat16_b
+ * - Operand tile size is 32x32
+ * - Can work on both 16-bit or 32-bit DEST register modes based on is_fp32_dest_acc_en flag
+ * - Does only MAX pool on ROW dimension
+ *
+ * This function should NOT be used as a substitute for native reduce LLK configuration.
  * Use the standard reduce configuration functions for general-purpose reduction operations.
  */
 inline void reduce_max_row_configure_addrmod()
 {
+    // ADDR_MOD_0: Default mode used with pool operations (GMPOOL/GAPOOL)
+    // No auto-increment on any counter - keeps all address pointers at their current positions
+    // Used for initial pooling operations where we want explicit control over counter advancement
     addr_mod_t {
         .srca     = {.incr = 0, .clr = 0, .cr = 0},
         .srcb     = {.incr = 0, .clr = 0, .cr = 0},
@@ -459,6 +468,10 @@ inline void reduce_max_row_configure_addrmod()
         .fidelity = {.incr = 0, .clr = 1}}
         .set(ADDR_MOD_0);
 
+    // ADDR_MOD_1: Face-to-face advancement mode used with GMPOOL operations
+    // Increments SrcA by 16 rows to advance to the next face (F0->F1, F2->F3)
+    // Clears SrcB counter to prepare for subsequent MOVD2B operations that write transposed results
+    // This allows processing pairs of faces (F0+F1, then F2+F3) efficiently
     addr_mod_t {
         .srca = {.incr = 16, .clr = 0, .cr = 1},
         .srcb = {.incr = 0, .clr = 1, .cr = 0},
@@ -466,6 +479,10 @@ inline void reduce_max_row_configure_addrmod()
     }
         .set(ADDR_MOD_1);
 
+    // ADDR_MOD_2: Sequential 4-row write mode used with MOVB2D operations
+    // Increments DEST by 4 rows after each operation (writes to rows 0, 4, 8, 12 within a face)
+    // This distributes the transposed 1x16 reduction result across the first face (rows 0-15)
+    // by writing 4 rows to every 4th row, matching the tile face layout
     addr_mod_t {
         .srca = {.incr = 0, .clr = 0, .cr = 0},
         .srcb = {.incr = 0, .clr = 0, .cr = 0},
@@ -473,6 +490,10 @@ inline void reduce_max_row_configure_addrmod()
     }
         .set(ADDR_MOD_2);
 
+    // ADDR_MOD_3: Face-boundary jump mode used with final MOVB2D in each face
+    // Increments DEST by 20 rows, jumping from row 12 to row 32 (= 12 + 4 + 16)
+    // This transitions from the last row of the current face to the first row of the next face
+    // Example: After writing rows 0,4,8,12 in F0, this jumps to row 32 to start F2
     addr_mod_t {
         .srca = {.incr = 0, .clr = 0, .cr = 0},
         .srcb = {.incr = 0, .clr = 0, .cr = 0},
@@ -481,12 +502,18 @@ inline void reduce_max_row_configure_addrmod()
         .set(ADDR_MOD_3);
 }
 
-// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
 /**
  * Performs specialized reduce_max_row operation on a single tile.
  *
- * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for the native _llk_math_reduce_ LLK.
+ * This function works with the following assumptions:
+ * - Scaler values are 1.0 and are contained inside F0 of the scaler tile
+ * - The scaler doesn't change for the duration of the whole tile operation
+ * - Operand and scaler data format is bfloat16_b
+ * - Operand tile size is 32x32
+ * - Can work on both 16-bit or 32-bit DEST register modes based on is_fp32_dest_acc_en flag
+ * - Does only MAX pool on ROW dimension
+ *
+ * This function should NOT be used as a substitute for the native _llk_math_reduce_ LLK.
  * Use the standard _llk_math_reduce_<PoolType::MAX, ReduceDim::REDUCE_ROW>() for general-purpose reduction.
  */
 inline void _llk_math_reduce_max_row_(const uint dst_index)
@@ -572,12 +599,18 @@ inline void _llk_math_reduce_init_([[maybe_unused]] const std::uint32_t within_f
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-// OPTIMIZED, DO NOT CALL UNLESS REGULAR TILE SIZE
 /**
  * Initializes specialized reduce_max_row operation for single tile processing.
  *
- * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for the native _llk_math_reduce_init_ LLK.
+ * This function works with the following assumptions:
+ * - Scaler values are 1.0 and are contained inside F0 of the scaler tile
+ * - The scaler doesn't change for the duration of the whole tile operation
+ * - Operand and scaler data format is bfloat16_b
+ * - Operand tile size is 32x32
+ * - Can work on both 16-bit or 32-bit DEST register modes based on is_fp32_dest_acc_en flag
+ * - Does only MAX pool on ROW dimension
+ *
+ * This function should NOT be used as a substitute for the native _llk_math_reduce_init_ LLK.
  * Use the standard _llk_math_reduce_init_<PoolType::MAX, ReduceDim::REDUCE_ROW>() for general-purpose reduction.
  */
 template <bool is_fp32_dest_acc_en = false>
@@ -598,8 +631,15 @@ inline void _llk_math_reduce_max_row_init_()
 /**
  * Configures MOP (Macro Operation) for block-based reduce_max_row operations.
  *
- * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for native reduce LLK MOP configuration.
+ * This function works with the following assumptions:
+ * - Scaler values are 1.0 and are contained inside F0 of the scaler tile
+ * - The scaler doesn't change for the duration of the whole block operation
+ * - Operand and scaler data format is bfloat16_b
+ * - Operand tile size is 32x32
+ * - Can work on both 16-bit or 32-bit DEST register modes based on is_fp32_dest_acc_en flag
+ * - Does only MAX pool on ROW dimension
+ *
+ * This function should NOT be used as a substitute for native reduce LLK MOP configuration.
  * Use the standard reduce MOP configuration with _llk_math_reduce_init_ for general-purpose reduction.
  */
 template <uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
@@ -696,8 +736,7 @@ inline void _llk_math_reduce_block_max_row_mop_config_()
 /**
  * Initializes block-based reduce_max_row operation for processing multiple tiles.
  *
- * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for the native _llk_math_reduce_init_ LLK.
+ * This function should NOT be used as a substitute for the native _llk_math_reduce_init_ LLK.
  * Use the standard _llk_math_reduce_init_<PoolType::MAX, ReduceDim::REDUCE_ROW>() with multiple
  * _llk_math_reduce_() calls in a loop for general-purpose block reduction.
  */
@@ -723,8 +762,15 @@ inline void _llk_math_reduce_block_max_row_init_()
 /**
  * Performs block-based reduce_max_row operation across multiple tiles in the width dimension.
  *
- * NOTE: This function is highly specialized for SDPA (Scaled Dot-Product Attention) use cases
- * and should NOT be used as a substitute for the native _llk_math_reduce_ LLK.
+ * This function works with the following assumptions:
+ * - Scaler values are 1.0 and are contained inside F0 of the scaler tile
+ * - The scaler doesn't change for the duration of the whole block operation
+ * - Operand and scaler data format is bfloat16_b
+ * - Operand tile size is 32x32
+ * - Can work on both 16-bit or 32-bit DEST register modes based on is_fp32_dest_acc_en flag
+ * - Does only MAX pool on ROW dimension
+ *
+ * This function should NOT be used as a substitute for the native _llk_math_reduce_ LLK.
  * Use the standard _llk_math_reduce_<PoolType::MAX, ReduceDim::REDUCE_ROW>() in a loop
  * for general-purpose block reduction across multiple tiles.
  */
