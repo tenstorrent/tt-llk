@@ -93,7 +93,7 @@ void run_kernel()
         _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
 
         // Initialize SDPA reduce
-        _init_reduce_sdpa_<DataFormat::Float16_b>(BLOCK_CT_DIM);
+        _init_reduce_max_col_<DataFormat::Float16_b>(BLOCK_CT_DIM);
 
         PROFILER_SYNC();
     }
@@ -124,14 +124,10 @@ void run_kernel()
                     // Run the SFPU reduce SDPA calculation
                     // This is the core computation we want to measure
 
-                    _calculate_reduce_sdpa_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
+                    _calculate_reduce_max_col_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
 
                     // Clear the valid flag for source A
-#ifdef ARCH_QUASAR
-                    TTI_CLEARDVALID(1, 0, 0, 0, 0, 0);
-#else
                     TTI_CLEARDVALID(1, 0);
-#endif
                 }
             }
 
@@ -161,7 +157,7 @@ void run_kernel()
 
                     // Call the SFPU SDPA reduce function
                     constexpr uint32_t block_height = BLOCK_RT_DIM;
-                    _calculate_reduce_sdpa_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
+                    _calculate_reduce_max_col_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
 
                     _llk_math_eltwise_unary_sfpu_done_();
                     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
