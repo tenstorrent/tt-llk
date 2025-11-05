@@ -338,7 +338,7 @@ def generate_unary_input_dimensions(dest_acc, dest_sync=DestSync.Half):
 
     Args:
         dest_acc: Dest 16/32 bit mode
-        dest_sync: DestSync mode. If None, uses [DestSync.Half]
+        dest_sync: DestSync mode. Defaults to DestSync.Half
 
     Returns:
         List of input dimensions

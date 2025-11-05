@@ -125,7 +125,7 @@ inline void _llk_unpack_unary_operand_transpose_mop_config_(const uint32_t num_t
 /**
  * @brief Initialized unpacker to unpack a single operand by tiles
  * @tparam UNP_SEL: Selects which unpacker resource to use,
- * values = p_unpacr::UNP_A/p_unpacr::UNP_B
+ * values = p_unpacr::UNP_A/p_unpacr::UNP_B/p_unpacr::UNP_DEST
  * @tparam BUF_DESC_ID: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 0 - 16
  * @tparam TRANSPOSE_EN: Enables transpose of a tile, supported for SrcA and SrcB
