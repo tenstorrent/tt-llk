@@ -304,6 +304,30 @@ def filter_params_with_z3(all_params):
             )
         )
 
+        # TEMPORARY: Only test these 5 specific failing combinations on CI
+        debug_constraint = And(
+            BoolVal(formats.input_format == DataFormat.Float16_b),
+            BoolVal(formats.output_format == DataFormat.Float16),
+            broadcast_none,
+            BoolVal(disable_src_zero == True),
+            acc_to_dest_z3,
+            reuse_srca,
+            transpose_faces,
+            within_face_transpose,
+            Or(
+                # 2 tests with stoch_rnd_Fpu: num_faces 2, 4
+                And(
+                    BoolVal(stochastic_rnd == StochasticRounding.Fpu),
+                    Or(num_faces_z3 == 2, num_faces_z3 == 4),
+                ),
+                # 3 tests with stoch_rnd_No: num_faces 1, 2, 4
+                And(
+                    BoolVal(stochastic_rnd == StochasticRounding.No),
+                    Or(num_faces_z3 == 1, num_faces_z3 == 2, num_faces_z3 == 4),
+                ),
+            ),
+        )
+
         # Add all constraints to solver
         s.add(
             constraint1,
@@ -318,6 +342,7 @@ def filter_params_with_z3(all_params):
             bfp8_stochastic_constraint,
             wormhole_row_outlier_constraint,
             # hardware_regression_constraint,
+            debug_constraint,  # TEMPORARY: Only test failing combinations
         )
 
         # Check if this parameter combination is valid
