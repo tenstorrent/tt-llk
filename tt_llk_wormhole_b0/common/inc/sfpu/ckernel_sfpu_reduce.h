@@ -429,7 +429,7 @@ inline void _calculate_reduce_sdpa_(const uint32_t block_height /*, const uint32
     constexpr uint32_t replay_buffer_next_face = 8;
 
     /*
-    Initial loads of LREGS 0-3 which will hold maximul values of columns
+    Initial loads of LREGS 0-3 which will hold maximum values of columns
     They will spread across F0 and F1 so in each pass full tile width will be reduced
     */
 
@@ -479,7 +479,7 @@ inline void _calculate_reduce_sdpa_(const uint32_t block_height /*, const uint32
 
     /*
     instr_mod1: the values are compared and conditionally exchanged.
-    Smaller value is stored in lred_dest and larger into lreg_src_c
+    Smaller value is stored in lreg_dest and larger into lreg_src_c
     */
 
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);

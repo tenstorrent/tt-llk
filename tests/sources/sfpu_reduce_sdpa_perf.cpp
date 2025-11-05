@@ -120,7 +120,7 @@ void run_kernel()
                     // Wait for source A to be valid
                     // TTI_STALLWAIT(ckernel::p_stall::STALL_MATH, ckernel::p_stall::SRCA_VLD);
 
-                    // Assume data is already in dest registers (skipping A2D copy)0
+                    // Assume data is already in dest registers (skipping A2D copy)
                     // Run the SFPU reduce SDPA calculation
                     // This is the core computation we want to measure
 
