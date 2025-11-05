@@ -84,8 +84,6 @@ def test_pack_quasar(
     if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
         pytest.skip("Fails for now.")
 
-    input_dimensions = [32, 32]
-
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
         formats.input_format,
