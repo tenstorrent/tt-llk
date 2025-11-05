@@ -274,12 +274,17 @@ def filter_params_with_z3(all_params):
         row_broadcast_constraint = Implies(broadcast_row, num_faces_z3 == 4)
 
         # Block combinations with specific parameters that may cause undefined behavior on CI
+        # Only for Float16_b and Float16 input formats with reuse_dest NONE or DEST_TO_SRCA
         ci_undefined_behavior_constraint = Not(
             And(
+                Or(
+                    BoolVal(formats.input_format == DataFormat.Float16_b),
+                    BoolVal(formats.input_format == DataFormat.Float16),
+                ),
                 broadcast_none,
                 BoolVal(disable_src_zero == True),
                 acc_to_dest_z3,
-                reuse_srca,
+                Or(reuse_none, reuse_srca),
                 transpose_faces,
                 within_face_transpose,
             )
