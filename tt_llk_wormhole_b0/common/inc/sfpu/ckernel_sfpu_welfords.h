@@ -232,6 +232,73 @@ sfpi_inline void _calculate_welfords_block_(uint32_t start_idx, const std::array
     _execute_welfords_row_replay_buffer_<ckernel::p_sfpu::LREG3>();
 }
 
+/**
+ * @brief Calculates running mean and m2 for a single block of 4 rows and 32 columns on a subset of
+ *        rows starting from start_row.
+ *
+ * @tparam I
+ * @tparam J
+ * @param start_idx The index of the first element in the block; used to index the reciprocal lookup table.
+ * @param start_row The offset of the row to start from. Only rows starting from this offset are
+ *                   processed in the block. Should be 0 <= start_row < 4.
+ * @param end_row The offset of the row to end at. Only rows up to this offset are
+ *                processed in the block (not including the row at this offset).
+ *                Should comply with the condition: start_row <= end_row <= 4.
+ * @param reciprocal_lut The lookup table containing the reciprocals of the sample counts.
+ *
+ * This is a helper function that performs all three steps for a single block:
+ * load inputs, load reciprocal and compute running mean and m2. Each block has 4 rows of 32 columns.
+ */
+template <std::size_t reciprocal_size, uint32_t I, uint32_t J>
+sfpi_inline void _calculate_welfords_block_w_offset_(
+    uint32_t& start_idx, uint32_t start_row, uint32_t end_row, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+{
+    // These are the row indices of the block in the tile.
+    constexpr uint32_t block_min_row_idx = I * 16 + J * 4;
+    constexpr uint32_t block_max_row_idx = block_min_row_idx + 4;
+
+    // If the start_row and end_row don't intersect with this block, we don't need to process this.
+    [[unlikely]] if (((start_row >= block_max_row_idx) || (end_row <= block_min_row_idx)))
+    {
+        return;
+    }
+
+    // Trim the start_row and end_row so we only look at rows in this window
+    const uint32_t block_start_row = std::max(block_min_row_idx, start_row);
+    const uint32_t block_end_row   = std::min(block_max_row_idx, end_row);
+
+    // Make the start_row and end_row relative to this block
+    start_row = block_start_row - block_min_row_idx;
+    end_row   = block_end_row - block_min_row_idx;
+
+    _welfords_load_block_<I, J>();
+
+    if ((start_row == 0) && (end_row > 0))
+    {
+        _load_recip_of_idx_<reciprocal_size>(start_idx, reciprocal_lut);
+        _execute_welfords_row_replay_buffer_<ckernel::p_sfpu::LREG0>();
+        ++start_idx;
+    }
+    if ((start_row <= 1) && (end_row > 1))
+    {
+        _load_recip_of_idx_<reciprocal_size>(start_idx, reciprocal_lut);
+        _execute_welfords_row_replay_buffer_<ckernel::p_sfpu::LREG1>();
+        ++start_idx;
+    }
+    if ((start_row <= 2) && (end_row > 2))
+    {
+        _load_recip_of_idx_<reciprocal_size>(start_idx, reciprocal_lut);
+        _execute_welfords_row_replay_buffer_<ckernel::p_sfpu::LREG2>();
+        ++start_idx;
+    }
+    if ((start_row <= 3) && (end_row > 3))
+    {
+        _load_recip_of_idx_<reciprocal_size>(start_idx, reciprocal_lut);
+        _execute_welfords_row_replay_buffer_<ckernel::p_sfpu::LREG3>();
+        ++start_idx;
+    }
+}
+
 namespace ckernel
 {
 namespace sfpu
@@ -291,63 +358,33 @@ sfpi_inline void _calculate_welfords_tile_(uint32_t start_idx, const std::array<
  * @param start_idx The index of the first element in the tile; used to index the reciprocal lookup
  *                  table.
  * @param start_row The offset of the row to start from. Only rows starting from this offset are
- *                   processed in the tile. Should be 0 <= start_row <= 31. start_row should be a
- *                   multiple of 4.
- * @param num_rows The number of rows to process. Should be 0 <= num_rows <= 32. num_rows should be
- *                 a multiple of 4. Also, 0 <= start_row + num_rows <= 32.
+ *                   processed in the tile. Should be 0 <= start_row <= 31.
+ * @param num_rows The number of rows to process. Should be 0 <= num_rows <= 32. Also,
+ *                 0 <= start_row + num_rows <= 32.
  * @param reciprocal_lut The lookup table containing the reciprocals of the sample counts.
  */
 template <std::size_t reciprocal_size>
-sfpi_inline void _calculate_welfords_tile_w_offset_(
+sfpi_inline void _calculate_welfords_partial_tile_w_(
     uint32_t start_idx, uint32_t start_row, uint32_t num_rows, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
-    // We load 4 rows of a tile (with 32 columns each) at a time and process them.
-    // To finish the entire tile, we need to repeat this process 8 times.
-    // Depending on the start_row, we skip some blocks and adjust start_idx accordingly.
+    [[unlikely]] if (num_rows == 0)
+    {
+        return;
+    }
 
     const uint32_t end_row = start_row + num_rows;
 
-    // A given block is processed if it is within [start_row, end_row)
-    if ((start_row == 0) && (end_row > 0))
-    {
-        _calculate_welfords_block_<reciprocal_size, 0, 0>(start_idx, reciprocal_lut);
-        start_idx += 4;
-    }
-    if ((start_row <= 4) && (end_row > 4))
-    {
-        _calculate_welfords_block_<reciprocal_size, 0, 1>(start_idx, reciprocal_lut);
-        start_idx += 4;
-    }
-    if ((start_row <= 8) && (end_row > 8))
-    {
-        _calculate_welfords_block_<reciprocal_size, 0, 2>(start_idx, reciprocal_lut);
-        start_idx += 4;
-    }
-    if ((start_row <= 12) && (end_row > 12))
-    {
-        _calculate_welfords_block_<reciprocal_size, 0, 3>(start_idx, reciprocal_lut);
-        start_idx += 4;
-    }
-    if ((start_row <= 16) && (end_row > 16))
-    {
-        _calculate_welfords_block_<reciprocal_size, 1, 0>(start_idx, reciprocal_lut);
-        start_idx += 4;
-    }
-    if ((start_row <= 20) && (end_row > 20))
-    {
-        _calculate_welfords_block_<reciprocal_size, 1, 1>(start_idx, reciprocal_lut);
-        start_idx += 4;
-    }
-    if ((start_row <= 24) && (end_row > 24))
-    {
-        _calculate_welfords_block_<reciprocal_size, 1, 2>(start_idx, reciprocal_lut);
-        start_idx += 4;
-    }
-    if ((start_row <= 28) && (end_row > 28))
-    {
-        _calculate_welfords_block_<reciprocal_size, 1, 3>(start_idx, reciprocal_lut);
-        start_idx += 4;
-    }
+    // We load 4 rows of a tile (with 32 columns each) at a time and process them.
+    // To finish the entire tile, we need to repeat this process 8 times.
+    _calculate_welfords_block_w_offset_<reciprocal_size, 0, 0>(start_idx, start_row, end_row, reciprocal_lut);
+    _calculate_welfords_block_w_offset_<reciprocal_size, 0, 1>(start_idx, start_row, end_row, reciprocal_lut);
+    _calculate_welfords_block_w_offset_<reciprocal_size, 0, 2>(start_idx, start_row, end_row, reciprocal_lut);
+    _calculate_welfords_block_w_offset_<reciprocal_size, 0, 3>(start_idx, start_row, end_row, reciprocal_lut);
+
+    _calculate_welfords_block_w_offset_<reciprocal_size, 1, 0>(start_idx, start_row, end_row, reciprocal_lut);
+    _calculate_welfords_block_w_offset_<reciprocal_size, 1, 1>(start_idx, start_row, end_row, reciprocal_lut);
+    _calculate_welfords_block_w_offset_<reciprocal_size, 1, 2>(start_idx, start_row, end_row, reciprocal_lut);
+    _calculate_welfords_block_w_offset_<reciprocal_size, 1, 3>(start_idx, start_row, end_row, reciprocal_lut);
 }
 
 /*
@@ -427,21 +464,21 @@ sfpi_inline void _load_mean_m2_from_dst_group_(uint32_t group_id)
  *
  * This function stores the mean and variance values to the tile in the dst reg.
  * It assumes that the mean and m2 values are placed in LREG4 and LREG5, respectively.
- * These values are placed in the first column of the tile in dst. The reciprocal LUT, if provided,
+ * These values are placed in the first row of the tile in dst. The reciprocal LUT, if provided,
  * is used to load the reciprocal of the sample count.
  * @tparam reciprocal_size The size of the reciprocal lookup table.
  * @param scale_idx The index of the scale value to use for the variance calculation.
  * @param reciprocal_lut The lookup table containing the reciprocals of the sample counts.
  */
 template <std::size_t reciprocal_size>
-sfpi_inline void _store_mean_var_to_dst_col_(uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+sfpi_inline void _store_mean_var_to_dst_row_(uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
     _load_recip_of_idx_(scale_idx, reciprocal_lut);
     // Move mean to LREG0
     TTI_SFPMOV(0, ckernel::p_sfpu::LREG4, ckernel::p_sfpu::LREG0, 0);
     // Convert M2 to variance and move to LREG4
     TTI_SFPMAD(ckernel::p_sfpu::LREG7, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG4, 0);
-    // Move all the values to a single column
+    // Move all the values to a single row
     TTI_SFPTRANSP(0, 0, 0, 0);
 
     constexpr uint32_t offset0 = 0;
@@ -469,7 +506,7 @@ sfpi_inline void _store_mean_var_to_dst_col_(uint32_t scale_idx, const std::arra
  *
  * This function stores the mean and variance values to the tile in the dst reg.
  * It assumes that the mean and m2 values are placed in LREG4 and LREG5, respectively.
- * These values are placed in the first column of the tile in dst. The reciprocal LUT, if provided,
+ * These values are placed in the first face of the tile in dst. The reciprocal LUT, if provided,
  * is used to load the reciprocal of the sample count.
  * @tparam reciprocal_size The size of the reciprocal lookup table.
  * @param scale_idx The index of the scale value to use for the variance calculation.
