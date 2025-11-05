@@ -23,46 +23,44 @@ constexpr T POLYVAL7(T coef6, T coef5, T coef4, T coef3, T coef2, T coef1, T coe
  * @brief Compile-time polynomial evaluator using Horner's method.
  *
  * This template struct provides efficient polynomial evaluation at both compile-time
- * and runtime using Horner's method (synthetic division). The implementation uses
- * a simple loop instead of template recursion for better compiler optimization.
+ * and runtime using Horner's method (synthetic division).
+ * This implementation uses a recursive varadic template function to compute the polynomial value.
  *
  * The polynomial is represented by coefficients in ascending order of powers:
  * coef[0] + coef[1]*x + coef[2]*x^2 + ... + coef[N-1]*x^(N-1)
  *
- * @tparam N The degree of the polynomial plus one (number of coefficients)
- * @tparam T The numeric type for evaluation point (e.g., sfpi::vFloat)
- * @tparam U The numeric type for coefficients (e.g., float, double, int)
- *
- * @note This implementation is constexpr-compatible and can be evaluated at compile time.
-         Make sure to mark coefficients array as constexpr to leverage compile-time evaluation,
-         otherwise evaluation will be performed at runtime.
  * @note Uses Horner's method for numerical stability and O(N) complexity.
  * @note For N <= 0, returns T{0}. For N == 1, returns the constant term.
  *
  * @see https://en.wikipedia.org/wiki/Horner%27s_method
  */
-template <int N, typename T, typename U>
 struct PolynomialEvaluator
 {
     /**
      * @brief Evaluates the polynomial at the given point.
      *
-     * @param coefficients Pointer to array of N coefficients in ascending order of powers
-     * @param val The point at which to evaluate the polynomial
+     * @param x The point at which to evaluate the polynomial
+     * @param first First coefficient in the polynomial.
+     * @param rest Rest of the polynomial coefficients in ascending order of powers.
      * @return The value of the polynomial at the given point
      *
-     * @pre coef must point to at least N valid coefficients
-     * @pre N should be positive for meaningful results
-     *
+     * @note Coefficients can be either float, sfpi::vFloat, ... (scalar and sfpi typed arguments can be mixed)
      */
-    static constexpr T eval(const U* coefficients, T val)
+    template <typename U, typename First, typename... Rest>
+    static constexpr auto eval(U x, First first, Rest... rest)
     {
-        T result = (N <= 0) ? T {0} : T {coefficients[N - 1]};
-        for (int i = N - 2; i >= 0; --i)
+        if constexpr (sizeof...(Rest) == 0)
         {
-            result = result * val + T {coefficients[i]};
+            // Last coefficient: We don't want to call function
+            // recursively (unsure if SFPU addition by 0 would be optimized away)
+            // which is why we handled sizeof..(Rest) == 0 separately
+            return first;
         }
-        return result;
+        else
+        {
+            // Recursive case: Horner's method
+            return first + x * eval(x, rest...);
+        }
     }
 };
 
