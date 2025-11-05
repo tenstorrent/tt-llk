@@ -343,7 +343,7 @@ inline void _init_reduce_()
 //**************************************************************
 // SFPU REDUCE COL IMPLEMENTATION FOR SDPA
 //**************************************************************
-inline void sfpu_reduce_sdpa_configure_addrmod(uint32_t num_cols)
+inline void sfpu_reduce_max_col_configure_addrmod(uint32_t num_cols)
 {
     uint32_t skip_rows = (num_cols - 1) * 64;
 
@@ -370,7 +370,7 @@ inline void sfpu_reduce_sdpa_configure_addrmod(uint32_t num_cols)
 }
 
 template <DataFormat format>
-inline void _init_reduce_sdpa_(uint32_t num_cols)
+inline void _init_reduce_max_col_(uint32_t num_cols)
 {
     static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
@@ -394,7 +394,7 @@ inline void _init_reduce_sdpa_(uint32_t num_cols)
     // ***********************************************************
 
     _init_sfpu_config_reg();
-    sfpu_reduce_sdpa_configure_addrmod(num_cols);
+    sfpu_reduce_max_col_configure_addrmod(num_cols);
 
     // ***********************************************************
     // Record replay buffer
@@ -419,11 +419,11 @@ inline void _init_reduce_sdpa_(uint32_t num_cols)
 }
 
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_sdpa_(const uint32_t block_height /*, const uint32_t block_width*/)
+inline void _calculate_reduce_max_col_(const uint32_t block_height /*, const uint32_t block_width*/)
 {
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
     static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
-    static_assert(format == DataFormat::Float16_b, "SFPU reduce SDPA only supports Float16_b format");
+    static_assert(format == DataFormat::Float16_b, "SFPU reduce max col only supports Float16_b format");
 
     constexpr uint32_t replay_buffer_offset    = 7;
     constexpr uint32_t replay_buffer_next_face = 8;
