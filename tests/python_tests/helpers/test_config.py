@@ -134,6 +134,14 @@ def generate_build_header(test_config):
         f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face.value};"
     )
 
+    # ******** QUASAR specific ********
+    # Select unpacker
+    unpacker_engine_sel = test_config.get("unpacker_engine_sel", UnpackerEngine.UNP_A)
+    header_content.append(
+        f"constexpr auto UNPACKER_ENGINE_SEL = p_unpacr::{unpacker_engine_sel.name};"
+    )
+    # *********************************
+
     # Throttle level
     throttle = test_config.get("throttle", 0)
     header_content.append(f"constexpr int THROTTLE_LEVEL = {throttle};")

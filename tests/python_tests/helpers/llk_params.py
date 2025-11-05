@@ -268,6 +268,20 @@ class EltwiseBinaryReuseDestType(Enum):
     DEST_TO_SRCB = 2
 
 
+# ******** QUASAR specific ********
 class ImpliedMathFormat(Enum):
     No = "false"
     Yes = "true"
+
+class UnpackerEngine(Enum):
+    """
+    Enum for unpacker engine selection.
+    """
+
+    UNP_A = 0
+    UNP_B = 1
+    UNP_S = 2
+    UNP_DEST = 3
+
+
+# *********************************
