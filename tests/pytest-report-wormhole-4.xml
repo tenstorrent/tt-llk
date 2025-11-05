@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="34.371" timestamp="2025-11-05T16:05:36.406167+00:00" hostname="aus-wh-10-special-ajankovic-for-reservation-50190"><testcase classname="test_eltwise_unary_sfpu" name="test_eltwise_unary_sfpu_float[eltwise_unary_sfpu_test-formats0-ApproximationMode.No-MathOperation.Sqrt-DestAccumulation.Yes]" time="34.062"><failure message="TimeoutError: Timeout reached: waited 30 seconds for Packer">test_name = 'eltwise_unary_sfpu_test', formats = InputOutputFormat(input=&lt;DataFormat.Float16_b: &lt;helpers.format_config.DataFormatInfo object at 0x7f3763551d50&gt;&gt;, output=&lt;DataFormat.Float16_b: &lt;helpers.format_config.DataFormatInfo object at 0x7f3763551d50&gt;&gt;)
+approx_mode = &lt;ApproximationMode.No: 'false'&gt;, mathop = &lt;MathOperation.Sqrt: OpSpec(cpp_enum_value='sqrt', operation_type=&lt;MathOpType.SFPU_UNARY: 1&gt;)&gt;, dest_acc = &lt;DestAccumulation.Yes: 'true'&gt;
+
+    @parametrize(
+        test_name="eltwise_unary_sfpu_test",
+        formats=input_output_formats(
+            [
+                # DataFormat.Float32,
+                # DataFormat.Float16,
+                DataFormat.Float16_b,
+                # DataFormat.Bfp8_b,
+            ]
+        ),
+        approx_mode=[ApproximationMode.No],# ApproximationMode.Yes],
+        mathop=[
+            # MathOperation.Abs,
+            # MathOperation.Atanh,
+            # MathOperation.Asinh,
+            # MathOperation.Acosh,
+            # MathOperation.Cos,
+            # MathOperation.Log,
+            # MathOperation.Reciprocal,
+            # MathOperation.Sin,
+            MathOperation.Sqrt,
+            # MathOperation.Rsqrt,
+            # MathOperation.Square,
+            # MathOperation.Celu,
+            # MathOperation.Silu,
+            # MathOperation.Gelu,
+            # MathOperation.Neg,
+            # MathOperation.Fill,
+            # MathOperation.Elu,
+            # MathOperation.Exp,
+            # MathOperation.Exp2,
+            # MathOperation.Hardsigmoid,
+            # MathOperation.Threshold,
+            # MathOperation.ReluMax,
+            # MathOperation.ReluMin,
+        ],
+        dest_acc=[DestAccumulation.Yes],# DestAccumulation.Yes],
+    )
+    def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_acc):
+        arch = get_chip_architecture()
+
+        if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
+            if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(
+                DataFormat.Float32, DataFormat.Float16
+            ):
+                pytest.skip(reason="This combination is not supported on BH architecture")
+
+        if (
+            approx_mode == ApproximationMode.Yes
+            and mathop in [MathOperation.Exp, MathOperation.Exp2, MathOperation.Elu]
+            and (
+                formats.input_format == DataFormat.Bfp8_b
+                or formats.output_format == DataFormat.Bfp8_b
+            )
+        ):
+            pytest.skip(
+                reason="Exp-related operations are not supported for bf8_b format in approximation mode."
+            )
+
+&gt;       eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
+
+python_tests/test_eltwise_unary_sfpu.py:82:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+python_tests/test_eltwise_unary_sfpu.py:144: in eltwise_unary_sfpu
+    run_test(test_config)
+python_tests/helpers/test_config.py:541: in run_test
+    wait_for_tensix_operations_finished()
+python_tests/helpers/device.py:519: in wait_for_tensix_operations_finished
+    wait_until_tensix_complete(location, Mailbox.Packer)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+location = '0,0', mailbox_addr = &lt;Mailbox.Packer: 106484&gt;, timeout = 30, max_backoff = 5
+
+    def wait_until_tensix_complete(location, mailbox_addr, timeout=30, max_backoff=5):
+        """
+        Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
+
+        Args:
+            location: The location of the core to poll.
+            mailbox_addr: The mailbox address to read from.
+            timeout: Maximum time to wait (in seconds) before timing out. Default is 30 seconds. If running on a simulator it is 600 seconds.
+            max_backoff: Maximum backoff time (in seconds) between polls. Default is 5 seconds.
+        """
+        test_target = TestTargetConfig()
+        timeout = 600 if test_target.run_simulator else timeout
+
+        start_time = time.time()
+        backoff = 0.1  # Initial backoff time in seconds
+
+        while time.time() - start_time &lt; timeout:
+            if read_word_from_device(location, mailbox_addr.value) == KERNEL_COMPLETE:
+                return
+
+            # Disable any waiting if running on simulator
+            # this makes simulator tests run ever so slightly faster
+            if not test_target.run_simulator:
+                time.sleep(backoff)
+                backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
+
+&gt;       raise TimeoutError(
+            f"Timeout reached: waited {timeout} seconds for {mailbox_addr.name}"
+        )
+E       TimeoutError: Timeout reached: waited 30 seconds for Packer
+
+python_tests/helpers/device.py:513: TimeoutError</failure></testcase></testsuite></testsuites>
