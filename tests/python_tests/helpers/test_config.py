@@ -542,12 +542,3 @@ def run_test(
 
     if test_target.with_coverage:
         pull_coverage_data(test_config)
-
-
-def combine_coverage_data():
-    llk_home = Path(os.environ.get("LLK_HOME"))
-    tests_dir = str((llk_home / "tests").absolute())
-
-    make_cmd = "make -j 6 --silent merge_coverage_data"
-
-    run_shell_command(make_cmd, cwd=tests_dir)

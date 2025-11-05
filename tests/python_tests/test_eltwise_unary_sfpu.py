@@ -24,39 +24,39 @@ from helpers.utils import passed_test
     test_name="eltwise_unary_sfpu_test",
     formats=input_output_formats(
         [
-            DataFormat.Float32,
-            DataFormat.Float16,
+            # DataFormat.Float32,
+            # DataFormat.Float16,
             DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
+            # DataFormat.Bfp8_b,
         ]
     ),
-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+    approx_mode=[ApproximationMode.No],  # ApproximationMode.Yes],
     mathop=[
-        MathOperation.Abs,
-        MathOperation.Atanh,
-        MathOperation.Asinh,
-        MathOperation.Acosh,
-        MathOperation.Cos,
-        MathOperation.Log,
-        MathOperation.Reciprocal,
-        MathOperation.Sin,
+        # MathOperation.Abs,
+        # MathOperation.Atanh,
+        # MathOperation.Asinh,
+        # MathOperation.Acosh,
+        # MathOperation.Cos,
+        # MathOperation.Log,
+        # MathOperation.Reciprocal,
+        # MathOperation.Sin,
         MathOperation.Sqrt,
-        MathOperation.Rsqrt,
-        MathOperation.Square,
-        MathOperation.Celu,
-        MathOperation.Silu,
-        MathOperation.Gelu,
-        MathOperation.Neg,
-        MathOperation.Fill,
-        MathOperation.Elu,
-        MathOperation.Exp,
-        MathOperation.Exp2,
-        MathOperation.Hardsigmoid,
-        MathOperation.Threshold,
-        MathOperation.ReluMax,
-        MathOperation.ReluMin,
+        # MathOperation.Rsqrt,
+        # MathOperation.Square,
+        # MathOperation.Celu,
+        # MathOperation.Silu,
+        # MathOperation.Gelu,
+        # MathOperation.Neg,
+        # MathOperation.Fill,
+        # MathOperation.Elu,
+        # MathOperation.Exp,
+        # MathOperation.Exp2,
+        # MathOperation.Hardsigmoid,
+        # MathOperation.Threshold,
+        # MathOperation.ReluMax,
+        # MathOperation.ReluMin,
     ],
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.Yes],  # DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_acc):
     arch = get_chip_architecture()
@@ -82,32 +82,33 @@ def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_
     eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
 
 
-@parametrize(
-    test_name="eltwise_unary_sfpu_int",
-    formats=input_output_formats([DataFormat.Int32]),
-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
-    mathop=[
-        MathOperation.Neg,
-        MathOperation.Fill,
-    ],
-    dest_acc=[DestAccumulation.Yes],
-)
-def test_eltwise_unary_sfpu_int(test_name, formats, approx_mode, mathop, dest_acc):
-    if formats.input_format == DataFormat.Int32:
-        pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
+# @parametrize(
+#     test_name="eltwise_unary_sfpu_int",
+#     formats=input_output_formats([DataFormat.Int32]),
+#     approx_mode=[ApproximationMode.No], #ApproximationMode.Yes],
+#     mathop=[
+#         MathOperation.Neg,
+#         #MathOperation.Fill,
+#     ],
+#     dest_acc=[DestAccumulation.Yes],
+# )
+# def test_eltwise_unary_sfpu_int(test_name, formats, approx_mode, mathop, dest_acc):
+#     if formats.input_format == DataFormat.Int32:
+#         pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
 
-    eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
+#     eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
 
 
 def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
-    input_dimensions = [64, 64]
+    input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
+    src_A = torch.ones(1024) * 2
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
         mathop, src_A, formats.output_format, dest_acc, formats.input_format

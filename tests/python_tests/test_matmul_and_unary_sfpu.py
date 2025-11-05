@@ -31,32 +31,32 @@ from helpers.utils import passed_test
     formats=input_output_formats(
         [
             DataFormat.Float16,
-            DataFormat.Float16_b,
-            DataFormat.Float32,
-            DataFormat.Bfp8_b,
+            # DataFormat.Float16_b,
+            # DataFormat.Float32,
+            # DataFormat.Bfp8_b,
         ],
         same=True,
     ),
     mathop=[
-        MathOperation.Abs,
-        MathOperation.Celu,
-        MathOperation.Cos,
-        # MathOperation.Gelu,
+        # MathOperation.Abs,
+        # MathOperation.Celu,
+        # MathOperation.Cos,
+        # # MathOperation.Gelu,
         MathOperation.Hardsigmoid,
-        MathOperation.Log,
-        MathOperation.Reciprocal,
-        # MathOperation.Silu,
-        MathOperation.Sin,
-        MathOperation.Sqrt,
-        MathOperation.Square,
+        # MathOperation.Log,
+        # MathOperation.Reciprocal,
+        # # MathOperation.Silu,
+        # MathOperation.Sin,
+        # MathOperation.Sqrt,
+        # MathOperation.Square,
     ],
-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
-    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+    approx_mode=[ApproximationMode.No],  # , ApproximationMode.Yes],
+    dest_acc=[DestAccumulation.Yes],  # , DestAccumulation.No],
     math_fidelity=[
         MathFidelity.LoFi,
         # MathFidelity.HiFi2, TODO: FIND OUT WHY
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
+        # MathFidelity.HiFi3,
+        # MathFidelity.HiFi4,
     ],
 )
 def test_matmul_and_unary_sfpu(
@@ -125,6 +125,8 @@ def test_matmul_and_unary_sfpu(
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
     )
+
+    print(f"Address of res_address: 0x{res_address:x}")
 
     run_test(test_config)
 

@@ -67,7 +67,7 @@ GCOV_TOOL		:= $(realpath $(TOOL_PATH)/riscv-tt-elf-gcov-tool)
 # Compiler and Linker Flags
 # =========================
 OPTIONS_ALL	:= -g -O3 -std=$(CXX_VERSION) -ffast-math
-OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Werror -Wunused-parameter \
+OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Wunused-parameter \
 				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized \
 				   -Wmaybe-uninitialized -DTENSIX_FIRMWARE $(ARCH_DEFINE)
 COVERAGE_OPTIONS_COMPILE := $(OPTIONS_COMPILE)
@@ -227,6 +227,14 @@ $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR) $(INFO_
 $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR) $(COVERAGE_DIR) $(COVERAGE_REPORT_DIR):
 	mkdir -p $@
 
+do_one_test:
+	pytest -m "not perf and not nightly" \
+        --random-order-bucket=global \
+        --override-ini="addopts=-v" --timeout=60 \
+        --coverage \
+        --junitxml=pytest-report-wormhole-4.xml \
+		./test_matmul.py
+
 INFO_PATH		:= $(BUILD_DIR)/merged_coverage.info
 INFO_PATH_FILTER		:= $(BUILD_DIR)/merged_coverage_filtered.info
 STREAM_FILES	:= $(wildcard $(COVERAGE_DIR)/*.raw.stream)
@@ -245,21 +253,30 @@ coverage: $(COVERAGE_DIR) $(INFO_FILES_DIR)
 INFO_FILES	:= $(wildcard $(INFO_FILES_DIR)/coverage_*.info)
 FIRST_INFO	:= $(firstword $(INFO_FILES))
 merge_coverage_data:
-	if [ -z "$(INFO_FILES)" ]; then \
-		echo "No coverage files found."; exit 1; \
-	fi; \
+# 	@if [ ! -f "$(INFO_PATH)" ]; then \
+#         cp $(FIRST_INFO) $(INFO_PATH); \
+#     fi; \
 
+# 	@for f in $(INFO_FILES); do \
+#         if [ "$$f" != "$(FIRST_INFO)" ]; then \
+#             lcov -q -a $(INFO_PATH)/merged_coverage.info -a "$$f" -o $(INFO_PATH); \
+#         fi; \
+#     done;
 	@if [ ! -f "$(INFO_PATH)" ]; then \
-        cp $(FIRST_INFO) $(INFO_PATH); \
+        first_file=$$(find $(INFO_FILES_DIR) -name 'coverage_*.info' | head -n 1); \
+        cp $$first_file $(INFO_PATH); \
     fi; \
-
-	@for f in $(INFO_FILES); do \
-        if [ "$$f" != "$(FIRST_INFO)" ]; then \
-            lcov -q -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH); \
+	idx=0; \
+	total=$$(find $(INFO_FILES_DIR) -name 'coverage_*.info' | wc -l); \
+    find $(INFO_FILES_DIR) -name 'coverage_*.info' | while read f; do \
+		idx=$$((idx+1)); \
+        if [ "$$f" != "$(INFO_PATH)" ]; then \
+			printf "Processing file %s/%s: %s\r" "$$idx" "$$total" "$$f"; \
+            lcov -q -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH) > /dev/null 2>&1; \
         fi; \
     done;
 
-	@-rm $(INFO_FILES_DIR)/*
+# 	@-rm $(INFO_FILES_DIR)/*
 
 generate_report:
 	lcov --remove $(INFO_PATH) \

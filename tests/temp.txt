@@ -1,0 +1,1094 @@
+✓ Hardware-specific headers for wormhole are present
+============================= test session starts ==============================
+platform linux -- Python 3.10.12, pytest-8.4.1, pluggy-1.6.0 -- /opt/venv/bin/python3
+cachedir: .pytest_cache
+Using --random-order-bucket=global
+Using --random-order-seed=903986
+
+benchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+rootdir: /proj_sw/user_dev/ajankovic/tt-llk/tests/python_tests
+configfile: pytest.ini
+plugins: cov-6.1.1, repeat-0.9.4, random-order-1.2.0, sugar-1.0.0, forked-1.6.0, benchmark-5.1.0, github-actions-annotate-failures-0.3.0, timeout-2.4.0, xdist-3.8.0, anyio-4.11.0, dash-2.15.0, split-0.10.0
+timeout: 60.0s
+timeout method: signal
+timeout func_only: False
+collecting ... collected 2 items
+
+python_tests/test_eltwise_unary_sfpu.py::test_eltwise_unary_sfpu_int[eltwise_unary_sfpu_int-formats0-ApproximationMode.No-MathOperation.Neg-DestAccumulation.Yes] SKIPPED
+Parameters: [formats.input=Int32 | formats.output=Int32 | approx_mode=ApproximationMode.No | mathop=MathOperation.Neg | dest_acc=DestAccumulation.Yes]
+
+python_tests/test_eltwise_unary_sfpu.py::test_eltwise_unary_sfpu_float[eltwise_unary_sfpu_test-formats0-ApproximationMode.No-MathOperation.Sqrt-DestAccumulation.Yes] Found 928 differences:
+Failed at index 1 with result=inf, golden=1.4140625
+Failed at index 3 with result=inf, golden=1.4140625
+Failed at index 5 with result=inf, golden=1.4140625
+Failed at index 7 with result=inf, golden=1.4140625
+Failed at index 9 with result=inf, golden=1.4140625
+Failed at index 11 with result=inf, golden=1.4140625
+Failed at index 13 with result=inf, golden=1.4140625
+Failed at index 15 with result=inf, golden=1.4140625
+Failed at index 17 with result=inf, golden=1.4140625
+Failed at index 19 with result=inf, golden=1.4140625
+Failed at index 21 with result=inf, golden=1.4140625
+Failed at index 23 with result=inf, golden=1.4140625
+Failed at index 25 with result=inf, golden=1.4140625
+Failed at index 27 with result=inf, golden=1.4140625
+Failed at index 29 with result=inf, golden=1.4140625
+Failed at index 31 with result=inf, golden=1.4140625
+Failed at index 33 with result=inf, golden=1.4140625
+Failed at index 35 with result=inf, golden=1.4140625
+Failed at index 37 with result=inf, golden=1.4140625
+Failed at index 39 with result=inf, golden=1.4140625
+Failed at index 41 with result=inf, golden=1.4140625
+Failed at index 43 with result=inf, golden=1.4140625
+Failed at index 45 with result=inf, golden=1.4140625
+Failed at index 47 with result=inf, golden=1.4140625
+Failed at index 49 with result=inf, golden=1.4140625
+Failed at index 51 with result=inf, golden=1.4140625
+Failed at index 53 with result=inf, golden=1.4140625
+Failed at index 55 with result=inf, golden=1.4140625
+Failed at index 57 with result=inf, golden=1.4140625
+Failed at index 59 with result=inf, golden=1.4140625
+Failed at index 61 with result=inf, golden=1.4140625
+Failed at index 63 with result=inf, golden=1.4140625
+Failed at index 64 with result=2.0, golden=1.4140625
+Failed at index 65 with result=inf, golden=1.4140625
+Failed at index 66 with result=2.0, golden=1.4140625
+Failed at index 67 with result=inf, golden=1.4140625
+Failed at index 68 with result=2.0, golden=1.4140625
+Failed at index 69 with result=inf, golden=1.4140625
+Failed at index 70 with result=2.0, golden=1.4140625
+Failed at index 71 with result=inf, golden=1.4140625
+Failed at index 72 with result=2.0, golden=1.4140625
+Failed at index 73 with result=inf, golden=1.4140625
+Failed at index 74 with result=2.0, golden=1.4140625
+Failed at index 75 with result=inf, golden=1.4140625
+Failed at index 76 with result=2.0, golden=1.4140625
+Failed at index 77 with result=inf, golden=1.4140625
+Failed at index 78 with result=2.0, golden=1.4140625
+Failed at index 79 with result=inf, golden=1.4140625
+Failed at index 80 with result=2.0, golden=1.4140625
+Failed at index 81 with result=inf, golden=1.4140625
+Failed at index 82 with result=2.0, golden=1.4140625
+Failed at index 83 with result=inf, golden=1.4140625
+Failed at index 84 with result=2.0, golden=1.4140625
+Failed at index 85 with result=inf, golden=1.4140625
+Failed at index 86 with result=2.0, golden=1.4140625
+Failed at index 87 with result=inf, golden=1.4140625
+Failed at index 88 with result=2.0, golden=1.4140625
+Failed at index 89 with result=inf, golden=1.4140625
+Failed at index 90 with result=2.0, golden=1.4140625
+Failed at index 91 with result=inf, golden=1.4140625
+Failed at index 92 with result=2.0, golden=1.4140625
+Failed at index 93 with result=inf, golden=1.4140625
+Failed at index 94 with result=2.0, golden=1.4140625
+Failed at index 95 with result=inf, golden=1.4140625
+Failed at index 96 with result=2.0, golden=1.4140625
+Failed at index 97 with result=inf, golden=1.4140625
+Failed at index 98 with result=2.0, golden=1.4140625
+Failed at index 99 with result=inf, golden=1.4140625
+Failed at index 100 with result=2.0, golden=1.4140625
+Failed at index 101 with result=inf, golden=1.4140625
+Failed at index 102 with result=2.0, golden=1.4140625
+Failed at index 103 with result=inf, golden=1.4140625
+Failed at index 104 with result=2.0, golden=1.4140625
+Failed at index 105 with result=inf, golden=1.4140625
+Failed at index 106 with result=2.0, golden=1.4140625
+Failed at index 107 with result=inf, golden=1.4140625
+Failed at index 108 with result=2.0, golden=1.4140625
+Failed at index 109 with result=inf, golden=1.4140625
+Failed at index 110 with result=2.0, golden=1.4140625
+Failed at index 111 with result=inf, golden=1.4140625
+Failed at index 112 with result=2.0, golden=1.4140625
+Failed at index 113 with result=inf, golden=1.4140625
+Failed at index 114 with result=2.0, golden=1.4140625
+Failed at index 115 with result=inf, golden=1.4140625
+Failed at index 116 with result=2.0, golden=1.4140625
+Failed at index 117 with result=inf, golden=1.4140625
+Failed at index 118 with result=2.0, golden=1.4140625
+Failed at index 119 with result=inf, golden=1.4140625
+Failed at index 120 with result=2.0, golden=1.4140625
+Failed at index 121 with result=inf, golden=1.4140625
+Failed at index 122 with result=2.0, golden=1.4140625
+Failed at index 123 with result=inf, golden=1.4140625
+Failed at index 124 with result=2.0, golden=1.4140625
+Failed at index 125 with result=inf, golden=1.4140625
+Failed at index 126 with result=2.0, golden=1.4140625
+Failed at index 127 with result=inf, golden=1.4140625
+Failed at index 128 with result=2.0, golden=1.4140625
+Failed at index 129 with result=inf, golden=1.4140625
+Failed at index 130 with result=2.0, golden=1.4140625
+Failed at index 131 with result=inf, golden=1.4140625
+Failed at index 132 with result=2.0, golden=1.4140625
+Failed at index 133 with result=inf, golden=1.4140625
+Failed at index 134 with result=2.0, golden=1.4140625
+Failed at index 135 with result=inf, golden=1.4140625
+Failed at index 136 with result=2.0, golden=1.4140625
+Failed at index 137 with result=inf, golden=1.4140625
+Failed at index 138 with result=2.0, golden=1.4140625
+Failed at index 139 with result=inf, golden=1.4140625
+Failed at index 140 with result=2.0, golden=1.4140625
+Failed at index 141 with result=inf, golden=1.4140625
+Failed at index 142 with result=2.0, golden=1.4140625
+Failed at index 143 with result=inf, golden=1.4140625
+Failed at index 144 with result=2.0, golden=1.4140625
+Failed at index 145 with result=inf, golden=1.4140625
+Failed at index 146 with result=2.0, golden=1.4140625
+Failed at index 147 with result=inf, golden=1.4140625
+Failed at index 148 with result=2.0, golden=1.4140625
+Failed at index 149 with result=inf, golden=1.4140625
+Failed at index 150 with result=2.0, golden=1.4140625
+Failed at index 151 with result=inf, golden=1.4140625
+Failed at index 152 with result=2.0, golden=1.4140625
+Failed at index 153 with result=inf, golden=1.4140625
+Failed at index 154 with result=2.0, golden=1.4140625
+Failed at index 155 with result=inf, golden=1.4140625
+Failed at index 156 with result=2.0, golden=1.4140625
+Failed at index 157 with result=inf, golden=1.4140625
+Failed at index 158 with result=2.0, golden=1.4140625
+Failed at index 159 with result=inf, golden=1.4140625
+Failed at index 160 with result=2.0, golden=1.4140625
+Failed at index 161 with result=inf, golden=1.4140625
+Failed at index 162 with result=2.0, golden=1.4140625
+Failed at index 163 with result=inf, golden=1.4140625
+Failed at index 164 with result=2.0, golden=1.4140625
+Failed at index 165 with result=inf, golden=1.4140625
+Failed at index 166 with result=2.0, golden=1.4140625
+Failed at index 167 with result=inf, golden=1.4140625
+Failed at index 168 with result=2.0, golden=1.4140625
+Failed at index 169 with result=inf, golden=1.4140625
+Failed at index 170 with result=2.0, golden=1.4140625
+Failed at index 171 with result=inf, golden=1.4140625
+Failed at index 172 with result=2.0, golden=1.4140625
+Failed at index 173 with result=inf, golden=1.4140625
+Failed at index 174 with result=2.0, golden=1.4140625
+Failed at index 175 with result=inf, golden=1.4140625
+Failed at index 176 with result=2.0, golden=1.4140625
+Failed at index 177 with result=inf, golden=1.4140625
+Failed at index 178 with result=2.0, golden=1.4140625
+Failed at index 179 with result=inf, golden=1.4140625
+Failed at index 180 with result=2.0, golden=1.4140625
+Failed at index 181 with result=inf, golden=1.4140625
+Failed at index 182 with result=2.0, golden=1.4140625
+Failed at index 183 with result=inf, golden=1.4140625
+Failed at index 184 with result=2.0, golden=1.4140625
+Failed at index 185 with result=inf, golden=1.4140625
+Failed at index 186 with result=2.0, golden=1.4140625
+Failed at index 187 with result=inf, golden=1.4140625
+Failed at index 188 with result=2.0, golden=1.4140625
+Failed at index 189 with result=inf, golden=1.4140625
+Failed at index 190 with result=2.0, golden=1.4140625
+Failed at index 191 with result=inf, golden=1.4140625
+Failed at index 192 with result=2.0, golden=1.4140625
+Failed at index 193 with result=inf, golden=1.4140625
+Failed at index 194 with result=2.0, golden=1.4140625
+Failed at index 195 with result=inf, golden=1.4140625
+Failed at index 196 with result=2.0, golden=1.4140625
+Failed at index 197 with result=inf, golden=1.4140625
+Failed at index 198 with result=2.0, golden=1.4140625
+Failed at index 199 with result=inf, golden=1.4140625
+Failed at index 200 with result=2.0, golden=1.4140625
+Failed at index 201 with result=inf, golden=1.4140625
+Failed at index 202 with result=2.0, golden=1.4140625
+Failed at index 203 with result=inf, golden=1.4140625
+Failed at index 204 with result=2.0, golden=1.4140625
+Failed at index 205 with result=inf, golden=1.4140625
+Failed at index 206 with result=2.0, golden=1.4140625
+Failed at index 207 with result=inf, golden=1.4140625
+Failed at index 208 with result=2.0, golden=1.4140625
+Failed at index 209 with result=inf, golden=1.4140625
+Failed at index 210 with result=2.0, golden=1.4140625
+Failed at index 211 with result=inf, golden=1.4140625
+Failed at index 212 with result=2.0, golden=1.4140625
+Failed at index 213 with result=inf, golden=1.4140625
+Failed at index 214 with result=2.0, golden=1.4140625
+Failed at index 215 with result=inf, golden=1.4140625
+Failed at index 216 with result=2.0, golden=1.4140625
+Failed at index 217 with result=inf, golden=1.4140625
+Failed at index 218 with result=2.0, golden=1.4140625
+Failed at index 219 with result=inf, golden=1.4140625
+Failed at index 220 with result=2.0, golden=1.4140625
+Failed at index 221 with result=inf, golden=1.4140625
+Failed at index 222 with result=2.0, golden=1.4140625
+Failed at index 223 with result=inf, golden=1.4140625
+Failed at index 224 with result=2.0, golden=1.4140625
+Failed at index 225 with result=inf, golden=1.4140625
+Failed at index 226 with result=2.0, golden=1.4140625
+Failed at index 227 with result=inf, golden=1.4140625
+Failed at index 228 with result=2.0, golden=1.4140625
+Failed at index 229 with result=inf, golden=1.4140625
+Failed at index 230 with result=2.0, golden=1.4140625
+Failed at index 231 with result=inf, golden=1.4140625
+Failed at index 232 with result=2.0, golden=1.4140625
+Failed at index 233 with result=inf, golden=1.4140625
+Failed at index 234 with result=2.0, golden=1.4140625
+Failed at index 235 with result=inf, golden=1.4140625
+Failed at index 236 with result=2.0, golden=1.4140625
+Failed at index 237 with result=inf, golden=1.4140625
+Failed at index 238 with result=2.0, golden=1.4140625
+Failed at index 239 with result=inf, golden=1.4140625
+Failed at index 240 with result=2.0, golden=1.4140625
+Failed at index 241 with result=inf, golden=1.4140625
+Failed at index 242 with result=2.0, golden=1.4140625
+Failed at index 243 with result=inf, golden=1.4140625
+Failed at index 244 with result=2.0, golden=1.4140625
+Failed at index 245 with result=inf, golden=1.4140625
+Failed at index 246 with result=2.0, golden=1.4140625
+Failed at index 247 with result=inf, golden=1.4140625
+Failed at index 248 with result=2.0, golden=1.4140625
+Failed at index 249 with result=inf, golden=1.4140625
+Failed at index 250 with result=2.0, golden=1.4140625
+Failed at index 251 with result=inf, golden=1.4140625
+Failed at index 252 with result=2.0, golden=1.4140625
+Failed at index 253 with result=inf, golden=1.4140625
+Failed at index 254 with result=2.0, golden=1.4140625
+Failed at index 255 with result=inf, golden=1.4140625
+Failed at index 256 with result=2.0, golden=1.4140625
+Failed at index 257 with result=inf, golden=1.4140625
+Failed at index 258 with result=2.0, golden=1.4140625
+Failed at index 259 with result=inf, golden=1.4140625
+Failed at index 260 with result=2.0, golden=1.4140625
+Failed at index 261 with result=inf, golden=1.4140625
+Failed at index 262 with result=2.0, golden=1.4140625
+Failed at index 263 with result=inf, golden=1.4140625
+Failed at index 264 with result=2.0, golden=1.4140625
+Failed at index 265 with result=inf, golden=1.4140625
+Failed at index 266 with result=2.0, golden=1.4140625
+Failed at index 267 with result=inf, golden=1.4140625
+Failed at index 268 with result=2.0, golden=1.4140625
+Failed at index 269 with result=inf, golden=1.4140625
+Failed at index 270 with result=2.0, golden=1.4140625
+Failed at index 271 with result=inf, golden=1.4140625
+Failed at index 272 with result=2.0, golden=1.4140625
+Failed at index 273 with result=inf, golden=1.4140625
+Failed at index 274 with result=2.0, golden=1.4140625
+Failed at index 275 with result=inf, golden=1.4140625
+Failed at index 276 with result=2.0, golden=1.4140625
+Failed at index 277 with result=inf, golden=1.4140625
+Failed at index 278 with result=2.0, golden=1.4140625
+Failed at index 279 with result=inf, golden=1.4140625
+Failed at index 280 with result=2.0, golden=1.4140625
+Failed at index 281 with result=inf, golden=1.4140625
+Failed at index 282 with result=2.0, golden=1.4140625
+Failed at index 283 with result=inf, golden=1.4140625
+Failed at index 284 with result=2.0, golden=1.4140625
+Failed at index 285 with result=inf, golden=1.4140625
+Failed at index 286 with result=2.0, golden=1.4140625
+Failed at index 287 with result=inf, golden=1.4140625
+Failed at index 288 with result=2.0, golden=1.4140625
+Failed at index 289 with result=inf, golden=1.4140625
+Failed at index 290 with result=2.0, golden=1.4140625
+Failed at index 291 with result=inf, golden=1.4140625
+Failed at index 292 with result=2.0, golden=1.4140625
+Failed at index 293 with result=inf, golden=1.4140625
+Failed at index 294 with result=2.0, golden=1.4140625
+Failed at index 295 with result=inf, golden=1.4140625
+Failed at index 296 with result=2.0, golden=1.4140625
+Failed at index 297 with result=inf, golden=1.4140625
+Failed at index 298 with result=2.0, golden=1.4140625
+Failed at index 299 with result=inf, golden=1.4140625
+Failed at index 300 with result=2.0, golden=1.4140625
+Failed at index 301 with result=inf, golden=1.4140625
+Failed at index 302 with result=2.0, golden=1.4140625
+Failed at index 303 with result=inf, golden=1.4140625
+Failed at index 304 with result=2.0, golden=1.4140625
+Failed at index 305 with result=inf, golden=1.4140625
+Failed at index 306 with result=2.0, golden=1.4140625
+Failed at index 307 with result=inf, golden=1.4140625
+Failed at index 308 with result=2.0, golden=1.4140625
+Failed at index 309 with result=inf, golden=1.4140625
+Failed at index 310 with result=2.0, golden=1.4140625
+Failed at index 311 with result=inf, golden=1.4140625
+Failed at index 312 with result=2.0, golden=1.4140625
+Failed at index 313 with result=inf, golden=1.4140625
+Failed at index 314 with result=2.0, golden=1.4140625
+Failed at index 315 with result=inf, golden=1.4140625
+Failed at index 316 with result=2.0, golden=1.4140625
+Failed at index 317 with result=inf, golden=1.4140625
+Failed at index 318 with result=2.0, golden=1.4140625
+Failed at index 319 with result=inf, golden=1.4140625
+Failed at index 320 with result=2.0, golden=1.4140625
+Failed at index 321 with result=inf, golden=1.4140625
+Failed at index 322 with result=2.0, golden=1.4140625
+Failed at index 323 with result=inf, golden=1.4140625
+Failed at index 324 with result=2.0, golden=1.4140625
+Failed at index 325 with result=inf, golden=1.4140625
+Failed at index 326 with result=2.0, golden=1.4140625
+Failed at index 327 with result=inf, golden=1.4140625
+Failed at index 328 with result=2.0, golden=1.4140625
+Failed at index 329 with result=inf, golden=1.4140625
+Failed at index 330 with result=2.0, golden=1.4140625
+Failed at index 331 with result=inf, golden=1.4140625
+Failed at index 332 with result=2.0, golden=1.4140625
+Failed at index 333 with result=inf, golden=1.4140625
+Failed at index 334 with result=2.0, golden=1.4140625
+Failed at index 335 with result=inf, golden=1.4140625
+Failed at index 336 with result=2.0, golden=1.4140625
+Failed at index 337 with result=inf, golden=1.4140625
+Failed at index 338 with result=2.0, golden=1.4140625
+Failed at index 339 with result=inf, golden=1.4140625
+Failed at index 340 with result=2.0, golden=1.4140625
+Failed at index 341 with result=inf, golden=1.4140625
+Failed at index 342 with result=2.0, golden=1.4140625
+Failed at index 343 with result=inf, golden=1.4140625
+Failed at index 344 with result=2.0, golden=1.4140625
+Failed at index 345 with result=inf, golden=1.4140625
+Failed at index 346 with result=2.0, golden=1.4140625
+Failed at index 347 with result=inf, golden=1.4140625
+Failed at index 348 with result=2.0, golden=1.4140625
+Failed at index 349 with result=inf, golden=1.4140625
+Failed at index 350 with result=2.0, golden=1.4140625
+Failed at index 351 with result=inf, golden=1.4140625
+Failed at index 352 with result=2.0, golden=1.4140625
+Failed at index 353 with result=inf, golden=1.4140625
+Failed at index 354 with result=2.0, golden=1.4140625
+Failed at index 355 with result=inf, golden=1.4140625
+Failed at index 356 with result=2.0, golden=1.4140625
+Failed at index 357 with result=inf, golden=1.4140625
+Failed at index 358 with result=2.0, golden=1.4140625
+Failed at index 359 with result=inf, golden=1.4140625
+Failed at index 360 with result=2.0, golden=1.4140625
+Failed at index 361 with result=inf, golden=1.4140625
+Failed at index 362 with result=2.0, golden=1.4140625
+Failed at index 363 with result=inf, golden=1.4140625
+Failed at index 364 with result=2.0, golden=1.4140625
+Failed at index 365 with result=inf, golden=1.4140625
+Failed at index 366 with result=2.0, golden=1.4140625
+Failed at index 367 with result=inf, golden=1.4140625
+Failed at index 368 with result=2.0, golden=1.4140625
+Failed at index 369 with result=inf, golden=1.4140625
+Failed at index 370 with result=2.0, golden=1.4140625
+Failed at index 371 with result=inf, golden=1.4140625
+Failed at index 372 with result=2.0, golden=1.4140625
+Failed at index 373 with result=inf, golden=1.4140625
+Failed at index 374 with result=2.0, golden=1.4140625
+Failed at index 375 with result=inf, golden=1.4140625
+Failed at index 376 with result=2.0, golden=1.4140625
+Failed at index 377 with result=inf, golden=1.4140625
+Failed at index 378 with result=2.0, golden=1.4140625
+Failed at index 379 with result=inf, golden=1.4140625
+Failed at index 380 with result=2.0, golden=1.4140625
+Failed at index 381 with result=inf, golden=1.4140625
+Failed at index 382 with result=2.0, golden=1.4140625
+Failed at index 383 with result=inf, golden=1.4140625
+Failed at index 384 with result=2.0, golden=1.4140625
+Failed at index 385 with result=inf, golden=1.4140625
+Failed at index 386 with result=2.0, golden=1.4140625
+Failed at index 387 with result=inf, golden=1.4140625
+Failed at index 388 with result=2.0, golden=1.4140625
+Failed at index 389 with result=inf, golden=1.4140625
+Failed at index 390 with result=2.0, golden=1.4140625
+Failed at index 391 with result=inf, golden=1.4140625
+Failed at index 392 with result=2.0, golden=1.4140625
+Failed at index 393 with result=inf, golden=1.4140625
+Failed at index 394 with result=2.0, golden=1.4140625
+Failed at index 395 with result=inf, golden=1.4140625
+Failed at index 396 with result=2.0, golden=1.4140625
+Failed at index 397 with result=inf, golden=1.4140625
+Failed at index 398 with result=2.0, golden=1.4140625
+Failed at index 399 with result=inf, golden=1.4140625
+Failed at index 400 with result=2.0, golden=1.4140625
+Failed at index 401 with result=inf, golden=1.4140625
+Failed at index 402 with result=2.0, golden=1.4140625
+Failed at index 403 with result=inf, golden=1.4140625
+Failed at index 404 with result=2.0, golden=1.4140625
+Failed at index 405 with result=inf, golden=1.4140625
+Failed at index 406 with result=2.0, golden=1.4140625
+Failed at index 407 with result=inf, golden=1.4140625
+Failed at index 408 with result=2.0, golden=1.4140625
+Failed at index 409 with result=inf, golden=1.4140625
+Failed at index 410 with result=2.0, golden=1.4140625
+Failed at index 411 with result=inf, golden=1.4140625
+Failed at index 412 with result=2.0, golden=1.4140625
+Failed at index 413 with result=inf, golden=1.4140625
+Failed at index 414 with result=2.0, golden=1.4140625
+Failed at index 415 with result=inf, golden=1.4140625
+Failed at index 416 with result=2.0, golden=1.4140625
+Failed at index 417 with result=inf, golden=1.4140625
+Failed at index 418 with result=2.0, golden=1.4140625
+Failed at index 419 with result=inf, golden=1.4140625
+Failed at index 420 with result=2.0, golden=1.4140625
+Failed at index 421 with result=inf, golden=1.4140625
+Failed at index 422 with result=2.0, golden=1.4140625
+Failed at index 423 with result=inf, golden=1.4140625
+Failed at index 424 with result=2.0, golden=1.4140625
+Failed at index 425 with result=inf, golden=1.4140625
+Failed at index 426 with result=2.0, golden=1.4140625
+Failed at index 427 with result=inf, golden=1.4140625
+Failed at index 428 with result=2.0, golden=1.4140625
+Failed at index 429 with result=inf, golden=1.4140625
+Failed at index 430 with result=2.0, golden=1.4140625
+Failed at index 431 with result=inf, golden=1.4140625
+Failed at index 432 with result=2.0, golden=1.4140625
+Failed at index 433 with result=inf, golden=1.4140625
+Failed at index 434 with result=2.0, golden=1.4140625
+Failed at index 435 with result=inf, golden=1.4140625
+Failed at index 436 with result=2.0, golden=1.4140625
+Failed at index 437 with result=inf, golden=1.4140625
+Failed at index 438 with result=2.0, golden=1.4140625
+Failed at index 439 with result=inf, golden=1.4140625
+Failed at index 440 with result=2.0, golden=1.4140625
+Failed at index 441 with result=inf, golden=1.4140625
+Failed at index 442 with result=2.0, golden=1.4140625
+Failed at index 443 with result=inf, golden=1.4140625
+Failed at index 444 with result=2.0, golden=1.4140625
+Failed at index 445 with result=inf, golden=1.4140625
+Failed at index 446 with result=2.0, golden=1.4140625
+Failed at index 447 with result=inf, golden=1.4140625
+Failed at index 448 with result=2.0, golden=1.4140625
+Failed at index 450 with result=2.0, golden=1.4140625
+Failed at index 452 with result=2.0, golden=1.4140625
+Failed at index 454 with result=2.0, golden=1.4140625
+Failed at index 456 with result=2.0, golden=1.4140625
+Failed at index 458 with result=2.0, golden=1.4140625
+Failed at index 460 with result=2.0, golden=1.4140625
+Failed at index 462 with result=2.0, golden=1.4140625
+Failed at index 464 with result=2.0, golden=1.4140625
+Failed at index 466 with result=2.0, golden=1.4140625
+Failed at index 468 with result=2.0, golden=1.4140625
+Failed at index 470 with result=2.0, golden=1.4140625
+Failed at index 472 with result=2.0, golden=1.4140625
+Failed at index 474 with result=2.0, golden=1.4140625
+Failed at index 476 with result=2.0, golden=1.4140625
+Failed at index 478 with result=2.0, golden=1.4140625
+Failed at index 480 with result=2.0, golden=1.4140625
+Failed at index 482 with result=2.0, golden=1.4140625
+Failed at index 484 with result=2.0, golden=1.4140625
+Failed at index 486 with result=2.0, golden=1.4140625
+Failed at index 488 with result=2.0, golden=1.4140625
+Failed at index 490 with result=2.0, golden=1.4140625
+Failed at index 492 with result=2.0, golden=1.4140625
+Failed at index 494 with result=2.0, golden=1.4140625
+Failed at index 496 with result=2.0, golden=1.4140625
+Failed at index 498 with result=2.0, golden=1.4140625
+Failed at index 500 with result=2.0, golden=1.4140625
+Failed at index 502 with result=2.0, golden=1.4140625
+Failed at index 504 with result=2.0, golden=1.4140625
+Failed at index 506 with result=2.0, golden=1.4140625
+Failed at index 508 with result=2.0, golden=1.4140625
+Failed at index 510 with result=2.0, golden=1.4140625
+Failed at index 512 with result=inf, golden=1.4140625
+Failed at index 513 with result=2.0, golden=1.4140625
+Failed at index 514 with result=inf, golden=1.4140625
+Failed at index 515 with result=2.0, golden=1.4140625
+Failed at index 516 with result=inf, golden=1.4140625
+Failed at index 517 with result=2.0, golden=1.4140625
+Failed at index 518 with result=inf, golden=1.4140625
+Failed at index 519 with result=2.0, golden=1.4140625
+Failed at index 520 with result=inf, golden=1.4140625
+Failed at index 521 with result=2.0, golden=1.4140625
+Failed at index 522 with result=inf, golden=1.4140625
+Failed at index 523 with result=2.0, golden=1.4140625
+Failed at index 524 with result=inf, golden=1.4140625
+Failed at index 525 with result=2.0, golden=1.4140625
+Failed at index 526 with result=inf, golden=1.4140625
+Failed at index 527 with result=2.0, golden=1.4140625
+Failed at index 528 with result=inf, golden=1.4140625
+Failed at index 529 with result=2.0, golden=1.4140625
+Failed at index 530 with result=inf, golden=1.4140625
+Failed at index 531 with result=2.0, golden=1.4140625
+Failed at index 532 with result=inf, golden=1.4140625
+Failed at index 533 with result=2.0, golden=1.4140625
+Failed at index 534 with result=inf, golden=1.4140625
+Failed at index 535 with result=2.0, golden=1.4140625
+Failed at index 536 with result=inf, golden=1.4140625
+Failed at index 537 with result=2.0, golden=1.4140625
+Failed at index 538 with result=inf, golden=1.4140625
+Failed at index 539 with result=2.0, golden=1.4140625
+Failed at index 540 with result=inf, golden=1.4140625
+Failed at index 541 with result=2.0, golden=1.4140625
+Failed at index 542 with result=inf, golden=1.4140625
+Failed at index 543 with result=2.0, golden=1.4140625
+Failed at index 544 with result=inf, golden=1.4140625
+Failed at index 545 with result=2.0, golden=1.4140625
+Failed at index 546 with result=inf, golden=1.4140625
+Failed at index 547 with result=2.0, golden=1.4140625
+Failed at index 548 with result=inf, golden=1.4140625
+Failed at index 549 with result=2.0, golden=1.4140625
+Failed at index 550 with result=inf, golden=1.4140625
+Failed at index 551 with result=2.0, golden=1.4140625
+Failed at index 552 with result=inf, golden=1.4140625
+Failed at index 553 with result=2.0, golden=1.4140625
+Failed at index 554 with result=inf, golden=1.4140625
+Failed at index 555 with result=2.0, golden=1.4140625
+Failed at index 556 with result=inf, golden=1.4140625
+Failed at index 557 with result=2.0, golden=1.4140625
+Failed at index 558 with result=inf, golden=1.4140625
+Failed at index 559 with result=2.0, golden=1.4140625
+Failed at index 560 with result=inf, golden=1.4140625
+Failed at index 561 with result=2.0, golden=1.4140625
+Failed at index 562 with result=inf, golden=1.4140625
+Failed at index 563 with result=2.0, golden=1.4140625
+Failed at index 564 with result=inf, golden=1.4140625
+Failed at index 565 with result=2.0, golden=1.4140625
+Failed at index 566 with result=inf, golden=1.4140625
+Failed at index 567 with result=2.0, golden=1.4140625
+Failed at index 568 with result=inf, golden=1.4140625
+Failed at index 569 with result=2.0, golden=1.4140625
+Failed at index 570 with result=inf, golden=1.4140625
+Failed at index 571 with result=2.0, golden=1.4140625
+Failed at index 572 with result=inf, golden=1.4140625
+Failed at index 573 with result=2.0, golden=1.4140625
+Failed at index 574 with result=inf, golden=1.4140625
+Failed at index 575 with result=2.0, golden=1.4140625
+Failed at index 576 with result=inf, golden=1.4140625
+Failed at index 577 with result=2.0, golden=1.4140625
+Failed at index 578 with result=inf, golden=1.4140625
+Failed at index 579 with result=2.0, golden=1.4140625
+Failed at index 580 with result=inf, golden=1.4140625
+Failed at index 581 with result=2.0, golden=1.4140625
+Failed at index 582 with result=inf, golden=1.4140625
+Failed at index 583 with result=2.0, golden=1.4140625
+Failed at index 584 with result=inf, golden=1.4140625
+Failed at index 585 with result=2.0, golden=1.4140625
+Failed at index 586 with result=inf, golden=1.4140625
+Failed at index 587 with result=2.0, golden=1.4140625
+Failed at index 588 with result=inf, golden=1.4140625
+Failed at index 589 with result=2.0, golden=1.4140625
+Failed at index 590 with result=inf, golden=1.4140625
+Failed at index 591 with result=2.0, golden=1.4140625
+Failed at index 592 with result=inf, golden=1.4140625
+Failed at index 593 with result=2.0, golden=1.4140625
+Failed at index 594 with result=inf, golden=1.4140625
+Failed at index 595 with result=2.0, golden=1.4140625
+Failed at index 596 with result=inf, golden=1.4140625
+Failed at index 597 with result=2.0, golden=1.4140625
+Failed at index 598 with result=inf, golden=1.4140625
+Failed at index 599 with result=2.0, golden=1.4140625
+Failed at index 600 with result=inf, golden=1.4140625
+Failed at index 601 with result=2.0, golden=1.4140625
+Failed at index 602 with result=inf, golden=1.4140625
+Failed at index 603 with result=2.0, golden=1.4140625
+Failed at index 604 with result=inf, golden=1.4140625
+Failed at index 605 with result=2.0, golden=1.4140625
+Failed at index 606 with result=inf, golden=1.4140625
+Failed at index 607 with result=2.0, golden=1.4140625
+Failed at index 608 with result=inf, golden=1.4140625
+Failed at index 609 with result=2.0, golden=1.4140625
+Failed at index 610 with result=inf, golden=1.4140625
+Failed at index 611 with result=2.0, golden=1.4140625
+Failed at index 612 with result=inf, golden=1.4140625
+Failed at index 613 with result=2.0, golden=1.4140625
+Failed at index 614 with result=inf, golden=1.4140625
+Failed at index 615 with result=2.0, golden=1.4140625
+Failed at index 616 with result=inf, golden=1.4140625
+Failed at index 617 with result=2.0, golden=1.4140625
+Failed at index 618 with result=inf, golden=1.4140625
+Failed at index 619 with result=2.0, golden=1.4140625
+Failed at index 620 with result=inf, golden=1.4140625
+Failed at index 621 with result=2.0, golden=1.4140625
+Failed at index 622 with result=inf, golden=1.4140625
+Failed at index 623 with result=2.0, golden=1.4140625
+Failed at index 624 with result=inf, golden=1.4140625
+Failed at index 625 with result=2.0, golden=1.4140625
+Failed at index 626 with result=inf, golden=1.4140625
+Failed at index 627 with result=2.0, golden=1.4140625
+Failed at index 628 with result=inf, golden=1.4140625
+Failed at index 629 with result=2.0, golden=1.4140625
+Failed at index 630 with result=inf, golden=1.4140625
+Failed at index 631 with result=2.0, golden=1.4140625
+Failed at index 632 with result=inf, golden=1.4140625
+Failed at index 633 with result=2.0, golden=1.4140625
+Failed at index 634 with result=inf, golden=1.4140625
+Failed at index 635 with result=2.0, golden=1.4140625
+Failed at index 636 with result=inf, golden=1.4140625
+Failed at index 637 with result=2.0, golden=1.4140625
+Failed at index 638 with result=inf, golden=1.4140625
+Failed at index 639 with result=2.0, golden=1.4140625
+Failed at index 640 with result=inf, golden=1.4140625
+Failed at index 641 with result=2.0, golden=1.4140625
+Failed at index 642 with result=inf, golden=1.4140625
+Failed at index 643 with result=2.0, golden=1.4140625
+Failed at index 644 with result=inf, golden=1.4140625
+Failed at index 645 with result=2.0, golden=1.4140625
+Failed at index 646 with result=inf, golden=1.4140625
+Failed at index 647 with result=2.0, golden=1.4140625
+Failed at index 648 with result=inf, golden=1.4140625
+Failed at index 649 with result=2.0, golden=1.4140625
+Failed at index 650 with result=inf, golden=1.4140625
+Failed at index 651 with result=2.0, golden=1.4140625
+Failed at index 652 with result=inf, golden=1.4140625
+Failed at index 653 with result=2.0, golden=1.4140625
+Failed at index 654 with result=inf, golden=1.4140625
+Failed at index 655 with result=2.0, golden=1.4140625
+Failed at index 656 with result=inf, golden=1.4140625
+Failed at index 657 with result=2.0, golden=1.4140625
+Failed at index 658 with result=inf, golden=1.4140625
+Failed at index 659 with result=2.0, golden=1.4140625
+Failed at index 660 with result=inf, golden=1.4140625
+Failed at index 661 with result=2.0, golden=1.4140625
+Failed at index 662 with result=inf, golden=1.4140625
+Failed at index 663 with result=2.0, golden=1.4140625
+Failed at index 664 with result=inf, golden=1.4140625
+Failed at index 665 with result=2.0, golden=1.4140625
+Failed at index 666 with result=inf, golden=1.4140625
+Failed at index 667 with result=2.0, golden=1.4140625
+Failed at index 668 with result=inf, golden=1.4140625
+Failed at index 669 with result=2.0, golden=1.4140625
+Failed at index 670 with result=inf, golden=1.4140625
+Failed at index 671 with result=2.0, golden=1.4140625
+Failed at index 672 with result=inf, golden=1.4140625
+Failed at index 673 with result=2.0, golden=1.4140625
+Failed at index 674 with result=inf, golden=1.4140625
+Failed at index 675 with result=2.0, golden=1.4140625
+Failed at index 676 with result=inf, golden=1.4140625
+Failed at index 677 with result=2.0, golden=1.4140625
+Failed at index 678 with result=inf, golden=1.4140625
+Failed at index 679 with result=2.0, golden=1.4140625
+Failed at index 680 with result=inf, golden=1.4140625
+Failed at index 681 with result=2.0, golden=1.4140625
+Failed at index 682 with result=inf, golden=1.4140625
+Failed at index 683 with result=2.0, golden=1.4140625
+Failed at index 684 with result=inf, golden=1.4140625
+Failed at index 685 with result=2.0, golden=1.4140625
+Failed at index 686 with result=inf, golden=1.4140625
+Failed at index 687 with result=2.0, golden=1.4140625
+Failed at index 688 with result=inf, golden=1.4140625
+Failed at index 689 with result=2.0, golden=1.4140625
+Failed at index 690 with result=inf, golden=1.4140625
+Failed at index 691 with result=2.0, golden=1.4140625
+Failed at index 692 with result=inf, golden=1.4140625
+Failed at index 693 with result=2.0, golden=1.4140625
+Failed at index 694 with result=inf, golden=1.4140625
+Failed at index 695 with result=2.0, golden=1.4140625
+Failed at index 696 with result=inf, golden=1.4140625
+Failed at index 697 with result=2.0, golden=1.4140625
+Failed at index 698 with result=inf, golden=1.4140625
+Failed at index 699 with result=2.0, golden=1.4140625
+Failed at index 700 with result=inf, golden=1.4140625
+Failed at index 701 with result=2.0, golden=1.4140625
+Failed at index 702 with result=inf, golden=1.4140625
+Failed at index 703 with result=2.0, golden=1.4140625
+Failed at index 704 with result=inf, golden=1.4140625
+Failed at index 705 with result=2.0, golden=1.4140625
+Failed at index 706 with result=inf, golden=1.4140625
+Failed at index 707 with result=2.0, golden=1.4140625
+Failed at index 708 with result=inf, golden=1.4140625
+Failed at index 709 with result=2.0, golden=1.4140625
+Failed at index 710 with result=inf, golden=1.4140625
+Failed at index 711 with result=2.0, golden=1.4140625
+Failed at index 712 with result=inf, golden=1.4140625
+Failed at index 713 with result=2.0, golden=1.4140625
+Failed at index 714 with result=inf, golden=1.4140625
+Failed at index 715 with result=2.0, golden=1.4140625
+Failed at index 716 with result=inf, golden=1.4140625
+Failed at index 717 with result=2.0, golden=1.4140625
+Failed at index 718 with result=inf, golden=1.4140625
+Failed at index 719 with result=2.0, golden=1.4140625
+Failed at index 720 with result=inf, golden=1.4140625
+Failed at index 721 with result=2.0, golden=1.4140625
+Failed at index 722 with result=inf, golden=1.4140625
+Failed at index 723 with result=2.0, golden=1.4140625
+Failed at index 724 with result=inf, golden=1.4140625
+Failed at index 725 with result=2.0, golden=1.4140625
+Failed at index 726 with result=inf, golden=1.4140625
+Failed at index 727 with result=2.0, golden=1.4140625
+Failed at index 728 with result=inf, golden=1.4140625
+Failed at index 729 with result=2.0, golden=1.4140625
+Failed at index 730 with result=inf, golden=1.4140625
+Failed at index 731 with result=2.0, golden=1.4140625
+Failed at index 732 with result=inf, golden=1.4140625
+Failed at index 733 with result=2.0, golden=1.4140625
+Failed at index 734 with result=inf, golden=1.4140625
+Failed at index 735 with result=2.0, golden=1.4140625
+Failed at index 736 with result=inf, golden=1.4140625
+Failed at index 737 with result=2.0, golden=1.4140625
+Failed at index 738 with result=inf, golden=1.4140625
+Failed at index 739 with result=2.0, golden=1.4140625
+Failed at index 740 with result=inf, golden=1.4140625
+Failed at index 741 with result=2.0, golden=1.4140625
+Failed at index 742 with result=inf, golden=1.4140625
+Failed at index 743 with result=2.0, golden=1.4140625
+Failed at index 744 with result=inf, golden=1.4140625
+Failed at index 745 with result=2.0, golden=1.4140625
+Failed at index 746 with result=inf, golden=1.4140625
+Failed at index 747 with result=2.0, golden=1.4140625
+Failed at index 748 with result=inf, golden=1.4140625
+Failed at index 749 with result=2.0, golden=1.4140625
+Failed at index 750 with result=inf, golden=1.4140625
+Failed at index 751 with result=2.0, golden=1.4140625
+Failed at index 752 with result=inf, golden=1.4140625
+Failed at index 753 with result=2.0, golden=1.4140625
+Failed at index 754 with result=inf, golden=1.4140625
+Failed at index 755 with result=2.0, golden=1.4140625
+Failed at index 756 with result=inf, golden=1.4140625
+Failed at index 757 with result=2.0, golden=1.4140625
+Failed at index 758 with result=inf, golden=1.4140625
+Failed at index 759 with result=2.0, golden=1.4140625
+Failed at index 760 with result=inf, golden=1.4140625
+Failed at index 761 with result=2.0, golden=1.4140625
+Failed at index 762 with result=inf, golden=1.4140625
+Failed at index 763 with result=2.0, golden=1.4140625
+Failed at index 764 with result=inf, golden=1.4140625
+Failed at index 765 with result=2.0, golden=1.4140625
+Failed at index 766 with result=inf, golden=1.4140625
+Failed at index 767 with result=2.0, golden=1.4140625
+Failed at index 768 with result=inf, golden=1.4140625
+Failed at index 769 with result=2.0, golden=1.4140625
+Failed at index 770 with result=inf, golden=1.4140625
+Failed at index 771 with result=2.0, golden=1.4140625
+Failed at index 772 with result=inf, golden=1.4140625
+Failed at index 773 with result=2.0, golden=1.4140625
+Failed at index 774 with result=inf, golden=1.4140625
+Failed at index 775 with result=2.0, golden=1.4140625
+Failed at index 776 with result=inf, golden=1.4140625
+Failed at index 777 with result=2.0, golden=1.4140625
+Failed at index 778 with result=inf, golden=1.4140625
+Failed at index 779 with result=2.0, golden=1.4140625
+Failed at index 780 with result=inf, golden=1.4140625
+Failed at index 781 with result=2.0, golden=1.4140625
+Failed at index 782 with result=inf, golden=1.4140625
+Failed at index 783 with result=2.0, golden=1.4140625
+Failed at index 784 with result=inf, golden=1.4140625
+Failed at index 785 with result=2.0, golden=1.4140625
+Failed at index 786 with result=inf, golden=1.4140625
+Failed at index 787 with result=2.0, golden=1.4140625
+Failed at index 788 with result=inf, golden=1.4140625
+Failed at index 789 with result=2.0, golden=1.4140625
+Failed at index 790 with result=inf, golden=1.4140625
+Failed at index 791 with result=2.0, golden=1.4140625
+Failed at index 792 with result=inf, golden=1.4140625
+Failed at index 793 with result=2.0, golden=1.4140625
+Failed at index 794 with result=inf, golden=1.4140625
+Failed at index 795 with result=2.0, golden=1.4140625
+Failed at index 796 with result=inf, golden=1.4140625
+Failed at index 797 with result=2.0, golden=1.4140625
+Failed at index 798 with result=inf, golden=1.4140625
+Failed at index 799 with result=2.0, golden=1.4140625
+Failed at index 800 with result=inf, golden=1.4140625
+Failed at index 801 with result=2.0, golden=1.4140625
+Failed at index 802 with result=inf, golden=1.4140625
+Failed at index 803 with result=2.0, golden=1.4140625
+Failed at index 804 with result=inf, golden=1.4140625
+Failed at index 805 with result=2.0, golden=1.4140625
+Failed at index 806 with result=inf, golden=1.4140625
+Failed at index 807 with result=2.0, golden=1.4140625
+Failed at index 808 with result=inf, golden=1.4140625
+Failed at index 809 with result=2.0, golden=1.4140625
+Failed at index 810 with result=inf, golden=1.4140625
+Failed at index 811 with result=2.0, golden=1.4140625
+Failed at index 812 with result=inf, golden=1.4140625
+Failed at index 813 with result=2.0, golden=1.4140625
+Failed at index 814 with result=inf, golden=1.4140625
+Failed at index 815 with result=2.0, golden=1.4140625
+Failed at index 816 with result=inf, golden=1.4140625
+Failed at index 817 with result=2.0, golden=1.4140625
+Failed at index 818 with result=inf, golden=1.4140625
+Failed at index 819 with result=2.0, golden=1.4140625
+Failed at index 820 with result=inf, golden=1.4140625
+Failed at index 821 with result=2.0, golden=1.4140625
+Failed at index 822 with result=inf, golden=1.4140625
+Failed at index 823 with result=2.0, golden=1.4140625
+Failed at index 824 with result=inf, golden=1.4140625
+Failed at index 825 with result=2.0, golden=1.4140625
+Failed at index 826 with result=inf, golden=1.4140625
+Failed at index 827 with result=2.0, golden=1.4140625
+Failed at index 828 with result=inf, golden=1.4140625
+Failed at index 829 with result=2.0, golden=1.4140625
+Failed at index 830 with result=inf, golden=1.4140625
+Failed at index 831 with result=2.0, golden=1.4140625
+Failed at index 832 with result=inf, golden=1.4140625
+Failed at index 833 with result=2.0, golden=1.4140625
+Failed at index 834 with result=inf, golden=1.4140625
+Failed at index 835 with result=2.0, golden=1.4140625
+Failed at index 836 with result=inf, golden=1.4140625
+Failed at index 837 with result=2.0, golden=1.4140625
+Failed at index 838 with result=inf, golden=1.4140625
+Failed at index 839 with result=2.0, golden=1.4140625
+Failed at index 840 with result=inf, golden=1.4140625
+Failed at index 841 with result=2.0, golden=1.4140625
+Failed at index 842 with result=inf, golden=1.4140625
+Failed at index 843 with result=2.0, golden=1.4140625
+Failed at index 844 with result=inf, golden=1.4140625
+Failed at index 845 with result=2.0, golden=1.4140625
+Failed at index 846 with result=inf, golden=1.4140625
+Failed at index 847 with result=2.0, golden=1.4140625
+Failed at index 848 with result=inf, golden=1.4140625
+Failed at index 849 with result=2.0, golden=1.4140625
+Failed at index 850 with result=inf, golden=1.4140625
+Failed at index 851 with result=2.0, golden=1.4140625
+Failed at index 852 with result=inf, golden=1.4140625
+Failed at index 853 with result=2.0, golden=1.4140625
+Failed at index 854 with result=inf, golden=1.4140625
+Failed at index 855 with result=2.0, golden=1.4140625
+Failed at index 856 with result=inf, golden=1.4140625
+Failed at index 857 with result=2.0, golden=1.4140625
+Failed at index 858 with result=inf, golden=1.4140625
+Failed at index 859 with result=2.0, golden=1.4140625
+Failed at index 860 with result=inf, golden=1.4140625
+Failed at index 861 with result=2.0, golden=1.4140625
+Failed at index 862 with result=inf, golden=1.4140625
+Failed at index 863 with result=2.0, golden=1.4140625
+Failed at index 864 with result=inf, golden=1.4140625
+Failed at index 865 with result=2.0, golden=1.4140625
+Failed at index 866 with result=inf, golden=1.4140625
+Failed at index 867 with result=2.0, golden=1.4140625
+Failed at index 868 with result=inf, golden=1.4140625
+Failed at index 869 with result=2.0, golden=1.4140625
+Failed at index 870 with result=inf, golden=1.4140625
+Failed at index 871 with result=2.0, golden=1.4140625
+Failed at index 872 with result=inf, golden=1.4140625
+Failed at index 873 with result=2.0, golden=1.4140625
+Failed at index 874 with result=inf, golden=1.4140625
+Failed at index 875 with result=2.0, golden=1.4140625
+Failed at index 876 with result=inf, golden=1.4140625
+Failed at index 877 with result=2.0, golden=1.4140625
+Failed at index 878 with result=inf, golden=1.4140625
+Failed at index 879 with result=2.0, golden=1.4140625
+Failed at index 880 with result=inf, golden=1.4140625
+Failed at index 881 with result=2.0, golden=1.4140625
+Failed at index 882 with result=inf, golden=1.4140625
+Failed at index 883 with result=2.0, golden=1.4140625
+Failed at index 884 with result=inf, golden=1.4140625
+Failed at index 885 with result=2.0, golden=1.4140625
+Failed at index 886 with result=inf, golden=1.4140625
+Failed at index 887 with result=2.0, golden=1.4140625
+Failed at index 888 with result=inf, golden=1.4140625
+Failed at index 889 with result=2.0, golden=1.4140625
+Failed at index 890 with result=inf, golden=1.4140625
+Failed at index 891 with result=2.0, golden=1.4140625
+Failed at index 892 with result=inf, golden=1.4140625
+Failed at index 893 with result=2.0, golden=1.4140625
+Failed at index 894 with result=inf, golden=1.4140625
+Failed at index 895 with result=2.0, golden=1.4140625
+Failed at index 896 with result=inf, golden=1.4140625
+Failed at index 897 with result=2.0, golden=1.4140625
+Failed at index 898 with result=inf, golden=1.4140625
+Failed at index 899 with result=2.0, golden=1.4140625
+Failed at index 900 with result=inf, golden=1.4140625
+Failed at index 901 with result=2.0, golden=1.4140625
+Failed at index 902 with result=inf, golden=1.4140625
+Failed at index 903 with result=2.0, golden=1.4140625
+Failed at index 904 with result=inf, golden=1.4140625
+Failed at index 905 with result=2.0, golden=1.4140625
+Failed at index 906 with result=inf, golden=1.4140625
+Failed at index 907 with result=2.0, golden=1.4140625
+Failed at index 908 with result=inf, golden=1.4140625
+Failed at index 909 with result=2.0, golden=1.4140625
+Failed at index 910 with result=inf, golden=1.4140625
+Failed at index 911 with result=2.0, golden=1.4140625
+Failed at index 912 with result=inf, golden=1.4140625
+Failed at index 913 with result=2.0, golden=1.4140625
+Failed at index 914 with result=inf, golden=1.4140625
+Failed at index 915 with result=2.0, golden=1.4140625
+Failed at index 916 with result=inf, golden=1.4140625
+Failed at index 917 with result=2.0, golden=1.4140625
+Failed at index 918 with result=inf, golden=1.4140625
+Failed at index 919 with result=2.0, golden=1.4140625
+Failed at index 920 with result=inf, golden=1.4140625
+Failed at index 921 with result=2.0, golden=1.4140625
+Failed at index 922 with result=inf, golden=1.4140625
+Failed at index 923 with result=2.0, golden=1.4140625
+Failed at index 924 with result=inf, golden=1.4140625
+Failed at index 925 with result=2.0, golden=1.4140625
+Failed at index 926 with result=inf, golden=1.4140625
+Failed at index 927 with result=2.0, golden=1.4140625
+Failed at index 928 with result=inf, golden=1.4140625
+Failed at index 929 with result=2.0, golden=1.4140625
+Failed at index 930 with result=inf, golden=1.4140625
+Failed at index 931 with result=2.0, golden=1.4140625
+Failed at index 932 with result=inf, golden=1.4140625
+Failed at index 933 with result=2.0, golden=1.4140625
+Failed at index 934 with result=inf, golden=1.4140625
+Failed at index 935 with result=2.0, golden=1.4140625
+Failed at index 936 with result=inf, golden=1.4140625
+Failed at index 937 with result=2.0, golden=1.4140625
+Failed at index 938 with result=inf, golden=1.4140625
+Failed at index 939 with result=2.0, golden=1.4140625
+Failed at index 940 with result=inf, golden=1.4140625
+Failed at index 941 with result=2.0, golden=1.4140625
+Failed at index 942 with result=inf, golden=1.4140625
+Failed at index 943 with result=2.0, golden=1.4140625
+Failed at index 944 with result=inf, golden=1.4140625
+Failed at index 945 with result=2.0, golden=1.4140625
+Failed at index 946 with result=inf, golden=1.4140625
+Failed at index 947 with result=2.0, golden=1.4140625
+Failed at index 948 with result=inf, golden=1.4140625
+Failed at index 949 with result=2.0, golden=1.4140625
+Failed at index 950 with result=inf, golden=1.4140625
+Failed at index 951 with result=2.0, golden=1.4140625
+Failed at index 952 with result=inf, golden=1.4140625
+Failed at index 953 with result=2.0, golden=1.4140625
+Failed at index 954 with result=inf, golden=1.4140625
+Failed at index 955 with result=2.0, golden=1.4140625
+Failed at index 956 with result=inf, golden=1.4140625
+Failed at index 957 with result=2.0, golden=1.4140625
+Failed at index 958 with result=inf, golden=1.4140625
+Failed at index 959 with result=2.0, golden=1.4140625
+Failed at index 961 with result=inf, golden=1.4140625
+Failed at index 963 with result=inf, golden=1.4140625
+Failed at index 965 with result=inf, golden=1.4140625
+Failed at index 967 with result=inf, golden=1.4140625
+Failed at index 969 with result=inf, golden=1.4140625
+Failed at index 971 with result=inf, golden=1.4140625
+Failed at index 973 with result=inf, golden=1.4140625
+Failed at index 975 with result=inf, golden=1.4140625
+Failed at index 977 with result=inf, golden=1.4140625
+Failed at index 979 with result=inf, golden=1.4140625
+Failed at index 981 with result=inf, golden=1.4140625
+Failed at index 983 with result=inf, golden=1.4140625
+Failed at index 985 with result=inf, golden=1.4140625
+Failed at index 987 with result=inf, golden=1.4140625
+Failed at index 989 with result=inf, golden=1.4140625
+Failed at index 991 with result=inf, golden=1.4140625
+Failed at index 993 with result=inf, golden=1.4140625
+Failed at index 995 with result=inf, golden=1.4140625
+Failed at index 997 with result=inf, golden=1.4140625
+Failed at index 999 with result=inf, golden=1.4140625
+Failed at index 1001 with result=inf, golden=1.4140625
+Failed at index 1003 with result=inf, golden=1.4140625
+Failed at index 1005 with result=inf, golden=1.4140625
+Failed at index 1007 with result=inf, golden=1.4140625
+Failed at index 1009 with result=inf, golden=1.4140625
+Failed at index 1011 with result=inf, golden=1.4140625
+Failed at index 1013 with result=inf, golden=1.4140625
+Failed at index 1015 with result=inf, golden=1.4140625
+Failed at index 1017 with result=inf, golden=1.4140625
+Failed at index 1019 with result=inf, golden=1.4140625
+Failed at index 1021 with result=inf, golden=1.4140625
+Failed at index 1023 with result=inf, golden=1.4140625
+PCC: 1.0000000000000002
+FAILED
+Parameters: [formats.input=Float16_b | formats.output=Float16_b | approx_mode=ApproximationMode.No | mathop=MathOperation.Sqrt | dest_acc=DestAccumulation.Yes]
+
+
+=================================== FAILURES ===================================
+_ test_eltwise_unary_sfpu_float[eltwise_unary_sfpu_test-formats0-ApproximationMode.No-MathOperation.Sqrt-DestAccumulation.Yes] _
+
+test_name = 'eltwise_unary_sfpu_test'
+formats = InputOutputFormat(input=<DataFormat.Float16_b: <helpers.format_config.DataFormatInfo object at 0x7fe598fa5cf0>>, output=<DataFormat.Float16_b: <helpers.format_config.DataFormatInfo object at 0x7fe598fa5cf0>>)
+approx_mode = <ApproximationMode.No: 'false'>
+mathop = <MathOperation.Sqrt: OpSpec(cpp_enum_value='sqrt', operation_type=<MathOpType.SFPU_UNARY: 1>)>
+dest_acc = <DestAccumulation.Yes: 'true'>
+
+    @parametrize(
+        test_name="eltwise_unary_sfpu_test",
+        formats=input_output_formats(
+            [
+                # DataFormat.Float32,
+                # DataFormat.Float16,
+                DataFormat.Float16_b,
+                # DataFormat.Bfp8_b,
+            ]
+        ),
+        approx_mode=[ApproximationMode.No],# ApproximationMode.Yes],
+        mathop=[
+            # MathOperation.Abs,
+            # MathOperation.Atanh,
+            # MathOperation.Asinh,
+            # MathOperation.Acosh,
+            # MathOperation.Cos,
+            # MathOperation.Log,
+            # MathOperation.Reciprocal,
+            # MathOperation.Sin,
+            MathOperation.Sqrt,
+            # MathOperation.Rsqrt,
+            # MathOperation.Square,
+            # MathOperation.Celu,
+            # MathOperation.Silu,
+            # MathOperation.Gelu,
+            # MathOperation.Neg,
+            # MathOperation.Fill,
+            # MathOperation.Elu,
+            # MathOperation.Exp,
+            # MathOperation.Exp2,
+            # MathOperation.Hardsigmoid,
+            # MathOperation.Threshold,
+            # MathOperation.ReluMax,
+            # MathOperation.ReluMin,
+        ],
+        dest_acc=[DestAccumulation.Yes],# DestAccumulation.Yes],
+    )
+    def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_acc):
+        arch = get_chip_architecture()
+
+        if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
+            if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(
+                DataFormat.Float32, DataFormat.Float16
+            ):
+                pytest.skip(reason="This combination is not supported on BH architecture")
+
+        if (
+            approx_mode == ApproximationMode.Yes
+            and mathop in [MathOperation.Exp, MathOperation.Exp2, MathOperation.Elu]
+            and (
+                formats.input_format == DataFormat.Bfp8_b
+                or formats.output_format == DataFormat.Bfp8_b
+            )
+        ):
+            pytest.skip(
+                reason="Exp-related operations are not supported for bf8_b format in approximation mode."
+            )
+
+>       eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
+
+python_tests/test_eltwise_unary_sfpu.py:82:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+test_name = 'eltwise_unary_sfpu_test'
+formats = InputOutputFormat(input=<DataFormat.Float16_b: <helpers.format_config.DataFormatInfo object at 0x7fe598fa5cf0>>, output=<DataFormat.Float16_b: <helpers.format_config.DataFormatInfo object at 0x7fe598fa5cf0>>)
+dest_acc = <DestAccumulation.Yes: 'true'>
+approx_mode = <ApproximationMode.No: 'false'>
+mathop = <MathOperation.Sqrt: OpSpec(cpp_enum_value='sqrt', operation_type=<MathOpType.SFPU_UNARY: 1>)>
+
+    def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
+        torch.manual_seed(0)
+        torch.set_printoptions(precision=10)
+        input_dimensions = [32, 32]
+
+        src_A, src_B, tile_cnt = generate_stimuli(
+            formats.input_format, formats.input_format, input_dimensions=input_dimensions
+        )
+
+        src_A = torch.ones(1024)*2
+        generate_golden = get_golden_generator(UnarySFPUGolden)
+        golden_tensor = generate_golden(
+            mathop, src_A, formats.output_format, dest_acc, formats.input_format
+        )
+
+        unpack_to_dest = (
+            formats.input_format.is_32_bit()
+            and dest_acc
+            == DestAccumulation.Yes  # If dest_acc is off, we unpack Float32 into 16-bit format in src registers (later copied over in dest reg for SFPU op)
+        )
+        test_config = {
+            "formats": formats,
+            "testname": test_name,
+            "dest_acc": dest_acc,
+            "input_A_dimensions": input_dimensions,
+            "input_B_dimensions": input_dimensions,
+            "mathop": mathop,
+            "approx_mode": approx_mode,
+            "unpack_to_dest": unpack_to_dest,
+            "tile_cnt": tile_cnt,
+        }
+
+        res_address = write_stimuli_to_l1(
+            test_config,
+            src_A,
+            src_B,
+            formats.input_format,
+            formats.input_format,
+            tile_count_A=tile_cnt,
+            tile_count_B=tile_cnt,
+        )
+
+        run_test(test_config)
+
+        res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+
+        # res_from_L1 = res_from_L1[:1024]
+        assert len(res_from_L1) == len(golden_tensor)
+
+        torch_format = format_dict[formats.output_format]
+        res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+>       assert passed_test(golden_tensor, res_tensor, formats.output_format)
+E       assert tensor(False)
+E        +  where tensor(False) = passed_test(tensor([1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000,\n        1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000,\n        1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000...000, 1.4140625000, 1.4140625000, 1.4140625000,\n        1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000,\n        1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000,\n        1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000, 1.4140625000], dtype=torch.bfloat16), tensor([1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,\n                 inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 2.0000000000,          inf, 2.0000000000,          inf, 2.0000000000,          inf,\n        2.0000000000,          inf, 2.0000000000,          inf, 2.0000000000,          inf, 2.0000000000,          inf, 2.0000000000,          inf, 2.0000000000,          inf, 2.0000000000,          inf...000,          inf, 2.0000000000,          inf,\n        2.0000000000,          inf, 2.0000000000,          inf, 2.0000000000,          inf, 2.0000000000,          inf, 2.0000000000,          inf, 2.0000000000,          inf, 2.0000000000,          inf, 2.0000000000, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf,\n        1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,\n                 inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf, 1.4140625000,          inf], dtype=torch.bfloat16), <DataFormat.Float16_b: <helpers.format_config.DataFormatInfo object at 0x7fe598fa5cf0>>)
+E        +    where <DataFormat.Float16_b: <helpers.format_config.DataFormatInfo object at 0x7fe598fa5cf0>> = InputOutputFormat(input=<DataFormat.Float16_b: <helpers.format_config.DataFormatInfo object at 0x7fe598fa5cf0>>, output=<DataFormat.Float16_b: <helpers.format_config.DataFormatInfo object at 0x7fe598fa5cf0>>).output_format
+
+python_tests/test_eltwise_unary_sfpu.py:154: AssertionError
+- generated xml file: /proj_sw/user_dev/ajankovic/tt-llk/tests/pytest-report-wormhole-4.xml -
+=========================== short test summary info ============================
+FAILED python_tests/test_eltwise_unary_sfpu.py::test_eltwise_unary_sfpu_float[eltwise_unary_sfpu_test-formats0-ApproximationMode.No-MathOperation.Sqrt-DestAccumulation.Yes]
+========================= 1 failed, 1 skipped in 3.93s =========================
