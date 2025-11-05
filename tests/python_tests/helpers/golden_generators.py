@@ -1152,8 +1152,10 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
                 MathOperation.SfpuElwRightShift: self._right_shift,
                 MathOperation.SfpuElwLeftShift: self._left_shift,
                 MathOperation.SfpuElwLogicalRightShift: self._logical_right_shift,
+                MathOperation.SfpuAddTopRow: self._add_top_row,
             }
         )
+        self.data_format = None
 
     def __call__(
         self, operation: MathOperation, operand1, operand2, data_format: DataFormat
@@ -1164,8 +1166,13 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
 
-        result = [self.ops[operation](t1[i], t2[i]) for i in range(len(t1))]
-        return torch.tensor(result, dtype=format_dict[data_format])
+        self.data_format = data_format
+
+        if operation == MathOperation.SfpuAddTopRow:
+            return self._add_top_row(t1, t2)
+        else:
+            result = [self.ops[operation](t1[i], t2[i]) for i in range(len(t1))]
+            return torch.tensor(result, dtype=format_dict[data_format])
 
     # Operation methods are covered by Eltwise Binary Golden
     def _xlogy(self, x, y):
@@ -1188,6 +1195,26 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         t1_uint = t1.to(torch.int64) & 0xFFFFFFFF
         result = (t1_uint >> t2).to(torch.int32)
         return result
+
+    def _add_top_row(self, t1, t2):
+        torch_format = format_dict[self.data_format]
+
+        # Untilize both tiles to get back row-major format
+        # Tile 0: operand1 has faces [f0, f1, f2, f3]
+        # Tile 1: operand2 has faces [f0, f1, f2, f3]
+        # The kernel treats tile 1's faces as face 2 and face 3
+        untilized_t1 = untilize(t1, stimuli_format=self.data_format)
+        untilized_t2 = untilize(t2, stimuli_format=self.data_format)
+
+        # Extract top row from each untilized tile (first 32 elements = first row)
+        tile0_top_row = untilized_t1[:32]
+        # Tile 1's faces are treated as face 2 and face 3, so extract its top row
+        tile1_top_row = untilized_t2[:32]
+
+        # Add top rows
+        result_top_row = tile0_top_row + tile1_top_row
+
+        return result_top_row.to(torch_format)
 
 
 @register_golden
