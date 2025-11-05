@@ -112,14 +112,6 @@ void run_kernel()
 
     ckernel::sfpu::_init_reduce_sdpa_<DataFormat::Float16_b>(BLOCK_CT_DIM);
 
-    // // left part of subblock
-    // _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
-    // ckernel::sfpu::_calculate_reduce_sdpa_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
-
-    // // right part of subblock
-    // ckernel::math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(1);
-    // ckernel::sfpu::_calculate_reduce_sdpa_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
-
     for (uint32_t i = 0; i < BLOCK_CT_DIM; i++)
     {
         _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
