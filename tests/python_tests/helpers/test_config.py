@@ -28,6 +28,7 @@ from .llk_params import (
     StochasticRounding,
     Tilize,
     Transpose,
+    UnpackerEngine,
     format_tile_sizes,
 )
 from .matmul_sweep import validate_tile_dimensions
