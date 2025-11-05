@@ -102,7 +102,7 @@ inline void _perf_unpack_matmul_mock(uint32_t loop_factor, uint32_t rt_dim, uint
             /*
              * WORMHOLE SCHEME:
              * Utilizes both source register banks to maximize throughput.
-             * IF CF_DIM >= RF_DIM ->
+             * IF CF_DIM >= RT_DIM ->
              *   SRCB, SRCB, SRCA * CT_DIM, SRCB, SRCB, ...
              * ELSE ->
              *   SRCA, SRCA, SRCB * RT_DIM, SRCA, SRCA, ...
