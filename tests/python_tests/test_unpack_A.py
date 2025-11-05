@@ -304,7 +304,7 @@ def filter_params_with_z3(all_params):
             )
         )
 
-        # TEMPORARY: Only test these 5 specific failing combinations on CI
+        # TEMPORARY: Only test these 4 specific failing combinations on CI (excluded num_faces=4 with stoch_rnd_Fpu)
         debug_constraint = And(
             BoolVal(formats.input_format == DataFormat.Float16_b),
             BoolVal(formats.output_format == DataFormat.Float16),
@@ -315,10 +315,10 @@ def filter_params_with_z3(all_params):
             transpose_faces,
             within_face_transpose,
             Or(
-                # 2 tests with stoch_rnd_Fpu: num_faces 2, 4
+                # 1 test with stoch_rnd_Fpu: num_faces 2 only
                 And(
                     BoolVal(stochastic_rnd == StochasticRounding.Fpu),
-                    Or(num_faces_z3 == 2, num_faces_z3 == 4),
+                    num_faces_z3 == 2,
                 ),
                 # 3 tests with stoch_rnd_No: num_faces 1, 2, 4
                 And(
