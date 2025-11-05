@@ -17,9 +17,11 @@
 #elif defined(ARCH_WORMHOLE)
 constexpr bool is_blackhole = false;
 constexpr bool is_wormhole  = true;
+constexpr bool is_quasar    = false;
 #elif defined(ARCH_BLACKHOLE)
 constexpr bool is_blackhole = true;
 constexpr bool is_wormhole  = false;
+constexpr bool is_quasar    = false;
 #elif defined(ARCH_QUASAR)
 constexpr bool is_blackhole = false;
 constexpr bool is_wormhole  = false;

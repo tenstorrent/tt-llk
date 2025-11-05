@@ -92,7 +92,6 @@ def test_matmul(
     implied_math_format,
     dest_sync_mode,
     transpose,
-    boot_mode=BootMode.TRISC,
 ):
     input_A_dimensions, input_B_dimensions, dest_acc = dimensions_dest_acc
 
@@ -184,7 +183,7 @@ def test_matmul(
         tile_cnt_B,
     )
 
-    run_test(test_config, boot_mode)
+    run_test(test_config, BootMode.TRISC)
 
     res_from_L1 = collect_results(
         format, tile_count=matmul_dims.output_tile_cnt, address=res_address
