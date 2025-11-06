@@ -71,9 +71,9 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(64 /*num_rows_per_matrix*/, 1 /*num_matrices*/);
     for (uint block_rt = 0; block_rt < BLOCK_RT_DIM; block_rt++)
     {
-        for (uint full_ct = 0; full_ct < FULL_CT_DIM; full_ct++)
+        for (uint block_ct = 0; block_ct < BLOCK_CT_DIM; block_ct++)
         {
-            _llk_math_eltwise_unary_datacopy_<64 /*num_rows_per_matrix*/>(full_ct);
+            _llk_math_eltwise_unary_datacopy_<64 /*num_rows_per_matrix*/>(block_ct);
         }
         _llk_math_set_dvalid_<p_cleardvalid::FPU>();
     }
