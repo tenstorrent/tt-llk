@@ -15,7 +15,7 @@ namespace sfpu
 {
 
 /**
- * @brief Unified add top row operation for a 32x32 tile.
+ * @brief Add top row operation for a 32x32 tile.
  *        Automatically chooses between integer and floating-point implementations based on the data format.
  *        Takes the top row of tile 0 (first 16 datums of face 0 and first 16 of face 1) and adds them
  *        with the top row of tile 1 (first 16 datums of face 2 and first 16 of face 3).
@@ -26,7 +26,7 @@ namespace sfpu
  *                - DataFormat::Float32: Uses floating-point implementation with FP32 instruction mode
  * @param tile_idx_0 The index of the first tile in the Dest register to operate on.
  * @param tile_idx_1 The index of the second tile in the Dest register to operate on.
- * @param tile_idx_dst The index of the destination tile in the Dest register where the result will be stored.
+ * @param tile_idx_dst The index of the result tile in the Dest register where the result will be stored.
  */
 template <DataFormat format>
 inline void _calculate_add_top_row_(const uint tile_idx_0 = 0, const uint tile_idx_1 = 0, const uint tile_idx_dst = 0)
