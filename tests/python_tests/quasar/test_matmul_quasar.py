@@ -65,7 +65,7 @@ MATMUL_FORMAT = input_output_formats(
 DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
 IMPLIED_MATH_FORMAT = [ImpliedMathFormat.No, ImpliedMathFormat.Yes]
 DEST_SYNC_MODES = [DestSync.Half, DestSync.Full]
-TRANSPOSE_MODES = [Transpose.Yes]
+TRANSPOSE_MODES = [Transpose.No]
 
 
 @skip_for_blackhole
