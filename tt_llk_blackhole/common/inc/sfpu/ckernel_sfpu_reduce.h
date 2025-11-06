@@ -197,7 +197,6 @@ inline void calculate_reduce_float()
 
         // Combine the column sums from upper and lower faces
         TT_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG4, p_sfpu::LREG0, 0); // LREG0 = (LREG0 * 1) + LREG4 = upper_face_sums + lower_face_sums (float)
-        TTI_SFPNOP;                                                                  // Required for Wormhole
 
         if constexpr (pool_type == AVG)
         {
@@ -483,30 +482,24 @@ inline void _init_reduce_(uint32_t block_ct_dim = 0 /* used in reduce max col*/)
             // Column summation for upper face data (originally LREG0-3) - float version
             // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
             TTI_SFPADD(p_sfpu::LREG2, p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG2, 0); // LREG2 = (LREG2 * 1) + LREG3 = LREG2 + LREG3 (float)
-            TTI_SFPNOP;
             TTI_SFPADD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG1, 0); // LREG1 = (LREG1 * 1) + LREG2 = LREG1 + LREG2 (float)
-            TTI_SFPNOP;
             TTI_SFPADD(
                 p_sfpu::LREG0,
                 p_sfpu::LCONST_1,
                 p_sfpu::LREG1,
                 p_sfpu::LREG0,
                 0); // LREG0 = (LREG0 * 1) + LREG1 = LREG0 + LREG1 (upper face column sums, float)
-            TTI_SFPNOP;
 
             // Column summation for lower face data (originally LREG4-7) - float version
             // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
             TTI_SFPADD(p_sfpu::LREG6, p_sfpu::LCONST_1, p_sfpu::LREG7, p_sfpu::LREG6, 0); // LREG6 = (LREG6 * 1) + LREG7 = LREG6 + LREG7 (float)
-            TTI_SFPNOP;
             TTI_SFPADD(p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG6, p_sfpu::LREG5, 0); // LREG5 = (LREG5 * 1) + LREG6 = LREG5 + LREG6 (float)
-            TTI_SFPNOP;
             TTI_SFPADD(
                 p_sfpu::LREG4,
                 p_sfpu::LCONST_1,
                 p_sfpu::LREG5,
                 p_sfpu::LREG4,
                 0); // LREG4 = (LREG4 * 1) + LREG5 = LREG4 + LREG5 (lower face column sums, float)
-            TTI_SFPNOP;
         }
     }
 }
