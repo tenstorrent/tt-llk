@@ -5,7 +5,7 @@ import os
 from enum import Enum
 from pathlib import Path
 
-from .chip_architecture import ChipArchitecture, get_chip_architecture
+from .chip_architecture import get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     BootMode,
@@ -521,14 +521,6 @@ def build_test(
     tests_dir = str((llk_home / "tests").absolute())
     write_build_header(test_config)
     make_cmd = generate_make_command(test_config, boot_mode, profiler_build)
-
-    if get_chip_architecture() == ChipArchitecture.QUASAR:
-        testname = test_config.get("testname")
-        targeted_clean_cmd = f"make clean_testname={testname}"
-        try:
-            run_shell_command(targeted_clean_cmd, cwd=tests_dir)
-        except Exception:
-            run_shell_command("make clean", cwd=tests_dir)
 
     run_shell_command(make_cmd, cwd=tests_dir)
 
