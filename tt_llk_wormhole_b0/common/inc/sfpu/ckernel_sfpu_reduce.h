@@ -225,119 +225,7 @@ inline void calculate_reduce_float()
  */
 constexpr bool is_supported_reduce_format(DataFormat format)
 {
-    return format == DataFormat::Int32 || format == DataFormat::UInt32 || format == DataFormat::Float32;
-}
-
-/**
- * @brief Unified reduction operation wrapper for a 32x32 tile, placing output values into the first row.
- *        Automatically chooses between integer and floating-point implementations based on the data format.
- *        Currently able to calculate column-wise sum and/or average of a 32x32 tile, placing output values into the first row.
- *        Uses an optimized approach that processes vertically aligned face pairs (0+2, 1+3) to minimize
- *        load/store operations and eliminate intermediate storage requirements.
- * @tparam pool_type The pool/reduction pool_type (SUM, AVG, MAX). Currently only SUM and AVG are supported.
- * @tparam reduce_dim The reduction dimension (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR). Currently only REDUCE_COL is supported.
- * @tparam format The data format (DataFormat enum value) that determines which implementation to use:
- *                - DataFormat::Int32, UInt32: Use integer implementation
- *                - DataFormat::Float32: Uses floating-point initialization for 32-bit floating-point used in sfpu
- */
-template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_()
-{
-    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
-    static_assert(pool_type == SUM || pool_type == AVG, "Only SUM and AVG pool types are currently supported");
-    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32");
-
-    if constexpr (format == DataFormat::Int32)
-    {
-        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32>();
-    }
-    else if constexpr (format == DataFormat::UInt32)
-    {
-        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32_2S_COMP>();
-    }
-    else if constexpr (format == DataFormat::Float32)
-    {
-        calculate_reduce_float<pool_type, reduce_dim, InstrModLoadStore::FP32>();
-    }
-}
-
-/**
- * @brief Unified initialization wrapper for SFPU reduce kernel.
- *        Automatically chooses between integer and floating-point initialization based on the data format.
- * @tparam format The data format (DataFormat enum value) that determines which initialization to use:
- *                - Supported integer formats: Int32, UInt32 (uses integer initialization)
- *                - Supported floating-point formats: Float32 (uses floating-point initialization)
- */
-template <DataFormat format>
-inline void _init_reduce_()
-{
-    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32");
-
-    // Initialize SFPU configuration register
-    _init_sfpu_config_reg();
-
-    // Determine if we're working with integer or float based on DataFormat
-    constexpr bool is_integer_mode = (format == DataFormat::Int32 || format == DataFormat::UInt32);
-    constexpr bool is_float_mode   = (format == DataFormat::Float32);
-
-    static_assert(is_integer_mode || is_float_mode, "DataFormat must be one of: Int32, UInt32 (integer) or Float32 (float)");
-
-    // Program optimized replay buffer for column summation
-    // This replay buffer is called twice per iteration:
-    // 1st call: After first transpose - operates on transposed data where LREG0-3 and LREG4-7 both map to lanes 0→3
-    // 2nd call: After second transpose - operates on data transposed back to original layout, the sum of 4 rows columns stored in lregs, need to sum lregs for
-    // each face to get the final column sums
-
-    if constexpr (is_integer_mode)
-    {
-        // Program replay buffer for integer operations (6 instructions)
-        lltt::record(0, 6);
-
-        // Column summation for upper face data (originally LREG0-3)
-        // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
-        TTI_SFPIADD(0, p_sfpu::LREG3, p_sfpu::LREG2, 4); // LREG2 = LREG2 + LREG3
-        TTI_SFPIADD(0, p_sfpu::LREG2, p_sfpu::LREG1, 4); // LREG1 = LREG1 + LREG2
-        TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4); // LREG0 = LREG0 + LREG1 (upper face column sums)
-
-        // Column summation for lower face data (originally LREG4-7)
-        // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
-        TTI_SFPIADD(0, p_sfpu::LREG7, p_sfpu::LREG6, 4); // LREG6 = LREG6 + LREG7
-        TTI_SFPIADD(0, p_sfpu::LREG6, p_sfpu::LREG5, 4); // LREG5 = LREG5 + LREG6
-        TTI_SFPIADD(0, p_sfpu::LREG5, p_sfpu::LREG4, 4); // LREG4 = LREG4 + LREG5 (lower face column sums)
-    }
-    else // is_float_mode
-    {
-        // Program replay buffer for float operations (12 instructions)
-        lltt::record(0, 12);
-
-        // Column summation for upper face data (originally LREG0-3) - float version
-        // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
-        TTI_SFPADD(p_sfpu::LREG2, p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG2, 0); // LREG2 = (LREG2 * 1) + LREG3 = LREG2 + LREG3 (float)
-        TTI_SFPNOP;
-        TTI_SFPADD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG1, 0); // LREG1 = (LREG1 * 1) + LREG2 = LREG1 + LREG2 (float)
-        TTI_SFPNOP;
-        TTI_SFPADD(
-            p_sfpu::LREG0,
-            p_sfpu::LCONST_1,
-            p_sfpu::LREG1,
-            p_sfpu::LREG0,
-            0); // LREG0 = (LREG0 * 1) + LREG1 = LREG0 + LREG1 (upper face column sums, float)
-        TTI_SFPNOP;
-
-        // Column summation for lower face data (originally LREG4-7) - float version
-        // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
-        TTI_SFPADD(p_sfpu::LREG6, p_sfpu::LCONST_1, p_sfpu::LREG7, p_sfpu::LREG6, 0); // LREG6 = (LREG6 * 1) + LREG7 = LREG6 + LREG7 (float)
-        TTI_SFPNOP;
-        TTI_SFPADD(p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG6, p_sfpu::LREG5, 0); // LREG5 = (LREG5 * 1) + LREG6 = LREG5 + LREG6 (float)
-        TTI_SFPNOP;
-        TTI_SFPADD(
-            p_sfpu::LREG4,
-            p_sfpu::LCONST_1,
-            p_sfpu::LREG5,
-            p_sfpu::LREG4,
-            0); // LREG4 = (LREG4 * 1) + LREG5 = LREG4 + LREG5 (lower face column sums, float)
-        TTI_SFPNOP;
-    }
+    return format == DataFormat::Int32 || format == DataFormat::UInt32 || format == DataFormat::Float32 || format == DataFormat::Float16_b;
 }
 
 //**************************************************************
@@ -495,6 +383,125 @@ inline void _calculate_reduce_max_col_(const uint32_t block_height /*, const uin
     // F1
     TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
     TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+}
+
+/**
+ * @brief Unified reduction operation wrapper for a 32x32 tile, placing output values into the first row.
+ *        Automatically chooses between integer and floating-point implementations based on the data format.
+ *        Currently able to calculate column-wise sum and/or average of a 32x32 tile, placing output values into the first row.
+ *        Uses an optimized approach that processes vertically aligned face pairs (0+2, 1+3) to minimize
+ *        load/store operations and eliminate intermediate storage requirements.
+ * @tparam pool_type The pool/reduction pool_type (SUM, AVG, MAX). Currently only SUM and AVG are supported.
+ * @tparam reduce_dim The reduction dimension (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR). Currently only REDUCE_COL is supported.
+ * @tparam format The data format (DataFormat enum value) that determines which implementation to use:
+ *                - DataFormat::Int32, UInt32: Use integer implementation
+ *                - DataFormat::Float32: Uses floating-point initialization for 32-bit floating-point used in sfpu
+ */
+template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
+inline void _calculate_reduce_()
+{
+    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
+    static_assert(pool_type == SUM || pool_type == AVG, "Only SUM and AVG pool types are currently supported");
+    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32");
+
+    if constexpr (format == DataFormat::Int32)
+    {
+        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32>();
+    }
+    else if constexpr (format == DataFormat::UInt32)
+    {
+        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32_2S_COMP>();
+    }
+    else if constexpr (format == DataFormat::Float32)
+    {
+        calculate_reduce_float<pool_type, reduce_dim, InstrModLoadStore::FP32>();
+    }
+}
+
+/**
+ * @brief Unified initialization wrapper for SFPU reduce kernel.
+ *        Automatically chooses between integer and floating-point initialization based on the data format.
+ * @tparam format The data format (DataFormat enum value) that determines which initialization to use:
+ *                - Supported integer formats: Int32, UInt32 (uses integer initialization)
+ *                - Supported floating-point formats: Float32 (uses floating-point initialization)
+ */
+template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
+inline void _init_reduce_(uint32_t block_ct_dim)
+{
+    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32");
+
+    // Initialize SFPU configuration register
+    _init_sfpu_config_reg();
+
+    // Determine if we're working with integer or float based on DataFormat
+    constexpr bool is_integer_mode = (format == DataFormat::Int32 || format == DataFormat::UInt32);
+    constexpr bool is_float_mode   = (format == DataFormat::Float32 || format == DataFormat::Float16_b);
+
+    static_assert(is_integer_mode || is_float_mode, "DataFormat must be one of: Int32, UInt32 (integer) or Float32 (float)");
+
+    // Program optimized replay buffer for column summation
+    // This replay buffer is called twice per iteration:
+    // 1st call: After first transpose - operates on transposed data where LREG0-3 and LREG4-7 both map to lanes 0→3
+    // 2nd call: After second transpose - operates on data transposed back to original layout, the sum of 4 rows columns stored in lregs, need to sum lregs for
+    // each face to get the final column sums
+
+    if constexpr (pool_type == PoolType::MAX)
+    {
+        _init_reduce_max_col_<format>(block_ct_dim);
+    }
+    else
+    {
+        if constexpr (is_integer_mode)
+        {
+            // Program replay buffer for integer operations (6 instructions)
+            lltt::record(0, 6);
+
+            // Column summation for upper face data (originally LREG0-3)
+            // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
+            TTI_SFPIADD(0, p_sfpu::LREG3, p_sfpu::LREG2, 4); // LREG2 = LREG2 + LREG3
+            TTI_SFPIADD(0, p_sfpu::LREG2, p_sfpu::LREG1, 4); // LREG1 = LREG1 + LREG2
+            TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4); // LREG0 = LREG0 + LREG1 (upper face column sums)
+
+            // Column summation for lower face data (originally LREG4-7)
+            // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
+            TTI_SFPIADD(0, p_sfpu::LREG7, p_sfpu::LREG6, 4); // LREG6 = LREG6 + LREG7
+            TTI_SFPIADD(0, p_sfpu::LREG6, p_sfpu::LREG5, 4); // LREG5 = LREG5 + LREG6
+            TTI_SFPIADD(0, p_sfpu::LREG5, p_sfpu::LREG4, 4); // LREG4 = LREG4 + LREG5 (lower face column sums)
+        }
+        else // is_float_mode
+        {
+            // Program replay buffer for float operations (12 instructions)
+            lltt::record(0, 12);
+
+            // Column summation for upper face data (originally LREG0-3) - float version
+            // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
+            TTI_SFPADD(p_sfpu::LREG2, p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG2, 0); // LREG2 = (LREG2 * 1) + LREG3 = LREG2 + LREG3 (float)
+            TTI_SFPNOP;
+            TTI_SFPADD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG1, 0); // LREG1 = (LREG1 * 1) + LREG2 = LREG1 + LREG2 (float)
+            TTI_SFPNOP;
+            TTI_SFPADD(
+                p_sfpu::LREG0,
+                p_sfpu::LCONST_1,
+                p_sfpu::LREG1,
+                p_sfpu::LREG0,
+                0); // LREG0 = (LREG0 * 1) + LREG1 = LREG0 + LREG1 (upper face column sums, float)
+            TTI_SFPNOP;
+
+            // Column summation for lower face data (originally LREG4-7) - float version
+            // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
+            TTI_SFPADD(p_sfpu::LREG6, p_sfpu::LCONST_1, p_sfpu::LREG7, p_sfpu::LREG6, 0); // LREG6 = (LREG6 * 1) + LREG7 = LREG6 + LREG7 (float)
+            TTI_SFPNOP;
+            TTI_SFPADD(p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG6, p_sfpu::LREG5, 0); // LREG5 = (LREG5 * 1) + LREG6 = LREG5 + LREG6 (float)
+            TTI_SFPNOP;
+            TTI_SFPADD(
+                p_sfpu::LREG4,
+                p_sfpu::LCONST_1,
+                p_sfpu::LREG5,
+                p_sfpu::LREG4,
+                0); // LREG4 = (LREG4 * 1) + LREG5 = LREG4 + LREG5 (lower face column sums, float)
+            TTI_SFPNOP;
+        }
+    }
 }
 
 } // namespace sfpu
