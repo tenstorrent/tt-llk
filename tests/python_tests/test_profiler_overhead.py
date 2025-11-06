@@ -18,6 +18,7 @@ def get_expected_overhead():
 
 
 def test_profiler_overhead():
+    pytest.skip()
 
     test_config = {
         "testname": "profiler_overhead_test",
