@@ -72,8 +72,10 @@ def test_perf_matmul(perf_report, test_name, combos, math_fidelity):
 
     run_types = [
         PerfRunType.L1_TO_L1,
+        PerfRunType.UNPACK_ISOLATE,
         PerfRunType.MATH_ISOLATE,
         PerfRunType.PACK_ISOLATE,
+        PerfRunType.L1_CONGESTION,
     ]
 
     # Calculate all matmul dimensions using helper function
