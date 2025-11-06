@@ -286,7 +286,6 @@ def filter_params_with_z3(all_params):
                     BoolVal(formats.input_format == DataFormat.Float16),
                 ),
                 broadcast_none,
-                BoolVal(disable_src_zero == True),
                 acc_to_dest_z3,
                 Or(reuse_none, reuse_srca),
                 transpose_faces,
