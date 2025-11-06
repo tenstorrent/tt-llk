@@ -101,7 +101,7 @@ def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
         "mathop": mathop,
         "unpack_to_dest": unpack_to_dest,
         "tile_cnt": tile_cnt,
-        "trigger_format_inference": False,
+        "disable_format_inference": True,
     }
 
     res_address = write_stimuli_to_l1(
