@@ -71,7 +71,7 @@ TRANSPOSE_MODES = [Transpose.Yes]
 @skip_for_blackhole
 @skip_for_wormhole
 @parametrize(
-    test_name="matmul_test",
+    test_name="matmul_quasar_test",
     implied_math_format=IMPLIED_MATH_FORMAT,
     math_fidelity=[
         MathFidelity.LoFi,
