@@ -188,7 +188,7 @@ void run_kernel()
         _llk_math_eltwise_unary_sfpu_done_();
     }
 
-    dbg_thread_halt<ThreadId::MathThreadId>();
+    // dbg_thread_halt<ThreadId::MathThreadId>();
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

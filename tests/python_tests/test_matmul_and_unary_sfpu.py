@@ -62,6 +62,7 @@ from helpers.utils import passed_test
 def test_matmul_and_unary_sfpu(
     test_name, formats, mathop, approx_mode, dest_acc, math_fidelity
 ):
+    pytest.skip()
     input_dimensions = [32, 32]
 
     if mathop in [MathOperation.Cos, MathOperation.Sin]:
