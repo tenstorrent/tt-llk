@@ -398,23 +398,29 @@ inline void _calculate_reduce_max_col_(const uint32_t block_height /*, const uin
  *                - DataFormat::Float32: Uses floating-point initialization for 32-bit floating-point used in sfpu
  */
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_()
+inline void _calculate_reduce_(uint32_t block_rt_dim = 0 /* used in reduce max col*/)
 {
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
-    static_assert(pool_type == SUM || pool_type == AVG, "Only SUM and AVG pool types are currently supported");
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32");
 
-    if constexpr (format == DataFormat::Int32)
+    if constexpr (pool_type == PoolType::MAX)
     {
-        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32>();
+        _calculate_reduce_max_col_<pool_type, reduce_dim, format>(block_rt_dim);
     }
-    else if constexpr (format == DataFormat::UInt32)
+    else
     {
-        calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32_2S_COMP>();
-    }
-    else if constexpr (format == DataFormat::Float32)
-    {
-        calculate_reduce_float<pool_type, reduce_dim, InstrModLoadStore::FP32>();
+        if constexpr (format == DataFormat::Int32)
+        {
+            calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32>();
+        }
+        else if constexpr (format == DataFormat::UInt32)
+        {
+            calculate_reduce_int<pool_type, reduce_dim, InstrModLoadStore::INT32_2S_COMP>();
+        }
+        else if constexpr (format == DataFormat::Float32)
+        {
+            calculate_reduce_float<pool_type, reduce_dim, InstrModLoadStore::FP32>();
+        }
     }
 }
 
@@ -426,9 +432,10 @@ inline void _calculate_reduce_()
  *                - Supported floating-point formats: Float32 (uses floating-point initialization)
  */
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _init_reduce_(uint32_t block_ct_dim)
+inline void _init_reduce_(uint32_t block_ct_dim = 0 /* used in reduce max col*/)
 {
-    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32");
+    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
+    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32, Float16_b");
 
     // Initialize SFPU configuration register
     _init_sfpu_config_reg();

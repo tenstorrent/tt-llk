@@ -115,7 +115,7 @@ void run_kernel()
     for (uint32_t i = 0; i < BLOCK_CT_DIM; i++)
     {
         _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
-        ckernel::sfpu::_calculate_reduce_max_col_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(BLOCK_RT_DIM);
+        ckernel::sfpu::_calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(BLOCK_RT_DIM);
     }
 
     _llk_math_eltwise_unary_sfpu_done_();
