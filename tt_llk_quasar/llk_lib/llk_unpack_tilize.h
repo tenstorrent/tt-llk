@@ -18,7 +18,7 @@ using namespace ckernel;
  * stored in the buffer descriptor table, values = 0 - 16
  * @tparam IS_32b_DEST_EN: Set to True to enable using Math destination Register in 32b mode
  */
-template <uint32_t UNP_SEL, uint32_t BUF_DESC_ID, bool IS_32b_DEST_EN>
+template <uint32_t UNP_SEL, uint32_t BUF_DESC_ID, bool IS_32b_DEST_EN, uint32_t BLOCK_CT_DIM>
 inline void _llk_unpack_tilize_mop_config_()
 {
     static_assert(
@@ -27,23 +27,30 @@ inline void _llk_unpack_tilize_mop_config_()
     static_assert((BUF_DESC_ID < 16 && BUF_DESC_ID >= 0), "BUF_DESC_ID should be between 0-16 for unpackers");
 
     constexpr uint32_t MOP_OUTER_LOOP = 1;
-    constexpr uint32_t MOP_INNER_LOOP = 1;
+    constexpr uint32_t MOP_INNER_LOOP = BLOCK_CT_DIM;
 
-    constexpr static uint unpack_tile_instrn = TT_OP_UNPACR_TILIZE(0, 0, 0, 1 /*src Z increment*/, UNP_SEL, BUF_DESC_ID, 1 /*Set Dvalid*/);
+    constexpr static uint unpack_tile_instrn = TT_OP_UNPACR_TILIZE(0, 0, 0 /*dst Z increment*/, 1 /*src Z increment*/, UNP_SEL, BUF_DESC_ID, 1 /*Set Dvalid*/);
 
-    ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, unpack_tile_instrn);
+    constexpr static uint reset_src_reg_instrn =
+        TT_OP_UNPACR_TILIZE(0, 1 /*Cntr_Reset_Mask*/, 0 /*dst Z increment*/, 0 /*src Z increment*/, UNP_SEL, BUF_DESC_ID, 1 /*Set Dvalid*/);
 
-    // FP32 datacopy uses ELWADD, which requires datavalid from both SrcA and SrcB, so need to add SrcB datavalid
-    if constexpr (IS_32b_DEST_EN && UNP_SEL == p_unpacr::UNP_A)
-    { // TODO pgardner: I dont think ill need this for float32 dest
-        temp.set_end_op(TT_OP_UNPACR_NOP(p_unpacr::UNP_B, 1 /*Dvalid*/, 0, 0, 0 /*clear to 0*/, 0 /*clear to 0*/));
-    }
-    else if constexpr (IS_32b_DEST_EN && UNP_SEL == p_unpacr::UNP_B)
+    if constexpr (IS_32b_DEST_EN)
     {
-        temp.set_end_op(TT_OP_UNPACR_NOP(p_unpacr::UNP_A, 1 /*Dvalid*/, 0, 0, 0 /*clear to 0*/, 0 /*clear to 0*/));
-    }
+        // FP32 datacopy uses ELWADD, which requires dvalid from both SrcA and SrcB
+        // Set dvalid for the opposite unpacker (if using UNP_A, set dvalid for UNP_B and vice versa)
+        constexpr uint32_t OPPOSITE_UNP                  = (UNP_SEL == p_unpacr::UNP_A) ? p_unpacr::UNP_B : p_unpacr::UNP_A;
+        constexpr static uint set_opposite_dvalid_instrn = TT_OP_UNPACR_NOP(OPPOSITE_UNP, 1 /*Dvalid*/, 0, 0, 0 /*clear to 0*/, 0 /*UNP_CLR_SRC*/);
 
-    temp.program_bank0_sw_cntl(instrn_buffer);
+        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, set_opposite_dvalid_instrn, unpack_tile_instrn);
+        temp.set_last_outer_loop_instr(reset_src_reg_instrn);
+        temp.program_bank0_sw_cntl(instrn_buffer);
+    }
+    else
+    {
+        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, unpack_tile_instrn);
+        temp.set_last_outer_loop_instr(reset_src_reg_instrn);
+        temp.program_bank0_sw_cntl(instrn_buffer);
+    }
 }
 
 /**
@@ -56,7 +63,7 @@ inline void _llk_unpack_tilize_mop_config_()
  * @tparam FULL_CT_DIM: Number of tiles in a row of the input tensor. Input tensor is row-major format. R_DIM not implemented yet
  * @tparam C_DIM_FACES: number of faces in c_dim = number of tiles in c_dim * faces in c_dim per tile
  */
-template <uint32_t UNP_SEL, uint32_t BUF_DESC_ID, bool IS_32b_DEST_EN, uint32_t FULL_CT_DIM, uint32_t C_DIM_FACES>
+template <uint32_t UNP_SEL, uint32_t BUF_DESC_ID, bool IS_32b_DEST_EN, uint32_t FULL_CT_DIM, uint32_t BLOCK_CT_DIM, uint32_t C_DIM_FACES>
 inline void _llk_unpack_tilize_init_()
 {
     if constexpr (UNP_SEL == p_unpacr::UNP_A)
@@ -75,17 +82,17 @@ inline void _llk_unpack_tilize_init_()
         cfg_rmw(THCON_UNPACKER1_REG1_UNPACK_STRIDE_VAL_SOURCE_RMW, 0);
         cfg_rmw(THCON_UNPACKER1_REG2_UNPACK_STRIDE_OFFSET_0_RMW, FULL_CT_DIM * C_DIM_FACES); // how much to stride to go to next row within the same tile
     }
-    _llk_unpack_tilize_mop_config_<UNP_SEL, BUF_DESC_ID, IS_32b_DEST_EN>();
+    _llk_unpack_tilize_mop_config_<UNP_SEL, BUF_DESC_ID, IS_32b_DEST_EN, BLOCK_CT_DIM>();
 }
 
 /**
  * @brief Unpacks a single full 32x32 tile, works for UNP_A, UNP_B, UNP_DEST
  * @tparam UNP_SEL: Selects which unpacker resource to use,
  * values = p_unpacr::UNP_A/p_unpacr::UNP_B/p_unpacr::UNP_DEST
- * @param l1_tile_idx: Index into the L1 buffer for a tile
+ * @param l1_tile_idx: Index into the L1 buffer for a row of tiles
  */
 template <uint32_t UNP_SEL>
-inline void _llk_unpack_tilize_(const uint l1_tile_idx)
+inline void _llk_unpack_tilize_(const uint l1_rt_offset)
 {
     // RT: for the best performance, setting counters should be placed in a REPLAY buffer
     // in the mop_config, but for back compatibility with APIs, the counter functions must
@@ -93,8 +100,8 @@ inline void _llk_unpack_tilize_(const uint l1_tile_idx)
 
     // Reset Dest counters for Unpacker to 0
     // Set Source counter to L1 base + offset
-    TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL, l1_tile_idx);
-    TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL, 0);
+    TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, UNP_SEL, l1_rt_offset);
+    TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, UNP_SEL, 0);
 
     // Runs MOP
     ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
