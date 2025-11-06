@@ -134,7 +134,7 @@ profiler: $(PROFILER_DIR)/unpack.meta.bin \
 
 clear_coverage_artefacts:
 	-rm $(COVERAGE_DIR)/*.raw.stream
-	-rm $(OBJ_DIR)/*.gcno
+	-rm $(OBJ_DIR)/*.o
 	-rm $(OBJ_DIR)/*.gcno
 	-rm $(OBJ_DIR)/*.gcda
 	-rm $(SHARED_OBJ_DIR)/*.gcda
