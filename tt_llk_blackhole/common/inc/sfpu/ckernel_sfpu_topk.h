@@ -145,12 +145,15 @@ inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_st
         TTI_SFPNOP;
     }
 
-    if constexpr (STABLE_SORT){
-        if (init_replay)
+    constexpr int replay_count = STABLE_SORT ? 9 : 5;
+    
+    if (init_replay)
+    {
+        if constexpr (STABLE_SORT)
         {
             load_replay_buf<Exec>(
                 replay_start,
-                9,
+                replay_count,
                 []
                 {
                     // Step 4
@@ -167,43 +170,33 @@ inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_st
     
                     TTI_SFPTRANSP(0, 0, 0, 0);
                 });
-            init_replay = false;
         }
         else
         {
-            lltt::replay(replay_start, 9);
-        }
+            load_replay_buf<Exec>(
+                replay_start,
+                replay_count,
+                []
+                {
+                    // Step 4
+                    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
+                    TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
     
-        lltt::replay(replay_start, 9);
+                    // Step 3
+                    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
+                    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
+    
+                    TTI_SFPTRANSP(0, 0, 0, 0);
+                });
+        }
+        init_replay = false;
     }
     else
     {
-        if (init_replay)
-        {
-            load_replay_buf<Exec>(
-                replay_start,
-                5,
-                []
-                {
-                    // Step 4
-                    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
-                    TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
-    
-                    // Step 3
-                    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-                    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
-    
-                    TTI_SFPTRANSP(0, 0, 0, 0);
-                });
-            init_replay = false;
-        }
-        else
-        {
-            lltt::replay(replay_start, 5);
-        }
-    
-        lltt::replay(replay_start, 5);
+        lltt::replay(replay_start, replay_count);
     }
+
+    lltt::replay(replay_start, replay_count);
 
     if (dir == (bool)SortDir::ArgMin)
     {
@@ -440,21 +433,15 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             {
                                 lltt::replay(0, 8);
                             }
-                            if constexpr (STABLE_SORT)
+                            constexpr int phase_replay_id = STABLE_SORT ? 6 : 4;
+                            if (init_phase)
                             {
-                                bitonic_topk_ph0_st1_to_1<STABLE_SORT>();
+                                load_replay_buf<Exec>(16, phase_replay_id, [] { bitonic_topk_ph0_st1_to_1<STABLE_SORT>(); });
+                                init_phase = false;
                             }
                             else
                             {
-                                if (init_phase)
-                                {
-                                    load_replay_buf<Exec>(16, 4, [] { bitonic_topk_ph0_st1_to_1<STABLE_SORT>(); });
-                                    init_phase = false;
-                                }
-                                else
-                                {
-                                    lltt::replay(16, 4);
-                                }
+                                lltt::replay(16, phase_replay_id);
                             }
                             if (init_store)
                             {
@@ -472,21 +459,15 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                         for (int d = 0; d < 4; d++)
                         {
                             lltt::replay(0, 8);
-                            if constexpr (STABLE_SORT)
+                            constexpr int phase_replay_id = STABLE_SORT ? 10 : 6;
+                            if (init_phase)
                             {
-                                bitonic_topk_ph1_st2_to_1<STABLE_SORT>();
+                                load_replay_buf<Exec>(16, phase_replay_id, [] { bitonic_topk_ph1_st2_to_1<STABLE_SORT>(); });
+                                init_phase = false;
                             }
                             else
                             {
-                                if (init_phase)
-                                {
-                                    load_replay_buf<Exec>(16, 6, [] { bitonic_topk_ph1_st2_to_1<STABLE_SORT>(); });
-                                    init_phase = false;
-                                }
-                                else
-                                {
-                                    lltt::replay(16, 6);
-                                }
+                                lltt::replay(16, phase_replay_id);
                             }
                             lltt::replay(8, 8);
                         }
@@ -495,21 +476,15 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                         for (int d = 0; d < 4; d++)
                         {
                             lltt::replay(0, 8);
-                            if constexpr (STABLE_SORT)
+                            constexpr int phase_replay_id = STABLE_SORT ? 14 : 9;
+                            if (init_phase)
                             {
-                                bitonic_topk_ph2_st3_to_1<STABLE_SORT>();
+                                load_replay_buf<Exec>(16, phase_replay_id, [] { bitonic_topk_ph2_st3_to_1<STABLE_SORT>(); });
+                                init_phase = false;
                             }
                             else
                             {
-                                if (init_phase)
-                                {
-                                    load_replay_buf<Exec>(16, 9, [] { bitonic_topk_ph2_st3_to_1<STABLE_SORT>(); });
-                                    init_phase = false;
-                                }
-                                else
-                                {
-                                    lltt::replay(16, 9);
-                                }
+                                lltt::replay(16, phase_replay_id);
                             }
                             lltt::replay(8, 8);
                         }
