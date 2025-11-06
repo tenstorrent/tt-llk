@@ -22,11 +22,20 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
+    const std::uint32_t row_index_in_tile_b   = 31;
+    constexpr std::uint32_t BYTES_PER_ELEMENT = 2;  // For now only support 16 bit wide data
+    constexpr std::uint32_t TILE_WIDTH        = 32; // Full tile width for row-major layout
+
+    std::uint32_t offset_in_elements = row_index_in_tile_b * TILE_WIDTH;
+
+    (*((volatile uint32_t*)0x18000)) = 0x1a800 + offset_in_elements * BYTES_PER_ELEMENT;
+
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
-    _llk_unpack_AB_init_<>();
+    _llk_unpack_AB_init_<BroadcastType::ROW>();
+
     for (int i = 0; i < TILE_CNT; i++)
     {
-        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
+        _llk_unpack_AB_<BroadcastType::ROW>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i] + offset_in_elements * BYTES_PER_ELEMENT));
     }
 }
 
@@ -34,6 +43,7 @@ void run_kernel()
 
 #ifdef LLK_TRISC_MATH
 
+#include "ckernel_debug.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary.h"
 #include "params.h"
@@ -42,14 +52,14 @@ void run_kernel()
 {
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
-    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0, 0);
+    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::ROW, MATH_FIDELITY>(4, 0, 0);
 
     for (int i = 0; i < TILE_CNT; i++)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         _llk_math_eltwise_binary_<
             ELTWISE_BINARY_OP,
-            BroadcastType::NONE,
+            BroadcastType::ROW,
             DstSync::SyncHalf,
             is_fp32_dest_acc_en,
             MATH_FIDELITY,
