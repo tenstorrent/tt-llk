@@ -240,6 +240,7 @@ def data_formats(
     num_iterations: int,
     unpacking_to_dest: bool = False,
     chip_arch: Optional[ChipArchitecture] = None,
+    trigger_format_inference: bool = True,
 ) -> List[FormatConfig]:
     """
     Entry point for computing a list of FormatConfig objects.
@@ -262,7 +263,7 @@ def data_formats(
     if chip_arch is None:
         chip_arch = get_chip_architecture()
 
-    if chip_arch == ChipArchitecture.QUASAR:
+    if chip_arch == ChipArchitecture.QUASAR or not trigger_format_inference:
         # Data Format Inference is not supported for Quasar architecture, so we return a single FormatConfig where all formats are the same.
         return [
             FormatConfig(

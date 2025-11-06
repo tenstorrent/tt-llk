@@ -317,6 +317,7 @@ def generate_build_header(test_config):
         num_iterations=l1_to_l1_iterations,
         unpacking_to_dest=unpack_to_dest == "true",
         chip_arch=get_chip_architecture(),
+        trigger_format_inference=test_config.get("trigger_format_inference", True),
     )
 
     if l1_to_l1_iterations > 1:
