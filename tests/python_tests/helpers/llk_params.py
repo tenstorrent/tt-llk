@@ -177,11 +177,6 @@ class StochasticRounding(Enum):
     All = "StochRndType::All"
 
 
-class Transpose(Enum):
-    Yes = "true"
-    No = "false"
-
-
 class Haloize(Enum):
     Yes = "true"
     No = "false"
@@ -202,6 +197,11 @@ class MathFidelity(Enum):
     HiFi2 = 1
     HiFi3 = 2
     HiFi4 = 3
+
+
+class NarrowTile(Enum):
+    Yes = "true"
+    No = "false"
 
 
 class DestSync(Enum):
@@ -226,6 +226,11 @@ format_tile_sizes = {
     DataFormat.Float16_b: 2048,
     DataFormat.Float32: 4096,
     DataFormat.Int32: 4096,
+    DataFormat.Tf32: 3072,  # 3 bytes * 1024 elements
+    DataFormat.UInt32: 4096,
+    DataFormat.UInt16: 2048,
+    DataFormat.Int8: 1024,  # 1 byte * 1024 elements
+    DataFormat.UInt8: 1024,  # 1 byte * 1024 elements
 }
 
 
@@ -240,3 +245,24 @@ class L1BufferLocations(Enum):
     srcA = 0x18FE0
     srcB = 0x18FE4
     Result = 0x18FE8
+
+
+class BroadcastType(Enum):
+    """
+    Enum for broadcast types in LLK kernels.
+    """
+
+    None_ = "NONE"
+    Column = "COL"
+    Row = "ROW"
+    Scalar = "SCALAR"
+
+
+class EltwiseBinaryReuseDestType(Enum):
+    """
+    Enum for destination reuse types in elementwise binary ops.
+    """
+
+    NONE = 0
+    DEST_TO_SRCA = 1
+    DEST_TO_SRCB = 2

@@ -67,8 +67,22 @@ inline void _llk_unpack_untilize_init_(
     const std::uint32_t unpack_dst_format,
     const std::uint32_t tile_size,
     const std::uint32_t face_r_dim                 = FACE_R_DIM,
-    [[maybe_unused]] const std::uint32_t num_faces = 4)
+    [[maybe_unused]] const std::uint32_t num_faces = 4,
+    const bool include_setup_calls                 = false)
 {
+    if (include_setup_calls)
+    {
+        // Disable transpose when unused
+        cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
+
+        // Save state of unpacker config for quick restore
+        TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0,
+                  UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32); // Save unpack stride config
+        TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1,
+                  THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);                                              // Save tile x dim per context
+        TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1); // Save descriptor 1
+    }
+
     const std::uint32_t unpA_ch1_x_stride = (unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float32   ? 4
                                             : (unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float16 ? 2
                                                                                                               : 1;
@@ -85,6 +99,9 @@ inline void _llk_unpack_untilize_init_(
 
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE));
     TT_SETDMAREG(0, UPPER_HALFWORD(tile_size), 0, HI_16(p_gpr_unpack::TILE_SIZE));
+    // Reset TILE_OFFSET reg if some other API used it, it was used by tilize (not anymore) but better to clear it just in case
+    TTI_SETDMAREG(0, LOWER_HALFWORD(0), 0, LO_16(p_gpr_unpack::TILE_OFFSET));
+    TTI_SETDMAREG(0, UPPER_HALFWORD(0), 0, HI_16(p_gpr_unpack::TILE_OFFSET));
 
     _llk_unpack_untilize_mop_config_();
 }

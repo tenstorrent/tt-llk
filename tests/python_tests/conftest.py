@@ -1,21 +1,19 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import datetime
 import logging
 import os
 from pathlib import Path
 
 import pytest
-from ttexalens import tt_exalens_init
-from ttexalens.tt_exalens_lib import (
-    arc_msg,
-)
-
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import reset_mailboxes
 from helpers.format_config import InputOutputFormat
 from helpers.log_utils import _format_log
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
+from ttexalens import tt_exalens_init
+from ttexalens.tt_exalens_lib import arc_msg
 
 # imports for pytest fixtures
 from helpers.perf import perf_report  # noqa: F401  # isort:skip
@@ -200,7 +198,7 @@ def _send_arc_message(message_type: str, device_id: int):
         wait_for_done=True,
         arg0=0,
         arg1=0,
-        timeout=10,
+        timeout=datetime.timedelta(seconds=10),
     )
 
 

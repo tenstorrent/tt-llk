@@ -3,24 +3,20 @@
 
 import pytest
 import torch
-
-from helpers.device import (
-    collect_results,
-    write_stimuli_to_l1,
-)
-from helpers.format_arg_mapping import (
-    DestAccumulation,
-    DstSync,
-    MathFidelity,
-    MathOperation,
-    format_dict,
-)
+from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     EltwiseBinaryGolden,
     UnarySFPUGolden,
     UntilizeGolden,
     get_golden_generator,
+)
+from helpers.llk_params import (
+    DestAccumulation,
+    DstSync,
+    MathFidelity,
+    MathOperation,
+    format_dict,
 )
 from helpers.param_config import input_output_formats
 from helpers.stimuli_generator import generate_stimuli
