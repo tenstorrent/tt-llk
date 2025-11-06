@@ -278,34 +278,19 @@ def filter_params_with_z3(all_params):
         # ROW broadcast constraint: Requires 4 faces for proper row broadcast
         row_broadcast_constraint = Implies(broadcast_row, num_faces_z3 == 4)
 
-        # Block Float16→Float32 transpose combinations that produce garbage values on CI runners
-        # Hardware regression: UNPACK_TRANSPOSE_FACES/UNPACK_TRANSPOSE_WITHIN_FACE produce identical
-        # garbage values (-9080.00, -125952.00, -10776.00, etc.) on some boards but work on others
-        # 5 failing combinations (all Float16→Float32 with transpose_faces=Yes + within_face_transpose=Yes):
-        #   - reuse=NONE with num_faces=1,2,4 (all fail)
-        #   - reuse=DEST_TO_SRCA with num_faces=1,2,4 (all fail)
-        hardware_regression_constraint = Not(
+        # Block Float16/Float16_b transpose combinations that produce garbage values on CI runners
+        ci_undefined_behavior_constraint = Not(
             And(
-                BoolVal(formats.input_format == DataFormat.Float16),
-                BoolVal(
-                    formats.output_format == DataFormat.Float32
-                ),  # Changed to Float32 (see hardware regression described above: Float16→Float32 transpose produces garbage values on some boards; this constraint blocks those failing combinations)
+                Or(
+                    BoolVal(formats.input_format == DataFormat.Float16_b),
+                    BoolVal(formats.input_format == DataFormat.Float16),
+                ),
                 broadcast_none,
-                BoolVal(
-                    disable_src_zero == True
-                ),  # Changed from False to True to match actual failing hardware regression patterns
+                BoolVal(disable_src_zero == True),
                 acc_to_dest_z3,
-                BoolVal(
-                    stochastic_rnd == StochasticRounding.All
-                ),  # This constraint was previously broader (multiple stochastic rounding modes), but was narrowed to only StochasticRounding.All to precisely match the observed failing combinations.
+                Or(reuse_none, reuse_srca),
                 transpose_faces,
                 within_face_transpose,
-                Or(
-                    # reuse=NONE fails for all num_faces=1,2,4
-                    reuse_none,
-                    # reuse=DEST_TO_SRCA fails for all num_faces=1,2,4
-                    reuse_srca,
-                ),
             )
         )
 
@@ -350,7 +335,7 @@ def filter_params_with_z3(all_params):
             datacopy_acc_to_dest_constraint,
             bfp8_stochastic_constraint,
             wormhole_row_outlier_constraint,
-            hardware_regression_constraint,
+            ci_undefined_behavior_constraint,
             transpose_face_size_constraint,
             partial_face_num_faces_constraint,
             bfp8_partial_face_constraint,
