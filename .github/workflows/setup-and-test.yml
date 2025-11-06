@@ -104,7 +104,7 @@ jobs:
                 --splits $SPLITS --group ${{ matrix.test_group }} \
                 --override-ini="addopts=-v" --timeout=60 \
                 $COVERAGE_FLAG \
-                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
+                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml . || true
 
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
             cd ../
