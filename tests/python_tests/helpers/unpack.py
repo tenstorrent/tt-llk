@@ -141,12 +141,7 @@ def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False, num_faces=4
 
     # Write only values from the selected faces into unpacked_tile
     for tile in range(tile_count):
-        if tile_count == 1:
-            # Single tile: use elements_per_tile_needed spacing (fixes unpack_A memory corruption)
-            start_idx = tile * elements_per_tile_needed
-        else:
-            # Multi-tile: use full tile_size spacing (preserves correct tile boundaries)
-            start_idx = tile * tile_size
+        start_idx = tile * tile_size
         end_idx = start_idx + elements_per_tile_needed
         tile_data = packed_list[start_idx:end_idx]
 
