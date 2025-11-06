@@ -476,8 +476,15 @@ sfpi_inline void _store_mean_var_to_dst_row_(uint32_t scale_idx, const std::arra
     _load_recip_of_idx_(scale_idx, reciprocal_lut);
     // Move mean to LREG0
     TTI_SFPMOV(0, ckernel::p_sfpu::LREG4, ckernel::p_sfpu::LREG0, 0);
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG1, 0, 0);
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG2, 0, 0);
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG3, 0, 0);
     // Convert M2 to variance and move to LREG4
     TTI_SFPMAD(ckernel::p_sfpu::LREG7, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG4, 0);
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG5, 0, 0);
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG6, 0, 0);
+    TTI_SFPLOADI(ckernel::p_sfpu::LREG7, 0, 0);
+
     // Move all the values to a single row
     TTI_SFPTRANSP(0, 0, 0, 0);
 
