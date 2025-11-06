@@ -353,11 +353,9 @@ def generate_unary_input_dimensions(dest_acc, dest_sync=DestSync.Half):
 
     num_tile_rows = 32
     num_tile_cols = 32
-    combinations = []
 
-    for rows in range(1, max_tiles_in_dest + 1):
-        for cols in range(1, (max_tiles_in_dest // rows) + 1):
-            dimensions = [rows * num_tile_rows, cols * num_tile_cols]
-            combinations.append(dimensions)
-
-    return combinations
+    return [
+        [row * num_tile_rows, column * num_tile_cols]
+        for row in range(1, max_tiles_in_dest + 1)
+        for column in range(1, (max_tiles_in_dest // row) + 1)
+    ]

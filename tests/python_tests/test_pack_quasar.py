@@ -36,22 +36,29 @@ def generate_qsr_pack_combinations(
 
     Returns: List of (format, dest_acc, input_dimensions) tuples
     """
+    dimensions_cache = {
+        DestAccumulation.No: tuple(
+            generate_unary_input_dimensions(DestAccumulation.No)
+        ),
+        DestAccumulation.Yes: tuple(
+            generate_unary_input_dimensions(DestAccumulation.Yes)
+        ),
+    }
+
     combinations = []
 
     for fmt in formats_list:
-        if fmt.input_format != fmt.output_format:
+        in_fmt = fmt.input_format
+        if in_fmt != fmt.output_format:
             continue
-
-        if fmt.input_format.is_32_bit():
-            dest_acc_modes = [DestAccumulation.Yes]
-        else:
-            dest_acc_modes = [DestAccumulation.No, DestAccumulation.Yes]
-
-        for dest_acc in dest_acc_modes:
-            dimensions_list = generate_unary_input_dimensions(dest_acc)
-            for dimensions in dimensions_list:
-                combinations.extend([(fmt, dest_acc, dimensions)])
-
+        modes = (
+            (DestAccumulation.Yes,)
+            if in_fmt.is_32_bit()
+            else (DestAccumulation.Yes, DestAccumulation.No)
+        )
+        for dest_acc in modes:
+            for dimensions in dimensions_cache[dest_acc]:
+                combinations.append((fmt, dest_acc, dimensions))
     return combinations
 
 
