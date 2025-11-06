@@ -10,7 +10,7 @@ from helpers.device import (
     write_stimuli_to_l1,
 )
 from helpers.format_config import DataFormat
-from helpers.llk_params import DestAccumulation, MathOperation, format_dict
+from helpers.llk_params import DestDatumWidth, MathOperation, format_dict
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
@@ -39,7 +39,7 @@ def torch_equal_nan(a, b):
         ],
         same=True,
     ),
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestDatumWidth.Bit16, DestDatumWidth.Bit32],
     mathop=MathOperation.TTNNWhere,
     test_case=["mixed", "all_ones", "all_zeros"],
 )
@@ -47,13 +47,13 @@ def test_ttnn_where(test_name, formats, dest_acc, mathop, test_case):
 
     if (
         formats.input == DataFormat.Float32 and formats.output == DataFormat.Float32
-    ) and dest_acc == DestAccumulation.No:
-        pytest.skip("DataFormat.Float32 not supported with DestAccumulation.No")
+    ) and dest_acc == DestDatumWidth.Bit16:
+        pytest.skip("DataFormat.Float32 not supported with DestDatumWidth.Bit16")
 
     if (
         formats.input == DataFormat.Float16_b and formats.output == DataFormat.Float16_b
-    ) and dest_acc == DestAccumulation.Yes:
-        pytest.skip("DataFormat.Float16_b not supported with DestAccumulation.Yes")
+    ) and dest_acc == DestDatumWidth.Bit32:
+        pytest.skip("DataFormat.Float16_b not supported with DestDatumWidth.Bit32")
 
     input_dimensions = [32, 32]  # Single tile dimensions
 
@@ -163,7 +163,7 @@ def test_ttnn_where(test_name, formats, dest_acc, mathop, test_case):
         ],
         same=True,
     ),
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestDatumWidth.Bit16, DestDatumWidth.Bit32],
     mathop=MathOperation.TTNNWhere,
     height=[32],
     width=[32],
@@ -173,13 +173,13 @@ def test_ttnn_where_mcw(test_name, formats, dest_acc, mathop, height, width):
 
     if (
         formats.input == DataFormat.Float32 and formats.output == DataFormat.Float32
-    ) and dest_acc == DestAccumulation.No:
-        pytest.skip("DataFormat.Float32 not supported with DestAccumulation.No")
+    ) and dest_acc == DestDatumWidth.Bit16:
+        pytest.skip("DataFormat.Float32 not supported with DestDatumWidth.Bit16")
 
     if (
         formats.input == DataFormat.Float16_b and formats.output == DataFormat.Float16_b
-    ) and dest_acc == DestAccumulation.Yes:
-        pytest.skip("DataFormat.Float16_b not supported with DestAccumulation.Yes")
+    ) and dest_acc == DestDatumWidth.Bit32:
+        pytest.skip("DataFormat.Float16_b not supported with DestDatumWidth.Bit32")
 
     # Generate stimuli using the standard helper function
     input_dimensions = [height, width]

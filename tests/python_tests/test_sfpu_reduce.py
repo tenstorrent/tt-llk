@@ -12,7 +12,7 @@ from helpers.format_config import DataFormat
 from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
     ApproximationMode,
-    DestAccumulation,
+    DestDatumWidth,
     MathOperation,
     ReducePool,
     format_dict,
@@ -44,7 +44,7 @@ dimension_combinations = [
         same=True,
     ),
     mathop=[MathOperation.ReduceColumn],
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestDatumWidth.Bit16, DestDatumWidth.Bit32],
     negative_number=[False, True],
     reduce_pool=[ReducePool.Sum, ReducePool.Average],
     dimension_combinations=dimension_combinations,

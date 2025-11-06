@@ -6,7 +6,7 @@ from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import ReduceGolden, get_golden_generator
 from helpers.llk_params import (
-    DestAccumulation,
+    DestDatumWidth,
     MathOperation,
     ReduceDimension,
     ReducePool,
@@ -36,7 +36,7 @@ mathop_mapping = {
             DataFormat.Bfp8_b,
         ]
     ),
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestDatumWidth.Bit16],
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )

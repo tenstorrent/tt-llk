@@ -27,7 +27,7 @@ from helpers.golden_generators import (
 )
 from helpers.llk_params import (
     ApproximationMode,
-    DestAccumulation,
+    DestDatumWidth,
     MathFidelity,
     MathOperation,
     ReduceDimension,
@@ -194,14 +194,14 @@ def test_reduce_sfpu_unary(config):
 
     gen_unary = get_golden_generator(UnarySFPUGolden)
     golden_tensor = gen_unary(
-        unary_op, reduce_out, fmt.output_format, DestAccumulation.No, fmt.output_format
+        unary_op, reduce_out, fmt.output_format, DestDatumWidth.Bit16, fmt.output_format
     )
 
     # --------------------- Device execution -------------------------------
     test_config = {
         "testname": "reduce_sfpu_unary",
         "formats": fmt,
-        "dest_acc": DestAccumulation.No,
+        "dest_acc": DestDatumWidth.Bit16,
         "approx_mode": ApproximationMode.No,
         "mathop": _reduce_to_mathop[reduce_dim],
         "unary_op": unary_op,

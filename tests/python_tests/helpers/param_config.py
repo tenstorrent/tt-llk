@@ -14,7 +14,7 @@ from .format_config import (
     InputOutputFormat,
     is_dest_acc_needed,
 )
-from .llk_params import DestAccumulation, DestSync, Tilize
+from .llk_params import DestDatumWidth, DestSync, Tilize
 
 checked_formats_and_dest_acc = {}
 
@@ -83,7 +83,7 @@ def format_combination_sweep(
 class TestParamsConfig(TypedDict):
     test_name: str
     formats: Optional[List[FormatConfig]] = None
-    dest_acc: Optional[DestAccumulation] = None
+    dest_acc: Optional[DestDatumWidth] = None
     approx_mode: Optional[List[str]] = None
     mathop: Optional[List[str]] = None
     math_fidelity: Optional[List[int]] = None
@@ -110,10 +110,10 @@ def generate_params(**kwargs: any) -> List[tuple]:
     Example:
     >>> testnames = ["multiple_tiles_eltwise_test", "matmul_test"]
     >>> format_combos = [FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16)]
-    >>> generate_params(testnames, format_combos, dest_acc=[DestAccumulation.Yes], approx_mode=[ApproximationMode.Yes])
+    >>> generate_params(testnames, format_combos, dest_acc=[DestDatumWidth.Bit32], approx_mode=[ApproximationMode.Yes])
     [
-        ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproximationMode.Yes, None, None, None, None, None),
-        ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestAccumulation.Yes, ApproximationMode.No, None, None, None, None, None)
+        ("multiple_tiles_eltwise_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestDatumWidth.Bit32, ApproximationMode.Yes, None, None, None, None, None),
+        ("matmul_test", FormatConfig(DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16, DataFormat.Float16), DestDatumWidth.Bit32, ApproximationMode.No, None, None, None, None, None)
     ]
     """
 
@@ -125,7 +125,7 @@ def generate_params(**kwargs: any) -> List[tuple]:
             continue
 
         for acc in dest_acc:
-            if acc == DestAccumulation.No and is_dest_acc_needed(combo):
+            if acc == DestDatumWidth.Bit16 and is_dest_acc_needed(combo):
                 key = (combo.input, combo.output)
                 if key not in checked_formats_and_dest_acc:
                     add_to_format_log(combo.input_format, combo.output_format)
@@ -247,10 +247,10 @@ def generate_tilize_aware_datacopy_combinations(formats_list, result_tiles: int 
                 if tilize_en == Tilize.Yes and fmt.input_format == DataFormat.Bfp8_b:
                     continue
 
-                for dest_acc in [DestAccumulation.No, DestAccumulation.Yes]:
+                for dest_acc in [DestDatumWidth.Bit16, DestDatumWidth.Bit32]:
                     # Calculate dest acc setting for edgecase indices calculation
                     is_fp32_dest_acc_en = (
-                        dest_acc == DestAccumulation.Yes or is_dest_acc_needed(fmt)
+                        dest_acc == DestDatumWidth.Bit32 or is_dest_acc_needed(fmt)
                     )
 
                     dest_sync_list = [DestSync.Half]

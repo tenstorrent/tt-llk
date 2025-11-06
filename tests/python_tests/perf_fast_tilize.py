@@ -5,7 +5,7 @@ import pytest
 from conftest import skip_for_blackhole
 from helpers.device import write_stimuli_to_l1
 from helpers.format_config import DataFormat, InputOutputFormat
-from helpers.llk_params import DestAccumulation
+from helpers.llk_params import DestDatumWidth
 from helpers.perf import PerfRunType, perf_benchmark, update_report
 from helpers.stimuli_generator import generate_stimuli
 
@@ -49,7 +49,7 @@ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
 @pytest.mark.parametrize(
     "output_format", [DataFormat.Float32, DataFormat.Float16_b, DataFormat.Bfp8_b]
 )
-@pytest.mark.parametrize("fp32_dest", [DestAccumulation.Yes, DestAccumulation.No])
+@pytest.mark.parametrize("fp32_dest", [DestDatumWidth.Bit32, DestDatumWidth.Bit16])
 @pytest.mark.parametrize("input_width, input_height", generate_input_dimensions(16))
 def test_fast_tilize_perf(
     perf_report, input_format, output_format, fp32_dest, input_width, input_height

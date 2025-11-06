@@ -7,7 +7,7 @@ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import BinarySFPUGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, MathOperation, format_dict
+from helpers.llk_params import DestDatumWidth, MathOperation, format_dict
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
@@ -29,7 +29,7 @@ from helpers.utils import passed_test
         MathOperation.SfpuElwsub,
         MathOperation.SfpuElwmul,
     ],
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestDatumWidth.Bit16, DestDatumWidth.Bit32],
 )
 def test_sfpu_binary_float(test_name, formats, dest_acc, mathop):
     chip_arch = get_chip_architecture()
@@ -39,7 +39,7 @@ def test_sfpu_binary_float(test_name, formats, dest_acc, mathop):
     if (
         chip_arch == ChipArchitecture.BLACKHOLE
         and formats.input_format == DataFormat.Float16
-        and dest_acc == DestAccumulation.No
+        and dest_acc == DestDatumWidth.Bit16
     ):
         pytest.skip(
             "Float16_a isn't supported for SFPU on Blackhole without being converted to 32-bit intermediate format in dest register"
@@ -60,7 +60,7 @@ def test_sfpu_binary_float(test_name, formats, dest_acc, mathop):
         MathOperation.SfpuElwLeftShift,
         MathOperation.SfpuElwLogicalRightShift,
     ],
-    dest_acc=[DestAccumulation.Yes],
+    dest_acc=[DestDatumWidth.Bit32],
 )
 def test_sfpu_binary_int(test_name, formats, dest_acc, mathop):
     sfpu_binary(test_name, formats, dest_acc, mathop)
@@ -81,7 +81,7 @@ def sfpu_binary(test_name, formats, dest_acc, mathop):
 
     # Blackhole needs this for some reason
     if formats.input_format in [DataFormat.Float16, DataFormat.Float32]:
-        dest_acc = DestAccumulation.Yes
+        dest_acc = DestDatumWidth.Bit32
 
     test_config = {
         "formats": formats,

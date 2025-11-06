@@ -9,7 +9,7 @@ from typing import Iterable, List, NamedTuple, Tuple
 
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.llk_params import (
-    DestAccumulation,
+    DestDatumWidth,
     DestSync,
     StochasticRounding,
     Transpose,
@@ -65,7 +65,7 @@ class MatmulConfig:
     stochastic_rnd: StochasticRounding
     dst_index: int
     dest_sync: DestSync
-    dest_acc: DestAccumulation
+    dest_acc: DestDatumWidth
 
 
 # ======================================================================
@@ -129,7 +129,7 @@ def generate_matmul_tiny_tiles_combinations(max_tiles: int) -> List[tuple]:
 
 def skip_matmul_combination(
     stochastic_rounding_mode: StochasticRounding,
-    dest_acc: DestAccumulation,
+    dest_acc: DestDatumWidth,
     is_fpu_bfloat16: bool,
     kt_dim: int,
 ) -> bool:
@@ -137,7 +137,7 @@ def skip_matmul_combination(
     fpu_stochastic_modes = {StochasticRounding.Fpu, StochasticRounding.All}
     if (
         stochastic_rounding_mode in fpu_stochastic_modes
-        and dest_acc == DestAccumulation.No
+        and dest_acc == DestDatumWidth.Bit16
         and is_fpu_bfloat16
         and kt_dim >= 4
     ):
@@ -275,7 +275,7 @@ def generate_face_layout_config_sweep(math_matmul: bool) -> List[FaceLayoutConfi
 
 def sweep_matmul(
     formats_list: List[FormatConfig],
-    dest_acc_modes: List[DestAccumulation],
+    dest_acc_modes: List[DestDatumWidth],
     all_stochastic_modes: List[StochasticRounding] = [StochasticRounding.No],
     dest_sync_modes: List[DestSync] = [DestSync.Half],
     math_matmul: bool = False,
@@ -297,7 +297,7 @@ def sweep_matmul(
         )
 
         for dest_acc in dest_acc_modes:
-            max_tiles = 4 if dest_acc == DestAccumulation.Yes else base_max_tiles
+            max_tiles = 4 if dest_acc == DestDatumWidth.Bit32 else base_max_tiles
 
             # Use cached or newly generated dimensions
             dimensions_list = dimensions_cache.setdefault(
@@ -315,7 +315,7 @@ def sweep_matmul(
                     for dest_sync in dest_sync_modes:
                         max_dst_index = get_max_dst_index(
                             dest_sync,
-                            dest_acc == DestAccumulation.Yes,
+                            dest_acc == DestDatumWidth.Bit32,
                             tile_dims.tile_cnt,
                         )
 
@@ -354,7 +354,7 @@ def sweep_matmul(
 
 def sweep_tiny_tiles_matmul(
     formats_list: List[FormatConfig],
-    dest_acc_modes: List[DestAccumulation],
+    dest_acc_modes: List[DestDatumWidth],
     all_stochastic_modes: List[StochasticRounding] = [StochasticRounding.No],
     dest_sync_modes: List[DestSync] = [DestSync.Half],
     math_matmul: bool = False,
@@ -369,7 +369,7 @@ def sweep_tiny_tiles_matmul(
                 for stochastic_mode in all_stochastic_modes:
                     max_tiles = (
                         base_max_tiles // 2
-                        if is_dest_acc_needed(fmt) or dest_acc == DestAccumulation.Yes
+                        if is_dest_acc_needed(fmt) or dest_acc == DestDatumWidth.Bit32
                         else base_max_tiles
                     )
                     configs.append(
@@ -406,7 +406,7 @@ def sweep_tiny_tiles_matmul(
 
             max_dst_index = get_max_dst_index(
                 config["dest_sync"],
-                config["dest_acc"] == DestAccumulation.Yes,
+                config["dest_acc"] == DestDatumWidth.Bit32,
                 tile_dims.tile_cnt,
             )
             max_dst_indices = [0]

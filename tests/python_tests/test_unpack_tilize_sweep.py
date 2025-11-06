@@ -8,7 +8,7 @@ from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import TilizeGolden, get_golden_generator
 from helpers.llk_params import (
-    DestAccumulation,
+    DestDatumWidth,
     NarrowTile,
     StochasticRounding,
     Transpose,
@@ -38,7 +38,7 @@ from helpers.utils import passed_test
     ],
     transpose=[Transpose.No],
     narrow_tile=[NarrowTile.No],
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestDatumWidth.Bit16, DestDatumWidth.Bit32],
     num_faces=[4, 2, 1],
     input_dimensions=[[32, 32], [64, 64], [32, 64], [32, 128], [128, 32]],
 )

@@ -7,7 +7,7 @@ from conftest import skip_for_blackhole
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
-    DestAccumulation,
+    DestDatumWidth,
     MathFidelity,
     MathOperation,
     format_dict,
@@ -28,7 +28,7 @@ from helpers.utils import passed_test
         ]
     ),
     mathop=[MathOperation.Elwsub, MathOperation.Elwadd, MathOperation.Elwmul],
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestDatumWidth.Bit16],
     srca_reuse_count=[2, 4, 8],
     math_fidelity=[
         MathFidelity.LoFi,

@@ -12,13 +12,13 @@ from typing import List, Optional
 
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .format_config import DataFormat, FormatConfig
-from .llk_params import DestAccumulation
+from .llk_params import DestDatumWidth
 
 
 def is_format_combination_outlier(
     input_format: DataFormat,
     output_format: DataFormat,
-    is_fp32_dest_acc_en: DestAccumulation,
+    is_fp32_dest_acc_en: DestDatumWidth,
 ) -> bool:
     """
     Checks if the given input/output format combination is an outlier case
@@ -43,14 +43,14 @@ def is_format_combination_outlier(
         input_format.is_exponent_B()
         and not input_format.is_float32()
         and output_format == DataFormat.Float16
-        and is_fp32_dest_acc_en == DestAccumulation.No
+        and is_fp32_dest_acc_en == DestDatumWidth.Bit16
     )
 
 
 def infer_unpack_out(
     input_format: DataFormat,
     output_format: DataFormat,
-    is_fp32_dest_acc_en: DestAccumulation,
+    is_fp32_dest_acc_en: DestDatumWidth,
     unpacking_to_dest: bool = False,
 ) -> DataFormat:
     """
@@ -70,7 +70,7 @@ def infer_unpack_out(
         # When input format in L1 is Float32 + unpacking to src registers (instead of directly to dest register)
         # Source registers can store 19-bit values, so we truncate Float32 to Tf32 if we know dest will be 32-bit format
         # which preserves the 8-bit exponent and as much mantissa precision as fits. If our dst register is 16-bit we directly truncate to 16-bit format
-        if is_fp32_dest_acc_en == DestAccumulation.Yes:
+        if is_fp32_dest_acc_en == DestDatumWidth.Bit32:
             return DataFormat.Tf32
         elif output_format.is_exponent_B():  # includes Float32
             return DataFormat.Float16_b  # If output Float32 or Float16_b
@@ -84,7 +84,7 @@ def infer_pack_in(
     input_format: DataFormat,
     output_format: DataFormat,
     unpack_out: DataFormat,
-    is_fp32_dest_acc_en: DestAccumulation,
+    is_fp32_dest_acc_en: DestDatumWidth,
     unpacking_to_dest: bool = False,
     chip_arch: Optional[ChipArchitecture] = None,
 ) -> DataFormat:
@@ -110,7 +110,7 @@ def infer_pack_in(
     # Wormhole + FP32 dest reg datums + Float16 output: keep Float32 for packer input for conversion to desired output format
     if (
         is_wormhole
-        and is_fp32_dest_acc_en == DestAccumulation.Yes
+        and is_fp32_dest_acc_en == DestDatumWidth.Bit32
         and output_format == DataFormat.Float16
     ):
         # On wormhole architecture, datums stored as Float32 in dest register,
@@ -121,7 +121,7 @@ def infer_pack_in(
     # Float32 in L1, unpacking to src regs: choose directly if packer can convert
     if input_format == DataFormat.Float32 and not unpacking_to_dest:
         if (
-            is_fp32_dest_acc_en == DestAccumulation.Yes
+            is_fp32_dest_acc_en == DestDatumWidth.Bit32
             or output_format.is_exponent_B()
             and not output_format.is_float32()
         ):
@@ -135,7 +135,7 @@ def infer_pack_in(
     if (
         input_format == DataFormat.Float16
         and output_format == DataFormat.Bfp8_b
-        and is_fp32_dest_acc_en == DestAccumulation.No
+        and is_fp32_dest_acc_en == DestDatumWidth.Bit16
     ):
         return DataFormat.Bfp8
 
@@ -152,14 +152,14 @@ def infer_pack_in(
     # With float32 dest reg datums, packer gasket can do any conversion thus packer input can be the desired output format
     # Otherwise, packer input stays equal to the dest register format (input_format)and packer performs conversion instead of the packer gasket
     return (
-        output_format if is_fp32_dest_acc_en == DestAccumulation.Yes else input_format
+        output_format if is_fp32_dest_acc_en == DestDatumWidth.Bit32 else input_format
     )
 
 
 def infer_data_formats(
     input_format: DataFormat,
     output_format: DataFormat,
-    is_fp32_dest_acc_en: DestAccumulation,
+    is_fp32_dest_acc_en: DestDatumWidth,
     unpacking_to_dest: bool = False,
     chip_arch: Optional[ChipArchitecture] = None,
 ) -> FormatConfig:
@@ -236,7 +236,7 @@ def build_data_formats(
 def data_formats(
     input_format: DataFormat,
     output_format: DataFormat,
-    is_fp32_dest_acc_en: DestAccumulation,
+    is_fp32_dest_acc_en: DestDatumWidth,
     num_iterations: int,
     unpacking_to_dest: bool = False,
     chip_arch: Optional[ChipArchitecture] = None,

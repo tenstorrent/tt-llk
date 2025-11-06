@@ -165,9 +165,9 @@ class ReducePool(Enum):
     Average = "AVG"
 
 
-class DestAccumulation(Enum):
-    Yes = "true"
-    No = "false"
+class DestDatumWidth(Enum):
+    Bit32 = "true"
+    Bit16 = "false"
 
 
 class StochasticRounding(Enum):

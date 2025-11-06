@@ -15,7 +15,7 @@ from helpers.golden_generators import (
     TransposeGolden,
     get_golden_generator,
 )
-from helpers.llk_params import DestAccumulation, Transpose, format_dict
+from helpers.llk_params import DestDatumWidth, Transpose, format_dict
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -46,11 +46,11 @@ def generate_transpose_dest_float_combinations(formats_list):
     1. math_transpose_faces = Transpose.No and 32-bit dest is supported.
 
     Covered combinations:
-    1. Lossless transpose of 32-bit values in dest -> input_format=Float32, dest_acc=DestAccumulation.Yes and unpack_to_dest=True.
+    1. Lossless transpose of 32-bit values in dest -> input_format=Float32, dest_acc=DestDatumWidth.Bit32 and unpack_to_dest=True.
     2. Transpose of 32-bit values in dest with precision loss (unpacks Float32 to src registers, Float32 truncates to Tf32) ->
-       input_format=Float32, dest_acc=DestAccumulation.Yes and unpack_to_dest=False.
+       input_format=Float32, dest_acc=DestDatumWidth.Bit32 and unpack_to_dest=False.
     3. Transpose of 16-bit values in dest -> input_format=[Float16, Float16_b, Bfp8_b],
-       dest_acc=DestAccumulation.No and unpack_to_dest=False.
+       dest_acc=DestDatumWidth.Bit16 and unpack_to_dest=False.
 
     Args:
         formats_list: List of InputOutputFormat combinations
@@ -63,9 +63,9 @@ def generate_transpose_dest_float_combinations(formats_list):
     for fmt in formats_list:
         is_input_32bit = fmt.input_format.is_32_bit()
         dest_acc_list = (
-            [DestAccumulation.Yes]
+            [DestDatumWidth.Bit32]
             if is_input_32bit or is_dest_acc_needed(fmt)
-            else [DestAccumulation.No]
+            else [DestDatumWidth.Bit16]
         )
 
         # Transpose of 16-bit values in dest is supported only for math_transpose_faces = True
@@ -111,7 +111,7 @@ def test_transpose_dest_float(test_name, fmt_dest_acc_math_transp_unpack_to_dest
 @parametrize(
     test_name="transpose_dest_test",
     formats=input_output_formats([DataFormat.Int32]),
-    dest_acc=[DestAccumulation.Yes],
+    dest_acc=[DestDatumWidth.Bit32],
     math_transpose_faces=[Transpose.Yes, Transpose.No],
     unpack_to_dest=[True],
 )
@@ -123,7 +123,7 @@ def test_transpose_dest_int(
 
 def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest):
 
-    if dest_acc == DestAccumulation.Yes and formats.input_format != DataFormat.Int32:
+    if dest_acc == DestDatumWidth.Bit32 and formats.input_format != DataFormat.Int32:
         pytest.skip("32-bit dest tests fail for Float formats due to bit No.11 issue.")
 
     input_dimensions = [32, 32]
@@ -163,7 +163,7 @@ def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to
     # This mode is supported only for 32-bit dest
     unpack_transpose_faces = (
         Transpose.Yes
-        if (dest_acc == DestAccumulation.Yes and math_transpose_faces == Transpose.No)
+        if (dest_acc == DestDatumWidth.Bit32 and math_transpose_faces == Transpose.No)
         else Transpose.No
     )
 

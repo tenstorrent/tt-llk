@@ -4,7 +4,7 @@
 import pytest
 from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat
-from helpers.llk_params import DestAccumulation, MathFidelity, MathOperation
+from helpers.llk_params import DestDatumWidth, MathFidelity, MathOperation
 from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import PerfRunType, perf_benchmark, update_report
 
@@ -15,7 +15,7 @@ from helpers.perf import PerfRunType, perf_benchmark, update_report
     test_name="unpack_a_bcast_eltwise_perf",
     formats=input_output_formats([DataFormat.Float16_b]),
     mathop=[MathOperation.Elwsub, MathOperation.Elwadd, MathOperation.Elwmul],
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestDatumWidth.Bit16],
     srca_reuse_count=[2, 4, 8],
     math_fidelity=[
         MathFidelity.LoFi,

@@ -20,7 +20,7 @@ from .llk_params import (
     SFPU_BINARY_OPERATIONS,
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
-    DestAccumulation,
+    DestDatumWidth,
     DestSync,
     ImpliedMathFormat,
     MathFidelity,
@@ -114,7 +114,7 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr int LOOP_FACTOR = {loop_factor};")
 
     # Dest accumulation
-    dest_acc = test_config.get("dest_acc", DestAccumulation.No)
+    dest_acc = test_config.get("dest_acc", DestDatumWidth.Bit16)
 
     # Unpack to dest
     unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
@@ -309,7 +309,7 @@ def generate_build_header(test_config):
         formats.input_format, formats.output_format, dest_acc
     ):
         # Automatically enable dest_acc for outlier combinations
-        dest_acc = DestAccumulation.Yes
+        dest_acc = DestDatumWidth.Bit32
 
     # Set dest_acc_en_input after potential outlier adjustment
     header_content.append(f"constexpr bool dest_acc_en_input = {dest_acc.value};")

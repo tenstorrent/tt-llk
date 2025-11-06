@@ -20,7 +20,7 @@ from ttexalens.tt_exalens_lib import (
 )
 
 from .format_config import DataFormat, FormatConfig
-from .llk_params import DestAccumulation, Mailbox
+from .llk_params import DestDatumWidth, Mailbox
 from .pack import (
     pack_bfp8_b,
     pack_bfp16,
@@ -426,7 +426,7 @@ def get_result_from_device(
         raise ValueError(f"Unsupported format: {formats.output_format}")
 
 
-def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
+def read_dest_register(dest_acc: DestDatumWidth, num_tiles: int = 1):
     """
     Reads values in the destination register from the device.
         - Only supported on BH . Due to hardware bug, TRISCs exit the halted state after a single read and must be rehalted for each read. On wormhole they cannot be halted again. This breaks multi-read loops (e.g., 1024 reads).
@@ -470,7 +470,7 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
     location = RiscLoc(loc=coordinate, noc_id=noc_id, risc_id=risc_id)
     debug_risc = RiscDebug(location=location, context=context, verbose=False)
 
-    assert num_tiles <= (8 if dest_acc == DestAccumulation.Yes else 16)
+    assert num_tiles <= (8 if dest_acc == DestDatumWidth.Bit32 else 16)
 
     word_size = 4  # bytes per 32-bit integer
     num_words = num_tiles * 1024

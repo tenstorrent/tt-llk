@@ -13,7 +13,7 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
-    DestAccumulation,
+    DestDatumWidth,
     DestSync,
     MathFidelity,
     StochasticRounding,
@@ -34,7 +34,7 @@ MATMUL_FORMATS = input_output_formats(
         DataFormat.Float32,
     ]
 )
-DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
+DEST_ACC_MODES = [DestDatumWidth.Bit16, DestDatumWidth.Bit32]
 DEST_SYNC_MODES = [DestSync.Half, DestSync.Full]
 STOCHASTIC_ROUNDING_MODES = [StochasticRounding.No]
 MATH_FIDELITIES = [

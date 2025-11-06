@@ -13,7 +13,7 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
-    DestAccumulation,
+    DestDatumWidth,
     DestSync,
     ImpliedMathFormat,
     MathFidelity,
@@ -36,7 +36,7 @@ matmul_dimensions_32_bit_dest = [
     (
         [mt_dim * TILE_DIM, kt_dim * TILE_DIM],
         [kt_dim * TILE_DIM, nt_dim * TILE_DIM],
-        DestAccumulation.Yes,
+        DestDatumWidth.Bit32,
     )
     for mt_dim in range(1, MAX_TILES_32_BIT_DEST + 1)
     for nt_dim in range(1, MAX_TILES_32_BIT_DEST // mt_dim + 1)
@@ -47,7 +47,7 @@ matmul_dimensions_16_bit_dest = [
     (
         [mt_dim * TILE_DIM, kt_dim * TILE_DIM],
         [kt_dim * TILE_DIM, nt_dim * TILE_DIM],
-        DestAccumulation.No,
+        DestDatumWidth.Bit16,
     )
     for mt_dim in range(1, MAX_TILES_16_BIT_DEST + 1)
     for nt_dim in range(1, MAX_TILES_16_BIT_DEST // mt_dim + 1)
@@ -62,7 +62,7 @@ MATMUL_FORMAT = input_output_formats(
     ],
     same=True,
 )
-DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
+DEST_ACC_MODES = [DestDatumWidth.Bit16, DestDatumWidth.Bit32]
 IMPLIED_MATH_FORMAT = [ImpliedMathFormat.No, ImpliedMathFormat.Yes]
 DEST_SYNC_MODES = [DestSync.Half, DestSync.Full]
 TRANSPOSE_MODES = [Transpose.No]
@@ -96,7 +96,7 @@ def test_matmul(
 ):
     input_A_dimensions, input_B_dimensions, dest_acc = dimensions_dest_acc
 
-    if (format.input_format, dest_acc) == (DataFormat.Float16, DestAccumulation.Yes):
+    if (format.input_format, dest_acc) == (DataFormat.Float16, DestDatumWidth.Bit32):
         pytest.skip(
             "Float16 with 32-bit dest or Float32 without 32-bit dest is not supported"
         )

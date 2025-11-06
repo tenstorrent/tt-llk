@@ -7,7 +7,7 @@ from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
 from helpers.llk_params import (
-    DestAccumulation,
+    DestDatumWidth,
     MathFidelity,
     MathOperation,
     format_dict,
@@ -29,7 +29,7 @@ from helpers.utils import passed_test
         ]
     ),
     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestDatumWidth.Bit16, DestDatumWidth.Bit32],
     math_fidelity=[
         MathFidelity.LoFi,
         MathFidelity.HiFi2,

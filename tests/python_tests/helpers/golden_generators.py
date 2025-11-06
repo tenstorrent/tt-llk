@@ -6,7 +6,7 @@ from typing import Optional
 import torch
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
-    DestAccumulation,
+    DestDatumWidth,
     MathFidelity,
     MathOperation,
     ReduceDimension,
@@ -826,7 +826,7 @@ class UnarySFPUGolden:
             MathOperation.ReduceColumn: self._reduce_columns,
         }
         self.data_format = None
-        self.dest_acc = DestAccumulation.No
+        self.dest_acc = DestDatumWidth.Bit16
 
     def __call__(
         self,
@@ -844,14 +844,14 @@ class UnarySFPUGolden:
             raise ValueError(f"Unsupported operation: {operation}")
 
         # determine the data format for dst
-        if self.dest_acc == DestAccumulation.Yes:
+        if self.dest_acc == DestDatumWidth.Bit32:
             dst_format = DataFormat.Float32
         elif DataFormat.Float16 in (input_format, data_format):
             dst_format = DataFormat.Float16
         else:
             dst_format = DataFormat.Float16_b
 
-        if self.dest_acc == DestAccumulation.No and input_format == DataFormat.Float32:
+        if self.dest_acc == DestDatumWidth.Bit16 and input_format == DataFormat.Float32:
             # dst in 16-bit mode and 32-bit input: truncation may occur when unpacked to dst
             if dst_format == DataFormat.Float16:
                 # truncate to float16

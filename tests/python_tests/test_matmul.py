@@ -7,7 +7,7 @@ import torch
 from helpers.device import BootMode, collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
+from helpers.llk_params import DestDatumWidth, MathFidelity, format_dict
 from helpers.matmul_sweep import (
     generate_matmul_dimension_combinations,
     generate_tile_dims,
@@ -21,7 +21,7 @@ from helpers.utils import passed_test
 
 def generate_format_aware_matmul_combinations(
     formats_list: List[FormatConfig],
-    dest_acc_modes: List[DestAccumulation],
+    dest_acc_modes: List[DestDatumWidth],
 ):
     """
     Generate matmul dimension combinations for multiple tiles.
@@ -40,7 +40,7 @@ def generate_format_aware_matmul_combinations(
         base_max_tiles = 4 if is_dest_acc_needed(fmt) else 8
 
         for dest_acc in dest_acc_modes:
-            max_tiles = 4 if dest_acc == DestAccumulation.Yes else base_max_tiles
+            max_tiles = 4 if dest_acc == DestDatumWidth.Bit32 else base_max_tiles
             dimensions_list = generate_matmul_dimension_combinations(max_tiles)
             combinations.extend([(fmt, dest_acc, dims) for dims in dimensions_list])
 
@@ -55,7 +55,7 @@ MATMUL_FORMATS = input_output_formats(
         DataFormat.Float32,
     ]
 )
-DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
+DEST_ACC_MODES = [DestDatumWidth.Bit16, DestDatumWidth.Bit32]
 ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     MATMUL_FORMATS, DEST_ACC_MODES
 )

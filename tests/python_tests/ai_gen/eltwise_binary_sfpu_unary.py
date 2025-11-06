@@ -11,7 +11,7 @@ from helpers.golden_generators import (
 )
 from helpers.llk_params import (
     ApproximationMode,
-    DestAccumulation,
+    DestDatumWidth,
     DstSync,
     MathFidelity,
     MathOperation,
@@ -79,7 +79,7 @@ all_params = [
         "math_fidelity": math_fidelity,
     }
     for fmt in test_formats
-    for dest_acc in [DestAccumulation.Yes, DestAccumulation.No]
+    for dest_acc in [DestDatumWidth.Bit32, DestDatumWidth.Bit16]
     for approx_mode in [ApproximationMode.Yes, ApproximationMode.No]
     for binary_op in binary_ops
     for unary_op in unary_ops

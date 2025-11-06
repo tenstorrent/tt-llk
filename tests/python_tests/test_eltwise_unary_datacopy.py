@@ -5,7 +5,7 @@ import torch
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, TilizeGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, Tilize, format_dict
+from helpers.llk_params import DestDatumWidth, Tilize, format_dict
 from helpers.param_config import (
     generate_tilize_aware_datacopy_combinations,
     input_output_formats,
@@ -59,7 +59,7 @@ def test_unary_datacopy(test_name, datacopy_parameters):
     unpack_to_dest = (
         False
         if tilize_en == Tilize.Yes and formats.input_format == DataFormat.Float32
-        else formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+        else formats.input_format.is_32_bit() and dest_acc == DestDatumWidth.Bit32
     )
 
     test_config = {

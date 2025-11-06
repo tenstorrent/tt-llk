@@ -6,7 +6,7 @@ import torch
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import UntilizeGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, format_dict
+from helpers.llk_params import DestDatumWidth, format_dict
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
@@ -24,7 +24,7 @@ from helpers.utils import passed_test
             DataFormat.Bfp8_b,
         ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
     ),
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestDatumWidth.Bit16, DestDatumWidth.Bit32],
 )
 def test_pack_untilize(test_name, formats, dest_acc):
     if formats.output_format == DataFormat.Bfp8_b:
@@ -38,7 +38,7 @@ def test_pack_untilize(test_name, formats, dest_acc):
     if (
         formats.input_format == DataFormat.Int32
         and formats.output_format == DataFormat.Int32
-        and dest_acc == DestAccumulation.No
+        and dest_acc == DestDatumWidth.Bit16
     ):
         pytest.skip("Dest must be in 32bit mode when input and output are Int32")
 

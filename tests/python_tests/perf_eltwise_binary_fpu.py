@@ -3,7 +3,7 @@
 
 import pytest
 from helpers.format_config import DataFormat
-from helpers.llk_params import DestAccumulation, MathFidelity, MathOperation
+from helpers.llk_params import DestDatumWidth, MathFidelity, MathOperation
 from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import ALL_RUN_TYPES, perf_benchmark, update_report
 
@@ -22,7 +22,7 @@ from helpers.perf import ALL_RUN_TYPES, perf_benchmark, update_report
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestDatumWidth.Bit16, DestDatumWidth.Bit32],
 )
 def test_perf_eltwise_binary_fpu(
     perf_report, test_name, formats, mathop, tile_count, math_fidelity, dest_acc

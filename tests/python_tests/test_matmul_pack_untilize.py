@@ -6,7 +6,7 @@ import torch
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import MatmulGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
+from helpers.llk_params import DestDatumWidth, MathFidelity, format_dict
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
@@ -24,7 +24,7 @@ from helpers.utils import passed_test
             DataFormat.Float32,
         ]
     ),
-    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+    dest_acc=[DestDatumWidth.Bit32, DestDatumWidth.Bit16],
     math_fidelity=[
         MathFidelity.LoFi,
         MathFidelity.HiFi2,

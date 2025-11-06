@@ -7,7 +7,7 @@ from conftest import skip_for_blackhole
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import TilizeGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, format_dict
+from helpers.llk_params import DestDatumWidth, format_dict
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
@@ -53,7 +53,7 @@ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
     formats=input_output_formats(
         [DataFormat.Float32, DataFormat.Float16_b, DataFormat.Bfp8_b]
     ),
-    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+    dest_acc=[DestDatumWidth.Bit32, DestDatumWidth.Bit16],
     dimensions=generate_input_dimensions(25),
 )
 def test_fast_tilize(test_name, formats, dest_acc, dimensions):

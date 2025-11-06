@@ -6,7 +6,7 @@ from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
 from helpers.llk_params import (
-    DestAccumulation,
+    DestDatumWidth,
     MathFidelity,
     MathOperation,
     format_dict,
@@ -33,7 +33,7 @@ def test_risc_compute():
     test_config = {
         "formats": formats,
         "testname": "risc_compute_test",
-        "dest_acc": DestAccumulation.No,
+        "dest_acc": DestDatumWidth.Bit16,
         "input_A_dimensions": input_dimensions,
         "input_B_dimensions": input_dimensions,
         "mathop": MathOperation.Elwadd,

@@ -14,7 +14,7 @@ from helpers.golden_generators import (
 )
 from helpers.llk_params import (
     ApproximationMode,
-    DestAccumulation,
+    DestDatumWidth,
     MathFidelity,
     MathOperation,
     format_dict,
@@ -51,7 +51,7 @@ from helpers.utils import passed_test
         MathOperation.Square,
     ],
     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
-    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
+    dest_acc=[DestDatumWidth.Bit32, DestDatumWidth.Bit16],
     math_fidelity=[
         MathFidelity.LoFi,
         # MathFidelity.HiFi2, TODO: FIND OUT WHY
@@ -77,7 +77,7 @@ def test_matmul_and_unary_sfpu(
             MathOperation.Square,
             MathOperation.Hardsigmoid,
         ]
-        and dest_acc == DestAccumulation.No
+        and dest_acc == DestDatumWidth.Bit16
         and get_chip_architecture() == ChipArchitecture.BLACKHOLE
     ):
         pytest.skip("BFP8 does not support Log and Reciprocal operations")

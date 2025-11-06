@@ -18,7 +18,7 @@ from helpers.golden_generators import (
 )
 from helpers.llk_params import (
     BroadcastType,
-    DestAccumulation,
+    DestDatumWidth,
     EltwiseBinaryReuseDestType,
     StochasticRounding,
     Transpose,
@@ -45,7 +45,7 @@ broadcast_types = [
     BroadcastType.Row,
     BroadcastType.Scalar,
 ]
-dest_acc = [DestAccumulation.Yes, DestAccumulation.No]
+dest_acc = [DestDatumWidth.Bit32, DestDatumWidth.Bit16]
 disable_src_zero_flags = [False, True]
 acc_to_dest_flags = [False, True]
 stochastic_rnd = [
@@ -495,7 +495,7 @@ def test_unpack_comprehensive(
         "reuse_dest": reuse_dest,
         "unpack_to_dest": unpack_to_dest,
         "stochastic_rnd": stochastic_rnd,
-        "dest_acc": DestAccumulation.Yes if acc_to_dest else DestAccumulation.No,
+        "dest_acc": DestDatumWidth.Bit32 if acc_to_dest else DestDatumWidth.Bit16,
         "disable_src_zero_flag": disable_src_zero,
         "unpack_transpose_faces": transpose_of_faces,
         "unpack_transpose_within_face": within_face_16x16_transpose,

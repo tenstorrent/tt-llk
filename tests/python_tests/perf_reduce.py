@@ -4,7 +4,7 @@
 import pytest
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
-    DestAccumulation,
+    DestDatumWidth,
     MathOperation,
     ReduceDimension,
     ReducePool,
@@ -38,7 +38,7 @@ REDUCE_MATHOP = {
         ]
     ),
     tile_count=16,
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestDatumWidth.Bit16],
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )

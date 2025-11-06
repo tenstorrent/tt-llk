@@ -12,7 +12,7 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
-    DestAccumulation,
+    DestDatumWidth,
     DstSync,
     MathFidelity,
     MathOperation,
@@ -77,7 +77,7 @@ all_params = [
         "math_fidelity": fidelity,
     }
     for fmt in _test_formats
-    for dest_acc in [DestAccumulation.Yes, DestAccumulation.No]
+    for dest_acc in [DestDatumWidth.Bit32, DestDatumWidth.Bit16]
     for bin_op in binary_ops
     for un_op in unary_ops
     for dst_sync in dst_sync_options

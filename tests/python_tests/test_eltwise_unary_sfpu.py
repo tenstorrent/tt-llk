@@ -10,7 +10,7 @@ from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
     ApproximationMode,
-    DestAccumulation,
+    DestDatumWidth,
     MathOperation,
     format_dict,
 )
@@ -56,12 +56,12 @@ from helpers.utils import passed_test
         MathOperation.ReluMax,
         MathOperation.ReluMin,
     ],
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestDatumWidth.Bit16, DestDatumWidth.Bit32],
 )
 def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_acc):
     arch = get_chip_architecture()
 
-    if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
+    if dest_acc == DestDatumWidth.Bit16 and arch == ChipArchitecture.BLACKHOLE:
         if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(
             DataFormat.Float32, DataFormat.Float16
         ):
@@ -90,7 +90,7 @@ def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_
         MathOperation.Neg,
         MathOperation.Fill,
     ],
-    dest_acc=[DestAccumulation.Yes],
+    dest_acc=[DestDatumWidth.Bit32],
 )
 def test_eltwise_unary_sfpu_int(test_name, formats, approx_mode, mathop, dest_acc):
     if formats.input_format == DataFormat.Int32:
@@ -116,7 +116,7 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     unpack_to_dest = (
         formats.input_format.is_32_bit()
         and dest_acc
-        == DestAccumulation.Yes  # If dest_acc is off, we unpack Float32 into 16-bit format in src registers (later copied over in dest reg for SFPU op)
+        == DestDatumWidth.Bit32  # If dest_acc is off, we unpack Float32 into 16-bit format in src registers (later copied over in dest reg for SFPU op)
     )
     test_config = {
         "formats": formats,

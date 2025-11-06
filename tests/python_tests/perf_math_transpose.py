@@ -4,7 +4,7 @@
 import pytest
 from conftest import skip_for_blackhole, skip_for_wormhole
 from helpers.format_config import DataFormat
-from helpers.llk_params import DestAccumulation, Transpose
+from helpers.llk_params import DestDatumWidth, Transpose
 from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import PerfRunType, perf_benchmark, update_report
 
@@ -40,9 +40,9 @@ def test_perf_math_transpose(
         pytest.skip("Skip transposing faces twice")
 
     dest_acc = (
-        DestAccumulation.Yes
+        DestDatumWidth.Bit32
         if formats.input_format.is_32_bit()
-        else DestAccumulation.No
+        else DestDatumWidth.Bit16
     )
 
     test_config = {

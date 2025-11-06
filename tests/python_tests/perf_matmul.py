@@ -5,7 +5,7 @@ from typing import List
 
 import pytest
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
-from helpers.llk_params import DestAccumulation, MathFidelity
+from helpers.llk_params import DestDatumWidth, MathFidelity
 from helpers.matmul_sweep import (
     generate_matmul_dimension_combinations,
     generate_tile_dims,
@@ -19,10 +19,10 @@ KT_DIMS = [1, 2, 3, 4, 8, 64]
 
 def matmul_combos(
     formats: List[FormatConfig],
-    dest_acc: List[DestAccumulation],
+    dest_acc: List[DestDatumWidth],
 ):
-    def _dest_bank_max_tiles(format: FormatConfig, dest_acc: DestAccumulation):
-        if is_dest_acc_needed(format) or dest_acc == DestAccumulation.Yes:
+    def _dest_bank_max_tiles(format: FormatConfig, dest_acc: DestDatumWidth):
+        if is_dest_acc_needed(format) or dest_acc == DestDatumWidth.Bit32:
             return 4
         return 8
 
@@ -54,7 +54,7 @@ def matmul_combos(
                 DataFormat.Bfp8_b,
             ]
         ),
-        dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+        dest_acc=[DestDatumWidth.Bit16, DestDatumWidth.Bit32],
     ),
     math_fidelity=[
         MathFidelity.LoFi,
@@ -67,7 +67,7 @@ def test_perf_matmul(perf_report, test_name, combos, math_fidelity):
 
     formats, dest_acc, (matrix_a, matrix_b) = combos
 
-    if is_dest_acc_needed(formats) and dest_acc == DestAccumulation.No:
+    if is_dest_acc_needed(formats) and dest_acc == DestDatumWidth.Bit16:
         pytest.skip("Dest accumulation must be enabled for this format")
 
     run_types = [PerfRunType.L1_TO_L1]
