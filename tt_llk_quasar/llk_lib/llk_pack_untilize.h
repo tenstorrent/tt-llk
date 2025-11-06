@@ -28,10 +28,10 @@ inline void _llk_pack_untilize_mop_config_()
     constexpr static uint pack_instrn = TT_OP_PACR_UNTILIZE(0, 0, 1 /*inc Dst (L1) ctr*/, 1 /*inc Src ctr*/, 0 /*Packer 0 Sel*/, BUF_DESC_ID, 0);
     // reset_src_reg_instrn will reset Src (DEST reg) counter when the DEST reg bank is flipped aka at the last tile of the
     // block
-    constexpr static uint reset_src_reg_instrn =
-        TT_OP_PACR_UNTILIZE(0, 1 /*Cntr_Reset_Mask*/, 0 /*inc Dst (L1) ctr*/, 0 /*inc Src ctr*/, 0, BUF_DESC_ID, 0 /*Clr Dvalid*/);
+    constexpr static uint reset_src_and_dst_reg_instrn =
+        TT_OP_PACR_UNTILIZE(0, 3 /*Cntr_Reset_Mask*/, 0 /*inc Dst (L1) ctr*/, 0 /*inc Src ctr*/, 0, BUF_DESC_ID, 0 /*Clr Dvalid*/);
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pack_instrn);
-    temp.set_last_outer_loop_instr(reset_src_reg_instrn);
+    temp.set_last_outer_loop_instr(reset_src_and_dst_reg_instrn);
 
     temp.program_bank0_sw_cntl(instrn_buffer);
 }
