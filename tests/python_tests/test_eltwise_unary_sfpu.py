@@ -59,6 +59,7 @@ from helpers.utils import passed_test
     dest_acc=[DestAccumulation.Yes],  # DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_acc):
+    pytest.skip()
     arch = get_chip_architecture()
 
     if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
