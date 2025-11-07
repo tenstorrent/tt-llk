@@ -227,7 +227,7 @@ constexpr bool is_supported_reduce_format(DataFormat format)
 }
 
 //**************************************************************
-// SFPU REDUCE COL IMPLEMENTATION FOR SDPA
+// SFPU REDUCE MAX COL IMPLEMENTATION
 //**************************************************************
 inline void sfpu_reduce_max_col_configure_addrmod(uint32_t num_cols)
 {
@@ -429,10 +429,9 @@ inline void _calculate_reduce_(uint32_t block_rt_dim = 0 /* used in reduce max c
  *                - Supported integer formats: Int32, UInt32 (uses integer initialization)
  *                - Supported floating-point formats: Float32 (uses floating-point initialization)
  */
-template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
+template <PoolType pool_type, DataFormat format>
 inline void _init_reduce_(uint32_t block_ct_dim = 0 /* used in reduce max col*/)
 {
-    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32, Float16_b");
 
     // Initialize SFPU configuration register
