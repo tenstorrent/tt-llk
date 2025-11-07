@@ -30,7 +30,7 @@ constexpr T POLYVAL7(T coef6, T coef5, T coef4, T coef3, T coef2, T coef1, T coe
  * coef[0] + coef[1]*x + coef[2]*x^2 + ... + coef[N-1]*x^(N-1)
  *
  * @note Uses Horner's method for numerical stability and O(N) complexity.
- * @note For N <= 0, returns T{0}. For N == 1, returns the constant term.
+ * @note For N == 0, returns T{0}. For N == 1, returns the constant term.
  *
  * @see https://en.wikipedia.org/wiki/Horner%27s_method
  */
@@ -46,6 +46,13 @@ struct PolynomialEvaluator
      *
      * @note Coefficients can be either float, sfpi::vFloat, ... (scalar and sfpi typed arguments can be mixed)
      */
+
+    // Base case: f(x) = 0 (rank-0 polynomial)
+    template <typename U>
+    static constexpr auto eval(U x)
+    {
+        return U{0};
+    }
 
     template <typename U, typename Coefficient0>
     static constexpr auto eval(U x, Coefficient0 coeff0)
