@@ -4,9 +4,9 @@
 
 #pragma once
 
+#include "ckernel.h"
 #include "ckernel_addrmod.h"
 #include "ckernel_instr_params.h"
-#include "lltt.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -20,12 +20,12 @@ namespace sfpu
  *        Uses an optimized approach that processes vertically aligned face pairs (0+2, 1+3) to minimize
  *        load/store operations and eliminate intermediate storage requirements.
  *        For integer formats with averaging, handles negative numbers properly using condition codes
- *        since Wormhole B0 only supports logical shift (not arithmetic shift).
+ *        since Blackhole only supports logical shift (not arithmetic shift).
  * @tparam pool_type The pool/reduction pool_type (SUM, AVG, MAX). Currently only SUM and AVG are supported.
  * @tparam reduce_dim The reduction dimension (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR). Currently only REDUCE_COL is supported.
  * @tparam INSTRUCTION_MODE The instruction modifier that determines the data type and precision:
  *                          - InstrModLoadStore::INT32: Signed 32-bit integers
- *                          - InstrModLoadStore::INT32_2S_COMP: 32-bit integers in 2's complement (no effect in Wormhole B0)
+ *                          - InstrModLoadStore::INT32_2S_COMP: 32-bit integers in 2's complement (no effect in Blackhole)
  *                          - InstrModLoadStore::LO16: Unsigned 16-bit integers (lower 16 bits)
  */
 template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTION_MODE>
@@ -64,16 +64,16 @@ inline void calculate_reduce_int()
         const uint COLUMN_OFFSET   = COLUMN_OFFSETS[i];
 
         // Load upper face data (Face 0 or Face 1)
-        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
-        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
-        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
-        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
+        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, UPPER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
+        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, UPPER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
+        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, UPPER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
+        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, UPPER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
 
         // Load lower face data (Face 2 or Face 3)
-        TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
-        TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
-        TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
-        TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
+        TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, LOWER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
+        TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, LOWER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
+        TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, LOWER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
+        TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, LOWER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
 
         // Process column sums for both faces using transpose and replay buffer
         TT_SFPTRANSP(0, 0, 0, 0); // Transpose: LREG0-3 → lanes 0-3, LREG4-7 → lanes 0-3 (overlapping)
@@ -86,7 +86,7 @@ inline void calculate_reduce_int()
         if constexpr (pool_type == AVG)
         {
             // For integer formats, we need to handle negative numbers properly for division by 32
-            // Since Wormhole B0 only supports logical shift (not arithmetic), we need to:
+            // Since Blackhole only supports logical shift (not arithmetic), we need to:
             // 1. Check if the number is negative using condition codes (only for signed formats)
             // 2. If negative, negate it, shift right by 5 bits, then negate back
             // 3. If positive, just shift right by 5 bits
@@ -121,7 +121,7 @@ inline void calculate_reduce_int()
         }
 
         // Store the final combined column sums
-        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET);
+        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, UPPER_FACE_ADDR + COLUMN_OFFSET);
     }
 
     // After this loop, the column sums are stored at first row in dest reg:
@@ -178,26 +178,25 @@ inline void calculate_reduce_float()
         const uint COLUMN_OFFSET   = COLUMN_OFFSETS[i];
 
         // Load upper face data (Face 0 or Face 1)
-        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
-        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
-        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
-        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
+        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, UPPER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
+        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, UPPER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
+        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, UPPER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
+        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, UPPER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
 
         // Load lower face data (Face 2 or Face 3)
-        TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
-        TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
-        TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
-        TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, LOWER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
+        TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, LOWER_FACE_ADDR + COLUMN_OFFSET);      // rows 0-3
+        TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, LOWER_FACE_ADDR + COLUMN_OFFSET + 4);  // rows 4-7
+        TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, LOWER_FACE_ADDR + COLUMN_OFFSET + 8);  // rows 8-11
+        TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, LOWER_FACE_ADDR + COLUMN_OFFSET + 12); // rows 12-15
 
         // Process column sums for both faces using transpose and replay buffer
         TT_SFPTRANSP(0, 0, 0, 0); // Transpose: LREG0-3 → lanes 0-3, LREG4-7 → lanes 0-3 (overlapping)
-        lltt::replay(0, 12);      // Column-wise sum within each lreg after transpose
+        lltt::replay(0, 6);       // Column-wise sum within each lreg after transpose
         TT_SFPTRANSP(0, 0, 0, 0); // Transpose back to original register layout
-        lltt::replay(0, 12);      // Sum column sums within each face after transpose
+        lltt::replay(0, 6);       // Sum column sums within each face after transpose
 
         // Combine the column sums from upper and lower faces
         TT_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG4, p_sfpu::LREG0, 0); // LREG0 = (LREG0 * 1) + LREG4 = upper_face_sums + lower_face_sums (float)
-        TTI_SFPNOP;                                                                  // Required for Wormhole
 
         if constexpr (pool_type == AVG)
         {
@@ -207,10 +206,9 @@ inline void calculate_reduce_float()
             TT_SFPLOADI(p_sfpu::LREG1, 10, 0x0000); // Load 0.03125 as FP16B low part
             // Multiply by 1/32 (divide by 32) - works for both float and integer formats
             TTI_SFPMUL(p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
-            TTI_NOP; // Required after SFPMUL due to 2-cycle latency
         }
         // Store the final combined column sums
-        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, UPPER_FACE_ADDR + COLUMN_OFFSET);
+        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, UPPER_FACE_ADDR + COLUMN_OFFSET);
     }
 
     // After this loop, the column sums are stored at first row in dest reg:
@@ -401,7 +399,7 @@ template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
 inline void _calculate_reduce_(uint32_t block_rt_dim = 0 /* used in reduce max col*/)
 {
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
-    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32");
+    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32, Float16_b");
 
     if constexpr (pool_type == PoolType::MAX)
     {
@@ -425,7 +423,7 @@ inline void _calculate_reduce_(uint32_t block_rt_dim = 0 /* used in reduce max c
 }
 
 /**
- * @brief Unified initialization wrapper for SFPU reduce kernel.
+ * @brief Initialization for SFPU reduce kernel.
  *        Automatically chooses between integer and floating-point initialization based on the data format.
  * @tparam format The data format (DataFormat enum value) that determines which initialization to use:
  *                - Supported integer formats: Int32, UInt32 (uses integer initialization)
@@ -442,7 +440,7 @@ inline void _init_reduce_(uint32_t block_ct_dim = 0 /* used in reduce max col*/)
 
     // Determine if we're working with integer or float based on DataFormat
     constexpr bool is_integer_mode = (format == DataFormat::Int32 || format == DataFormat::UInt32);
-    constexpr bool is_float_mode   = (format == DataFormat::Float32 || format == DataFormat::Float16_b);
+    constexpr bool is_float_mode   = (format == DataFormat::Float32) || (format == DataFormat::Float16_b);
 
     static_assert(is_integer_mode || is_float_mode, "DataFormat must be one of: Int32, UInt32 (integer) or Float32 (float)");
 
@@ -477,36 +475,30 @@ inline void _init_reduce_(uint32_t block_ct_dim = 0 /* used in reduce max col*/)
         }
         else // is_float_mode
         {
-            // Program replay buffer for float operations (12 instructions)
-            lltt::record(0, 12);
+            // Program replay buffer for float operations (6 instructions)
+            lltt::record(0, 6);
 
             // Column summation for upper face data (originally LREG0-3) - float version
             // After transpose: LREG0→lane0, LREG1→lane1, LREG2→lane2, LREG3→lane3 across lregs 0-3
             TTI_SFPADD(p_sfpu::LREG2, p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG2, 0); // LREG2 = (LREG2 * 1) + LREG3 = LREG2 + LREG3 (float)
-            TTI_SFPNOP;
             TTI_SFPADD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG1, 0); // LREG1 = (LREG1 * 1) + LREG2 = LREG1 + LREG2 (float)
-            TTI_SFPNOP;
             TTI_SFPADD(
                 p_sfpu::LREG0,
                 p_sfpu::LCONST_1,
                 p_sfpu::LREG1,
                 p_sfpu::LREG0,
                 0); // LREG0 = (LREG0 * 1) + LREG1 = LREG0 + LREG1 (upper face column sums, float)
-            TTI_SFPNOP;
 
             // Column summation for lower face data (originally LREG4-7) - float version
             // After transpose: LREG4→lane0, LREG5→lane1, LREG6→lane2, LREG7→lane3 across lregs 4-7
             TTI_SFPADD(p_sfpu::LREG6, p_sfpu::LCONST_1, p_sfpu::LREG7, p_sfpu::LREG6, 0); // LREG6 = (LREG6 * 1) + LREG7 = LREG6 + LREG7 (float)
-            TTI_SFPNOP;
             TTI_SFPADD(p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG6, p_sfpu::LREG5, 0); // LREG5 = (LREG5 * 1) + LREG6 = LREG5 + LREG6 (float)
-            TTI_SFPNOP;
             TTI_SFPADD(
                 p_sfpu::LREG4,
                 p_sfpu::LCONST_1,
                 p_sfpu::LREG5,
                 p_sfpu::LREG4,
                 0); // LREG4 = (LREG4 * 1) + LREG5 = LREG4 + LREG5 (lower face column sums, float)
-            TTI_SFPNOP;
         }
     }
 }
