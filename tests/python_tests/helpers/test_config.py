@@ -490,8 +490,12 @@ def write_build_header(test_config):
         f.write(header_content)
 
 
+from hashlib import md5
+
+
 def generate_make_command(
     test_config,
+    variant_id,
     with_coverage,
     boot_mode: BootMode,
     profiler_build: ProfilerBuild,
@@ -501,7 +505,7 @@ def generate_make_command(
     boot_mode = resolve_default_boot_mode(boot_mode)
 
     # Simplified make command - only basic build parameters
-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} coverage_build={str(with_coverage).lower()} all "
+    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} coverage_build={str(with_coverage).lower()} variant={variant_id} all "
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
@@ -511,6 +515,7 @@ def generate_make_command(
 
 def build_test(
     test_config,
+    variant_id,
     with_coverage,
     boot_mode: BootMode,
     profiler_build: ProfilerBuild,
@@ -520,7 +525,7 @@ def build_test(
     tests_dir = str((llk_home / "tests").absolute())
     write_build_header(test_config)
     make_cmd = generate_make_command(
-        test_config, with_coverage, boot_mode, profiler_build
+        test_config, variant_id, with_coverage, boot_mode, profiler_build
     )
     run_shell_command(make_cmd, cwd=tests_dir)
 
@@ -532,13 +537,19 @@ def run_test(
 ):
     """Run the test with the given configuration"""
 
-    test_target = TestTargetConfig()
+    variant_id = md5(f"{str(test_config)}".encode()).hexdigest()
 
-    build_test(test_config, test_target.with_coverage, boot_mode, profiler_build)
+    test_target = TestTargetConfig()
+    location = f"0,{test_target.worker_index}"
+    print(location)
+
+    build_test(
+        test_config, variant_id, test_target.with_coverage, boot_mode, profiler_build
+    )
 
     # run test
-    run_elf_files(test_config["testname"], boot_mode)
-    wait_for_tensix_operations_finished()
+    run_elf_files(test_config["testname"], variant_id, boot_mode, location=location)
+    wait_for_tensix_operations_finished(location)
 
     if test_target.with_coverage:
-        pull_coverage_data(test_config)
+        pull_coverage_data(test_config["testname"], variant_id)
