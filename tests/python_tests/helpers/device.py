@@ -5,7 +5,6 @@ import inspect
 import os
 import time
 from enum import Enum, IntEnum
-from hashlib import md5
 from pathlib import Path
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
@@ -194,7 +193,7 @@ def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
 
 
-def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
+def run_elf_files(testname, variant_id, boot_mode, device_id=0, location="0,0"):
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
     BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
@@ -212,9 +211,9 @@ def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
     trisc_start_addresses = [0x16DFF0, 0x16DFF4, 0x16DFF8]
     is_wormhole = get_chip_architecture() == ChipArchitecture.WORMHOLE
     for i, trisc_name in enumerate(trisc_names):
-        elf_path = BUILD_DIR / "tests" / testname / "elf" / f"{trisc_name}.elf"
+        elf_path = BUILD_DIR / testname / variant_id / "elf" / f"{trisc_name}.elf"
         if is_wormhole:
-            start_address = load_elf(
+            load_elf(
                 elf_file=str(elf_path.absolute()),
                 location=location,
                 risc_name=f"trisc{i}",
@@ -295,6 +294,9 @@ def write_stimuli_to_l1(
     """
 
     TILE_ELEMENTS = 1024
+
+    test_target = TestTargetConfig()
+    location = f"0,{test_target.worker_index}"
 
     # Calculate L1 addresses
     tile_size_A_bytes = stimuli_A_format.num_bytes_per_tile(TILE_ELEMENTS)
@@ -540,9 +542,8 @@ def wait_for_tensix_operations_finished(location: str = "0,0"):
     wait_until_tensix_complete(location, Mailbox.Unpacker)
 
 
-def reset_mailboxes():
+def reset_mailboxes(location: str = "0,0"):
     """Reset all core mailboxes before each test."""
-    location = "0, 0"
     reset_value = 0  # Constant - indicates the TRISC kernel run status
     mailboxes = [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]
     for mailbox in mailboxes:
@@ -577,27 +578,28 @@ def coverage(
         f.write(data)
 
 
-def pull_coverage_data(test_config, device_id=0, location="0,0"):
-    test_run_id = md5(
-        f"{str(test_config)} - {time.clock_gettime(0)}".encode()
-    ).hexdigest()
+import shutil
 
+
+def pull_coverage_data(testname, variant_id, device_id=0, location="0,0"):
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
-    BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
-    COVERAGE_DIR = BUILD_DIR / "coverage"
+    BUILD_DIR = (
+        Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value / testname / variant_id
+    )
 
+    # please sweep for inconsistencies in variable names
     trisc_names = ["unpack", "math", "pack"]
     for i, trisc_name in enumerate(trisc_names):
-        elf_path = (
-            BUILD_DIR / "tests" / test_config["testname"] / "elf" / f"{trisc_name}.elf"
-        )
+        elf_path = BUILD_DIR / "elf" / f"{trisc_name}.elf"
         elf_file = parse_elf(elf_path)
-        stream_path = f"{COVERAGE_DIR}/{trisc_name}.raw.stream"
+        stream_path = f"{BUILD_DIR}/{trisc_name}.raw.stream"
         coverage(location, elf_file, stream_path, device_id, None)
 
     tests_dir = str(Path(LLK_HOME) / "tests")
     run_shell_command(
-        f"make testname={test_config['testname']} info_file_name=coverage_{test_run_id}.info coverage",
+        f"make testname={testname} info_file_name={testname}_{variant_id}.info variant={variant_id} coverage",
         cwd=tests_dir,
     )
+
+    shutil.rmtree(BUILD_DIR)

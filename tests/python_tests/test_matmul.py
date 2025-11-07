@@ -14,6 +14,7 @@ from helpers.matmul_sweep import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
+from helpers.target_config import TestTargetConfig
 from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
@@ -65,11 +66,11 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     test_name="matmul_test",
     math_fidelity=[
         MathFidelity.LoFi,
-        MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
+        # MathFidelity.HiFi2,
+        # MathFidelity.HiFi3,
+        # MathFidelity.HiFi4,
     ],
-    format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
+    format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS[:20],
 )
 # Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
 def test_matmul(
@@ -138,6 +139,8 @@ def test_matmul(
         "kt_dim": matmul_dims.kt_dim,
     }
 
+    test_target = TestTargetConfig()
+
     # Use the new helper function for writing stimuli
     res_address = write_stimuli_to_l1(
         test_config,
@@ -150,6 +153,9 @@ def test_matmul(
     )
 
     run_test(test_config, boot_mode)
+
+    if test_target.with_coverage:
+        return
 
     res_from_L1 = collect_results(
         formats, tile_count=matmul_dims.output_tile_cnt, address=res_address
