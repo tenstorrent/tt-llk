@@ -279,10 +279,10 @@ class UnpackerEngine(Enum):
     Enum for unpacker engine selection.
     """
 
-    UNP_A = 0
-    UNP_B = 1
-    UNP_S = 2
-    UNP_DEST = 3
+    UnpA = "UNP_A"
+    UnpB = "UNP_B"
+    UnpS = "UNP_S"
+    UnpDest = "UNP_DEST"
 
 
 # *********************************

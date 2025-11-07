@@ -136,10 +136,16 @@ def generate_build_header(test_config):
     )
 
     # ******** QUASAR specific ********
-    # Select unpacker
-    unpacker_engine_sel = test_config.get("unpacker_engine_sel", UnpackerEngine.UNP_A)
+    # Implied math format
+    implied_math_format = test_config.get("implied_math_format", ImpliedMathFormat.No)
     header_content.append(
-        f"constexpr auto UNPACKER_ENGINE_SEL = p_unpacr::{unpacker_engine_sel.name};"
+        f"constexpr bool IMPLIED_MATH_FORMAT = {implied_math_format.value};"
+    )
+
+    # Select unpacker
+    unpacker_engine_sel = test_config.get("unpacker_engine_sel", UnpackerEngine.UnpA)
+    header_content.append(
+        f"constexpr uint UNPACKER_ENGINE_SEL = p_unpacr::{unpacker_engine_sel.value};"
     )
     # *********************************
 
@@ -228,12 +234,6 @@ def generate_build_header(test_config):
 
     header_content.append(f"constexpr bool PARTIAL_FACE_PACK = {partial_face_A};")
     header_content.append(f"constexpr bool PARTIAL_FACE_MATH = {partial_face_B};")
-
-    # Implied math format
-    implied_math_format = test_config.get("implied_math_format", ImpliedMathFormat.No)
-    header_content.append(
-        f"constexpr bool IMPLIED_MATH_FORMAT = {implied_math_format.value};"
-    )
 
     # Number of faces - support separate configurations for A and B
     num_faces = test_config.get("num_faces", 4)

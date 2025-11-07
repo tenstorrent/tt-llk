@@ -55,11 +55,11 @@ def generate_unpack_unary_operand_combinations(
         if fmt.input_format.is_32_bit():
             dest_acc_modes = [DestAccumulation.Yes]
             transpose_modes = [Transpose.No]
-            unpacker_engines = [UnpackerEngine.UNP_DEST]
+            unpacker_engines = [UnpackerEngine.UnpDest]
         else:
             dest_acc_modes = [DestAccumulation.No, DestAccumulation.Yes]
             transpose_modes = [Transpose.No, Transpose.Yes]
-            unpacker_engines = [UnpackerEngine.UNP_A, UnpackerEngine.UNP_B]
+            unpacker_engines = [UnpackerEngine.UnpA, UnpackerEngine.UnpB]
 
         for dest_acc in dest_acc_modes:
             dimensions_list = generate_unary_input_dimensions(dest_acc)
@@ -111,8 +111,8 @@ def test_unpack_unary_operand_quasar(
     )
 
     golden_src = (
-        src_B if unpacker_sel == UnpackerEngine.UNP_B else src_A
-    )  # use A for UNP_A and UNP_DEST
+        src_B if unpacker_sel == UnpackerEngine.UnpB else src_A
+    )  # use A for UnpA and UnpDest
     if transpose_en == Transpose.Yes:
         generate_golden = get_golden_generator(TransposeGolden)
         golden_tensor = generate_golden.transpose_faces_multi_tile(
