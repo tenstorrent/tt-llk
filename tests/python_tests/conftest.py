@@ -96,12 +96,9 @@ def with_coverage(request):
     return request.config.getoption("--coverage")
 
 
-@pytest.fixture
-def worker_index(request):
-    workerid = getattr(request.config, "workerinput", {}).get("workerid", "master")
-    if workerid.startswith("gw"):
-        return int(workerid[2:])
-    return 0
+@pytest.fixture()
+def worker_index(worker_id):
+    return worker_id
 
 
 def pytest_configure(config):

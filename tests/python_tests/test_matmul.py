@@ -75,14 +75,14 @@ logger = logging.getLogger(__name__)
         # MathFidelity.HiFi3,
         # MathFidelity.HiFi4,
     ],
-    format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS[:10],
+    format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS[:20],
 )
 # Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
 def test_matmul(
     test_name,
     math_fidelity,
     format_dest_acc_and_dims,
-    worker_index=0,
+    worker_index="gw0",
     boot_mode=BootMode.DEFAULT,
 ):
     torch_format = format_dict[format_dest_acc_and_dims[0].output_format]
@@ -145,8 +145,9 @@ def test_matmul(
         "kt_dim": matmul_dims.kt_dim,
     }
 
-    location = f"0,{worker_index}"
+    location = f"0,{worker_index[2:]}"
     logger.info(f"Worker {location}")
+    logger.info(f"Worker {test_config}")
 
     # Use the new helper function for writing stimuli
     res_address = write_stimuli_to_l1(
