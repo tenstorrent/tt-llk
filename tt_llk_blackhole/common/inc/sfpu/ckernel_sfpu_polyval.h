@@ -24,7 +24,7 @@ constexpr T POLYVAL7(T coef6, T coef5, T coef4, T coef3, T coef2, T coef1, T coe
  *
  * This template struct provides efficient polynomial evaluation at both compile-time
  * and runtime using Horner's method (synthetic division).
- * This implementation uses a recursive varadic template function to compute the polynomial value.
+ * This implementation uses a recursive variadic template function to compute the polynomial value.
  *
  * The polynomial is represented by coefficients in ascending order of powers:
  * coef[0] + coef[1]*x + coef[2]*x^2 + ... + coef[N-1]*x^(N-1)
@@ -51,7 +51,7 @@ struct PolynomialEvaluator
     template <typename U>
     static constexpr auto eval(U x)
     {
-        return U{0};
+        return U {0};
     }
 
     template <typename U, typename Coefficient0>
@@ -60,7 +60,7 @@ struct PolynomialEvaluator
         // Base case: f(x) = coeff0 (rank-0 polynomial)
         return coeff0;
     }
- 
+
     template <typename U, typename Coefficient0, typename... OtherCoefficients>
     static constexpr auto eval(U x, Coefficient0 coeff0, OtherCoefficients... other_coefficients)
     {
