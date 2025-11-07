@@ -169,16 +169,18 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
         TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
         TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
 
-    TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + face_offset);
-    TT_SFPSTORE(p_sfpu::LREG2, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + face_offset + 2);
-    TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, indices_tile_offset + face_offset);
-    TT_SFPSTORE(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_3, indices_tile_offset + face_offset + 2);
+        TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + face_offset);
+        TT_SFPSTORE(p_sfpu::LREG2, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + face_offset + 2);
+        TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, indices_tile_offset + face_offset);
+        TT_SFPSTORE(p_sfpu::LREG6, instr_mod_index, ADDR_MOD_3, indices_tile_offset + face_offset + 2);
+    }
 }
 
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int num_rows, int ITERATIONS>
+template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int num_rows, int ITERATIONS, ckernel::DataLayout layout = ckernel::DataLayout::TILE>
 inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
 {
-    static_assert(num_rows <= 32, "num_rows must be. lower or equal than: {32}"); // add others as support is added
+    static_assert(layout == ckernel::DataLayout::ROW_MAJOR, "layout must be ROW_MAJOR"); // add others as support is added
+    static_assert(num_rows <= 32, "num_rows must be. lower or equal than: {32}");        // add others as support is added
     // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size   = 64;
     const uint values_tile_offset  = values_tile_idx * dst_tile_size;
@@ -204,6 +206,7 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
     // indices
     TT_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::DEFAULT, ADDR_MOD_3, indices_tile_offset + 8);
     TT_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::DEFAULT, ADDR_MOD_3, indices_tile_offset + 12);
+
     // swap of both data and indices
     TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX); // Rows 2 and 3 are now sorted and are in LREG1 and LREG5
 
