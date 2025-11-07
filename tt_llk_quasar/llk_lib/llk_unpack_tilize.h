@@ -89,10 +89,10 @@ inline void _llk_unpack_tilize_init_()
  * @brief Unpacks a single full 32x32 tile, works for UNP_A, UNP_B, UNP_DEST
  * @tparam UNP_SEL: Selects which unpacker resource to use,
  * values = p_unpacr::UNP_A/p_unpacr::UNP_B/p_unpacr::UNP_DEST
- * @param l1_tile_idx: Index into the L1 buffer for a row of tiles
+ * @param l1_tile_idx: Index into the L1 buffer for a tile
  */
 template <uint32_t UNP_SEL>
-inline void _llk_unpack_tilize_(const uint l1_rt_offset)
+inline void _llk_unpack_tilize_(const uint l1_tile_idx)
 {
     // RT: for the best performance, setting counters should be placed in a REPLAY buffer
     // in the mop_config, but for back compatibility with APIs, the counter functions must
@@ -100,7 +100,7 @@ inline void _llk_unpack_tilize_(const uint l1_rt_offset)
 
     // Reset Dest counters for Unpacker to 0
     // Set Source counter to L1 base + offset
-    TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, UNP_SEL, l1_rt_offset);
+    TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, UNP_SEL, l1_tile_idx);
     TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, UNP_SEL, 0);
 
     // Runs MOP
