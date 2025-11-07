@@ -3,7 +3,7 @@
 
 import pytest
 import torch
-from conftest import skip_for_blackhole, skip_for_wormhole
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -39,8 +39,6 @@ ELTWISE_DIMENSIONS = [
 ]
 
 
-@skip_for_wormhole
-@skip_for_blackhole
 @parametrize(
     test_name="eltwise_binary_test",
     formats=input_output_formats(
@@ -74,6 +72,9 @@ def test_eltwise_binary(
     num_faces,
     boot_mode=BootMode.DEFAULT,
 ):
+    if get_chip_architecture() != ChipArchitecture.QUASAR:
+        pytest.skip("Quasar-only test")
+
     # Unpack dimensions and dest_acc from the tuple
     input_dimensions, dest_acc = dimensions_dest_acc
 
