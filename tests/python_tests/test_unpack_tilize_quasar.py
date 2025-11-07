@@ -15,7 +15,12 @@ from helpers.golden_generators import (
     TilizeGolden,
     get_golden_generator,
 )
-from helpers.llk_params import DestAccumulation, UnpackerEngine, format_dict
+from helpers.llk_params import (
+    DestAccumulation,
+    ImpliedMathFormat,
+    UnpackerEngine,
+    format_dict,
+)
 from helpers.param_config import (
     generate_unary_input_dimensions,
     input_output_formats,
@@ -114,6 +119,7 @@ def test_unpack_tilize_quasar(
         "unpack_to_dest": unpack_to_dest,
         "tile_cnt": tile_cnt,
         "unpacker_engine_sel": unpacker_sel,
+        "implied_math_format": ImpliedMathFormat.Yes,
     }
 
     res_address = write_stimuli_to_l1(
