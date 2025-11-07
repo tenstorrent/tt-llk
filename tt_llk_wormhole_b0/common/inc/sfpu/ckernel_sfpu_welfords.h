@@ -364,7 +364,7 @@ sfpi_inline void _calculate_welfords_tile_(uint32_t start_idx, const std::array<
  * @param reciprocal_lut The lookup table containing the reciprocals of the sample counts.
  */
 template <std::size_t reciprocal_size>
-sfpi_inline void _calculate_welfords_partial_tile_w_(
+sfpi_inline void _calculate_welfords_partial_tile_(
     uint32_t start_idx, uint32_t start_row, uint32_t num_rows, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
     [[unlikely]] if (num_rows == 0)
