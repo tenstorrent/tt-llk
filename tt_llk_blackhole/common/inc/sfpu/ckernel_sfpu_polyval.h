@@ -46,22 +46,19 @@ struct PolynomialEvaluator
      *
      * @note Coefficients can be either float, sfpi::vFloat, ... (scalar and sfpi typed arguments can be mixed)
      */
-    template <typename U, typename Coefficient0, typename... OtherCoefficients>
-    static constexpr auto eval(U x, Coefficient0 coeff0, OtherCoefficients... other_coefficients)
-    {
-        if constexpr (sizeof...(OtherCoefficients) == 0)
-        {
-            // Last coefficient: We don't want to call function
-            // recursively (unsure if SFPU addition by 0 would be optimized away)
-            // which is why we handled sizeof..(OtherCoefficients) == 0 separately
-            return coeff0;
-        }
-        else
-        {
-            // Recursive case: Horner's method
-            return coeff0 + x * eval(x, other_coefficients...);
-        }
-    }
+     template <typename U, typename Coefficient0>
+     static constexpr auto eval(U x, Coefficient0 coeff0)
+     {
+         // Base case: f(x) = coeff0 (rank-0 polynomial)
+         return coeff0;
+     }
+ 
+     template <typename U, typename Coefficient0, typename... OtherCoefficients>
+     static constexpr auto eval(U x, Coefficient0 coeff0, OtherCoefficients... other_coefficients)
+     {
+         // Recursive case: Horner's method
+         return coeff0 + x * eval(x, other_coefficients...);
+     }
 };
 
 } // namespace ckernel::sfpu
