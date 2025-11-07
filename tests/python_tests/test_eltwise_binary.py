@@ -14,7 +14,6 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
-    BroadcastType,
     DestAccumulation,
     MathFidelity,
     MathOperation,
@@ -43,11 +42,10 @@ ELTWISE_DIMENSIONS = [
     test_name="eltwise_binary_test",
     formats=input_output_formats(
         [
-            # DataFormat.Float32,
             DataFormat.Float16_b,
             DataFormat.Float16,
-            # DataFormat.Bfp8_b,
-        ]
+        ],
+        same=True,
     ),
     mathop=[
         MathOperation.Elwadd,
@@ -85,34 +83,6 @@ def test_eltwise_binary(
     ):
         pytest.skip("Math fidelity only affects multiplication operations")
 
-    # Skip mixed format cases for initial implementation
-    if formats.input_format != formats.output_format:
-        pytest.skip("Mixed format testing not implemented yet")
-
-    # Skip Float32 input with dest_acc=No (hardware limitation)
-    # DestAccumulation.No uses 16-bit destination mode, causing truncation with 32-bit inputs
-    if formats.input_format == DataFormat.Float32 and dest_acc == DestAccumulation.No:
-        pytest.skip(
-            "Float32 input not supported with DestAccumulation.No (16-bit dest mode)"
-        )
-
-    # Skip Bfp8_b as output format (not supported by pack operations)
-    if formats.output_format == DataFormat.Bfp8_b:
-        pytest.skip("Bfp8_b not supported as output format")
-
-    # Skip Float32/Int32 mixed combinations (Quasar hardware constraint)
-    # Cannot have FP32 and INT32 destination modes enabled simultaneously
-    if (
-        formats.input_format == DataFormat.Float32
-        and formats.output_format == DataFormat.Int32
-    ) or (
-        formats.input_format == DataFormat.Int32
-        and formats.output_format == DataFormat.Float32
-    ):
-        pytest.skip(
-            "Cannot mix Float32 and Int32 destination modes (Quasar constraint)"
-        )
-
     # Generate stimuli for both operands
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
@@ -142,7 +112,6 @@ def test_eltwise_binary(
         "mathop": mathop,
         "math_fidelity": math_fidelity,
         "dest_acc": dest_acc,
-        "broadcast_type": BroadcastType.None_,
         "input_A_dimensions": input_dimensions,
         "input_B_dimensions": input_dimensions,
         "unpack_to_dest": unpack_to_dest,

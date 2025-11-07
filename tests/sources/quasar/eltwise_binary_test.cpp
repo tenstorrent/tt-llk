@@ -29,9 +29,6 @@ void run_kernel()
     // Setup data valid scheme - binary operations always write to SrcA/SrcB, never DEST
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
-    // Clear source registers
-    _zerosrc_();
-
     // Configure Source A buffer descriptor
     buffer_descriptor_u bd_val_A;
     for (uint i = 0; i < BD_NUM_WORDS; i++)
@@ -40,8 +37,8 @@ void run_kernel()
     }
     bd_val_A.f.l1_addr_16B = buffer_A[0] / 16;
     bd_val_A.f.format      = static_cast<uint8_t>(formats.unpack_src);
-    bd_val_A.f.x_dim       = 16;
-    bd_val_A.f.y_dim       = 16;
+    bd_val_A.f.x_dim       = FACE_C_DIM;
+    bd_val_A.f.y_dim       = FACE_R_DIM;
     bd_val_A.f.z_dim       = num_faces;
 
     td_val_A.buf_desc        = bd_val_A;
@@ -56,8 +53,8 @@ void run_kernel()
     }
     bd_val_B.f.l1_addr_16B = buffer_B[0] / 16;
     bd_val_B.f.format      = static_cast<uint8_t>(formats.unpack_src);
-    bd_val_B.f.x_dim       = 16;
-    bd_val_B.f.y_dim       = 16;
+    bd_val_B.f.x_dim       = FACE_C_DIM;
+    bd_val_B.f.y_dim       = FACE_R_DIM;
     bd_val_B.f.z_dim       = num_faces;
 
     td_val_B.buf_desc        = bd_val_B;
@@ -67,8 +64,8 @@ void run_kernel()
     // Configure hardware for binary operations
     _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val_A, td_val_B);
 
-    // Configure MOP for binary operands - unpack 1 tile per MOP run
-    _llk_unpack_binary_operands_mop_config_<BUF_DESC_ID_A, BUF_DESC_ID_B>(1);
+    // Initialize binary operands unpacker - unpack 1 tile per MOP run
+    _llk_unpack_binary_operands_init_<BUF_DESC_ID_A, BUF_DESC_ID_B>(1);
 
     // Unpack all tiles for both operands
     for (int i = 0; i < TILE_CNT; ++i)
@@ -100,14 +97,11 @@ void run_kernel()
     set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
     // Configure math hardware with proper Quasar API
-    constexpr DataFormat src_format = static_cast<DataFormat>(UNPACK_A_IN);
+    constexpr DataFormat src_format = static_cast<DataFormat>(formats.math);
     _llk_math_srcAB_hw_configure_<true /*math implied*/, is_fp32_dest_acc_en, is_int_fpu_en, src_format, src_format>();
 
-    // Clear destination registers
-    _zero_dest_reg_();
-
     // Initialize eltwise binary operation with proper TileShape
-    TileShape tile_shape = {.num_faces = num_faces, .face_r_dim = 16, .face_c_dim = 16, .narrow_tile = false};
+    TileShape tile_shape = {.num_faces = num_faces, .face_r_dim = FACE_R_DIM, .face_c_dim = FACE_C_DIM, .narrow_tile = false};
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, static_cast<MathFidelity>(MATH_FIDELITY)>(tile_shape);
 
     // Perform eltwise binary operation for each tile
@@ -145,8 +139,8 @@ void run_kernel()
 
     bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
-    bd_val.f.x_dim       = 16;
-    bd_val.f.y_dim       = 16;
+    bd_val.f.x_dim       = FACE_C_DIM;
+    bd_val.f.y_dim       = FACE_R_DIM;
     bd_val.f.z_dim       = num_faces; // Match matmul pattern: set z_dim to actual num_faces
 
     tdma_desc.buf_desc        = bd_val;
