@@ -532,6 +532,7 @@ def build_test(
 
 def run_test(
     test_config,
+    location="0,0",
     boot_mode: BootMode = BootMode.DEFAULT,  # global override boot mode here
     profiler_build: ProfilerBuild = ProfilerBuild.No,
 ):
@@ -540,9 +541,6 @@ def run_test(
     variant_id = md5(f"{str(test_config)}".encode()).hexdigest()
 
     test_target = TestTargetConfig()
-    location = f"0,{test_target.worker_index}"
-    print(location)
-
     build_test(
         test_config, variant_id, test_target.with_coverage, boot_mode, profiler_build
     )
@@ -551,5 +549,20 @@ def run_test(
     run_elf_files(test_config["testname"], variant_id, boot_mode, location=location)
     wait_for_tensix_operations_finished(location)
 
+    CHIP_ARCH = get_chip_architecture()
+    LLK_HOME = os.environ.get("LLK_HOME")
+    BUILD_DIR = (
+        Path(LLK_HOME)
+        / "tests"
+        / "build"
+        / CHIP_ARCH.value
+        / test_config["testname"]
+        / variant_id
+    )
+
     if test_target.with_coverage:
-        pull_coverage_data(test_config["testname"], variant_id)
+        pull_coverage_data(test_config["testname"], variant_id, BUILD_DIR, 0, location)
+
+    import shutil
+
+    shutil.rmtree(BUILD_DIR)

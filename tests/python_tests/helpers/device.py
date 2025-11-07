@@ -276,9 +276,6 @@ def write_stimuli_to_l1(
 
     TILE_ELEMENTS = 1024
 
-    test_target = TestTargetConfig()
-    location = f"0,{test_target.worker_index}"
-
     # Calculate L1 addresses
     tile_size_A_bytes = stimuli_A_format.num_bytes_per_tile(TILE_ELEMENTS)
     tile_size_B_bytes = stimuli_B_format.num_bytes_per_tile(TILE_ELEMENTS)
@@ -559,28 +556,18 @@ def coverage(
         f.write(data)
 
 
-import shutil
-
-
-def pull_coverage_data(testname, variant_id, device_id=0, location="0,0"):
-    CHIP_ARCH = get_chip_architecture()
-    LLK_HOME = os.environ.get("LLK_HOME")
-    BUILD_DIR = (
-        Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value / testname / variant_id
-    )
-
+def pull_coverage_data(testname, variant_id, build_dir, device_id=0, location="0,0"):
     # please sweep for inconsistencies in variable names
     trisc_names = ["unpack", "math", "pack"]
     for i, trisc_name in enumerate(trisc_names):
-        elf_path = BUILD_DIR / "elf" / f"{trisc_name}.elf"
+        elf_path = build_dir / "elf" / f"{trisc_name}.elf"
         elf_file = parse_elf(elf_path)
-        stream_path = f"{BUILD_DIR}/{trisc_name}.raw.stream"
+        stream_path = f"{build_dir}/{trisc_name}.raw.stream"
         coverage(location, elf_file, stream_path, device_id, None)
 
+    LLK_HOME = os.environ.get("LLK_HOME")
     tests_dir = str(Path(LLK_HOME) / "tests")
     run_shell_command(
         f"make testname={testname} info_file_name={testname}_{variant_id}.info variant={variant_id} coverage",
         cwd=tests_dir,
     )
-
-    shutil.rmtree(BUILD_DIR)
