@@ -258,7 +258,7 @@ sfpi_inline void _calculate_welfords_block_w_offset_(
     constexpr uint32_t block_max_row_idx = block_min_row_idx + 4;
 
     // If the start_row and end_row don't intersect with this block, we don't need to process this.
-    [[unlikely]] if (((start_row >= block_max_row_idx) || (end_row <= block_min_row_idx)))
+    if (((start_row >= block_max_row_idx) || (end_row <= block_min_row_idx)))
     {
         return;
     }
@@ -367,7 +367,7 @@ template <std::size_t reciprocal_size>
 sfpi_inline void _calculate_welfords_partial_tile_(
     uint32_t start_idx, uint32_t start_row, uint32_t num_rows, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
-    [[unlikely]] if (num_rows == 0)
+    if (num_rows == 0)
     {
         return;
     }
