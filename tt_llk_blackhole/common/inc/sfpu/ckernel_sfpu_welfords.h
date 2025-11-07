@@ -124,7 +124,7 @@ sfpi_inline void _welfords_load_block_()
  *
  * The updated mean and M2 are left in LREG4 and LREG5, respectively.
  *
- * @tparam input_lreg The input LREG to use for the computation. Either LREG0, LREG1, LREG2, or LREG3.
+ * @tparam input_lreg The input to use for the computation. Either LREG0, LREG1, LREG2, or LREG3.
  * @return None. The updated mean and M2 are left in LREG4 and LREG5, respectively.
  */
 template <uint32_t input_lreg>
@@ -139,7 +139,6 @@ sfpi_inline void _compute_welfords_row_()
     // 1. Calculate α = x_{N+1} - mean_{N}
     // LREG6 = -1 * LREG4 + input_lreg
     TTI_SFPMAD(ckernel::p_sfpu::LREG11 /*-1*/, ckernel::p_sfpu::LREG4, input_lreg, ckernel::p_sfpu::LREG6, 0);
-    TTI_SFPNOP; // Next cycle cannot read from LREG6 (2-cycle operation)
 
     // 2. Calculate α * β + mean_{N}
     // LREG6 = LREG6 * LREG7 + LREG4
@@ -151,14 +150,13 @@ sfpi_inline void _compute_welfords_row_()
     // Let α = x_{N+1} - mean_{N} and β = x_{N+1} - mean_{N+1}
     // Then m2_{N+1} = m2_{N} + α * β
 
-    // 1. Calculate α = x_{N+1} - mean_{N}
+    // 1. Re-calculate α in lREG4 since LREG6 now contains the new mean
     // LREG4 = -1 * LREG4 + input_lreg
     TTI_SFPMAD(ckernel::p_sfpu::LREG11 /*-1*/, ckernel::p_sfpu::LREG4, input_lreg, ckernel::p_sfpu::LREG4, 0);
 
     // 2. Calculate β = x_{N+1} - mean_{N+1}
     // input_lreg = -1 * LREG6 + input_lreg
     TTI_SFPMAD(ckernel::p_sfpu::LREG11 /*-1*/, ckernel::p_sfpu::LREG6, input_lreg, input_lreg, 0);
-    TTI_SFPNOP; // Next cycle cannot read from input_lreg (2-cycle operation)
 
     // 3. Calculate m2_{N+1} = α * β + m2_{N}
     // LREG5 = LREG4 * input_lreg + LREG5
@@ -172,7 +170,7 @@ sfpi_inline void _compute_welfords_row_()
  * @brief The number of instructions required to calculate the running mean and m2 for a single
  * row of 32 columns. If _compute_welfords_row_ is modified, this value must be updated.
  */
-constexpr uint32_t WELFORD_INSTR_PER_ROW = 8;
+constexpr uint32_t WELFORD_INSTR_PER_ROW = 6;
 
 /**
  * @brief Programs the replay buffer for the Welford's algorithm.

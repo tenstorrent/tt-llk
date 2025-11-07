@@ -151,7 +151,7 @@ sfpi_inline void _compute_welfords_row_()
     // Let α = x_{N+1} - mean_{N} and β = x_{N+1} - mean_{N+1}
     // Then m2_{N+1} = m2_{N} + α * β
 
-    // 1. Calculate α = x_{N+1} - mean_{N}
+    // 1. Re-calculate α in lREG4 since LREG6 now contains the new mean
     // LREG4 = -1 * LREG4 + input_lreg
     TTI_SFPMAD(ckernel::p_sfpu::LREG11 /*-1*/, ckernel::p_sfpu::LREG4, input_lreg, ckernel::p_sfpu::LREG4, 0);
 
