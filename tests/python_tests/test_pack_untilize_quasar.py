@@ -9,7 +9,7 @@ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, FormatConfig
 from helpers.golden_generators import UntilizeGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, format_dict
+from helpers.llk_params import DestAccumulation, ImpliedMathFormat, format_dict
 from helpers.param_config import (
     generate_unary_input_dimensions,
     input_output_formats,
@@ -103,6 +103,7 @@ def test_pack_untilize_quasar(test_name, formats_dest_acc_dimensions):
         "input_B_dimensions": input_dimensions,
         "unpack_to_dest": unpack_to_dest,
         "dest_acc": dest_acc,
+        "implied_math_format": ImpliedMathFormat.Yes,
     }
 
     res_address = write_stimuli_to_l1(
