@@ -16,7 +16,13 @@ from helpers.golden_generators import (
     TransposeGolden,
     get_golden_generator,
 )
-from helpers.llk_params import DestAccumulation, Transpose, UnpackerEngine, format_dict
+from helpers.llk_params import (
+    DestAccumulation,
+    ImpliedMathFormat,
+    Transpose,
+    UnpackerEngine,
+    format_dict,
+)
 from helpers.param_config import (
     generate_unary_input_dimensions,
     input_output_formats,
@@ -147,6 +153,7 @@ def test_unpack_unary_operand_quasar(
         "unpack_transpose_faces": transpose_en,
         "unpack_transpose_within_face": transpose_en,
         "unpacker_engine_sel": unpacker_sel,
+        "implied_math_format": ImpliedMathFormat.Yes,
     }
 
     res_address = write_stimuli_to_l1(

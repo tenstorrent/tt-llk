@@ -15,7 +15,7 @@ from helpers.golden_generators import (
     DataCopyGolden,
     get_golden_generator,
 )
-from helpers.llk_params import DestAccumulation, format_dict
+from helpers.llk_params import DestAccumulation, ImpliedMathFormat, format_dict
 from helpers.param_config import (
     generate_unary_input_dimensions,
     input_output_formats,
@@ -114,6 +114,7 @@ def test_pack_quasar(
         "input_B_dimensions": input_dimensions,
         "unpack_to_dest": unpack_to_dest,
         "tile_cnt": tile_cnt,
+        "implied_math_format": ImpliedMathFormat.Yes,
     }
 
     res_address = write_stimuli_to_l1(

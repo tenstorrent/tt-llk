@@ -113,7 +113,7 @@ void run_kernel()
     if (!unpack_to_dest)
     {
         constexpr DataCopyType DATA_COPY_TYPE = (UNPACKER_ENGINE_SEL == p_unpacr::UNP_A) ? DataCopyType::A2D : DataCopyType::B2D;
-        _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(64 /*num_rows_per_matrix*/, 1 /*num_matrices*/);
+        _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(num_faces * FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
         for (int i = 0; i < TILE_CNT; ++i)
         {
             _llk_math_eltwise_unary_datacopy_<64 /*num_rows_per_matrix*/>(i);

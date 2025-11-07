@@ -273,6 +273,7 @@ class ImpliedMathFormat(Enum):
     No = "false"
     Yes = "true"
 
+
 class UnpackerEngine(Enum):
     """
     Enum for unpacker engine selection.
