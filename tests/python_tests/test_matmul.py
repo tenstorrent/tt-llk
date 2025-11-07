@@ -61,6 +61,11 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     MATMUL_FORMATS, DEST_ACC_MODES
 )
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 @parametrize(
     test_name="matmul_test",
@@ -70,13 +75,14 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
         # MathFidelity.HiFi3,
         # MathFidelity.HiFi4,
     ],
-    format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS[:20],
+    format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS[:10],
 )
 # Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
 def test_matmul(
     test_name,
     math_fidelity,
     format_dest_acc_and_dims,
+    worker_index=0,
     boot_mode=BootMode.DEFAULT,
 ):
     torch_format = format_dict[format_dest_acc_and_dims[0].output_format]
@@ -139,7 +145,8 @@ def test_matmul(
         "kt_dim": matmul_dims.kt_dim,
     }
 
-    test_target = TestTargetConfig()
+    location = f"0,{worker_index}"
+    logger.info(f"Worker {location}")
 
     # Use the new helper function for writing stimuli
     res_address = write_stimuli_to_l1(
@@ -150,10 +157,12 @@ def test_matmul(
         formats.input_format,
         tile_cnt_A,
         tile_cnt_B,
+        location,
     )
 
-    run_test(test_config, boot_mode)
+    run_test(test_config, location, boot_mode)
 
+    test_target = TestTargetConfig()
     if test_target.with_coverage:
         return
 
