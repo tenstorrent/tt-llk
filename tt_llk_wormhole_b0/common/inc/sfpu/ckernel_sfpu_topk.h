@@ -423,16 +423,16 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             {
                                 lltt::replay(0, 8);
                             }
-                            constexpr int phase_replay_id = STABLE_SORT ? 6 : 4;
+                            constexpr int replay_count = STABLE_SORT ? 6 : 4;
                             if (init_phase)
                             {
-                                lltt::record<lltt::Exec>(16, phase_replay_id);
+                                lltt::record<lltt::Exec>(16, replay_count);
                                 bitonic_topk_ph0_st1_to_1<STABLE_SORT>();
                                 init_phase = false;
                             }
                             else
                             {
-                                lltt::replay(16, phase_replay_id);
+                                lltt::replay(16, replay_count);
                             }
                             if (init_store)
                             {
@@ -451,16 +451,16 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                         {
                             // Groups of 16 datums being sorted at the same time
                             lltt::replay(0, 8);
-                            constexpr int phase_replay_id = STABLE_SORT ? 10 : 6;
+                            constexpr int replay_count = STABLE_SORT ? 10 : 6;
                             if (init_phase)
                             {
-                                lltt::record<lltt::Exec>(16, phase_replay_id);
+                                lltt::record<lltt::Exec>(16, replay_count);
                                 bitonic_topk_ph1_st2_to_1<STABLE_SORT>();
                                 init_phase = false;
                             }
                             else
                             {
-                                lltt::replay(16, phase_replay_id);
+                                lltt::replay(16, replay_count);
                             }
                             lltt::replay(8, 8);
                         }
@@ -469,16 +469,16 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                         for (int d = 0; d < 4; d++)
                         {
                             lltt::replay(0, 8);
-                            constexpr int phase_replay_id = STABLE_SORT ? 14 : 9;
+                            constexpr int replay_count = STABLE_SORT ? 14 : 9;
                             if (init_phase)
                             {
-                                lltt::record<lltt::Exec>(16, phase_replay_id);
+                                lltt::record<lltt::Exec>(16, replay_count);
                                 bitonic_topk_ph2_st3_to_1<STABLE_SORT>();
                                 init_phase = false;
                             }
                             else
                             {
-                                lltt::replay(16, phase_replay_id);
+                                lltt::replay(16, replay_count);
                             }
                             lltt::replay(8, 8);
                         }
