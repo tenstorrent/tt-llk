@@ -113,13 +113,21 @@ void run_kernel()
 
     constexpr TileShape tile_shape = {.num_faces = num_faces, .face_r_dim = FACE_R_DIM, .face_c_dim = FACE_C_DIM, .narrow_tile = 0};
 
-    constexpr uint32_t C_DIM_FACES = (tile_shape.narrow_tile ? 1 : 2);
+    constexpr uint32_t C_DIM_FACES = (tile_shape.narrow_tile ? 1 : 2); // Tile width in faces
+    constexpr uint32_t R_DIM_FACES = 2;                                // Tile height in faces
 
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
     _llk_pack_untilize_init_<BUF_DESC, FULL_CT_DIM, BLOCK_CT_DIM, C_DIM_FACES>(tile_shape);
-    for (uint block_rt = 0; block_rt < BLOCK_RT_DIM; block_rt++)
+
+    // One _llk_pack_untilize_ call packs one block ct_dim of tiles (one tile row)
+    // The internal parts of the strides are applied inside of the _llk_ itself, the external parts are passed to the _llk_pack_untilize_ call
+    // x_stride = x_stride_internal = col dim of a tile in L1 in units of 16 datums (1 face);
+    // y_stride = y_stride_external + x_stride_internal
+    // In this case x = 0 because the entire tile row fits into Dest
+    uint y_stride_external = FULL_CT_DIM * R_DIM_FACES * FACE_R_DIM;
+    for (uint y = 0; y < BLOCK_RT_DIM; y++)
     {
-        _llk_pack_untilize_(0, block_rt * FULL_CT_DIM * 32);
+        _llk_pack_untilize_(0, y * y_stride_external /*  + 0 * x_stride  */);
         _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
 }
