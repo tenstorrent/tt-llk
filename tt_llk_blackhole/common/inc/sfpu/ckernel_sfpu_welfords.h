@@ -473,7 +473,7 @@ sfpi_inline void _load_mean_m2_from_dst_group_(uint32_t group_id)
 template <std::size_t reciprocal_size>
 sfpi_inline void _store_mean_var_to_dst_row_(uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
-    _load_recip_of_idx_(scale_idx, reciprocal_lut);
+    _load_recip_of_idx_<reciprocal_size>(scale_idx, reciprocal_lut);
     // Move mean to LREG0
     TTI_SFPMOV(0, ckernel::p_sfpu::LREG4, ckernel::p_sfpu::LREG0, 0);
     TTI_SFPLOADI(ckernel::p_sfpu::LREG1, 0, 0);
@@ -522,7 +522,7 @@ sfpi_inline void _store_mean_var_to_dst_row_(uint32_t scale_idx, const std::arra
 template <std::size_t reciprocal_size>
 sfpi_inline void _store_mean_var_to_dst_raw_(uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
-    _load_recip_of_idx_(scale_idx, reciprocal_lut);
+    _load_recip_of_idx_<reciprocal_size>(scale_idx, reciprocal_lut);
 
     // Convert M2 to variance in LREG5
     TTI_SFPMAD(ckernel::p_sfpu::LREG7, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG5, 0);
@@ -548,7 +548,7 @@ sfpi_inline void _store_mean_var_to_dst_raw_(uint32_t scale_idx, const std::arra
 template <std::size_t reciprocal_size>
 sfpi_inline void _store_mean_var_to_dst_raw_group_(uint32_t group_id, uint32_t scale_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
 {
-    _load_recip_of_idx_(scale_idx, reciprocal_lut);
+    _load_recip_of_idx_<reciprocal_size>(scale_idx, reciprocal_lut);
 
     // Convert M2 to variance in LREG5
     TTI_SFPMAD(ckernel::p_sfpu::LREG7, ckernel::p_sfpu::LREG5, ckernel::p_sfpu::LCONST_0, ckernel::p_sfpu::LREG5, 0);
