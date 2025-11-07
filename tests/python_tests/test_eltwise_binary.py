@@ -3,6 +3,7 @@
 
 import pytest
 import torch
+from conftest import skip_for_blackhole, skip_for_wormhole
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -38,6 +39,8 @@ ELTWISE_DIMENSIONS = [
 ]
 
 
+@skip_for_wormhole
+@skip_for_blackhole
 @parametrize(
     test_name="eltwise_binary_test",
     formats=input_output_formats(
