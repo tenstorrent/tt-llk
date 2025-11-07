@@ -54,7 +54,7 @@ def generate_unpack_tilize_combinations(
             continue  # Tilize 32b data into dest not yet supported
         else:
             dest_acc_modes = [DestAccumulation.No, DestAccumulation.Yes]
-            unpacker_engines = [UnpackerEngine.UNP_A, UnpackerEngine.UNP_B]
+            unpacker_engines = [UnpackerEngine.UnpA, UnpackerEngine.UnpB]
 
         for dest_acc in dest_acc_modes:
             dimensions_list = generate_unary_input_dimensions(dest_acc)
@@ -101,7 +101,7 @@ def test_unpack_tilize_quasar(
     )
 
     generate_golden = get_golden_generator(TilizeGolden)
-    golden_src = src_B if unpacker_sel == UnpackerEngine.UNP_B else src_A
+    golden_src = src_B if unpacker_sel == UnpackerEngine.UnpB else src_A
     golden_tensor = generate_golden(
         golden_src, input_dimensions, formats.output_format, num_faces=4
     )
