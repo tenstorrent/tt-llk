@@ -440,7 +440,7 @@ inline void _init_reduce_(uint32_t block_ct_dim = 0 /* used in reduce max col*/)
 
     // Determine if we're working with integer or float based on DataFormat
     constexpr bool is_integer_mode = (format == DataFormat::Int32 || format == DataFormat::UInt32);
-    constexpr bool is_float_mode   = (format == DataFormat::Float32) || (format == DataFormat::Float16_b);
+    constexpr bool is_float_mode   = (format == DataFormat::Float32 || format == DataFormat::Float16_b);
 
     static_assert(is_integer_mode || is_float_mode, "DataFormat must be one of: Int32, UInt32 (integer) or Float32 (float)");
 
