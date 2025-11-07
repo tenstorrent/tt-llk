@@ -284,23 +284,25 @@ inline void _init_reduce_max_col_(uint32_t num_cols)
 
     // ***********************************************************
     // Record replay buffer
-    lltt::record<lltt::NoExec>(0, 9);
+    lltt::record<lltt::NoExec>(0, 11);
     TTI_INCRWC(0, 4, 0, 0); // increment dest counter by 4
 
     // Use LOADMACRO with lreg_ind=5 (loads to LREG5, uses sequence 1 since bits[3:2]=01)
-    TTI_SFPLOADMACRO(5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+    TTI_SFPLOADMACRO(5, InstrModLoadStore::FP16B, ADDR_MOD_7, 2);
 
-    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
-    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_7, 16);
+    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_7, 18);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG1 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPNOP;
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPNOP;
 
     // Use LOADMACRO with lreg_ind=0 (loads to LREG0, uses sequence 0)
-    TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+    TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_7, 0);
 
     // Dummy loads used to increment dest counters
-    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
-    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_1, 0);
+    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_6, 0);
+    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_5, 0);
     // ***********************************************************
 }
 
@@ -311,8 +313,8 @@ inline void _calculate_reduce_max_col_(const uint32_t block_height /*, const uin
     static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
     static_assert(format == DataFormat::Float16_b, "SFPU reduce max col only supports Float16_b format");
 
-    constexpr uint32_t replay_buffer_offset    = 7;
-    constexpr uint32_t replay_buffer_next_face = 8;
+    constexpr uint32_t replay_buffer_offset    = 9;
+    constexpr uint32_t replay_buffer_next_face = 10;
 
     /*
     Initial loads of LREGS 0-3 which will hold maximum values of columns
@@ -320,12 +322,12 @@ inline void _calculate_reduce_max_col_(const uint32_t block_height /*, const uin
     */
 
     // F0
-    TTI_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-    TTI_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+    TTI_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_7, 0);
+    TTI_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_7, 2);
 
     // F1
-    TTI_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
-    TTI_SFPLOAD(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+    TTI_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_7, 16);
+    TTI_SFPLOAD(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_7, 18);
 
     // Do the first tile since it differs a bit from the rest
     // F0 and F1
@@ -375,12 +377,12 @@ inline void _calculate_reduce_max_col_(const uint32_t block_height /*, const uin
     TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
 
     // F0
-    TTI_SFPSTORE(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-    TTI_SFPSTORE(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+    TTI_SFPSTORE(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_7, 0);
+    TTI_SFPSTORE(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_7, 2);
 
     // F1
-    TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
-    TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+    TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_7, 16);
+    TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_7, 18);
 }
 
 /**
@@ -439,7 +441,7 @@ inline void _init_reduce_(uint32_t block_ct_dim = 0 /* used in reduce max col*/)
 
     // Determine if we're working with integer or float based on DataFormat
     constexpr bool is_integer_mode = (format == DataFormat::Int32 || format == DataFormat::UInt32);
-    constexpr bool is_float_mode   = (format == DataFormat::Float32 || format == DataFormat::Float16_b);
+    constexpr bool is_float_mode   = (format == DataFormat::Float32) || (format == DataFormat::Float16_b);
 
     static_assert(is_integer_mode || is_float_mode, "DataFormat must be one of: Int32, UInt32 (integer) or Float32 (float)");
 
