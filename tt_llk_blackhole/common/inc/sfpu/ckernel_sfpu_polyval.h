@@ -40,26 +40,26 @@ struct PolynomialEvaluator
      * @brief Evaluates the polynomial at the given point.
      *
      * @param x The point at which to evaluate the polynomial
-     * @param first First coefficient in the polynomial.
-     * @param rest Rest of the polynomial coefficients in ascending order of powers.
+     * @param coeff0 First coefficient in the polynomial.
+     * @param other_coefficients Rest of the polynomial coefficients in ascending order of powers.
      * @return The value of the polynomial at the given point
      *
      * @note Coefficients can be either float, sfpi::vFloat, ... (scalar and sfpi typed arguments can be mixed)
      */
-    template <typename U, typename First, typename... Rest>
-    static constexpr auto eval(U x, First first, Rest... rest)
+    template <typename U, typename Coefficient0, typename... OtherCoefficients>
+    static constexpr auto eval(U x, Coefficient0 coeff0, OtherCoefficients... other_coefficients)
     {
-        if constexpr (sizeof...(Rest) == 0)
+        if constexpr (sizeof...(OtherCoefficients) == 0)
         {
             // Last coefficient: We don't want to call function
             // recursively (unsure if SFPU addition by 0 would be optimized away)
-            // which is why we handled sizeof..(Rest) == 0 separately
-            return first;
+            // which is why we handled sizeof..(OtherCoefficients) == 0 separately
+            return coeff0;
         }
         else
         {
             // Recursive case: Horner's method
-            return first + x * eval(x, rest...);
+            return coeff0 + x * eval(x, other_coefficients...);
         }
     }
 };
