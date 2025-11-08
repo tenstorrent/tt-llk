@@ -6,6 +6,7 @@
 
 #include "llk_defs.h"
 #include "sfpi.h"
+#include "lltt.h"
 
 namespace ckernel::sfpu
 {
@@ -23,49 +24,63 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
 
     // TODO handle is_fp32_dest_acc_en
 
+		// The following sequence is the straight-line equivalent of the SFPLOADMACRO sequence.
+		// Since we can no longer parallelise operations, we are forced to use 2 registers here.
+		/*
+		TT_SFPLOAD(0, 0, ADDR_MOD_7, offset0);
+		TT_SFPLOAD(1, 0, ADDR_MOD_7, offset1);
+		TT_SFPSETCC(0, 0, 0, 6); // SFPSETCC_MOD1_LREG_EQ0
+		TT_SFPLOAD(1, 0, ADDR_MOD_7, offset2);
+		TT_SFPENCC(0, 0, 0, 0);
+		TT_SFPSTORE(1, 0, ADDR_MOD_6, offset0);
+		*/
+
+		// The SFPLOADMACRO sequence, which doesn't always work correctly for unknown reasons.
+		// Below we use macros 0 and 2.
+
+		// This does something like the following, achieving 3 cycles per input row of 32 values:
+
+		// Load Unit               | Simple Unit                    | Store Unit
+		// SFPLOAD L0=Dst[offset0] |                                |
+		// SFPLOAD L0=Dst[offset1] | SFPSETCC LaneEnabled=(L0 EQ 0) |
+		// SFPLOAD L0=Dst[offset2] | SFPENCC (LaneEnabled=true)     |
+		// (next SFPLOAD L0)       |                                | SFPSTORE Dst[offset0]=L0
+
     if (dst_index_out == dst_index_in0)
     {
-#pragma GCC unroll 8
-        for (int d = 0; d < ITERATIONS; d++)
+        load_replay_buf<Exec>(
+            0,
+            3,
+            [offset0, offset1, offset2]
+            {
+                TT_SFPLOADMACRO((0 << 2), 0, ADDR_MOD_7, offset0);
+                TT_SFPLOADMACRO((2 << 2), 0, ADDR_MOD_7, offset1);
+                TT_SFPLOAD(0, 0, ADDR_MOD_6, offset2);
+            });
+#pragma GCC unroll 7
+        for (int d = 0; d < ITERATIONS - 1; d++)
         {
-            // The following sequence is the straight-line equivalent of the SFPLOADMACRO sequence.
-            // Since we can no longer parallelise operations, we are forced to use 2 registers here.
-            /*
-            TT_SFPLOAD(0, 0, ADDR_MOD_7, offset0);
-            TT_SFPLOAD(1, 0, ADDR_MOD_7, offset1);
-            TT_SFPSETCC(0, 0, 0, 6); // SFPSETCC_MOD1_LREG_EQ0
-            TT_SFPLOAD(1, 0, ADDR_MOD_7, offset2);
-            TT_SFPENCC(0, 0, 0, 0);
-            TT_SFPSTORE(1, 0, ADDR_MOD_6, offset0);
-            */
-
-            // The SFPLOADMACRO sequence, which doesn't always work correctly for unknown reasons.
-            // Below we use macros 0 and 2.
-
-            // This does something like the following, achieving 3 cycles per input row of 32 values:
-
-            // Load Unit               | Simple Unit                    | Store Unit
-            // SFPLOAD L0=Dst[offset0] |                                |
-            // SFPLOAD L0=Dst[offset1] | SFPSETCC LaneEnabled=(L0 EQ 0) |
-            // SFPLOAD L0=Dst[offset2] | SFPENCC (LaneEnabled=true)     |
-            // (next SFPLOAD L0)       |                                | SFPSTORE Dst[offset0]=L0
-
-            TT_SFPLOADMACRO((0 << 2), 0, ADDR_MOD_7, offset0);
-            TT_SFPLOADMACRO((2 << 2), 0, ADDR_MOD_7, offset1);
-            TT_SFPLOAD(0, 0, ADDR_MOD_6, offset2);
+            lltt::replay(0, 3);
         }
     }
     else
     {
         int offset3 = (dst_index_out * 32) << 1;
 
-#pragma GCC unroll 8
-        for (int d = 0; d < ITERATIONS; d++)
+        load_replay_buf<Exec>(
+            0,
+            4,
+            [offset0, offset1, offset2, offset3]
+            {
+                TT_SFPLOADMACRO((1 << 2), 0, ADDR_MOD_7, offset0);
+                TT_SFPLOADMACRO((2 << 2), 0, ADDR_MOD_7, offset1);
+                TT_SFPLOAD(0, 0, ADDR_MOD_7, offset2);
+                TT_SFPSTORE(0, 0, ADDR_MOD_6, offset3);
+            });
+#pragma GCC unroll 7
+        for (int d = 0; d < ITERATIONS - 1; d++)
         {
-            TT_SFPLOADMACRO((1 << 2), 0, ADDR_MOD_7, offset0);
-            TT_SFPLOADMACRO((2 << 2), 0, ADDR_MOD_7, offset1);
-            TT_SFPLOAD(0, 0, ADDR_MOD_7, offset2);
-            TT_SFPSTORE(0, 0, ADDR_MOD_6, offset3);
+            lltt::replay(0, 4);
         }
     }
 }
