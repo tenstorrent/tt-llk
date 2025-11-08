@@ -22,8 +22,7 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
     int offset1 = (dst_index_in1 * 32) << 1;
     int offset2 = (dst_index_in2 * 32) << 1;
 
-    // TODO unclear why LO16 doesn't work for bfloat16.
-    constexpr uint mod0 = data_format == DataFormat::Float16_b ? InstrModLoadStore::HI16 : InstrModLoadStore::FP32;
+    constexpr uint mod0 = data_format == DataFormat::Float16_b ? InstrModLoadStore::LO16 : InstrModLoadStore::INT32;
 
     if (dst_index_out == dst_index_in0)
     {
