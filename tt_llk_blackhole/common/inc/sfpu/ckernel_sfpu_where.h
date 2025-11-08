@@ -22,63 +22,61 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
     int offset1 = (dst_index_in1 * 32) << 1;
     int offset2 = (dst_index_in2 * 32) << 1;
 
-    // TODO handle is_fp32_dest_acc_en
-
-		// The following sequence is the straight-line equivalent of the SFPLOADMACRO sequence.
-		// Since we can no longer parallelise operations, we are forced to use 2 registers here.
-		/*
-		TT_SFPLOAD(0, 0, ADDR_MOD_7, offset0);
-		TT_SFPLOAD(1, 0, ADDR_MOD_7, offset1);
-		TT_SFPSETCC(0, 0, 0, 6); // SFPSETCC_MOD1_LREG_EQ0
-		TT_SFPLOAD(1, 0, ADDR_MOD_7, offset2);
-		TT_SFPENCC(0, 0, 0, 0);
-		TT_SFPSTORE(1, 0, ADDR_MOD_6, offset0);
-		*/
-
-		// The SFPLOADMACRO sequence, which doesn't always work correctly for unknown reasons.
-		// Below we use macros 0 and 2.
-
-		// This does something like the following, achieving 3 cycles per input row of 32 values:
-
-		// Load Unit               | Simple Unit                    | Store Unit
-		// SFPLOAD L0=Dst[offset0] |                                |
-		// SFPLOAD L0=Dst[offset1] | SFPSETCC LaneEnabled=(L0 EQ 0) |
-		// SFPLOAD L0=Dst[offset2] | SFPENCC (LaneEnabled=true)     |
-		// (next SFPLOAD L0)       |                                | SFPSTORE Dst[offset0]=L0
+    // TODO unclear why LO16 doesn't work for bfloat16.
+    constexpr uint mod0 = data_format == DataFormat::Float16_b ? InstrModLoadStore::HI16 : InstrModLoadStore::FP32;
 
     if (dst_index_out == dst_index_in0)
     {
-        load_replay_buf<Exec>(
+        // We use macros 0 and 2 to schedule the following, which achieves 3 cycles per input row of 32 values:
+
+        // Load Unit               | Simple Unit                    | Store Unit
+        // SFPLOAD L0=Dst[offset0] |                                |
+        // SFPLOAD L0=Dst[offset1] | SFPSETCC LaneEnabled=(L0 EQ 0) |
+        // SFPLOAD L0=Dst[offset2] | SFPENCC (LaneEnabled=true)     |
+        // (next SFPLOAD L0)       |                                | SFPSTORE Dst[offset0]=L0
+
+        load_replay_buf(
             0,
             3,
             [offset0, offset1, offset2]
             {
-                TT_SFPLOADMACRO((0 << 2), 0, ADDR_MOD_7, offset0);
-                TT_SFPLOADMACRO((2 << 2), 0, ADDR_MOD_7, offset1);
-                TT_SFPLOAD(0, 0, ADDR_MOD_6, offset2);
+                TT_SFPLOADMACRO((0 << 2), mod0, ADDR_MOD_7, offset0);
+                TT_SFPLOADMACRO((2 << 2), mod0, ADDR_MOD_7, offset1);
+                TT_SFPLOAD(0, mod0, ADDR_MOD_6, offset2);
             });
-#pragma GCC unroll 7
-        for (int d = 0; d < ITERATIONS - 1; d++)
+
+#pragma GCC unroll 8
+        for (int d = 0; d < ITERATIONS; d++)
         {
             lltt::replay(0, 3);
         }
     }
     else
     {
+        // We use macros 1 and 2 to schedule the following, which achieves 4 cycles per input row of 32 values:
+
+        // Load Unit               | Simple Unit                    | Store Unit
+        // SFPLOAD L0=Dst[offset0] |                                |
+        // SFPLOAD L0=Dst[offset1] | SFPSETCC LaneEnabled=(L0 EQ 0) |
+        // SFPLOAD L0=Dst[offset2] | SFPENCC (LaneEnabled=true)     |
+        // -                       |                                | SFPSTORE Dst[offset3]=L0
+        // (next SFPLOAD L0)       |                                |
+
         int offset3 = (dst_index_out * 32) << 1;
 
-        load_replay_buf<Exec>(
+        load_replay_buf(
             0,
             4,
             [offset0, offset1, offset2, offset3]
             {
-                TT_SFPLOADMACRO((1 << 2), 0, ADDR_MOD_7, offset0);
-                TT_SFPLOADMACRO((2 << 2), 0, ADDR_MOD_7, offset1);
-                TT_SFPLOAD(0, 0, ADDR_MOD_7, offset2);
-                TT_SFPSTORE(0, 0, ADDR_MOD_6, offset3);
+                TT_SFPLOADMACRO((1 << 2), mod0, ADDR_MOD_7, offset0);
+                TT_SFPLOADMACRO((2 << 2), mod0, ADDR_MOD_7, offset1);
+                TT_SFPLOAD(0, mod0, ADDR_MOD_7, offset2);
+                TT_SFPSTORE(0, mod0, ADDR_MOD_6, offset3);
             });
-#pragma GCC unroll 7
-        for (int d = 0; d < ITERATIONS - 1; d++)
+
+#pragma GCC unroll 8
+        for (int d = 0; d < ITERATIONS; d++)
         {
             lltt::replay(0, 4);
         }
