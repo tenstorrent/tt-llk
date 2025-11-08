@@ -22,11 +22,11 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
     int offset1 = (dst_index_in1 * 32) << 1;
     int offset2 = (dst_index_in2 * 32) << 1;
 
-    // TODO fix bfloat16
-    constexpr uint mod0 = data_format == DataFormat::Float16_b ? InstrModLoadStore::LO16 : InstrModLoadStore::FP32;
+    // TODO unclear why LO16 doesn't work for bfloat16.
+    constexpr uint mod0 = data_format == DataFormat::Float16_b ? InstrModLoadStore::HI16 : InstrModLoadStore::FP32;
 
-		// The following sequence is the straight-line equivalent of the SFPLOADMACRO sequence.
-		// Since we can no longer parallelise operations, we are forced to use 2 registers here.
+    // The following sequence is the straight-line equivalent of the SFPLOADMACRO sequence.
+    // Since we can no longer parallelise operations, we are forced to use 2 registers here.
 
 /*
 #pragma GCC unroll 8
@@ -39,7 +39,7 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
         TT_SFPENCC(0, 0, 0, 0);
         TT_SFPSTORE(1, mod0, ADDR_MOD_6, offset0);
     }
-		return;
+    return;
 */
 
     if (dst_index_out == dst_index_in0)
