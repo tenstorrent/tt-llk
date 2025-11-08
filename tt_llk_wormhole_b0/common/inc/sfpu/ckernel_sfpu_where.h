@@ -5,8 +5,8 @@
 #pragma once
 
 #include "llk_defs.h"
-#include "sfpi.h"
 #include "lltt.h"
+#include "sfpi.h"
 
 namespace ckernel::sfpu
 {
