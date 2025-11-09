@@ -72,7 +72,12 @@ void call_binary_sfpu_operation(BinaryOp operation)
             break;
         case BinaryOp::ADD_TOP_ROW:
             _init_add_top_row_();
-            _calculate_add_top_row_<static_cast<DataFormat>(formats.math)>(0, 1, 0);
+            // Use actual format when compiling for ADD_TOP_ROW tests, otherwise use Float32 as safe default for static assert
+            {
+                constexpr DataFormat add_top_row_format =
+                    (SFPU_BINARY_OPERATION == BinaryOp::ADD_TOP_ROW) ? static_cast<DataFormat>(formats.math) : DataFormat::Float32;
+                _calculate_add_top_row_<add_top_row_format>(0, 1, 0);
+            }
             break;
         default:
             return;
