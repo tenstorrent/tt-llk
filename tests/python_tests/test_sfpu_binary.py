@@ -87,8 +87,12 @@ def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
+    src_A_top_row = untilize(src_A, stimuli_format=formats.input_format)[:32]
+    src_B_top_row = untilize(src_B, stimuli_format=formats.input_format)[:32]
     generate_golden = get_golden_generator(BinarySFPUGolden)
-    golden_tensor = generate_golden(mathop, src_A, src_B, formats.output_format)
+    golden_tensor = generate_golden(
+        mathop, src_A_top_row, src_B_top_row, formats.output_format
+    )
 
     unpack_to_dest = formats.input_format.is_32_bit()
 

@@ -1165,11 +1165,6 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
 
-        if operation == MathOperation.SfpuAddTopRow:
-            # Extract top row from each untilized tile (first 32 elements = first row)
-            t1 = untilize(t1, stimuli_format=data_format)[:32]
-            t2 = untilize(t2, stimuli_format=data_format)[:32]
-
         result = [self.ops[operation](t1[i], t2[i]) for i in range(len(t1))]
         return torch.tensor(result, dtype=format_dict[data_format])
 
