@@ -469,6 +469,11 @@ def generate_build_header(test_config):
     if "kt_dim" in test_config:
         header_content.append(f"constexpr uint32_t KT_DIM = {test_config['kt_dim']};")
 
+    # Add top row flag
+    add_top_row = test_config.get("add_top_row", False)
+    if add_top_row:
+        header_content.append("constexpr bool ADD_TOP_ROW = true;")
+
     header_content.append("")
 
     if perf_run_type := test_config.get("perf_run_type"):
