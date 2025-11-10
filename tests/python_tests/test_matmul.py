@@ -61,21 +61,21 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     MATMUL_FORMATS, DEST_ACC_MODES
 )
 
-import logging
+# import logging
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# logging.basicConfig(level=logging.INFO)
+# logger = logging.getLogger(__name__)
 
 
 @parametrize(
     test_name="matmul_test",
     math_fidelity=[
         MathFidelity.LoFi,
-        # MathFidelity.HiFi2,
-        # MathFidelity.HiFi3,
-        # MathFidelity.HiFi4,
+        MathFidelity.HiFi2,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
     ],
-    format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS[:20],
+    format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
 # Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
 def test_matmul(
@@ -146,8 +146,6 @@ def test_matmul(
     }
 
     location = f"0,{worker_index[2:]}"
-    logger.info(f"Worker {location}")
-    logger.info(f"Worker {test_config}")
 
     # Use the new helper function for writing stimuli
     res_address = write_stimuli_to_l1(

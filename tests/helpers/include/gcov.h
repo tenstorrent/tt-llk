@@ -11,12 +11,7 @@ extern "C"
     // This header provides the interface to libgcov's routines. Don't include
     // this directly, include coverage.h instead and call gcov_dump.
 
-    void __gcov_info_to_gcda(
-        const struct gcov_info *gi_ptr,
-        void (*filename_fn)(const char *, void *),
-        void (*dump_fn)(const void *, unsigned, void *),
-        void *(*allocate_fn)(unsigned, void *),
-        void *arg);
+    void __gcov_info_to_gcda(const struct gcov_info *gi_ptr, void (*dump_fn)(const void *, unsigned), void *arg);
 
 #ifdef __cplusplus
 }

@@ -29,7 +29,7 @@ extern "C"
     // value itself. The covdump.py script uses it to know how much data to
     // extract.
 
-    static void write_data(const void* _data, unsigned int length, void* arg)
+    static void write_data(const void* _data, unsigned int length)
     {
         uint8_t* data     = (uint8_t*)_data;
         uint32_t* written = (uint32_t*)__coverage_start;
@@ -55,7 +55,7 @@ extern "C"
 
     void gcov_dump(void)
     {
-        // First three words are for region metadata, start writing past that.
+        // First word is for file length, start writing past that.
         *(uint32_t*)__coverage_start = 4;
 
         const struct gcov_info* const* info = __gcov_info_start;
@@ -64,7 +64,7 @@ extern "C"
 
         for (uint16_t ind = 0; ind < compilation_units; ind++)
         {
-            __gcov_info_to_gcda(info[ind], NULL, write_data, NULL, NULL);
+            __gcov_info_to_gcda(info[ind], write_data, NULL);
         }
     }
 
