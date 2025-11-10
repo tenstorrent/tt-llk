@@ -334,7 +334,7 @@ def filter_params_with_z3(all_params):
             datacopy_acc_to_dest_constraint,
             bfp8_stochastic_constraint,
             wormhole_row_outlier_constraint,
-            ci_undefined_behavior_constraint,
+            # ci_undefined_behavior_constraint,
             transpose_face_size_constraint,
             partial_face_num_faces_constraint,
             bfp8_partial_face_constraint,
