@@ -104,9 +104,12 @@ def worker_index(worker_id):
 
 def pytest_configure(config):
     log_file = "pytest_errors.log"
-    # Clear the log file if it exists
-    if os.path.exists(log_file):
+    # # Clear the log file if it exists
+    # if os.path.exists(log_file):
+    try:
         os.remove(log_file)
+    except FileNotFoundError:
+        pass
     logging.basicConfig(
         filename=log_file,
         level=logging.ERROR,
@@ -165,12 +168,24 @@ def pytest_runtest_makereport(item, call):
     return report
 
 
+from helpers.utils import run_shell_command
+
+
+def build_shared_assets():
+    llk_home = Path(os.environ.get("LLK_HOME"))
+    tests_dir = str((llk_home / "tests").absolute())
+    command = "make build_shared"
+    run_shell_command(command, tests_dir)
+
+
 def pytest_sessionstart(session):
     # Default LLK_HOME environment variable
     init_llk_home()
 
     # Check if hardware-specific headers are present
     check_hardware_headers()
+
+    build_shared_assets()
 
     test_target = TestTargetConfig()
     if not test_target.run_simulator:

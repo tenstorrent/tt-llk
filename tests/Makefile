@@ -95,7 +95,7 @@ OPTIONS_LINK	:= -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 
 
 INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
 			-I../$(ARCH_LLK_ROOT)/common/inc/sfpu -I$(HEADER_DIR) -Ifirmware/riscv/common \
-			-Isfpi/include -Ihelpers/include
+			-Isfpi/include -Ihelpers/include -I$(TEST_DIR)
 
 OPTIONS_COMPILE += $(INCLUDES)
 COVERAGE_OPTIONS_COMPILE := $(INCLUDES)
@@ -129,10 +129,14 @@ profiler: $(PROFILER_DIR)/unpack.meta.bin \
 	  $(PROFILER_DIR)/math.meta.bin \
 	  $(PROFILER_DIR)/pack.meta.bin
 
+build_shared: $(SHARED_ELF_DIR)/brisc.elf
+
 # =========================
 # Build Rules
 # =========================
 
+$(TEST_DIR)/build.h: ./$(variant)_build.h | $(TEST_DIR)
+	cp ./$(variant)_build.h $(TEST_DIR)/build.h
 
 # extract profiler metadata from .elf
 $(PROFILER_DIR)/%.meta.bin: $(ELF_DIR)/%.elf | $(PROFILER_DIR)
@@ -149,11 +153,11 @@ $(SHARED_DIS_DIR)/%.S: $(SHARED_ELF_DIR)/%.elf | $(SHARED_DIS_DIR)
 	$(OBJDUMP) -t $< | sort >> $@
 
 # link unpack.elf, math.elf, pack.elf
-$(ELF_DIR)/%.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(OBJ_DIR)/main_%.o $(OBJ_DIR)/kernel_%.o $(COVERAGE_DEPS) | $(ELF_DIR) $(COVERAGE_REPORT_DIR)
+$(ELF_DIR)/%.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(OBJ_DIR)/main_%.o $(OBJ_DIR)/kernel_%.o $(COVERAGE_DEPS) | $(ELF_DIR)
 	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 # link brisc.elf
-$(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/brisc.o $(COVERAGE_DEPS) | $(SHARED_ELF_DIR) $(COVERAGE_REPORT_DIR)
+$(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/brisc.o $(COVERAGE_DEPS) | $(SHARED_ELF_DIR)
 	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
 
 # disable make automatically deleting important intermediate files
@@ -166,13 +170,13 @@ $(OBJ_DIR)/kernel_%.o: sources/ai_gen/$(testname).cpp $(BUILD_DIR)/params.stamp 
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
 
 # build kernel_unpack.o, kernel_math.o, kernel_pack.o from main sources directory
-$(OBJ_DIR)/kernel_%.o: sources/$(testname).cpp $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $(DEPS_DIR)
+$(OBJ_DIR)/kernel_%.o: sources/$(testname).cpp $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $(DEPS_DIR) $(TEST_DIR)/build.h
 	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DCOMPILE_FOR_TRISC= \
 	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
 
 # build main_unpack.o, main_math.o, main_pack.o
-$(OBJ_DIR)/main_%.o: $(RISCV_SOURCES)/trisc.cpp $(BUILD_DIR)/params.stamp | $(SHARED_DEPS_DIR)
+$(OBJ_DIR)/main_%.o: $(RISCV_SOURCES)/trisc.cpp $(BUILD_DIR)/params.stamp | $(SHARED_DEPS_DIR) $(TEST_DIR)/build.h
 	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DCOMPILE_FOR_TRISC= \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
@@ -205,7 +209,7 @@ $(BUILD_DIR)/params.stamp: always | $(BUILD_DIR)
 	echo "$(PARAMS)" | cmp -s - $@ || echo "$(PARAMS)" > $@
 
 # create folder structure root for stamp file
-$(BUILD_DIR):
+$(BUILD_DIR) $(TEST_DIR):
 	mkdir -p $@
 
 # create folder structure for shared files
@@ -256,7 +260,7 @@ merge_coverage_data:
         fi; \
     done;
 
-generate_report:
+generate_report: $(COVERAGE_REPORT_DIR)
 	lcov --remove $(INFO_PATH) \
 		'*/tt-llk/tests/*' \
 		-o $(INFO_PATH_FILTER)
@@ -270,6 +274,8 @@ clean:
 	$(RMDIR) build
 	$(RMDIR) __pycache__
 	$(RMDIR) .pytest_cache
+	- rm pytest_errors.log
+	- rm *_build.h
 	$(MAKE) -C python_tests clean
 
 # do nothing except cause dependent targets to always fire

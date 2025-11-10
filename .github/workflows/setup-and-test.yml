@@ -97,7 +97,7 @@ jobs:
             COVERAGE_FLAG="--coverage"
           fi
 
-          pytest -m "${{ inputs.pytest_markers }}" \
+          pytest -m "${{ inputs.pytest_markers }}" -n 10 \
                 ${{ inputs.random_order && '--random-order-bucket=global' || '' }} \
                 --splits $SPLITS --group ${{ matrix.test_group }} \
                 --override-ini="addopts=-v" --timeout=60 \

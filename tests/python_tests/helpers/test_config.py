@@ -483,10 +483,10 @@ def generate_build_header(test_config):
     return "\n".join(header_content)
 
 
-def write_build_header(test_config):
+def write_build_header(test_config, variant_id):
     header_content = generate_build_header(test_config)
     llk_home = Path(os.environ.get("LLK_HOME"))
-    with open(llk_home / "tests/helpers/include/build.h", "w") as f:
+    with open(llk_home / "tests" / f"{variant_id}_build.h", "w") as f:
         f.write(header_content)
 
 
@@ -523,11 +523,14 @@ def build_test(
     """Only builds the files required to run a test"""
     llk_home = Path(os.environ.get("LLK_HOME"))
     tests_dir = str((llk_home / "tests").absolute())
-    write_build_header(test_config)
+    write_build_header(test_config, variant_id)
     make_cmd = generate_make_command(
         test_config, variant_id, with_coverage, boot_mode, profiler_build
     )
     run_shell_command(make_cmd, cwd=tests_dir)
+
+
+import shutil
 
 
 def run_test(
@@ -544,6 +547,9 @@ def run_test(
     build_test(
         test_config, variant_id, test_target.with_coverage, boot_mode, profiler_build
     )
+
+    llk_home = Path(os.environ.get("LLK_HOME"))
+    os.remove(llk_home / "tests" / f"{variant_id}_build.h")
 
     # run test
     run_elf_files(test_config["testname"], variant_id, boot_mode, location=location)
@@ -562,7 +568,5 @@ def run_test(
 
     if test_target.with_coverage:
         pull_coverage_data(test_config["testname"], variant_id, BUILD_DIR, 0, location)
-
-    import shutil
 
     shutil.rmtree(BUILD_DIR)
