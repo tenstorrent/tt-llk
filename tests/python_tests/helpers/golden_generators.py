@@ -26,10 +26,10 @@ TILE_DIMENSIONS = (32, 32)  # Tile dimensions as tuple
 golden_registry = {}
 
 _FIDELITY_MASK_CONFIGURATION = {
-    0: (0x7C0, 0x7F0),
-    1: (0x3E, 0x7F0),
-    2: (0x7C0, 0x0F0),
-    3: (0x3E, 0x0F),
+    MathFidelity.LoFi.value: (0x7C0, 0x7F0),
+    MathFidelity.HiFi2.value: (0x3E, 0x7F0),
+    MathFidelity.HiFi3.value: (0x7C0, 0x0F0),
+    MathFidelity.HiFi4.value: (0x3E, 0x0F),
 }
 
 
