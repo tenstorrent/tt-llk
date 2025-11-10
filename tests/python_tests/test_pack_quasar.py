@@ -51,12 +51,13 @@ def generate_qsr_pack_combinations(
         in_fmt = fmt.input_format
         if in_fmt != fmt.output_format:
             continue
-        modes = (
+
+        dest_acc_modes = (
             (DestAccumulation.Yes,)
             if in_fmt.is_32_bit()
-            else (DestAccumulation.Yes, DestAccumulation.No)
+            else (DestAccumulation.No, DestAccumulation.Yes)
         )
-        for dest_acc in modes:
+        for dest_acc in dest_acc_modes:
             for dimensions in dimensions_cache[dest_acc]:
                 combinations.append((fmt, dest_acc, dimensions))
     return combinations

@@ -58,17 +58,23 @@ def generate_unpack_unary_operand_combinations(
     combinations = []
 
     for fmt in formats_list:
-        if fmt.input_format != fmt.output_format:
+        in_fmt = fmt.input_format
+        if in_fmt != fmt.output_format:
             continue
 
-        if fmt.input_format.is_32_bit():
-            dest_acc_modes = (DestAccumulation.Yes,)
-            transpose_modes = (Transpose.No,)
-            unpacker_engines = (UnpackerEngine.UnpDest,)
-        else:
-            dest_acc_modes = (DestAccumulation.No, DestAccumulation.Yes)
-            transpose_modes = (Transpose.No, Transpose.Yes)
-            unpacker_engines = (UnpackerEngine.UnpA, UnpackerEngine.UnpB)
+        dest_acc_modes = (
+            (DestAccumulation.Yes,)
+            if in_fmt.is_32_bit()
+            else (DestAccumulation.No, DestAccumulation.Yes)
+        )
+        transpose_modes = (
+            (Transpose.No,) if in_fmt.is_32_bit() else (Transpose.No, Transpose.Yes)
+        )
+        unpacker_engines = (
+            (UnpackerEngine.UnpDest,)
+            if in_fmt.is_32_bit()
+            else (UnpackerEngine.UnpA, UnpackerEngine.UnpB)
+        )
 
         for dest_acc in dest_acc_modes:
             for transpose_en in transpose_modes:
