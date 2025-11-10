@@ -68,6 +68,7 @@ inline void _llk_unpack_tilize_init_()
 {
     if constexpr (UNP_SEL == p_unpacr::UNP_A)
     {
+        cfg_rmw(THCON_UNPACKER0_REG0_TRANSPOSE_RMW, 0);                            // Disable transpose
         cfg_rmw(THCON_UNPACKER0_REG1_UNPACK_TILIZE_SRC_Z_STRIDE_RMW, C_DIM_FACES); // col dim of a tile in L1 in units of 16 datums (1 face). This is used for
                                                                                    // Src (L1) counter increments in the UNPACR_TILIZE instruction
         cfg_rmw(THCON_UNPACKER0_REG1_UNPACK_TILIZE_DST_Z_STRIDE_RMW, 1); // col dim of a tile in SRC reg - SRC reg will always be 16 datums across (1 face)
@@ -76,6 +77,7 @@ inline void _llk_unpack_tilize_init_()
     }
     else
     {
+        cfg_rmw(THCON_UNPACKER1_REG0_TRANSPOSE_RMW, 0);                            // Disable transpose
         cfg_rmw(THCON_UNPACKER1_REG1_UNPACK_TILIZE_SRC_Z_STRIDE_RMW, C_DIM_FACES); // col dim of a tile in L1 in units of 16 datums (1 face). This is used for
                                                                                    // Src (L1) counter increments in the UNPACR_TILIZE instruction
         cfg_rmw(THCON_UNPACKER1_REG1_UNPACK_TILIZE_DST_Z_STRIDE_RMW, 1); // col dim of a tile in SRC reg - SRC reg will always be 16 datums across (1 face)
@@ -156,11 +158,13 @@ inline void _llk_unpack_tilize_strided_init_()
 {
     if constexpr (UNP_SEL == p_unpacr::UNP_A)
     {
+        cfg_rmw(THCON_UNPACKER0_REG0_TRANSPOSE_RMW, 0); // Disable transpose
         cfg_rmw(THCON_UNPACKER0_REG1_UNPACK_STRIDE_VAL_SOURCE_RMW, 0);
         cfg_rmw(THCON_UNPACKER0_REG2_UNPACK_STRIDE_OFFSET_0_RMW, FULL_CT_DIM * C_DIM_FACES);
     }
     else
     {
+        cfg_rmw(THCON_UNPACKER1_REG0_TRANSPOSE_RMW, 0); // Disable transpose
         cfg_rmw(THCON_UNPACKER1_REG1_UNPACK_STRIDE_VAL_SOURCE_RMW, 0);
         cfg_rmw(THCON_UNPACKER1_REG2_UNPACK_STRIDE_OFFSET_0_RMW, FULL_CT_DIM * C_DIM_FACES);
     }
@@ -283,6 +287,7 @@ inline void _llk_unpack_tilize_strided_mop_config_small_faces_()
 template <uint32_t UNP_SEL, uint32_t BUF_DESC_ID, bool IS_32b_DEST_EN, uint32_t FULL_CT_DIM, uint32_t ROWS_READ, uint32_t C_DIM_FACES>
 inline void _llk_unpack_tilize_strided_init_small_faces_()
 {
+    cfg_rmw(THCON_UNPACKER0_REG0_TRANSPOSE_RMW, 0); // Disable transpose
     cfg_rmw(THCON_UNPACKER0_REG1_UNPACK_STRIDE_VAL_SOURCE_RMW, 0);
     cfg_rmw(THCON_UNPACKER0_REG2_UNPACK_STRIDE_OFFSET_0_RMW, FULL_CT_DIM * C_DIM_FACES);
     _llk_unpack_tilize_strided_mop_config_small_faces_<UNP_SEL, BUF_DESC_ID, IS_32b_DEST_EN, FULL_CT_DIM, ROWS_READ>();
