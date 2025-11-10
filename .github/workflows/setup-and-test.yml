@@ -61,8 +61,6 @@ jobs:
     container:
       image: harbor.ci.tenstorrent.net/${{ inputs.docker_image }}
       options: "--rm --device /dev/tenstorrent"
-    outputs:
-      coverage_enabled: ${{ inputs.coverage }}
     name: "🦄 Run tests (group ${{ matrix.test_group }}/${{ inputs.test_splits }})"
     steps:
       # Step 1: Checkout the repository
@@ -160,7 +158,7 @@ jobs:
     container:
       image: ${{ inputs.docker_image }}
     needs: setup-and-test
-    if: needs.setup-and-test.outputs.coverage_enabled == 'true'
+    if: inputs.coverage == 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
