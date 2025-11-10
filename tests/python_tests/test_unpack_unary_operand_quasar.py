@@ -46,6 +46,15 @@ def generate_unpack_unary_operand_combinations(
 
     Returns: List of (format, dest_acc, transpose_en, unpacker_sel, input_dimensions) tuples
     """
+    dimensions_cache = {
+        DestAccumulation.No: tuple(
+            generate_unary_input_dimensions(DestAccumulation.No)
+        ),
+        DestAccumulation.Yes: tuple(
+            generate_unary_input_dimensions(DestAccumulation.Yes)
+        ),
+    }
+
     combinations = []
 
     for fmt in formats_list:
@@ -53,21 +62,20 @@ def generate_unpack_unary_operand_combinations(
             continue
 
         if fmt.input_format.is_32_bit():
-            dest_acc_modes = [DestAccumulation.Yes]
-            transpose_modes = [Transpose.No]
-            unpacker_engines = [UnpackerEngine.UnpDest]
+            dest_acc_modes = (DestAccumulation.Yes,)
+            transpose_modes = (Transpose.No,)
+            unpacker_engines = (UnpackerEngine.UnpDest,)
         else:
-            dest_acc_modes = [DestAccumulation.No, DestAccumulation.Yes]
-            transpose_modes = [Transpose.No, Transpose.Yes]
-            unpacker_engines = [UnpackerEngine.UnpA, UnpackerEngine.UnpB]
+            dest_acc_modes = (DestAccumulation.No, DestAccumulation.Yes)
+            transpose_modes = (Transpose.No, Transpose.Yes)
+            unpacker_engines = (UnpackerEngine.UnpA, UnpackerEngine.UnpB)
 
         for dest_acc in dest_acc_modes:
-            dimensions_list = generate_unary_input_dimensions(dest_acc)
             for transpose_en in transpose_modes:
                 for unpacker_sel in unpacker_engines:
-                    for dimensions in dimensions_list:
-                        combinations.extend(
-                            [(fmt, dest_acc, transpose_en, unpacker_sel, dimensions)]
+                    for dimensions in dimensions_cache[dest_acc]:
+                        combinations.append(
+                            (fmt, dest_acc, transpose_en, unpacker_sel, dimensions)
                         )
 
     return combinations
