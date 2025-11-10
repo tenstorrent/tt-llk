@@ -16,6 +16,7 @@ from helpers.llk_params import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
+from helpers.target_config import TestTargetConfig
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
@@ -24,39 +25,39 @@ from helpers.utils import passed_test
     test_name="eltwise_unary_sfpu_test",
     formats=input_output_formats(
         [
-            # DataFormat.Float32,
-            # DataFormat.Float16,
+            DataFormat.Float32,
+            DataFormat.Float16,
             DataFormat.Float16_b,
-            # DataFormat.Bfp8_b,
+            DataFormat.Bfp8_b,
         ]
     ),
-    approx_mode=[ApproximationMode.No],  # ApproximationMode.Yes],
+    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
     mathop=[
-        # MathOperation.Abs,
-        # MathOperation.Atanh,
-        # MathOperation.Asinh,
-        # MathOperation.Acosh,
-        # MathOperation.Cos,
-        # MathOperation.Log,
-        # MathOperation.Reciprocal,
-        # MathOperation.Sin,
+        MathOperation.Abs,
+        MathOperation.Atanh,
+        MathOperation.Asinh,
+        MathOperation.Acosh,
+        MathOperation.Cos,
+        MathOperation.Log,
+        MathOperation.Reciprocal,
+        MathOperation.Sin,
         MathOperation.Sqrt,
-        # MathOperation.Rsqrt,
-        # MathOperation.Square,
-        # MathOperation.Celu,
-        # MathOperation.Silu,
-        # MathOperation.Gelu,
-        # MathOperation.Neg,
-        # MathOperation.Fill,
-        # MathOperation.Elu,
-        # MathOperation.Exp,
-        # MathOperation.Exp2,
-        # MathOperation.Hardsigmoid,
-        # MathOperation.Threshold,
-        # MathOperation.ReluMax,
-        # MathOperation.ReluMin,
+        MathOperation.Rsqrt,
+        MathOperation.Square,
+        MathOperation.Celu,
+        MathOperation.Silu,
+        MathOperation.Gelu,
+        MathOperation.Neg,
+        MathOperation.Fill,
+        MathOperation.Elu,
+        MathOperation.Exp,
+        MathOperation.Exp2,
+        MathOperation.Hardsigmoid,
+        MathOperation.Threshold,
+        MathOperation.ReluMax,
+        MathOperation.ReluMin,
     ],
-    dest_acc=[DestAccumulation.Yes],  # DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.Yes, DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_acc):
     arch = get_chip_architecture()
@@ -82,21 +83,21 @@ def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_
     eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
 
 
-# @parametrize(
-#     test_name="eltwise_unary_sfpu_int",
-#     formats=input_output_formats([DataFormat.Int32]),
-#     approx_mode=[ApproximationMode.No], #ApproximationMode.Yes],
-#     mathop=[
-#         MathOperation.Neg,
-#         #MathOperation.Fill,
-#     ],
-#     dest_acc=[DestAccumulation.Yes],
-# )
-# def test_eltwise_unary_sfpu_int(test_name, formats, approx_mode, mathop, dest_acc):
-#     if formats.input_format == DataFormat.Int32:
-#         pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
+@parametrize(
+    test_name="eltwise_unary_sfpu_int",
+    formats=input_output_formats([DataFormat.Int32]),
+    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+    mathop=[
+        MathOperation.Neg,
+        MathOperation.Fill,
+    ],
+    dest_acc=[DestAccumulation.Yes],
+)
+def test_eltwise_unary_sfpu_int(test_name, formats, approx_mode, mathop, dest_acc):
+    if formats.input_format == DataFormat.Int32:
+        pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
 
-#     eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
+    eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
 
 
 def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
@@ -143,9 +144,12 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
 
     run_test(test_config)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    test_target = TestTargetConfig()
+    if test_target.with_coverage:
+        return
 
-    # res_from_L1 = res_from_L1[:1024]
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = res_from_L1[:1024]
     assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]
