@@ -101,7 +101,7 @@ inline void _llk_unpack_tilize_(const uint l1_tile_idx)
     // Reset Dest counters for Unpacker to 0
     // Set Source counter to L1 base + offset
     TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, UNP_SEL, l1_tile_idx);
-    TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::FACE_SEL, UNP_SEL, 0);
+    TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL, 0);
 
     // Runs MOP
     ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
