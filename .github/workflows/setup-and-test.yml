@@ -158,7 +158,7 @@ jobs:
     container:
       image: ${{ inputs.docker_image }}
     needs: setup-and-test
-    if: inputs.coverage == 'true'
+    if: inputs.coverage == true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
