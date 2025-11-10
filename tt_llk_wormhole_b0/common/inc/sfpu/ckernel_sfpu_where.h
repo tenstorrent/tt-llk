@@ -23,8 +23,7 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
     int offset1 = (dst_index_in1 * 32) << 1;
     int offset2 = (dst_index_in2 * 32) << 1;
 
-    // TODO unclear why LO16 doesn't work for bfloat16.
-    constexpr uint mod0 = data_format == DataFormat::Float16_b ? InstrModLoadStore::HI16 : InstrModLoadStore::FP32;
+    constexpr uint mod0 = data_format == DataFormat::Float16_b ? InstrModLoadStore::LO16 : InstrModLoadStore::INT32;
 
     if (dst_index_out == dst_index_in0)
     {
@@ -37,9 +36,9 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
         // (next SFPLOAD L0)       |                                | SFPSTORE Dst[offset0]=L0
 
         lltt::record(0, 3);
-        TT_SFPLOADMACRO((0 << 2), mod0, ADDR_MOD_7, offset0);
-        TT_SFPLOADMACRO((2 << 2), mod0, ADDR_MOD_7, offset1);
-        TT_SFPLOAD(0, mod0, ADDR_MOD_6, offset2);
+        TT_SFPLOADMACRO((0 << 2), mod0, ADDR_MOD_3, offset0);
+        TT_SFPLOADMACRO((2 << 2), mod0, ADDR_MOD_3, offset1);
+        TT_SFPLOAD(0, mod0, ADDR_MOD_2, offset2);
 
 #pragma GCC unroll 8
         for (int d = 0; d < ITERATIONS; d++)
@@ -61,10 +60,10 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
         int offset3 = (dst_index_out * 32) << 1;
 
         lltt::record(0, 4);
-        TT_SFPLOADMACRO((1 << 2), mod0, ADDR_MOD_7, offset0);
-        TT_SFPLOADMACRO((2 << 2), mod0, ADDR_MOD_7, offset1);
-        TT_SFPLOAD(0, mod0, ADDR_MOD_7, offset2);
-        TT_SFPSTORE(0, mod0, ADDR_MOD_6, offset3);
+        TT_SFPLOADMACRO((1 << 2), mod0, ADDR_MOD_3, offset0);
+        TT_SFPLOADMACRO((2 << 2), mod0, ADDR_MOD_3, offset1);
+        TT_SFPLOAD(0, mod0, ADDR_MOD_3, offset2);
+        TT_SFPSTORE(0, mod0, ADDR_MOD_2, offset3);
 
 #pragma GCC unroll 8
         for (int d = 0; d < ITERATIONS; d++)
