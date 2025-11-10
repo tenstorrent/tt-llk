@@ -86,9 +86,9 @@ inline void _init_where_()
     // Macro 0: special case handling for where(a, b, c, a), i.e. write the output to the first input.
     {
         constexpr uint simple_bits = 0x00 | 0x00 | (0 << 3) | 4;
-        constexpr uint store_bits  = 0x00 | 0x00 | (2 << 3) | 3;
         constexpr uint mad_bits    = 0;
         constexpr uint round_bits  = 0;
+        constexpr uint store_bits  = 0x00 | 0x00 | (2 << 3) | 3;
 
         TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
         TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
