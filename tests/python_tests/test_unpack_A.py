@@ -390,7 +390,6 @@ def test_unpack_comprehensive(
     within_face_16x16_transpose,
     num_faces,
 ):
-    pytest.skip()
     import torch
 
     # Compute unpack_to_dest based on format and accumulation mode

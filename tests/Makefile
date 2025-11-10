@@ -66,10 +66,9 @@ GCOV_TOOL		:= $(realpath $(TOOL_PATH)/riscv-tt-elf-gcov-tool)
 # Compiler and Linker Flags
 # =========================
 OPTIONS_ALL	:= -g -O3 -std=$(CXX_VERSION) -ffast-math
-OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Wunused-parameter \
+OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Werror -Wunused-parameter \
 				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized \
 				   -Wmaybe-uninitialized -DTENSIX_FIRMWARE $(ARCH_DEFINE)
-COVERAGE_OPTIONS_COMPILE := $(OPTIONS_COMPILE)
 
 BOOT_MODE := $(if $(bootmode),$(bootmode),brisc)
 ifeq ($(BOOT_MODE),brisc)
@@ -159,7 +158,6 @@ $(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/bris
 
 # disable make automatically deleting important intermediate files
 .SECONDARY: $(SHARED_OBJ_DIR)/*.o $(OBJ_DIR)/*.o
-# .PRECIOUS: $(OBJ_DIR)/kernel_%.o
 
 # build kernel_unpack.o, kernel_math.o, kernel_pack.o from ai_gen subdirectory
 $(OBJ_DIR)/kernel_%.o: sources/ai_gen/$(testname).cpp $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $(DEPS_DIR)
@@ -244,15 +242,6 @@ coverage: $(INFO_FILES_DIR)
 INFO_FILES	:= $(wildcard $(INFO_FILES_DIR)/*.info)
 FIRST_INFO	:= $(firstword $(INFO_FILES))
 merge_coverage_data:
-# 	@if [ ! -f "$(INFO_PATH)" ]; then \
-#         cp $(FIRST_INFO) $(INFO_PATH); \
-#     fi; \
-
-# 	@for f in $(INFO_FILES); do \
-#         if [ "$$f" != "$(FIRST_INFO)" ]; then \
-#             lcov -q -a $(INFO_PATH)/merged_coverage.info -a "$$f" -o $(INFO_PATH); \
-#         fi; \
-#     done;
 	@if [ ! -f "$(INFO_PATH)" ]; then \
         first_file=$$(find $(INFO_FILES_DIR) -name '*.info' | head -n 1); \
         cp $$first_file $(INFO_PATH); \
@@ -266,8 +255,6 @@ merge_coverage_data:
             lcov -q -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH) > /dev/null 2>&1; \
         fi; \
     done;
-
-# 	@-rm $(INFO_FILES_DIR)/*
 
 generate_report:
 	lcov --remove $(INFO_PATH) \

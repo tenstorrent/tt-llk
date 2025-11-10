@@ -125,17 +125,12 @@ extern "C"
         dump_unsigned(GCOV_FILENAME_MAGIC, dump_fn, arg);
         dump_unsigned(GCOV_VERSION, dump_fn, arg);
 
-        int filename_lenght = strlen(filename) + 1;
-        dump_unsigned(filename_lenght, dump_fn, arg);
-        dump_fn(filename, filename_lenght, arg);
+        int filename_length = strlen(filename) + 1;
+        dump_unsigned(filename_length, dump_fn, arg);
+        dump_fn(filename, filename_length, arg);
     }
 
-    static void write_one_data(
-        const struct gcov_info *gi_ptr,
-        const struct gcov_summary *prg_p,
-        void (*dump_fn)(const void *, unsigned, void *),
-        void *(*allocate_fn)(unsigned, void *),
-        void *arg)
+    static void write_one_data(const struct gcov_info *gi_ptr, void (*dump_fn)(const void *, unsigned, void *), void *arg)
     {
         unsigned f_ix;
 
@@ -207,15 +202,10 @@ extern "C"
         dump_unsigned(0, dump_fn, arg);
     }
 
-    void __gcov_info_to_gcda(
-        const struct gcov_info *gi_ptr,
-        void (*filename_fn)(const char *, void *),
-        void (*dump_fn)(const void *, unsigned, void *),
-        void *(*allocate_fn)(unsigned, void *),
-        void *arg)
+    void __gcov_info_to_gcda(const struct gcov_info *gi_ptr, void (*dump_fn)(const void *, unsigned, void *), void *arg)
     {
         write_one_filename(gi_ptr->filename, dump_fn, arg);
-        write_one_data(gi_ptr, NULL, dump_fn, allocate_fn, arg);
+        write_one_data(gi_ptr, dump_fn, arg);
     }
 
 #ifdef __cplusplus
