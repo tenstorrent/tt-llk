@@ -56,10 +56,11 @@ def generate_unpack_tilize_combinations(
     combinations = []
 
     for fmt in formats_list:
-        if fmt.input_format != fmt.output_format:
+        in_fmt = fmt.input_format
+        if in_fmt != fmt.output_format:
             continue
 
-        if fmt.input_format.is_32_bit():
+        if in_fmt.is_32_bit():
             continue  # Tilize 32b data into dest not yet supported
 
         dest_acc_modes = (DestAccumulation.No, DestAccumulation.Yes)
