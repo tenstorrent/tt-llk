@@ -16,6 +16,7 @@ from helpers.llk_params import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
+from helpers.target_config import TestTargetConfig
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
@@ -154,6 +155,10 @@ def test_unpack_tilize_comprehensive(
 
     # Execute the kernel
     run_test(test_config)
+
+    test_target = TestTargetConfig()
+    if test_target.with_coverage:
+        return
 
     # Collect results from L1 memory
     res_from_L1 = collect_results(

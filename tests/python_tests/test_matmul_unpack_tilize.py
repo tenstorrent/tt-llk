@@ -8,6 +8,7 @@ from helpers.golden_generators import MatmulGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
+from helpers.target_config import TestTargetConfig
 from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test
@@ -74,6 +75,10 @@ def test_matmul_unpack_tilize(test_name, formats, dest_acc, math_fidelity):
     )
 
     run_test(test_config)
+
+    test_target = TestTargetConfig()
+    if test_target.with_coverage:
+        return
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
