@@ -1,4 +1,5 @@
 // SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+// SPDX-FileCopyrightText: © 2025 Jason Davies <jason@jasondavies.com>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -93,10 +94,10 @@ inline void _init_where_()
 
     // Macro 0: special case handling for where(a, b, c, a), i.e. write the output to the first input.
     {
-        uint simple_bits = 0x00 | 0x00 | (0 << 3) | 4;
-        uint store_bits  = 0x00 | 0x00 | (2 << 3) | 3;
-        uint mad_bits    = 0;
-        uint round_bits  = 0;
+        constexpr uint simple_bits = 0x00 | 0x00 | (0 << 3) | 4;
+        constexpr uint mad_bits    = 0;
+        constexpr uint round_bits  = 0;
+        constexpr uint store_bits  = 0x00 | 0x00 | (2 << 3) | 3;
 
         TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
         TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
@@ -105,16 +106,16 @@ inline void _init_where_()
 
     // Macro 1: otherwise, handle where(a, b, c, d).
     {
-        uint simple_bits = 0x00 | 0x00 | (0 << 3) | 4;
-        uint mad_bits    = 0;
+        constexpr uint simple_bits = 0x00 | 0x00 | (0 << 3) | 4;
+        constexpr uint mad_bits    = 0;
 
         TTI_SFPCONFIG((mad_bits << 8) | simple_bits, 4 + 1, 1);
     }
 
     // Macro 2:
     {
-        uint simple_bits = 0x00 | 0x00 | (0 << 3) | 5;
-        uint mad_bits    = 0;
+        constexpr uint simple_bits = 0x00 | 0x00 | (0 << 3) | 5;
+        constexpr uint mad_bits    = 0;
 
         TTI_SFPCONFIG((mad_bits << 8) | simple_bits, 4 + 2, 1);
     }
