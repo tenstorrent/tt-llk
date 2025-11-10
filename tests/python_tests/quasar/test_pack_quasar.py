@@ -74,7 +74,7 @@ ALL_PACK_COMBINATIONS = generate_qsr_pack_combinations(PACK_FORMATS)
 
 
 @parametrize(
-    test_name="quasar_pack_test",
+    test_name="pack_quasar_test",
     formats_dest_acc_input_dims=ALL_PACK_COMBINATIONS,
 )
 def test_pack_quasar(
