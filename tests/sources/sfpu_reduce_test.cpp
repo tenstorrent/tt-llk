@@ -77,13 +77,16 @@ void run_kernel()
     }
 
 #ifdef ADD_TOP_ROW
+    _llk_math_eltwise_binary_sfpu_init_<SfpuType::add_top_row>();
+    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
     ckernel::sfpu::_init_add_top_row_();
+
     for (int i = 1; i < TILE_CNT; ++i)
     {
         // Add the top rows of all the tiles we reduced in dst register
-        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);                              // set dst offset for current tile in dest register
         ckernel::sfpu::_calculate_add_top_row_<static_cast<DataFormat>(formats.math)>(0, i, 0); // accumulate the result in tile at index 0
     }
+
 #endif
 
     _llk_math_eltwise_unary_sfpu_done_();
