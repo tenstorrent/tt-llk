@@ -41,15 +41,15 @@ void run_kernel()
 
     bd_val.f.l1_addr_16B = l1_addr_16B;
     bd_val.f.format      = static_cast<uint8_t>(formats.unpack_src);
-    bd_val.f.x_dim       = FACE_C_DIM;
-    bd_val.f.y_dim       = FACE_R_DIM;
+    bd_val.f.x_dim       = TEST_FACE_C_DIM;
+    bd_val.f.y_dim       = TEST_FACE_R_DIM;
     bd_val.f.z_dim       = num_faces;
 
     td_val.buf_desc        = bd_val;
     td_val.buf_desc_id     = BUF_DESC_ID;
     td_val.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
 
-    constexpr TileShape tile_shape = {.num_faces = num_faces, .face_r_dim = FACE_R_DIM, .face_c_dim = FACE_C_DIM, .narrow_tile = 0};
+    constexpr TileShape tile_shape = {.num_faces = num_faces, .face_r_dim = TEST_FACE_R_DIM, .face_c_dim = TEST_FACE_C_DIM, .narrow_tile = 0};
     constexpr uint32_t C_DIM_FACES = (tile_shape.narrow_tile ? 1 : 2); // Tile width in faces
     constexpr uint32_t R_DIM_FACES = 2;                                // Tile height in faces
 
@@ -69,7 +69,7 @@ void run_kernel()
     // x_stride = x_stride_internal = col dim of a tile in L1 in units of 16 datums (1 face);
     // y_stride = y_stride_external + x_stride_internal
     // In this case x = 0 because the entire tile row fits into Dest
-    uint y_stride_external = FULL_CT_DIM * R_DIM_FACES * FACE_R_DIM;
+    uint y_stride_external = FULL_CT_DIM * R_DIM_FACES * TEST_FACE_R_DIM;
     for (uint y = 0; y < BLOCK_RT_DIM; y++)
     {
         _llk_unpack_tilize_<UNPACKER_ENGINE_SEL>(y * y_stride_external /*  + 0 * x_stride  */);
@@ -101,10 +101,10 @@ void run_kernel()
     constexpr DataFormat src_format = static_cast<DataFormat>(formats.math);
     _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en, src_format, src_format>();
 
-    _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(num_faces * FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
+    _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(num_faces * TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_math_eltwise_unary_datacopy_<num_faces * FACE_R_DIM /*num_rows_per_tile*/>(i);
+        _llk_math_eltwise_unary_datacopy_<num_faces * TEST_FACE_R_DIM /*num_rows_per_tile*/>(i);
     }
     _llk_math_set_dvalid_<p_cleardvalid::FPU>();
 }
@@ -133,8 +133,8 @@ void run_kernel()
 
     bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
-    bd_val.f.x_dim       = FACE_C_DIM;
-    bd_val.f.y_dim       = FACE_R_DIM;
+    bd_val.f.x_dim       = TEST_FACE_C_DIM;
+    bd_val.f.y_dim       = TEST_FACE_R_DIM;
     bd_val.f.z_dim       = num_faces;
 
     tdma_desc.buf_desc        = bd_val;
