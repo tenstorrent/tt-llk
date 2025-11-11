@@ -47,7 +47,7 @@ struct PolynomialEvaluator
      * @note Coefficients can be either float, sfpi::vFloat, ... (scalar and sfpi typed arguments can be mixed)
      */
 
-    // Base case: f(x) = 0 (rank-0 polynomial)
+    // Base case: f(x) = 0 (empty polynomial)
     template <typename U>
     static constexpr auto eval(U x)
     {
@@ -57,7 +57,7 @@ struct PolynomialEvaluator
     template <typename U, typename Coefficient0>
     static constexpr auto eval(U x, Coefficient0 coeff0)
     {
-        // Base case: f(x) = coeff0 (rank-0 polynomial)
+        // Base case: f(x) = coeff0 (0-th degree polynomial)
         return coeff0;
     }
 
