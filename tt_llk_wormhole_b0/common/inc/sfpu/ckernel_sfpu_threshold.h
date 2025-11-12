@@ -34,7 +34,7 @@ inline void _calculate_threshold_(T threshold, T value)
         v_threshold = Converter::as_float(threshold);
         v_value     = Converter::as_float(value);
     }
-#pragma GCC unroll 8
+    // #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat in = sfpi::dst_reg[0];

@@ -20,7 +20,7 @@ inline void _llk_math_eltwise_unary_sfpu_params_(Callable&& sfpu_func, uint dst_
     if (mode == VectorMode::R)
     {
         // Do a row vector, Face0 + Face1 -- first iteration (first row)
-#pragma GCC unroll 0
+        // #pragma GCC unroll 0
         for (int face = 0; face < 2; face++)
         {
             std::forward<Callable>(sfpu_func)(std::forward<Args>(args)...);
@@ -36,7 +36,7 @@ inline void _llk_math_eltwise_unary_sfpu_params_(Callable&& sfpu_func, uint dst_
     else if (mode == VectorMode::C)
     {
         // Do a column vector, Face0 + Face2 -- All iterations for full face
-#pragma GCC unroll 0
+        // #pragma GCC unroll 0
         for (int face = 0; face < 2; face++)
         {
             std::forward<Callable>(sfpu_func)(std::forward<Args>(args)...);
@@ -49,7 +49,7 @@ inline void _llk_math_eltwise_unary_sfpu_params_(Callable&& sfpu_func, uint dst_
     else if (mode == VectorMode::RC)
     {
         // Do all four faces, and iterate through all 4 blocks of 4 rows each
-#pragma GCC unroll 0
+        // #pragma GCC unroll 0
         for (int face = 0; face < 4; face++)
         {
             std::forward<Callable>(sfpu_func)(std::forward<Args>(args)...);

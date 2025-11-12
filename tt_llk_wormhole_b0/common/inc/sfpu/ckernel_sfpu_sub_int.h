@@ -31,7 +31,7 @@ inline void _sub_int_(const uint dst_index_in0, const uint dst_index_in1, const 
     // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size = 64;
 
-#pragma GCC unroll 8
+    // #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         // operand A

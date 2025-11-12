@@ -16,7 +16,7 @@ namespace sfpu
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
 {
-#pragma GCC unroll 8
+    // #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         // Split u16 inputs a and b into a = (a1 << 8) | a0; b = (b1 << 8) | b0,
