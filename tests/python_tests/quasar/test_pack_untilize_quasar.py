@@ -5,7 +5,7 @@ from typing import List
 
 import pytest
 import torch
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from conftest import skip_for_blackhole, skip_for_wormhole
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, FormatConfig
 from helpers.golden_generators import UntilizeGolden, get_golden_generator
@@ -70,6 +70,8 @@ ALL_PACK_UNTILIZE_COMBINATIONS = generate_pack_untilize_combinations(
 )
 
 
+@skip_for_blackhole
+@skip_for_wormhole
 @parametrize(
     test_name="pack_untilize_quasar_test",
     formats_dest_acc_dimensions=ALL_PACK_UNTILIZE_COMBINATIONS,
@@ -80,11 +82,8 @@ def test_pack_untilize_quasar(test_name, formats_dest_acc_dimensions):
     dest_acc = formats_dest_acc_dimensions[1]
     input_dimensions = formats_dest_acc_dimensions[2]
 
-    if get_chip_architecture() != ChipArchitecture.QUASAR:
-        pytest.skip("Test is supported only on Quasar.")
-
     if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
-        pytest.skip("Fails.")
+        pytest.skip("Fails for now.")
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
