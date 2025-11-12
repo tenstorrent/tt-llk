@@ -187,7 +187,7 @@ def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
 
 
-def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
+def run_elf_files(testname, variant_id, boot_mode, device_id=0, location="0,0"):
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
     BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
@@ -205,7 +205,7 @@ def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
     trisc_start_addresses = [0x16DFF0, 0x16DFF4, 0x16DFF8]
     is_wormhole = get_chip_architecture() == ChipArchitecture.WORMHOLE
     for i, trisc_name in enumerate(trisc_names):
-        elf_path = BUILD_DIR / "tests" / testname / "elf" / f"{trisc_name}.elf"
+        elf_path = BUILD_DIR / testname / variant_id / "elf" / f"{trisc_name}.elf"
         start_address = load_elf(
             elf_file=str(elf_path.absolute()),
             location=location,
@@ -526,9 +526,8 @@ def wait_for_tensix_operations_finished(location: str = "0,0"):
     wait_until_tensix_complete(location, Mailbox.Unpacker)
 
 
-def reset_mailboxes():
+def reset_mailboxes(location="0,0"):
     """Reset all core mailboxes before each test."""
-    location = "0, 0"
     reset_value = 0  # Constant - indicates the TRISC kernel run status
     mailboxes = [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]
     for mailbox in mailboxes:
