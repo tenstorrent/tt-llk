@@ -147,8 +147,10 @@ def collect_results(
     sfpu: bool = False,
     tile_dimensions=[32, 32],
     num_faces: int = 4,
+    face_r_dim: int = 16,  # Default to 16 for backward compatibility
 ):
-    # Calculate tile elements based on tile dimensions
+    # Always read full tiles - hardware still outputs full tile data
+    # but with variable face dimensions, only part of it is valid
     tile_elements = tile_dimensions[0] * tile_dimensions[1]
     read_bytes_cnt = (
         formats.output_format.num_bytes_per_tile(tile_elements) * tile_count
@@ -156,7 +158,12 @@ def collect_results(
 
     read_data = read_from_device(location, address, num_bytes=read_bytes_cnt)
     res_from_L1 = unpack_res_tiles(
-        read_data, formats, tile_count=tile_count, sfpu=sfpu, num_faces=num_faces
+        read_data,
+        formats,
+        tile_count=tile_count,
+        sfpu=sfpu,
+        num_faces=num_faces,
+        face_r_dim=face_r_dim,
     )
     return res_from_L1
 
@@ -201,6 +208,8 @@ def run_elf_files(testname, variant_id, boot_mode, device_id=0, location="0,0"):
 
     # Load TRISC ELF files
     trisc_names = ["unpack", "math", "pack"]
+    trisc_start_addresses = [0x16DFF0, 0x16DFF4, 0x16DFF8]
+    is_wormhole = get_chip_architecture() == ChipArchitecture.WORMHOLE
     for i, trisc_name in enumerate(trisc_names):
         elf_path = BUILD_DIR / testname / variant_id / "elf" / f"{trisc_name}.elf"
         load_elf(
@@ -208,11 +217,14 @@ def run_elf_files(testname, variant_id, boot_mode, device_id=0, location="0,0"):
             location=location,
             risc_name=f"trisc{i}",
             neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None,
+            return_start_address=is_wormhole,
         )
+        if is_wormhole:
+            write_words_to_device(location, trisc_start_addresses[i], [start_address])
 
     # Reset the profiler barrier
-    TRISC_PROFILER_BARRIE_ADDRESS = 0x16AFF4
-    write_words_to_device(location, TRISC_PROFILER_BARRIE_ADDRESS, [0, 0, 0])
+    TRISC_PROFILER_BARRIER_ADDRESS = 0x16AFF4
+    write_words_to_device(location, TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0])
 
     match boot_mode:
         case BootMode.BRISC:
