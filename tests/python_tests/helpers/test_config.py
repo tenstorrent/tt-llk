@@ -5,7 +5,7 @@ import os
 from enum import Enum
 from pathlib import Path
 
-from .chip_architecture import get_chip_architecture
+from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     BootMode,
@@ -136,17 +136,22 @@ def generate_build_header(test_config):
     )
 
     # ******** QUASAR specific ********
-    # Implied math format
-    implied_math_format = test_config.get("implied_math_format", ImpliedMathFormat.No)
-    header_content.append(
-        f"constexpr bool IMPLIED_MATH_FORMAT = {implied_math_format.value};"
-    )
+    if get_chip_architecture() == ChipArchitecture.QUASAR:
+        # Implied math format
+        implied_math_format = test_config.get(
+            "implied_math_format", ImpliedMathFormat.No
+        )
+        header_content.append(
+            f"constexpr bool IMPLIED_MATH_FORMAT = {implied_math_format.value};"
+        )
 
-    # Select unpacker
-    unpacker_engine_sel = test_config.get("unpacker_engine_sel", UnpackerEngine.UnpA)
-    header_content.append(
-        f"constexpr uint UNPACKER_ENGINE_SEL = p_unpacr::{unpacker_engine_sel.value};"
-    )
+        # Select unpacker
+        unpacker_engine_sel = test_config.get(
+            "unpacker_engine_sel", UnpackerEngine.UnpA
+        )
+        header_content.append(
+            f"constexpr uint UNPACKER_ENGINE_SEL = p_unpacr::{unpacker_engine_sel.value};"
+        )
     # *********************************
 
     # Throttle level
