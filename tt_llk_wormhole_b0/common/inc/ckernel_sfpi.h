@@ -3075,7 +3075,7 @@ sfpi_test_noinline void test14(int imm)
 
         // unroll forces the compiler into multiple basic blocks
 #if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC unroll 0
+// #pragma GCC unroll 0
 #endif
         for (int i = 0; i < imm - 30; i++)
         { // 0..4

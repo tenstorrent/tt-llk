@@ -25,7 +25,7 @@ inline void _calculate_dropout_(const int iterations, uint probability, uint sca
     TT_SFPLOADI(p_sfpu::LREG1, 8, scale >> 16);
     TT_SFPLOADI(p_sfpu::LREG2, 10, probability & 0xFFFF);
     TT_SFPLOADI(p_sfpu::LREG2, 8, probability >> 16);
-#pragma GCC unroll 0
+    // #pragma GCC unroll 0
     for (int d = 0; d < iterations; d++)
     {
         ////////////////////////

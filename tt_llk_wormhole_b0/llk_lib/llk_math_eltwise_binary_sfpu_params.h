@@ -19,7 +19,7 @@ inline void _llk_math_eltwise_binary_sfpu_params_(
     if (mode == VectorMode::R)
     {
         // Do a row vector, Face0 + Face1 -- first iteration (first row)
-#pragma GCC unroll 0
+        // #pragma GCC unroll 0
         for (int face = 0; face < 2; face++)
         {
             std::forward<Callable>(sfpu_func)(dst_index_in0, dst_index_in1, dst_index_out, std::forward<Args>(args)...);
@@ -35,7 +35,7 @@ inline void _llk_math_eltwise_binary_sfpu_params_(
     else if (mode == VectorMode::C)
     {
         // Do a column vector, Face0 + Face2 -- All iterations for full face
-#pragma GCC unroll 0
+        // #pragma GCC unroll 0
         for (int face = 0; face < 2; face++)
         {
             std::forward<Callable>(sfpu_func)(dst_index_in0, dst_index_in1, dst_index_out, std::forward<Args>(args)...);
@@ -48,7 +48,7 @@ inline void _llk_math_eltwise_binary_sfpu_params_(
     else if (mode == VectorMode::RC)
     {
         // Do all four faces, and iterate through all 4 blocks of 4 rows each
-#pragma GCC unroll 0
+        // #pragma GCC unroll 0
         for (int face = 0; face < 4; face++)
         {
             std::forward<Callable>(sfpu_func)(dst_index_in0, dst_index_in1, dst_index_out, std::forward<Args>(args)...);

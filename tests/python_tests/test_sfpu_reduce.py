@@ -24,7 +24,6 @@ from helpers.param_config import (
     parametrize,
 )
 from helpers.stimuli_generator import generate_random_face, generate_stimuli
-from helpers.target_config import TestTargetConfig
 from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
@@ -131,10 +130,6 @@ def test_sfpu_reduce(
         tile_count_B=1,
     )
     run_test(test_config)
-
-    test_target = TestTargetConfig()
-    if test_target.with_coverage:
-        return
 
     torch_format = format_dict[formats.output_format]
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)

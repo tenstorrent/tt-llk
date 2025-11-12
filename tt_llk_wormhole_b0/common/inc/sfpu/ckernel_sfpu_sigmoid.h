@@ -23,7 +23,7 @@ inline void _calculate_sigmoid_(const int iterations)
     sfpi::vUInt l5         = sfpi::l_reg[sfpi::LRegs::LReg5];
     sfpi::vUInt l6         = sfpi::l_reg[sfpi::LRegs::LReg6];
 
-#pragma GCC unroll 8
+    // #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat val = sfpi::dst_reg[0];

@@ -3,6 +3,7 @@
 
 import os
 from enum import Enum
+from hashlib import sha256
 from pathlib import Path
 
 from helpers.target_config import TestTargetConfig
@@ -542,14 +543,10 @@ def generate_build_header(test_config):
     return "\n".join(header_content)
 
 
-def write_build_header(test_config):
+def write_build_header(test_config, build_dir):
     header_content = generate_build_header(test_config)
-    llk_home = Path(os.environ.get("LLK_HOME"))
-    with open(llk_home / "tests/helpers/include/build.h", "w") as f:
+    with open(build_dir / "build.h", "w") as f:
         f.write(header_content)
-
-
-from hashlib import md5
 
 
 def generate_make_command(
@@ -581,7 +578,30 @@ def build_test(
     """Only builds the files required to run a test"""
     llk_home = Path(os.environ.get("LLK_HOME"))
     tests_dir = str((llk_home / "tests").absolute())
-    write_build_header(test_config)
+
+    CHIP_ARCH = get_chip_architecture()
+    LLK_HOME = os.environ.get("LLK_HOME")
+    BUILD_DIR = (
+        Path(LLK_HOME)
+        / "tests"
+        / "build"
+        / CHIP_ARCH.value
+        / test_config["testname"]
+        / variant_id
+        / "obj"
+    )
+    os.makedirs(BUILD_DIR, exist_ok=True)
+
+    BUILD_DIR = (
+        Path(LLK_HOME)
+        / "tests"
+        / "build"
+        / CHIP_ARCH.value
+        / test_config["testname"]
+        / variant_id
+    )
+
+    write_build_header(test_config, BUILD_DIR)
     make_cmd = generate_make_command(
         test_config, variant_id, with_coverage, boot_mode, profiler_build
     )
@@ -596,7 +616,7 @@ def run_test(
 ):
     """Run the test with the given configuration"""
 
-    variant_id = md5(f"{str(test_config)}".encode()).hexdigest()
+    variant_id = sha256(f"{str(test_config)}".encode()).hexdigest()
 
     test_target = TestTargetConfig()
     build_test(

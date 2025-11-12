@@ -14,7 +14,7 @@ namespace sfpu
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_square_(const int iterations)
 {
-#pragma GCC unroll 8
+    // #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat in     = sfpi::dst_reg[0];

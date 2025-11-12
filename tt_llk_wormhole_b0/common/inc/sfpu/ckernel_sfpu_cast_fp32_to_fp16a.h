@@ -15,7 +15,7 @@ namespace sfpu
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _cast_fp32_to_fp16a_(const int iterations)
 {
-#pragma GCC unroll 8
+    // #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         // sfpi::vFloat val = sfpi::dst_reg[0];

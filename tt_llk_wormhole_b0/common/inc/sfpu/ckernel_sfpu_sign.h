@@ -15,9 +15,9 @@ namespace sfpu
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_sign_(const int iterations, uint exponent_size_8)
 {
-// All params are in FP16 format
-// uint format = 1;
-#pragma GCC unroll 0
+    // All params are in FP16 format
+    // uint format = 1;
+    // #pragma GCC unroll 0
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat v   = sfpi::dst_reg[0];
