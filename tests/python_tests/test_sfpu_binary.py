@@ -203,7 +203,7 @@ def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
 
 
-def sfpu_binary(test_name, formats, dest_acc, mathop, worker_tensix_location, worker_tensix_location):
+def sfpu_binary(test_name, formats, dest_acc, mathop, worker_tensix_location):
 
     input_dimensions = [64, 64]
 
