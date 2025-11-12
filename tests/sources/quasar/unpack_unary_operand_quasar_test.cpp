@@ -16,11 +16,11 @@
 #include "llk_unpack_unary_operand.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     tdma_descriptor_t td_val;
     const uint buf_desc_id          = 0;
-    const uint num_tiles_per_unpack = TILE_CNT;
+    const uint num_tiles_per_unpack = params->TILE_CNT;
 
     // Setup data valid scheme
     if (unpack_to_dest)
@@ -51,7 +51,7 @@ void run_kernel()
 
     bd_val.f.l1_addr_16B = l1_addr_16B;
     bd_val.f.format      = static_cast<uint8_t>(formats.unpack_src);
-    bd_val.f.x_dim       = TEST_FACE_C_DIM;
+    bd_val.f.x_dim       = params->TEST_FACE_C_DIM;
     bd_val.f.y_dim       = TEST_FACE_R_DIM;
     bd_val.f.z_dim       = num_faces;
 
@@ -94,7 +94,7 @@ const bool is_int_fpu_en = false;
 
 using namespace ckernel;
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     if (!unpack_to_dest)
     {
@@ -104,7 +104,7 @@ void run_kernel()
         _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en, src_format, src_format>();
 
         _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(num_faces * TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
-        for (int i = 0; i < TILE_CNT; ++i)
+        for (int i = 0; i < params->TILE_CNT; ++i)
         {
             _llk_math_eltwise_unary_datacopy_<num_faces * TEST_FACE_R_DIM /*num_rows_per_tile*/>(i);
         }
@@ -120,10 +120,10 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     uint32_t const buf_desc_id    = 8;
-    const uint num_tiles_per_pack = TILE_CNT;
+    const uint num_tiles_per_pack = params->TILE_CNT;
 
     if (unpack_to_dest)
     {
@@ -139,7 +139,7 @@ void run_kernel()
 
     bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
-    bd_val.f.x_dim       = TEST_FACE_C_DIM;
+    bd_val.f.x_dim       = params->TEST_FACE_C_DIM;
     bd_val.f.y_dim       = TEST_FACE_R_DIM;
     bd_val.f.z_dim       = num_faces;
 

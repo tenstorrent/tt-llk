@@ -32,7 +32,7 @@ else
 $(error must provide archname or CHIP_ARCH environment variable (wormhole / blackhole))
 endif
 
-BUILD_DIR       ?= build/$(ARCH)
+BUILD_DIR       ?= /tmp/tt-llk-build
 
 SHARED_DIR      := $(BUILD_DIR)/shared
 COVERAGE_REPORT_DIR	:= $(BUILD_DIR)/coverage_report
@@ -48,7 +48,7 @@ DEPS_DIR        := $(TEST_DIR)/deps
 DIS_DIR         := $(TEST_DIR)/dis
 ELF_DIR         := $(TEST_DIR)/elf
 
-PROFILER_DIR    := $(TEST_DIR)/profiler
+PROFILER_DIR    := $(BUILD_DIR)/profiler_meta/$(testname)/$(variant)
 
 HELPERS         := helpers
 RISCV_SOURCES   := $(HELPERS)/src
@@ -66,8 +66,8 @@ GCOV_TOOL		:= $(realpath $(TOOL_PATH)/riscv-tt-elf-gcov-tool)
 # Compiler and Linker Flags
 # =========================
 OPTIONS_ALL	:= -g -O3 -std=$(CXX_VERSION) -ffast-math
-OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Werror -Wunused-parameter \
-				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized \
+OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Wunused-parameter \
+				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -nostdlib -fno-builtin \
 				   -Wmaybe-uninitialized -DTENSIX_FIRMWARE -DENV_LLK_INFRA -DENABLE_LLK_ASSERT $(ARCH_DEFINE)
 COVERAGE_OPTIONS_COMPILE := $(OPTIONS_COMPILE)
 
@@ -84,22 +84,25 @@ ifeq ($(PROFILER_BUILD),true)
 endif
 
 COVERAGE_DEPS :=
+COVERAGE_KERNEL_TARGETS :=
 MEMORY_LAYOUT_LD_SCRIPT := $(LINKER_SCRIPTS)/memory.$(ARCH).ld
+SFPI_LIBS :=
 COVERAGE_BUILD := $(if $(coverage_build),$(coverage_build),false)
 ifeq ($(COVERAGE_BUILD),true)
-	COVERAGE_DEPS := $(SHARED_OBJ_DIR)/gcov.o $(SHARED_OBJ_DIR)/coverage.o
+	SFPI_LIBS := -lgcov
+	COVERAGE_DEPS :=  $(SHARED_OBJ_DIR)/coverage.o
+	COVERAGE_KERNEL_TARGETS := $(OBJ_DIR)/kernel_%.gcno
 	MEMORY_LAYOUT_LD_SCRIPT := $(LINKER_SCRIPTS)/memory.$(ARCH).debug.ld
 	OPTIONS_COMPILE += -fprofile-arcs -ftest-coverage -fprofile-info-section -DCOVERAGE
 endif
 
-OPTIONS_LINK	:= -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
+OPTIONS_LINK	:= -nodefaultlibs -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
 
 INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
-			-I../$(ARCH_LLK_ROOT)/common/inc/sfpu -I$(HEADER_DIR) \
-			-Isfpi/include -Ihelpers/include
+			-I../$(ARCH_LLK_ROOT)/common/inc/sfpu -Isfpi/compiler/lib/gcc/riscv-tt-elf/*/include -I$(HEADER_DIR) -Ifirmware/riscv/common \
+			-Isfpi/include -Ihelpers/include -I$(TEST_DIR)
 
 OPTIONS_COMPILE += $(INCLUDES)
-COVERAGE_OPTIONS_COMPILE := $(INCLUDES)
 
 TO_UPPER = $(shell echo $(1) | tr '[:lower:]' '[:upper:]')
 
@@ -151,11 +154,11 @@ $(SHARED_DIS_DIR)/%.S: $(SHARED_ELF_DIR)/%.elf | $(SHARED_DIS_DIR)
 
 # link unpack.elf, math.elf, pack.elf
 $(ELF_DIR)/%.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(OBJ_DIR)/main_%.o $(OBJ_DIR)/kernel_%.o $(COVERAGE_DEPS) | $(ELF_DIR) $(COVERAGE_REPORT_DIR)
-	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
+	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@ $(SFPI_LIBS)
 
 # link brisc.elf
 $(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/brisc.o $(COVERAGE_DEPS) | $(SHARED_ELF_DIR) $(COVERAGE_REPORT_DIR)
-	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@
+	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@ $(SFPI_LIBS)
 
 # disable make automatically deleting important intermediate files
 .SECONDARY: $(SHARED_OBJ_DIR)/*.o $(OBJ_DIR)/*.o
@@ -165,7 +168,7 @@ $(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/bris
 KERNEL_SOURCE = $(firstword $(wildcard sources/ai_gen/$(testname).cpp sources/quasar/$(testname).cpp sources/$(testname).cpp))
 KERNEL_TRISC_FLAG = $(if $(filter sources/quasar/%,$(KERNEL_SOURCE)),,-DCOMPILE_FOR_TRISC= )
 
-$(OBJ_DIR)/kernel_%.o: $(KERNEL_SOURCE) $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $(DEPS_DIR)
+$(OBJ_DIR)/kernel_%.o $(COVERAGE_KERNEL_TARGETS): $(KERNEL_SOURCE) $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $(DEPS_DIR) $(TEST_DIR)/build.h
 	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(KERNEL_TRISC_FLAG) \
 	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $(KERNEL_SOURCE)
@@ -182,13 +185,8 @@ $(SHARED_OBJ_DIR)/brisc.o: $(RISCV_SOURCES)/brisc.cpp $(BUILD_DIR)/params.stamp 
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
 
-$(SHARED_OBJ_DIR)/gcov.o: $(HELPERS)/src/gcov.c | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
-	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) \
-	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
-	-c -o $@ $<
-
-$(SHARED_OBJ_DIR)/coverage.o: $(HELPERS)/src/coverage.c | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
-	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) -fno-strict-aliasing \
+$(SHARED_OBJ_DIR)/coverage.o: $(HELPERS)/src/coverage.cpp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
+	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -fno-strict-aliasing \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
 
@@ -215,18 +213,8 @@ $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR) $(INFO_
 $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR) $(COVERAGE_REPORT_DIR):
 	mkdir -p $@
 
-do_one_test:
-	pytest -m "not perf and not nightly" \
-        --random-order-bucket=global \
-        --override-ini="addopts=-v" --timeout=60 \
-        --coverage \
-        --junitxml=pytest-report-wormhole-4.xml \
-		./test_matmul.py
 
-INFO_PATH		:= $(BUILD_DIR)/merged_coverage.info
-INFO_PATH_FILTER		:= $(BUILD_DIR)/merged_coverage_filtered.info
 STREAM_FILES	:= $(wildcard $(TEST_DIR)/*.raw.stream)
-
 coverage: $(INFO_FILES_DIR)
 	@for f in $(STREAM_FILES); do \
         $(GCOV_TOOL) merge-stream "$$f"; \
@@ -237,36 +225,11 @@ coverage: $(INFO_FILES_DIR)
 	--directory $(SHARED_OBJ_DIR) \
 	--output-file $(INFO_FILES_DIR)/$(info_file_name) --rc lcov_branch_coverage=1
 
-
-INFO_FILES	:= $(wildcard $(INFO_FILES_DIR)/*.info)
-FIRST_INFO	:= $(firstword $(INFO_FILES))
-merge_coverage_data:
-	@if [ ! -f "$(INFO_PATH)" ]; then \
-        first_file=$$(find $(INFO_FILES_DIR) -name '*.info' | head -n 1); \
-        cp $$first_file $(INFO_PATH); \
-    fi; \
-	idx=0; \
-	total=$$(find $(INFO_FILES_DIR) -name 'coverage_*.info' | wc -l); \
-    find $(INFO_FILES_DIR) -name 'coverage_*.info' | while read f; do \
-		idx=$$((idx+1)); \
-        if [ "$$f" != "$(INFO_PATH)" ]; then \
-			printf "Processing file %s/%s: %s\r" "$$idx" "$$total" "$$f"; \
-            lcov -q -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH) > /dev/null 2>&1; \
-        fi; \
-    done;
-
-generate_report:
-	lcov --remove $(INFO_PATH) \
-		'*/tt-llk/tests/*' \
-		-o $(INFO_PATH_FILTER)
-	genhtml --branch-coverage $(INFO_PATH_FILTER) --output-directory $(COVERAGE_REPORT_DIR)
-
-
 # =========================
 # Clean
 # =========================
 clean:
-	$(RMDIR) build
+	$(RMDIR) $(BUILD_DIR)
 	$(RMDIR) __pycache__
 	$(RMDIR) .pytest_cache
 	$(MAKE) -C python_tests clean

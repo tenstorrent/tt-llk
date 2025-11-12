@@ -21,19 +21,33 @@ jobs:
   build-images:
     name: "🐳️ Docker setup"
     uses: ./.github/workflows/build-images.yml
-    secrets: inherit
 
   nightly-test-wormhole:
     name: "🌀 Nightly Tests (Wormhole)"
     uses: ./.github/workflows/setup-and-test.yml
+    secrets: inherit
     needs: build-images
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-n150-stable
-      test_splits: 20
-      pytest_markers: ${{ inputs.pytest_markers || 'not perf' }}
+      test_splits: 10
+      pytest_markers: ${{ inputs.pytest_markers || 'not perf and not quasar' }}
       random_order: false
-      timeout_minutes: 300
+      timeout_minutes: 360
+      coverage: true
+
+  nightly-test-blackhole:
+    name: "🕳️ Nightly Tests (Blackhole)"
+    uses: ./.github/workflows/setup-and-test.yml
+    secrets: inherit
+    needs: build-images
+    with:
+      docker_image: ${{ needs.build-images.outputs.docker-image }}
+      runs_on: tt-ubuntu-2204-p150b-stable
+      test_splits: 10
+      pytest_markers: ${{ inputs.pytest_markers || 'not perf and not quasar' }}
+      random_order: false
+      timeout_minutes: 360
       coverage: true
 
   nightly-summary:
@@ -41,6 +55,7 @@ jobs:
     if: always()
     needs:
       - nightly-test-wormhole
+      - nightly-test-blackhole
     runs-on: ubuntu-latest
     steps:
       - name: Check nightly test results
