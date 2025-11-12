@@ -535,23 +535,25 @@ def generate_build_header(test_config):
     return "\n".join(header_content)
 
 
-def write_build_header(test_config):
+def write_build_header(test_config, variant_id):
     header_content = generate_build_header(test_config)
     llk_home = Path(os.environ.get("LLK_HOME"))
-    with open(llk_home / "tests/helpers/include/build.h", "w") as f:
+    with open(llk_home / "tests" / f"{variant_id}_build.h", "w") as f:
         f.write(header_content)
 
 
 def generate_make_command(
     test_config,
+    variant_id,
     boot_mode: BootMode,
     profiler_build: ProfilerBuild,
 ):
     """Generate make command"""
 
     boot_mode = resolve_default_boot_mode(boot_mode)
+
     # Simplified make command - only basic build parameters
-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} all "
+    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} variant={variant_id} all "
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
@@ -561,27 +563,48 @@ def generate_make_command(
 
 def build_test(
     test_config,
+    variant_id,
     boot_mode: BootMode,
     profiler_build: ProfilerBuild,
 ):
     """Only builds the files required to run a test"""
     llk_home = Path(os.environ.get("LLK_HOME"))
     tests_dir = str((llk_home / "tests").absolute())
-    write_build_header(test_config)
-    make_cmd = generate_make_command(test_config, boot_mode, profiler_build)
+    write_build_header(test_config, variant_id)
+    make_cmd = generate_make_command(test_config, variant_id, boot_mode, profiler_build)
 
     run_shell_command(make_cmd, cwd=tests_dir)
 
 
+import shutil
+from hashlib import md5
+
+
 def run_test(
     test_config,
+    location,
     boot_mode: BootMode = BootMode.DEFAULT,  # global override boot mode here
     profiler_build: ProfilerBuild = ProfilerBuild.No,
 ):
     """Run the test with the given configuration"""
 
-    build_test(test_config, boot_mode, profiler_build)
+    variant_id = md5(f"{str(test_config)}".encode()).hexdigest()
+
+    build_test(test_config, variant_id, boot_mode, profiler_build)
 
     # run test
-    run_elf_files(test_config["testname"], boot_mode)
-    wait_for_tensix_operations_finished()
+    run_elf_files(test_config["testname"], variant_id, boot_mode, location=location)
+    wait_for_tensix_operations_finished(location)
+
+    CHIP_ARCH = get_chip_architecture()
+    LLK_HOME = os.environ.get("LLK_HOME")
+    BUILD_DIR = (
+        Path(LLK_HOME)
+        / "tests"
+        / "build"
+        / CHIP_ARCH.value
+        / test_config["testname"]
+        / variant_id
+    )
+
+    shutil.rmtree(BUILD_DIR)
