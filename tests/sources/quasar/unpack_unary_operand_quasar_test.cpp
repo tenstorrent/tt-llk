@@ -31,11 +31,7 @@ void run_kernel()
         set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
     }
 
-    buffer_descriptor_u bd_val;
-    for (uint i = 0; i < BD_NUM_WORDS; i++)
-    {
-        bd_val.words[i] = 0;
-    }
+    buffer_descriptor_u bd_val = {0};
 
     // Qsr has one transpose argument, if set it does both transpose faces and within face
     // The py test will set transpose faces and transpose within face to the same value
@@ -144,11 +140,7 @@ void run_kernel()
         set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
     }
 
-    buffer_descriptor_u bd_val;
-    for (uint i = 0; i < BD_NUM_WORDS; i++)
-    {
-        bd_val.words[i] = 0;
-    }
+    buffer_descriptor_u bd_val = {0};
     tdma_descriptor_t tdma_desc;
 
     bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
