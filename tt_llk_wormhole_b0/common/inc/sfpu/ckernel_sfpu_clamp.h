@@ -26,7 +26,7 @@ inline void _calculate_clamp_(const int iterations, uint param0, uint param1, ui
     sfpi::vFloat min    = sfpi::s2vFloat16(param0, format);
     sfpi::vFloat max    = sfpi::s2vFloat16(param1, format);
     sfpi::vFloat offset = sfpi::s2vFloat16b(param2); // 12 bits
-#pragma GCC unroll 0
+                                                     // #pragma GCC unroll 0
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat val = sfpi::dst_reg[0];

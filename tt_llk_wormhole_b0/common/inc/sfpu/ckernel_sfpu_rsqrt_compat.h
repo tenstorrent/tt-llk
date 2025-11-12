@@ -100,7 +100,7 @@ sfpi_inline sfpi::vFloat _reciprocal_compat_(const sfpi::vFloat in)
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en>
 inline void _calculate_rsqrt_compat_(const int iterations)
 {
-#pragma GCC unroll 8
+    // #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         sfpi::dst_reg[0] = _sqrt_compat_<APPROXIMATION_MODE, 2>(sfpi::dst_reg[0]);
@@ -126,7 +126,7 @@ inline void _calculate_rsqrt_compat_(const int iterations)
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en>
 inline void _calculate_sqrt_compat_(const int iterations)
 {
-#pragma GCC unroll 8
+    // #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         sfpi::dst_reg[0] = _sqrt_compat_<APPROXIMATION_MODE, 2>(sfpi::dst_reg[0]);
@@ -137,7 +137,7 @@ inline void _calculate_sqrt_compat_(const int iterations)
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en>
 inline void _calculate_reciprocal_compat_(const int iterations)
 {
-#pragma GCC unroll 8
+    // #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat in  = sfpi::dst_reg[0];

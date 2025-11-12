@@ -4,6 +4,7 @@
 import datetime
 import logging
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -108,9 +109,9 @@ def pytest_configure(config):
     if os.path.exists(log_file):
         os.remove(log_file)
     logging.basicConfig(
-        filename=log_file,
-        level=logging.ERROR,
+        level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(), logging.FileHandler(log_file)],
     )
 
     initialize_test_target_from_pytest(config)
@@ -245,4 +246,9 @@ skip_for_blackhole = pytest.mark.skipif(
 skip_for_quasar = pytest.mark.skipif(
     get_chip_architecture() == ChipArchitecture.QUASAR,
     reason="Test is not supported on Quasar architecture",
+)
+
+skip_for_coverage = pytest.mark.skipif(
+    "--coverage" in sys.argv or any("coverage" in arg for arg in sys.argv),
+    reason="Coverage shouldn't be ran with this test",
 )

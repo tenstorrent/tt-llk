@@ -22,7 +22,7 @@ inline void _calculate_lrelu_(const int iterations, uint slope)
 {
     TT_SFPLOADI(p_sfpu::LREG2, 10, slope & 0xFFFF);
     TT_SFPLOADI(p_sfpu::LREG2, 8, slope >> 16);
-#pragma GCC unroll 8
+    // #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 0);        // load from dest into lreg[0]

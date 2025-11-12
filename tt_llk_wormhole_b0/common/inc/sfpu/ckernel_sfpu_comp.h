@@ -528,7 +528,7 @@ inline void apply_unary_comp_int<SfpuType::unary_le>(sfpi::vInt& val, const sfpi
 template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
 inline void _calculate_comp_unary_int_(int scalar)
 {
-#pragma GCC unroll 8
+    // #pragma GCC unroll 8
     for (int d = ZERO; d < ITERATIONS; d++)
     {
         sfpi::vInt v   = sfpi::dst_reg[0];
@@ -633,7 +633,7 @@ inline void _calculate_comp_unary_(uint value)
 {
     sfpi::vFloat s = value;
 
-#pragma GCC unroll 8
+    // #pragma GCC unroll 8
     for (int d = ZERO; d < ITERATIONS; d++)
     {
         sfpi::vFloat v = sfpi::dst_reg[0];

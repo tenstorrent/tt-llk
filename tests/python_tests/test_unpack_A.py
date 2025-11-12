@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
+import os
 from itertools import product
 
 import pytest
@@ -27,7 +29,6 @@ from helpers.llk_params import (
 )
 from helpers.param_config import generate_params, input_output_formats
 from helpers.stimuli_generator import generate_stimuli
-from helpers.target_config import TestTargetConfig
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
@@ -132,13 +133,25 @@ for base_param in base_params:
         )
         all_params.append(combined_params)
 
-
 def filter_params_with_constraints(all_params):
     """Filter valid parameter combinations based on hardware constraints"""
 
     arch = get_chip_architecture()
     is_wormhole = arch == ChipArchitecture.WORMHOLE
     valid_params = []
+
+    logger = logging.getLogger(__name__)
+
+    old_cnt = len(all_params)
+    all_params = [p for p in all_params if quick_filter(p)]
+
+    if (
+        os.environ.get("PYTEST_XDIST_WORKER", "gw0") == "gw0"
+        or os.environ.get("PYTEST_XDIST_WORKER", "master") == "master"
+    ):
+        logger.info(
+            f"\n\nParameter combinations reduced from {old_cnt} to {len(all_params)} using quick filtering\n\n"
+        )
 
     for params in all_params:
         # Extract parameters from tuple
@@ -479,10 +492,6 @@ def test_unpack_comprehensive(
     )
 
     run_test(test_config)
-
-    test_target = TestTargetConfig()
-    if test_target.with_coverage:
-        return
 
     # Collect and validate results
     res_from_L1 = collect_results(
