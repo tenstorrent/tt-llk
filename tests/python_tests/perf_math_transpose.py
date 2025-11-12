@@ -24,6 +24,8 @@ def test_perf_math_transpose(
     unpack_transpose_faces,
     math_transpose_faces,
 ):
+    if formats.input_format != formats.output_format:
+        pytest.skip("Prevent mixing INT and FP in math transpose")
 
     if math_transpose_faces == Transpose.No and not formats.input_format.is_32_bit():
         pytest.skip(
