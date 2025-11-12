@@ -60,7 +60,13 @@ from helpers.utils import passed_test
     ],
 )
 def test_matmul_and_unary_sfpu(
-    test_name, formats, mathop, approx_mode, dest_acc, math_fidelity
+    test_name,
+    formats,
+    mathop,
+    approx_mode,
+    dest_acc,
+    math_fidelity,
+    worker_tensix_location,
 ):
     input_dimensions = [32, 32]
 
@@ -126,7 +132,7 @@ def test_matmul_and_unary_sfpu(
         tile_count_B=tile_cnt,
     )
 
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
 

@@ -17,7 +17,7 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 
-def test_risc_compute():
+def test_risc_compute(worker_tensix_location):
     formats = input_output_formats([DataFormat.Int32])[0]
     input_dimensions = [32, 96]
 
@@ -49,11 +49,17 @@ def test_risc_compute():
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=worker_tensix_location,
     )
 
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=worker_tensix_location,
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]
