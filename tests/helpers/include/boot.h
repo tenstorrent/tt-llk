@@ -19,7 +19,7 @@ inline void device_setup()
     volatile std::uint32_t* const trisc_start_addresses = reinterpret_cast<volatile std::uint32_t*>(TRISC_START_BASE);
     volatile uint tt_reg_ptr* cfg_regs                  = reinterpret_cast<volatile uint tt_reg_ptr*>(TENSIX_CFG_BASE);
 
-    for (int i = 0; i < std::size(TRISC_CONFIG_REGS); ++i)
+    for (unsigned int i = 0; i < std::size(TRISC_CONFIG_REGS); ++i)
     {
         cfg_regs[TRISC_CONFIG_REGS[i]] = trisc_start_addresses[i];
     }
