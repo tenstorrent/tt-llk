@@ -92,11 +92,23 @@ def reset_mailboxes_fixture():
     yield
 
 
+@pytest.fixture()
+def worker_tensix_location(worker_id):
+    location = "0,0"
+    if worker_id != "master":
+        tmp_index = int(worker_id[2:])
+        location = f"{tmp_index//8},{tmp_index%8}"
+    return location
+
+
 def pytest_configure(config):
     log_file = "pytest_errors.log"
-    # Clear the log file if it exists
-    if os.path.exists(log_file):
+    # # Clear the log file if it exists
+    # if os.path.exists(log_file):
+    try:
         os.remove(log_file)
+    except FileNotFoundError:
+        pass
     logging.basicConfig(
         filename=log_file,
         level=logging.ERROR,
@@ -110,12 +122,6 @@ def pytest_configure(config):
         tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
     else:
         tt_exalens_init.init_ttexalens()
-
-
-def pytest_runtest_logreport(report):
-    # Capture errors when tests fail
-    if report.failed:
-        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
 
 
 def _stringify_params(params):
@@ -138,14 +144,13 @@ def _stringify_params(params):
 
 
 def pytest_runtest_logreport(report):
+    # Capture errors when tests fail
+    if report.failed:
+        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
+
     if report.when != "call":
         return
-
-    callspec = getattr(report.item, "callspec", None)
-    if callspec is None:
-        return
-
-    print(f"\nParameters: {_stringify_params(callspec.params)}")
+    print(f"\nParameters: {report.test_params}")
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -154,9 +159,22 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
 
-    # Attach the item to the report so it's available in logreport
-    report.item = item
+    if hasattr(item, "callspec") and item.callspec:
+        report.test_params = _stringify_params(item.callspec.params)
+    else:
+        report.test_params = None
+
     return report
+
+
+from helpers.utils import run_shell_command
+
+
+def build_shared_assets():
+    llk_home = Path(os.environ.get("LLK_HOME"))
+    tests_dir = str((llk_home / "tests").absolute())
+    command = "make build_shared"
+    run_shell_command(command, tests_dir)
 
 
 def pytest_sessionstart(session):
