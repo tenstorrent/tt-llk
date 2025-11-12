@@ -129,7 +129,9 @@ profiler: $(PROFILER_DIR)/unpack.meta.bin \
 	  $(PROFILER_DIR)/math.meta.bin \
 	  $(PROFILER_DIR)/pack.meta.bin
 
-build_shared: $(SHARED_ELF_DIR)/brisc.elf
+build_shared: $(SHARED_ELF_DIR)/brisc.elf \
+	$(SHARED_OBJ_DIR)/gcov.o $(SHARED_OBJ_DIR)/coverage.o \
+	$(SHARED_OBJ_DIR)/tmu-crt0.o
 
 # =========================
 # Build Rules

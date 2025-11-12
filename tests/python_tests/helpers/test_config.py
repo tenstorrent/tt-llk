@@ -569,4 +569,6 @@ def run_test(
     if test_target.with_coverage:
         pull_coverage_data(test_config["testname"], variant_id, BUILD_DIR, 0, location)
 
+    return
+
     shutil.rmtree(BUILD_DIR)
