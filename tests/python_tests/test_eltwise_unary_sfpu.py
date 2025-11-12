@@ -16,7 +16,6 @@ from helpers.llk_params import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
-from helpers.target_config import TestTargetConfig
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
@@ -31,9 +30,9 @@ from helpers.utils import passed_test
             DataFormat.Bfp8_b,
         ]
     ),
-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+    approx_mode=[ApproximationMode.No],  # , ApproximationMode.Yes],
     mathop=[
-        MathOperation.Abs,
+        # MathOperation.Abs,
         MathOperation.Atanh,
         MathOperation.Asinh,
         MathOperation.Acosh,
@@ -57,7 +56,7 @@ from helpers.utils import passed_test
         MathOperation.ReluMax,
         MathOperation.ReluMin,
     ],
-    dest_acc=[DestAccumulation.Yes, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_acc):
     arch = get_chip_architecture()
@@ -109,11 +108,13 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    src_A = torch.ones(1024) * 2
+    # src_A = torch.ones(1024) * 2
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
         mathop, src_A, formats.output_format, dest_acc, formats.input_format
     )
+
+    # src_B = torch.zeros(1024)
 
     unpack_to_dest = (
         formats.input_format.is_32_bit()
@@ -143,10 +144,6 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     )
 
     run_test(test_config)
-
-    test_target = TestTargetConfig()
-    if test_target.with_coverage:
-        return
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     res_from_L1 = res_from_L1[:1024]

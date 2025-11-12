@@ -8,6 +8,7 @@
 #include <type_traits>
 
 #include "ckernel.h"
+#include "ckernel_debug.h"
 #include "llk_defs.h"
 
 // Globals
@@ -33,8 +34,6 @@ void run_kernel()
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(buffer_A[i]), 0, formats.unpack_src, formats.unpack_dst);
     }
-
-    // dbg_thread_halt<ThreadId::MathThreadId>();
 }
 
 #endif
@@ -175,6 +174,7 @@ void run_kernel()
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math);
 
@@ -185,10 +185,10 @@ void run_kernel()
         // this part is where parametrization of operation takes part
         call_sfpu_operation(SFPU_UNARY_OPERATION, formats.math);
 
+        // dbg_thread_halt<ThreadId::MathThreadId>();
+
         _llk_math_eltwise_unary_sfpu_done_();
     }
-
-    // dbg_thread_halt<ThreadId::MathThreadId>();
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

@@ -14,7 +14,6 @@ from helpers.matmul_sweep import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
-from helpers.target_config import TestTargetConfig
 from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
@@ -155,10 +154,6 @@ def test_matmul(
     )
 
     run_test(test_config, location, boot_mode)
-
-    test_target = TestTargetConfig()
-    if test_target.with_coverage:
-        return
 
     res_from_L1 = collect_results(
         formats, tile_count=matmul_dims.output_tile_cnt, address=res_address
