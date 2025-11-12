@@ -66,7 +66,7 @@ def test_unpack_untilize(test_name, formats):
         tile_count_B=tile_cnt,
     )
 
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)

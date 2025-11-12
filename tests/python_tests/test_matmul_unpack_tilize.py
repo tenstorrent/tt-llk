@@ -31,7 +31,9 @@ from helpers.utils import passed_test
         MathFidelity.HiFi4,
     ],
 )
-def test_matmul_unpack_tilize(test_name, formats, dest_acc, math_fidelity):
+def test_matmul_unpack_tilize(
+    test_name, formats, dest_acc, math_fidelity, worker_tensix_location
+):
 
     torch_format = format_dict[formats.output_format]
     input_dimensions = [32, 32]
@@ -73,7 +75,7 @@ def test_matmul_unpack_tilize(test_name, formats, dest_acc, math_fidelity):
         tile_count_B=tile_cnt,
     )
 
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)

@@ -83,7 +83,9 @@ ALL_TEST_PARAMS = list(
 @pytest.mark.parametrize(
     "test_name,math_fidelity,matmul_config,throttle", ALL_TEST_PARAMS
 )
-def test_math_matmul(test_name, math_fidelity, matmul_config, throttle):
+def test_math_matmul(
+    test_name, math_fidelity, matmul_config, throttle, worker_tensix_location
+):
 
     formats = matmul_config.formats
     dest_acc = matmul_config.dest_acc
@@ -190,7 +192,7 @@ def test_math_matmul(test_name, math_fidelity, matmul_config, throttle):
         tile_count_B=tile_cnt_B,
     )
 
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
     res_from_L1 = collect_results(
         formats, tile_count=matmul_config.tile_dimensions.tile_cnt, address=res_address

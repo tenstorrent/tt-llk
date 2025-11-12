@@ -39,7 +39,13 @@ from helpers.utils import passed_test
     input_dimensions=[[32, 32], [32, 64], [64, 64]],
 )
 def test_multiple_tiles(
-    test_name, formats, mathop, dest_acc, math_fidelity, input_dimensions
+    test_name,
+    formats,
+    mathop,
+    dest_acc,
+    math_fidelity,
+    input_dimensions,
+    worker_tensix_location,
 ):
 
     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
@@ -75,7 +81,7 @@ def test_multiple_tiles(
         tile_count_B=tile_cnt,
     )
 
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
