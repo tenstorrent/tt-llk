@@ -120,7 +120,137 @@ def get_golden_generator(cls):
     return golden_registry[cls]
 
 
-class FidelityMasking:
+class SrcConversionModel:
+    """
+    Source register holds data in TF32 format.
+
+    This class is supposed to model how input data is converted to the source register format.
+    """
+
+    def to_src_format(
+        self, format_from: DataFormat, tensor: torch.Tensor
+    ) -> torch.Tensor:
+        """Returns tuple (matrix_sign, matrix_exponent, matrix_mantissa)"""
+        CONVERSION_MAP = {
+            DataFormat.Bfp8_b: self._bfp8b_to_tf32,
+            DataFormat.Float16_b: self._fp16b_to_tf32,
+            DataFormat.Float16: self._fp16_to_tf32,
+            DataFormat.Float32: self._fp32_to_tf32,
+        }
+
+        # todo: value error
+
+        return CONVERSION_MAP[format_from](tensor)
+
+    def _bfp8b_to_tf32(
+        self, tensor: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """PyTorch doesn't natively support bfp8, so it's implemented as bfloat16 in test infra"""
+
+        return self._fp16b_to_tf32(tensor)
+
+    def _fp16b_to_tf32(
+        self, tensor: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Handles Float16_b (and Bfp8_b)"""
+
+        tensor_raw = tensor.to(torch.bfloat16).view(torch.uint16).to(torch.uint32)
+
+        BFP16_MANT_WIDTH = 7
+        BFP16_EXP_WIDTH = 8
+        BFP16_SIGN_WIDTH = 1
+
+        BFP16_MANT_SHAMT = 0
+        BFP16_EXP_SHAMT = BFP16_MANT_WIDTH
+        BFP16_SIGN_SHAMT = BFP16_MANT_WIDTH + BFP16_EXP_WIDTH
+
+        BFP16_MANT_MASK = ((1 << BFP16_MANT_WIDTH) - 1) << BFP16_MANT_SHAMT
+        BFP16_EXP_MASK = ((1 << BFP16_EXP_WIDTH) - 1) << BFP16_EXP_SHAMT
+        BFP16_SIGN_MASK = ((1 << BFP16_SIGN_WIDTH) - 1) << BFP16_SIGN_SHAMT
+
+        sign = (tensor_raw & BFP16_SIGN_MASK) >> BFP16_SIGN_SHAMT
+        exp = (tensor_raw & BFP16_EXP_MASK) >> BFP16_EXP_SHAMT
+        mant = (tensor_raw & BFP16_MANT_MASK) >> BFP16_MANT_SHAMT
+
+        # when converting BFPx -> TF32, 3 LSBs are implied 0
+        BFP16_TF32_MANT_RIGHT_PAD = 3
+        mant = mant << BFP16_TF32_MANT_RIGHT_PAD
+
+        # handle MSB is implied 1
+        mant = mant | (1 << (BFP16_MANT_WIDTH + BFP16_TF32_MANT_RIGHT_PAD))
+
+        return (sign, exp, mant)
+
+    def _fp16_to_tf32(
+        self, tensor: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Handles Float16"""
+
+        tensor_raw = tensor.to(torch.float16).view(torch.uint16).to(torch.uint32)
+
+        FP16_MANT_WIDTH = 10
+        FP16_EXP_WIDTH = 5
+        FP16_SIGN_WIDTH = 1
+
+        FP16_MANT_SHAMT = 0
+        FP16_EXP_SHAMT = FP16_MANT_WIDTH
+        FP16_SIGN_SHAMT = FP16_MANT_WIDTH + FP16_EXP_WIDTH
+
+        FP16_MANT_MASK = ((1 << FP16_MANT_WIDTH) - 1) << FP16_MANT_SHAMT
+        FP16_EXP_MASK = ((1 << FP16_EXP_WIDTH) - 1) << FP16_EXP_SHAMT
+        FP16_SIGN_MASK = ((1 << FP16_SIGN_WIDTH) - 1) << FP16_SIGN_SHAMT
+
+        sign = (tensor_raw & FP16_SIGN_MASK) >> FP16_SIGN_SHAMT
+        exp = (tensor_raw & FP16_EXP_MASK) >> FP16_EXP_SHAMT
+        mant = (tensor_raw & FP16_MANT_MASK) >> FP16_MANT_SHAMT
+
+        # handle MSB is implied 1
+        mant = mant | (1 << FP16_MANT_WIDTH)
+
+        return (sign, exp, mant)
+
+    def _fp32_to_tf32(
+        self, tensor: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Handles Float32"""
+
+        tensor_raw = tensor.to(torch.float32).view(torch.uint32)
+
+        FP32_MANT_WIDTH = 23
+        FP32_EXP_WIDTH = 8
+        FP32_SIGN_WIDTH = 1
+
+        FP32_MANT_SHAMT = 0
+        FP32_EXP_SHAMT = FP32_MANT_WIDTH
+        FP32_SIGN_SHAMT = FP32_MANT_WIDTH + FP32_EXP_WIDTH
+
+        FP32_MANT_MASK = ((1 << FP32_MANT_WIDTH) - 1) << FP32_MANT_SHAMT
+        FP32_EXP_MASK = ((1 << FP32_EXP_WIDTH) - 1) << FP32_EXP_SHAMT
+        FP32_SIGN_MASK = ((1 << FP32_SIGN_WIDTH) - 1) << FP32_SIGN_SHAMT
+
+        sign = (tensor_raw & FP32_SIGN_MASK) >> FP32_SIGN_SHAMT
+        exp = (tensor_raw & FP32_EXP_MASK) >> FP32_EXP_SHAMT
+        mant = (tensor_raw & FP32_MANT_MASK) >> FP32_MANT_SHAMT
+
+        FP32_TF32_MANT_RIGHT_TRUNC = 13
+
+        # when converting FP32 -> TF32, 13 LSBs are truncated
+        mant = mant >> FP32_TF32_MANT_RIGHT_TRUNC
+
+        # handle MSB is implied 1
+        mant = mant | (1 << (FP32_MANT_WIDTH - FP32_TF32_MANT_RIGHT_TRUNC))
+
+        return (sign, exp, mant)
+
+    def from_src_format(
+        self,
+        tensor: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+    ) -> torch.Tensor:
+        # todo: implement backward to tensor
+        pass
+
+
+class OldFidelityMasking:
     def _apply_fidelity_masking(
         self, operand1, operand2, math_fidelity_phase, data_format
     ):
