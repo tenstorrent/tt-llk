@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "ckernel_debug.h"
 #include "ckernel_sfpu_rsqrt_compat.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
@@ -108,7 +109,7 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_body_(const sfpi::vFloat x)
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool RECIPROCAL>
 inline void _calculate_sqrt_internal_(const int iterations)
 {
-#pragma GCC unroll 8
+    // #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat tmp = _calculate_sqrt_body_<APPROXIMATION_MODE, RECIPROCAL>(sfpi::dst_reg[0]);
@@ -122,6 +123,8 @@ inline void _calculate_sqrt_internal_(const int iterations)
         }
         sfpi::dst_reg++;
     }
+
+    // dbg_thread_halt<ThreadId::MathThreadId>();
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool legacy_compat = false>
