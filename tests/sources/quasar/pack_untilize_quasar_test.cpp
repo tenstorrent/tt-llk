@@ -24,11 +24,7 @@ void run_kernel()
     const uint BUF_DESC_ID          = 0;
     const uint num_tiles_per_unpack = TILE_CNT;
 
-    buffer_descriptor_u bd_val;
-    for (uint i = 0; i < BD_NUM_WORDS; i++)
-    {
-        bd_val.words[i] = 0;
-    }
+    buffer_descriptor_u bd_val = {0};
 
     bd_val.f.l1_addr_16B = buffer_A[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.unpack_src);
@@ -95,11 +91,7 @@ void run_kernel()
     tdma_descriptor_t tdma_desc;
     uint32_t const BUF_DESC = 31;
 
-    buffer_descriptor_u bd_val;
-    for (uint i = 0; i < BD_NUM_WORDS; i++)
-    {
-        bd_val.words[i] = 0;
-    }
+    buffer_descriptor_u bd_val = {0};
 
     bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
