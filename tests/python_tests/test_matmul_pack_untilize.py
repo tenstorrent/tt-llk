@@ -32,7 +32,9 @@ from helpers.utils import passed_test
         MathFidelity.HiFi4,
     ],
 )
-def test_matmul_pack_untilize(test_name, formats, dest_acc, math_fidelity):
+def test_matmul_pack_untilize(
+    test_name, formats, dest_acc, math_fidelity, worker_tensix_location
+):
     if formats.output == DataFormat.Bfp8_b:
         pytest.skip("Pack untilize does not support Bfp8_b")
 
@@ -72,7 +74,7 @@ def test_matmul_pack_untilize(test_name, formats, dest_acc, math_fidelity):
         tile_count_B=tile_cnt,
     )
 
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)

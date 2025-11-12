@@ -556,7 +556,7 @@ def test_unpack_comprehensive(
         num_faces=num_faces,
     )
 
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
     # Collect and validate results
     res_from_L1 = collect_results(
