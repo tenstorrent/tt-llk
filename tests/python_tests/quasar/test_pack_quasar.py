@@ -5,7 +5,7 @@ from typing import List
 
 import pytest
 import torch
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from conftest import skip_for_blackhole, skip_for_wormhole
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -73,6 +73,8 @@ PACK_FORMATS = input_output_formats(
 ALL_PACK_COMBINATIONS = generate_qsr_pack_combinations(PACK_FORMATS)
 
 
+@skip_for_blackhole
+@skip_for_wormhole
 @parametrize(
     test_name="pack_quasar_test",
     formats_dest_acc_input_dims=ALL_PACK_COMBINATIONS,
@@ -80,14 +82,7 @@ ALL_PACK_COMBINATIONS = generate_qsr_pack_combinations(PACK_FORMATS)
 def test_pack_quasar(
     test_name, formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT
 ):
-
     formats, dest_acc, input_dimensions = formats_dest_acc_input_dims
-
-    if get_chip_architecture() != ChipArchitecture.QUASAR:
-        pytest.skip("Test is supported only on Quasar.")
-
-    if formats.input_format == DataFormat.Float32 and dest_acc == DestAccumulation.No:
-        pytest.skip("Fails for now.")
 
     if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
         pytest.skip("Fails for now.")

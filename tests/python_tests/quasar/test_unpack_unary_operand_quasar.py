@@ -5,7 +5,7 @@ from typing import List
 
 import pytest
 import torch
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from conftest import skip_for_blackhole, skip_for_wormhole
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -99,6 +99,8 @@ ALL_UNPACK_UNARY_OPERAND_COMBINATIONS = generate_unpack_unary_operand_combinatio
 )
 
 
+@skip_for_blackhole
+@skip_for_wormhole
 @parametrize(
     test_name="unpack_unary_operand_quasar_test",
     formats_dest_acc_transpose_unpack_sel_dims=ALL_UNPACK_UNARY_OPERAND_COMBINATIONS,
@@ -111,9 +113,6 @@ def test_unpack_unary_operand_quasar(
     transpose_en = formats_dest_acc_transpose_unpack_sel_dims[2]
     unpacker_sel = formats_dest_acc_transpose_unpack_sel_dims[3]
     input_dimensions = formats_dest_acc_transpose_unpack_sel_dims[4]
-
-    if get_chip_architecture() != ChipArchitecture.QUASAR:
-        pytest.skip("Test is supported only on Quasar.")
 
     if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
         pytest.skip("Fails.")
