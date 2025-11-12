@@ -40,7 +40,9 @@ mathop_mapping = {
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )
-def test_reduce(test_name, formats, dest_acc, reduce_dim, pool_type):
+def test_reduce(
+    test_name, formats, dest_acc, reduce_dim, pool_type, worker_tensix_location
+):
 
     input_dimensions = [32, 32]
 
@@ -82,11 +84,17 @@ def test_reduce(test_name, formats, dest_acc, reduce_dim, pool_type):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=worker_tensix_location,
     )
 
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=worker_tensix_location,
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])

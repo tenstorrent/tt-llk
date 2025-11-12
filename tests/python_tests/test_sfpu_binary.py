@@ -66,7 +66,7 @@ def test_sfpu_binary_int(test_name, formats, dest_acc, mathop):
     sfpu_binary(test_name, formats, dest_acc, mathop)
 
 
-def sfpu_binary(test_name, formats, dest_acc, mathop):
+def sfpu_binary(test_name, formats, dest_acc, mathop, worker_tensix_location):
 
     input_dimensions = [64, 64]
 
@@ -102,11 +102,17 @@ def sfpu_binary(test_name, formats, dest_acc, mathop):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=worker_tensix_location,
     )
 
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=worker_tensix_location,
+    )
 
     assert len(res_from_L1) == len(golden_tensor)
 

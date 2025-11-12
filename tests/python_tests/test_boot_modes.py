@@ -14,7 +14,7 @@ from test_matmul import test_matmul as run_matmul
 @parametrize(
     boot_mode=[BootMode.BRISC, BootMode.TRISC, BootMode.EXALENS],
 )
-def test_boot_modes(boot_mode):
+def test_boot_modes(boot_mode, worker_tensix_location):
     test_name = "matmul_test"
     math_fidelity = MathFidelity.LoFi
     format_dest_acc_and_dims = (
@@ -25,4 +25,10 @@ def test_boot_modes(boot_mode):
 
     HardwareController().reset_card()
 
-    run_matmul(test_name, math_fidelity, format_dest_acc_and_dims, boot_mode[0])
+    run_matmul(
+        test_name,
+        math_fidelity,
+        format_dest_acc_and_dims,
+        worker_tensix_location,
+        boot_mode[0],
+    )

@@ -122,7 +122,7 @@ def test_ttnn_where(test_name, formats, dest_acc, mathop, test_case):
         "tile_cnt_C": tile_cnt_C,
     }
 
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
     wait_for_tensix_operations_finished()
     res_from_L1 = collect_results(
@@ -168,7 +168,9 @@ def test_ttnn_where(test_name, formats, dest_acc, mathop, test_case):
     height=[32],
     width=[32],
 )
-def test_ttnn_where_mcw(test_name, formats, dest_acc, mathop, height, width):
+def test_ttnn_where_mcw(
+    test_name, formats, dest_acc, mathop, height, width, worker_tensix_location
+):
     # Generate dtype dynamically based on current input format
 
     if (
@@ -211,8 +213,6 @@ def test_ttnn_where_mcw(test_name, formats, dest_acc, mathop, height, width):
     T = torch.ones(height, width, dtype=format_dict[formats.input_format]) * 2
     F = torch.ones(height, width, dtype=format_dict[formats.input_format]) * 11
 
-    location = "0,0"
-
     golden = generate_golden(C, T, F)
 
     # Create test config for storing buffer addresses
@@ -226,10 +226,10 @@ def test_ttnn_where_mcw(test_name, formats, dest_acc, mathop, height, width):
         stimuli_B_format=formats.input_format,
         tile_count_A=tile_cnt_C,
         tile_count_B=tile_cnt_T,
-        location=location,
         buffer_C=F.flatten(),
         stimuli_C_format=formats.input_format,
         tile_count_C=tile_cnt_F,
+        location=worker_tensix_location,
     )
 
     unpack_to_dest = formats.input_format.is_32_bit()
@@ -249,11 +249,14 @@ def test_ttnn_where_mcw(test_name, formats, dest_acc, mathop, height, width):
         "tile_cnt_C": tile_cnt_F,
     }
 
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
     wait_for_tensix_operations_finished()
     res_from_L1 = collect_results(
-        formats, tile_count=tile_cnt_C, address=result_buffer_address
+        formats,
+        tile_count=tile_cnt_C,
+        address=result_buffer_address,
+        location=worker_tensix_location,
     )
     res_from_L1 = res_from_L1[:1024]
 

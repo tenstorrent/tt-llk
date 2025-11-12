@@ -190,7 +190,7 @@ def test_sweep_test(config):
     )
 
     # Build & run on device
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
     # Fetch results
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)

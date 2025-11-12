@@ -210,7 +210,7 @@ def test_fused_tilize_sfpu_pack(config):
     )
 
     # Build and execute kernel
-    run_test(test_config)
+    run_test(test_config, worker_tensix_location)
 
     # ---------------------------------------------------------------------
     # Collect and validate results
