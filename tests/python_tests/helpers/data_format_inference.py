@@ -255,9 +255,8 @@ def data_formats(
         num_iterations: The number of pipeline runs (iterations), determines list length
         unpacking_to_dest: Whether unpacking targets the destination register (default: False)
         chip_arch: The chip architecture (Wormhole or Blackhole). If None, will be detected automatically.
-        disable_format_inference: For majority of tests we trigger data format inference model, but for some tests we want to keep all formats the same.
-            When True we want to deactivate the data format inference and set all formats to be the same, no conversions will be performed.
-            This ensures that the input formats are the same ones that end up in dest for specific math kernels that support the formats we input.
+        disable_format_inference: When True, disables automatic data format inference and conversions, ensuring input formats are the same in dest.
+                                  Used for testing specific math kernels with explicit format requirements.
 
     Returns:
         A list of FormatConfig objects of length num_iterations
