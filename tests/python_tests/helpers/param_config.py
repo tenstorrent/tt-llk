@@ -2,10 +2,12 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
 import inspect
+from itertools import product
 from typing import List, Optional, Tuple, TypedDict
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from typing_extensions import deprecated
 
 from .format_config import (
     DataFormat,
@@ -117,7 +119,9 @@ def _topsort_dependencies(**kwargs: any) -> List[str]:
         resolved = [param for param, deps in dependencies.items() if not deps]
 
         if not resolved:
-            raise ValueError(f"Circular dependency detected")
+            raise ValueError(
+                f"Circular dependency detected among: {list[str](dependencies.keys())}"
+            )
 
         # pop resolved parameters to topological order
         for parameter in resolved:
@@ -197,6 +201,14 @@ def parametrize(**kwargs: any):
         )
 
     return decorator
+
+
+@deprecated("Try using parametrize or python inbuilt product function")
+def generate_params(**kwargs: any) -> List[tuple]:
+    wrap_list = lambda x: [x] if not isinstance(x, list) else x
+    arguments = [wrap_list(value) for value in kwargs.values() if value is not None]
+
+    return product(*arguments)
 
 
 def input_output_formats(
