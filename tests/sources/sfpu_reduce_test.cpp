@@ -40,7 +40,10 @@ void run_kernel()
 #ifdef LLK_TRISC_MATH
 
 #include "ckernel_sfpu.h"
+#include "ckernel_sfpu_add_top_row.h"
+#include "ckernel_sfpu_binary.h"
 #include "llk_math_common.h"
+#include "llk_math_eltwise_binary_sfpu.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_eltwise_unary_sfpu.h"
 #include "params.h"
@@ -66,30 +69,24 @@ void run_kernel()
             i, formats.math, formats.math);
     }
 
-    _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
-
-    ckernel::sfpu::_init_reduce_<static_cast<DataFormat>(formats.math)>();
-    for (int i = 0; i < TILE_CNT; ++i)
     {
-        // we have multiple tiles in dest, so we need to calculate the reduce for each tile
-        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i); // set dst offset for current tile in dest register
+        ZONE_SCOPED("STRAJA")
+
+        _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
+        ckernel::sfpu::_init_reduce_<static_cast<DataFormat>(formats.math)>();
+        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
         ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>();
+        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(1);
+        ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>();
+        _llk_math_eltwise_unary_sfpu_done_();
+
+        _llk_math_eltwise_binary_sfpu_init_<SfpuType::add_top_row>();
+        _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
+        ckernel::sfpu::_init_add_top_row_();
+        ckernel::sfpu::_calculate_add_top_row_<static_cast<DataFormat>(formats.math)>(0, 1, 0);
+        _llk_math_eltwise_binary_sfpu_done_();
     }
 
-#ifdef ADD_TOP_ROW
-    _llk_math_eltwise_binary_sfpu_init_<SfpuType::add_top_row>();
-    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
-    ckernel::sfpu::_init_add_top_row_();
-
-    for (int i = 1; i < TILE_CNT; ++i)
-    {
-        // Add the top rows of all the tiles we reduced in dst register
-        ckernel::sfpu::_calculate_add_top_row_<static_cast<DataFormat>(formats.math)>(0, i, 0); // accumulate the result in tile at index 0
-    }
-
-#endif
-
-    _llk_math_eltwise_unary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 

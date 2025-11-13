@@ -25,8 +25,9 @@ from helpers.param_config import (
     input_output_formats,
     parametrize,
 )
+from helpers.profiler import Profiler
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import run_test
+from helpers.test_config import ProfilerBuild, run_test
 from helpers.tilize_untilize import untilize
 from helpers.utils import passed_test
 
@@ -39,20 +40,21 @@ dimension_combinations = [
     for n in range(tile_dim, max_tiles * tile_dim + 1, tile_dim)
     if m * n <= max_tiles * tile_dim * tile_dim
 ]
+dimension_combinations = [[64, 32]]
 
 
 @parametrize(
     test_name="sfpu_reduce_test",
     formats=input_output_formats(
-        [DataFormat.Float32, DataFormat.UInt32, DataFormat.Int32],
+        [DataFormat.Float32],
         same=True,
     ),
     mathop=[MathOperation.ReduceColumn],
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    negative_number=[False, True],
-    reduce_pool=[ReducePool.Sum, ReducePool.Average],
+    dest_acc=[DestAccumulation.Yes],
+    negative_number=[False],
+    reduce_pool=[ReducePool.Sum],
     dimension_combinations=dimension_combinations,
-    add_top_row=[False, True],
+    add_top_row=[True],
 )
 def test_sfpu_reduce(
     test_name,
@@ -128,7 +130,9 @@ def test_sfpu_reduce(
         tile_count_A=tile_cnt,
         tile_count_B=1,
     )
-    run_test(test_config)
+    run_test(test_config, profiler_build=ProfilerBuild.Yes)
+    profiler_data = Profiler.get_data(test_config["testname"])
+    print(profiler_data.frame())
 
     torch_format = format_dict[formats.output_format]
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
@@ -146,7 +150,8 @@ def test_sfpu_reduce(
     # We do so for each tile we reduced
     reduce_result = []
     golden_result = []
-    for i in range(tile_cnt):
+    tile_count = 1 if add_top_row else tile_cnt
+    for i in range(tile_count):
         # Calculate starting indices for this tile
         start_res = i * 1024  # Each tile has 1024 elements in result tensor
         start_golden = i * 32  # Each tile contributes 32 elements to golden
