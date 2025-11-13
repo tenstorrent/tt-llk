@@ -196,7 +196,7 @@ inline void _llk_unpack_A_init_(
     const std::uint32_t unpack_src_format                            = 0,
     const std::uint32_t unpack_dst_format                            = 0)
 {
-    // Set transpose register to prevent state pollution from previous tests
+    // Set transpose register to prevent state pollution
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose);
 
     constexpr std::uint32_t UNP_SEL = (BType == BroadcastType::NONE) ? p_setadc::UNP_A : p_setadc::UNP_B;
