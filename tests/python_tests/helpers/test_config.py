@@ -324,11 +324,9 @@ def generate_build_header(test_config):
 
     # Profiler Tests don't pass formats to the test config, so we need to set them here
     testname = test_config.get("testname", "")
-    if "profiler" in testname:
+    if "profiler" in testname or formats is None:
         format = DataFormat.Float16
         formats = FormatConfig(format, format, format, format, format)
-    if formats is None:
-        raise ValueError("Format Config not passed in test config")
 
     # Check if this is an outlier format combination that requires dest_acc to be enabled
     if is_format_combination_outlier(
