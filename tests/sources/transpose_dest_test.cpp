@@ -14,8 +14,6 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
-const std::uint32_t num_of_faces = 4;
-
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
@@ -26,12 +24,14 @@ void run_kernel()
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, num_of_faces, num_of_faces);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-        UNPACK_TRANSPOSE_FACES, 0, FACE_R_DIM, num_of_faces, formats.unpack_src, formats.unpack_dst);
+        UNPACK_TRANSPOSE_FACES, 0, FACE_R_DIM, num_faces, formats.unpack_src, formats.unpack_dst);
 
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
+        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
+    }
+    for (int i = 0; i < TILE_CNT; ++i)
+    {
         _llk_unpack_set_srcb_dummy_valid_();
     }
 }
@@ -69,9 +69,12 @@ void run_kernel()
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math);
 #endif
+    }
 
-        _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is32>();
+    _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is32>();
 
+    for (int i = 0; i < TILE_CNT; ++i)
+    {
 #ifdef ARCH_BLACKHOLE
         _llk_math_transpose_dest_<is_fp32_dest_acc_en, MATH_TRANSPOSE_FACES, is32>(i);
 #else
