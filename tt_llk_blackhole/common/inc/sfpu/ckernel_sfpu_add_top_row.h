@@ -41,7 +41,7 @@ inline void _calculate_add_top_row_(const uint tile_idx_0 = 0, const uint tile_i
                                                                                     : InstrModLoadStore::FP32;
 
     constexpr uint REPLAY_BUFFER_INDEX = (format == DataFormat::Float32) ? 4 : 0;
-    constexpr uint REPLAY_BUFFER_COUNT = (format == DataFormat::Float32) ? 8 : 4;
+    constexpr uint REPLAY_BUFFER_COUNT = 4;
 
     // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size = 64;
@@ -97,17 +97,13 @@ inline void _init_add_top_row_()
     // Contains: 4 TT_SFPADD + 4 TTI_SFPNOP operations for adding top rows
     load_replay_buf(
         4,
-        8,
+        4,
         []
         {
             TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG4, p_sfpu::LREG0, 0);
-            TTI_SFPNOP;
             TTI_SFPADD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG5, p_sfpu::LREG1, 0);
-            TTI_SFPNOP;
             TTI_SFPADD(p_sfpu::LREG2, p_sfpu::LCONST_1, p_sfpu::LREG6, p_sfpu::LREG2, 0);
-            TTI_SFPNOP;
             TTI_SFPADD(p_sfpu::LREG3, p_sfpu::LCONST_1, p_sfpu::LREG7, p_sfpu::LREG3, 0);
-            TTI_SFPNOP;
         });
 }
 
