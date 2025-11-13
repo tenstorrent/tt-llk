@@ -15,6 +15,7 @@ from helpers.golden_generators import (
 )
 from helpers.llk_params import (
     DestAccumulation,
+    ImpliedMathFormat,
     MathFidelity,
     MathOperation,
     format_dict,
@@ -58,6 +59,10 @@ ELTWISE_DIMENSIONS = [
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
+    implied_math_format=[
+        ImpliedMathFormat.No,
+        ImpliedMathFormat.Yes,
+    ],
     dimensions_dest_acc=ELTWISE_DIMENSIONS,
     num_faces=[4],
 )
@@ -66,6 +71,7 @@ def test_eltwise_binary(
     formats,
     mathop,
     math_fidelity,
+    implied_math_format,
     dimensions_dest_acc,
     num_faces,
     boot_mode=BootMode.DEFAULT,
@@ -111,6 +117,7 @@ def test_eltwise_binary(
         "testname": test_name,
         "mathop": mathop,
         "math_fidelity": math_fidelity,
+        "implied_math_format": implied_math_format,
         "dest_acc": dest_acc,
         "input_A_dimensions": input_dimensions,
         "input_B_dimensions": input_dimensions,

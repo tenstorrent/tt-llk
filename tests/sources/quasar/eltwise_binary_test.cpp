@@ -30,11 +30,7 @@ void run_kernel()
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
     // Configure Source A buffer descriptor
-    buffer_descriptor_u bd_val_A;
-    for (uint i = 0; i < BD_NUM_WORDS; i++)
-    {
-        bd_val_A.words[i] = 0;
-    }
+    buffer_descriptor_u bd_val_A {};
     bd_val_A.f.l1_addr_16B = buffer_A[0] / 16;
     bd_val_A.f.format      = static_cast<uint8_t>(formats.unpack_src);
     bd_val_A.f.x_dim       = FACE_C_DIM;
@@ -46,11 +42,7 @@ void run_kernel()
     td_val_A.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
 
     // Configure Source B buffer descriptor
-    buffer_descriptor_u bd_val_B;
-    for (uint i = 0; i < BD_NUM_WORDS; i++)
-    {
-        bd_val_B.words[i] = 0;
-    }
+    buffer_descriptor_u bd_val_B {};
     bd_val_B.f.l1_addr_16B = buffer_B[0] / 16;
     bd_val_B.f.format      = static_cast<uint8_t>(formats.unpack_src);
     bd_val_B.f.x_dim       = FACE_C_DIM;
@@ -98,7 +90,7 @@ void run_kernel()
 
     // Configure math hardware with proper Quasar API
     constexpr DataFormat src_format = static_cast<DataFormat>(formats.math);
-    _llk_math_srcAB_hw_configure_<true /*math implied*/, is_fp32_dest_acc_en, is_int_fpu_en, src_format, src_format>();
+    _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en, src_format, src_format>();
 
     // Initialize eltwise binary operation with proper TileShape
     TileShape tile_shape = {.num_faces = num_faces, .face_r_dim = FACE_R_DIM, .face_c_dim = FACE_C_DIM, .narrow_tile = false};
@@ -130,18 +122,15 @@ void run_kernel()
     set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
     // Configure output buffer descriptor
-    buffer_descriptor_u bd_val;
-    for (uint i = 0; i < BD_NUM_WORDS; i++)
-    {
-        bd_val.words[i] = 0;
-    }
-    tdma_descriptor_t tdma_desc;
+    buffer_descriptor_u bd_val {};
 
     bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
     bd_val.f.x_dim       = FACE_C_DIM;
     bd_val.f.y_dim       = FACE_R_DIM;
     bd_val.f.z_dim       = num_faces; // Match matmul pattern: set z_dim to actual num_faces
+
+    tdma_descriptor_t tdma_desc;
 
     tdma_desc.buf_desc        = bd_val;
     tdma_desc.buf_desc_id     = BUF_DESC;
