@@ -111,15 +111,21 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
 // BF16 reciprocal, with throughput of 5c/32.
 inline void _calculate_reciprocal_fast_24b_5c_(const int iterations)
 {
-#pragma GCC unroll 8
-    for (int d = 0; d < iterations; d++)
+
+    lltt::replay(0, 4);
+    TTI_SFPLOAD(7, 0, ADDR_MOD_6, 0);
+
+#pragma GCC unroll 7
+    for (int d = 0; d < iterations - 1; d++)
     {
         lltt::replay(0, 5);
     }
+
     TTI_SFPNOP;
     lltt::replay(1, 1);
     TTI_SFPNOP;
     lltt::replay(3, 2);
+
     TTI_SFPNOP;
     TTI_SFPNOP;
     TTI_SFPNOP;
@@ -316,7 +322,7 @@ inline void _init_reciprocal_fast_24b_5c_()
 
     load_replay_buf(
         0,
-        5,
+        6,
         [e, t2, z, y, offset, prev_offset]
         {
             TTI_SFPLOADMACRO((0 << 2) | (y & 3), 0, ADDR_MOD_7, offset | (y >> 2));
@@ -324,6 +330,7 @@ inline void _init_reciprocal_fast_24b_5c_()
             TTI_SFPLOADMACRO((1 << 2) | (e & 3), 0, ADDR_MOD_7, offset | (e >> 2));
             TTI_SFPMAD(0, y, 10, 0, 1);
             TTI_SFPLOADMACRO((3 << 2) | (z & 3), 0, ADDR_MOD_6, prev_offset | (z >> 2));
+            TTI_SFPLOADMACRO((3 << 2) | (z & 3), 0, ADDR_MOD_7, prev_offset | (z >> 2));
         });
 }
 
