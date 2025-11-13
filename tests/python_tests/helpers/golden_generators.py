@@ -1184,27 +1184,27 @@ class EltwiseBinaryGolden(FidelityMasking):
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
 
-        num_fidelity_phases = 0
-
-        _fildelity_dict = {
+        MATH_FIDELITY_TO_ITER_COUNT = {
             MathFidelity.LoFi: 0,
             MathFidelity.HiFi2: 1,
             MathFidelity.HiFi3: 2,
             MathFidelity.HiFi4: 3,
         }
 
-        num_fidelity_phases = _fildelity_dict.get(math_fidelity, 0)
+        fidelity_iter_count = MATH_FIDELITY_TO_ITER_COUNT[math_fidelity]
 
         res = 0
 
         # If multiply is chosen apply fidelity
         if op == MathOperation.Elwmul:
             res = None
-            for phase in range(num_fidelity_phases + 1):
-                t1, t2 = self._apply_fidelity_masking(t1, t2, phase, data_format)
+            for fidelity_iter in range(fidelity_iter_count + 1):
+                t1, t2 = self._apply_fidelity_masking(
+                    data_format, t1, t2, fidelity_iter
+                )
                 phase_result = self.ops[op](t1, t2)
 
-                if phase == 0:
+                if fidelity_iter == 0:
                     res = phase_result
                 else:
                     res += phase_result
