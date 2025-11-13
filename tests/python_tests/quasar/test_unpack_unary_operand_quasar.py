@@ -98,7 +98,7 @@ ALL_UNPACK_UNARY_OPERAND_COMBINATIONS = generate_unpack_unary_operand_combinatio
 )
 
 
-@pytest.mark.nightly
+@pytest.mark.quasar
 @parametrize(
     test_name="unpack_unary_operand_quasar_test",
     formats_dest_acc_transpose_unpack_sel_dims=ALL_UNPACK_UNARY_OPERAND_COMBINATIONS,
