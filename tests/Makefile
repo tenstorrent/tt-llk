@@ -32,19 +32,19 @@ else
 $(error must provide archname or CHIP_ARCH environment variable (wormhole / blackhole))
 endif
 
-BUILD_DIR       ?= build/$(ARCH)
+BUILD_DIR       ?= /tmp/tt-llk-build/$(ARCH)
 
-SHARED_DIR      := $(BUILD_DIR)/shared
-SHARED_OBJ_DIR  := $(SHARED_DIR)/obj
-SHARED_DEPS_DIR := $(SHARED_DIR)/deps
-SHARED_DIS_DIR  := $(SHARED_DIR)/dis
-SHARED_ELF_DIR  := $(SHARED_DIR)/elf
-
-TEST_DIR        := $(BUILD_DIR)/tests/$(testname)
+TEST_DIR        := $(BUILD_DIR)/$(testname)/$(variant)
 OBJ_DIR         := $(TEST_DIR)/obj
 DEPS_DIR        := $(TEST_DIR)/deps
 DIS_DIR         := $(TEST_DIR)/dis
 ELF_DIR         := $(TEST_DIR)/elf
+
+SHARED_DIR      := $(TEST_DIR)
+SHARED_OBJ_DIR  := $(SHARED_DIR)/obj
+SHARED_DEPS_DIR := $(SHARED_DIR)/deps
+SHARED_DIS_DIR  := $(SHARED_DIR)/dis
+SHARED_ELF_DIR  := $(SHARED_DIR)/elf
 
 PROFILER_DIR    := $(TEST_DIR)/profiler
 
@@ -82,7 +82,7 @@ OPTIONS_LINK	:= -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 
 
 INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
 			-I../$(ARCH_LLK_ROOT)/common/inc/sfpu -I$(HEADER_DIR) -Ifirmware/riscv/common \
-			-Isfpi/include -Ihelpers/include
+			-Isfpi/include -Ihelpers/include -I$(TEST_DIR)
 
 OPTIONS_COMPILE += $(INCLUDES)
 
@@ -120,7 +120,6 @@ profiler: $(PROFILER_DIR)/unpack.meta.bin \
 # Build Rules
 # =========================
 
-
 # extract profiler metadata from .elf
 $(PROFILER_DIR)/%.meta.bin: $(ELF_DIR)/%.elf | $(PROFILER_DIR)
 	$(OBJCOPY) -O binary -j .profiler_meta $< $@
@@ -151,7 +150,7 @@ $(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/bris
 KERNEL_SOURCE = $(firstword $(wildcard sources/ai_gen/$(testname).cpp sources/quasar/$(testname).cpp sources/$(testname).cpp))
 KERNEL_TRISC_FLAG = $(if $(filter sources/quasar/%,$(KERNEL_SOURCE)),,-DCOMPILE_FOR_TRISC= )
 
-$(OBJ_DIR)/kernel_%.o: $(KERNEL_SOURCE) $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $(DEPS_DIR)
+$(OBJ_DIR)/kernel_%.o: $(KERNEL_SOURCE) $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $(DEPS_DIR) $(TEST_DIR)/build.h
 	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(KERNEL_TRISC_FLAG) \
 	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $(KERNEL_SOURCE)
@@ -180,12 +179,12 @@ $(BUILD_DIR)/params.stamp: always | $(BUILD_DIR)
 	echo "$(PARAMS)" | cmp -s - $@ || echo "$(PARAMS)" > $@
 
 # create folder structure root for stamp file
-$(BUILD_DIR):
+$(BUILD_DIR) $(TEST_DIR):
 	mkdir -p $@
 
-# create folder structure for shared files
-$(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR):
-	mkdir -p $@
+# # create folder structure for shared files
+# $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR):
+# 	mkdir -p $@
 
 # create folder structure for test specific files
 $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR):
@@ -196,7 +195,7 @@ $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR):
 # Clean
 # =========================
 clean:
-	$(RMDIR) build
+	$(RMDIR) /tmp/tt-llk-build
 	$(RMDIR) __pycache__
 	$(RMDIR) .pytest_cache
 	$(MAKE) -C python_tests clean

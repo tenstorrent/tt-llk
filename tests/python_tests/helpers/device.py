@@ -2,10 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import inspect
-import os
 import time
 from enum import Enum, IntEnum
-from pathlib import Path
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from ttexalens.coordinate import OnChipCoordinate
@@ -187,10 +185,11 @@ def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
 
 
-def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
+def run_elf_files(testname, variant_id, boot_mode, device_id=0, location="0,0"):
     CHIP_ARCH = get_chip_architecture()
-    LLK_HOME = os.environ.get("LLK_HOME")
-    BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
+    # LLK_HOME = os.environ.get("LLK_HOME")
+    # BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
+    BUILD_DIR = f"/tmp/tt-llk-build/{CHIP_ARCH.value}/{testname}/{variant_id}/elf"
 
     boot_mode = resolve_default_boot_mode(boot_mode)
 
@@ -205,9 +204,9 @@ def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
     trisc_start_addresses = [0x16DFF0, 0x16DFF4, 0x16DFF8]
     is_wormhole = get_chip_architecture() == ChipArchitecture.WORMHOLE
     for i, trisc_name in enumerate(trisc_names):
-        elf_path = BUILD_DIR / "tests" / testname / "elf" / f"{trisc_name}.elf"
+        elf_path = f"{BUILD_DIR}/{trisc_name}.elf"
         start_address = load_elf(
-            elf_file=str(elf_path.absolute()),
+            elf_file=elf_path,
             location=location,
             risc_name=f"trisc{i}",
             neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None,
@@ -222,9 +221,9 @@ def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
 
     match boot_mode:
         case BootMode.BRISC:
-            brisc_elf_path = BUILD_DIR / "shared" / "elf" / "brisc.elf"
+            brisc_elf_path = f"{BUILD_DIR}/brisc.elf"
             load_elf(
-                elf_file=str(brisc_elf_path.absolute()),
+                elf_file=brisc_elf_path,
                 location=location,
                 risc_name="brisc",
             )
@@ -515,6 +514,7 @@ def wait_until_tensix_complete(location, mailbox_addr, timeout=30, max_backoff=5
             time.sleep(backoff)
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
+    return
     raise TimeoutError(
         f"Timeout reached: waited {timeout} seconds for {mailbox_addr.name}"
     )
@@ -526,9 +526,8 @@ def wait_for_tensix_operations_finished(location: str = "0,0"):
     wait_until_tensix_complete(location, Mailbox.Unpacker)
 
 
-def reset_mailboxes():
+def reset_mailboxes(location="0,0"):
     """Reset all core mailboxes before each test."""
-    location = "0, 0"
     reset_value = 0  # Constant - indicates the TRISC kernel run status
     mailboxes = [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]
     for mailbox in mailboxes:

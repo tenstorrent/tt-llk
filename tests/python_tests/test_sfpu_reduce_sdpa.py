@@ -37,7 +37,13 @@ from helpers.utils import passed_test
     ],
 )
 def test_sfpu_reduce_sdpa(
-    test_name, formats, dest_acc, mathop, reduce_pool, input_dimensions
+    test_name,
+    formats,
+    dest_acc,
+    mathop,
+    reduce_pool,
+    input_dimensions,
+    workers_tensix_coordinates,
 ):
 
     src_A, src_B, tile_cnt = generate_stimuli(
@@ -84,11 +90,17 @@ def test_sfpu_reduce_sdpa(
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config)
+    run_test(test_config, workers_tensix_coordinates)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=workers_tensix_coordinates,
+    )
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize_block(res_tensor, formats.output_format, input_dimensions)
 

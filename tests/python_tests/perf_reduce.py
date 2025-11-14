@@ -43,7 +43,14 @@ REDUCE_MATHOP = {
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )
 def test_perf_reduce(
-    perf_report, test_name, formats, tile_count, dest_acc, reduce_dim, pool_type
+    perf_report,
+    test_name,
+    formats,
+    tile_count,
+    dest_acc,
+    reduce_dim,
+    pool_type,
+    workers_tensix_coordinates,
 ):
 
     test_config = {
@@ -55,5 +62,5 @@ def test_perf_reduce(
         "mathop": REDUCE_MATHOP[reduce_dim],
     }
 
-    results = perf_benchmark(test_config, ALL_RUN_TYPES)
+    results = perf_benchmark(test_config, ALL_RUN_TYPES, workers_tensix_coordinates)
     update_report(perf_report, test_config, results)

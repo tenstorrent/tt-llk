@@ -52,7 +52,13 @@ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
 @pytest.mark.parametrize("fp32_dest", [DestAccumulation.Yes, DestAccumulation.No])
 @pytest.mark.parametrize("input_width, input_height", generate_input_dimensions(16))
 def test_fast_tilize_perf(
-    perf_report, input_format, output_format, fp32_dest, input_width, input_height
+    perf_report,
+    input_format,
+    output_format,
+    fp32_dest,
+    input_width,
+    input_height,
+    workers_tensix_coordinates,
 ):
 
     input_dimensions = [input_height * 32, input_width * 32]
@@ -81,7 +87,10 @@ def test_fast_tilize_perf(
         input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
-    results = perf_benchmark(test_config, [PerfRunType.L1_TO_L1], 2)
+    results = perf_benchmark(
+        test_config, [PerfRunType.L1_TO_L1], workers_tensix_coordinates, 2
+    )
     update_report(perf_report, test_config, results)

@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+from hashlib import md5
+
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.profiler import Profiler
@@ -17,15 +19,18 @@ def get_expected_overhead():
             raise ValueError("Unsupported chip architecture")
 
 
-def test_profiler_overhead():
+def test_profiler_overhead(workers_tensix_coordinates):
 
     test_config = {
         "testname": "profiler_overhead_test",
     }
 
-    run_test(test_config, profiler_build=ProfilerBuild.Yes)
+    run_test(test_config, workers_tensix_coordinates, profiler_build=ProfilerBuild.Yes)
 
-    runtime = Profiler.get_data(test_config["testname"])
+    variant_id = md5(f"{str(test_config)}".encode()).hexdigest()
+    runtime = Profiler.get_data(
+        test_config["testname"], variant_id, workers_tensix_coordinates
+    )
 
     # filter out all zones that don't have marker "OVERHEAD"
 

@@ -39,7 +39,13 @@ from helpers.utils import passed_test
     input_dimensions=[[32, 32], [32, 64], [64, 64]],
 )
 def test_multiple_tiles(
-    test_name, formats, mathop, dest_acc, math_fidelity, input_dimensions
+    test_name,
+    formats,
+    mathop,
+    dest_acc,
+    math_fidelity,
+    input_dimensions,
+    workers_tensix_coordinates,
 ):
 
     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
@@ -73,11 +79,17 @@ def test_multiple_tiles(
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config)
+    run_test(test_config, workers_tensix_coordinates)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=workers_tensix_coordinates,
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]

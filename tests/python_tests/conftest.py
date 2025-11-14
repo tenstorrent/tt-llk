@@ -92,15 +92,26 @@ def reset_mailboxes_fixture():
     yield
 
 
+@pytest.fixture()
+def workers_tensix_coordinates(worker_id):
+    if worker_id == "master":
+        return "0,0"
+    index = int(worker_id[2:])
+    row, col = divmod(index, 8)
+    return f"{row},{col}"
+
+
+logging_mutex = True
+
+
 def pytest_configure(config):
     log_file = "pytest_errors.log"
-    # Clear the log file if it exists
-    if os.path.exists(log_file):
-        os.remove(log_file)
+    Path(log_file).unlink(missing_ok=True)
+
     logging.basicConfig(
-        filename=log_file,
-        level=logging.ERROR,
+        level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(), logging.FileHandler(log_file)],
     )
 
     initialize_test_target_from_pytest(config)
@@ -110,12 +121,6 @@ def pytest_configure(config):
         tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
     else:
         tt_exalens_init.init_ttexalens()
-
-
-def pytest_runtest_logreport(report):
-    # Capture errors when tests fail
-    if report.failed:
-        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
 
 
 def _stringify_params(params):
@@ -138,14 +143,13 @@ def _stringify_params(params):
 
 
 def pytest_runtest_logreport(report):
+    # Capture errors when tests fail
+    if report.failed:
+        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
+
     if report.when != "call":
         return
-
-    callspec = getattr(report.item, "callspec", None)
-    if callspec is None:
-        return
-
-    print(f"\nParameters: {_stringify_params(callspec.params)}")
+    print(f"\nParameters: {report.test_params}")
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -154,8 +158,11 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
 
-    # Attach the item to the report so it's available in logreport
-    report.item = item
+    if hasattr(item, "callspec") and item.callspec:
+        report.test_params = _stringify_params(item.callspec.params)
+    else:
+        report.test_params = None
+
     return report
 
 

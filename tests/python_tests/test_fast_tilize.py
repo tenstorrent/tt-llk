@@ -56,7 +56,9 @@ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
     dimensions=generate_input_dimensions(25),
 )
-def test_fast_tilize(test_name, formats, dest_acc, dimensions):
+def test_fast_tilize(
+    test_name, formats, dest_acc, dimensions, workers_tensix_coordinates
+):
 
     input_width, input_height = dimensions
 
@@ -89,11 +91,17 @@ def test_fast_tilize(test_name, formats, dest_acc, dimensions):
         formats.input,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config)
+    run_test(test_config, workers_tensix_coordinates)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=workers_tensix_coordinates,
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output])
