@@ -1875,16 +1875,11 @@ class PackRowsGolden:
         num_rows_to_pack=1,
         tile_count=1,
     ):
-        from helpers.llk_params import format_dict
-
-        # row_num_datums is fixed to 16 (Dest register is 64 rows of 16 datums)
         row_num_datums = 16
 
-        # Convert to tensor if needed
         if not isinstance(operand, torch.Tensor):
             operand = torch.tensor(operand, dtype=format_dict[data_format])
 
-        # Flatten the input
         operand_flat = operand.flatten()
 
         # Extract first num_rows_to_pack * row_num_datums elements from each tile
@@ -1896,7 +1891,6 @@ class PackRowsGolden:
             tile_end = tile_start + num_elements_per_tile
             result_list.append(operand_flat[tile_start:tile_end])
 
-        # Concatenate results from all tiles
         if result_list:
             result = torch.cat(result_list)
         else:
