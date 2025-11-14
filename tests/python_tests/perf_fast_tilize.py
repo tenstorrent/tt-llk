@@ -58,7 +58,7 @@ def test_fast_tilize_perf(
     fp32_dest,
     input_width,
     input_height,
-    worker_tensix_location,
+    workers_tensix_coordinates,
 ):
 
     input_dimensions = [input_height * 32, input_width * 32]
@@ -90,6 +90,6 @@ def test_fast_tilize_perf(
     )
 
     results = perf_benchmark(
-        test_config, [PerfRunType.L1_TO_L1], worker_tensix_location, 2
+        test_config, [PerfRunType.L1_TO_L1], workers_tensix_coordinates, 2
     )
     update_report(perf_report, test_config, results)

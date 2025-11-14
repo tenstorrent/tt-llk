@@ -32,7 +32,7 @@ from helpers.utils import passed_test
     ],
 )
 def test_matmul_unpack_tilize(
-    test_name, formats, dest_acc, math_fidelity, worker_tensix_location
+    test_name, formats, dest_acc, math_fidelity, workers_tensix_coordinates
 ):
 
     torch_format = format_dict[formats.output_format]
@@ -75,7 +75,7 @@ def test_matmul_unpack_tilize(
         tile_count_B=tile_cnt,
     )
 
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)

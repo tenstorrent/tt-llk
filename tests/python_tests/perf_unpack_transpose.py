@@ -23,7 +23,7 @@ def test_perf_unpack_transpose(
     formats,
     unpack_transpose_faces,
     unpack_transpose_within_face,
-    worker_tensix_location,
+    workers_tensix_coordinates,
 ):
 
     if (
@@ -51,6 +51,6 @@ def test_perf_unpack_transpose(
     results = perf_benchmark(
         test_config,
         [PerfRunType.L1_TO_L1, PerfRunType.UNPACK_ISOLATE],
-        worker_tensix_location,
+        workers_tensix_coordinates,
     )
     update_report(perf_report, test_config, results)

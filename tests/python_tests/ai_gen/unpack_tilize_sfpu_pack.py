@@ -93,7 +93,7 @@ param_ids = [
 
 
 @pytest.mark.parametrize("config", all_params, ids=param_ids)
-def test_fused_tilize_sfpu_pack(config):
+def test_fused_tilize_sfpu_pack(config, workers_tensix_coordinates):
     """
     Tests the simplified pipeline: unpack_tilize → datacopy → sfpu_unary → pack
 
@@ -207,10 +207,11 @@ def test_fused_tilize_sfpu_pack(config):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
     # Build and execute kernel
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     # ---------------------------------------------------------------------
     # Collect and validate results
@@ -221,6 +222,7 @@ def test_fused_tilize_sfpu_pack(config):
         formats,
         tile_count=tile_cnt,
         address=res_address,
+        location=workers_tensix_coordinates,
     )
 
     # Verify result length

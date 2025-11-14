@@ -31,7 +31,7 @@ DATACOPY_FORMATS = input_output_formats(
         DATACOPY_FORMATS, result_tiles=4
     ),
 )
-def test_unary_datacopy(test_name, datacopy_parameters, worker_tensix_location):
+def test_unary_datacopy(test_name, datacopy_parameters, workers_tensix_coordinates):
 
     input_dimensions = [64, 64]
 
@@ -86,7 +86,7 @@ def test_unary_datacopy(test_name, datacopy_parameters, worker_tensix_location):
         num_faces=num_faces,
     )
 
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     res_from_L1 = collect_results(
         formats, tile_count=tile_cnt, address=res_address, num_faces=num_faces

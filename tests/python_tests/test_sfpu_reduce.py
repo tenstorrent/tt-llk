@@ -62,7 +62,7 @@ def test_sfpu_reduce(
     reduce_pool,
     negative_number,
     dimension_combinations,
-    worker_tensix_location,
+    workers_tensix_coordinates,
     add_top_row,
 ):
     if negative_number and formats.input_format == DataFormat.UInt32:
@@ -128,16 +128,16 @@ def test_sfpu_reduce(
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=1,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     torch_format = format_dict[formats.output_format]
     res_from_L1 = collect_results(
         formats,
         tile_count=tile_cnt,
         address=res_address,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
