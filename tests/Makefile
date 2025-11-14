@@ -47,6 +47,7 @@ DIS_DIR         := $(TEST_DIR)/dis
 ELF_DIR         := $(TEST_DIR)/elf
 
 PROFILER_DIR    := $(TEST_DIR)/profiler
+LOG_DIR         := $(TEST_DIR)/log
 
 HELPERS         := helpers
 RISCV_SOURCES   := $(HELPERS)/src
@@ -115,6 +116,9 @@ profiler: $(PROFILER_DIR)/unpack.meta.bin \
 	  $(PROFILER_DIR)/math.meta.bin \
 	  $(PROFILER_DIR)/pack.meta.bin
 
+log: $(LOG_DIR)/unpack.meta.bin \
+	 $(LOG_DIR)/math.meta.bin \
+	 $(LOG_DIR)/pack.meta.bin
 
 # =========================
 # Build Rules
@@ -123,7 +127,11 @@ profiler: $(PROFILER_DIR)/unpack.meta.bin \
 
 # extract profiler metadata from .elf
 $(PROFILER_DIR)/%.meta.bin: $(ELF_DIR)/%.elf | $(PROFILER_DIR)
-	$(OBJCOPY) -O binary -j .profiler_meta $< $@
+	$(OBJCOPY) --set-section-flags .profiler_meta=alloc -O binary -j .profiler_meta $< $@
+
+# extract log metadata from .elf
+$(LOG_DIR)/%.meta.bin: $(ELF_DIR)/%.elf | $(LOG_DIR)
+	$(OBJCOPY) --set-section-flags .log_meta=alloc -O binary -j .log_meta $< $@
 
 # disassemble unpack.elf, math.elf, pack.elf
 $(DIS_DIR)/%.S: $(ELF_DIR)/%.elf | $(DIS_DIR)
@@ -188,7 +196,7 @@ $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR):
 	mkdir -p $@
 
 # create folder structure for test specific files
-$(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR):
+$(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR) $(LOG_DIR):
 	mkdir -p $@
 
 
