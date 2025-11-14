@@ -22,7 +22,6 @@ class ChipArchitecture(Enum):
                 "blackhole": cls.BLACKHOLE,
                 "quasar": cls.QUASAR,
                 "wormhole": cls.WORMHOLE,
-                "wormhole_b0": cls.WORMHOLE,
             }
         return cls._cached_string_map
 
@@ -49,6 +48,8 @@ def get_chip_architecture():
     if not chip_architecture:
         context = check_context()
         chip_architecture = context.devices[0]._arch
+        if chip_architecture == "wormhole_b0":
+            chip_architecture = "wormhole"
         os.environ["CHIP_ARCH"] = chip_architecture
 
     _cached_chip_architecture = ChipArchitecture.from_string(chip_architecture)
