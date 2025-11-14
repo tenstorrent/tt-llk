@@ -51,6 +51,7 @@ def test_unpack_tilize_comprehensive(
     dest_acc,
     num_faces,
     input_dimensions,
+    workers_tensix_coordinates,
 ):
     """Comprehensive parameter sweep test for unpack_tilize operation."""
 
@@ -150,6 +151,7 @@ def test_unpack_tilize_comprehensive(
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
         num_faces=num_faces,
+        location=workers_tensix_coordinates,
     )
 
     # Execute the kernel
@@ -157,7 +159,11 @@ def test_unpack_tilize_comprehensive(
 
     # Collect results from L1 memory
     res_from_L1 = collect_results(
-        formats, tile_count=tile_cnt, address=res_address, num_faces=num_faces
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        num_faces=num_faces,
+        location=workers_tensix_coordinates,
     )
 
     # Verify result size matches expected
