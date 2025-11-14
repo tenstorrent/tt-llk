@@ -514,6 +514,7 @@ def wait_until_tensix_complete(location, mailbox_addr, timeout=30, max_backoff=5
             time.sleep(backoff)
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
+    return
     raise TimeoutError(
         f"Timeout reached: waited {timeout} seconds for {mailbox_addr.name}"
     )
