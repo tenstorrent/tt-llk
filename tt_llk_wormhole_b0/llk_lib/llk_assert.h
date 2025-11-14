@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#pragma once
+
 #ifndef ENV_LLK_INFRA
 
 // Assume we are executing in tt-metal and we have assert already available.
