@@ -5,7 +5,7 @@ import os
 from enum import Enum
 from pathlib import Path
 
-from .chip_architecture import get_chip_architecture
+from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     BootMode,
@@ -89,9 +89,6 @@ def generate_build_header(test_config):
 
     File location: <repository>/tests/helpers/include/build.h
     """
-    # Get architecture for conditional includes
-    arch = get_chip_architecture()
-    from .chip_architecture import ChipArchitecture
 
     header_content = [
         "// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC",
@@ -111,7 +108,9 @@ def generate_build_header(test_config):
 
     # Conditionally include perf.h based on architecture
     header_content.extend(
-        ['#include "perf.h"'] if arch != ChipArchitecture.QUASAR else []
+        ['#include "perf.h"']
+        if get_chip_architecture() != ChipArchitecture.QUASAR
+        else []
     )
 
     header_content.extend(

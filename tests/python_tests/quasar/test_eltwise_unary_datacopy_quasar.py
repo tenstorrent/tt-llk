@@ -38,12 +38,9 @@ def generate_eltwise_unary_datacopy_combinations(
     """
     Generate eltwise_unary_datacopy combinations.
 
-    Rules:
-
-
     Args: List of input-output format pairs
 
-    Returns: List of (format, dest_acc, data_copy_type, input_dimensions) tuples
+    Returns: List of (format, dest_acc, data_copy_type, input_dimensions, edgecase_dest_index) tuples
     """
     dimensions_cache = {
         DestAccumulation.No: tuple(
