@@ -20,6 +20,7 @@ from .llk_params import (
     SFPU_BINARY_OPERATIONS,
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
+    DataCopyType,
     DestAccumulation,
     DestSync,
     ImpliedMathFormat,
@@ -177,6 +178,12 @@ def generate_build_header(test_config):
     fused_L1_to_L1 = test_config.get("L1_to_L1_iterations", 1)
     header_content.append(
         f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {fused_L1_to_L1};"
+    )
+
+    # Data copy type
+    data_copy_type = test_config.get("data_copy_type", DataCopyType.A2D)
+    header_content.append(
+        f"constexpr auto DATACOPY_TYPE = ckernel::DataCopyType::{data_copy_type.value};"
     )
 
     # Broadcast type
