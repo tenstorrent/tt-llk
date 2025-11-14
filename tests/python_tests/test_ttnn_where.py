@@ -254,7 +254,6 @@ def test_ttnn_where_mcw(
 
     run_test(test_config, workers_tensix_coordinates)
 
-    wait_for_tensix_operations_finished(workers_tensix_coordinates)
     res_from_L1 = collect_results(
         formats,
         tile_count=tile_cnt_C,
