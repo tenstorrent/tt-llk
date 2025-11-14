@@ -148,6 +148,7 @@ def eltwise_unary_sfpu(
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=worker_tensix_location,
     )
 
     run_test(test_config, worker_tensix_location)
