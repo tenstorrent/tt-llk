@@ -21,8 +21,8 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::
     sfpi::vFloat original_base = base;
 
     // Check for integer power
-    sfpi::vInt pow_int       = float_to_int16(pow, 0); // int16 should be plenty, since large powers will approach 0/Inf
-    sfpi::vFloat pow_rounded = int32_to_float(pow_int, 0);
+    sfpi::vInt pow_int       = sfpi::float_to_int16(pow, 0); // int16 should be plenty, since large powers will approach 0/Inf
+    sfpi::vFloat pow_rounded = sfpi::int32_to_float(pow_int, 0);
     v_if (pow_rounded == pow)
     {
         // if pow is integer, set base to positive
@@ -31,19 +31,19 @@ sfpi_inline sfpi::vFloat _calculate_sfpu_binary_power_(sfpi::vFloat base, sfpi::
     v_endif;
 
     // Normalize base to calculation range
-    sfpi::vFloat x = setexp(base, 127); // set exp to exp bias (put base in range of 1-2)
+    sfpi::vFloat x = sfpi::setexp(base, 127); // set exp to exp bias (put base in range of 1-2)
 
     // 3rd order polynomial approx - determined using rminimax over [1,2]
     sfpi::vFloat series_result = x * (x * (x * 0x2.44734p-4f - 0xd.e712ap-4f) + 0x2.4f5388p+0f) - 0x1.952992p+0f;
 
     // Convert exponent to float
-    sfpi::vInt exp = exexp(base);
+    sfpi::vInt exp = sfpi::exexp(base);
     v_if (exp < 0)
     {
         exp = sfpi::setsgn(~exp + 1, 1);
     }
     v_endif;
-    sfpi::vFloat expf = int32_to_float(exp, 0);
+    sfpi::vFloat expf = sfpi::int32_to_float(exp, 0);
 
     // De-normalize to original range
     sfpi::vFloat vConstLn2  = 0.692871f;

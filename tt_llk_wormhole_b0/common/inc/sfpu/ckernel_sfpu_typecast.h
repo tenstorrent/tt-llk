@@ -65,7 +65,7 @@ inline void _calculate_typecast_fp16b_to_int32_()
         sfpi::vFloat in = sfpi::dst_reg[0];
 
         // extract exponent
-        sfpi::vInt exp = exexp(in);
+        sfpi::vInt exp = sfpi::exexp(in);
 
         v_if (exp < 0)
         {
@@ -85,7 +85,7 @@ inline void _calculate_typecast_fp16b_to_int32_()
         v_else
         {
             // extract mantissa
-            sfpi::vInt man = exman8(in);
+            sfpi::vInt man = sfpi::exman8(in);
             // shift the mantissa by (23-exponent) to the right
             sfpi::vInt shift = exp - 23;
             man              = sfpi::shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
@@ -157,7 +157,7 @@ inline void _calculate_typecast_fp16b_to_uint32_()
         v_else
         {
             // extract exponent
-            sfpi::vInt exp = exexp(in);
+            sfpi::vInt exp = sfpi::exexp(in);
 
             v_if (exp < 0)
             {
@@ -172,7 +172,7 @@ inline void _calculate_typecast_fp16b_to_uint32_()
             v_elseif (exp == 31)
             {
                 // extract mantissa without hidden bit
-                sfpi::vInt man = exman9(in);
+                sfpi::vInt man = sfpi::exman9(in);
                 // shift the mantissa by (23-exponent) to the right
                 sfpi::vInt shift = exp - 23;
                 man              = sfpi::shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
@@ -182,7 +182,7 @@ inline void _calculate_typecast_fp16b_to_uint32_()
             v_else
             {
                 // extract mantissa
-                sfpi::vInt man = exman8(in);
+                sfpi::vInt man = sfpi::exman8(in);
                 // shift the mantissa by (23-exponent) to the right
                 sfpi::vInt shift = exp - 23;
                 man              = sfpi::shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
