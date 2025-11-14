@@ -183,7 +183,7 @@ def generate_build_header(test_config):
     # Data copy type
     data_copy_type = test_config.get("data_copy_type", DataCopyType.A2D)
     header_content.append(
-        f"constexpr auto DATACOPY_TYPE = ckernel::DataCopyType::{data_copy_type.value};"
+        f"constexpr auto DATA_COPY_TYPE = ckernel::DataCopyType::{data_copy_type.value};"
     )
 
     # Broadcast type

@@ -29,7 +29,7 @@ from helpers.param_config import (
     parametrize,
 )
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import BootMode, run_test
+from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 
@@ -101,13 +101,12 @@ ALL_DATACOPY_COMBINATIONS = generate_eltwise_unary_datacopy_combinations(
 @parametrize(
     test_name="eltwise_unary_datacopy_quasar_test",
     formats_dest_acc_data_copy_type_dims_dest_indices=ALL_DATACOPY_COMBINATIONS,
-    implied_math_format=[ImpliedMathFormat.No, ImpliedMathFormat.Yes],
+    implied_math_format=[ImpliedMathFormat.Yes, ImpliedMathFormat.No],
 )
 def test_eltwise_unary_datacopy_quasar(
     test_name,
     formats_dest_acc_data_copy_type_dims_dest_indices,
     implied_math_format,
-    boot_mode=BootMode.DEFAULT,
 ):
     formats = formats_dest_acc_data_copy_type_dims_dest_indices[0]
     dest_acc = formats_dest_acc_data_copy_type_dims_dest_indices[1]
@@ -162,7 +161,7 @@ def test_eltwise_unary_datacopy_quasar(
         num_faces=4,
     )
 
-    run_test(test_config, boot_mode=boot_mode)
+    run_test(test_config)
 
     res_from_L1 = collect_results(
         formats, tile_count=tile_cnt, address=res_address, num_faces=4
