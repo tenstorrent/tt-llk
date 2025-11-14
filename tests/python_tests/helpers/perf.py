@@ -20,6 +20,8 @@ from helpers.device import (
 from helpers.profiler import Profiler, ProfilerData
 from helpers.test_config import ProfilerBuild, build_test
 
+from .chip_architecture import get_chip_architecture
+
 
 class PerfRunType(Enum):
     L1_TO_L1 = 1
@@ -125,8 +127,15 @@ def _stats_l1_congestion(data: ProfilerData) -> pd.DataFrame:
     return pd.concat(stats, ignore_index=True)
 
 
+from hashlib import md5
+
+
 def perf_benchmark(
-    test_config, run_types: list[PerfRunType], run_count=2, boot_mode=BootMode.DEFAULT
+    test_config,
+    run_types: list[PerfRunType],
+    location,
+    run_count=2,
+    boot_mode=BootMode.DEFAULT,
 ):  # global override boot mode for perf tests here
 
     STATS_FUNCTION = {
@@ -146,19 +155,32 @@ def perf_benchmark(
         get_stats = STATS_FUNCTION[run_type]
 
         test_config["perf_run_type"] = run_type
-        build_test(test_config, boot_mode, ProfilerBuild.Yes)
+
+        variant_id = md5(f"{str(test_config)}".encode()).hexdigest()
+
+        build_test(test_config, variant_id, boot_mode, ProfilerBuild.Yes)
 
         runs = []
         for _ in range(run_count):
-            reset_mailboxes()
-            run_elf_files(test_config["testname"], boot_mode)
-            wait_for_tensix_operations_finished()
+            reset_mailboxes(location=location)
+            run_elf_files(
+                test_config["testname"], variant_id, boot_mode, location=location
+            )
+            wait_for_tensix_operations_finished(location=location)
 
-            profiler_data = Profiler.get_data(test_config["testname"])
+            profiler_data = Profiler.get_data(
+                test_config["testname"], variant_id, location
+            )
 
             runs.append(profiler_data)
 
         results.append(get_stats(ProfilerData.concat(runs)))
+
+        CHIP_ARCH = get_chip_architecture()
+        BUILD_DIR = (
+            f"/tmp/tt-llk-build/{CHIP_ARCH}/{test_config['testname']}/{variant_id}"
+        )
+        shutil.rmtree(BUILD_DIR)
 
     results = pd.concat(results, ignore_index=True)
 
@@ -295,7 +317,10 @@ def delete_benchmark_dir(testname: str):
     path = Path(root) / "perf_data" / testname
 
     if path.exists() and path.is_dir():
-        shutil.rmtree(path)
+        try:
+            shutil.rmtree(path)
+        except:
+            pass
 
 
 def create_benchmark_dir(testname: str):
