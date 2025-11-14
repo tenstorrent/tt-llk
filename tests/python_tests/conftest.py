@@ -109,9 +109,9 @@ def pytest_configure(config):
     if os.path.exists(log_file):
         os.remove(log_file)
     logging.basicConfig(
-        filename=log_file,
-        level=logging.ERROR,
+        level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(), logging.FileHandler(log_file)],
     )
 
     initialize_test_target_from_pytest(config)
