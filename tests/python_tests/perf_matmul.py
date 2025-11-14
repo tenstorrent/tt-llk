@@ -63,7 +63,9 @@ def matmul_combos(
         MathFidelity.HiFi4,
     ],
 )
-def test_perf_matmul(perf_report, test_name, combos, math_fidelity):
+def test_perf_matmul(
+    perf_report, test_name, combos, math_fidelity, worker_tensix_location
+):
 
     formats, dest_acc, (matrix_a, matrix_b) = combos
 
@@ -90,5 +92,5 @@ def test_perf_matmul(perf_report, test_name, combos, math_fidelity):
         "math_fidelity": math_fidelity,
     }
 
-    results = perf_benchmark(test_config, run_types)
+    results = perf_benchmark(test_config, run_types, worker_tensix_location)
     update_report(perf_report, test_config, results)

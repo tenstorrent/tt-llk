@@ -236,29 +236,20 @@ class Profiler:
         )
 
     @staticmethod
-    def _get_meta(testname: str) -> dict[id, ProfilerFullMarker]:
+    def _get_meta(testname: str, variant_id: str) -> dict[id, ProfilerFullMarker]:
         chip_arch = get_chip_architecture()
-        llk_home = Path(os.environ.get("LLK_HOME"))
 
-        profiler_dir = (
-            llk_home
-            / "tests"
-            / "build"
-            / chip_arch.value
-            / "tests"
-            / testname
-            / "profiler"
-        )
+        profiler_dir = f"/tmp/tt-llk-build/{chip_arch}/{testname}/{variant_id}/profiler"
 
         files = [
-            profiler_dir / "unpack.meta.bin",
-            profiler_dir / "math.meta.bin",
-            profiler_dir / "pack.meta.bin",
+            f"{profiler_dir}/unpack.meta.bin",
+            f"{profiler_dir}/math.meta.bin",
+            f"{profiler_dir}/pack.meta.bin",
         ]
 
         meta = {}
         for file in files:
-            if not file.exists():
+            if not os.path.exists(file):
                 continue
             with open(file, "rb") as f:
                 binary = f.read()
@@ -271,9 +262,9 @@ class Profiler:
         return meta
 
     @staticmethod
-    def get_data(testname: str) -> pd.DataFrame:
-        meta = Profiler._get_meta(testname)
-        return Profiler._parse_buffers(Profiler._load_buffers(), meta)
+    def get_data(testname: str, variant_id: str, location: str) -> pd.DataFrame:
+        meta = Profiler._get_meta(testname, variant_id)
+        return Profiler._parse_buffers(Profiler._load_buffers(location), meta)
 
     @staticmethod
     def _load_buffers(location="0,0", word_count=BUFFER_LENGTH) -> list[list[int]]:

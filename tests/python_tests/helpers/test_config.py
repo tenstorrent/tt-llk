@@ -501,8 +501,14 @@ def generate_build_header(test_config):
 
 def write_build_header(test_config, variant_id):
     header_content = generate_build_header(test_config)
-    llk_home = Path(os.environ.get("LLK_HOME"))
-    with open(llk_home / "tests" / f"{variant_id}_build.h", "w") as f:
+
+    CHIP_ARCH = get_chip_architecture()
+    testname = test_config.get("testname")
+    build_header_path = Path(
+        f"/tmp/tt-llk-build/{CHIP_ARCH}/{testname}/{variant_id}/build.h"
+    )
+    build_header_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(build_header_path, "w") as f:
         f.write(header_content)
 
 
@@ -561,14 +567,5 @@ def run_test(
     wait_for_tensix_operations_finished(location)
 
     CHIP_ARCH = get_chip_architecture()
-    LLK_HOME = os.environ.get("LLK_HOME")
-    BUILD_DIR = (
-        Path(LLK_HOME)
-        / "tests"
-        / "build"
-        / CHIP_ARCH.value
-        / test_config["testname"]
-        / variant_id
-    )
-
+    BUILD_DIR = f"/tmp/tt-llk-build/{CHIP_ARCH}/{test_config['testname']}/{variant_id}"
     shutil.rmtree(BUILD_DIR)
