@@ -107,11 +107,8 @@ def generate_build_header(test_config):
     ]
 
     # Conditionally include perf.h based on architecture
-    header_content.extend(
-        ['#include "perf.h"']
-        if get_chip_architecture() != ChipArchitecture.QUASAR
-        else []
-    )
+    if get_chip_architecture() != ChipArchitecture.QUASAR:
+        header_content.append('#include "perf.h"')
 
     header_content.extend(
         [
