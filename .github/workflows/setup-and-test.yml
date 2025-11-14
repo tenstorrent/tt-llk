@@ -85,7 +85,7 @@ jobs:
           echo "CHIP_ARCH=$CHIP_ARCH" >> $GITHUB_ENV
           SPLITS=$TEST_SPLITS
           cd tests/python_tests/
-          pytest -m "${{ inputs.pytest_markers }}" \
+          pytest -n 20 -m "${{ inputs.pytest_markers }}" \
                 ${{ inputs.random_order && '--random-order-bucket=global' || '' }} \
                 --splits $SPLITS --group ${{ matrix.test_group }} \
                 --override-ini="addopts=-v" --timeout=60 \
