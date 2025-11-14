@@ -1863,3 +1863,43 @@ class TilizeGolden:
             ]
 
         return result.flatten().to(torch_format)
+
+
+@register_golden
+class PackRowsGolden:
+    def __call__(
+        self,
+        operand,
+        data_format,
+        dimensions=[32, 32],
+        num_rows_to_pack=1,
+        tile_count=1,
+    ):
+        from helpers.llk_params import format_dict
+
+        # row_num_datums is fixed to 16 (Dest register is 64 rows of 16 datums)
+        row_num_datums = 16
+
+        # Convert to tensor if needed
+        if not isinstance(operand, torch.Tensor):
+            operand = torch.tensor(operand, dtype=format_dict[data_format])
+
+        # Flatten the input
+        operand_flat = operand.flatten()
+
+        # Extract first num_rows_to_pack * row_num_datums elements from each tile
+        num_elements_per_tile = num_rows_to_pack * row_num_datums
+        result_list = []
+
+        for tile_idx in range(tile_count):
+            tile_start = tile_idx * ELEMENTS_PER_TILE
+            tile_end = tile_start + num_elements_per_tile
+            result_list.append(operand_flat[tile_start:tile_end])
+
+        # Concatenate results from all tiles
+        if result_list:
+            result = torch.cat(result_list)
+        else:
+            result = torch.tensor([], dtype=format_dict[data_format])
+
+        return result.to(format_dict[data_format])
