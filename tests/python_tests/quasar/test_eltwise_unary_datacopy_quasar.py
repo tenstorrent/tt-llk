@@ -5,7 +5,6 @@ from typing import List
 
 import pytest
 import torch
-from conftest import skip_for_blackhole, skip_for_wormhole
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -96,8 +95,7 @@ ALL_DATACOPY_COMBINATIONS = generate_eltwise_unary_datacopy_combinations(
 )
 
 
-@skip_for_blackhole
-@skip_for_wormhole
+@pytest.mark.quasar
 @parametrize(
     test_name="eltwise_unary_datacopy_quasar_test",
     formats_dest_acc_data_copy_type_dims_dest_indices=ALL_DATACOPY_COMBINATIONS,
