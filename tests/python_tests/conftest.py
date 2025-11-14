@@ -4,6 +4,7 @@
 import datetime
 import logging
 import os
+import shutil
 from pathlib import Path
 
 import pytest
@@ -92,6 +93,33 @@ def reset_mailboxes_fixture():
     yield
 
 
+@pytest.fixture(scope="module", autouse=True)
+def cleanup_build_variants(request):
+    """Clean up all build variant directories (except shared) after each test module completes."""
+
+    # Register finalizer to ensure cleanup happens after ALL tests in module complete
+    def cleanup():
+        # Clean up all testname directories, but preserve shared objects
+        CHIP_ARCH = get_chip_architecture()
+        build_base = Path("/tmp/tt-llk-build") / CHIP_ARCH.value
+
+        if build_base.exists():
+            for item in build_base.iterdir():
+                # Skip shared directory - it's reused across modules
+                if item.name == "shared":
+                    continue
+                # Remove all other directories (testname directories with variants)
+                if item.is_dir():
+                    try:
+                        shutil.rmtree(item)
+                    except Exception as e:
+                        # Log but don't fail if cleanup fails
+                        logging.warning(f"Failed to clean up {item}: {e}")
+
+    request.addfinalizer(cleanup)
+    yield
+
+
 @pytest.fixture()
 def worker_tensix_location(worker_id):
     location = "0,0"
@@ -165,16 +193,6 @@ def pytest_runtest_makereport(item, call):
         report.test_params = None
 
     return report
-
-
-from helpers.utils import run_shell_command
-
-
-def build_shared_assets():
-    llk_home = Path(os.environ.get("LLK_HOME"))
-    tests_dir = str((llk_home / "tests").absolute())
-    command = "make build_shared"
-    run_shell_command(command, tests_dir)
 
 
 def pytest_sessionstart(session):

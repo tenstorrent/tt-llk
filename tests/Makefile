@@ -32,7 +32,7 @@ else
 $(error must provide archname or CHIP_ARCH environment variable (wormhole / blackhole))
 endif
 
-BUILD_DIR       ?= build/$(ARCH)
+BUILD_DIR       ?= /tmp/tt-llk-build/$(ARCH)
 
 SHARED_DIR      := $(BUILD_DIR)/shared
 SHARED_OBJ_DIR  := $(SHARED_DIR)/obj
@@ -107,7 +107,9 @@ ELF_TARGETS += $(SHARED_ELF_DIR)/brisc.elf
 DIS_TARGETS += $(SHARED_DIS_DIR)/brisc.S
 endif
 
-all: $(ELF_TARGETS)
+all: build_shared $(ELF_TARGETS)
+
+build_shared: $(BUILD_DIR)/params.stamp $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/main_unpack.o $(SHARED_OBJ_DIR)/main_math.o $(SHARED_OBJ_DIR)/main_pack.o $(if $(filter-out quasar,$(ARCH)),$(SHARED_OBJ_DIR)/brisc.o,)
 
 dis: $(DIS_TARGETS)
 
@@ -120,9 +122,10 @@ profiler: $(PROFILER_DIR)/unpack.meta.bin \
 # Build Rules
 # =========================
 
-$(TEST_DIR)/build.h: ./$(variant)_build.h | $(TEST_DIR)
-	cp ./$(variant)_build.h $(TEST_DIR)/build.h
-	rm ./$(variant)_build.h
+# build.h is now created directly in TEST_DIR by Python code before make is called
+# This rule ensures the directory exists and the file is present
+$(TEST_DIR)/build.h: | $(TEST_DIR)
+	@test -f $@ || (echo "Error: build.h not found at $@. Python code should create it before calling make." && exit 1)
 
 # extract profiler metadata from .elf
 $(PROFILER_DIR)/%.meta.bin: $(ELF_DIR)/%.elf | $(PROFILER_DIR)
@@ -199,7 +202,7 @@ $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR):
 # Clean
 # =========================
 clean:
-	$(RMDIR) build
+	$(RMDIR) /tmp/tt-llk-build
 	$(RMDIR) __pycache__
 	$(RMDIR) .pytest_cache
 	$(MAKE) -C python_tests clean

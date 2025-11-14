@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import inspect
-import os
 import time
 from enum import Enum, IntEnum
 from pathlib import Path
@@ -189,8 +188,7 @@ def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
 
 def run_elf_files(testname, variant_id, boot_mode, device_id=0, location="0,0"):
     CHIP_ARCH = get_chip_architecture()
-    LLK_HOME = os.environ.get("LLK_HOME")
-    BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
+    BUILD_DIR = Path("/tmp/tt-llk-build") / CHIP_ARCH.value
 
     boot_mode = resolve_default_boot_mode(boot_mode)
 
