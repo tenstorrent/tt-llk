@@ -32,7 +32,9 @@ from helpers.utils import passed_test
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
-def test_sfpu_binary_float(test_name, formats, dest_acc, mathop):
+def test_sfpu_binary_float(
+    test_name, formats, dest_acc, mathop, worker_tensix_location
+):
     chip_arch = get_chip_architecture()
     if chip_arch == ChipArchitecture.WORMHOLE and mathop == MathOperation.SfpuElwsub:
         pytest.skip("Not currently supported in tests")
@@ -46,7 +48,7 @@ def test_sfpu_binary_float(test_name, formats, dest_acc, mathop):
             "Float16_a isn't supported for SFPU on Blackhole without being converted to 32-bit intermediate format in dest register"
         )
 
-    sfpu_binary(test_name, formats, dest_acc, mathop)
+    sfpu_binary(test_name, formats, dest_acc, mathop, worker_tensix_location)
 
 
 @parametrize(
@@ -63,8 +65,8 @@ def test_sfpu_binary_float(test_name, formats, dest_acc, mathop):
     ],
     dest_acc=[DestAccumulation.Yes],
 )
-def test_sfpu_binary_int(test_name, formats, dest_acc, mathop):
-    sfpu_binary(test_name, formats, dest_acc, mathop)
+def test_sfpu_binary_int(test_name, formats, dest_acc, mathop, worker_tensix_location):
+    sfpu_binary(test_name, formats, dest_acc, mathop, worker_tensix_location)
 
 
 @parametrize(
@@ -156,7 +158,9 @@ def test_sfpu_binary_add_top_row(
     mathop=[MathOperation.SfpuAddTopRow],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
-def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
+def test_sfpu_binary_add_top_row(
+    test_name, formats, dest_acc, mathop, worker_tensix_location
+):
     input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
@@ -192,11 +196,17 @@ def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=worker_tensix_location,
     )
 
-    run_test(test_config)
+    run_test(test_config, location=worker_tensix_location)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=worker_tensix_location,
+    )
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)

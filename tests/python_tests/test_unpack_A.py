@@ -5,6 +5,7 @@
 from itertools import product
 
 import pytest
+import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
@@ -398,8 +399,8 @@ def test_unpack_comprehensive(
     within_face_16x16_transpose,
     num_faces,
     face_r_dim,
+    worker_tensix_location,
 ):
-    import torch
 
     # Compute unpack_to_dest based on format and accumulation mode
     unpack_to_dest = formats.input_format.is_32_bit() and acc_to_dest
@@ -554,6 +555,7 @@ def test_unpack_comprehensive(
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
         num_faces=num_faces,
+        location=worker_tensix_location,
     )
 
     run_test(test_config, worker_tensix_location)
@@ -566,6 +568,7 @@ def test_unpack_comprehensive(
         tile_dimensions=input_dimensions,
         num_faces=num_faces,
         face_r_dim=face_r_dim,
+        location=worker_tensix_location,
     )
     assert len(res_from_L1) == len(golden_tensor)
 

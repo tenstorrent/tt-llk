@@ -152,7 +152,12 @@ def eltwise_unary_sfpu(
 
     run_test(test_config, worker_tensix_location)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=worker_tensix_location,
+    )
 
     # res_from_L1 = res_from_L1[:1024]
     assert len(res_from_L1) == len(golden_tensor)
