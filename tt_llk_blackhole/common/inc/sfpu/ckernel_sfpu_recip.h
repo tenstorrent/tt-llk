@@ -111,7 +111,6 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
 // BF16 reciprocal, with throughput of 5c/32.
 inline void _calculate_reciprocal_fast_24b_5c_(const int iterations)
 {
-
     lltt::replay(0, 4);
     TTI_SFPLOAD(7, 0, ADDR_MOD_6, 0);
 
