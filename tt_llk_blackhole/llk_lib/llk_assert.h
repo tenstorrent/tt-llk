@@ -14,6 +14,6 @@
 #else
 
 // TODO: implement asserts in LLK infra
-#define LLK_ASSERT(condition, message)
+#define LLK_ASSERT(condition, message) ((void)(condition))
 
 #endif
