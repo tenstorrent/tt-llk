@@ -87,6 +87,7 @@ def test_fast_tilize_perf(
         input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
     results = perf_benchmark(
