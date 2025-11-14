@@ -33,8 +33,8 @@ void run_kernel()
     buffer_descriptor_u bd_val_A {};
     bd_val_A.f.l1_addr_16B = buffer_A[0] / 16;
     bd_val_A.f.format      = static_cast<uint8_t>(formats.unpack_src);
-    bd_val_A.f.x_dim       = FACE_C_DIM;
-    bd_val_A.f.y_dim       = FACE_R_DIM;
+    bd_val_A.f.x_dim       = TEST_FACE_C_DIM;
+    bd_val_A.f.y_dim       = TEST_FACE_R_DIM;
     bd_val_A.f.z_dim       = num_faces;
 
     td_val_A.buf_desc        = bd_val_A;
@@ -45,8 +45,8 @@ void run_kernel()
     buffer_descriptor_u bd_val_B {};
     bd_val_B.f.l1_addr_16B = buffer_B[0] / 16;
     bd_val_B.f.format      = static_cast<uint8_t>(formats.unpack_src);
-    bd_val_B.f.x_dim       = FACE_C_DIM;
-    bd_val_B.f.y_dim       = FACE_R_DIM;
+    bd_val_B.f.x_dim       = TEST_FACE_C_DIM;
+    bd_val_B.f.y_dim       = TEST_FACE_R_DIM;
     bd_val_B.f.z_dim       = num_faces;
 
     td_val_B.buf_desc        = bd_val_B;
@@ -93,7 +93,7 @@ void run_kernel()
     _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en, src_format, src_format>();
 
     // Initialize eltwise binary operation with proper TileShape
-    TileShape tile_shape = {.num_faces = num_faces, .face_r_dim = FACE_R_DIM, .face_c_dim = FACE_C_DIM, .narrow_tile = false};
+    TileShape tile_shape = {.num_faces = num_faces, .face_r_dim = TEST_FACE_R_DIM, .face_c_dim = TEST_FACE_C_DIM, .narrow_tile = false};
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, static_cast<MathFidelity>(MATH_FIDELITY)>(tile_shape);
 
     // Perform eltwise binary operation for each tile
@@ -126,8 +126,8 @@ void run_kernel()
 
     bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
-    bd_val.f.x_dim       = FACE_C_DIM;
-    bd_val.f.y_dim       = FACE_R_DIM;
+    bd_val.f.x_dim       = TEST_FACE_C_DIM;
+    bd_val.f.y_dim       = TEST_FACE_R_DIM;
     bd_val.f.z_dim       = num_faces; // Match matmul pattern: set z_dim to actual num_faces
 
     tdma_descriptor_t tdma_desc;
