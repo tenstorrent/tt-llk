@@ -22,7 +22,7 @@ from helpers.perf import PerfRunType, perf_benchmark, update_report
     full_ct_dim=[1, 2, 3, 4, 5, 6, 7, 8],
 )
 def test_perf_unpack_untilize(
-    perf_report, test_name, formats, full_rt_dim, full_ct_dim
+    perf_report, test_name, formats, full_rt_dim, full_ct_dim, worker_tensix_location
 ):
 
     run_types = [
@@ -40,5 +40,5 @@ def test_perf_unpack_untilize(
         "input_B_dimensions": dimensions,
     }
 
-    results = perf_benchmark(test_config, run_types)
+    results = perf_benchmark(test_config, run_types, worker_tensix_location)
     update_report(perf_report, test_config, results)

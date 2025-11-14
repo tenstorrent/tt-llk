@@ -21,11 +21,15 @@ from helpers.perf import PerfRunType, perf_benchmark, update_report
     rt_dim=[1, 2, 3, 4, 5, 6, 7, 8],
     ct_dim=[1, 2, 3, 4, 5, 6, 7, 8],
 )
-def test_perf_unpack_tilize_float(perf_report, test_name, formats, rt_dim, ct_dim):
+def test_perf_unpack_tilize_float(
+    perf_report, test_name, formats, rt_dim, ct_dim, worker_tensix_location
+):
     if formats.input_format == DataFormat.Bfp8_b:
         pytest.skip("Bfp8_b input not supported for unpack_tilize")
 
-    _perf_unpack_tilize(perf_report, test_name, formats, rt_dim, ct_dim)
+    _perf_unpack_tilize(
+        perf_report, test_name, formats, rt_dim, ct_dim, worker_tensix_location
+    )
 
 
 @pytest.mark.perf
@@ -35,11 +39,15 @@ def test_perf_unpack_tilize_float(perf_report, test_name, formats, rt_dim, ct_di
     rt_dim=[1, 2],
     ct_dim=[1, 2],
 )
-def test_perf_unpack_tilize_int(perf_report, test_name, formats, rt_dim, ct_dim):
-    _perf_unpack_tilize(perf_report, test_name, formats, rt_dim, ct_dim)
+def test_perf_unpack_tilize_int(
+    perf_report, test_name, formats, rt_dim, ct_dim, worker_tensix_location
+):
+    _perf_unpack_tilize(
+        perf_report, test_name, formats, rt_dim, ct_dim, worker_tensix_location
+    )
 
 
-def _perf_unpack_tilize(perf_report, test_name, formats, rt_dim, ct_dim):
+def _perf_unpack_tilize(perf_report, test_name, formats, rt_dim, ct_dim, location):
     run_types = [
         PerfRunType.L1_TO_L1,
         PerfRunType.UNPACK_ISOLATE,
@@ -60,5 +68,5 @@ def _perf_unpack_tilize(perf_report, test_name, formats, rt_dim, ct_dim):
         "unpack_to_dest": formats.input_format == DataFormat.Int32,
     }
 
-    results = perf_benchmark(test_config, run_types)
+    results = perf_benchmark(test_config, run_types, location)
     update_report(perf_report, test_config, results)

@@ -25,7 +25,14 @@ from helpers.perf import ALL_RUN_TYPES, perf_benchmark, update_report
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
 def test_perf_eltwise_binary_fpu(
-    perf_report, test_name, formats, mathop, tile_count, math_fidelity, dest_acc
+    perf_report,
+    test_name,
+    formats,
+    mathop,
+    tile_count,
+    math_fidelity,
+    dest_acc,
+    worker_tensix_location,
 ):
 
     # MathFidelity is only used for Elwmul
@@ -41,5 +48,5 @@ def test_perf_eltwise_binary_fpu(
         "dest_acc": dest_acc,
     }
 
-    results = perf_benchmark(test_config, ALL_RUN_TYPES)
+    results = perf_benchmark(test_config, ALL_RUN_TYPES, worker_tensix_location)
     update_report(perf_report, test_config, results)

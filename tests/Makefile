@@ -32,19 +32,19 @@ else
 $(error must provide archname or CHIP_ARCH environment variable (wormhole / blackhole))
 endif
 
-BUILD_DIR       ?= build/$(ARCH)
-
-SHARED_DIR      := $(BUILD_DIR)/shared
-SHARED_OBJ_DIR  := $(SHARED_DIR)/obj
-SHARED_DEPS_DIR := $(SHARED_DIR)/deps
-SHARED_DIS_DIR  := $(SHARED_DIR)/dis
-SHARED_ELF_DIR  := $(SHARED_DIR)/elf
+BUILD_DIR       ?= /tmp/tt-llk-build/$(ARCH)
 
 TEST_DIR        := $(BUILD_DIR)/$(testname)/$(variant)
 OBJ_DIR         := $(TEST_DIR)/obj
 DEPS_DIR        := $(TEST_DIR)/deps
 DIS_DIR         := $(TEST_DIR)/dis
 ELF_DIR         := $(TEST_DIR)/elf
+
+SHARED_DIR      := $(TEST_DIR)
+SHARED_OBJ_DIR  := $(SHARED_DIR)/obj
+SHARED_DEPS_DIR := $(SHARED_DIR)/deps
+SHARED_DIS_DIR  := $(SHARED_DIR)/dis
+SHARED_ELF_DIR  := $(SHARED_DIR)/elf
 
 PROFILER_DIR    := $(TEST_DIR)/profiler
 
@@ -120,10 +120,6 @@ profiler: $(PROFILER_DIR)/unpack.meta.bin \
 # Build Rules
 # =========================
 
-$(TEST_DIR)/build.h: ./$(variant)_build.h | $(TEST_DIR)
-	cp ./$(variant)_build.h $(TEST_DIR)/build.h
-	rm ./$(variant)_build.h
-
 # extract profiler metadata from .elf
 $(PROFILER_DIR)/%.meta.bin: $(ELF_DIR)/%.elf | $(PROFILER_DIR)
 	$(OBJCOPY) -O binary -j .profiler_meta $< $@
@@ -186,9 +182,9 @@ $(BUILD_DIR)/params.stamp: always | $(BUILD_DIR)
 $(BUILD_DIR) $(TEST_DIR):
 	mkdir -p $@
 
-# create folder structure for shared files
-$(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR):
-	mkdir -p $@
+# # create folder structure for shared files
+# $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR):
+# 	mkdir -p $@
 
 # create folder structure for test specific files
 $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR):
@@ -199,7 +195,7 @@ $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR):
 # Clean
 # =========================
 clean:
-	$(RMDIR) build
+	$(RMDIR) /tmp/tt-llk-build
 	$(RMDIR) __pycache__
 	$(RMDIR) .pytest_cache
 	$(MAKE) -C python_tests clean

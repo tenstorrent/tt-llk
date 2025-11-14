@@ -35,6 +35,7 @@ def test_perf_col_tile_sdpa(
     math_fidelity,
     input_dimensions,
     srca_reuse_count,
+    worker_tensix_location,
 ):
 
     # MathFidelity is only used for Elwmul
@@ -57,6 +58,9 @@ def test_perf_col_tile_sdpa(
 
     # For now only L1_TO_L1 and PACK_ISOLATE are supported because of custom usage of dvalid signals
     results = perf_benchmark(
-        test_config, [PerfRunType.L1_TO_L1, PerfRunType.PACK_ISOLATE], 10
+        test_config,
+        [PerfRunType.L1_TO_L1, PerfRunType.PACK_ISOLATE],
+        worker_tensix_location,
+        10,
     )
     update_report(perf_report, test_config, results)
