@@ -23,13 +23,13 @@ def assert_marker(
     ), f"Expected marker_id = {expected_id}, got {entry['marker_id']}"
 
 
-def test_profiler_primitives(worker_tensix_location):
+def test_profiler_primitives(workers_tensix_coordinates):
 
     test_config = {
         "testname": "profiler_primitives_test",
     }
 
-    run_test(test_config, worker_tensix_location, profiler_build=ProfilerBuild.Yes)
+    run_test(test_config, workers_tensix_coordinates, profiler_build=ProfilerBuild.Yes)
 
     runtime = Profiler.get_data(test_config["testname"])
 

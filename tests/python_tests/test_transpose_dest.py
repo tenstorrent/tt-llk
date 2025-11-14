@@ -98,7 +98,7 @@ def generate_transpose_dest_float_combinations(formats_list):
     ),
 )
 def test_transpose_dest_float(
-    test_name, fmt_dest_acc_math_transp_unpack_to_dest, worker_tensix_location
+    test_name, fmt_dest_acc_math_transp_unpack_to_dest, workers_tensix_coordinates
 ):
 
     transpose_dest(
@@ -107,7 +107,7 @@ def test_transpose_dest_float(
         dest_acc=fmt_dest_acc_math_transp_unpack_to_dest[1],
         math_transpose_faces=fmt_dest_acc_math_transp_unpack_to_dest[2],
         unpack_to_dest=fmt_dest_acc_math_transp_unpack_to_dest[3],
-        worker_tensix_location=worker_tensix_location,
+        workers_tensix_coordinates=workers_tensix_coordinates,
     )
 
 
@@ -124,7 +124,7 @@ def test_transpose_dest_int(
     dest_acc,
     math_transpose_faces,
     unpack_to_dest,
-    worker_tensix_location,
+    workers_tensix_coordinates,
 ):
     transpose_dest(
         test_name,
@@ -132,7 +132,7 @@ def test_transpose_dest_int(
         dest_acc,
         math_transpose_faces,
         unpack_to_dest,
-        worker_tensix_location,
+        workers_tensix_coordinates,
     )
 
 
@@ -142,7 +142,7 @@ def transpose_dest(
     dest_acc,
     math_transpose_faces,
     unpack_to_dest,
-    worker_tensix_location,
+    workers_tensix_coordinates,
 ):
 
     if dest_acc == DestAccumulation.Yes and formats.input_format != DataFormat.Int32:
@@ -207,16 +207,16 @@ def transpose_dest(
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     res_from_L1 = collect_results(
         formats,
         tile_count=tile_cnt,
         address=res_address,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
 
     assert len(res_from_L1) == len(golden_tensor)

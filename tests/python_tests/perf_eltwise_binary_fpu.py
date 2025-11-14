@@ -32,7 +32,7 @@ def test_perf_eltwise_binary_fpu(
     tile_count,
     math_fidelity,
     dest_acc,
-    worker_tensix_location,
+    workers_tensix_coordinates,
 ):
 
     # MathFidelity is only used for Elwmul
@@ -48,5 +48,5 @@ def test_perf_eltwise_binary_fpu(
         "dest_acc": dest_acc,
     }
 
-    results = perf_benchmark(test_config, ALL_RUN_TYPES, worker_tensix_location)
+    results = perf_benchmark(test_config, ALL_RUN_TYPES, workers_tensix_coordinates)
     update_report(perf_report, test_config, results)

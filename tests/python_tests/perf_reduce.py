@@ -50,7 +50,7 @@ def test_perf_reduce(
     dest_acc,
     reduce_dim,
     pool_type,
-    worker_tensix_location,
+    workers_tensix_coordinates,
 ):
 
     test_config = {
@@ -62,5 +62,5 @@ def test_perf_reduce(
         "mathop": REDUCE_MATHOP[reduce_dim],
     }
 
-    results = perf_benchmark(test_config, ALL_RUN_TYPES, worker_tensix_location)
+    results = perf_benchmark(test_config, ALL_RUN_TYPES, workers_tensix_coordinates)
     update_report(perf_report, test_config, results)

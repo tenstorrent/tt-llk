@@ -76,7 +76,7 @@ def test_matmul(
     test_name,
     math_fidelity,
     format_dest_acc_and_dims,
-    worker_tensix_location,
+    workers_tensix_coordinates,
     boot_mode=BootMode.DEFAULT,
 ):
     torch_format = format_dict[format_dest_acc_and_dims[0].output_format]
@@ -148,16 +148,16 @@ def test_matmul(
         formats.input_format,
         tile_cnt_A,
         tile_cnt_B,
-        worker_tensix_location,
+        workers_tensix_coordinates,
     )
 
-    run_test(test_config, worker_tensix_location, boot_mode)
+    run_test(test_config, workers_tensix_coordinates, boot_mode)
 
     res_from_L1 = collect_results(
         formats,
         tile_count=matmul_dims.output_tile_cnt,
         address=res_address,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
     assert len(res_from_L1) == len(golden_tensor)
 

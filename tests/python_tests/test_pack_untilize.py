@@ -26,7 +26,7 @@ from helpers.utils import passed_test
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
-def test_pack_untilize(test_name, formats, dest_acc, worker_tensix_location):
+def test_pack_untilize(test_name, formats, dest_acc, workers_tensix_coordinates):
     if formats.output_format == DataFormat.Bfp8_b:
         pytest.skip("Pack Untilize does not support Bfp8_b format")
 
@@ -69,16 +69,16 @@ def test_pack_untilize(test_name, formats, dest_acc, worker_tensix_location):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     res_from_L1 = collect_results(
         formats,
         tile_count=tile_cnt,
         address=res_address,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
     assert len(res_from_L1) == len(golden_tensor)
 

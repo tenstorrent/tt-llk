@@ -45,7 +45,7 @@ def test_multiple_tiles(
     dest_acc,
     math_fidelity,
     input_dimensions,
-    worker_tensix_location,
+    workers_tensix_coordinates,
 ):
 
     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
@@ -79,16 +79,16 @@ def test_multiple_tiles(
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     res_from_L1 = collect_results(
         formats,
         tile_count=tile_cnt,
         address=res_address,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
     assert len(res_from_L1) == len(golden_tensor)
 

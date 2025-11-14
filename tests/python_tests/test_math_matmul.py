@@ -84,7 +84,7 @@ ALL_TEST_PARAMS = list(
     "test_name,math_fidelity,matmul_config,throttle", ALL_TEST_PARAMS
 )
 def test_math_matmul(
-    test_name, math_fidelity, matmul_config, throttle, worker_tensix_location
+    test_name, math_fidelity, matmul_config, throttle, workers_tensix_coordinates
 ):
 
     formats = matmul_config.formats
@@ -192,7 +192,7 @@ def test_math_matmul(
         tile_count_B=tile_cnt_B,
     )
 
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     res_from_L1 = collect_results(
         formats, tile_count=matmul_config.tile_dimensions.tile_cnt, address=res_address

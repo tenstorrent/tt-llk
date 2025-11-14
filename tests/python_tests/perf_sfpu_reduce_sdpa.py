@@ -43,7 +43,7 @@ def test_perf_sfpu_reduce_sdpa(
     mathop,
     reduce_pool,
     loop_factor,
-    worker_tensix_location,
+    workers_tensix_coordinates,
 ):
     """
     Performance test for SFPU reduce SDPA operation.
@@ -83,7 +83,7 @@ def test_perf_sfpu_reduce_sdpa(
             # PerfRunType.UNPACK_ISOLATE, # Unpack timing for reference
             # PerfRunType.PACK_ISOLATE,   # Pack timing for reference
         ],
-        worker_tensix_location,
+        workers_tensix_coordinates,
     )
 
     update_report(perf_report, test_config, results)

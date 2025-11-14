@@ -101,7 +101,7 @@ param_ids = [
 
 
 @pytest.mark.parametrize("config", all_params, ids=param_ids)
-def test_sweep_test(config):
+def test_sweep_test(config, workers_tensix_coordinates):
     """Runs the C++ eltwise_binary_pack_untilize.cpp kernel for all parameter combinations.
     Single 32×32 tile only.
     """
@@ -187,13 +187,19 @@ def test_sweep_test(config):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
     # Build & run on device
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     # Fetch results
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=workers_tensix_coordinates,
+    )
 
     assert len(res_from_L1) == len(golden_tensor)
 

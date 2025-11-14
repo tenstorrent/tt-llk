@@ -47,7 +47,7 @@ def test_unp_bcast_sub_sdpa(
     math_fidelity,
     input_dimensions,
     srca_reuse_count,
-    worker_tensix_location,
+    workers_tensix_coordinates,
 ):
 
     # Precompute constants
@@ -129,16 +129,16 @@ def test_unp_bcast_sub_sdpa(
         formats.input_format,
         tile_count_A=reuse_factor,
         tile_count_B=tile_cnt,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     res_from_L1 = collect_results(
         formats,
         tile_count=tile_cnt,
         address=res_address,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
     assert len(res_from_L1) == len(golden_tensor)
 

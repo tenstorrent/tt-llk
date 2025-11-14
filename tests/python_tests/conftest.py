@@ -93,7 +93,7 @@ def reset_mailboxes_fixture():
 
 
 @pytest.fixture()
-def worker_tensix_location(worker_id):
+def workers_tensix_coordinates(worker_id):
     if worker_id == "master":
         return "0,0"
     index = int(worker_id[2:])

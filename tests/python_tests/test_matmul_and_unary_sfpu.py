@@ -66,7 +66,7 @@ def test_matmul_and_unary_sfpu(
     approx_mode,
     dest_acc,
     math_fidelity,
-    worker_tensix_location,
+    workers_tensix_coordinates,
 ):
     input_dimensions = [32, 32]
 
@@ -130,16 +130,16 @@ def test_matmul_and_unary_sfpu(
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     res_from_L1 = collect_results(
         formats,
         tile_count=tile_cnt,
         address=res_address,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)

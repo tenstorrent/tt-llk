@@ -177,7 +177,7 @@ def test_unpack_matmul(test_name, math_fidelity, matmul_config):
         tile_count_B=matmul_config.tile_dimensions.tile_cnt_B,
     )
 
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     res_from_L1 = collect_results(
         formats, tile_count=matmul_config.tile_dimensions.tile_cnt, address=res_address

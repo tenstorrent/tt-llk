@@ -103,7 +103,7 @@ param_ids = [
 # 3. The test implementation
 # -----------------------------------------------------------------------------
 @pytest.mark.parametrize("config", all_params, ids=param_ids)
-def test_sweep_test(config):
+def test_sweep_test(config, workers_tensix_coordinates):
     """Runs the C++ eltwise_binary_sfpu_unary.cpp kernel for a full sweep of all parameter combinations.
     Tests across all commonly used formats in the test infrastructure with 32×32 tensor shape (1 tile).
     """
@@ -241,9 +241,10 @@ def test_sweep_test(config):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config, profiler_build=ProfilerBuild.No)
+    run_test(test_config, workers_tensix_coordinates, profiler_build=ProfilerBuild.No)
 
     # ------------------------------------------------------------------
     # Collect results and compare with golden
@@ -252,6 +253,7 @@ def test_sweep_test(config):
         formats,
         tile_count=tile_cnt,
         address=res_address,
+        location=workers_tensix_coordinates,
     )
     assert len(res_from_L1) == len(golden_tensor)
 

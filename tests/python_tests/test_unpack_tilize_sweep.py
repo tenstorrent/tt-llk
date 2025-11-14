@@ -153,7 +153,7 @@ def test_unpack_tilize_comprehensive(
     )
 
     # Execute the kernel
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     # Collect results from L1 memory
     res_from_L1 = collect_results(

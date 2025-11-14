@@ -64,7 +64,7 @@ def matmul_combos(
     ],
 )
 def test_perf_matmul(
-    perf_report, test_name, combos, math_fidelity, worker_tensix_location
+    perf_report, test_name, combos, math_fidelity, workers_tensix_coordinates
 ):
 
     formats, dest_acc, (matrix_a, matrix_b) = combos
@@ -98,5 +98,5 @@ def test_perf_matmul(
         "math_fidelity": math_fidelity,
     }
 
-    results = perf_benchmark(test_config, run_types, worker_tensix_location)
+    results = perf_benchmark(test_config, run_types, workers_tensix_coordinates)
     update_report(perf_report, test_config, results)

@@ -17,13 +17,13 @@ def get_expected_overhead():
             raise ValueError("Unsupported chip architecture")
 
 
-def test_profiler_overhead(worker_tensix_location):
+def test_profiler_overhead(workers_tensix_coordinates):
 
     test_config = {
         "testname": "profiler_overhead_test",
     }
 
-    run_test(test_config, worker_tensix_location, profiler_build=ProfilerBuild.Yes)
+    run_test(test_config, workers_tensix_coordinates, profiler_build=ProfilerBuild.Yes)
 
     runtime = Profiler.get_data(test_config["testname"])
 

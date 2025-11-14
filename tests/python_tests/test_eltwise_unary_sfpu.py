@@ -59,7 +59,7 @@ from helpers.utils import passed_test
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_float(
-    test_name, formats, approx_mode, mathop, dest_acc, worker_tensix_location
+    test_name, formats, approx_mode, mathop, dest_acc, workers_tensix_coordinates
 ):
     arch = get_chip_architecture()
 
@@ -82,7 +82,7 @@ def test_eltwise_unary_sfpu_float(
         )
 
     eltwise_unary_sfpu(
-        test_name, formats, dest_acc, approx_mode, mathop, worker_tensix_location
+        test_name, formats, dest_acc, approx_mode, mathop, workers_tensix_coordinates
     )
 
 
@@ -97,18 +97,18 @@ def test_eltwise_unary_sfpu_float(
     dest_acc=[DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_int(
-    test_name, formats, approx_mode, mathop, dest_acc, worker_tensix_location
+    test_name, formats, approx_mode, mathop, dest_acc, workers_tensix_coordinates
 ):
     if formats.input_format == DataFormat.Int32:
         pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
 
     eltwise_unary_sfpu(
-        test_name, formats, dest_acc, approx_mode, mathop, worker_tensix_location
+        test_name, formats, dest_acc, approx_mode, mathop, workers_tensix_coordinates
     )
 
 
 def eltwise_unary_sfpu(
-    test_name, formats, dest_acc, approx_mode, mathop, worker_tensix_location
+    test_name, formats, dest_acc, approx_mode, mathop, workers_tensix_coordinates
 ):
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
@@ -148,16 +148,16 @@ def eltwise_unary_sfpu(
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config, worker_tensix_location)
+    run_test(test_config, workers_tensix_coordinates)
 
     res_from_L1 = collect_results(
         formats,
         tile_count=tile_cnt,
         address=res_address,
-        location=worker_tensix_location,
+        location=workers_tensix_coordinates,
     )
 
     # res_from_L1 = res_from_L1[:1024]

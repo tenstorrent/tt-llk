@@ -23,7 +23,12 @@ from helpers.perf import PerfRunType, perf_benchmark, update_report
     full_ct_dim=[1, 2, 3, 4, 5, 6, 7, 8],
 )
 def test_perf_pack_untilize(
-    perf_report, test_name, formats, full_rt_dim, full_ct_dim, worker_tensix_location
+    perf_report,
+    test_name,
+    formats,
+    full_rt_dim,
+    full_ct_dim,
+    workers_tensix_coordinates,
 ):
     if formats.output_format == DataFormat.Bfp8_b:
         pytest.skip("Pack Untilize does not support Bfp8_b output")
@@ -68,5 +73,5 @@ def test_perf_pack_untilize(
         "unpack_to_dest": formats.input_format.is_32_bit(),
     }
 
-    results = perf_benchmark(test_config, run_types, worker_tensix_location)
+    results = perf_benchmark(test_config, run_types, workers_tensix_coordinates)
     update_report(perf_report, test_config, results)
