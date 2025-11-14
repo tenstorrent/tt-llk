@@ -94,20 +94,18 @@ def reset_mailboxes_fixture():
 
 @pytest.fixture()
 def worker_tensix_location(worker_id):
-    location = "0,0"
-    if worker_id != "master":
-        tmp_index = int(worker_id[2:])
-        location = f"{tmp_index//8},{tmp_index%8}"
-    return location
+    if worker_id == "master":
+        return "0,0"
+    index = int(worker_id[2:])
+    row, col = divmod(index, 8)
+    return f"{row},{col}"
 
 
 def pytest_configure(config):
     log_file = "pytest_errors.log"
-    # # Clear the log file if it exists
-    # if os.path.exists(log_file):
     try:
         os.remove(log_file)
-    except FileNotFoundError:
+    except:
         pass
     logging.basicConfig(
         filename=log_file,
@@ -165,16 +163,6 @@ def pytest_runtest_makereport(item, call):
         report.test_params = None
 
     return report
-
-
-from helpers.utils import run_shell_command
-
-
-def build_shared_assets():
-    llk_home = Path(os.environ.get("LLK_HOME"))
-    tests_dir = str((llk_home / "tests").absolute())
-    command = "make build_shared"
-    run_shell_command(command, tests_dir)
 
 
 def pytest_sessionstart(session):

@@ -5,6 +5,7 @@ import os
 import shutil
 from dataclasses import fields, is_dataclass
 from enum import Enum
+from hashlib import md5
 from pathlib import Path
 from typing import Any
 
@@ -125,9 +126,6 @@ def _stats_l1_congestion(data: ProfilerData) -> pd.DataFrame:
     ]
 
     return pd.concat(stats, ignore_index=True)
-
-
-from hashlib import md5
 
 
 def perf_benchmark(
