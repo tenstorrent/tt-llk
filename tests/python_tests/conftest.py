@@ -101,16 +101,17 @@ def workers_tensix_coordinates(worker_id):
     return f"{row},{col}"
 
 
+logging_mutex = True
+
+
 def pytest_configure(config):
     log_file = "pytest_errors.log"
-    try:
-        os.remove(log_file)
-    except:
-        pass
+    Path(log_file).unlink(missing_ok=True)
+
     logging.basicConfig(
-        filename=log_file,
-        level=logging.ERROR,
+        level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(), logging.FileHandler(log_file)],
     )
 
     initialize_test_target_from_pytest(config)

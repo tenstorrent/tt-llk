@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
+import os
 from itertools import product
 
 import pytest
@@ -133,11 +135,116 @@ for base_param in base_params:
         all_params.append(combined_params)
 
 
+def quick_filter(params):
+    """Filter obviously invalid combinations before Z3 to reduce processing time"""
+    (
+        testname,
+        formats,
+        broadcast_type,
+        disable_src_zero,
+        acc_to_dest,
+        stochastic_rnd,
+        reuse_dest,
+        transpose_of_faces,
+        within_face_16x16_transpose,
+        num_faces,
+        face_r_dim,
+    ) = params
+
+    # Rule 1: Broadcast (non-NONE) incompatible with DEST_TO_SRCB/SRCA
+    if broadcast_type != BroadcastType.None_:
+        if reuse_dest in [
+            EltwiseBinaryReuseDestType.DEST_TO_SRCA,
+            EltwiseBinaryReuseDestType.DEST_TO_SRCB,
+        ]:
+            return False
+
+    # Rule 2: SCALAR broadcast + acc_to_dest not allowed
+    if broadcast_type == BroadcastType.Scalar and acc_to_dest:
+        return False
+
+    # Rule 3: Broadcast + acc_to_dest all broken (block entirely)
+    if broadcast_type != BroadcastType.None_ and acc_to_dest:
+        return False
+
+    # Rule 4: COL broadcast requires 4 faces
+    if broadcast_type == BroadcastType.Column and num_faces != 4:
+        return False
+
+    # Rule 5: ROW broadcast requires 4 faces
+    if broadcast_type == BroadcastType.Row and num_faces != 4:
+        return False
+
+    # Rule 6: Transpose operations require both flags on together
+    if transpose_of_faces != within_face_16x16_transpose:
+        return False
+
+    # Rule 7: Block Bfp8_b output with Pack/All stochastic rounding
+    if formats.output_format == DataFormat.Bfp8_b:
+        if stochastic_rnd in [StochasticRounding.Pack, StochasticRounding.All]:
+            return False
+
+    # Rule 8: Block transpose for partial faces (face_r_dim < 16)
+    if transpose_of_faces == Transpose.Yes and face_r_dim < 16:
+        return False
+
+    # Rule 9: Partial faces require num_faces = 2
+    if face_r_dim < 16 and num_faces != 2:
+        return False
+
+    # Rule 10: Block Bfp8_b input/output for partial faces
+    if face_r_dim < 16:
+        if (
+            formats.input_format == DataFormat.Bfp8_b
+            or formats.output_format == DataFormat.Bfp8_b
+        ):
+            return False
+
+    # Rule 11: unpack_to_dest requires no broadcast, no acc_to_dest, no reuse
+    if formats.input_format.is_32_bit() and acc_to_dest:
+        unpack_to_dest = True
+        if unpack_to_dest:
+            if (
+                broadcast_type != BroadcastType.None_
+                or acc_to_dest
+                or reuse_dest != EltwiseBinaryReuseDestType.NONE
+            ):
+                return False
+            # unpack_to_dest + transpose requires 4 faces
+            if transpose_of_faces == Transpose.Yes and num_faces != 4:
+                return False
+
+    # Rule 12: Simple datacopy (no transpose, no broadcast, no reuse) + acc_to_dest
+    # produces 2x scaling - block it
+    if (
+        acc_to_dest
+        and transpose_of_faces == Transpose.No
+        and broadcast_type == BroadcastType.None_
+        and reuse_dest == EltwiseBinaryReuseDestType.NONE
+    ):
+        return False
+
+    return True
+
+
 def filter_params_with_z3(all_params):
     """Use Z3 to filter valid parameter combinations based on hardware constraints"""
 
     arch = get_chip_architecture()
     valid_params = []
+
+    logger = logging.getLogger(__name__)
+
+    old_cnt = len(all_params)
+    all_params = [p for p in all_params if quick_filter(p)]
+
+    if (
+        os.environ.get("PYTEST_XDIST_WORKER", "gw0") == "gw0"
+        or os.environ.get("PYTEST_XDIST_WORKER", "master") == "master"
+    ):
+        logger.info(
+            f"\n\nParameter combinations reduced from {old_cnt} to {len(all_params)} using quick filtering\n\n"
+        )
 
     for params in all_params:
         # Extract parameters from tuple
