@@ -602,6 +602,8 @@ def run_test(
     run_elf_files(test_config["testname"], variant_id, boot_mode, location=location)
     wait_for_tensix_operations_finished(location)
 
+    if profiler_build == ProfilerBuild.Yes:
+        return
     CHIP_ARCH = get_chip_architecture()
     BUILD_DIR = f"/tmp/tt-llk-build/{CHIP_ARCH}/{test_config['testname']}/{variant_id}"
     shutil.rmtree(BUILD_DIR)
