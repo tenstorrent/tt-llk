@@ -24,7 +24,7 @@ from helpers.utils import passed_test
         ]
     ),
 )
-def test_unpack_untilize(test_name, formats):
+def test_unpack_untilize(test_name, formats, worker_tensix_location):
     if formats.input_format == DataFormat.Bfp8_b:
         pytest.skip(
             "BFP8 format is not supported for unpack_untilize operation for multiple tiles"
@@ -64,11 +64,17 @@ def test_unpack_untilize(test_name, formats):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=worker_tensix_location,
     )
 
     run_test(test_config, worker_tensix_location)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=worker_tensix_location,
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
