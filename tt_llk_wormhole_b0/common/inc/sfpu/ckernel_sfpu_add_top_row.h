@@ -61,7 +61,7 @@ inline void _calculate_add_top_row_(const uint tile_idx_0 = 0, const uint tile_i
     TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset_1 + 16);     // face 3, rows 0-3, even columns
     TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset_1 + 16 + 2); // face 3, rows 0-3, odd columns
 
-    // Call replay buffer (integer: index 0, 4 instructions; float: index 4, 8 instructions)
+    // Call replay buffer (integer: index 0, 4 instructions; float: index 4, 4 instructions)
     lltt::replay(REPLAY_BUFFER_INDEX, REPLAY_BUFFER_COUNT);
 
     TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, tile_offset_dst);
@@ -74,7 +74,7 @@ inline void _calculate_add_top_row_(const uint tile_idx_0 = 0, const uint tile_i
  * @brief Initialize SFPU configuration register and set up replay buffers for add top row kernel.
  *        Sets up two replay buffers:
  *        - Integer replay buffer (index 0, 4 instructions): TTI_SFPIADD operations
- *        - Float replay buffer (index 4, 8 instructions): TT_SFPADD + TTI_SFPNOP operations
+ *        - Float replay buffer (index 4, 4 instructions): TT_SFPADD operations
  */
 inline void _init_add_top_row_()
 {
@@ -88,8 +88,8 @@ inline void _init_add_top_row_()
     TTI_SFPIADD(0, p_sfpu::LREG6, p_sfpu::LREG2, 4);
     TTI_SFPIADD(0, p_sfpu::LREG7, p_sfpu::LREG3, 4);
 
-    // Set up floating-point replay buffer (index 4, 8 instructions)
-    // Contains: 4 TT_SFPADD + 4 TTI_SFPNOP operations for adding top rows
+    // Set up floating-point replay buffer (index 4, 4 instructions)
+    // Contains: 4 TT_SFPADD operations for adding top rows
     lltt::record(4, 4);
     TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG4, p_sfpu::LREG0, 0);
     TTI_SFPADD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG5, p_sfpu::LREG1, 0);
