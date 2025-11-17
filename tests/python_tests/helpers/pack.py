@@ -113,3 +113,106 @@ def pack_bfp8_b(tensor, block_size=16, num_faces=4):
         mantissas.extend(bfp8_mantissas)
 
     return exponents + mantissas
+
+
+# ============================================================================
+# MX (Microscaling) Format Support - OCP Specification
+# ============================================================================
+
+
+def encode_e8m0_scale(max_abs_value, element_max_normal):
+    """
+    Encode a scale factor as E8M0 (8-bit exponent, no mantissa, bias=127).
+
+    Per OCP MX spec Section 6.3:
+    Scale = largest power-of-2 <= (max_value / element_max_normal)
+
+    Args:
+        max_abs_value: Maximum absolute value in the block
+        element_max_normal: Maximum normal value for element format (e.g., 57344 for E5M2)
+
+    Returns:
+        E8M0 encoded scale (0-255), where 255 = NaN
+    """
+    if max_abs_value == 0 or np.isnan(max_abs_value):
+        return 127  # Scale = 2^0 = 1 (neutral scale)
+
+    # Calculate required scale as power of 2
+    import math
+
+    scale_ratio = max_abs_value / element_max_normal
+
+    # Find largest power-of-2 <= scale_ratio
+    if scale_ratio <= 0:
+        exponent = -127
+    else:
+        exponent = math.floor(math.log2(scale_ratio))
+
+    # Clamp to E8M0 range: 2^(-127) to 2^(127)
+    exponent = max(-127, min(127, exponent))
+
+    # E8M0 encoding: exponent + 127 (bias)
+    e8m0 = exponent + 127
+    return int(e8m0)
+
+
+def pack_mxfp8r(tensor, block_size=32, num_faces=4):
+    """
+    Pack tensor into MXFP8R format (MXFP8 E5M2 variant).
+
+    MXFP8 uses 32-element blocks per OCP MX spec, each with:
+    - 1 shared E8M0 scale (8 bits)
+    - 32 × float8_e5m2 elements (8 bits each)
+
+    Element format E5M2:
+    - 1 sign bit, 5 exponent bits (bias=15), 2 mantissa bits
+    - Max normal: ±57,344
+    - Has Inf and NaN support
+
+    Args:
+        tensor: Input tensor (typically 1024 elements for full tile)
+        block_size: Elements per block (always 32 for MXFP8)
+        num_faces: Number of faces to pack (1, 2, or 4)
+
+    Returns:
+        List of packed bytes: [scale0, elem0-31, scale1, elem32-63, ...]
+    """
+    flattened_tensor = tensor.cpu().to(torch.float32).numpy().flatten()
+
+    # Calculate elements to pack based on faces
+    elements_to_pack = 256 * num_faces  # 256 elements per face
+    assert (
+        len(flattened_tensor) >= elements_to_pack
+    ), f"Tensor has {len(flattened_tensor)} elements, need at least {elements_to_pack} for {num_faces} face(s)"
+
+    flattened_tensor = flattened_tensor[:elements_to_pack]
+    num_blocks = len(flattened_tensor) // block_size
+
+    packed_bytes = []
+
+    # MXFP8 E5M2 max normal value (from OCP spec Table 2)
+    MXFP8_E5M2_MAX_NORMAL = 57344.0  # 2^15 × 1.75
+
+    for i in range(num_blocks):
+        # Extract block of 32 elements
+        block = flattened_tensor[i * block_size : (i + 1) * block_size]
+
+        # Step 1: Calculate E8M0 scale per OCP spec
+        max_abs_value = np.max(np.abs(block))
+        scale_e8m0 = encode_e8m0_scale(max_abs_value, MXFP8_E5M2_MAX_NORMAL)
+
+        # Step 2: Decode scale to get scale factor
+        scale_exponent = int(scale_e8m0) - 127
+        scale_factor = 2.0**scale_exponent
+
+        # Step 3: Scale elements by dividing by scale_factor
+        scaled_block = block / scale_factor if scale_factor != 0 else block
+
+        # Step 4: Convert to float8_e5m2 using ml_dtypes
+        fp8_elements = scaled_block.astype(ml_dtypes.float8_e5m2)
+
+        # Step 5: Pack into bytes [scale, elements...]
+        packed_bytes.append(scale_e8m0)  # 1 byte for E8M0 scale
+        packed_bytes.extend(fp8_elements.tobytes())  # 32 bytes for elements
+
+    return packed_bytes
