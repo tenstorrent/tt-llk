@@ -162,6 +162,9 @@ jobs:
       image: ${{ inputs.docker_image }}
     needs: setup-and-test
     if: inputs.coverage == true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       pages: write
       id-token: write
