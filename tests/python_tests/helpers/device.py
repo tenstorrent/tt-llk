@@ -212,14 +212,14 @@ def run_elf_files(testname, variant_id, boot_mode, device_id=0, location="0,0"):
     is_wormhole = get_chip_architecture() == ChipArchitecture.WORMHOLE
     for i, trisc_name in enumerate(trisc_names):
         elf_path = BUILD_DIR / testname / variant_id / "elf" / f"{trisc_name}.elf"
+        start_address = load_elf(
+            elf_file=str(elf_path.absolute()),
+            location=location,
+            risc_name=f"trisc{i}",
+            neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None,
+            return_start_address=is_wormhole,
+        )
         if is_wormhole:
-            load_elf(
-                elf_file=str(elf_path.absolute()),
-                location=location,
-                risc_name=f"trisc{i}",
-                neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None,
-                return_start_address=True,
-            )
             write_words_to_device(location, trisc_start_addresses[i], [start_address])
         else:
             load_elf(

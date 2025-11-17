@@ -4,6 +4,7 @@
 import datetime
 import logging
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -245,4 +246,9 @@ skip_for_blackhole = pytest.mark.skipif(
 skip_for_quasar = pytest.mark.skipif(
     get_chip_architecture() == ChipArchitecture.QUASAR,
     reason="Test is not supported on Quasar architecture",
+)
+
+skip_for_coverage = pytest.mark.skipif(
+    "--coverage" in sys.argv or any("coverage" in arg for arg in sys.argv),
+    reason="Coverage shouldn't be ran with this test",
 )
