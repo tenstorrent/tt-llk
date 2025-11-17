@@ -33,5 +33,10 @@ inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const 
     }
 }
 
+template <bool APPROXIMATION_MODE>
+inline void _init_mul_int_()
+{
+}
+
 } // namespace sfpu
 } // namespace ckernel
