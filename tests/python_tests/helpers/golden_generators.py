@@ -1884,16 +1884,18 @@ class PackRowsGolden:
 
         # Extract first num_rows_to_pack * row_num_datums elements from each tile
         num_elements_per_tile = num_rows_to_pack * row_num_datums
-        result_list = []
 
-        for tile_idx in range(tile_count):
-            tile_start = tile_idx * ELEMENTS_PER_TILE
-            tile_end = tile_start + num_elements_per_tile
-            result_list.append(operand_flat[tile_start:tile_end])
+        # Calculate total number of elements we need
+        total_elements = tile_count * ELEMENTS_PER_TILE
 
-        if result_list:
-            result = torch.cat(result_list)
-        else:
-            result = torch.tensor([], dtype=format_dict[data_format])
+        operand_flat = operand_flat[:total_elements]
+
+        # Reshape the data: (total_elements,) -> (tile_count, ELEMENTS_PER_TILE)
+        tiles_reshaped = operand_flat.view(tile_count, ELEMENTS_PER_TILE)
+
+        # Extract first num_elements_per_tile elements from each tile
+        extracted_elements = tiles_reshaped[:, :num_elements_per_tile]
+
+        result = extracted_elements.flatten()
 
         return result.to(format_dict[data_format])
