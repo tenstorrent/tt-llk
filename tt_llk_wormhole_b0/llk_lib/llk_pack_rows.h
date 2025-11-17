@@ -13,6 +13,14 @@
 #include "llk_defs.h"
 #include "llk_pack_common.h"
 
+/**
+ * @brief Configures address modification modes for row packing.
+ *
+ * Sets up two address modification modes that control how the packer moves through
+ * the source data during the packing operation:
+ * - ADDR_MOD_0: Increments Y source by 1 (moves to next row)
+ * - ADDR_MOD_1: Clears Y counter, resets to start (used at end of inner loop and to close operation)
+ */
 inline void _llk_pack_rows_configure_addrmod_()
 {
     ckernel::addr_mod_pack_t {
@@ -24,13 +32,20 @@ inline void _llk_pack_rows_configure_addrmod_()
         .y_src = {.incr = 0, .clr = 1, .cr = 0},
     }
         .set(ADDR_MOD_1);
-
-    ckernel::addr_mod_pack_t {
-        .y_src = {.incr = 0, .clr = 1, .cr = 0},
-    }
-        .set(ADDR_MOD_2);
 }
 
+/**
+ * @brief Configures the Micro-Operation (MOP) template for packing rows.
+ *
+ * @param num_rows Number of rows to pack from the destination register
+ *
+ * Creates a MOP template that controls the packing loop structure:
+ * - Uses single packer interface (packer 0)
+ * - Inner loop iterates num_rows times, packing one row per iteration
+ * - Each iteration uses ADDR_MOD_0 to move to the next row
+ * - Last inner loop instruction uses ADDR_MOD_1 to reset Y counter
+ * - Outer loop runs once (no tile repetition within this operation)
+ */
 inline void _llk_pack_rows_mop_config_(const std::uint32_t num_rows)
 {
     constexpr uint PACKCNT          = 1; // Use only packer 0
@@ -46,17 +61,22 @@ inline void _llk_pack_rows_mop_config_(const std::uint32_t num_rows)
     tmp.program();
 }
 
-inline void _llk_pack_rows_configure_dest_offset_()
-{
-    TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK);
-
-    TTI_SETDMAREG(0, 0, 0, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
-    TTI_SETDMAREG(0, 0, 0, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
-}
-
-inline void _llk_pack_rows_init_(
-    const std::uint32_t num_rows, // Total number of rows to pack
-    const bool include_setup_calls = false)
+/**
+ * @brief Initializes the pack rows operation.
+ *
+ * @param num_rows Total number of rows to pack from the destination register to L1
+ *
+ * This function prepares the packer hardware to pack a specified number of rows of
+ * row-major data from the destination register to L1 memory. Each row contains 16 datums.
+ *
+ * Steps performed:
+ * 1. Configures address modification modes (how to traverse data from destination register)
+ * 2. Configures MOP template
+ * 3. Sets up hardware counters:
+ *    - X counter: Controls how many datums to pack per row
+ *    - Z/W counters: Reset to zero for proper tile indexing
+ */
+inline void _llk_pack_rows_init_(const std::uint32_t num_rows)
 {
     // Number of datums per row in row-major layout (16 datums = 1 row of 16 elements)
     constexpr std::uint32_t row_num_datums = 16;
@@ -64,18 +84,30 @@ inline void _llk_pack_rows_init_(
     _llk_pack_rows_configure_addrmod_();
     _llk_pack_rows_mop_config_(num_rows);
 
-    _llk_pack_rows_configure_dest_offset_();
+    // Set the packer X counter to pack the specified number of datums per row
+    TTI_SETADCXX(p_setadc::PAC, row_num_datums - 1, 0x0);
 
-    if (include_setup_calls)
-    {
-        // Set the packer X counter to pack the specified number of datums per row
-        TTI_SETADCXX(p_setadc::PAC, row_num_datums - 1, 0x0);
-
-        // Reset Z/W counters
-        TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b1111);
-    }
+    // Reset Z/W counters
+    TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b1111);
 }
 
+/**
+ * @brief Packs the specified number of rows from a destination register tile to L1 memory.
+ *
+ * @param tile_index Index of the tile in the destination register to read from
+ * @param address L1 memory address where the packed rows will be written
+ *
+ * This function performs the actual row packing operation:
+ * 1. Sets the W counter to the tile_index to select which dest tile to read from
+ * 2. Programs the packer destination address in L1 where data will be written
+ * 3. Executes the MOP template
+ * 4. Closes the pack operation with ADDR_MOD_1 to clean up and reset state
+ *
+ * The number of rows packed was configured earlier in _llk_pack_rows_init_.
+ * Each row contains 16 datums as specified by the X counter setup.
+ *
+ * @note This function is typically called in a loop for each tile to be packed
+ */
 inline void _llk_pack_rows_(const std::uint32_t tile_index, const std::uint32_t address)
 {
     // Set the tile index in dest to read from
@@ -86,5 +118,5 @@ inline void _llk_pack_rows_(const std::uint32_t tile_index, const std::uint32_t 
     ckernel::ckernel_template::run();
 
     // Close the pack operation
-    TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 1);
+    TTI_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 1, 1);
 }
