@@ -343,6 +343,9 @@ inline void _llk_unpack_AB_matmul_(
 
         semaphore_post(semaphore::UNPACK_SYNC); // Trisc::SEMPOST for context acquire
 
+        // TTI_SETADCXX(0b10, 31, 0x0);  //x_end to 32-1 for Unpacker[1]
+        // cfg_rmw(UNP1_ADDR_CTRL_ZW_REG_0_Zstride_RMW, 2*16*2); //Set Dst Z-Stride to 2 rows - format_mult will be 2 for 16-bit formats
+
         // Stall unpacker until pending CFG writes from Trisc have completed
         TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
@@ -350,6 +353,9 @@ inline void _llk_unpack_AB_matmul_(
         {
             if (unpB_partial_face)
             {
+                // TTI_UNPACR(
+                //     SrcB, 0b00000010, 0, 0, 0, 1 /*Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
+
                 TTI_UNPACR_NOP(SrcB, 0, 0, 0 /*Set Dvalid*/, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
                 // Do face by face unpacking
                 TTI_UNPACR(
