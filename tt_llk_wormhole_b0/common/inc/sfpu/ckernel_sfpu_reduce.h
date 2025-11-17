@@ -262,25 +262,17 @@ inline void _init_reduce_max_col_(uint32_t num_cols)
 {
     static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
-    /*
-    Initial loads of LREGS 4-7 which will hold maximum values of columns
-    They will spread across F0 and F1 so in each pass full tile width will be reduced
-    */
-
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
-    // Initialize with negative infinity for proper max reduction
-    // FP16B format: sign(1) | exponent(8) | mantissa(7)
-    // Negative infinity = 0xFF80 (sign=1, exp=FF, mantissa=0)
     constexpr uint16_t neg_inf_fp16b = 0xFF80;
 
     // F0 - Initialize with negative infinity
-    TTI_SFPLOADI(p_sfpu::LREG4, 0x2, neg_inf_fp16b);
-    TTI_SFPLOADI(p_sfpu::LREG5, 0x2, neg_inf_fp16b);
+    TTI_SFPLOADI(p_sfpu::LREG4, InstrModLoadStore::FP16B, neg_inf_fp16b);
+    TTI_SFPLOADI(p_sfpu::LREG5, InstrModLoadStore::FP16B, neg_inf_fp16b);
 
     // F1 - Initialize with negative infinity
-    TTI_SFPLOADI(p_sfpu::LREG6, 0x2, neg_inf_fp16b);
-    TTI_SFPLOADI(p_sfpu::LREG7, 0x2, neg_inf_fp16b);
+    TTI_SFPLOADI(p_sfpu::LREG6, InstrModLoadStore::FP16B, neg_inf_fp16b);
+    TTI_SFPLOADI(p_sfpu::LREG7, InstrModLoadStore::FP16B, neg_inf_fp16b);
 
     // ***********************************************************
     // SFPU LOADMACRO CONFIGURATION
@@ -307,8 +299,6 @@ inline void _init_reduce_max_col_(uint32_t num_cols)
     // ***********************************************************
     // Record replay buffer
     lltt::record<lltt::NoExec>(0, 9);
-    TTI_INCRWC(0, 4, 0, 0); // increment dest counter by 4
-
     // Use LOADMACRO with lreg_ind=5 (loads to LREG5, uses sequence 1 since bits[3:2]=01)
     TTI_SFPLOADMACRO(5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
 
@@ -319,6 +309,7 @@ inline void _init_reduce_max_col_(uint32_t num_cols)
 
     // Use LOADMACRO with lreg_ind=0 (loads to LREG0, uses sequence 0)
     TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+    TTI_INCRWC(0, 4, 0, 0); // increment dest counter by 4
 
     // Dummy loads used to increment dest counters
     TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
@@ -336,22 +327,10 @@ inline void _calculate_reduce_max_col_(const uint32_t block_height /*, const uin
     constexpr uint32_t replay_buffer_offset    = 7;
     constexpr uint32_t replay_buffer_next_face = 8;
 
-    // TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-
-    // Do the first tile since it differs a bit from the rest
-    // F0 and F1
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_next_face);
-
-    // F2 and F3
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_next_face + 1);
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
     // All other tiles but first one
-    for (uint32_t i = 0; i < block_height - 1; i++)
+    for (uint32_t i = 0; i < block_height; i++)
     {
         // F0 and F1
         lltt::replay(0, replay_buffer_offset);
@@ -373,7 +352,7 @@ inline void epilogue_reduce_max_col_()
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
     // Epilogue code.
-    // Finalize sorting values in LREGS 4-7 and place maximum into Dest reg row 0
+    // Finalize sorting values in LREGS 0-3 and place maximum into Dest reg row 0
 
     TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
 
