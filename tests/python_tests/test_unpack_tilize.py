@@ -23,21 +23,21 @@ from helpers.utils import passed_test
         ]
     ),
 )
-def test_unpack_tilize_float(test_name, formats):
+def test_unpack_tilize_float(test_name, formats, workers_tensix_coordinates):
     if formats.input_format == DataFormat.Bfp8_b:
         pytest.skip("Unpack Tilize does not support Bfp8_b input format")
 
-    unpack_tilize(test_name, formats)
+    unpack_tilize(test_name, formats, workers_tensix_coordinates)
 
 
 @parametrize(
     test_name="unpack_tilize_test", formats=input_output_formats([DataFormat.Int32])
 )
-def test_unpack_tilize_int(test_name, formats):
-    unpack_tilize(test_name, formats)
+def test_unpack_tilize_int(test_name, formats, workers_tensix_coordinates):
+    unpack_tilize(test_name, formats, workers_tensix_coordinates)
 
 
-def unpack_tilize(test_name, formats):
+def unpack_tilize(test_name, formats, workers_tensix_coordinates):
     input_dimensions = [64, 64]
 
     src_A, _, tile_cnt = generate_stimuli(
@@ -65,11 +65,17 @@ def unpack_tilize(test_name, formats):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config)
+    run_test(test_config, workers_tensix_coordinates)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=workers_tensix_coordinates,
+    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])

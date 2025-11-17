@@ -32,7 +32,9 @@ from helpers.utils import passed_test
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
-def test_sfpu_binary_float(test_name, formats, dest_acc, mathop):
+def test_sfpu_binary_float(
+    test_name, formats, dest_acc, mathop, workers_tensix_coordinates
+):
     chip_arch = get_chip_architecture()
     if chip_arch == ChipArchitecture.WORMHOLE and mathop == MathOperation.SfpuElwsub:
         pytest.skip("Not currently supported in tests")
@@ -46,7 +48,7 @@ def test_sfpu_binary_float(test_name, formats, dest_acc, mathop):
             "Float16_a isn't supported for SFPU on Blackhole without being converted to 32-bit intermediate format in dest register"
         )
 
-    sfpu_binary(test_name, formats, dest_acc, mathop)
+    sfpu_binary(test_name, formats, dest_acc, mathop, workers_tensix_coordinates)
 
 
 @parametrize(
@@ -63,8 +65,10 @@ def test_sfpu_binary_float(test_name, formats, dest_acc, mathop):
     ],
     dest_acc=[DestAccumulation.Yes],
 )
-def test_sfpu_binary_int(test_name, formats, dest_acc, mathop):
-    sfpu_binary(test_name, formats, dest_acc, mathop)
+def test_sfpu_binary_int(
+    test_name, formats, dest_acc, mathop, workers_tensix_coordinates
+):
+    sfpu_binary(test_name, formats, dest_acc, mathop, workers_tensix_coordinates)
 
 
 @parametrize(
@@ -80,7 +84,9 @@ def test_sfpu_binary_int(test_name, formats, dest_acc, mathop):
     mathop=[MathOperation.SfpuAddTopRow],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
-def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
+def test_sfpu_binary_add_top_row(
+    test_name, formats, dest_acc, mathop, workers_tensix_coordinates
+):
     input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
@@ -116,11 +122,17 @@ def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config)
+    run_test(test_config, workers_tensix_coordinates)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=workers_tensix_coordinates,
+    )
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
@@ -135,7 +147,83 @@ def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
 
 
-def sfpu_binary(test_name, formats, dest_acc, mathop):
+@parametrize(
+    test_name="sfpu_binary_test",
+    formats=input_output_formats(
+        [
+            DataFormat.Float32,
+            DataFormat.Int32,
+            DataFormat.UInt32,
+        ],
+        same=True,
+    ),
+    mathop=[MathOperation.SfpuAddTopRow],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+)
+def test_sfpu_binary_add_top_row(
+    test_name, formats, dest_acc, mathop, workers_tensix_coordinates
+):
+    input_dimensions = [32, 32]
+
+    src_A, src_B, tile_cnt = generate_stimuli(
+        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+    )
+
+    src_A_top_row = untilize(src_A, stimuli_format=formats.input_format)[:32]
+    src_B_top_row = untilize(src_B, stimuli_format=formats.input_format)[:32]
+    generate_golden = get_golden_generator(BinarySFPUGolden)
+    golden_tensor = generate_golden(
+        mathop, src_A_top_row, src_B_top_row, formats.output_format
+    )
+
+    unpack_to_dest = formats.input_format.is_32_bit()
+
+    test_config = {
+        "formats": formats,
+        "testname": test_name,
+        "dest_acc": dest_acc,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
+        "mathop": mathop,
+        "unpack_to_dest": unpack_to_dest,
+        "tile_cnt": tile_cnt,
+        "disable_format_inference": True,
+    }
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
+    )
+
+    run_test(test_config, location=workers_tensix_coordinates)
+
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=workers_tensix_coordinates,
+    )
+
+    torch_format = format_dict[formats.output_format]
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+    # For add_top_row, we only compare the top row
+    # Untilize the single tile and extract the first 32 elements (first row)
+    untilized_tile = untilize(res_tensor, stimuli_format=formats.output_format)
+    res_tensor = untilized_tile[:32]
+
+    assert len(res_tensor) == len(golden_tensor)
+
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+
+def sfpu_binary(test_name, formats, dest_acc, mathop, workers_tensix_coordinates):
 
     input_dimensions = [64, 64]
 
@@ -171,11 +259,17 @@ def sfpu_binary(test_name, formats, dest_acc, mathop):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config)
+    run_test(test_config, workers_tensix_coordinates)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=workers_tensix_coordinates,
+    )
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)

@@ -108,7 +108,7 @@ _reduce_to_mathop = {
 
 
 @pytest.mark.parametrize("config", all_params, ids=param_ids)
-def test_reduce_sfpu_unary(config):
+def test_reduce_sfpu_unary(config, workers_tensix_coordinates):
     """Run the fused Reduce+SFPU kernel on Tensix and compare with golden."""
 
     if (
@@ -220,6 +220,7 @@ def test_reduce_sfpu_unary(config):
         fmt.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
     run_test(test_config, profiler_build=ProfilerBuild.No)
@@ -229,6 +230,7 @@ def test_reduce_sfpu_unary(config):
         fmt,
         tile_count=tile_cnt,
         address=res_address,
+        location=workers_tensix_coordinates,
     )
 
     assert len(res_from_L1) == len(golden_tensor)
