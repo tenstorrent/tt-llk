@@ -136,6 +136,7 @@ def filter_params_with_constraints(all_params):
     """Filter valid parameter combinations based on hardware constraints"""
 
     arch = get_chip_architecture()
+    is_wormhole = arch == ChipArchitecture.WORMHOLE
     valid_params = []
 
     for params in all_params:
@@ -154,115 +155,99 @@ def filter_params_with_constraints(all_params):
             face_r_dim,
         ) = params
 
-        # Helper variables
-        broadcast_none = broadcast_type == BroadcastType.None_
-        broadcast_col = broadcast_type == BroadcastType.Column
-        broadcast_row = broadcast_type == BroadcastType.Row
-        broadcast_scalar = broadcast_type == BroadcastType.Scalar
-
-        reuse_none = reuse_dest == EltwiseBinaryReuseDestType.NONE
-        reuse_srca = reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCA
-        reuse_srcb = reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCB
-
-        transpose_faces = transpose_of_faces == Transpose.Yes
-        within_face_transpose = within_face_16x16_transpose == Transpose.Yes
-        unpack_to_dest = formats.input_format.is_32_bit() and acc_to_dest
-        is_wormhole = arch == ChipArchitecture.WORMHOLE
-
-        # Constraint 1: Broadcast incompatible with DEST_TO_SRCB/SRCA (regardless of acc_to_dest)
-        # Non-NONE broadcast + DEST_TO_SRCB not supported
-        if not broadcast_none and reuse_srcb:
-            continue
-        # Non-NONE broadcast + DEST_TO_SRCA not supported
-        if not broadcast_none and reuse_srca:
-            continue
-
-        # Constraint 2: Only allow unpack_to_dest if there is no broadcast, acc_to_dest is not set,
-        # and reuse is none.
-        # The configuration is valid if either unpack_to_dest is not set, or it is set
-        # with the valid config.
-        if unpack_to_dest:
-            if not (broadcast_none and not acc_to_dest and reuse_none):
+        # Fast checks first: simple integer/enum comparisons
+        # For partial faces (face_r_dim < 16), require num_faces = 2
+        if face_r_dim < 16:
+            if num_faces != 2:
                 continue
-
-        # Constraint 3: SCALAR broadcast + acc_to_dest not allowed
-        if broadcast_scalar and acc_to_dest:
-            continue
-
-        # unpack_to_dest specific constraints: unpack_to_dest + transpose_of_faces requires exactly 4 faces
-        if unpack_to_dest and transpose_faces and num_faces != 4:
-            continue
+            # Block Bfp8_b input/output for partial faces
+            if (
+                formats.input_format == DataFormat.Bfp8_b
+                or formats.output_format == DataFormat.Bfp8_b
+            ):
+                continue
 
         # User constraint: transpose_of_faces and within_face_16x16_transpose are mutually inclusive
-        if transpose_faces != within_face_transpose:
+        if transpose_of_faces != within_face_16x16_transpose:
             continue
 
-        # Exclude acc_to_dest=True for simple datacopy operations
-        # Hardware produces 2x scaling when both srcA and srcB load same data
-        if acc_to_dest and not transpose_faces and broadcast_none and reuse_none:
-            continue
-
-        # Block Bfp8_b output with stochastic rounding (Pack or All)
-        # Hardware does not support Pack/All stochastic rounding modes for BFP8_b
-        if formats.output_format == DataFormat.Bfp8_b:
-            if stochastic_rnd in (StochasticRounding.Pack, StochasticRounding.All):
-                continue
-
-        # Block Wormhole Row broadcast with outlier format combinations and num_faces=4
-        # Format conversion issue suspected: Float16_b/Bfp8_b → Float16 with Row broadcast
-        if (
-            is_wormhole
-            and broadcast_row
-            and formats.input_format in (DataFormat.Float16_b, DataFormat.Bfp8_b)
-            and formats.output_format == DataFormat.Float16
-            and num_faces == 4
-        ):
+        # Block transpose operations for face_r_dim < 16
+        if transpose_of_faces == Transpose.Yes and face_r_dim < 16:
             continue
 
         # BROADCAST + ACC_TO_DEST: ALL COMBINATIONS BROKEN (BLOCK ENTIRELY)
-        # - COL + acc_to_dest: Packer timeout (TODO in llk_unpack_A.h:72)
-        # - ROW + acc_to_dest: Unpacker timeout (TODO in llk_unpack_A.h:91)
-        # - SCALAR + acc_to_dest: Static assertion blocks it (llk_unpack_A.h:107)
-        if not broadcast_none and acc_to_dest:
+        # Check this early as it eliminates many combinations
+        if broadcast_type != BroadcastType.None_ and acc_to_dest:
             continue
 
+        # Broadcast type checks (fast enum comparisons)
+        broadcast_none = broadcast_type == BroadcastType.None_
+
         # COL broadcast requires 4 faces
-        if broadcast_col and num_faces != 4:
+        if broadcast_type == BroadcastType.Column and num_faces != 4:
             continue
 
         # ROW broadcast constraint: Requires 4 faces for proper row broadcast
-        if broadcast_row and num_faces != 4:
+        if broadcast_type == BroadcastType.Row:
+            if num_faces != 4:
+                continue
+            # Block Wormhole Row broadcast with outlier format combinations
+            if (
+                is_wormhole
+                and formats.input_format in (DataFormat.Float16_b, DataFormat.Bfp8_b)
+                and formats.output_format == DataFormat.Float16
+            ):
+                continue
+
+        # SCALAR broadcast + acc_to_dest not allowed (already checked above, but explicit)
+        if broadcast_type == BroadcastType.Scalar and acc_to_dest:
             continue
+
+        # Broadcast incompatible with DEST_TO_SRCB/SRCA
+        if not broadcast_none:
+            if reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCB:
+                continue
+            if reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCA:
+                continue
+
+        # Reuse dest checks
+        reuse_none = reuse_dest == EltwiseBinaryReuseDestType.NONE
+
+        # Exclude acc_to_dest=True for simple datacopy operations
+        if (
+            acc_to_dest
+            and transpose_of_faces == Transpose.No
+            and broadcast_none
+            and reuse_none
+        ):
+            continue
+
+        # unpack_to_dest checks (more expensive, so do after simple checks)
+        unpack_to_dest = formats.input_format.is_32_bit() and acc_to_dest
+        if unpack_to_dest:
+            # Only allow unpack_to_dest if there is no broadcast and reuse is none
+            if not (broadcast_none and reuse_none):
+                continue
+            # unpack_to_dest + transpose_of_faces requires exactly 4 faces
+            if transpose_of_faces == Transpose.Yes and num_faces != 4:
+                continue
+
+        # Format-specific checks (most expensive, do last)
+        # Block Bfp8_b output with stochastic rounding (Pack or All)
+        if formats.output_format == DataFormat.Bfp8_b:
+            if stochastic_rnd in (StochasticRounding.Pack, StochasticRounding.All):
+                continue
 
         # Block Float16/Float16_b transpose combinations that produce garbage values on CI runners
         if (
             formats.input_format in (DataFormat.Float16_b, DataFormat.Float16)
             and broadcast_none
             and acc_to_dest
-            and (reuse_none or reuse_srca)
-            and transpose_faces
-            and within_face_transpose
+            and (reuse_none or reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCA)
+            and transpose_of_faces == Transpose.Yes
+            and within_face_16x16_transpose == Transpose.Yes
         ):
             continue
-
-        # Block transpose operations for face_r_dim < 16
-        # Hardware transpose logic hardcoded for 16x16 faces, corrupts smaller faces
-        # Note: matmul operations support transpose with partial faces, but unpack_A does not
-        # Allow transpose for full faces (face_r_dim = 16) to enable transpose sweep testing
-        if transpose_faces and face_r_dim < 16:
-            continue
-
-        # For partial faces (face_r_dim < 16), require num_faces = 2
-        if face_r_dim < 16 and num_faces != 2:
-            continue
-
-        # Block Bfp8_b input/output for partial faces (face_r_dim < 16)
-        if face_r_dim < 16:
-            if (
-                formats.input_format == DataFormat.Bfp8_b
-                or formats.output_format == DataFormat.Bfp8_b
-            ):
-                continue
 
         # All constraints passed, add to valid params
         valid_params.append(params)
