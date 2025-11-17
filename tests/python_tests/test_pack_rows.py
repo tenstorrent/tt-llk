@@ -43,31 +43,28 @@ dimension_combinations = [
 def test_pack_rows(test_name, formats, dest_acc, num_rows_to_pack, dimensions):
     row_num_datums = 16
 
-    input_dimensions = dimensions
-
     src_A, src_B, tile_cnt = generate_stimuli(
-        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+        formats.input_format, formats.input_format, input_dimensions=dimensions
     )
 
     generate_golden = get_golden_generator(PackRowsGolden)
     golden_tensor = generate_golden(
         src_A,
         formats.output_format,
-        input_dimensions,
+        dimensions,
         num_rows_to_pack=num_rows_to_pack,
         tile_count=tile_cnt,
     )
 
     # Calculate expected output size per tile
     output_elements_per_tile = num_rows_to_pack * row_num_datums
-    total_output_elements = output_elements_per_tile * tile_cnt
 
     test_config = {
         "formats": formats,
         "testname": test_name,
         "tile_cnt": tile_cnt,
-        "input_A_dimensions": input_dimensions,
-        "input_B_dimensions": input_dimensions,
+        "input_A_dimensions": dimensions,
+        "input_B_dimensions": dimensions,
         "unpack_to_dest": formats.input_format.is_32_bit(),
         "dest_acc": dest_acc,
         "num_rows_to_pack": num_rows_to_pack,
@@ -87,13 +84,14 @@ def test_pack_rows(test_name, formats, dest_acc, num_rows_to_pack, dimensions):
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
 
-    output_elements_per_tile = num_rows_to_pack * row_num_datums
     expected_elements = output_elements_per_tile * tile_cnt
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
     extracted_data = [
-        res_tensor[i * 1024 : i * 1024 + output_elements_per_tile]
+        res_tensor[
+            i * 1024 : i * 1024 + output_elements_per_tile
+        ]  # Each tile has 1024 elements in result tensor
         for i in range(tile_cnt)
     ]
 
