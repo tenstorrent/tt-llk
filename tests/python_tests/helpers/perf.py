@@ -45,7 +45,7 @@ def _stats_timings(perf_data: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def _stats_l1_to_l1(data: ProfilerData) -> pd.Series:
+def _stats_l1_to_l1(data: ProfilerData) -> pd.DataFrame:
     groups = data.zones().raw().groupby(["marker"])
 
     timings = []
@@ -183,10 +183,23 @@ class PerfReport:
     ):
         self._frames = frames or [pd.DataFrame()]
         self._masks = masks or [pd.Series()]
+        self._stat_columns = set()
+        self._sweep_columns = set()
 
-    def append(self, frame: pd.DataFrame) -> None:
+    def append(
+        self,
+        frame: pd.DataFrame,
+        stat_columns: set[str] | None = None,
+        sweep_columns: set[str] | None = None,
+    ) -> None:
         self._frames.append(frame)
         self._masks.append(pd.Series(True, index=frame.index))
+
+        # Update column types when provided
+        if stat_columns is not None:
+            self._stat_columns.update(stat_columns)
+        if sweep_columns is not None:
+            self._sweep_columns.update(sweep_columns)
 
     def frame(self) -> pd.DataFrame:
         # merge
@@ -208,11 +221,48 @@ class PerfReport:
             mask & (frame[column] == value)
             for frame, mask in zip(self._frames, self._masks)
         ]
-        return PerfReport(frames=self._frames, masks=mask_chain)
+        filtered_report = PerfReport(frames=self._frames, masks=mask_chain)
+        filtered_report._stat_columns = self._stat_columns.copy()
+        filtered_report._sweep_columns = self._sweep_columns.copy()
+        return filtered_report
 
     def marker(self, marker: str) -> "PerfReport":
         """Filter: Marker"""
         return self.filter("marker", marker)
+
+    @property
+    def sweep_names(self) -> list[str]:
+        """Get names of sweep parameter columns"""
+        df = self.frame()
+        if df.empty:
+            return []
+
+        # Use tracked sweep columns if available
+        if self._sweep_columns:
+            return [col for col in df.columns if col in self._sweep_columns]
+
+        # Fallback: everything before 'marker' column are sweep parameters
+        columns = df.columns.tolist()
+        assert "marker" in columns, "DataFrame must contain 'marker' column"
+        marker_index = columns.index("marker")
+        return columns[:marker_index]
+
+    @property
+    def stat_names(self) -> list[str]:
+        """Get names of statistics columns"""
+        df = self.frame()
+        if df.empty:
+            return []
+
+        # Use tracked stat columns if available
+        if self._stat_columns:
+            return [col for col in df.columns if col in self._stat_columns]
+
+        # Fallback: everything after 'marker' column are statistics
+        columns = df.columns.tolist()
+        assert "marker" in columns, "DataFrame must contain 'marker' column"
+        marker_index = columns.index("marker")
+        return columns[marker_index + 1 :]
 
 
 @pytest.fixture(scope="module")
@@ -228,6 +278,7 @@ def perf_report(request):
         print("Perf: Unexpected error, Saving report anyway", e)
 
     dump_report(test_module, report)
+    dump_scatter(test_module, report)
 
 
 def _dataclass_names(parent, obj):
@@ -284,7 +335,11 @@ def update_report(report: PerfReport, test_config, results):
 
     combined = sweep.merge(results, how="cross")
 
-    report.append(combined)
+    # Set column types
+    sweep_columns = set(sweep.columns)
+    stat_columns = set(col for col in results.columns if col != "marker")
+
+    report.append(combined, stat_columns=stat_columns, sweep_columns=sweep_columns)
 
 
 def delete_benchmark_dir(testname: str):
@@ -321,7 +376,7 @@ def dump_report(testname: str, report: PerfReport):
 
 
 def dump_scatter(testname: str, report: PerfReport):
-    # generate a scatter plot using plotly.graph_objects (no pandas required)
+    """Generate a scatter plot using plotly.graph_objects from PerfReport DataFrame"""
 
     if not report.sweep_names or not report.stat_names:
         # This is possible on CI when the whole split of the test is skipped
@@ -330,33 +385,34 @@ def dump_scatter(testname: str, report: PerfReport):
     dir = create_benchmark_dir(testname)
     output_path = dir / f"{testname}.html"
 
-    # x-axis: sweep values (left to right, zipped for each sweep)
-    # y-axis: stat values (for each run type, for each stat)
-    # stat_names: e.g. mean(L1_TO_L1), mean(UNPACK_ISOLATE), ...
-    # sweep_names: e.g. tile_cnt, param2, ...
+    # Get the DataFrame and extract data
+    df = report.frame()
+
+    if df.empty:
+        return
 
     fig = go.Figure()
 
-    mean_columns = [
-        (name, i) for i, name in enumerate(report.stat_names) if name.startswith("mean")
-    ]
+    # Get mean columns for plotting
+    mean_columns = [col for col in report.stat_names if col.startswith("mean")]
 
-    hover = [
-        ", ".join(f"{name}={val}" for name, val in zip(report.sweep_names, sweep))
-        for sweep in report.sweep_values
-    ]
+    # Create hover text for each row
+    hover_text = []
+    for _, row in df.iterrows():
+        sweep_info = ", ".join(f"{name}={row[name]}" for name in report.sweep_names)
+        hover_text.append(sweep_info)
 
-    # For each stat column (run type), plot all points
-    for stat_name, stat_idx in mean_columns:
-        y_vals = [stat[stat_idx] for stat in report.stat_values]
+    # For each mean statistic column, create a trace
+    for stat_name in mean_columns:
+        y_vals = df[stat_name].tolist()
 
         fig.add_trace(
             go.Scatter(
-                x=list(range(len(report.sweep_values))),
+                x=list(range(len(df))),
                 y=y_vals,
                 mode="markers+lines",
                 name=stat_name,
-                text=hover,
+                text=hover_text,
                 hoverinfo="text+y",
             )
         )
