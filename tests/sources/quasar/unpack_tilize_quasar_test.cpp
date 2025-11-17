@@ -92,8 +92,6 @@ void run_kernel()
 {
     set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
-    constexpr DataCopyType DATA_COPY_TYPE = (UNPACKER_ENGINE_SEL == p_unpacr::UNP_A) ? DataCopyType::A2D : DataCopyType::B2D;
-
     constexpr DataFormat src_format = static_cast<DataFormat>(formats.math);
     _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en, src_format, src_format>();
 

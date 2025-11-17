@@ -15,6 +15,7 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
+    DataCopyType,
     DestAccumulation,
     ImpliedMathFormat,
     UnpackerEngine,
@@ -126,6 +127,11 @@ def test_unpack_tilize_quasar(
         "tile_cnt": tile_cnt,
         "unpacker_engine_sel": unpacker_sel,
         "implied_math_format": ImpliedMathFormat.Yes,
+        "data_copy_type": (
+            DataCopyType.B2D
+            if unpacker_sel == UnpackerEngine.UnpB
+            else DataCopyType.A2D
+        ),
     }
 
     res_address = write_stimuli_to_l1(
