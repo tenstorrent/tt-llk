@@ -38,6 +38,9 @@ on:
 
 permissions:
   checks: write
+  pages: write
+  id-token: write
+  contents: read
 
 jobs:
   generate-matrix:
@@ -159,6 +162,10 @@ jobs:
       image: ${{ inputs.docker_image }}
     needs: setup-and-test
     if: inputs.coverage == true
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -201,3 +208,20 @@ jobs:
         with:
           name: coverage_report_website
           path: ./coverage_html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact for Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./coverage_html
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Comment deployment URL
+        run: |
+          echo "### 📊 Coverage Report Deployed!" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 View at: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
