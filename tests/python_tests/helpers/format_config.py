@@ -38,6 +38,11 @@ class DataFormat(Enum):
     Int8 = DataFormatInfo("Int8", 1)
     UInt8 = DataFormatInfo("UInt8", 1)
 
+    # MX (Microscaling) Formats - Quasar Native Support
+    # OCP Microscaling Formats with shared E8M0 scale factors (32-element blocks)
+    MXFP8R = DataFormatInfo("MXFP8R", 1)  # MXFP8 E5M2 variant
+    MXFP8P = DataFormatInfo("MXFP8P", 1)  # MXFP8 E4M3 variant
+
     @property
     def size(self) -> int:
         """Returns the byte size of the data format."""
@@ -75,11 +80,27 @@ class DataFormat(Enum):
         num_exponents = 0
         if self in {DataFormat.Bfp8, DataFormat.Bfp8_b}:
             num_exponents = num_datums // 16
+        elif self.is_mx_format():
+            # MX formats: 1 scale (E8M0, 8 bits) per 32 elements
+            num_exponents = num_datums // 32
         return (self.size * num_datums) + num_exponents
 
     def is_float32(self) -> bool:
         """Checks if the data format is a Float32 type."""
         return self == DataFormat.Float32
+
+    def is_mx_format(self) -> bool:
+        """Checks if the data format is an MX (Microscaling) format."""
+        return self in {
+            DataFormat.MXFP8R,
+            DataFormat.MXFP8P,
+        }
+
+    def get_mx_block_size(self) -> int:
+        """Returns the MX block size (32 elements per block for OCP MX spec)."""
+        if self.is_mx_format():
+            return 32
+        raise ValueError(f"{self} is not an MX format")
 
 
 @dataclass

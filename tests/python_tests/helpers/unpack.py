@@ -108,6 +108,67 @@ def unpack_bfp8_b(bfp8_block, sfpu=False, num_faces=4):
     return torch.tensor(bfloat16_values, dtype=torch.bfloat16)
 
 
+# ============================================================================
+# MX (Microscaling) Format Support - OCP Specification
+# ============================================================================
+
+
+def decode_e8m0_scale(e8m0_value):
+    """
+    Decode E8M0 scale to float scale factor.
+
+    Args:
+        e8m0_value: E8M0 encoded value (0-255)
+
+    Returns:
+        Scale factor as float (2^exponent), or NaN if e8m0_value == 255
+    """
+    if e8m0_value == 255:
+        return float("nan")  # NaN encoding per OCP spec
+
+    exponent = int(e8m0_value) - 127  # Remove bias
+    return 2.0**exponent
+
+
+def unpack_mxfp8r(packed_bytes, block_size=32, num_faces=4):
+    """
+    Unpack MXFP8R format (MXFP8 E5M2 variant) to float32 tensor.
+
+    Args:
+        packed_bytes: Packed MX data [scale0, elem0-31, scale1, elem32-63, ...]
+        block_size: Elements per block (always 32 for MXFP8)
+        num_faces: Number of faces to unpack
+
+    Returns:
+        torch.Tensor of float32 values
+    """
+    elements_to_unpack = 256 * num_faces
+    num_blocks = elements_to_unpack // block_size
+
+    unpacked_values = []
+    bytes_per_block = 1 + block_size  # 1 scale + 32 elements
+
+    for i in range(num_blocks):
+        block_start = i * bytes_per_block
+
+        # Step 1: Extract E8M0 scale
+        scale_e8m0 = packed_bytes[block_start]
+        scale_factor = decode_e8m0_scale(scale_e8m0)
+
+        # Step 2: Extract float8_e5m2 elements
+        elements_start = block_start + 1
+        elements_bytes = packed_bytes[elements_start : elements_start + block_size]
+
+        # Step 3: Decode float8_e5m2 using ml_dtypes
+        fp8_array = np.frombuffer(bytes(elements_bytes), dtype=ml_dtypes.float8_e5m2)
+
+        # Step 4: Scale back up to original range
+        float32_array = fp8_array.astype(np.float32) * scale_factor
+        unpacked_values.extend(float32_array)
+
+    return torch.tensor(unpacked_values, dtype=torch.float32)
+
+
 _UNPACKERS = {
     DataFormat.Float16: unpack_fp16,
     DataFormat.Float16_b: unpack_bfp16,
@@ -146,6 +207,8 @@ def unpack_res_tiles(
 
     if output_format == DataFormat.Bfp8_b:
         unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
+    elif output_format == DataFormat.MXFP8R:
+        unpack_func = unpack_mxfp8r
     else:
         unpack_func = _UNPACKERS[output_format]
 
@@ -159,6 +222,8 @@ def unpack_res_tiles(
         tile_data = packed_list[start_idx:end_idx]
 
         if unpack_func == unpack_bfp8_b:
+            unpacked_tile = unpack_func(tile_data, num_faces=num_faces)
+        elif unpack_func == unpack_mxfp8r:
             unpacked_tile = unpack_func(tile_data, num_faces=num_faces)
         else:
             unpacked_tile = unpack_func(tile_data)
