@@ -5,7 +5,6 @@ from typing import List
 
 import pytest
 import torch
-from conftest import skip_for_blackhole, skip_for_wormhole
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, FormatConfig
 from helpers.golden_generators import UntilizeGolden, get_golden_generator
@@ -70,8 +69,7 @@ ALL_PACK_UNTILIZE_COMBINATIONS = generate_pack_untilize_combinations(
 )
 
 
-@skip_for_blackhole
-@skip_for_wormhole
+@pytest.mark.quasar
 @parametrize(
     test_name="pack_untilize_quasar_test",
     formats_dest_acc_dimensions=ALL_PACK_UNTILIZE_COMBINATIONS,
