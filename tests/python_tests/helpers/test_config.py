@@ -531,10 +531,6 @@ def generate_build_header(test_config):
         header_content.append(
             f"constexpr uint32_t NUM_ROWS_TO_PACK = {test_config['num_rows_to_pack']};"
         )
-    if "row_num_datums" in test_config:
-        header_content.append(
-            f"constexpr uint32_t ROW_NUM_DATUMS = {test_config['row_num_datums']};"
-        )
 
     # Add top row flag
     add_top_row = test_config.get("add_top_row", False)

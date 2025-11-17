@@ -68,7 +68,7 @@ inline void _llk_pack_rows_init_(
     if (include_setup_calls)
     {
         // Set the packer X counter to pack the specified number of datums per row
-        TT_SETADCXX(p_setadc::PAC, row_num_datums - 1, 0x0);
+        TTI_SETADCXX(p_setadc::PAC, row_num_datums - 1, 0x0);
 
         // Reset Z/W counters
         TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b1111);

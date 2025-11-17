@@ -71,7 +71,6 @@ def test_pack_rows(test_name, formats, dest_acc, num_rows_to_pack, dimensions):
         "unpack_to_dest": formats.input_format.is_32_bit(),
         "dest_acc": dest_acc,
         "num_rows_to_pack": num_rows_to_pack,
-        "row_num_datums": row_num_datums,
     }
 
     res_address = write_stimuli_to_l1(
@@ -93,11 +92,10 @@ def test_pack_rows(test_name, formats, dest_acc, num_rows_to_pack, dimensions):
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
-    extracted_data = []
-    for i in range(tile_cnt):
-        tile_start = i * 1024
-        tile_data = res_tensor[tile_start : tile_start + output_elements_per_tile]
-        extracted_data.append(tile_data)
+    extracted_data = [
+        res_tensor[i * 1024 : i * 1024 + output_elements_per_tile]
+        for i in range(tile_cnt)
+    ]
 
     res_tensor_sliced = (
         torch.cat(extracted_data)
