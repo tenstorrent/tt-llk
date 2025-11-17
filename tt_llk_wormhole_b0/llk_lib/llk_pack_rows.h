@@ -58,6 +58,7 @@ inline void _llk_pack_rows_init_(
     const std::uint32_t num_rows, // Total number of rows to pack
     const bool include_setup_calls = false)
 {
+    // Number of datums per row in row-major layout (16 datums = 1 row of 16 elements)
     constexpr std::uint32_t row_num_datums = 16;
 
     _llk_pack_rows_configure_addrmod_();
