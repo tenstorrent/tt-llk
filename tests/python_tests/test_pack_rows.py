@@ -84,8 +84,6 @@ def test_pack_rows(test_name, formats, dest_acc, num_rows_to_pack, dimensions):
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
 
-    expected_elements = output_elements_per_tile * tile_cnt
-
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
     extracted_data = [
