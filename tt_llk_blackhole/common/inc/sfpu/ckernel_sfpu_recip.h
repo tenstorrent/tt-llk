@@ -6,6 +6,7 @@
 #pragma once
 
 #include "ckernel_sfpu_rsqrt_compat.h"
+#include "ckernel_template.h"
 #include "lltt.h"
 #include "sfpi.h"
 
