@@ -52,9 +52,7 @@ void run_kernel()
     TileShape tile_shape_A = {.num_faces = num_faces, .face_r_dim = TEST_FACE_R_DIM, .face_c_dim = TEST_FACE_C_DIM, .narrow_tile = false};
 
     _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val_A, td_val_B);
-    // Swap buffer descriptor IDs: on Quasar, UNPACR0 writes to SrcB and UNPACR1 writes to SrcA
-    // Math operations read from SrcA, so buffer_A must go through UNPACR1
-    _llk_unpack_reduce_init_<BUF_DESC_ID_B, BUF_DESC_ID_A, REDUCE_DIM>(num_tiles_per_unpack, tile_shape_A);
+    _llk_unpack_reduce_init_<BUF_DESC_ID_A, BUF_DESC_ID_B, REDUCE_DIM>(num_tiles_per_unpack, tile_shape_A);
     _llk_unpack_reduce_(0, 0);
 }
 
