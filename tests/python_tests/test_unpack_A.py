@@ -222,15 +222,13 @@ def filter_params_with_constraints(all_params):
         ):
             continue
 
-        # unpack_to_dest checks (more expensive, so do after simple checks)
-        unpack_to_dest = formats.input_format.is_32_bit() and acc_to_dest
-        if unpack_to_dest:
-            # Only allow unpack_to_dest if there is no broadcast and reuse is none
-            if not (broadcast_none and reuse_none):
-                continue
-            # unpack_to_dest + transpose_of_faces requires exactly 4 faces
-            if transpose_of_faces == Transpose.Yes and num_faces != 4:
-                continue
+        # Hardware constraint: unpack_to_dest can only be true if acc_to_dest is false
+        # But unpack_to_dest = is_32_bit() and acc_to_dest, so we must block
+        # any case where is_32_bit() and acc_to_dest are both true
+        if formats.input_format.is_32_bit() and acc_to_dest:
+            # This would result in unpack_to_dest=True, but hardware requires acc_to_dest=False
+            # when unpack_to_dest=True. Block this combination.
+            continue
 
         # Format-specific checks (most expensive, do last)
         # Block Bfp8_b output with stochastic rounding (Pack or All)
