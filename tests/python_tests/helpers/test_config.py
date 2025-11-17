@@ -3,6 +3,7 @@
 
 import os
 from enum import Enum
+from hashlib import sha256
 from pathlib import Path
 
 from helpers.target_config import TestTargetConfig
@@ -545,9 +546,6 @@ def write_build_header(test_config):
         f.write(header_content)
 
 
-from hashlib import md5
-
-
 def generate_make_command(
     test_config,
     variant_id,
@@ -592,7 +590,7 @@ def run_test(
 ):
     """Run the test with the given configuration"""
 
-    variant_id = md5(f"{str(test_config)}".encode()).hexdigest()
+    variant_id = sha256(f"{str(test_config)}".encode()).hexdigest()
 
     test_target = TestTargetConfig()
     build_test(
