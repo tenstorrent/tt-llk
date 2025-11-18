@@ -233,7 +233,10 @@ def perf_report(request):
         print("Perf: Unexpected error, Saving report anyway", e)
 
     dump_report(test_module, report)
-    dump_postprocess(test_module, report)
+
+    post = _postprocess_report(report)
+    dump_postprocess(test_module, post)
+    # dump_scatter(test_module, post)
 
 
 def _dataclass_names(parent, obj):
@@ -356,9 +359,7 @@ def _postprocess_report(report: PerfReport) -> PerfReport:
     return PerfReport().append(frame)
 
 
-def dump_postprocess(testname: str, report: PerfReport):
-    post = _postprocess_report(report)
-
+def dump_postprocess(testname: str, post_report: PerfReport):
     root = os.environ.get("LLK_HOME")
     if not root:
         raise AssertionError("Environment variable LLK_HOME is not set")
@@ -366,7 +367,7 @@ def dump_postprocess(testname: str, report: PerfReport):
     benchmark_dir = create_benchmark_dir(testname)
     output_path = benchmark_dir / f"{testname}.post.csv"
 
-    post.frame().to_csv(output_path, index=False)
+    post_report.frame().to_csv(output_path, index=False)
 
 
 def dump_scatter(testname: str, report: PerfReport):
