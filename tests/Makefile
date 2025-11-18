@@ -98,7 +98,7 @@ OPTIONS_LINK	:= -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 
 
 INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
 			-I../$(ARCH_LLK_ROOT)/common/inc/sfpu -I$(HEADER_DIR) -Ifirmware/riscv/common \
-			-Isfpi/include -Ihelpers/include
+			-Isfpi/include -Ihelpers/include -I$(TEST_DIR)
 
 OPTIONS_COMPILE += $(INCLUDES)
 COVERAGE_OPTIONS_COMPILE := $(INCLUDES)
@@ -167,13 +167,13 @@ $(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/bris
 KERNEL_SOURCE = $(firstword $(wildcard sources/ai_gen/$(testname).cpp sources/quasar/$(testname).cpp sources/$(testname).cpp))
 KERNEL_TRISC_FLAG = $(if $(filter sources/quasar/%,$(KERNEL_SOURCE)),,-DCOMPILE_FOR_TRISC= )
 
-$(OBJ_DIR)/kernel_%.o $(COVERAGE_KERNEL_TARGETS): $(KERNEL_SOURCE) $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $(DEPS_DIR)
+$(OBJ_DIR)/kernel_%.o $(COVERAGE_KERNEL_TARGETS): $(KERNEL_SOURCE) $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $(DEPS_DIR) $(TEST_DIR)/build.h
 	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(KERNEL_TRISC_FLAG) \
 	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $(KERNEL_SOURCE)
 
 # build main_unpack.o, main_math.o, main_pack.o
-$(OBJ_DIR)/main_%.o: $(RISCV_SOURCES)/trisc.cpp $(BUILD_DIR)/params.stamp | $(SHARED_DEPS_DIR)
+$(OBJ_DIR)/main_%.o: $(RISCV_SOURCES)/trisc.cpp $(BUILD_DIR)/params.stamp | $(SHARED_DEPS_DIR) $(TEST_DIR)/build.h
 	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DCOMPILE_FOR_TRISC= \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<
