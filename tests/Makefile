@@ -84,10 +84,12 @@ ifeq ($(PROFILER_BUILD),true)
 endif
 
 COVERAGE_DEPS :=
+COVERAGE_KERNEL_TARGETS :=
 MEMORY_LAYOUT_LD_SCRIPT := $(LINKER_SCRIPTS)/memory.$(ARCH).ld
 COVERAGE_BUILD := $(if $(coverage_build),$(coverage_build),false)
 ifeq ($(COVERAGE_BUILD),true)
 	COVERAGE_DEPS := $(SHARED_OBJ_DIR)/gcov.o $(SHARED_OBJ_DIR)/coverage.o
+	COVERAGE_KERNEL_TARGETS := $(OBJ_DIR)/kernel_%.gcno
 	MEMORY_LAYOUT_LD_SCRIPT := $(LINKER_SCRIPTS)/memory.$(ARCH).debug.ld
 	OPTIONS_COMPILE += -fprofile-arcs -ftest-coverage -fprofile-info-section -DCOVERAGE
 endif
@@ -165,7 +167,7 @@ $(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/bris
 KERNEL_SOURCE = $(firstword $(wildcard sources/ai_gen/$(testname).cpp sources/quasar/$(testname).cpp sources/$(testname).cpp))
 KERNEL_TRISC_FLAG = $(if $(filter sources/quasar/%,$(KERNEL_SOURCE)),,-DCOMPILE_FOR_TRISC= )
 
-$(OBJ_DIR)/kernel_%.o: $(KERNEL_SOURCE) $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $(DEPS_DIR)
+$(OBJ_DIR)/kernel_%.o $(COVERAGE_KERNEL_TARGETS): $(KERNEL_SOURCE) $(BUILD_DIR)/params.stamp | $(OBJ_DIR) $(DEPS_DIR)
 	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) $(KERNEL_TRISC_FLAG) \
 	-MMD -MP -MF $(patsubst $(OBJ_DIR)/%.o,$(DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $(KERNEL_SOURCE)

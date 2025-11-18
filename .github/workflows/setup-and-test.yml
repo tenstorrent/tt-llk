@@ -170,14 +170,25 @@ jobs:
       id-token: write
       contents: read
     steps:
+      - name: Set CHIP_ARCH
+        shell: bash
+        run: |
+          CHIP_ARCH=unknown
+          if [[ "${{ inputs.runs_on }}" =~ n150 ]]; then
+            CHIP_ARCH=wormhole
+          elif [[ "${{ inputs.runs_on }}" =~ p150 ]]; then
+            CHIP_ARCH=blackhole
+          fi
+          echo "CHIP_ARCH=$CHIP_ARCH" >> $GITHUB_ENV
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: code-coverage-*
+          pattern: code-coverage-${{ env.CHIP_ARCH }}*
           path: ./merged_coverage_files
       - name: Unzip artefacts, merge coverage data, and generate HTML report
+        shell: bash
         run: |
           mkdir -p ./extracted_coverage_files
           for dir in ./merged_coverage_files/*/; do
@@ -204,13 +215,13 @@ jobs:
           lcov -q --remove ./merged.info '*tests/*' \
             -o ./merged_filtered.info
 
-          mkdir -p coverage_html
-          genhtml --branch-coverage ./merged_filtered.info --output-directory coverage_html
+          mkdir -p coverage_html_${{ env.CHIP_ARCH }}
+          genhtml --branch-coverage ./merged_filtered.info --output-directory coverage_html_${{ env.CHIP_ARCH }}
       - name: Upload code coverage for this runner
         uses: actions/upload-artifact@v4
         with:
           name: coverage_report_website
-          path: ./coverage_html
+          path: ./coverage_html_${{ env.CHIP_ARCH }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -218,7 +229,7 @@ jobs:
       - name: Upload artifact for Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./coverage_html
+          path: ./coverage_html_${{ env.CHIP_ARCH }}
 
       - name: Deploy to GitHub Pages
         id: deployment
