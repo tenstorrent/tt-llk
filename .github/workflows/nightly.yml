@@ -38,6 +38,18 @@ jobs:
       timeout_minutes: 300
       coverage: true
 
+  nightly-test-blackhole:
+    name: "🌀 Nightly Tests (Blackhole)"
+    uses: ./.github/workflows/setup-and-test.yml
+    needs: build-images
+    with:
+      docker_image: ${{ needs.build-images.outputs.docker-image }}
+      runs_on: tt-ubuntu-2204-p150b-stable
+      test_splits: 20
+      pytest_markers: ${{ inputs.pytest_markers || 'not perf and not quasar' }}
+      random_order: true
+      timeout_minutes: 360
+
   nightly-summary:
     name: "📊 Nightly Summary"
     if: always()
