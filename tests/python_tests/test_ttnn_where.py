@@ -124,7 +124,6 @@ def test_ttnn_where(test_name, formats, dest_acc, mathop, test_case):
 
     run_test(test_config)
 
-    wait_for_tensix_operations_finished()
     res_from_L1 = collect_results(
         formats, tile_count=tile_cnt_A, address=result_buffer_address
     )
