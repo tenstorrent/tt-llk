@@ -262,6 +262,8 @@ inline void _init_reduce_max_col_(uint32_t num_cols)
 {
     static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
+    TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::PACK);
+
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
     constexpr uint16_t neg_inf_fp16b = 0xFF80;
@@ -289,7 +291,7 @@ inline void _init_reduce_max_col_(uint32_t num_cols)
     TTI_SFPLOADI(0, 0x8, 0x0000); // Upper 16 bits: slot2=0x00, slot3=0x00
     TTI_SFPCONFIG(0, 5, 0);       // Store in Macro Sequence Register 1 (dest=5)
 
-    TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
+    // TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
 
     // ***********************************************************
 
@@ -320,6 +322,8 @@ inline void _init_reduce_max_col_(uint32_t num_cols)
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
 inline void _calculate_reduce_max_col_(const uint32_t block_height /*, const uint32_t block_width*/)
 {
+    TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::PACK);
+
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
     static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
     static_assert(format == DataFormat::Float16_b, "SFPU reduce max col only supports Float16_b format");
@@ -374,6 +378,8 @@ inline void epilogue_reduce_max_col_()
     // F1
     TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
     TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+
+    TTI_STALLWAIT(p_stall::STALL_PACK, p_stall::WAIT_SFPU);
 }
 
 /**
