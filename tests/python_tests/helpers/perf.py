@@ -8,6 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
@@ -184,9 +185,10 @@ class PerfReport:
         self._frames = frames or [pd.DataFrame()]
         self._masks = masks or [pd.Series()]
 
-    def append(self, frame: pd.DataFrame) -> None:
+    def append(self, frame: pd.DataFrame) -> "PerfReport":
         self._frames.append(frame)
         self._masks.append(pd.Series(True, index=frame.index))
+        return self
 
     def frame(self) -> pd.DataFrame:
         # merge
@@ -215,6 +217,9 @@ class PerfReport:
         return self.filter("marker", marker)
 
 
+# Generating the report
+
+
 @pytest.fixture(scope="module")
 def perf_report(request):
     report = PerfReport()
@@ -228,6 +233,7 @@ def perf_report(request):
         print("Perf: Unexpected error, Saving report anyway", e)
 
     dump_report(test_module, report)
+    dump_postprocess(test_module, report)
 
 
 def _dataclass_names(parent, obj):
@@ -320,7 +326,52 @@ def dump_report(testname: str, report: PerfReport):
     report.frame().to_csv(output_path, index=False)
 
 
+# Common postprocessing
+
+
+def _postprocess_tile_loop(frame: pd.DataFrame) -> pd.DataFrame:
+
+    # Adjust timings for TILE_LOOP markers so that they represent per-tile timings
+    result_columns = frame.columns[frame.columns.get_loc("marker") + 1 :]
+    mask = frame["marker"] == "TILE_LOOP"
+
+    for column in result_columns:
+        if column.startswith("mean"):
+            frame.loc[mask, column] = frame.loc[mask, column] / frame.loc[
+                mask, "loop_factor"
+            ].fillna(1)
+
+        if column.startswith("std"):
+            frame.loc[mask, column] = frame.loc[mask, column] / np.sqrt(
+                frame.loc[mask, "loop_factor"].fillna(1)
+            )
+
+    return frame
+
+
+def _postprocess_report(report: PerfReport) -> PerfReport:
+    frame = report.frame().copy()
+    frame = _postprocess_tile_loop(frame)
+
+    return PerfReport().append(frame)
+
+
+def dump_postprocess(testname: str, report: PerfReport):
+    post = _postprocess_report(report)
+
+    root = os.environ.get("LLK_HOME")
+    if not root:
+        raise AssertionError("Environment variable LLK_HOME is not set")
+
+    benchmark_dir = create_benchmark_dir(testname)
+    output_path = benchmark_dir / f"{testname}.post.csv"
+
+    post.frame().to_csv(output_path, index=False)
+
+
 def dump_scatter(testname: str, report: PerfReport):
+    # FIXME: was broken by the new pandas implementation
+
     # generate a scatter plot using plotly.graph_objects (no pandas required)
 
     if not report.sweep_names or not report.stat_names:
