@@ -202,8 +202,7 @@ def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
 
 def run_elf_files(testname, variant_id, boot_mode, device_id=0, location="0,0"):
     CHIP_ARCH = get_chip_architecture()
-    LLK_HOME = os.environ.get("LLK_HOME")
-    BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
+    BUILD_DIR = Path("/tmp/tt-llk-build/")
 
     boot_mode = resolve_default_boot_mode(boot_mode)
 
@@ -647,7 +646,7 @@ def pull_coverage_data(testname, variant_id, build_dir, device_id=0, location="0
     # please sweep for inconsistencies in variable names
     trisc_names = ["unpack", "math", "pack"]
     for trisc_name in trisc_names:
-        elf_path = build_dir / "elf" / f"{trisc_name}.elf"
+        elf_path = f"{build_dir}/elf/{trisc_name}.elf"
         elf_file = parse_elf(elf_path)
         stream_path = f"{build_dir}/{trisc_name}.raw.stream"
         coverage(location, elf_file, stream_path, device_id, None)
