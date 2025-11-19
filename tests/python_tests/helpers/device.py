@@ -10,11 +10,15 @@ from pathlib import Path
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.debug_tensix import TensixDebug
+from ttexalens.hardware.risc_debug import CallstackEntry, RiscDebug, RiscLocation
 from ttexalens.tt_exalens_lib import (
+    callstack,
     check_context,
+    convert_coordinate,
     load_elf,
     read_from_device,
     read_word_from_device,
+    validate_device_id,
     write_to_device,
     write_words_to_device,
 )
@@ -191,6 +195,7 @@ def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
     CHIP_ARCH = get_chip_architecture()
     LLK_HOME = os.environ.get("LLK_HOME")
     BUILD_DIR = Path(LLK_HOME) / "tests" / "build" / CHIP_ARCH.value
+    TEST_DIR = BUILD_DIR / "tests" / testname
 
     boot_mode = resolve_default_boot_mode(boot_mode)
 
@@ -204,11 +209,16 @@ def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
     trisc_names = ["unpack", "math", "pack"]
     trisc_start_addresses = [0x16DFF0, 0x16DFF4, 0x16DFF8]
     is_wormhole = get_chip_architecture() == ChipArchitecture.WORMHOLE
-    for i, trisc_name in enumerate(trisc_names):
-        elf_path = BUILD_DIR / "tests" / testname / "elf" / f"{trisc_name}.elf"
+
+    elfs = [
+        str((TEST_DIR / "elf" / f"{trisc_name}.elf").absolute())
+        for trisc_name in trisc_names
+    ]
+
+    for i, elf in enumerate(elfs):
         if is_wormhole:
             start_address = load_elf(
-                elf_file=str(elf_path.absolute()),
+                elf_file=elf,
                 location=location,
                 risc_name=f"trisc{i}",
                 neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None,
@@ -217,7 +227,7 @@ def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
             write_words_to_device(location, trisc_start_addresses[i], [start_address])
         else:
             load_elf(
-                elf_file=str(elf_path.absolute()),
+                elf_file=elf,
                 location=location,
                 risc_name=f"trisc{i}",
                 neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None,
@@ -250,6 +260,8 @@ def run_elf_files(testname, boot_mode, device_id=0, location="0,0"):
                 location=location,
                 device_id=device_id,
             )
+
+    return elfs
 
 
 def write_stimuli_to_l1(
@@ -459,13 +471,6 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
         - Number of tiles that can fit in dest register depends on size of datum. If dest register is in 32 bit mode (dest accumulation is enabled), num_tiles must be ≤ 8. Otherwise, ≤ 16.
     """
 
-    from ttexalens.debug_risc import RiscDebug, RiscLoc
-    from ttexalens.tt_exalens_lib import (
-        check_context,
-        convert_coordinate,
-        validate_device_id,
-    )
-
     risc_id = 1  # we want to use TRISC 0 for reading the destination register
     noc_id = 0  # NOC ID for the device
     device_id = 0  # Device ID for the device
@@ -481,7 +486,7 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
             "Risc id is not 1. Only TRISC 0 can be halted and read from memory."
         )
 
-    location = RiscLoc(loc=coordinate, noc_id=noc_id, risc_id=risc_id)
+    location = RiscLocation(loc=coordinate, noc_id=noc_id, risc_id=risc_id)
     debug_risc = RiscDebug(location=location, context=context, verbose=False)
 
     assert num_tiles <= (8 if dest_acc == DestAccumulation.Yes else 16)
@@ -496,7 +501,61 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
     return dest_reg
 
 
-def wait_until_tensix_complete(location, mailbox_addr, timeout=30, max_backoff=5):
+def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
+    # check if the core is stuck on an EBREAK instruction
+
+    context = check_context()
+    device = context.devices[device_id]
+    coordinate = convert_coordinate(core_loc, device_id, context)
+    block = device.get_block(coordinate)
+    risc_debug = block.get_risc_debug(risc_name)
+
+    if risc_debug.is_ebreak_hit():
+        return True
+
+    return False
+
+
+def _print_callstack(risc_name: str, callstack: list[CallstackEntry]):
+    print(f"====== ASSERT HIT ON RISC CORE {risc_name.upper()} =======")
+
+    LLK_HOME = Path(os.environ.get("LLK_HOME"))
+    TESTS_DIR = LLK_HOME / "tests"
+
+    for idx, entry in enumerate(callstack):
+        # Format PC hex like Rust does
+
+        pc = f"0x{entry.pc:016x}" if entry.pc is not None else "0x????????????????"
+        file_path = (TESTS_DIR / Path(entry.file)).resolve()
+
+        # first line: idx, pc, function
+        print(f"{idx:>4}: {pc} - {entry.function_name}")
+
+        # second line: file, line, column
+        print(f"{' '*(4+2+2+16+1)}| at {file_path}:{entry.line}:{entry.column}")
+
+
+def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
+    trisc_names = ["trisc0", "trisc1", "trisc2"]
+    assertion_hits = []
+
+    for risc_name in trisc_names:
+        if is_assert_hit(risc_name, core_loc=core_loc, device_id=device_id):
+            _print_callstack(
+                risc_name,
+                callstack(core_loc, elfs, risc_name=risc_name, device_id=device_id),
+            )
+            assertion_hits.append(risc_name)
+
+    if assertion_hits:
+        raise AssertionError(
+            f"Assert was hit on device on cores: {', '.join(assertion_hits)}"
+        )
+
+
+def wait_for_tensix_operations_finished(
+    elfs, core_loc="0,0", timeout=30, max_backoff=5
+):
     """
     Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
 
@@ -506,14 +565,23 @@ def wait_until_tensix_complete(location, mailbox_addr, timeout=30, max_backoff=5
         timeout: Maximum time to wait (in seconds) before timing out. Default is 30 seconds. If running on a simulator it is 600 seconds.
         max_backoff: Maximum backoff time (in seconds) between polls. Default is 5 seconds.
     """
+
+    mailboxes = set([Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer])
+
     test_target = TestTargetConfig()
     timeout = 600 if test_target.run_simulator else timeout
 
     start_time = time.time()
     backoff = 0.1  # Initial backoff time in seconds
 
+    completed = set()
+
     while time.time() - start_time < timeout:
-        if read_word_from_device(location, mailbox_addr.value) == KERNEL_COMPLETE:
+        for mailbox in mailboxes:
+            if read_word_from_device(core_loc, mailbox.value) == KERNEL_COMPLETE:
+                completed.add(mailbox)
+
+        if completed == mailboxes:
             return
 
         # Disable any waiting if running on simulator
@@ -522,15 +590,15 @@ def wait_until_tensix_complete(location, mailbox_addr, timeout=30, max_backoff=5
             time.sleep(backoff)
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
-    raise TimeoutError(
-        f"Timeout reached: waited {timeout} seconds for {mailbox_addr.name}"
+    handle_if_assert_hit(
+        elfs,
+        core_loc=core_loc,
     )
 
-
-def wait_for_tensix_operations_finished(location: str = "0,0"):
-    wait_until_tensix_complete(location, Mailbox.Packer)
-    wait_until_tensix_complete(location, Mailbox.Math)
-    wait_until_tensix_complete(location, Mailbox.Unpacker)
+    trisc_hangs = [mailbox.name for mailbox in (mailboxes - completed)]
+    raise TimeoutError(
+        f"Timeout reached: waited {timeout} seconds for {', '.join(trisc_hangs)}"
+    )
 
 
 def reset_mailboxes():
