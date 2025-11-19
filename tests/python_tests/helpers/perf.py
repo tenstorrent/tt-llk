@@ -7,6 +7,7 @@ import shutil
 from dataclasses import fields, is_dataclass
 from enum import Enum
 from pathlib import Path
+from string import Template
 from typing import Any
 
 import pandas as pd
@@ -401,10 +402,8 @@ def dump_scatter(testname: str, report: PerfReport):
     # Convert DataFrame to records for JavaScript consumption
     records = df.to_dict("records")
 
-    # Add index to each record for plotting
-    for i, record in enumerate(records):
-        record["index"] = i + 1
-        # Convert sweep parameter values to strings for consistent filtering
+    # Convert sweep parameter values to strings for consistent filtering
+    for record in records:
         for param in report.sweep_names:
             record[param] = str(record[param])
 
@@ -423,425 +422,39 @@ def dump_scatter(testname: str, report: PerfReport):
     # Get embedded Plotly.js as string
     plotly_js_code = plotly.offline.get_plotlyjs()
 
-    # Build custom HTML with fully embedded Plotly.js
-    html = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Performance Report: {testname}</title>
-    <script type="text/javascript">{plotly_js_code}</script>
-    <style>
-    html, body {{
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        width: 100%;
-        font-family: sans-serif;
-        overflow-x: hidden;
-    }}
+    # Load templates
+    template_dir = Path(__file__).parent / "templates"
 
-    .container {{
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        width: 100%;
-    }}
+    with open(template_dir / "styles.css", "r") as f:
+        css_content = f.read()
 
-    h1 {{
-        margin: 15px 20px 10px 20px;
-        color: #333;
-        font-size: 24px;
-        flex-shrink: 0;
-    }}
+    with open(template_dir / "dashboard.js", "r") as f:
+        js_template = f.read()
 
-    .controls {{
-        margin: 10px 20px 15px 20px;
-        padding: 15px;
-        background-color: #f5f5f5;
-        border-radius: 5px;
-        flex-shrink: 0;
-    }}
+    with open(template_dir / "report.html", "r") as f:
+        html_template = f.read()
 
-    .controls label {{
-        margin-right: 15px;
-        font-weight: bold;
-    }}
+    # Prepare JavaScript with data using string.Template with custom delimiter
+    class CustomTemplate(Template):
+        delimiter = "__"
 
-    .controls button {{
-        margin-left: 20px;
-        padding: 5px 10px;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 3px;
-        cursor: pointer;
-    }}
+    js_template_obj = CustomTemplate(js_template)
+    js_content = js_template_obj.substitute(
+        data=json.dumps(records),
+        paramNames=json.dumps(report.sweep_names),
+        metricNames=json.dumps(stat_names_to_plot),
+        defaultVisibleMetric=json.dumps(default_visible_metric),
+        uniqueMarkers=json.dumps(unique_markers),
+    )
 
-    .controls button:hover {{
-        background-color: #0056b3;
-    }}
-
-    .tabs {{
-        margin: 0 20px;
-        border-bottom: 2px solid #ddd;
-        flex-shrink: 0;
-    }}
-
-    .tab-button {{
-        background: none;
-        border: none;
-        padding: 10px 20px;
-        cursor: pointer;
-        border-bottom: 2px solid transparent;
-        color: #666;
-        font-size: 14px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }}
-
-    .tab-button:hover {{
-        color: #007bff;
-        background-color: #f8f9fa;
-    }}
-
-    .tab-button.active {{
-        color: #007bff;
-        border-bottom-color: #007bff;
-        background-color: #f8f9fa;
-    }}
-
-    .plot-container {{
-        flex: 1;
-        margin: 0 20px 20px 20px;
-        min-height: 0;
-        position: relative;
-    }}
-
-    .plot {{
-        width: 100%;
-        height: 100%;
-        display: none;
-    }}
-
-    .plot.active {{
-        display: block;
-    }}
-
-    #plot {{
-        flex: 1;
-        margin: 0 20px 20px 20px;
-        min-height: 0;
-    }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Interactive Performance Sweep Report: {testname}</h1>
-        <div class="controls" id="controls"></div>
-        <div class="tabs" id="tabs"></div>
-        <div class="plot-container" id="plot-container">
-            <div id="plot" class="plot active"></div>
-        </div>
-    </div>
-
-    <script>
-    const data = {json.dumps(records)};
-    const paramNames = {json.dumps(report.sweep_names)};
-    const metricNames = {json.dumps(stat_names_to_plot)};
-    const defaultVisibleMetric = {json.dumps(default_visible_metric)};
-    const uniqueMarkers = {json.dumps(unique_markers)};
-
-    let selections = {{}};
-    let metricVisibility = {{}};
-    let currentTab = uniqueMarkers.length > 0 ? uniqueMarkers[0] : '';
-
-    // Initialize selections and visibility
-    paramNames.forEach(param => selections[param] = '');
-    metricNames.forEach(metric => {{
-        metricVisibility[metric] = (metric === defaultVisibleMetric) ? true : 'legendonly';
-    }});
-
-    // Create tabs
-    function createTabs() {{
-        const tabsDiv = document.getElementById('tabs');
-
-        // Create tabs for each marker (no "All" tab)
-        uniqueMarkers.forEach((marker, index) => {{
-            const tabBtn = document.createElement('button');
-            tabBtn.className = index === 0 ? 'tab-button active' : 'tab-button';
-            tabBtn.textContent = marker;
-            tabBtn.onclick = () => switchTab(marker);
-            tabsDiv.appendChild(tabBtn);
-        }});
-
-        // Set the first marker as default
-        if (uniqueMarkers.length > 0) {{
-            currentTab = uniqueMarkers[0];
-        }}
-    }}
-
-    // Switch between tabs
-    function switchTab(tabId) {{
-        currentTab = tabId;
-
-        // Update tab button styles
-        document.querySelectorAll('.tab-button').forEach(btn => {{
-            btn.classList.remove('active');
-            if (btn.textContent === tabId) {{
-                btn.classList.add('active');
-            }}
-        }});
-
-        // Update plot based on current tab
-        updatePlot();
-    }}
-
-    // Create controls
-    function createControls() {{
-        const controlsDiv = document.getElementById('controls');
-
-        // Create dropdowns for each parameter
-        paramNames.forEach(param => {{
-            const label = document.createElement('label');
-            label.textContent = param + ': ';
-            const select = document.createElement('select');
-            select.id = param;
-            select.onchange = () => {{
-                selections[param] = select.value;
-                updateDropdownOptions();
-                updatePlot();
-            }};
-            label.appendChild(select);
-            controlsDiv.appendChild(label);
-        }});
-
-        // Add reset all filters button
-        const resetBtn = document.createElement('button');
-        resetBtn.textContent = 'Reset All Filters';
-        resetBtn.onclick = () => {{
-            // Reset all selections
-            paramNames.forEach(param => {{
-                selections[param] = '';
-                document.getElementById(param).value = '';
-            }});
-            updateDropdownOptions();
-            updatePlot();
-        }};
-        controlsDiv.appendChild(resetBtn);
-
-        updateDropdownOptions();
-    }}
-
-    // Update dropdown options based on current selections
-    function updateDropdownOptions() {{
-        // Filter data based on current selections
-        const filteredData = data.filter(record =>
-            Object.entries(selections).every(([param, value]) => !value || record[param] === value)
-        );
-
-        // Update each dropdown with available values
-        paramNames.forEach(param => {{
-            const select = document.getElementById(param);
-            const currentValue = select.value;
-            const availableValues = [...new Set(filteredData.map(record => record[param]))];
-
-            // Rebuild options
-            select.innerHTML = '<option value="">All</option>' +
-                availableValues.map(value => {{
-                    const selected = value === currentValue ? 'selected' : '';
-                    return `<option value="${{value}}" ${{selected}}>${{value}}</option>`;
-                }}).join('');
-
-            // Update selection
-            selections[param] = select.value;
-        }});
-    }}
-
-    // Create the plot
-    function createPlot() {{
-        const plotDiv = document.getElementById('plot');
-
-        // Filter data for the current tab from the start
-        let initialData = data.filter(record => record.marker === currentTab);
-
-        // Create initial traces for all metrics
-        const traces = metricNames.map(metric => {{
-            const hoverText = initialData.map(record =>
-                paramNames.map(param => `${{param}}=${{record[param]}}`).join(', ')
-            );
-
-            return {{
-                x: initialData.map(record => record.index),
-                y: initialData.map(record => record[metric]),
-                type: 'bar',
-                name: metric,
-                hovertemplate: `<b>%{{customdata}}</b><br>${{metric}}: %{{y}}<extra></extra>`,
-                customdata: hoverText,
-                visible: metricVisibility[metric]
-            }};
-        }});
-
-        const layout = {{
-            title: {{
-                text: `Performance Report - ${{currentTab}}`,
-                font: {{ size: 18 }},
-                x: 0.5,
-                xanchor: 'center'
-            }},
-            xaxis: {{
-                title: {{
-                    text: 'Sweep Index (hover for parameter details)',
-                    font: {{ size: 14, color: '#333' }}
-                }},
-                showgrid: true,
-                gridcolor: '#e0e0e0',
-                tickfont: {{ size: 12, color: '#333' }}
-            }},
-            yaxis: {{
-                title: {{
-                    text: 'Cycles / Tile',
-                    font: {{ size: 14, color: '#333' }}
-                }},
-                showgrid: true,
-                gridcolor: '#e0e0e0',
-                tickfont: {{ size: 12, color: '#333' }}
-            }},
-            legend: {{
-                title: {{ text: 'Metrics', font: {{ size: 12 }} }},
-                orientation: 'v',
-                x: 1.02,
-                xanchor: 'left',
-                y: 1,
-                yanchor: 'top'
-            }},
-            template: 'plotly_white',
-            margin: {{ l: 60, r: 120, t: 50, b: 60 }},
-            autosize: true
-        }};
-
-        Plotly.newPlot(plotDiv, traces, layout, {{responsive: true, displayModeBar: true}});
-
-        // Handle legend clicks to toggle metric visibility
-        plotDiv.on('plotly_legendclick', function(eventData) {{
-            const metricName = eventData.data[eventData.curveNumber].name;
-            const currentVisibility = metricVisibility[metricName];
-            metricVisibility[metricName] = (currentVisibility === true) ? 'legendonly' : true;
-            updatePlot();
-            return false; // Prevent default legend click behavior
-        }});
-
-        // Resize plot when window resizes
-        window.addEventListener('resize', function() {{
-            Plotly.Plots.resize(plotDiv);
-        }});
-    }}
-
-    // Update the plot based on current filters and settings
-    function updatePlot() {{
-        const plotDiv = document.getElementById('plot');
-
-        // Apply filters
-        paramNames.forEach(param => {{
-            const select = document.getElementById(param);
-            selections[param] = select.value;
-        }});
-
-        // Filter data based on parameter selections
-        let filteredData = data.filter(record =>
-            Object.entries(selections).every(([param, value]) => !value || record[param] === value)
-        );
-
-        // Filter by current tab (marker)
-        filteredData = filteredData.filter(record => record.marker === currentTab);
-
-        // Handle empty data case
-        if (filteredData.length === 0) {{
-            const layout = {{
-                title: {{
-                    text: `Performance Report - ${{currentTab}}`,
-                    font: {{ size: 18 }},
-                    x: 0.5,
-                    xanchor: 'center'
-                }},
-                xaxis: {{ title: 'No data available for current filters' }},
-                yaxis: {{ title: 'Cycles / Tile' }}
-            }};
-            Plotly.react(plotDiv, [], layout);
-            return;
-        }}
-
-        const indices = filteredData.map(record => record.index);
-
-        // Create traces for visible metrics
-        const traces = metricNames.map(metric => {{
-            const visible = metricVisibility[metric];
-            const yValues = filteredData.map(record => record[metric]);
-            const hoverText = filteredData.map(record =>
-                paramNames.map(param => `${{param}}=${{record[param]}}`).join(', ')
-            );
-
-            return {{
-                x: indices,
-                y: yValues,
-                type: 'bar',
-                name: metric,
-                visible: visible,
-                customdata: hoverText,
-                hovertemplate: `<b>%{{customdata}}</b><br>${{metric}}: %{{y}}<extra></extra>`
-            }};
-        }});
-
-        const layout = {{
-            title: {{
-                text: `Performance Report - ${{currentTab}}`,
-                font: {{ size: 18 }},
-                x: 0.5,
-                xanchor: 'center'
-            }},
-            xaxis: {{
-                title: {{
-                    text: 'Sweep Index (hover for parameter details)',
-                    font: {{ size: 14, color: '#333' }}
-                }},
-                showgrid: true,
-                gridcolor: '#e0e0e0',
-                tickfont: {{ size: 12, color: '#333' }}
-            }},
-            yaxis: {{
-                title: {{
-                    text: 'Cycles / Tile',
-                    font: {{ size: 14, color: '#333' }}
-                }},
-                showgrid: true,
-                gridcolor: '#e0e0e0',
-                tickfont: {{ size: 12, color: '#333' }}
-            }},
-            legend: {{
-                title: {{ text: 'Metrics', font: {{ size: 12 }} }},
-                orientation: 'v',
-                x: 1.02,
-                xanchor: 'left',
-                y: 1,
-                yanchor: 'top'
-            }},
-            template: 'plotly_white',
-            margin: {{ l: 60, r: 120, t: 50, b: 60 }},
-            autosize: true
-        }};
-
-        Plotly.react(plotDiv, traces, layout);
-    }}
-
-    // Initialize everything
-    createTabs();
-    createControls();
-    createPlot();
-    </script>
-</body>
-</html>
-"""
+    # Build final HTML using custom template
+    html_template_obj = CustomTemplate(html_template)
+    html = html_template_obj.substitute(
+        testname=testname,
+        plotly_js_code=plotly_js_code,
+        css_content=css_content,
+        js_content=js_content,
+    )
 
     with open(str(output_path), "w") as f:
         f.write(html)
