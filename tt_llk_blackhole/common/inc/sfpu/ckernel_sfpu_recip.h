@@ -82,7 +82,7 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
 
         if (d < iterations)
         {
-            TTI_SFPLOADMACRO((0 << 2) | (y & 3), 0, ADDR_MOD_7, offset | (y >> 2));
+            TT_SFPLOADMACRO((0 << 2) | (y & 3), 0, ADDR_MOD_7, offset | (y >> 2));
         }
         else
         {
@@ -92,13 +92,17 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
         {
             TTI_SFPNOP;
         }
+        else if (d < iterations)
+        {
+            TT_SFPLOADMACRO((2 << 2) | (t & 3), 9, ADDR_MOD_7, prev_offset | (t >> 2));
+        }
         else
         {
-            TTI_SFPLOADMACRO((2 << 2) | (t & 3), 9, ADDR_MOD_7, prev_offset | (t >> 2));
+            TT_SFPLOADMACRO((2 << 2) | (t & 3), 9, ADDR_MOD_6, prev_offset | (t >> 2));
         }
         if (d < iterations)
         {
-            TTI_SFPLOADMACRO((1 << 2) | (y & 3), 14, ADDR_MOD_6, offset | (y >> 2));
+            TT_SFPLOADMACRO((1 << 2) | (y & 3), 14, ADDR_MOD_6, offset | (y >> 2));
         }
         else
         {
