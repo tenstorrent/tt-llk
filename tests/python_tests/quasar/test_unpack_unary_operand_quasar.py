@@ -5,7 +5,6 @@ from typing import List
 
 import pytest
 import torch
-from conftest import skip_for_blackhole, skip_for_wormhole
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -17,6 +16,7 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
+    DataCopyType,
     DestAccumulation,
     ImpliedMathFormat,
     Transpose,
@@ -99,8 +99,7 @@ ALL_UNPACK_UNARY_OPERAND_COMBINATIONS = generate_unpack_unary_operand_combinatio
 )
 
 
-@skip_for_blackhole
-@skip_for_wormhole
+@pytest.mark.quasar
 @parametrize(
     test_name="unpack_unary_operand_quasar_test",
     formats_dest_acc_transpose_unpack_sel_dims=ALL_UNPACK_UNARY_OPERAND_COMBINATIONS,
@@ -167,6 +166,11 @@ def test_unpack_unary_operand_quasar(
         "unpack_transpose_within_face": transpose_en,
         "unpacker_engine_sel": unpacker_sel,
         "implied_math_format": ImpliedMathFormat.Yes,
+        "data_copy_type": (
+            DataCopyType.B2D
+            if unpacker_sel == UnpackerEngine.UnpB
+            else DataCopyType.A2D
+        ),
     }
 
     res_address = write_stimuli_to_l1(

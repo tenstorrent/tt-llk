@@ -20,6 +20,7 @@ from .llk_params import (
     SFPU_BINARY_OPERATIONS,
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
+    DataCopyType,
     DestAccumulation,
     DestSync,
     ImpliedMathFormat,
@@ -88,6 +89,7 @@ def generate_build_header(test_config):
 
     File location: <repository>/tests/helpers/include/build.h
     """
+
     header_content = [
         "// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC",
         "//",
@@ -102,13 +104,21 @@ def generate_build_header(test_config):
         '#include "operand.h"',
         '#include "llk_defs.h"',
         '#include "llk_sfpu_types.h"',
-        '#include "perf.h"',
-        '#include "tensix_types.h"',
-        "",
-        "",
-        "// Basic configuration",
-        "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
     ]
+
+    # Conditionally include perf.h based on architecture
+    if get_chip_architecture() != ChipArchitecture.QUASAR:
+        header_content.append('#include "perf.h"')
+
+    header_content.extend(
+        [
+            '#include "tensix_types.h"',
+            "",
+            "",
+            "// Basic configuration",
+            "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
+        ]
+    )
 
     loop_factor = test_config.get("loop_factor", 1)
 
@@ -177,6 +187,12 @@ def generate_build_header(test_config):
     fused_L1_to_L1 = test_config.get("L1_to_L1_iterations", 1)
     header_content.append(
         f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {fused_L1_to_L1};"
+    )
+
+    # Data copy type
+    data_copy_type = test_config.get("data_copy_type", DataCopyType.A2D)
+    header_content.append(
+        f"constexpr auto DATA_COPY_TYPE = ckernel::DataCopyType::{data_copy_type.value};"
     )
 
     # Broadcast type
@@ -350,6 +366,7 @@ def generate_build_header(test_config):
         num_iterations=l1_to_l1_iterations,
         unpacking_to_dest=unpack_to_dest == "true",
         chip_arch=get_chip_architecture(),
+        disable_format_inference=test_config.get("disable_format_inference", False),
     )
 
     if l1_to_l1_iterations > 1:
@@ -500,6 +517,11 @@ def generate_build_header(test_config):
         header_content.append(f"constexpr uint32_t CT_DIM = {test_config['ct_dim']};")
     if "kt_dim" in test_config:
         header_content.append(f"constexpr uint32_t KT_DIM = {test_config['kt_dim']};")
+
+    # Add top row flag
+    add_top_row = test_config.get("add_top_row", False)
+    if add_top_row:
+        header_content.append("constexpr bool ADD_TOP_ROW = true;")
 
     header_content.append("")
 
