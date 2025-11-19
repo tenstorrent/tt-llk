@@ -41,7 +41,6 @@ inline void _llk_pack_untilize_mop_config_(
     const std::uint32_t tile_dst_offset           = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    LLK_ASSERT(row_num_datums == TILE_C_DIM, "row_num_datums: this parameter is unused");
     /*
     Outer loop iterates over the rows in the block, while the inner loop iterates
     over each tile in the block.
@@ -206,7 +205,6 @@ inline void _llk_pack_untilize_(
 {
     static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    LLK_ASSERT(tile_dst_rt_offset == 0, "tile_dst_rt_offset: this parameter is unused");
 
     /*
     full_ct_dim represents the number of input tiles.
