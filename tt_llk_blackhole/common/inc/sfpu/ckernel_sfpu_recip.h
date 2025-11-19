@@ -6,7 +6,6 @@
 #pragma once
 
 #include "ckernel_sfpu_rsqrt_compat.h"
-#include "ckernel_template.h"
 #include "lltt.h"
 #include "sfpi.h"
 
@@ -64,8 +63,8 @@ inline void _calculate_reciprocal_fast_7b_(const int iterations)
     {
         TTI_SFPLOADMACRO((0 << 2) | 0, 0, ADDR_MOD_6, 0);
     }
-    // TODO see init function
-    // ckernel_unpack_template::run(iterations, 0);
+    TTI_SFPNOP;
+    TTI_SFPNOP;
 }
 
 // BF16 reciprocal, with throughput of 3c/32.
@@ -174,27 +173,20 @@ inline void _calculate_reciprocal_(const int iterations)
 // ~7b precision; 1c/element
 inline void _init_reciprocal_fast_7b_()
 {
-    // Macro 0:
-    // SFPLOAD(VD)
-    // SFPARECIP(VB=0, VC=VD, VD=16, 0); SequenceBits=0x40 (VD=16)
-    // SFPSTORE(VD=16); SequenceBits=0x80 (VD=16)
-
-    // Set InstructionTemplate[0] to SFPARECIP.
     TTI_SFPARECIP(0, 0, 12, 0);
 
-    // SimpleSubUnit: schedule SFPARECIP 16,VD after 0 cycles.
-    TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (0x40 | 4) << 0);
-    // StoreSubUnit: schedule SFPSTORE with VD=0 after 1 cycle.
-    TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (0x40 | (1 << 3) | 3) << 8);
-    // Configure LoadMacroConfig[].Sequence[0].
+    constexpr uint simple_bits = 0x00 | 0x40 | (0 << 3) | 4;
+    constexpr uint mad_bits    = 0;
+    constexpr uint round_bits  = 0;
+    constexpr uint store_bits  = 0x00 | 0x40 | (1 << 3) | 3;
+
+    TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
+    TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
+
     TTI_SFPCONFIG(0, 4, 0);
+
     // Misc: {UsesLoadMod0ForStore=1, WaitForElapsedInstructions=1} for macro 0.
     TTI_SFPCONFIG(0x110, 8, 1);
-
-    // TODO this initialisation causes a hang on tt-llk tests for some reason
-    // constexpr uint op = TT_OP_SFPLOADMACRO((0 << 2) | 0, 0, ADDR_MOD_6, 0);
-    // ckernel_unpack_template tmp = ckernel_unpack_template::loopx1instr(op, TT_OP_NOP);
-    // tmp.program();
 }
 
 inline void _init_reciprocal_fast_8b_3c_()
