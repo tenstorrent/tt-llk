@@ -235,21 +235,25 @@ coverage: $(INFO_FILES_DIR)
 INFO_FILES	:= $(wildcard $(INFO_FILES_DIR)/*.info)
 FIRST_INFO	:= $(firstword $(INFO_FILES))
 merge_coverage_data:
-	@if [ ! -f "$(INFO_PATH)" ]; then \
-        first_file=$$(find $(INFO_FILES_DIR) -name '*.info' | head -n 1); \
-        cp $$first_file $(INFO_PATH); \
-    fi; \
-	idx=0; \
-	total=$$(find $(INFO_FILES_DIR) -name '*.info' | wc -l); \
-    find $(INFO_FILES_DIR) -name '*.info' | while read f; do \
-		idx=$$((idx+1)); \
-        if [ "$$f" != "$(INFO_PATH)" ]; then \
-			printf "Processing file %s/%s: %s\r" "$$idx" "$$total" "$$f"; \
-            lcov -q -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH) > /dev/null 2>&1; \
-        fi; \
-    done;
+	@if [ ! -d "$(INFO_FILES_DIR)" ]; then \
+		echo "$(INFO_FILES_DIR) does not exist. Early exit."; \
+	else \
+		if [ ! -f "$(INFO_PATH)" ]; then \
+			first_file=$$(find $(INFO_FILES_DIR) -name '*.info' | head -n 1); \
+			if [ -n "$$first_file" ]; then \
+				cp "$$first_file" $(INFO_PATH); \
+			fi; \
+		fi; \
+		find $(INFO_FILES_DIR) -name '*.info' 2>/dev/null | while read f; do \
+			if [ "$$f" != "$(INFO_PATH)" ]; then \
+				lcov -q -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH) > /dev/null 2>&1; \
+			fi; \
+		done; \
+		if [ -f "$(INFO_PATH)" ]; then \
+			cp $(INFO_PATH) ./merged_coverage.info; \
+		fi; \
+	fi
 
-	@cp $(INFO_PATH) ./merged_coverage.info
 
 generate_report:
 	lcov --remove $(INFO_PATH) \

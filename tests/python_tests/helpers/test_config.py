@@ -592,9 +592,9 @@ def build_test(
 
 def run_test(
     test_config,
-    location="0,0",
     boot_mode: BootMode = BootMode.DEFAULT,  # global override boot mode here
     profiler_build: ProfilerBuild = ProfilerBuild.No,
+    location="0,0",
 ):
     """Run the test with the given configuration"""
 

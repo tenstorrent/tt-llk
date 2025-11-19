@@ -110,7 +110,7 @@ jobs:
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
             cd ../
             make merge_coverage_data
-            mv merge_coverage.info code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
+            mv merged_coverage.info code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
           fi
 
       # Step 4: Zip performance data if perf tests were run
