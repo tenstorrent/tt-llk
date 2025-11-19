@@ -32,7 +32,7 @@ else
 $(error must provide archname or CHIP_ARCH environment variable (wormhole / blackhole))
 endif
 
-BUILD_DIR       ?= build/$(ARCH)
+BUILD_DIR       ?= /tmp/tt-llk-build
 
 SHARED_DIR      := $(BUILD_DIR)/shared
 COVERAGE_REPORT_DIR	:= $(BUILD_DIR)/coverage_report
@@ -217,14 +217,6 @@ $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR) $(INFO_
 $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR) $(COVERAGE_REPORT_DIR):
 	mkdir -p $@
 
-do_one_test:
-	pytest -m "not perf and not nightly" \
-        --random-order-bucket=global \
-        --override-ini="addopts=-v" --timeout=60 \
-        --coverage \
-        --junitxml=pytest-report-wormhole-4.xml \
-		./test_matmul.py
-
 INFO_PATH		:= $(BUILD_DIR)/merged_coverage.info
 INFO_PATH_FILTER		:= $(BUILD_DIR)/merged_coverage_filtered.info
 STREAM_FILES	:= $(wildcard $(TEST_DIR)/*.raw.stream)
@@ -239,24 +231,6 @@ coverage: $(INFO_FILES_DIR)
 	--directory $(SHARED_OBJ_DIR) \
 	--output-file $(INFO_FILES_DIR)/$(info_file_name) --rc lcov_branch_coverage=1
 
-
-INFO_FILES	:= $(wildcard $(INFO_FILES_DIR)/*.info)
-FIRST_INFO	:= $(firstword $(INFO_FILES))
-merge_coverage_data:
-	@if [ ! -f "$(INFO_PATH)" ]; then \
-        first_file=$$(find $(INFO_FILES_DIR) -name '*.info' | head -n 1); \
-        cp $$first_file $(INFO_PATH); \
-    fi; \
-	idx=0; \
-	total=$$(find $(INFO_FILES_DIR) -name 'coverage_*.info' | wc -l); \
-    find $(INFO_FILES_DIR) -name 'coverage_*.info' | while read f; do \
-		idx=$$((idx+1)); \
-        if [ "$$f" != "$(INFO_PATH)" ]; then \
-			printf "Processing file %s/%s: %s\r" "$$idx" "$$total" "$$f"; \
-            lcov -q -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH) > /dev/null 2>&1; \
-        fi; \
-    done;
-
 generate_report:
 	lcov --remove $(INFO_PATH) \
 		'*/tt-llk/tests/*' \
@@ -268,7 +242,7 @@ generate_report:
 # Clean
 # =========================
 clean:
-	$(RMDIR) build
+	$(RMDIR) $(BUILD_DIR)
 	$(RMDIR) __pycache__
 	$(RMDIR) .pytest_cache
 	$(MAKE) -C python_tests clean

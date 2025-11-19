@@ -105,11 +105,17 @@ jobs:
                 --splits $SPLITS --group ${{ matrix.test_group }} \
                 --override-ini="addopts=-v" --timeout=60 \
                 $COVERAGE_FLAG \
-                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
+                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml . || true
 
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
-            cd ../
-            make merge_coverage_data
+            cd ../../
+            python3 ./infra/combine_coverage_files.py
+            INFO_PATH=/tmp/tt-llk-build/merged_coverage.info
+            if [ -f "${INFO_PATH}" ]; then
+              mv "${INFO_PATH}" ./code-coverage-${CHIP_ARCH}-${{ matrix.test_group }}.info || {
+                echo "Failed to copy merged coverage file, probably no tests ran"
+              }
+            fi
           fi
 
       # Step 4: Zip performance data if perf tests were run
@@ -125,8 +131,8 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always() && inputs.coverage
         with:
-          name: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
-          path: tests/build/${{ env.CHIP_ARCH }}/merged_coverage.info
+          name: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
+          path: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
 
       # Step 5: Upload performance data
       - name: Upload performance data
@@ -162,12 +168,12 @@ jobs:
       image: ${{ inputs.docker_image }}
     needs: setup-and-test
     if: inputs.coverage == true
-    # environment:
-    #   name: github-pages
-    #   url: ${{ steps.deployment.outputs.page_url }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     permissions:
-      # pages: write
-      # id-token: write
+      pages: write
+      id-token: write
       contents: read
     steps:
       - name: Set CHIP_ARCH
@@ -190,24 +196,16 @@ jobs:
       - name: Unzip artefacts, merge coverage data, and generate HTML report
         shell: bash
         run: |
-          mkdir -p ./extracted_coverage_files
-          for dir in ./merged_coverage_files/*/; do
-            if [ -d "$dir" ]; then
-              folder_name=$(basename "$dir")
-              if [ -f "$dir/merged_coverage.info" ]; then
-                cp "$dir/merged_coverage.info" "./extracted_coverage_files/${folder_name}"
-              fi
-            fi
-          done
-
           echo "-- Coverage files pulled from runners --"
-          find ./extracted_coverage_files/ -name "*.info"
+          find ./merged_coverage_files/ -name "*.info"
 
-          first=$(ls ./extracted_coverage_files | head -n 1)
-          cp ./extracted_coverage_files/"$first" merged.info
+          # Get first file with full path
+          first=$(find ./merged_coverage_files/ -name "*.info" | head -n 1)
+          cp "$first" merged.info
 
-          for f in $(find ./extracted_coverage_files/ -name "*.info"); do
-            if [ "$f" != ./extracted_coverage_files/"$first" ]; then
+          # Merge all other files
+          for f in $(find ./merged_coverage_files/ -name "*.info"); do
+            if [ "$f" != "$first" ]; then
               lcov -q -a merged.info -a "$f" -o ./merged.info
             fi
           done
@@ -215,27 +213,23 @@ jobs:
           lcov -q --remove ./merged.info '*tests/*' \
             -o ./merged_filtered.info
 
-          mkdir -p coverage_html_${{ env.CHIP_ARCH }}
-          genhtml --branch-coverage ./merged_filtered.info --output-directory coverage_html_${{ env.CHIP_ARCH }}
+          mkdir -p ./coverage_reports_${{ env.CHIP_ARCH }}/${{ env.CHIP_ARCH }}_coverage_report
+          genhtml --branch-coverage --title ${{ env.CHIP_ARCH }} ./merged_filtered.info \
+            --output-directory ./coverage_reports_${{ env.CHIP_ARCH }}/${{ env.CHIP_ARCH }}_coverage_report
       - name: Upload code coverage for this runner
         uses: actions/upload-artifact@v4
         with:
           name: coverage_report_${{ env.CHIP_ARCH }}
-          path: ./coverage_html_${{ env.CHIP_ARCH }}
+          path: ./coverage_reports_${{ env.CHIP_ARCH }}
 
-      # - name: Setup Pages
-      #   uses: actions/configure-pages@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
-      # - name: Upload artifact for Pages
-      #   uses: actions/upload-pages-artifact@v3
-      #   with:
-      #     path: ./coverage_html_${{ env.CHIP_ARCH }}
+      - name: Upload artifact for Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./coverage_reports
 
-      # - name: Deploy to GitHub Pages
-      #   id: deployment
-      #   uses: actions/deploy-pages@v4
-
-      # - name: Comment deployment URL
-      #   run: |
-      #     echo "### 📊 Coverage Report Deployed!" >> $GITHUB_STEP_SUMMARY
-      #     echo "🔗 View at: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

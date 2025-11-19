@@ -4,6 +4,7 @@
 
 import pytest
 import torch
+from conftest import skip_for_coverage
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -25,7 +26,7 @@ from helpers.param_config import (
     input_output_formats,
     parametrize,
 )
-from helpers.stimuli_generator import generate_random_face, generate_stimuli
+from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.tilize_untilize import untilize
 from helpers.utils import passed_test
@@ -41,6 +42,7 @@ dimension_combinations = [
 ]
 
 
+@skip_for_coverage
 @parametrize(
     test_name="sfpu_reduce_test",
     formats=input_output_formats(

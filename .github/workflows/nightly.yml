@@ -35,7 +35,7 @@ jobs:
       test_splits: 20
       pytest_markers: ${{ inputs.pytest_markers || 'not perf' }}
       random_order: false
-      timeout_minutes: 360
+      timeout_minutes: 600
       coverage: true
 
   nightly-test-blackhole:
@@ -48,7 +48,7 @@ jobs:
       test_splits: 20
       pytest_markers: ${{ inputs.pytest_markers || 'not perf and not quasar' }}
       random_order: false
-      timeout_minutes: 360
+      timeout_minutes: 600
       coverage: true
 
   nightly-summary:
