@@ -417,6 +417,9 @@ def dump_scatter(testname: str, report: PerfReport):
     else:
         default_visible_metric = stat_names_to_plot[0]
 
+    # Get unique markers for tabs
+    unique_markers = sorted(list(set(record["marker"] for record in records)))
+
     # Get embedded Plotly.js as string
     plotly_js_code = plotly.offline.get_plotlyjs()
 
@@ -480,6 +483,52 @@ def dump_scatter(testname: str, report: PerfReport):
         background-color: #0056b3;
     }}
 
+    .tabs {{
+        margin: 0 20px;
+        border-bottom: 2px solid #ddd;
+        flex-shrink: 0;
+    }}
+
+    .tab-button {{
+        background: none;
+        border: none;
+        padding: 10px 20px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        color: #666;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }}
+
+    .tab-button:hover {{
+        color: #007bff;
+        background-color: #f8f9fa;
+    }}
+
+    .tab-button.active {{
+        color: #007bff;
+        border-bottom-color: #007bff;
+        background-color: #f8f9fa;
+    }}
+
+    .plot-container {{
+        flex: 1;
+        margin: 0 20px 20px 20px;
+        min-height: 0;
+        position: relative;
+    }}
+
+    .plot {{
+        width: 100%;
+        height: 100%;
+        display: none;
+    }}
+
+    .plot.active {{
+        display: block;
+    }}
+
     #plot {{
         flex: 1;
         margin: 0 20px 20px 20px;
@@ -491,7 +540,10 @@ def dump_scatter(testname: str, report: PerfReport):
     <div class="container">
         <h1>Interactive Performance Sweep Report: {testname}</h1>
         <div class="controls" id="controls"></div>
-        <div id="plot"></div>
+        <div class="tabs" id="tabs"></div>
+        <div class="plot-container" id="plot-container">
+            <div id="plot" class="plot active"></div>
+        </div>
     </div>
 
     <script>
@@ -499,15 +551,52 @@ def dump_scatter(testname: str, report: PerfReport):
     const paramNames = {json.dumps(report.sweep_names)};
     const metricNames = {json.dumps(stat_names_to_plot)};
     const defaultVisibleMetric = {json.dumps(default_visible_metric)};
+    const uniqueMarkers = {json.dumps(unique_markers)};
 
     let selections = {{}};
     let metricVisibility = {{}};
+    let currentTab = uniqueMarkers.length > 0 ? uniqueMarkers[0] : '';
 
     // Initialize selections and visibility
     paramNames.forEach(param => selections[param] = '');
     metricNames.forEach(metric => {{
         metricVisibility[metric] = (metric === defaultVisibleMetric) ? true : 'legendonly';
     }});
+
+    // Create tabs
+    function createTabs() {{
+        const tabsDiv = document.getElementById('tabs');
+
+        // Create tabs for each marker (no "All" tab)
+        uniqueMarkers.forEach((marker, index) => {{
+            const tabBtn = document.createElement('button');
+            tabBtn.className = index === 0 ? 'tab-button active' : 'tab-button';
+            tabBtn.textContent = marker;
+            tabBtn.onclick = () => switchTab(marker);
+            tabsDiv.appendChild(tabBtn);
+        }});
+
+        // Set the first marker as default
+        if (uniqueMarkers.length > 0) {{
+            currentTab = uniqueMarkers[0];
+        }}
+    }}
+
+    // Switch between tabs
+    function switchTab(tabId) {{
+        currentTab = tabId;
+
+        // Update tab button styles
+        document.querySelectorAll('.tab-button').forEach(btn => {{
+            btn.classList.remove('active');
+            if (btn.textContent === tabId) {{
+                btn.classList.add('active');
+            }}
+        }});
+
+        // Update plot based on current tab
+        updatePlot();
+    }}
 
     // Create controls
     function createControls() {{
@@ -574,15 +663,18 @@ def dump_scatter(testname: str, report: PerfReport):
     function createPlot() {{
         const plotDiv = document.getElementById('plot');
 
+        // Filter data for the current tab from the start
+        let initialData = data.filter(record => record.marker === currentTab);
+
         // Create initial traces for all metrics
         const traces = metricNames.map(metric => {{
-            const hoverText = data.map(record =>
+            const hoverText = initialData.map(record =>
                 paramNames.map(param => `${{param}}=${{record[param]}}`).join(', ')
             );
 
             return {{
-                x: data.map(record => record.index),
-                y: data.map(record => record[metric]),
+                x: initialData.map(record => record.index),
+                y: initialData.map(record => record[metric]),
                 type: 'bar',
                 name: metric,
                 hovertemplate: `<b>%{{customdata}}</b><br>${{metric}}: %{{y}}<extra></extra>`,
@@ -593,7 +685,7 @@ def dump_scatter(testname: str, report: PerfReport):
 
         const layout = {{
             title: {{
-                text: 'Performance Report',
+                text: `Performance Report - ${{currentTab}}`,
                 font: {{ size: 18 }},
                 x: 0.5,
                 xanchor: 'center'
@@ -656,9 +748,29 @@ def dump_scatter(testname: str, report: PerfReport):
             selections[param] = select.value;
         }});
 
-        const filteredData = data.filter(record =>
+        // Filter data based on parameter selections
+        let filteredData = data.filter(record =>
             Object.entries(selections).every(([param, value]) => !value || record[param] === value)
         );
+
+        // Filter by current tab (marker)
+        filteredData = filteredData.filter(record => record.marker === currentTab);
+
+        // Handle empty data case
+        if (filteredData.length === 0) {{
+            const layout = {{
+                title: {{
+                    text: `Performance Report - ${{currentTab}}`,
+                    font: {{ size: 18 }},
+                    x: 0.5,
+                    xanchor: 'center'
+                }},
+                xaxis: {{ title: 'No data available for current filters' }},
+                yaxis: {{ title: 'Cycles / Tile' }}
+            }};
+            Plotly.react(plotDiv, [], layout);
+            return;
+        }}
 
         const indices = filteredData.map(record => record.index);
 
@@ -683,7 +795,7 @@ def dump_scatter(testname: str, report: PerfReport):
 
         const layout = {{
             title: {{
-                text: 'Performance Report',
+                text: `Performance Report - ${{currentTab}}`,
                 font: {{ size: 18 }},
                 x: 0.5,
                 xanchor: 'center'
@@ -723,6 +835,7 @@ def dump_scatter(testname: str, report: PerfReport):
     }}
 
     // Initialize everything
+    createTabs();
     createControls();
     createPlot();
     </script>
