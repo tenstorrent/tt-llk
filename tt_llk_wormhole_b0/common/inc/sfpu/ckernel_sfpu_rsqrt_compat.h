@@ -63,7 +63,7 @@ sfpi_inline sfpi::vFloat _reciprocal_compat_(const sfpi::vFloat in)
     // Force sign to 1 (make number negative)
     sfpi::vFloat val = sfpi::setsgn(in, 1);
 
-    val = setexp(val, 126); // Set exponent to 126 to make the number in 0.5-1
+    val = sfpi::setexp(val, 126); // Set exponent to 126 to make the number in 0.5-1
     // Use 1.44 as first guess at x, ideal value would be 1.33.
     // Grayskull has hardwired 1.44 and uses it to avoid a load.
     // We use it here for consistency.
@@ -76,8 +76,8 @@ sfpi_inline sfpi::vFloat _reciprocal_compat_(const sfpi::vFloat in)
         result = result * (val * result + two);
     }
 
-    sfpi::vInt orig_exp = exexp(in);
-    sfpi::vInt new_exp  = exexp(result);
+    sfpi::vInt orig_exp = sfpi::exexp(in);
+    sfpi::vInt new_exp  = sfpi::exexp(result);
 
     // "Subtract" exponents, and re-bias.
     // Execute: -1 - exp, then exp += 127
@@ -94,7 +94,7 @@ sfpi_inline sfpi::vFloat _reciprocal_compat_(const sfpi::vFloat in)
     v_endif;
 
     // Set newly denormalized exponent to result exponent field
-    return setexp(result, new_exp);
+    return sfpi::setexp(result, new_exp);
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en>
@@ -117,7 +117,7 @@ inline void _calculate_rsqrt_compat_(const int iterations)
         }
         else
         {
-            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(out, 0));
+            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(sfpi::float_to_fp16b(out, 0));
         }
         sfpi::dst_reg++;
     }
@@ -153,7 +153,7 @@ inline void _calculate_reciprocal_compat_(const int iterations)
         }
         else
         {
-            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(float_to_fp16b(out, 0));
+            sfpi::dst_reg[0] = sfpi::reinterpret<sfpi::vFloat>(sfpi::float_to_fp16b(out, 0));
         }
         sfpi::dst_reg++;
     }

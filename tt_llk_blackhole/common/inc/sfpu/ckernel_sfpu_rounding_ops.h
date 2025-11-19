@@ -19,7 +19,7 @@ namespace sfpu
 inline sfpi::vInt _float_to_int32_(sfpi::vFloat in)
 {
     sfpi::vInt result;
-    sfpi::vInt exp = exexp(in); // extract exponent
+    sfpi::vInt exp = sfpi::exexp(in); // extract exponent
     v_if (exp < 0)
     {
         result = 0;
@@ -38,10 +38,10 @@ inline sfpi::vInt _float_to_int32_(sfpi::vFloat in)
     v_else
     {
         // extract mantissa
-        sfpi::vInt man = exman8(in);
+        sfpi::vInt man = sfpi::exman8(in);
         // shift the mantissa by (23-exponent) to the right
         sfpi::vInt shift = exp - 23; // 23 is number of mantissa in float32
-        man              = shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
+        man              = sfpi::shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
         // check sign
         v_if (in < 0)
         {
@@ -56,8 +56,8 @@ inline sfpi::vInt _float_to_int32_(sfpi::vFloat in)
 
 inline sfpi::vInt _float_to_int31_(sfpi::vFloat v)
 {
-    sfpi::vInt q = float_to_int16(v * 0x1p-15f, 0);
-    sfpi::vInt r = float_to_int16(v - int32_to_float(q, 0) * 0x1p15f, 0);
+    sfpi::vInt q = sfpi::float_to_int16(v * 0x1p-15f, 0);
+    sfpi::vInt r = sfpi::float_to_int16(v - sfpi::int32_to_float(q, 0) * 0x1p15f, 0);
     v_if (r < 0)
     {
         r = sfpi::setsgn(r, 0);
@@ -94,10 +94,10 @@ inline void _calculate_floor_()
         }
         else
         {
-            tmp = float_to_int16(result, 0);
+            tmp = sfpi::float_to_int16(result, 0);
         }
 
-        result = int32_to_float(tmp, 0);
+        result = sfpi::int32_to_float(tmp, 0);
 
         v_if (result > v)
         {
@@ -140,10 +140,10 @@ inline void _calculate_ceil_()
         }
         else
         {
-            tmp = float_to_int16(result, 0);
+            tmp = sfpi::float_to_int16(result, 0);
         }
 
-        result = int32_to_float(tmp, 0);
+        result = sfpi::int32_to_float(tmp, 0);
 
         v_if (result < v)
         {
@@ -188,10 +188,10 @@ inline void _calculate_trunc_()
         }
         else
         {
-            tmp = float_to_int16(result, 0);
+            tmp = sfpi::float_to_int16(result, 0);
         }
 
-        result = int32_to_float(tmp, 0);
+        result = sfpi::int32_to_float(tmp, 0);
 
         v_if (result > v)
         {
@@ -248,10 +248,10 @@ inline void _calculate_frac_()
         }
         else
         {
-            tmp = float_to_int16(result, 0);
+            tmp = sfpi::float_to_int16(result, 0);
         }
 
-        result = int32_to_float(tmp, 0);
+        result = sfpi::int32_to_float(tmp, 0);
 
         v_if (result > v)
         {
@@ -284,10 +284,10 @@ inline sfpi::vFloat _round_even_(sfpi::vFloat v)
     sfpi::vFloat result;
     v_if (sfpi::abs(v) < 0x1p30f)
     {
-        result = int32_to_float(_float_to_int31_(v), 0);
+        result = sfpi::int32_to_float(_float_to_int31_(v), 0);
         v_if (sfpi::abs(v - result) == 0.5F)
         {
-            sfpi::vInt res = float_to_int16(result, 0);
+            sfpi::vInt res = sfpi::float_to_int16(result, 0);
             res            = res & 0xFFFE; // 0xFFFE = 1111 1111 1111 1110
             result         = sfpi::int32_to_float(res, 0);
         }
