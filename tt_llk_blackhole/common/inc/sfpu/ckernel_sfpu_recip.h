@@ -59,7 +59,13 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 // Approximate reciprocal, with throughput of 1c/32.
 inline void _calculate_reciprocal_fast_7b_(const int iterations)
 {
-    ckernel_unpack_template::run(iterations, 0);
+#pragma GCC unroll 8
+    for (int d = 0; d < iterations; d++)
+    {
+        TTI_SFPLOADMACRO((0 << 2) | 0, 0, ADDR_MOD_6, 0);
+    }
+    // TODO see init function
+    // ckernel_unpack_template::run(iterations, 0);
 }
 
 // BF16 reciprocal, with throughput of 3c/32.
@@ -109,7 +115,6 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
             TTI_SFPNOP;
         }
     }
-    TTI_SFPNOP;
     TTI_SFPNOP;
 }
 
@@ -186,9 +191,10 @@ inline void _init_reciprocal_fast_7b_()
     // Misc: {UsesLoadMod0ForStore=1, WaitForElapsedInstructions=1} for macro 0.
     TTI_SFPCONFIG(0x110, 8, 1);
 
-    constexpr uint op = TT_OP_SFPLOADMACRO((0 << 2) | 0, 0, ADDR_MOD_6, 0);
-    ckernel_unpack_template tmp(false, false, op, 0, 0, 0, 0, 0, 0);
-    tmp.program();
+    // TODO this initialisation causes a hang on tt-llk tests for some reason
+    // constexpr uint op = TT_OP_SFPLOADMACRO((0 << 2) | 0, 0, ADDR_MOD_6, 0);
+    // ckernel_unpack_template tmp = ckernel_unpack_template::loopx1instr(op, TT_OP_NOP);
+    // tmp.program();
 }
 
 inline void _init_reciprocal_fast_8b_3c_()
