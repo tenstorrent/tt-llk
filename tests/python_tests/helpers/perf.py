@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
+import json
 import os
 import shutil
 from dataclasses import fields, is_dataclass
@@ -9,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import plotly.graph_objects as go
+import plotly
 import pytest
 from helpers.device import (
     BootMode,
@@ -141,7 +142,8 @@ def perf_benchmark(
     results = []
 
     for run_type in run_types:
-        assert run_type in SUPPORTED_RUNS, f"ERROR: run_type={run_type} not implemented"
+        if run_type not in SUPPORTED_RUNS:
+            raise AssertionError(f"ERROR: run_type={run_type} not implemented")
 
         get_stats = STATS_FUNCTION[run_type]
 
@@ -243,7 +245,8 @@ class PerfReport:
 
         # Fallback: everything before 'marker' column are sweep parameters
         columns = df.columns.tolist()
-        assert "marker" in columns, "DataFrame must contain 'marker' column"
+        if "marker" not in columns:
+            raise AssertionError("DataFrame must contain 'marker' column")
         marker_index = columns.index("marker")
         return columns[:marker_index]
 
@@ -260,7 +263,8 @@ class PerfReport:
 
         # Fallback: everything after 'marker' column are statistics
         columns = df.columns.tolist()
-        assert "marker" in columns, "DataFrame must contain 'marker' column"
+        if "marker" not in columns:
+            raise AssertionError("DataFrame must contain 'marker' column")
         marker_index = columns.index("marker")
         return columns[marker_index + 1 :]
 
@@ -376,55 +380,355 @@ def dump_report(testname: str, report: PerfReport):
 
 
 def dump_scatter(testname: str, report: PerfReport):
-    """Generate a scatter plot using plotly.graph_objects from PerfReport DataFrame"""
+    """Generate an interactive HTML performance report"""
 
-    if not report.sweep_names or not report.stat_names:
-        # This is possible on CI when the whole split of the test is skipped
-        return
+    if not report.sweep_names:
+        raise AssertionError(
+            "No sweep parameters found - cannot generate performance report"
+        )
+    if not report.stat_names:
+        raise AssertionError("No statistics found - cannot generate performance report")
 
     dir = create_benchmark_dir(testname)
     output_path = dir / f"{testname}.html"
 
-    # Get the DataFrame and extract data
+    # Get the DataFrame
     df = report.frame()
 
     if df.empty:
-        return
+        raise AssertionError("DataFrame is empty - no performance data to plot")
 
-    fig = go.Figure()
+    # Convert DataFrame to records for JavaScript consumption
+    records = df.to_dict("records")
 
-    # Get mean columns for plotting
-    mean_columns = [col for col in report.stat_names if col.startswith("mean")]
+    # Add index to each record for plotting
+    for i, record in enumerate(records):
+        record["index"] = i + 1
+        # Convert sweep parameter values to strings for consistent filtering
+        for param in report.sweep_names:
+            record[param] = str(record[param])
 
-    # Create hover text for each row
-    hover_text = []
-    for _, row in df.iterrows():
-        sweep_info = ", ".join(f"{name}={row[name]}" for name in report.sweep_names)
-        hover_text.append(sweep_info)
+    # Select only mean stats to plot and define default visible metric
+    stat_names_to_plot = [col for col in report.stat_names if col.startswith("mean")]
+    if not stat_names_to_plot:
+        raise AssertionError("No mean statistics found - cannot generate plots")
+    if "mean(L1_TO_L1)" in stat_names_to_plot:
+        default_visible_metric = "mean(L1_TO_L1)"
+    else:
+        default_visible_metric = stat_names_to_plot[0]
 
-    # For each mean statistic column, create a trace
-    for stat_name in mean_columns:
-        y_vals = df[stat_name].tolist()
+    # Get embedded Plotly.js as string
+    plotly_js_code = plotly.offline.get_plotlyjs()
 
-        fig.add_trace(
-            go.Scatter(
-                x=list(range(len(df))),
-                y=y_vals,
-                mode="markers+lines",
-                name=stat_name,
-                text=hover_text,
-                hoverinfo="text+y",
-            )
-        )
+    # Build custom HTML with fully embedded Plotly.js
+    html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Report: {testname}</title>
+    <script type="text/javascript">{plotly_js_code}</script>
+    <style>
+    html, body {{
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        font-family: sans-serif;
+        overflow-x: hidden;
+    }}
 
-    # X-axis label
-    xaxis_title = "Sweep index (see hover for values)"
+    .container {{
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100%;
+    }}
 
-    fig.update_layout(
-        title=f"Performance Scatter Plot: {testname}",
-        xaxis_title=xaxis_title,
-        yaxis_title="Cycles / Tile",
-        legend_title="Run Type / Stat",
-    )
+    h1 {{
+        margin: 15px 20px 10px 20px;
+        color: #333;
+        font-size: 24px;
+        flex-shrink: 0;
+    }}
 
-    fig.write_html(str(output_path))
+    .controls {{
+        margin: 10px 20px 15px 20px;
+        padding: 15px;
+        background-color: #f5f5f5;
+        border-radius: 5px;
+        flex-shrink: 0;
+    }}
+
+    .controls label {{
+        margin-right: 15px;
+        font-weight: bold;
+    }}
+
+    .controls button {{
+        margin-left: 20px;
+        padding: 5px 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+    }}
+
+    .controls button:hover {{
+        background-color: #0056b3;
+    }}
+
+    #plot {{
+        flex: 1;
+        margin: 0 20px 20px 20px;
+        min-height: 0;
+    }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Interactive Performance Sweep Report: {testname}</h1>
+        <div class="controls" id="controls"></div>
+        <div id="plot"></div>
+    </div>
+
+    <script>
+    const data = {json.dumps(records)};
+    const paramNames = {json.dumps(report.sweep_names)};
+    const metricNames = {json.dumps(stat_names_to_plot)};
+    const defaultVisibleMetric = {json.dumps(default_visible_metric)};
+
+    let selections = {{}};
+    let metricVisibility = {{}};
+
+    // Initialize selections and visibility
+    paramNames.forEach(param => selections[param] = '');
+    metricNames.forEach(metric => {{
+        metricVisibility[metric] = (metric === defaultVisibleMetric) ? true : 'legendonly';
+    }});
+
+    // Create controls
+    function createControls() {{
+        const controlsDiv = document.getElementById('controls');
+
+        // Create dropdowns for each parameter
+        paramNames.forEach(param => {{
+            const label = document.createElement('label');
+            label.textContent = param + ': ';
+            const select = document.createElement('select');
+            select.id = param;
+            select.onchange = () => {{
+                selections[param] = select.value;
+                updateDropdownOptions();
+                updatePlot();
+            }};
+            label.appendChild(select);
+            controlsDiv.appendChild(label);
+        }});
+
+        // Add reset all filters button
+        const resetBtn = document.createElement('button');
+        resetBtn.textContent = 'Reset All Filters';
+        resetBtn.onclick = () => {{
+            // Reset all selections
+            paramNames.forEach(param => {{
+                selections[param] = '';
+                document.getElementById(param).value = '';
+            }});
+            updateDropdownOptions();
+            updatePlot();
+        }};
+        controlsDiv.appendChild(resetBtn);
+
+        updateDropdownOptions();
+    }}
+
+    // Update dropdown options based on current selections
+    function updateDropdownOptions() {{
+        // Filter data based on current selections
+        const filteredData = data.filter(record =>
+            Object.entries(selections).every(([param, value]) => !value || record[param] === value)
+        );
+
+        // Update each dropdown with available values
+        paramNames.forEach(param => {{
+            const select = document.getElementById(param);
+            const currentValue = select.value;
+            const availableValues = [...new Set(filteredData.map(record => record[param]))];
+
+            // Rebuild options
+            select.innerHTML = '<option value="">All</option>' +
+                availableValues.map(value => {{
+                    const selected = value === currentValue ? 'selected' : '';
+                    return `<option value="${{value}}" ${{selected}}>${{value}}</option>`;
+                }}).join('');
+
+            // Update selection
+            selections[param] = select.value;
+        }});
+    }}
+
+    // Create the plot
+    function createPlot() {{
+        const plotDiv = document.getElementById('plot');
+
+        // Create initial traces for all metrics
+        const traces = metricNames.map(metric => {{
+            const hoverText = data.map(record =>
+                paramNames.map(param => `${{param}}=${{record[param]}}`).join(', ')
+            );
+
+            return {{
+                x: data.map(record => record.index),
+                y: data.map(record => record[metric]),
+                type: 'bar',
+                name: metric,
+                hovertemplate: `<b>%{{customdata}}</b><br>${{metric}}: %{{y}}<extra></extra>`,
+                customdata: hoverText,
+                visible: metricVisibility[metric]
+            }};
+        }});
+
+        const layout = {{
+            title: {{
+                text: 'Performance Report',
+                font: {{ size: 18 }},
+                x: 0.5,
+                xanchor: 'center'
+            }},
+            xaxis: {{
+                title: {{
+                    text: 'Sweep Index (hover for parameter details)',
+                    font: {{ size: 14, color: '#333' }}
+                }},
+                showgrid: true,
+                gridcolor: '#e0e0e0',
+                tickfont: {{ size: 12, color: '#333' }}
+            }},
+            yaxis: {{
+                title: {{
+                    text: 'Cycles / Tile',
+                    font: {{ size: 14, color: '#333' }}
+                }},
+                showgrid: true,
+                gridcolor: '#e0e0e0',
+                tickfont: {{ size: 12, color: '#333' }}
+            }},
+            legend: {{
+                title: {{ text: 'Metrics', font: {{ size: 12 }} }},
+                orientation: 'v',
+                x: 1.02,
+                xanchor: 'left',
+                y: 1,
+                yanchor: 'top'
+            }},
+            template: 'plotly_white',
+            margin: {{ l: 60, r: 120, t: 50, b: 60 }},
+            autosize: true
+        }};
+
+        Plotly.newPlot(plotDiv, traces, layout, {{responsive: true, displayModeBar: true}});
+
+        // Handle legend clicks to toggle metric visibility
+        plotDiv.on('plotly_legendclick', function(eventData) {{
+            const metricName = eventData.data[eventData.curveNumber].name;
+            const currentVisibility = metricVisibility[metricName];
+            metricVisibility[metricName] = (currentVisibility === true) ? 'legendonly' : true;
+            updatePlot();
+            return false; // Prevent default legend click behavior
+        }});
+
+        // Resize plot when window resizes
+        window.addEventListener('resize', function() {{
+            Plotly.Plots.resize(plotDiv);
+        }});
+    }}
+
+    // Update the plot based on current filters and settings
+    function updatePlot() {{
+        const plotDiv = document.getElementById('plot');
+
+        // Apply filters
+        paramNames.forEach(param => {{
+            const select = document.getElementById(param);
+            selections[param] = select.value;
+        }});
+
+        const filteredData = data.filter(record =>
+            Object.entries(selections).every(([param, value]) => !value || record[param] === value)
+        );
+
+        const indices = filteredData.map(record => record.index);
+
+        // Create traces for visible metrics
+        const traces = metricNames.map(metric => {{
+            const visible = metricVisibility[metric];
+            const yValues = filteredData.map(record => record[metric]);
+            const hoverText = filteredData.map(record =>
+                paramNames.map(param => `${{param}}=${{record[param]}}`).join(', ')
+            );
+
+            return {{
+                x: indices,
+                y: yValues,
+                type: 'bar',
+                name: metric,
+                visible: visible,
+                customdata: hoverText,
+                hovertemplate: `<b>%{{customdata}}</b><br>${{metric}}: %{{y}}<extra></extra>`
+            }};
+        }});
+
+        const layout = {{
+            title: {{
+                text: 'Performance Report',
+                font: {{ size: 18 }},
+                x: 0.5,
+                xanchor: 'center'
+            }},
+            xaxis: {{
+                title: {{
+                    text: 'Sweep Index (hover for parameter details)',
+                    font: {{ size: 14, color: '#333' }}
+                }},
+                showgrid: true,
+                gridcolor: '#e0e0e0',
+                tickfont: {{ size: 12, color: '#333' }}
+            }},
+            yaxis: {{
+                title: {{
+                    text: 'Cycles / Tile',
+                    font: {{ size: 14, color: '#333' }}
+                }},
+                showgrid: true,
+                gridcolor: '#e0e0e0',
+                tickfont: {{ size: 12, color: '#333' }}
+            }},
+            legend: {{
+                title: {{ text: 'Metrics', font: {{ size: 12 }} }},
+                orientation: 'v',
+                x: 1.02,
+                xanchor: 'left',
+                y: 1,
+                yanchor: 'top'
+            }},
+            template: 'plotly_white',
+            margin: {{ l: 60, r: 120, t: 50, b: 60 }},
+            autosize: true
+        }};
+
+        Plotly.react(plotDiv, traces, layout);
+    }}
+
+    // Initialize everything
+    createControls();
+    createPlot();
+    </script>
+</body>
+</html>
+"""
+
+    with open(str(output_path), "w") as f:
+        f.write(html)
