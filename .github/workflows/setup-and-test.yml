@@ -110,8 +110,7 @@ jobs:
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
             cd ../
             make merge_coverage_data
-            mv /tmp/tt-llk-build/merged_coverage.info \
-              /tmp/tt-llk-build/code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
+            mv merge_coverage.info code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
           fi
 
       # Step 4: Zip performance data if perf tests were run
@@ -127,8 +126,8 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always() && inputs.coverage
         with:
-          name: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
-          path: /tmp/tt-llk-build/code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
+          name: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
+          path: tests/code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
 
       # Step 5: Upload performance data
       - name: Upload performance data

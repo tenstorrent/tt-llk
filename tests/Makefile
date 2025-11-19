@@ -240,14 +240,16 @@ merge_coverage_data:
         cp $$first_file $(INFO_PATH); \
     fi; \
 	idx=0; \
-	total=$$(find $(INFO_FILES_DIR) -name 'coverage_*.info' | wc -l); \
-    find $(INFO_FILES_DIR) -name 'coverage_*.info' | while read f; do \
+	total=$$(find $(INFO_FILES_DIR) -name '*.info' | wc -l); \
+    find $(INFO_FILES_DIR) -name '*.info' | while read f; do \
 		idx=$$((idx+1)); \
         if [ "$$f" != "$(INFO_PATH)" ]; then \
 			printf "Processing file %s/%s: %s\r" "$$idx" "$$total" "$$f"; \
             lcov -q -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH) > /dev/null 2>&1; \
         fi; \
     done;
+
+	@cp $(INFO_PATH) ./merged_coverage.info
 
 generate_report:
 	lcov --remove $(INFO_PATH) \
