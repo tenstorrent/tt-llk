@@ -191,8 +191,8 @@ inline void _init_reciprocal_fast_7b_()
 
 inline void _init_reciprocal_fast_8b_3c_()
 {
-    int x = 1;
-    int t = 1;
+    constexpr int x = 1;
+    constexpr int t = 1;
 
     // InstructionTemplate[0]
     // SFPARECIP(VB=0, VC=VD, VD=VD)
