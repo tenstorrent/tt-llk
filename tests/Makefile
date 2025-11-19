@@ -32,7 +32,7 @@ else
 $(error must provide archname or CHIP_ARCH environment variable (wormhole / blackhole))
 endif
 
-BUILD_DIR       ?= build/$(ARCH)
+BUILD_DIR       ?= /tmp/tt-llk-build
 
 SHARED_DIR      := $(BUILD_DIR)/shared
 COVERAGE_REPORT_DIR	:= $(BUILD_DIR)/coverage_report
@@ -216,14 +216,6 @@ $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR) $(INFO_
 # create folder structure for test specific files
 $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR) $(COVERAGE_REPORT_DIR):
 	mkdir -p $@
-
-do_one_test:
-	pytest -m "not perf and not nightly" \
-        --random-order-bucket=global \
-        --override-ini="addopts=-v" --timeout=60 \
-        --coverage \
-        --junitxml=pytest-report-wormhole-4.xml \
-		./test_matmul.py
 
 INFO_PATH		:= $(BUILD_DIR)/merged_coverage.info
 INFO_PATH_FILTER		:= $(BUILD_DIR)/merged_coverage_filtered.info

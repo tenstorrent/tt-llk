@@ -93,21 +93,25 @@ def reset_mailboxes_fixture():
     yield
 
 
-@pytest.fixture
-def with_coverage(request):
-    return request.config.getoption("--coverage")
-
-
 @pytest.fixture()
-def worker_index(worker_id):
-    return worker_id
+def workers_tensix_coordinates(worker_id):
+    if worker_id == "master":
+        return "0,0"
+    index = int(worker_id[2:])
+    row, col = divmod(index, 8)
+    return f"{row},{col}"
 
 
 def pytest_configure(config):
     log_file = "pytest_errors.log"
     # Clear the log file if it exists
-    if os.path.exists(log_file):
-        os.remove(log_file)
+
+    try:
+        if os.path.exists(log_file):
+            os.remove(log_file)
+    except:
+        pass
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",

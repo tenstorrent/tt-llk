@@ -541,7 +541,7 @@ def generate_build_header(test_config):
 
 def write_build_header(test_config, build_dir):
     header_content = generate_build_header(test_config)
-    with open(build_dir / "build.h", "w") as f:
+    with open(f"{build_dir}/build.h", "w") as f:
         f.write(header_content)
 
 
@@ -575,32 +575,18 @@ def build_test(
     llk_home = Path(os.environ.get("LLK_HOME"))
     tests_dir = str((llk_home / "tests").absolute())
 
-    CHIP_ARCH = get_chip_architecture()
-    LLK_HOME = os.environ.get("LLK_HOME")
-    BUILD_DIR = (
-        Path(LLK_HOME)
-        / "tests"
-        / "build"
-        / CHIP_ARCH.value
-        / test_config["testname"]
-        / variant_id
-        / "obj"
-    )
-    os.makedirs(BUILD_DIR, exist_ok=True)
-
-    BUILD_DIR = (
-        Path(LLK_HOME)
-        / "tests"
-        / "build"
-        / CHIP_ARCH.value
-        / test_config["testname"]
-        / variant_id
+    os.makedirs(
+        f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}/obj", exist_ok=True
     )
 
-    write_build_header(test_config, BUILD_DIR)
+    write_build_header(
+        test_config, f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}"
+    )
+
     make_cmd = generate_make_command(
         test_config, variant_id, with_coverage, boot_mode, profiler_build
     )
+
     run_shell_command(make_cmd, cwd=tests_dir)
 
 
@@ -623,20 +609,11 @@ def run_test(
     run_elf_files(test_config["testname"], variant_id, boot_mode, location=location)
     wait_for_tensix_operations_finished(location)
 
-    CHIP_ARCH = get_chip_architecture()
-    LLK_HOME = os.environ.get("LLK_HOME")
-    BUILD_DIR = (
-        Path(LLK_HOME)
-        / "tests"
-        / "build"
-        / CHIP_ARCH.value
-        / test_config["testname"]
-        / variant_id
-    )
-
     if test_target.with_coverage:
-        pull_coverage_data(test_config["testname"], variant_id, BUILD_DIR, 0, location)
-
-    import shutil
-
-    shutil.rmtree(BUILD_DIR)
+        pull_coverage_data(
+            test_config["testname"],
+            variant_id,
+            f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}",
+            0,
+            location,
+        )
