@@ -260,7 +260,7 @@ generate_report:
 # Clean
 # =========================
 clean:
-	$(RMDIR) build
+	$(RMDIR) $(BUILD_DIR)
 	$(RMDIR) __pycache__
 	$(RMDIR) .pytest_cache
 	$(MAKE) -C python_tests clean

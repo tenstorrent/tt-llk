@@ -110,6 +110,8 @@ jobs:
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
             cd ../
             make merge_coverage_data
+            mv /tmp/tt-llk-build/merged_coverage.info \
+              /tmp/tt-llk-build/code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
           fi
 
       # Step 4: Zip performance data if perf tests were run
@@ -126,7 +128,7 @@ jobs:
         if: always() && inputs.coverage
         with:
           name: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
-          path: tests/build/${{ env.CHIP_ARCH }}/merged_coverage.info
+          path: /tmp/tt-llk-build/code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
 
       # Step 5: Upload performance data
       - name: Upload performance data
@@ -162,12 +164,12 @@ jobs:
       image: ${{ inputs.docker_image }}
     needs: setup-and-test
     if: inputs.coverage == true
-    # environment:
-    #   name: github-pages
-    #   url: ${{ steps.deployment.outputs.page_url }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     permissions:
-      # pages: write
-      # id-token: write
+      pages: write
+      id-token: write
       contents: read
     steps:
       - name: Set CHIP_ARCH
@@ -190,24 +192,14 @@ jobs:
       - name: Unzip artefacts, merge coverage data, and generate HTML report
         shell: bash
         run: |
-          mkdir -p ./extracted_coverage_files
-          for dir in ./merged_coverage_files/*/; do
-            if [ -d "$dir" ]; then
-              folder_name=$(basename "$dir")
-              if [ -f "$dir/merged_coverage.info" ]; then
-                cp "$dir/merged_coverage.info" "./extracted_coverage_files/${folder_name}"
-              fi
-            fi
-          done
-
           echo "-- Coverage files pulled from runners --"
-          find ./extracted_coverage_files/ -name "*.info"
+          find ./merged_coverage_files/ -name "*.info"
 
-          first=$(ls ./extracted_coverage_files | head -n 1)
-          cp ./extracted_coverage_files/"$first" merged.info
+          first=$(ls ./merged_coverage_files | head -n 1)
+          cp ./merged_coverage_files/"$first" merged.info
 
-          for f in $(find ./extracted_coverage_files/ -name "*.info"); do
-            if [ "$f" != ./extracted_coverage_files/"$first" ]; then
+          for f in $(find ./merged_coverage_files/ -name "*.info"); do
+            if [ "$f" != ./merged_coverage_files/"$first" ]; then
               lcov -q -a merged.info -a "$f" -o ./merged.info
             fi
           done
@@ -223,19 +215,19 @@ jobs:
           name: coverage_report_${{ env.CHIP_ARCH }}
           path: ./coverage_html_${{ env.CHIP_ARCH }}
 
-      # - name: Setup Pages
-      #   uses: actions/configure-pages@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
-      # - name: Upload artifact for Pages
-      #   uses: actions/upload-pages-artifact@v3
-      #   with:
-      #     path: ./coverage_html_${{ env.CHIP_ARCH }}
+      - name: Upload artifact for Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./coverage_html_${{ env.CHIP_ARCH }}
 
-      # - name: Deploy to GitHub Pages
-      #   id: deployment
-      #   uses: actions/deploy-pages@v4
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
-      # - name: Comment deployment URL
-      #   run: |
-      #     echo "### 📊 Coverage Report Deployed!" >> $GITHUB_STEP_SUMMARY
-      #     echo "🔗 View at: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+      - name: Comment deployment URL
+        run: |
+          echo "### 📊 Coverage Report Deployed!" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 View at: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
