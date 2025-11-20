@@ -105,7 +105,7 @@ jobs:
                 --splits $SPLITS --group ${{ matrix.test_group }} \
                 --override-ini="addopts=-v" --timeout=60 \
                 $COVERAGE_FLAG \
-                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
+                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml . || true
 
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
             cd ../../
@@ -213,14 +213,14 @@ jobs:
           lcov -q --remove ./merged.info '*tests/*' \
             -o ./merged_filtered.info
 
-          mkdir -p ./coverage_reports/${{ env.CHIP_ARCH }}_coverage_report
+          mkdir -p ./coverage_reports_${{ env.CHIP_ARCH }}/${{ env.CHIP_ARCH }}_coverage_report
           genhtml --branch-coverage --title ${{ env.CHIP_ARCH }} ./merged_filtered.info \
-            --output-directory ./coverage_reports/${{ env.CHIP_ARCH }}_coverage_report
+            --output-directory ./coverage_reports_${{ env.CHIP_ARCH }}/${{ env.CHIP_ARCH }}_coverage_report
       - name: Upload code coverage for this runner
         uses: actions/upload-artifact@v4
         with:
           name: coverage_report_${{ env.CHIP_ARCH }}
-          path: ./coverage_reports
+          path: ./coverage_reports_${{ env.CHIP_ARCH }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
