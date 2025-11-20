@@ -572,8 +572,8 @@ def wait_for_tensix_operations_finished(
     backoff = 0.1  # Initial backoff time in seconds
 
     completed = set()
-end_time = start_time + timeout
-    while time.time() - start_time < timeout:
+    end_time = start_time + timeout
+    while time.time() < end_time:
         for mailbox in mailboxes - completed:
             if read_word_from_device(core_loc, mailbox.value) == KERNEL_COMPLETE:
                 completed.add(mailbox)
