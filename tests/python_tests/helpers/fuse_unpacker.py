@@ -47,6 +47,26 @@ class MatmulUnpacker(Unpacker):
         dest_acc = operation_config.dest_acc
         dest_acc_value = dest_acc.value
 
+        TILE_SIZES = {
+            DataFormat.Bfp8_b: 68,
+            DataFormat.Float32: 256,
+        }
+
+        # pack_size = TILE_SIZES.get(formats.output_format, 128)
+        unpack_size_a = TILE_SIZES.get(formats.input_format, 128)
+        unpack_size_b = TILE_SIZES.get(formats.input_format, 128)
+
+        num_faces_A = config.get("num_faces_A", config.get("num_faces", 4))
+
+        in0_tile_r_dim = config.get("in0_tile_r_dim", 32)
+        face_r_dim = config.get("face_r_dim", 16)
+        tiny_tiles = config.get("tiny_tiles", False)
+
+        if tiny_tiles:
+            unpack_size_a = (unpack_size_a // num_faces_A) * (
+                in0_tile_r_dim // face_r_dim
+            )
+
         code = ""
 
         if stage > 0:
