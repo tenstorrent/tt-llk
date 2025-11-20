@@ -71,9 +71,9 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     test_name="fuse_test",
     math_fidelity=[
         MathFidelity.LoFi,
-        # MathFidelity.HiFi2,
-        # MathFidelity.HiFi3,
-        # MathFidelity.HiFi4,
+        MathFidelity.HiFi2,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
     ],
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
@@ -87,7 +87,6 @@ def test_matmul(
     input_A_dimensions = format_dest_acc_and_dims[2][0]
     input_B_dimensions = format_dest_acc_and_dims[2][1]
 
-    print(input_A_dimensions, input_B_dimensions)
     src_A, _, tile_cnt_A = generate_stimuli(
         formats.input_format,
         formats.input_format,
