@@ -18,7 +18,7 @@
 #define LLK_ASSERT(condition, message) \
     do                                 \
     {                                  \
-        if (UNLIKELY(!(condition)))        \
+        if (UNLIKELY(!(condition)))    \
         {                              \
             asm volatile("ebreak");    \
             UNREACHABLE();             \
