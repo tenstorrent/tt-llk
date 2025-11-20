@@ -295,7 +295,7 @@ inline void _init_reduce_max_col_()
 
     // ***********************************************************
     // Record replay buffer
-    lltt::record<lltt::NoExec>(0, 7);
+    lltt::record<lltt::NoExec>(0, 16);
 
     // Use LOADMACRO with lreg_ind=5 (loads to LREG5, uses sequence 1 since bits[3:2]=01)
     TTI_SFPLOADMACRO(5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
@@ -308,12 +308,33 @@ inline void _init_reduce_max_col_()
     // Use LOADMACRO with lreg_ind=0 (loads to LREG0, uses sequence 0)
     TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_0, 0);
 
-    // dummy load instead of INCRWC by 4
-    //  TTI_INCRWC(0, 4, 0, 0);
-
-    // // Dummy loads used to increment dest counters
-    // //dummy load instead of INCRWC by 16
+    // dummy load instead of INCRWC by 16
     TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
+
+    // Epilogue code.
+    // Finalize sorting values in LREGS 0-3 and place maximum into Dest reg row 0
+
+    TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
+
+    /*
+    instr_mod1: the values are compared and conditionally exchanged.
+    Smaller value is stored in lreg_dest and larger into lreg_src_c
+    */
+
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+    TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
+
+    // F0
+    TTI_SFPSTORE(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+    TTI_SFPSTORE(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+
+    // F1
+    TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
+    TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+
     // ***********************************************************
 }
 
@@ -353,29 +374,7 @@ inline void _calculate_reduce_max_col_(const uint32_t block_height)
 
 inline void epilogue_reduce_max_col_()
 {
-    // Epilogue code.
-    // Finalize sorting values in LREGS 0-3 and place maximum into Dest reg row 0
-
-    TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
-
-    /*
-    instr_mod1: the values are compared and conditionally exchanged.
-    Smaller value is stored in lreg_dest and larger into lreg_src_c
-    */
-
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
-
-    TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
-
-    // F0
-    TTI_SFPSTORE(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-    TTI_SFPSTORE(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
-
-    // F1
-    TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
-    TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+    lltt::replay(7, 9);
 }
 
 /**
