@@ -110,6 +110,9 @@ jobs:
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
             cd ../
 
+            echo "ASKDJHASKJDHASKJDHASKJH"
+            ls "${COVERAGE_DIR}"
+
             COVERAGE_DIR=/tmp/tt-llk-build/coverage_info
             INFO_PATH=/tmp/tt-llk-build/merged_coverage.info
 
@@ -127,8 +130,6 @@ jobs:
               # Merge remaining files
               total=$(find "${COVERAGE_DIR}" -name '*.info' | wc -l)
               idx=0
-
-              ls "${COVERAGE_DIR}"
 
               find "${COVERAGE_DIR}" -name '*.info' | while read -r f; do
                 idx=$((idx + 1))
