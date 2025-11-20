@@ -110,11 +110,11 @@ jobs:
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
             cd ../
 
-            echo "ASKDJHASKJDHASKJDHASKJH"
-            ls "${COVERAGE_DIR}"
-
             COVERAGE_DIR=/tmp/tt-llk-build/coverage_info
             INFO_PATH=/tmp/tt-llk-build/merged_coverage.info
+
+            echo "ASKDJHASKJDHASKJDHASKJH"
+            ls "${COVERAGE_DIR}"
 
             if [ ! -d "${COVERAGE_DIR}" ]; then
               echo "${COVERAGE_DIR} does not exist. Early exit."
