@@ -510,7 +510,7 @@ def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
     block = device.get_block(coordinate)
     risc_debug = block.get_risc_debug(risc_name)
 
-    return risc_debug.is_ebreak_hit():
+    return risc_debug.is_ebreak_hit()
 
 
 def _print_callstack(risc_name: str, callstack: list[CallstackEntry]):
