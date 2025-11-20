@@ -108,42 +108,13 @@ jobs:
                 --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml ./test_matmul.py
 
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
-            cd ../
-
-            COVERAGE_DIR=/tmp/tt-llk-build/coverage_info
+            cd ../../
+            python3 ./infra/combine_coverage_files.py
             INFO_PATH=/tmp/tt-llk-build/merged_coverage.info
-
-            echo "ASKDJHASKJDHASKJDHASKJH"
-            ls "${COVERAGE_DIR}"
-
-            if [ ! -d "${COVERAGE_DIR}" ]; then
-              echo "${COVERAGE_DIR} does not exist. Early exit."
-            else
-              # Initialize merged file with first .info file
-              if [ ! -f "${INFO_PATH}" ]; then
-                first_file=$(find "${COVERAGE_DIR}" -name '*.info' | head -n 1)
-                if [ -n "$first_file" ]; then
-                  cp "$first_file" "${INFO_PATH}"
-                fi
-              fi
-
-              for f in $(find "${COVERAGE_DIR}" -name '*.info'); do
-                if [ "$f" != "${INFO_PATH}" ]; then
-                  printf "Processing file %s\n""$f"
-                  lcov -q -a "${INFO_PATH}" -a "$f" -o "${INFO_PATH}"  2>&1 || {
-                    echo "Warning: Failed to merge $f, skipping"
-                    continue
-                  }
-                fi
-              done
-
-              # Copy merged result to output location
-              if [ -f "${INFO_PATH}" ]; then
-                cp "${INFO_PATH}" ./code-coverage-${CHIP_ARCH}-${{ matrix.test_group }}.info || {
-                  echo "Failed to copy merged coverage file"
-                  exit 1
-                }
-              fi
+            if [ -f "${INFO_PATH}" ]; then
+              mv "${INFO_PATH}" ./code-coverage-${CHIP_ARCH}-${{ matrix.test_group }}.info || {
+                echo "Failed to copy merged coverage file, probably no tests ran"
+              }
             fi
           fi
 
@@ -161,7 +132,7 @@ jobs:
         if: always() && inputs.coverage
         with:
           name: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
-          path: tests/code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
+          path: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
 
       # Step 5: Upload performance data
       - name: Upload performance data
