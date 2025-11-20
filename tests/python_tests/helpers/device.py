@@ -8,6 +8,7 @@ from enum import Enum, IntEnum
 from pathlib import Path
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from helpers.hardware_controller import HardwareController
 from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.debug_tensix import TensixDebug
 from ttexalens.hardware.risc_debug import CallstackEntry, RiscDebug, RiscLocation
@@ -78,6 +79,9 @@ class RiscCore(IntEnum):
     TRISC1 = 12 if get_chip_architecture() == ChipArchitecture.QUASAR else 13
     TRISC2 = 13 if get_chip_architecture() == ChipArchitecture.QUASAR else 14
     TRISC3 = 14 if get_chip_architecture() == ChipArchitecture.QUASAR else INVALID_CORE
+
+    def __str__(self):
+        return self.name.lower()
 
 
 # Constant - list of all valid cores on the chip
@@ -533,16 +537,19 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]):
 
 
 def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
-    trisc_names = ["trisc0", "trisc1", "trisc2"]
+    trisc_cores = [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2]
     assertion_hits = []
 
-    for risc_name in trisc_names:
+    for core in trisc_cores:
+        risc_name = str(core)
         if is_assert_hit(risc_name, core_loc=core_loc, device_id=device_id):
             _print_callstack(
                 risc_name,
                 callstack(core_loc, elfs, risc_name=risc_name, device_id=device_id),
             )
             assertion_hits.append(risc_name)
+
+    HardwareController().reset_card()
 
     if assertion_hits:
         raise AssertionError(
@@ -551,7 +558,7 @@ def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
 
 
 def wait_for_tensix_operations_finished(
-    elfs, core_loc="0,0", timeout=30, max_backoff=5
+    elfs, core_loc="0,0", timeout=10, max_backoff=5
 ):
     """
     Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
