@@ -84,6 +84,7 @@ jobs:
         env:
           TEST_SPLITS: ${{ inputs.test_splits }}
         run: |
+          set -x
           CHIP_ARCH=unknown
           if [[ "${{ inputs.runs_on }}" =~ n150 ]]; then
             CHIP_ARCH=wormhole
@@ -242,13 +243,14 @@ jobs:
           lcov -q --remove ./merged.info '*tests/*' \
             -o ./merged_filtered.info
 
-          mkdir -p coverage_html_${{ env.CHIP_ARCH }}
-          genhtml --branch-coverage ./merged_filtered.info --output-directory coverage_html_${{ env.CHIP_ARCH }}
+          mkdir -p ./coverage_reports/coverage_html_${{ env.CHIP_ARCH }}
+          genhtml --branch-coverage ./merged_filtered.info \
+            --output-directory ./coverage_reports/coverage_html_${{ env.CHIP_ARCH }}
       - name: Upload code coverage for this runner
         uses: actions/upload-artifact@v4
         with:
           name: coverage_report_${{ env.CHIP_ARCH }}
-          path: ./coverage_html_${{ env.CHIP_ARCH }}
+          path: ./coverage_reports/coverage_html_${{ env.CHIP_ARCH }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -256,13 +258,8 @@ jobs:
       - name: Upload artifact for Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./coverage_html_${{ env.CHIP_ARCH }}
+          path: ./coverage_reports/coverage_html_${{ env.CHIP_ARCH }}
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-      - name: Comment deployment URL
-        run: |
-          echo "### 📊 Coverage Report Deployed!" >> $GITHUB_STEP_SUMMARY
-          echo "🔗 View at: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
