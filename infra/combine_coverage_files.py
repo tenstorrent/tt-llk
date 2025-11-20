@@ -47,10 +47,12 @@ def merge_coverage_files(coverage_dir, output_path):
             print(f"Failed to initialize: {stderr}")
             return False
 
-    for info_file in info_files:
+    total = len(info_files)
+    for idx, info_file in enumerate(info_files, 1):
         if info_file == merged_path:
             continue
 
+        print(f"Processing file {idx}/{total}: {info_file}")
         cmd = f"lcov -q -a '{merged_path}' -a '{info_file}' -o '{merged_path}'"
         success, stdout, stderr = run_command(cmd, check=False)
 
@@ -58,6 +60,8 @@ def merge_coverage_files(coverage_dir, output_path):
             print(f"Warning: Failed to merge {info_file}, skipping")
             print(f"Error: {stderr}")
             continue
+
+    return True
 
 
 def main():
