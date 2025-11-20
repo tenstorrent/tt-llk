@@ -132,13 +132,19 @@ jobs:
                 idx=$((idx + 1))
                 if [ "$f" != "${INFO_PATH}" ]; then
                   printf "Processing file %s/%s: %s\n" "$idx" "$total" "$f"
-                  lcov -q -a "${INFO_PATH}" -a "$f" -o "${INFO_PATH}"
+                  lcov -q -a "${INFO_PATH}" -a "$f" -o "${INFO_PATH}"  2>&1 || {
+                    echo "Warning: Failed to merge $f, skipping"
+                    continue
+                  }
                 fi
               done
 
               # Copy merged result to output location
               if [ -f "${INFO_PATH}" ]; then
-                cp "${INFO_PATH}" ./code-coverage-${CHIP_ARCH}-${{ matrix.test_group }}.info
+                cp "${INFO_PATH}" ./code-coverage-${CHIP_ARCH}-${{ matrix.test_group }}.info || {
+                  echo "Failed to copy merged coverage file"
+                  exit 1
+                }
               fi
             fi
           fi
@@ -238,9 +244,9 @@ jobs:
           lcov -q --remove ./merged.info '*tests/*' \
             -o ./merged_filtered.info
 
-          mkdir -p ./coverage_reports/coverage_html_${{ env.CHIP_ARCH }}
+          mkdir -p ./coverage_reports/${{ env.CHIP_ARCH }}_coverage_report
           genhtml --branch-coverage ./merged_filtered.info \
-            --output-directory ./coverage_reports/coverage_html_${{ env.CHIP_ARCH }}
+            --output-directory ./coverage_reports/${{ env.CHIP_ARCH }}_coverage_report
       - name: Upload code coverage for this runner
         uses: actions/upload-artifact@v4
         with:
