@@ -127,14 +127,9 @@ jobs:
                 fi
               fi
 
-              # Merge remaining files
-              total=$(find "${COVERAGE_DIR}" -name '*.info' | wc -l)
-              idx=0
-
-              find "${COVERAGE_DIR}" -name '*.info' | while read -r f; do
-                idx=$((idx + 1))
+              for f in $(find "${COVERAGE_DIR}" -name '*.info'); do
                 if [ "$f" != "${INFO_PATH}" ]; then
-                  printf "Processing file %s/%s: %s\n" "$idx" "$total" "$f"
+                  printf "Processing file %s\n""$f"
                   lcov -q -a "${INFO_PATH}" -a "$f" -o "${INFO_PATH}"  2>&1 || {
                     echo "Warning: Failed to merge $f, skipping"
                     continue
