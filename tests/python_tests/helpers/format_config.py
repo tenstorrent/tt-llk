@@ -1,9 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
+import math
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Tuple
+
+import numpy as np
 
 
 class DataFormatInfo:
@@ -101,6 +104,179 @@ class DataFormat(Enum):
         if self.is_mx_format():
             return 32
         raise ValueError(f"{self} is not an MX format")
+
+
+# ============================================================================
+# MX (Microscaling) Format Constants and Utilities
+# ============================================================================
+
+# MX format constants
+MXFP8_BLOCK_SIZE = 32  # Fixed block size per OCP MX specification
+
+
+def encode_e8m0_scale(max_abs_value, element_max_normal):
+    """
+    Encode a scale factor as E8M0 (8-bit exponent, no mantissa, bias=127).
+
+    Per OCP MX spec Section 2.B (Gorodecky et al., 5 Nov 2024):
+    e = ⌈log₂(amax/destmax)⌉ (round up to ensure no overflow)
+    X = 2^clamp(e, -127, 127) + bias
+
+    This "round up" approach ensures post-scaling values do not exceed
+    representable FP8 range, minimizing quantization error.
+
+    Args:
+        max_abs_value: Maximum absolute value in the block
+        element_max_normal: Maximum normal value for element format (e.g., 448 for E4M3, 57344 for E5M2)
+
+    Returns:
+        E8M0 encoded scale (0-255), where 255 = NaN
+    """
+    if max_abs_value == 0 or np.isnan(max_abs_value):
+        return 127  # Scale = 2^0 = 1 (neutral scale)
+
+    # Calculate exponent: ceil(log2(max_value / element_max)) per OCP spec
+    scale_ratio = max_abs_value / element_max_normal
+    exponent = math.ceil(math.log2(scale_ratio))
+
+    # Clamp to E8M0 range and add bias
+    return int(max(-127, min(127, exponent)) + 127)
+
+
+def decode_e8m0_scale(e8m0_value):
+    """
+    Decode E8M0 scale factor to float.
+
+    Args:
+        e8m0_value: E8M0 encoded scale (0-255)
+
+    Returns:
+        Scale factor as float (2**exponent), or NaN if e8m0_value = 255
+    """
+    if e8m0_value == 255:
+        return float("nan")  # NaN encoding per OCP spec
+
+    exponent = int(e8m0_value) - 127  # Remove bias
+    return 2.0**exponent
+
+
+# ============================================================================
+# MXFP8 Scale Helper Functions
+# ============================================================================
+
+
+def create_mxfp8_scale(tensor, format_type="MXFP8R"):
+    """
+    Create unit scales for MXFP8 tensor.
+
+    Args:
+        tensor: Input tensor to create scales for
+        format_type: 'MXFP8R' or 'MXFP8P' (currently unused, both use same scaling)
+
+    Returns:
+        torch.Tensor of uint8 E8M0 encoded unit scales (all 127 = 2^0 = 1.0)
+    """
+    import torch
+
+    num_elements = tensor.numel()
+    num_blocks = (num_elements + MXFP8_BLOCK_SIZE - 1) // MXFP8_BLOCK_SIZE
+
+    # Create unit scales: 127 encodes 2^(127-127) = 2^0 = 1.0
+    unit_scales = torch.full((num_blocks,), 127, dtype=torch.uint8)
+    return unit_scales
+
+
+def apply_mxfp8_scale(tensor, scales):
+    """
+    Apply E8M0 scales to tensor elements.
+
+    Args:
+        tensor: Input tensor to scale
+        scales: torch.Tensor of uint8 E8M0 encoded scales
+
+    Returns:
+        torch.Tensor with scales applied block-wise
+    """
+    import torch
+
+    flat_tensor = tensor.flatten()
+    result = torch.zeros_like(flat_tensor, dtype=torch.float32)
+
+    for i, scale_val in enumerate(scales):
+        start_idx = i * MXFP8_BLOCK_SIZE
+        end_idx = min(start_idx + MXFP8_BLOCK_SIZE, len(flat_tensor))
+
+        if start_idx >= len(flat_tensor):
+            break
+
+        scale_factor = decode_e8m0_scale(scale_val.item())
+        result[start_idx:end_idx] = flat_tensor[start_idx:end_idx] * scale_factor
+
+    return result.view(tensor.shape)
+
+
+def invert_mxfp8_scale(scales):
+    """
+    Invert MXFP8 scales for reverse operations.
+
+    Args:
+        scales: torch.Tensor of uint8 E8M0 encoded scales
+
+    Returns:
+        torch.Tensor of inverted scales where 2^x becomes 2^(-x)
+    """
+
+    # To invert scale 2^(x-127), we want 2^(-(x-127)) = 2^(127-x)
+    # So new encoded value = (127-x) + 127 = 254 - x
+    inverted = 254 - scales
+
+    # Handle special case: if original was 127 (unit scale), result should also be 127
+    unit_mask = scales == 127
+    inverted[unit_mask] = 127
+
+    return inverted
+
+
+def calculate_optimal_scales(tensor, format_type="MXFP8R"):
+    """
+    Calculate optimal E8M0 scales to minimize MXFP8 quantization error.
+
+    Args:
+        tensor: Input tensor to analyze
+        format_type: 'MXFP8R' (E5M2, max 57344) or 'MXFP8P' (E4M3, max 448)
+
+    Returns:
+        torch.Tensor of uint8 E8M0 encoded optimal scales
+    """
+    import torch
+
+    # Get format-specific maximum normal value
+    if format_type == "MXFP8R":
+        element_max_normal = 57344.0  # E5M2 max normal
+    else:  # MXFP8P
+        element_max_normal = 448.0  # E4M3 max normal
+
+    flat_tensor = tensor.flatten()
+    num_elements = len(flat_tensor)
+    num_blocks = (num_elements + MXFP8_BLOCK_SIZE - 1) // MXFP8_BLOCK_SIZE
+
+    optimal_scales = torch.zeros(num_blocks, dtype=torch.uint8)
+
+    for i in range(num_blocks):
+        start_idx = i * MXFP8_BLOCK_SIZE
+        end_idx = min(start_idx + MXFP8_BLOCK_SIZE, num_elements)
+
+        if start_idx >= num_elements:
+            optimal_scales[i] = 127  # Unit scale for empty blocks
+            continue
+
+        block = flat_tensor[start_idx:end_idx]
+        max_abs_value = torch.max(torch.abs(block)).item()
+
+        # Use existing encode function to calculate optimal scale
+        optimal_scales[i] = encode_e8m0_scale(max_abs_value, element_max_normal)
+
+    return optimal_scales
 
 
 @dataclass
