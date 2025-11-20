@@ -11,31 +11,14 @@ from .fuse_operation import PipelineOperation
 
 
 @dataclass
-class PipelineConfig:
-    operations: List[PipelineOperation]
-
-    def to_dict(self):
-        return {
-            "pipeline_name": self.pipeline_name,
-            "operations": self.operations,
-            "num_stages": len(self.operations),
-        }
-
-
-@dataclass
 class UnpackKernelGenerator:
-    def __init__(self, config: PipelineConfig):
-        self.config = config
+    def __init__(self, operations: List[PipelineOperation]):
+        self.operations = operations
 
     def generate(self) -> str:
-        num_stages = len(self.config.operations)
+        num_stages = len(self.operations)
 
-        code = ""
-
-        for i in range(num_stages):
-            code += f"constexpr uint32_t buffer_stage{i}_out = 0x{0x18000 + i*0x1000:05x};\n"
-
-        code += f"""
+        code = f"""
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
@@ -45,7 +28,7 @@ class UnpackKernelGenerator:
 
 void run_kernel()
 {{"""
-        for op in self.config.operations:
+        for op in self.operations:
             code += op.unpack()
 
         code += f"""
@@ -58,8 +41,8 @@ void run_kernel()
 
 @dataclass
 class MathKernelGenerator:
-    def __init__(self, config: PipelineConfig):
-        self.config = config
+    def __init__(self, operations: List[PipelineOperation]):
+        self.operations = operations
 
     def generate(self) -> str:
         code = """
@@ -69,7 +52,7 @@ class MathKernelGenerator:
 
 void run_kernel()
 {"""
-        for op in self.config.operations:
+        for op in self.operations:
             code += op.do_math()
 
         code += f"""
@@ -81,8 +64,8 @@ void run_kernel()
 
 @dataclass
 class PackKernelGenerator:
-    def __init__(self, config: PipelineConfig):
-        self.config = config
+    def __init__(self, operations: List[PipelineOperation]):
+        self.operations = operations
 
     def generate(self) -> str:
         code = """
@@ -91,7 +74,7 @@ class PackKernelGenerator:
 # include "llk_pack_common.h"
 void run_kernel()
 {"""
-        for op in self.config.operations:
+        for op in self.operations:
             code += op.pack()
 
         code += f"""
@@ -103,11 +86,18 @@ void run_kernel()
 
 class KernelCompiler:
 
-    def __init__(self, config: PipelineConfig):
-        self.config = config
-        self.unpack_gen = UnpackKernelGenerator(config)
-        self.math_gen = MathKernelGenerator(config)
-        self.pack_gen = PackKernelGenerator(config)
+    def __init__(self, operations: List[PipelineOperation]):
+        self.operations = operations
+        num_stages = len(self.operations)
+
+        for i in range(num_stages):
+            self.operations[i].config["stage_id"] = i
+            self.operations[i].config["num_stages"] = num_stages
+            # print(self.operations[i].config)
+
+        self.unpack_gen = UnpackKernelGenerator(self.operations)
+        self.math_gen = MathKernelGenerator(self.operations)
+        self.pack_gen = PackKernelGenerator(self.operations)
 
     def generate_all(self) -> Dict[str, str]:
         return {

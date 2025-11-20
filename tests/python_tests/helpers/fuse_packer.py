@@ -15,8 +15,8 @@ class Packer:
 
 class MatmulPacker(Packer):
     def pack(self, config: Dict) -> str:
-        stage = config.get("stage", 0)
-        num_stages = config.get("num_stages", 1)
+        stage = config["stage_id"]
+        num_stages = config["num_stages"]
         formats = config.get("formats")
 
         PACK_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.input_format})"
@@ -25,17 +25,46 @@ class MatmulPacker(Packer):
         result_buffer_address = config.get("result_buffer_address", 0x1C000)
 
         TILE_CNT = config.get("tile_cnt", 1)
+        TILIZE = str(stage < num_stages - 1).lower()
+
+        tiny_tiles = config.get("tiny_tiles", False)
+
+        TILE_SIZES = {
+            DataFormat.Bfp8_b: 68,
+            DataFormat.Float32: 256,
+        }
+
+        pack_size = TILE_SIZES.get(formats.output_format, 128)
+
+        num_faces_A = config.get("num_faces_A", config.get("num_faces", 4))
+        num_faces_B = config.get("num_faces_B", config.get("num_faces", 4))
+
+        in0_tile_r_dim = config.get("in0_tile_r_dim", 32)
+        in0_tile_c_dim = config.get("in0_tile_c_dim", 32)
+        in1_tile_r_dim = config.get("in1_tile_r_dim", 32)
+        in1_tile_c_dim = config.get("in1_tile_c_dim", 32)
+
+        face_r_dim = config.get("face_r_dim", 16)
+
+        num_faces = config.get("num_faces", 4)
+
+        if tiny_tiles:
+            pack_size = (pack_size // num_faces) * (in0_tile_r_dim // face_r_dim)
+            unpack_size_a = (unpack_size_a // num_faces_A) * (
+                in0_tile_r_dim // face_r_dim
+            )
+
+        TILE_SIZE_PACK = pack_size
 
         code = f"""
-        constexpr Operand buffer_Res{stage}({hex(result_buffer_address)}, {format_tile_sizes[formats.output_format if formats is not None else DataFormat.Float16_b]});
+    constexpr Operand buffer_Res{stage}({hex(result_buffer_address)}, {format_tile_sizes[formats.output_format if formats is not None else DataFormat.Float16_b]});
 
 #ifdef ARCH_BLACKHOLE
-    const bool TILIZE = {str(stage < num_stages - 1).lower()};
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, TILIZE>({PACK_IN}, {PACK_OUT}, 128);
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, TILIZE>({PACK_OUT});
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, {TILIZE}>({PACK_IN}, {PACK_OUT}, {TILE_SIZE_PACK});
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, {TILIZE}>({PACK_OUT});
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
 #else
-//    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>({PACK_IN}, {PACK_OUT}, 128);
+//    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>({PACK_IN}, {PACK_OUT}, {TILE_SIZE_PACK});
 //    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>({PACK_OUT});
 //    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
 #endif
