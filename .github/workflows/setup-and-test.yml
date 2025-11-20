@@ -110,42 +110,37 @@ jobs:
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
             cd ../
 
-            ls -l .
-            ls -l ..
-
             COVERAGE_DIR=/tmp/tt-llk-build/coverage_info
             INFO_PATH=/tmp/tt-llk-build/merged_coverage.info
 
             if [ ! -d "${COVERAGE_DIR}" ]; then
-              echo "${COVERAGE_DIR} does not exist. Early exit.";
+              echo "${COVERAGE_DIR} does not exist. Early exit."
             else
               # Initialize merged file with first .info file
               if [ ! -f "${INFO_PATH}" ]; then
-                first_file=$(find "${COVERAGE_DIR}" -name '*.info' | head -n 1);
+                first_file=$(find "${COVERAGE_DIR}" -name '*.info' | head -n 1)
                 if [ -n "$first_file" ]; then
                   cp "$first_file" "${INFO_PATH}"
                 fi
               fi
 
-              # Count total files and merge them
+              # Merge remaining files
               total=$(find "${COVERAGE_DIR}" -name '*.info' | wc -l)
               idx=0
-              while IFS= read -r f; do
+
+              find "${COVERAGE_DIR}" -name '*.info' | while IFS= read -r f; do
                 idx=$((idx + 1))
                 if [ "$f" != "${INFO_PATH}" ]; then
                   printf "Processing file %s/%s: %s\n" "$idx" "$total" "$f"
                   lcov -q -a "${INFO_PATH}" -a "$f" -o "${INFO_PATH}"
                 fi
-              done < <(find "${COVERAGE_DIR}" -name '*.info')
+              done
 
               # Copy merged result to output location
               if [ -f "${INFO_PATH}" ]; then
                 cp "${INFO_PATH}" ./code-coverage-${CHIP_ARCH}-${{ matrix.test_group }}.info
               fi
             fi
-
-            ls -l .
-            ls -l ..
           fi
 
       # Step 4: Zip performance data if perf tests were run
@@ -250,7 +245,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage_report_${{ env.CHIP_ARCH }}
-          path: ./coverage_reports/coverage_html_${{ env.CHIP_ARCH }}
+          path: ./coverage_reports
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -258,7 +253,7 @@ jobs:
       - name: Upload artifact for Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./coverage_reports/coverage_html_${{ env.CHIP_ARCH }}
+          path: ./coverage_reports
 
       - name: Deploy to GitHub Pages
         id: deployment
