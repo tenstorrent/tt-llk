@@ -274,8 +274,6 @@ inline void _init_reduce_max_col_()
     TTI_SFPLOADI(0, 0x8, 0x0000); // Upper 16 bits: slot2=0x00, slot3=0x00
     TTI_SFPCONFIG(0, 5, 0);       // Store in Macro Sequence Register 1 (dest=5)
 
-    TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
-
     // ***********************************************************
 
     lltt::record<lltt::NoExec>(0, 9);
@@ -340,14 +338,15 @@ inline void _calculate_reduce_max_col_(const uint32_t block_height)
 
             // Load next pair and compare with LREG4/LREG5
             TT_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, i * 64 + loadmacro0_offsets[row_group]);
-            TTI_NOP;
-            TTI_NOP;
         }
     }
 }
 
 inline void epilogue_reduce_max_col_()
 {
+    // to wait after last loadmacro
+    TTI_NOP;
+    TTI_NOP;
     lltt::replay(0, 9);
 }
 
