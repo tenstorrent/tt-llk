@@ -139,7 +139,7 @@ jobs:
 
               # Copy merged result to output location
               if [ -f "${INFO_PATH}" ]; then
-                cp "${INFO_PATH}" ./code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
+                cp "${INFO_PATH}" ./code-coverage-${CHIP_ARCH}-${{ matrix.test_group }}.info
               fi
             fi
 
