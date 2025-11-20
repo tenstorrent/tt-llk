@@ -510,10 +510,7 @@ def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
     block = device.get_block(coordinate)
     risc_debug = block.get_risc_debug(risc_name)
 
-    if risc_debug.is_ebreak_hit():
-        return True
-
-    return False
+    return risc_debug.is_ebreak_hit():
 
 
 def _print_callstack(risc_name: str, callstack: list[CallstackEntry]):
@@ -532,7 +529,7 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]):
         print(f"{idx:>4}: {pc} - {entry.function_name}")
 
         # second line: file, line, column
-        print(f"{' '*(4+2+2+16+1)}| at {file_path}:{entry.line}:{entry.column}")
+        print(f"{' '*25}| at {file_path}:{entry.line}:{entry.column}")
 
 
 def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
@@ -566,7 +563,7 @@ def wait_for_tensix_operations_finished(
         max_backoff: Maximum backoff time (in seconds) between polls. Default is 5 seconds.
     """
 
-    mailboxes = set([Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer])
+    mailboxes = {Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer}
 
     test_target = TestTargetConfig()
     timeout = 600 if test_target.run_simulator else timeout
@@ -575,9 +572,9 @@ def wait_for_tensix_operations_finished(
     backoff = 0.1  # Initial backoff time in seconds
 
     completed = set()
-
+end_time = start_time + timeout
     while time.time() - start_time < timeout:
-        for mailbox in mailboxes:
+        for mailbox in mailboxes - completed:
             if read_word_from_device(core_loc, mailbox.value) == KERNEL_COMPLETE:
                 completed.add(mailbox)
 
