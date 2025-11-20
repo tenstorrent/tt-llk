@@ -231,6 +231,7 @@ constexpr bool is_supported_reduce_format(DataFormat format)
 //**************************************************************
 // SFPU REDUCE MAX COL IMPLEMENTATION
 //**************************************************************
+
 inline void sfpu_reduce_max_col_configure_addrmod()
 {
     addr_mod_t {
@@ -239,6 +240,20 @@ inline void sfpu_reduce_max_col_configure_addrmod()
         .dest = {.incr = 0},
     }
         .set(ADDR_MOD_7);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 16},
+    }
+        .set(ADDR_MOD_6);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 4},
+    }
+        .set(ADDR_MOD_4);
 }
 
 inline void sfpu_reduce_max_load_initial_values()
@@ -273,10 +288,71 @@ inline void _init_reduce_max_col_()
     TTI_SFPLOADI(0, 0xA, 0x0085); // Lower 16 bits: slot0=0x85 (bit 7 set), slot1=0x00
     TTI_SFPLOADI(0, 0x8, 0x0000); // Upper 16 bits: slot2=0x00, slot3=0x00
     TTI_SFPCONFIG(0, 5, 0);       // Store in Macro Sequence Register 1 (dest=5)
-
     // ***********************************************************
 
-    lltt::record<lltt::NoExec>(0, 9);
+    _init_sfpu_config_reg();
+    sfpu_reduce_max_col_configure_addrmod();
+
+    // ***********************************************************
+    // Record replay buffer
+    lltt::record<lltt::NoExec>(0, 7);
+
+    // Use LOADMACRO with lreg_ind=5 (loads to LREG5, uses sequence 1 since bits[3:2]=01)
+    TTI_SFPLOADMACRO(5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+
+    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
+    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG1 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+    // Use LOADMACRO with lreg_ind=0 (loads to LREG0, uses sequence 0)
+    TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_0, 0);
+
+    // dummy load instead of INCRWC by 4
+    //  TTI_INCRWC(0, 4, 0, 0);
+
+    // // Dummy loads used to increment dest counters
+    // //dummy load instead of INCRWC by 16
+    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
+    // ***********************************************************
+}
+
+template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
+inline void _calculate_reduce_max_col_(const uint32_t block_height)
+{
+    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
+    static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
+    static_assert(format == DataFormat::Float16_b, "SFPU reduce max col only supports Float16_b format");
+
+    TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::PACK);
+
+    constexpr uint32_t replay_buffer_offset    = 6;
+    constexpr uint32_t replay_buffer_next_face = replay_buffer_offset + 1;
+
+    /*
+    Initial loads of LREGS 0-3 which will hold maximum values of columns
+    They will spread across F0 and F1 so in each pass full tile width will be reduced
+    */
+
+    // All other tiles but first one
+    for (uint32_t i = 0; i < block_height; i++)
+    {
+        // F0 and F1
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_next_face);
+
+        // F2 and F3
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_next_face);
+    }
+}
+
+inline void epilogue_reduce_max_col_()
+{
     // Epilogue code.
     // Finalize sorting values in LREGS 0-3 and place maximum into Dest reg row 0
 
@@ -300,54 +376,6 @@ inline void _init_reduce_max_col_()
     // F1
     TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
     TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
-
-    _init_sfpu_config_reg();
-    sfpu_reduce_max_col_configure_addrmod();
-}
-
-template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_max_col_(const uint32_t block_height)
-{
-    TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::PACK);
-
-    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
-    static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
-    static_assert(format == DataFormat::Float16_b, "SFPU reduce max col only supports Float16_b format");
-
-    // Process 8 row groups (4 rows each) to reduce 32 rows to 1
-    // Each iteration processes 4 rows and compares them against the accumulators
-    constexpr uint32_t num_row_groups = 8;
-
-    // Arrays to define the offset patterns for each row group
-    constexpr uint32_t loadmacro5_offsets[num_row_groups] = {2, 6, 10, 14, 34, 38, 42, 46};
-    constexpr uint32_t load_offsets[num_row_groups]       = {16, 20, 24, 28, 48, 52, 56, 60};
-    constexpr uint32_t loadmacro0_offsets[num_row_groups] = {0, 4, 8, 12, 32, 36, 40, 44};
-
-    for (uint32_t i = 0; i < block_height; i++)
-    {
-        for (uint32_t row_group = 0; row_group < num_row_groups; row_group++)
-        {
-            // Load 4 values from current row group
-            TT_SFPLOADMACRO(5, InstrModLoadStore::FP16B, ADDR_MOD_3, i * 64 + loadmacro5_offsets[row_group]);
-            TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, i * 64 + load_offsets[row_group]);
-            TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, i * 64 + load_offsets[row_group] + 2);
-
-            // Compare and swap to keep maximum values in LREG6/LREG7
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG1 /*lreg_dest*/, 1 /*instr_mod1*/);
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
-
-            // Load next pair and compare with LREG4/LREG5
-            TT_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, i * 64 + loadmacro0_offsets[row_group]);
-        }
-    }
-}
-
-inline void epilogue_reduce_max_col_()
-{
-    // to wait after last loadmacro
-    TTI_NOP;
-    TTI_NOP;
-    lltt::replay(0, 9);
 }
 
 /**
