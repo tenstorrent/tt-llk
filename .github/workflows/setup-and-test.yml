@@ -133,9 +133,9 @@ jobs:
                 idx=$((idx + 1))
                 if [ "$f" != "${INFO_PATH}" ]; then
                   printf "Processing file %s/%s: %s\n" "$idx" "$total" "$f"
-                  lcov -q -a "${INFO_PATH}" -a "$f" -o "${INFO_PATH}" > /dev/null 2>&1
+                  lcov -q -a "${INFO_PATH}" -a "$f" -o "${INFO_PATH}"
                 fi
-              done < <(find "${COVERAGE_DIR}" -name '*.info' 2>/dev/null)
+              done < <(find "${COVERAGE_DIR}" -name '*.info')
 
               # Copy merged result to output location
               if [ -f "${INFO_PATH}" ]; then
@@ -228,11 +228,13 @@ jobs:
           echo "-- Coverage files pulled from runners --"
           find ./merged_coverage_files/ -name "*.info"
 
-          first=$(ls ./merged_coverage_files | head -n 1)
-          cp ./merged_coverage_files/"$first" merged.info
+          # Get first file with full path
+          first=$(find ./merged_coverage_files/ -name "*.info" | head -n 1)
+          cp "$first" merged.info
 
+          # Merge all other files
           for f in $(find ./merged_coverage_files/ -name "*.info"); do
-            if [ "$f" != ./merged_coverage_files/"$first" ]; then
+            if [ "$f" != "$first" ]; then
               lcov -q -a merged.info -a "$f" -o ./merged.info
             fi
           done
