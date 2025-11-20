@@ -5,6 +5,8 @@ import os
 from enum import Enum
 from pathlib import Path
 
+from git import List
+
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
@@ -14,6 +16,8 @@ from .device import (
     wait_for_tensix_operations_finished,
 )
 from .format_config import DataFormat, FormatConfig
+from .fuse_generator import KernelCompiler
+from .fuse_operation import PipelineOperation
 from .llk_params import (
     FPU_BINARY_OPERATIONS,
     REDUCE_OPERATIONS,
@@ -547,7 +551,7 @@ def write_build_header(test_config):
 
 
 def generate_make_command(
-    test_config,
+    testname: str,
     boot_mode: BootMode,
     profiler_build: ProfilerBuild,
 ):
@@ -555,7 +559,7 @@ def generate_make_command(
 
     boot_mode = resolve_default_boot_mode(boot_mode)
     # Simplified make command - only basic build parameters
-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} all "
+    make_cmd = f"make -j 6 --silent testname={testname} bootmode={boot_mode.value} profiler_build={profiler_build.value} all "
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
@@ -572,7 +576,8 @@ def build_test(
     llk_home = Path(os.environ.get("LLK_HOME"))
     tests_dir = str((llk_home / "tests").absolute())
     write_build_header(test_config)
-    make_cmd = generate_make_command(test_config, boot_mode, profiler_build)
+    testname = test_config.get("testname")
+    make_cmd = generate_make_command(testname, boot_mode, profiler_build)
 
     run_shell_command(make_cmd, cwd=tests_dir)
 
@@ -589,3 +594,21 @@ def run_test(
     # run test
     elfs = run_elf_files(test_config["testname"], boot_mode)
     wait_for_tensix_operations_finished(elfs)
+
+
+def run_fuse_test(
+    pipeline: List[PipelineOperation],
+    boot_mode: BootMode = BootMode.DEFAULT,
+    profiler_build: ProfilerBuild = ProfilerBuild.No,
+):
+    compiler = KernelCompiler(pipeline)
+    compiler.write_kernel()
+
+    llk_home = Path(os.environ.get("LLK_HOME"))
+    tests_dir = str((llk_home / "tests").absolute())
+    make_cmd = generate_make_command("fuse_test", boot_mode, profiler_build)
+
+    run_shell_command(make_cmd, cwd=tests_dir)
+
+    run_elf_files("fuse_test", boot_mode)
+    wait_for_tensix_operations_finished()

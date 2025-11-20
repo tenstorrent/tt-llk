@@ -7,7 +7,6 @@ from typing import List
 import torch
 from helpers.device import BootMode, collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
-from helpers.fuse_generator import KernelCompiler
 from helpers.fuse_math import MatmulMath
 from helpers.fuse_operation import PipelineOperation
 from helpers.fuse_packer import MatmulPacker
@@ -20,7 +19,7 @@ from helpers.matmul_sweep import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import run_test
+from helpers.test_config import run_fuse_test
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
@@ -175,7 +174,7 @@ def test_matmul(
         tile_cnt_B,
     )
 
-    operations = [
+    pipeline = [
         PipelineOperation(
             unpacker=MatmulUnpacker,
             math=MatmulMath,
@@ -190,10 +189,7 @@ def test_matmul(
         ),
     ]
 
-    compiler = KernelCompiler(operations)
-    compiler.write_kernel()
-
-    run_test(test_config1, boot_mode)
+    run_fuse_test(pipeline, boot_mode)
 
     res_from_L1 = collect_results(
         formats, tile_count=matmul_dims.output_tile_cnt, address=res_address
@@ -202,7 +198,4 @@ def test_matmul(
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    # print(golden_tensor.view(32, 32))
-    # print("\n\n\n\n")
-    # print(res_tensor.view(32, 32))
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
