@@ -128,7 +128,9 @@ jobs:
               total=$(find "${COVERAGE_DIR}" -name '*.info' | wc -l)
               idx=0
 
-              find "${COVERAGE_DIR}" -name '*.info' | while IFS= read -r f; do
+              ls "${COVERAGE_DIR}"
+
+              find "${COVERAGE_DIR}" -name '*.info' | while read -r f; do
                 idx=$((idx + 1))
                 if [ "$f" != "${INFO_PATH}" ]; then
                   printf "Processing file %s/%s: %s\n" "$idx" "$total" "$f"
@@ -245,7 +247,7 @@ jobs:
             -o ./merged_filtered.info
 
           mkdir -p ./coverage_reports/${{ env.CHIP_ARCH }}_coverage_report
-          genhtml --branch-coverage ./merged_filtered.info \
+          genhtml --branch-coverage --title ${{ env.CHIP_ARCH }} ./merged_filtered.info \
             --output-directory ./coverage_reports/${{ env.CHIP_ARCH }}_coverage_report
       - name: Upload code coverage for this runner
         uses: actions/upload-artifact@v4
