@@ -51,6 +51,7 @@ def test_sfpu_binary_float(test_name, formats, dest_acc, mathop):
     sfpu_binary(test_name, formats, dest_acc, mathop)
 
 
+@skip_for_coverage
 @parametrize(
     test_name="sfpu_binary_test",
     formats=input_output_formats(
@@ -69,6 +70,7 @@ def test_sfpu_binary_int(test_name, formats, dest_acc, mathop):
     sfpu_binary(test_name, formats, dest_acc, mathop)
 
 
+@skip_for_coverage
 @parametrize(
     test_name="sfpu_binary_test",
     formats=input_output_formats(
