@@ -31,7 +31,7 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
     // in1/inB - loaded to SrcA
 
     // MOP replay buffer now updates both SrcA and SrcB addresses for K-dimension loop
-    const std::uint32_t replay_buf_run_len = unpB_partial_face ? 14 : 11;
+    const std::uint32_t replay_buf_run_len = unpB_partial_face ? 13 : 11;
     const std::uint32_t replay_buf_prog_len = replay_buf_run_len * 2;
 
     load_replay_buf(
@@ -47,7 +47,7 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
             // Unpack SrcB (in0/inA)
             if (unpB_partial_face)
             {
-                TTI_UNPACR_NOP(SrcB, 0, 0, 0 /*Set Dvalid*/, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
+                // TTI_UNPACR_NOP(SrcB, 0, 0, 0 /*Set Dvalid*/, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
                 TTI_UNPACR(
                     SrcB, 0b00010001, 0, 0, 0, 1 /*Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
                 TTI_UNPACR(
@@ -80,7 +80,7 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
             // Unpack SrcB (in0/inA)
             if (unpB_partial_face)
             {
-                TTI_UNPACR_NOP(SrcB, 0, 0, 0 /*Set Dvalid*/, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
+                // TTI_UNPACR_NOP(SrcB, 0, 0, 0 /*Set Dvalid*/, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
                 TTI_UNPACR(
                     SrcB, 0b00010001, 0, 0, 0, 1 /*Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
                 TTI_UNPACR(
