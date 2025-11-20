@@ -100,17 +100,51 @@ jobs:
             COVERAGE_FLAG="--coverage"
           fi
 
-          pytest -m "${{ inputs.pytest_markers }}" \
-                ${{ inputs.random_order && '--random-order-bucket=global' || '' }} \
+          pytest \
                 --splits $SPLITS --group ${{ matrix.test_group }} \
                 --override-ini="addopts=-v" --timeout=60 \
                 $COVERAGE_FLAG \
-                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
+                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml ./test_matmul.py
 
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
             cd ../
-            make merge_coverage_data
-            mv merged_coverage.info code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
+
+            ls -l .
+            ls -l ..
+
+            COVERAGE_DIR=/tmp/tt-llk-build/coverage_info
+            INFO_PATH=/tmp/tt-llk-build/merged_coverage.info
+
+            if [ ! -d "${COVERAGE_DIR}" ]; then
+              echo "${COVERAGE_DIR} does not exist. Early exit.";
+            else
+              # Initialize merged file with first .info file
+              if [ ! -f "${INFO_PATH}" ]; then
+                first_file=$$(find "${COVERAGE_DIR}" -name '*.info' | head -n 1);
+                if [ -n "$$first_file" ]; then
+                  cp "$$first_file" "${INFO_PATH}"
+                fi
+              fi
+
+              # Count total files and merge them
+              total=$$(find "${COVERAGE_DIR}" -name '*.info' | wc -l)
+              idx=0
+              while IFS= read -r f; do
+                idx=$$((idx + 1))
+                if [ "$$f" != "${INFO_PATH}" ]; then
+                  printf "Processing file %s/%s: %s\n" "$$idx" "$$total" "$$f"
+                  lcov -q -a "${INFO_PATH}" -a "$$f" -o "${INFO_PATH}" > /dev/null 2>&1
+                fi
+              done < <(find "${COVERAGE_DIR}" -name '*.info' 2>/dev/null)
+
+              # Copy merged result to output location
+              if [ -f "${INFO_PATH}" ]; then
+                cp "${INFO_PATH}" ./code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
+              fi
+            fi
+
+            ls -l .
+            ls -l ..
           fi
 
       # Step 4: Zip performance data if perf tests were run

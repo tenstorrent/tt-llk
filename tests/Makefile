@@ -231,30 +231,6 @@ coverage: $(INFO_FILES_DIR)
 	--directory $(SHARED_OBJ_DIR) \
 	--output-file $(INFO_FILES_DIR)/$(info_file_name) --rc lcov_branch_coverage=1
 
-
-INFO_FILES	:= $(wildcard $(INFO_FILES_DIR)/*.info)
-FIRST_INFO	:= $(firstword $(INFO_FILES))
-merge_coverage_data:
-	@if [ ! -d "$(INFO_FILES_DIR)" ]; then \
-		echo "$(INFO_FILES_DIR) does not exist. Early exit."; \
-	else \
-		if [ ! -f "$(INFO_PATH)" ]; then \
-			first_file=$$(find $(INFO_FILES_DIR) -name '*.info' | head -n 1); \
-			if [ -n "$$first_file" ]; then \
-				cp "$$first_file" $(INFO_PATH); \
-			fi; \
-		fi; \
-		find $(INFO_FILES_DIR) -name '*.info' 2>/dev/null | while read f; do \
-			if [ "$$f" != "$(INFO_PATH)" ]; then \
-				lcov -q -a $(INFO_PATH) -a "$$f" -o $(INFO_PATH) > /dev/null 2>&1; \
-			fi; \
-		done; \
-		if [ -f "$(INFO_PATH)" ]; then \
-			cp $(INFO_PATH) ./merged_coverage.info; \
-		fi; \
-	fi
-
-
 generate_report:
 	lcov --remove $(INFO_PATH) \
 		'*/tt-llk/tests/*' \
