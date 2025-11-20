@@ -28,7 +28,7 @@ def merge_coverage_files(coverage_dir, output_path):
 
     if not os.path.isdir(coverage_dir):
         print(f"{coverage_dir} does not exist. Early exit.")
-        return False
+        return True
 
     info_files = glob.glob(os.path.join(coverage_dir, "*.info"))
 
@@ -47,14 +47,12 @@ def merge_coverage_files(coverage_dir, output_path):
             print(f"Failed to initialize: {stderr}")
             return False
 
-    total = len(info_files)
-    for idx, info_file in enumerate(info_files, 1):
+    for info_file in info_files:
         if info_file == merged_path:
             continue
 
-        print(f"Processing file {idx}/{total}: {info_file}")
         cmd = f"lcov -q -a '{merged_path}' -a '{info_file}' -o '{merged_path}'"
-        success, stdout, stderr = run_command(cmd, check=False)
+        success, _, stderr = run_command(cmd, check=False)
 
         if not success:
             print(f"Warning: Failed to merge {info_file}, skipping")

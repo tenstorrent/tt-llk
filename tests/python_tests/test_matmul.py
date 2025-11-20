@@ -69,7 +69,7 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS[:200],
+    format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
 # Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
 def test_matmul(

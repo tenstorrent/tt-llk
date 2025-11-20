@@ -84,7 +84,6 @@ jobs:
         env:
           TEST_SPLITS: ${{ inputs.test_splits }}
         run: |
-          set -x
           CHIP_ARCH=unknown
           if [[ "${{ inputs.runs_on }}" =~ n150 ]]; then
             CHIP_ARCH=wormhole
@@ -101,11 +100,12 @@ jobs:
             COVERAGE_FLAG="--coverage"
           fi
 
-          pytest \
+          pytest -m "${{ inputs.pytest_markers }}" \
+                ${{ inputs.random_order && '--random-order-bucket=global' || '' }} \
                 --splits $SPLITS --group ${{ matrix.test_group }} \
                 --override-ini="addopts=-v" --timeout=60 \
                 $COVERAGE_FLAG \
-                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml ./test_matmul.py
+                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
 
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
             cd ../../
