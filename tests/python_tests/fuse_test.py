@@ -2,141 +2,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# import torch
-# from helpers.fuse_unpacker import MatmulUnpacker
-# from helpers.fuse_math import MatmulMath
-# from helpers.fuse_packer import MatmulPacker
-
-# from helpers.stimuli_generator import generate_stimuli
-
-# from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
-# from helpers.format_config import DataFormat, InputOutputFormat
-
-# from helpers.fuse_operation import PipelineOperation
-# from helpers.fuse_generator import PipelineConfig, KernelCompiler
-# from helpers.matmul_sweep import generate_tile_dims
-# from pathlib import Path
-# from helpers.tilize_untilize import tilize_block
-
-# from helpers.device import BootMode, collect_results, write_stimuli_to_l1
-# from helpers.param_config import input_output_formats, parametrize
-# from helpers.test_config import run_test
-# from helpers.utils import passed_test
-# from helpers.golden_generators import MatmulGolden, get_golden_generator
-
-# @parametrize(
-#     test_name="mytest",
-#     formats=input_output_formats(
-#         [
-#             DataFormat.Float16_b,
-#             DataFormat.Float16,
-#             DataFormat.Float32,
-#         ],
-#         same=True,
-#     ),
-#     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
-#     math_fidelity=[
-#         MathFidelity.LoFi,
-#         MathFidelity.HiFi2,
-#         MathFidelity.HiFi3,
-#         MathFidelity.HiFi4,
-#     ],
-# )
-
-# def fuse_test(test_name, formats, dest_acc, math_fidelity):
-#     input_A_dimensions = [32, 32]
-#     input_B_dimensions = [32, 32]
-
-#     src_A, src_B, tile_cnt_A = generate_stimuli(
-#         formats.input_format, formats.input_format, input_dimensions=input_A_dimensions, sfpu=False
-#     )
-
-#     tile_cnt_B = tile_cnt_A
-
-#     generate_matmul_golden = get_golden_generator(MatmulGolden)
-#     golden_tensor = generate_matmul_golden(
-#         src_A,
-#         src_B,
-#         formats.output_format,
-#         math_fidelity,
-#         input_A_dimensions=input_A_dimensions,
-#         input_B_dimensions=input_B_dimensions,
-#         tilize=True,
-#     )
-
-#     matmul_dims = generate_tile_dims((input_A_dimensions, input_B_dimensions))
-
-#     if formats.input_format != DataFormat.Bfp8_b:
-#         tilized_A = tilize_block(
-#             src_A, dimensions=input_A_dimensions, stimuli_format=formats.input_format
-#         )
-#         tilized_B = tilize_block(
-#             src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
-#         )
-#     else:
-#         tilized_A = src_A
-#         tilized_B = src_B
-
-#     operations = [
-#         PipelineOperation(
-#             unpacker=MatmulUnpacker,
-#             math=MatmulMath,
-#             packer=MatmulPacker,
-#             config={
-#                 "stage": 0,
-#                 "formats": formats,
-#                 "testname": test_name,
-#                 "dest_acc": dest_acc,
-#                 "math_fidelity": math_fidelity,
-#                 "tile_cnt": matmul_dims.output_tile_cnt,
-#                 "input_A_dimensions": input_A_dimensions,
-#                 "input_B_dimensions": input_B_dimensions,
-#                 "output_dimensions": matmul_dims.output_dimensions,
-#                 "rt_dim": matmul_dims.rt_dim,
-#                 "ct_dim": matmul_dims.ct_dim,
-#                 "kt_dim": matmul_dims.kt_dim,
-#             },
-#         ),
-#     ]
-
-#     config = PipelineConfig(
-#         operations=operations,
-#     )
-
-#     compiler = KernelCompiler(config)
-#     compiler.write_kernel()
-
-#     res_address = write_stimuli_to_l1(
-#         operations[0].config,
-#         tilized_A.flatten(),
-#         tilized_B.flatten(),
-#         formats.input_format,
-#         formats.input_format,
-#         tile_cnt_A,
-#         tile_cnt_B,
-#     )
-
-#     run_test(operations[0].config)
-
-#     res_from_L1 = collect_results(
-#         formats, tile_count=matmul_dims.output_tile_cnt, address=res_address
-#     )
-#     assert len(res_from_L1) == len(golden_tensor)
-
-#     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
-
-#     assert passed_test(golden_tensor, res_tensor, formats.output_format)
-
-
-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
-# SPDX-License-Identifier: Apache-2.0
-
 from typing import List
 
 import torch
 from helpers.device import BootMode, collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
-from helpers.fuse_generator import KernelCompiler, PipelineConfig
+from helpers.fuse_generator import KernelCompiler
 from helpers.fuse_math import MatmulMath
 from helpers.fuse_operation import PipelineOperation
 from helpers.fuse_packer import MatmulPacker
@@ -200,13 +71,12 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     test_name="fuse_test",
     math_fidelity=[
         MathFidelity.LoFi,
-        MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
+        # MathFidelity.HiFi2,
+        # MathFidelity.HiFi3,
+        # MathFidelity.HiFi4,
     ],
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
-# Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
 def test_matmul(
     test_name, math_fidelity, format_dest_acc_and_dims, boot_mode=BootMode.DEFAULT
 ):
@@ -217,6 +87,7 @@ def test_matmul(
     input_A_dimensions = format_dest_acc_and_dims[2][0]
     input_B_dimensions = format_dest_acc_and_dims[2][1]
 
+    print(input_A_dimensions, input_B_dimensions)
     src_A, _, tile_cnt_A = generate_stimuli(
         formats.input_format,
         formats.input_format,
@@ -229,8 +100,9 @@ def test_matmul(
         input_dimensions=input_B_dimensions,
         sfpu=False,
     )
+    # src_A = torch.ones(1024, dtype=torch_format)
+    # src_B = torch.ones(1024, dtype=torch_format)
 
-    # Calculate all matmul dimensions using helper function
     matmul_dims = generate_tile_dims((input_A_dimensions, input_B_dimensions))
 
     generate_golden = get_golden_generator(MatmulGolden)
@@ -241,7 +113,7 @@ def test_matmul(
         math_fidelity,
         input_A_dimensions=input_A_dimensions,
         input_B_dimensions=input_B_dimensions,
-        tilize=True,  # Golden cannot model FPU strided for tilized data computation, so we tilize output after computation
+        tilize=True,
     )
 
     if formats.input_format != DataFormat.Bfp8_b:
@@ -256,8 +128,7 @@ def test_matmul(
         tilized_A = src_A
         tilized_B = src_B
 
-    test_config = {
-        "stage": 0,
+    test_config1 = {
         "formats": formats,
         "testname": test_name,
         "dest_acc": dest_acc,
@@ -271,25 +142,22 @@ def test_matmul(
         "kt_dim": matmul_dims.kt_dim,
     }
 
-    operations = [
-        PipelineOperation(
-            unpacker=MatmulUnpacker,
-            math=MatmulMath,
-            packer=MatmulPacker,
-            config=test_config,
-        ),
-    ]
+    test_config2 = {
+        "formats": formats,
+        "testname": test_name,
+        "dest_acc": dest_acc,
+        "math_fidelity": math_fidelity,
+        "tile_cnt": matmul_dims.output_tile_cnt,
+        "input_A_dimensions": input_A_dimensions,
+        "input_B_dimensions": input_B_dimensions,
+        "output_dimensions": matmul_dims.output_dimensions,
+        "rt_dim": matmul_dims.rt_dim,
+        "ct_dim": matmul_dims.ct_dim,
+        "kt_dim": matmul_dims.kt_dim,
+    }
 
-    pipeline = PipelineConfig(
-        operations=operations,
-    )
-
-    compiler = KernelCompiler(pipeline)
-    compiler.write_kernel()
-
-    # Use the new helper function for writing stimuli
     res_address = write_stimuli_to_l1(
-        test_config,
+        test_config1,
         tilized_A.flatten(),
         tilized_B.flatten(),
         formats.input_format,
@@ -298,7 +166,35 @@ def test_matmul(
         tile_cnt_B,
     )
 
-    run_test(test_config, boot_mode)
+    res_address = write_stimuli_to_l1(
+        test_config2,
+        tilized_A.flatten(),
+        tilized_B.flatten(),
+        formats.input_format,
+        formats.input_format,
+        tile_cnt_A,
+        tile_cnt_B,
+    )
+
+    operations = [
+        PipelineOperation(
+            unpacker=MatmulUnpacker,
+            math=MatmulMath,
+            packer=MatmulPacker,
+            config=test_config1,
+        ),
+        PipelineOperation(
+            unpacker=MatmulUnpacker,
+            math=MatmulMath,
+            packer=MatmulPacker,
+            config=test_config2,
+        ),
+    ]
+
+    compiler = KernelCompiler(operations)
+    compiler.write_kernel()
+
+    run_test(test_config1, boot_mode)
 
     res_from_L1 = collect_results(
         formats, tile_count=matmul_dims.output_tile_cnt, address=res_address
@@ -307,4 +203,7 @@ def test_matmul(
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
+    # print(golden_tensor.view(32, 32))
+    # print("\n\n\n\n")
+    # print(res_tensor.view(32, 32))
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

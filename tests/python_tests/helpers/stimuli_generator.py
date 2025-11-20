@@ -168,7 +168,7 @@ def generate_stimuli(
         format_dict[stimuli_format_B]
         if stimuli_format_B != DataFormat.Bfp8_b
         else torch.bfloat16
-    )
+    )  # generisathi return za a i za b zajedno (tile cnt)
     return (
         torch.tensor(srcA, dtype=dtype_A),
         torch.tensor(srcB, dtype=dtype_B),
