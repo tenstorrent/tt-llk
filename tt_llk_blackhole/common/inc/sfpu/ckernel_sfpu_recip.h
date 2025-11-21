@@ -75,7 +75,7 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
     constexpr int offset      = 0;
     constexpr int prev_offset = -4 & 0x3ff;
 
-    // L0 = 1<<15 (store as bf16)
+    // L0 = 1<<15 (bf16)
     TTI_SFPLOADI(0, 0, 0x8000);
     // L7 = x (uint16)
     TTI_SFPLOADI(7, 2, x);
@@ -195,20 +195,16 @@ inline void _init_reciprocal_fast_8b_3c_()
     constexpr int t = 1;
 
     // InstructionTemplate[0]
-    // SFPARECIP(VB=0, VC=VD, VD=VD)
     TTI_SFPARECIP(0, 0, 12, 0);
 
     // InstructionTemplate[1]
-    // SFPMAD(VA=9, VB=9, VC=VD, VD=VD, INDIRECT_VD)
-    TTI_SFPMAD(9, 9, 0, 13, 8);
+    TTI_SFPMAD(p_sfpu::LCONST_0, p_sfpu::LCONST_0, 0, 13, 8); // SFPMAD_MOD1_INDIRECT_VD
 
     // InstructionTemplate[2]
-    // SFPMAD(VA=x, VB=VD, VC=-1.0, VD=VD, 0)
-    TTI_SFPMAD(x, 0, 11, 14, 0);
+    TTI_SFPMAD(x, 0, p_sfpu::LCONST_neg1, 14, 0);
 
     // InstructionTemplate[3]
-    // SFPIADD(0, t, VD, SFPIADD_MOD1_CC_NONE)
-    TTI_SFPIADD(0, t, 15, 4);
+    TTI_SFPIADD(0, t, 15, sfpi::SFPIADD_MOD1_CC_NONE);
 
     {
         constexpr uint simple_bits = 0x00 | 0x00 | (0 << 3) | 4;
@@ -257,20 +253,17 @@ inline void _init_reciprocal_fast_24b_5c_()
     constexpr int y  = 3;
 
     // InstructionTemplate[0]
-    // SFPARECIP(VC=VD)
     TTI_SFPARECIP(0, 0, 12, 0);
 
     // InstructionTemplate[1]
-    // SFPMAD(VA=0, VB=0, VC=VD)
-    TTI_SFPMAD(0, 0, 0, 13, 0);
+    TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG0, 0, 13, 0);
 
     // InstructionTemplate[2]
     // SFPMAD(VA=t2, VB=0 or VD, VC=VD or z)
-    TTI_SFPMAD(t2, 0, z, 14, 0);
+    TTI_SFPMAD(t2, p_sfpu::LREG0, z, 14, 0);
 
     // InstructionTemplate[3]
-    // SFPSWAP(VC=1.0, VD=VD)
-    TTI_SFPSWAP(0, 10, 15, 1);
+    TTI_SFPSWAP(0, p_sfpu::LCONST_1, 15, 1);
 
     // Macro 0: [y]
     {
