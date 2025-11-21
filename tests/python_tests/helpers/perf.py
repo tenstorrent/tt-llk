@@ -325,6 +325,9 @@ def get_benchmark_dir(testname: str) -> Path:
 def _postprocess_tile_loop(frame: pd.DataFrame) -> pd.DataFrame:
     mask = frame["marker"] == "TILE_LOOP"
 
+    if not mask.any():
+        return frame
+
     # Ensure columns exist and default missing values only for masked rows
     for col in ["loop_factor", "tile_cnt"]:
         if col not in frame.columns:
