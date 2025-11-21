@@ -5,6 +5,11 @@
 #pragma once
 
 #include <cstdint>
+enum class ApproximationMode
+{
+    Precise = 0,
+    High = 1
+}
 
 namespace ckernel
 {
