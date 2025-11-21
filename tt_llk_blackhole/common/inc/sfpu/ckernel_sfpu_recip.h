@@ -70,12 +70,49 @@ inline void _calculate_reciprocal_fast_7b_(const int iterations)
 // BF16 reciprocal, with throughput of 3c/32.
 inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
 {
+    // We use SFPMAD_MOD1_INDIRECT_VD to schedule SFPMAD and write to L[L7],
+    // with L7=x throughout.
+    //
+    // We also set L0=0x80000000 throughout, which allows us to store it as
+    // 0x8000 (BF16), and then load using MOD0_LO16_ONLY to write this to the
+    // low bits of y.
+    //
+    // For all macros, we disable UsesLoadMod0ForStore, and set
+    // StoreMod0=MOD0_FMT_SRCB.
+    //
+    // In pseudocode, the following steps allow the LSB of the BF16 result to
+    // be corrected:
+    //
+    // y = load()
+    // x = 0*0 + y
+    // y = arecip(y)
+    // y = y | (1<<15) # via load of 0x8000 with MOD0_LO16_ONLY
+    // y = x * y - 1
+    // t = y >> 16     # via load of y with MOD0_LO16
+    // y += t
+    // store(y)
+    //
+    // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
+    //
+    // t | Load           | Simple                 | MAD                    | Store   |
+    // - | -------------- | ---------------------- | ---------------------- |-------- |
+    // 0 | [y] SRCB       |                        |                        |         |
+    // 1 |                | [y] = arecip([y])      | [y] x = mad(0, 0, [y]) | [y] L0  |
+    // 2 | [y1] LO16_ONLY |                        |                        |         |
+    // 3 |                |                        | [y1] = mad(x, y1, -1)  |         |
+    // 4 |                |                        |                        |         |
+    // 5 |                |                        |                        | [y1]    |
+    // 6 |                |                        |                        |         |
+    // 7 | [t] LO16       |                        |                        |         |
+    // 8 |                | [y1] L16 = iadd(t, y1) |                        |         |
+    // 9 |                |                        |                        | [t] L16 |
+
     constexpr int x           = p_sfpu::LREG1;
     constexpr int t           = p_sfpu::LREG1;
     constexpr int offset      = 0;
     constexpr int prev_offset = -4 & 0x3ff;
 
-    TTI_SFPLOADI(p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_USHORT, 0x8000);
+    TTI_SFPLOADI(p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_FLOATB, 0x8000);
     TTI_SFPLOADI(p_sfpu::LREG7, SFPLOADI_MOD0_USHORT, x);
 
 #pragma GCC unroll 10
@@ -85,6 +122,7 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
 
         if (d < iterations)
         {
+            // MOD0_FMT_SRCB
             TT_SFPLOADMACRO((0 << 2) | (y & 3), 0, ADDR_MOD_7, offset | (y >> 2));
         }
         else
@@ -97,14 +135,17 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
         }
         else if (d < iterations)
         {
+            // MOD0_FMT_LO16
             TT_SFPLOADMACRO((2 << 2) | (t & 3), 9, ADDR_MOD_7, prev_offset | (t >> 2));
         }
         else
         {
+            // MOD0_FMT_LO16
             TT_SFPLOADMACRO((2 << 2) | (t & 3), 9, ADDR_MOD_6, prev_offset | (t >> 2));
         }
         if (d < iterations)
         {
+            // MOD0_FMT_LO16_ONLY
             TT_SFPLOADMACRO((1 << 2) | (y & 3), 14, ADDR_MOD_6, offset | (y >> 2));
         }
         else
@@ -171,6 +212,14 @@ inline void _calculate_reciprocal_(const int iterations)
 // ~7b precision; 1c/element
 inline void _init_reciprocal_fast_7b_()
 {
+    // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
+    //
+    // t | Load | Simple                | Store   |
+    // - | ---- | --------------------- | ------- |
+    // 0 | [x]  |                       |         |
+    // 1 |      | [x] L16 = arecip([x]) |         |
+    // 2 |      |                       | [x] L16 |
+
     TTI_SFPARECIP(0, 0, 12, 0);
 
     constexpr uint simple_bits = 0x00 | 0x40 | (0 << 3) | 4;
