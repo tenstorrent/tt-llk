@@ -156,9 +156,38 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
     TTI_SFPNOP;
 }
 
-// BF16 reciprocal, with throughput of 5c/32.
+// FP32 reciprocal, with throughput of 5c/32.
 inline void _calculate_reciprocal_fast_24b_5c_(const int iterations)
 {
+    // Pseudocode:
+    //
+    // y = arecip(x)
+    // e = 1 - x*y
+    // t = e * e + e
+    // t2 = t * e + e    # e**3 + e**2 + e
+    // t2 = min(t2, 1.0) # replace NaN with 1.0
+    // y = t2 * y + y    # y = y * (e**3 + e**2 + e + 1)
+    //                   # if y = ±0 or ±inf, then y = y+y
+    //
+    // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
+    //
+    // t  | Load | Simple                 | MAD                     | Store   |
+    // -- | -----| ---------------------- | ----------------------- |-------- |
+    //  0 | [y]  |                        |                         |         |
+    //  1 |      | [y] = arecip(y)        |                         |         |
+    //  2 | [e]  |                        |                         |         |
+    //  3 |      | [e] L16 = arecip(e)    | e = mad(-e, y, 1.0)     |         |
+    //  4 |      |                        |                         |         |
+    //  5 |      |                        | [e] = mad(e, e, e)      | [e]     |
+    //  6 | [t2] |                        |                         |         |
+    //  7 |      |                        | [t2] = mad(t2, e, t2)   | [y] L16 |
+    //  8 |      |                        |                         |         |
+    //  9 | [z]  | [t2] = swap(t2, 1.0)   |                         |         |
+    // 10 |      |                        |                         |         |
+    // 11 |      |                        | [z] L16 = mad(t2, z, z) |         |
+    // 12 |      |                        |                         |         |
+    // 13 |      |                        |                         | [z] L16 |
+
     lltt::replay(0, 4);
     TTI_SFPLOAD(7, 0, ADDR_MOD_6, 0);
 
