@@ -1,15 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
+import json
 import os
 import shutil
 from dataclasses import fields, is_dataclass
 from enum import Enum
 from pathlib import Path
+from string import Template
 from typing import Any
 
 import pandas as pd
-import plotly.graph_objects as go
+import plotly
 import pytest
 from helpers.device import (
     BootMode,
@@ -45,7 +47,7 @@ def _stats_timings(perf_data: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def _stats_l1_to_l1(data: ProfilerData) -> pd.Series:
+def _stats_l1_to_l1(data: ProfilerData) -> pd.DataFrame:
     groups = data.zones().raw().groupby(["marker"])
 
     timings = []
@@ -141,7 +143,8 @@ def perf_benchmark(
     results = []
 
     for run_type in run_types:
-        assert run_type in SUPPORTED_RUNS, f"ERROR: run_type={run_type} not implemented"
+        if run_type not in SUPPORTED_RUNS:
+            raise AssertionError(f"ERROR: run_type={run_type} not implemented")
 
         get_stats = STATS_FUNCTION[run_type]
 
@@ -183,10 +186,23 @@ class PerfReport:
     ):
         self._frames = frames or [pd.DataFrame()]
         self._masks = masks or [pd.Series()]
+        self._stat_columns = set()
+        self._sweep_columns = set()
 
-    def append(self, frame: pd.DataFrame) -> None:
+    def append(
+        self,
+        frame: pd.DataFrame,
+        stat_columns: set[str] | None = None,
+        sweep_columns: set[str] | None = None,
+    ) -> None:
         self._frames.append(frame)
         self._masks.append(pd.Series(True, index=frame.index))
+
+        # Update column types when provided
+        if stat_columns is not None:
+            self._stat_columns.update(stat_columns)
+        if sweep_columns is not None:
+            self._sweep_columns.update(sweep_columns)
 
     def frame(self) -> pd.DataFrame:
         # merge
@@ -208,11 +224,50 @@ class PerfReport:
             mask & (frame[column] == value)
             for frame, mask in zip(self._frames, self._masks)
         ]
-        return PerfReport(frames=self._frames, masks=mask_chain)
+        filtered_report = PerfReport(frames=self._frames, masks=mask_chain)
+        filtered_report._stat_columns = self._stat_columns.copy()
+        filtered_report._sweep_columns = self._sweep_columns.copy()
+        return filtered_report
 
     def marker(self, marker: str) -> "PerfReport":
         """Filter: Marker"""
         return self.filter("marker", marker)
+
+    @property
+    def sweep_names(self) -> list[str]:
+        """Get names of sweep parameter columns"""
+        df = self.frame()
+        if df.empty:
+            return []
+
+        # Use tracked sweep columns if available
+        if self._sweep_columns:
+            return [col for col in df.columns if col in self._sweep_columns]
+
+        # Fallback: everything before 'marker' column are sweep parameters
+        columns = df.columns.tolist()
+        if "marker" not in columns:
+            raise AssertionError("DataFrame must contain 'marker' column")
+        marker_index = columns.index("marker")
+        return columns[:marker_index]
+
+    @property
+    def stat_names(self) -> list[str]:
+        """Get names of statistics columns"""
+        df = self.frame()
+        if df.empty:
+            return []
+
+        # Use tracked stat columns if available
+        if self._stat_columns:
+            return [col for col in df.columns if col in self._stat_columns]
+
+        # Fallback: everything after 'marker' column are statistics
+        columns = df.columns.tolist()
+        if "marker" not in columns:
+            raise AssertionError("DataFrame must contain 'marker' column")
+        marker_index = columns.index("marker")
+        return columns[marker_index + 1 :]
 
 
 @pytest.fixture(scope="module")
@@ -228,6 +283,7 @@ def perf_report(request):
         print("Perf: Unexpected error, Saving report anyway", e)
 
     dump_report(test_module, report)
+    dump_scatter(test_module, report)
 
 
 def _dataclass_names(parent, obj):
@@ -284,7 +340,11 @@ def update_report(report: PerfReport, test_config, results):
 
     combined = sweep.merge(results, how="cross")
 
-    report.append(combined)
+    # Set column types
+    sweep_columns = set(sweep.columns)
+    stat_columns = set(col for col in results.columns if col != "marker")
+
+    report.append(combined, stat_columns=stat_columns, sweep_columns=sweep_columns)
 
 
 def delete_benchmark_dir(testname: str):
@@ -321,54 +381,80 @@ def dump_report(testname: str, report: PerfReport):
 
 
 def dump_scatter(testname: str, report: PerfReport):
-    # generate a scatter plot using plotly.graph_objects (no pandas required)
+    """Generate an interactive HTML performance report"""
 
-    if not report.sweep_names or not report.stat_names:
-        # This is possible on CI when the whole split of the test is skipped
-        return
+    if not report.sweep_names:
+        raise AssertionError(
+            "No sweep parameters found - cannot generate performance report"
+        )
+    if not report.stat_names:
+        raise AssertionError("No statistics found - cannot generate performance report")
 
     dir = create_benchmark_dir(testname)
     output_path = dir / f"{testname}.html"
 
-    # x-axis: sweep values (left to right, zipped for each sweep)
-    # y-axis: stat values (for each run type, for each stat)
-    # stat_names: e.g. mean(L1_TO_L1), mean(UNPACK_ISOLATE), ...
-    # sweep_names: e.g. tile_cnt, param2, ...
+    # Get the DataFrame
+    df = report.frame()
 
-    fig = go.Figure()
+    if df.empty:
+        raise AssertionError("DataFrame is empty - no performance data to plot")
 
-    mean_columns = [
-        (name, i) for i, name in enumerate(report.stat_names) if name.startswith("mean")
-    ]
+    # Convert DataFrame to records for JavaScript consumption
+    records = df.to_dict("records")
 
-    hover = [
-        ", ".join(f"{name}={val}" for name, val in zip(report.sweep_names, sweep))
-        for sweep in report.sweep_values
-    ]
+    # Convert sweep parameter values to strings for consistent filtering
+    for record in records:
+        for param in report.sweep_names:
+            record[param] = str(record[param])
 
-    # For each stat column (run type), plot all points
-    for stat_name, stat_idx in mean_columns:
-        y_vals = [stat[stat_idx] for stat in report.stat_values]
+    # Select only mean stats to plot and define default visible metric
+    stat_names_to_plot = [col for col in report.stat_names if col.startswith("mean")]
+    if not stat_names_to_plot:
+        raise AssertionError("No mean statistics found - cannot generate plots")
+    if "mean(L1_TO_L1)" in stat_names_to_plot:
+        default_visible_metric = "mean(L1_TO_L1)"
+    else:
+        default_visible_metric = stat_names_to_plot[0]
 
-        fig.add_trace(
-            go.Scatter(
-                x=list(range(len(report.sweep_values))),
-                y=y_vals,
-                mode="markers+lines",
-                name=stat_name,
-                text=hover,
-                hoverinfo="text+y",
-            )
-        )
+    # Get unique markers for tabs
+    unique_markers = sorted(list(set(record["marker"] for record in records)))
 
-    # X-axis label
-    xaxis_title = "Sweep index (see hover for values)"
+    # Get embedded Plotly.js as string
+    plotly_js_code = plotly.offline.get_plotlyjs()
 
-    fig.update_layout(
-        title=f"Performance Scatter Plot: {testname}",
-        xaxis_title=xaxis_title,
-        yaxis_title="Cycles / Tile",
-        legend_title="Run Type / Stat",
+    # Load templates
+    template_dir = Path(__file__).parent / "templates"
+
+    with open(template_dir / "styles.css", "r") as f:
+        css_content = f.read()
+
+    with open(template_dir / "dashboard.js", "r") as f:
+        js_template = f.read()
+
+    with open(template_dir / "report.html", "r") as f:
+        html_template = f.read()
+
+    # Prepare JavaScript with data using string.Template with custom delimiter
+    class CustomTemplate(Template):
+        delimiter = "__"
+
+    js_template_obj = CustomTemplate(js_template)
+    js_content = js_template_obj.substitute(
+        data=json.dumps(records),
+        paramNames=json.dumps(report.sweep_names),
+        metricNames=json.dumps(stat_names_to_plot),
+        defaultVisibleMetric=json.dumps(default_visible_metric),
+        uniqueMarkers=json.dumps(unique_markers),
     )
 
-    fig.write_html(str(output_path))
+    # Build final HTML using custom template
+    html_template_obj = CustomTemplate(html_template)
+    html = html_template_obj.substitute(
+        testname=testname,
+        plotly_js_code=plotly_js_code,
+        css_content=css_content,
+        js_content=js_content,
+    )
+
+    with open(str(output_path), "w") as f:
+        f.write(html)
