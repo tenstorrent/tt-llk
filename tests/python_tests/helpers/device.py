@@ -6,6 +6,7 @@ import os
 import time
 from enum import Enum, IntEnum
 from pathlib import Path
+from typing import List
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.hardware_controller import HardwareController
@@ -25,6 +26,7 @@ from ttexalens.tt_exalens_lib import (
 )
 
 from .format_config import DataFormat, FormatConfig
+from .fuse_operation import PipelineOperation
 from .llk_params import DestAccumulation, Mailbox
 from .pack import (
     pack_bfp8_b,
@@ -276,6 +278,7 @@ def write_stimuli_to_l1(
     stimuli_B_format: DataFormat,
     tile_count_A: int = 1,
     tile_count_B: int = None,
+    base_address=0x1A000,
     location="0,0",
     num_faces=4,
     buffer_C=None,
@@ -309,7 +312,7 @@ def write_stimuli_to_l1(
     tile_size_A_bytes = stimuli_A_format.num_bytes_per_tile(TILE_ELEMENTS)
     tile_size_B_bytes = stimuli_B_format.num_bytes_per_tile(TILE_ELEMENTS)
 
-    buffer_A_address = 0x1A000
+    buffer_A_address = base_address
     buffer_B_address = buffer_A_address + tile_size_A_bytes * tile_count_A
 
     # Handle optional third buffer
@@ -418,6 +421,31 @@ def write_stimuli_to_l1(
     test_config["result_buffer_address"] = result_buffer_address
 
     return result_buffer_address
+
+
+def write_pipeline_stimuli_to_l1(
+    pipeline: List[PipelineOperation],
+    tile_cnt_A,
+    tile_cnt_B,
+):
+    base_address = 0x1A000
+    res_address = base_address
+    for operation in pipeline:
+        formats = operation.config["formats"]
+        tilized_A = operation.config["tilized_A"]
+        tilized_B = operation.config["tilized_B"]
+        res_address = write_stimuli_to_l1(
+            operation.config,
+            tilized_A.flatten(),
+            tilized_B.flatten(),
+            formats.input_format,
+            formats.input_format,
+            tile_cnt_A,
+            tile_cnt_B,
+            base_address,
+        )
+        base_address = res_address + 0x4000
+    return res_address
 
 
 def get_result_from_device(

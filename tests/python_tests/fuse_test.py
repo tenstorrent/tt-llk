@@ -5,7 +5,11 @@
 from typing import List
 
 import torch
-from helpers.device import BootMode, collect_results, write_stimuli_to_l1
+from helpers.device import (  # , write_stimuli_to_l1
+    BootMode,
+    collect_results,
+    write_pipeline_stimuli_to_l1,
+)
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.fuse_math import MatmulMath
 from helpers.fuse_operation import PipelineOperation
@@ -98,8 +102,6 @@ def test_matmul(
         input_dimensions=input_B_dimensions,
         sfpu=False,
     )
-    # src_A = torch.ones(1024, dtype=torch_format)
-    # src_B = torch.ones(1024, dtype=torch_format)
 
     matmul_dims = generate_tile_dims((input_A_dimensions, input_B_dimensions))
 
@@ -122,7 +124,6 @@ def test_matmul(
             src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
         )
     else:
-        # BFP8 format requires special handling for tilization
         tilized_A = src_A
         tilized_B = src_B
 
@@ -138,6 +139,8 @@ def test_matmul(
         "rt_dim": matmul_dims.rt_dim,
         "ct_dim": matmul_dims.ct_dim,
         "kt_dim": matmul_dims.kt_dim,
+        "tilized_A": tilized_A,
+        "tilized_B": tilized_B,
     }
 
     test_config2 = {
@@ -152,27 +155,9 @@ def test_matmul(
         "rt_dim": matmul_dims.rt_dim,
         "ct_dim": matmul_dims.ct_dim,
         "kt_dim": matmul_dims.kt_dim,
+        "tilized_A": tilized_A,
+        "tilized_B": tilized_B,
     }
-
-    res_address = write_stimuli_to_l1(
-        test_config1,
-        tilized_A.flatten(),
-        tilized_B.flatten(),
-        formats.input_format,
-        formats.input_format,
-        tile_cnt_A,
-        tile_cnt_B,
-    )
-
-    res_address = write_stimuli_to_l1(
-        test_config2,
-        tilized_A.flatten(),
-        tilized_B.flatten(),
-        formats.input_format,
-        formats.input_format,
-        tile_cnt_A,
-        tile_cnt_B,
-    )
 
     pipeline = [
         PipelineOperation(
@@ -188,6 +173,12 @@ def test_matmul(
             config=test_config2,
         ),
     ]
+
+    res_address = write_pipeline_stimuli_to_l1(
+        pipeline,
+        tile_cnt_A,
+        tile_cnt_B,
+    )
 
     run_fuse_test(pipeline, boot_mode)
 
