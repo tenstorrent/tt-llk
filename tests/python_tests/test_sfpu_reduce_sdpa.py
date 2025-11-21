@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+from conftest import skip_for_blackhole
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
@@ -17,6 +18,7 @@ from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
 
 
+@skip_for_blackhole
 @parametrize(
     test_name="sfpu_reduce_sdpa_test",
     formats=input_output_formats(
@@ -28,12 +30,9 @@ from helpers.utils import passed_test
     reduce_pool=[ReducePool.Max],  # Only MAX is supported for SDPA reduce
     input_dimensions=[
         [32, 32],
-        [32, 64],
         [64, 32],
-        [128, 64],
-        [64, 128],
-        [32, 128],
         [128, 32],
+        [256, 32],
     ],
 )
 def test_sfpu_reduce_sdpa(

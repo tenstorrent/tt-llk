@@ -231,10 +231,9 @@ constexpr bool is_supported_reduce_format(DataFormat format)
 //**************************************************************
 // SFPU REDUCE MAX COL IMPLEMENTATION
 //**************************************************************
-inline void sfpu_reduce_max_col_configure_addrmod(uint32_t num_cols)
-{
-    uint32_t skip_rows = (num_cols - 1) * 64;
 
+inline void sfpu_reduce_max_col_configure_addrmod()
+{
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
@@ -252,13 +251,26 @@ inline void sfpu_reduce_max_col_configure_addrmod(uint32_t num_cols)
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
-        .dest = {.incr = static_cast<int16_t>(skip_rows)},
+        .dest = {.incr = 4},
     }
-        .set(ADDR_MOD_5);
+        .set(ADDR_MOD_4);
+}
+
+inline void sfpu_reduce_max_load_initial_values()
+{
+    constexpr uint16_t neg_inf_fp16b = 0xFF80;
+
+    // F0 - Initialize with negative infinity
+    TTI_SFPLOADI(p_sfpu::LREG4, InstrModLoadStore::FP16B, neg_inf_fp16b);
+    TTI_SFPLOADI(p_sfpu::LREG5, InstrModLoadStore::FP16B, neg_inf_fp16b);
+
+    // F1 - Initialize with negative infinity
+    TTI_SFPLOADI(p_sfpu::LREG6, InstrModLoadStore::FP16B, neg_inf_fp16b);
+    TTI_SFPLOADI(p_sfpu::LREG7, InstrModLoadStore::FP16B, neg_inf_fp16b);
 }
 
 template <DataFormat format>
-inline void _init_reduce_max_col_(uint32_t num_cols)
+inline void _init_reduce_max_col_()
 {
     static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
@@ -276,18 +288,14 @@ inline void _init_reduce_max_col_(uint32_t num_cols)
     TTI_SFPLOADI(0, 0xA, 0x0085); // Lower 16 bits: slot0=0x85 (bit 7 set), slot1=0x00
     TTI_SFPLOADI(0, 0x8, 0x0000); // Upper 16 bits: slot2=0x00, slot3=0x00
     TTI_SFPCONFIG(0, 5, 0);       // Store in Macro Sequence Register 1 (dest=5)
-
-    TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
-
     // ***********************************************************
 
     _init_sfpu_config_reg();
-    sfpu_reduce_max_col_configure_addrmod(num_cols);
+    sfpu_reduce_max_col_configure_addrmod();
 
     // ***********************************************************
     // Record replay buffer
-    lltt::record<lltt::NoExec>(0, 9);
-    TTI_INCRWC(0, 4, 0, 0); // increment dest counter by 4
+    lltt::record<lltt::NoExec>(0, 16);
 
     // Use LOADMACRO with lreg_ind=5 (loads to LREG5, uses sequence 1 since bits[3:2]=01)
     TTI_SFPLOADMACRO(5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
@@ -298,67 +306,10 @@ inline void _init_reduce_max_col_(uint32_t num_cols)
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
 
     // Use LOADMACRO with lreg_ind=0 (loads to LREG0, uses sequence 0)
-    TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+    TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_0, 0);
 
-    // Dummy loads used to increment dest counters
+    // dummy load instead of INCRWC by 16
     TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
-    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_1, 0);
-    // ***********************************************************
-}
-
-template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_max_col_(const uint32_t block_height /*, const uint32_t block_width*/)
-{
-    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
-    static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
-    static_assert(format == DataFormat::Float16_b, "SFPU reduce max col only supports Float16_b format");
-
-    constexpr uint32_t replay_buffer_offset    = 7;
-    constexpr uint32_t replay_buffer_next_face = 8;
-
-    /*
-    Initial loads of LREGS 0-3 which will hold maximum values of columns
-    They will spread across F0 and F1 so in each pass full tile width will be reduced
-    */
-
-    // F0
-    TTI_SFPLOAD(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-    TTI_SFPLOAD(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
-
-    // F1
-    TTI_SFPLOAD(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
-    TTI_SFPLOAD(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
-
-    // Do the first tile since it differs a bit from the rest
-    // F0 and F1
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_next_face);
-
-    // F2 and F3
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_next_face + 1);
-
-    // All other tiles but first one
-    for (uint32_t i = 0; i < block_height - 1; i++)
-    {
-        // F0 and F1
-        lltt::replay(0, replay_buffer_offset);
-        lltt::replay(0, replay_buffer_offset);
-        lltt::replay(0, replay_buffer_offset);
-        lltt::replay(0, replay_buffer_next_face);
-
-        // F2 and F3
-        lltt::replay(0, replay_buffer_offset);
-        lltt::replay(0, replay_buffer_offset);
-        lltt::replay(0, replay_buffer_offset);
-        lltt::replay(0, replay_buffer_next_face + 1);
-    }
-
-    // Reset dest RWC back to 0
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
     // Epilogue code.
     // Finalize sorting values in LREGS 0-3 and place maximum into Dest reg row 0
@@ -383,6 +334,47 @@ inline void _calculate_reduce_max_col_(const uint32_t block_height /*, const uin
     // F1
     TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
     TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+
+    // ***********************************************************
+}
+
+template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
+inline void _calculate_reduce_max_col_(const uint32_t block_height)
+{
+    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
+    static_assert(pool_type == PoolType::MAX, "Only MAX pool type is currently supported");
+    static_assert(format == DataFormat::Float16_b, "SFPU reduce max col only supports Float16_b format");
+
+    TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::PACK);
+
+    constexpr uint32_t replay_buffer_offset    = 6;
+    constexpr uint32_t replay_buffer_next_face = replay_buffer_offset + 1;
+
+    /*
+    Initial loads of LREGS 0-3 which will hold maximum values of columns
+    They will spread across F0 and F1 so in each pass full tile width will be reduced
+    */
+
+    // All other tiles but first one
+    for (uint32_t i = 0; i < block_height; i++)
+    {
+        // F0 and F1
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_next_face);
+
+        // F2 and F3
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_next_face);
+    }
+}
+
+inline void epilogue_reduce_max_col_()
+{
+    lltt::replay(7, 9);
 }
 
 /**
@@ -432,7 +424,7 @@ inline void _calculate_reduce_(uint32_t block_rt_dim = 0 /* used in reduce max c
  *                - Supported floating-point formats: Float32 (uses floating-point initialization)
  */
 template <PoolType pool_type, DataFormat format>
-inline void _init_reduce_(uint32_t block_ct_dim = 0 /* used in reduce max col*/)
+inline void _init_reduce_()
 {
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32, Float16_b");
 
@@ -453,7 +445,7 @@ inline void _init_reduce_(uint32_t block_ct_dim = 0 /* used in reduce max col*/)
 
     if constexpr (pool_type == PoolType::MAX)
     {
-        _init_reduce_max_col_<format>(block_ct_dim);
+        _init_reduce_max_col_<format>();
     }
     else
     {
