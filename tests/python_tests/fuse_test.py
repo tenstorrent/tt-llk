@@ -88,6 +88,12 @@ def test_matmul(
 
     write_pipeline_operands_to_l1(pipeline)
 
+    res_address = write_pipeline_stimuli_to_l1(
+        pipeline,
+        tile_cnt_A,
+        tile_cnt_B,
+    )
+
     run_fuse_test(pipeline, boot_mode)
 
     collect_pipeline_results(pipeline)
