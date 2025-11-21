@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-import shutil
 from enum import Enum
 from hashlib import sha256
 from pathlib import Path
@@ -561,7 +560,7 @@ def generate_make_command(
 
     boot_mode = resolve_default_boot_mode(boot_mode)
     # Simplified make command - only basic build parameters
-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} coverage_build={str(with_coverage).lower()} variant={variant_id} all "
+    make_cmd = f"make -j 6 testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} coverage_build={str(with_coverage).lower()} variant={variant_id} all "
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
@@ -623,4 +622,4 @@ def run_test(
             location,
         )
 
-    shutil.rmtree(f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}")
+    # shutil.rmtree(f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}")
