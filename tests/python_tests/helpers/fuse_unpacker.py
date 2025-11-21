@@ -4,8 +4,9 @@
 
 from typing import Dict
 
+from .data_format_inference import is_format_combination_outlier
 from .format_config import DataFormat
-from .llk_params import format_tile_sizes
+from .llk_params import DestAccumulation, format_tile_sizes
 
 
 class Unpacker:
@@ -27,7 +28,6 @@ class MatmulUnpacker(Unpacker):
         buffer_B_address = config.get("buffer_B_address", 0x1B000)
 
         formats = config.get("formats")
-        # print("formats in unpacker:", formats)
         UNPACK_A_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.input_format})"
         UNPACK_A_OUT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.input_format})"
 
@@ -36,7 +36,6 @@ class MatmulUnpacker(Unpacker):
             DataFormat.Float32: 256,
         }
 
-        # pack_size = TILE_SIZES.get(formats.output_format, 128)
         unpack_size_a = TILE_SIZES.get(formats.input_format, 128)
         unpack_size_b = TILE_SIZES.get(formats.input_format, 128)
 
@@ -51,6 +50,13 @@ class MatmulUnpacker(Unpacker):
                 in0_tile_r_dim // face_r_dim
             )
 
+        dest_acc = config.get("dest_acc", DestAccumulation.No)
+
+        if is_format_combination_outlier(
+            formats.input_format, formats.output_format, dest_acc
+        ):
+            dest_acc = DestAccumulation.Yes
+
         code = ""
 
         if stage > 0:
@@ -63,7 +69,7 @@ class MatmulUnpacker(Unpacker):
     constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {format_tile_sizes[formats.input_format if formats is not None else DataFormat.Float16_b]});
     constexpr Operand buffer_B{stage}({hex(buffer_B_address)}, {format_tile_sizes[formats.input_format if formats is not None else DataFormat.Float16_b]});
 
-    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
+    _llk_unpack_AB_matmul_hw_configure_<{dest_acc.value}, StochRndType::None>(
         {UNPACK_A_IN},
         {UNPACK_A_IN},
         {UNPACK_A_OUT},

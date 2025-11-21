@@ -113,6 +113,7 @@ class KernelCompiler:
 #include "ckernel.h"
 #include "llk_defs.h"
 #include "params.h"
+#include "ckernel_debug.h"
 
 using namespace ckernel;
 
