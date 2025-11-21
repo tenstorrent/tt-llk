@@ -5,7 +5,7 @@ import os
 from enum import Enum
 from pathlib import Path
 
-from .chip_architecture import get_chip_architecture
+from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     BootMode,
@@ -20,13 +20,16 @@ from .llk_params import (
     SFPU_BINARY_OPERATIONS,
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
+    DataCopyType,
     DestAccumulation,
     DestSync,
+    ImpliedMathFormat,
     MathFidelity,
     MathOperation,
     StochasticRounding,
     Tilize,
     Transpose,
+    UnpackerEngine,
     format_tile_sizes,
 )
 from .matmul_sweep import validate_tile_dimensions
@@ -86,6 +89,7 @@ def generate_build_header(test_config):
 
     File location: <repository>/tests/helpers/include/build.h
     """
+
     header_content = [
         "// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC",
         "//",
@@ -100,13 +104,21 @@ def generate_build_header(test_config):
         '#include "operand.h"',
         '#include "llk_defs.h"',
         '#include "llk_sfpu_types.h"',
-        '#include "perf.h"',
-        '#include "tensix_types.h"',
-        "",
-        "",
-        "// Basic configuration",
-        "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
     ]
+
+    # Conditionally include perf.h based on architecture
+    if get_chip_architecture() != ChipArchitecture.QUASAR:
+        header_content.append('#include "perf.h"')
+
+    header_content.extend(
+        [
+            '#include "tensix_types.h"',
+            "",
+            "",
+            "// Basic configuration",
+            "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
+        ]
+    )
 
     loop_factor = test_config.get("loop_factor", 1)
 
@@ -133,6 +145,25 @@ def generate_build_header(test_config):
         f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face.value};"
     )
 
+    # ******** QUASAR specific ********
+    if get_chip_architecture() == ChipArchitecture.QUASAR:
+        # Implied math format
+        implied_math_format = test_config.get(
+            "implied_math_format", ImpliedMathFormat.No
+        )
+        header_content.append(
+            f"constexpr bool IMPLIED_MATH_FORMAT = {implied_math_format.value};"
+        )
+
+        # Select unpacker
+        unpacker_engine_sel = test_config.get(
+            "unpacker_engine_sel", UnpackerEngine.UnpA
+        )
+        header_content.append(
+            f"constexpr uint UNPACKER_ENGINE_SEL = p_unpacr::{unpacker_engine_sel.value};"
+        )
+    # *********************************
+
     # Throttle level
     throttle = test_config.get("throttle", 0)
     header_content.append(f"constexpr int THROTTLE_LEVEL = {throttle};")
@@ -156,6 +187,12 @@ def generate_build_header(test_config):
     fused_L1_to_L1 = test_config.get("L1_to_L1_iterations", 1)
     header_content.append(
         f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {fused_L1_to_L1};"
+    )
+
+    # Data copy type
+    data_copy_type = test_config.get("data_copy_type", DataCopyType.A2D)
+    header_content.append(
+        f"constexpr auto DATA_COPY_TYPE = ckernel::DataCopyType::{data_copy_type.value};"
     )
 
     # Broadcast type
@@ -212,6 +249,10 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr bool PARTIAL_FACE_A = {partial_face_A};")
     header_content.append(f"constexpr bool PARTIAL_FACE_B = {partial_face_B};")
 
+    # General partial_face constant for unpack_A operations
+    partial_face = str(test_config.get("partial_face", False)).lower()
+    header_content.append(f"constexpr bool PARTIAL_FACE = {partial_face};")
+
     header_content.append(f"constexpr bool PARTIAL_FACE_PACK = {partial_face_A};")
     header_content.append(f"constexpr bool PARTIAL_FACE_MATH = {partial_face_B};")
 
@@ -233,6 +274,14 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr int in1_tile_r_dim = {in1_tile_r_dim};")
     header_content.append(f"constexpr int in1_tile_c_dim = {in1_tile_c_dim};")
 
+    # face dimensions - use TEST_ prefix to avoid namespace collision with ckernel::FACE_R_DIM
+    face_r_dim = test_config.get("face_r_dim", 16)
+    face_c_dim = test_config.get(
+        "face_c_dim", 16
+    )  # Face column dimension, typically 16
+    header_content.append(f"constexpr int TEST_FACE_R_DIM = {face_r_dim};")
+    header_content.append(f"constexpr int TEST_FACE_C_DIM = {face_c_dim};")
+
     # tile size
     formats = test_config.get("formats")
     if formats:
@@ -241,16 +290,16 @@ def generate_build_header(test_config):
             DataFormat.Bfp8_b: 68,
             DataFormat.Float32: 256,
         }
-        FACE_R_DIM = 16
+        # face_r_dim is now generated directly as TEST_FACE_R_DIM above
 
         pack_size = TILE_SIZES.get(formats.output_format, 128)
         unpack_size_a = TILE_SIZES.get(formats.input_format, 128)
         unpack_size_b = TILE_SIZES.get(formats.input_format, 128)
 
         if tiny_tiles:
-            pack_size = (pack_size // num_faces) * (in0_tile_r_dim // FACE_R_DIM)
+            pack_size = (pack_size // num_faces) * (in0_tile_r_dim // face_r_dim)
             unpack_size_a = (unpack_size_a // num_faces_A) * (
-                in0_tile_r_dim // FACE_R_DIM
+                in0_tile_r_dim // face_r_dim
             )
 
         header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = {pack_size};")
@@ -317,6 +366,7 @@ def generate_build_header(test_config):
         num_iterations=l1_to_l1_iterations,
         unpacking_to_dest=unpack_to_dest == "true",
         chip_arch=get_chip_architecture(),
+        disable_format_inference=test_config.get("disable_format_inference", False),
     )
 
     if l1_to_l1_iterations > 1:
@@ -468,6 +518,11 @@ def generate_build_header(test_config):
     if "kt_dim" in test_config:
         header_content.append(f"constexpr uint32_t KT_DIM = {test_config['kt_dim']};")
 
+    # Add top row flag
+    add_top_row = test_config.get("add_top_row", False)
+    if add_top_row:
+        header_content.append("constexpr bool ADD_TOP_ROW = true;")
+
     header_content.append("")
 
     if perf_run_type := test_config.get("perf_run_type"):
@@ -495,7 +550,6 @@ def generate_make_command(
     """Generate make command"""
 
     boot_mode = resolve_default_boot_mode(boot_mode)
-
     # Simplified make command - only basic build parameters
     make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} all "
 
@@ -515,6 +569,7 @@ def build_test(
     tests_dir = str((llk_home / "tests").absolute())
     write_build_header(test_config)
     make_cmd = generate_make_command(test_config, boot_mode, profiler_build)
+
     run_shell_command(make_cmd, cwd=tests_dir)
 
 
@@ -528,5 +583,5 @@ def run_test(
     build_test(test_config, boot_mode, profiler_build)
 
     # run test
-    run_elf_files(test_config["testname"], boot_mode)
-    wait_for_tensix_operations_finished()
+    elfs = run_elf_files(test_config["testname"], boot_mode)
+    wait_for_tensix_operations_finished(elfs)

@@ -236,6 +236,13 @@ enum class ActivationType
     Hardsigmoid = 4,
 };
 
+enum class RoundingMode : uint8_t
+{
+    None  = 0,
+    Trunc = 1,
+    Floor = 2,
+};
+
 enum class BinaryOp : uint8_t
 {
     ADD           = 0,
@@ -247,7 +254,8 @@ enum class BinaryOp : uint8_t
     XLOGY         = 6,
     RSHFT         = 7,
     LSHFT         = 8,
-    LOGICAL_RSHFT = 9
+    LOGICAL_RSHFT = 9,
+    ADD_TOP_ROW   = 10
 };
 
 } // namespace ckernel

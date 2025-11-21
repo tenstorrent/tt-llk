@@ -12,12 +12,15 @@
 #include "ckernel_defs.h"
 #include "ckernel_sfpu.h"
 #include "data_format_inference.h"
-#include "perf.h"
 #include "tensix_types.h"
 
 inline uint32_t L1_ADDRESS(uint32_t buffer_address)
 {
+#ifdef ARCH_QUASAR
+    return buffer_address / 16;
+#else
     return (buffer_address / 16) - 1;
+#endif
 }
 
 namespace
