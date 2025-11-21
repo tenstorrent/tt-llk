@@ -68,6 +68,13 @@ class MatmulFpu(Fpu):
 
         dest_acc = operation_config.dest_acc.value
 
+        dest_acc = config.get("dest_acc", DestAccumulation.No)
+
+        if is_format_combination_outlier(
+            formats.input_format, formats.output_format, dest_acc
+        ):
+            dest_acc = DestAccumulation.Yes
+
         code = f"""
     _llk_math_matmul_init_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, {CT_DIM}, {RT_DIM}, {KT_DIM});
     _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();

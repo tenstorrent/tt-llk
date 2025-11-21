@@ -6,6 +6,10 @@ from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from .fuse_operation import PipelineOperation
+    
+from .data_format_inference import is_format_combination_outlier
+from .format_config import DataFormat
+from .llk_params import DestAccumulation, format_tile_sizes
 
 
 class Unpacker:
@@ -52,7 +56,6 @@ class MatmulUnpacker(Unpacker):
             DataFormat.Float32: 256,
         }
 
-        # pack_size = TILE_SIZES.get(formats.output_format, 128)
         unpack_size_a = TILE_SIZES.get(formats.input_format, 128)
         unpack_size_b = TILE_SIZES.get(formats.input_format, 128)
 
@@ -66,6 +69,13 @@ class MatmulUnpacker(Unpacker):
             unpack_size_a = (unpack_size_a // num_faces_A) * (
                 in0_tile_r_dim // face_r_dim
             )
+
+        dest_acc = config.get("dest_acc", DestAccumulation.No)
+
+        if is_format_combination_outlier(
+            formats.input_format, formats.output_format, dest_acc
+        ):
+            dest_acc = DestAccumulation.Yes
 
         code = ""
 
