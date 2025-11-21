@@ -12,7 +12,7 @@
 namespace ckernel::sfpu
 {
 
-template <bool APPROXIMATION_MODE, DataFormat data_format, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, DataFormat data_format, int ITERATIONS>
 inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
 {
     static_assert(
@@ -73,7 +73,7 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
     }
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_where_()
 {
     // InstructionTemplate[0]

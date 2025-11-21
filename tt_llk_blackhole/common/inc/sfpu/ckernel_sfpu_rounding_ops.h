@@ -10,6 +10,7 @@
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "ckernel_sfpu_isinf_isnan.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -79,7 +80,7 @@ inline constexpr std::array<float, 84> PRECOMPUTED_POW10_TABLE = {
     1e23F,  1e24F,  1e25F,  1e26F,  1e27F,  1e28F,  1e29F,  1e30F,  1e31F,  1e32F,  1e33F,  1e34F,  1e35F,  1e36F,  1e37F,  1e38F,
 };
 
-template <bool APPROXIMATION_MODE, bool USE_FP32>
+template <ApproximationMode APPROX_MODE, bool USE_FP32>
 inline sfpi::vFloat _floor_body_(sfpi::vFloat v)
 {
     sfpi::vInt tmp;
@@ -110,7 +111,7 @@ inline sfpi::vFloat _floor_body_(sfpi::vFloat v)
         v_endif;
     }
 
-    v_if (sfpi::vConst0 == _calculate_isfinite_<APPROXIMATION_MODE>(v))
+    v_if (sfpi::vConst0 == _calculate_isfinite_<APPROX_MODE>(v))
     {
         result = v;
     }
@@ -118,18 +119,18 @@ inline sfpi::vFloat _floor_body_(sfpi::vFloat v)
     return result;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
+template <ApproximationMode APPROX_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
 inline void _calculate_floor_()
 {
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat v   = sfpi::dst_reg[0];
-        sfpi::dst_reg[0] = _floor_body_<APPROXIMATION_MODE, USE_FP32>(v);
+        sfpi::dst_reg[0] = _floor_body_<APPROX_MODE, USE_FP32>(v);
         sfpi::dst_reg++;
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
+template <ApproximationMode APPROX_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
 inline void _calculate_ceil_()
 {
     for (int d = 0; d < ITERATIONS; d++)
@@ -169,7 +170,7 @@ inline void _calculate_ceil_()
     }
 }
 
-template <bool APPROXIMATION_MODE, bool USE_FP32>
+template <ApproximationMode APPROX_MODE, bool USE_FP32>
 inline sfpi::vFloat _trunc_body_(sfpi::vFloat in)
 {
     sfpi::vInt tmp;
@@ -210,7 +211,7 @@ inline sfpi::vFloat _trunc_body_(sfpi::vFloat in)
     }
     v_endif;
 
-    v_if (sfpi::vConst0 == _calculate_isfinite_<APPROXIMATION_MODE>(in))
+    v_if (sfpi::vConst0 == _calculate_isfinite_<APPROX_MODE>(in))
     {
         result = in;
     }
@@ -218,18 +219,18 @@ inline sfpi::vFloat _trunc_body_(sfpi::vFloat in)
     return result;
 }
 
-template <bool APPROXIMATION_MODE, bool USE_FP32 = false, int ITERATIONS = 8>
+template <ApproximationMode APPROX_MODEE, bool USE_FP32 = false, int ITERATIONS = 8>
 inline void _calculate_trunc_()
 {
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat in  = sfpi::dst_reg[0];
-        sfpi::dst_reg[0] = _trunc_body_<APPROXIMATION_MODE, USE_FP32>(in);
+        sfpi::dst_reg[0] = _trunc_body_<APPROX_MODE, USE_FP32>(in);
         sfpi::dst_reg++;
     }
 }
 
-template <bool APPROXIMATION_MODE, bool USE_FP32 = false, int ITERATIONS = 8>
+template <ApproximationMode APPROX_MODE, bool USE_FP32 = false, int ITERATIONS = 8>
 inline void _calculate_frac_()
 {
     for (int d = 0; d < ITERATIONS; d++)
