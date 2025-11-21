@@ -29,7 +29,7 @@ void run_kernel()
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, within_face_16x16_transpose);
     _llk_unpack_AB_init_<>(FACE_R_DIM, 4, false, within_face_16x16_transpose, 0);
-    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), within_face_16x16_transpose);
+    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]));
 }
 
 #endif
@@ -48,7 +48,7 @@ void run_kernel()
     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
     _llk_math_hw_configure_<false, row_pool>(formats.math, formats.math);
-    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, enforce_fp32_accumulation>(within_face_16x16_transpose);
+    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, enforce_fp32_accumulation>();
     _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, is_int_fpu_en, enforce_fp32_accumulation>(0);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
