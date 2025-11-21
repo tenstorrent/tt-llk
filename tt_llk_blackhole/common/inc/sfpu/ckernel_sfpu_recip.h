@@ -70,15 +70,13 @@ inline void _calculate_reciprocal_fast_7b_(const int iterations)
 // BF16 reciprocal, with throughput of 3c/32.
 inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
 {
-    constexpr int x           = 1;
-    constexpr int t           = 1;
+    constexpr int x           = p_sfpu::LREG1;
+    constexpr int t           = p_sfpu::LREG1;
     constexpr int offset      = 0;
     constexpr int prev_offset = -4 & 0x3ff;
 
-    // L0 = 1<<15 (bf16)
-    TTI_SFPLOADI(0, 0, 0x8000);
-    // L7 = x (uint16)
-    TTI_SFPLOADI(7, 2, x);
+    TTI_SFPLOADI(p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_USHORT, 0x8000);
+    TTI_SFPLOADI(p_sfpu::LREG7, SFPLOADI_MOD0_USHORT, x);
 
 #pragma GCC unroll 10
     for (int d = 0; d < iterations + 2; d++)
@@ -191,8 +189,8 @@ inline void _init_reciprocal_fast_7b_()
 
 inline void _init_reciprocal_fast_8b_3c_()
 {
-    constexpr int x = 1;
-    constexpr int t = 1;
+    constexpr int x = p_sfpu::LREG1;
+    constexpr int t = p_sfpu::LREG1;
 
     // InstructionTemplate[0]
     TTI_SFPARECIP(0, 0, 12, 0);
@@ -247,10 +245,10 @@ inline void _init_reciprocal_fast_8b_3c_()
 
 inline void _init_reciprocal_fast_24b_5c_()
 {
-    constexpr int e  = 0;
-    constexpr int t2 = 1;
-    constexpr int z  = 2;
-    constexpr int y  = 3;
+    constexpr int e  = p_sfpu::LREG0;
+    constexpr int t2 = p_sfpu::LREG1;
+    constexpr int z  = p_sfpu::LREG2;
+    constexpr int y  = p_sfpu::LREG3;
 
     // InstructionTemplate[0]
     TTI_SFPARECIP(0, 0, 12, 0);
