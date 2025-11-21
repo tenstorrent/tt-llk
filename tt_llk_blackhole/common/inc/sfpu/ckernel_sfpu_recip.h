@@ -113,7 +113,7 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
     constexpr int prev_offset = -4 & 0x3ff;
 
     TTI_SFPLOADI(p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_FLOATB, 0x8000);
-    TTI_SFPLOADI(p_sfpu::LREG7, SFPLOADI_MOD0_USHORT, x);
+    TTI_SFPLOADI(p_sfpu::LREG7, sfpi::SFPLOADI_MOD0_USHORT, x);
 
 #pragma GCC unroll 10
     for (int d = 0; d < iterations + 2; d++)
