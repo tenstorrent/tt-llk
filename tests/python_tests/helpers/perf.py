@@ -363,7 +363,7 @@ def dump_csv(testname: str, filename: str, post_report: PerfReport):
 
 
 def dump_scatter(testname: str, report: PerfReport):
-    # FIXME: was broken by the new pandas implementation
+    # FIXME: was broken by the new pandas implementation (https://github.com/tenstorrent/tt-llk/issues/857)
 
     # generate a scatter plot using plotly.graph_objects (no pandas required)
 
