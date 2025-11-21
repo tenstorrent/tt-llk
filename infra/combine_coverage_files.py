@@ -20,11 +20,8 @@ def run_command(cmd, check=True):
         return False, e.stdout, e.stderr
 
 
-def merge_coverage_files(coverage_dir, output_path):
+def merge_coverage_files(coverage_dir):
     """Merge coverage files from the coverage directory."""
-
-    print(f"Coverage directory: {coverage_dir}")
-    print(f"Output path: {output_path}")
 
     if not os.path.isdir(coverage_dir):
         print(f"{coverage_dir} does not exist. Early exit.")
@@ -33,8 +30,8 @@ def merge_coverage_files(coverage_dir, output_path):
     info_files = glob.glob(os.path.join(coverage_dir, "*.info"))
 
     if not info_files:
-        print("No coverage files found")
-        return False
+        print("No coverage files found, exiting . . .")
+        return True
 
     print(f"Found {len(info_files)} coverage files")
 
@@ -47,11 +44,10 @@ def merge_coverage_files(coverage_dir, output_path):
             print(f"Failed to initialize: {stderr}")
             return False
 
-    for info_file in info_files:
-        if info_file == merged_path:
-            continue
+    info_files.pop(0)
 
-        cmd = f"lcov -q -a '{merged_path}' -a '{info_file}' -o '{merged_path}'"
+    for info_file in info_files:
+        cmd = f"lcov -q -a {merged_path} -a {info_file} -o {merged_path}"
         success, _, stderr = run_command(cmd, check=False)
 
         if not success:
@@ -64,9 +60,9 @@ def merge_coverage_files(coverage_dir, output_path):
 
 def main():
     coverage_dir = "/tmp/tt-llk-build/coverage_info"
-    output_path = "./tests"
 
-    success = merge_coverage_files(coverage_dir, output_path)
+    print(f"\n\n--- Combining coverage data from {coverage_dir} ---")
+    success = merge_coverage_files(coverage_dir)
 
     sys.exit(0 if success else 1)
 
