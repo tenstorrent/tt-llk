@@ -228,7 +228,7 @@ jobs:
       - name: Upload artifact for Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./coverage_reports
+          path: ./coverage_reports_${{ env.CHIP_ARCH }}
 
       - name: Deploy to GitHub Pages
         id: deployment

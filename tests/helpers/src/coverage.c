@@ -11,6 +11,7 @@ extern "C"
 #include <stdint.h>
 
 #include "gcov.h"
+#include "gcov_structs.h"
 
 #define COVERAGE_OVERFLOW 0xDEADBEEF
 
@@ -24,35 +25,61 @@ extern "C"
     extern uint8_t __coverage_start[];
     extern uint8_t __coverage_end[];
 
-    // The first value in the coverage segment is the number of bytes written.
-    // Note, in gcov_dump, that it gets set to 4 - that is to accommodate for the
-    // value itself. The covdump.py script uses it to know how much data to
-    // extract.
+    void __gcov_merge_add(gcov_type* counters, unsigned n_counters)
+    {
+    }
 
-    static void write_data(const void* _data, unsigned int length)
+    int gcov_error(const char*, ...)
+    {
+        return 0;
+    }
+
+    void abort()
+    {
+        while (1)
+            ;
+    }
+
+    uint32_t __umodsi3(uint32_t a, uint32_t b)
+    {
+        return a % b;
+    }
+
+    uint32_t __udivsi3(uint32_t a, uint32_t b)
+    {
+        return a / b;
+    }
+
+    size_t strlen(const char* s)
+    {
+        size_t n;
+        for (n = 0; s[n]; n++)
+            ;
+        return n;
+    }
+
+    static void write_data(const void* _data, unsigned int length, void*)
     {
         uint8_t* data     = (uint8_t*)_data;
         uint32_t* written = (uint32_t*)__coverage_start;
-        if (*written == COVERAGE_OVERFLOW)
-        {
-            return;
-        }
 
-        uint8_t* mem = __coverage_start + *written; // Start writing from here.
-        if (mem + length >= __coverage_end)
-        {
-            // Not enough space in the segment, write overflow sentinel and return.
-            *written = COVERAGE_OVERFLOW;
-            return;
-        }
+        uint8_t* mem = __coverage_start + *written;
 
         for (unsigned int i = 0; i < length; i++)
         {
             mem[i] = data[i];
         }
+
         *written += length;
     }
 
+    void filename_dummy(const char*, void*)
+    {
+    }
+
+    // The first value in the coverage segment is the number of bytes written.
+    // Note, in gcov_dump, that it gets set to 4 - that is to accommodate for the
+    // value itself.
     void gcov_dump(void)
     {
         // First word is for file length, start writing past that.
@@ -64,7 +91,8 @@ extern "C"
 
         for (uint16_t ind = 0; ind < compilation_units; ind++)
         {
-            __gcov_info_to_gcda(info[ind], write_data, NULL);
+            __gcov_filename_to_gcfn(info[ind]->filename, write_data, NULL);
+            __gcov_info_to_gcda(info[ind], filename_dummy, write_data, NULL, NULL);
         }
     }
 
