@@ -8,7 +8,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
@@ -232,10 +231,10 @@ def perf_report(request):
     except Exception as e:
         print("Perf: Unexpected error, Saving report anyway", e)
 
-    dump_report(test_module, report)
+    dump_csv(test_module, f"{test_module}.csv", report)
 
     post = _postprocess_report(report)
-    dump_postprocess(test_module, post)
+    dump_csv(test_module, f"{test_module}.post.csv", post)
     # dump_scatter(test_module, post)
 
 
@@ -307,47 +306,42 @@ def delete_benchmark_dir(testname: str):
         shutil.rmtree(path)
 
 
-def create_benchmark_dir(testname: str):
+def get_benchmark_dir(testname: str) -> Path:
     root = os.environ.get("LLK_HOME")
     if not root:
         raise AssertionError("Environment variable LLK_HOME is not set")
 
-    output_path = Path(root) / "perf_data" / testname
-    output_path.mkdir(parents=True, exist_ok=True)
+    path = Path(root) / "perf_data" / testname
 
-    return output_path
+    if not path.exists():
+        path.mkdir(parents=True, exist_ok=True)
 
-
-def dump_report(testname: str, report: PerfReport):
-    root = os.environ.get("LLK_HOME")
-    if not root:
-        raise AssertionError("Environment variable LLK_HOME is not set")
-
-    benchmark_dir = create_benchmark_dir(testname)
-    output_path = benchmark_dir / f"{testname}.csv"
-
-    report.frame().to_csv(output_path, index=False)
+    return path
 
 
 # Common postprocessing
 
 
 def _postprocess_tile_loop(frame: pd.DataFrame) -> pd.DataFrame:
-
-    # Adjust timings for TILE_LOOP markers so that they represent per-tile timings
-    result_columns = frame.columns[frame.columns.get_loc("marker") + 1 :]
     mask = frame["marker"] == "TILE_LOOP"
 
-    for column in result_columns:
-        if column.startswith("mean"):
-            frame.loc[mask, column] = frame.loc[mask, column] / frame.loc[
-                mask, "loop_factor"
-            ].fillna(1)
+    # Ensure columns exist and default missing values only for masked rows
+    for col in ["loop_factor", "tile_cnt"]:
+        if col not in frame.columns:
+            frame[col] = 1
+        frame[col] = frame[col].fillna(1)
 
-        if column.startswith("std"):
-            frame.loc[mask, column] = frame.loc[mask, column] / np.sqrt(
-                frame.loc[mask, "loop_factor"].fillna(1)
-            )
+    # Compute divisor as Series aligned with masked rows
+    divisor = frame.loc[mask, "loop_factor"] * frame.loc[mask, "tile_cnt"]
+
+    # Select only mean/std columns
+    mean_columns = [c for c in frame.columns if c.startswith("mean(")]
+    std_columns = [c for c in frame.columns if c.startswith("std(")]
+
+    # Apply division
+    for cols in (mean_columns, std_columns):
+        if cols:
+            frame.loc[mask, cols] = frame.loc[mask, cols].div(divisor, axis=0)
 
     return frame
 
@@ -359,14 +353,9 @@ def _postprocess_report(report: PerfReport) -> PerfReport:
     return PerfReport().append(frame)
 
 
-def dump_postprocess(testname: str, post_report: PerfReport):
-    root = os.environ.get("LLK_HOME")
-    if not root:
-        raise AssertionError("Environment variable LLK_HOME is not set")
-
-    benchmark_dir = create_benchmark_dir(testname)
-    output_path = benchmark_dir / f"{testname}.post.csv"
-
+def dump_csv(testname: str, filename: str, post_report: PerfReport):
+    benchmark_dir = get_benchmark_dir(testname)
+    output_path = benchmark_dir / filename
     post_report.frame().to_csv(output_path, index=False)
 
 
