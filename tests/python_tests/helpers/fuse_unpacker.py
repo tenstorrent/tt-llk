@@ -4,10 +4,6 @@
 
 from typing import Dict
 
-from .data_format_inference import is_format_combination_outlier
-from .format_config import DataFormat
-from .llk_params import DestAccumulation, format_tile_sizes
-
 
 class Unpacker:
     def unpack(self, config: Dict) -> str:
@@ -17,45 +13,28 @@ class Unpacker:
 class MatmulUnpacker(Unpacker):
     def unpack(self, config: Dict) -> str:
         stage = config["stage_id"]
-        FACE_R_DIM = config.get("face_r_dim", 16)
+        FACE_R_DIM = config["face_r_dim"]
         CT_DIM = config["ct_dim"]
         RT_DIM = config["rt_dim"]
         KT_DIM = config["kt_dim"]
-        # TILE_SIZE_UNPACK_A = FACE_R_DIM * CT_DIM
-        # TILE_SIZE_UNPACK_B = FACE_R_DIM * KT_DIM
 
-        buffer_A_address = config.get("buffer_A_address", 0x1A000)
-        buffer_B_address = config.get("buffer_B_address", 0x1B000)
+        buffer_A_address = config["buffer_A_address"]
+        buffer_B_address = config["buffer_B_address"]
 
-        formats = config.get("formats")
-        UNPACK_A_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.input_format})"
-        UNPACK_A_OUT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.input_format})"
+        # Koristi inferisane format iz generated config
+        unpack_src = config["unpack_a_in"]
+        unpack_dst = config["unpack_a_out"]
 
-        TILE_SIZES = {
-            DataFormat.Bfp8_b: 68,
-            DataFormat.Float32: 256,
-        }
+        UNPACK_A_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_src.name})"
+        UNPACK_A_OUT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_dst.name})"
 
-        unpack_size_a = TILE_SIZES.get(formats.input_format, 128)
-        unpack_size_b = TILE_SIZES.get(formats.input_format, 128)
+        # Tile sizes iz generated config
+        unpack_size_a = config["tile_size_unpack_a"]
+        unpack_size_b = config["tile_size_unpack_b"]
 
-        num_faces_A = config.get("num_faces_A", config.get("num_faces", 4))
-
-        in0_tile_r_dim = config.get("in0_tile_r_dim", 32)
-        face_r_dim = config.get("face_r_dim", 16)
-        tiny_tiles = config.get("tiny_tiles", False)
-
-        if tiny_tiles:
-            unpack_size_a = (unpack_size_a // num_faces_A) * (
-                in0_tile_r_dim // face_r_dim
-            )
-
-        dest_acc = config.get("dest_acc", DestAccumulation.No)
-
-        if is_format_combination_outlier(
-            formats.input_format, formats.output_format, dest_acc
-        ):
-            dest_acc = DestAccumulation.Yes
+        # dest_acc je već obrađen u generate_operation_config
+        dest_acc = config["dest_acc"]
+        dest_acc_value = dest_acc.value
 
         code = ""
 
@@ -66,10 +45,10 @@ class MatmulUnpacker(Unpacker):
 """
 
         code += f"""
-    constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {format_tile_sizes[formats.input_format if formats is not None else DataFormat.Float16_b]});
-    constexpr Operand buffer_B{stage}({hex(buffer_B_address)}, {format_tile_sizes[formats.input_format if formats is not None else DataFormat.Float16_b]});
+    constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {config["tile_size"]});
+    constexpr Operand buffer_B{stage}({hex(buffer_B_address)}, {config["tile_size"]});
 
-    _llk_unpack_AB_matmul_hw_configure_<{dest_acc.value}, StochRndType::None>(
+    _llk_unpack_AB_matmul_hw_configure_<{dest_acc_value}, StochRndType::None>(
         {UNPACK_A_IN},
         {UNPACK_A_IN},
         {UNPACK_A_OUT},
