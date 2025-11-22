@@ -49,7 +49,7 @@ void run_kernel()
                 tile_row_addr,
                 col,
                 formats.unpack_src,
-                BLOCK_CT_DIM,
+                0,
                 FACE_R_DIM,
                 NUM_FACES,
                 false // narrow_tile disabled for now
