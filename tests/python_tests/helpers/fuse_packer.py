@@ -4,10 +4,6 @@
 
 from typing import Dict
 
-from .data_format_inference import is_format_combination_outlier
-from .format_config import DataFormat
-from .llk_params import DestAccumulation, format_tile_sizes
-
 
 class Packer:
     def pack(self, config: Dict) -> str:
@@ -18,42 +14,31 @@ class MatmulPacker(Packer):
     def pack(self, config: Dict) -> str:
         stage = config["stage_id"]
         num_stages = config["num_stages"]
-        formats = config.get("formats")
 
-        PACK_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.output_format})"
-        PACK_OUT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.output_format})"
+        # Koristi formatirane vrednosti iz generated config
+        pack_src = config["pack_in"]
+        pack_dst = config["pack_out"]
 
-        result_buffer_address = config.get("result_buffer_address", 0x1C000)
+        PACK_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_src.name})"
+        PACK_OUT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name})"
 
-        TILE_CNT = config.get("tile_cnt", 1)
+        result_buffer_address = config["result_buffer_address"]
+
+        # Tile size iz generated config
+        pack_size = config["tile_size_pack"]
+
+        TILE_CNT = config["tile_cnt"]
         TILIZE = str(stage < num_stages - 1).lower()
 
-        TILE_SIZES = {
-            DataFormat.Bfp8_b: 68,
-            DataFormat.Float32: 256,
-        }
-
-        pack_size = TILE_SIZES.get(formats.output_format, 128)
-        in0_tile_r_dim = config.get("in0_tile_r_dim", 32)
-        face_r_dim = config.get("face_r_dim", 16)
-        tiny_tiles = config.get("tiny_tiles", False)
-        num_faces = config.get("num_faces", 4)
-
-        if tiny_tiles:
-            pack_size = (pack_size // num_faces) * (in0_tile_r_dim // face_r_dim)
-
-        dest_acc = config.get("dest_acc", DestAccumulation.No)
-
-        if is_format_combination_outlier(
-            formats.input_format, formats.output_format, dest_acc
-        ):
-            dest_acc = DestAccumulation.Yes
+        # dest_acc je već obrađen u generate_operation_config
+        dest_acc = config["dest_acc"]
+        dest_acc_value = dest_acc.value
 
         code = f"""
-    constexpr Operand buffer_Res{stage}({hex(result_buffer_address)}, {format_tile_sizes[formats.output_format if formats is not None else DataFormat.Float16_b]});
+    constexpr Operand buffer_Res{stage}({hex(result_buffer_address)}, {config["tile_size"]});
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<{dest_acc.value}, false, {TILIZE}>(
+    _llk_pack_hw_configure_<{dest_acc_value}, false, {TILIZE}>(
         {PACK_IN},
         {PACK_OUT},
         {pack_size}
@@ -61,24 +46,24 @@ class MatmulPacker(Packer):
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, {TILIZE}>(
         {PACK_OUT}
     );
-    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc.value}, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, DstTileFaceLayout::RowMajor>();
 #else
-//    _llk_pack_hw_configure_<{dest_acc.value}, false>(
-//        {PACK_IN},
-//        {PACK_OUT},
-//        {pack_size}
-//    );
-//    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(
-//        {PACK_OUT}
-//    );
-//    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc.value}, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_hw_configure_<{dest_acc_value}, false>(
+        {PACK_IN},
+        {PACK_OUT},
+        {pack_size}
+    );
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(
+        {PACK_OUT}
+    );
+    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, DstTileFaceLayout::RowMajor, false>();
 #endif
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < {TILE_CNT}; i++)
     {{
-        _llk_pack_<DstSync::SyncHalf, {dest_acc.value}, false>(i, L1_ADDRESS(buffer_Res{stage}[i]));
+        _llk_pack_<DstSync::SyncHalf, {dest_acc_value}, false>(i, L1_ADDRESS(buffer_Res{stage}[i]));
     }}
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc.value}>();
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc_value}>();
 """
         if stage < num_stages - 1:
             code += f"""
