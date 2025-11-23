@@ -21,18 +21,15 @@ class MatmulUnpacker(Unpacker):
         buffer_A_address = config["buffer_A_address"]
         buffer_B_address = config["buffer_B_address"]
 
-        # Koristi inferisane format iz generated config
         unpack_src = config["unpack_a_in"]
         unpack_dst = config["unpack_a_out"]
 
         UNPACK_A_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_src.name})"
         UNPACK_A_OUT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_dst.name})"
 
-        # Tile sizes iz generated config
         unpack_size_a = config["tile_size_unpack_a"]
         unpack_size_b = config["tile_size_unpack_b"]
 
-        # dest_acc je već obrađen u generate_operation_config
         dest_acc = config["dest_acc"]
         dest_acc_value = dest_acc.value
 
@@ -44,9 +41,12 @@ class MatmulUnpacker(Unpacker):
     t6_semaphore_get<>(semaphore::PACK_DONE);
 """
 
+        buffer_A_tile_size = config["buffer_A_tile_size"]
+        buffer_B_tile_size = config["buffer_B_tile_size"]
+
         code += f"""
-    constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {config["tile_size"]});
-    constexpr Operand buffer_B{stage}({hex(buffer_B_address)}, {config["tile_size"]});
+    constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});
+    constexpr Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});
 
     _llk_unpack_AB_matmul_hw_configure_<{dest_acc_value}, StochRndType::None>(
         {UNPACK_A_IN},

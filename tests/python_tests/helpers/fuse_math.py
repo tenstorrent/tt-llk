@@ -16,15 +16,12 @@ class MatmulMath(Math):
         RT_DIM = config["rt_dim"]
         KT_DIM = config["kt_dim"]
 
-        # Koristi inferisani math format iz generated config
         math_format = config["math_format"]
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
 
-        # Math fidelity iz config-a
         fidelity = config["math_fidelity"]
         MATH_FIDELITY = fidelity.value
 
-        # dest_acc je već obrađen u generate_operation_config
         dest_acc = config["dest_acc"]
         dest_acc_value = dest_acc.value
 

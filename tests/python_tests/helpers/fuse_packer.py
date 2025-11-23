@@ -15,7 +15,6 @@ class MatmulPacker(Packer):
         stage = config["stage_id"]
         num_stages = config["num_stages"]
 
-        # Koristi formatirane vrednosti iz generated config
         pack_src = config["pack_in"]
         pack_dst = config["pack_out"]
 
@@ -24,18 +23,18 @@ class MatmulPacker(Packer):
 
         result_buffer_address = config["result_buffer_address"]
 
-        # Tile size iz generated config
         pack_size = config["tile_size_pack"]
 
         TILE_CNT = config["tile_cnt"]
         TILIZE = str(stage < num_stages - 1).lower()
 
-        # dest_acc je već obrađen u generate_operation_config
         dest_acc = config["dest_acc"]
         dest_acc_value = dest_acc.value
 
+        buffer_Res_tile_size = config["buffer_Res_tile_size"]
+
         code = f"""
-    constexpr Operand buffer_Res{stage}({hex(result_buffer_address)}, {config["tile_size"]});
+    constexpr Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<{dest_acc_value}, false, {TILIZE}>(
