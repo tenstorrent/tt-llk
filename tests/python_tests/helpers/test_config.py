@@ -753,6 +753,11 @@ def generate_operation_config(operation_config: dict) -> dict:
         config["tile_size_unpack_b"] = unpack_size_b
         config["tile_size"] = 16 * 16 * config["num_faces"]
 
+        # Format-based tile sizes for Operand buffers
+        config["buffer_A_tile_size"] = format_tile_sizes[formats.input_format]
+        config["buffer_B_tile_size"] = format_tile_sizes[formats.input_format]
+        config["buffer_Res_tile_size"] = format_tile_sizes[formats.output_format]
+
     # Dest synchronisation mode
     config["dest_sync"] = operation_config.get("dest_sync", DestSync.Half)
 

@@ -4,7 +4,6 @@
 
 from typing import TYPE_CHECKING, List
 
-<<<<<<< HEAD
 if TYPE_CHECKING:
     from .fuse_operation import PipelineOperation
     
@@ -12,8 +11,6 @@ from .data_format_inference import is_format_combination_outlier
 from .format_config import DataFormat
 from .llk_params import DestAccumulation, format_tile_sizes
 
-=======
->>>>>>> 436cbe36 (dict config for every operation to replace build.h)
 
 class Unpacker:
     def unpack(self, operation_config: "PipelineOperation") -> str:
@@ -24,7 +21,6 @@ class Unpacker:
 
 
 class MatmulUnpacker(Unpacker):
-<<<<<<< HEAD
     def get_headers(self) -> List[str]:
         return [
             "llk_unpack_A.h",
@@ -54,32 +50,9 @@ class MatmulUnpacker(Unpacker):
 
         dest_acc = operation_config.dest_acc
         dest_acc_value = dest_acc.value
-=======
-    def unpack(self, config: Dict) -> str:
-        stage = config["stage_id"]
-        FACE_R_DIM = config["face_r_dim"]
-        CT_DIM = config["ct_dim"]
-        RT_DIM = config["rt_dim"]
-        KT_DIM = config["kt_dim"]
-
-        buffer_A_address = config["buffer_A_address"]
-        buffer_B_address = config["buffer_B_address"]
-
-        # Koristi inferisane format iz generated config
-        unpack_src = config["unpack_a_in"]
-        unpack_dst = config["unpack_a_out"]
->>>>>>> 436cbe36 (dict config for every operation to replace build.h)
 
         UNPACK_A_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_src.name})"
         UNPACK_A_OUT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_dst.name})"
-
-        # Tile sizes iz generated config
-        unpack_size_a = config["tile_size_unpack_a"]
-        unpack_size_b = config["tile_size_unpack_b"]
-
-        # dest_acc je već obrađen u generate_operation_config
-        dest_acc = config["dest_acc"]
-        dest_acc_value = dest_acc.value
 
         code = ""
 
@@ -89,7 +62,6 @@ class MatmulUnpacker(Unpacker):
     t6_semaphore_get<>(semaphore::PACK_DONE);
 """
 
-<<<<<<< HEAD
         buffer_A_tile_size = operation_config.buffer_A_tile_size
         buffer_B_tile_size = operation_config.buffer_B_tile_size
 
@@ -97,12 +69,6 @@ class MatmulUnpacker(Unpacker):
     constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});
     constexpr Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});
 
-=======
-        code += f"""
-    constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {config["tile_size"]});
-    constexpr Operand buffer_B{stage}({hex(buffer_B_address)}, {config["tile_size"]});
-
->>>>>>> 436cbe36 (dict config for every operation to replace build.h)
     _llk_unpack_AB_matmul_hw_configure_<{dest_acc_value}, StochRndType::None>(
         {UNPACK_A_IN},
         {UNPACK_A_IN},
