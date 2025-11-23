@@ -153,7 +153,7 @@ inline void _calculate_acosh_()
         {
             sfpi::vFloat tmp = inp * inp;
             tmp              = tmp - sfpi::vConst1;
-            tmp              = _calculate_sqrt_body_<APPROX_MODE == ApproximationMode::Fast>(tmp);
+            tmp              = _calculate_sqrt_body_ < APPROX_MODE == ApproximationMode::Fast > (tmp);
             tmp              = tmp + inp;
             sfpi::dst_reg[0] = _calculate_log_body_no_init_(tmp);
         }
@@ -171,7 +171,7 @@ inline void _calculate_asinh_()
     {
         sfpi::vFloat inp = sfpi::dst_reg[0];
         sfpi::vFloat tmp = inp * inp + sfpi::vConst1;
-        tmp              = _calculate_sqrt_body_<APPROX_MODE == ApproximationMode::Fast>(tmp);
+        tmp              = _calculate_sqrt_body_ < APPROX_MODE == ApproximationMode::Fast > (tmp);
         tmp              = tmp + sfpi::abs(inp);
         sfpi::dst_reg[0] = _calculate_log_body_no_init_(tmp);
         v_if (inp < sfpi::vConst0)
