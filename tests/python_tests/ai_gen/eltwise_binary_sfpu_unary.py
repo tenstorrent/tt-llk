@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 import pytest
 import torch
+
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
@@ -80,7 +81,7 @@ all_params = [
     }
     for fmt in test_formats
     for dest_acc in [DestAccumulation.Yes, DestAccumulation.No]
-    for approx_mode in [ApproximationMode.Yes, ApproximationMode.No]
+    for approx_mode in [ApproximationMode.Fast, ApproximationMode.Precise]
     for binary_op in binary_ops
     for unary_op in unary_ops
     for dst_sync in dst_sync_options

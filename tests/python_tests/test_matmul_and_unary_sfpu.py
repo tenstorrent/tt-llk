@@ -4,7 +4,6 @@
 
 import pytest
 import torch
-from conftest import skip_for_blackhole, skip_for_coverage, skip_for_wormhole
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
@@ -63,7 +62,7 @@ from helpers.utils import passed_test
         MathOperation.Sqrt,
         MathOperation.Square,
     ],
-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+    approx_mode=[ApproximationMode.Precise, ApproximationMode.Fast],
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
     math_fidelity=[
         MathFidelity.LoFi,
