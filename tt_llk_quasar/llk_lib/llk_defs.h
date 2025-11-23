@@ -7,8 +7,8 @@
 enum class ApproximationMode
 {
     Precise = 0,
-    High = 1
-}
+    Fast    = 1
+};
 
 namespace ckernel
 {
