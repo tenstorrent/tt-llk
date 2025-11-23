@@ -163,7 +163,7 @@ inline void _mul_int_(const std::uint32_t dst_index_in0, const std::uint32_t dst
 #endif
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_mul_int_()
 {
     sfpi::vConstIntPrgm0 = 0xff; // LREG12
