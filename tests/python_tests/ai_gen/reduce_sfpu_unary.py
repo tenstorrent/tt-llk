@@ -13,10 +13,12 @@ For initial bring-up we limit the sweep to Float16_b format only – the most
 commonly used configuration – while still sweeping across reduce dimensions,
 pool types and a subset of unary ops.
 """
+
 from __future__ import annotations
 
 import pytest
 import torch
+
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, InputOutputFormat
@@ -202,7 +204,7 @@ def test_reduce_sfpu_unary(config):
         "testname": "reduce_sfpu_unary",
         "formats": fmt,
         "dest_acc": DestAccumulation.No,
-        "approx_mode": ApproximationMode.No,
+        "approx_mode": ApproximationMode.Precise,
         "mathop": _reduce_to_mathop[reduce_dim],
         "unary_op": unary_op,
         "reduce_dim": reduce_dim,

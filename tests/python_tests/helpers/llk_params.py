@@ -252,8 +252,8 @@ class Haloize(Enum):
 
 
 class ApproximationMode(Enum):
-    Yes = True
-    No = False
+    Fast = "Fast"
+    Precise = "Precise"
 
     @property
     def cpp_enum_value(self):
