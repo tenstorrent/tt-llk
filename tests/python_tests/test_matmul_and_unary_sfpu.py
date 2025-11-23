@@ -4,6 +4,7 @@
 
 import pytest
 import torch
+
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
@@ -50,7 +51,7 @@ from helpers.utils import passed_test
         MathOperation.Sqrt,
         MathOperation.Square,
     ],
-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+    approx_mode=[ApproximationMode.Precise, ApproximationMode.Fast],
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
     math_fidelity=[
         MathFidelity.LoFi,

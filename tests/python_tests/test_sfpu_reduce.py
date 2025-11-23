@@ -4,6 +4,7 @@
 
 import pytest
 import torch
+
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -112,7 +113,7 @@ def test_sfpu_reduce(
         "input_B_dimensions": input_dimensions,
         "mathop": mathop,
         "pool_type": reduce_pool,
-        "approx_mode": ApproximationMode.No,
+        "approx_mode": ApproximationMode.Precise,
         "unpack_to_dest": True,
         "tile_cnt": tile_cnt,
         "disable_format_inference": True,
