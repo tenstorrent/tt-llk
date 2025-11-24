@@ -52,10 +52,15 @@ class UnarySfpu(Sfpu):
         super().__init__(operation)
 
     def exec(self, config: Dict) -> str:
+        math_format = config["math_format"]
+        dest_acc = config["dest_acc"].value
         code = f"""
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::{self.operation}>();
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
-    test_utils::call_sfpu_operation_32(SfpuType::{self.operation});
+    test_utils::call_sfpu_operation<32, {dest_acc}>(
+        SfpuType::{self.operation},
+        static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})
+    );
     _llk_math_eltwise_unary_sfpu_done_();
 """
         return code

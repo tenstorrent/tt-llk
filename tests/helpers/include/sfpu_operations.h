@@ -21,8 +21,8 @@ namespace test_utils
  * @param operation The SFPU operation type to execute
  * @param math_format Optional math format for operations that need format-specific behavior
  */
-template <int ITERATIONS>
-void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
+template <int ITERATIONS, bool dest_acc = is_fp32_dest_acc_en>
+void call_sfpu_operation(SfpuType operation, uint32_t math_format)
 {
     switch (operation)
     {
@@ -39,7 +39,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             break;
         case SfpuType::atanh:
             _init_atanh_<APPROX_MODE>();
-            _calculate_atanh_<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>();
+            _calculate_atanh_<APPROX_MODE, dest_acc, ITERATIONS>();
             break;
         case SfpuType::celu:
             _calculate_activation_<APPROX_MODE, ActivationType::Celu, ITERATIONS>(10, 1.0f / 10.0f);
@@ -94,12 +94,12 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             }
             break;
         case SfpuType::reciprocal:
-            _init_reciprocal_<APPROX_MODE, is_fp32_dest_acc_en>();
-            _calculate_reciprocal_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en>(ITERATIONS);
+            _init_reciprocal_<APPROX_MODE, dest_acc>();
+            _calculate_reciprocal_<APPROX_MODE, ITERATIONS, dest_acc>(ITERATIONS);
             break;
         case SfpuType::rsqrt:
             _init_rsqrt_<APPROX_MODE>();
-            _calculate_rsqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, false>(ITERATIONS);
+            _calculate_rsqrt_<APPROX_MODE, ITERATIONS, dest_acc, false>(ITERATIONS);
             break;
         case SfpuType::silu:
             _calculate_silu_<APPROX_MODE, ITERATIONS>();
@@ -109,7 +109,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             break;
         case SfpuType::sqrt:
             _init_sqrt_<APPROX_MODE>();
-            _calculate_sqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, false>(ITERATIONS);
+            _calculate_sqrt_<APPROX_MODE, ITERATIONS, dest_acc, false>(ITERATIONS);
             break;
         case SfpuType::square:
             _calculate_square_<APPROX_MODE, ITERATIONS>();
