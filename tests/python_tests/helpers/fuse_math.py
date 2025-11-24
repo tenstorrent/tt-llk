@@ -19,6 +19,8 @@ if TYPE_CHECKING:
 
 from .llk_params import ApproximationMode, MathOperation
 
+from .llk_params import ApproximationMode
+
 
 class Fpu:
     def exec(self, operation_config: "PipelineOperation") -> str:
