@@ -178,16 +178,11 @@ inline uint32_t L1_ADDRESS(uint32_t buffer_address)
 #endif
 }}
 
-<<<<<<< HEAD
 constexpr bool UNPACKING_TO_DEST    = false;
 constexpr bool APPROX_MODE          = false;
 constexpr bool is_fp32_dest_acc_en  = false;
 
 #include "data_format_inference.h"
-=======
-constexpr bool is_fp32_dest_acc_en = false;
->>>>>>> 6c6799a7 (refactor: add dest_acc template parameter to call_sfpu_operation)
-
 """
         kernels = self.generate_all()
         combined += kernels["unpack"]
