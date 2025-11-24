@@ -9,7 +9,9 @@
 #include <type_traits>
 #include <utility>
 
+#ifndef FUSE_TEST
 #include "build.h"
+#endif
 #include "tensix_types.h"
 
 #if (defined(ARCH_WORMHOLE) + defined(ARCH_BLACKHOLE) + defined(ARCH_QUASAR)) != 1
@@ -121,15 +123,15 @@ constexpr FormatConfig get_data_formats(DataFormat unpack_in, DataFormat unpack_
  * based on the input format in L1 and whether unpacking targets the source or destination register.
  *
  * @tparam INPUT The data format currently stored in L1 cache.
+ * @tparam OUTPUT The desired output data format.
+ * @tparam FP32_ACC Whether FP32 destination accumulation is enabled.
+ * @tparam unpacking_to_dest Whether unpacking targets the destination register (default from build.h).
  * @return The inferred output data format for unpacking to registers.
- *
- * Uses the global constexpr:
- *   - UNPACKING_TO_DEST: Indicates whether unpacking targets the destination register.
  */
-template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC>
+template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC, bool unpacking_to_dest = UNPACKING_TO_DEST>
 constexpr DataFormat infer_unpack_out()
 {
-    if constexpr (INPUT == DataFormat::Float32 && !UNPACKING_TO_DEST)
+    if constexpr (INPUT == DataFormat::Float32 && !unpacking_to_dest)
     {
         // When input format in L1 is Float32 + unpacking to src registers (instead of directly to dest register)
         // Source registers can store 19-bit values, so we truncate Float32 to Tf32 if we know dest will be 32-bit format
@@ -153,11 +155,13 @@ constexpr DataFormat infer_unpack_out()
  *
  * @tparam INPUT   Input data format in L1 (unpacker input)
  * @tparam OUTPUT  Final output data format after packing
+ * @tparam unpack_out  Output format from unpacker
  * @tparam FP32_ACC  Flag indicating if FP32 accumulation is enabled
+ * @tparam unpacking_to_dest Whether unpacking targets the destination register (default from build.h)
  *
  * @return FormatConfig struct containing all formats
  */
-template <DataFormat INPUT, DataFormat OUTPUT, DataFormat unpack_out, bool FP32_ACC>
+template <DataFormat INPUT, DataFormat OUTPUT, DataFormat unpack_out, bool FP32_ACC, bool unpacking_to_dest = UNPACKING_TO_DEST>
 constexpr DataFormat infer_pack_in()
 {
     if constexpr (is_wormhole && FP32_ACC && OUTPUT == DataFormat::Float16)
@@ -167,7 +171,7 @@ constexpr DataFormat infer_pack_in()
         // allowing the packer to handle the conversion successfully.
         return DataFormat::Float32;
     }
-    else if constexpr (INPUT == DataFormat::Float32 && !UNPACKING_TO_DEST)
+    else if constexpr (INPUT == DataFormat::Float32 && !unpacking_to_dest)
     {
         // When input is Float32 in L1 and we are unpacking the input tensor to source registers (not directly to dest registers)
         if constexpr (FP32_ACC || is_exponentB(OUTPUT))
@@ -210,7 +214,7 @@ constexpr DataFormat infer_pack_in()
     return FP32_ACC ? OUTPUT : INPUT;
 }
 
-template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC>
+template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC, bool unpacking_to_dest = UNPACKING_TO_DEST>
 constexpr FormatConfig infer_data_formats()
 {
     // The following two formats are hard-coded for this test case
@@ -218,12 +222,14 @@ constexpr FormatConfig infer_data_formats()
     constexpr DataFormat pack_out  = OUTPUT; // The final desired output format after packing (format in L1 after leaving the pipeline)
 
     // Determine the intermediate formats
-    constexpr DataFormat unpack_out = infer_unpack_out<INPUT, OUTPUT, FP32_ACC>(); // output format for Unpacker, desired format in src register(s)
+    constexpr DataFormat unpack_out =
+        infer_unpack_out<INPUT, OUTPUT, FP32_ACC, unpacking_to_dest>(); // output format for Unpacker, desired format in src register(s)
     constexpr DataFormat math =
         unpack_out; // The data format used for mathematical computations, desired format in dest register (typically matches unpack_out)
     constexpr DataFormat pack_in =
-        infer_pack_in<INPUT, OUTPUT, unpack_out, FP32_ACC>(); // input to the packing stage, determines what gasket can convert from dest register
-                                                              // potentially different from unpack_out and pack_out depending on FP32 accumulation
+        infer_pack_in<INPUT, OUTPUT, unpack_out, FP32_ACC, unpacking_to_dest>(); // input to the packing stage, determines what gasket can convert from dest
+                                                                                 // register potentially different from unpack_out and pack_out depending on
+                                                                                 // FP32 accumulation
 
     // Return a FormatConfig struct capturing all the inferred formats needed for this stage
     return get_data_formats(unpack_in, unpack_out, math, pack_in, pack_out);
@@ -263,11 +269,11 @@ constexpr std::array<FormatConfig, N> build_data_formats(std::index_sequence<Is.
  *
  * @return A constexpr std::array of FormatConfig objects of length N.
  */
-template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC, size_t N>
+template <DataFormat INPUT, DataFormat OUTPUT, bool FP32_ACC, size_t N, bool unpacking_to_dest = UNPACKING_TO_DEST>
 constexpr std::array<FormatConfig, N> data_formats()
 {
-    constexpr auto intermediate_config = infer_data_formats<INPUT, INPUT, FP32_ACC>();
-    constexpr auto final_config        = infer_data_formats<INPUT, OUTPUT, FP32_ACC>();
+    constexpr auto intermediate_config = infer_data_formats<INPUT, INPUT, FP32_ACC, unpacking_to_dest>();
+    constexpr auto final_config        = infer_data_formats<INPUT, OUTPUT, FP32_ACC, unpacking_to_dest>();
 
     return build_data_formats<N>(std::make_index_sequence<N> {}, intermediate_config, final_config);
 }

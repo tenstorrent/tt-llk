@@ -121,6 +121,7 @@ class KernelCompiler:
 
     def write_kernel(self):
         combined = f"""
+#define FUSE_TEST
 #include <cstdint>
 
 #include <array>
@@ -155,7 +156,11 @@ inline uint32_t L1_ADDRESS(uint32_t buffer_address)
 #endif
 }}
 
-constexpr bool is_fp32_dest_acc_en = false;
+constexpr bool UNPACKING_TO_DEST    = false;
+constexpr bool APPROX_MODE          = false;
+constexpr bool is_fp32_dest_acc_en  = false;
+
+#include "data_format_inference.h"
 
 """
         kernels = self.generate_all()
