@@ -2,15 +2,24 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Dict
+from typing import Dict, List
 
 
 class Packer:
     def pack(self, config: Dict) -> str:
         return ""
 
+    def get_headers(self) -> List[str]:
+        return []
+
 
 class MatmulPacker(Packer):
+    def get_headers(self) -> List[str]:
+        return [
+            "llk_pack.h",
+            "llk_pack_common.h",
+        ]
+
     def pack(self, config: Dict) -> str:
         stage = config["stage_id"]
         num_stages = config["num_stages"]

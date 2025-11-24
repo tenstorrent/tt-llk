@@ -4,13 +4,24 @@
 
 from typing import Dict, List, Type
 
+from .llk_params import ApproximationMode
+
 
 class Fpu:
     def exec(self, config: Dict) -> str:
         return ""
 
+    def get_headers(self) -> List[str]:
+        return []
+
 
 class MatmulFpu(Fpu):
+    def get_headers(self) -> List[str]:
+        return [
+            "llk_math_common.h",
+            "llk_math_matmul.h",
+        ]
+
     def exec(self, config: Dict) -> str:
         CT_DIM = config["ct_dim"]
         RT_DIM = config["rt_dim"]
@@ -27,7 +38,10 @@ class MatmulFpu(Fpu):
         code = f"""
     _llk_math_matmul_init_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, {CT_DIM}, {RT_DIM}, {KT_DIM});
     _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();
-    _llk_math_hw_configure_<false, false>({MATH_FORMAT}, {MATH_FORMAT});
+    _llk_math_hw_configure_<false, false>(
+        {MATH_FORMAT},
+        {MATH_FORMAT}
+    );
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (uint32_t j = 0; j < {KT_DIM}; j++)
     {{
@@ -39,17 +53,35 @@ class MatmulFpu(Fpu):
 
 class Sfpu:
     operation: str
+    approx_mode: ApproximationMode
 
-    def __init__(self, operation: str):
+    def __init__(
+        self, operation: str, approx_mode: ApproximationMode = ApproximationMode.No
+    ):
         self.operation = operation
+        self.approx_mode = approx_mode
 
     def exec(self, config: Dict) -> str:
         return ""
 
+    def get_headers(self) -> List[str]:
+        return []
+
 
 class UnarySfpu(Sfpu):
-    def __init__(self, operation: str):
-        super().__init__(operation)
+    def __init__(
+        self, operation: str, approx_mode: ApproximationMode = ApproximationMode.No
+    ):
+        super().__init__(operation, approx_mode)
+
+    def get_headers(self) -> List[str]:
+        return [
+            "ckernel_defs.h",
+            "ckernel_sfpu.h",
+            "llk_math_common.h",
+            "llk_math_eltwise_unary_sfpu.h",
+            "sfpu_operations.h",
+        ]
 
     def exec(self, config: Dict) -> str:
         math_format = config["math_format"]
@@ -57,7 +89,7 @@ class UnarySfpu(Sfpu):
         code = f"""
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::{self.operation}>();
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
-    test_utils::call_sfpu_operation<32, {dest_acc}>(
+    test_utils::call_sfpu_operation<32, {dest_acc}, {self.approx_mode.value}>(
         SfpuType::{self.operation},
         static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})
     );
@@ -67,10 +99,24 @@ class UnarySfpu(Sfpu):
 
 
 class BinarySfpu(Sfpu):
-    def __init__(self, operation: str):
-        super().__init__(operation)
+    def __init__(
+        self, operation: str, approx_mode: ApproximationMode = ApproximationMode.No
+    ):
+        super().__init__(operation, approx_mode)
+
+    def get_headers(self) -> List[str]:
+        return [
+            "ckernel_defs.h",
+            "ckernel_sfpu.h",
+            "ckernel_sfpu_add_top_row.h",
+            "ckernel_sfpu_binary.h",
+            "llk_math_common.h",
+            "llk_math_eltwise_binary_sfpu.h",
+        ]
 
     def exec(self, config: Dict) -> str:
+        math_format = config["math_format"]
+        MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
         code = f"""
 
     _llk_math_eltwise_binary_sfpu_init_<ckernel::BinaryOp::{self.operation}>();
@@ -99,7 +145,7 @@ class BinarySfpu(Sfpu):
             // Use actual format when compiling for ADD_TOP_ROW tests, otherwise use Float32 as safe default for static assert
             {{
                 constexpr DataFormat add_top_row_format =
-                    (ckernel::BinaryOp::{self.operation} == BinaryOp::ADD_TOP_ROW) ? static_cast<DataFormat>(formats.math) : DataFormat::Float32;
+                    (ckernel::BinaryOp::{self.operation} == BinaryOp::ADD_TOP_ROW) ? static_cast<DataFormat>({MATH_FORMAT}) : DataFormat::Float32;
                 _calculate_add_top_row_<add_top_row_format>(0, 1, 0);
             }}
             break;
@@ -118,6 +164,17 @@ class Math:
     def __init__(self, fpu: Type[Fpu], sfpu: List[Sfpu]):
         self.fpu = fpu
         self.sfpu = sfpu
+
+    def get_headers(self) -> List[str]:
+        headers = set()
+
+        fpu_instance = self.fpu()
+        headers.update(fpu_instance.get_headers())
+
+        for sfpu in self.sfpu:
+            headers.update(sfpu.get_headers())
+
+        return sorted(list(headers))
 
     def exec(self, config: Dict) -> str:
         fpu_instance = self.fpu()

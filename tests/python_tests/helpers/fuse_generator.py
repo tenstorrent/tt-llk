@@ -18,13 +18,19 @@ class UnpackKernelGenerator:
     def generate(self) -> str:
         num_stages = len(self.operations)
 
+        # Collect all unique headers from all operations
+        all_headers = set()
+        for op in self.operations:
+            unpacker_instance = op.unpacker()
+            all_headers.update(unpacker_instance.get_headers())
+
+        # Generate include statements
+        includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
+
         code = f"""
 #ifdef LLK_TRISC_UNPACK
 
-#include "llk_unpack_A.h"
-#include "llk_unpack_AB.h"
-#include "llk_unpack_AB_matmul.h"
-#include "llk_unpack_common.h"
+{includes}
 
 void run_kernel()
 {{"""
@@ -45,26 +51,22 @@ class MathKernelGenerator:
         self.operations = operations
 
     def generate(self) -> str:
-        code = """
+        # Collect all unique headers from all operations
+        all_headers = set()
+        for op in self.operations:
+            all_headers.update(op.math.get_headers())
+
+        # Generate include statements
+        includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
+
+        code = f"""
 #ifdef LLK_TRISC_MATH
-#include "llk_math_common.h"
-#include "llk_math_matmul.h"
-
-#include "ckernel_defs.h"
-#include "ckernel_sfpu.h"
-#include "ckernel_sfpu_add_top_row.h"
-#include "ckernel_sfpu_binary.h"
-#include "llk_math_common.h"
-#include "llk_math_eltwise_binary_sfpu.h"
-#include "llk_math_eltwise_unary_datacopy.h"
-
-#include "llk_math_eltwise_unary_sfpu.h"
-#include "sfpu_operations.h"
+{includes}
 
 using namespace ckernel::sfpu;
 
 void run_kernel()
-{"""
+{{"""
         for op in self.operations:
             code += op.do_math()
 
@@ -81,12 +83,20 @@ class PackKernelGenerator:
         self.operations = operations
 
     def generate(self) -> str:
-        code = """
+        # Collect all unique headers from all operations
+        all_headers = set()
+        for op in self.operations:
+            packer_instance = op.packer()
+            all_headers.update(packer_instance.get_headers())
+
+        # Generate include statements
+        includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
+
+        code = f"""
 #ifdef LLK_TRISC_PACK
-# include "llk_pack.h"
-# include "llk_pack_common.h"
+{includes}
 void run_kernel()
-{"""
+{{"""
         for op in self.operations:
             code += op.pack()
 
