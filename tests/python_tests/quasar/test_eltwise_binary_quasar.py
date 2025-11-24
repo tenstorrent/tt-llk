@@ -93,9 +93,6 @@ def test_eltwise_binary(
         input_dimensions=input_dimensions,
     )
 
-    src_A = torch.ones_like(src_A)
-    src_B = torch.ones_like(src_B)
-
     # Generate golden result using eltwise binary golden generator
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
     golden_tensor = generate_golden(
