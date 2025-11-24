@@ -3,7 +3,7 @@
 
 import inspect
 from itertools import product
-from typing import Dict, List, Optional, Set, Tuple, TypedDict
+from typing import List, Optional, Tuple, TypedDict
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
@@ -100,14 +100,97 @@ class TestParamsConfig(TypedDict):
 # When reading this file, keep in mind that parameter means FORMAL PARAMETER and argument means ACTUAL PARAMETER
 
 
-def _param_dependencies(parameter: str, argument: any) -> Set[str]:
+class UnknownDependenciesError(Exception):
+    """Raised when a dependency is not a known parameter."""
+
+    def __init__(self, missing: dict[str, set[str]]):
+        self.missing = missing
+        super().__init__(f"Found unknown dependencies for: {', '.join(missing.keys())}")
+
+
+class CircularDependencyError(Exception):
+    """Raised when a circular dependency is detected."""
+
+    def __init__(self, circular_dependencies: list[str]):
+        self.circular_dependencies = circular_dependencies
+        super().__init__(
+            f"Circular dependency detected among: {', '.join(circular_dependencies)}"
+        )
+
+
+class ResolutionError(Exception):
+    """Raised when a resolution error is detected."""
+
+    def __init__(self, error: Exception):
+        self.error = error
+        super().__init__(f"Constraint function raised an exception: {error}")
+
+
+def _param_dependencies(parameter: str, argument: any) -> List[str]:
     """Extract parameter names from a callable using introspection."""
     if callable(argument):
-        return set(inspect.signature(argument).parameters.keys())
-    return set()
+        dependencies = inspect.signature(argument).parameters.keys()
+        return list(dependencies)
+    return []
 
 
-def _resolution_map(**kwargs: any) -> Dict[int, Set[int]]:
+def _verify_dependency_map(dependency_map: dict[str, list[str]]) -> None:
+    """
+    Verifies that all dependencies are known parameters.
+    """
+    parameters = set(dependency_map.keys())
+
+    missing = {
+        parameter: difference
+        for parameter, dependencies in dependency_map.items()
+        if (difference := set(dependencies) - parameters)
+    }
+
+    if missing:
+        raise UnknownDependenciesError(missing)
+
+
+def _compute_dependency_map(**params: any) -> dict[str, list[str]]:
+    dependency_map = {
+        param: _param_dependencies(param, value) for param, value in params.items()
+    }
+
+    _verify_dependency_map(dependency_map)
+
+    return dependency_map
+
+
+def _compute_dependency_matrix(**params: any) -> list[list[int]]:
+    param_idx = {param: idx for idx, param in enumerate(params.keys())}
+    dependency_map = _compute_dependency_map(**params)
+
+    return [
+        [param_idx[dependency] for dependency in dependency_map[param]]
+        for param in params.keys()
+    ]
+
+
+def _find_next_resolvable(matrix: list[list[int]], resolved: list[bool]) -> list[int]:
+    """
+    Returns a list of indices that became resolvable after one iteration of propagation.
+    """
+
+    def _is_resolvable_now(idx: int) -> bool:
+        if resolved[idx]:
+            return False
+
+        for dep in matrix[idx]:
+            if not resolved[dep]:
+                return False
+
+        return True
+
+    return [idx for idx in range(len(matrix)) if _is_resolvable_now(idx)]
+
+
+def _compute_resolution_order(
+    parameter_names: list[str], dependency_matrix: list[list[int]]
+) -> List[int]:
     """
     Builds a map of parameters used to resolve the constrained cartesian product
 
@@ -117,45 +200,20 @@ def _resolution_map(**kwargs: any) -> Dict[int, Set[int]]:
     The values (set[int]) are the indices of the parameters on which the current parameter depends.
 
     """
-    param_idx = {param: idx for idx, param in enumerate(kwargs.keys())}
 
-    # Build dependency graph: param -> set of dependencies
-    dependency_matrix = {
-        param_idx[param]: set(
-            [param_idx[dependency] for dependency in _param_dependencies(param, value)]
-        )
-        for param, value in kwargs.items()
-    }
+    topological = []
+    resolved = [False] * len(dependency_matrix)
 
-    topological = {}
-    resolved = set()
+    while len(topological) < len(dependency_matrix):
 
-    while dependency_matrix:
-        resolved_next = {
-            param: deps
-            for param, deps in dependency_matrix.items()
-            if not (deps - resolved)
-        }
+        resolvable = _find_next_resolvable(dependency_matrix, resolved)
 
-        if not resolved_next:
-            # convert indices back to parameter names
-            circular_dependencies = [
-                kwargs.keys()[idx] for idx in dependency_matrix.keys()
-            ]
+        if not resolvable:
+            raise CircularDependencyError([parameter_names[idx] for idx in resolvable])
 
-            raise ValueError(
-                f"Circular dependency detected among: {circular_dependencies}"
-            )
-
-        resolved_params = resolved_next.keys()
-
-        # Add newly resolved parameters to topological order and resolved set
-        resolved.update(resolved_params)
-        topological.update(resolved_next)
-
-        # Remove resolved parameters from dependency graph
-        for param in resolved_params:
-            del dependency_matrix[param]
+        for idx in resolvable:
+            resolved[idx] = True
+            topological.append(idx)
 
     return topological
 
@@ -170,45 +228,44 @@ def _params_solve_dependencies(**kwargs: any) -> List[Tuple]:
     Returns:
         List of tuples representing all valid parameter combinations
     """
-    param_order = tuple[str, ...](kwargs.keys())
-    resolution_order = _topsort_dependencies(**kwargs)
+    parameters = tuple(range(len(kwargs)))
+    arguments = tuple(kwargs.values())
 
-    def _resolution_to_param_order(resolution: List[Tuple]) -> List[Tuple]:
-        # Create mapping from param name to index in param_order for fast lookup
-        param_to_idx = {param: idx for idx, param in enumerate(param_order)}
-        # Create mapping from topological index to param_order index
-        topo_to_order_idx = [param_to_idx[param] for param in topological]
+    dependency_matrix = _compute_dependency_matrix(**kwargs)
+    resolution_order = _compute_resolution_order(parameters, dependency_matrix)
 
-    def _resolve_param_values(param: str, resolved_list: list) -> list:
+    def _resolve_param_values(resolved: list[any], parameter: int) -> list:
         """Get possible values for a parameter given resolved dependencies."""
-        value = kwargs[param]
+        argument = arguments[parameter]
 
-        if param in callable_params:
-            deps = callable_params[param]
-            # Build constraint kwargs only for resolved dependencies
-            constraint_kwargs = {}
-            for dep in deps:
-                dep_idx = param_to_idx.get(dep)
-                if dep_idx is not None and resolved_list[dep_idx] is not None:
-                    constraint_kwargs[dep] = resolved_list[dep_idx]
-            result = value(**constraint_kwargs)
-            return result if isinstance(result, list) else [result]
+        if callable(argument):
+            dependencies = dependency_matrix[parameter]
+            dependency_values = [resolved[dependency] for dependency in dependencies]
 
-        if isinstance(value, list):
-            return value
+            try:
+                result = argument(*dependency_values)
+            except Exception as ex:
+                raise ResolutionError(ex)
 
-        return [value]
+            # if constraint function returns a single value, wrap it in a list
+            if not isinstance(result, list):
+                return [result]
 
-    def _solve_recursive(parameter_idx: int, resolved: list) -> List[Tuple]:
+            return result
+
+        if isinstance(argument, list):
+            return argument
+
+        return [argument]
+
+    def _solve_recursive(resolved: list[any], current_parameter: int) -> List[Tuple]:
         """Recursively build combinations starting from parameter at idx."""
-        if parameter_idx >= len(topological):
+        if current_parameter >= len(resolution_order):
             # Return tuple of resolved parameters in the original order
             return [tuple(resolved)]
 
         # Get current parameter and its possible values
-        parameter = topological[parameter_idx]
-        param_idx_in_order = topo_to_order_idx[parameter_idx]
-        arguments = _resolve_param_values(parameter, resolved)
+        arguments = _resolve_param_values(resolved, current_parameter)
 
         if not arguments:
             return []
@@ -217,15 +274,15 @@ def _params_solve_dependencies(**kwargs: any) -> List[Tuple]:
         combinations = []
         for argument in arguments:
             # Create new resolved list with updated value
-            resolved_next = list(resolved)
-            resolved_next[param_idx_in_order] = argument
-            combinations.extend(_solve_recursive(parameter_idx + 1, resolved_next))
+            resolved_next = resolved.copy()
+            resolved_next[current_parameter] = argument
+            combinations.extend(_solve_recursive(resolved_next, current_parameter + 1))
 
         return combinations
 
     # Initialize resolved list with None values
-    initial_resolved = [None] * len(param_order)
-    return _solve_recursive(0, initial_resolved)
+    resolved = [None] * len(parameters)
+    return _solve_recursive(resolved, 0)
 
 
 def parametrize(**kwargs: any):
