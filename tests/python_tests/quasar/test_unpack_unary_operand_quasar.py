@@ -80,6 +80,8 @@ def generate_unpack_unary_operand_combinations(
                 and fmt.output_format == DataFormat.Float32
                 and dest_acc == DestAccumulation.No
             ):
+                # Skip if input format is not Float32 and output format is Float32 and dest_acc is No
+                # This combination is not supported in the Quasar Packer format conversions
                 continue
             for transpose_en in transpose_modes:
                 for unpacker_sel in unpacker_engines:

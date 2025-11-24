@@ -60,6 +60,8 @@ def generate_qsr_pack_combinations(
                 and fmt.output_format == DataFormat.Float32
                 and dest_acc == DestAccumulation.No
             ):
+                # Skip if input format is not Float32 and output format is Float32 and dest_acc is No
+                # This combination is not supported in the Quasar Packer format conversions
                 continue
             for dimensions in dimensions_cache[dest_acc]:
                 combinations.append((fmt, dest_acc, dimensions))
