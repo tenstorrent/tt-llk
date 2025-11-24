@@ -138,24 +138,6 @@ def calculate_pcc(golden, input):
     return pcc_result
 
 
-def get_tolerance(output_data_format):
-    if output_data_format in [
-        DataFormat.Float16,
-        DataFormat.Float16_b,
-        DataFormat.Float32,
-        DataFormat.Int32,
-    ]:
-        atol = 0.05
-        rtol = 0.05
-    elif output_data_format == DataFormat.Bfp8_b:
-        atol = 0.1
-        rtol = 0.2
-    else:
-        raise ValueError(f"Unsupported output data format: {output_data_format}")
-
-    return atol, rtol
-
-
 def passed_test(
     golden_tensor,
     res_tensor,
@@ -175,6 +157,8 @@ def passed_test(
             DataFormat.Int8: Tolerance(atol=0, rtol=0),
             DataFormat.UInt8: Tolerance(atol=0, rtol=0),
             DataFormat.Bfp8_b: Tolerance(atol=0.1, rtol=0.2),
+            DataFormat.MXFP8R: Tolerance(atol=0.2, rtol=0.3),
+            DataFormat.MXFP8P: Tolerance(atol=0.2, rtol=0.3),
         }
 
         try:

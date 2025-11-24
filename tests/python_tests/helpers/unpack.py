@@ -6,7 +6,7 @@
 import ml_dtypes
 import numpy as np
 import torch
-from helpers.format_config import DataFormat
+from helpers.format_config import MXFP8_BLOCK_SIZE, DataFormat, decode_e8m0_scale
 
 from .llk_params import format_dict, format_tile_sizes
 
@@ -113,99 +113,81 @@ def unpack_bfp8_b(bfp8_block, sfpu=False, num_faces=4):
 # ============================================================================
 
 
-def decode_e8m0_scale(e8m0_value):
+def _unpack_mxfp8(packed_bytes, fp8_dtype, num_faces=4):
     """
-    Decode E8M0 scale to float scale factor.
+    Internal helper to unpack MXFP8 formats to float32 tensor.
 
     Args:
-        e8m0_value: E8M0 encoded value (0-255)
+        packed_bytes: Packed MX data [scale0, elem0-31, scale1, elem32-63, ...]
+        fp8_dtype: ml_dtypes dtype (float8_e5m2 or float8_e4m3fn)
+        num_faces: Number of faces to unpack
 
     Returns:
-        Scale factor as float (2^exponent), or NaN if e8m0_value == 255
+        torch.Tensor of float32 values
     """
-    if e8m0_value == 255:
-        return float("nan")  # NaN encoding per OCP spec
+    elements_to_unpack = 256 * num_faces
+    num_blocks = elements_to_unpack // MXFP8_BLOCK_SIZE
 
-    exponent = int(e8m0_value) - 127  # Remove bias
-    return 2.0**exponent
+    unpacked_values = np.empty(elements_to_unpack, dtype=np.float32)
+    bytes_per_block = 1 + MXFP8_BLOCK_SIZE  # 1 scale + 32 elements
+
+    for i in range(num_blocks):
+        block_start = i * bytes_per_block
+
+        # Step 1: Extract E8M0 scale
+        scale_e8m0 = packed_bytes[block_start]
+        scale_factor = decode_e8m0_scale(scale_e8m0)
+
+        start_idx = i * MXFP8_BLOCK_SIZE
+        end_idx = start_idx + MXFP8_BLOCK_SIZE
+
+        # Step 2: Check scale validity - skip FP8 extraction if bad
+        if np.isnan(scale_factor) or scale_factor == 0:
+            unpacked_values[start_idx:end_idx] = 0.0
+            continue
+
+        # Step 3: Extract float8 elements
+        elements_start = block_start + 1
+        elements_bytes = packed_bytes[
+            elements_start : elements_start + MXFP8_BLOCK_SIZE
+        ]
+
+        # Step 4: Decode float8 using ml_dtypes
+        fp8_array = np.frombuffer(bytes(elements_bytes), dtype=fp8_dtype)
+
+        # Step 5: Scale back up to original range
+        float32_array = fp8_array.astype(np.float32) * scale_factor
+        unpacked_values[start_idx:end_idx] = float32_array
+
+    return torch.from_numpy(unpacked_values)
 
 
-def unpack_mxfp8r(packed_bytes, block_size=32, num_faces=4):
+def unpack_mxfp8r(packed_bytes, num_faces=4):
     """
     Unpack MXFP8R format (MXFP8 E5M2 variant) to float32 tensor.
 
     Args:
         packed_bytes: Packed MX data [scale0, elem0-31, scale1, elem32-63, ...]
-        block_size: Elements per block (always 32 for MXFP8)
         num_faces: Number of faces to unpack
 
     Returns:
         torch.Tensor of float32 values
     """
-    elements_to_unpack = 256 * num_faces
-    num_blocks = elements_to_unpack // block_size
-
-    unpacked_values = []
-    bytes_per_block = 1 + block_size  # 1 scale + 32 elements
-
-    for i in range(num_blocks):
-        block_start = i * bytes_per_block
-
-        # Step 1: Extract E8M0 scale
-        scale_e8m0 = packed_bytes[block_start]
-        scale_factor = decode_e8m0_scale(scale_e8m0)
-
-        # Step 2: Extract float8_e5m2 elements
-        elements_start = block_start + 1
-        elements_bytes = packed_bytes[elements_start : elements_start + block_size]
-
-        # Step 3: Decode float8_e5m2 using ml_dtypes
-        fp8_array = np.frombuffer(bytes(elements_bytes), dtype=ml_dtypes.float8_e5m2)
-
-        # Step 4: Scale back up to original range
-        float32_array = fp8_array.astype(np.float32) * scale_factor
-        unpacked_values.extend(float32_array)
-
-    return torch.tensor(unpacked_values, dtype=torch.float32)
+    return _unpack_mxfp8(packed_bytes, ml_dtypes.float8_e5m2, num_faces)
 
 
-def unpack_mxfp8p(packed_bytes, block_size=32, num_faces=4):
+def unpack_mxfp8p(packed_bytes, num_faces=4):
     """
     Unpack MXFP8P format (MXFP8 E4M3 variant) to float32 tensor.
 
     Args:
         packed_bytes: Packed MX data [scale0, elem0-31, scale1, elem32-63, ...]
-        block_size: Elements per block (always 32 for MXFP8)
         num_faces: Number of faces to unpack
 
     Returns:
         torch.Tensor of float32 values
     """
-    elements_to_unpack = 256 * num_faces
-    num_blocks = elements_to_unpack // block_size
-
-    unpacked_values = []
-    bytes_per_block = 1 + block_size  # 1 scale + 32 elements
-
-    for i in range(num_blocks):
-        block_start = i * bytes_per_block
-
-        # Step 1: Extract E8M0 scale
-        scale_e8m0 = packed_bytes[block_start]
-        scale_factor = decode_e8m0_scale(scale_e8m0)
-
-        # Step 2: Extract float8_e4m3fn elements
-        elements_start = block_start + 1
-        elements_bytes = packed_bytes[elements_start : elements_start + block_size]
-
-        # Step 3: Decode float8_e4m3fn using ml_dtypes
-        fp8_array = np.frombuffer(bytes(elements_bytes), dtype=ml_dtypes.float8_e4m3fn)
-
-        # Step 4: Scale back up to original range
-        float32_array = fp8_array.astype(np.float32) * scale_factor
-        unpacked_values.extend(float32_array)
-
-    return torch.tensor(unpacked_values, dtype=torch.float32)
+    return _unpack_mxfp8(packed_bytes, ml_dtypes.float8_e4m3fn, num_faces)
 
 
 _UNPACKERS = {

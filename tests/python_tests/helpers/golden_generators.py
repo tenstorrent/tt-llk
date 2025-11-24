@@ -122,6 +122,8 @@ class SrcFormatModel:
             DataFormat.Float16_b: SrcFormatModel._fp16b_to_tf32,
             DataFormat.Float16: SrcFormatModel._fp16_to_tf32,
             DataFormat.Float32: SrcFormatModel._fp32_to_tf32,
+            DataFormat.MXFP8R: SrcFormatModel._mxfp8r_to_tf32,
+            DataFormat.MXFP8P: SrcFormatModel._mxfp8p_to_tf32,
         }
 
         # todo: value error
@@ -244,6 +246,32 @@ class SrcFormatModel:
         mant = mant | (1 << (FP32_MANT_WIDTH - FP32_TF32_MANT_RIGHT_TRUNC))
 
         return (sign, exp, mant)
+
+    @staticmethod
+    def _mxfp8r_to_tf32(
+        tensor: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Handles MXFP8R format (MXFP8 E5M2 variant).
+
+        Golden generators work on the original stimuli data (before compression).
+        MXFP8R stimuli are generated as torch.float32, so we delegate to Float32 conversion.
+        The pack/unpack functions handle the MXFP8 compression/decompression separately.
+        """
+        return SrcFormatModel._fp32_to_tf32(tensor)
+
+    @staticmethod
+    def _mxfp8p_to_tf32(
+        tensor: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Handles MXFP8P format (MXFP8 E4M3 variant).
+
+        Golden generators work on the original stimuli data (before compression).
+        MXFP8P stimuli are generated as torch.float32, so we delegate to Float32 conversion.
+        The pack/unpack functions handle the MXFP8 compression/decompression separately.
+        """
+        return SrcFormatModel._fp32_to_tf32(tensor)
 
     @staticmethod
     def from_src_format(
