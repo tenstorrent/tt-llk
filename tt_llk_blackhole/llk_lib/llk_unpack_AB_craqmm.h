@@ -31,7 +31,7 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
     // in1/inB - loaded to SrcA
 
     // MOP replay buffer now updates both SrcA and SrcB addresses for K-dimension loop
-    const std::uint32_t replay_buf_run_len = unpB_partial_face ? 9 : 7;
+    const std::uint32_t replay_buf_run_len = unpB_partial_face ? 4 : 2;
     const std::uint32_t replay_buf_prog_len = replay_buf_run_len * 2;
 
     load_replay_buf(
@@ -42,7 +42,8 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
         {
             // === Context 0 ===
             // Unpack SrcA (in1/inB)
-            TTI_UNPACR(SrcA, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
+            // TTI_UNPACR(SrcA, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
+            TTI_UNPACR(SrcA, 0b00001010, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
             
             // Unpack SrcB (in0/inA)
             if (unpB_partial_face)
@@ -71,16 +72,17 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
             // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC1_REG3_Base_address_ADDR32);
             
             // Update SrcA address (SEC0/in1/inB)
-            TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC0_REG3_Base_address_ADDR32);
-            TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_A);
-            TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-            TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC0_REG3_Base_address_ADDR32);
-            // Added to ensure WRCFG instruction has finished, since it takes 2 cycles.
-            TTI_NOP;
+            // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC0_REG3_Base_address_ADDR32);
+            // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_A);
+            // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+            // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC0_REG3_Base_address_ADDR32);
+            // // Added to ensure WRCFG instruction has finished, since it takes 2 cycles.
+            // TTI_NOP;
 
             // === Context 1 ===
             // Unpack SrcA (in1/inB)
-            TTI_UNPACR(SrcA, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
+            // TTI_UNPACR(SrcA, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
+            TTI_UNPACR(SrcA, 0b00001010, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
             
             // Unpack SrcB (in0/inA)
             if (unpB_partial_face)
@@ -110,12 +112,12 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
             // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
             
             // Update SrcA address (SEC0/in1/inB)
-            TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC0_REG3_Base_cntx1_address_ADDR32);
-            TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_A);
-            TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-            TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC0_REG3_Base_cntx1_address_ADDR32);
-            // Added to ensure WRCFG instruction has finished, since it takes 2 cycles.
-            TTI_NOP;
+            // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC0_REG3_Base_cntx1_address_ADDR32);
+            // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_A);
+            // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+            // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC0_REG3_Base_cntx1_address_ADDR32);
+            // // Added to ensure WRCFG instruction has finished, since it takes 2 cycles.
+            // TTI_NOP;
         });
 
     ckernel_unpack_template tmp = ckernel_unpack_template(
