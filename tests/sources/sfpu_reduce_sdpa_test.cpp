@@ -112,11 +112,11 @@ void run_kernel()
 
     ckernel::sfpu::_init_reduce_<PoolType::MAX, DataFormat::Float16_b>(BLOCK_CT_DIM);
 
-    for (uint32_t i = 0; i < BLOCK_CT_DIM; i++)
-    {
-        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
-        ckernel::sfpu::_calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(BLOCK_RT_DIM);
-    }
+    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
+    ckernel::sfpu::_reduce_max_prologue_();
+    ckernel::sfpu::_calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(BLOCK_RT_DIM);
+
+    ckernel::sfpu::_reuce_max_epilogue_();
 
     _llk_math_eltwise_unary_sfpu_done_();
 

@@ -189,7 +189,7 @@ inline void configure_addrmod_max(uint32_t num_cols)
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
-        .dest = {.incr = 16},
+        .dest = {.incr = 64},
     }
         .set(ADDR_MOD_6);
 
@@ -201,9 +201,23 @@ inline void configure_addrmod_max(uint32_t num_cols)
         .set(ADDR_MOD_5);
 }
 
-// ============================================================================
-// Init Reduce Kernels
-// ============================================================================
+inline void sfpu_reduce_max_load_initial_values()
+{
+    constexpr uint16_t neg_inf_fp16b = 0xFF80;
+
+    // F0 - Initialize with negative infinity
+    TTI_SFPLOADI(p_sfpu::LREG4, InstrModLoadStore::FP16B, neg_inf_fp16b);
+    TTI_SFPLOADI(p_sfpu::LREG5, InstrModLoadStore::FP16B, neg_inf_fp16b);
+
+    // F1 - Initialize with negative infinity
+    TTI_SFPLOADI(p_sfpu::LREG6, InstrModLoadStore::FP16B, neg_inf_fp16b);
+    TTI_SFPLOADI(p_sfpu::LREG7, InstrModLoadStore::FP16B, neg_inf_fp16b);
+}
+
+template <DataFormat format>
+inline void _init_reduce_max_col_(uint32_t num_cols)
+{
+    static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
 /**
  * @brief Initialization for SFPU reduce MAX kernel.
@@ -233,20 +247,31 @@ inline void init_reduce_max(uint32_t num_cols)
 
     configure_addrmod_max(num_cols);
 
-    // Record replay buffer for compare-and-swap operations
-    // MAX uses LOADMACRO mechanism
-    lltt::record<lltt::NoExec>(0, 9);
-    TTI_INCRWC(0, 4, 0, 0);
-    TTI_SFPLOADMACRO(5, INSTRUCTION_MODE, ADDR_MOD_3, 2);
-    TTI_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, 16);
-    TTI_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, 18);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG1 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPLOADMACRO(0, INSTRUCTION_MODE, ADDR_MOD_3, 0);
+    // ***********************************************************
 
-    // Dummy loads to increment dest counters
-    TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_6, 0);
-    TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_5, 0);
+    _init_sfpu_config_reg();
+    sfpu_reduce_max_col_configure_addrmod(num_cols);
+
+    // // ***********************************************************
+    // // Record replay buffer
+    // lltt::record<lltt::NoExec>(0, 9);
+    // TTI_INCRWC(0, 4, 0, 0); // increment dest counter by 4
+
+    // // Use LOADMACRO with lreg_ind=5 (loads to LREG5, uses sequence 1 since bits[3:2]=01)
+    // TTI_SFPLOADMACRO(5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+
+    // TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
+    // TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+    // TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG1 /*lreg_dest*/, 1 /*instr_mod1*/);
+    // TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+    // // Use LOADMACRO with lreg_ind=0 (loads to LREG0, uses sequence 0)
+    // TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+
+    // // Dummy loads used to increment dest counters
+    // TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
+    // TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_1, 0);
+    // // ***********************************************************
 }
 
 /**
@@ -335,54 +360,138 @@ inline void calculate_reduce_max(const uint32_t block_height)
 {
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
 
-    constexpr uint32_t replay_buffer_offset    = 7;
-    constexpr uint32_t replay_buffer_next_face = 8;
+    sfpu_reduce_max_load_initial_values();
 
-    // Initial loads: LREG4-7 will hold maximum values across F0 and F1
-    TTI_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, 0);
-    TTI_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, 2);
-    TTI_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, 16);
-    TTI_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, 18);
-
-    // First tile processing (F0, F1, F2, F3)
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_next_face);
-
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_next_face + 1);
-
-    // Remaining tiles
-    for (uint32_t i = 0; i < block_height - 1; i++)
-    {
-        lltt::replay(0, replay_buffer_offset);
-        lltt::replay(0, replay_buffer_offset);
-        lltt::replay(0, replay_buffer_offset);
-        lltt::replay(0, replay_buffer_next_face);
-
-        lltt::replay(0, replay_buffer_offset);
-        lltt::replay(0, replay_buffer_offset);
-        lltt::replay(0, replay_buffer_offset);
-        lltt::replay(0, replay_buffer_next_face + 1);
-    }
-
-    // Reset dest RWC counter
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
-    // Finalize: Sort and store maximum/minimum values to row 0
-    TTI_SFPTRANSP(0, 0, 0, 0);
+    for (uint32_t i = 0; i < block_height; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG2 /*lreg_dest*/, 1 /*instr_mod1*/);
+            TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG3 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+            TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
+            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG2 /*lreg_dest*/, 1 /*instr_mod1*/);
+            TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG3 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+            if (j % 4 == 3)
+            {
+                TTI_INCRWC(0, 10, 0, 0);
+                TTI_INCRWC(0, 10, 0, 0);
+            }
+            else
+            {
+                TTI_INCRWC(0, 4, 0, 0);
+            }
+        }
+
+        // go to next tile in same row
+        for (int k = 0; k < 8; k++)
+        {
+            TTI_INCRWC(0, 8, 0, 0);
+        }
+    }
+    // store
+
+    TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, -128 & 0x3fff); // wherever
+    TTI_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, -126 & 0x3fff); // wherever
+
+    TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
+
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
     TTI_SFPTRANSP(0, 0, 0, 0);
 
-    // Store results to first row
-    TTI_SFPSTORE(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, 0);
-    TTI_SFPSTORE(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, 2);
-    TTI_SFPSTORE(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, 16);
-    TTI_SFPSTORE(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, 18);
+    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, -128 & 0x3fff); // wherever
+    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, -126 & 0x3fff); // wherever
+
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG0 /*lreg_src_c*/, p_sfpu::LREG4 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+    // TTI_SFPMOV(0, p_sfpu::LREG4, p_sfpu::LREG0, 0); // move result of reduce to LREG0
+
+    sfpu_reduce_max_load_initial_values();
+
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0); // dummy
+
+    for (uint32_t i = 0; i < block_height; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG2 /*lreg_dest*/, 1 /*instr_mod1*/);
+            TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG3 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+            TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
+            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG2 /*lreg_dest*/, 1 /*instr_mod1*/);
+            TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG3 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+            if (j % 4 == 3)
+            {
+                TTI_INCRWC(0, 10, 0, 0);
+                TTI_INCRWC(0, 10, 0, 0);
+            }
+            else
+            {
+                TTI_INCRWC(0, 4, 0, 0);
+            }
+        }
+
+        // go to next tile in same row
+        for (int k = 0; k < 8; k++)
+        {
+            TTI_INCRWC(0, 8, 0, 0);
+        }
+    }
+
+    TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, -128 & 0x3fff); // wherever
+    TTI_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, -126 & 0x3fff); // wherever
+
+    TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
+
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, -128 & 0x3fff); // wherever
+    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, -126 & 0x3fff); // wherever
+
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG1 /*lreg_src_c*/, p_sfpu::LREG4 /*lreg_dest*/, 1 /*instr_mod1*/);
+}
+
+inline void _reduce_max_prologue_()
+{
+    constexpr uint16_t neg_inf_fp16b = 0xFF80;
+
+    // F0 - Initialize with negative infinity
+    TTI_SFPLOADI(p_sfpu::LREG0, InstrModLoadStore::FP16B, neg_inf_fp16b);
+    TTI_SFPLOADI(p_sfpu::LREG1, InstrModLoadStore::FP16B, neg_inf_fp16b);
+}
+
+inline void _reuce_max_epilogue_()
+{
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+
+    TTI_SFPMOV(0, p_sfpu::LREG1, p_sfpu::LREG4, 0); // move result of reduce to LREG4
+
+    TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
+
+    TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+    TTI_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+    TTI_SFPSTORE(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
+    TTI_SFPSTORE(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+
+    TTI_SFPSTORE(p_sfpu::LREG4, InstrModLoadStore::FP16B, ADDR_MOD_3, 64 + 0);
+    TTI_SFPSTORE(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 64 + 2);
+    TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 64 + 16);
+    TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 64 + 18);
 }
 
 /**
