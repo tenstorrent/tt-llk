@@ -16,7 +16,12 @@ from helpers.fuse_operation import PipelineOperation
 from helpers.fuse_packer import MatmulPacker
 from helpers.fuse_unpacker import MatmulUnpacker
 from helpers.golden_generators import MatmulGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
+from helpers.llk_params import (
+    ApproximationMode,
+    DestAccumulation,
+    MathFidelity,
+    format_dict,
+)
 from helpers.matmul_sweep import (
     generate_matmul_dimension_combinations,
     generate_tile_dims,
@@ -168,7 +173,13 @@ def test_matmul(
         ),
         PipelineOperation(
             unpacker=MatmulUnpacker,
-            math=Math(MatmulFpu, [UnarySfpu("sqrt"), UnarySfpu("neg")]),
+            math=Math(
+                MatmulFpu,
+                [
+                    UnarySfpu("sqrt", ApproximationMode.No),
+                    UnarySfpu("neg", ApproximationMode.Yes),
+                ],
+            ),
             packer=MatmulPacker,
             config=test_config2,
         ),

@@ -2,15 +2,26 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Dict
+from typing import Dict, List
 
 
 class Unpacker:
     def unpack(self, config: Dict) -> str:
         return ""
 
+    def get_headers(self) -> List[str]:
+        return []
+
 
 class MatmulUnpacker(Unpacker):
+    def get_headers(self) -> List[str]:
+        return [
+            "llk_unpack_A.h",
+            "llk_unpack_AB.h",
+            "llk_unpack_AB_matmul.h",
+            "llk_unpack_common.h",
+        ]
+
     def unpack(self, config: Dict) -> str:
         stage = config["stage_id"]
         FACE_R_DIM = config["face_r_dim"]
