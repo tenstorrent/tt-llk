@@ -65,6 +65,19 @@ class MathKernelGenerator:
 
 using namespace ckernel::sfpu;
 
+#include "ckernel_defs.h"
+#include "ckernel_sfpu.h"
+#include "ckernel_sfpu_add_top_row.h"
+#include "ckernel_sfpu_binary.h"
+#include "llk_math_common.h"
+#include "llk_math_eltwise_binary_sfpu.h"
+#include "llk_math_eltwise_unary_datacopy.h"
+
+#include "llk_math_eltwise_unary_sfpu.h"
+#include "sfpu_operations.h"
+
+using namespace ckernel::sfpu;
+
 void run_kernel()
 {{"""
         for op in self.operations:
@@ -155,6 +168,15 @@ using namespace ckernel;
 uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
+
+#include <array>
+#include <type_traits>
+
+// Include auto-generated build configuration
+#include "ckernel_defs.h"
+#include "ckernel_sfpu.h"
+#include "data_format_inference.h"
+#include "tensix_types.h"
 
 inline uint32_t L1_ADDRESS(uint32_t buffer_address)
 {{
