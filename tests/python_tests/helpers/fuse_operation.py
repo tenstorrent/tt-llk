@@ -13,7 +13,7 @@ from .fuse_unpacker import Unpacker
 @dataclass
 class PipelineOperation:
     unpacker: Type[Unpacker]
-    math: Type[Math]
+    math: Math
     packer: Type[Packer]
     config: Dict
     _generated_config: Optional[Dict] = field(default=None, init=False, repr=False)
@@ -31,8 +31,7 @@ class PipelineOperation:
         return unpacker_instance.unpack(self.generated_config)
 
     def do_math(self) -> str:
-        math_instance = self.math()
-        return math_instance.math(self.generated_config)
+        return self.math.exec(self.generated_config)
 
     def pack(self) -> str:
         packer_instance = self.packer()

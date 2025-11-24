@@ -11,7 +11,7 @@ from helpers.device import (  # , write_stimuli_to_l1
     write_pipeline_stimuli_to_l1,
 )
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
-from helpers.fuse_math import MatmulMath
+from helpers.fuse_math import Math, MatmulFpu, UnarySfpu
 from helpers.fuse_operation import PipelineOperation
 from helpers.fuse_packer import MatmulPacker
 from helpers.fuse_unpacker import MatmulUnpacker
@@ -162,13 +162,13 @@ def test_matmul(
     pipeline = [
         PipelineOperation(
             unpacker=MatmulUnpacker,
-            math=MatmulMath,
+            math=Math(MatmulFpu, []),
             packer=MatmulPacker,
             config=test_config1,
         ),
         PipelineOperation(
             unpacker=MatmulUnpacker,
-            math=MatmulMath,
+            math=Math(MatmulFpu, [UnarySfpu("sqrt"), UnarySfpu("neg")]),
             packer=MatmulPacker,
             config=test_config2,
         ),
