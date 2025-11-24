@@ -116,8 +116,8 @@ class KernelCompiler:
 #include "ckernel_debug.h"
 #include "ckernel_defs.h"
 #include "ckernel_sfpu.h"
-#include "data_format_inference.h"
 #include "tensix_types.h"
+#include "operand.h"
 
 using namespace ckernel;
 
