@@ -11,8 +11,8 @@
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "ckernel_sfpu_isinf_isnan.h"
-#include "llk_defs.h"
 #include "sfpi.h"
+#include "llk_defs.h"
 
 namespace ckernel
 {
@@ -138,7 +138,7 @@ inline sfpi::vFloat _round_even_(sfpi::vFloat v)
     return v;
 }
 
-template <ApproximationMode APPROX_MODE, int ITERATIONS = 8>
+template <bool APPROXIMATE, int ITERATIONS = 8>
 void _calculate_round_(const int decimals)
 {
     const auto exp10i = [](int n)
