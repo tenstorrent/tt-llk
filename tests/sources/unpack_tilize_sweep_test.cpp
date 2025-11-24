@@ -23,12 +23,6 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-#ifdef ARCH_BLACKHOLE
-    const std::uint32_t block_ct_dim = 0;
-#else
-    const std::uint32_t block_ct_dim = 1;
-#endif
-
     _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, STOCHASTIC_RND>(
         formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES);
 
@@ -46,6 +40,11 @@ void run_kernel()
     // Main tilize loop - handle different tile configurations
     for (uint32_t row = 0; row < BLOCK_RT_DIM; ++row)
     {
+#ifdef ARCH_BLACKHOLE
+        const std::uint32_t block_ct_dim = 0;
+#else
+        const std::uint32_t block_ct_dim = BLOCK_CT_DIM;
+#endif
         uint32_t tile_row_addr = L1_ADDRESS(buffer_A[read_offset]);
         for (uint32_t col = 0; col < BLOCK_CT_DIM; ++col)
         {
