@@ -112,14 +112,27 @@ class KernelCompiler:
 
 #include "ckernel.h"
 #include "llk_defs.h"
-#include "params.h"
+
 #include "ckernel_debug.h"
+#include "ckernel_defs.h"
+#include "ckernel_sfpu.h"
+#include "data_format_inference.h"
+#include "tensix_types.h"
 
 using namespace ckernel;
 
 uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
+
+inline uint32_t L1_ADDRESS(uint32_t buffer_address)
+{{
+#ifdef ARCH_QUASAR
+    return buffer_address / 16;
+#else
+    return (buffer_address / 16) - 1;
+#endif
+}}
 """
         kernels = self.generate_all()
         combined += kernels["unpack"]
