@@ -31,11 +31,7 @@ void run_kernel()
     {
         for (uint32_t j = 0; j < BLOCK_CT_DIM; j++)
         {
-#ifdef ARCH_BLACKHOLE
-            const std::uint32_t block_ct_dim = 0;
-#else
-            const std::uint32_t block_ct_dim = BLOCK_CT_DIM;
-#endif
+            const std::uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
             _llk_unpack_tilize_(L1_ADDRESS(buffer_A[read_offset]), j, formats.unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
         }
         read_offset += BLOCK_RT_DIM;
