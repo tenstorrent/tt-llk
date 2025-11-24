@@ -56,7 +56,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 }
 
 template <ApproximationMode APPROX_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
-inline void _calculate_reciprocal_(const int iterations)
+inline void _calculate_reciprocal_internal_(const int iterations)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
@@ -100,7 +100,7 @@ inline void _calculate_reciprocal_(const int iterations)
 template <ApproximationMode APPROX_MODE, bool legacy_compat = false>
 inline void _init_reciprocal_()
 {
-    if constexpr (!APPROX_MODE == ApproximationMode::Fast && !legacy_compat)
+    if constexpr (APPROX_MODE != ApproximationMode::Fast && !legacy_compat)
     {
         sfpi::vConstFloatPrgm0 = 2.0f;
     }

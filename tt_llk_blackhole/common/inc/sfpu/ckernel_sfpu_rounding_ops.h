@@ -219,7 +219,7 @@ inline sfpi::vFloat _trunc_body_(sfpi::vFloat in)
     return result;
 }
 
-template <ApproximationMode APPROX_MODEE, bool USE_FP32 = false, int ITERATIONS = 8>
+template <ApproximationMode APPROX_MODE, bool USE_FP32 = false, int ITERATIONS = 8>
 inline void _calculate_trunc_()
 {
     for (int d = 0; d < ITERATIONS; d++)
