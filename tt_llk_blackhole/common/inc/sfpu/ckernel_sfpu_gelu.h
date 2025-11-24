@@ -164,12 +164,12 @@ inline void _calculate_gelu_derivative_()
             sfpi::vFloat neg_half_sq_in = in * in * -0.5f;
 
             // exp = e^(val)
-            sfpi::vFloat exp = _calculate_exponential_body_<false>(neg_half_sq_in);
+            sfpi::vFloat exp = _calculate_exponential_body_<ApproximationMode::Precise>(neg_half_sq_in);
 
             // exp = exp * 1/sqrt(2*pi)
             sfpi::vFloat partial = exp * in * sfpi::s2vFloat16b(0.3989423F);
 
-            sfpi::vFloat result = _calculate_gelu_core_<true>(in);
+            sfpi::vFloat result = _calculate_gelu_core_<ApproximationMode::Fast>(in);
 
             result = lut(result, l0, l1, imm2);
 
@@ -255,8 +255,8 @@ inline void _init_gelu_derivative_()
     }
     else
     {
-        // Initialisation for use of _calculate_exponential_body_<false>.
-        _init_exponential_<false, false, 0x3F800000>();
+        // Initialisation for use of _calculate_exponential_body_<ApproximationMode::Precise>.
+        _init_exponential_<ApproximationMode::Precise, false, 0x3F800000>();
 
         imm0 = 0x28FF;
         imm1 = 0x3020;
