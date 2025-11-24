@@ -61,8 +61,9 @@ def generate_qsr_pack_combinations(
                 and dest_acc == DestAccumulation.No
             ):
                 continue
-            for dimensions in ([32, 32],):
+            for dimensions in dimensions_cache[dest_acc]:
                 combinations.append((fmt, dest_acc, dimensions))
+
     return combinations
 
 
@@ -85,9 +86,6 @@ def test_pack_quasar(
     test_name, formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT
 ):
     formats, dest_acc, input_dimensions = formats_dest_acc_input_dims
-
-    # if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
-    #    pytest.skip("Fails for now.")
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,

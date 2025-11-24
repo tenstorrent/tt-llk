@@ -31,12 +31,11 @@ from helpers.utils import passed_test
 TILE_DIM = 32  # Standard tile dimension (32x32)
 MAX_TILES_16_BIT_DEST = 8  # Max tiles with 16-bit dest (Float16/Float16_b)
 
-# ELTWISE_DIMENSIONS = [
-#     ([mt_dim * TILE_DIM, nt_dim * TILE_DIM], DestAccumulation.No)
-#     for mt_dim in range(1, MAX_TILES_16_BIT_DEST + 1)
-#     for nt_dim in range(1, MAX_TILES_16_BIT_DEST // mt_dim + 1)
-# ]
-ELTWISE_DIMENSIONS = ([32, 32], DestAccumulation.No)
+ELTWISE_DIMENSIONS = [
+    ([mt_dim * TILE_DIM, nt_dim * TILE_DIM], DestAccumulation.No)
+    for mt_dim in range(1, MAX_TILES_16_BIT_DEST + 1)
+    for nt_dim in range(1, MAX_TILES_16_BIT_DEST // mt_dim + 1)
+]
 
 
 @pytest.mark.quasar
