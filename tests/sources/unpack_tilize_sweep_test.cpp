@@ -51,7 +51,7 @@ void run_kernel()
                 formats.unpack_src,
                 0,
                 FACE_R_DIM,
-                NUM_FACES,
+                4,
                 false // narrow_tile disabled for now
             );
         }
