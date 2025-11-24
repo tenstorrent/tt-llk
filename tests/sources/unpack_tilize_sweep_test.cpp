@@ -37,12 +37,13 @@ void run_kernel()
 
     uint32_t read_offset = 0;
 
+    const std::uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
+    const std::uint32_t num_faces    = is_blackhole ? 4 : NUM_FACES;
+
     // Main tilize loop - handle different tile configurations
     for (uint32_t row = 0; row < BLOCK_RT_DIM; ++row)
     {
-        const std::uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
-        const std::uint32_t num_faces    = is_blackhole ? 4 : NUM_FACES;
-        uint32_t tile_row_addr           = L1_ADDRESS(buffer_A[read_offset]);
+        uint32_t tile_row_addr = L1_ADDRESS(buffer_A[read_offset]);
         for (uint32_t col = 0; col < BLOCK_CT_DIM; ++col)
         {
             _llk_unpack_tilize_(
