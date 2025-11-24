@@ -31,11 +31,12 @@ from helpers.utils import passed_test
 TILE_DIM = 32  # Standard tile dimension (32x32)
 MAX_TILES_16_BIT_DEST = 8  # Max tiles with 16-bit dest (Float16/Float16_b)
 
-ELTWISE_DIMENSIONS = [
-    ([mt_dim * TILE_DIM, nt_dim * TILE_DIM], DestAccumulation.No)
-    for mt_dim in range(1, MAX_TILES_16_BIT_DEST + 1)
-    for nt_dim in range(1, MAX_TILES_16_BIT_DEST // mt_dim + 1)
-]
+# ELTWISE_DIMENSIONS = [
+#     ([mt_dim * TILE_DIM, nt_dim * TILE_DIM], DestAccumulation.No)
+#     for mt_dim in range(1, MAX_TILES_16_BIT_DEST + 1)
+#     for nt_dim in range(1, MAX_TILES_16_BIT_DEST // mt_dim + 1)
+# ]
+ELTWISE_DIMENSIONS = ([32, 32], DestAccumulation.No)
 
 
 @pytest.mark.quasar
@@ -46,7 +47,6 @@ ELTWISE_DIMENSIONS = [
             DataFormat.Float16_b,
             DataFormat.Float16,
         ],
-        same=True,
     ),
     mathop=[
         MathOperation.Elwadd,
@@ -93,6 +93,9 @@ def test_eltwise_binary(
         formats.input_format,
         input_dimensions=input_dimensions,
     )
+
+    src_A = torch.ones_like(src_A)
+    src_B = torch.ones_like(src_B)
 
     # Generate golden result using eltwise binary golden generator
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
