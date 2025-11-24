@@ -390,10 +390,7 @@ inline void calculate_reduce_max(const uint32_t block_height)
         }
 
         // go to next tile in same row
-        for (int k = 0; k < 8; k++)
-        {
-            TTI_INCRWC(0, 8, 0, 0);
-        }
+        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
     }
     // store
 
@@ -444,11 +441,7 @@ inline void calculate_reduce_max(const uint32_t block_height)
             }
         }
 
-        // go to next tile in same row
-        for (int k = 0; k < 8; k++)
-        {
-            TTI_INCRWC(0, 8, 0, 0);
-        }
+        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
     }
 
     TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, -128 & 0x3fff); // wherever
