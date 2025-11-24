@@ -169,15 +169,6 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
-#include <array>
-#include <type_traits>
-
-// Include auto-generated build configuration
-#include "ckernel_defs.h"
-#include "ckernel_sfpu.h"
-#include "data_format_inference.h"
-#include "tensix_types.h"
-
 inline uint32_t L1_ADDRESS(uint32_t buffer_address)
 {{
 #ifdef ARCH_QUASAR
@@ -187,11 +178,15 @@ inline uint32_t L1_ADDRESS(uint32_t buffer_address)
 #endif
 }}
 
+<<<<<<< HEAD
 constexpr bool UNPACKING_TO_DEST    = false;
 constexpr bool APPROX_MODE          = false;
 constexpr bool is_fp32_dest_acc_en  = false;
 
 #include "data_format_inference.h"
+=======
+constexpr bool is_fp32_dest_acc_en = false;
+>>>>>>> 6c6799a7 (refactor: add dest_acc template parameter to call_sfpu_operation)
 
 """
         kernels = self.generate_all()

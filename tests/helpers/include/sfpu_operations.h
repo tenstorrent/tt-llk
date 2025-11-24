@@ -24,7 +24,11 @@ namespace test_utils
  * @param operation The SFPU operation type to execute
  * @param math_format Optional math format for operations that need format-specific behavior
  */
+<<<<<<< HEAD
 template <int ITERATIONS, bool dest_acc = is_fp32_dest_acc_en, bool approx_mode = APPROX_MODE>
+=======
+template <int ITERATIONS, bool dest_acc = is_fp32_dest_acc_en>
+>>>>>>> 6c6799a7 (refactor: add dest_acc template parameter to call_sfpu_operation)
 void call_sfpu_operation(SfpuType operation, uint32_t math_format)
 {
     switch (operation)
@@ -41,8 +45,13 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             _calculate_asinh_<approx_mode, ITERATIONS>();
             break;
         case SfpuType::atanh:
+<<<<<<< HEAD
             _init_atanh_<approx_mode>();
             _calculate_atanh_<approx_mode, dest_acc, ITERATIONS>();
+=======
+            _init_atanh_<APPROX_MODE>();
+            _calculate_atanh_<APPROX_MODE, dest_acc, ITERATIONS>();
+>>>>>>> 6c6799a7 (refactor: add dest_acc template parameter to call_sfpu_operation)
             break;
         case SfpuType::celu:
             _calculate_activation_<approx_mode, ActivationType::Celu, ITERATIONS>(10, 1.0f / 10.0f);
@@ -97,12 +106,21 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             }
             break;
         case SfpuType::reciprocal:
+<<<<<<< HEAD
             _init_reciprocal_<approx_mode, dest_acc>();
             _calculate_reciprocal_<approx_mode, ITERATIONS, dest_acc>(ITERATIONS);
             break;
         case SfpuType::rsqrt:
             _init_rsqrt_<approx_mode>();
             _calculate_rsqrt_<approx_mode, ITERATIONS, dest_acc, false>(ITERATIONS);
+=======
+            _init_reciprocal_<APPROX_MODE>();
+            _calculate_reciprocal_<APPROX_MODE, ITERATIONS, dest_acc>(ITERATIONS);
+            break;
+        case SfpuType::rsqrt:
+            _init_rsqrt_<APPROX_MODE>();
+            _calculate_rsqrt_<APPROX_MODE, ITERATIONS, dest_acc, false>(ITERATIONS);
+>>>>>>> 6c6799a7 (refactor: add dest_acc template parameter to call_sfpu_operation)
             break;
         case SfpuType::silu:
             _calculate_silu_<approx_mode, ITERATIONS>();
@@ -111,8 +129,13 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             _calculate_sine_<approx_mode, ITERATIONS>(ITERATIONS);
             break;
         case SfpuType::sqrt:
+<<<<<<< HEAD
             _init_sqrt_<approx_mode>();
             _calculate_sqrt_<approx_mode, ITERATIONS, dest_acc, false>(ITERATIONS);
+=======
+            _init_sqrt_<APPROX_MODE>();
+            _calculate_sqrt_<APPROX_MODE, ITERATIONS, dest_acc, false>(ITERATIONS);
+>>>>>>> 6c6799a7 (refactor: add dest_acc template parameter to call_sfpu_operation)
             break;
         case SfpuType::square:
             _calculate_square_<approx_mode, ITERATIONS>();
