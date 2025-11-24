@@ -36,7 +36,11 @@ def generate_random_face(
     face_r_dim=16,
 ):
     size = face_r_dim * 16  # face_r_dim rows × 16 columns
-    if stimuli_format != DataFormat.Bfp8_b:
+
+    if stimuli_format in [DataFormat.MXFP8R, DataFormat.MXFP8P]:
+        # MXFP8 optimized stimuli generation
+        return _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu)
+    elif stimuli_format != DataFormat.Bfp8_b:
         if stimuli_format.is_integer():
             max = 127 if stimuli_format == DataFormat.Int8 else 255
             srcA_face = torch.randint(
@@ -62,6 +66,31 @@ def generate_random_face(
             srcA_face = integer_part.to(dtype=torch.bfloat16) + fraction
 
     return srcA_face
+
+
+def _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu):
+    """
+    Generate test data for MXFP8 formats using simple approach similar to BFP8_b.
+    """
+    if const_face:
+        return torch.ones(size, dtype=torch.float32) * const_value
+
+    # Simple approach: pick reasonable range and use normal distribution
+    if stimuli_format == DataFormat.MXFP8R:
+        # E5M2 can handle larger values
+        scale = 100.0  # Good working range
+    else:  # MXFP8P
+        # E4M3 has smaller range
+        scale = 10.0  # Good working range
+
+    # Generate random values - let natural randomness create block diversity
+    face_data = torch.randn(size, dtype=torch.float32) * scale
+
+    # Add SFPU-friendly offset if needed
+    if sfpu:
+        face_data += 0.1
+
+    return face_data
 
 
 def generate_random_face_ab(

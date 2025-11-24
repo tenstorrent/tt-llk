@@ -8,6 +8,19 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
+# ============================================================================
+# MX (Microscaling) Format Constants - OCP Specification
+# ============================================================================
+
+MXFP8_BLOCK_SIZE = 32  # Fixed block size per OCP MX specification
+MXFP8_E5M2_MAX_NORMAL = 57344.0  # 2^15 × 1.75 (from OCP spec Table 2)
+MXFP8_E4M3_MAX_NORMAL = 448.0  # 2^8 × 1.75 (from OCP spec Table 2)
+
+
+# ============================================================================
+# Data Format Classes
+# ============================================================================
+
 
 class DataFormatInfo:
     """
@@ -107,11 +120,8 @@ class DataFormat(Enum):
 
 
 # ============================================================================
-# MX (Microscaling) Format Constants and Utilities
+# MX (Microscaling) Format Utilities
 # ============================================================================
-
-# MX format constants
-MXFP8_BLOCK_SIZE = 32  # Fixed block size per OCP MX specification
 
 
 def encode_e8m0_scale(max_abs_value, element_max_normal):
@@ -132,8 +142,11 @@ def encode_e8m0_scale(max_abs_value, element_max_normal):
     Returns:
         E8M0 encoded scale (0-255), where 255 = NaN
     """
+    # Handle special cases
     if max_abs_value == 0 or np.isnan(max_abs_value):
         return 127  # Scale = 2^0 = 1 (neutral scale)
+    if np.isinf(max_abs_value):
+        return 254  # Max representable scale
 
     # Calculate exponent: ceil(log2(max_value / element_max)) per OCP spec
     scale_ratio = max_abs_value / element_max_normal
