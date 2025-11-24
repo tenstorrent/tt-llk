@@ -79,6 +79,10 @@ void call_binary_sfpu_operation(BinaryOp operation)
                 _calculate_add_top_row_<add_top_row_format>(0, 1, 0);
             }
             break;
+        case BinaryOp::MAX:
+            _sfpu_binary_init_<false, SFPU_BINARY_OPERATION>();
+            _calculate_sfpu_binary_<false, SFPU_BINARY_OPERATION, 32>(0, 1, 0);
+            break;
         default:
             return;
     }

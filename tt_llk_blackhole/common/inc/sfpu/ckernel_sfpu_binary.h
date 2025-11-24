@@ -164,6 +164,19 @@ inline void _calculate_sfpu_binary_(const uint dst_index_in0, const uint dst_ind
             }
             v_endif;
         }
+        else if constexpr (BINOP == BinaryOp::MAX)
+        {
+            // Use SFPU max instruction
+            v_if (in0 >= in1)
+            {
+                result = in0;
+            }
+            v_else
+            {
+                result = in1;
+            }
+            v_endif;
+        }
 
         sfpi::dst_reg[dst_index_out * dst_tile_size_sfpi] = result;
         sfpi::dst_reg++;

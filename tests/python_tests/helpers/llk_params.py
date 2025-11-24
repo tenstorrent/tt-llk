@@ -94,6 +94,7 @@ class MathOperation(Enum):
     SfpuElwsub = OpSpec("SUB", MathOpType.SFPU_BINARY)
     SfpuXlogy = OpSpec("XLOGY", MathOpType.SFPU_BINARY)
     SfpuAddTopRow = OpSpec("ADD_TOP_ROW", MathOpType.SFPU_BINARY)
+    SfpuElwmax = OpSpec("MAX", MathOpType.SFPU_BINARY)
 
     # =============================================================================
     # SFPU TERNARY OPERATIONS

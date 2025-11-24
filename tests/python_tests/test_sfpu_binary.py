@@ -29,6 +29,7 @@ from helpers.utils import passed_test
         MathOperation.SfpuElwadd,
         MathOperation.SfpuElwsub,
         MathOperation.SfpuElwmul,
+        MathOperation.SfpuElwmax,
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )

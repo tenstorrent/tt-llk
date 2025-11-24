@@ -256,7 +256,8 @@ enum class BinaryOp : uint8_t
     RSHFT         = 7,
     LSHFT         = 8,
     LOGICAL_RSHFT = 9,
-    ADD_TOP_ROW   = 10
+    ADD_TOP_ROW   = 10,
+    MAX           = 11
 };
 
 } // namespace ckernel

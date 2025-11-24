@@ -1239,6 +1239,7 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
                 MathOperation.SfpuElwLeftShift: self._left_shift,
                 MathOperation.SfpuElwLogicalRightShift: self._logical_right_shift,
                 MathOperation.SfpuAddTopRow: self._add_top_row,
+                MathOperation.SfpuElwmax: self._max,
             }
         )
 
@@ -1282,6 +1283,9 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         Takes the element t1 of top row of tile 0 and adds it with element t2 of top row of tile 1.
         """
         return t1 + t2
+
+    def _max(self, x, y):
+        return max(x, y)
 
 
 @register_golden
