@@ -72,7 +72,7 @@ void run_kernel()
     {
         _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0, 0, CT_DIM, RT_DIM, KT_DIM);
     }
-    // dbg_thread_halt<MathThreadId>();
+    dbg_thread_halt<MathThreadId>();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -86,7 +86,7 @@ void run_kernel()
 
 void run_kernel()
 {
-    dbg_thread_halt<UnpackThreadId>();
+    // dbg_thread_halt<UnpackThreadId>();
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, TILE_SIZE_PACK);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats.pack_dst);
