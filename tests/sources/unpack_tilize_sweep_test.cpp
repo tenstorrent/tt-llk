@@ -23,7 +23,11 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    // Use parameters from build.h that are set by the Python test
+#ifdef ARCH_BLACKHOLE
+    const std::uint32_t block_ct_dim = 0;
+#else
+    const std::uint32_t block_ct_dim = 1;
+#endif
 
     _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, STOCHASTIC_RND>(
         formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES);
@@ -49,7 +53,7 @@ void run_kernel()
                 tile_row_addr,
                 col,
                 formats.unpack_src,
-                0,
+                block_ct_dim,
                 FACE_R_DIM,
                 4,
                 false // narrow_tile disabled for now
