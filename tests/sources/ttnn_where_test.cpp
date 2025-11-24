@@ -112,13 +112,13 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     // calculation of sfpu operation on dest
     _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
-    ckernel::sfpu::_init_where_<false>();
+    ckernel::sfpu::_init_where_<ApproximationMode::Precise>();
 
     _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
 
     constexpr int iterations = 32;
 
-    ckernel::sfpu::_calculate_where_<false, static_cast<DataFormat>(UNPACK_A_IN), iterations>(0, 1, 2, 0);
+    ckernel::sfpu::_calculate_where_<ApproximationMode::Precise, static_cast<DataFormat>(UNPACK_A_IN), iterations>(0, 1, 2, 0);
 
     _llk_math_eltwise_ternary_sfpu_done_();
 
