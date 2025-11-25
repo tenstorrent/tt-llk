@@ -13,7 +13,7 @@ def test_param_dependencies_constant():
     constraint = 1
     dependencies = _param_dependencies("constraint", constraint)
     assert len(dependencies) == 0
-    assert _param_dependencies("constraint", constraint) == []
+    assert dependencies == []
 
 
 def test_param_dependencies_list():
