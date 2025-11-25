@@ -5,6 +5,7 @@
 import pytest
 from helpers.param_config import (
     UnknownDependenciesError,
+    _compute_dependency_map,
     _param_dependencies,
     _verify_dependency_map,
 )
@@ -91,5 +92,52 @@ def test_verify_dependency_map_fail():
 
     with pytest.raises(UnknownDependenciesError) as error:
         _verify_dependency_map(dependency_map)
+
+    assert error.value.missing == expected_missing
+
+
+def test_compute_dependency_matrix_pass():
+    """
+    The dependency matrix is valid if all dependencies are known parameters.
+    """
+
+    expected = {
+        "exist1": ["exist2", "exist3"],
+        "exist2": ["exist3"],
+        "exist3": [],
+        "exist4": ["exist1"],
+        "exist5": [],
+    }
+
+    dependency_map = _compute_dependency_map(
+        exist1=lambda exist2, exist3: [],
+        exist2=lambda exist3: [],
+        exist3="value",
+        exist4=lambda exist1: [],
+        exist5=["value", "value"],
+    )
+
+    assert dependency_map == expected
+
+
+def test_compute_dependency_matrix_fail():
+    """
+    The dependency matrix is invalid if a dependency is not a known parameter.
+    """
+
+    expected_missing = {
+        "exist1": {"missing1"},
+        "exist2": {"missing2"},
+        "exist4": {"missing1", "missing2"},
+    }
+
+    with pytest.raises(UnknownDependenciesError) as error:
+        _compute_dependency_map(
+            exist1=lambda exist2, missing1: [],
+            exist2=lambda missing2, exist3: [],
+            exist3="value",
+            exist4=lambda missing1, missing2: [],
+            exist5=["value", "value2"],
+        )
 
     assert error.value.missing == expected_missing
