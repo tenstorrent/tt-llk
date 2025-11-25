@@ -3,7 +3,11 @@
 
 import torch
 
-from .format_config import DataFormat
+from .format_config import (
+    MXFP8_E4M3_MAX_NORMAL,
+    MXFP8_E5M2_MAX_NORMAL,
+    DataFormat,
+)
 from .llk_params import format_dict
 
 
@@ -70,20 +74,23 @@ def generate_random_face(
 
 def _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu):
     """
-    Generate test data for MXFP8 formats using simple approach similar to BFP8_b.
+    Generate test data for MXFP8 formats using normal distribution scaled to format range.
+
+    Uses conservative scaling (5% of max normal) to avoid saturation while creating
+    diverse test data with realistic dynamic range. Max values from format_config.py.
     """
     if const_face:
         return torch.ones(size, dtype=torch.float32) * const_value
 
-    # Simple approach: pick reasonable range and use normal distribution
+    # Scale factor: use 5% of format's max normal value
+    # This ensures values are well within representable range while maintaining diversity
     if stimuli_format == DataFormat.MXFP8R:
-        # E5M2 can handle larger values
-        scale = 100.0  # Good working range
+        scale = 0.05 * MXFP8_E5M2_MAX_NORMAL
     else:  # MXFP8P
-        # E4M3 has smaller range
-        scale = 10.0  # Good working range
+        scale = 0.05 * MXFP8_E4M3_MAX_NORMAL
 
-    # Generate random values - let natural randomness create block diversity
+    # Generate normal distribution: ~68% within ±1σ, ~95% within ±2σ
+    # With σ=scale, most values stay well below max while creating realistic variance
     face_data = torch.randn(size, dtype=torch.float32) * scale
 
     # Add SFPU-friendly offset if needed
