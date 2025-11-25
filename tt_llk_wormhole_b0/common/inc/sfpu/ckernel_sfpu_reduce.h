@@ -144,7 +144,7 @@ constexpr bool is_supported_reduce_format(DataFormat format)
 //**************************************************************
 // SFPU REDUCE MAX COL IMPLEMENTATION
 //**************************************************************
-inline void sfpu_reduce_max_col_configure_addrmod(uint32_t num_cols = 0)
+inline void sfpu_reduce_max_col_configure_addrmod()
 {
     addr_mod_t {
         .srca = {.incr = 0},
@@ -206,7 +206,7 @@ inline void sfpu_reduce_max_load_initial_values()
 }
 
 template <DataFormat format>
-inline void _init_reduce_max_col_(uint32_t num_cols)
+inline void _init_reduce_max_col_()
 {
     static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
@@ -241,28 +241,38 @@ inline void init_reduce_max(uint32_t num_cols)
     // ***********************************************************
 
     _init_sfpu_config_reg();
-    sfpu_reduce_max_col_configure_addrmod(num_cols);
+    sfpu_reduce_max_col_configure_addrmod();
 
     // // ***********************************************************
     // // Record replay buffer
-    // lltt::record<lltt::NoExec>(0, 9);
-    // TTI_INCRWC(0, 4, 0, 0); // increment dest counter by 4
+    lltt::record<lltt::NoExec>(0, 8);
 
-    // // Use LOADMACRO with lreg_ind=5 (loads to LREG5, uses sequence 1 since bits[3:2]=01)
-    // TTI_SFPLOADMACRO(5, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+    TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG2 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG3 /*lreg_dest*/, 1 /*instr_mod1*/);
 
-    // TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
-    // TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
-    // TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG1 /*lreg_dest*/, 1 /*instr_mod1*/);
-    // TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG2 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG3 /*lreg_dest*/, 1 /*instr_mod1*/);
 
-    // // Use LOADMACRO with lreg_ind=0 (loads to LREG0, uses sequence 0)
-    // TTI_SFPLOADMACRO(0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+    // ***********************************************************
+}
 
-    // // Dummy loads used to increment dest counters
-    // TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
-    // TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_1, 0);
-    // // ***********************************************************
+inline void _reduce_max_col_move_to_next_block_()
+{
+    TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, -128 & 0x3fff); // wherever
+    TTI_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, -126 & 0x3fff); // wherever
+
+    TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
+
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
+
+    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, -128 & 0x3fff); // wherever
+    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, -126 & 0x3fff); // wherever
 }
 
 /**
@@ -358,17 +368,10 @@ inline void calculate_reduce_max(const uint32_t block_height)
 
     for (uint32_t i = 0; i < block_height; i++)
     {
+#pragma GCC unroll 8
         for (int j = 0; j < 8; j++)
         {
-            TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG2 /*lreg_dest*/, 1 /*instr_mod1*/);
-            TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG3 /*lreg_dest*/, 1 /*instr_mod1*/);
-
-            TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG2 /*lreg_dest*/, 1 /*instr_mod1*/);
-            TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG3 /*lreg_dest*/, 1 /*instr_mod1*/);
+            lltt::replay(0, 8);
 
             if (j % 4 == 3)
             {
@@ -384,24 +387,10 @@ inline void calculate_reduce_max(const uint32_t block_height)
         // go to next tile in same row
         TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
     }
-    // store
 
-    TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, -128 & 0x3fff); // wherever
-    TTI_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, -126 & 0x3fff); // wherever
-
-    TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
-
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPTRANSP(0, 0, 0, 0);
-
-    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, -128 & 0x3fff); // wherever
-    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, -126 & 0x3fff); // wherever
+    _reduce_max_col_move_to_next_block_();
 
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG0 /*lreg_src_c*/, p_sfpu::LREG4 /*lreg_dest*/, 1 /*instr_mod1*/);
-
-    // TTI_SFPMOV(0, p_sfpu::LREG4, p_sfpu::LREG0, 0); // move result of reduce to LREG0
 
     sfpu_reduce_max_load_initial_values();
 
@@ -410,17 +399,10 @@ inline void calculate_reduce_max(const uint32_t block_height)
 
     for (uint32_t i = 0; i < block_height; i++)
     {
+#pragma GCC unroll 8
         for (int j = 0; j < 8; j++)
         {
-            TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG2 /*lreg_dest*/, 1 /*instr_mod1*/);
-            TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG3 /*lreg_dest*/, 1 /*instr_mod1*/);
-
-            TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 16);
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG2 /*lreg_dest*/, 1 /*instr_mod1*/);
-            TTI_SFPLOAD(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 18);
-            TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG3 /*lreg_dest*/, 1 /*instr_mod1*/);
+            lltt::replay(0, 8);
 
             if (j % 4 == 3)
             {
@@ -436,17 +418,7 @@ inline void calculate_reduce_max(const uint32_t block_height)
         TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
     }
 
-    TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, -128 & 0x3fff); // wherever
-    TTI_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, -126 & 0x3fff); // wherever
-
-    TTI_SFPTRANSP(0, 0, 0, 0); // all arguments are unused
-
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
-
-    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, -128 & 0x3fff); // wherever
-    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, -126 & 0x3fff); // wherever
+    _reduce_max_col_move_to_next_block_();
 
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG1 /*lreg_src_c*/, p_sfpu::LREG4 /*lreg_dest*/, 1 /*instr_mod1*/);
 }
@@ -611,8 +583,8 @@ inline void _init_reduce_(uint32_t block_ct_dim = 1)
  * @tparam format The data format, currently supported: (Int32, UInt32, UInt16, Float32, Float16_b)
  * @param block_rt_dim Block dimension (used for MAX reduction to specify block height, default is 1 for single tile)
  */
-template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_(uint32_t block_rt_dim = 1)
+template <PoolType pool_type, DataFormat format>
+inline void _init_reduce_()
 {
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
@@ -623,11 +595,7 @@ inline void _calculate_reduce_(uint32_t block_rt_dim = 1)
     // Dispatch to appropriate reduction kernel based on PoolType
     if constexpr (pool_type == PoolType::MAX)
     {
-        calculate_reduce_max<pool_type, reduce_dim, INSTRUCTION_MODE>(block_rt_dim);
-    }
-    else if constexpr (pool_type == PoolType::SUM || pool_type == PoolType::AVG)
-    {
-        calculate_reduce_sum_avg<pool_type, reduce_dim, INSTRUCTION_MODE>();
+        _init_reduce_max_col_<format>();
     }
     else
     {

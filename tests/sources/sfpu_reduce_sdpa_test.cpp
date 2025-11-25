@@ -110,7 +110,7 @@ void run_kernel()
     // Initialize SFPU for reduce operation
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
 
-    ckernel::sfpu::_init_reduce_<PoolType::MAX, DataFormat::Float16_b>(BLOCK_CT_DIM);
+    ckernel::sfpu::_init_reduce_<PoolType::MAX, DataFormat::Float16_b>();
 
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
     ckernel::sfpu::_reduce_max_prologue_();
