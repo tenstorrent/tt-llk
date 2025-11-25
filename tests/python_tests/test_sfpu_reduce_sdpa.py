@@ -23,6 +23,7 @@ from helpers.utils import passed_test
         [DataFormat.Float16_b],  # Only Float16_b is supported for SDPA reduce
         same=True,
     ),
+    iterations=[i for i in range(1, 11)],
     dest_acc=[DestAccumulation.No],
     mathop=[MathOperation.ReduceColumn],
     reduce_pool=[ReducePool.Max],  # Only MAX is supported for SDPA reduce
@@ -31,22 +32,12 @@ from helpers.utils import passed_test
     ],
 )
 def test_sfpu_reduce_sdpa(
-    test_name, formats, dest_acc, mathop, reduce_pool, input_dimensions
+    test_name, formats, dest_acc, mathop, reduce_pool, input_dimensions, iterations
 ):
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
-
-    # Create src_A: 128 rows by 64 columns, each row i filled with i/32
-    num_rows, num_cols = input_dimensions
-    src_A = torch.zeros((num_rows, num_cols), dtype=torch.bfloat16)
-    for i in range(num_rows):
-        src_A[i, :] = i / 32.0
-
-    # print("src_A:")
-    # print(src_A)
-    # print("\n"*5)
 
     src_A = tilize_block(src_A, input_dimensions).flatten()
 
