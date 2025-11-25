@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Optional, Type
 
 from .fuse_math import Math
+from .fuse_operand import OperandMapping
 from .fuse_packer import Packer
 from .fuse_unpacker import Unpacker
 
@@ -16,6 +17,7 @@ class PipelineOperation:
     math: Math
     packer: Type[Packer]
     config: Dict
+    operand_mapping: OperandMapping
     _generated_config: Optional[Dict] = field(default=None, init=False, repr=False)
 
     @property
