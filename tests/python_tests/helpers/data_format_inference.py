@@ -274,7 +274,7 @@ def data_formats(
         chip_arch = get_chip_architecture()
 
     if disable_format_inference:
-        # Data Format Inference is not supported for Quasar architecture, so we return a single FormatConfig where all formats are the same.
+        # Return a single FormatConfig where all formats are the same if format inference is disabled or not supported for the architecture
         return [
             FormatConfig(
                 unpack_A_src=input_format,
