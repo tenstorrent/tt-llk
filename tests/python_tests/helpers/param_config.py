@@ -103,9 +103,30 @@ class TestParamsConfig(TypedDict):
 class UnknownDependenciesError(Exception):
     """Raised when a dependency is not a known parameter."""
 
+    @staticmethod
+    def _format_dependencies(dependencies: set[str]) -> str:
+        return "\n".join([f"    - {dependency}" for dependency in dependencies])
+
+    @staticmethod
+    def _format_parameter(parameter: str, dependencies: set[str]) -> str:
+        dependencies_list = UnknownDependenciesError._format_dependencies(dependencies)
+        return f"- {parameter} has missing dependencies:\n{dependencies_list}"
+
+    @staticmethod
+    def _format_parameters(parameters: dict[str, set[str]]) -> str:
+        return "\n".join(
+            [
+                UnknownDependenciesError._format_parameter(parameter, dependencies)
+                for parameter, dependencies in parameters.items()
+            ]
+        )
+
     def __init__(self, missing: dict[str, set[str]]):
         self.missing = missing
-        super().__init__(f"Found unknown dependencies for: {', '.join(missing.keys())}")
+        parameters_list = UnknownDependenciesError._format_parameters(missing)
+        super().__init__(
+            f"Following parameters have unknown dependencies:\n{parameters_list}"
+        )
 
 
 class CircularDependencyError(Exception):
@@ -261,7 +282,7 @@ def _params_solve_dependencies(**kwargs: any) -> List[Tuple]:
     def _solve_recursive(resolved: list[any], current_parameter: int) -> List[Tuple]:
         """Recursively build combinations starting from parameter at idx."""
         if current_parameter >= len(resolution_order):
-            # Return tuple of resolved parameters in the original order
+            # Base case: return the parameters tuple wrapped in a list
             return [tuple(resolved)]
 
         # Get current parameter and its possible values
