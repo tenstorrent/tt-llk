@@ -16,7 +16,7 @@ using namespace ckernel::math;
  * @tparam ELTWISE_BINARY_TYPE: Type of eltwise binary op, values = [ELWADD, ELWSUB, ELWMUL]
  * @tparam BROADCAST_TYPE: Sets the broadcast type, values = [NONE, COL, ROW, SCALAR]
  * BROADCAST only operates on SRCB register
- * @tparam MATH_FIDELITY: 0 = LoFi, 2 = Hifi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when input is Tf32 format
+ * @tparam MATH_FIDELITY: 0 = LoFi, 2 = HiFi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when input is Tf32 format
  * @param tile_shape: Contains all the information of the tile shape: num faces, face row/col dim, etc
  */
 template <EltwiseBinaryType ELTWISE_BINARY_TYPE, BroadcastType BROADCAST_TYPE, ckernel::MathFidelity MATH_FIDELITY_TYPE>
@@ -141,7 +141,7 @@ inline void _llk_math_eltwise_binary_broadcast_addrmod_()
  * Result face 3 = face 3 SrcA [+,-,*] datums[0, 16, 32, 48, ...240] of face 2 SrcB register
  * @tparam ELTWISE_BINARY_TYPE: Type of eltwise binary op, values = [ELWADD, ELWSUB, ELWMUL]
  * @tparam BROADCAST_TYPE: Sets the broadcast type, values = [NONE, COL, ROW, SCALAR]
- * @tparam MATH_FIDELITY: 0 = LoFi, 2 = Hifi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when input is Tf32 format
+ * @tparam MATH_FIDELITY: 0 = LoFi, 2 = HiFi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when input is Tf32 format
  * @param tile_shape: Contains all the information of the tile shape: num faces, face row/col dim, etc
  */
 template <EltwiseBinaryType ELTWISE_BINARY_TYPE, BroadcastType BROADCAST_TYPE, ckernel::MathFidelity MATH_FIDELITY_TYPE>

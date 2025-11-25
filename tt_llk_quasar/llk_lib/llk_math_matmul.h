@@ -10,7 +10,7 @@ using namespace ckernel::math;
 
 /**
  * @brief Initializes addrmod for matrix multiply operation
- * @tparam MATH_FIDELITY: 0 = LoFi, 2 = Hifi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when math is Float32 format
+ * @tparam MATH_FIDELITY: 0 = LoFi, 2 = HiFi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when math is Float32 format
  */
 template <ckernel::MathFidelity MATH_FIDELITY_TYPE, std::uint8_t CT_DIM, std::uint8_t RT_DIM>
 inline void _llk_math_matmul_addrmod_()
@@ -105,7 +105,7 @@ inline void _llk_math_matmul_di_addrmod_()
  * Input 1 dim = [1, ct_dim]
  * Output is a matrix block of dimension [rt_dim, ct_dim]
  * ct_dim * rt_dim <= 8 tiles in Float16b, ct_dim * rt_dim <= 4 tiles in Float32
- * @tparam MATH_FIDELITY: 0 = LoFi, 2 = Hifi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when math is Float32 format
+ * @tparam MATH_FIDELITY: 0 = LoFi, 2 = HiFi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when math is Float32 format
  * @tparam CT_DIM: number of tiles in the column dimension for a matrix multiply
  * @tparam RT_DIM: number of tiles in the row dimension for a matrix multiply
  */
@@ -158,7 +158,7 @@ inline void _llk_math_matmul_mop_config_()
 
 /**
  * @brief Initializes mop config for matrix multiply operation with direct indexing matmul
- * @tparam MATH_FIDELITY: 0 = LoFi, 2 = Hifi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when math is Float32 format
+ * @tparam MATH_FIDELITY: 0 = LoFi, 2 = HiFi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when math is Float32 format
  * @tparam CT_DIM: number of tiles in the column dimension for a matrix multiply
  * @tparam RT_DIM: number of tiles in the row dimension for a matrix multiply
  * ct_dim * rt_dim <= 8 tiles in Float16b, ct_dim * rt_dim <= 4 tiles in Float32
@@ -250,7 +250,7 @@ inline void _llk_math_matmul_di_mop_config_()
  * Input 1 dim = [1, ct_dim]
  * Output is a matrix block of dimension [rt_dim, ct_dim]
  * ct_dim * rt_dim <= 8 tiles in Float16b, ct_dim * rt_dim <= 4 tiles in Float32
- * @tparam MATH_FIDELITY: 0 = LoFi, 2 = Hifi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when math is Float32 format
+ * @tparam MATH_FIDELITY: 0 = LoFi, 2 = HiFi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when math is Float32 format
  * @tparam CT_DIM: number of tiles in the column dimension for a matrix multiply
  * @tparam RT_DIM: number of tiles in the row dimension for a matrix multiply
  * @tparam EN_DI: Enable direct indexing matrix multiplication
