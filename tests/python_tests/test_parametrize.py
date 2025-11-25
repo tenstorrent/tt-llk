@@ -6,6 +6,7 @@ import pytest
 from helpers.param_config import (
     UnknownDependenciesError,
     _compute_dependency_map,
+    _compute_dependency_matrix,
     _param_dependencies,
     _verify_dependency_map,
 )
@@ -141,3 +142,27 @@ def test_compute_dependency_matrix_fail():
         )
 
     assert error.value.missing == expected_missing
+
+
+def test_compute_dependency_matrix():
+    """
+    The dependency matrix is computed correctly.
+    """
+
+    expected = [
+        [1, 2],
+        [2],
+        [],
+        [0],
+        [],
+    ]
+
+    dependency_map = _compute_dependency_matrix(
+        exist1=lambda exist2, exist3: [],
+        exist2=lambda exist3: [],
+        exist3="value",
+        exist4=lambda exist1: [],
+        exist5=["value", "value"],
+    )
+
+    assert dependency_map == expected
