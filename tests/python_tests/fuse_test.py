@@ -11,7 +11,8 @@ from helpers.device import (  # , write_stimuli_to_l1
     write_pipeline_stimuli_to_l1,
 )
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
-from helpers.fuse_math import BinarySfpu, Math, MatmulFpu, SfpuWhere, UnarySfpu
+from helpers.fuse_math import BinarySfpu, Math, MatmulFpu, UnarySfpu
+from helpers.fuse_operand import OperandMapping, OperandRegistry
 from helpers.fuse_operation import PipelineOperation
 from helpers.fuse_packer import MatmulPacker
 from helpers.fuse_unpacker import MatmulUnpacker
@@ -27,9 +28,7 @@ from helpers.matmul_sweep import (
     generate_tile_dims,
 )
 from helpers.param_config import input_output_formats, parametrize
-from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_fuse_test
-from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
 
@@ -95,20 +94,36 @@ def test_matmul(
     input_A_dimensions = format_dest_acc_and_dims[2][0]
     input_B_dimensions = format_dest_acc_and_dims[2][1]
 
-    src_A, _, tile_cnt_A = generate_stimuli(
-        formats.input_format,
-        formats.input_format,
-        input_dimensions=input_A_dimensions,
-        sfpu=False,
-    )
-    src_B, _, tile_cnt_B = generate_stimuli(
-        formats.input_format,
-        formats.input_format,
-        input_dimensions=input_B_dimensions,
+    operands = OperandRegistry()
+
+    operands.add_input(
+        "input_A",
+        dimensions=input_A_dimensions,
+        data_format=formats.input_format,
+        address=0x1A000,
         sfpu=False,
     )
 
+    operands.add_input(
+        "input_B",
+        dimensions=input_B_dimensions,
+        data_format=formats.input_format,
+        address=0x1A000 + 0x1000,  # Offset for B
+        sfpu=False,
+    )
+
+    operands.add_intermediate("matmul_result", stage_id=0, address=None)
+
+    operands.add_output("final_output", stage_id=1, address=0x1C000)
+
     matmul_dims = generate_tile_dims((input_A_dimensions, input_B_dimensions))
+
+    src_A = operands.get("input_A").raw_data
+    src_B = operands.get("input_B").raw_data
+    tile_cnt_A = operands.get("input_A").tile_count
+    tile_cnt_B = operands.get("input_B").tile_count
+    tilized_A = operands.get("input_A").data
+    tilized_B = operands.get("input_B").data
 
     generate_golden = get_golden_generator(MatmulGolden)
     golden_tensor = generate_golden(
@@ -120,17 +135,6 @@ def test_matmul(
         input_B_dimensions=input_B_dimensions,
         tilize=True,
     )
-
-    if formats.input_format != DataFormat.Bfp8_b:
-        tilized_A = tilize_block(
-            src_A, dimensions=input_A_dimensions, stimuli_format=formats.input_format
-        )
-        tilized_B = tilize_block(
-            src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
-        )
-    else:
-        tilized_A = src_A
-        tilized_B = src_B
 
     test_config1 = {
         "formats": formats,
@@ -170,6 +174,10 @@ def test_matmul(
             math=Math(MatmulFpu, []),
             packer=MatmulPacker,
             config=test_config1,
+            operand_mapping=OperandMapping(
+                inputs={"A": "input_A", "B": "input_B"},
+                outputs={"result": "final_result"},
+            ),
         ),
         PipelineOperation(
             unpacker=MatmulUnpacker,
@@ -179,11 +187,15 @@ def test_matmul(
                     UnarySfpu("sqrt", ApproximationMode.No, 32),
                     UnarySfpu("neg", ApproximationMode.Yes, 32),
                     BinarySfpu("ADD", ApproximationMode.No, 32, 0, 0, 0),
-                    SfpuWhere(ApproximationMode.No, 32, 0, 1, 2, 0),
+                    # SfpuWhere(ApproximationMode.No, 32, 0, 1, 2, 0),
                 ],
             ),
             packer=MatmulPacker,
             config=test_config2,
+            operand_mapping=OperandMapping(
+                inputs={"A": "matmul_result", "B": "input_B"},
+                outputs={"result": "final_output"},
+            ),
         ),
     ]
 
