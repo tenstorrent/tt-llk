@@ -176,10 +176,9 @@ def test_matmul(
             math=Math(
                 MatmulFpu,
                 [
-                    UnarySfpu("sqrt", ApproximationMode.No),
-                    UnarySfpu("neg", ApproximationMode.Yes),
-                    BinarySfpu("ADD", ApproximationMode.No),
-                    BinarySfpu("LSHFT", ApproximationMode.No),
+                    UnarySfpu("sqrt", ApproximationMode.No, 32),
+                    UnarySfpu("neg", ApproximationMode.Yes, 32),
+                    BinarySfpu("ADD", ApproximationMode.No, 32, 0, 0, 0),
                 ],
             ),
             packer=MatmulPacker,
