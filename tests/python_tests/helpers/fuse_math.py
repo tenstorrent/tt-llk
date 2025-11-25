@@ -228,6 +228,10 @@ class UnarySfpu(Sfpu):
 
 
 class BinarySfpu(Sfpu):
+    dst_index_in0: int = 0
+    dst_index_in1: int = 1
+    dst_index_out: int = 0
+
     def __init__(
         self,
         operation: MathOperation,
