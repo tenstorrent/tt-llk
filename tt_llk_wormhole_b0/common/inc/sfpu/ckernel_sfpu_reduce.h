@@ -141,17 +141,15 @@ constexpr bool is_supported_reduce_format(DataFormat format)
            format == DataFormat::UInt16;
 }
 
-/**
- * @brief Return appropriate InstrModLoadStore based on DataFormat
- * @tparam format The DataFormat enum value for supported formats: Int32, UInt32, UInt16, Float32, Float16_b
- * @return The corresponding InstrModLoadStore enum values: INT32, INT32_2S_COMP, LO16, FP32, FP16B
- */
-template <DataFormat format>
-constexpr InstrModLoadStore get_instruction_mode()
+//**************************************************************
+// SFPU REDUCE MAX COL IMPLEMENTATION
+//**************************************************************
+inline void sfpu_reduce_max_col_configure_addrmod(uint32_t num_cols = 0)
 {
-    if constexpr (format == DataFormat::Float32)
-    {
-        return InstrModLoadStore::FP32;
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 0},
     }
     else if constexpr (format == DataFormat::Float16_b)
     {
@@ -192,13 +190,6 @@ inline void configure_addrmod_max(uint32_t num_cols)
         .dest = {.incr = 64},
     }
         .set(ADDR_MOD_6);
-
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = static_cast<int16_t>(skip_rows)},
-    }
-        .set(ADDR_MOD_5);
 }
 
 inline void sfpu_reduce_max_load_initial_values()
@@ -234,18 +225,18 @@ inline void init_reduce_max(uint32_t num_cols)
     _init_sfpu_config_reg();
 
     // Setup LOADMACRO sequence 0
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, (0xC | p_sfpu::LREG0) /*backdoor + dest*/, 1 /*instr_mod1*/);
-    TTI_SFPLOADI(0, 0xA, 0x0084);
-    TTI_SFPLOADI(0, 0x8, 0x0000);
-    TTI_SFPCONFIG(0, 4, 0);
+    // TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, (0xC | p_sfpu::LREG0) /*backdoor + dest*/, 1 /*instr_mod1*/);
+    // TTI_SFPLOADI(0, 0xA, 0x0084); // Lower 16 bits: slot0=0x84 (bit 7 set), slot1=0x00
+    // TTI_SFPLOADI(0, 0x8, 0x0000); // Upper 16 bits: slot2=0x00, slot3=0x00
+    // TTI_SFPCONFIG(0, 4, 0);       // Store in Macro Sequence Register 0 (dest=4)
 
-    // Setup LOADMACRO sequence 1
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, (0xD | p_sfpu::LREG4) /*backdoor + dest*/, 1 /*instr_mod1*/);
-    TTI_SFPLOADI(0, 0xA, 0x0085);
-    TTI_SFPLOADI(0, 0x8, 0x0000);
-    TTI_SFPCONFIG(0, 5, 0);
+    // // Setup LOADMACRO sequence 1
+    // TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, (0xD | p_sfpu::LREG4) /*backdoor + dest*/, 1 /*instr_mod1*/);
+    // TTI_SFPLOADI(0, 0xA, 0x0085); // Lower 16 bits: slot0=0x85 (bit 7 set), slot1=0x00
+    // TTI_SFPLOADI(0, 0x8, 0x0000); // Upper 16 bits: slot2=0x00, slot3=0x00
+    // TTI_SFPCONFIG(0, 5, 0);       // Store in Macro Sequence Register 1 (dest=5)
 
-    configure_addrmod_max(num_cols);
+    // TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
 
     // ***********************************************************
 
@@ -360,8 +351,9 @@ inline void calculate_reduce_max(const uint32_t block_height)
 {
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
 
-    sfpu_reduce_max_load_initial_values();
+    TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::PACK);
 
+    sfpu_reduce_max_load_initial_values(); // LREGS 4-7 are initialized with negative infinity
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
     for (uint32_t i = 0; i < block_height; i++)
