@@ -159,7 +159,7 @@ def test_compute_dependency_matrix():
         [],
     ]
 
-    dependency_map = _compute_dependency_matrix(
+    matrix = _compute_dependency_matrix(
         exist1=lambda exist2, exist3: [],
         exist2=lambda exist3: [],
         exist3="value",
@@ -167,7 +167,7 @@ def test_compute_dependency_matrix():
         exist5=["value", "value"],
     )
 
-    assert dependency_map == expected
+    assert matrix == expected
 
 
 def test_compute_resolution_order_pass():
