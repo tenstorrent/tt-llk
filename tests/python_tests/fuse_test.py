@@ -11,7 +11,7 @@ from helpers.device import (  # , write_stimuli_to_l1
     write_pipeline_stimuli_to_l1,
 )
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
-from helpers.fuse_math import BinarySfpu, Math, MatmulFpu, UnarySfpu
+from helpers.fuse_math import BinarySfpu, Math, MatmulFpu, SfpuWhere, UnarySfpu
 from helpers.fuse_operation import PipelineOperation
 from helpers.fuse_packer import MatmulPacker
 from helpers.fuse_unpacker import MatmulUnpacker
@@ -179,6 +179,7 @@ def test_matmul(
                     UnarySfpu("sqrt", ApproximationMode.No, 32),
                     UnarySfpu("neg", ApproximationMode.Yes, 32),
                     BinarySfpu("ADD", ApproximationMode.No, 32, 0, 0, 0),
+                    SfpuWhere(ApproximationMode.No, 32, 0, 1, 2, 0),
                 ],
             ),
             packer=MatmulPacker,
