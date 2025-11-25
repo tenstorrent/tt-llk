@@ -112,46 +112,16 @@ class BinarySfpu(Sfpu):
             "ckernel_sfpu_binary.h",
             "llk_math_common.h",
             "llk_math_eltwise_binary_sfpu.h",
+            "sfpu_operations.h",
         ]
 
     def exec(self, config: Dict) -> str:
         math_format = config["math_format"]
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
         code = f"""
-
-    _llk_math_eltwise_binary_sfpu_init_<ckernel::BinaryOp::{self.operation}>();
+    _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
     _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
-
-    switch (ckernel::BinaryOp::{self.operation})
-    {{
-        case BinaryOp::ADD:
-        case BinaryOp::SUB:
-        case BinaryOp::MUL:
-        case BinaryOp::XLOGY:
-            _sfpu_binary_init_<false, ckernel::BinaryOp::{self.operation}>();
-            _calculate_sfpu_binary_<false, ckernel::BinaryOp::{self.operation}, 32>(0, 1, 0);
-            break;
-        case BinaryOp::RSHFT:
-            _calculate_binary_right_shift_<false, 32, INT32, false>(0, 1, 0);
-            break;
-        case BinaryOp::LSHFT:
-            _calculate_binary_left_shift_<false, 32, INT32, false>(0, 1, 0);
-            break;
-        case BinaryOp::LOGICAL_RSHFT:
-            _calculate_logical_right_shift_<false, 32, INT32, false>(0, 1, 0);
-            break;
-        case BinaryOp::ADD_TOP_ROW:
-            _init_add_top_row_();
-            // Use actual format when compiling for ADD_TOP_ROW tests, otherwise use Float32 as safe default for static assert
-            {{
-                constexpr DataFormat add_top_row_format =
-                    (ckernel::BinaryOp::{self.operation} == BinaryOp::ADD_TOP_ROW) ? static_cast<DataFormat>({MATH_FORMAT}) : DataFormat::Float32;
-                _calculate_add_top_row_<add_top_row_format>(0, 1, 0);
-            }}
-            break;
-        default:
-            return;
-    }}
+    test_utils::call_binary_sfpu_operation<{self.approx_mode.value}, ckernel::BinaryOp::{self.operation}, 32, {MATH_FORMAT}>();
     _llk_math_eltwise_binary_sfpu_done_();
 """
         return code
