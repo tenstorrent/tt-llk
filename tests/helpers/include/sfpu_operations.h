@@ -132,4 +132,38 @@ inline void call_sfpu_operation_32(SfpuType operation, uint32_t math_format = 0)
     call_sfpu_operation<32>(operation, math_format);
 }
 
+template <bool APPROXIMATION_MODE = APPROX_MODE, BinaryOp BINOP, int ITERATIONS = 32, uint32_t MATH_FORMAT = 0>
+void call_binary_sfpu_operation()
+{
+    switch (BINOP)
+    {
+        case BinaryOp::ADD:
+        case BinaryOp::SUB:
+        case BinaryOp::MUL:
+        case BinaryOp::XLOGY:
+            _sfpu_binary_init_<APPROXIMATION_MODE, BINOP>();
+            _calculate_sfpu_binary_<APPROXIMATION_MODE, BINOP, ITERATIONS>(0, 1, 0);
+            break;
+        case BinaryOp::RSHFT:
+            _calculate_binary_right_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(0, 1, 0);
+            break;
+        case BinaryOp::LSHFT:
+            _calculate_binary_left_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(0, 1, 0);
+            break;
+        case BinaryOp::LOGICAL_RSHFT:
+            _calculate_logical_right_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(0, 1, 0);
+            break;
+        case BinaryOp::ADD_TOP_ROW:
+            _init_add_top_row_();
+            // Use actual format when compiling for ADD_TOP_ROW tests, otherwise use Float32 as safe default for static assert
+            {
+                constexpr DataFormat add_top_row_format = (BINOP == BinaryOp::ADD_TOP_ROW) ? static_cast<DataFormat>(MATH_FORMAT) : DataFormat::Float32;
+                _calculate_add_top_row_<add_top_row_format>(0, 1, 0);
+            }
+            break;
+        default:
+            return;
+    }
+}
+
 } // namespace test_utils
