@@ -45,6 +45,8 @@ ELTWISE_DIMENSIONS = [
         [
             DataFormat.Float16_b,
             DataFormat.Float16,
+            DataFormat.MXFP8R,
+            DataFormat.MXFP8P,
         ],
     ),
     mathop=[

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Tuple
 
+import ml_dtypes
 import numpy as np
 
 # ============================================================================
@@ -13,8 +14,12 @@ import numpy as np
 # ============================================================================
 
 MXFP8_BLOCK_SIZE = 32  # Fixed block size per OCP MX specification
-MXFP8_E5M2_MAX_NORMAL = 57344.0  # 2^15 × 1.75 (from OCP spec Table 2)
-MXFP8_E4M3_MAX_NORMAL = 448.0  # 2^8 × 1.75 (from OCP spec Table 2)
+MXFP8_E5M2_MAX_NORMAL = float(
+    ml_dtypes.finfo(ml_dtypes.float8_e5m2).max
+)  # 57344.0 from dtype
+MXFP8_E4M3_MAX_NORMAL = float(
+    ml_dtypes.finfo(ml_dtypes.float8_e4m3fn).max
+)  # 448.0 from dtype
 
 
 # ============================================================================
@@ -53,11 +58,8 @@ class DataFormat(Enum):
     UInt16 = DataFormatInfo("UInt16", 2)
     Int8 = DataFormatInfo("Int8", 1)
     UInt8 = DataFormatInfo("UInt8", 1)
-
-    # MX (Microscaling) Formats - Quasar Native Support
-    # OCP Microscaling Formats with shared E8M0 scale factors (32-element blocks)
-    MXFP8R = DataFormatInfo("MXFP8R", 1)  # MXFP8 E5M2 variant
-    MXFP8P = DataFormatInfo("MXFP8P", 1)  # MXFP8 E4M3 variant
+    MXFP8R = DataFormatInfo("MXFP8R", 1)
+    MXFP8P = DataFormatInfo("MXFP8P", 1)
 
     @property
     def size(self) -> int:
