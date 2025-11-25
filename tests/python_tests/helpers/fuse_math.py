@@ -54,12 +54,17 @@ class MatmulFpu(Fpu):
 class Sfpu:
     operation: str
     approx_mode: ApproximationMode
+    iterations: int = 32
 
     def __init__(
-        self, operation: str, approx_mode: ApproximationMode = ApproximationMode.No
+        self,
+        operation: str,
+        approx_mode: ApproximationMode = ApproximationMode.No,
+        iterations: int = 32,
     ):
         self.operation = operation
         self.approx_mode = approx_mode
+        self.iterations = iterations
 
     def exec(self, config: Dict) -> str:
         return ""
@@ -70,9 +75,12 @@ class Sfpu:
 
 class UnarySfpu(Sfpu):
     def __init__(
-        self, operation: str, approx_mode: ApproximationMode = ApproximationMode.No
+        self,
+        operation: str,
+        approx_mode: ApproximationMode = ApproximationMode.No,
+        iterations: int = 32,
     ):
-        super().__init__(operation, approx_mode)
+        super().__init__(operation, approx_mode, iterations)
 
     def get_headers(self) -> List[str]:
         return [
@@ -89,7 +97,7 @@ class UnarySfpu(Sfpu):
         code = f"""
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::{self.operation}>();
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
-    test_utils::call_sfpu_operation<32, {dest_acc}, {self.approx_mode.value}>(
+    test_utils::call_sfpu_operation<{self.iterations}, {dest_acc}, {self.approx_mode.value}>(
         SfpuType::{self.operation},
         static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})
     );
@@ -99,10 +107,23 @@ class UnarySfpu(Sfpu):
 
 
 class BinarySfpu(Sfpu):
+    dst_index_in0: int = 0
+    dst_index_in1: int = 1
+    dst_index_out: int = 0
+
     def __init__(
-        self, operation: str, approx_mode: ApproximationMode = ApproximationMode.No
+        self,
+        operation: str,
+        approx_mode: ApproximationMode = ApproximationMode.No,
+        iterations: int = 32,
+        dst_index_in0: int = 0,
+        dst_index_in1: int = 1,
+        dst_index_out: int = 0,
     ):
-        super().__init__(operation, approx_mode)
+        super().__init__(operation, approx_mode, iterations)
+        self.dst_index_in0 = dst_index_in0
+        self.dst_index_in1 = dst_index_in1
+        self.dst_index_out = dst_index_out
 
     def get_headers(self) -> List[str]:
         return [
@@ -121,7 +142,7 @@ class BinarySfpu(Sfpu):
         code = f"""
     _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
     _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
-    test_utils::call_binary_sfpu_operation<{self.approx_mode.value}, ckernel::BinaryOp::{self.operation}, 32, {MATH_FORMAT}>();
+    test_utils::call_binary_sfpu_operation<{self.approx_mode.value}, ckernel::BinaryOp::{self.operation}, {self.iterations}, {MATH_FORMAT}>({self.dst_index_in0}, {self.dst_index_in1}, {self.dst_index_out});
     _llk_math_eltwise_binary_sfpu_done_();
 """
         return code
