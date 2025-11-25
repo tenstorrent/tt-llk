@@ -36,8 +36,8 @@ void run_kernel()
 #ifdef LLK_TRISC_MATH
 
 #include "ckernel.h"
-#include "ckernel_globals.h"
 #include "ckernel_include.h"
+#include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_math_common.h"
 
@@ -46,49 +46,44 @@ using namespace ckernel;
 void run_kernel()
 {
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
-
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 8},
-        .dest = {.incr = 8},
-    }
-        .set(ADDR_MOD_0);
 
     addr_mod_t {
         .srca = {.incr = 8},
         .srcb = {.incr = 8},
         .dest = {.incr = 8},
     }
+        .set(ADDR_MOD_0);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 0},
+    }
         .set(ADDR_MOD_1);
 
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+    constexpr uint outerloop   = 4;
+    constexpr uint innerloop   = 16 >> 3;
+    const uint addr_mod        = ADDR_MOD_0;
+    const uint32_t acc_to_dest = 0;
+    auto broadcast_type        = p_elwise::SRCB_NO_BCAST;
+
+    ckernel_template mop_config(outerloop, innerloop, TT_OP_ELWADD(0, acc_to_dest, broadcast_type, addr_mod, 0));
+
+    mop_config.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_AB, 0, 0, 0, p_setrwc::SET_AB));
+
+    mop_config.program();
+
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     for (int i = 0; i < TILE_CNT; i++)
     {
+        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(i);
-
         math::reset_counters(p_setrwc::SET_ABD_F);
-
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0); // Face 0, redovi 0-7
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_1, 0); // Face 0, redovi 8-15
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0); // Face 1, redovi 0-7
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_1, 0); // Face 1, redovi 8-15
-
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
-
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0); // Face 2, redovi 0-7
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_1, 0); // Face 2, redovi 8-15
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0); // Face 3, redovi 0-7
-        TTI_ELWADD(0, 0, 0, ADDR_MOD_1, 0); // Face 3, redovi 8-15
-
-        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB);
-
-        math::clear_dst_reg_addr();
+        ckernel_template::run();
+        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
-
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif
