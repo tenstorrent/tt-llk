@@ -53,7 +53,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
         {
             // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice for full tile size
             constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
-            // #pragma GCC unroll 0
+#pragma GCC unroll 0
             for (std::uint32_t n = 0; n < outerloop; n++)
             {
                 eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
@@ -62,7 +62,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
             TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
             if (num_faces == 4)
             {
-                // #pragma GCC unroll 0
+#pragma GCC unroll 0
                 for (std::uint32_t n = 0; n < outerloop; n++)
                 {
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
@@ -74,7 +74,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
         else
         {
             constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 4 : 1;
-            // #pragma GCC unroll 0
+#pragma GCC unroll 0
             for (std::uint32_t n = 0; n < outerloop; n++)
             {
                 eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
@@ -95,7 +95,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
             constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
             if constexpr (high_fidelity)
             {
-                // #pragma GCC unroll 0
+#pragma GCC unroll 0
                 for (std::uint32_t n = 0; n < 2; n++)
                 {
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
@@ -118,7 +118,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
             }
             else
             {
-                // #pragma GCC unroll 0
+#pragma GCC unroll 0
                 for (std::uint32_t n = 0; n < outerloop; n++)
                 {
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
@@ -144,7 +144,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
             {
                 if constexpr (high_fidelity)
                 {
-                    // #pragma GCC unroll 0
+#pragma GCC unroll 0
                     for (std::uint32_t n = 0; n < 2; n++)
                     {
                         eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
@@ -167,7 +167,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
                 }
                 else
                 {
-                    // #pragma GCC unroll 0
+#pragma GCC unroll 0
                     for (std::uint32_t n = 0; n < outerloop; n++)
                     {
                         eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
@@ -197,7 +197,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
             const uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? num_faces : 1;
             if constexpr (high_fidelity)
             {
-                // #pragma GCC unroll 0
+#pragma GCC unroll 0
                 for (std::uint32_t n = 0; n < num_faces; n++)
                 {
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
@@ -220,7 +220,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
             }
             else
             {
-                // #pragma GCC unroll 0
+#pragma GCC unroll 0
                 for (std::uint32_t n = 0; n < outerloop; n++)
                 {
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();

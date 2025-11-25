@@ -18,7 +18,7 @@ on:
       pytest_markers:
         description: "Pytest mark expression to select/deselect tests (e.g., 'not perf', 'nightly or not perf')"
         required: false
-        default: "not perf"
+        default: "not perf and not quasar"
         type: string
       timeout_minutes:
         description: "Timeout in minutes for the test job"
@@ -105,7 +105,7 @@ jobs:
                 --splits $SPLITS --group ${{ matrix.test_group }} \
                 --override-ini="addopts=-v" --timeout=60 \
                 $COVERAGE_FLAG \
-                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml . || true
+                --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml .
 
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
             cd ../../
@@ -168,9 +168,6 @@ jobs:
       image: ${{ inputs.docker_image }}
     needs: setup-and-test
     if: inputs.coverage == true
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     permissions:
       pages: write
       id-token: write
@@ -196,9 +193,6 @@ jobs:
       - name: Unzip artefacts, merge coverage data, and generate HTML report
         shell: bash
         run: |
-          echo "-- Coverage files pulled from runners --"
-          find ./merged_coverage_files/ -name "*.info"
-
           # Get first file with full path
           first=$(find ./merged_coverage_files/ -name "*.info" | head -n 1)
           cp "$first" merged.info
@@ -211,25 +205,19 @@ jobs:
           done
 
           lcov -q --remove ./merged.info '*tests/*' \
-            -o ./merged_filtered.info
+            -o ./code_coverage_for_${{ env.CHIP_ARCH }}.info
 
-          mkdir -p ./coverage_reports_${{ env.CHIP_ARCH }}/${{ env.CHIP_ARCH }}_coverage_report
-          genhtml --branch-coverage --title ${{ env.CHIP_ARCH }} ./merged_filtered.info \
-            --output-directory ./coverage_reports_${{ env.CHIP_ARCH }}/${{ env.CHIP_ARCH }}_coverage_report
-      - name: Upload code coverage for this runner
+      - name: Upload merged coverage .info file
         uses: actions/upload-artifact@v4
         with:
-          name: coverage_report_${{ env.CHIP_ARCH }}
-          path: ./coverage_reports_${{ env.CHIP_ARCH }}
+          name: code_coverage_for_${{ env.CHIP_ARCH }}
+          path: ./code_coverage_for_${{ env.CHIP_ARCH }}.info
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload artifact for Pages
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: 44cd5e21-b5df-41c7-ad20-571b7bc27f00
         with:
-          path: ./coverage_reports_${{ env.CHIP_ARCH }}
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          files: ./code_coverage_for_${{ env.CHIP_ARCH }}.info
+          name: coverage-report-${{ env.CHIP_ARCH }}
+          verbose: true

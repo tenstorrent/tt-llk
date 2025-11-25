@@ -149,7 +149,7 @@ def set_tensix_soft_reset(
 def collect_results(
     formats: FormatConfig,
     tile_count: int,
-    address: int = 0x1C000,
+    address: int = 0x68000,  # Default L1 address of result, placed so both coverage and non-coverage elfs don't run it over
     location: str = "0,0",
     sfpu: bool = False,
     tile_dimensions=[32, 32],
@@ -312,7 +312,7 @@ def write_stimuli_to_l1(
     tile_size_A_bytes = stimuli_A_format.num_bytes_per_tile(TILE_ELEMENTS)
     tile_size_B_bytes = stimuli_B_format.num_bytes_per_tile(TILE_ELEMENTS)
 
-    buffer_A_address = 0x64000
+    buffer_A_address = 0x64000  # L1 stimuly address, placed so both coverage and non-coverage elfs don't run it over
     buffer_B_address = buffer_A_address + tile_size_A_bytes * tile_count_A
 
     # Handle optional third buffer
@@ -614,7 +614,7 @@ def reset_mailboxes(location: str = "0,0"):
         write_words_to_device(location=location, addr=mailbox.value, data=reset_value)
 
 
-def coverage(
+def pull_coverage_stream_from_tensix(
     location: str | OnChipCoordinate,
     elf: str | ParsedElfFile,
     stream_path: str,
@@ -633,23 +633,23 @@ def coverage(
 
     length = read_word_from_device(location, addr=coverage_start)
 
-    # 0xDEADBEEF will be written in place of length if overflow occurred.
-    if length == 0xDEADBEEF:
-        raise TTException("Coverage region overflowed")
-
     data = read_from_device(location, coverage_start + 4, num_bytes=length - 4)
     with open(stream_path, "wb") as f:
         f.write(data)
 
 
-def pull_coverage_data(testname, variant_id, build_dir, device_id=0, location="0,0"):
+def generate_info_file_for_run(
+    testname, variant_id, build_dir, device_id=0, location="0,0"
+):
     # please sweep for inconsistencies in variable names
     trisc_names = ["unpack", "math", "pack"]
     for trisc_name in trisc_names:
         elf_path = f"{build_dir}/elf/{trisc_name}.elf"
         elf_file = parse_elf(elf_path)
         stream_path = f"{build_dir}/{trisc_name}.raw.stream"
-        coverage(location, elf_file, stream_path, device_id, None)
+        pull_coverage_stream_from_tensix(
+            location, elf_file, stream_path, device_id, None
+        )
 
     LLK_HOME = os.environ.get("LLK_HOME")
     tests_dir = str(Path(LLK_HOME) / "tests")

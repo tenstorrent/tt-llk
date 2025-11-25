@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pandas as pd
-import pytest
+from conftest import skip_for_coverage
 from helpers.profiler import Profiler
-from helpers.target_config import TestTargetConfig
 from helpers.test_config import ProfilerBuild, run_test
 
 
@@ -25,11 +24,8 @@ def assert_marker(
     ), f"Expected marker_id = {expected_id}, got {entry['marker_id']}"
 
 
+@skip_for_coverage
 def test_profiler_primitives():
-
-    test_target = TestTargetConfig()
-    if test_target.with_coverage:
-        pytest.skip()
 
     test_config = {
         "testname": "profiler_primitives_test",

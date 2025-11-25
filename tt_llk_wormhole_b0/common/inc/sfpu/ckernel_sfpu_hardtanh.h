@@ -23,8 +23,8 @@ inline void _calculate_hardtanh_(const int iterations, uint param0, uint param1,
     sfpi::vFloat p0 = sfpi::s2vFloat16(param0);
     sfpi::vFloat p1 = sfpi::s2vFloat16(param1);
     sfpi::vFloat p2 = sfpi::s2vFloat16(param2);
-    // SFPU microcode
-    // #pragma GCC unroll 0
+// SFPU microcode
+#pragma GCC unroll 0
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat val = sfpi::dst_reg[0];

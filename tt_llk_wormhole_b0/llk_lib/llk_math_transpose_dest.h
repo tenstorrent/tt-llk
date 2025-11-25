@@ -111,7 +111,7 @@ inline void transpose_dest_configure_mop()
     {
         lltt::record(16, 16);
 
-        // #pragma GCC unroll 2
+#pragma GCC unroll 2
         for (int dest_32b_lo = 0; dest_32b_lo < 2; ++dest_32b_lo)
         {
             TTI_MOVD2B(dest_32b_lo, 16, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);

@@ -78,7 +78,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
 inline void _calculate_reciprocal_internal_(const int iterations)
 {
-    // #pragma GCC unroll 8
+#pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat in = sfpi::dst_reg[0];

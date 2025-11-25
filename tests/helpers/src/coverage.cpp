@@ -7,8 +7,8 @@ extern "C"
 {
 #endif
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include "gcov.h"
 #include "gcov_structs.h"
@@ -25,7 +25,7 @@ extern "C"
     extern uint8_t __coverage_start[];
     extern uint8_t __coverage_end[];
 
-    void __gcov_merge_add(gcov_type* counters, unsigned n_counters)
+    void __gcov_merge_add(gcov_type*, unsigned)
     {
     }
 
@@ -50,14 +50,6 @@ extern "C"
         return a / b;
     }
 
-    size_t strlen(const char* s)
-    {
-        size_t n;
-        for (n = 0; s[n]; n++)
-            ;
-        return n;
-    }
-
     static void write_data(const void* _data, unsigned int length, void*)
     {
         uint8_t* data     = (uint8_t*)_data;
@@ -73,13 +65,19 @@ extern "C"
         *written += length;
     }
 
+    size_t strlen(const char* s)
+    {
+        size_t n = 0;
+        for (; s[n] != '\0'; n++)
+            ;
+        return n;
+    }
+
     void filename_dummy(const char*, void*)
     {
     }
 
-    // The first value in the coverage segment is the number of bytes written.
-    // Note, in gcov_dump, that it gets set to 4 - that is to accommodate for the
-    // value itself.
+    // The first value in the coverage segment is the number of bytes written to it.
     void gcov_dump(void)
     {
         // First word is for file length, start writing past that.

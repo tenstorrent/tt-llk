@@ -18,7 +18,7 @@ uint32_t math_sync_tile_dst_index = 0;
 uint32_t tile_size                = 128;
 const int iterations              = 32; // Dependent on size of input tensor (1024 currently). Could be made dynamic once tensor size becomes variable.
 
-constexpr uint32_t buffer_A_tilized = 0x65800;
+constexpr uint32_t buffer_A_tilized = 0x65800; // L1 address of buffer, placed so both coverage and non-coverage elfs don't run it over
 
 #ifdef LLK_TRISC_UNPACK
 
