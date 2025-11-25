@@ -472,13 +472,6 @@ inline void _llk_unpack_tilizeA_B_uninit_(const std::uint32_t unpack_dst_format,
         0,
         THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32,
         p_gpr_unpack::FACE_DIM_16x16); // GPR preloaded with  16 | (16 << 16)}
-    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::THCON);
-    //nops
-    for (uint32_t i = 0; i < 4; i++)
-    {
-        TTI_NOP;
-        asm volatile("nop");
-    }
 }
 
 /*************************************************************************
