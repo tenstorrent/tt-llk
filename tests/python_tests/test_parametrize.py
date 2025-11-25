@@ -4,9 +4,11 @@
 
 import pytest
 from helpers.param_config import (
+    CircularDependencyError,
     UnknownDependenciesError,
     _compute_dependency_map,
     _compute_dependency_matrix,
+    _compute_resolution_order,
     _param_dependencies,
     _verify_dependency_map,
 )
@@ -166,3 +168,58 @@ def test_compute_dependency_matrix():
     )
 
     assert dependency_map == expected
+
+
+def test_compute_resolution_order_pass():
+    """
+    The resolution order is computed correctly.
+    """
+
+    def verify_resolution_order(matrix: list[list[int]], order: list[int]):
+        resolved = [False] * len(matrix)
+        for i in order:
+            if not all(resolved[j] for j in matrix[i]):
+                return False
+            resolved[i] = True
+        return True
+
+    kwargs = {
+        "exist1": lambda exist2, exist3: [],
+        "exist2": lambda exist3: [],
+        "exist3": "value",
+        "exist4": lambda exist1: [],
+        "exist5": ["value", "value"],
+    }
+
+    parameters = list(kwargs.keys())
+    matrix = _compute_dependency_matrix(**kwargs)
+
+    order = _compute_resolution_order(parameters, matrix)
+
+    assert verify_resolution_order(matrix, order)
+
+
+def test_compute_resolution_order_fail_circular():
+    """
+    The resolution order is invalid if there is a circular dependency
+    """
+
+    kwargs = {
+        "exist1": lambda exist2, exist3: [],
+        "exist2": lambda exist3, exist4: [],
+        "exist3": "value",
+        "exist4": lambda exist1: [],
+        "exist5": ["value", "value"],
+    }
+
+    parameters = list(kwargs.keys())
+    matrix = _compute_dependency_matrix(**kwargs)
+
+    with pytest.raises(CircularDependencyError) as error:
+        _compute_resolution_order(parameters, matrix)
+
+    expected_cycle = ["exist1", "exist2", "exist4"]
+    cycle = error.value.cycle
+
+    assert len(cycle) == len(expected_cycle)
+    assert set(cycle) == set(expected_cycle)
