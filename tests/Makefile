@@ -67,7 +67,7 @@ GCOV_TOOL		:= $(realpath $(TOOL_PATH)/riscv-tt-elf-gcov-tool)
 # =========================
 OPTIONS_ALL	:= -g -O3 -std=$(CXX_VERSION) -ffast-math
 OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Wunused-parameter \
-				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized \
+				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -nostdlib -fno-builtin \
 				   -Wmaybe-uninitialized -DTENSIX_FIRMWARE -DENV_LLK_INFRA $(ARCH_DEFINE)
 COVERAGE_OPTIONS_COMPILE := $(OPTIONS_COMPILE)
 
@@ -86,12 +86,14 @@ endif
 COVERAGE_DEPS :=
 COVERAGE_KERNEL_TARGETS :=
 MEMORY_LAYOUT_LD_SCRIPT := $(LINKER_SCRIPTS)/memory.$(ARCH).ld
+SFPI_LIBS :=
 COVERAGE_BUILD := $(if $(coverage_build),$(coverage_build),false)
 ifeq ($(COVERAGE_BUILD),true)
+	SFPI_LIBS := -lgcov
 	COVERAGE_DEPS :=  $(SHARED_OBJ_DIR)/coverage.o
 	COVERAGE_KERNEL_TARGETS := $(OBJ_DIR)/kernel_%.gcno
 	MEMORY_LAYOUT_LD_SCRIPT := $(LINKER_SCRIPTS)/memory.$(ARCH).debug.ld
-	OPTIONS_COMPILE += -fprofile-arcs -ftest-coverage -fprofile-info-section -DCOVERAGE -DL_gcov_info_to_gcda
+	OPTIONS_COMPILE += -fprofile-arcs -ftest-coverage -fprofile-info-section -DCOVERAGE
 endif
 
 OPTIONS_LINK	:= -nodefaultlibs -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace
@@ -153,11 +155,11 @@ $(SHARED_DIS_DIR)/%.S: $(SHARED_ELF_DIR)/%.elf | $(SHARED_DIS_DIR)
 
 # link unpack.elf, math.elf, pack.elf
 $(ELF_DIR)/%.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(OBJ_DIR)/main_%.o $(OBJ_DIR)/kernel_%.o $(COVERAGE_DEPS) | $(ELF_DIR) $(COVERAGE_REPORT_DIR)
-	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@ -lgcov
+	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/$*.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@ $(SFPI_LIBS)
 
 # link brisc.elf
-$(SHARED_ELF_DIR)/brisc.elf: $(LIB_GCOV) $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/brisc.o $(COVERAGE_DEPS) | $(SHARED_ELF_DIR) $(COVERAGE_REPORT_DIR)
-	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@ -lgcov
+$(SHARED_ELF_DIR)/brisc.elf: $(SHARED_OBJ_DIR)/tmu-crt0.o $(SHARED_OBJ_DIR)/brisc.o $(COVERAGE_DEPS) | $(SHARED_ELF_DIR) $(COVERAGE_REPORT_DIR)
+	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_LINK) $^ -T$(MEMORY_LAYOUT_LD_SCRIPT) -T$(LINKER_SCRIPTS)/brisc.ld -T$(LINKER_SCRIPTS)/sections.ld -o $@ $(SFPI_LIBS)
 
 # disable make automatically deleting important intermediate files
 .SECONDARY: $(SHARED_OBJ_DIR)/*.o $(OBJ_DIR)/*.o
@@ -184,13 +186,8 @@ $(SHARED_OBJ_DIR)/brisc.o: $(RISCV_SOURCES)/brisc.cpp $(BUILD_DIR)/params.stamp 
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
 
-$(SHARED_OBJ_DIR)/gcov.o: $(HELPERS)/src/gcov.c | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
-	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) \
-	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
-	-c -o $@ $<
-
-$(SHARED_OBJ_DIR)/coverage.o: $(HELPERS)/src/coverage.c | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
-	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(COVERAGE_OPTIONS_COMPILE) -fno-strict-aliasing \
+$(SHARED_OBJ_DIR)/coverage.o: $(HELPERS)/src/coverage.cpp | $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR)
+	$(GXX) $(ARCH_NON_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -fno-strict-aliasing \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-c -o $@ $<
 
@@ -217,10 +214,8 @@ $(SHARED_OBJ_DIR) $(SHARED_DEPS_DIR) $(SHARED_DIS_DIR) $(SHARED_ELF_DIR) $(INFO_
 $(OBJ_DIR) $(DEPS_DIR) $(DIS_DIR) $(ELF_DIR) $(PROFILER_DIR) $(COVERAGE_REPORT_DIR):
 	mkdir -p $@
 
-INFO_PATH		:= $(BUILD_DIR)/merged_coverage.info
-INFO_PATH_FILTER		:= $(BUILD_DIR)/merged_coverage_filtered.info
-STREAM_FILES	:= $(wildcard $(TEST_DIR)/*.raw.stream)
 
+STREAM_FILES	:= $(wildcard $(TEST_DIR)/*.raw.stream)
 coverage: $(INFO_FILES_DIR)
 	@for f in $(STREAM_FILES); do \
         $(GCOV_TOOL) merge-stream "$$f"; \
@@ -230,13 +225,6 @@ coverage: $(INFO_FILES_DIR)
 	--directory $(OBJ_DIR) \
 	--directory $(SHARED_OBJ_DIR) \
 	--output-file $(INFO_FILES_DIR)/$(info_file_name) --rc lcov_branch_coverage=1
-
-generate_report:
-	lcov --remove $(INFO_PATH) \
-		'*/tt-llk/tests/*' \
-		-o $(INFO_PATH_FILTER)
-	genhtml --branch-coverage $(INFO_PATH_FILTER) --output-directory $(COVERAGE_REPORT_DIR)
-
 
 # =========================
 # Clean

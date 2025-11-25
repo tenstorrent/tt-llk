@@ -105,7 +105,7 @@ def test_eltwise_unary_sfpu_int(test_name, formats, approx_mode, mathop, dest_ac
 def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
-    input_dimensions = [32, 32]
+    input_dimensions = [64, 64]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
@@ -146,7 +146,8 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
     run_test(test_config)
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
-    res_from_L1 = res_from_L1[:1024]
+
+    # res_from_L1 = res_from_L1[:1024]
     assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]

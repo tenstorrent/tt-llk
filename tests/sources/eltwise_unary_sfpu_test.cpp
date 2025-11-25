@@ -8,7 +8,6 @@
 #include <type_traits>
 
 #include "ckernel.h"
-#include "ckernel_debug.h"
 #include "llk_defs.h"
 
 // Globals
@@ -18,7 +17,6 @@ uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
-#include "ckernel_debug.h"
 #include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
 #include "params.h"
@@ -40,7 +38,6 @@ void run_kernel()
 
 #ifdef LLK_TRISC_MATH
 
-#include "ckernel_debug.h"
 #include "ckernel_sfpu.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
@@ -174,7 +171,6 @@ void run_kernel()
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math);
 
@@ -184,8 +180,6 @@ void run_kernel()
         // calling sfpu function from ckernel
         // this part is where parametrization of operation takes part
         call_sfpu_operation(SFPU_UNARY_OPERATION, formats.math);
-
-        // dbg_thread_halt<ThreadId::MathThreadId>();
 
         _llk_math_eltwise_unary_sfpu_done_();
     }

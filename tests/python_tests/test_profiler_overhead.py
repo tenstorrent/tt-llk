@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
+from conftest import skip_for_coverage
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.profiler import Profiler
-from helpers.target_config import TestTargetConfig
 from helpers.test_config import ProfilerBuild, run_test
 
 
@@ -18,11 +18,8 @@ def get_expected_overhead():
             raise ValueError("Unsupported chip architecture")
 
 
+@skip_for_coverage
 def test_profiler_overhead():
-    test_target = TestTargetConfig()
-    if test_target.with_coverage:
-        pytest.skip()
-
     test_config = {
         "testname": "profiler_overhead_test",
     }

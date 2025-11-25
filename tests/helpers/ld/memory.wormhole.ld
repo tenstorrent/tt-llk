@@ -74,5 +74,4 @@ MEMORY
 
     NCRISC_GCOV_MEM         : ORIGIN = UNDEFINED, LENGTH = UNDEFINED
 }
-
 PROVIDE(__instrn_buffer = 0xFFE40000);

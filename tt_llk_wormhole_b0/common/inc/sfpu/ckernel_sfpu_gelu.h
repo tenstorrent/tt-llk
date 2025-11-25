@@ -45,7 +45,7 @@ inline void _calculate_gelu_appx_()
     sfpi::vUInt l5 = sfpi::l_reg[sfpi::LRegs::LReg5];
     sfpi::vUInt l6 = sfpi::l_reg[sfpi::LRegs::LReg6];
 
-    // #pragma GCC unroll 8
+#pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         // sfpi::vFloat in = sfpi::dst_reg[0];
@@ -87,7 +87,7 @@ template <int ITERATIONS>
 inline void _calculate_gelu_accurate_()
 {
     constexpr bool scaled = true;
-    // #pragma GCC unroll 8
+#pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat in     = sfpi::dst_reg[0];
@@ -124,8 +124,8 @@ inline void _calculate_gelu_derivative_()
         sfpi::vUInt l5 = sfpi::l_reg[sfpi::LRegs::LReg5];
         sfpi::vUInt l6 = sfpi::l_reg[sfpi::LRegs::LReg6];
 
-        // SFPU microcode:
-        // #pragma GCC unroll 0
+// SFPU microcode:
+#pragma GCC unroll 0
         for (int d = 0; d < ITERATIONS; d++)
         {
             sfpi::vFloat val = sfpi::dst_reg[0];
@@ -153,8 +153,8 @@ inline void _calculate_gelu_derivative_()
         sfpi::vUInt l0 = sfpi::l_reg[sfpi::LRegs::LReg0];
         sfpi::vUInt l1 = sfpi::l_reg[sfpi::LRegs::LReg1];
 
-        // SFPU microcode:
-        // #pragma GCC unroll 0
+// SFPU microcode:
+#pragma GCC unroll 0
         for (int d = 0; d < ITERATIONS; d++)
         {
             sfpi::vFloat in             = sfpi::dst_reg[0];

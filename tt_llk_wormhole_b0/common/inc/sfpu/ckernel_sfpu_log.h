@@ -107,7 +107,7 @@ sfpi_inline sfpi::vFloat _calculate_log_body_no_init_(sfpi::vFloat base)
 template <bool APPROXIMATION_MODE, bool HAS_BASE_SCALING, int ITERATIONS>
 inline void _calculate_log_(const int iterations, uint log_base_scale_factor)
 {
-    // #pragma GCC unroll 8
+#pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         _calculate_log_body_<HAS_BASE_SCALING>(log_base_scale_factor);

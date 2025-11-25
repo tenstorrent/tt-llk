@@ -4,7 +4,6 @@
 
 import pytest
 import torch
-from conftest import skip_for_coverage
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -29,7 +28,6 @@ def torch_equal_nan(a, b):
     return torch.all((a == b) | (torch.isnan(a) & torch.isnan(b)))
 
 
-@skip_for_coverage
 @parametrize(
     test_name="ttnn_where_test",
     formats=input_output_formats(

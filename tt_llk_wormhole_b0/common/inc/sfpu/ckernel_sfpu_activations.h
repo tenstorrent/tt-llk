@@ -71,7 +71,7 @@ inline void apply_activation(sfpi::vFloat& v)
 template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS = 8>
 inline void _calculate_activation_(uint32_t param0, uint32_t param1)
 {
-    // #pragma GCC unroll 8
+#pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat v = sfpi::dst_reg[0];
@@ -84,7 +84,7 @@ inline void _calculate_activation_(uint32_t param0, uint32_t param1)
 template <bool APPROXIMATION_MODE, ActivationType ACTIVATION_TYPE, int ITERATIONS>
 inline void _calculate_activation_()
 {
-    // #pragma GCC unroll 8
+#pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat v = sfpi::dst_reg[0];

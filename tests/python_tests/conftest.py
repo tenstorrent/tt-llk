@@ -105,17 +105,13 @@ def workers_tensix_coordinates(worker_id):
 def pytest_configure(config):
     log_file = "pytest_errors.log"
     # Clear the log file if it exists
-
-    try:
-        if os.path.exists(log_file):
-            os.remove(log_file)
-    except:
-        pass
+    if os.path.exists(log_file):
+        os.remove(log_file)
 
     logging.basicConfig(
-        level=logging.INFO,
+        filename=log_file,
+        level=logging.ERROR,
         format="%(asctime)s - %(levelname)s - %(message)s",
-        handlers=[logging.StreamHandler(), logging.FileHandler(log_file)],
     )
 
     initialize_test_target_from_pytest(config)

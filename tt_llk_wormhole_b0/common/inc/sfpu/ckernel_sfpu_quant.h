@@ -24,7 +24,7 @@ inline void _quant_int32_(const uint dst_index_in0, const uint dst_index_in1, co
     // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size = 64;
 
-    // #pragma GCC unroll 8
+#pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         // operand A - fp32
@@ -54,7 +54,7 @@ inline void _requant_int32_(const uint dst_index_in0, const uint dst_index_in1, 
     // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size = 64;
 
-    // #pragma GCC unroll 8
+#pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         // operand A - int32
@@ -86,7 +86,7 @@ inline void _dequant_int32_(const uint dst_index_in0, const uint dst_index_in1, 
     // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size = 64;
 
-    // #pragma GCC unroll 8
+#pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         // operand A - int32

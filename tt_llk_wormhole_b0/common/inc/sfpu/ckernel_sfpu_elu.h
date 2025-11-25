@@ -20,7 +20,7 @@ inline void _calculate_elu_(uint slope)
     const uint16_t exp_base_scale_factor = p_sfpu::kCONST_1_FP16B;
 
     sfpi::vFloat s = Converter::as_float(slope);
-    // #pragma GCC unroll 0
+#pragma GCC unroll 0
     for (int d = 0; d < ITERATIONS; d++)
     {
         sfpi::vFloat v = sfpi::dst_reg[0];

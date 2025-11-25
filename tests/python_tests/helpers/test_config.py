@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import shutil
 from enum import Enum
 from hashlib import sha256
 from pathlib import Path
@@ -12,7 +13,7 @@ from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     BootMode,
-    pull_coverage_data,
+    generate_info_file_for_run,
     resolve_default_boot_mode,
     run_elf_files,
     wait_for_tensix_operations_finished,
@@ -555,7 +556,6 @@ def generate_make_command(
     """Generate make command"""
 
     boot_mode = resolve_default_boot_mode(boot_mode)
-    # Simplified make command - only basic build parameters
     make_cmd = f"make -j 6 testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} coverage_build={str(with_coverage).lower()} variant={variant_id} all "
 
     if profiler_build == ProfilerBuild.Yes:
@@ -610,7 +610,7 @@ def run_test(
     wait_for_tensix_operations_finished(elfs)
 
     if test_target.with_coverage:
-        pull_coverage_data(
+        generate_info_file_for_run(
             test_config["testname"],
             variant_id,
             f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}",
@@ -618,4 +618,4 @@ def run_test(
             location,
         )
 
-    # shutil.rmtree(f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}")
+    shutil.rmtree(f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}")

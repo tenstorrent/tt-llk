@@ -59,11 +59,11 @@ download_headers() {
 
     for header in "${headers[@]}"; do
         local download_url="${base_url}/${header}"
-        if ! wget -q -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$download_url" > /dev/null; then
+        if ! wget -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$download_url" > /dev/null; then
             if [[ -n "$specific_url" ]]; then
                 local fallback_url="${specific_url}/${header}"
                 echo "Could not find ${header} at ${download_url}, trying ${fallback_url}..."
-                if ! wget -q -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$fallback_url" > /dev/null; then
+                if ! wget -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$fallback_url" > /dev/null; then
                     echo "ERROR: Failed to download ${header} from both primary and fallback URLs." >&2
                     exit 1
                 fi
@@ -158,7 +158,7 @@ main() {
     # Download SFPI
     echo "SFPI not present or out of date. Fetching version ${sfpi_version}..."
     local TEMP_DIR=$(mktemp -d)
-    if ! wget -q -P $TEMP_DIR --waitretry=5 --retry-connrefused "$sfpi_url/$sfpi_filename" ; then
+    if ! wget -P $TEMP_DIR --waitretry=5 --retry-connrefused "$sfpi_url/$sfpi_filename" ; then
         echo "ERROR: Failed to download $sfpi_url/$sfpi_filename" >&2
         exit 1
     fi

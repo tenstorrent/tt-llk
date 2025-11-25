@@ -20,7 +20,7 @@ inline void _calculate_tanh_(const int iterations)
     sfpi::vUInt l1 = sfpi::l_reg[sfpi::LRegs::LReg1];
     sfpi::vUInt l2 = sfpi::l_reg[sfpi::LRegs::LReg2];
 
-    // #pragma GCC unroll 8
+#pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
         sfpi::vFloat val = sfpi::dst_reg[0];
