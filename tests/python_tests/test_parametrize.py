@@ -2,7 +2,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from helpers.param_config import _param_dependencies
+import pytest
+from helpers.param_config import (
+    UnknownDependenciesError,
+    _param_dependencies,
+    _verify_dependency_map,
+)
 
 
 def test_param_dependencies_constant():
@@ -47,3 +52,44 @@ def test_param_dependencies_multiple_lambda():
     assert dependencies[0] == "arg0"
     assert dependencies[1] == "arg1"
     assert dependencies[2] == "arg2"
+
+
+def test_verify_dependency_map_pass():
+    """
+    The dependency map is valid if all dependencies are known parameters.
+    """
+    dependency_map = {
+        "exist1": ["exist2", "exist3"],
+        "exist2": ["exist3"],
+        "exist3": [],
+        "exist4": ["exist1"],
+    }
+
+    try:
+        # no exception should be raised
+        _verify_dependency_map(dependency_map)
+    except Exception as e:
+        assert False, f"Unexpected exception raised: {e}"
+
+
+def test_verify_dependency_map_fail():
+    """
+    The dependency map is invalid if a dependency is not a known parameter.
+    """
+    dependency_map = {
+        "exist1": ["exist2", "missing1"],
+        "exist2": ["missing2", "exist3"],
+        "exist3": [],
+        "exist4": ["missing1", "missing2"],
+    }
+
+    expected_missing = {
+        "exist1": {"missing1"},
+        "exist2": {"missing2"},
+        "exist4": {"missing1", "missing2"},
+    }
+
+    with pytest.raises(UnknownDependenciesError) as error:
+        _verify_dependency_map(dependency_map)
+
+    assert error.value.missing == expected_missing
