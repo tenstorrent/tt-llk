@@ -148,6 +148,49 @@ class BinarySfpu(Sfpu):
         return code
 
 
+class SfpuWhere(Sfpu):
+    dst_index_in0: int = 0
+    dst_index_in1: int = 1
+    dst_index_in2: int = 2
+    dst_index_out: int = 0
+
+    def __init__(
+        self,
+        approx_mode: ApproximationMode = ApproximationMode.No,
+        iterations: int = 32,
+        dst_index_in0: int = 0,
+        dst_index_in1: int = 1,
+        dst_index_in2: int = 2,
+        dst_index_out: int = 0,
+    ):
+        super().__init__("where", approx_mode, iterations)
+        self.dst_index_in0 = dst_index_in0
+        self.dst_index_in1 = dst_index_in1
+        self.dst_index_in2 = dst_index_in2
+        self.dst_index_out = dst_index_out
+
+    def get_headers(self) -> List[str]:
+        return [
+            "ckernel_defs.h",
+            "ckernel_sfpu.h",
+            "ckernel_sfpu_where.h",
+            "llk_math_common.h",
+            "llk_math_eltwise_ternary_sfpu.h",
+        ]
+
+    def exec(self, config: Dict) -> str:
+        math_format = config["math_format"]
+        MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
+        code = f"""
+    _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
+    ckernel::sfpu::_init_where_<{self.approx_mode.value}>();
+    _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
+    ckernel::sfpu::_calculate_where_<false, static_cast<DataFormat>({MATH_FORMAT}), {self.iterations}>({self.dst_index_in0}, {self.dst_index_in1}, {self.dst_index_in2}, {self.dst_index_out});
+    _llk_math_eltwise_ternary_sfpu_done_();
+"""
+        return code
+
+
 class Math:
     fpu: Type[Fpu]
     sfpu: List[Sfpu]
