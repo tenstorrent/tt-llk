@@ -132,11 +132,9 @@ class UnknownDependenciesError(Exception):
 class CircularDependencyError(Exception):
     """Raised when a circular dependency is detected."""
 
-    def __init__(self, circular_dependencies: list[str]):
-        self.circular_dependencies = circular_dependencies
-        super().__init__(
-            f"Circular dependency detected among: {', '.join(circular_dependencies)}"
-        )
+    def __init__(self, cycle: list[str]):
+        self.cycle = cycle
+        super().__init__(f"Circular dependency detected among: \n[{', '.join(cycle)}]")
 
 
 class ResolutionError(Exception):
@@ -230,7 +228,12 @@ def _compute_resolution_order(
         resolvable = _find_next_resolvable(dependency_matrix, resolved)
 
         if not resolvable:
-            raise CircularDependencyError([parameter_names[idx] for idx in resolvable])
+            unresolved = [
+                parameter_names[i]
+                for i, is_resolved in enumerate(resolved)
+                if not is_resolved
+            ]
+            raise CircularDependencyError(unresolved)
 
         for idx in resolvable:
             resolved[idx] = True
