@@ -210,36 +210,6 @@ inline void _init_reduce_max_col_()
 {
     static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
-/**
- * @brief Initialization for SFPU reduce MAX kernel.
- *        Sets up LOADMACRO sequences for compare-and-swap operations, configures address modifiers,
- *        and records replay buffers for efficient column-wise maximum reduction.
- *
- * @tparam INSTRUCTION_MODE The instruction mode for integer and float formats: INT32, INT32_2S_COMP, LO16, FP32, FP16B
- * @param num_cols The number of columns to process (typically 32 for a single tile, or multiple of 32 for block operations)
- */
-template <InstrModLoadStore INSTRUCTION_MODE>
-inline void init_reduce_max(uint32_t num_cols)
-{
-    // Initialize SFPU config and set swap direction before defining LOADMACRO sequences
-    _init_sfpu_config_reg();
-
-    // Setup LOADMACRO sequence 0
-    // TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, (0xC | p_sfpu::LREG0) /*backdoor + dest*/, 1 /*instr_mod1*/);
-    // TTI_SFPLOADI(0, 0xA, 0x0084); // Lower 16 bits: slot0=0x84 (bit 7 set), slot1=0x00
-    // TTI_SFPLOADI(0, 0x8, 0x0000); // Upper 16 bits: slot2=0x00, slot3=0x00
-    // TTI_SFPCONFIG(0, 4, 0);       // Store in Macro Sequence Register 0 (dest=4)
-
-    // // Setup LOADMACRO sequence 1
-    // TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, (0xD | p_sfpu::LREG4) /*backdoor + dest*/, 1 /*instr_mod1*/);
-    // TTI_SFPLOADI(0, 0xA, 0x0085); // Lower 16 bits: slot0=0x85 (bit 7 set), slot1=0x00
-    // TTI_SFPLOADI(0, 0x8, 0x0000); // Upper 16 bits: slot2=0x00, slot3=0x00
-    // TTI_SFPCONFIG(0, 5, 0);       // Store in Macro Sequence Register 1 (dest=5)
-
-    // TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
-
-    // ***********************************************************
-
     _init_sfpu_config_reg();
     sfpu_reduce_max_col_configure_addrmod();
 
