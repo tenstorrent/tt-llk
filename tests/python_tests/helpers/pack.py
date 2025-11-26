@@ -166,10 +166,11 @@ def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=4):
         scale_factor = decode_e8m0_scale(scale_e8m0)
 
         # Step 3: Scale elements by dividing by scale_factor
-        # Validate scale factor (should never be 0 or NaN from valid encoding)
-        assert (
-            not np.isnan(scale_factor) and scale_factor != 0
-        ), f"Invalid scale_factor={scale_factor} from e8m0={scale_e8m0}. "
+        # The E8M0 encoding never produces 255 (reserved for NaN), but check for data corruption
+        assert not np.isnan(scale_factor), (
+            f"Corrupted E8M0 scale: e8m0={scale_e8m0} decoded to NaN. "
+            f"E8M0=255 is reserved and should never be encoded."
+        )
         scaled_block = block / scale_factor
 
         # Step 4: Convert to float8 using ml_dtypes

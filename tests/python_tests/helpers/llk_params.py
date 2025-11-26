@@ -18,8 +18,8 @@ format_dict = {
     DataFormat.UInt16: torch.int32,
     DataFormat.Int8: torch.int8,
     DataFormat.UInt8: torch.uint8,
-    DataFormat.MXFP8R: torch.float32,
-    DataFormat.MXFP8P: torch.float32,
+    DataFormat.MXFP8R: torch.bfloat16,
+    DataFormat.MXFP8P: torch.bfloat16,
 }
 
 

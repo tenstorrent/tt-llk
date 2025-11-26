@@ -132,7 +132,7 @@ def encode_e8m0_scale(max_abs_value, element_max_normal):
 
     Per OCP MX spec Section 2.B (Gorodecky et al., 5 Nov 2024):
     e = ⌈log₂(amax/destmax)⌉ (round up to ensure no overflow)
-    X = 2^clamp(e, -127, 127) + bias
+    E8M0 = clamp(e, -127, 127) + bias
 
     This "round up" approach ensures post-scaling values do not exceed
     representable FP8 range, minimizing quantization error.
