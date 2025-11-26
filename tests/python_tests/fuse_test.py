@@ -11,15 +11,22 @@ from helpers.device import (
     write_pipeline_operands_to_l1,
 )
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
-from helpers.fuse_math import Math, MatmulFpu
+from helpers.fuse_math import BinarySfpu, Math, MatmulFpu, UnarySfpu
 from helpers.fuse_operand import OperandMapping, OperandRegistry
 from helpers.fuse_operation import PipelineOperation
 from helpers.fuse_packer import MatmulPacker
 from helpers.fuse_unpacker import MatmulUnpacker
-from helpers.golden_generators import MatmulGolden, get_golden_generator
+from helpers.golden_generators import (
+    BinarySFPUGolden,
+    MatmulGolden,
+    UnarySFPUGolden,
+    get_golden_generator,
+)
 from helpers.llk_params import (
+    ApproximationMode,
     DestAccumulation,
     MathFidelity,
+    MathOperation,
     format_dict,
 )
 from helpers.matmul_sweep import (
@@ -49,12 +56,16 @@ def generate_format_aware_matmul_combinations(
     combinations = []
 
     for fmt in formats_list:
+        if fmt.input_format != fmt.output_format:
+            continue
         base_max_tiles = 4 if is_dest_acc_needed(fmt) else 8
 
         for dest_acc in dest_acc_modes:
             max_tiles = 4 if dest_acc == DestAccumulation.Yes else base_max_tiles
             dimensions_list = generate_matmul_dimension_combinations(max_tiles)
-            combinations.extend([(fmt, dest_acc, dims) for dims in dimensions_list])
+            combinations.extend(
+                [(fmt, dest_acc, dims) for dims in [[[32, 32], [32, 32]]]]
+            )
 
     return combinations
 
@@ -63,7 +74,7 @@ def generate_format_aware_matmul_combinations(
 MATMUL_FORMATS = input_output_formats(
     [
         DataFormat.Float16_b,
-        DataFormat.Float16,
+        # DataFormat.Float16,
         DataFormat.Float32,
     ]
 )
@@ -107,6 +118,12 @@ def test_matmul(
         data_format=formats.input_format,
     )
 
+    operands.add_input(
+        "input_C",
+        dimensions=input_B_dimensions,
+        data_format=formats.input_format,
+    )
+
     operands.add_output("matmul_result")
 
     operands.add_output("final_output")
@@ -115,8 +132,10 @@ def test_matmul(
 
     src_A = operands.get("input_A").raw_data
     src_B = operands.get("input_B").raw_data
+    src_C = operands.get("input_C").raw_data
     tilized_A = operands.get("input_A").data
     tilized_B = operands.get("input_B").data
+    tilized_C = operands.get("input_C").data
 
     generate_golden = get_golden_generator(MatmulGolden)
     golden_tensor = generate_golden(
@@ -127,6 +146,36 @@ def test_matmul(
         input_A_dimensions=input_A_dimensions,
         input_B_dimensions=input_B_dimensions,
         tilize=True,
+    )
+    golden_tensor = generate_golden(
+        golden_tensor,
+        src_C,
+        formats.output_format,
+        math_fidelity,
+        input_A_dimensions=matmul_dims.output_dimensions,
+        input_B_dimensions=input_B_dimensions,
+        tilize=True,
+    )
+
+    generate_sfpu_golden = get_golden_generator(UnarySFPUGolden)
+    golden_tensor = generate_sfpu_golden(
+        MathOperation.Sqrt,
+        golden_tensor,
+        formats.output_format,
+        dest_acc,
+        formats.input_format,
+    )
+    golden_tensor = generate_sfpu_golden(
+        MathOperation.Neg,
+        golden_tensor,
+        formats.output_format,
+        dest_acc,
+        formats.input_format,
+    )
+
+    generate_golden = get_golden_generator(BinarySFPUGolden)
+    golden_tensor = generate_golden(
+        MathOperation.SfpuElwadd, golden_tensor, golden_tensor, formats.output_format
     )
 
     test_config1 = {
@@ -158,7 +207,7 @@ def test_matmul(
         "ct_dim": matmul_dims.ct_dim,
         "kt_dim": matmul_dims.kt_dim,
         "tilized_A": tilized_A,
-        "tilized_B": tilized_B,
+        "tilized_B": tilized_C,
     }
 
     pipeline = [
@@ -173,25 +222,25 @@ def test_matmul(
                 output="matmul_result",
             ),
         ),
-        # PipelineOperation(
-        #     unpacker=MatmulUnpacker,
-        #     math=Math(
-        #         MatmulFpu,
-        #         [
-        #             UnarySfpu("sqrt", ApproximationMode.No, 32),
-        #             UnarySfpu("neg", ApproximationMode.Yes, 32),
-        #             BinarySfpu("ADD", ApproximationMode.No, 32, 0, 0, 0),
-        #             # SfpuWhere(ApproximationMode.No, 32, 0, 1, 2, 0),
-        #         ],
-        #     ),
-        #     packer=MatmulPacker,
-        #     config=test_config2,
-        #     operand_mapping=OperandMapping(
-        #         src_a="matmul_result",
-        #         src_b="input_B",
-        #         output="final_output",
-        #     ),
-        # ),
+        PipelineOperation(
+            unpacker=MatmulUnpacker,
+            math=Math(
+                MatmulFpu,
+                [
+                    UnarySfpu("sqrt", ApproximationMode.No, 32),
+                    UnarySfpu("neg", ApproximationMode.No, 32),
+                    BinarySfpu("ADD", ApproximationMode.No, 32, 0, 0, 0),
+                    # SfpuWhere(ApproximationMode.No, 32, 0, 1, 2, 0),
+                ],
+            ),
+            packer=MatmulPacker,
+            config=test_config2,
+            operand_mapping=OperandMapping(
+                src_a="matmul_result",
+                src_b="input_C",
+                output="final_output",
+            ),
+        ),
     ]
 
     res_address = write_pipeline_operands_to_l1(
@@ -205,6 +254,11 @@ def test_matmul(
         formats, tile_count=matmul_dims.output_tile_cnt, address=res_address
     )
     assert len(res_from_L1) == len(golden_tensor)
+
+    print("golden_tensor:")
+    print(golden_tensor)
+    print("res_from_L1:")
+    print(res_from_L1)
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "ckernel_sfpu.h"
+#include "ckernel_sfpu_add_top_row.h"
 #include "llk_sfpu_types.h"
 
 using namespace ckernel;
