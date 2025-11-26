@@ -54,7 +54,6 @@ from .unpack import (
     unpack_uint16,
     unpack_uint32,
 )
-from .utils import run_shell_command
 
 # Constant - indicates the TRISC kernel run status
 KERNEL_COMPLETE = 1  # Kernel completed its run
@@ -644,9 +643,8 @@ def pull_coverage_stream_from_tensix(
         f.write(data)
 
 
-def generate_info_file_for_run(
-    testname, variant_id, build_dir, device_id=0, location="0,0"
-):
+def generate_info_file_for_run(build_dir, device_id=0, location="0,0"):
+    # please sweep for inconsistencies in variable names
     trisc_names = ["unpack", "math", "pack"]
     for trisc_name in trisc_names:
         elf_path = f"{build_dir}/elf/{trisc_name}.elf"
@@ -655,10 +653,3 @@ def generate_info_file_for_run(
         pull_coverage_stream_from_tensix(
             location, elf_file, stream_path, device_id, None
         )
-
-    LLK_HOME = os.environ.get("LLK_HOME")
-    tests_dir = str(Path(LLK_HOME) / "tests")
-    run_shell_command(
-        f"make testname={testname} info_file_name={testname}_{variant_id}.info variant={variant_id} coverage",
-        cwd=tests_dir,
-    )

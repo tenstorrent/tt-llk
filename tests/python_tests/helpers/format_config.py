@@ -19,6 +19,10 @@ class DataFormatInfo:
         self.name = name
         self.byte_size = byte_size
 
+    def __str__(self) -> str:
+        """Returns the string representation of the data format info."""
+        return f"{self.value.name} [ {self.byte_size} B ]"
+
 
 class DataFormat(Enum):
     """
@@ -186,6 +190,12 @@ class InputOutputFormat:
     @property
     def input_format(self) -> DataFormat:
         return self.input
+
+    def __str__(self):
+        return f"Input: {self.input}  Output: {self.output}"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 def create_formats_for_testing(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]:

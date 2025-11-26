@@ -3,6 +3,7 @@
 
 import subprocess
 from collections import namedtuple
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -214,3 +215,8 @@ def passed_test(
         target_pcc = pow(0.99, L1_to_L1_iterations)
     print("PCC:", pcc)
     return is_within_tolerance and (pcc > target_pcc)
+
+
+def create_directories(dirs: list[Path]):
+    for dir in dirs:
+        dir.mkdir(exist_ok=True, parents=True)

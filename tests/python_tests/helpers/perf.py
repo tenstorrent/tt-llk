@@ -18,8 +18,8 @@ from helpers.device import (
     run_elf_files,
     wait_for_tensix_operations_finished,
 )
+from helpers.makefile import ProfilerBuild, build_test_variant
 from helpers.profiler import Profiler, ProfilerData
-from helpers.test_config import ProfilerBuild, build_test
 
 
 class PerfRunType(Enum):
@@ -148,7 +148,7 @@ def perf_benchmark(
 
         test_config["perf_run_type"] = run_type
         variant_id = sha256(f"{str(test_config)} {str(run_type)}".encode()).hexdigest()
-        build_test(test_config, variant_id, False, boot_mode, ProfilerBuild.Yes)
+        build_test_variant(test_config, variant_id, boot_mode, ProfilerBuild.Yes)
 
         runs = []
         for _ in range(run_count):

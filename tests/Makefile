@@ -173,7 +173,7 @@ $(OBJ_DIR)/kernel_%.o $(COVERAGE_KERNEL_TARGETS): $(KERNEL_SOURCE) $(BUILD_DIR)/
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $(KERNEL_SOURCE)
 
 # build main_unpack.o, main_math.o, main_pack.o
-$(OBJ_DIR)/main_%.o: $(RISCV_SOURCES)/trisc.cpp $(BUILD_DIR)/params.stamp | $(SHARED_DEPS_DIR) $(TEST_DIR)/build.h
+$(OBJ_DIR)/main_%.o: $(RISCV_SOURCES)/trisc.cpp $(BUILD_DIR)/params.stamp | $(SHARED_DEPS_DIR)
 	$(GXX) $(ARCH_COMPUTE) $(OPTIONS_ALL) $(OPTIONS_COMPILE) -DCOMPILE_FOR_TRISC= \
 	-MMD -MP -MF $(patsubst $(SHARED_OBJ_DIR)/%.o,$(SHARED_DEPS_DIR)/%.d,$@) \
 	-DLLK_TRISC_$(call TO_UPPER, $*) -c -o $@ $<

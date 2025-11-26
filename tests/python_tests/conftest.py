@@ -16,14 +16,18 @@ from helpers.target_config import TestTargetConfig, initialize_test_target_from_
 from ttexalens import tt_exalens_init
 from ttexalens.tt_exalens_lib import arc_msg
 
-# imports for pytest fixtures
-from helpers.perf import perf_report  # noqa: F401  # isort:skip
-
 
 def init_llk_home():
     if "LLK_HOME" in os.environ:
         return
     os.environ["LLK_HOME"] = str(Path(__file__).resolve().parents[2])
+
+
+# Default LLK_HOME environment variable
+init_llk_home()
+
+# imports for pytest fixtures
+from helpers.perf import perf_report  # noqa: F401  # isort:skip
 
 
 def check_hardware_headers():
@@ -167,9 +171,6 @@ def pytest_runtest_makereport(item, call):
 
 
 def pytest_sessionstart(session):
-    # Default LLK_HOME environment variable
-    init_llk_home()
-
     # Check if hardware-specific headers are present
     check_hardware_headers()
 
