@@ -18,6 +18,7 @@ from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
 
 
+# Has a compilation error on coverage, https://github.com/tenstorrent/tt-llk/issues/884
 @skip_for_coverage
 @parametrize(
     test_name="sfpu_reduce_sdpa_test",

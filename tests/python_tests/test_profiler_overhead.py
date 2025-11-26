@@ -20,6 +20,8 @@ def get_expected_overhead():
             raise ValueError("Unsupported chip architecture")
 
 
+# Coverage uses different linker script, that doesn't utilize local data memory at all, only L1
+# Because of this, measured overhead is at 2.3k instead of ~23 cycles
 @skip_for_coverage
 def test_profiler_overhead():
     test_config = {

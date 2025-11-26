@@ -4,7 +4,6 @@
 
 import pytest
 import torch
-from conftest import skip_for_coverage
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -42,7 +41,6 @@ dimension_combinations = [
 ]
 
 
-@skip_for_coverage
 @parametrize(
     test_name="sfpu_reduce_test",
     formats=input_output_formats(
