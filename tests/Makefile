@@ -69,7 +69,6 @@ OPTIONS_ALL	:= -g -O3 -std=$(CXX_VERSION) -ffast-math
 OPTIONS_COMPILE := -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Wunused-parameter \
 				   -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -nostdlib -fno-builtin \
 				   -Wmaybe-uninitialized -DTENSIX_FIRMWARE -DENV_LLK_INFRA $(ARCH_DEFINE)
-COVERAGE_OPTIONS_COMPILE := $(OPTIONS_COMPILE)
 
 BOOT_MODE := $(if $(bootmode),$(bootmode),brisc)
 ifeq ($(BOOT_MODE),brisc)
@@ -103,7 +102,6 @@ INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
 			-Isfpi/include -Ihelpers/include -I$(TEST_DIR)
 
 OPTIONS_COMPILE += $(INCLUDES)
-COVERAGE_OPTIONS_COMPILE := $(INCLUDES)
 
 TO_UPPER = $(shell echo $(1) | tr '[:lower:]' '[:upper:]')
 
