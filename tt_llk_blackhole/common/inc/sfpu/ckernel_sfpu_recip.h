@@ -399,7 +399,7 @@ inline void _init_reciprocal_fast_24b_5c_()
             TTI_SFPLOADMACRO((0 << 2) | (y & 3), 0, ADDR_MOD_7, offset | (y >> 2));
             TTI_SFPLOADMACRO((2 << 2) | (t2 & 3), 0, ADDR_MOD_7, prev_offset | (t2 >> 2));
             TTI_SFPLOADMACRO((1 << 2) | (e & 3), 0, ADDR_MOD_7, offset | (e >> 2));
-            TTI_SFPMAD(sfpi::LREG0, y, sfpi::LCONST_1, 0, 1); // SFPMAD_MOD1_NEGATE_VA
+            TTI_SFPMAD(p_sfpu::LREG0, y, p_sfpu::LCONST_1, 0, 1); // SFPMAD_MOD1_NEGATE_VA
             TTI_SFPLOADMACRO((3 << 2) | (z & 3), 0, ADDR_MOD_6, prev_offset | (z >> 2));
             TTI_SFPLOADMACRO((3 << 2) | (z & 3), 0, ADDR_MOD_7, prev_offset | (z >> 2));
         });
