@@ -6,15 +6,18 @@
 
 #include <cstddef>
 
-__attribute__((always_inline)) inline void *memset(void *ptr, int c, size_t len)
+extern "C"
 {
-    char *end  = (char *)ptr + len;
-    char *iter = (char *)ptr;
-
-    for (; iter < end; iter++)
+    __attribute__((always_inline)) inline void *memset(void *ptr, int c, size_t len)
     {
-        *iter = c;
-    }
+        char *end  = (char *)ptr + len;
+        char *iter = (char *)ptr;
 
-    return ptr;
+        for (; iter < end; iter++)
+        {
+            *iter = c;
+        }
+
+        return ptr;
+    }
 }

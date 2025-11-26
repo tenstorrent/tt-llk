@@ -5,6 +5,7 @@
 
 import glob
 import os
+import shutil
 import subprocess
 import sys
 
@@ -39,10 +40,7 @@ def merge_coverage_files(coverage_dir):
 
     if not os.path.isfile(merged_path):
         first_file = info_files[0]
-        success, _, stderr = run_command(f"cp '{first_file}' '{merged_path}'")
-        if not success:
-            print(f"Failed to initialize: {stderr}")
-            return False
+        shutil.copyfile(first_file, merged_path)
 
     info_files.pop(0)
 

@@ -2,8 +2,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-import logging
-import os
 from itertools import product
 
 import pytest
@@ -140,18 +138,6 @@ def filter_params_with_constraints(all_params):
     arch = get_chip_architecture()
     is_wormhole = arch == ChipArchitecture.WORMHOLE
     valid_params = []
-
-    logger = logging.getLogger(__name__)
-
-    old_cnt = len(all_params)
-
-    if (
-        os.environ.get("PYTEST_XDIST_WORKER", "gw0") == "gw0"
-        or os.environ.get("PYTEST_XDIST_WORKER", "master") == "master"
-    ):
-        logger.info(
-            f"\n\nParameter combinations reduced from {old_cnt} to {len(all_params)} using quick filtering\n\n"
-        )
 
     for params in all_params:
         # Extract parameters from tuple

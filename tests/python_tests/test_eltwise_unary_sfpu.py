@@ -63,6 +63,7 @@ def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_
     arch = get_chip_architecture()
 
     if TestTargetConfig().with_coverage and mathop in [
+        MathOperation.Acosh,
         MathOperation.Log,
         MathOperation.Reciprocal,
         MathOperation.Sin,
@@ -76,9 +77,9 @@ def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_
         MathOperation.ReluMax,
         MathOperation.ReluMin,
     ]:
-        # SFPI Issue link:
+        # SFPI Issue link: https://github.com/tenstorrent/tt-metal/issues/33268
         pytest.skip(
-            reason="When tsomeof these SPFU ops get compiled with coverage, `#pragma GCC unroll X` marked loops get compiled to invalid assembly"
+            reason="When these SPFU ops get compiled with coverage, `#pragma GCC unroll X` marked loops get compiled to invalid assembly"
         )
 
     if TestTargetConfig().with_coverage and mathop == MathOperation.Gelu:

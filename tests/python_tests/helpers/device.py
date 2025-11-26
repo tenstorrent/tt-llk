@@ -8,8 +8,8 @@ from enum import Enum, IntEnum
 from pathlib import Path
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from ttexalens.context import Context
 from helpers.hardware_controller import HardwareController
+from ttexalens.context import Context
 from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.debug_tensix import TensixDebug
 from ttexalens.hardware.risc_debug import CallstackEntry, RiscDebug, RiscLocation
@@ -220,7 +220,9 @@ def run_elf_files(
     is_wormhole = get_chip_architecture() == ChipArchitecture.WORMHOLE
 
     elfs = [
-        str((BUILD_DIR / testname / variant_id / "elf" / f"{trisc_name}.elf").absolute())
+        str(
+            (BUILD_DIR / testname / variant_id / "elf" / f"{trisc_name}.elf").absolute()
+        )
         for trisc_name in trisc_names
     ]
 
@@ -643,7 +645,6 @@ def pull_coverage_stream_from_tensix(
 def generate_info_file_for_run(
     testname, variant_id, build_dir, device_id=0, location="0,0"
 ):
-    # please sweep for inconsistencies in variable names
     trisc_names = ["unpack", "math", "pack"]
     for trisc_name in trisc_names:
         elf_path = f"{build_dir}/elf/{trisc_name}.elf"

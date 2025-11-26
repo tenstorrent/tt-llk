@@ -102,7 +102,6 @@ INCLUDES := -I../$(ARCH_LLK_ROOT)/llk_lib -I../$(ARCH_LLK_ROOT)/common/inc \
 			-Isfpi/include -Ihelpers/include -I$(TEST_DIR)
 
 OPTIONS_COMPILE += $(INCLUDES)
-COVERAGE_OPTIONS_COMPILE := $(INCLUDES)
 
 TO_UPPER = $(shell echo $(1) | tr '[:lower:]' '[:upper:]')
 
