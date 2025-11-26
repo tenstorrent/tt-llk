@@ -31,7 +31,7 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
     // in1/inB - loaded to SrcA
 
     // MOP replay buffer now updates both SrcA and SrcB addresses for K-dimension loop
-    const std::uint32_t replay_buf_run_len = unpB_partial_face ? 4 : 2;
+    const std::uint32_t replay_buf_run_len  = unpB_partial_face ? 5 : 4;
     const std::uint32_t replay_buf_prog_len = replay_buf_run_len * 2;
 
     load_replay_buf(
@@ -43,8 +43,11 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
             // === Context 0 ===
             // Unpack SrcA (in1/inB)
             // TTI_UNPACR(SrcA, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-            TTI_UNPACR(SrcA, 0b00001010, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-            
+            // TTI_STALLWAIT(p_stall::STALL_SYNC, p_stall::TRISC_CFG);
+            t6_semaphore_wait_on_zero<p_stall::STALL_UNPACK>(semaphore::UNPACK_SYNC);
+
+            TTI_UNPACR(SrcA, 0b00000000, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
+
             // Unpack SrcB (in0/inA)
             if (unpB_partial_face)
             {
@@ -52,25 +55,28 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
                 TTI_UNPACR(
                     SrcB, 0b00010001, 0, 0, 0, 1 /*Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
                 TTI_UNPACR(
-                    SrcB, 0b00010001, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-                TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0100); // Set ch1_z=0
+                    SrcB, 0b00110001, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
+                // TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0100); // Set ch1_z=0
             }
             else
             {
-                TTI_UNPACR(SrcB, 0b00001010, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
+                TTI_UNPACR(
+                    SrcB, 0b00001010, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
                 // Update SrcB address (SEC1/in0/inA)
                 // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_address_ADDR32);
                 // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_B);
                 // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
                 // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC1_REG3_Base_address_ADDR32);
             }
-            
+
+            t6_semaphore_get(semaphore::UNPACK_SYNC);
+
             // Update SrcB address (SEC1/in0/inA)
             // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_address_ADDR32);
             // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_B);
             // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
             // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC1_REG3_Base_address_ADDR32);
-            
+
             // Update SrcA address (SEC0/in1/inB)
             // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC0_REG3_Base_address_ADDR32);
             // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_A);
@@ -82,8 +88,11 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
             // === Context 1 ===
             // Unpack SrcA (in1/inB)
             // TTI_UNPACR(SrcA, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-            TTI_UNPACR(SrcA, 0b00001010, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-            
+            // TTI_STALLWAIT(p_stall::STALL_SYNC, p_stall::TRISC_CFG);
+            t6_semaphore_wait_on_zero<p_stall::STALL_UNPACK>(semaphore::UNPACK_SYNC);
+
+            TTI_UNPACR(SrcA, 0b00000000, 0, 1, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
+
             // Unpack SrcB (in0/inA)
             if (unpB_partial_face)
             {
@@ -91,26 +100,28 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
                 TTI_UNPACR(
                     SrcB, 0b00010001, 0, 0, 0, 1 /*Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
                 TTI_UNPACR(
-                    SrcB, 0b00010001, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-                TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0100); // Set ch1_z=0
+                    SrcB, 0b00110001, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
+                // TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0100); // Set ch1_z=0
             }
             else
             {
-                // TTI_UNPACR(SrcB, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-                TTI_UNPACR(SrcB, 0b00001010, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-                // Update SrcB address (SEC1/in0/inA, face by face)
-                // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
+                TTI_UNPACR(
+                    SrcB, 0b00001010, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
+                // Update SrcB address (SEC1/in0/inA)
+                // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_address_ADDR32);
                 // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_B);
                 // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-                // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
+                // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC1_REG3_Base_address_ADDR32);
             }
-            
+
+            t6_semaphore_get(semaphore::UNPACK_SYNC);
+
             // Update SrcB address (SEC1/in0/inA)
             // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
             // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_B);
             // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
             // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
-            
+
             // Update SrcA address (SEC0/in1/inB)
             // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC0_REG3_Base_cntx1_address_ADDR32);
             // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_A);
@@ -194,8 +205,6 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_craqmm_init_(
     // in large matmul, datacopy will disable the transpose of faces, so we need it turn it back on for matmul.
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
-    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
-
     const uint32_t unpA_x_end = unpA_num_faces * unpA_face_r_dim * FACE_C_DIM - 1;
     TT_SETADCXX(p_setadc::UNP_A, unpA_x_end, 0x0);
 
@@ -233,6 +242,9 @@ inline void _llk_unpack_AB_craqmm_(
     // In0/InA -> srcB (supports partial face)
     // In1/InB -> srcA
 
+    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
+    TTI_SETADCXY(0b011, 0, 0, 0, 0, 0b1010);
+
     volatile uint *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // TTI_MULDMAREG(0, p_gpr_unpack::TMP_LO, p_gpr_unpack::TILE_SIZE_B, p_gpr_unpack::KT_DIM);
@@ -243,33 +255,78 @@ inline void _llk_unpack_AB_craqmm_(
     std::uint32_t address_a = base_address_a + offset_address_a;
     std::uint32_t address_b = base_address_b + offset_address_b;
 
+    std::uint32_t num_loops    = kt_dim / 16;
+    std::uint32_t remaining_kt = kt_dim % 16;
+
     // Wait for free context
-    wait_for_next_context(2);
+    // wait_for_next_context(2);
 
-    // Program unpacker 1 base address
-    if (0 == unp_cfg_context)
+    // // Program unpacker 1 base address
+    // if (0 == unp_cfg_context)
+    // {
+    //     cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_b;
+    //     cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_a;
+    // }
+    // else
+    // {
+    //     cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_b;
+    //     cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_a;
+    // }
+
+    // semaphore_post(semaphore::UNPACK_SYNC); // Trisc::SEMPOST for context acquire
+
+    // // Stall unpacker until pending CFG writes from Trisc have completed
+    // TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+    // // Run the MOP kt_dim times (loop_count parameter is iterations - 1)
+    // // MOP replay buffer unpacks both SrcA and SrcB, incrementing addresses each iteration
+    // TT_MOP(0, kt_dim - 1, unp_cfg_context == 0 ? 0 : 0xff);
+
+    // // T6::SEMGET for context release
+    // t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+    // // Switch unpacker config context
+    // switch_config_context(unp_cfg_context);
+
+    // Wait for all contexts to be free
+    wait_for_next_context(1);
+    reset_config_context();
+
+    cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_a;
+
+    for (std::uint32_t i = 0; i < num_loops; i++)
     {
-        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_b;
-        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_a;
+        TT_MOP(0, 15, 0xAAAA);
+        for (std::uint32_t j = 0; j < 8; j++)
+        {
+            wait_for_next_context(2);
+            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_b;
+            address_b += tile_size_b;
+            semaphore_post(semaphore::UNPACK_SYNC);
+            wait_for_next_context(2);
+            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_b;
+            address_b += tile_size_b;
+            semaphore_post(semaphore::UNPACK_SYNC);
+        }
     }
-    else
+
+    if (remaining_kt != 0)
     {
-        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_b;
-        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_a;
+        TT_MOP(0, remaining_kt - 1, 0xAAAA);
+        for (std::uint32_t i = 0; i < remaining_kt; i += 2)
+        {
+            wait_for_next_context(2);
+            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_b;
+            address_b += tile_size_b;
+            semaphore_post(semaphore::UNPACK_SYNC);
+            wait_for_next_context(2);
+            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_b;
+            address_b += tile_size_b;
+            semaphore_post(semaphore::UNPACK_SYNC);
+        }
     }
 
-    semaphore_post(semaphore::UNPACK_SYNC); // Trisc::SEMPOST for context acquire
-
-    // Stall unpacker until pending CFG writes from Trisc have completed
-    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
-
-    // Run the MOP kt_dim times (loop_count parameter is iterations - 1)
-    // MOP replay buffer unpacks both SrcA and SrcB, incrementing addresses each iteration
-    TT_MOP(0, kt_dim - 1, unp_cfg_context == 0 ? 0 : 0xff);
-
-    // T6::SEMGET for context release
-    t6_semaphore_get(semaphore::UNPACK_SYNC);
-
-    // Switch unpacker config context
-    switch_config_context(unp_cfg_context);
+    // Wait for all contexts to be free
+    wait_for_next_context(1);
+    reset_config_context();
 }

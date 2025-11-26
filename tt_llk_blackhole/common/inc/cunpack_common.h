@@ -326,7 +326,7 @@ inline void configure_unpack_AB(
     }
     tile_descriptor.f.in_data_format = row_pool ? (uint)DataFormat::Float32 : unpB_src_format_masked;
     tile_descriptor.f.x_dim          = unpB_face_r_dim * FACE_C_DIM;
-    tile_descriptor.f.z_dim          = unpB_num_faces;
+    tile_descriptor.f.z_dim          = 255;
     for (uint i = 0; i < TILE_DESC_SIZE; i++)
     {
         cfg[THCON_SEC1_REG0_TileDescriptor_ADDR32 + i] = tile_descriptor.val[i];
