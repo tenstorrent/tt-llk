@@ -94,18 +94,18 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
     //
     // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
     //
-    // t | Load           | Simple                 | MAD                    | Store   |
+    //   | Load           | Simple                 | MAD                    | Store   |
     // - | -------------- | ---------------------- | ---------------------- |-------- |
     // 0 | [y] SRCB       |                        |                        |         |
     // 1 |                | [y] = arecip([y])      | [y] x = mad(0, 0, [y]) | [y] L0  |
     // 2 | [y1] LO16_ONLY |                        |                        |         |
-    // 3 |                |                        | [y1] = mad(x, y1, -1)  |         |
-    // 4 |                |                        |                        |         |
-    // 5 |                |                        |                        | [y1]    |
-    // 6 |                |                        |                        |         |
-    // 7 | [t] LO16       |                        |                        |         |
-    // 8 |                | [y1] L16 = iadd(t, y1) |                        |         |
-    // 9 |                |                        |                        | [t] L16 |
+    // 0 |                |                        | [y1] = mad(x, y1, -1)  |         |
+    // 1 |                |                        |                        |         |
+    // 2 |                |                        |                        | [y1]    |
+    // 0 |                |                        |                        |         |
+    // 1 | [t] LO16       |                        |                        |         |
+    // 2 |                | [y1] L16 = iadd(t, y1) |                        |         |
+    // 0 |                |                        |                        | [t] L16 |
 
     constexpr int x           = p_sfpu::LREG1;
     constexpr int t           = p_sfpu::LREG1;
@@ -115,44 +115,46 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
     TTI_SFPLOADI(p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_FLOATB, 0x8000);
     TTI_SFPLOADI(p_sfpu::LREG7, sfpi::SFPLOADI_MOD0_USHORT, x);
 
-#pragma GCC unroll 10
-    for (int d = 0; d < iterations + 2; d++)
+    // Prologue (first two iterations): 2nd instruction is SFPNOP.
+    const int fill_end = iterations < 2 ? iterations : 2;
+#pragma GCC unroll 2
+    for (int d = 0; d < fill_end; d++)
     {
         int y = 3 + (d % 3);
-
-        if (d < iterations)
-        {
-            // MOD0_FMT_SRCB
-            TT_SFPLOADMACRO((0 << 2) | (y & 3), 0, ADDR_MOD_7, offset | (y >> 2));
-        }
-        else
-        {
-            TTI_SFPNOP;
-        }
-        if (d <= 1)
-        {
-            TTI_SFPNOP;
-        }
-        else if (d < iterations)
-        {
-            // MOD0_FMT_LO16
-            TT_SFPLOADMACRO((2 << 2) | (t & 3), 9, ADDR_MOD_7, prev_offset | (t >> 2));
-        }
-        else
-        {
-            // MOD0_FMT_LO16
-            TT_SFPLOADMACRO((2 << 2) | (t & 3), 9, ADDR_MOD_6, prev_offset | (t >> 2));
-        }
-        if (d < iterations)
-        {
-            // MOD0_FMT_LO16_ONLY
-            TT_SFPLOADMACRO((1 << 2) | (y & 3), 14, ADDR_MOD_6, offset | (y >> 2));
-        }
-        else
-        {
-            TTI_SFPNOP;
-        }
+        TT_SFPLOADMACRO((0 << 2) | (y & 3), 0, ADDR_MOD_7, offset | (y >> 2));   // MOD0_FMT_SRCB
+        TTI_SFPNOP;
+        TT_SFPLOADMACRO((1 << 2) | (y & 3), 14, ADDR_MOD_6, offset | (y >> 2));  // MOD0_FMT_LO16_ONLY
     }
+
+    // Main (d = 2 to iterations-1): all three SFPLOADMACROs are active.
+#pragma GCC unroll 6
+    for (int d = 2; d < iterations; d++)
+    {
+        int y = 3 + (d % 3);
+        TT_SFPLOADMACRO((0 << 2) | (y & 3), 0, ADDR_MOD_7, offset | (y >> 2));       // MOD0_FMT_SRCB
+        TT_SFPLOADMACRO((2 << 2) | (t & 3), 9, ADDR_MOD_7, prev_offset | (t >> 2));  // MOD0_FMT_LO16
+        TT_SFPLOADMACRO((1 << 2) | (y & 3), 14, ADDR_MOD_6, offset | (y >> 2));      // MOD0_FMT_LO16_ONLY
+    }
+
+    // Fill gap with SFPNOPs when iterations < 2.
+#pragma GCC unroll 2
+    for (int d = iterations; d < 2; d++)
+    {
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+    }
+
+    // Epilogue (final two iterations): 1st and 3rd instructions are SFPNOP; 2nd instruction uses ADDR_MOD_6.
+    const int drain_start = iterations < 2 ? 2 : iterations;
+#pragma GCC unroll 2
+    for (int d = drain_start; d < iterations + 2; d++)
+    {
+        TTI_SFPNOP;
+        TT_SFPLOADMACRO((2 << 2) | (t & 3), 9, ADDR_MOD_6, prev_offset | (t >> 2));  // MOD0_FMT_LO16
+        TTI_SFPNOP;
+    }
+
     TTI_SFPNOP;
 }
 
