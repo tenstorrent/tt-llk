@@ -118,8 +118,10 @@ def infer_pack_in(
             and output_format == DataFormat.Float32
             and is_fp32_dest_acc_en == DestAccumulation.No
         ):
-            # When the dest register is in 32-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is valid because pack_in=pack_out=Fp32, which is a supported packer conversion
-            # When dest register is in 16-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is not valid because pack_in=Fp16/16_b and pack_out=Fp32, which is not a supported packer conversion
+            # When the dest register is in 32-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is valid
+            # because pack_in=pack_out=Fp32, which is a supported packer conversion.
+            # When dest register is in 16-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is not valid
+            # because pack_in=Fp16/16_b and pack_out=Fp32, which is not a supported packer conversion.
             raise ValueError(
                 "Quasar packer does not support Float16/16_b to Float32 conversion"
             )
