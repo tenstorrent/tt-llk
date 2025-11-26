@@ -200,7 +200,9 @@ def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
 
 
-def run_elf_files(testname, variant_id, boot_mode, device_id=0, location="0,0"):
+def run_elf_files(
+    testname: str, variant_id: str, boot_mode: BootMode, device_id=0, location="0,0"
+):
     CHIP_ARCH = get_chip_architecture()
     BUILD_DIR = Path("/tmp/tt-llk-build/")
 

@@ -48,7 +48,7 @@ DEPS_DIR        := $(TEST_DIR)/deps
 DIS_DIR         := $(TEST_DIR)/dis
 ELF_DIR         := $(TEST_DIR)/elf
 
-PROFILER_DIR    := $(TEST_DIR)/profiler
+PROFILER_DIR    := $(BUILD_DIR)/profiler_meta/$(testname)/$(variant)
 
 HELPERS         := helpers
 RISCV_SOURCES   := $(HELPERS)/src
