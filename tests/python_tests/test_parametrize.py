@@ -10,6 +10,7 @@ from helpers.param_config import (
     _compute_dependency_matrix,
     _compute_resolution_order,
     _param_dependencies,
+    _params_solve_dependencies,
     _verify_dependency_map,
 )
 
@@ -223,3 +224,180 @@ def test_compute_resolution_order_fail_circular():
 
     assert len(cycle) == len(expected_cycle)
     assert set(cycle) == set(expected_cycle)
+
+
+def test_params_solve_dependencies_no_constraints_values():
+    """
+    Test case where no constrain functions are provided.
+    Parameters are values, not lists.
+    Result should be a single value.
+    """
+
+    result = _params_solve_dependencies(
+        b=1,
+        c=10,
+        d=100,
+    )
+
+    expected = [
+        (1, 10, 100),
+    ]
+
+    assert len(result) == len(expected)
+    assert set(result) == set(expected)
+
+
+def test_params_solve_dependencies_no_constraints_lists():
+    """
+    Test case where no constrain functions are provided.
+    Result should be a full cartesian product of the parameters.
+    """
+
+    result = _params_solve_dependencies(b=[1, 2], c=[10, 20], d=[100, 200])
+
+    expected = [
+        (1, 10, 100),
+        (1, 10, 200),
+        (1, 20, 100),
+        (1, 20, 200),
+        (2, 10, 100),
+        (2, 10, 200),
+        (2, 20, 100),
+        (2, 20, 200),
+    ]
+
+    assert len(result) == len(expected)
+    assert set(result) == set(expected)
+
+
+def test_params_solve_dependencies_single_constraint_empty():
+    """
+    Test with a simple constraint where b returns an empty list.
+    """
+    result = _params_solve_dependencies(
+        a=[1, 2, 3],
+        b=lambda a: [],
+    )
+
+    assert len(result) == 0
+
+
+def test_params_solve_dependencies_single_constraint_value():
+    """
+    Test with a simple constraint where b depends on a.
+    Constraint function returns a single value.
+    """
+    result = _params_solve_dependencies(
+        a=[1, 2, 3],
+        b=lambda a: a * a,
+    )
+
+    expected = [
+        (1, 1),
+        (2, 4),
+        (3, 9),
+    ]
+
+    assert len(result) == len(expected)
+    assert set(result) == set(expected)
+
+
+def test_params_solve_dependencies_single_constraint_list():
+    """
+    Test with a simple constraint where b depends on a.
+    Constraint function returns a list of values.
+    """
+    result = _params_solve_dependencies(
+        a=[1, 2, 3],
+        b=lambda a: [i * i for i in range(1, a + 1)],
+    )
+
+    expected = [
+        (1, 1),
+        (2, 1),
+        (2, 4),
+        (3, 1),
+        (3, 4),
+        (3, 9),
+    ]
+
+    assert len(result) == len(expected)
+    assert set(result) == set(expected)
+
+
+def test_params_solve_dependencies_single_constraint_multiple_dependencies():
+    """
+    Test constraint that test if constraint function is called with the correct dependencies.
+    """
+    result = _params_solve_dependencies(
+        a=[1, 2, 3], b=[1, 2, 3, 4], c=lambda b, a: [b - a]
+    )
+
+    # Verify completeness - count valid combinations
+    expected = [
+        (1, 1, 0),
+        (1, 2, 1),
+        (1, 3, 2),
+        (1, 4, 3),
+        (2, 1, -1),
+        (2, 2, 0),
+        (2, 3, 1),
+        (2, 4, 2),
+        (3, 1, -2),
+        (3, 2, -1),
+        (3, 3, 0),
+        (3, 4, 1),
+    ]
+
+    assert len(result) == len(expected)
+    assert set(result) == set(expected)
+
+
+def test_params_solve_dependencies_multiple_chain_constraints_ordered():
+    """
+    Test with multiple chain dependencies: z depends on y, y depends on x.
+    """
+    result = _params_solve_dependencies(
+        x=[1, 2],
+        y=lambda x: [x * 2, x * 3],
+        z=lambda y: [y * 5, y * 7],
+    )
+
+    expected = [
+        (1, 2, 10),
+        (1, 2, 14),
+        (1, 3, 15),
+        (1, 3, 21),
+        (2, 4, 20),
+        (2, 4, 28),
+        (2, 6, 30),
+        (2, 6, 42),
+    ]
+
+    assert len(result) == len(expected)
+    assert set(result) == set(expected)
+
+
+def test_params_solve_dependencies_multiple_chain_constraints_shuffled():
+    """
+    Test with multiple chain dependencies: z depends on y, y depends on x.
+    """
+    result = _params_solve_dependencies(
+        z=lambda y: [y + 1, y + 2],
+        x=[1, 2],
+        y=lambda x: [x * 10, x * 20],
+    )
+
+    expected = [
+        (11, 1, 10),
+        (12, 1, 10),
+        (21, 1, 20),
+        (22, 1, 20),
+        (21, 2, 20),
+        (22, 2, 20),
+        (41, 2, 40),
+        (42, 2, 40),
+    ]
+
+    assert len(result) == len(expected)
+    assert set(result) == set(expected)
