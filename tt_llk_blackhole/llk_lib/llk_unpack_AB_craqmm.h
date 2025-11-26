@@ -296,7 +296,8 @@ inline void _llk_unpack_AB_craqmm_(
 
     for (std::uint32_t i = 0; i < num_loops; i++)
     {
-        TT_MOP(0, 15, 0xAAAA);
+        TTI_MOP(0, 15, 0xAAAA);
+#pragma GCC unroll 8
         for (std::uint32_t j = 0; j < 8; j++)
         {
             wait_for_next_context(2);
