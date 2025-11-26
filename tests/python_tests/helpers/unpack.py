@@ -244,11 +244,7 @@ def unpack_res_tiles(
         end_idx = start_idx + elements_per_tile_needed
         tile_data = packed_list[start_idx:end_idx]
 
-        if unpack_func == unpack_bfp8_b:
-            unpacked_tile = unpack_func(tile_data, num_faces=num_faces)
-        elif unpack_func == unpack_mxfp8r:
-            unpacked_tile = unpack_func(tile_data, num_faces=num_faces)
-        elif unpack_func == unpack_mxfp8p:
+        if unpack_func in [unpack_bfp8_b, unpack_mxfp8r, unpack_mxfp8p]:
             unpacked_tile = unpack_func(tile_data, num_faces=num_faces)
         else:
             unpacked_tile = unpack_func(tile_data)

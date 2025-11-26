@@ -453,6 +453,11 @@ def get_result_from_device(
         unpack_func = unpackers.get(formats.output_format)
 
     if unpack_func:
+        # MXFP8 formats take (packed_bytes, num_faces) not format arguments
+        if formats.output_format in {DataFormat.MXFP8R, DataFormat.MXFP8P}:
+            return unpack_func(read_data_bytes)
+
+        # Other multi-parameter functions take format arguments
         num_args = len(inspect.signature(unpack_func).parameters)
         if num_args > 1:
             return unpack_func(

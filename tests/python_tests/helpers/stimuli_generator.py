@@ -80,7 +80,7 @@ def _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu):
     diverse test data with realistic dynamic range. Max values from format_config.py.
     """
     if const_face:
-        return torch.ones(size, dtype=torch.float32) * const_value
+        return torch.ones(size, dtype=torch.bfloat16) * const_value
 
     # Scale factor: use 5% of format's max normal value
     # This ensures values are well within representable range while maintaining diversity
@@ -91,7 +91,7 @@ def _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu):
 
     # Generate normal distribution: ~68% within ±1σ, ~95% within ±2σ
     # With σ=scale, most values stay well below max while creating realistic variance
-    face_data = torch.randn(size, dtype=torch.float32) * scale
+    face_data = torch.randn(size, dtype=torch.bfloat16) * scale
 
     # Add SFPU-friendly offset if needed
     if sfpu:

@@ -255,10 +255,10 @@ class SrcFormatModel:
         Handles MXFP8R format (MXFP8 E5M2 variant).
 
         Golden generators work on the original stimuli data (before compression).
-        MXFP8R stimuli are generated as torch.float32, so we delegate to Float32 conversion.
+        MXFP8R stimuli are generated as torch.bfloat16, so we delegate to Float16_b conversion.
         The pack/unpack functions handle the MXFP8 compression/decompression separately.
         """
-        return SrcFormatModel._fp32_to_tf32(tensor)
+        return SrcFormatModel._fp16b_to_tf32(tensor)
 
     @staticmethod
     def _mxfp8p_to_tf32(
@@ -268,10 +268,10 @@ class SrcFormatModel:
         Handles MXFP8P format (MXFP8 E4M3 variant).
 
         Golden generators work on the original stimuli data (before compression).
-        MXFP8P stimuli are generated as torch.float32, so we delegate to Float32 conversion.
+        MXFP8P stimuli are generated as torch.bfloat16, so we delegate to Float16_b conversion.
         The pack/unpack functions handle the MXFP8 compression/decompression separately.
         """
-        return SrcFormatModel._fp32_to_tf32(tensor)
+        return SrcFormatModel._fp16b_to_tf32(tensor)
 
     @staticmethod
     def from_src_format(
