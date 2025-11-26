@@ -12,7 +12,6 @@ from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     BootMode,
-    generate_info_file_for_run,
     resolve_default_boot_mode,
     run_elf_files,
     wait_for_tensix_operations_finished,
@@ -608,13 +607,13 @@ def run_test(
     elfs = run_elf_files(test_config["testname"], variant_id, boot_mode)
     wait_for_tensix_operations_finished(elfs)
 
-    if test_target.with_coverage:
-        generate_info_file_for_run(
-            test_config["testname"],
-            variant_id,
-            f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}",
-            0,
-            location,
-        )
+    # if test_target.with_coverage:
+    #     generate_info_file_for_run(
+    #         test_config["testname"],
+    #         variant_id,
+    #         f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}",
+    #         0,
+    #         location,
+    #     )
 
     # shutil.rmtree(f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}")
