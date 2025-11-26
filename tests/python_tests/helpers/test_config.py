@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-import shutil
 from enum import Enum
 from hashlib import sha256
 from pathlib import Path
@@ -618,4 +617,4 @@ def run_test(
             location,
         )
 
-    shutil.rmtree(f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}")
+    # shutil.rmtree(f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}")
