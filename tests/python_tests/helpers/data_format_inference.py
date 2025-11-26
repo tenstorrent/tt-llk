@@ -58,7 +58,7 @@ def infer_unpack_out(
     based on the input format in L1 and whether unpacking targets the source or destination register.
 
     Note:
-        For Quasar, the unpacker can perform data conversions, but for now only conversions using the packer are tested.
+        For Quasar, the unpacker can perform data conversions, but for now only conversions performed by the packer are tested.
         For Quasar, the conditions determining which format Float32 truncates to are designed to minimize exponent mixing, but are not a hardware limitation.
 
     Args:
@@ -123,9 +123,9 @@ def infer_pack_in(
             # When dest register is in 16-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is not valid
             # because pack_in=Fp16/16_b and pack_out=Fp32, which is not a supported packer conversion.
             raise ValueError(
-                "Quasar packer does not support Float16/16_b to Float32 conversion"
+                "Quasar packer does not support {input_format.name} to Float32 conversion when the dest register is in 16-bit mode"
             )
-        # When the dest register is in 32-bit mode, the packer input format is 32bit
+        # When the dest register is in 32-bit mode, the packer input format is 32-bit
         return (
             DataFormat.Float32
             if is_fp32_dest_acc_en == DestAccumulation.Yes
