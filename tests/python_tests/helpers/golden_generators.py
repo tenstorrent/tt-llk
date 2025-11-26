@@ -1145,7 +1145,7 @@ class UnarySFPUGolden:
         # Reduce columns within this tensor
         # Take max along the height (dim=0) for each column
         if reduce_pool == ReducePool.Max:
-            reduced_tile = torch.max(x, dim=0).values
+            reduced_tile = torch.min(x, dim=0).values
         elif reduce_pool == ReducePool.Sum:
             reduced_tile = torch.sum(x, dim=0)
         elif reduce_pool == ReducePool.Average:

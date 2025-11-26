@@ -221,6 +221,13 @@ inline void init_reduce_max(uint32_t num_cols)
     // Initialize SFPU config and set swap direction before defining LOADMACRO sequences
     _init_sfpu_config_reg();
 
+    // For MIN, toggle swap direction bit in SFPU control register
+    // Bit 8 (0x0100) controls float swap direction for min/max comparisons
+    // Note: Integer formats are not supported swapping direction
+    TTI_SFPLOADI(0, 0xA, 0x100);  // Load lower 16 bits (bit 8)
+    TTI_SFPLOADI(0, 0x8, 0x0000); // Load upper 16 bits
+    TTI_SFPCONFIG(0, 0xF, 0);     // Copy LREG0 to SFPU control register
+
     // Setup LOADMACRO sequence 0
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, (0xC | p_sfpu::LREG0) /*backdoor + dest*/, 1 /*instr_mod1*/);
     TTI_SFPLOADI(0, 0xA, 0x0084);

@@ -214,11 +214,13 @@ inline void configure_addrmod_max(uint32_t num_cols)
 // ============================================================================
 
 /**
- * @brief Initialization for SFPU reduce MAX kernel.
+ * @brief Initialization for SFPU reduce MAX/MIN kernel.
  *        Sets up LOADMACRO sequences for compare-and-swap operations, configures address modifiers,
- *        and records replay buffers for efficient column-wise maximum reduction.
+ *        and records replay buffers for efficient column-wise maximum/minimum reduction.
+ *        For INT32 MIN operations, includes format conversion from sign+magnitude to 2's complement.
  *
  * @tparam INSTRUCTION_MODE The instruction mode for integer and float formats: INT32, INT32_2S_COMP, LO16, FP32, FP16B
+ * @tparam pool_type The operation type: MAX or MIN
  * @param num_cols The number of columns to process (typically 32 for a single tile, or multiple of 32 for block operations)
  */
 template <InstrModLoadStore INSTRUCTION_MODE, PoolType pool_type>
@@ -226,6 +228,16 @@ inline void init_reduce_max(uint32_t num_cols)
 {
     // Initialize SFPU config and set swap direction before defining LOADMACRO sequences
     _init_sfpu_config_reg();
+
+    // For MIN, toggle swap direction bit in SFPU control register
+    // Bit 8 (0x0100) controls swap direction for min/max comparisons
+    // For INT32 sign+magnitude, we also need format conversion to 2's complement
+    if constexpr (pool_type == PoolType::MIN)
+    {
+        TTI_SFPLOADI(0, 0xA, 0x0100); // Load lower 16 bits (bit 8)
+        TTI_SFPLOADI(0, 0x8, 0x0000); // Load upper 16 bits
+        TTI_SFPCONFIG(0, 0xF, 0);     // Copy LREG0 to SFPU control register
+    }
 
     // Setup LOADMACRO sequence 0
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, (0xC | p_sfpu::LREG0) /*backdoor + dest*/, 1 /*instr_mod1*/);
@@ -242,15 +254,51 @@ inline void init_reduce_max(uint32_t num_cols)
     configure_addrmod_max(num_cols);
 
     // Record replay buffer for compare-and-swap operations
-    lltt::record<lltt::NoExec>(0, 11);
+    // For INT32 sign+magnitude MIN: convert to 2's complement, compare, convert back
+    constexpr bool use_format_conversion = (INSTRUCTION_MODE == InstrModLoadStore::INT32 && pool_type == PoolType::MIN);
+    constexpr uint32_t replay_length     = use_format_conversion ? 19 : 11;
+
+    lltt::record<lltt::NoExec>(0, replay_length);
     TTI_INCRWC(0, 4, 0, 0);
     TTI_SFPLOADMACRO(5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
     TTI_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, 16);
     TTI_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, 18);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG1 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPNOP;
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPNOP;
+
+    if constexpr (use_format_conversion)
+    {
+        // Convert LREG0,1 from sign+magnitude to 2's complement
+        TTI_SFPCAST(p_sfpu::LREG0, p_sfpu::LREG2, InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP);
+        TTI_SFPSETSGN(0, p_sfpu::LREG2, p_sfpu::LREG0, 0); // Blackhole RTL workaround
+        TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG3, InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP);
+        TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG1, 0); // Blackhole RTL workaround
+
+        // Convert LREG6,7 from sign+magnitude to 2's complement
+        TTI_SFPCAST(p_sfpu::LREG6, p_sfpu::LREG2, InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP);
+        TTI_SFPSETSGN(0, p_sfpu::LREG2, p_sfpu::LREG6, 0);
+        TTI_SFPCAST(p_sfpu::LREG7, p_sfpu::LREG3, InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP);
+        TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG7, 0);
+
+        // Perform swap on 2's complement values
+        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG1 /*lreg_dest*/, 1 /*instr_mod1*/);
+        TTI_SFPNOP;
+        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
+        TTI_SFPNOP;
+
+        // Convert results back to sign+magnitude
+        TTI_SFPCAST(p_sfpu::LREG0, p_sfpu::LREG2, InstrModCast::INT32_2S_COMP_TO_INT_SIGN_MAGN);
+        TTI_SFPSETSGN(0, p_sfpu::LREG2, p_sfpu::LREG0, 0);
+        TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG3, InstrModCast::INT32_2S_COMP_TO_INT_SIGN_MAGN);
+        TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG1, 0);
+    }
+    else
+    {
+        // Standard swap without format conversion
+        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG1 /*lreg_dest*/, 1 /*instr_mod1*/);
+        TTI_SFPNOP;
+        TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
+        TTI_SFPNOP;
+    }
+
     TTI_SFPLOADMACRO(0, INSTRUCTION_MODE, ADDR_MOD_7, 0);
     // Dummy loads to increment dest counters
     TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_6, 0);
@@ -330,18 +378,21 @@ inline void init_reduce_sum_avg()
  */
 
 /**
- * @brief Column-wise maximum reduction kernel for SFPU reduce MAX operation.
- *        Processes a block of tiles vertically (block_height tiles stacked) and computes the maximum value
- *        for each of the columns across all rows in the block. The maximum values are placed into
+ * @brief Column-wise maximum/minimum reduction kernel for SFPU reduce MAX/MIN operation.
+ *        Processes a block of tiles vertically (block_height tiles stacked) and computes the maximum or minimum value
+ *        for each of the columns across all rows in the block. The result values are placed into
  *        the first row of the output tile (row 0 of faces 0 and 1) in tilized format for each tile in the top row of tiles in the block.
  *
  *        Algorithm:
  *        - Initializes LREG4-7 with the first face pair's data (even/odd columns from faces 0 and 1)
- *        - For each tile in the block, performs compare-and-swap operations using replay buffers to find maxima
+ *        - For INT32 MIN: Converts from sign+magnitude to 2's complement format before comparisons
+ *        - For each tile in the block, performs compare-and-swap operations using replay buffers to find maxima/minima
  *        - Uses SFPSWAP instruction for comparisons to determine maximum/minimum between two lregs storing column data
  *        - Transposes and sorts results to align maxima/minima correctly across LREG4-7
- *        - Stores final maximum values to row 0 (32 datums across faces 0 and 1)
+ *        - For INT32 MIN: Converts results back from 2's complement to sign+magnitude format
+ *        - Stores final maximum/minimum values to row 0 (32 datums across faces 0 and 1)
  *
+ * @tparam pool_type The operation type: MAX or MIN
  * @tparam reduce_dim The reduction dimension (currently only REDUCE_COL is supported)
  * @tparam INSTRUCTION_MODE The instruction mode for integer and float formats: INT32, INT32_2S_COMP, LO16, FP32, FP16B
  * @param block_height The number of tiles in the vertical block to reduce (default is 1 for single tile).
@@ -354,12 +405,26 @@ inline void calculate_reduce_max(const uint32_t block_height)
 
     constexpr uint32_t replay_buffer_offset    = 9;
     constexpr uint32_t replay_buffer_next_face = 10;
+    constexpr bool use_format_conversion       = (INSTRUCTION_MODE == InstrModLoadStore::INT32 && pool_type == PoolType::MIN);
 
     // Initial loads: LREG4-7 will hold maximum values across F0 and F1
     TTI_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, 0);
     TTI_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
     TTI_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, 16);
     TTI_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, 18);
+
+    // For INT32 MIN: Convert initial values from sign+magnitude to 2's complement
+    if constexpr (use_format_conversion)
+    {
+        TTI_SFPCAST(p_sfpu::LREG4, p_sfpu::LREG2, InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP);
+        TTI_SFPSETSGN(0, p_sfpu::LREG2, p_sfpu::LREG4, 0);
+        TTI_SFPCAST(p_sfpu::LREG5, p_sfpu::LREG2, InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP);
+        TTI_SFPSETSGN(0, p_sfpu::LREG2, p_sfpu::LREG5, 0);
+        TTI_SFPCAST(p_sfpu::LREG6, p_sfpu::LREG2, InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP);
+        TTI_SFPSETSGN(0, p_sfpu::LREG2, p_sfpu::LREG6, 0);
+        TTI_SFPCAST(p_sfpu::LREG7, p_sfpu::LREG2, InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP);
+        TTI_SFPSETSGN(0, p_sfpu::LREG2, p_sfpu::LREG7, 0);
+    }
 
     // First tile processing (F0, F1, F2, F3)
     lltt::replay(0, replay_buffer_offset);
@@ -394,6 +459,19 @@ inline void calculate_reduce_max(const uint32_t block_height)
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
     TTI_SFPTRANSP(0, 0, 0, 0);
+
+    // For INT32 MIN: Convert results back from 2's complement to sign+magnitude before storing
+    if constexpr (use_format_conversion)
+    {
+        TTI_SFPCAST(p_sfpu::LREG4, p_sfpu::LREG2, InstrModCast::INT32_2S_COMP_TO_INT_SIGN_MAGN);
+        TTI_SFPSETSGN(0, p_sfpu::LREG2, p_sfpu::LREG4, 0);
+        TTI_SFPCAST(p_sfpu::LREG5, p_sfpu::LREG2, InstrModCast::INT32_2S_COMP_TO_INT_SIGN_MAGN);
+        TTI_SFPSETSGN(0, p_sfpu::LREG2, p_sfpu::LREG5, 0);
+        TTI_SFPCAST(p_sfpu::LREG6, p_sfpu::LREG2, InstrModCast::INT32_2S_COMP_TO_INT_SIGN_MAGN);
+        TTI_SFPSETSGN(0, p_sfpu::LREG2, p_sfpu::LREG6, 0);
+        TTI_SFPCAST(p_sfpu::LREG7, p_sfpu::LREG2, InstrModCast::INT32_2S_COMP_TO_INT_SIGN_MAGN);
+        TTI_SFPSETSGN(0, p_sfpu::LREG2, p_sfpu::LREG7, 0);
+    }
 
     // Store results to first row
     TTI_SFPSTORE(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, 0);
@@ -496,9 +574,9 @@ inline void calculate_reduce_sum_avg()
 /**
  * @brief Unified reduction init kernel wrapper for SFPU reduce kernel.
  *        Determines the instruction mode from format, then dispatches to the appropriate init kernel.
- * @tparam pool_type The reduction operation, currently supported: (SUM, AVG, MAX)
+ * @tparam pool_type The reduction operation, currently supported: (SUM, AVG, MAX, MIN)
  * @tparam format The data format, currently supported: (Int32, UInt32, UInt16, Float32, Float16_b)
- * @param block_ct_dim Block dimension (used for MAX reduction to specify number of columns, default is 1 for single tile)
+ * @param block_ct_dim Block dimension (used for MAX/MIN reduction to specify number of columns, default is 1 for single tile)
  */
 template <PoolType pool_type, DataFormat format>
 inline void _init_reduce_(uint32_t block_ct_dim = 1)
@@ -509,7 +587,7 @@ inline void _init_reduce_(uint32_t block_ct_dim = 1)
     constexpr InstrModLoadStore INSTRUCTION_MODE = get_instruction_mode<format>();
 
     // Dispatch to appropriate PoolType init
-    if constexpr (pool_type == PoolType::MAX)
+    if constexpr (pool_type == PoolType::MAX || pool_type == PoolType::MIN)
     {
         init_reduce_max<INSTRUCTION_MODE, pool_type>(block_ct_dim);
     }
@@ -520,18 +598,18 @@ inline void _init_reduce_(uint32_t block_ct_dim = 1)
     else
     {
         static_assert(
-            pool_type == PoolType::SUM || pool_type == PoolType::AVG || pool_type == PoolType::MAX,
-            "Unsupported pool_type. Currently supported: SUM, AVG, MAX");
+            pool_type == PoolType::SUM || pool_type == PoolType::AVG || pool_type == PoolType::MAX || pool_type == PoolType::MIN,
+            "Unsupported pool_type. Currently supported: SUM, AVG, MAX, MIN");
     }
 }
 
 /**
  * @brief Unified reduction kernel wrapper for a 32x32 tile.
  *        Determines the instruction mode from format, then dispatches to the appropriate reduction kernel.
- * @tparam pool_type The reduction operation, currently supported: (SUM, AVG, MAX)
+ * @tparam pool_type The reduction operation, currently supported: (SUM, AVG, MAX, MIN)
  * @tparam reduce_dim The reduction dimension (currently only REDUCE_COL is supported)
  * @tparam format The data format, currently supported: (Int32, UInt32, UInt16, Float32, Float16_b)
- * @param block_rt_dim Block dimension (used for MAX reduction to specify block height, default is 1 for single tile)
+ * @param block_rt_dim Block dimension (used for MAX/MIN reduction to specify block height, default is 1 for single tile)
  */
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
 inline void _calculate_reduce_(uint32_t block_rt_dim = 1)
@@ -543,7 +621,7 @@ inline void _calculate_reduce_(uint32_t block_rt_dim = 1)
     constexpr InstrModLoadStore INSTRUCTION_MODE = get_instruction_mode<format>();
 
     // Dispatch to appropriate reduction kernel based on PoolType
-    if constexpr (pool_type == PoolType::MAX)
+    if constexpr (pool_type == PoolType::MAX || pool_type == PoolType::MIN)
     {
         calculate_reduce_max<pool_type, reduce_dim, INSTRUCTION_MODE>(block_rt_dim);
     }
@@ -554,8 +632,8 @@ inline void _calculate_reduce_(uint32_t block_rt_dim = 1)
     else
     {
         static_assert(
-            pool_type == PoolType::SUM || pool_type == PoolType::AVG || pool_type == PoolType::MAX,
-            "Unsupported pool_type. Currently supported: SUM, AVG, MAX");
+            pool_type == PoolType::SUM || pool_type == PoolType::AVG || pool_type == PoolType::MAX || pool_type == PoolType::MIN,
+            "Unsupported pool_type. Currently supported: SUM, AVG, MAX, MIN");
     }
 }
 
