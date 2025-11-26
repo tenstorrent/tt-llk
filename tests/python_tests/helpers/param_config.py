@@ -282,14 +282,15 @@ def _params_solve_dependencies(**kwargs: any) -> List[Tuple]:
 
         return [argument]
 
-    def _solve_recursive(resolved: list[any], current_parameter: int) -> List[Tuple]:
+    def _solve_recursive(resolved: list[any], resolution_index: int) -> List[Tuple]:
         """Recursively build combinations starting from parameter at idx."""
-        if current_parameter >= len(resolution_order):
+        if resolution_index >= len(resolution_order):
             # Base case: return the parameters tuple wrapped in a list
             return [tuple(resolved)]
 
         # Get current parameter and its possible values
-        arguments = _resolve_param_values(resolved, current_parameter)
+        parameter = resolution_order[resolution_index]
+        arguments = _resolve_param_values(resolved, parameter)
 
         if not arguments:
             return []
@@ -299,8 +300,8 @@ def _params_solve_dependencies(**kwargs: any) -> List[Tuple]:
         for argument in arguments:
             # Create new resolved list with updated value
             resolved_next = resolved.copy()
-            resolved_next[current_parameter] = argument
-            combinations.extend(_solve_recursive(resolved_next, current_parameter + 1))
+            resolved_next[parameter] = argument
+            combinations.extend(_solve_recursive(resolved_next, resolution_index + 1))
 
         return combinations
 
