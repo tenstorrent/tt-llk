@@ -84,24 +84,9 @@ class Operand:
 
 @dataclass
 class OperandMapping:
-    inputs: dict[str, str]
-    outputs: dict[str, str]
-
-    def get_input_operand(self, key: str, operands: dict[str, Operand]) -> Operand:
-        operand_name = self.inputs.get(key)
-        if operand_name is None:
-            raise KeyError(f"Input key '{key}' not found in mapping")
-        if operand_name not in operands:
-            raise KeyError(f"Operand '{operand_name}' not found in operands dict")
-        return operands[operand_name]
-
-    def get_output_operand(self, key: str, operands: dict[str, Operand]) -> Operand:
-        operand_name = self.outputs.get(key)
-        if operand_name is None:
-            raise KeyError(f"Output key '{key}' not found in mapping")
-        if operand_name not in operands:
-            raise KeyError(f"Operand '{operand_name}' not found in operands dict")
-        return operands[operand_name]
+    src_a: str
+    src_b: str
+    output: str
 
 
 class OperandRegistry:
