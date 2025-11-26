@@ -22,7 +22,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
     sfpi::vFloat y = sfpi::approx_recip(x);
 
     // Optionally improve the approximation using Newton-Raphson.
-    if (max_iter > 0)
+    if constexpr (max_iter > 0)
     {
         // Normally, t = 2.0 - x * y, but we negate this (and negate again using y = y * -t later).
         // On Blackhole, when x=0 and y=infinity (and vice versa), t=+NaN regardless of the operand signs.
@@ -30,7 +30,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
         // Equivalently, we could use v_if (t >= 2.0) instead, but SFPI doesn't support SFPLE/SFPGT at the moment.
         sfpi::vFloat t = x * y - sfpi::vConstFloatPrgm0;
 
-        if (max_iter > 1)
+        if constexpr (max_iter > 1)
         {
             sfpi::vFloat y1 = y * -t - sfpi::vConst0;
             // If t=NaN, then t>=0.  This check consumes the SFPNOP slot of the preceding SFPMAD.
@@ -419,11 +419,11 @@ inline void _init_reciprocal_()
 {
     if constexpr (!legacy_compat)
     {
-        if (APPROXIMATION_MODE)
+        if constexpr (APPROXIMATION_MODE)
         {
             _init_reciprocal_fast_7b_();
         }
-        else if (is_fp32_dest_acc_en)
+        else if constexpr (is_fp32_dest_acc_en)
         {
             _init_reciprocal_fast_24b_5c_();
         }
