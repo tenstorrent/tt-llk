@@ -33,13 +33,6 @@ void run_kernel()
 
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
 
-    constexpr uint unpacr_A = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    constexpr uint unpacr_B = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-
-    ckernel_template unpack_mop(1, 4, unpacr_A, unpacr_B);
-
-    unpack_mop.program();
-
     for (int i = 0; i < TILE_CNT; i++)
     {
         TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
@@ -58,13 +51,15 @@ void run_kernel()
         }
 
         semaphore_post(semaphore::UNPACK_SYNC);
-
         TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
-        ckernel_template::run();
+        for (int face = 0; face < 4; face++)
+        {
+            TTI_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+            TTI_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        }
 
         t6_semaphore_get(semaphore::UNPACK_SYNC);
-
         switch_config_context(unp_cfg_context);
     }
 }
@@ -93,17 +88,9 @@ void run_kernel()
     }
         .set(ADDR_MOD_0);
 
-    constexpr uint outerloop   = 4;
-    constexpr uint innerloop   = 16 >> 3;
     const uint addr_mod        = ADDR_MOD_0;
     const uint32_t acc_to_dest = 0;
     auto broadcast_type        = p_elwise::SRCB_NO_BCAST;
-
-    ckernel_template math_mop(outerloop, innerloop, TT_OP_ELWADD(0, acc_to_dest, broadcast_type, addr_mod, 0));
-
-    math_mop.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_AB, 0, 0, 0, p_setrwc::SET_AB));
-
-    math_mop.program();
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
@@ -111,8 +98,17 @@ void run_kernel()
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(i);
-        math::reset_counters(p_setrwc::SET_ABD_F);
-        ckernel_template::run();
+
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_ABD_F);
+
+        for (int face = 0; face < 4; face++)
+        {
+            TTI_ELWADD(0, acc_to_dest, broadcast_type, addr_mod, 0);
+            TTI_ELWADD(0, acc_to_dest, broadcast_type, addr_mod, 0);
+
+            TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_AB, 0, 0, 0, p_setrwc::SET_AB);
+        }
+
         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
 }
