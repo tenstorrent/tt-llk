@@ -173,22 +173,22 @@ inline void _calculate_reciprocal_fast_24b_5c_(const int iterations)
     //
     // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
     //
-    // t  | Load | Simple                 | MAD                     | Store   |
-    // -- | -----| ---------------------- | ----------------------- |-------- |
-    //  0 | [y]  |                        |                         |         |
-    //  1 |      | [y] = arecip(y)        |                         |         |
-    //  2 | [e]  |                        |                         |         |
-    //  3 |      | [e] L16 = arecip(e)    | e = mad(-e, y, 1.0)     |         |
-    //  4 |      |                        |                         |         |
-    //  5 |      |                        | [e] = mad(e, e, e)      | [e]     |
-    //  6 | [t2] |                        |                         |         |
-    //  7 |      |                        | [t2] = mad(t2, e, t2)   | [y] L16 |
-    //  8 |      |                        |                         |         |
-    //  9 | [z]  | [t2] = swap(t2, 1.0)   |                         |         |
-    // 10 |      |                        |                         |         |
-    // 11 |      |                        | [z] L16 = mad(t2, z, z) |         |
-    // 12 |      |                        |                         |         |
-    // 13 |      |                        |                         | [z] L16 |
+    //   | Load | Simple                 | MAD                     | Store   |
+    // - | -----| ---------------------- | ----------------------- |-------- |
+    // 0 | [y]  |                        |                         |         |
+    // 1 |      | [y] = arecip(y)        |                         |         |
+    // 2 | [e]  |                        |                         |         |
+    // 3 |      | [e] L16 = arecip(e)    | e = mad(-e, y, 1.0)     |         |
+    // 4 |      |                        |                         |         |
+    // 0 |      |                        | [e] = mad(e, e, e)      | [e]     |
+    // 1 | [t2] |                        |                         |         |
+    // 2 |      |                        | [t2] = mad(t2, e, t2)   | [y] L16 |
+    // 3 |      |                        |                         |         |
+    // 4 | [z]  | [t2] = swap(t2, 1.0)   |                         |         |
+    // 0 |      |                        |                         |         |
+    // 1 |      |                        | [z] L16 = mad(t2, z, z) |         |
+    // 2 |      |                        |                         |         |
+    // 3 |      |                        |                         | [z] L16 |
 
     lltt::replay(0, 4);
     TTI_SFPLOAD(7, 0, ADDR_MOD_6, 0);
