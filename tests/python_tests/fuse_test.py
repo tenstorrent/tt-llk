@@ -13,6 +13,7 @@ from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.fuse_golden import FuseGolden
 from helpers.fuse_pipeline import create_fuse_pipeline
 from helpers.llk_params import (
+    ApproximationMode,
     DestAccumulation,
     MathFidelity,
 )
@@ -39,6 +40,8 @@ def generate_format_aware_matmul_combinations(
     combinations = []
 
     for fmt in formats_list:
+        if fmt.input_format != fmt.output_format:
+            continue
         base_max_tiles = 4 if is_dest_acc_needed(fmt) else 8
 
         for dest_acc in dest_acc_modes:
