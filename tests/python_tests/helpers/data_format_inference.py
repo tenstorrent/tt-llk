@@ -113,6 +113,14 @@ def infer_pack_in(
     is_quasar = chip_arch == ChipArchitecture.QUASAR
 
     if is_quasar:
+        if (
+            (input_format == DataFormat.Float16 or input_format == DataFormat.Float16_b)
+            and output_format == DataFormat.Float32
+            and is_fp32_dest_acc_en == DestAccumulation.No
+        ):
+            raise ValueError(
+                "Quasar packer does not support Float16/16_b to Float32 conversion"
+            )
         # When the dest register is in 32-bit mode, the packer input format is 32bit
         return (
             DataFormat.Float32
