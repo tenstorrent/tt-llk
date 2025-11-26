@@ -133,6 +133,7 @@ for base_param in base_params:
         )
         all_params.append(combined_params)
 
+
 def filter_params_with_constraints(all_params):
     """Filter valid parameter combinations based on hardware constraints"""
 
@@ -143,7 +144,6 @@ def filter_params_with_constraints(all_params):
     logger = logging.getLogger(__name__)
 
     old_cnt = len(all_params)
-    all_params = [p for p in all_params if quick_filter(p)]
 
     if (
         os.environ.get("PYTEST_XDIST_WORKER", "gw0") == "gw0"
