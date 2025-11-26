@@ -3,7 +3,6 @@
 
 
 import torch
-from conftest import skip_for_coverage
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -49,7 +48,6 @@ def get_format_input_bounds(formats: InputOutputFormat) -> list[tuple[int, int]]
     return [(-1000, 1000), (0, 1000), (-1000, 0)]
 
 
-@skip_for_coverage
 @parametrize(
     test_name="sfpu_reduce_test",
     formats=input_output_formats(
