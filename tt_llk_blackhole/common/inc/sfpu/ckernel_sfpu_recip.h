@@ -121,9 +121,9 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
     for (int d = 0; d < fill_end; d++)
     {
         int y = 3 + (d % 3);
-        TT_SFPLOADMACRO((0 << 2) | (y & 3), 0, ADDR_MOD_7, offset | (y >> 2));   // MOD0_FMT_SRCB
+        TT_SFPLOADMACRO((0 << 2) | (y & 3), 0, ADDR_MOD_7, offset | (y >> 2)); // MOD0_FMT_SRCB
         TTI_SFPNOP;
-        TT_SFPLOADMACRO((1 << 2) | (y & 3), 14, ADDR_MOD_6, offset | (y >> 2));  // MOD0_FMT_LO16_ONLY
+        TT_SFPLOADMACRO((1 << 2) | (y & 3), 14, ADDR_MOD_6, offset | (y >> 2)); // MOD0_FMT_LO16_ONLY
     }
 
     // Main (d = 2 to iterations-1): all three SFPLOADMACROs are active.
@@ -131,9 +131,9 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
     for (int d = 2; d < iterations; d++)
     {
         int y = 3 + (d % 3);
-        TT_SFPLOADMACRO((0 << 2) | (y & 3), 0, ADDR_MOD_7, offset | (y >> 2));       // MOD0_FMT_SRCB
-        TT_SFPLOADMACRO((2 << 2) | (t & 3), 9, ADDR_MOD_7, prev_offset | (t >> 2));  // MOD0_FMT_LO16
-        TT_SFPLOADMACRO((1 << 2) | (y & 3), 14, ADDR_MOD_6, offset | (y >> 2));      // MOD0_FMT_LO16_ONLY
+        TT_SFPLOADMACRO((0 << 2) | (y & 3), 0, ADDR_MOD_7, offset | (y >> 2));      // MOD0_FMT_SRCB
+        TT_SFPLOADMACRO((2 << 2) | (t & 3), 9, ADDR_MOD_7, prev_offset | (t >> 2)); // MOD0_FMT_LO16
+        TT_SFPLOADMACRO((1 << 2) | (y & 3), 14, ADDR_MOD_6, offset | (y >> 2));     // MOD0_FMT_LO16_ONLY
     }
 
     // Fill gap with SFPNOPs when iterations < 2.
@@ -151,7 +151,7 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
     for (int d = drain_start; d < iterations + 2; d++)
     {
         TTI_SFPNOP;
-        TT_SFPLOADMACRO((2 << 2) | (t & 3), 9, ADDR_MOD_6, prev_offset | (t >> 2));  // MOD0_FMT_LO16
+        TT_SFPLOADMACRO((2 << 2) | (t & 3), 9, ADDR_MOD_6, prev_offset | (t >> 2)); // MOD0_FMT_LO16
         TTI_SFPNOP;
     }
 
