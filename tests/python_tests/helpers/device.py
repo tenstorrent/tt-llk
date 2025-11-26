@@ -487,17 +487,17 @@ def write_pipeline_operands_to_l1(
 
     final_result_address = None
 
-    for stage_id, operation in enumerate(pipeline):
+    for operation in pipeline:
         mapping = operation.operand_mapping
         formats = operation.config["formats"]
 
-        input_operand_A = operands.get(mapping.inputs.get("A"))
-        input_operand_B = operands.get(mapping.inputs.get("B"))
+        input_operand_A = operands.get(mapping.src_a)
+        input_operand_B = operands.get(mapping.src_b)
 
         operation.config["buffer_A_address"] = input_operand_A.l1_address
         operation.config["buffer_B_address"] = input_operand_B.l1_address
 
-        output_operand_name = mapping.outputs.get("result")
+        output_operand_name = mapping.output
         output_operand = operands.get(output_operand_name)
 
         if output_operand.l1_address is None:

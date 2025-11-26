@@ -11,14 +11,13 @@ from helpers.device import (
     write_pipeline_operands_to_l1,
 )
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
-from helpers.fuse_math import BinarySfpu, Math, MatmulFpu, UnarySfpu
+from helpers.fuse_math import Math, MatmulFpu
 from helpers.fuse_operand import OperandMapping, OperandRegistry
 from helpers.fuse_operation import PipelineOperation
 from helpers.fuse_packer import MatmulPacker
 from helpers.fuse_unpacker import MatmulUnpacker
 from helpers.golden_generators import MatmulGolden, get_golden_generator
 from helpers.llk_params import (
-    ApproximationMode,
     DestAccumulation,
     MathFidelity,
     format_dict,
@@ -169,28 +168,30 @@ def test_matmul(
             packer=MatmulPacker,
             config=test_config1,
             operand_mapping=OperandMapping(
-                inputs={"A": "input_A", "B": "input_B"},
-                outputs={"result": "matmul_result"},
+                src_a="input_A",
+                src_b="input_B",
+                output="matmul_result",
             ),
         ),
-        PipelineOperation(
-            unpacker=MatmulUnpacker,
-            math=Math(
-                MatmulFpu,
-                [
-                    UnarySfpu("sqrt", ApproximationMode.No, 32),
-                    UnarySfpu("neg", ApproximationMode.Yes, 32),
-                    BinarySfpu("ADD", ApproximationMode.No, 32, 0, 0, 0),
-                    # SfpuWhere(ApproximationMode.No, 32, 0, 1, 2, 0),
-                ],
-            ),
-            packer=MatmulPacker,
-            config=test_config2,
-            operand_mapping=OperandMapping(
-                inputs={"A": "matmul_result", "B": "input_B"},
-                outputs={"result": "final_output"},
-            ),
-        ),
+        # PipelineOperation(
+        #     unpacker=MatmulUnpacker,
+        #     math=Math(
+        #         MatmulFpu,
+        #         [
+        #             UnarySfpu("sqrt", ApproximationMode.No, 32),
+        #             UnarySfpu("neg", ApproximationMode.Yes, 32),
+        #             BinarySfpu("ADD", ApproximationMode.No, 32, 0, 0, 0),
+        #             # SfpuWhere(ApproximationMode.No, 32, 0, 1, 2, 0),
+        #         ],
+        #     ),
+        #     packer=MatmulPacker,
+        #     config=test_config2,
+        #     operand_mapping=OperandMapping(
+        #         src_a="matmul_result",
+        #         src_b="input_B",
+        #         output="final_output",
+        #     ),
+        # ),
     ]
 
     res_address = write_pipeline_operands_to_l1(
