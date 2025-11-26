@@ -27,6 +27,8 @@ from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test
 
 
+# SFPI Issue link:
+# When tsomeof these SPFU ops get compiled with coverage, `#pragma GCC unroll X` marked loops become invalid assembly
 @skip_for_coverage
 @parametrize(
     test_name="matmul_and_unary_sfpu_test",
