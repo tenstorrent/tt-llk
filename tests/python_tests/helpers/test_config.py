@@ -569,9 +569,9 @@ def generate_make_command(
 
 
 def build_test(
-    test_config,
-    variant_id,
-    with_coverage,
+    test_config: dict,
+    variant_id: str,
+    with_coverage: bool,
     boot_mode: BootMode,
     profiler_build: ProfilerBuild,
 ):
@@ -595,7 +595,7 @@ def build_test(
 
 
 def run_test(
-    test_config,
+    test_config: dict,
     boot_mode: BootMode = BootMode.DEFAULT,  # global override boot mode here
     profiler_build: ProfilerBuild = ProfilerBuild.No,
     location="0,0",
@@ -603,8 +603,8 @@ def run_test(
     """Run the test with the given configuration"""
 
     variant_id = sha256(f"{str(test_config)}".encode()).hexdigest()
-
     test_target = TestTargetConfig()
+
     build_test(
         test_config, variant_id, test_target.with_coverage, boot_mode, profiler_build
     )
