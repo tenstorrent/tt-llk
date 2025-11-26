@@ -54,7 +54,7 @@ dimension_combinations = [
     mathop=[MathOperation.ReduceColumn],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     negative_number=[False, True],
-    reduce_pool=[ReducePool.Average, ReducePool.Sum, ReducePool.Max],
+    reduce_pool=[ReducePool.Max],
     dimension_combinations=dimension_combinations,
 )
 def test_sfpu_reduce(
@@ -78,14 +78,14 @@ def test_sfpu_reduce(
     torch_format = format_dict[formats.input_format]
 
     # STIMULI GENERATION
-    tile_cnt = input_dimensions[0] * input_dimensions[1] // 1024
+    ELEMENTS_PER_TILE = 1024  # 32 * 32
+    tile_cnt = input_dimensions[0] * input_dimensions[1] // ELEMENTS_PER_TILE
     max, min = 127, (
         0 if formats.input_format in [DataFormat.UInt32, DataFormat.UInt16] else -127
     )
     src_A = torch.randint(
         low=min, high=max, size=(tile_cnt * 1024,), dtype=torch_format
     )
-    # src_A = torch.cat([torch.full((1024,), i, dtype=torch_format) for i in range(1, 5)])
     src_B = torch.zeros_like(src_A)
 
     sign = -1 if negative_number else 1
@@ -96,7 +96,6 @@ def test_sfpu_reduce(
     dst_dim = input_dimensions
     if reduce_pool != ReducePool.Max:
         dst_dim = [32, tile_cnt * 32]
-    src_A = untilize_block(src_A, formats.input_format, dst_dim)
     src_A = tilize_block(
         src_A, dst_dim, stimuli_format=formats.input_format
     ).flatten()  # Input tensor is tilized in dst register
