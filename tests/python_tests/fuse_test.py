@@ -5,10 +5,10 @@
 from typing import List
 
 import torch
-from helpers.device import (  # , write_stimuli_to_l1
+from helpers.device import (
     BootMode,
     collect_results,
-    write_pipeline_stimuli_to_l1,
+    write_pipeline_operands_to_l1,
 )
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.fuse_math import BinarySfpu, Math, MatmulFpu, UnarySfpu
@@ -100,28 +100,22 @@ def test_matmul(
         "input_A",
         dimensions=input_A_dimensions,
         data_format=formats.input_format,
-        address=0x1A000,
-        sfpu=False,
     )
 
     operands.add_input(
         "input_B",
         dimensions=input_B_dimensions,
         data_format=formats.input_format,
-        address=0x1A000 + 0x1000,  # Offset for B
-        sfpu=False,
     )
 
-    operands.add_intermediate("matmul_result", stage_id=0, address=None)
+    operands.add_output("matmul_result")
 
-    operands.add_output("final_output", stage_id=1, address=0x1C000)
+    operands.add_output("final_output")
 
     matmul_dims = generate_tile_dims((input_A_dimensions, input_B_dimensions))
 
     src_A = operands.get("input_A").raw_data
     src_B = operands.get("input_B").raw_data
-    tile_cnt_A = operands.get("input_A").tile_count
-    tile_cnt_B = operands.get("input_B").tile_count
     tilized_A = operands.get("input_A").data
     tilized_B = operands.get("input_B").data
 
@@ -176,7 +170,7 @@ def test_matmul(
             config=test_config1,
             operand_mapping=OperandMapping(
                 inputs={"A": "input_A", "B": "input_B"},
-                outputs={"result": "final_result"},
+                outputs={"result": "matmul_result"},
             ),
         ),
         PipelineOperation(
@@ -199,10 +193,9 @@ def test_matmul(
         ),
     ]
 
-    res_address = write_pipeline_stimuli_to_l1(
+    res_address = write_pipeline_operands_to_l1(
         pipeline,
-        tile_cnt_A,
-        tile_cnt_B,
+        operands,
     )
 
     run_fuse_test(pipeline, boot_mode)

@@ -423,29 +423,92 @@ def write_stimuli_to_l1(
     return result_buffer_address
 
 
-def write_pipeline_stimuli_to_l1(
+def write_pipeline_operands_to_l1(
     pipeline: List[PipelineOperation],
-    tile_cnt_A,
-    tile_cnt_B,
+    operands,
+    location: str = "0,0",
 ):
-    base_address = 0x1A000
-    res_address = base_address
-    for operation in pipeline:
-        formats = operation.config["formats"]
-        tilized_A = operation.config["tilized_A"]
-        tilized_B = operation.config["tilized_B"]
-        res_address = write_stimuli_to_l1(
-            operation.config,
-            tilized_A.flatten(),
-            tilized_B.flatten(),
-            formats.input_format,
-            formats.input_format,
-            tile_cnt_A,
-            tile_cnt_B,
-            base_address,
+    TILE_ELEMENTS = 1024
+    current_address = 0x1A000
+
+    def calculate_size(data_format: DataFormat, tile_count: int) -> int:
+        return data_format.num_bytes_per_tile(TILE_ELEMENTS) * tile_count
+
+    def write_operand_data(operand, location):
+        from .pack import (
+            pack_bfp8_b,
+            pack_bfp16,
+            pack_fp16,
+            pack_fp32,
+            pack_int8,
+            pack_int32,
+            pack_uint8,
+            pack_uint16,
+            pack_uint32,
         )
-        base_address = res_address + 0x20000
-    return res_address
+
+        packers = {
+            DataFormat.Float16: pack_fp16,
+            DataFormat.Float16_b: pack_bfp16,
+            DataFormat.Float32: pack_fp32,
+            DataFormat.Bfp8_b: pack_bfp8_b,
+            DataFormat.Int32: pack_int32,
+            DataFormat.UInt32: pack_uint32,
+            DataFormat.UInt16: pack_uint16,
+            DataFormat.Int8: pack_int8,
+            DataFormat.UInt8: pack_uint8,
+        }
+
+        pack_function = packers.get(operand.data_format)
+        if not pack_function:
+            raise ValueError(f"Unsupported data format: {operand.data_format.name}")
+
+        tile_size = calculate_size(operand.data_format, 1)
+        buffer = operand.data.flatten()
+
+        for i in range(operand.tile_count):
+            start_idx = TILE_ELEMENTS * i
+            tile_data = buffer[start_idx : start_idx + TILE_ELEMENTS]
+
+            if pack_function == pack_bfp8_b:
+                packed_data = pack_function(tile_data, num_faces=4)
+            else:
+                packed_data = pack_function(tile_data)
+
+            addr = operand.l1_address + i * tile_size
+            write_to_device(location, addr, packed_data)
+
+    for operand in operands.get_all_inputs():
+        if operand.l1_address is None:
+            operand.l1_address = current_address
+            current_address += calculate_size(operand.data_format, operand.tile_count)
+
+        write_operand_data(operand, location)
+
+    final_result_address = None
+
+    for stage_id, operation in enumerate(pipeline):
+        mapping = operation.operand_mapping
+        formats = operation.config["formats"]
+
+        input_operand_A = operands.get(mapping.inputs.get("A"))
+        input_operand_B = operands.get(mapping.inputs.get("B"))
+
+        operation.config["buffer_A_address"] = input_operand_A.l1_address
+        operation.config["buffer_B_address"] = input_operand_B.l1_address
+
+        output_operand_name = mapping.outputs.get("result")
+        output_operand = operands.get(output_operand_name)
+
+        if output_operand.l1_address is None:
+            output_tile_count = operation.config.get("tile_cnt")
+            output_operand.l1_address = current_address
+            current_address += calculate_size(formats.output_format, output_tile_count)
+
+        operation.config["result_buffer_address"] = output_operand.l1_address
+        final_result_address = output_operand.l1_address
+
+    return final_result_address
 
 
 def get_result_from_device(
