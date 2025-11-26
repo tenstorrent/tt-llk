@@ -38,8 +38,6 @@ on:
 
 permissions:
   checks: write
-  pages: write
-  id-token: write
   contents: read
 
 jobs:
@@ -169,8 +167,6 @@ jobs:
     needs: setup-and-test
     if: inputs.coverage == true
     permissions:
-      pages: write
-      id-token: write
       contents: read
     steps:
       - name: Set CHIP_ARCH
@@ -216,7 +212,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         env:
-          CODECOV_TOKEN: 44cd5e21-b5df-41c7-ad20-571b7bc27f00
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           files: ./code_coverage_for_${{ env.CHIP_ARCH }}.info
           name: coverage-report-${{ env.CHIP_ARCH }}
