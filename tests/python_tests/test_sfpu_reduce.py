@@ -54,7 +54,7 @@ dimension_combinations = [
     mathop=[MathOperation.ReduceColumn],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     negative_number=[False, True],
-    reduce_pool=[ReducePool.Max],
+    reduce_pool=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
     dimension_combinations=dimension_combinations,
 )
 def test_sfpu_reduce(
@@ -80,8 +80,8 @@ def test_sfpu_reduce(
     # STIMULI GENERATION
     ELEMENTS_PER_TILE = 1024  # 32 * 32
     tile_cnt = input_dimensions[0] * input_dimensions[1] // ELEMENTS_PER_TILE
-    max, min = 127, (
-        0 if formats.input_format in [DataFormat.UInt32, DataFormat.UInt16] else -127
+    max, min = 1000, (
+        0 if formats.input_format in [DataFormat.UInt32, DataFormat.UInt16] else -1000
     )
     src_A = torch.randint(
         low=min, high=max, size=(tile_cnt * 1024,), dtype=torch_format

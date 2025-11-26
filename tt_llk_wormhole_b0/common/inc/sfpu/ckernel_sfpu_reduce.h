@@ -54,16 +54,16 @@ template <InstrModLoadStore INSTRUCTION_MODE>
 inline void load_face_data(uint upper_face_addr, uint lower_face_addr, uint column_offset)
 {
     // Load upper face data (Face 0 or Face 1) into LREG0-3
-    TTI_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, upper_face_addr + column_offset);                     // rows 0-3
-    TTI_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, upper_face_addr + column_offset + ROWS_PER_LOAD);     // rows 4-7
-    TTI_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_3, upper_face_addr + column_offset + 2 * ROWS_PER_LOAD); // rows 8-11
-    TTI_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_3, upper_face_addr + column_offset + 3 * ROWS_PER_LOAD); // rows 12-15
+    TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, upper_face_addr + column_offset);                     // rows 0-3
+    TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, upper_face_addr + column_offset + ROWS_PER_LOAD);     // rows 4-7
+    TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_3, upper_face_addr + column_offset + 2 * ROWS_PER_LOAD); // rows 8-11
+    TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_3, upper_face_addr + column_offset + 3 * ROWS_PER_LOAD); // rows 12-15
 
     // Load lower face data (Face 2 or Face 3) into LREG4-7
-    TTI_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, lower_face_addr + column_offset);                     // rows 0-3
-    TTI_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, lower_face_addr + column_offset + ROWS_PER_LOAD);     // rows 4-7
-    TTI_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, lower_face_addr + column_offset + 2 * ROWS_PER_LOAD); // rows 8-11
-    TTI_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, lower_face_addr + column_offset + 3 * ROWS_PER_LOAD); // rows 12-15
+    TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, lower_face_addr + column_offset);                     // rows 0-3
+    TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, lower_face_addr + column_offset + ROWS_PER_LOAD);     // rows 4-7
+    TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, lower_face_addr + column_offset + 2 * ROWS_PER_LOAD); // rows 8-11
+    TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, lower_face_addr + column_offset + 3 * ROWS_PER_LOAD); // rows 12-15
 }
 
 /**
@@ -171,9 +171,7 @@ constexpr InstrModLoadStore get_instruction_mode()
     }
     else
     {
-        constexpr bool is_supported = format == DataFormat::Int32 || format == DataFormat::UInt32 || format == DataFormat::Float32 ||
-                                      format == DataFormat::Float16_b || format == DataFormat::UInt16;
-        static_assert(is_supported, "Unsupported DataFormat for reduce operation. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
+        static_assert(false, "Unsupported DataFormat for reduce operation. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
         return InstrModLoadStore::INT32; // Unreachable, but required for syntax
     }
 }
