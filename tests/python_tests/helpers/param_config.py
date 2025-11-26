@@ -3,7 +3,7 @@
 
 import inspect
 from itertools import product
-from typing import List, Optional, Tuple, TypedDict
+from typing import List, Tuple
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
@@ -79,22 +79,6 @@ def format_combination_sweep(
         for pack_src in formats
         for pack_dst in formats
     ]
-
-
-class TestParamsConfig(TypedDict):
-    test_name: str
-    formats: Optional[List[FormatConfig]] = None
-    dest_acc: Optional[DestAccumulation] = None
-    approx_mode: Optional[List[str]] = None
-    mathop: Optional[List[str]] = None
-    math_fidelity: Optional[List[int]] = None
-    tile_count: Optional[int] = None
-    reduce_dim: Optional[List[str]] = None
-    pool_type: Optional[List[str]] = None
-    num_faces: Optional[List[int]] = None
-    dest_sync: Optional[DestSync] = None
-    tilize_en: Optional[Tilize] = None
-    dst_idx: Optional[List[int]] = None
 
 
 # When reading this file, keep in mind that parameter means FORMAL PARAMETER and argument means ACTUAL PARAMETER
