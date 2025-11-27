@@ -70,13 +70,13 @@ namespace ckernel
         SyncFull,
     };
 
-enum class MathFidelity : uint8_t
-{
-    LoFi  = 0,
-    HiFi2 = 2,
-    HiFi3 = 3,
-    HiFi4 = 4
-};
+    enum class MathFidelity : uint8_t
+    {
+        LoFi  = 0,
+        HiFi2 = 2,
+        HiFi3 = 3,
+        HiFi4 = 4
+    };
 
     enum class StochRndType : uint8_t
     {
