@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
 import torch
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
