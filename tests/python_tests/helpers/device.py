@@ -489,7 +489,6 @@ def write_pipeline_operands_to_l1(
 
     for operation in pipeline:
         mapping = operation.operand_mapping
-        formats = operation.config["formats"]
 
         input_operand_A = operands.get(mapping.src_a)
         input_operand_B = operands.get(mapping.src_b)
@@ -501,9 +500,11 @@ def write_pipeline_operands_to_l1(
         output_operand = operands.get(output_operand_name)
 
         if output_operand.l1_address is None:
-            output_tile_count = operation.config.get("tile_cnt")
+            output_tile_count = output_operand.tile_count
             output_operand.l1_address = current_address
-            current_address += calculate_size(formats.output_format, output_tile_count)
+            current_address += calculate_size(
+                output_operand.data_format, output_tile_count
+            )
 
         operation.config["result_buffer_address"] = output_operand.l1_address
         final_result_address = output_operand.l1_address
@@ -717,9 +718,6 @@ def collect_pipeline_results(
     TILE_ELEMENTS = 1024
 
     for operation in pipeline:
-        config = operation.config
-        formats = config["formats"]
-        tile_cnt = config["tile_cnt"]
         output_name = operation.operand_mapping.output
 
         output_operand = operands.get(output_name)
@@ -730,35 +728,38 @@ def collect_pipeline_results(
                 "Make sure write_pipeline_operands_to_l1 was called before running the test."
             )
 
-        output_dimensions = config.get("output_dimensions")
-        if output_dimensions is None:
-            input_A_dimensions = config.get("input_A_dimensions")
-            if input_A_dimensions:
-                output_dimensions = input_A_dimensions
+        output_dimensions = output_operand.dimensions
+        output_format = output_operand.data_format
+        tile_cnt = output_operand.tile_count
 
         read_bytes_cnt = (
-            formats.output_format.num_bytes_per_tile(TILE_ELEMENTS) * tile_cnt
+            output_operand.data_format.num_bytes_per_tile(TILE_ELEMENTS) * tile_cnt
         )
         read_data = read_from_device(
             location, output_operand.l1_address, num_bytes=read_bytes_cnt
         )
 
+        from .format_config import InputOutputFormat
+
         res_from_L1 = unpack_res_tiles(
             read_data,
-            formats,
+            InputOutputFormat(
+                input_format=output_format,
+                output_format=output_format,
+            ),
             tile_count=tile_cnt,
             sfpu=output_operand.sfpu,
             num_faces=4,
             face_r_dim=16,
         )
 
-        torch_format = format_dict[formats.output_format]
+        torch_format = format_dict[output_format]
         tilized_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-        if formats.output_format != DataFormat.Bfp8_b and output_dimensions is not None:
+        if output_format != DataFormat.Bfp8_b and output_dimensions is not None:
             raw_tensor = untilize_block(
                 tilized_tensor,
-                stimuli_format=formats.output_format,
+                stimuli_format=output_format,
                 dimensions=output_dimensions,
             )
         else:
@@ -766,6 +767,3 @@ def collect_pipeline_results(
 
         output_operand._data = tilized_tensor
         output_operand._raw_data = raw_tensor
-        output_operand._tile_count = tile_cnt
-        output_operand.data_format = formats.output_format
-        output_operand.dimensions = output_dimensions
