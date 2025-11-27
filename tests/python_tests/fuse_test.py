@@ -125,13 +125,8 @@ def test_matmul(
             math=Math(MatmulFpu, []),
             packer=MatmulPacker,
             operand_registry=operands,
-            config={
-                "dest_acc": dest_acc,
-                "math_fidelity": math_fidelity,
-                "rt_dim": matmul_dims.rt_dim,
-                "ct_dim": matmul_dims.ct_dim,
-                "kt_dim": matmul_dims.kt_dim,
-            },
+            dest_acc=dest_acc,
+            math_fidelity=math_fidelity,
         ),
         PipelineOperation(
             operand_mapping=operands.create_mapping(
@@ -168,13 +163,8 @@ def test_matmul(
             ),
             packer=MatmulPacker,
             operand_registry=operands,
-            config={
-                "dest_acc": dest_acc,
-                "math_fidelity": math_fidelity,
-                "rt_dim": matmul_dims.rt_dim,
-                "ct_dim": matmul_dims.ct_dim,
-                "kt_dim": matmul_dims.kt_dim,
-            },
+            dest_acc=dest_acc,
+            math_fidelity=math_fidelity,
         ),
     ]
 
