@@ -600,13 +600,12 @@ def run_test(
 def generate_operation_config(
     operands: OperandRegistry, operation: PipelineOperation
 ) -> dict:
-    operation_config = operation.config
     mapping = operation.operand_mapping
 
     config = {}
 
-    config["stage_id"] = operation_config.get("stage_id", 0)
-    config["num_stages"] = operation_config.get("num_stages", 1)
+    config["stage_id"] = 0
+    config["num_stages"] = 1
 
     src_a = operands.get(mapping.src_a)
     src_b = operands.get(mapping.src_b)
@@ -626,102 +625,48 @@ def generate_operation_config(
     tile_cnt = output.tile_count
     config["tile_cnt"] = tile_cnt
 
-    # Basic configuration
-    config["loop_factor"] = operation_config.get("loop_factor", 1)
+    config["loop_factor"] = 1
 
-    # Dest accumulation
-    dest_acc = operation_config.get("dest_acc", DestAccumulation.No)
+    dest_acc = operation.dest_acc
     config["dest_acc"] = dest_acc
 
-    # Unpack to dest
-    config["unpack_to_dest"] = operation_config.get("unpack_to_dest", False)
+    config["unpack_to_dest"] = False
 
-    # Transpose configurations
-    config["unpack_transpose_faces"] = operation_config.get(
-        "unpack_transpose_faces", Transpose.No
-    )
-    config["unpack_transpose_within_face"] = operation_config.get(
-        "unpack_transpose_within_face", Transpose.No
-    )
+    config["unpack_transpose_faces"] = Transpose.No
+    config["unpack_transpose_within_face"] = Transpose.No
 
-    # Quasar specific
     if get_chip_architecture() == ChipArchitecture.QUASAR:
-        config["implied_math_format"] = operation_config.get(
-            "implied_math_format", ImpliedMathFormat.No
-        )
-        config["unpacker_engine_sel"] = operation_config.get(
-            "unpacker_engine_sel", UnpackerEngine.UnpA
-        )
+        config["implied_math_format"] = ImpliedMathFormat.No
+        config["unpacker_engine_sel"] = UnpackerEngine.UnpA
 
-    # Throttle level
-    config["throttle"] = operation_config.get("throttle", 0)
+    config["throttle"] = 0
 
-    # Math transpose faces
-    config["math_transpose_faces"] = operation_config.get(
-        "math_transpose_faces", Transpose.No
-    )
+    config["math_transpose_faces"] = Transpose.No
 
-    # Stochastic Rounding
-    config["stochastic_rnd"] = operation_config.get(
-        "stochastic_rnd", StochasticRounding.No
-    )
+    config["stochastic_rnd"] = StochasticRounding.No
 
-    # Data copy type
-    config["data_copy_type"] = operation_config.get("data_copy_type", DataCopyType.A2D)
+    config["data_copy_type"] = DataCopyType.A2D
 
-    # Optional configurations
-    if "broadcast_type" in operation_config:
-        config["broadcast_type"] = operation_config["broadcast_type"]
+    config["math_fidelity"] = operation.math_fidelity
+    config["approx_mode"] = ApproximationMode.No
 
-    if "acc_to_dest" in operation_config:
-        config["acc_to_dest"] = operation_config["acc_to_dest"]
+    config["tiny_tiles"] = False
 
-    if "reuse_dest" in operation_config:
-        config["reuse_dest"] = operation_config["reuse_dest"]
+    config["partial_face_A"] = False
+    config["partial_face_B"] = False
+    config["partial_face"] = False
 
-    if "disable_src_zero_flag" in operation_config:
-        config["disable_src_zero_flag"] = operation_config["disable_src_zero_flag"]
+    config["num_faces"] = 4
+    config["num_faces_A"] = 4
+    config["num_faces_B"] = 4
 
-    if "num_faces" in operation_config:
-        config["num_faces"] = operation_config["num_faces"]
+    config["in0_tile_r_dim"] = 32
+    config["in0_tile_c_dim"] = 32
+    config["in1_tile_r_dim"] = 32
+    config["in1_tile_c_dim"] = 32
 
-    if "narrow_tile" in operation_config:
-        config["narrow_tile"] = operation_config["narrow_tile"]
-
-    # Math fidelity & Approximation mode
-    config["math_fidelity"] = operation_config.get("math_fidelity", MathFidelity.LoFi)
-    config["approx_mode"] = operation_config.get("approx_mode", ApproximationMode.No)
-
-    # Tiny tile flag
-    config["tiny_tiles"] = operation_config.get("tiny_tiles", False)
-
-    # Partial face configurations
-    config["partial_face_A"] = operation_config.get(
-        "partial_face_A", operation_config.get("partial_face", False)
-    )
-    config["partial_face_B"] = operation_config.get(
-        "partial_face_B", operation_config.get("partial_face", False)
-    )
-    config["partial_face"] = operation_config.get("partial_face", False)
-
-    # Number of faces
-    config["num_faces"] = operation_config.get("num_faces", 4)
-    config["num_faces_A"] = operation_config.get(
-        "num_faces_A", operation_config.get("num_faces", 4)
-    )
-    config["num_faces_B"] = operation_config.get(
-        "num_faces_B", operation_config.get("num_faces", 4)
-    )
-
-    # Input tile dimensions
-    config["in0_tile_r_dim"] = operation_config.get("in0_tile_r_dim", 32)
-    config["in0_tile_c_dim"] = operation_config.get("in0_tile_c_dim", 32)
-    config["in1_tile_r_dim"] = operation_config.get("in1_tile_r_dim", 32)
-    config["in1_tile_c_dim"] = operation_config.get("in1_tile_c_dim", 32)
-
-    # Face dimensions
-    config["face_r_dim"] = operation_config.get("face_r_dim", 16)
-    config["face_c_dim"] = operation_config.get("face_c_dim", 16)
+    config["face_r_dim"] = 16
+    config["face_c_dim"] = 16
 
     if formats:
         TILE_SIZES = {
@@ -750,21 +695,15 @@ def generate_operation_config(
         config["buffer_B_tile_size"] = format_tile_sizes[formats.input_format]
         config["buffer_Res_tile_size"] = format_tile_sizes[formats.output_format]
 
-    # Dest synchronisation mode
-    config["dest_sync"] = operation_config.get("dest_sync", DestSync.Half)
+    config["dest_sync"] = DestSync.Half
 
-    # Destination index configuration
-    config["dst_index"] = operation_config.get("dst_index", 0)
+    config["dst_index"] = 0
 
-    # Tilize
-    config["tilize"] = operation_config.get("tilize", Tilize.No)
+    config["tilize"] = Tilize.No
 
-    # Reuse A times
-    config["srca_reuse_count"] = operation_config.get("srca_reuse_count", 4)
+    config["srca_reuse_count"] = 4
 
-    # Format inference (single iteration for fused operations)
     if formats:
-        # Check if outlier format combination
         if is_format_combination_outlier(
             formats.input_format, formats.output_format, dest_acc
         ):
@@ -773,17 +712,14 @@ def generate_operation_config(
 
         config["dest_acc_en_input"] = dest_acc.value
 
-        # Single iteration format inference
         formats_config = data_formats(
             input_format=formats.input_format,
             output_format=formats.output_format,
             is_fp32_dest_acc_en=dest_acc,
-            num_iterations=1,  # Always 1 for fused operations
+            num_iterations=1,
             unpacking_to_dest=config["unpack_to_dest"],
             chip_arch=get_chip_architecture(),
-            disable_format_inference=operation_config.get(
-                "disable_format_inference", False
-            ),
+            disable_format_inference=False,
         )[0]
 
         config["unpack_a_in"] = formats_config.unpack_A_src
@@ -792,32 +728,12 @@ def generate_operation_config(
         config["pack_in"] = formats_config.pack_src
         config["pack_out"] = formats_config.pack_dst
 
-    # Math operation configuration
-    mathop = operation_config.get("mathop", "no_mathop")
-    config["mathop"] = mathop
-    if mathop != "no_mathop":
-        if mathop in REDUCE_OPERATIONS:
-            config["reduce_dim"] = mathop
-            if "pool_type" in operation_config:
-                config["pool_type"] = operation_config["pool_type"]
+    config["mathop"] = "no_mathop"
 
-    # Optional extra unary operation
-    if "unary_op" in operation_config:
-        config["unary_op"] = operation_config["unary_op"]
-
-    # Destination sync mode configuration
-    if "dst_sync" in operation_config:
-        config["dst_sync"] = operation_config["dst_sync"]
-
-    # Buffer addresses (automatically from operands if available)
     config["buffer_A_address"] = src_a.l1_address
     config["buffer_B_address"] = src_b.l1_address
     config["result_buffer_address"] = output.l1_address
 
-    if "buffer_C_address" in operation_config:
-        config["buffer_C_address"] = operation_config["buffer_C_address"]
-
-    # Matrix multiplication dimensions
     num_rows = 32
     num_cols = 32
     input_A_dimensions = config["input_A_dimensions"]
@@ -833,24 +749,12 @@ def generate_operation_config(
 
     config["full_rt_dim"] = full_rt_dim
     config["full_ct_dim"] = full_ct_dim
-    config["block_rt_dim"] = operation_config.get("block_rt_dim", full_rt_dim)
-    config["block_ct_dim"] = operation_config.get("block_ct_dim", full_ct_dim)
+    config["block_rt_dim"] = full_rt_dim
+    config["block_ct_dim"] = full_ct_dim
 
-    # Matrix multiplication tile dimensions
-    if "rt_dim" in operation_config:
-        config["rt_dim"] = operation_config["rt_dim"]
-    if "ct_dim" in operation_config:
-        config["ct_dim"] = operation_config["ct_dim"]
-    if "kt_dim" in operation_config:
-        config["kt_dim"] = operation_config["kt_dim"]
-
-    # Add top row flag
-    if "add_top_row" in operation_config:
-        config["add_top_row"] = operation_config["add_top_row"]
-
-    # Performance run type
-    if "perf_run_type" in operation_config:
-        config["perf_run_type"] = operation_config["perf_run_type"]
+    config["rt_dim"] = input_A_dimensions[0] // num_rows
+    config["ct_dim"] = input_B_dimensions[1] // num_cols
+    config["kt_dim"] = input_A_dimensions[1] // num_cols
 
     return config
 
