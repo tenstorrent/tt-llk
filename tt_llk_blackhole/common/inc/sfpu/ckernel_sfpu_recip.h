@@ -413,7 +413,7 @@ inline void _init_reciprocal_fast_24b_5c_()
 template <ApproximationMode APPROX_MODE>
 inline void _init_sfpu_reciprocal_()
 {
-    if constexpr (APPROX_MODE == ApproximationMode::Precise)
+    if constexpr (APPROX_MODE != ApproximationMode::Fast)
     {
         sfpi::vConstFloatPrgm0 = 2.0f;
     }
