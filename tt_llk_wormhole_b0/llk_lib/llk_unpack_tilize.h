@@ -449,12 +449,11 @@ inline void _llk_unpack_tilize_uninit_(const std::uint32_t unpack_dst_format, co
 
 inline void _llk_unpack_tilizeA_B_uninit_(const std::uint32_t unpack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM)
 {
-    //stallwait
     TTI_STALLWAIT(p_stall::STALL_THCON, p_stall::UNPACK);
     TT_SETADCXX(p_setadc::UNP_A, face_r_dim * FACE_C_DIM - 1, 0x0);
     TT_SETADCXX(p_setadc::UNP_B, face_r_dim * FACE_C_DIM - 1, 0x0);
     
-    TTI_SETADCXY(0b011, 0, 0, 0, 0, 0b1011);
+    // reset z/w counters
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
     
     unpack_config_u config = {0};
