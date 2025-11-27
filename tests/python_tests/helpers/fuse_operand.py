@@ -77,16 +77,54 @@ class Operand:
 
     @property
     def tile_count(self) -> Optional[int]:
-        if self._tile_count is None and self.is_input():
-            self.generate_data()
+        if self._tile_count is None:
+            if self.dimensions is not None:
+                self._tile_count = (self.dimensions[0] // 32) * (
+                    self.dimensions[1] // 32
+                )
+            elif self.is_input():
+                self.generate_data()
         return self._tile_count
 
 
-@dataclass
 class OperandMapping:
-    src_a: str
-    src_b: str
-    output: str
+    def __init__(
+        self,
+        src_a: str,
+        src_b: str,
+        output: str,
+    ):
+        self.src_a = src_a
+        self.src_b = src_b
+        self.output = output
+
+    def create_output_operand(
+        self, operand_registry: "OperandRegistry", output_format: DataFormat
+    ):
+        if self.output in operand_registry.operands:
+            return
+
+        output_dims = self.resolve_output_dimensions(operand_registry)
+        operand_registry.add_output(
+            name=self.output,
+            dimensions=output_dims,
+            data_format=output_format,
+        )
+
+    def resolve_output_dimensions(
+        self, operand_registry: "OperandRegistry"
+    ) -> Tuple[int, int]:
+        src_a_op = operand_registry.get(self.src_a)
+        src_b_op = operand_registry.get(self.src_b)
+
+        M = src_a_op.dimensions[0]
+        N = src_b_op.dimensions[1]
+
+        return (M, N)
+
+    def get_output_tile_count(self, operand_registry: "OperandRegistry") -> int:
+        dims = self.resolve_output_dimensions(operand_registry)
+        return (dims[0] // 32) * (dims[1] // 32)
 
 
 class OperandRegistry:
@@ -115,14 +153,20 @@ class OperandRegistry:
         self.operands[name] = operand
         return operand
 
-    def add_output(self, name: str, address: int = None) -> Operand:
+    def add_output(
+        self,
+        name: str,
+        address: int = None,
+        dimensions: Optional[Tuple[int, int]] = None,
+        data_format: Optional[DataFormat] = None,
+    ) -> Operand:
         if name in self.operands:
             raise ValueError(f"Operand '{name}' already exists")
 
         operand = Operand(
             name=name,
-            dimensions=None,
-            data_format=None,
+            dimensions=dimensions,
+            data_format=data_format,
             l1_address=address,
             is_output=True,
         )
@@ -144,3 +188,29 @@ class OperandRegistry:
         if name not in self.operands:
             raise KeyError(f"Operand '{name}' not found")
         self.operands[name].data = data
+
+    def create_mapping(
+        self,
+        src_a: str,
+        src_b: str,
+        output: str,
+        src_a_dims: Tuple[int, int] = [32, 32],
+        src_b_dims: Tuple[int, int] = [32, 32],
+        input_format: DataFormat = DataFormat.Float16_b,
+        output_format: DataFormat = DataFormat.Float16_b,
+    ) -> OperandMapping:
+        if src_a not in self.operands:
+            self.add_input(src_a, dimensions=src_a_dims, data_format=input_format)
+
+        if src_b not in self.operands:
+            self.add_input(src_b, dimensions=src_b_dims, data_format=input_format)
+
+        mapping = OperandMapping(
+            src_a=src_a,
+            src_b=src_b,
+            output=output,
+        )
+
+        mapping.create_output_operand(self, output_format)
+
+        return mapping
