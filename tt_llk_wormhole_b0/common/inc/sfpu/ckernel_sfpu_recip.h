@@ -133,7 +133,7 @@ inline void _init_reciprocal_()
 {
     if constexpr (!legacy_compat)
     {
-        _init_sfpu_reciprocal_<APPROXIMATION_MODE>();
+        _init_sfpu_reciprocal_<APPROX_MODE>();
     }
 }
 
