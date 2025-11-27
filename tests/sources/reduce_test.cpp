@@ -33,7 +33,7 @@ void run_kernel()
     // Transpose of faces should always be false
     // Calling _llk_unpack_AB_init_ performs both transpose within the face and transpose of faces, because it uses the same argument for both
     // The following four lines are equivalent to calling _llk_unpack_AB_init_, but separates the two types of transpose
-    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose); // transpose within the face
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose);
     constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;
     config_unpacker_x_end<UNP_SEL>(FACE_R_DIM);
     _llk_unpack_AB_mop_config_<BroadcastType::NONE>(false /* transpose_of_faces */, 4 /* num_faces */, false /* narrow_tile */);
