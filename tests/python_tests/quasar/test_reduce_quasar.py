@@ -33,13 +33,10 @@ mathop_mapping = {
             DataFormat.Float16_b,
             DataFormat.Float16,
         ],
-        same=True,
     ),
-    dest_acc=[DestAccumulation.No],
-    # reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
-    reduce_dim=[ReduceDimension.Row],
-    # pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
-    pool_type=[ReducePool.Sum],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
+    pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )
 def test_reduce_quasar(test_name, formats, dest_acc, reduce_dim, pool_type):
 
@@ -53,7 +50,7 @@ def test_reduce_quasar(test_name, formats, dest_acc, reduce_dim, pool_type):
         ReducePool.Max,
         ReducePool.Sum,
     ]:  # result in srcA should be divided by 1
-        src_B = torch.full((1024,), 2)
+        src_B = torch.full((1024,), 1)
     else:
         # reduce average divides by length of elements in array we reduce
         if reduce_dim in [ReduceDimension.Column, ReduceDimension.Row]:
@@ -92,8 +89,5 @@ def test_reduce_quasar(test_name, formats, dest_acc, reduce_dim, pool_type):
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize(res_tensor, formats.output_format)
-
-    print(f"res_tensor: {res_tensor}")
-    print(f"golden_tensor: {golden_tensor}")
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
