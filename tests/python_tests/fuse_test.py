@@ -11,7 +11,7 @@ from helpers.device import (
 )
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.fuse_math import BinarySfpu, Math, MatmulFpu, UnarySfpu
-from helpers.fuse_operand import OperandMapping, OperandRegistry
+from helpers.fuse_operand import OperandRegistry
 from helpers.fuse_operation import PipelineOperation
 from helpers.fuse_packer import MatmulPacker
 from helpers.fuse_unpacker import MatmulUnpacker
@@ -108,82 +108,45 @@ def test_matmul(
 
     operands = OperandRegistry()
 
-    operands.add_input(
-        "input_A",
-        dimensions=input_A_dimensions,
-        data_format=formats.input_format,
-    )
-
-    operands.add_input(
-        "input_B",
-        dimensions=input_B_dimensions,
-        data_format=formats.input_format,
-    )
-
-    operands.add_input(
-        "input_C",
-        dimensions=input_B_dimensions,
-        data_format=formats.input_format,
-    )
-
-    operands.add_output("matmul_result")
-
-    operands.add_output("final_output")
-
     matmul_dims = generate_tile_dims((input_A_dimensions, input_B_dimensions))
-
-    src_A = operands.get("input_A").raw_data
-    src_B = operands.get("input_B").raw_data
-    src_C = operands.get("input_C").raw_data
-    tilized_A = operands.get("input_A").data
-    tilized_B = operands.get("input_B").data
-    tilized_C = operands.get("input_C").data
-
-    test_config1 = {
-        "formats": formats,
-        "testname": test_name,
-        "dest_acc": dest_acc,
-        "math_fidelity": math_fidelity,
-        "tile_cnt": matmul_dims.output_tile_cnt,
-        "input_A_dimensions": input_A_dimensions,
-        "input_B_dimensions": input_B_dimensions,
-        "output_dimensions": matmul_dims.output_dimensions,
-        "rt_dim": matmul_dims.rt_dim,
-        "ct_dim": matmul_dims.ct_dim,
-        "kt_dim": matmul_dims.kt_dim,
-        "tilized_A": tilized_A,
-        "tilized_B": tilized_B,
-    }
-
-    test_config2 = {
-        "formats": formats,
-        "testname": test_name,
-        "dest_acc": dest_acc,
-        "math_fidelity": math_fidelity,
-        "tile_cnt": matmul_dims.output_tile_cnt,
-        "input_A_dimensions": input_A_dimensions,
-        "input_B_dimensions": input_B_dimensions,
-        "output_dimensions": matmul_dims.output_dimensions,
-        "rt_dim": matmul_dims.rt_dim,
-        "ct_dim": matmul_dims.ct_dim,
-        "kt_dim": matmul_dims.kt_dim,
-        "tilized_A": tilized_A,
-        "tilized_B": tilized_C,
-    }
 
     pipeline = [
         PipelineOperation(
-            unpacker=MatmulUnpacker,
-            math=Math(MatmulFpu, []),
-            packer=MatmulPacker,
-            config=test_config1,
-            operand_mapping=OperandMapping(
+            operand_mapping=operands.create_mapping(
                 src_a="input_A",
                 src_b="input_B",
                 output="matmul_result",
+                src_a_dims=input_A_dimensions,
+                src_b_dims=input_B_dimensions,
+                input_format=formats.input_format,
+                output_format=formats.output_format,
             ),
+            unpacker=MatmulUnpacker,
+            math=Math(MatmulFpu, []),
+            packer=MatmulPacker,
+            config={
+                "formats": formats,
+                "testname": test_name,
+                "dest_acc": dest_acc,
+                "math_fidelity": math_fidelity,
+                "tile_cnt": matmul_dims.output_tile_cnt,
+                "input_A_dimensions": input_A_dimensions,
+                "input_B_dimensions": input_B_dimensions,
+                "output_dimensions": matmul_dims.output_dimensions,
+                "rt_dim": matmul_dims.rt_dim,
+                "ct_dim": matmul_dims.ct_dim,
+                "kt_dim": matmul_dims.kt_dim,
+            },
         ),
         PipelineOperation(
+            operand_mapping=operands.create_mapping(
+                src_a="matmul_result",
+                src_b="input_C",
+                output="final_output",
+                src_b_dims=input_B_dimensions,
+                input_format=formats.input_format,
+                output_format=formats.output_format,
+            ),
             unpacker=MatmulUnpacker,
             math=Math(
                 MatmulFpu,
@@ -191,33 +154,43 @@ def test_matmul(
                     UnarySfpu(
                         "sqrt",
                         ApproximationMode.No,
-                        32 * operands.get("input_C").tile_count,
+                        32 * operands.get("final_output").tile_count,
                     ),
                     UnarySfpu(
                         "neg",
                         ApproximationMode.No,
-                        32 * operands.get("input_C").tile_count,
+                        32 * operands.get("final_output").tile_count,
                     ),
                     BinarySfpu(
                         "ADD",
                         ApproximationMode.No,
-                        32 * operands.get("input_C").tile_count,
+                        32 * operands.get("final_output").tile_count,
                         0,
                         0,
                         0,
                     ),
-                    # SfpuWhere(ApproximationMode.No, 32, 0, 1, 2, 0),
                 ],
             ),
             packer=MatmulPacker,
-            config=test_config2,
-            operand_mapping=OperandMapping(
-                src_a="matmul_result",
-                src_b="input_C",
-                output="final_output",
-            ),
+            config={
+                "formats": formats,
+                "testname": test_name,
+                "dest_acc": dest_acc,
+                "math_fidelity": math_fidelity,
+                "tile_cnt": matmul_dims.output_tile_cnt,
+                "input_A_dimensions": input_A_dimensions,
+                "input_B_dimensions": input_B_dimensions,
+                "output_dimensions": matmul_dims.output_dimensions,
+                "rt_dim": matmul_dims.rt_dim,
+                "ct_dim": matmul_dims.ct_dim,
+                "kt_dim": matmul_dims.kt_dim,
+            },
         ),
     ]
+
+    src_A = operands.get("input_A").raw_data
+    src_B = operands.get("input_B").raw_data
+    src_C = operands.get("input_C").raw_data
 
     res_address = write_pipeline_operands_to_l1(
         pipeline,
