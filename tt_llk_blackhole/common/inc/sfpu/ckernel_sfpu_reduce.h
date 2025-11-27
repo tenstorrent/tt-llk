@@ -226,13 +226,13 @@ inline void init_reduce_max(uint32_t num_cols)
     _init_sfpu_config_reg();
 
     // Setup LOADMACRO sequence 0
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, (0xC | p_sfpu::LREG0) /*backdoor + dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0, p_sfpu::LREG4, (0xC | p_sfpu::LREG0), 1);
     TTI_SFPLOADI(0, 0xA, 0x0084);
     TTI_SFPLOADI(0, 0x8, 0x0000);
     TTI_SFPCONFIG(0, 4, 0);
 
     // Setup LOADMACRO sequence 1
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, (0xD | p_sfpu::LREG4) /*backdoor + dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0, p_sfpu::LREG5, (0xD | p_sfpu::LREG4), 1);
     TTI_SFPLOADI(0, 0xA, 0x0085);
     TTI_SFPLOADI(0, 0x8, 0x0000);
     TTI_SFPCONFIG(0, 5, 0);
@@ -240,16 +240,15 @@ inline void init_reduce_max(uint32_t num_cols)
     configure_addrmod_max(num_cols);
 
     // Record replay buffer for compare-and-swap operations
-    lltt::record<lltt::NoExec>(0, 11);
+    lltt::record<lltt::NoExec>(0, 9);
     TTI_INCRWC(0, 4, 0, 0);
     TTI_SFPLOADMACRO(5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
     TTI_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, 16);
     TTI_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, 18);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG1 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPNOP;
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPNOP;
+    TTI_SFPSWAP(0, p_sfpu::LREG7, p_sfpu::LREG1, 1);
+    TTI_SFPSWAP(0, p_sfpu::LREG6, p_sfpu::LREG0, 1);
     TTI_SFPLOADMACRO(0, INSTRUCTION_MODE, ADDR_MOD_7, 0);
+
     // Dummy loads to increment dest counters
     TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_6, 0);
     TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_5, 0);
@@ -350,8 +349,8 @@ inline void calculate_reduce_max(const uint32_t block_height)
 {
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
 
-    constexpr uint32_t replay_buffer_offset    = 9;
-    constexpr uint32_t replay_buffer_next_face = 10;
+    constexpr uint32_t replay_buffer_offset    = 7;
+    constexpr uint32_t replay_buffer_next_face = 8;
 
     // Initial loads: LREG4-7 will hold maximum values across F0 and F1
     TTI_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, 0);
@@ -388,9 +387,9 @@ inline void calculate_reduce_max(const uint32_t block_height)
 
     // Finalize: Sort and store maximum/minimum values to row 0
     TTI_SFPTRANSP(0, 0, 0, 0);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0, p_sfpu::LREG6, p_sfpu::LREG7, 1);
+    TTI_SFPSWAP(0, p_sfpu::LREG5, p_sfpu::LREG6, 1);
+    TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG5, 1);
     TTI_SFPTRANSP(0, 0, 0, 0);
 
     // Store results to first row
