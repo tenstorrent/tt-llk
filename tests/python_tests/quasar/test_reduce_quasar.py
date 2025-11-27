@@ -26,6 +26,7 @@ mathop_mapping = {
 }
 
 
+@pytest.mark.quasar
 @parametrize(
     test_name="reduce_quasar_test",
     formats=input_output_formats(
