@@ -41,94 +41,51 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
         [unpB_partial_face]
         {
             // === Context 0 ===
-            // Unpack SrcA (in1/inB)
-            // TTI_UNPACR(SrcA, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-            // TTI_STALLWAIT(p_stall::STALL_SYNC, p_stall::TRISC_CFG);
+            // Wait for context available
             t6_semaphore_wait_on_zero<p_stall::STALL_UNPACK>(semaphore::UNPACK_SYNC);
-
+            
+            // Unpack SrcA (in1/inB)
             TTI_UNPACR(SrcA, 0b00000000, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
 
             // Unpack SrcB (in0/inA)
             if (unpB_partial_face)
             {
-                // TTI_UNPACR_NOP(SrcB, 0, 0, 0 /*Set Dvalid*/, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
                 TTI_UNPACR(
                     SrcB, 0b00010001, 0, 0, 0, 1 /*Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
                 TTI_UNPACR(
                     SrcB, 0b00110001, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-                // TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0100); // Set ch1_z=0
             }
             else
             {
                 TTI_UNPACR(
                     SrcB, 0b00001010, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-                // Update SrcB address (SEC1/in0/inA)
-                // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_address_ADDR32);
-                // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_B);
-                // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-                // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC1_REG3_Base_address_ADDR32);
             }
 
+            // Signal context done
             t6_semaphore_get(semaphore::UNPACK_SYNC);
 
-            // Update SrcB address (SEC1/in0/inA)
-            // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_address_ADDR32);
-            // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_B);
-            // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-            // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC1_REG3_Base_address_ADDR32);
-
-            // Update SrcA address (SEC0/in1/inB)
-            // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC0_REG3_Base_address_ADDR32);
-            // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_A);
-            // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-            // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC0_REG3_Base_address_ADDR32);
-            // // Added to ensure WRCFG instruction has finished, since it takes 2 cycles.
-            // TTI_NOP;
-
             // === Context 1 ===
-            // Unpack SrcA (in1/inB)
-            // TTI_UNPACR(SrcA, 0, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-            // TTI_STALLWAIT(p_stall::STALL_SYNC, p_stall::TRISC_CFG);
+            // Wait for context available
             t6_semaphore_wait_on_zero<p_stall::STALL_UNPACK>(semaphore::UNPACK_SYNC);
-
+            
+            // Unpack SrcA (in1/inB)
             TTI_UNPACR(SrcA, 0b00000000, 0, 1, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
 
             // Unpack SrcB (in0/inA)
             if (unpB_partial_face)
             {
-                // TTI_UNPACR_NOP(SrcB, 0, 0, 0 /*Set Dvalid*/, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
                 TTI_UNPACR(
                     SrcB, 0b00010001, 0, 0, 0, 1 /*Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
                 TTI_UNPACR(
                     SrcB, 0b00110001, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-                // TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0100); // Set ch1_z=0
             }
             else
             {
                 TTI_UNPACR(
                     SrcB, 0b00001010, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
-                // Update SrcB address (SEC1/in0/inA)
-                // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_address_ADDR32);
-                // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_B);
-                // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-                // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC1_REG3_Base_address_ADDR32);
             }
 
             t6_semaphore_get(semaphore::UNPACK_SYNC);
-
-            // Update SrcB address (SEC1/in0/inA)
-            // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
-            // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_B);
-            // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-            // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
-
-            // Update SrcA address (SEC0/in1/inB)
-            // TTI_RDCFG(p_gpr_unpack::TMP0, THCON_SEC0_REG3_Base_cntx1_address_ADDR32);
-            // TTI_ADDDMAREG(0, p_gpr_unpack::TMP0, p_gpr_unpack::TMP0, p_gpr_unpack::TILE_SIZE_A);
-            // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-            // TTI_WRCFG(p_gpr_unpack::TMP0, 0, THCON_SEC0_REG3_Base_cntx1_address_ADDR32);
-            // // Added to ensure WRCFG instruction has finished, since it takes 2 cycles.
-            // TTI_NOP;
         });
 
     ckernel_unpack_template tmp = ckernel_unpack_template(
@@ -247,8 +204,6 @@ inline void _llk_unpack_AB_craqmm_(
 
     volatile uint *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
-    // TTI_MULDMAREG(0, p_gpr_unpack::TMP_LO, p_gpr_unpack::TILE_SIZE_B, p_gpr_unpack::KT_DIM);
-
     std::uint32_t offset_address_a = tile_size_a * tile_index_a;
     std::uint32_t offset_address_b = tile_size_b * tile_index_b;
 
@@ -258,42 +213,14 @@ inline void _llk_unpack_AB_craqmm_(
     std::uint32_t num_loops    = kt_dim / 16;
     std::uint32_t remaining_kt = kt_dim % 16;
 
-    // Wait for free context
-    // wait_for_next_context(2);
-
-    // // Program unpacker 1 base address
-    // if (0 == unp_cfg_context)
-    // {
-    //     cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_b;
-    //     cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_a;
-    // }
-    // else
-    // {
-    //     cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_b;
-    //     cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_a;
-    // }
-
-    // semaphore_post(semaphore::UNPACK_SYNC); // Trisc::SEMPOST for context acquire
-
-    // // Stall unpacker until pending CFG writes from Trisc have completed
-    // TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
-
-    // // Run the MOP kt_dim times (loop_count parameter is iterations - 1)
-    // // MOP replay buffer unpacks both SrcA and SrcB, incrementing addresses each iteration
-    // TT_MOP(0, kt_dim - 1, unp_cfg_context == 0 ? 0 : 0xff);
-
-    // // T6::SEMGET for context release
-    // t6_semaphore_get(semaphore::UNPACK_SYNC);
-
-    // // Switch unpacker config context
-    // switch_config_context(unp_cfg_context);
-
     // Wait for all contexts to be free
     wait_for_next_context(1);
     reset_config_context();
 
+    // Configure SrcB base address, once per call as we use counters for SrcB
     cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_a;
 
+    // Unpack 16 tiles per loop, run 16 mop iterations and risc does 16 unrolled address updates 8 cnxt0 + 8 cnxt1
     for (std::uint32_t i = 0; i < num_loops; i++)
     {
         TTI_MOP(0, 15, 0xAAAA);
@@ -311,6 +238,7 @@ inline void _llk_unpack_AB_craqmm_(
         }
     }
 
+    // Do any remaining kt_dim % 16 iterations, run mop remaining_kt times and risc does similar address updates
     if (remaining_kt != 0)
     {
         TT_MOP(0, remaining_kt - 1, 0xAAAA);
