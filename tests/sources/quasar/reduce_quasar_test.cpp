@@ -21,7 +21,7 @@ void run_kernel()
     tdma_descriptor_t td_val_B;
     const uint BUF_DESC_ID_A        = 0;
     const uint BUF_DESC_ID_B        = 1;
-    const uint num_tiles_per_unpack = TILE_CNT; //// ?
+    const uint num_tiles_per_unpack = TILE_CNT;
 
     // Setup data valid scheme
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
@@ -35,15 +35,15 @@ void run_kernel()
     bd_val_A.f.y_dim       = TEST_FACE_R_DIM;
     bd_val_A.f.z_dim       = num_faces;
 
+    td_val_A.buf_desc        = bd_val_A;
+    td_val_A.buf_desc_id     = BUF_DESC_ID_A;
+    td_val_A.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
+
     bd_val_B.f.l1_addr_16B = buffer_B[0] / 16;
     bd_val_B.f.format      = static_cast<uint8_t>(formats.unpack_src);
     bd_val_B.f.x_dim       = TEST_FACE_C_DIM;
     bd_val_B.f.y_dim       = TEST_FACE_R_DIM;
     bd_val_B.f.z_dim       = num_faces;
-
-    td_val_A.buf_desc        = bd_val_A;
-    td_val_A.buf_desc_id     = BUF_DESC_ID_A;
-    td_val_A.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
 
     td_val_B.buf_desc        = bd_val_B;
     td_val_B.buf_desc_id     = BUF_DESC_ID_B;
@@ -60,12 +60,6 @@ void run_kernel()
 
 #ifdef LLK_TRISC_MATH
 
-#ifdef FORMAT_INT32
-const bool is_int_fpu_en = true;
-#else
-const bool is_int_fpu_en = false;
-#endif
-
 #include "llk_math_common.h"
 #include "llk_math_reduce.h"
 #include "params.h"
@@ -80,7 +74,7 @@ void run_kernel()
     TileShape tile_shape_A = {.num_faces = num_faces, .face_r_dim = TEST_FACE_R_DIM, .face_c_dim = TEST_FACE_C_DIM, .narrow_tile = false};
 
     constexpr DataFormat src_format = static_cast<DataFormat>(formats.math);
-    _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en, src_format, src_format>();
+    _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, false /* int32 dest */, src_format, src_format>();
 
     constexpr ckernel::MathFidelity math_fidelity = static_cast<ckernel::MathFidelity>(MATH_FIDELITY);
     _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, math_fidelity>(tile_shape_A);
