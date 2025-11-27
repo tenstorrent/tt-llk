@@ -489,15 +489,7 @@ def write_pipeline_operands_to_l1(
 
     for operation in pipeline:
         mapping = operation.operand_mapping
-
-        input_operand_A = operands.get(mapping.src_a)
-        input_operand_B = operands.get(mapping.src_b)
-
-        operation.config["buffer_A_address"] = input_operand_A.l1_address
-        operation.config["buffer_B_address"] = input_operand_B.l1_address
-
-        output_operand_name = mapping.output
-        output_operand = operands.get(output_operand_name)
+        output_operand = operands.get(mapping.output)
 
         if output_operand.l1_address is None:
             output_tile_count = output_operand.tile_count
@@ -506,7 +498,6 @@ def write_pipeline_operands_to_l1(
                 output_operand.data_format, output_tile_count
             )
 
-        operation.config["result_buffer_address"] = output_operand.l1_address
         final_result_address = output_operand.l1_address
 
     return final_result_address

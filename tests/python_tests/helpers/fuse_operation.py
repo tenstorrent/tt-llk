@@ -9,6 +9,7 @@ from .fuse_math import Math
 from .fuse_operand import OperandMapping, OperandRegistry
 from .fuse_packer import Packer
 from .fuse_unpacker import Unpacker
+from .llk_params import DestAccumulation, MathFidelity
 
 
 @dataclass
@@ -16,9 +17,10 @@ class PipelineOperation:
     unpacker: Type[Unpacker]
     math: Math
     packer: Type[Packer]
-    config: Dict
     operand_mapping: OperandMapping
-    operand_registry: OperandRegistry = field(default=None)
+    operand_registry: OperandRegistry
+    dest_acc: DestAccumulation = DestAccumulation.No
+    math_fidelity: MathFidelity = MathFidelity.LoFi
     _generated_config: Optional[Dict] = field(default=None, init=False, repr=False)
 
     @property

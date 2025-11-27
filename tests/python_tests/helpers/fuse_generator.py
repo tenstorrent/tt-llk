@@ -113,10 +113,10 @@ class KernelCompiler:
         self.operations = operations
         num_stages = len(self.operations)
 
-        for i in range(num_stages):
-            self.operations[i].config["stage_id"] = i
-            self.operations[i].config["num_stages"] = num_stages
-            # print(self.operations[i].config)
+        for i, op in enumerate(self.operations):
+            cfg = op.generated_config
+            cfg["stage_id"] = i
+            cfg["num_stages"] = num_stages
 
         self.unpack_gen = UnpackKernelGenerator(self.operations)
         self.math_gen = MathKernelGenerator(self.operations)
