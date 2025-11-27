@@ -211,10 +211,10 @@ inline void _calculate_reciprocal_fast_24b_5c_(const int iterations)
     TTI_SFPNOP;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
+template <ApproximationMode APPROX_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
 inline void _calculate_reciprocal_internal_(const int iterations)
 {
-    if constexpr (APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         _calculate_reciprocal_fast_7b_(iterations);
     }
@@ -408,21 +408,21 @@ inline void _init_reciprocal_fast_24b_5c_()
         });
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_sfpu_reciprocal_()
 {
-    if constexpr (!APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE != ApproximationMode::Fast)
     {
         sfpi::vConstFloatPrgm0 = 2.0f;
     }
 }
 
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, bool legacy_compat = false>
+template <ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en, bool legacy_compat = false>
 inline void _init_reciprocal_()
 {
     if constexpr (!legacy_compat)
     {
-        if constexpr (APPROXIMATION_MODE)
+        if constexpr (APPROX_MODE == ApproximationMode::Fast)
         {
             _init_reciprocal_fast_7b_();
         }
