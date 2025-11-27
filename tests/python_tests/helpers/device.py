@@ -701,3 +701,71 @@ def reset_mailboxes():
     mailboxes = [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]
     for mailbox in mailboxes:
         write_words_to_device(location=location, addr=mailbox.value, data=reset_value)
+
+
+def collect_pipeline_results(
+    pipeline: List[PipelineOperation],
+    operands,
+    location: str = "0,0",
+):
+    import torch
+
+    from .llk_params import format_dict
+    from .tilize_untilize import untilize_block
+    from .unpack import unpack_res_tiles
+
+    TILE_ELEMENTS = 1024
+
+    for operation in pipeline:
+        config = operation.config
+        formats = config["formats"]
+        tile_cnt = config["tile_cnt"]
+        output_name = operation.operand_mapping.output
+
+        output_operand = operands.get(output_name)
+
+        if output_operand.l1_address is None:
+            raise ValueError(
+                f"Output operand '{output_name}' does not have an L1 address. "
+                "Make sure write_pipeline_operands_to_l1 was called before running the test."
+            )
+
+        output_dimensions = config.get("output_dimensions")
+        if output_dimensions is None:
+            input_A_dimensions = config.get("input_A_dimensions")
+            if input_A_dimensions:
+                output_dimensions = input_A_dimensions
+
+        read_bytes_cnt = (
+            formats.output_format.num_bytes_per_tile(TILE_ELEMENTS) * tile_cnt
+        )
+        read_data = read_from_device(
+            location, output_operand.l1_address, num_bytes=read_bytes_cnt
+        )
+
+        res_from_L1 = unpack_res_tiles(
+            read_data,
+            formats,
+            tile_count=tile_cnt,
+            sfpu=output_operand.sfpu,
+            num_faces=4,
+            face_r_dim=16,
+        )
+
+        torch_format = format_dict[formats.output_format]
+        tilized_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+        if formats.output_format != DataFormat.Bfp8_b and output_dimensions is not None:
+            raw_tensor = untilize_block(
+                tilized_tensor,
+                stimuli_format=formats.output_format,
+                dimensions=output_dimensions,
+            )
+        else:
+            raw_tensor = tilized_tensor
+
+        output_operand._data = tilized_tensor
+        output_operand._raw_data = raw_tensor
+        output_operand._tile_count = tile_cnt
+        output_operand.data_format = formats.output_format
+        output_operand.dimensions = output_dimensions
