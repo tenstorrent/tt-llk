@@ -199,9 +199,6 @@ inline void _llk_unpack_AB_craqmm_(
     // In0/InA -> srcB (supports partial face)
     // In1/InB -> srcA
 
-    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
-    TTI_SETADCXY(0b011, 0, 0, 0, 0, 0b1010);
-
     volatile uint *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     std::uint32_t offset_address_a = tile_size_a * tile_index_a;
@@ -210,48 +207,63 @@ inline void _llk_unpack_AB_craqmm_(
     std::uint32_t address_a = base_address_a + offset_address_a;
     std::uint32_t address_b = base_address_b + offset_address_b;
 
-    std::uint32_t num_loops    = kt_dim / 16;
-    std::uint32_t remaining_kt = kt_dim % 16;
-
-    // Wait for all contexts to be free
-    wait_for_next_context(1);
-    reset_config_context();
-
-    // Configure SrcB base address, once per call as we use counters for SrcB
-    cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_a;
-
-    // Unpack 16 tiles per loop, run 16 mop iterations and risc does 16 unrolled address updates 8 cnxt0 + 8 cnxt1
-    for (std::uint32_t i = 0; i < num_loops; i++)
+    // Need to reset counters and update SrcB base address for each superloop over 128 kt_dim
+    // I guess its due to some counters being overflowed
+    for (std::uint32_t i = 0; i < kt_dim; i+=128)
     {
-        TTI_MOP(0, 15, 0xAAAA);
-#pragma GCC unroll 8
-        for (std::uint32_t j = 0; j < 8; j++)
+        std::uint32_t superloop_kt_dim = kt_dim - i > 128 ? 128 : kt_dim - i;
+        std::uint32_t num_loops    = superloop_kt_dim / 16;
+        std::uint32_t remaining_kt = superloop_kt_dim % 16;
+
+        // Wait for all contexts to be free
+        wait_for_next_context(1);
+        reset_config_context();
+
+        TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
+        TTI_SETADCXY(0b011, 0, 0, 0, 0, 0b1010);
+        // Configure SrcB base address, once per call as we use counters for SrcB
+        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_a + (i * tile_size_a);
+
+        // Unpack 16 tiles per loop, run 16 mop iterations and risc does 16 unrolled address updates 8 cnxt0 + 8 cnxt1
+        for (std::uint32_t j = 0; j < num_loops; j++)
         {
-            wait_for_next_context(2);
-            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_b;
-            address_b += tile_size_b;
-            semaphore_post(semaphore::UNPACK_SYNC);
-            wait_for_next_context(2);
-            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_b;
-            address_b += tile_size_b;
-            semaphore_post(semaphore::UNPACK_SYNC);
+            TTI_MOP(0, 15, 0xAAAA);
+    #pragma GCC unroll 8
+            for (std::uint32_t k = 0; k < 8; k++)
+            {
+                wait_for_next_context(2);
+                cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_b;
+                address_b += tile_size_b;
+                semaphore_post(semaphore::UNPACK_SYNC);
+                wait_for_next_context(2);
+                cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_b;
+                address_b += tile_size_b;
+                semaphore_post(semaphore::UNPACK_SYNC);
+            }
         }
-    }
 
-    // Do any remaining kt_dim % 16 iterations, run mop remaining_kt times and risc does similar address updates
-    if (remaining_kt != 0)
-    {
-        TT_MOP(0, remaining_kt - 1, 0xAAAA);
-        for (std::uint32_t i = 0; i < remaining_kt; i += 2)
+        // Do any remaining kt_dim % 16 iterations, run mop remaining_kt times and risc does similar address updates
+        if (remaining_kt != 0)
         {
-            wait_for_next_context(2);
-            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_b;
-            address_b += tile_size_b;
-            semaphore_post(semaphore::UNPACK_SYNC);
-            wait_for_next_context(2);
-            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_b;
-            address_b += tile_size_b;
-            semaphore_post(semaphore::UNPACK_SYNC);
+            TT_MOP(0, remaining_kt - 1, 0xAAAA);
+            for (std::uint32_t j = 0; j < remaining_kt / 2; j++)
+            {
+                wait_for_next_context(2);
+                cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_b;
+                address_b += tile_size_b;
+                semaphore_post(semaphore::UNPACK_SYNC);
+                wait_for_next_context(2);
+                cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_b;
+                address_b += tile_size_b;
+                semaphore_post(semaphore::UNPACK_SYNC);
+            }
+            // Last address update if odd number of remaining kt_dim only hits context 0
+            if ((remaining_kt % 2) != 0)
+            {
+                wait_for_next_context(2);
+                cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_b;
+                semaphore_post(semaphore::UNPACK_SYNC);
+            }
         }
     }
 
