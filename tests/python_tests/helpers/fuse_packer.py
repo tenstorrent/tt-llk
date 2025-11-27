@@ -35,7 +35,7 @@ class MatmulPacker(Packer):
         pack_size = config["tile_size_pack"]
 
         TILE_CNT = config["tile_cnt"]
-        TILIZE = str(stage < num_stages - 1).lower()
+        TILIZE = "false"
 
         dest_acc = config["dest_acc"]
         dest_acc_value = dest_acc.value
