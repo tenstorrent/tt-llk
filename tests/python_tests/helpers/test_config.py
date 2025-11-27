@@ -17,6 +17,7 @@ from .device import (
 )
 from .format_config import DataFormat, FormatConfig
 from .fuse_generator import KernelCompiler
+from .fuse_operand import OperandRegistry
 from .fuse_operation import PipelineOperation
 from .llk_params import (
     FPU_BINARY_OPERATIONS,
@@ -614,22 +615,34 @@ def run_fuse_test(
     wait_for_tensix_operations_finished()
 
 
-def generate_operation_config(operation_config: dict) -> dict:
-    """
-    Generate a configuration dictionary from a PipelineOperation config.
-    This function processes the config and returns a dict with all variables
-    similar to build config, but without L1_to_L1_iterations (always 1 for fused operations).
+def generate_operation_config(
+    operands: OperandRegistry, operation: PipelineOperation
+) -> dict:
+    operation_config = operation.config
+    mapping = operation.operand_mapping
 
-    Args:
-        operation_config (dict): Configuration dictionary from PipelineOperation
-
-    Returns:
-        dict: Configuration dictionary with all processed variables
-    """
     config = {}
 
     config["stage_id"] = operation_config.get("stage_id", 0)
     config["num_stages"] = operation_config.get("num_stages", 1)
+
+    src_a = operands.get(mapping.src_a)
+    src_b = operands.get(mapping.src_b)
+    output = operands.get(mapping.output)
+
+    input_A_dimensions = src_a.dimensions if src_a.dimensions else [32, 32]
+    input_B_dimensions = src_b.dimensions if src_b.dimensions else [32, 32]
+    config["input_A_dimensions"] = input_A_dimensions
+    config["input_B_dimensions"] = input_B_dimensions
+
+    from .format_config import InputOutputFormat
+
+    formats = InputOutputFormat(
+        input_format=src_a.data_format, output_format=output.data_format
+    )
+
+    tile_cnt = output.tile_count
+    config["tile_cnt"] = tile_cnt
 
     # Basic configuration
     config["loop_factor"] = operation_config.get("loop_factor", 1)
@@ -728,8 +741,6 @@ def generate_operation_config(operation_config: dict) -> dict:
     config["face_r_dim"] = operation_config.get("face_r_dim", 16)
     config["face_c_dim"] = operation_config.get("face_c_dim", 16)
 
-    # Tile sizes
-    formats = operation_config.get("formats")
     if formats:
         TILE_SIZES = {
             DataFormat.Bfp8_b: 68,
@@ -753,7 +764,6 @@ def generate_operation_config(operation_config: dict) -> dict:
         config["tile_size_unpack_b"] = unpack_size_b
         config["tile_size"] = 16 * 16 * config["num_faces"]
 
-        # Format-based tile sizes for Operand buffers
         config["buffer_A_tile_size"] = format_tile_sizes[formats.input_format]
         config["buffer_B_tile_size"] = format_tile_sizes[formats.input_format]
         config["buffer_Res_tile_size"] = format_tile_sizes[formats.output_format]
@@ -817,22 +827,13 @@ def generate_operation_config(operation_config: dict) -> dict:
     if "dst_sync" in operation_config:
         config["dst_sync"] = operation_config["dst_sync"]
 
-    # Tile count
-    config["tile_cnt"] = operation_config.get("tile_cnt", 1)
-
-    # Buffer addresses
-    config["buffer_A_address"] = operation_config.get("buffer_A_address", 0x1A000)
-    config["buffer_B_address"] = operation_config.get("buffer_B_address", 0x1B000)
-    config["result_buffer_address"] = operation_config.get(
-        "result_buffer_address", 0x1C000
-    )
+    # Buffer addresses (automatically from operands if available)
+    config["buffer_A_address"] = src_a.l1_address
+    config["buffer_B_address"] = src_b.l1_address
+    config["result_buffer_address"] = output.l1_address
 
     if "buffer_C_address" in operation_config:
         config["buffer_C_address"] = operation_config["buffer_C_address"]
-
-    # Input dimensions
-    config["input_A_dimensions"] = operation_config.get("input_A_dimensions", [32, 32])
-    config["input_B_dimensions"] = operation_config.get("input_B_dimensions", [32, 32])
 
     # Matrix multiplication dimensions
     num_rows = 32
