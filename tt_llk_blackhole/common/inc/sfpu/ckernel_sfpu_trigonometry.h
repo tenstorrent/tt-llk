@@ -7,6 +7,7 @@
 #include <limits>
 
 #include "ckernel_sfpu_log.h"
+#include "ckernel_sfpu_recip.h"
 #include "ckernel_sfpu_sqrt.h"
 #include "llk_defs.h"
 #include "sfpi.h"
@@ -232,7 +233,7 @@ void _init_inverse_hyperbolic_()
 template <ApproximationMode APPROX_MODE>
 void _init_atanh_()
 {
-    _init_reciprocal_<APPROX_MODE>();
+    _init_sfpu_reciprocal_<APPROX_MODE>();
 }
 
 } // namespace sfpu
