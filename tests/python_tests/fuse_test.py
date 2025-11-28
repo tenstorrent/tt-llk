@@ -16,6 +16,7 @@ from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
     MathFidelity,
+    MathOperation,
 )
 from helpers.matmul_sweep import generate_matmul_dimension_combinations
 from helpers.param_config import input_output_formats, parametrize
