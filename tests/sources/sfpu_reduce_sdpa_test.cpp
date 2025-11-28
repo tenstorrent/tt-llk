@@ -109,14 +109,15 @@ void run_kernel()
     // SFPU part
     // Initialize SFPU for reduce operation
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
+    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 
-    ckernel::sfpu::_init_reduce_<PoolType::MAX, DataFormat::Float16_b>(BLOCK_CT_DIM);
+    ckernel::sfpu::_init_reduce_<PoolType::MAX, DataFormat::Float16_b>();
+    ckernel::sfpu::sfpu_reduce_max_load_initial_values();
 
-    for (uint32_t i = 0; i < BLOCK_CT_DIM; i++)
-    {
-        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
-        ckernel::sfpu::_calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(BLOCK_RT_DIM);
-    }
+    ckernel::sfpu::_calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(BLOCK_RT_DIM);
+
+    // Call epilogue once after processing all tiles
+    ckernel::sfpu::epilogue_reduce_max_col_();
 
     _llk_math_eltwise_unary_sfpu_done_();
 
