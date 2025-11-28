@@ -46,11 +46,11 @@ def run_shell_command(command: str, cwd: str | None = None):
         cwd=cwd,
         shell=True,
         text=True,
-        stdout=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
     if result.returncode != 0:
-        raise RuntimeError(f"Build failed: {command}\n{result.stderr}")
+        raise RuntimeError(f"Failed to run shell command: {command}\n{result.stderr}")
     return result
 
 
