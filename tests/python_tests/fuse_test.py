@@ -40,8 +40,6 @@ def generate_format_aware_matmul_combinations(
     combinations = []
 
     for fmt in formats_list:
-        if fmt.input_format != fmt.output_format:
-            continue
         base_max_tiles = 4 if is_dest_acc_needed(fmt) else 8
 
         for dest_acc in dest_acc_modes:
