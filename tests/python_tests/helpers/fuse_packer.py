@@ -2,11 +2,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Dict, List
+from typing import TYPE_CHECKING, List
+
+if TYPE_CHECKING:
+    from .fuse_operation import PipelineOperation
 
 
 class Packer:
-    def pack(self, config: Dict) -> str:
+    def pack(self, operation_config: "PipelineOperation") -> str:
         return ""
 
     def get_headers(self) -> List[str]:
@@ -20,27 +23,26 @@ class MatmulPacker(Packer):
             "llk_pack_common.h",
         ]
 
-    def pack(self, config: Dict) -> str:
-        stage = config["stage_id"]
-        num_stages = config["num_stages"]
-
-        pack_src = config["pack_in"]
-        pack_dst = config["pack_out"]
+    def pack(self, operation_config: "PipelineOperation") -> str:
+        stage = operation_config.stage_id
+        num_stages = operation_config.num_stages
+        pack_src = operation_config.pack_in
+        pack_dst = operation_config.pack_out
 
         PACK_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_src.name})"
         PACK_OUT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name})"
 
-        result_buffer_address = config["result_buffer_address"]
+        result_buffer_address = operation_config.output.l1_address
 
-        pack_size = config["tile_size_pack"]
+        pack_size = operation_config.tile_size_pack
 
-        TILE_CNT = config["tile_cnt"]
+        TILE_CNT = operation_config.output.tile_count
         TILIZE = "false"
 
-        dest_acc = config["dest_acc"]
+        dest_acc = operation_config.dest_acc
         dest_acc_value = dest_acc.value
 
-        buffer_Res_tile_size = config["buffer_Res_tile_size"]
+        buffer_Res_tile_size = operation_config.buffer_Res_tile_size
 
         code = f"""
     constexpr Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});
