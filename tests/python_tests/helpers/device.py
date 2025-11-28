@@ -151,6 +151,8 @@ def collect_results(
     num_faces: int = 4,
     face_r_dim: int = 16,  # Default to 16 for backward compatibility
 ):
+    face_c_dim = tile_dimensions[0] * tile_dimensions[1] // num_faces // face_r_dim
+
     # Always read full tiles - hardware still outputs full tile data
     # but with variable face dimensions, only part of it is valid
     tile_elements = tile_dimensions[0] * tile_dimensions[1]
@@ -166,6 +168,7 @@ def collect_results(
         sfpu=sfpu,
         num_faces=num_faces,
         face_r_dim=face_r_dim,
+        face_c_dim=face_c_dim,
     )
     return res_from_L1
 

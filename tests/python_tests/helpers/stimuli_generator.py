@@ -11,6 +11,7 @@ def flatten_list(sublists):
     return [item for sublist in sublists for item in sublist]
 
 
+# Current implementation of this function fixed for default 16x16 face size.
 def _mask_tile(tile: torch.Tensor, num_faces: int, is_matrix_A: bool) -> torch.Tensor:
     masked = tile.clone()
     if num_faces == 1:
@@ -34,8 +35,9 @@ def generate_random_face(
     const_face=False,
     sfpu=True,
     face_r_dim=16,
+    face_c_dim=16,
 ):
-    size = face_r_dim * 16  # face_r_dim rows × 16 columns
+    size = face_r_dim * face_c_dim
     if stimuli_format != DataFormat.Bfp8_b:
         if stimuli_format.is_integer():
             max = 127 if stimuli_format == DataFormat.Int8 else 255
@@ -72,11 +74,12 @@ def generate_random_face_ab(
     const_value_B=2,
     sfpu=True,
     face_r_dim=16,
+    face_c_dim=16,
 ):
     return generate_random_face(
-        stimuli_format_A, const_value_A, const_face, sfpu, face_r_dim
+        stimuli_format_A, const_value_A, const_face, sfpu, face_r_dim, face_c_dim
     ), generate_random_face(
-        stimuli_format_B, const_value_B, const_face, sfpu, face_r_dim
+        stimuli_format_B, const_value_B, const_face, sfpu, face_r_dim, face_c_dim
     )
 
 
@@ -129,7 +132,8 @@ def generate_stimuli(
     const_value_B=1,
     sfpu=True,
     face_r_dim=16,  # Add face_r_dim parameter
-    num_faces=4,  # Add num_faces parameter for partial faces
+    face_c_dim=16,
+    num_faces=4,  # Add num_faces parameter as number of faces per tile.
 ):
 
     srcA = []
@@ -137,16 +141,9 @@ def generate_stimuli(
 
     # Handle partial faces
     height, width = input_dimensions
-    if face_r_dim < 16:
-        # Partial face case: generate exactly num_faces worth of data
-        tile_cnt = 1
-        faces_to_generate = num_faces  # Generate exactly the right number of faces
-    else:
-        # Full tile case
-        tile_cnt = height // 32 * width // 32
-        faces_to_generate = 4
+    tile_cnt = (height * width) // (face_r_dim * face_c_dim * num_faces)
 
-    for _ in range(faces_to_generate * tile_cnt):
+    for _ in range(num_faces * tile_cnt):
         face_a, face_b = generate_random_face_ab(
             stimuli_format_A,
             stimuli_format_B,
@@ -155,6 +152,7 @@ def generate_stimuli(
             const_value_B,
             sfpu,
             face_r_dim,
+            face_c_dim,
         )
         srcA.extend(face_a.tolist())
         srcB.extend(face_b.tolist())

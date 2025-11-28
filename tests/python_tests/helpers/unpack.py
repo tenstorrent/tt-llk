@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from helpers.format_config import DataFormat
 
-from .llk_params import format_dict, format_tile_sizes
+from .llk_params import format_dict
 
 
 def unpack_fp16(packed_list):
@@ -121,27 +121,22 @@ _UNPACKERS = {
 
 
 def unpack_res_tiles(
-    packed_list, formats, tile_count=1, sfpu=False, num_faces=4, face_r_dim=16
+    packed_list,
+    formats,
+    tile_count=1,
+    sfpu=False,
+    num_faces=4,
+    face_r_dim=16,
+    face_c_dim=16,
 ):
     output_format = formats.output_format
     output_dtype = format_dict[output_format]
 
-    # Calculate tile size and determine elements per tile needed
-    tile_size = format_tile_sizes[output_format]  # Full tile size in bytes
+    # Calculate tile size in bytes
+    tile_size = face_r_dim * face_c_dim * num_faces * output_format.size
 
-    if face_r_dim == 16:
-        # Backward compatibility: calculate face size in bytes (original logic)
-        face_size = tile_size // 4  # Each face is 1/4 of a tile in bytes
-        elements_per_tile_needed = face_size * num_faces  # In bytes
-    else:
-        # Variable face dimensions: calculate in elements, convert to bytes
-        face_c_dim = 16
-        elements_per_face = face_r_dim * face_c_dim
-        elements_per_tile_needed = (
-            elements_per_face * num_faces * output_format.size
-        )  # Convert to bytes
-    total_elements_needed = tile_count * elements_per_tile_needed
-    if total_elements_needed > len(packed_list):
+    total_bytes_needed = tile_count * tile_size
+    if total_bytes_needed > len(packed_list):
         raise IndexError("Buffer access out of bounds")
 
     if output_format == DataFormat.Bfp8_b:
@@ -153,9 +148,9 @@ def unpack_res_tiles(
 
     # Write only values from the selected faces into unpacked_tile
     for tile in range(tile_count):
-        # Both paths use byte-based indexing since tile_size and elements_per_tile_needed are in bytes
+
         start_idx = tile * tile_size
-        end_idx = start_idx + elements_per_tile_needed
+        end_idx = start_idx + tile_size
         tile_data = packed_list[start_idx:end_idx]
 
         if unpack_func == unpack_bfp8_b:
