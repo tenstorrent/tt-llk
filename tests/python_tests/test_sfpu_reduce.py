@@ -79,13 +79,13 @@ def test_sfpu_reduce(
     # STIMULI GENERATION
     ELEMENTS_PER_TILE = 1024  # 32 * 32
     tile_cnt = input_dimensions[0] * input_dimensions[1] // ELEMENTS_PER_TILE
-    range = 1000
+    boundary = 1000
     if seed == 0:
-        max, min = 1000, 0
+        max, min = boundary, 0
     elif seed == 1:
-        max, min = 0, -1000
+        max, min = 0, -1 * boundary
     else:
-        max, min = 1000, -1000
+        max, min = 1000, -1 * boundary
     src_A = torch.randint(
         low=min, high=max, size=(tile_cnt * 1024,), dtype=torch_format
     )
@@ -94,7 +94,7 @@ def test_sfpu_reduce(
     # Max Reduction can do block and single tile reduction whereas Sum/Avg only do single tile reduction, convert Sum/Avg golden to do block reduction by retilizing input to src_A
     # Dimensions for Max reduction work column wise, for Sum/Avg processing tiles independently is same as column reduction on dst block dimension [32, num_tiles * 32] where num rows is 32 i.e RT_DIM=1 (same as a single tile)
     dst_dim = input_dimensions
-    if reduce_pool != ReducePool.Max or (
+    if reduce_pool not in [ReducePool.Sum, ReducePool.Average] or (
         single_tile and reduce_pool in [ReducePool.Min, ReducePool.Max]
     ):
         dst_dim = [32, tile_cnt * 32]
@@ -127,7 +127,6 @@ def test_sfpu_reduce(
         "unpack_to_dest": True,
         "tile_cnt": tile_cnt,
         "disable_format_inference": True,
-        "unpack_to_dest": True,
         "single_tile": single_tile,
     }
 

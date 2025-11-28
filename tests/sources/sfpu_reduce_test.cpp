@@ -68,7 +68,7 @@ void run_kernel()
 
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
 
-    if constexpr (POOL_TYPE == ckernel::PoolType::MAX && !SINGLE_TILE)
+    if constexpr ((POOL_TYPE == ckernel::PoolType::MAX || POOL_TYPE == ckernel::PoolType::MIN) && !SINGLE_TILE)
     {
         // Multiple tile reduction implemented for block dimensions,dependent on ct_dim and rt_dim
         ckernel::sfpu::_init_reduce_<POOL_TYPE, static_cast<DataFormat>(formats.math)>(BLOCK_CT_DIM);

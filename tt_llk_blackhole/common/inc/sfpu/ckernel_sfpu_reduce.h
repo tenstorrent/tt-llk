@@ -487,21 +487,6 @@ inline void init_reduce_sum_avg()
 // ============================================================================
 
 /**
- * @brief Generic reduction operation for a 32x32 tile, placing output values into the first row.
- *        Currently able to calculate column-wise sum and/or average of a 32x32 tile, placing output values into the first row.
- *        Uses an optimized approach that processes vertically aligned face pairs (0+2, 1+3) to minimize
- *        load/store operations and eliminate intermediate storage requirements.
- *        For integer formats with averaging, handles negative numbers properly using condition codes
- *        since Blackhole only supports logical shift (not arithmetic shift).
- * @tparam pool_type The pool/reduction pool_type (SUM, AVG, MAX). Currently only SUM and AVG are supported.
- * @tparam reduce_dim The reduction dimension (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR). Currently only REDUCE_COL is supported.
- * @tparam INSTRUCTION_MODE The instruction modifier that determines the data type and precision:
- *                          - InstrModLoadStore::INT32: Signed 32-bit integers
- *                          - InstrModLoadStore::INT32_2S_COMP: 32-bit integers in 2's complement (no effect in Blackhole)
- *                          - InstrModLoadStore::LO16: Unsigned 16-bit integers (lower 16 bits)
- */
-
-/**
  * @brief Column-wise maximum/minimum reduction kernel for SFPU reduce MAX/MIN operation.
  *        Processes a block of tiles vertically (block_height tiles stacked) and computes the maximum or minimum value
  *        for each of the columns across all rows in the block. The maximum/minimum values are placed into
