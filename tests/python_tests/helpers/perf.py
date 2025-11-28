@@ -408,15 +408,6 @@ def _git_rev_parse(revision: str) -> str:
     return _verify_sha1(sha)
 
 
-def _git_rev_list(revision: str) -> list[str]:
-    stdout = run_shell_command(f"git rev-list {revision}").stdout
-    return [
-        hash
-        for hash in (line.strip() for line in stdout.splitlines())
-        if hash and _verify_sha1(hash)
-    ]
-
-
 def _git_commit_hash() -> str:
     return _git_rev_parse("HEAD")
 
