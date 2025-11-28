@@ -425,7 +425,6 @@ def write_stimuli_to_l1(
 
 def write_pipeline_operands_to_l1(
     pipeline: List[PipelineOperation],
-    operands,
     location: str = "0,0",
 ):
     TILE_ELEMENTS = 1024
@@ -478,18 +477,26 @@ def write_pipeline_operands_to_l1(
             addr = operand.l1_address + i * tile_size
             write_to_device(location, addr, packed_data)
 
-    for operand in operands.get_all_inputs():
-        if operand.l1_address is None:
+    all_operands = {}
+    for operation in pipeline:
+        src_a = operation.src_a
+        src_b = operation.src_b
+        output = operation.output
+
+        all_operands[src_a.name] = src_a
+        all_operands[src_b.name] = src_b
+        all_operands[output.name] = output
+
+    for operand in all_operands.values():
+        if operand.is_input() and operand.l1_address is None:
             operand.l1_address = current_address
             current_address += calculate_size(operand.data_format, operand.tile_count)
-
-        write_operand_data(operand, location)
+            write_operand_data(operand, location)
 
     final_result_address = None
 
     for operation in pipeline:
-        mapping = operation.operand_mapping
-        output_operand = operands.get(mapping.output)
+        output_operand = operation.output
 
         if output_operand.l1_address is None:
             output_tile_count = output_operand.tile_count
@@ -697,7 +704,6 @@ def reset_mailboxes():
 
 def collect_pipeline_results(
     pipeline: List[PipelineOperation],
-    operands,
     location: str = "0,0",
 ):
     import torch
@@ -709,9 +715,8 @@ def collect_pipeline_results(
     TILE_ELEMENTS = 1024
 
     for operation in pipeline:
-        output_name = operation.operand_mapping.output
-
-        output_operand = operands.get(output_name)
+        output_operand = operation.output
+        output_name = output_operand.name
 
         if output_operand.l1_address is None:
             raise ValueError(

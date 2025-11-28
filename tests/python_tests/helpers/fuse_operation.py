@@ -9,7 +9,7 @@ from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .format_config import DataFormat
 from .fuse_math import Math
-from .fuse_operand import Operand, OperandMapping, OperandRegistry
+from .fuse_operand import Operand, OperandMapping
 from .fuse_packer import Packer
 from .fuse_unpacker import Unpacker
 from .llk_params import (
@@ -33,7 +33,6 @@ class PipelineOperation:
     math: Math
     packer: Type[Packer]
     operand_mapping: OperandMapping
-    operand_registry: OperandRegistry
     stage_id: int = 0
     num_stages: int = 1
     dest_acc: DestAccumulation = DestAccumulation.No
@@ -68,10 +67,11 @@ class PipelineOperation:
 
     def __post_init__(self):
         mapping = self.operand_mapping
+        registry = mapping.operand_registry
 
-        src_a = self.operand_registry.get(mapping.src_a)
-        src_b = self.operand_registry.get(mapping.src_b)
-        output = self.operand_registry.get(mapping.output)
+        src_a = registry.get(mapping.src_a)
+        src_b = registry.get(mapping.src_b)
+        output = registry.get(mapping.output)
 
         input_A_dimensions = src_a.dimensions if src_a.dimensions else [32, 32]
         input_B_dimensions = src_b.dimensions if src_b.dimensions else [32, 32]
@@ -157,17 +157,17 @@ class PipelineOperation:
     @property
     def src_a(self) -> Operand:
         mapping = self.operand_mapping
-        return self.operand_registry.get(mapping.src_a)
+        return mapping.operand_registry.get(mapping.src_a)
 
     @property
     def src_b(self) -> Operand:
         mapping = self.operand_mapping
-        return self.operand_registry.get(mapping.src_b)
+        return mapping.operand_registry.get(mapping.src_b)
 
     @property
     def output(self) -> Operand:
         mapping = self.operand_mapping
-        return self.operand_registry.get(mapping.output)
+        return mapping.operand_registry.get(mapping.output)
 
     def unpack(self) -> str:
         unpacker_instance = self.unpacker()

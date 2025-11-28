@@ -108,7 +108,6 @@ def test_matmul(
             unpacker=MatmulUnpacker,
             math=Math(MatmulFpu, []),
             packer=MatmulPacker,
-            operand_registry=operands,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
         ),
@@ -146,17 +145,16 @@ def test_matmul(
                 ],
             ),
             packer=MatmulPacker,
-            operand_registry=operands,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
         ),
     ]
 
-    write_pipeline_operands_to_l1(pipeline, operands)
+    write_pipeline_operands_to_l1(pipeline)
 
     run_fuse_test(pipeline, boot_mode)
 
-    collect_pipeline_results(pipeline, operands)
+    collect_pipeline_results(pipeline)
 
-    golden = FuseGolden(operands, verbose=True)
+    golden = FuseGolden()
     assert golden.check_pipeline(pipeline)

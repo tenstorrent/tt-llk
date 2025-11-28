@@ -7,7 +7,6 @@ from typing import List
 import torch
 
 from .fuse_math import BinarySfpu, MatmulFpu, UnarySfpu
-from .fuse_operand import OperandRegistry
 from .fuse_operation import PipelineOperation
 from .golden_generators import (
     BinarySFPUGolden,
@@ -19,8 +18,7 @@ from .utils import passed_test
 
 
 class FuseGolden:
-    def __init__(self, operands: OperandRegistry, verbose: bool = True):
-        self.operands = operands
+    def __init__(self, verbose: bool = True):
         self.verbose = verbose
         self.results = []
 
@@ -30,23 +28,19 @@ class FuseGolden:
             print(f"Operation {step_number}")
             print(f"{'='*60}")
 
-        src_a_name = operation.operand_mapping.src_a
-        src_b_name = operation.operand_mapping.src_b
-        output_name = operation.operand_mapping.output
-
-        src_a = self.operands.get(src_a_name)
-        src_b = self.operands.get(src_b_name)
-        output = self.operands.get(output_name)
+        src_a = operation.src_a
+        src_b = operation.src_b
+        output = operation.output
 
         if self.verbose:
             print(
-                f"  Input A: {src_a_name} (dims: {src_a.dimensions}, format: {src_a.data_format})"
+                f"  Input A: {src_a.name} (dims: {src_a.dimensions}, format: {src_a.data_format})"
             )
             print(
-                f"  Input B: {src_b_name} (dims: {src_b.dimensions}, format: {src_b.data_format})"
+                f"  Input B: {src_b.name} (dims: {src_b.dimensions}, format: {src_b.data_format})"
             )
             print(
-                f"  Output:  {output_name} (dims: {output.dimensions}, format: {output.data_format})"
+                f"  Output:  {output.name} (dims: {output.dimensions}, format: {output.data_format})"
             )
             print(f"  Math Fidelity: {operation.math_fidelity}")
             print(f"  Dest Accumulation: {operation.dest_acc}")
@@ -59,9 +53,9 @@ class FuseGolden:
         result = {
             "step": step_number,
             "operation": str(operation.math.__class__.__name__),
-            "src_a": src_a_name,
-            "src_b": src_b_name,
-            "output": output_name,
+            "src_a": src_a.name,
+            "src_b": src_b.name,
+            "output": output.name,
             "passed": passed,
         }
         self.results.append(result)
@@ -77,8 +71,7 @@ class FuseGolden:
         math_fidelity = operation.math_fidelity
         dest_acc = operation.dest_acc
 
-        output_name = operation.operand_mapping.output
-        output = self.operands.get(output_name)
+        output = operation.output
 
         from .format_config import InputOutputFormat
 
@@ -140,14 +133,12 @@ class FuseGolden:
         return generate_binary_golden(sfpu_op.operation, golden, golden, formats.output)
 
     def check_pipeline(self, pipeline: List[PipelineOperation]) -> bool:
-        all_passed = True
-
         for i, operation in enumerate(pipeline, start=1):
             passed = self.check_operation(operation, i)
             if not passed:
-                all_passed = False
+                return False
 
-        return all_passed
+        return True
 
     def get_results(self) -> List[dict]:
         return self.results.copy()
