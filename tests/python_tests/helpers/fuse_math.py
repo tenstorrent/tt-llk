@@ -52,7 +52,7 @@ class MatmulFpu(Fpu):
 
 
 class Sfpu:
-    operation: str
+    operation: MathOperation
     approx_mode: ApproximationMode
     iterations: int = 32
 
@@ -80,6 +80,10 @@ class UnarySfpu(Sfpu):
         approx_mode: ApproximationMode = ApproximationMode.No,
         iterations: int = 32,
     ):
+        if not operation in MathOperation.get_sfpu_unary_operations():
+            raise ValueError(
+                f"Operation {operation} is not a valid SFPU unary operation."
+            )
         super().__init__(operation, approx_mode, iterations)
 
     def get_headers(self) -> List[str]:
@@ -116,6 +120,10 @@ class BinarySfpu(Sfpu):
         dst_index_in1: int = 1,
         dst_index_out: int = 0,
     ):
+        if not operation in MathOperation.get_sfpu_binary_operations():
+            raise ValueError(
+                f"Operation {operation} is not a valid SFPU binary operation."
+            )
         super().__init__(operation, approx_mode, iterations)
         self.dst_index_in0 = dst_index_in0
         self.dst_index_in1 = dst_index_in1
