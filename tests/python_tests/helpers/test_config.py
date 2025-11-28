@@ -347,8 +347,12 @@ def generate_build_header(test_config):
         raise ValueError("Format Config not passed in test config")
 
     # Check if this is an outlier format combination that requires dest_acc to be enabled
-    if is_format_combination_outlier(
-        formats.input_format, formats.output_format, dest_acc
+    # This check is not relevant for Quasar as Quasar packer can handle 8-bit exp to 5-bit exp conversion
+    if (
+        is_format_combination_outlier(
+            formats.input_format, formats.output_format, dest_acc
+        )
+        and get_chip_architecture() != ChipArchitecture.QUASAR
     ):
         # Automatically enable dest_acc for outlier combinations
         dest_acc = DestAccumulation.Yes
@@ -583,5 +587,5 @@ def run_test(
     build_test(test_config, boot_mode, profiler_build)
 
     # run test
-    run_elf_files(test_config["testname"], boot_mode)
-    wait_for_tensix_operations_finished()
+    elfs = run_elf_files(test_config["testname"], boot_mode)
+    wait_for_tensix_operations_finished(elfs)
