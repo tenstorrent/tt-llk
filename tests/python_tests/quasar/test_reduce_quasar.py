@@ -55,10 +55,7 @@ def test_reduce_quasar(test_name, formats, dest_acc, reduce_dim, pool_type):
         src_B = torch.full((1024,), 1)
     else:
         # reduce average divides by length of elements in array we reduce
-        if reduce_dim in [ReduceDimension.Column, ReduceDimension.Row]:
-            src_B = torch.full((1024,), 1 / 32)
-        else:
-            src_B = torch.full((1024,), torch.sqrt(torch.tensor(1 / 1024)))
+        src_B = torch.full((1024,), 1 / 32)
 
     generate_golden = get_golden_generator(ReduceGolden)
     golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
