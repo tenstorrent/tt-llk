@@ -20,6 +20,7 @@ from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
     MathFidelity,
+    MathOperation,
 )
 from helpers.matmul_sweep import generate_matmul_dimension_combinations
 from helpers.param_config import input_output_formats, parametrize
@@ -125,17 +126,17 @@ def test_matmul(
                 MatmulFpu,
                 [
                     UnarySfpu(
-                        "sqrt",
+                        MathOperation.Sqrt,
                         ApproximationMode.No,
                         32 * operands.get("final_output").tile_count,
                     ),
                     UnarySfpu(
-                        "neg",
+                        MathOperation.Neg,
                         ApproximationMode.No,
                         32 * operands.get("final_output").tile_count,
                     ),
                     BinarySfpu(
-                        "ADD",
+                        MathOperation.SfpuElwadd,
                         ApproximationMode.No,
                         32 * operands.get("final_output").tile_count,
                         0,

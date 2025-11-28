@@ -4,7 +4,7 @@
 
 from typing import Dict, List, Type
 
-from .llk_params import ApproximationMode
+from .llk_params import ApproximationMode, MathOperation
 
 
 class Fpu:
@@ -76,7 +76,7 @@ class Sfpu:
 class UnarySfpu(Sfpu):
     def __init__(
         self,
-        operation: str,
+        operation: MathOperation,
         approx_mode: ApproximationMode = ApproximationMode.No,
         iterations: int = 32,
     ):
@@ -95,10 +95,10 @@ class UnarySfpu(Sfpu):
         math_format = config["math_format"]
         dest_acc = config["dest_acc"].value
         code = f"""
-    _llk_math_eltwise_unary_sfpu_init_<SfpuType::{self.operation}>();
+    _llk_math_eltwise_unary_sfpu_init_<SfpuType::{self.operation.cpp_enum_value}>();
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
     test_utils::call_sfpu_operation<{self.iterations}, {dest_acc}, {self.approx_mode.value}>(
-        SfpuType::{self.operation},
+        SfpuType::{self.operation.cpp_enum_value},
         static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})
     );
     _llk_math_eltwise_unary_sfpu_done_();
@@ -107,13 +107,9 @@ class UnarySfpu(Sfpu):
 
 
 class BinarySfpu(Sfpu):
-    dst_index_in0: int = 0
-    dst_index_in1: int = 1
-    dst_index_out: int = 0
-
     def __init__(
         self,
-        operation: str,
+        operation: MathOperation,
         approx_mode: ApproximationMode = ApproximationMode.No,
         iterations: int = 32,
         dst_index_in0: int = 0,
@@ -141,7 +137,7 @@ class BinarySfpu(Sfpu):
         code = f"""
     _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
     _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
-    test_utils::call_binary_sfpu_operation<{self.approx_mode.value}, ckernel::BinaryOp::{self.operation}, {self.iterations}, {MATH_FORMAT}>({self.dst_index_in0}, {self.dst_index_in1}, {self.dst_index_out});
+    test_utils::call_binary_sfpu_operation<{self.approx_mode.value}, ckernel::BinaryOp::{self.operation.cpp_enum_value}, {self.iterations}, {MATH_FORMAT}>({self.dst_index_in0}, {self.dst_index_in1}, {self.dst_index_out});
     _llk_math_eltwise_binary_sfpu_done_();
 """
         return code
