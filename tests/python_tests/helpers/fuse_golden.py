@@ -15,7 +15,6 @@ from .golden_generators import (
     UnarySFPUGolden,
     get_golden_generator,
 )
-from .llk_params import MathOperation
 from .utils import passed_test
 
 
@@ -129,10 +128,9 @@ class FuseGolden:
 
     def _apply_unary_sfpu(self, sfpu_op, golden, formats, dest_acc) -> torch.Tensor:
         generate_sfpu_golden = get_golden_generator(UnarySFPUGolden)
-        operation_enum = self._get_math_operation(sfpu_op.operation)
 
         return generate_sfpu_golden(
-            operation_enum,
+            sfpu_op.operation,
             golden,
             formats.output,
             dest_acc,
@@ -141,32 +139,7 @@ class FuseGolden:
 
     def _apply_binary_sfpu(self, sfpu_op, golden, formats) -> torch.Tensor:
         generate_binary_golden = get_golden_generator(BinarySFPUGolden)
-        operation_enum = self._get_math_operation(sfpu_op.operation)
-
-        return generate_binary_golden(operation_enum, golden, golden, formats.output)
-
-    def _get_math_operation(self, operation_name: str) -> MathOperation:
-        operation_map = {
-            "sqrt": MathOperation.Sqrt,
-            "neg": MathOperation.Neg,
-            "abs": MathOperation.Abs,
-            "exp": MathOperation.Exp,
-            "log": MathOperation.Log,
-            "sin": MathOperation.Sin,
-            "cos": MathOperation.Cos,
-            "reciprocal": MathOperation.Reciprocal,
-            "rsqrt": MathOperation.Rsqrt,
-            "square": MathOperation.Square,
-            "gelu": MathOperation.Gelu,
-            "ADD": MathOperation.SfpuElwadd,
-            "SUB": MathOperation.SfpuElwsub,
-            "MUL": MathOperation.SfpuElwmul,
-        }
-
-        if operation_name not in operation_map:
-            raise ValueError(f"Nepoznata operacija: {operation_name}")
-
-        return operation_map[operation_name]
+        return generate_binary_golden(sfpu_op.operation, golden, golden, formats.output)
 
     def check_pipeline(self, pipeline: List[PipelineOperation]) -> bool:
         all_passed = True
