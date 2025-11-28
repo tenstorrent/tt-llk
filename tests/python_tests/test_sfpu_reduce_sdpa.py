@@ -87,10 +87,6 @@ def test_sfpu_reduce_sdpa(
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize_block(res_tensor, formats.output_format, input_dimensions)
 
-    print("res_tensor:")
-    print(res_tensor.view(8192 // 64, 64))
-    print("\n" * 5)
-
     # Check only the first row for correctness, not full tensors
     print("golden_tensor[0]:", golden_tensor[0])
     print("res_tensor[0]:", res_tensor[0])
