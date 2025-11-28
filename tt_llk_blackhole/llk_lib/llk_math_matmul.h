@@ -653,7 +653,24 @@ inline void _llk_math_matmul_(uint dst_index, const std::uint32_t ct_dim = 1, co
             }
             else
             {
-                ckernel_template::run();
+                // ckernel_template::run();
+                TTI_MOVB2D(0, 0, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 0);
+                TTI_MOVB2D(0, 4, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 4);
+                TTI_MOVB2D(0, 8, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 8);
+                TTI_MOVB2D(0, 12, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 12);
+                TTI_MOVB2D(0, 16, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 16);
+                TTI_MOVB2D(0, 20, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 20);
+                TTI_MOVB2D(0, 24, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 24);
+                TTI_MOVB2D(0, 28, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 28);
+                TTI_MOVB2D(0, 32, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 32);
+                TTI_MOVB2D(0, 36, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 36);
+                TTI_MOVB2D(0, 40, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 40);
+                TTI_MOVB2D(0, 44, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 44);
+                TTI_MOVB2D(0, 48, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 48);
+                TTI_MOVB2D(0, 52, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 52);
+                TTI_MOVB2D(0, 56, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 56);
+                TTI_MOVB2D(0, 60, ADDR_MOD_5, p_movb2d::MOV_4_ROWS, 60);
+                TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
             }
 
             // Clear srcB or srcA at end of reuse (once per u block row)
