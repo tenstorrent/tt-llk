@@ -64,7 +64,13 @@ from helpers.utils import passed_test
     ],
 )
 def test_matmul_and_unary_sfpu(
-    test_name, formats, mathop, approx_mode, dest_acc, math_fidelity
+    test_name,
+    formats,
+    mathop,
+    approx_mode,
+    dest_acc,
+    math_fidelity,
+    workers_tensix_coordinates,
 ):
     input_dimensions = [32, 32]
 

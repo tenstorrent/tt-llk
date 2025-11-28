@@ -33,11 +33,11 @@ def test_unpack_tilize_float(test_name, formats):
 @parametrize(
     test_name="unpack_tilize_test", formats=input_output_formats([DataFormat.Int32])
 )
-def test_unpack_tilize_int(test_name, formats):
-    unpack_tilize(test_name, formats)
+def test_unpack_tilize_int(test_name, formats, workers_tensix_coordinates):
+    unpack_tilize(test_name, formats, workers_tensix_coordinates)
 
 
-def unpack_tilize(test_name, formats):
+def unpack_tilize(test_name, formats, workers_tensix_coordinates):
     input_dimensions = [64, 64]
 
     src_A, _, tile_cnt = generate_stimuli(

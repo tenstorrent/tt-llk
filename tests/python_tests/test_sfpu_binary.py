@@ -32,7 +32,9 @@ from helpers.utils import passed_test
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
-def test_sfpu_binary_float(test_name, formats, dest_acc, mathop):
+def test_sfpu_binary_float(
+    test_name, formats, dest_acc, mathop, workers_tensix_coordinates
+):
     chip_arch = get_chip_architecture()
     if chip_arch == ChipArchitecture.WORMHOLE and mathop == MathOperation.SfpuElwsub:
         pytest.skip("Not currently supported in tests")

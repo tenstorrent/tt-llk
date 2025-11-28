@@ -25,14 +25,18 @@ def assert_marker(
     ), f"Expected marker_id = {expected_id}, got {entry['marker_id']}"
 
 
-def test_profiler_primitives():
+def test_profiler_primitives(workers_tensix_coordinates):
 
     test_config = {
         "testname": "profiler_primitives_test",
     }
 
     variant_id = sha256(f"{str(test_config)}".encode()).hexdigest()
-    run_test(test_config, profiler_build=ProfilerBuild.Yes)
+    run_test(
+        test_config,
+        profiler_build=ProfilerBuild.Yes,
+        location=workers_tensix_coordinates,
+    )
     runtime = Profiler.get_data(test_config["testname"], variant_id)
 
     # ZONE_SCOPED - Get first ZONE type entry from UNPACK thread

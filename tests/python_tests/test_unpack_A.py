@@ -320,6 +320,7 @@ def test_unpack_comprehensive(
     within_face_16x16_transpose,
     num_faces,
     face_r_dim,
+    workers_tensix_coordinates,
 ):
 
     # Compute unpack_to_dest based on format and accumulation mode

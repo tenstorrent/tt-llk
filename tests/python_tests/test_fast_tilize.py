@@ -56,7 +56,9 @@ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
     dimensions=generate_input_dimensions(25),
 )
-def test_fast_tilize(test_name, formats, dest_acc, dimensions):
+def test_fast_tilize(
+    test_name, formats, dest_acc, dimensions, workers_tensix_coordinates
+):
 
     input_width, input_height = dimensions
 

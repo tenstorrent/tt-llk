@@ -42,7 +42,9 @@ def torch_equal_nan(a, b):
     mathop=MathOperation.TTNNWhere,
     test_case=["mixed", "all_ones", "all_zeros"],
 )
-def test_ttnn_where(test_name, formats, dest_acc, mathop, test_case):
+def test_ttnn_where(
+    test_name, formats, dest_acc, mathop, test_case, workers_tensix_coordinates
+):
 
     if (
         formats.input == DataFormat.Float32 and formats.output == DataFormat.Float32

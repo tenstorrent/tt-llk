@@ -40,7 +40,9 @@ mathop_mapping = {
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )
-def test_reduce(test_name, formats, dest_acc, reduce_dim, pool_type):
+def test_reduce(
+    test_name, formats, dest_acc, reduce_dim, pool_type, workers_tensix_coordinates
+):
 
     input_dimensions = [32, 32]
 

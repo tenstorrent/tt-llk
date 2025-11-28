@@ -111,15 +111,20 @@ create_directories(
 
 OPTIONS_COMPILE = None
 MEMORY_LAYOUT_LD_SCRIPT = None
+NON_COVERAGE_OPTIONS_COMPILE = None
 
 
 def resolve_compile_options(
     boot_mode: BootMode, profiler_build: ProfilerBuild, coverage_build: CoverageBuild
-) -> tuple[str, str]:
-    global OPTIONS_COMPILE, MEMORY_LAYOUT_LD_SCRIPT
+) -> tuple[str, str, str]:
+    global OPTIONS_COMPILE, MEMORY_LAYOUT_LD_SCRIPT, NON_COVERAGE_OPTIONS_COMPILE
 
-    if OPTIONS_COMPILE is not None and MEMORY_LAYOUT_LD_SCRIPT is not None:
-        return (OPTIONS_COMPILE, MEMORY_LAYOUT_LD_SCRIPT)
+    if (
+        OPTIONS_COMPILE is not None
+        and MEMORY_LAYOUT_LD_SCRIPT is not None
+        and NON_COVERAGE_OPTIONS_COMPILE is not None
+    ):
+        return (OPTIONS_COMPILE, MEMORY_LAYOUT_LD_SCRIPT, NON_COVERAGE_OPTIONS_COMPILE)
 
     MEMORY_LAYOUT_LD_SCRIPT = f"{LINKER_SCRIPTS}/memory.{ARCH}.ld"
     OPTIONS_COMPILE = f"{INCLUDES} {INITIAL_OPTIONS_COMPILE} "
@@ -133,6 +138,7 @@ def resolve_compile_options(
         raise ValueError("You can't build profiler and coverage build at the same time")
 
     if coverage_build == CoverageBuild.Yes:
+        NON_COVERAGE_OPTIONS_COMPILE = OPTIONS_COMPILE
         OPTIONS_COMPILE += (
             "-fprofile-arcs -ftest-coverage -fprofile-info-section -DCOVERAGE "
         )
@@ -141,7 +147,7 @@ def resolve_compile_options(
     if profiler_build == ProfilerBuild.Yes:
         OPTIONS_COMPILE += "-DLLK_PROFILER "
 
-    return (OPTIONS_COMPILE, MEMORY_LAYOUT_LD_SCRIPT)
+    return (OPTIONS_COMPILE, MEMORY_LAYOUT_LD_SCRIPT, NON_COVERAGE_OPTIONS_COMPILE)
 
 
 SHARED_ARTEFACTS_AVAILABLE = False
@@ -155,8 +161,8 @@ def build_shared_artefacts(
     if SHARED_ARTEFACTS_AVAILABLE:
         return True
 
-    local_options_compile, local_memory_layout_ld = resolve_compile_options(
-        boot_mode, profiler_build, coverage_build
+    local_options_compile, local_memory_layout_ld, local_non_coverage = (
+        resolve_compile_options(boot_mode, profiler_build, coverage_build)
     )
 
     # tmu-crt0.o : tmu-crt0.S
@@ -167,19 +173,18 @@ def build_shared_artefacts(
 
     # brisc.o : brisc.cpp
     run_shell_command(
-        f"""{GXX} {ARCH_NON_COMPUTE} {OPTIONS_ALL} {local_options_compile} -c -o {SHARED_OBJ_DIR / "brisc.o"} {RISCV_SOURCES / "brisc.cpp"}""",
-        TESTS_WORKING_DIR,
-    )
-
-    # coverage.o : coverage.cpp
-    run_shell_command(
-        f"""{GXX} {ARCH_NON_COMPUTE} {OPTIONS_ALL} {local_options_compile} -fno-strict-aliasing -c -o {SHARED_OBJ_DIR / "coverage.o"} {RISCV_SOURCES / "coverage.cpp"}""",
+        f"""{GXX} {ARCH_NON_COMPUTE} {OPTIONS_ALL} {local_non_coverage} -c -o {SHARED_OBJ_DIR / "brisc.o"} {RISCV_SOURCES / "brisc.cpp"}""",
         TESTS_WORKING_DIR,
     )
 
     COVERAGE_DEPS = ""
     if coverage_build == CoverageBuild.Yes:
         COVERAGE_DEPS = f"{SHARED_OBJ_DIR}/coverage.o -lgcov"
+        # coverage.o : coverage.cpp
+        run_shell_command(
+            f"""{GXX} {ARCH_NON_COMPUTE} {OPTIONS_ALL} {local_non_coverage} -fno-strict-aliasing -c -o {SHARED_OBJ_DIR / "coverage.o"} {RISCV_SOURCES / "coverage.cpp"}""",
+            TESTS_WORKING_DIR,
+        )
 
     # brisc.elf : tmu-crt0.o brisc.o coverage.o
     run_shell_command(
@@ -236,7 +241,7 @@ def build_test_variant(
 
     build_shared_artefacts(boot_mode, profiler_build, coverage_build)
 
-    local_options_compile, local_memory_layout_ld = resolve_compile_options(
+    local_options_compile, local_memory_layout_ld, _ = resolve_compile_options(
         boot_mode, profiler_build, coverage_build
     )
 

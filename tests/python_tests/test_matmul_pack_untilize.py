@@ -32,7 +32,9 @@ from helpers.utils import passed_test
         MathFidelity.HiFi4,
     ],
 )
-def test_matmul_pack_untilize(test_name, formats, dest_acc, math_fidelity):
+def test_matmul_pack_untilize(
+    test_name, formats, dest_acc, math_fidelity, workers_tensix_coordinates
+):
     if formats.output == DataFormat.Bfp8_b:
         pytest.skip("Pack untilize does not support Bfp8_b")
 

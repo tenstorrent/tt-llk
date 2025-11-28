@@ -71,7 +71,9 @@ TINY_TILES_MATMUL_COMBINATIONS = sweep_tiny_tiles_matmul(
     ],
     matmul_config=MATMUL_COMBINATIONS + TINY_TILES_MATMUL_COMBINATIONS,
 )
-def test_unpack_matmul(test_name, math_fidelity, matmul_config):
+def test_unpack_matmul(
+    test_name, math_fidelity, matmul_config, workers_tensix_coordinates
+):
 
     formats = matmul_config.formats
     dest_acc = matmul_config.dest_acc

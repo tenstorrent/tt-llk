@@ -38,7 +38,7 @@ from helpers.utils import passed_test
     ],
 )
 def test_tilize_calculate_untilize_L1(
-    test_name, formats, dest_acc, mathop, math_fidelity
+    test_name, formats, dest_acc, mathop, math_fidelity, workers_tensix_coordinates
 ):
 
     input_dimensions = [32, 32]

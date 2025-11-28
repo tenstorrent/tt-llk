@@ -40,7 +40,13 @@ from helpers.utils import passed_test
     ],
 )
 def test_sfpu_reduce_sdpa(
-    test_name, formats, dest_acc, mathop, reduce_pool, input_dimensions
+    test_name,
+    formats,
+    dest_acc,
+    mathop,
+    reduce_pool,
+    input_dimensions,
+    workers_tensix_coordinates,
 ):
 
     src_A, src_B, tile_cnt = generate_stimuli(

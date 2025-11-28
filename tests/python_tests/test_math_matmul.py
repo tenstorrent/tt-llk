@@ -83,7 +83,9 @@ ALL_TEST_PARAMS = list(
 @pytest.mark.parametrize(
     "test_name,math_fidelity,matmul_config,throttle", ALL_TEST_PARAMS
 )
-def test_math_matmul(test_name, math_fidelity, matmul_config, throttle):
+def test_math_matmul(
+    test_name, math_fidelity, matmul_config, throttle, workers_tensix_coordinates
+):
 
     formats = matmul_config.formats
     dest_acc = matmul_config.dest_acc

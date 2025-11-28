@@ -24,7 +24,7 @@ from helpers.utils import passed_test
         ]
     ),
 )
-def test_unpack_untilize(test_name, formats):
+def test_unpack_untilize(test_name, formats, workers_tensix_coordinates):
     if formats.input_format == DataFormat.Bfp8_b:
         pytest.skip(
             "BFP8 format is not supported for unpack_untilize operation for multiple tiles"

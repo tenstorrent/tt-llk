@@ -31,7 +31,7 @@ DATACOPY_FORMATS = input_output_formats(
         DATACOPY_FORMATS, result_tiles=4
     ),
 )
-def test_unary_datacopy(test_name, datacopy_parameters):
+def test_unary_datacopy(test_name, datacopy_parameters, workers_tensix_coordinates):
 
     input_dimensions = [64, 64]
 

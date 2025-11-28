@@ -109,8 +109,11 @@ def workers_tensix_coordinates(worker_id):
 def pytest_configure(config):
     log_file = "pytest_errors.log"
     # Clear the log file if it exists
-    if os.path.exists(log_file):
-        os.remove(log_file)
+    try:
+        if os.path.exists(log_file):
+            os.remove(log_file)
+    except:
+        pass
 
     logging.basicConfig(
         filename=log_file,

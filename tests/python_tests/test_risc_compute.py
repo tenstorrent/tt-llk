@@ -17,7 +17,7 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 
-def test_risc_compute():
+def test_risc_compute(workers_tensix_coordinates):
     formats = input_output_formats([DataFormat.Int32])[0]
     input_dimensions = [32, 96]
 

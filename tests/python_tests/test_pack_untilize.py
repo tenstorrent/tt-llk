@@ -26,7 +26,7 @@ from helpers.utils import passed_test
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
-def test_pack_untilize(test_name, formats, dest_acc):
+def test_pack_untilize(test_name, formats, dest_acc, workers_tensix_coordinates):
     if formats.output_format == DataFormat.Bfp8_b:
         pytest.skip("Pack Untilize does not support Bfp8_b format")
 

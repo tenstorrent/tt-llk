@@ -97,7 +97,9 @@ def generate_transpose_dest_float_combinations(formats_list):
         TRANSPOSE_DEST_FLOAT_FORMATS
     ),
 )
-def test_transpose_dest_float(test_name, fmt_dest_acc_math_transp_unpack_to_dest):
+def test_transpose_dest_float(
+    test_name, fmt_dest_acc_math_transp_unpack_to_dest, workers_tensix_coordinates
+):
 
     transpose_dest(
         test_name,
@@ -105,6 +107,7 @@ def test_transpose_dest_float(test_name, fmt_dest_acc_math_transp_unpack_to_dest
         dest_acc=fmt_dest_acc_math_transp_unpack_to_dest[1],
         math_transpose_faces=fmt_dest_acc_math_transp_unpack_to_dest[2],
         unpack_to_dest=fmt_dest_acc_math_transp_unpack_to_dest[3],
+        workers_tensix_coordinates=workers_tensix_coordinates,
     )
 
 
@@ -116,12 +119,31 @@ def test_transpose_dest_float(test_name, fmt_dest_acc_math_transp_unpack_to_dest
     unpack_to_dest=[True],
 )
 def test_transpose_dest_int(
-    test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest
+    test_name,
+    formats,
+    dest_acc,
+    math_transpose_faces,
+    unpack_to_dest,
+    workers_tensix_coordinates,
 ):
-    transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest)
+    transpose_dest(
+        test_name,
+        formats,
+        dest_acc,
+        math_transpose_faces,
+        unpack_to_dest,
+        workers_tensix_coordinates,
+    )
 
 
-def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to_dest):
+def transpose_dest(
+    test_name,
+    formats,
+    dest_acc,
+    math_transpose_faces,
+    unpack_to_dest,
+    workers_tensix_coordinates,
+):
 
     if dest_acc == DestAccumulation.Yes and formats.input_format != DataFormat.Int32:
         pytest.skip("32-bit dest tests fail for Float formats due to bit No.11 issue.")

@@ -51,6 +51,7 @@ def test_unpack_tilize_comprehensive(
     dest_acc,
     num_faces,
     input_dimensions,
+    workers_tensix_coordinates,
 ):
     """Comprehensive parameter sweep test for unpack_tilize operation."""
 

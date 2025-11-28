@@ -47,6 +47,7 @@ def test_unp_bcast_sub_sdpa(
     math_fidelity,
     input_dimensions,
     srca_reuse_count,
+    workers_tensix_coordinates,
 ):
 
     # Precompute constants

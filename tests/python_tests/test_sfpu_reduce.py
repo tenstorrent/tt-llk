@@ -63,6 +63,7 @@ def test_sfpu_reduce(
     negative_number,
     dimension_combinations,
     add_top_row,
+    workers_tensix_coordinates,
 ):
     if negative_number and formats.input_format == DataFormat.UInt32:
         pytest.skip(

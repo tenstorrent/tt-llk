@@ -59,7 +59,9 @@ from helpers.utils import passed_test
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
-def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_acc):
+def test_eltwise_unary_sfpu_float(
+    test_name, formats, approx_mode, mathop, dest_acc, workers_tensix_coordinates
+):
     arch = get_chip_architecture()
 
     if TestTargetConfig().with_coverage and mathop in [

@@ -39,7 +39,13 @@ from helpers.utils import passed_test
     input_dimensions=[[32, 32], [32, 64], [64, 64]],
 )
 def test_multiple_tiles(
-    test_name, formats, mathop, dest_acc, math_fidelity, input_dimensions
+    test_name,
+    formats,
+    mathop,
+    dest_acc,
+    math_fidelity,
+    input_dimensions,
+    workers_tensix_coordinates,
 ):
 
     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
