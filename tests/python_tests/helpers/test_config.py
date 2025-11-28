@@ -464,6 +464,9 @@ def generate_build_header(test_config):
 
     tile_cnt = test_config.get("tile_cnt", 1)
 
+    single_tile = str(test_config.get("single_tile", False)).lower()
+    header_content.append(f"constexpr bool SINGLE_TILE = {single_tile};")
+
     header_content.append("")
     # Multi-tile test configuration
     header_content.append("// Multi-tile test configuration")
