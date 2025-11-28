@@ -527,6 +527,9 @@ def generate_build_header(test_config):
     if add_top_row:
         header_content.append("constexpr bool ADD_TOP_ROW = true;")
 
+    single_tile = str(test_config.get("single_tile", False)).lower()
+    header_content.append(f"constexpr bool SINGLE_TILE = {single_tile};")
+
     header_content.append("")
 
     if perf_run_type := test_config.get("perf_run_type"):

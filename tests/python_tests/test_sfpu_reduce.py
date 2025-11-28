@@ -53,8 +53,9 @@ dimension_combinations = [
     ),
     mathop=[MathOperation.ReduceColumn],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    negative_number=[False, True],
-    reduce_pool=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
+    seed=[0, 1, 2],  # positive, negative or both random seed generation
+    single_tile=[True, False],  # For Max/Min reduction on single tile vs block
+    reduce_pool=[ReducePool.Min, ReducePool.Max, ReducePool.Sum, ReducePool.Average],
     dimension_combinations=dimension_combinations,
 )
 def test_sfpu_reduce(
@@ -63,13 +64,11 @@ def test_sfpu_reduce(
     dest_acc,
     mathop,
     reduce_pool,
-    negative_number,
+    single_tile,
+    seed,
     dimension_combinations,
 ):
-    if negative_number and (
-        formats.input_format in [DataFormat.UInt32, DataFormat.UInt16]
-        or reduce_pool == ReducePool.Max
-    ):
+    if seed != 0 and (formats.input_format in [DataFormat.UInt32, DataFormat.UInt16]):
         pytest.skip(
             f"Skipping negative_numbers=True for unsigned format {formats.input_format}"
         )
@@ -80,22 +79,26 @@ def test_sfpu_reduce(
     # STIMULI GENERATION
     ELEMENTS_PER_TILE = 1024  # 32 * 32
     tile_cnt = input_dimensions[0] * input_dimensions[1] // ELEMENTS_PER_TILE
-    max, min = 1000, (
-        0 if formats.input_format in [DataFormat.UInt32, DataFormat.UInt16] else -1000
-    )
+    range = 1000
+    if seed == 0:
+        max, min = 1000, 0
+    elif seed == 1:
+        max, min = 0, -1000
+    else:
+        max, min = 1000, -1000
     src_A = torch.randint(
         low=min, high=max, size=(tile_cnt * 1024,), dtype=torch_format
     )
     src_B = torch.zeros_like(src_A)
 
-    sign = -1 if negative_number else 1
-    src_A *= sign
-
     # Max Reduction can do block and single tile reduction whereas Sum/Avg only do single tile reduction, convert Sum/Avg golden to do block reduction by retilizing input to src_A
     # Dimensions for Max reduction work column wise, for Sum/Avg processing tiles independently is same as column reduction on dst block dimension [32, num_tiles * 32] where num rows is 32 i.e RT_DIM=1 (same as a single tile)
     dst_dim = input_dimensions
-    if reduce_pool != ReducePool.Max:
+    if reduce_pool != ReducePool.Max or (
+        single_tile and reduce_pool in [ReducePool.Min, ReducePool.Max]
+    ):
         dst_dim = [32, tile_cnt * 32]
+
     src_A = tilize_block(
         src_A, dst_dim, stimuli_format=formats.input_format
     ).flatten()  # Input tensor is tilized in dst register
@@ -125,6 +128,7 @@ def test_sfpu_reduce(
         "tile_cnt": tile_cnt,
         "disable_format_inference": True,
         "unpack_to_dest": True,
+        "single_tile": single_tile,
     }
 
     res_address = write_stimuli_to_l1(
