@@ -135,6 +135,9 @@ def unpack_res_tiles(
     # Calculate tile size in bytes
     tile_size = face_r_dim * face_c_dim * num_faces * output_format.size
 
+    if output_format == DataFormat.Bfp8_b:
+        tile_size += tile_size // 16  # Add space for exponents
+
     total_bytes_needed = tile_count * tile_size
     if total_bytes_needed > len(packed_list):
         raise IndexError("Buffer access out of bounds")
