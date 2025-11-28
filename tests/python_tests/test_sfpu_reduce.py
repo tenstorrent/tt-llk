@@ -55,7 +55,7 @@ dimension_combinations = [
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     seed=[0, 1, 2],  # positive, negative or both random seed generation
     single_tile=[True, False],  # For Max/Min reduction on single tile vs block
-    reduce_pool=[ReducePool.Min, ReducePool.Max, ReducePool.Sum, ReducePool.Avg],
+    reduce_pool=[ReducePool.Min, ReducePool.Max, ReducePool.Sum, ReducePool.Average],
     dimension_combinations=dimension_combinations,
 )
 def test_sfpu_reduce(
