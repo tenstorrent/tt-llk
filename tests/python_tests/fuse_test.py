@@ -13,10 +13,8 @@ from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.fuse_golden import FuseGolden
 from helpers.fuse_pipeline import create_fuse_pipeline
 from helpers.llk_params import (
-    ApproximationMode,
     DestAccumulation,
     MathFidelity,
-    MathOperation,
 )
 from helpers.matmul_sweep import generate_matmul_dimension_combinations
 from helpers.param_config import input_output_formats, parametrize
