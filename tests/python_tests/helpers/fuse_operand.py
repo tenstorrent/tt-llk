@@ -93,10 +93,12 @@ class OperandMapping:
         src_a: str,
         src_b: str,
         output: str,
+        operand_registry: "OperandRegistry" = None,
     ):
         self.src_a = src_a
         self.src_b = src_b
         self.output = output
+        self.operand_registry = operand_registry
 
     def create_output_operand(
         self, operand_registry: "OperandRegistry", output_format: DataFormat
@@ -209,6 +211,7 @@ class OperandRegistry:
             src_a=src_a,
             src_b=src_b,
             output=output,
+            operand_registry=self,
         )
 
         mapping.create_output_operand(self, output_format)
