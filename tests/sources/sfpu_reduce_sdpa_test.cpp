@@ -81,7 +81,7 @@ void run_kernel()
 
 #ifdef LLK_TRISC_PACK
 
-#include "ckernel_sfpu_reduce.h"
+#include "ckernel_sfpu_reduce_custom.h"
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 #include "params.h"
@@ -110,11 +110,11 @@ void run_kernel()
     // Initialize SFPU for reduce operation
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
 
-    ckernel::sfpu::_init_reduce_<PoolType::MAX, DataFormat::Float16_b>();
+    ckernel::sfpu::_init_reduce_max_col_<DataFormat::Float16_b>();
 
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
     ckernel::sfpu::_reduce_max_prologue_();
-    ckernel::sfpu::_calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(BLOCK_RT_DIM);
+    ckernel::sfpu::_calculate_reduce_max_col_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(BLOCK_RT_DIM);
 
     ckernel::sfpu::_reuce_max_epilogue_();
 
