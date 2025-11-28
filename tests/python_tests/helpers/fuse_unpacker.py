@@ -2,11 +2,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Dict, List
+from typing import TYPE_CHECKING, List
+
+if TYPE_CHECKING:
+    from .fuse_operation import PipelineOperation
 
 
 class Unpacker:
-    def unpack(self, config: Dict) -> str:
+    def unpack(self, operation_config: "PipelineOperation") -> str:
         return ""
 
     def get_headers(self) -> List[str]:
@@ -22,26 +25,26 @@ class MatmulUnpacker(Unpacker):
             "llk_unpack_common.h",
         ]
 
-    def unpack(self, config: Dict) -> str:
-        stage = config["stage_id"]
-        FACE_R_DIM = config["face_r_dim"]
-        CT_DIM = config["ct_dim"]
-        RT_DIM = config["rt_dim"]
-        KT_DIM = config["kt_dim"]
+    def unpack(self, operation_config: "PipelineOperation") -> str:
+        stage = operation_config.stage_id
+        FACE_R_DIM = operation_config.face_r_dim
+        CT_DIM = operation_config.ct_dim
+        RT_DIM = operation_config.rt_dim
+        KT_DIM = operation_config.kt_dim
 
-        buffer_A_address = config["buffer_A_address"]
-        buffer_B_address = config["buffer_B_address"]
+        buffer_A_address = operation_config.src_a.l1_address
+        buffer_B_address = operation_config.src_b.l1_address
 
-        unpack_src = config["unpack_a_in"]
-        unpack_dst = config["unpack_a_out"]
+        unpack_src = operation_config.unpack_a_in
+        unpack_dst = operation_config.unpack_a_out
 
         UNPACK_A_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_src.name})"
         UNPACK_A_OUT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_dst.name})"
 
-        unpack_size_a = config["tile_size_unpack_a"]
-        unpack_size_b = config["tile_size_unpack_b"]
+        unpack_size_a = operation_config.tile_size_unpack_a
+        unpack_size_b = operation_config.tile_size_unpack_b
 
-        dest_acc = config["dest_acc"]
+        dest_acc = operation_config.dest_acc
         dest_acc_value = dest_acc.value
 
         code = ""
@@ -52,8 +55,8 @@ class MatmulUnpacker(Unpacker):
     t6_semaphore_get<>(semaphore::PACK_DONE);
 """
 
-        buffer_A_tile_size = config["buffer_A_tile_size"]
-        buffer_B_tile_size = config["buffer_B_tile_size"]
+        buffer_A_tile_size = operation_config.buffer_A_tile_size
+        buffer_B_tile_size = operation_config.buffer_B_tile_size
 
         code += f"""
     constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});

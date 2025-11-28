@@ -2,13 +2,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Dict, List, Type
+from typing import TYPE_CHECKING, List, Type
+
+if TYPE_CHECKING:
+    from .fuse_operation import PipelineOperation
 
 from .llk_params import ApproximationMode, MathOperation
 
 
 class Fpu:
-    def exec(self, config: Dict) -> str:
+    def exec(self, operation_config: "PipelineOperation") -> str:
         return ""
 
     def get_headers(self) -> List[str]:
@@ -22,18 +25,17 @@ class MatmulFpu(Fpu):
             "llk_math_matmul.h",
         ]
 
-    def exec(self, config: Dict) -> str:
-        CT_DIM = config["ct_dim"]
-        RT_DIM = config["rt_dim"]
-        KT_DIM = config["kt_dim"]
-
-        math_format = config["math_format"]
+    def exec(self, operation_config: "PipelineOperation") -> str:
+        CT_DIM = operation_config.ct_dim
+        RT_DIM = operation_config.rt_dim
+        KT_DIM = operation_config.kt_dim
+        math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
 
-        fidelity = config["math_fidelity"]
+        fidelity = operation_config.math_fidelity
         MATH_FIDELITY = fidelity.value
 
-        dest_acc = config["dest_acc"].value
+        dest_acc = operation_config.dest_acc.value
 
         code = f"""
     _llk_math_matmul_init_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, {CT_DIM}, {RT_DIM}, {KT_DIM});
@@ -66,7 +68,7 @@ class Sfpu:
         self.approx_mode = approx_mode
         self.iterations = iterations
 
-    def exec(self, config: Dict) -> str:
+    def exec(self, operation_config: "PipelineOperation") -> str:
         return ""
 
     def get_headers(self) -> List[str]:
@@ -95,9 +97,9 @@ class UnarySfpu(Sfpu):
             "sfpu_operations.h",
         ]
 
-    def exec(self, config: Dict) -> str:
-        math_format = config["math_format"]
-        dest_acc = config["dest_acc"].value
+    def exec(self, operation_config: "PipelineOperation") -> str:
+        math_format = operation_config.math_format
+        dest_acc = operation_config.dest_acc.value
         code = f"""
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::{self.operation.cpp_enum_value}>();
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
@@ -139,8 +141,8 @@ class BinarySfpu(Sfpu):
             "sfpu_operations.h",
         ]
 
-    def exec(self, config: Dict) -> str:
-        math_format = config["math_format"]
+    def exec(self, operation_config: "PipelineOperation") -> str:
+        math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
         code = f"""
     _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
@@ -181,8 +183,8 @@ class SfpuWhere(Sfpu):
             "llk_math_eltwise_ternary_sfpu.h",
         ]
 
-    def exec(self, config: Dict) -> str:
-        math_format = config["math_format"]
+    def exec(self, operation_config: "PipelineOperation") -> str:
+        math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
         code = f"""
     _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
@@ -213,14 +215,14 @@ class Math:
 
         return sorted(list(headers))
 
-    def exec(self, config: Dict) -> str:
+    def exec(self, operation_config: "PipelineOperation") -> str:
         fpu_instance = self.fpu()
-        code = fpu_instance.exec(config)
+        code = fpu_instance.exec(operation_config)
 
         for sfpu in self.sfpu:
-            code += sfpu.exec(config)
+            code += sfpu.exec(operation_config)
 
-        dest_acc = config["dest_acc"].value
+        dest_acc = operation_config.dest_acc.value
         code += f"""
     _llk_math_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();
 """

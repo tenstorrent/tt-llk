@@ -109,13 +109,11 @@ class FuseGolden:
             tilize=True,
         )
 
-        golden = self._apply_sfpu_operations(operation, golden, formats, math_fidelity)
+        golden = self._apply_sfpu_operations(operation, golden, formats)
 
         return golden
 
-    def _apply_sfpu_operations(
-        self, operation, golden, formats, math_fidelity
-    ) -> torch.Tensor:
+    def _apply_sfpu_operations(self, operation, golden, formats) -> torch.Tensor:
         dest_acc = operation.dest_acc
 
         for sfpu_op in operation.math.sfpu:
