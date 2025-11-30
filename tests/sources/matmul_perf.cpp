@@ -21,6 +21,7 @@ uint32_t math_sync_tile_dst_index = 0;
 static constexpr uint32_t MAX_TILES_DEST = dest_datum_width ? 4 : 8;
 
 static_assert(CT_DIM * RT_DIM <= MAX_TILES_DEST, "CT_DIM * RT_DIM must be less than or equal to MAX_TILES_DEST");
+static_assert(RT_DIM * CT_DIM * KT_DIM == TILE_CNT, "RT_DIM * CT_DIM * KT_DIM must be equal to TILE_CNT");
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -51,6 +52,10 @@ void run_kernel()
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             return;
+        }
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
+        {
+            return _perf_unpack_matmul_mock(LOOP_FACTOR, RT_DIM, KT_DIM, CT_DIM);
         }
         else
         {
@@ -111,6 +116,25 @@ void run_kernel()
         {
             return;
         }
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
+        {
+            return _perf_math_matmul_mock(LOOP_FACTOR, RT_DIM, KT_DIM, CT_DIM);
+        }
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
+        {
+            for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
+            {
+                for (uint32_t j = 0; j < KT_DIM; j++)
+                {
+                    _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor, THROTTLE_LEVEL>(
+                        /* dest_index */ 0,
+                        /* transpose */ false,
+                        CT_DIM,
+                        RT_DIM,
+                        KT_DIM);
+                }
+            }
+        }
         else
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
@@ -154,7 +178,11 @@ void run_kernel()
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
+        if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE || PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
+        {
+            return;
+        }
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
             {

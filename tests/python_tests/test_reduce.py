@@ -3,15 +3,15 @@
 
 import torch
 from helpers.device import collect_results, write_stimuli_to_l1
-from helpers.format_arg_mapping import (
+from helpers.format_config import DataFormat
+from helpers.golden_generators import ReduceGolden, get_golden_generator
+from helpers.llk_params import (
     DestAccumulation,
     MathOperation,
     ReduceDimension,
     ReducePool,
     format_dict,
 )
-from helpers.format_config import DataFormat
-from helpers.golden_generators import ReduceGolden, get_golden_generator
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
@@ -55,10 +55,7 @@ def test_reduce(test_name, formats, dest_acc, reduce_dim, pool_type):
         src_B = torch.full((1024,), 1)
     else:
         # reduce average divides by length of elements in array we reduce
-        if reduce_dim in [ReduceDimension.Column, ReduceDimension.Row]:
-            src_B = torch.full((1024,), 1 / 32)
-        else:
-            src_B = torch.full((1024,), torch.sqrt(torch.tensor(1 / 1024)))
+        src_B = torch.full((1024,), 1 / 32)
 
     generate_golden = get_golden_generator(ReduceGolden)
     golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)

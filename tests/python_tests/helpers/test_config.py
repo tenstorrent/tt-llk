@@ -5,28 +5,33 @@ import os
 from enum import Enum
 from pathlib import Path
 
+from .chip_architecture import ChipArchitecture, get_chip_architecture
+from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     BootMode,
     resolve_default_boot_mode,
     run_elf_files,
     wait_for_tensix_operations_finished,
 )
-from .format_arg_mapping import (
+from .format_config import DataFormat, FormatConfig
+from .llk_params import (
     FPU_BINARY_OPERATIONS,
     REDUCE_OPERATIONS,
     SFPU_BINARY_OPERATIONS,
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
+    DataCopyType,
     DestAccumulation,
     DestSync,
+    ImpliedMathFormat,
     MathFidelity,
     MathOperation,
     StochasticRounding,
     Tilize,
     Transpose,
+    UnpackerEngine,
     format_tile_sizes,
 )
-from .format_config import DataFormat, FormatConfig, InputOutputFormat
 from .matmul_sweep import validate_tile_dimensions
 from .utils import run_shell_command
 
@@ -71,6 +76,11 @@ def generate_build_header(test_config):
       - Data format and math operation defines
       - Special configuration for multi-tile tests
 
+    Data Format Inference:
+      - Receive format configuration from test_config["formats"] and infers all formats for LLK APIs (unpack, math, pack) using the Python data format inference model.
+      - A C++ FormatConfig struct is generated in build.h containing all format values,
+        allowing C++ test files to access formats via `formats.unpack_src`, etc.
+
     Args:
         test_config (dict): Dictionary containing test configuration parameters.
 
@@ -79,6 +89,7 @@ def generate_build_header(test_config):
 
     File location: <repository>/tests/helpers/include/build.h
     """
+
     header_content = [
         "// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC",
         "//",
@@ -87,17 +98,27 @@ def generate_build_header(test_config):
         "",
         "#pragma once",
         "",
+        "#include <array>",
+        "#include <type_traits>",
         "",
         '#include "operand.h"',
         '#include "llk_defs.h"',
         '#include "llk_sfpu_types.h"',
-        '#include "perf.h"',
-        '#include "tensix_types.h"',
-        "",
-        "",
-        "// Basic configuration",
-        "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
     ]
+
+    # Conditionally include perf.h based on architecture
+    if get_chip_architecture() != ChipArchitecture.QUASAR:
+        header_content.append('#include "perf.h"')
+
+    header_content.extend(
+        [
+            '#include "tensix_types.h"',
+            "",
+            "",
+            "// Basic configuration",
+            "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
+        ]
+    )
 
     loop_factor = test_config.get("loop_factor", 1)
 
@@ -105,7 +126,6 @@ def generate_build_header(test_config):
 
     # Dest accumulation
     dest_acc = test_config.get("dest_acc", DestAccumulation.No)
-    header_content.append(f"constexpr bool dest_acc_en_input = {dest_acc.value};")
 
     # Unpack to dest
     unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
@@ -124,6 +144,25 @@ def generate_build_header(test_config):
     header_content.append(
         f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face.value};"
     )
+
+    # ******** QUASAR specific ********
+    if get_chip_architecture() == ChipArchitecture.QUASAR:
+        # Implied math format
+        implied_math_format = test_config.get(
+            "implied_math_format", ImpliedMathFormat.No
+        )
+        header_content.append(
+            f"constexpr bool IMPLIED_MATH_FORMAT = {implied_math_format.value};"
+        )
+
+        # Select unpacker
+        unpacker_engine_sel = test_config.get(
+            "unpacker_engine_sel", UnpackerEngine.UnpA
+        )
+        header_content.append(
+            f"constexpr uint UNPACKER_ENGINE_SEL = p_unpacr::{unpacker_engine_sel.value};"
+        )
+    # *********************************
 
     # Throttle level
     throttle = test_config.get("throttle", 0)
@@ -148,6 +187,12 @@ def generate_build_header(test_config):
     fused_L1_to_L1 = test_config.get("L1_to_L1_iterations", 1)
     header_content.append(
         f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {fused_L1_to_L1};"
+    )
+
+    # Data copy type
+    data_copy_type = test_config.get("data_copy_type", DataCopyType.A2D)
+    header_content.append(
+        f"constexpr auto DATA_COPY_TYPE = ckernel::DataCopyType::{data_copy_type.value};"
     )
 
     # Broadcast type
@@ -204,6 +249,10 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr bool PARTIAL_FACE_A = {partial_face_A};")
     header_content.append(f"constexpr bool PARTIAL_FACE_B = {partial_face_B};")
 
+    # General partial_face constant for unpack_A operations
+    partial_face = str(test_config.get("partial_face", False)).lower()
+    header_content.append(f"constexpr bool PARTIAL_FACE = {partial_face};")
+
     header_content.append(f"constexpr bool PARTIAL_FACE_PACK = {partial_face_A};")
     header_content.append(f"constexpr bool PARTIAL_FACE_MATH = {partial_face_B};")
 
@@ -225,6 +274,14 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr int in1_tile_r_dim = {in1_tile_r_dim};")
     header_content.append(f"constexpr int in1_tile_c_dim = {in1_tile_c_dim};")
 
+    # face dimensions - use TEST_ prefix to avoid namespace collision with ckernel::FACE_R_DIM
+    face_r_dim = test_config.get("face_r_dim", 16)
+    face_c_dim = test_config.get(
+        "face_c_dim", 16
+    )  # Face column dimension, typically 16
+    header_content.append(f"constexpr int TEST_FACE_R_DIM = {face_r_dim};")
+    header_content.append(f"constexpr int TEST_FACE_C_DIM = {face_c_dim};")
+
     # tile size
     formats = test_config.get("formats")
     if formats:
@@ -233,16 +290,16 @@ def generate_build_header(test_config):
             DataFormat.Bfp8_b: 68,
             DataFormat.Float32: 256,
         }
-        FACE_R_DIM = 16
+        # face_r_dim is now generated directly as TEST_FACE_R_DIM above
 
         pack_size = TILE_SIZES.get(formats.output_format, 128)
         unpack_size_a = TILE_SIZES.get(formats.input_format, 128)
         unpack_size_b = TILE_SIZES.get(formats.input_format, 128)
 
         if tiny_tiles:
-            pack_size = (pack_size // num_faces) * (in0_tile_r_dim // FACE_R_DIM)
+            pack_size = (pack_size // num_faces) * (in0_tile_r_dim // face_r_dim)
             unpack_size_a = (unpack_size_a // num_faces_A) * (
-                in0_tile_r_dim // FACE_R_DIM
+                in0_tile_r_dim // face_r_dim
             )
 
         header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = {pack_size};")
@@ -275,29 +332,96 @@ def generate_build_header(test_config):
     srca_reuse_count = test_config.get("srca_reuse_count", 4)
     header_content.append(f"constexpr int SRCA_REUSE_COUNT = {srca_reuse_count};")
 
-    # Data format configuration
-    header_content.extend(["", "// Data format configuration"])
-    formats = test_config.get("formats", None)
-    if isinstance(formats, InputOutputFormat):
+    # === DATA FORMAT INFERENCE & CONFIGURATION ===
+
+    # Data Format Inference will now occur from the python-end, gives visibility on all formats for test case
+    # DATA_FORMAT_INFERENCE_MODEL is no longer defined in build.h, thus inference is deactivated, only enabled from python-end
+    header_content.append("// Data formats inferred by Python inference model")
+
+    # Profiler Tests don't pass formats to the test config, so we need to set them here
+    testname = test_config.get("testname", "")
+    if "profiler" in testname:
+        format = DataFormat.Float16
+        formats = FormatConfig(format, format, format, format, format)
+    if formats is None:
+        raise ValueError("Format Config not passed in test config")
+
+    # Check if this is an outlier format combination that requires dest_acc to be enabled
+    # This check is not relevant for Quasar as Quasar packer can handle 8-bit exp to 5-bit exp conversion
+    if (
+        is_format_combination_outlier(
+            formats.input_format, formats.output_format, dest_acc
+        )
+        and get_chip_architecture() != ChipArchitecture.QUASAR
+    ):
+        # Automatically enable dest_acc for outlier combinations
+        dest_acc = DestAccumulation.Yes
+
+    # Set dest_acc_en_input after potential outlier adjustment
+    header_content.append(f"constexpr bool dest_acc_en_input = {dest_acc.value};")
+
+    # Check if we need to generate multiple format configurations
+    l1_to_l1_iterations = test_config.get("L1_to_L1_iterations", 1)
+
+    formats_config = data_formats(
+        input_format=formats.input_format,
+        output_format=formats.output_format,
+        is_fp32_dest_acc_en=dest_acc,
+        num_iterations=l1_to_l1_iterations,
+        unpacking_to_dest=unpack_to_dest == "true",
+        chip_arch=get_chip_architecture(),
+        disable_format_inference=test_config.get("disable_format_inference", False),
+    )
+
+    if l1_to_l1_iterations > 1:
+        # Generate format data as arrays that params.h can use to construct FormatConfig objects
+        header_content.append("// Format data for multiple L1-to-L1 iterations")
+        header_content.append("#define FUSED_MULTIPLE_RUNS true")
+
+        # Create array of format configurations for multiple L1-to-L1 iterations
+        unpack_a_in_values = [
+            f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_A_src.name})"
+            for fmt in formats_config
+        ]
+        unpack_a_out_values = [
+            f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_A_dst.name})"
+            for fmt in formats_config
+        ]
+        math_values = [
+            f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.math.name})"
+            for fmt in formats_config
+        ]
+        pack_in_values = [
+            f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.pack_src.name})"
+            for fmt in formats_config
+        ]
+        pack_out_values = [
+            f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.pack_dst.name})"
+            for fmt in formats_config
+        ]
+
         header_content.extend(
             [
-                f"// Activating Data Format Inference Model\n",
-                f"#define DATA_FORMAT_INFERENCE_MODEL true",
-                f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.input_format.name});",
-                f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.output_format.name});",
+                f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_IN_LIST = {{{', '.join(unpack_a_in_values)}}};",
+                f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_OUT_LIST = {{{', '.join(unpack_a_out_values)}}};",
+                f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> MATH_FORMAT_LIST = {{{', '.join(math_values)}}};",
+                f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_IN_LIST = {{{', '.join(pack_in_values)}}};",
+                f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_OUT_LIST = {{{', '.join(pack_out_values)}}};",
             ]
         )
-    elif isinstance(formats, FormatConfig):
-        header_content.append(f"#define DATA_FORMAT_INFERENCE_MODEL false")
+
+    else:
+        # Single iteration - use simple format inference
+        # Generate format data as individual constants for single iteration
+        formats_config = formats_config[0]
+        header_content.append("// Format data for single L1-to-L1 iteration")
         header_content.extend(
             [
-                f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.unpack_A_src.name});",
-                f"constexpr auto UNPACK_A_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.unpack_A_dst.name});",
-                f"constexpr auto UNPACK_B_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.unpack_B_src.name});",
-                f"constexpr auto UNPACK_B_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.unpack_B_dst.name});",
-                f"constexpr auto PACK_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.pack_src.name});",
-                f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.pack_dst.name});",
-                f"constexpr auto MATH_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats.math.name});",
+                f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_src.name});",
+                f"constexpr auto UNPACK_A_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_dst.name});",
+                f"constexpr auto MATH_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.math.name});",
+                f"constexpr auto PACK_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_src.name});",
+                f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_dst.name});",
             ]
         )
 
@@ -398,6 +522,11 @@ def generate_build_header(test_config):
     if "kt_dim" in test_config:
         header_content.append(f"constexpr uint32_t KT_DIM = {test_config['kt_dim']};")
 
+    # Add top row flag
+    add_top_row = test_config.get("add_top_row", False)
+    if add_top_row:
+        header_content.append("constexpr bool ADD_TOP_ROW = true;")
+
     header_content.append("")
 
     if perf_run_type := test_config.get("perf_run_type"):
@@ -425,7 +554,6 @@ def generate_make_command(
     """Generate make command"""
 
     boot_mode = resolve_default_boot_mode(boot_mode)
-
     # Simplified make command - only basic build parameters
     make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} all "
 
@@ -445,6 +573,7 @@ def build_test(
     tests_dir = str((llk_home / "tests").absolute())
     write_build_header(test_config)
     make_cmd = generate_make_command(test_config, boot_mode, profiler_build)
+
     run_shell_command(make_cmd, cwd=tests_dir)
 
 
@@ -458,5 +587,5 @@ def run_test(
     build_test(test_config, boot_mode, profiler_build)
 
     # run test
-    run_elf_files(test_config["testname"], boot_mode)
-    wait_for_tensix_operations_finished()
+    elfs = run_elf_files(test_config["testname"], boot_mode)
+    wait_for_tensix_operations_finished(elfs)

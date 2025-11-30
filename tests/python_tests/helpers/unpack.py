@@ -3,53 +3,48 @@
 
 # unpack.py
 
-import struct
-
+import ml_dtypes
+import numpy as np
 import torch
-from helpers.format_arg_mapping import format_dict
 from helpers.format_config import DataFormat
 
-from .format_arg_mapping import format_dict, format_tile_sizes
+from .llk_params import format_dict, format_tile_sizes
 
 
 def unpack_fp16(packed_list):
-    return [val[0] for val in struct.iter_unpack("<e", bytes(packed_list))]
+    return np.frombuffer(bytes(packed_list), dtype=np.float16).tolist()
 
 
 def unpack_bfp16(packed_list):
-    # Step 1: Promote each 2-byte bfloat16 to 4-byte float32
-    # Place bfloat16 in high 2 bytes (little-endian)
-    padded_bytes = bytearray()
-    for i in range(0, len(packed_list), 2):
-        hi, lo = packed_list[i], packed_list[i + 1]
-        padded_bytes.extend([0x00, 0x00, hi, lo])  # float32 = [LSB, ..., MSB]
-
-    # Use iter_unpack with "<f" to read float32
-    return [val[0] for val in struct.iter_unpack("<f", padded_bytes)]
+    return (
+        np.frombuffer(bytes(packed_list), dtype=ml_dtypes.bfloat16)
+        .astype(np.float32)
+        .tolist()
+    )
 
 
 def unpack_fp32(packed_list):
-    return [val[0] for val in struct.iter_unpack("<f", bytes(packed_list))]
+    return np.frombuffer(bytes(packed_list), dtype=np.float32).tolist()
 
 
 def unpack_int32(packed_list):
-    return [val[0] for val in struct.iter_unpack("<i", bytes(packed_list))]
+    return np.frombuffer(bytes(packed_list), dtype=np.int32).tolist()
 
 
 def unpack_uint32(packed_list):
-    return [val[0] for val in struct.iter_unpack("<I", bytes(packed_list))]
+    return np.frombuffer(bytes(packed_list), dtype=np.uint32).tolist()
 
 
 def unpack_uint16(packed_list):
-    return [val[0] for val in struct.iter_unpack("<H", bytes(packed_list))]
+    return np.frombuffer(bytes(packed_list), dtype=np.uint16).tolist()
 
 
 def unpack_int8(packed_list):
-    return [val[0] for val in struct.iter_unpack("<b", bytes(packed_list))]
+    return np.frombuffer(bytes(packed_list), dtype=np.int8).tolist()
 
 
 def unpack_uint8(packed_list):
-    return [val[0] for val in struct.iter_unpack("<B", bytes(packed_list))]
+    return np.frombuffer(bytes(packed_list), dtype=np.uint8).tolist()
 
 
 def bfp8_to_float_block(exponent, bfp8_mantissas, unpacked_bfp8):
@@ -125,14 +120,26 @@ _UNPACKERS = {
 }
 
 
-def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False, num_faces=4):
+def unpack_res_tiles(
+    packed_list, formats, tile_count=1, sfpu=False, num_faces=4, face_r_dim=16
+):
     output_format = formats.output_format
     output_dtype = format_dict[output_format]
-    tile_size = format_tile_sizes[output_format]
-    face_size = tile_size // 4
 
-    # Depending on the value of 'num_faces' (1, 2, 4), select the first 1, 2 or all 4 faces of a tile
-    elements_per_tile_needed = face_size * num_faces
+    # Calculate tile size and determine elements per tile needed
+    tile_size = format_tile_sizes[output_format]  # Full tile size in bytes
+
+    if face_r_dim == 16:
+        # Backward compatibility: calculate face size in bytes (original logic)
+        face_size = tile_size // 4  # Each face is 1/4 of a tile in bytes
+        elements_per_tile_needed = face_size * num_faces  # In bytes
+    else:
+        # Variable face dimensions: calculate in elements, convert to bytes
+        face_c_dim = 16
+        elements_per_face = face_r_dim * face_c_dim
+        elements_per_tile_needed = (
+            elements_per_face * num_faces * output_format.size
+        )  # Convert to bytes
     total_elements_needed = tile_count * elements_per_tile_needed
     if total_elements_needed > len(packed_list):
         raise IndexError("Buffer access out of bounds")
@@ -146,6 +153,7 @@ def unpack_res_tiles(packed_list, formats, tile_count=1, sfpu=False, num_faces=4
 
     # Write only values from the selected faces into unpacked_tile
     for tile in range(tile_count):
+        # Both paths use byte-based indexing since tile_size and elements_per_tile_needed are in bytes
         start_idx = tile * tile_size
         end_idx = start_idx + elements_per_tile_needed
         tile_data = packed_list[start_idx:end_idx]

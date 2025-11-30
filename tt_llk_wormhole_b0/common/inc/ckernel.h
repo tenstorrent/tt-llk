@@ -11,8 +11,11 @@
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
 
-// Compiler hint that a branch is unlikely to be taken
+// compiler hints
+#define LIKELY(condition)   __builtin_expect(static_cast<bool>(condition), 1)
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
+#define UNREACHABLE()       __builtin_unreachable()
+
 #define UNROLL_LOOP(factor) GCC unroll factor
 
 #ifndef EN_DEST_DOUBLE_BUFFERING
@@ -383,32 +386,16 @@ inline void cfg_reg_rmw_tensix(uint32_t val)
 
 inline void mailbox_write(const uint8_t thread, const uint32_t data)
 {
-    mailbox_base[thread + 1][0] = data;
+    mailbox_base[thread][0] = data;
 }
 
 // Blocking read
 inline uint32_t mailbox_read(const uint8_t thread)
 {
-    return mailbox_base[thread + 1][0];
-}
-
-inline bool mailbox_not_empty(const uint8_t thread)
-{
-    return mailbox_base[thread + 1][1] > 0;
-}
-
-inline void mailbox_write_full(const uint8_t thread, const uint32_t data)
-{
-    mailbox_base[thread][0] = data;
-}
-
-// Blocking read
-inline uint32_t mailbox_read_full(const uint8_t thread)
-{
     return mailbox_base[thread][0];
 }
 
-inline bool mailbox_not_empty_full(const uint8_t thread)
+inline bool mailbox_not_empty(const uint8_t thread)
 {
     return mailbox_base[thread][1] > 0;
 }

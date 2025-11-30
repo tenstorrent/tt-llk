@@ -28,6 +28,7 @@ class DataFormat(Enum):
 
     Float16 = DataFormatInfo("Float16", 2)
     Float16_b = DataFormatInfo("Float16_b", 2)
+    Bfp8 = DataFormatInfo("Bfp8", 1)
     Bfp8_b = DataFormatInfo("Bfp8_b", 1)
     Float32 = DataFormatInfo("Float32", 4)
     Int32 = DataFormatInfo("Int32", 4)
@@ -72,30 +73,13 @@ class DataFormat(Enum):
     def num_bytes_per_tile(self, num_datums: int = 1024) -> int:
         """Returns the number of bytes per tile for the data format."""
         num_exponents = 0
-        if self == DataFormat.Bfp8_b:
+        if self in {DataFormat.Bfp8, DataFormat.Bfp8_b}:
             num_exponents = num_datums // 16
         return (self.size * num_datums) + num_exponents
 
-
-class BroadcastType(Enum):
-    """
-    Enum for broadcast types in LLK kernels.
-    """
-
-    None_ = "NONE"
-    Column = "COL"
-    Row = "ROW"
-    Scalar = "SCALAR"
-
-
-class EltwiseBinaryReuseDestType(Enum):
-    """
-    Enum for destination reuse types in elementwise binary ops.
-    """
-
-    NONE = 0
-    DEST_TO_SRCA = 1
-    DEST_TO_SRCB = 2
+    def is_float32(self) -> bool:
+        """Checks if the data format is a Float32 type."""
+        return self == DataFormat.Float32
 
 
 @dataclass

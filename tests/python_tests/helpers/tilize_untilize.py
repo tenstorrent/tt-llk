@@ -3,8 +3,8 @@
 
 import torch
 
-from .format_arg_mapping import format_dict
 from .format_config import DataFormat
+from .llk_params import format_dict
 
 
 def tilize_block(
@@ -143,7 +143,9 @@ def untilize_block(
     # Reshape input to have one block per 1024 elements
     input_reshaped = input_tensor.reshape(total_blocks, 1024)
 
-    untilized_blocks = torch.stack([untilize(block) for block in input_reshaped])
+    untilized_blocks = torch.stack(
+        [untilize(block, stimuli_format=stimuli_format) for block in input_reshaped]
+    )
 
     output = untilized_blocks.reshape(row_blocks, col_blocks, 32, 32)
 

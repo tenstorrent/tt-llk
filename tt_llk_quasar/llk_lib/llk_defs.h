@@ -55,7 +55,8 @@ enum class SfpuType : uint32_t
     relumin,
     relumax,
     stochround,
-    typecast
+    typecast,
+    add
 };
 
 enum class DstSync : uint8_t
@@ -67,9 +68,9 @@ enum class DstSync : uint8_t
 enum class MathFidelity : uint8_t
 {
     LoFi  = 0,
-    HiFi2 = 1,
-    HiFi3 = 2,
-    HiFi4 = 3
+    HiFi2 = 2,
+    HiFi3 = 3,
+    HiFi4 = 4
 };
 
 enum class StochRndType : uint8_t

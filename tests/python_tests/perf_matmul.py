@@ -4,14 +4,17 @@
 from typing import List
 
 import pytest
-from helpers.format_arg_mapping import DestAccumulation, MathFidelity
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
+from helpers.llk_params import DestAccumulation, MathFidelity
 from helpers.matmul_sweep import (
     generate_matmul_dimension_combinations,
     generate_tile_dims,
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import PerfRunType, perf_benchmark, update_report
+
+# Important K dimensions to test
+KT_DIMS = [1, 2, 3, 4, 8, 64]
 
 
 def matmul_combos(
@@ -27,7 +30,7 @@ def matmul_combos(
         _dest_bank_max_tiles(fmt, acc) for fmt in formats for acc in dest_acc
     )
     dimensions = {
-        max_tiles: generate_matmul_dimension_combinations(max_tiles)
+        max_tiles: generate_matmul_dimension_combinations(max_tiles, kt_dims=KT_DIMS)
         for max_tiles in unique_max_tiles
     }
 
@@ -67,22 +70,28 @@ def test_perf_matmul(perf_report, test_name, combos, math_fidelity):
     if is_dest_acc_needed(formats) and dest_acc == DestAccumulation.No:
         pytest.skip("Dest accumulation must be enabled for this format")
 
-    run_types = [PerfRunType.L1_TO_L1]
+    run_types = [
+        PerfRunType.L1_TO_L1,
+        PerfRunType.UNPACK_ISOLATE,
+        PerfRunType.MATH_ISOLATE,
+        PerfRunType.PACK_ISOLATE,
+        PerfRunType.L1_CONGESTION,
+    ]
 
     # Calculate all matmul dimensions using helper function
-    matmul_dims = generate_tile_dims((matrix_a, matrix_b))
+    dims = generate_tile_dims((matrix_a, matrix_b))
 
     test_config = {
         "formats": formats,
         "testname": test_name,
         "loop_factor": 16,
-        "tile_cnt": matmul_dims.output_tile_cnt,
+        "tile_cnt": dims.rt_dim * dims.ct_dim * dims.kt_dim,
         "input_A_dimensions": matrix_a,
         "input_B_dimensions": matrix_b,
-        "output_dimensions": matmul_dims.output_dimensions,
-        "rt_dim": matmul_dims.rt_dim,
-        "ct_dim": matmul_dims.ct_dim,
-        "kt_dim": matmul_dims.kt_dim,
+        "output_dimensions": dims.output_dimensions,
+        "rt_dim": dims.rt_dim,
+        "ct_dim": dims.ct_dim,
+        "kt_dim": dims.kt_dim,
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
     }

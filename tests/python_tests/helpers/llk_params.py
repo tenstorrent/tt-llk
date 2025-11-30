@@ -93,6 +93,7 @@ class MathOperation(Enum):
     SfpuElwRightShift = OpSpec("RSHFT", MathOpType.SFPU_BINARY)
     SfpuElwsub = OpSpec("SUB", MathOpType.SFPU_BINARY)
     SfpuXlogy = OpSpec("XLOGY", MathOpType.SFPU_BINARY)
+    SfpuAddTopRow = OpSpec("ADD_TOP_ROW", MathOpType.SFPU_BINARY)
 
     # =============================================================================
     # SFPU TERNARY OPERATIONS
@@ -194,9 +195,9 @@ class Transpose(Enum):
 
 class MathFidelity(Enum):
     LoFi = 0
-    HiFi2 = 1
-    HiFi3 = 2
-    HiFi4 = 3
+    HiFi2 = 2
+    HiFi3 = 3
+    HiFi4 = 4
 
 
 class NarrowTile(Enum):
@@ -245,3 +246,49 @@ class L1BufferLocations(Enum):
     srcA = 0x18FE0
     srcB = 0x18FE4
     Result = 0x18FE8
+
+
+class BroadcastType(Enum):
+    """
+    Enum for broadcast types in LLK kernels.
+    """
+
+    None_ = "NONE"
+    Column = "COL"
+    Row = "ROW"
+    Scalar = "SCALAR"
+
+
+class EltwiseBinaryReuseDestType(Enum):
+    """
+    Enum for destination reuse types in elementwise binary ops.
+    """
+
+    NONE = 0
+    DEST_TO_SRCA = 1
+    DEST_TO_SRCB = 2
+
+
+class DataCopyType(Enum):
+    A2D = "A2D"
+    B2D = "B2D"
+
+
+# ******** QUASAR specific ********
+class ImpliedMathFormat(Enum):
+    No = "false"
+    Yes = "true"
+
+
+class UnpackerEngine(Enum):
+    """
+    Enum for unpacker engine selection.
+    """
+
+    UnpA = "UNP_A"
+    UnpB = "UNP_B"
+    UnpS = "UNP_S"
+    UnpDest = "UNP_DEST"
+
+
+# *********************************

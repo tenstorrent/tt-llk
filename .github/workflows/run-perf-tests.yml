@@ -3,6 +3,8 @@ name: 🚀 Run Performance Tests
 on:
   workflow_dispatch:
   workflow_call:
+  pull_request:
+    types: [labeled, synchronize]
 
 permissions:
   checks: write
@@ -77,9 +79,9 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-n150-stable
-      test_splits: 3
+      test_splits: 5
       pytest_markers: "perf"
-      timeout_minutes: 120
+      timeout_minutes: 240
 
   setup-and-test-blackhole:
     name: "🕳️ Performance tests (Blackhole)"
@@ -92,9 +94,9 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-p150b-stable
-      test_splits: 3
+      test_splits: 5
       pytest_markers: "perf"
-      timeout_minutes: 120
+      timeout_minutes: 240
 
   check-all-green:
     name: "✅ Check all green"

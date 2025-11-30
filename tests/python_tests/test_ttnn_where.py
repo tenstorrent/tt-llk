@@ -6,11 +6,10 @@ import pytest
 import torch
 from helpers.device import (
     collect_results,
-    wait_for_tensix_operations_finished,
     write_stimuli_to_l1,
 )
-from helpers.format_arg_mapping import DestAccumulation, MathOperation, format_dict
 from helpers.format_config import DataFormat
+from helpers.llk_params import DestAccumulation, MathOperation, format_dict
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
@@ -124,7 +123,6 @@ def test_ttnn_where(test_name, formats, dest_acc, mathop, test_case):
 
     run_test(test_config)
 
-    wait_for_tensix_operations_finished()
     res_from_L1 = collect_results(
         formats, tile_count=tile_cnt_A, address=result_buffer_address
     )
@@ -251,7 +249,6 @@ def test_ttnn_where_mcw(test_name, formats, dest_acc, mathop, height, width):
 
     run_test(test_config)
 
-    wait_for_tensix_operations_finished()
     res_from_L1 = collect_results(
         formats, tile_count=tile_cnt_C, address=result_buffer_address
     )

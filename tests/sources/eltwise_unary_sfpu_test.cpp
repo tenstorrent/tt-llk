@@ -78,19 +78,19 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format)
             ckernel::sfpu::_calculate_log_<APPROX_MODE, false, iterations>(iterations, 0);
             break;
         case SfpuType::reciprocal:
-            ckernel::sfpu::_init_reciprocal_<APPROX_MODE>();
+            ckernel::sfpu::_init_reciprocal_<APPROX_MODE, dest_datum_width>();
             ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, iterations, dest_datum_width>(iterations);
             break;
         case SfpuType::rsqrt:
             ckernel::sfpu::_init_rsqrt_<APPROX_MODE, false>();
-            ckernel::sfpu::_calculate_rsqrt_<APPROX_MODE, iterations, dest_datum_width, false>(iterations);
+            ckernel::sfpu::_calculate_rsqrt_<APPROX_MODE, iterations, dest_datum_width, false, false>(iterations);
             break;
         case SfpuType::sine:
             ckernel::sfpu::_calculate_sine_<APPROX_MODE, iterations>(iterations);
             break;
         case SfpuType::sqrt:
             ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, iterations, dest_datum_width>(iterations);
+            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, iterations, dest_datum_width, false, false>(iterations);
             break;
         case SfpuType::square:
             ckernel::sfpu::_calculate_square_<APPROX_MODE, iterations>(iterations);
