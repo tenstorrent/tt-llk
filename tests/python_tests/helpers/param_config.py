@@ -282,10 +282,8 @@ def _params_solve_dependencies(**kwargs: any) -> List[Tuple]:
         # For each possible value, recurse with next parameter
         combinations = []
         for argument in arguments:
-            # Create new resolved list with updated value
-            resolved_next = resolved.copy()
-            resolved_next[parameter] = argument
-            combinations.extend(_solve_recursive(resolved_next, resolution_index + 1))
+            resolved[parameter] = argument
+            combinations.extend(_solve_recursive(resolved, resolution_index + 1))
 
         return combinations
 
