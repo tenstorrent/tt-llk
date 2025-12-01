@@ -113,21 +113,23 @@ def infer_pack_in(
     is_quasar = chip_arch == ChipArchitecture.QUASAR
 
     if is_quasar:
+        if (
+            not input_format.is_32_bit()
+            and output_format.is_32_bit()
+            and is_fp32_dest_acc_en == DestAccumulation.No
+        ):
+            # When the dest register is in 32-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is valid
+            # because pack_in=pack_out=Fp32, which is a supported packer conversion.
+            # When dest register is in 16-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is not valid
+            # because pack_in=Fp16/16_b and pack_out=Fp32, which is not a supported packer conversion.
+            # Similarly, input_fmt=Int8/UInt8 -> output_fmt=Int32 is not valid when the dest register is in 16-bit mode.
+            raise ValueError(
+                "Quasar packer does not support {input_format.name} to {output_format.name} conversion when the dest register is in 16-bit mode"
+            )
+
         if input_format.is_integer():
             if input_format == DataFormat.Int16:
                 return DataFormat.Int16
-            if (
-                input_format in (DataFormat.Int8, DataFormat.UInt8)
-                and output_format == DataFormat.Int32
-                and is_fp32_dest_acc_en == DestAccumulation.No
-            ):
-                # When the dest register is in 32-bit mode, input_fmt=Int8/UInt8 -> output_fmt=Int32 is valid
-                # because pack_in=pack_out=Int32, which is a supported packer conversion.
-                # When dest register is in 16-bit mode, input_fmt=Int8/UInt8 -> output_fmt=Int32 is not valid
-                # because pack_in=Int8/UInt8 and pack_out=Int32, which is not a supported packer conversion.
-                raise ValueError(
-                    "Quasar packer does not support {input_format.name} to Int32 conversion when the dest register is in 16-bit mode"
-                )
             # When the dest register is in 32-bit mode, the packer input format is 32-bit
             return (
                 DataFormat.Int32
@@ -135,18 +137,6 @@ def infer_pack_in(
                 else input_format
             )
         else:
-            if (
-                input_format in (DataFormat.Float16, DataFormat.Float16_b)
-                and output_format == DataFormat.Float32
-                and is_fp32_dest_acc_en == DestAccumulation.No
-            ):
-                # When the dest register is in 32-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is valid
-                # because pack_in=pack_out=Fp32, which is a supported packer conversion.
-                # When dest register is in 16-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is not valid
-                # because pack_in=Fp16/16_b and pack_out=Fp32, which is not a supported packer conversion.
-                raise ValueError(
-                    "Quasar packer does not support {input_format.name} to Float32 conversion when the dest register is in 16-bit mode"
-                )
             # When the dest register is in 32-bit mode, the packer input format is 32-bit
             return (
                 DataFormat.Float32

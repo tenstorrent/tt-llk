@@ -28,13 +28,13 @@ class DataFormat(Enum):
 
     Float16 = DataFormatInfo("Float16", 2)
     Float16_b = DataFormatInfo("Float16_b", 2)
-    Bfp8 = DataFormatInfo("Bfp8", 1)
-    Bfp8_b = DataFormatInfo("Bfp8_b", 1)
+    Bfp8 = DataFormatInfo("Bfp8", 1)  # WH/BH specific
+    Bfp8_b = DataFormatInfo("Bfp8_b", 1)  # WH/BH specific
     Float32 = DataFormatInfo("Float32", 4)
     Int32 = DataFormatInfo("Int32", 4)
     Tf32 = DataFormatInfo("Tf32", 3)
-    UInt32 = DataFormatInfo("UInt32", 4)
-    Int16 = DataFormatInfo("Int16", 2)
+    UInt32 = DataFormatInfo("UInt32", 4)  # WH/BH specific
+    Int16 = DataFormatInfo("Int16", 2)  # QSR specific
     UInt16 = DataFormatInfo("UInt16", 2)
     Int8 = DataFormatInfo("Int8", 1)
     UInt8 = DataFormatInfo("UInt8", 1)
