@@ -80,3 +80,70 @@ class MatmulPacker(Packer):
     t6_semaphore_post<>(semaphore::PACK_DONE);
 """
         return code
+
+
+class EltwisePacker(Packer):
+    def get_headers(self) -> List[str]:
+        return [
+            "llk_pack.h",
+            "llk_pack_common.h",
+        ]
+
+    def pack(self, operation_config: "PipelineOperation") -> str:
+        stage = operation_config.stage_id
+        num_stages = operation_config.num_stages
+        pack_src = operation_config.pack_in
+        pack_dst = operation_config.pack_out
+
+        PACK_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_src.name})"
+        PACK_OUT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name})"
+
+        result_buffer_address = operation_config.output.l1_address
+
+        pack_size = operation_config.tile_size_pack
+
+        TILE_CNT = operation_config.output.tile_count
+        TILIZE = "false"
+
+        dest_acc = operation_config.dest_acc.value
+
+        buffer_Res_tile_size = operation_config.buffer_Res_tile_size
+
+        code = f"""
+    constexpr Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});
+
+#ifdef ARCH_BLACKHOLE
+    _llk_pack_hw_configure_<{dest_acc}, false, false>(
+        {PACK_IN},
+        {PACK_OUT},
+        16 * 16 * 4
+    );
+#else
+    _llk_pack_hw_configure_<{dest_acc}, false>(
+        {PACK_IN},
+        {PACK_OUT},
+        16 * 16 * 4
+    );
+#endif
+
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>({PACK_OUT});
+
+#ifdef ARCH_BLACKHOLE
+    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc}, DstTileFaceLayout::RowMajor>();
+#else
+    _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
+#endif
+
+    for (int i = 0; i < {TILE_CNT}; i++)
+    {{
+        _llk_packer_wait_for_math_done_();
+        _llk_pack_<DstSync::SyncHalf, {dest_acc}, false>(0, L1_ADDRESS(buffer_Res{stage}[i]));
+        _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();
+    }}
+"""
+
+        if stage < num_stages - 1:
+            code += f"""
+    t6_semaphore_post<>(semaphore::PACK_DONE);
+"""
+        return code

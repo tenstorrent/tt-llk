@@ -96,3 +96,62 @@ class MatmulUnpacker(Unpacker):
     }}
 """
         return code
+
+
+class EltwiseUnpacker(Unpacker):
+    def get_headers(self) -> List[str]:
+        return [
+            "llk_unpack_AB.h",
+            "llk_unpack_common.h",
+        ]
+
+    def unpack(self, operation_config: "PipelineOperation") -> str:
+        stage = operation_config.stage_id
+
+        buffer_A_address = operation_config.src_a.l1_address
+        buffer_B_address = operation_config.src_b.l1_address
+
+        unpack_a_src = operation_config.unpack_a_in
+        unpack_a_dst = operation_config.unpack_a_out
+        unpack_b_src = operation_config.unpack_a_in
+        unpack_b_dst = operation_config.unpack_a_out
+
+        UNPACK_A_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_a_src.name})"
+        UNPACK_A_OUT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_a_dst.name})"
+        UNPACK_B_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_b_src.name})"
+        UNPACK_B_OUT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_b_dst.name})"
+
+        tile_cnt = operation_config.output.tile_count
+
+        dest_acc = operation_config.dest_acc
+        dest_acc_value = dest_acc.value
+
+        code = ""
+
+        if stage > 0:
+            code += f"""
+    t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(semaphore::PACK_DONE);
+    t6_semaphore_get<>(semaphore::PACK_DONE);
+"""
+
+        buffer_A_tile_size = operation_config.buffer_A_tile_size
+        buffer_B_tile_size = operation_config.buffer_B_tile_size
+
+        code += f"""
+    constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});
+    constexpr Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});
+
+
+    _llk_unpack_AB_hw_configure_<{dest_acc_value}, StochRndType::None>(
+        {UNPACK_A_IN},
+        {UNPACK_B_IN},
+        {UNPACK_A_OUT},
+        {UNPACK_B_OUT}
+    );
+    _llk_unpack_AB_init_<>();
+    for (int i = 0; i < {tile_cnt}; i++)
+    {{
+        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A{stage}[i]), L1_ADDRESS(buffer_B{stage}[i]));
+    }}
+"""
+        return code
