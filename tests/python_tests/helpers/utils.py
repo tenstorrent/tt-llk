@@ -182,9 +182,9 @@ def passed_test(
 
         try:
             return (
-                tolerances[output_data_format]
-                if (custom_atol != None and custom_rtol != None)
-                else Tolerance(atol=custom_atol, rtol=custom_rtol)
+                Tolerance(atol=custom_atol, rtol=custom_rtol)
+                if (custom_atol is not None and custom_rtol is not None)
+                else tolerances[output_data_format]
             )
         except KeyError:
             raise ValueError(f"Unsupported output data format: {output_data_format}")

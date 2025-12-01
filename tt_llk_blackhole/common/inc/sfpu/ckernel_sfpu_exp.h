@@ -6,7 +6,6 @@
 
 #include <limits>
 
-#include "ckernel_sfpu_exp.h"
 #include "ckernel_sfpu_recip.h"
 #include "lltt.h"
 #include "sfpi.h"
@@ -223,7 +222,7 @@ inline void _init_exponential_()
         TTI_SFPCONFIG(0x0000, 0x4, 0x0); // Load it into macro sequence register 0 (destination = 4)
 
         TTI_SFPCONFIG(
-            0x0010, 0x8 /*LOADMACRO control*/, 0x1); // Specifies that the store in LOAMACRO “Sequence 0” will inherit the instr_mod0 field from the LOADMACRO
+            0x0010, 0x8 /*LOADMACRO control*/, 0x1); // Specifies that the store in LOADMACRO “Sequence 0” will inherit the instr_mod0 field from the LOADMACRO
 
         TTI_SFPCONFIG(0x0100, 0xF /*SFPU control*/, 0x1); // invert swap direction
 

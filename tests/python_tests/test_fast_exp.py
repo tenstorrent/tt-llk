@@ -2,10 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
+import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
-from helpers.format_config import DataFormat
+from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
     ApproximationMode,
@@ -67,10 +68,10 @@ def eltwise_unary_sfpu(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    src_A = (100 * torch.rand(input_dimensions[0] * input_dimensions[1])) - 100
-
     generate_golden = get_golden_generator(UnarySFPUGolden)
-    golden_tensor = torch.exp(src_A)
+    golden_tensor = generate_golden(
+        mathop, src_A, formats.output_format, dest_acc, formats.input_format
+    )
 
     unpack_to_dest = (
         formats.input_format.is_32_bit()
