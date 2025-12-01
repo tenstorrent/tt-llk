@@ -2,26 +2,18 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-import pytest
 import torch
-
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.device import (
-    collect_results,
-    write_stimuli_to_l1,
-)
-from helpers.format_arg_mapping import (
+from helpers.device import collect_results, write_stimuli_to_l1
+from helpers.format_config import DataFormat
+from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
+from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
     MathOperation,
     format_dict,
 )
-from helpers.format_config import DataFormat, InputOutputFormat
-from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
-from helpers.param_config import (
-    input_output_formats,
-    parametrize,
-)
+from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.utils import passed_test
@@ -34,13 +26,13 @@ from helpers.utils import passed_test
             DataFormat.Float16_b,
         ]
     ),
+    input_dimensions=[[32, 32], [32, 64], [64, 32], [64, 64], [128, 32], [32, 128]],
     approx_mode=[ApproximationMode.Yes],
     mathop=[MathOperation.Exp],
     dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
 )
-@pytest.mark.parametrize("iter", range(1))
 def test_eltwise_unary_sfpu_float(
-    test_name, formats, approx_mode, mathop, dest_acc, iter
+    test_name, approx_mode, formats, mathop, dest_acc, input_dimensions
 ):
     arch = get_chip_architecture()
 
@@ -62,12 +54,14 @@ def test_eltwise_unary_sfpu_float(
             reason="Exp-related operations are not supported for bf8_b format in approximation mode."
         )
 
-    eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop)
+    eltwise_unary_sfpu(
+        test_name, formats, dest_acc, approx_mode, mathop, input_dimensions
+    )
 
 
-def eltwise_unary_sfpu(test_name, formats, dest_acc, approx_mode, mathop):
-    torch.set_printoptions(precision=10)
-    input_dimensions = [64, 64]
+def eltwise_unary_sfpu(
+    test_name, formats, dest_acc, approx_mode, mathop, input_dimensions
+):
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
