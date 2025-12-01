@@ -4,11 +4,11 @@
 
 from typing import List
 
-from helpers.fuse_math import BinarySfpu, Math, MatmulFpu, UnarySfpu
+from helpers.fuse_math import BinarySfpu, EltwiseFpu, Math, MatmulFpu, UnarySfpu
 from helpers.fuse_operand import OperandRegistry
 from helpers.fuse_operation import PipelineOperation
-from helpers.fuse_packer import MatmulPacker
-from helpers.fuse_unpacker import MatmulUnpacker
+from helpers.fuse_packer import EltwisePacker, MatmulPacker
+from helpers.fuse_unpacker import EltwiseUnpacker, MatmulUnpacker
 from helpers.llk_params import (
     ApproximationMode,
     MathOperation,
@@ -30,6 +30,22 @@ def create_fuse_pipeline(
         PipelineOperation(
             operand_mapping=operands.create_mapping(
                 src_a="input_A",
+                src_b="input_A",
+                output="elwadd1",
+                src_a_dims=input_A_dimensions,
+                src_b_dims=input_A_dimensions,
+                input_format=formats.input_format,
+                output_format=formats.output_format,
+            ),
+            unpacker=EltwiseUnpacker,
+            math=Math(EltwiseFpu(MathOperation.Elwadd), []),
+            packer=EltwisePacker,
+            dest_acc=dest_acc,
+            math_fidelity=math_fidelity,
+        ),
+        PipelineOperation(
+            operand_mapping=operands.create_mapping(
+                src_a="input_A",
                 src_b="input_B",
                 output="matmul_result",
                 src_a_dims=input_A_dimensions,
@@ -38,7 +54,7 @@ def create_fuse_pipeline(
                 output_format=formats.output_format,
             ),
             unpacker=MatmulUnpacker,
-            math=Math(MatmulFpu, []),
+            math=Math(MatmulFpu(), []),
             packer=MatmulPacker,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
@@ -54,7 +70,7 @@ def create_fuse_pipeline(
             ),
             unpacker=MatmulUnpacker,
             math=Math(
-                MatmulFpu,
+                MatmulFpu(),
                 [
                     UnarySfpu(
                         MathOperation.Sqrt,

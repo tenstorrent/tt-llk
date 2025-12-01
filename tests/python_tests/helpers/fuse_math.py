@@ -8,6 +8,7 @@ import torch
 
 from .golden_generators import (
     BinarySFPUGolden,
+    EltwiseBinaryGolden,
     MatmulGolden,
     UnarySFPUGolden,
     get_golden_generator,
@@ -78,6 +79,66 @@ class MatmulFpu(Fpu):
     for (uint32_t j = 0; j < {KT_DIM}; j++)
     {{
         _llk_math_matmul_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(0, 0, {CT_DIM}, {RT_DIM}, {KT_DIM});
+    }}
+"""
+        return code
+
+
+class EltwiseFpu(Fpu):
+    def __init__(self, operation: MathOperation):
+        if not operation in MathOperation.get_fpu_binary_operations():
+            raise ValueError(
+                f"Operation {operation} is not a valid FPU binary operation."
+            )
+        self.operation = operation
+
+    def get_headers(self) -> List[str]:
+        return [
+            "llk_math_common.h",
+            "llk_math_eltwise_binary.h",
+        ]
+
+    def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
+        src_a = operation_config.src_a
+        src_b = operation_config.src_b
+        output_format = operation_config.output.data_format
+        math_fidelity = operation_config.math_fidelity
+
+        generate_golden = get_golden_generator(EltwiseBinaryGolden)
+        golden_tensor = generate_golden(
+            self.operation, src_a.raw_data, src_b.raw_data, output_format, math_fidelity
+        )
+        return golden_tensor
+
+    def exec(self, operation_config: "PipelineOperation") -> str:
+        math_format = operation_config.math_format
+        MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
+
+        fidelity = operation_config.math_fidelity
+        MATH_FIDELITY = fidelity.value
+
+        dest_acc = operation_config.dest_acc.value
+        tile_cnt = operation_config.output.tile_count
+
+        code = f"""
+    _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();
+    _llk_math_hw_configure_<false, false>(
+        {MATH_FORMAT},
+        {MATH_FORMAT}
+    );
+    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{self.operation.cpp_enum_value}, BroadcastType::NONE, {MATH_FIDELITY}>(4, 0, 0);
+
+    for (int i = 0; i < {tile_cnt}; i++)
+    {{
+        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+        _llk_math_eltwise_binary_<
+            {self.operation.cpp_enum_value},
+            BroadcastType::NONE,
+            DstSync::SyncHalf,
+            {dest_acc},
+            {MATH_FIDELITY},
+            EltwiseBinaryReuseDestType::NONE>(4, 0, false);
+        _llk_math_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();
     }}
 """
         return code
@@ -262,7 +323,7 @@ class SfpuWhere(Sfpu):
 
 
 class Math:
-    fpu: Type[Fpu]
+    fpu: Fpu
     sfpu: List[Sfpu]
 
     def __init__(self, fpu: Type[Fpu], sfpu: List[Sfpu]):
@@ -272,8 +333,8 @@ class Math:
     def get_headers(self) -> List[str]:
         headers = set()
 
-        fpu_instance = self.fpu()
-        headers.update(fpu_instance.get_headers())
+        # fpu_instance = self.fpu()
+        headers.update(self.fpu.get_headers())
 
         for sfpu in self.sfpu:
             headers.update(sfpu.get_headers())
@@ -281,8 +342,8 @@ class Math:
         return sorted(list(headers))
 
     def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
-        fpu_instance = self.fpu()
-        golden_tensor = fpu_instance.golden(operation_config)
+        # fpu_instance = self.fpu()
+        golden_tensor = self.fpu.golden(operation_config)
 
         for sfpu in self.sfpu:
             golden_tensor = sfpu.golden(golden_tensor, operation_config)
@@ -290,8 +351,8 @@ class Math:
         return golden_tensor
 
     def exec(self, operation_config: "PipelineOperation") -> str:
-        fpu_instance = self.fpu()
-        code = fpu_instance.exec(operation_config)
+        # fpu_instance = self.fpu()
+        code = self.fpu.exec(operation_config)
 
         for sfpu in self.sfpu:
             code += sfpu.exec(operation_config)
