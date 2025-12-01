@@ -11,7 +11,7 @@
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
-constexpr uint32_t FAST_APPROX_LOADMACRO_INSTR_CNT = 24;
+constexpr uint32_t FAST_APPROX_LOADMACRO_INSTR_CNT = 12;
 
 namespace ckernel::sfpu
 {
@@ -167,7 +167,11 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 #pragma GCC unroll 4
         for (int i = 0; i < 4; i++)
         {
-            lltt::replay(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
+            lltt::replay(0, 12);
+            lltt::replay(0, 10);
+
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
         }
     }
     else
@@ -187,6 +191,16 @@ constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uin
 constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
 constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
 
+inline void confige_faast_exp_addr_mod()
+{
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 2},
+    }
+        .set(ADDR_MOD_7);
+}
+
 template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
 inline void _init_exponential_()
 {
@@ -197,6 +211,8 @@ inline void _init_exponential_()
         constexpr float A_scaled         = 369.329925537109375 * scale_fp32;
         constexpr float THRESHOLD_scaled = -86.6 / scale_fp32;
         constexpr float B_MINUS_C        = (32500.818359375 + 12582912 * 2);
+
+        confige_faast_exp_addr_mod();
 
         TTI_SFPLOADI(0, 0xA, lo16(THRESHOLD_scaled));
         TTI_SFPLOADI(0, 0x8, hi16(THRESHOLD_scaled));
@@ -231,32 +247,18 @@ inline void _init_exponential_()
         // Note: TTI_SFPNOPs are inserted because SFPSWAP in LOADMACRO is not pipelined and takes 2 cycles
 
         lltt::record<lltt::NoExec>(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
-
         TTI_SFPLOADMACRO(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
         TTI_SFPNOP;
         TTI_SFPNOP;
-        TTI_SFPLOADMACRO(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 2);
+        TTI_SFPLOADMACRO(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
         TTI_SFPNOP;
         TTI_SFPNOP;
-        TTI_SFPLOADMACRO(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 4);
+        TTI_SFPLOADMACRO(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
         TTI_SFPNOP;
         TTI_SFPNOP;
-        TTI_SFPLOADMACRO(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 6);
+        TTI_SFPLOADMACRO(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
         TTI_SFPNOP;
         TTI_SFPNOP;
-        TTI_SFPLOADMACRO(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 8);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(p_sfpu::LREG1, InstrModLoadStore::FP16B, ADDR_MOD_3, 10);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 12);
-        TTI_SFPNOP;
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(p_sfpu::LREG3, InstrModLoadStore::FP16B, ADDR_MOD_3, 14);
-
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
     }
     else if constexpr (APPROXIMATION_MODE)
     {
