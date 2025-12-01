@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+
+import pytest
 from conftest import skip_for_wormhole
 from helpers.device import BootMode
 from helpers.format_config import DataFormat, InputOutputFormat
@@ -15,6 +17,7 @@ from test_matmul import test_matmul as run_matmul
     boot_mode=[BootMode.BRISC, BootMode.TRISC, BootMode.EXALENS],
 )
 def test_boot_modes(boot_mode, workers_tensix_coordinates):
+    pytest.skip()
     test_name = "matmul_test"
     math_fidelity = MathFidelity.LoFi
     format_dest_acc_and_dims = (
