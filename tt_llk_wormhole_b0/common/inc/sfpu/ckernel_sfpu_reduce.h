@@ -36,7 +36,7 @@ constexpr uint AVG_SHIFT_MASK   = 0xfff; // Mask for shift instruction encoding
 constexpr uint FP16B_ONE_OVER_32_HIGH = 0x3D00;
 constexpr uint FP16B_ONE_OVER_32_LOW  = 0x0000;
 
-// Constants for MAX reduction
+// Constants for MAX/MIN reduction
 constexpr uint32_t ROWS_PER_TILE = 64;
 
 // ============================================================================
@@ -144,7 +144,7 @@ constexpr bool is_supported_reduce_format(DataFormat format)
 /**
  * @brief Return appropriate InstrModLoadStore based on DataFormat and PoolType
  * @tparam format The DataFormat enum value for supported formats: Int32, UInt32, UInt16, Float32, Float16_b
- * @tparam pool_type The PoolType enum value (MAX/MIN require INT32_2S_COMP for Int32 format)
+ * @tparam pool_type The PoolType enum value (MAX, MIN, SUM, AVG). For Int32 format, MAX and MIN use INT32_2S_COMP, while SUM and AVG use INT32.
  * @return The corresponding InstrModLoadStore enum values: INT32, INT32_2S_COMP, LO16, FP32, FP16B
  */
 template <DataFormat format, PoolType pool_type>
@@ -160,7 +160,6 @@ constexpr InstrModLoadStore get_instruction_mode()
     }
     else if constexpr (format == DataFormat::Int32)
     {
-        // For MAX and MIN operations, Int32 requires INT32_2S_COMP instruction mode
         if constexpr (pool_type == PoolType::MAX || pool_type == PoolType::MIN)
         {
             return InstrModLoadStore::INT32_2S_COMP;
@@ -218,9 +217,10 @@ inline void configure_addrmod_max_min(uint32_t num_cols)
  * @brief Initialization for SFPU reduce MAX/MIN kernel.
  *        Sets up LOADMACRO sequences for compare-and-swap operations, configures address modifiers,
  *        and records replay buffers for efficient column-wise maximum/minimum reduction.
+ *        For MIN operations, inverts the swap direction by configuring the SFPU control register.
  *
  * @tparam INSTRUCTION_MODE The instruction mode for integer and float formats: INT32, INT32_2S_COMP, LO16, FP32, FP16B
- * @tparam pool_type The pool type (MAX or MIN) to determine swap direction
+ * @tparam pool_type The PoolType enum value (MAX or MIN). MIN inverts the swap direction for minimum reduction.
  * @param num_cols The number of columns to process (typically 32 for a single tile, or multiple of 32 for block operations)
  */
 template <InstrModLoadStore INSTRUCTION_MODE, PoolType pool_type>
@@ -229,7 +229,6 @@ inline void init_reduce_max_min(uint32_t num_cols)
     // Initialize SFPU config and set swap direction before defining LOADMACRO sequences
     _init_sfpu_config_reg();
 
-    // Invert swap direction for MIN operations
     if constexpr (pool_type == PoolType::MIN)
     {
         TTI_SFPLOADI(0, 0xA, 0x0100); // Load lower 16 bits (bit 8)
@@ -340,10 +339,11 @@ inline void init_reduce_sum_avg()
  *        - Initializes LREG4-7 with the first face pair's data (even/odd columns from faces 0 and 1)
  *        - For each tile in the block, performs compare-and-swap operations using replay buffers to find maxima/minima
  *        - Uses SFPSWAP instruction for comparisons to determine maximum/minimum between two lregs storing column data
+ *        - For MIN operations, swap direction is inverted (configured during init via SFPU control register)
  *        - Transposes and sorts results to align maxima/minima correctly across LREG4-7
  *        - Stores final maximum/minimum values to row 0 (32 datums across faces 0 and 1)
  *
- * @tparam pool_type The pool type (MAX or MIN)
+ * @tparam pool_type The PoolType enum value (MAX or MIN). MIN uses inverted swap direction for minimum reduction.
  * @tparam reduce_dim The reduction dimension (currently only REDUCE_COL is supported)
  * @tparam INSTRUCTION_MODE The instruction mode for integer and float formats: INT32, INT32_2S_COMP, LO16, FP32, FP16B
  * @param block_height The number of tiles in the vertical block to reduce (default is 1 for single tile).
@@ -353,7 +353,6 @@ template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTIO
 inline void calculate_reduce_max_min(const uint32_t block_height)
 {
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
-    static_assert(pool_type == PoolType::MAX || pool_type == PoolType::MIN, "Only MAX and MIN pool types are supported for this function");
 
     constexpr uint32_t replay_buffer_offset    = 7;
     constexpr uint32_t replay_buffer_next_face = 8;
@@ -500,16 +499,16 @@ inline void calculate_reduce_sum_avg()
 /**
  * @brief Unified reduction init kernel wrapper for SFPU reduce kernel.
  *        Determines the instruction mode from format, then dispatches to the appropriate init kernel.
- * @tparam pool_type The reduction operation, currently supported: (SUM, AVG, MAX, MIN)
+ * @tparam pool_type The reduction operation, currently supported: (SUM, AVG, MAX)
  * @tparam format The data format, currently supported: (Int32, UInt32, UInt16, Float32, Float16_b)
- * @param block_ct_dim Block dimension (used for MAX/MIN reduction to specify number of columns, default is 1 for single tile)
+ * @param block_ct_dim Block dimension (used for MAX reduction to specify number of columns, default is 1 for single tile)
  */
 template <PoolType pool_type, DataFormat format>
 inline void _init_reduce_(uint32_t block_ct_dim = 1)
 {
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
 
-    // Determine InstrModLoadStore based on format in dst register and pool_type
+    // Determine InstrModLoadStore based on format in dst register
     constexpr InstrModLoadStore INSTRUCTION_MODE = get_instruction_mode<format, pool_type>();
 
     // Dispatch to appropriate PoolType init
@@ -524,8 +523,8 @@ inline void _init_reduce_(uint32_t block_ct_dim = 1)
     else
     {
         static_assert(
-            pool_type == PoolType::SUM || pool_type == PoolType::AVG || pool_type == PoolType::MAX || pool_type == PoolType::MIN,
-            "Unsupported pool_type. Currently supported: SUM, AVG, MAX, MIN");
+            pool_type == PoolType::SUM || pool_type == PoolType::AVG || pool_type == PoolType::MAX,
+            "Unsupported pool_type. Currently supported: SUM, AVG, MAX");
     }
 }
 
@@ -543,7 +542,7 @@ inline void _calculate_reduce_(uint32_t block_rt_dim = 1)
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
 
-    // Determine InstrModLoadStore based on format in dst register and pool_type
+    // Determine InstrModLoadStore based on format in dst register
     constexpr InstrModLoadStore INSTRUCTION_MODE = get_instruction_mode<format, pool_type>();
 
     // Dispatch to appropriate reduction kernel based on PoolType
