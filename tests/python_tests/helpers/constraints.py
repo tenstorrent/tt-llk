@@ -102,4 +102,4 @@ def get_valid_dest_indices(
     if all_indices:
         return list(range(start_index, end_index + 1))
 
-    return list({start_index, end_index})
+    return [start_index] if start_index == end_index else [start_index, end_index]
