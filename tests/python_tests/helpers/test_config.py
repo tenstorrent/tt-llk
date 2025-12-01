@@ -415,21 +415,14 @@ def generate_build_header(test_config):
         # Generate format data as individual constants for single iteration
         formats_config = formats_config[0]
         header_content.append("// Format data for single L1-to-L1 iteration")
-        
-        # Helper to convert Python enum names to C++ enum names (MXFP8R -> MxFp8R)
-        def py_to_cpp_format_name(fmt):
-            name = fmt.name
-            if name in ["MXFP8R", "MXFP8P", "MXFP6R", "MXFP6P", "MXFP4"]:
-                return name.replace("MXFP", "MxFp")
-            return name
-        
+
         header_content.extend(
             [
-                f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{py_to_cpp_format_name(formats_config.unpack_A_src)});",
-                f"constexpr auto UNPACK_A_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{py_to_cpp_format_name(formats_config.unpack_A_dst)});",
-                f"constexpr auto MATH_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{py_to_cpp_format_name(formats_config.math)});",
-                f"constexpr auto PACK_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{py_to_cpp_format_name(formats_config.pack_src)});",
-                f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{py_to_cpp_format_name(formats_config.pack_dst)});",
+                f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_src.name});",
+                f"constexpr auto UNPACK_A_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_dst.name});",
+                f"constexpr auto MATH_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.math.name});",
+                f"constexpr auto PACK_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_src.name});",
+                f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_dst.name});",
             ]
         )
 
