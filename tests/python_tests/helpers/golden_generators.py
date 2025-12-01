@@ -884,8 +884,8 @@ class DataCopyGolden:
                 saturation_limits = {
                     DataFormat.Int8: (-128, 127),
                     DataFormat.UInt8: (0, 255),
-                    # DataFormat.Int16: (-32768, 32767),
-                    # DataFormat.UInt16: (0, 65535),
+                    DataFormat.Int16: (-32768, 32767),
+                    DataFormat.UInt16: (0, 65535),
                     DataFormat.Int32: (-2147483648, 2147483647),
                     DataFormat.UInt32: (0, 4294967295),
                 }

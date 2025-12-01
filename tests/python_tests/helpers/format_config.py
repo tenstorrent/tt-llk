@@ -34,6 +34,7 @@ class DataFormat(Enum):
     Int32 = DataFormatInfo("Int32", 4)
     Tf32 = DataFormatInfo("Tf32", 3)
     UInt32 = DataFormatInfo("UInt32", 4)
+    Int16 = DataFormatInfo("Int16", 2)
     UInt16 = DataFormatInfo("UInt16", 2)
     Int8 = DataFormatInfo("Int8", 1)
     UInt8 = DataFormatInfo("UInt8", 1)
@@ -52,6 +53,7 @@ class DataFormat(Enum):
         return self in {
             DataFormat.Int32,
             DataFormat.UInt32,
+            DataFormat.Int16,
             DataFormat.UInt16,
             DataFormat.Int8,
             DataFormat.UInt8,
