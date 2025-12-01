@@ -4,6 +4,15 @@
 
 from typing import TYPE_CHECKING, List, Type
 
+import torch
+
+from .golden_generators import (
+    BinarySFPUGolden,
+    MatmulGolden,
+    UnarySFPUGolden,
+    get_golden_generator,
+)
+
 if TYPE_CHECKING:
     from .fuse_operation import PipelineOperation
 
@@ -13,6 +22,9 @@ from .llk_params import ApproximationMode, MathOperation
 class Fpu:
     def exec(self, operation_config: "PipelineOperation") -> str:
         return ""
+
+    def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
+        return torch.Tensor()
 
     def get_headers(self) -> List[str]:
         return []
@@ -24,6 +36,24 @@ class MatmulFpu(Fpu):
             "llk_math_common.h",
             "llk_math_matmul.h",
         ]
+
+    def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
+        src_a = operation_config.src_a
+        src_b = operation_config.src_b
+        output_format = operation_config.output.data_format
+        math_fidelity = operation_config.math_fidelity
+
+        generate_golden = get_golden_generator(MatmulGolden)
+        golden = generate_golden(
+            src_a.raw_data,
+            src_b.raw_data,
+            output_format,
+            math_fidelity,
+            input_A_dimensions=src_a.dimensions,
+            input_B_dimensions=src_b.dimensions,
+            tilize=True,
+        )
+        return golden
 
     def exec(self, operation_config: "PipelineOperation") -> str:
         CT_DIM = operation_config.ct_dim
@@ -71,6 +101,11 @@ class Sfpu:
     def exec(self, operation_config: "PipelineOperation") -> str:
         return ""
 
+    def golden(
+        self, tensor: torch.Tensor, operation_config: "PipelineOperation"
+    ) -> torch.Tensor:
+        return tensor
+
     def get_headers(self) -> List[str]:
         return []
 
@@ -96,6 +131,23 @@ class UnarySfpu(Sfpu):
             "llk_math_eltwise_unary_sfpu.h",
             "sfpu_operations.h",
         ]
+
+    def golden(
+        self, tensor: torch.Tensor, operation_config: "PipelineOperation"
+    ) -> torch.Tensor:
+        format_input = operation_config.src_a.data_format
+        format_output = operation_config.output.data_format
+        dest_acc = operation_config.dest_acc
+
+        generate_sfpu_golden = get_golden_generator(UnarySFPUGolden)
+
+        return generate_sfpu_golden(
+            self.operation,
+            tensor,
+            format_output,
+            dest_acc,
+            format_input,
+        )
 
     def exec(self, operation_config: "PipelineOperation") -> str:
         math_format = operation_config.math_format
@@ -141,6 +193,14 @@ class BinarySfpu(Sfpu):
             "sfpu_operations.h",
         ]
 
+    def golden(
+        self, tensor: torch.Tensor, operation_config: "PipelineOperation"
+    ) -> torch.Tensor:
+        math_format = operation_config.output.data_format
+
+        generate_binary_golden = get_golden_generator(BinarySFPUGolden)
+        return generate_binary_golden(self.operation, tensor, tensor, math_format)
+
     def exec(self, operation_config: "PipelineOperation") -> str:
         math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
@@ -183,6 +243,11 @@ class SfpuWhere(Sfpu):
             "llk_math_eltwise_ternary_sfpu.h",
         ]
 
+    def golden(
+        self, tensor: torch.Tensor, operation_config: "PipelineOperation"
+    ) -> torch.Tensor:
+        return tensor
+
     def exec(self, operation_config: "PipelineOperation") -> str:
         math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
@@ -214,6 +279,15 @@ class Math:
             headers.update(sfpu.get_headers())
 
         return sorted(list(headers))
+
+    def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
+        fpu_instance = self.fpu()
+        golden_tensor = fpu_instance.golden(operation_config)
+
+        for sfpu in self.sfpu:
+            golden_tensor = sfpu.golden(golden_tensor, operation_config)
+
+        return golden_tensor
 
     def exec(self, operation_config: "PipelineOperation") -> str:
         fpu_instance = self.fpu()
