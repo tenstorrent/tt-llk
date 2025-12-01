@@ -882,6 +882,54 @@ class DataCopyGolden:
         return result
 
 
+# This is the same as DataCopyGolden but with ReLU applied. It's made as a separate class
+# so future pack testing can extend it as required without affecting (unnecessarily bloating) DataCopyGolden.
+@register_golden
+class PackGolden:
+    def __call__(
+        self,
+        operand1,
+        data_format,
+        num_faces: int = 4,
+        input_dimensions: list[int] = [32, 32],
+        face_r_dim: int = 16,
+        relu_config: int = 0,
+    ):
+        torch_format = format_dict[data_format]
+
+        height, width = input_dimensions[0], input_dimensions[1]
+
+        # Handle partial faces (face_r_dim < 16) as single tiles
+        if face_r_dim < 16:
+            tile_cnt = 1
+            tile_size = height * width
+        else:
+            tile_cnt = (height // 32) * (width // 32)
+            tile_size = height * width // tile_cnt
+
+        # Calculate elements based on variable face dimensions
+        # Each face is face_r_dim × 16, and we have num_faces
+        elements_per_tile_needed = face_r_dim * FACE_DIM * num_faces
+
+        # Convert input to tensor if needed
+        if not isinstance(operand1, torch.Tensor):
+            operand1 = torch.tensor(operand1, dtype=torch_format)
+
+        reshaped = operand1.view(tile_cnt, tile_size)
+        selected = reshaped[:, :elements_per_tile_needed]
+        result = selected.flatten()
+
+        # Apply ReLU if enabled
+        if relu_config != 0:
+            result = torch.clamp(result, min=0.0)
+
+        # Ensure result is in correct format if not already
+        if result.dtype != torch_format:
+            result = result.to(torch_format)
+
+        return result
+
+
 @register_golden
 class UnarySFPUGolden:
     def __init__(self):
