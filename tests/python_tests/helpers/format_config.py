@@ -192,7 +192,7 @@ class InputOutputFormat:
         return self.input
 
     def __str__(self):
-        return f"Input: {self.input}  Output: {self.output}"
+        return f"InputOutputFormat[{self.input},{self.output}]"
 
     def __repr__(self) -> str:
         return self.__str__()

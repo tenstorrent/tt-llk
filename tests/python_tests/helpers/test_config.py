@@ -40,7 +40,7 @@ def run_test(
     elfs = run_elf_files(
         test_config["testname"], variant_id, boot_mode, location=location
     )
-    wait_for_tensix_operations_finished(elfs)
+    wait_for_tensix_operations_finished(elfs, location)
 
     if test_target.with_coverage:
         generate_info_file_for_run(

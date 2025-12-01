@@ -476,9 +476,10 @@ def test_unpack_comprehensive(
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
         num_faces=num_faces,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config)
+    run_test(test_config, location=workers_tensix_coordinates)
 
     # Collect and validate results
     res_from_L1 = collect_results(
@@ -488,6 +489,7 @@ def test_unpack_comprehensive(
         tile_dimensions=input_dimensions,
         num_faces=num_faces,
         face_r_dim=face_r_dim,
+        location=workers_tensix_coordinates,
     )
     assert len(res_from_L1) == len(golden_tensor)
 

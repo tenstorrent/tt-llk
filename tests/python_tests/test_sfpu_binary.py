@@ -48,7 +48,7 @@ def test_sfpu_binary_float(
             "Float16_a isn't supported for SFPU on Blackhole without being converted to 32-bit intermediate format in dest register"
         )
 
-    sfpu_binary(test_name, formats, dest_acc, mathop)
+    sfpu_binary(test_name, formats, dest_acc, mathop, workers_tensix_coordinates)
 
 
 @parametrize(
@@ -65,8 +65,10 @@ def test_sfpu_binary_float(
     ],
     dest_acc=[DestAccumulation.Yes],
 )
-def test_sfpu_binary_int(test_name, formats, dest_acc, mathop):
-    sfpu_binary(test_name, formats, dest_acc, mathop)
+def test_sfpu_binary_int(
+    test_name, formats, dest_acc, mathop, workers_tensix_coordinates
+):
+    sfpu_binary(test_name, formats, dest_acc, mathop, workers_tensix_coordinates)
 
 
 @parametrize(
@@ -82,7 +84,9 @@ def test_sfpu_binary_int(test_name, formats, dest_acc, mathop):
     mathop=[MathOperation.SfpuAddTopRow],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
-def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
+def test_sfpu_binary_add_top_row(
+    test_name, formats, dest_acc, mathop, workers_tensix_coordinates
+):
     input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
@@ -118,11 +122,17 @@ def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config)
+    run_test(test_config, location=workers_tensix_coordinates)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=workers_tensix_coordinates,
+    )
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
@@ -137,7 +147,7 @@ def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
 
 
-def sfpu_binary(test_name, formats, dest_acc, mathop):
+def sfpu_binary(test_name, formats, dest_acc, mathop, workers_tensix_coordinates):
 
     input_dimensions = [64, 64]
 
@@ -173,11 +183,17 @@ def sfpu_binary(test_name, formats, dest_acc, mathop):
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=tile_cnt,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config)
+    run_test(test_config, location=workers_tensix_coordinates)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=workers_tensix_coordinates,
+    )
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)

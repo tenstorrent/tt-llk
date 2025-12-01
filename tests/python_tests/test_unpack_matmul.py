@@ -177,12 +177,16 @@ def test_unpack_matmul(
         formats.input_format,
         tile_count_A=matmul_config.tile_dimensions.tile_cnt_A,
         tile_count_B=matmul_config.tile_dimensions.tile_cnt_B,
+        location=workers_tensix_coordinates,
     )
 
-    run_test(test_config)
+    run_test(test_config, location=workers_tensix_coordinates)
 
     res_from_L1 = collect_results(
-        formats, tile_count=matmul_config.tile_dimensions.tile_cnt, address=res_address
+        formats,
+        tile_count=matmul_config.tile_dimensions.tile_cnt,
+        address=res_address,
+        location=workers_tensix_coordinates,
     )
     assert len(res_from_L1) == len(golden_tensor)
 

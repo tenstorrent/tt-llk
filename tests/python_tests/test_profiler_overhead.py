@@ -23,13 +23,17 @@ def get_expected_overhead():
 # Coverage uses different linker script, that doesn't utilize local data memory at all, only L1
 # Because of this, measured overhead is at 2.3k instead of ~23 cycles
 @skip_for_coverage
-def test_profiler_overhead():
+def test_profiler_overhead(workers_tensix_coordinates):
     test_config = {
         "testname": "profiler_overhead_test",
     }
 
     variant_id = sha256(f"{str(test_config)}".encode()).hexdigest()
-    run_test(test_config, profiler_build=ProfilerBuild.Yes)
+    run_test(
+        test_config,
+        profiler_build=ProfilerBuild.Yes,
+        location=workers_tensix_coordinates,
+    )
 
     runtime = Profiler.get_data(test_config["testname"], variant_id)
 

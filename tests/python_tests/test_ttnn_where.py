@@ -84,8 +84,6 @@ def test_ttnn_where(
         src_A = torch.zeros_like(src_A)
     # For "mixed" case, use the generated stimuli as-is
 
-    location = "0,0"
-
     golden = generate_golden(src_A, src_B, src_C)
 
     # Create test config for storing buffer addresses
@@ -100,10 +98,10 @@ def test_ttnn_where(
         stimuli_B_format=formats.input_format,
         tile_count_A=tile_cnt_A,
         tile_count_B=tile_cnt_B,
-        location=location,
         buffer_C=src_C.flatten(),
         stimuli_C_format=formats.input_format,
         tile_count_C=tile_cnt_C,
+        location=workers_tensix_coordinates,
     )
 
     unpack_to_dest = formats.input_format.is_32_bit()
@@ -123,10 +121,13 @@ def test_ttnn_where(
         "tile_cnt_C": tile_cnt_C,
     }
 
-    run_test(test_config)
+    run_test(test_config, location=workers_tensix_coordinates)
 
     res_from_L1 = collect_results(
-        formats, tile_count=tile_cnt_A, address=result_buffer_address
+        formats,
+        tile_count=tile_cnt_A,
+        address=result_buffer_address,
+        location=workers_tensix_coordinates,
     )
     res_from_L1 = res_from_L1[:1024]
     assert len(res_from_L1) == len(golden)

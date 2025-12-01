@@ -128,11 +128,17 @@ def test_sfpu_reduce(
         formats.input_format,
         tile_count_A=tile_cnt,
         tile_count_B=1,
+        location=workers_tensix_coordinates,
     )
-    run_test(test_config)
+    run_test(test_config, location=workers_tensix_coordinates)
 
     torch_format = format_dict[formats.output_format]
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=tile_cnt,
+        address=res_address,
+        location=workers_tensix_coordinates,
+    )
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from pathlib import Path
 
@@ -98,6 +99,8 @@ INITIAL_OPTIONS_COMPILE = f"-fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti 
 
 INCLUDES = f"-I../{ARCH_LLK_ROOT}/llk_lib -I../{ARCH_LLK_ROOT}/common/inc -I../{ARCH_LLK_ROOT}/common/inc/sfpu -Isfpi/compiler/lib/gcc/riscv-tt-elf/*/include -I{HEADER_DIR} -Ifirmware/riscv/common -Isfpi/include -Ihelpers/include"
 
+KERNEL_COMPONENTS = ["unpack", "math", "pack"]
+
 # Artefact directories
 BUILD_DIR = Path("/tmp/tt-llk-build")
 SHARED_DIR = BUILD_DIR / "shared"
@@ -154,7 +157,10 @@ SHARED_ARTEFACTS_AVAILABLE = False
 
 
 def build_shared_artefacts(
-    boot_mode: BootMode, profiler_build: ProfilerBuild, coverage_build: CoverageBuild
+    test_config: dict,
+    boot_mode: BootMode,
+    profiler_build: ProfilerBuild,
+    coverage_build: CoverageBuild,
 ) -> bool:
     global SHARED_ARTEFACTS_AVAILABLE
     # Build shared files - brisc.o, coverage.o, C-runtime, and brisc.elf
@@ -186,6 +192,18 @@ def build_shared_artefacts(
             TESTS_WORKING_DIR,
         )
 
+    # Kernel mains
+    _, kernel_trisc_flag = select_kernel_source_and_flag(test_config["testname"])
+
+    def build_kernel_part_main(name: str):
+        run_shell_command(  # main_%.o
+            f"""{GXX} {ARCH_COMPUTE} {OPTIONS_ALL} {local_non_coverage} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {SHARED_OBJ_DIR / f"main_{name}.o"} {RISCV_SOURCES / "trisc.cpp"}""",
+            TESTS_WORKING_DIR,
+        )
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        executor.map(build_kernel_part_main, KERNEL_COMPONENTS)
+
     # brisc.elf : tmu-crt0.o brisc.o coverage.o
     run_shell_command(
         f"""{GXX} {ARCH_NON_COMPUTE} {OPTIONS_ALL} {OPTIONS_LINK} {SHARED_OBJ_DIR / "tmu-crt0.o"} {SHARED_OBJ_DIR / "brisc.o"} {COVERAGE_DEPS} -T{local_memory_layout_ld} -T{LINKER_SCRIPTS / "brisc.ld"} -T{LINKER_SCRIPTS / "sections.ld"} -o {SHARED_ELF_DIR / "brisc.elf"}""",
@@ -193,9 +211,6 @@ def build_shared_artefacts(
     )
 
     SHARED_ARTEFACTS_AVAILABLE = True
-
-
-KERNEL_COMPONENTS = ["unpack", "math", "pack"]
 
 
 def select_kernel_source_and_flag(testname: str) -> tuple[Path, str]:
@@ -239,7 +254,7 @@ def build_test_variant(
 
     create_directories([VARIANT_DIR, VARIANT_OBJ_DIR, VARIANT_ELF_DIR])
 
-    build_shared_artefacts(boot_mode, profiler_build, coverage_build)
+    build_shared_artefacts(test_config, boot_mode, profiler_build, coverage_build)
 
     local_options_compile, local_memory_layout_ld, _ = resolve_compile_options(
         boot_mode, profiler_build, coverage_build
@@ -259,21 +274,19 @@ def build_test_variant(
         SFPI_DEPS = "-lgcov"
         COVERAGE_DEPS = SHARED_OBJ_DIR / "coverage.o"
 
-    for component in KERNEL_COMPONENTS:
-        run_shell_command(  # main_%.o
-            f"""{GXX} {ARCH_COMPUTE} {OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{component.upper()} -c -o {VARIANT_OBJ_DIR / f"main_{component}.o"} {RISCV_SOURCES / "trisc.cpp"}""",
-            TESTS_WORKING_DIR,
-        )
-
+    def build_kernel_part(name: str):
         run_shell_command(  # kernel_%.o
-            f"""{GXX} {ARCH_COMPUTE} {OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{component.upper()} -c -o {VARIANT_OBJ_DIR / f"kernel_{component}.o"} {RISCV_SOURCES / kernel_source_file}""",
+            f"""{GXX} {ARCH_COMPUTE} {OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {RISCV_SOURCES / kernel_source_file}""",
             TESTS_WORKING_DIR,
         )
 
         run_shell_command(  # %.elf : tmu-crt0.o main_%.o kernel_%.o coverage.o
-            f"""{GXX} {ARCH_COMPUTE} {OPTIONS_ALL} {OPTIONS_LINK} {SHARED_OBJ_DIR / "tmu-crt0.o"} {VARIANT_OBJ_DIR / f"main_{component}.o"} {VARIANT_OBJ_DIR / f"kernel_{component}.o"} {COVERAGE_DEPS} {SFPI_DEPS} -T{local_memory_layout_ld} -T{LINKER_SCRIPTS / f"{component}.ld"} {LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{component}.elf"}""",
+            f"""{GXX} {ARCH_COMPUTE} {OPTIONS_ALL} {OPTIONS_LINK} {SHARED_OBJ_DIR / "tmu-crt0.o"} {SHARED_OBJ_DIR / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {SFPI_DEPS} -T{local_memory_layout_ld} -T{LINKER_SCRIPTS / f"{name}.ld"} {LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
             TESTS_WORKING_DIR,
         )
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        executor.map(build_kernel_part, KERNEL_COMPONENTS)
 
     if profiler_build == ProfilerBuild.Yes:
         # Extract profiler metadata
