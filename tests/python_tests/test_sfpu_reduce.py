@@ -54,7 +54,7 @@ dimension_combinations = [
     mathop=[MathOperation.ReduceColumn],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     seed=[0, 1, 2],  # positive, negative or both random seed generation
-    reduce_pool=[ReducePool.Min],
+    reduce_pool=[ReducePool.Min, ReducePool.Max, ReducePool.Sum, ReducePool.Average],
     dimension_combinations=dimension_combinations,
 )
 def test_sfpu_reduce(

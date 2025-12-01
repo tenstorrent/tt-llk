@@ -21,11 +21,7 @@ namespace sfpu
 // Face 0 (rows 0-15)  | Face 1 (rows 0-15)
 // Face 2 (rows 16-31) | Face 3 (rows 16-31)
 
-constexpr uint NUM_FACES                   = 4;
-constexpr uint UPPER_FACE_ADDRS[NUM_FACES] = {0, 0, 16, 16};   // Face 0, 0, 1, 1
-constexpr uint LOWER_FACE_ADDRS[NUM_FACES] = {32, 32, 48, 48}; // Face 2, 2, 3, 3
-constexpr uint COLUMN_OFFSETS[NUM_FACES]   = {0, 2, 0, 2};     // even, odd, even, odd
-
+constexpr uint NUM_FACES     = 4;
 constexpr uint ROWS_PER_LOAD = 4;
 
 // Constants for averaging (division by 32)
@@ -42,6 +38,34 @@ constexpr uint32_t ROWS_PER_TILE = 64;
 // ============================================================================
 // Helper Functions
 // ============================================================================
+/**
+ * @brief Apply sign magnitude conversion to four LREGs
+ * Assume you loaded 4 LREGs into p_sfpu::LREG0-3 and want to convert them to sign magnitude and store in p_sfpu::LREG4-7.
+ * @tparam INSTR_MOD_CAST The instruction mode for cast operations
+ */
+template <InstrModCast INSTR_MOD_CAST>
+inline void apply_sign_magnitude_conversion_four_lregs()
+{
+    apply_sign_magnitude_conversion(p_sfpu::LREG0, p_sfpu::LREG4, INSTR_MOD_CAST);
+    apply_sign_magnitude_conversion(p_sfpu::LREG1, p_sfpu::LREG5, INSTR_MOD_CAST);
+    apply_sign_magnitude_conversion(p_sfpu::LREG2, p_sfpu::LREG6, INSTR_MOD_CAST);
+    apply_sign_magnitude_conversion(p_sfpu::LREG3, p_sfpu::LREG7, INSTR_MOD_CAST);
+}
+
+/**
+ * @brief Load data from face into LREG0-3
+ * @tparam INSTRUCTION_MODE The instruction mode for load operations
+ * @param face_addr Base address of face
+ * @param column_offset Column offset for the current iteration, load all rows for even columns (0) or odd columns (2) of the face
+ */
+template <InstrModLoadStore INSTRUCTION_MODE>
+inline void load_face_data(uint face_addr, uint column_offset)
+{
+    TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, face_addr + column_offset);                     // rows 0-3
+    TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, face_addr + column_offset + ROWS_PER_LOAD);     // rows 4-7
+    TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, face_addr + column_offset + 2 * ROWS_PER_LOAD); // rows 8-11
+    TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, face_addr + column_offset + 3 * ROWS_PER_LOAD); // rows 12-15
+}
 
 /**
  * @brief Load data from upper and lower faces into LREG0-7
@@ -232,57 +256,16 @@ inline void init_reduce_max_min_int32()
 {
     // Initialize SFPU config and set swap direction
     _init_sfpu_config_reg();
-
-    // Invert swap direction for MIN operations
-    if constexpr (pool_type == PoolType::MIN)
+    if constexpr (pool_type == PoolType::MAX)
     {
         TTI_SFPLOADI(0, 0xA, 0x0100); // Load lower 16 bits (bit 8)
         TTI_SFPLOADI(0, 0x8, 0x0000); // Load upper 16 bits
         TTI_SFPCONFIG(0, 0xF, 0);     // Copy LREG0 to SFPU control register
     }
-
-    // For Int32, we can't use LOADMACRO because we need to cast before swapping
-    // Since INT32_2S_COMP LOAD/STORE has no effect, we use the provided INSTRUCTION_MODE for loads
-    constexpr auto INSTR_MOD_CAST = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
-
-    // Configure address modes (same as regular max_min)
-    configure_addrmod_max_min(1); // Single tile for now
-
-    // Record replay buffer for compare-and-swap operations with manual load, cast, and swap
-    // This replaces LOADMACRO sequences with manual: LOAD -> CAST -> SETSGN -> SWAP
-    // LOADMACRO does a load automatically, so we replace it with manual load + cast + swap
-    lltt::record<lltt::NoExec>(0, 17);
-    TTI_INCRWC(0, 4, 0, 0);
-
-    // Replace TTI_SFPLOADMACRO(5, ...) - loads to LREG5 and swaps with LREG4 (sequence 1)
-    TTI_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
-    TTI_SFPCAST(p_sfpu::LREG5, p_sfpu::LREG3, INSTR_MOD_CAST);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG5, 0); // Required after cast due to RTL bug
+    lltt::record(0, 3);
+    TTI_SFPSWAP(0, p_sfpu::LREG7, p_sfpu::LREG6, 1);
+    TTI_SFPSWAP(0, p_sfpu::LREG6, p_sfpu::LREG5, 1);
     TTI_SFPSWAP(0, p_sfpu::LREG5, p_sfpu::LREG4, 1);
-
-    // Manual loads (same as regular version, but need cast and set sign)
-    TTI_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, 16);
-    TTI_SFPCAST(p_sfpu::LREG0, p_sfpu::LREG3, INSTR_MOD_CAST);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG0, 0); // Required after cast due to RTL bug
-
-    TTI_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, 18);
-    TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG3, INSTR_MOD_CAST);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG1, 0); // Required after cast due to RTL bug
-
-    // Swaps (same as regular version)
-    TTI_SFPSWAP(0, p_sfpu::LREG7, p_sfpu::LREG1, 1);
-    TTI_SFPNOP;
-    TTI_SFPSWAP(0, p_sfpu::LREG6, p_sfpu::LREG0, 1);
-    TTI_SFPNOP;
-
-    // Replace TTI_SFPLOADMACRO(0, ...) - loads to LREG0 and swaps LREG4 with LREG0 (sequence 0)
-    TTI_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, 0);
-    TTI_SFPCAST(p_sfpu::LREG0, p_sfpu::LREG3, INSTR_MOD_CAST);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG0, 0); // Required after cast due to RTL bug
-    TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG0, 1);
-
-    // Dummy loads to increment dest counters
-    TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_6, 0);
 }
 
 /**
@@ -296,83 +279,54 @@ inline void init_reduce_max_min_int32()
 template <InstrModLoadStore INSTRUCTION_MODE, PoolType pool_type, ReduceDim reduce_dim>
 inline void calculate_reduce_max_min_int32()
 {
-    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
-    static_assert(pool_type == PoolType::MAX || pool_type == PoolType::MIN, "Only MAX and MIN pool types are supported for this function");
+    constexpr auto INSTR_MOD_CAST    = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
+    constexpr uint COLUMN_OFFSETS[4] = {0, 2, 0, 2}; // even, odd, even, odd
+    constexpr uint FACE_ADDRS[2][4]  = {
+        {0, 0, 32, 32},  // j=0: Face 0 and Face 2
+        {16, 16, 48, 48} // j=1: Face 1 and Face 3
+    };
+    constexpr uint FINAL_REDUCE_ADDRS[2][2] = {
+        {0, 32}, // j=0: Face 0 and Face 2
+        {16, 48} // j=1: Face 1 and Face 3
+    };
 
-    constexpr auto INSTR_MOD_CAST              = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
-    constexpr auto INSTR_MOD_CAST_BACK         = InstrModCast::INT32_2S_COMP_TO_INT_SIGN_MAGN; // Cast back to sign-magnitude for store
-    constexpr uint32_t replay_buffer_offset    = 16;
-    constexpr uint32_t replay_buffer_next_face = 17;
+    for (uint j = 0; j < 2; j++)
+    {
+        for (uint i = 0; i < 4; i++)
+        {
+            load_face_data<INSTRUCTION_MODE>(FACE_ADDRS[j][i], COLUMN_OFFSETS[i]);
+            apply_sign_magnitude_conversion_four_lregs<INSTR_MOD_CAST>();
+            lltt::replay(0, 3);
 
-    // Initial loads: LREG4-7 will hold maximum/minimum values across F0 and F1
-    // Load, cast, and set sign for each register
-    TTI_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, 0);
-    TTI_SFPCAST(p_sfpu::LREG4, p_sfpu::LREG3, INSTR_MOD_CAST);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG4, 0); // Required after cast due to RTL bug
+            apply_sign_magnitude_conversion(
+                p_sfpu::LREG4, p_sfpu::LREG0, INSTR_MOD_CAST); // Convert back from two's complement to sign-magnitude before storing
+            TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, FACE_ADDRS[j][i] + COLUMN_OFFSETS[i]);
+        }
 
-    TTI_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
-    TTI_SFPCAST(p_sfpu::LREG5, p_sfpu::LREG3, INSTR_MOD_CAST);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG5, 0); // Required after cast due to RTL bug
+        uint addr0 = FINAL_REDUCE_ADDRS[j][0];
+        uint addr1 = FINAL_REDUCE_ADDRS[j][1];
 
-    TTI_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, 16);
-    TTI_SFPCAST(p_sfpu::LREG6, p_sfpu::LREG3, INSTR_MOD_CAST);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG6, 0); // Required after cast due to RTL bug
+        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, addr0);
+        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, addr1);
+        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, addr0 + 2);
+        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, addr1 + 2);
 
-    TTI_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, 18);
-    TTI_SFPCAST(p_sfpu::LREG7, p_sfpu::LREG3, INSTR_MOD_CAST);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG7, 0); // Required after cast due to RTL bug
+        apply_sign_magnitude_conversion_four_lregs<INSTR_MOD_CAST>();
 
-    // First tile processing (F0, F1, F2, F3) - single tile, no loop
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_next_face);
+        TTI_SFPTRANSP(0, 0, 0, 0);
+        lltt::replay(0, 3);
+        TTI_SFPTRANSP(0, 0, 0, 0);
 
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_next_face + 1);
+        TTI_SFPSWAP(0, p_sfpu::LREG7, p_sfpu::LREG6, 1);
+        TTI_SFPSWAP(0, p_sfpu::LREG5, p_sfpu::LREG4, 1); // LREG4 contains min for F0 and F2 columns
 
-    // Reset dest RWC counter
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+        // Convert back from two's complement to sign-magnitude before storing
+        apply_sign_magnitude_conversion(p_sfpu::LREG4, p_sfpu::LREG0, INSTR_MOD_CAST);
+        apply_sign_magnitude_conversion(p_sfpu::LREG6, p_sfpu::LREG1, INSTR_MOD_CAST);
 
-    // Finalize: Sort and store maximum/minimum values to row 0
-    // Values are in 2's complement format after replay, need to cast before swapping for sorting
-    TTI_SFPTRANSP(0, 0, 0, 0);
-
-    // Cast and set sign before swapping (values are in 2's complement from replay)
-    TTI_SFPCAST(p_sfpu::LREG6, p_sfpu::LREG3, INSTR_MOD_CAST);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG6, 0);
-    TTI_SFPCAST(p_sfpu::LREG7, p_sfpu::LREG3, INSTR_MOD_CAST);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG7, 0);
-    TTI_SFPSWAP(0, p_sfpu::LREG6, p_sfpu::LREG7, 1);
-
-    TTI_SFPCAST(p_sfpu::LREG5, p_sfpu::LREG3, INSTR_MOD_CAST);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG5, 0);
-    TTI_SFPSWAP(0, p_sfpu::LREG5, p_sfpu::LREG6, 1);
-
-    TTI_SFPCAST(p_sfpu::LREG4, p_sfpu::LREG3, INSTR_MOD_CAST);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG4, 0);
-    TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG5, 1);
-
-    TTI_SFPTRANSP(0, 0, 0, 0);
-
-    // Cast back to sign-magnitude format before storing
-    // Store results to first row
-    TTI_SFPCAST(p_sfpu::LREG4, p_sfpu::LREG3, INSTR_MOD_CAST_BACK);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG4, 0);
-    TTI_SFPSTORE(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, 0);
-
-    TTI_SFPCAST(p_sfpu::LREG5, p_sfpu::LREG3, INSTR_MOD_CAST_BACK);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG5, 0);
-    TTI_SFPSTORE(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
-
-    TTI_SFPCAST(p_sfpu::LREG6, p_sfpu::LREG3, INSTR_MOD_CAST_BACK);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG6, 0);
-    TTI_SFPSTORE(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, 16);
-
-    TTI_SFPCAST(p_sfpu::LREG7, p_sfpu::LREG3, INSTR_MOD_CAST_BACK);
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG7, 0);
-    TTI_SFPSTORE(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, 18);
+        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, addr0);
+        TT_SFPSTORE(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, addr0 + 2);
+    }
 }
 
 /**
@@ -591,6 +545,10 @@ inline void calculate_reduce_sum_avg()
 
     static_assert(is_integer_mode || is_float_mode, "INSTRUCTION_MODE must be one of: INT32, INT32_2S_COMP, LO16, FP32, FP16B");
 
+    constexpr uint UPPER_FACE_ADDRS[NUM_FACES] = {0, 0, 16, 16};   // Face 0, 0, 1, 1
+    constexpr uint LOWER_FACE_ADDRS[NUM_FACES] = {32, 32, 48, 48}; // Face 2, 2, 3, 3
+    constexpr uint COLUMN_OFFSETS[NUM_FACES]   = {0, 2, 0, 2};     // even, odd, even, odd
+
     // Optimized approach: Process 4 iterations to handle all column combinations
     // This reduces operations by processing complementary face pairs simultaneously, less load/store operations
     for (uint i = 0; i < NUM_FACES; i++)
@@ -698,6 +656,9 @@ inline void _init_reduce_(uint32_t block_ct_dim = 1)
  * @tparam reduce_dim The reduction dimension (currently only REDUCE_COL is supported)
  * @tparam format The data format, currently supported: (Int32, UInt32, UInt16, Float32, Float16_b)
  * @param block_rt_dim Block dimension (used for MAX/MIN reduction to specify block height, default is 1 for single tile)
+ *
+ * @note Constraints (unable to static assert for block_rt_dim runtime parameter)
+ *       - MAX/MIN with Int32 format only supports block_rt_dim == 1 (single tile)
  */
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
 inline void _calculate_reduce_(uint32_t block_rt_dim = 1)
