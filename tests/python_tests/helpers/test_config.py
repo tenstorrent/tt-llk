@@ -363,6 +363,15 @@ def generate_build_header(test_config):
     # Check if we need to generate multiple format configurations
     l1_to_l1_iterations = test_config.get("L1_to_L1_iterations", 1)
 
+    # For Quasar: implied_math_format=Yes means disable_format_inference=True
+    implied_math_format_cfg = test_config.get(
+        "implied_math_format", ImpliedMathFormat.No
+    )
+    disable_format_inference = (
+        test_config.get("disable_format_inference", False)
+        or implied_math_format_cfg == ImpliedMathFormat.Yes
+    )
+
     formats_config = data_formats(
         input_format=formats.input_format,
         output_format=formats.output_format,
@@ -370,7 +379,7 @@ def generate_build_header(test_config):
         num_iterations=l1_to_l1_iterations,
         unpacking_to_dest=unpack_to_dest == "true",
         chip_arch=get_chip_architecture(),
-        disable_format_inference=test_config.get("disable_format_inference", False),
+        disable_format_inference=disable_format_inference,
     )
 
     if l1_to_l1_iterations > 1:
