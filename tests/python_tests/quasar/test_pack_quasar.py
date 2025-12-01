@@ -52,11 +52,18 @@ def generate_qsr_pack_combinations(
         if in_fmt.is_integer() ^ fmt.output_format.is_integer():
             continue
 
-        dest_acc_modes = (
-            (DestAccumulation.Yes,)
-            if in_fmt.is_32_bit()
-            else (DestAccumulation.No, DestAccumulation.Yes)
-        )
+        if (in_fmt == DataFormat.Int16) ^ (fmt.output_format == DataFormat.Int16):
+            continue
+
+        dest_acc_modes = []
+        if in_fmt == DataFormat.Int16:
+            dest_acc_modes = (DestAccumulation.No,)
+        else:
+            dest_acc_modes = (
+                (DestAccumulation.Yes,)
+                if in_fmt.is_32_bit()
+                else (DestAccumulation.No, DestAccumulation.Yes)
+            )
         for dest_acc in dest_acc_modes:
             if (
                 in_fmt != DataFormat.Int32
@@ -92,6 +99,7 @@ PACK_FORMATS = input_output_formats(
         DataFormat.Int32,
         DataFormat.Int8,
         DataFormat.UInt8,
+        DataFormat.Int16,
     ]
 )
 ALL_PACK_COMBINATIONS = generate_qsr_pack_combinations(PACK_FORMATS)

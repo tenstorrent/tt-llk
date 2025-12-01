@@ -114,6 +114,8 @@ def infer_pack_in(
 
     if is_quasar:
         if input_format.is_integer():
+            if input_format == DataFormat.Int16:
+                return DataFormat.Int16
             if (
                 input_format in (DataFormat.Int8, DataFormat.UInt8)
                 and output_format == DataFormat.Int32
