@@ -38,7 +38,7 @@ inline void _llk_math_srcAB_hw_configure_()
     if constexpr (EN_INT32_MATH_FORMAT)
     {
         static_assert(
-            (SRCA_FORMAT == DataFormat::Int8 && SRCB_FORMAT == DataFormat::Int8) || (SRCA_FORMAT == DataFormat::Uint8 && SRCB_FORMAT == DataFormat::Uint8) ||
+            (SRCA_FORMAT == DataFormat::Int8 && SRCB_FORMAT == DataFormat::Int8) || (SRCA_FORMAT == DataFormat::UInt8 && SRCB_FORMAT == DataFormat::UInt8) ||
                 (SRCA_FORMAT == DataFormat::Int16 && SRCB_FORMAT == DataFormat::Int16),
             "Cannot have Int32 Destination register + non-integer source formats");
     }
