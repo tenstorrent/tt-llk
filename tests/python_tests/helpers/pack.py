@@ -130,57 +130,53 @@ def pack_bfp8_b(tensor, block_size=16, num_faces=4):
 
 def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=4):
     """
-    Internal helper to pack MXFP8 formats.
+    Internal helper to pack MXFP8 formats with FULLY SEPARATED layout.
+
+    Layout (similar to BFP8_b): [all_scales][all_elements]
+    - BFP8_b: [64 exponents][1024 mantissas]
+    - MXFP8:  [32 scales][1024 elements]
 
     Args:
         tensor: Input tensor (typically 1024 elements for full tile)
         fp8_dtype: ml_dtypes dtype (float8_e5m2 or float8_e4m3fn)
-        element_max_normal: Maximum normal value for element format (e.g., 57344 for E5M2, 448 for E4M3)
+        element_max_normal: Maximum normal value for element format
         num_faces: Number of faces to pack (1, 2, or 4)
 
     Returns:
-        List of packed bytes: [scale0, elem0-31, scale1, elem32-63, ...]
+        List of packed bytes: [all scales][all elements]
     """
     flattened_tensor = tensor.cpu().to(torch.float32).numpy().flatten()
 
-    # Calculate elements to pack based on faces
-    elements_to_pack = 256 * num_faces  # 256 elements per face
+    elements_to_pack = 256 * num_faces
     assert (
         len(flattened_tensor) >= elements_to_pack
-    ), f"Tensor has {len(flattened_tensor)} elements, but need at least {elements_to_pack} for {num_faces} face(s)"
+    ), f"Tensor has {len(flattened_tensor)} elements, need {elements_to_pack} for {num_faces} face(s)"
 
     flattened_tensor = flattened_tensor[:elements_to_pack]
     num_blocks = len(flattened_tensor) // MXFP8_BLOCK_SIZE
 
-    packed_bytes = []
+    all_scales = []
+    all_elements = []
 
     for i in range(num_blocks):
-        # Extract block of 32 elements
         block = flattened_tensor[i * MXFP8_BLOCK_SIZE : (i + 1) * MXFP8_BLOCK_SIZE]
 
-        # Step 1: Calculate E8M0 scale per OCP spec
+        # Calculate E8M0 scale
         max_abs_value = np.max(np.abs(block))
         scale_e8m0 = encode_e8m0_scale(max_abs_value, element_max_normal)
-
-        # Step 2: Decode scale to get scale factor
         scale_factor = decode_e8m0_scale(scale_e8m0)
 
-        # Step 3: Scale elements by dividing by scale_factor
-        # The E8M0 encoding never produces 255 (reserved for NaN), but check for data corruption
-        assert not np.isnan(scale_factor), (
-            f"Corrupted E8M0 scale: e8m0={scale_e8m0} decoded to NaN. "
-            f"E8M0=255 is reserved and should never be encoded."
-        )
-        scaled_block = block / scale_factor
+        assert not np.isnan(scale_factor), f"Corrupted E8M0 scale: {scale_e8m0}"
 
-        # Step 4: Convert to float8 using ml_dtypes
+        # Scale and convert to FP8
+        scaled_block = block / scale_factor
         fp8_elements = scaled_block.astype(fp8_dtype)
 
-        # Step 5: Pack into bytes [scale, elements...]
-        packed_bytes.append(scale_e8m0)  # 1 byte for E8M0 scale
-        packed_bytes.extend(fp8_elements.tobytes())  # 32 bytes for elements
+        all_scales.append(scale_e8m0)
+        all_elements.extend(fp8_elements.tobytes())
 
-    return packed_bytes
+    # FULLY SEPARATED layout: all scales first, then all elements
+    return all_scales + all_elements
 
 
 def pack_mxfp8r(tensor, num_faces=4):
