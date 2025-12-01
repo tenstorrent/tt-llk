@@ -32,7 +32,7 @@ class Operand:
     def is_input(self) -> bool:
         return not self.is_output
 
-    def generate_data(self):
+    def generate_data(self, num=1):
         if self._data is not None:
             return
 
@@ -58,6 +58,18 @@ class Operand:
         self._raw_data = raw_data
         self._data = tilized_data
         self._tile_count = tile_count
+
+    def set_data(self, raw_data: torch.Tensor):
+        self._raw_data = raw_data
+
+        if self.data_format != DataFormat.Bfp8_b:
+            tilized_data = tilize_block(
+                raw_data, dimensions=self.dimensions, stimuli_format=self.data_format
+            )
+        else:
+            tilized_data = raw_data
+
+        self._data = tilized_data
 
     @property
     def data(self) -> Optional[torch.Tensor]:
@@ -200,12 +212,20 @@ class OperandRegistry:
         src_b_dims: Tuple[int, int] = [32, 32],
         input_format: DataFormat = DataFormat.Float16_b,
         output_format: DataFormat = DataFormat.Float16_b,
+        src_a_tensor: torch.Tensor = None,
+        src_b_tensor: torch.Tensor = None,
     ) -> OperandMapping:
         if src_a not in self.operands:
             self.add_input(src_a, dimensions=src_a_dims, data_format=input_format)
 
         if src_b not in self.operands:
             self.add_input(src_b, dimensions=src_b_dims, data_format=input_format)
+
+        if src_a_tensor is not None:
+            self.operands.get(src_a).set_data(src_a_tensor)
+
+        if src_b_tensor is not None:
+            self.operands.get(src_b).set_data(src_b_tensor)
 
         mapping = OperandMapping(
             src_a=src_a,
