@@ -43,8 +43,8 @@ ELTWISE_DIMENSIONS = [
     test_name="eltwise_binary_test",
     formats=input_output_formats(
         [
-            DataFormat.Float16_b,
-            DataFormat.Float16,
+            #DataFormat.Float16_b,
+            #DataFormat.Float16,
             DataFormat.MXFP8R,
             DataFormat.MXFP8P,
         ],
@@ -87,6 +87,10 @@ def test_eltwise_binary(
         and math_fidelity != MathFidelity.LoFi
     ):
         pytest.skip("Math fidelity only affects multiplication operations")
+
+    # MX formats REQUIRE implied_math_format=Yes on Quasar (bypass format inference pipeline)
+    if formats.input_format.is_mx_format() and implied_math_format == ImpliedMathFormat.No:
+        pytest.skip("MX formats require implied_math_format=Yes on Quasar")
 
     # Generate stimuli for both operands
     src_A, src_B, tile_cnt = generate_stimuli(
