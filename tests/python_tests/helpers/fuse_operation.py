@@ -5,6 +5,8 @@
 from dataclasses import dataclass
 from typing import Type
 
+import torch
+
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .format_config import DataFormat
@@ -179,3 +181,6 @@ class PipelineOperation:
     def pack(self) -> str:
         packer_instance = self.packer()
         return packer_instance.pack(self)
+
+    def golden(self) -> torch.Tensor:
+        return self.math.golden(self)
