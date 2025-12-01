@@ -58,8 +58,8 @@ class DataFormat(Enum):
     UInt16 = DataFormatInfo("UInt16", 2)
     Int8 = DataFormatInfo("Int8", 1)
     UInt8 = DataFormatInfo("UInt8", 1)
-    MXFP8R = DataFormatInfo("MXFP8R", 1)
-    MXFP8P = DataFormatInfo("MXFP8P", 1)
+    MxFp8R = DataFormatInfo("MxFp8R", 1)
+    MxFp8P = DataFormatInfo("MxFp8P", 1)
 
     @property
     def size(self) -> int:
@@ -110,8 +110,8 @@ class DataFormat(Enum):
     def is_mx_format(self) -> bool:
         """Checks if the data format is an MX (Microscaling) format."""
         return self in {
-            DataFormat.MXFP8R,
-            DataFormat.MXFP8P,
+            DataFormat.MxFp8R,
+            DataFormat.MxFp8P,
         }
 
     def get_mx_block_size(self) -> int:

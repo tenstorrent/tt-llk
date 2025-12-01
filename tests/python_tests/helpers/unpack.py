@@ -228,9 +228,9 @@ def unpack_res_tiles(
 
     if output_format == DataFormat.Bfp8_b:
         unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
-    elif output_format == DataFormat.MXFP8R:
+    elif output_format == DataFormat.MxFp8R:
         unpack_func = unpack_mxfp8r
-    elif output_format == DataFormat.MXFP8P:
+    elif output_format == DataFormat.MxFp8P:
         unpack_func = unpack_mxfp8p
     else:
         unpack_func = _UNPACKERS[output_format]

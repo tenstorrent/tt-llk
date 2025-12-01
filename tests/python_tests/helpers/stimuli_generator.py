@@ -41,7 +41,7 @@ def generate_random_face(
 ):
     size = face_r_dim * 16  # face_r_dim rows × 16 columns
 
-    if stimuli_format in [DataFormat.MXFP8R, DataFormat.MXFP8P]:
+    if stimuli_format in [DataFormat.MxFp8R, DataFormat.MxFp8P]:
         # MXFP8 optimized stimuli generation
         return _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu)
     elif stimuli_format != DataFormat.Bfp8_b:
@@ -84,9 +84,9 @@ def _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu):
 
     # Scale factor: use 5% of format's max normal value
     # This ensures values are well within representable range while maintaining diversity
-    if stimuli_format == DataFormat.MXFP8R:
+    if stimuli_format == DataFormat.MxFp8R:
         scale = 0.05 * MXFP8_E5M2_MAX_NORMAL
-    else:  # MXFP8P
+    else:  # MxFp8P
         scale = 0.05 * MXFP8_E4M3_MAX_NORMAL
 
     # Generate normal distribution: ~68% within ±1σ, ~95% within ±2σ

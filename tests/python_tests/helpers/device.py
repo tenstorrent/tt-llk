@@ -338,8 +338,8 @@ def write_stimuli_to_l1(
             DataFormat.Float32: pack_fp32,
             DataFormat.Bfp8_b: pack_bfp8_b,
             DataFormat.Int32: pack_int32,
-            DataFormat.MXFP8R: pack_mxfp8r,
-            DataFormat.MXFP8P: pack_mxfp8p,
+            DataFormat.MxFp8R: pack_mxfp8r,
+            DataFormat.MxFp8P: pack_mxfp8p,
             DataFormat.UInt32: pack_uint32,
             DataFormat.UInt16: pack_uint16,
             DataFormat.Int8: pack_int8,
@@ -438,8 +438,8 @@ def get_result_from_device(
         DataFormat.Float16_b: unpack_bfp16,
         DataFormat.Float32: unpack_fp32,
         DataFormat.Int32: unpack_int32,
-        DataFormat.MXFP8R: unpack_mxfp8r,
-        DataFormat.MXFP8P: unpack_mxfp8p,
+        DataFormat.MxFp8R: unpack_mxfp8r,
+        DataFormat.MxFp8P: unpack_mxfp8p,
         DataFormat.UInt32: unpack_uint32,
         DataFormat.UInt16: unpack_uint16,
         DataFormat.Int8: unpack_int8,
@@ -454,7 +454,7 @@ def get_result_from_device(
 
     if unpack_func:
         # MXFP8 formats take (packed_bytes, num_faces) not format arguments
-        if formats.output_format in {DataFormat.MXFP8R, DataFormat.MXFP8P}:
+        if formats.output_format in {DataFormat.MxFp8R, DataFormat.MxFp8P}:
             return unpack_func(read_data_bytes)
 
         # Other multi-parameter functions take format arguments
