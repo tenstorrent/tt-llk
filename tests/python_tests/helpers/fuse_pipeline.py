@@ -4,13 +4,13 @@
 
 from typing import List
 
-from helpers.fuse_math import BinarySfpu, EltwiseFpu, Math, MatmulFpu, UnarySfpu
+import torch
+from helpers.fuse_math import EltwiseFpu, Math
 from helpers.fuse_operand import OperandRegistry
 from helpers.fuse_operation import PipelineOperation
-from helpers.fuse_packer import EltwisePacker, MatmulPacker
-from helpers.fuse_unpacker import EltwiseUnpacker, MatmulUnpacker
+from helpers.fuse_packer import EltwisePacker
+from helpers.fuse_unpacker import EltwiseUnpacker
 from helpers.llk_params import (
-    ApproximationMode,
     MathOperation,
 )
 
@@ -26,16 +26,21 @@ def create_fuse_pipeline(
 
     operands = OperandRegistry()
 
+    a_data = torch.ones(1024)
+    b_data = torch.ones(1024) * 2
+
     pipeline = [
         PipelineOperation(
             operand_mapping=operands.create_mapping(
                 src_a="input_A",
-                src_b="input_A",
+                src_b="input_B",
                 output="elwadd1",
                 src_a_dims=input_A_dimensions,
-                src_b_dims=input_A_dimensions,
+                src_b_dims=input_B_dimensions,
                 input_format=formats.input_format,
                 output_format=formats.output_format,
+                src_a_tensor=a_data,
+                src_b_tensor=b_data,
             ),
             unpacker=EltwiseUnpacker,
             math=Math(EltwiseFpu(MathOperation.Elwadd), []),
@@ -43,59 +48,59 @@ def create_fuse_pipeline(
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
         ),
-        PipelineOperation(
-            operand_mapping=operands.create_mapping(
-                src_a="input_A",
-                src_b="input_B",
-                output="matmul_result",
-                src_a_dims=input_A_dimensions,
-                src_b_dims=input_B_dimensions,
-                input_format=formats.input_format,
-                output_format=formats.output_format,
-            ),
-            unpacker=MatmulUnpacker,
-            math=Math(MatmulFpu(), []),
-            packer=MatmulPacker,
-            dest_acc=dest_acc,
-            math_fidelity=math_fidelity,
-        ),
-        PipelineOperation(
-            operand_mapping=operands.create_mapping(
-                src_a="matmul_result",
-                src_b="input_C",
-                output="final_output",
-                src_b_dims=input_B_dimensions,
-                input_format=formats.output_format,
-                output_format=formats.output_format,
-            ),
-            unpacker=MatmulUnpacker,
-            math=Math(
-                MatmulFpu(),
-                [
-                    UnarySfpu(
-                        MathOperation.Sqrt,
-                        ApproximationMode.No,
-                        32 * operands.get("final_output").tile_count,
-                    ),
-                    UnarySfpu(
-                        MathOperation.Neg,
-                        ApproximationMode.No,
-                        32 * operands.get("final_output").tile_count,
-                    ),
-                    BinarySfpu(
-                        MathOperation.SfpuElwadd,
-                        ApproximationMode.No,
-                        32 * operands.get("final_output").tile_count,
-                        0,
-                        0,
-                        0,
-                    ),
-                ],
-            ),
-            packer=MatmulPacker,
-            dest_acc=dest_acc,
-            math_fidelity=math_fidelity,
-        ),
+        # PipelineOperation(
+        #     operand_mapping=operands.create_mapping(
+        #         src_a="input_A",
+        #         src_b="input_B",
+        #         output="matmul_result",
+        #         src_a_dims=input_A_dimensions,
+        #         src_b_dims=input_B_dimensions,
+        #         input_format=formats.input_format,
+        #         output_format=formats.output_format,
+        #     ),
+        #     unpacker=MatmulUnpacker,
+        #     math=Math(MatmulFpu(), []),
+        #     packer=MatmulPacker,
+        #     dest_acc=dest_acc,
+        #     math_fidelity=math_fidelity,
+        # ),
+        # PipelineOperation(
+        #     operand_mapping=operands.create_mapping(
+        #         src_a="matmul_result",
+        #         src_b="input_C",
+        #         output="final_output",
+        #         src_b_dims=input_B_dimensions,
+        #         input_format=formats.output_format,
+        #         output_format=formats.output_format,
+        #     ),
+        #     unpacker=MatmulUnpacker,
+        #     math=Math(
+        #         MatmulFpu(),
+        #         [
+        #             UnarySfpu(
+        #                 MathOperation.Sqrt,
+        #                 ApproximationMode.No,
+        #                 32 * operands.get("final_output").tile_count,
+        #             ),
+        #             UnarySfpu(
+        #                 MathOperation.Neg,
+        #                 ApproximationMode.No,
+        #                 32 * operands.get("final_output").tile_count,
+        #             ),
+        #             BinarySfpu(
+        #                 MathOperation.SfpuElwadd,
+        #                 ApproximationMode.No,
+        #                 32 * operands.get("final_output").tile_count,
+        #                 0,
+        #                 0,
+        #                 0,
+        #             ),
+        #         ],
+        #     ),
+        #     packer=MatmulPacker,
+        #     dest_acc=dest_acc,
+        #     math_fidelity=math_fidelity,
+        # ),
     ]
 
     return pipeline
