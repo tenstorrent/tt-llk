@@ -27,7 +27,7 @@ def run_test(
 ):
     """Run the test with the given configuration"""
 
-    variant_id = sha256(f"{str(test_config)}".encode()).hexdigest()
+    variant_id = sha256(f"{str(test_config)} {location}".encode()).hexdigest()
     test_target = TestTargetConfig()
 
     coverage_bld = CoverageBuild.No

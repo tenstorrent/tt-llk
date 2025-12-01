@@ -137,6 +137,8 @@ def resolve_compile_options(
     else:
         OPTIONS_COMPILE += "-DLLK_BOOT_MODE_BRISC "
 
+    NON_COVERAGE_OPTIONS_COMPILE = OPTIONS_COMPILE
+
     if coverage_build == CoverageBuild.Yes and profiler_build == ProfilerBuild.Yes:
         raise ValueError("You can't build profiler and coverage build at the same time")
 
@@ -163,7 +165,7 @@ def build_shared_artefacts(
     coverage_build: CoverageBuild,
 ) -> bool:
     global SHARED_ARTEFACTS_AVAILABLE
-    # Build shared files - brisc.o, coverage.o, C-runtime, and brisc.elf
+    # Build shared files - brisc.o, coverage.o, C-runtime, brisc.elf and main_%.o files
     if SHARED_ARTEFACTS_AVAILABLE:
         return True
 

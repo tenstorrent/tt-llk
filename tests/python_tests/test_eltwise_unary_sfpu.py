@@ -75,6 +75,7 @@ def test_eltwise_unary_sfpu_float(
         MathOperation.Celu,
         MathOperation.Silu,
         MathOperation.Neg,
+        MathOperation.Exp2,
         MathOperation.Hardsigmoid,
         MathOperation.Threshold,
         MathOperation.ReluMax,

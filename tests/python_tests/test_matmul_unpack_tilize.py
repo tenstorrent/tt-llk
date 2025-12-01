@@ -79,7 +79,6 @@ def test_matmul_unpack_tilize(
     run_test(
         test_config,
         location=workers_tensix_coordinates,
-        location=workers_tensix_coordinates,
     )
 
     res_from_L1 = collect_results(
