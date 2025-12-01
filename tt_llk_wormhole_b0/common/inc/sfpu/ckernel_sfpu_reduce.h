@@ -142,6 +142,389 @@ constexpr bool is_supported_reduce_format(DataFormat format)
 }
 
 /**
+<<<<<<< HEAD
+ * @brief Column-wise sum/average reduction kernel for SFPU reduce SUM and AVG operations.
+ *        Computes the sum or average of each column, placing the 32 output values into the first row
+ *        of the output tile (row 0 of faces 0 and 1).
+ *
+ *        Uses a 4-iteration approach that processes vertically aligned face pairs (0+2, 1+3) to optimize
+ *        column operations and minimize load/store operations. Each iteration handles 8 columns using
+ *        transpose operations and replay buffers for tree reduction.
+ *
+ *        For AVG mode: Integer formats use arithmetic shift with condition codes to handle negative numbers;
+ *        float formats multiply by 1/32 constant.
+ *
+ * @tparam pool_type The reduction operation, currently supported: (SUM, AVG)
+ * @tparam reduce_dim The reduction dimension (currently only REDUCE_COL is supported)
+ * @tparam INSTRUCTION_MODE The instruction mode for integer and float formats: INT32, INT32_2S_COMP, LO16, FP32, FP16B
+ */
+template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTION_MODE>
+inline void calculate_reduce_sum_avg()
+{
+    // Compile-time assertions to restrict to currently supported operations
+    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported on SFPU");
+    static_assert(pool_type == SUM || pool_type == AVG, "Only SUM and AVG pool types are currently supported on SFPU");
+
+    // Determine if integer or float mode at compile time
+    constexpr bool is_integer_mode =
+        (INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::INT32_2S_COMP || INSTRUCTION_MODE == InstrModLoadStore::LO16);
+    constexpr bool is_float_mode = (INSTRUCTION_MODE == InstrModLoadStore::FP32 || INSTRUCTION_MODE == InstrModLoadStore::FP16B);
+
+    static_assert(is_integer_mode || is_float_mode, "INSTRUCTION_MODE must be one of: INT32, INT32_2S_COMP, LO16, FP32, FP16B");
+
+    // Optimized approach: Process 4 iterations to handle all column combinations
+    // This reduces operations by processing complementary face pairs simultaneously, less load/store operations
+    for (uint i = 0; i < NUM_FACES; i++)
+    {
+        // Iteration mapping - Process vertically aligned faces (0+2, 1+3) to optimize column operations:
+        // i=0: even columns, left half  (faces 0 + 2, columns 0,2,4,6,8,10,12,14)
+        // i=1: odd columns,  left half  (faces 0 + 2, columns 1,3,5,7,9,11,13,15)
+        // i=2: even columns, right half (faces 1 + 3, columns 16,18,20,22,24,26,28,30)
+        // i=3: odd columns,  right half (faces 1 + 3, columns 17,19,21,23,25,27,29,31)
+
+        // Key optimization: Process faces 0+2 and 1+3 (vertically aligned) instead of 0+1 and 2+3
+        // This allows processing all 32 rows of a column at once (16 from upper face + 16 from lower face)
+        // Reduces load/store operations by accumulating all rows into one LREG per column group
+        // Final result stored in top row of upper face (first row in dest) - no intermediate storage needed
+
+        const uint upper_face_addr = UPPER_FACE_ADDRS[i];
+        const uint lower_face_addr = LOWER_FACE_ADDRS[i];
+        const uint column_offset   = COLUMN_OFFSETS[i];
+
+        load_face_data<INSTRUCTION_MODE>(upper_face_addr, lower_face_addr, column_offset);
+
+        // Perform column-wise summation (different replay buffer lengths for int vs float)
+        if constexpr (is_integer_mode)
+        {
+            sum_columns<6>();                                // Integer replay buffer
+            TTI_SFPIADD(0, p_sfpu::LREG4, p_sfpu::LREG0, 4); // LREG0 = upper_face_sums + lower_face_sums (int)
+        }
+        else
+        {
+            sum_columns<12>();                                                            // Float replay buffer (includes NOPs for Wormhole)
+            TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG4, p_sfpu::LREG0, 0); // LREG0 = upper + lower (float)
+            TTI_SFPNOP;                                                                   // Required for Wormhole
+        }
+
+        // Perform averaging if requested (different for int vs float)
+        if constexpr (pool_type == AVG)
+        {
+            if constexpr (is_integer_mode)
+            {
+                perform_int_average<INSTRUCTION_MODE>();
+            }
+            else
+            {
+                perform_float_average();
+            }
+        }
+
+        // Store the final combined column sums
+        TTI_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, upper_face_addr + column_offset);
+    }
+
+    // After this loop, the column sums are stored at first row in dest reg:
+    // Address 0:  even columns, left half  (columns 0,2,4,6,8,10,12,14)
+    // Address 2:  odd columns,  left half  (columns 1,3,5,7,9,11,13,15)
+    // Address 16: even columns, right half (columns 16,18,20,22,24,26,28,30)
+    // Address 18: odd columns,  right half (columns 17,19,21,23,25,27,29,31)
+}
+
+// ============================================================================
+// Public API
+// ============================================================================
+
+/**
+ * @brief Unified reduction init kernel wrapper for SFPU reduce kernel.
+ *        Determines the instruction mode from format, then dispatches to the appropriate init kernel.
+ * @tparam pool_type The reduction operation, currently supported: (SUM, AVG, MAX)
+ * @tparam format The data format, currently supported: (Int32, UInt32, UInt16, Float32, Float16_b)
+ * @param block_ct_dim Block dimension (used for MAX reduction to specify number of columns, default is 1 for single tile)
+ */
+template <PoolType pool_type, DataFormat format>
+inline void _init_reduce_(uint32_t block_ct_dim = 1)
+{
+    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
+
+    // Determine InstrModLoadStore based on format in dst register
+    constexpr InstrModLoadStore INSTRUCTION_MODE = get_instruction_mode<format>();
+
+    // Dispatch to appropriate PoolType init
+    if constexpr (pool_type == PoolType::MAX)
+=======
+ * @brief Return appropriate InstrModLoadStore based on DataFormat
+ * @tparam format The DataFormat enum value for supported formats: Int32, UInt32, UInt16, Float32, Float16_b
+ * @return The corresponding InstrModLoadStore enum values: INT32, INT32_2S_COMP, LO16, FP32, FP16B
+ */
+template <DataFormat format>
+constexpr InstrModLoadStore get_instruction_mode()
+{
+    if constexpr (format == DataFormat::Float32)
+>>>>>>> a1c1a7e7 (Restructure to new reduce kernels)
+    {
+        return InstrModLoadStore::FP32;
+    }
+    else if constexpr (format == DataFormat::Float16_b)
+    {
+        return InstrModLoadStore::FP16B;
+    }
+    else if constexpr (format == DataFormat::Int32)
+    {
+        return InstrModLoadStore::INT32;
+    }
+    else if constexpr (format == DataFormat::UInt32)
+    {
+        return InstrModLoadStore::INT32_2S_COMP;
+    }
+    else if constexpr (format == DataFormat::UInt16)
+    {
+        return InstrModLoadStore::LO16; // UInt16 uses LO16 mode for unsigned 16-bit
+    }
+    else
+    {
+<<<<<<< HEAD
+        static_assert(
+            pool_type == PoolType::SUM || pool_type == PoolType::AVG || pool_type == PoolType::MAX,
+            "Unsupported pool_type. Currently supported: SUM, AVG, MAX");
+=======
+        static_assert(false, "Unsupported DataFormat for reduce operation. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
+        return InstrModLoadStore::INT32; // Unreachable, but required for syntax
+>>>>>>> a1c1a7e7 (Restructure to new reduce kernels)
+    }
+}
+
+/**
+<<<<<<< HEAD
+ * @brief Unified reduction kernel wrapper for a 32x32 tile.
+ *        Determines the instruction mode from format, then dispatches to the appropriate reduction kernel.
+ * @tparam pool_type The reduction operation, currently supported: (SUM, AVG, MAX)
+ * @tparam reduce_dim The reduction dimension (currently only REDUCE_COL is supported)
+ * @tparam format The data format, currently supported: (Int32, UInt32, UInt16, Float32, Float16_b)
+ * @param block_rt_dim Block dimension (used for MAX reduction to specify block height, default is 1 for single tile)
+=======
+ * @brief Configure address mode for SFPU reduce Max kernel.
+ * @param num_cols The number of columns in the tensor block of multiple tiles
+ * @note One tile is 64 rows in dest
+>>>>>>> a1c1a7e7 (Restructure to new reduce kernels)
+ */
+inline void configure_addrmod_max(uint32_t num_cols)
+{
+<<<<<<< HEAD
+    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
+    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
+
+    // Determine InstrModLoadStore based on format in dst register
+    constexpr InstrModLoadStore INSTRUCTION_MODE = get_instruction_mode<format>();
+
+    // Dispatch to appropriate reduction kernel based on PoolType
+    if constexpr (pool_type == PoolType::MAX)
+=======
+    // Reduction done on first tile before looping through the rest, so we look at num_cols - 1 tile
+    uint32_t skip_rows = (num_cols - 1) * ROWS_PER_TILE;
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 16},
+    }
+        .set(ADDR_MOD_6);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = static_cast<int16_t>(skip_rows)},
+    }
+        .set(ADDR_MOD_5);
+}
+
+// ============================================================================
+// Init Reduce Kernels
+// ============================================================================
+
+/**
+ * @brief Initialization for SFPU reduce MAX kernel.
+ *        Sets up LOADMACRO sequences for compare-and-swap operations, configures address modifiers,
+ *        and records replay buffers for efficient column-wise maximum reduction.
+ *
+ * @tparam INSTRUCTION_MODE The instruction mode for integer and float formats: INT32, INT32_2S_COMP, LO16, FP32, FP16B
+ * @param num_cols The number of columns to process (typically 32 for a single tile, or multiple of 32 for block operations)
+ */
+template <InstrModLoadStore INSTRUCTION_MODE>
+inline void init_reduce_max(uint32_t num_cols)
+{
+    // Initialize SFPU config and set swap direction before defining LOADMACRO sequences
+    _init_sfpu_config_reg();
+
+    // Setup LOADMACRO sequence 0
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, (0xC | p_sfpu::LREG0) /*backdoor + dest*/, 1 /*instr_mod1*/);
+    TTI_SFPLOADI(0, 0xA, 0x0084);
+    TTI_SFPLOADI(0, 0x8, 0x0000);
+    TTI_SFPCONFIG(0, 4, 0);
+
+    // Setup LOADMACRO sequence 1
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, (0xD | p_sfpu::LREG4) /*backdoor + dest*/, 1 /*instr_mod1*/);
+    TTI_SFPLOADI(0, 0xA, 0x0085);
+    TTI_SFPLOADI(0, 0x8, 0x0000);
+    TTI_SFPCONFIG(0, 5, 0);
+
+    configure_addrmod_max(num_cols);
+
+    // Record replay buffer for compare-and-swap operations
+    // MAX uses LOADMACRO mechanism
+    lltt::record<lltt::NoExec>(0, 9);
+    TTI_INCRWC(0, 4, 0, 0);
+    TTI_SFPLOADMACRO(5, INSTRUCTION_MODE, ADDR_MOD_3, 2);
+    TTI_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, 16);
+    TTI_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, 18);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG1 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPLOADMACRO(0, INSTRUCTION_MODE, ADDR_MOD_3, 0);
+
+    // Dummy loads to increment dest counters
+    TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_6, 0);
+    TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_5, 0);
+}
+
+/**
+ * @brief Initialization for SFPU reduce SUM and AVG kernels.
+ *        Records replay buffers for column-wise summation using tree reduction.
+ *        Integer modes use 6 instructions (SFPIADD), float modes use 12 (SFPADD + NOPs for latency).
+ *
+ * @tparam INSTRUCTION_MODE The instruction mode for integer and float formats: INT32, INT32_2S_COMP, LO16, FP32, FP16B
+ */
+template <InstrModLoadStore INSTRUCTION_MODE>
+inline void init_reduce_sum_avg()
+{
+    _init_sfpu_config_reg();
+
+    // Determine if integer or float mode based on INSTRUCTION_MODE
+    constexpr bool is_integer_mode =
+        (INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::INT32_2S_COMP || INSTRUCTION_MODE == InstrModLoadStore::LO16);
+
+    // Program optimized replay buffer for column summation
+    // This replay buffer is called twice per iteration:
+    // 1st call: After first transpose - operates on transposed data where LREG0-3 and LREG4-7 both map to lanes 0→3
+    // 2nd call: After second transpose - operates on data transposed back to original layout
+
+    if constexpr (is_integer_mode)
+>>>>>>> a1c1a7e7 (Restructure to new reduce kernels)
+    {
+        // Integer replay buffer: 6 instructions for column summation
+        lltt::record(0, 6);
+
+        // Upper face column summation (LREG0-3)
+        TTI_SFPIADD(0, p_sfpu::LREG3, p_sfpu::LREG2, 4); // LREG2 = LREG2 + LREG3
+        TTI_SFPIADD(0, p_sfpu::LREG2, p_sfpu::LREG1, 4); // LREG1 = LREG1 + LREG2
+        TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4); // LREG0 = LREG0 + LREG1
+
+        // Lower face column summation (LREG4-7)
+        TTI_SFPIADD(0, p_sfpu::LREG7, p_sfpu::LREG6, 4); // LREG6 = LREG6 + LREG7
+        TTI_SFPIADD(0, p_sfpu::LREG6, p_sfpu::LREG5, 4); // LREG5 = LREG5 + LREG6
+        TTI_SFPIADD(0, p_sfpu::LREG5, p_sfpu::LREG4, 4); // LREG4 = LREG4 + LREG5
+    }
+    else
+    {
+<<<<<<< HEAD
+=======
+        // Float replay buffer: 12 instructions (includes NOPs for latency)
+        lltt::record(0, 12);
+
+        // Upper face column summation (LREG0-3) with float operations
+        TTI_SFPADD(p_sfpu::LREG2, p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG2, 0); // LREG2 = (LREG2 * 1) + LREG3
+        TTI_SFPNOP;
+        TTI_SFPADD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG1, 0); // LREG1 = (LREG1 * 1) + LREG2
+        TTI_SFPNOP;
+        TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG1, p_sfpu::LREG0, 0); // LREG0 = (LREG0 * 1) + LREG1
+        TTI_SFPNOP;
+
+        // Lower face column summation (LREG4-7) with float operations
+        TTI_SFPADD(p_sfpu::LREG6, p_sfpu::LCONST_1, p_sfpu::LREG7, p_sfpu::LREG6, 0); // LREG6 = (LREG6 * 1) + LREG7
+        TTI_SFPNOP;
+        TTI_SFPADD(p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG6, p_sfpu::LREG5, 0); // LREG5 = (LREG5 * 1) + LREG6
+        TTI_SFPNOP;
+        TTI_SFPADD(p_sfpu::LREG4, p_sfpu::LCONST_1, p_sfpu::LREG5, p_sfpu::LREG4, 0); // LREG4 = (LREG4 * 1) + LREG5
+        TTI_SFPNOP;
+    }
+}
+
+// ============================================================================
+// Calculate Functions
+// ============================================================================
+
+/**
+ * @brief Column-wise maximum reduction kernel for SFPU reduce MAX operation.
+ *        Processes a block of tiles vertically (block_height tiles stacked) and computes the maximum value
+ *        for each of the columns across all rows in the block. The maximum values are placed into
+ *        the first row of the output tile (row 0 of faces 0 and 1) in tilized format for each tile in the top row of tiles in the block.
+ *
+ *        Algorithm:
+ *        - Initializes LREG4-7 with the first face pair's data (even/odd columns from faces 0 and 1)
+ *        - For each tile in the block, performs compare-and-swap operations using replay buffers to find maxima
+ *        - Uses SFPSWAP instruction for comparisons to determine maximum/minimum between two lregs storing column data
+ *        - Transposes and sorts results to align maxima/minima correctly across LREG4-7
+ *        - Stores final maximum values to row 0 (32 datums across faces 0 and 1)
+ *
+ * @tparam reduce_dim The reduction dimension (currently only REDUCE_COL is supported)
+ * @tparam INSTRUCTION_MODE The instruction mode for integer and float formats: INT32, INT32_2S_COMP, LO16, FP32, FP16B
+ * @param block_height The number of tiles in the vertical block to reduce (default is 1 for single tile).
+ *                     For example, block_height=4 means reduce across 4 vertically stacked tiles (128 rows total).
+ */
+template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTION_MODE>
+inline void calculate_reduce_max(const uint32_t block_height)
+{
+    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
+
+    constexpr uint32_t replay_buffer_offset    = 7;
+    constexpr uint32_t replay_buffer_next_face = 8;
+
+    // Initial loads: LREG4-7 will hold maximum values across F0 and F1
+    TTI_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, 0);
+    TTI_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, 2);
+    TTI_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, 16);
+    TTI_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, 18);
+
+    // First tile processing (F0, F1, F2, F3)
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_next_face);
+
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_offset);
+    lltt::replay(0, replay_buffer_next_face + 1);
+
+    // Remaining tiles
+    for (uint32_t i = 0; i < block_height - 1; i++)
+    {
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_next_face);
+
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_offset);
+        lltt::replay(0, replay_buffer_next_face + 1);
+    }
+
+    // Reset dest RWC counter
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+
+    // Finalize: Sort and store maximum/minimum values to row 0
+    TTI_SFPTRANSP(0, 0, 0, 0);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG7 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, p_sfpu::LREG6 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG5 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPTRANSP(0, 0, 0, 0);
+
+    // Store results to first row
+    TTI_SFPSTORE(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, 0);
+    TTI_SFPSTORE(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, 2);
+    TTI_SFPSTORE(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, 16);
+    TTI_SFPSTORE(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, 18);
+}
+
+/**
  * @brief Column-wise sum/average reduction kernel for SFPU reduce SUM and AVG operations.
  *        Computes the sum or average of each column, placing the 32 output values into the first row
  *        of the output tile (row 0 of faces 0 and 1).
@@ -251,7 +634,11 @@ inline void _init_reduce_(uint32_t block_ct_dim = 1)
     // Dispatch to appropriate PoolType init
     if constexpr (pool_type == PoolType::MAX)
     {
-        // _calculate_reduce_max_col_<pool_type, reduce_dim, format>(block_rt_dim);
+        init_reduce_max<INSTRUCTION_MODE>(block_ct_dim);
+    }
+    else if constexpr (pool_type == PoolType::SUM || pool_type == PoolType::AVG)
+    {
+        init_reduce_sum_avg<INSTRUCTION_MODE>();
     }
     else
     {
@@ -269,8 +656,8 @@ inline void _init_reduce_(uint32_t block_ct_dim = 1)
  * @tparam format The data format, currently supported: (Int32, UInt32, UInt16, Float32, Float16_b)
  * @param block_rt_dim Block dimension (used for MAX reduction to specify block height, default is 1 for single tile)
  */
-template <PoolType pool_type, DataFormat format>
-inline void _init_reduce_()
+template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
+inline void _calculate_reduce_(uint32_t block_rt_dim = 1)
 {
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
@@ -281,10 +668,15 @@ inline void _init_reduce_()
     // Dispatch to appropriate reduction kernel based on PoolType
     if constexpr (pool_type == PoolType::MAX)
     {
-        // _init_reduce_max_col_<format>();
+        calculate_reduce_max<pool_type, reduce_dim, INSTRUCTION_MODE>(block_rt_dim);
+    }
+    else if constexpr (pool_type == PoolType::SUM || pool_type == PoolType::AVG)
+    {
+        calculate_reduce_sum_avg<pool_type, reduce_dim, INSTRUCTION_MODE>();
     }
     else
     {
+>>>>>>> a1c1a7e7 (Restructure to new reduce kernels)
         static_assert(
             pool_type == PoolType::SUM || pool_type == PoolType::AVG || pool_type == PoolType::MAX,
             "Unsupported pool_type. Currently supported: SUM, AVG, MAX");
