@@ -24,7 +24,7 @@ void run_kernel()
     const uint num_tiles_per_unpack = TILE_CNT;
 
     // Setup data valid scheme
-    if (unpack_to_dest)
+    if constexpr (unpack_to_dest)
     {
         constexpr bool fp32_dest  = static_cast<DataFormat>(formats.pack_src) == DataFormat::Float32 ? true : false;
         constexpr bool int32_dest = static_cast<DataFormat>(formats.pack_src) == DataFormat::Int32 ? true : false;
@@ -48,7 +48,7 @@ void run_kernel()
     td_val.buf_desc_id     = BUF_DESC_ID;
     td_val.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
 
-    if (is_fp32_dest_acc_en && !unpack_to_dest)
+    if constexpr (is_fp32_dest_acc_en && !unpack_to_dest)
     {
         // If Dst fmt is 32b and operation is Mov2D, we need both SrcA/B fmts to be configured since Mov2D will be implemented via ELWADD
         _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val, td_val);
@@ -60,7 +60,7 @@ void run_kernel()
     _llk_unpack_unary_operand_init_<SELECTED_UNPACKER, BUF_DESC_ID, false /*transpose*/, is_fp32_dest_acc_en>(num_tiles_per_unpack);
     _llk_unpack_unary_operand_<SELECTED_UNPACKER>(0);
 
-    if (unpack_to_dest)
+    if constexpr (unpack_to_dest)
     {
         _llk_unpack_dest_dvalid_section_done_();
     }
@@ -84,7 +84,7 @@ using namespace ckernel;
 
 void run_kernel()
 {
-    if (!unpack_to_dest)
+    if constexpr (!unpack_to_dest)
     {
         set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
@@ -115,7 +115,7 @@ void run_kernel()
     uint32_t const BUF_DESC       = 8;
     const uint num_tiles_per_pack = TILE_CNT;
 
-    if (unpack_to_dest)
+    if constexpr (unpack_to_dest)
     {
         set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::PACK});
     }

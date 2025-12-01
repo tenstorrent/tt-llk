@@ -49,6 +49,9 @@ def generate_qsr_pack_combinations(
     for fmt in formats_list:
         in_fmt = fmt.input_format
 
+        if in_fmt.is_integer() ^ fmt.output_format.is_integer():
+            continue
+
         dest_acc_modes = (
             (DestAccumulation.Yes,)
             if in_fmt.is_32_bit()
@@ -56,6 +59,18 @@ def generate_qsr_pack_combinations(
         )
         for dest_acc in dest_acc_modes:
             if (
+                in_fmt != DataFormat.Int32
+                and fmt.output_format == DataFormat.Int32
+                and dest_acc == DestAccumulation.No
+            ):
+                continue
+            elif (
+                dest_acc == DestAccumulation.No
+                and in_fmt in (DataFormat.Int8, DataFormat.UInt8)
+                and in_fmt != fmt.output_format
+            ):
+                continue
+            elif (
                 in_fmt != DataFormat.Float32
                 and fmt.output_format == DataFormat.Float32
                 and dest_acc == DestAccumulation.No
@@ -63,7 +78,7 @@ def generate_qsr_pack_combinations(
                 # Skip if input format is not Float32 and output format is Float32 and dest_acc is No
                 # This combination is not supported in the Quasar Packer format conversions
                 continue
-            for dimensions in dimensions_cache[dest_acc]:
+            for dimensions in ([32, 32],):  # dimensions_cache[dest_acc]:
                 combinations.append((fmt, dest_acc, dimensions))
 
     return combinations
@@ -71,10 +86,12 @@ def generate_qsr_pack_combinations(
 
 PACK_FORMATS = input_output_formats(
     [
-        # DataFormat.Float16_b,
-        # DataFormat.Float16,
-        # DataFormat.Float32,
+        DataFormat.Float16_b,
+        DataFormat.Float16,
+        DataFormat.Float32,
         DataFormat.Int32,
+        DataFormat.Int8,
+        DataFormat.UInt8,
     ]
 )
 ALL_PACK_COMBINATIONS = generate_qsr_pack_combinations(PACK_FORMATS)
