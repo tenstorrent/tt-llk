@@ -882,10 +882,16 @@ class DataCopyGolden:
         return result
 
 
-# This is the same as DataCopyGolden but with ReLU applied. It's made as a separate class
-# so future pack testing can extend it as required without affecting (unnecessarily bloating) DataCopyGolden.
 @register_golden
 class PackGolden:
+    """
+    Golden generator for pack operations with optional ReLU activation.
+
+    This is similar to DataCopyGolden but includes support for ReLU configuration.
+    It's implemented as a separate class to allow future pack testing extensions
+    without affecting DataCopyGolden.
+    """
+
     def __call__(
         self,
         operand1,
