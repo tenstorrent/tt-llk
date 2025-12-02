@@ -610,23 +610,5 @@ def run_fuse_test(
 
     run_shell_command(make_cmd, cwd=tests_dir)
 
-    run_elf_files("fuse_test", boot_mode)
-    wait_for_tensix_operations_finished()
-
-
-def run_fuse_test(
-    pipeline: List[PipelineOperation],
-    boot_mode: BootMode = BootMode.DEFAULT,
-    profiler_build: ProfilerBuild = ProfilerBuild.No,
-):
-    compiler = KernelCompiler(pipeline)
-    compiler.write_kernel()
-
-    llk_home = Path(os.environ.get("LLK_HOME"))
-    tests_dir = str((llk_home / "tests").absolute())
-    make_cmd = generate_make_command("fuse_test", boot_mode, profiler_build)
-
-    run_shell_command(make_cmd, cwd=tests_dir)
-
-    run_elf_files("fuse_test", boot_mode)
-    wait_for_tensix_operations_finished()
+    elfs = run_elf_files("fuse_test", boot_mode)
+    wait_for_tensix_operations_finished(elfs)
