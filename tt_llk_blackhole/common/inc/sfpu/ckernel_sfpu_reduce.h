@@ -183,7 +183,7 @@ constexpr InstrModLoadStore get_instruction_mode()
     }
     else if constexpr (format == DataFormat::Int32)
     {
-        // For MAX and MIN operations, Int32 requires INT32_2S_COMP instruction mode
+        // For MAX and MIN operations, Int32 requires INT32_2S_COMP instruction mode for SFPSWAP instructions
         if constexpr (pool_type == PoolType::MAX || pool_type == PoolType::MIN)
         {
             return InstrModLoadStore::INT32_2S_COMP;
@@ -262,72 +262,11 @@ inline void init_reduce_max_min_int32()
         TTI_SFPLOADI(ckernel::p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_UPPER, 0x0000); // Load upper 16 bits
         TTI_SFPCONFIG(0, 0xF, 0);
     }
+
     lltt::record(0, 3);
     TTI_SFPSWAP(0, p_sfpu::LREG7, p_sfpu::LREG6, 1);
     TTI_SFPSWAP(0, p_sfpu::LREG6, p_sfpu::LREG5, 1);
     TTI_SFPSWAP(0, p_sfpu::LREG5, p_sfpu::LREG4, 1);
-}
-
-/**
- * @brief Column-wise maximum/minimum reduction kernel for SFPU reduce MAX/MIN operation on 32x32 tile for Int32 format. Due to RTL bug INT32_2S_COMP LOAD/STORE
- * has no effect. Must cast to INT_SIGN_MAGN_TO_INT32_2S_COMP before swapping. Since CAST and SWAP are both SIMPLE instructions, cannot be integrated together
- * in SAME LOADMACRO sequence. Therefore, we need to calculate the kernel with manual loads and stores in order to perform the CAST and SWAP operations.
- * @tparam INSTRUCTION_MODE The instruction mode (INT32_2S_COMP for Int32 with MAX/MIN)
- * @tparam pool_type The pool type (MAX or MIN) to determine swap direction
- * @tparam reduce_dim The reduction dimension (currently only REDUCE_COL is supported)
- */
-template <InstrModLoadStore INSTRUCTION_MODE, PoolType pool_type, ReduceDim reduce_dim>
-inline void calculate_reduce_max_min_int32()
-{
-    constexpr auto INSTR_MOD_CAST    = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
-    constexpr uint ODD_COLUMNS       = 2;
-    constexpr uint COLUMN_OFFSETS[4] = {0, 2, 0, 2}; // even, odd, even, odd
-    constexpr uint FACE_ADDRS[2][4]  = {
-        {0, 0, 32, 32},  // j=0: Face 0 and Face 2
-        {16, 16, 48, 48} // j=1: Face 1 and Face 3
-    };
-    constexpr uint FINAL_REDUCE_ADDRS[2][2] = {
-        {0, 32}, // j=0: Face 0 and Face 2
-        {16, 48} // j=1: Face 1 and Face 3
-    };
-
-    for (uint j = 0; j < 2; j++)
-    {
-        uint top_face_addr    = FINAL_REDUCE_ADDRS[j][0]; // face 0 & 1 dst indices
-        uint bottom_face_addr = FINAL_REDUCE_ADDRS[j][1]; // face 2 & 3 dst indices
-
-        for (uint i = 0; i < 4; i++)
-        {
-            load_face_data<INSTRUCTION_MODE>(FACE_ADDRS[j][i], COLUMN_OFFSETS[i]);
-            apply_sign_magnitude_x4<INSTR_MOD_CAST>();
-            lltt::replay(0, 3);
-
-            apply_sign_magnitude_conversion(
-                p_sfpu::LREG4, p_sfpu::LREG0, INSTR_MOD_CAST); // Convert back from two's complement to sign-magnitude before storing
-            TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, FACE_ADDRS[j][i] + COLUMN_OFFSETS[i]);
-        }
-
-        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, top_face_addr);
-        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, bottom_face_addr);
-        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, top_face_addr + ODD_COLUMNS);
-        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, bottom_face_addr + ODD_COLUMNS);
-
-        apply_sign_magnitude_x4<INSTR_MOD_CAST>();
-
-        TTI_SFPTRANSP(0, 0, 0, 0);
-        lltt::replay(0, 3);
-        TTI_SFPTRANSP(0, 0, 0, 0);
-
-        TTI_SFPSWAP(0, p_sfpu::LREG7, p_sfpu::LREG6, 1);
-        TTI_SFPSWAP(0, p_sfpu::LREG5, p_sfpu::LREG4, 1); // LREG4 contains min for F0 and F2 columns
-
-        // Convert back from two's complement to sign-magnitude before storing
-        apply_sign_magnitude_conversion(p_sfpu::LREG4, p_sfpu::LREG0, INSTR_MOD_CAST);
-        apply_sign_magnitude_conversion(p_sfpu::LREG6, p_sfpu::LREG1, INSTR_MOD_CAST);
-
-        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, top_face_addr);
-        TT_SFPSTORE(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, top_face_addr + ODD_COLUMNS);
-    }
 }
 
 /**
@@ -354,13 +293,13 @@ inline void init_reduce_max_min(uint32_t num_cols)
     }
 
     // Setup LOADMACRO sequence 0
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, (0xC | p_sfpu::LREG0) /*backdoor + dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0, p_sfpu::LREG4, (0xC | p_sfpu::LREG0), 1);
     TTI_SFPLOADI(0, 0xA, 0x0084);
     TTI_SFPLOADI(0, 0x8, 0x0000);
     TTI_SFPCONFIG(0, 4, 0);
 
     // Setup LOADMACRO sequence 1
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG5 /*lreg_src_c*/, (0xD | p_sfpu::LREG4) /*backdoor + dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0, p_sfpu::LREG5, (0xD | p_sfpu::LREG4), 1);
     TTI_SFPLOADI(0, 0xA, 0x0085);
     TTI_SFPLOADI(0, 0x8, 0x0000);
     TTI_SFPCONFIG(0, 5, 0);
@@ -373,11 +312,12 @@ inline void init_reduce_max_min(uint32_t num_cols)
     TTI_SFPLOADMACRO(5, INSTRUCTION_MODE, ADDR_MOD_7, 2);
     TTI_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, 16);
     TTI_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, 18);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG1 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0, p_sfpu::LREG7, p_sfpu::LREG1, 1);
     TTI_SFPNOP;
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG6 /*lreg_src_c*/, p_sfpu::LREG0 /*lreg_dest*/, 1 /*instr_mod1*/);
+    TTI_SFPSWAP(0, p_sfpu::LREG6, p_sfpu::LREG0, 1);
     TTI_SFPNOP;
     TTI_SFPLOADMACRO(0, INSTRUCTION_MODE, ADDR_MOD_7, 0);
+
     // Dummy loads to increment dest counters
     TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_6, 0);
     TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_5, 0);
@@ -440,6 +380,74 @@ inline void init_reduce_sum_avg()
 // ============================================================================
 // Calculate Functions
 // ============================================================================
+
+/**
+ * @brief Column-wise maximum/minimum reduction kernel for SFPU reduce MAX/MIN operation on 32x32 tile for Int32 format. Due to RTL bug INT32_2S_COMP LOAD/STORE
+ * has no effect. Must cast to INT_SIGN_MAGN_TO_INT32_2S_COMP before swapping. Since CAST and SWAP are both SIMPLE instructions, cannot be integrated together
+ * in SAME LOADMACRO sequence. Therefore, we need to calculate the kernel with manual loads and stores in order to perform the CAST and SWAP operations after
+ * loads.
+ * @tparam INSTRUCTION_MODE The instruction mode (INT32_2S_COMP for Int32 with MAX/MIN)
+ * @tparam pool_type The pool type (MAX or MIN) to determine swap direction
+ * @tparam reduce_dim The reduction dimension (currently only REDUCE_COL is supported)
+ */
+template <InstrModLoadStore INSTRUCTION_MODE, PoolType pool_type, ReduceDim reduce_dim>
+inline void calculate_reduce_max_min_int32()
+{
+    constexpr auto INSTR_MOD_CAST    = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
+    constexpr uint ODD_COLUMNS       = 2;
+    constexpr uint COLUMN_OFFSETS[4] = {0, 2, 0, 2}; // even, odd, even, odd
+    constexpr uint FACE_ADDRS[2][4]  = {
+        {0, 0, 32, 32},  // j=0: Face 0 and Face 2
+        {16, 16, 48, 48} // j=1: Face 1 and Face 3
+    };
+    constexpr uint FINAL_REDUCE_ADDRS[2][2] = {
+        {0, 32}, // j=0: Face 0 and Face 2
+        {16, 48} // j=1: Face 1 and Face 3
+    };
+
+    for (uint j = 0; j < 2; j++)
+    {
+        uint top_face_addr    = FINAL_REDUCE_ADDRS[j][0]; // face 0 & 1 dst indices
+        uint bottom_face_addr = FINAL_REDUCE_ADDRS[j][1]; // face 2 & 3 dst indices
+
+        // After this loop executes vertically adjacent faces (f0 & f2 first iteration of outer loop, f1 & f3 second iteration) are processed and store max/min
+        // values in top 4 rows of their faces
+        for (uint i = 0; i < NUM_FACES; i++)
+        {
+            load_face_data<INSTRUCTION_MODE>(FACE_ADDRS[j][i], COLUMN_OFFSETS[i]);
+            apply_sign_magnitude_x4<INSTR_MOD_CAST>();
+            lltt::replay(0, 3);
+
+            apply_sign_magnitude_conversion(
+                p_sfpu::LREG4, p_sfpu::LREG0, INSTR_MOD_CAST); // Convert back from two's complement to sign-magnitude before storing
+            TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, FACE_ADDRS[j][i] + COLUMN_OFFSETS[i]);
+        }
+
+        // Load data from top 4 rows of processed vertically adjacent faces into LREG0-3
+        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, top_face_addr);
+        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, bottom_face_addr);
+        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, top_face_addr + ODD_COLUMNS);
+        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, bottom_face_addr + ODD_COLUMNS);
+
+        apply_sign_magnitude_x4<INSTR_MOD_CAST>(); // Store lregs 0-3 in sign-magnitude format in lregs 4-7
+
+        // Transpose to find absolutes max/min of top 4 rows of each face
+        TTI_SFPTRANSP(0, 0, 0, 0);
+        lltt::replay(0, 3);
+        TTI_SFPTRANSP(0, 0, 0, 0);
+
+        // Swap to find max/min of vertically adjacent faces
+        TTI_SFPSWAP(0, p_sfpu::LREG7, p_sfpu::LREG6, 1); // Max/Min of odd columns of face 0 and 2 (first iteration) or face 1 and 3 (second iteration)
+        TTI_SFPSWAP(0, p_sfpu::LREG5, p_sfpu::LREG4, 1); // Max/Min of even columns of face 0 and 2 (first iteration) or face 1 and 3 (second iteration)
+
+        // Convert back from two's complement to sign-magnitude before storing
+        apply_sign_magnitude_conversion(p_sfpu::LREG4, p_sfpu::LREG0, INSTR_MOD_CAST);
+        apply_sign_magnitude_conversion(p_sfpu::LREG6, p_sfpu::LREG1, INSTR_MOD_CAST);
+
+        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, top_face_addr);
+        TT_SFPSTORE(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, top_face_addr + ODD_COLUMNS);
+    }
+}
 
 /**
  * @brief Column-wise maximum/minimum reduction kernel for SFPU reduce MAX/MIN operation.
