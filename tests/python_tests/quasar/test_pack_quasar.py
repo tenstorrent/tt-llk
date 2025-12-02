@@ -59,10 +59,10 @@ def generate_qsr_pack_combinations(
 
     def is_supported_dest_mode_dependent_conversion(in_fmt, out_fmt, dest_acc):
         """Check if the format conversion is supported by packer. These format conversions are dependent on the dest register mode."""
-        # Upcasting to Int32 requires dest_acc enabled
+        # Upcasting to Float32/Int32 requires dest_acc enabled
         if (
-            out_fmt == DataFormat.Int32
-            and in_fmt != DataFormat.Int32
+            out_fmt.is_32_bit()
+            and not in_fmt.is_32_bit()
             and dest_acc == DestAccumulation.No
         ):
             return False
@@ -71,13 +71,6 @@ def generate_qsr_pack_combinations(
             dest_acc == DestAccumulation.No
             and in_fmt in (DataFormat.Int8, DataFormat.UInt8)
             and in_fmt != out_fmt
-        ):
-            return False
-        # Upcasting to Float32 requires dest_acc enabled
-        if (
-            out_fmt == DataFormat.Float32
-            and in_fmt != DataFormat.Float32
-            and dest_acc == DestAccumulation.No
         ):
             return False
         return True

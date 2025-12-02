@@ -29,7 +29,7 @@ void run_kernel()
         constexpr bool fp32_dest  = static_cast<DataFormat>(formats.pack_src) == DataFormat::Float32 ? true : false;
         constexpr bool int32_dest = static_cast<DataFormat>(formats.pack_src) == DataFormat::Int32 ? true : false;
         set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::PACK});
-        _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, fp32_dest, int32_dest /*is_int_fpu_en*/>();
+        _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, fp32_dest, int32_dest>();
     }
     else
     {
@@ -38,7 +38,7 @@ void run_kernel()
 
     buffer_descriptor_u bd_val = {0};
 
-    bd_val.f.l1_addr_16B = buffer_A[0] / 16;
+    bd_val.f.l1_addr_16B = L1_ADDRESS(buffer_A[0]);
     bd_val.f.format      = static_cast<uint8_t>(formats.unpack_src);
     bd_val.f.x_dim       = TEST_FACE_C_DIM;
     bd_val.f.y_dim       = TEST_FACE_R_DIM;
@@ -127,7 +127,7 @@ void run_kernel()
     buffer_descriptor_u bd_val = {0};
     tdma_descriptor_t tdma_desc;
 
-    bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
+    bd_val.f.l1_addr_16B = L1_ADDRESS(buffer_Res[0]);
     bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
     bd_val.f.x_dim       = TEST_FACE_C_DIM;
     bd_val.f.y_dim       = TEST_FACE_R_DIM;
