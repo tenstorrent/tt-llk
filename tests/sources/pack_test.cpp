@@ -73,11 +73,12 @@ void run_kernel()
 void run_kernel()
 {
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, RELU_CONFIG);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
+        formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, 4, false, false, RELU_CONFIG);
     _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
     _llk_pack_init_<false>(formats.pack_src, formats.pack_dst);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, RELU_CONFIG);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, 4, false, false, RELU_CONFIG);
     _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
     _llk_pack_init_<false>(formats.pack_dst);
 #endif
