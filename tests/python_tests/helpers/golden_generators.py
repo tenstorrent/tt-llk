@@ -895,6 +895,9 @@ class PackGolden:
         face_r_dim: int = 16,
         relu_config: int = 0,
     ):
+        if num_faces not in [1, 2, 4]:
+            raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
+
         torch_format = format_dict[data_format]
 
         height, width = input_dimensions[0], input_dimensions[1]
