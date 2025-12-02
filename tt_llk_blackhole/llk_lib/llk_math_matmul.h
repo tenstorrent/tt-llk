@@ -603,6 +603,9 @@ inline void _llk_math_matmul_init_(
     const std::uint32_t ct_dim         = 1,
     const std::uint32_t rt_dim         = 1)
 {
+    llk_san_init<llk_san_op::Matmul>(MATH_FIDELITY_DESC, THROTTLE_LEVEL, ct_dim, rt_dim);
+    llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop); // Counters are not tracked here for now
+    
     matmul_configure_addrmod<MATH_FIDELITY_DESC, THROTTLE_LEVEL>(transpose, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
 
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
@@ -621,6 +624,8 @@ inline void _llk_math_matmul_init_(
 template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0>
 inline void _llk_math_matmul_(uint dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
 {
+    llk_san_operation<llk_san_op::Matmul>(MATH_FIDELITY_DESC, THROTTLE_LEVEL, ct_dim, rt_dim);
+
     const bool reuse_a                = ct_dim >= rt_dim;
     const std::uint32_t t_dim         = reuse_a ? rt_dim : ct_dim;
     const std::uint32_t rut_dim       = reuse_a ? ct_dim : rt_dim; // reuse-dim

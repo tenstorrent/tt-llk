@@ -51,6 +51,12 @@ inline void _llk_unpack_untilize_mop_config_()
 inline void _llk_unpack_untilize_init_(
     const std::uint32_t unpack_dst_format, const std::uint32_t tile_size, const std::uint32_t face_r_dim = FACE_R_DIM, const bool include_setup_calls = false)
 {
+    llk_san_unpack_operand_check(llk_san_x, llk_san_x, llk_san_x, unpack_dst_format, llk_san_x, face_r_dim, llk_san_x, llk_san_x, llk_san_x);
+    llk_san_init<llk_san_op::UnpackUntilize>();
+    llk_san_must_uninit<llk_san_op::UnpackUntilize>(); // lololol uninit doesn't exist
+    llk_san_extended_state_mask(
+        llk_san_cfg::Transpose, llk_san_cfg::AdcXX, llk_san_cfg::CH1Strides, llk_san_cfg::TileDesc, llk_san_cfg::Mop); // GPRS not tracked here for now
+
     if (include_setup_calls)
     {
         // Disable transpose when unused
@@ -90,6 +96,8 @@ inline void _llk_unpack_untilize_init_(
 template <bool first_pass = true>
 inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const std::uint32_t block_tile_cols)
 {
+    llk_san_operation<llk_san_op::UnpackUntilize>();
+
     std::uint32_t rem_blocks_in_row = block_tile_cols;
 
     // Program srcA and srcB base addresses

@@ -113,6 +113,8 @@ inline void _llk_pack_reconfig_data_format_(
     const bool narrow_tile         = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    llk_san_pack_hw_configure<true>(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, llk_san_x, num_faces, partial_face);
+
     reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face);
 
     if constexpr (is_tile_dim_reconfig_en)
@@ -133,6 +135,8 @@ inline void _llk_pack_hw_configure_(
     const std::uint32_t relu_config = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    llk_san_pack_hw_configure(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, llk_san_x, num_faces, partial_face);
+
     configure_pack<is_fp32_dest_acc_en, untilize>(pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face, narrow_tile, relu_config);
 }
 
@@ -146,6 +150,11 @@ inline void _llk_pack_init_(
     const bool narrow_tile         = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    llk_san_pack_operand_check(llk_san_x, llk_san_x, pack_dst_format, face_r_dim, llk_san_x, num_faces, partial_face, narrow_tile);
+    llk_san_init<llk_san_op::Pack>(untilize);
+    llk_san_must_uninit<llk_san_op::Pack>(); // lololol uninit doesn't exist
+    llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::L1Offset, llk_san_cfg::AdcXX);
+
     _llk_pack_configure_addrmod_<untilize>();
     _llk_pack_mop_config_<untilize, zero_output>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 
@@ -167,6 +176,11 @@ inline void _llk_pack_init_(
     const bool include_setup_calls = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    llk_san_pack_operand_check(llk_san_x, llk_san_x, pack_dst_format, face_r_dim, llk_san_x, num_faces, partial_face, narrow_tile);
+    llk_san_init<llk_san_op::Pack>(untilize);
+    llk_san_must_uninit<llk_san_op::Pack>(); // lololol uninit doesn't exist
+    llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::L1Offset, llk_san_cfg::AdcXX);
+
     _llk_pack_configure_addrmod_<untilize>();
     _llk_pack_mop_config_<untilize, zero_output>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
     if (include_setup_calls)
@@ -180,12 +194,18 @@ inline void _llk_pack_init_(
 
 inline void _llk_pack_uninit_(const std::uint32_t face_r_dim = FACE_R_DIM)
 {
+    llk_san_pack_operand_check(llk_san_x, llk_san_x, llk_san_x, face_r_dim, llk_san_x, llk_san_x, llk_san_x, llk_san_x);
+    llk_san_uninit<llk_san_op::Pack>();
+    llk_san_extended_state_mask<true>(llk_san_cfg::AdcXX);
+
     TT_SETADCXX(p_setadc::PAC, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
 
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
+    llk_san_operation<llk_san_op::Pack>(untilize);
+
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
     program_packer_destination(address);

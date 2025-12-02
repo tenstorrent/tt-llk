@@ -136,6 +136,10 @@ inline void _llk_pack_untilize_init_(
     const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, const bool include_setup_calls = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    llk_san_pack_operand_check(llk_san_x, llk_san_x, pack_dst_format, face_r_dim, llk_san_x, num_faces, llk_san_x, llk_san_x);
+    llk_san_init<llk_san_op::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, pack_dst_format, face_r_dim);
+    llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::AdcXX); // GPRs are not tracked here for now
+
     _llk_pack_untilize_configure_addrmod_<diagonal, narrow_row>();
 
     _llk_pack_untilize_mop_config_<block_ct_dim, full_ct_dim, diagonal, narrow_row, row_num_datums>(face_r_dim, num_faces);
@@ -166,6 +170,9 @@ inline void _llk_pack_untilize_init_(
 
 inline void _llk_pack_untilize_uninit_(const std::uint32_t face_r_dim = FACE_R_DIM)
 {
+    llk_san_pack_operand_check(llk_san_x, llk_san_x, llk_san_x, face_r_dim, llk_san_x, llk_san_x, llk_san_x, llk_san_x);
+    llk_san_uninit<llk_san_op::PackUntilize>();
+    llk_san_extended_state_mask<true>(llk_san_cfg::AdcXX);
     TT_SETADCXX(p_setadc::PAC, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
 
@@ -183,6 +190,9 @@ inline void _llk_pack_untilize_(
     [[maybe_unused]] const std::uint32_t num_faces = 4,
     const std::uint32_t tile_dst_rt_offset         = 0)
 {
+    llk_san_pack_operand_check(llk_san_x, llk_san_x, pack_dst_format, face_r_dim, llk_san_x, llk_san_x, llk_san_x, llk_san_x);
+    llk_san_operation<llk_san_op::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, pack_dst_format, face_r_dim);
+
     static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
     LLK_ASSERT(num_faces == 4, "num_faces: this parameter is unused");
 

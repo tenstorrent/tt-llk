@@ -24,6 +24,16 @@ inline void _llk_math_eltwise_unary_datacopy_(
     const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format, const std::uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    if constexpr (type == A2D)
+    {
+        llk_san_math_operand_check(dst_format, llk_san_x);
+    }
+    else
+    {
+        llk_san_math_operand_check(llk_san_x, dst_format);
+    }
+    llk_san_operation<llk_san_op::EltwiseUnaryDatacopy>(type, src_b_bcast_type, num_faces, dst_format);
+
     // For 32bit data, each half of DEST can take 16 tiles. Since dest offset is returned as if 16bit data are used, we need to
     // adjust it to offset in faces for 32bit data.
     std::uint32_t dest_base_offset_in_faces = get_dest_buffer_base() >> 5;
@@ -235,6 +245,17 @@ template <DataCopyType type, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast
 inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces = 4, const std::uint32_t dst_format = 255)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    if constexpr (type == A2D)
+    {
+        llk_san_math_operand_check(dst_format, llk_san_x);
+    }
+    else
+    {
+        llk_san_math_operand_check(llk_san_x, dst_format);
+    }
+    llk_san_init<llk_san_op::EltwiseUnaryDatacopy>(type, src_b_bcast_type, num_faces, dst_format);
+    llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::DvalidDisable); // Counters are not tracked here for now
+
     eltwise_unary_configure_addrmod<type, src_b_bcast_type>();
 
     if constexpr (type == A2D)

@@ -183,6 +183,17 @@ inline void _llk_unpack_A_init_(
     const std::uint32_t unpack_dst_format           = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    if constexpr (BType == BroadcastType::NONE)
+    {
+        llk_san_unpack_operand_check(llk_san_x, unpack_src_format, llk_san_x, unpack_dst_format, llk_san_x, face_r_dim, llk_san_x, num_faces, llk_san_x);
+    }
+    else
+    {
+        // If using broadcast UnpackA uses UNP_B... yeah i know...
+        llk_san_unpack_operand_check(llk_san_x, llk_san_x, unpack_src_format, llk_san_x, unpack_dst_format, llk_san_x, face_r_dim, llk_san_x, num_faces);
+    }
+    llk_san_init<llk_san_op::UnpackA>(BType, acc_to_dest, binary_reuse_dest, unpack_to_dest, unpack_src_format, unpack_dst_format);
+    llk_san_extended_state_mask(llk_san_cfg::Transpose, llk_san_cfg::AdcXX, llk_san_cfg::Mop);
 
     // Set transpose register to prevent state pollution
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose);
@@ -204,6 +215,17 @@ template <
     bool unpack_to_dest                          = false>
 inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpack_src_format = 0, const std::uint32_t unpack_dst_format = 0)
 {
+    if constexpr (BType == BroadcastType::NONE)
+    {
+        llk_san_unpack_operand_check(llk_san_x, unpack_src_format, llk_san_x, unpack_dst_format, llk_san_x, llk_san_x, llk_san_x, llk_san_x, llk_san_x);
+    }
+    else
+    {
+        // If using broadcast UnpackA uses UNP_B... yeah i know...
+        llk_san_unpack_operand_check(llk_san_x, llk_san_x, unpack_src_format, llk_san_x, unpack_dst_format, llk_san_x, llk_san_x, llk_san_x, llk_san_x);
+    }
+    llk_san_operation<llk_san_op::UnpackA>(BType, acc_to_dest, binary_reuse_dest, unpack_to_dest, unpack_src_format, unpack_dst_format);
+
     // Clear z/w start counters
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 

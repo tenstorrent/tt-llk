@@ -145,6 +145,10 @@ inline void _llk_pack_untilize_init_(
     static_assert(!diagonal, "Diagonal not supported");
     static_assert(block_ct_dim <= 8, "block_ct_dim must be less than or equal to 8");
     static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
+    llk_san_pack_operand_check(llk_san_x, pack_src_format, pack_dst_format, face_r_dim, llk_san_x, num_faces, llk_san_x, llk_san_x);
+    llk_san_init<llk_san_op::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, face_r_dim, num_faces);
+    llk_san_must_uninit<llk_san_op::PackUntilize>();
+    llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::CH0Strides, llk_san_cfg::AdcXX); // GPRs are not tracked here for now
 
     if constexpr (narrow_row)
     {
@@ -203,6 +207,9 @@ inline void _llk_pack_untilize_(
     const std::uint32_t num_faces                           = 4,
     [[maybe_unused]] const std::uint32_t tile_dst_rt_offset = 0)
 {
+    llk_san_pack_operand_check(llk_san_x, llk_san_x, llk_san_x, face_r_dim, llk_san_x, num_faces, llk_san_x, llk_san_x);
+    llk_san_operation<llk_san_op::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, face_r_dim, num_faces);
+
     static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
@@ -242,6 +249,10 @@ inline void _llk_pack_untilize_(
 
 inline void _llk_pack_untilize_uninit_(const std::uint32_t pack_src_format)
 {
+    llk_san_pack_operand_check(llk_san_x, pack_src_format, llk_san_x, llk_san_x, llk_san_x, llk_san_x, llk_san_x, llk_san_x);
+    llk_san_uninit<llk_san_op::PackUntilize>();
+    llk_san_extended_state_mask<true>(llk_san_cfg::CH0Strides);
+
     const uint z_stride = SCALE_DATUM_SIZE(pack_src_format, FACE_R_DIM * FACE_C_DIM);
     cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(z_stride);
 }

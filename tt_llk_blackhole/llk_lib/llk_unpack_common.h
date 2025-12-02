@@ -46,6 +46,9 @@ inline void _llk_unpack_hw_configure_(
 {
     LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
+    llk_san_unpack_hw_configure(
+        is_fp32_dest_acc_en, unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, unpA_face_r_dim, unpB_face_r_dim, unpA_num_faces, unpB_num_faces, unpA_tile_size, unpB_tile_size);
+
     configure_unpack_AB<is_fp32_dest_acc_en, false, false, false, disable_src_zero_flag>(
         unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, unpA_face_r_dim, unpB_face_r_dim, 0, unpA_num_faces, unpB_num_faces);
 
@@ -71,6 +74,8 @@ template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srca_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
 {
+    llk_san_unpack_hw_configure<true>(llk_san_x, unpack_src_format, llk_san_x, unpack_dst_format, llk_san_x, llk_san_x, llk_san_x, llk_san_x, llk_san_x, tile_size, llk_san_x);
+
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK0);
     if constexpr (to_from_int8)
     {
@@ -87,6 +92,8 @@ template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
 {
+    llk_san_unpack_hw_configure<true>(llk_san_x, llk_san_x, unpack_src_format, llk_san_x, unpack_dst_format, llk_san_x, llk_san_x, llk_san_x, llk_san_x, llk_san_x, tile_size);
+
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
     if constexpr (to_from_int8)
     {
