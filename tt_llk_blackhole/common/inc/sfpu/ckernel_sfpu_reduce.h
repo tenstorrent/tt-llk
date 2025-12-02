@@ -6,6 +6,7 @@
 
 #include "ckernel_addrmod.h"
 #include "ckernel_instr_params.h"
+#include "ckernel_sfpu_load_config.h"
 #include "lltt.h"
 #include "sfpi.h"
 
@@ -44,7 +45,7 @@ constexpr uint32_t ROWS_PER_TILE = 64;
  * @tparam INSTR_MOD_CAST The instruction mode for cast operations
  */
 template <InstrModCast INSTR_MOD_CAST>
-inline void apply_sign_magnitude_x4()
+inline void convert_to_sign_magnitude_x4_lregs()
 {
     apply_sign_magnitude_conversion(p_sfpu::LREG0, p_sfpu::LREG4, INSTR_MOD_CAST);
     apply_sign_magnitude_conversion(p_sfpu::LREG1, p_sfpu::LREG5, INSTR_MOD_CAST);
@@ -284,12 +285,10 @@ inline void init_reduce_max_min(uint32_t num_cols)
     // Initialize SFPU config and set swap direction before defining LOADMACRO sequences
     _init_sfpu_config_reg();
 
-    // Invert swap direction for MIN operations
+    // Invert swap direction for MIN operations, set 8th bit in SFPU config register
     if constexpr (pool_type == PoolType::MIN)
     {
-        TTI_SFPLOADI(ckernel::p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_LOWER, 0x0100); // Load lower 16 bits (bit 8)
-        TTI_SFPLOADI(ckernel::p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_UPPER, 0x0000); // Load upper 16 bits
-        TTI_SFPCONFIG(0, 0xF, 0);
+        _sfpu_load_config32_(0xF, 0x0000, 0x0100); // Load 32-bit value 0x00000100 (bit 8 set) into config register 0xF
     }
 
     // Setup LOADMACRO sequence 0
@@ -415,7 +414,7 @@ inline void calculate_reduce_max_min_int32()
         for (uint i = 0; i < NUM_FACES; i++)
         {
             load_face_data<INSTRUCTION_MODE>(FACE_ADDRS[j][i], COLUMN_OFFSETS[i]);
-            apply_sign_magnitude_x4<INSTR_MOD_CAST>();
+            convert_to_sign_magnitude_x4_lregs<INSTR_MOD_CAST>();
             lltt::replay(0, 3);
 
             apply_sign_magnitude_conversion(
@@ -429,7 +428,7 @@ inline void calculate_reduce_max_min_int32()
         TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, top_face_addr + ODD_COLUMNS);
         TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, bottom_face_addr + ODD_COLUMNS);
 
-        apply_sign_magnitude_x4<INSTR_MOD_CAST>(); // Store lregs 0-3 in sign-magnitude format in lregs 4-7
+        convert_to_sign_magnitude_x4_lregs<INSTR_MOD_CAST>(); // Store lregs 0-3 in sign-magnitude format in lregs 4-7
 
         // Transpose to find absolutes max/min of top 4 rows of each face
         TTI_SFPTRANSP(0, 0, 0, 0);
