@@ -12,6 +12,7 @@
 #include "sfpi_fp16.h"
 
 constexpr uint32_t FAST_APPROX_LOADMACRO_INSTR_CNT = 12;
+constexpr uint32_t SFPU_REPLAY_BUFFER_OFFSET       = 16;
 
 namespace ckernel::sfpu
 {
@@ -167,8 +168,8 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 #pragma GCC unroll 4
         for (int i = 0; i < 4; i++)
         {
-            lltt::replay(0, 12);
-            lltt::replay(0, 10);
+            lltt::replay(SFPU_REPLAY_BUFFER_OFFSET, FAST_APPROX_LOADMACRO_INSTR_CNT);
+            lltt::replay(SFPU_REPLAY_BUFFER_OFFSET, FAST_APPROX_LOADMACRO_INSTR_CNT - 2);
 
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
@@ -246,7 +247,8 @@ inline void _init_exponential_()
 
         // Note: TTI_SFPNOPs are inserted because SFPSWAP in LOADMACRO is not pipelined and takes 2 cycles
 
-        lltt::record<lltt::NoExec>(0, FAST_APPROX_LOADMACRO_INSTR_CNT);
+        lltt::record<lltt::NoExec>(SFPU_REPLAY_BUFFER_OFFSET, FAST_APPROX_LOADMACRO_INSTR_CNT);
+
         TTI_SFPLOADMACRO(p_sfpu::LREG0, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
         TTI_SFPNOP;
         TTI_SFPNOP;
