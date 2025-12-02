@@ -450,24 +450,17 @@ inline void _llk_pack_mop_config_(
     }
 }
 
-template <
-    bool is_fp32_dest_acc_en,
-    bool is_tile_dim_reconfig_en = false,
-    inline void _llk_pack_reconfig_data_format_(
-        const std::uint32_t pack_src_format,
-        const std::uint32_t pack_dst_format,
-        const std::uint32_t face_r_dim = FACE_R_DIM,
-        const std::uint32_t tile_c_dim = TILE_C_DIM,
-        const std::uint32_t num_faces  = 4,
-        const bool partial_face        = false,
-        const bool narrow_tile         = false)
+template <bool is_fp32_dest_acc_en>
+inline void _llk_pack_reconfig_data_format_(
+    const std::uint32_t pack_src_format,
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t face_r_dim = FACE_R_DIM,
+    const std::uint32_t tile_c_dim = TILE_C_DIM,
+    const std::uint32_t num_faces  = 4,
+    const bool partial_face        = false,
+    const bool narrow_tile         = false)
 {
     reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face);
-
-    if constexpr (is_tile_dim_reconfig_en)
-    {
-        _llk_pack_mop_config_<false, false>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
-    }
 }
 
 template <bool is_fp32_dest_acc_en>
