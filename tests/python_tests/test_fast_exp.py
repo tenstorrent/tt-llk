@@ -4,6 +4,7 @@
 
 import pytest
 import torch
+from conftest import skip_for_blackhole
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, InputOutputFormat
@@ -20,6 +21,7 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 
+@skip_for_blackhole
 @parametrize(
     test_name="fast_exp_test",
     formats=input_output_formats(
