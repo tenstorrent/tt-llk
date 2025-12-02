@@ -98,7 +98,7 @@ void run_kernel()
 #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<sync_mode, dest_datum_width, DstTileFaceLayout::RowMajor>();
 #else
-    _llk_pack_dest_init_<sync_mode, false, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<sync_mode, dest_datum_width, DstTileFaceLayout::RowMajor, false>();
 #endif
 
     _llk_packer_wait_for_math_done_();
