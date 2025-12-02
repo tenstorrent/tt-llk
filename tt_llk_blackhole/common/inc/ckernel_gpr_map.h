@@ -83,7 +83,6 @@ struct p_gpr_pack
     constexpr static uint DEST_OFFSET_LO = 4;  // dest lower bank offsets
     constexpr static uint DEST_OFFSET_HI = 8;  // dest upper bank offsets
     constexpr static uint OUTPUT_ADDR    = 12; // output address that packer is writing to
-    constexpr static uint TILE_HEADER    = 16; // tile header - ID + tile size
 
     constexpr static uint TEMP_TILE_OFFSET    = 20; // Temp var which holds tile offset in dest
     constexpr static uint NUM_MSGS_RECEIVED   = 24; // holds tile count and word size
