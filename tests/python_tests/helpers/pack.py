@@ -128,7 +128,7 @@ def pack_bfp8_b(tensor, block_size=16, num_faces=4):
 # ============================================================================
 
 
-def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=4):
+def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=None):
     """
     Internal helper to pack MXFP8 formats with FULLY SEPARATED layout.
 
@@ -140,14 +140,20 @@ def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=4):
         tensor: Input tensor (typically 1024 elements for full tile)
         fp8_dtype: ml_dtypes dtype (float8_e5m2 or float8_e4m3fn)
         element_max_normal: Maximum normal value for element format
-        num_faces: Number of faces to pack (1, 2, or 4)
+        num_faces: Number of faces to pack (1, 2, or 4). If None, auto-calculated from tensor size.
 
     Returns:
         List of packed bytes: [all scales][all elements]
     """
     flattened_tensor = tensor.cpu().to(torch.float32).numpy().flatten()
 
-    elements_to_pack = 256 * num_faces
+    # Auto-calculate num_faces from tensor size if not provided
+    elements_per_face = 256
+    if num_faces is None:
+        num_faces = (len(flattened_tensor) + elements_per_face - 1) // elements_per_face
+        num_faces = min(num_faces, 4)  # Cap at 4 faces max
+
+    elements_to_pack = elements_per_face * num_faces
     assert (
         len(flattened_tensor) >= elements_to_pack
     ), f"Tensor has {len(flattened_tensor)} elements, need {elements_to_pack} for {num_faces} face(s)"
@@ -179,7 +185,7 @@ def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=4):
     return all_scales + all_elements
 
 
-def pack_mxfp8r(tensor, num_faces=4):
+def pack_mxfp8r(tensor, num_faces=None):
     """
     Pack tensor into MXFP8R format (MXFP8 E5M2 variant).
 
@@ -194,7 +200,7 @@ def pack_mxfp8r(tensor, num_faces=4):
 
     Args:
         tensor: Input tensor (typically 1024 elements for full tile)
-        num_faces: Number of faces to pack (1, 2, or 4)
+        num_faces: Number of faces to pack (1, 2, or 4). If None, auto-calculated from tensor size.
 
     Returns:
         List of packed bytes: [scale0, elem0-31, scale1, elem32-63, ...]
@@ -202,7 +208,7 @@ def pack_mxfp8r(tensor, num_faces=4):
     return _pack_mxfp8(tensor, ml_dtypes.float8_e5m2, MXFP8_E5M2_MAX_NORMAL, num_faces)
 
 
-def pack_mxfp8p(tensor, num_faces=4):
+def pack_mxfp8p(tensor, num_faces=None):
     """
     Pack tensor into MXFP8P format (MXFP8 E4M3 variant).
 
@@ -217,7 +223,7 @@ def pack_mxfp8p(tensor, num_faces=4):
 
     Args:
         tensor: Input tensor (typically 1024 elements for full tile)
-        num_faces: Number of faces to pack (1, 2, or 4)
+        num_faces: Number of faces to pack (1, 2, or 4). If None, auto-calculated from tensor size.
 
     Returns:
         List of packed bytes: [scale0, elem0-31, scale1, elem32-63, ...]

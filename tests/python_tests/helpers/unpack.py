@@ -113,7 +113,7 @@ def unpack_bfp8_b(bfp8_block, sfpu=False, num_faces=4):
 # ============================================================================
 
 
-def _unpack_mxfp8(packed_bytes, fp8_dtype, num_faces=4):
+def _unpack_mxfp8(packed_bytes, fp8_dtype, num_faces=None):
     """
     Internal helper to unpack MXFP8 formats with FULLY SEPARATED layout.
 
@@ -124,11 +124,22 @@ def _unpack_mxfp8(packed_bytes, fp8_dtype, num_faces=4):
     Args:
         packed_bytes: List of bytes in [all scales][all elements] format
         fp8_dtype: ml_dtypes dtype (float8_e5m2 or float8_e4m3fn)
-        num_faces: Number of faces to unpack (1, 2, or 4)
+        num_faces: Number of faces to unpack (1, 2, or 4). If None, auto-calculated from packed_bytes size.
 
     Returns:
         torch.Tensor of bfloat16 values
     """
+    # Auto-calculate num_faces from packed_bytes size if not provided
+    # Each face = 8 scales + 256 elements = 264 bytes
+    if num_faces is None:
+        bytes_per_face = 8 + 256  # 8 scales + 256 FP8 elements
+        num_faces = len(packed_bytes) // bytes_per_face
+        assert num_faces in [
+            1,
+            2,
+            4,
+        ], f"Invalid num_faces={num_faces} calculated from {len(packed_bytes)} bytes"
+
     num_scales = num_faces * 8  # 8 scales per face
 
     # Extract scales and elements from FULLY SEPARATED layout
@@ -168,13 +179,13 @@ def _unpack_mxfp8(packed_bytes, fp8_dtype, num_faces=4):
     return torch.tensor(unpacked_values, dtype=torch.bfloat16)
 
 
-def unpack_mxfp8r(packed_bytes, num_faces=4):
+def unpack_mxfp8r(packed_bytes, num_faces=None):
     """
     Unpack MXFP8R format (MXFP8 E5M2 variant) to float32 tensor.
 
     Args:
         packed_bytes: Packed MX data [scale0, elem0-31, scale1, elem32-63, ...]
-        num_faces: Number of faces to unpack
+        num_faces: Number of faces to unpack (1, 2, or 4). If None, auto-calculated from packed_bytes size.
 
     Returns:
         torch.Tensor of float32 values
@@ -182,13 +193,13 @@ def unpack_mxfp8r(packed_bytes, num_faces=4):
     return _unpack_mxfp8(packed_bytes, ml_dtypes.float8_e5m2, num_faces)
 
 
-def unpack_mxfp8p(packed_bytes, num_faces=4):
+def unpack_mxfp8p(packed_bytes, num_faces=None):
     """
     Unpack MXFP8P format (MXFP8 E4M3 variant) to float32 tensor.
 
     Args:
         packed_bytes: Packed MX data [scale0, elem0-31, scale1, elem32-63, ...]
-        num_faces: Number of faces to unpack
+        num_faces: Number of faces to unpack (1, 2, or 4). If None, auto-calculated from packed_bytes size.
 
     Returns:
         torch.Tensor of float32 values

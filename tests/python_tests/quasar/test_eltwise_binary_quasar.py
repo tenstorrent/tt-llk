@@ -102,6 +102,25 @@ def test_eltwise_binary(
         input_dimensions=input_dimensions,
     )
 
+    # For MxFp8 formats, quantize inputs to match hardware precision
+    # E5M2 has only 2 mantissa bits → e.g., 336 becomes 320
+    # Golden must compute on quantized values, not original high-precision stimuli
+    if formats.input_format.is_mx_format():
+        from helpers.pack import pack_mxfp8p, pack_mxfp8r
+        from helpers.unpack import unpack_mxfp8p, unpack_mxfp8r
+
+        pack_fn = (
+            pack_mxfp8r if formats.input_format == DataFormat.MxFp8R else pack_mxfp8p
+        )
+        unpack_fn = (
+            unpack_mxfp8r
+            if formats.input_format == DataFormat.MxFp8R
+            else unpack_mxfp8p
+        )
+
+        src_A = unpack_fn(pack_fn(src_A))[: len(src_A)]
+        src_B = unpack_fn(pack_fn(src_B))[: len(src_B)]
+
     # Generate golden result using eltwise binary golden generator
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
     golden_tensor = generate_golden(
