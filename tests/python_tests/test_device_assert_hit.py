@@ -17,7 +17,7 @@ from helpers.test_config import run_test
     test_name="device_assert_hit_test",
     formats=input_output_formats([DataFormat.Float16_b]),  # any format will do
 )
-def test_unary_datacopy(test_name, formats):
+def test_device_assert_hit(test_name, formats):
 
     test_config = {
         "formats": formats,
