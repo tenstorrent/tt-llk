@@ -2,13 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-import pytest
 import torch
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_config import DataFormat
+from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
     UnarySFPUGolden,
     get_golden_generator,
@@ -39,6 +38,15 @@ dimension_combinations = [
 ]
 
 
+def get_format_input_bounds(formats: InputOutputFormat) -> list[tuple[int, int]]:
+    """Get valid stimuli bounds based on data format.
+    - range needs to be cut off at 1000 for Sum reduction kernels with UInt16 input format to avoid overflow.
+    """
+    if formats.input_format in [DataFormat.UInt32, DataFormat.UInt16]:
+        return [(0, 1000)]
+    return [(-1000, 1000), (0, 1000), (-1000, 0)]
+
+
 @parametrize(
     test_name="sfpu_reduce_test",
     formats=input_output_formats(
@@ -53,7 +61,7 @@ dimension_combinations = [
     ),
     mathop=[MathOperation.ReduceColumn],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    seed=[0, 1, 2],  # positive, negative or both random seed generation
+    input_bounds=lambda formats: get_format_input_bounds(formats),
     reduce_pool=[ReducePool.Min, ReducePool.Max, ReducePool.Sum, ReducePool.Average],
     dimension_combinations=dimension_combinations,
 )
@@ -63,29 +71,18 @@ def test_sfpu_reduce(
     dest_acc,
     mathop,
     reduce_pool,
-    seed,
+    input_bounds,
     dimension_combinations,
 ):
-    if seed != 0 and formats.input_format in [DataFormat.UInt32, DataFormat.UInt16]:
-        pytest.skip(
-            f"Skipping negative_numbers=True for unsigned format {formats.input_format}"
-        )
-
+    min_value, max_value = input_bounds
     input_dimensions = dimension_combinations
     torch_format = format_dict[formats.input_format]
 
     # STIMULI GENERATION
-    ELEMENTS_PER_TILE = 1024  # 32 * 32
+    ELEMENTS_PER_TILE = 1024
     tile_cnt = input_dimensions[0] * input_dimensions[1] // ELEMENTS_PER_TILE
-
-    if seed == 0:
-        max, min = 1000, 0
-    elif seed == 1:
-        max, min = 0, -1000
-    else:
-        max, min = 1000, -1000
     src_A = torch.randint(
-        low=min, high=max, size=(tile_cnt * 1024,), dtype=torch_format
+        low=min_value, high=max_value, size=(tile_cnt * 1024,), dtype=torch_format
     )
     src_B = torch.zeros_like(src_A)
 
