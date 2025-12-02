@@ -8,7 +8,6 @@ from enum import Enum, IntEnum
 from pathlib import Path
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.hardware_controller import HardwareController
 from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.debug_tensix import TensixDebug
 from ttexalens.hardware.risc_debug import CallstackEntry, RiscDebug, RiscLocation
@@ -505,6 +504,14 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
     return dest_reg
 
 
+class DeviceAssertionError(Exception):
+
+    def __init__(self, cores):
+        self.cores = cores
+        core_names = [str(core) for core in cores]
+        super().__init__(f"Device assertion error on cores: {', '.join(core_names)}")
+
+
 def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
     # check if the core is stuck on an EBREAK instruction
 
@@ -547,14 +554,10 @@ def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
                 risc_name,
                 callstack(core_loc, elfs, risc_name=risc_name, device_id=device_id),
             )
-            assertion_hits.append(risc_name)
-
-    HardwareController().reset_card()
+            assertion_hits.append(core)
 
     if assertion_hits:
-        raise AssertionError(
-            f"Assert was hit on device on cores: {', '.join(assertion_hits)}"
-        )
+        raise DeviceAssertionError(assertion_hits)
 
 
 def wait_for_tensix_operations_finished(
@@ -587,6 +590,11 @@ def wait_for_tensix_operations_finished(
 
         if completed == mailboxes:
             return
+
+        handle_if_assert_hit(
+            elfs,
+            core_loc=core_loc,
+        )
 
         # Disable any waiting if running on simulator
         # this makes simulator tests run ever so slightly faster
