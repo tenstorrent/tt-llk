@@ -231,9 +231,9 @@ inline void init_reduce_max_min(uint32_t num_cols)
 
     if constexpr (pool_type == PoolType::MIN)
     {
-        TTI_SFPLOADI(0, 0xA, 0x0100); // Load lower 16 bits (bit 8)
-        TTI_SFPLOADI(0, 0x8, 0x0000); // Load upper 16 bits
-        TTI_SFPCONFIG(0, 0xF, 0);     // Copy LREG0 to SFPU control register
+        TTI_SFPLOADI(ckernel::p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_LOWER, 0x0100); // Load lower 16 bits (bit 8)
+        TTI_SFPLOADI(ckernel::p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_UPPER, 0x0000); // Load upper 16 bits
+        TTI_SFPCONFIG(0, 0xF, 0);
     }
 
     // Setup LOADMACRO sequence 0
