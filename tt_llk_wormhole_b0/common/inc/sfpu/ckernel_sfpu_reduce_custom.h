@@ -155,7 +155,7 @@ inline void _calculate_reduce_max_col_subblock_4x2_(const uint32_t block_height 
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG1 /*lreg_src_c*/, p_sfpu::LREG4 /*lreg_dest*/, 1 /*instr_mod1*/);
 }
 
-inline void _reduce_max_prologue_()
+inline void _reduce_max_col_subblock_4x2_prologue_()
 {
     constexpr uint16_t neg_inf_fp16b = 0xFF80;
 
