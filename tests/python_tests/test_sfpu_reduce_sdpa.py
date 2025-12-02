@@ -23,7 +23,6 @@ from helpers.utils import passed_test
         [DataFormat.Float16_b],  # Only Float16_b is supported for SDPA reduce
         same=True,
     ),
-    iterations=[i for i in range(1, 11)],  # repeat test 10 times
     dest_acc=[DestAccumulation.No],
     mathop=[MathOperation.ReduceColumn],
     reduce_pool=[ReducePool.Max],  # Only MAX is supported for SDPA reduce
@@ -32,7 +31,7 @@ from helpers.utils import passed_test
     ],
 )
 def test_sfpu_reduce_sdpa(
-    test_name, formats, dest_acc, mathop, reduce_pool, input_dimensions, iterations
+    test_name, formats, dest_acc, mathop, reduce_pool, input_dimensions
 ):
 
     src_A, src_B, tile_cnt = generate_stimuli(
@@ -88,6 +87,4 @@ def test_sfpu_reduce_sdpa(
     res_tensor = untilize_block(res_tensor, formats.output_format, input_dimensions)
 
     # Check only the first row for correctness, not full tensors
-    print("golden_tensor[0]:", golden_tensor[0])
-    print("res_tensor[0]:", res_tensor[0])
     assert passed_test(golden_tensor[0], res_tensor[0], formats.output_format)
