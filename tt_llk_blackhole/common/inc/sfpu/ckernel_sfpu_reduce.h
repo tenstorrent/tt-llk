@@ -295,7 +295,7 @@ inline void calculate_reduce_max_min_int32()
     {
         uint top_face_addr    = FINAL_REDUCE_ADDRS[j][0]; // face 0 & 1 dst indices
         uint bottom_face_addr = FINAL_REDUCE_ADDRS[j][1]; // face 2 & 3 dst indices
-        
+
         for (uint i = 0; i < 4; i++)
         {
             load_face_data<INSTRUCTION_MODE>(FACE_ADDRS[j][i], COLUMN_OFFSETS[i]);
