@@ -44,7 +44,7 @@ constexpr uint32_t ROWS_PER_TILE = 64;
  * @tparam INSTR_MOD_CAST The instruction mode for cast operations
  */
 template <InstrModCast INSTR_MOD_CAST>
-inline void apply_sign_magnitude_conversion_four_lregs()
+inline void apply_sign_magnitude_x4()
 {
     apply_sign_magnitude_conversion(p_sfpu::LREG0, p_sfpu::LREG4, INSTR_MOD_CAST);
     apply_sign_magnitude_conversion(p_sfpu::LREG1, p_sfpu::LREG5, INSTR_MOD_CAST);
@@ -258,9 +258,9 @@ inline void init_reduce_max_min_int32()
     _init_sfpu_config_reg();
     if constexpr (pool_type == PoolType::MAX)
     {
-        TTI_SFPLOADI(0, 0xA, 0x0100); // Load lower 16 bits (bit 8)
-        TTI_SFPLOADI(0, 0x8, 0x0000); // Load upper 16 bits
-        TTI_SFPCONFIG(0, 0xF, 0);     // Copy LREG0 to SFPU control register
+        TTI_SFPLOADI(ckernel::p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_LOWER, 0x0100); // Load lower 16 bits (bit 8)
+        TTI_SFPLOADI(ckernel::p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_UPPER, 0x0000); // Load upper 16 bits
+        TTI_SFPCONFIG(0, 0xF, 0);
     }
     lltt::record(0, 3);
     TTI_SFPSWAP(0, p_sfpu::LREG7, p_sfpu::LREG6, 1);
@@ -280,6 +280,7 @@ template <InstrModLoadStore INSTRUCTION_MODE, PoolType pool_type, ReduceDim redu
 inline void calculate_reduce_max_min_int32()
 {
     constexpr auto INSTR_MOD_CAST    = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
+    constexpr uint ODD_COLUMNS       = 2;
     constexpr uint COLUMN_OFFSETS[4] = {0, 2, 0, 2}; // even, odd, even, odd
     constexpr uint FACE_ADDRS[2][4]  = {
         {0, 0, 32, 32},  // j=0: Face 0 and Face 2
@@ -292,10 +293,13 @@ inline void calculate_reduce_max_min_int32()
 
     for (uint j = 0; j < 2; j++)
     {
+        uint top_face_addr    = FINAL_REDUCE_ADDRS[j][0]; // face 0 & 1 dst indices
+        uint bottom_face_addr = FINAL_REDUCE_ADDRS[j][1]; // face 2 & 3 dst indices
+        
         for (uint i = 0; i < 4; i++)
         {
             load_face_data<INSTRUCTION_MODE>(FACE_ADDRS[j][i], COLUMN_OFFSETS[i]);
-            apply_sign_magnitude_conversion_four_lregs<INSTR_MOD_CAST>();
+            apply_sign_magnitude_x4<INSTR_MOD_CAST>();
             lltt::replay(0, 3);
 
             apply_sign_magnitude_conversion(
@@ -303,15 +307,12 @@ inline void calculate_reduce_max_min_int32()
             TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, FACE_ADDRS[j][i] + COLUMN_OFFSETS[i]);
         }
 
-        uint addr0 = FINAL_REDUCE_ADDRS[j][0];
-        uint addr1 = FINAL_REDUCE_ADDRS[j][1];
+        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, top_face_addr);
+        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, bottom_face_addr);
+        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, top_face_addr + ODD_COLUMNS);
+        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, bottom_face_addr + ODD_COLUMNS);
 
-        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, addr0);
-        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, addr1);
-        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, addr0 + 2);
-        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, addr1 + 2);
-
-        apply_sign_magnitude_conversion_four_lregs<INSTR_MOD_CAST>();
+        apply_sign_magnitude_x4<INSTR_MOD_CAST>();
 
         TTI_SFPTRANSP(0, 0, 0, 0);
         lltt::replay(0, 3);
@@ -324,8 +325,8 @@ inline void calculate_reduce_max_min_int32()
         apply_sign_magnitude_conversion(p_sfpu::LREG4, p_sfpu::LREG0, INSTR_MOD_CAST);
         apply_sign_magnitude_conversion(p_sfpu::LREG6, p_sfpu::LREG1, INSTR_MOD_CAST);
 
-        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, addr0);
-        TT_SFPSTORE(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, addr0 + 2);
+        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, top_face_addr);
+        TT_SFPSTORE(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, top_face_addr + ODD_COLUMNS);
     }
 }
 
@@ -347,9 +348,9 @@ inline void init_reduce_max_min(uint32_t num_cols)
     // Invert swap direction for MIN operations
     if constexpr (pool_type == PoolType::MIN)
     {
-        TTI_SFPLOADI(0, 0xA, 0x0100); // Load lower 16 bits (bit 8)
-        TTI_SFPLOADI(0, 0x8, 0x0000); // Load upper 16 bits
-        TTI_SFPCONFIG(0, 0xF, 0);     // Copy LREG0 to SFPU control register
+        TTI_SFPLOADI(ckernel::p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_LOWER, 0x0100); // Load lower 16 bits (bit 8)
+        TTI_SFPLOADI(ckernel::p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_UPPER, 0x0000); // Load upper 16 bits
+        TTI_SFPCONFIG(0, 0xF, 0);
     }
 
     // Setup LOADMACRO sequence 0
