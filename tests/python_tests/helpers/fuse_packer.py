@@ -113,33 +113,32 @@ class EltwisePacker(Packer):
     constexpr Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<{dest_acc}, false, false>(
+    _llk_pack_hw_configure_<{dest_acc}, false, {TILIZE}>(
         {PACK_IN},
         {PACK_OUT},
-        16 * 16 * 4
+        {pack_size}
     );
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, {TILIZE}>(
+        {PACK_OUT}
+    );
+    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc}, DstTileFaceLayout::RowMajor>();
 #else
     _llk_pack_hw_configure_<{dest_acc}, false>(
         {PACK_IN},
         {PACK_OUT},
-        16 * 16 * 4
+        {pack_size}
     );
+    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(
+        {PACK_OUT}
+    );
+    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc}, DstTileFaceLayout::RowMajor, false>();
 #endif
-
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>({PACK_OUT});
-
-#ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc}, DstTileFaceLayout::RowMajor>();
-#else
-    _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
-#endif
-
+    _llk_packer_wait_for_math_done_();
     for (int i = 0; i < {TILE_CNT}; i++)
     {{
-        _llk_packer_wait_for_math_done_();
-        _llk_pack_<DstSync::SyncHalf, {dest_acc}, false>(0, L1_ADDRESS(buffer_Res{stage}[i]));
-        _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();
+        _llk_pack_<DstSync::SyncHalf, {dest_acc}, false>(i, L1_ADDRESS(buffer_Res{stage}[i]));
     }}
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();
 """
 
         if stage < num_stages - 1:
