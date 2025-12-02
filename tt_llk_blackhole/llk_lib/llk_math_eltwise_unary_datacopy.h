@@ -92,7 +92,7 @@ inline void eltwise_unary_configure_addrmod()
         .set(ADDR_MOD_3);
 
     // Use srcA for data movement
-    if constexpr (type == A2D)
+    if constexpr (type == A2D) // Overrides BCAST_TYPE when type is A2D
     {
         addr_mod_t {
             .srca = {.incr = 1},
@@ -244,7 +244,7 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
     LLK_ASSERT(within_face_16x16_transpose == 0, "within_face_16x16_transpose: this parameter is unused");
     eltwise_unary_configure_addrmod<type, src_b_bcast_type>();
 
-    if constexpr (type == A2D)
+    if constexpr (type == A2D && src_b_bcast_type == BroadcastType::NONE)
     {
         const uint num_rows = tilize ? 64 : 16;
         eltwise_unary_configure_mop<type, is_fp32_dest_acc_en, src_b_bcast_type, tilize, is_int_fpu_en>(p_mova2d::MOV_8_ROWS, num_rows, num_faces, dst_format);
