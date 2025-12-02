@@ -294,7 +294,6 @@ template <bool is_fp32_dest_acc_en>
 inline void reconfig_packer_data_format(
     const uint pack_src_format,
     const uint pack_dst_format,
-    const uint tile_size,
     [[maybe_unused]] const uint face_r_dim,
     const uint tile_c_dim,
     const uint num_faces,
@@ -362,8 +361,6 @@ inline void reconfig_packer_data_format(
         TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, THCON_SEC0_REG1_Row_start_section_size_ADDR32);
     }
 
-    TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
-
     // Workaround for HW bug: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
     {
@@ -390,7 +387,6 @@ template <bool is_fp32_dest_acc_en, bool untilize = false, bool tilize = false>
 inline void configure_pack(
     const uint pack_src_format,
     const uint pack_dst_format,
-    const uint tile_size,
     const uint face_r_dim                   = FACE_R_DIM,
     const uint tile_c_dim                   = TILE_C_DIM,
     const uint num_faces                    = 4,
@@ -446,12 +442,6 @@ inline void configure_pack(
 
     cfg[PCK_EDGE_OFFSET_SEC0_mask_ADDR32]                = pck_edge_offset.val;
     cfg[TILE_ROW_SET_MAPPING_0_row_set_mapping_0_ADDR32] = 0x0; // All packers use row set mapping 0, edge offset 0 mask
-
-    regfile[p_gpr_pack::TILE_HEADER]     = tile_size;
-    regfile[p_gpr_pack::TILE_HEADER + 1] = 0;
-    regfile[p_gpr_pack::TILE_HEADER + 2] = 0;
-    regfile[p_gpr_pack::TILE_HEADER + 3] = 0;
-    sync_regfile_write(p_gpr_pack::TILE_HEADER + 3);
 
     // In Blackhole, x_start/x_end must be within 1 row size (i.e. from 0 to 15)
     TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
@@ -511,7 +501,7 @@ inline void program_packer_destination(uint32_t addr)
 
 // RT: If multiple contexts are used, for issue #https://github.com/tenstorrent/tt-llk-bh/issues/20
 // then this function needs to be re-written
-template <uint32_t block_ct_dim, uint32_t full_ct_dim, bool diagonal = false>
+template <uint32_t block_ct_dim, uint32_t full_ct_dim>
 inline void program_packer_untilized_destination(const uint32_t addr, const uint32_t pack_dst_format)
 {
     // const uint32_t block_size = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * TILE_C_DIM * (TILE_R_DIM/4));
@@ -570,12 +560,6 @@ inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
         THCON_SEC0_REG1_Pack_L1_Acc_ADDR32,
         THCON_SEC0_REG1_Pack_L1_Acc_SHAMT,
         THCON_SEC0_REG1_Disable_pack_zero_flags_MASK | THCON_SEC0_REG1_Pack_L1_Acc_MASK>(pack_l1_acc_disable_pack_zero_flag);
-}
-
-// Write tile header to l1
-inline void write_tile_header()
-{
-    TTI_STOREIND(1, 0, p_ind::LD_16B, LO_16(0), p_ind::INC_NONE, p_gpr_pack::TILE_HEADER, p_gpr_pack::OUTPUT_ADDR);
 }
 
 // READERS FOR CONFIG STRUCTS
