@@ -117,7 +117,6 @@ def test_sfpu_reduce(
         "unpack_to_dest": True,
         "tile_cnt": tile_cnt,
         "disable_format_inference": True,
-        "unpack_to_dest": True,
     }
 
     res_address = write_stimuli_to_l1(
