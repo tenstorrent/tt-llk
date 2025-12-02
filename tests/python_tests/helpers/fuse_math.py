@@ -17,7 +17,7 @@ from .golden_generators import (
 if TYPE_CHECKING:
     from .fuse_operation import PipelineOperation
 
-from .llk_params import ApproximationMode, MathOperation
+from .llk_params import ApproximationMode, MathOperation, format_dict
 
 from .llk_params import ApproximationMode, MathOperation
 
@@ -101,16 +101,26 @@ class EltwiseFpu(Fpu):
         ]
 
     def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
+        from .tilize_untilize import tilize_block
+
         src_a = operation_config.src_a
         src_b = operation_config.src_b
         output_format = operation_config.output.data_format
         math_fidelity = operation_config.math_fidelity
+        output_dimensions = operation_config.output.dimensions
 
         generate_golden = get_golden_generator(EltwiseBinaryGolden)
         golden_tensor = generate_golden(
             self.operation, src_a.raw_data, src_b.raw_data, output_format, math_fidelity
         )
-        return golden_tensor
+
+        tilized_golden = tilize_block(
+            golden_tensor,
+            dimensions=output_dimensions,
+            stimuli_format=output_format,
+            num_faces=4,
+        )
+        return torch.tensor(tilized_golden, dtype=format_dict[output_format]).flatten()
 
     def exec(self, operation_config: "PipelineOperation") -> str:
         math_format = operation_config.math_format
@@ -130,17 +140,16 @@ class EltwiseFpu(Fpu):
     );
     _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{self.operation.cpp_enum_value}, BroadcastType::NONE, {MATH_FIDELITY}>(4, 0, 0);
 
+    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (int i = 0; i < {tile_cnt}; i++)
     {{
-        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         _llk_math_eltwise_binary_<
             {self.operation.cpp_enum_value},
             BroadcastType::NONE,
             DstSync::SyncHalf,
             {dest_acc},
             {MATH_FIDELITY},
-            EltwiseBinaryReuseDestType::NONE>(4, 0, false);
-        _llk_math_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();
+            EltwiseBinaryReuseDestType::NONE>(4, i, false);
     }}
 """
         return code
