@@ -141,39 +141,6 @@ constexpr bool is_supported_reduce_format(DataFormat format)
 }
 
 /**
-<<<<<<< HEAD
- * @brief Column-wise sum/average reduction kernel for SFPU reduce SUM and AVG operations.
- *        Computes the sum or average of each column, placing the 32 output values into the first row
- *        of the output tile (row 0 of faces 0 and 1).
- *
- *        Uses a 4-iteration approach that processes vertically aligned face pairs (0+2, 1+3) to optimize
- *        column operations and minimize load/store operations. Each iteration handles 8 columns using
- *        transpose operations and replay buffers for tree reduction.
- *
- *        For AVG mode: Integer formats use arithmetic shift with condition codes to handle negative numbers;
- *        float formats multiply by 1/32 constant.
- *
- * @tparam pool_type The reduction operation, currently supported: (SUM, AVG)
- * @tparam reduce_dim The reduction dimension (currently only REDUCE_COL is supported)
- * @tparam INSTRUCTION_MODE The instruction mode for integer and float formats: INT32, INT32_2S_COMP, LO16, FP32, FP16B
- */
-template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTION_MODE>
-inline void calculate_reduce_sum_avg()
-{
-    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
-    static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, Float32");
-
-    // Determine if integer or float mode at compile time
-    constexpr bool is_integer_mode =
-        (INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::INT32_2S_COMP || INSTRUCTION_MODE == InstrModLoadStore::LO16);
-    constexpr bool is_float_mode = (INSTRUCTION_MODE == InstrModLoadStore::FP32 || INSTRUCTION_MODE == InstrModLoadStore::FP16B);
-
-    static_assert(is_integer_mode || is_float_mode, "INSTRUCTION_MODE must be one of: INT32, INT32_2S_COMP, LO16, FP32, FP16B");
-
-    // Optimized approach: Process 4 iterations to handle all column combinations
-    // This reduces operations by processing complementary face pairs simultaneously, less load/store operations
-    for (uint i = 0; i < NUM_FACES; i++)
-=======
  * @brief Return appropriate InstrModLoadStore based on DataFormat
  * @tparam format The DataFormat enum value for supported formats: Int32, UInt32, UInt16, Float32, Float16_b
  * @return The corresponding InstrModLoadStore enum values: INT32, INT32_2S_COMP, LO16, FP32, FP16B
@@ -182,7 +149,6 @@ template <DataFormat format>
 constexpr InstrModLoadStore get_instruction_mode()
 {
     if constexpr (format == DataFormat::Float32)
->>>>>>> a1c1a7e7 (Restructure to new reduce kernels)
     {
         return InstrModLoadStore::FP32;
     }
@@ -219,11 +185,6 @@ inline void configure_addrmod_max(uint32_t num_cols)
     // Reduction done on first tile before looping through the rest, so we look at num_cols - 1 tile
     uint32_t skip_rows = (num_cols - 1) * ROWS_PER_TILE;
 
-<<<<<<< HEAD
-        const uint upper_face_addr = UPPER_FACE_ADDRS[i];
-        const uint lower_face_addr = LOWER_FACE_ADDRS[i];
-        const uint column_offset   = COLUMN_OFFSETS[i];
-=======
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
@@ -263,7 +224,6 @@ inline void init_reduce_max(uint32_t num_cols)
 {
     // Initialize SFPU config and set swap direction before defining LOADMACRO sequences
     _init_sfpu_config_reg();
->>>>>>> a1c1a7e7 (Restructure to new reduce kernels)
 
     // Setup LOADMACRO sequence 0
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, (0xC | p_sfpu::LREG0) /*backdoor + dest*/, 1 /*instr_mod1*/);
