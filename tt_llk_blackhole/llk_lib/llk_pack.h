@@ -483,16 +483,6 @@ inline void _llk_pack_hw_configure_(
     configure_pack<is_fp32_dest_acc_en, untilize, tilize>(pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
 }
 
-inline void _llk_pack_configure_relu_(const std::uint32_t threshold)
-{
-    relu_config_u hw_relu_config;
-    hw_relu_config.r.STACC_RELU_ApplyRelu     = relu_config & 0xffff;
-    hw_relu_config.r.STACC_RELU_ReluThreshold = (relu_config >> 16) & 0xffff;
-
-    constexpr uint hw_relu_mask = STACC_RELU_ApplyRelu_MASK | STACC_RELU_ReluThreshold_MASK;
-    cfg_reg_rmw_tensix<STACC_RELU_ApplyRelu_ADDR32, 0, hw_relu_mask>(hw_relu_config.val[0]);
-}
-
 template <bool untilize = false, bool zero_output = false, bool tilize = false>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
