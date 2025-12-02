@@ -296,7 +296,6 @@ template <bool is_fp32_dest_acc_en>
 inline void reconfig_packer_data_format(
     const uint pack_src_format,
     const uint pack_dst_format,
-    const uint tile_size,
     [[maybe_unused]] const uint face_r_dim,
     const uint tile_c_dim,
     const uint num_faces,
@@ -365,8 +364,6 @@ inline void reconfig_packer_data_format(
         TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, THCON_SEC0_REG1_Row_start_section_size_ADDR32);
     }
 
-    TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
-
     // Workaround for HW bug: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
     {
@@ -389,26 +386,23 @@ inline void reconfig_packer_data_format(
     set_packer_strides(pack_output_src_format, tile_c_dim);
 }
 
-template <bool is_fp32_dest_acc_en, bool untilize = false, bool tilize = false>
+template <bool is_fp32_dest_acc_en>
 inline void configure_pack(
     const uint pack_src_format,
     const uint pack_dst_format,
-    const uint tile_size,
-    const uint face_r_dim                   = FACE_R_DIM,
-    const uint tile_c_dim                   = TILE_C_DIM,
-    const uint num_faces                    = 4,
-    const bool partial_face                 = false,
-    [[maybe_unused]] const bool narrow_tile = false,
-    const uint relu_config                  = 0)
+    const uint face_r_dim   = FACE_R_DIM,
+    const uint tile_c_dim   = TILE_C_DIM,
+    const uint num_faces    = 4,
+    const bool partial_face = false,
+    const uint relu_config  = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
     // Get pointer to registers for current state ID
     volatile uint* cfg = get_cfg_pointer();
 
     const uint pack_output_src_format = (uint)pack_src_format & 0xF;
 
-    set_packer_strides<untilize, tilize>(pack_src_format, tile_c_dim);
+    set_packer_strides(pack_src_format, tile_c_dim);
 
     t6_mutex_acquire(mutex::REG_RMW);
 
@@ -451,12 +445,6 @@ inline void configure_pack(
 
     cfg[PCK_EDGE_OFFSET_SEC0_mask_ADDR32]                = pck_edge_offset.val;
     cfg[TILE_ROW_SET_MAPPING_0_row_set_mapping_0_ADDR32] = 0x0; // All packers use row set mapping 0, edge offset 0 mask
-
-    regfile[p_gpr_pack::TILE_HEADER]     = tile_size;
-    regfile[p_gpr_pack::TILE_HEADER + 1] = 0;
-    regfile[p_gpr_pack::TILE_HEADER + 2] = 0;
-    regfile[p_gpr_pack::TILE_HEADER + 3] = 0;
-    sync_regfile_write(p_gpr_pack::TILE_HEADER + 3);
 
     // In Blackhole, x_start/x_end must be within 1 row size (i.e. from 0 to 15)
     TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
@@ -516,7 +504,7 @@ inline void program_packer_destination(uint32_t addr)
 
 // RT: If multiple contexts are used, for issue #https://github.com/tenstorrent/tt-llk-bh/issues/20
 // then this function needs to be re-written
-template <uint32_t block_ct_dim, uint32_t full_ct_dim, bool diagonal = false>
+template <uint32_t block_ct_dim, uint32_t full_ct_dim>
 inline void program_packer_untilized_destination(const uint32_t addr, const uint32_t pack_dst_format)
 {
     // const uint32_t block_size = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * TILE_C_DIM * (TILE_R_DIM/4));

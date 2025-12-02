@@ -102,38 +102,28 @@ inline void _llk_pack_mop_config_(
     }
 }
 
-template <bool is_fp32_dest_acc_en, bool is_tile_dim_reconfig_en = false>
+template <bool is_fp32_dest_acc_en>
 inline void _llk_pack_reconfig_data_format_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
-    const std::uint32_t tile_size,
     const std::uint32_t face_r_dim = FACE_R_DIM,
     const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false)
+    const bool partial_face        = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face);
-
-    if constexpr (is_tile_dim_reconfig_en)
-    {
-        _llk_pack_mop_config_<false, false>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
-    }
+    reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, face_r_dim, num_faces, partial_face);
 }
 
-template <bool is_fp32_dest_acc_en, bool untilize = false>
+template <bool is_fp32_dest_acc_en>
 inline void _llk_pack_hw_configure_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
-    const std::uint32_t tile_size,
-    const std::uint32_t face_r_dim  = FACE_R_DIM,
-    const std::uint32_t num_faces   = 4,
-    const bool partial_face         = false,
-    const bool narrow_tile          = false,
-    const std::uint32_t relu_config = 0)
+    const std::uint32_t face_r_dim = FACE_R_DIM,
+    const std::uint32_t num_faces  = 4,
+    const bool partial_face        = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    configure_pack<is_fp32_dest_acc_en, untilize>(pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face, narrow_tile, relu_config);
+    configure_pack<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, face_r_dim, num_faces, partial_face);
 }
 
 // TODO NC: Clean up as the part of tt-metal#34587
@@ -153,29 +143,6 @@ inline void _llk_pack_init_(
     const uint face_dim   = face_r_dim * FACE_C_DIM;
     const uint pack_x_dim = (narrow_tile || !untilize) ? face_dim : FACE_R_DIM;
     TT_SETADCXX(p_setadc::PAC, pack_x_dim - 1, 0x0);
-}
-
-// TODO NC: Clean up as the part of tt-metal#34587
-template <bool untilize = false, bool zero_output = false>
-inline void _llk_pack_init_(
-    const std::uint32_t pack_dst_format,
-    const std::uint32_t pack_src_format,
-    const std::uint32_t face_r_dim,
-    const std::uint32_t num_faces,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false,
-    const bool include_setup_calls = false)
-{
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    _llk_pack_configure_addrmod_<untilize>();
-    _llk_pack_mop_config_<untilize, zero_output>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
-    if (include_setup_calls)
-    {
-        set_packer_l1_offset(pack_dst_format);
-        const uint face_dim   = face_r_dim * FACE_C_DIM;
-        const uint pack_x_dim = (narrow_tile || !untilize) ? face_dim : FACE_R_DIM;
-        TT_SETADCXX(p_setadc::PAC, pack_x_dim - 1, 0x0);
-    }
 }
 
 inline void _llk_pack_uninit_(const std::uint32_t face_r_dim = FACE_R_DIM)
@@ -212,12 +179,6 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
  * only DstSync::SyncHalf is supported
  * tiles are expected to be split into top and bottom faces in separate halves of the active dest bank
  *************************************************************************/
-
-template <bool is_fp32_dest_acc_en>
-inline void _llk_pack_fast_tilize_hw_configure_(const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format)
-{
-    configure_pack<is_fp32_dest_acc_en, false>(pack_src_format, pack_dst_format);
-}
 
 inline void _llk_pack_fast_tilize_addrmod_config_(const std::uint32_t unit_dim)
 {
