@@ -23,12 +23,12 @@ from helpers.utils import passed_test
         [DataFormat.Float16_b],  # Only Float16_b is supported for SDPA reduce
         same=True,
     ),
-    iterations=[i for i in range(1, 11)],
+    iterations=[i for i in range(1, 11)],  # repeat test 10 times
     dest_acc=[DestAccumulation.No],
     mathop=[MathOperation.ReduceColumn],
     reduce_pool=[ReducePool.Max],  # Only MAX is supported for SDPA reduce
     input_dimensions=[
-        [128, 64],
+        [128, 64],  # 4x2 subblock
     ],
 )
 def test_sfpu_reduce_sdpa(
