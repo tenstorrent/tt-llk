@@ -40,10 +40,10 @@ class FuseGolden:
 
         res_tensor = output.data
 
-        print("golden")
-        print(golden_tensor)
-        print("result")
-        print(res_tensor)
+        # print("golden")
+        # print(golden_tensor)
+        # print("result")
+        # print(res_tensor)
 
         passed = passed_test(golden_tensor, res_tensor, output.data_format)
 
