@@ -11,15 +11,11 @@ from .llk_params import (
     SFPU_BINARY_OPERATIONS,
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
-    DataCopyType,
     DestAccumulation,
     DestSync,
     ImpliedMathFormat,
     MathFidelity,
     MathOperation,
-    StochasticRounding,
-    Tilize,
-    Transpose,
     UnpackerEngine,
     format_tile_sizes,
 )
@@ -30,11 +26,11 @@ def _generate_operation_constants(mathop: MathOperation) -> list[str]:
     """Generate the appropriate operation constants based on the math operation type."""
     constants = []
 
-    if mathop in SFPU_UNARY_OPERATIONS:
+    if mathop in SFPU_UNARY_OPERATIONS:  # TP
         constants.append(
             f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{mathop.cpp_enum_value};"
         )
-    elif mathop in SFPU_BINARY_OPERATIONS:
+    elif mathop in SFPU_BINARY_OPERATIONS:  # TP / RT it's complicated
         constants.append(
             f"constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::{mathop.cpp_enum_value};"
         )
@@ -105,30 +101,27 @@ def generate_build_header(test_config) -> str:
         ]
     )
 
-    loop_factor = test_config.get("loop_factor", 1)
+    if loop_factor := test_config.get("loop_factor"):  # RT
+        header_content.append(f"constexpr int LOOP_FACTOR = {loop_factor};")
 
-    header_content.append(f"constexpr int LOOP_FACTOR = {loop_factor};")
-
-    # Dest accumulation
-    dest_acc = test_config.get("dest_acc", DestAccumulation.No)
-
-    # Unpack to dest
+    # check if this can be optimized, can probably be used treated just as a template thing
     unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
-    header_content.append(f"constexpr bool UNPACKING_TO_DEST = {unpack_to_dest};")
+    header_content.append(f"constexpr bool unpack_to_dest = {unpack_to_dest};")
+    # if "unpack_to_dest" in test_config: # TP in blackhole and wormhole, RT in quasar
+    #     unpack_to_dest = str(test_config["unpack_to_dest"]).lower()
+    #     header_content.append(f"constexpr bool unpack_to_dest = {unpack_to_dest};")
 
-    # Unpack transpose faces
-    unpack_transpose_faces = test_config.get("unpack_transpose_faces", Transpose.No)
-    header_content.append(
-        f"constexpr bool UNPACK_TRANSPOSE_FACES = {unpack_transpose_faces.value};"
-    )
+    if unpack_transpose_faces := test_config.get("unpack_transpose_faces"):  # RT
+        header_content.append(
+            f"constexpr bool UNPACK_TRANSPOSE_FACES = {unpack_transpose_faces.value};"
+        )
 
-    # Unpack transpose within face
-    unpack_transpose_within_face = test_config.get(
-        "unpack_transpose_within_face", Transpose.No
-    )
-    header_content.append(
-        f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face.value};"
-    )
+    if unpack_transpose_within_face := test_config.get(
+        "unpack_transpose_within_face"
+    ):  # RT
+        header_content.append(
+            f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face.value};"
+        )
 
     # ******** QUASAR specific ********
     if get_chip_architecture() == ChipArchitecture.QUASAR:
@@ -149,80 +142,68 @@ def generate_build_header(test_config) -> str:
         )
     # *********************************
 
-    # Throttle level
-    throttle = test_config.get("throttle", 0)
-    header_content.append(f"constexpr int THROTTLE_LEVEL = {throttle};")
+    if throttle := test_config.get("throttle_level"):  # TP
+        header_content.append(f"constexpr int THROTTLE_LEVEL = {throttle};")
 
-    # Math transpose faces
-    math_transpose_faces = test_config.get("math_transpose_faces", Transpose.No).value
-    header_content.append(
-        f"constexpr bool MATH_TRANSPOSE_FACES = {math_transpose_faces};"
-    )
-    # Stochastic Rounding
-    stochastic_rnd = test_config.get("stochastic_rnd", StochasticRounding.No)
-    header_content.append(
-        f"constexpr auto STOCHASTIC_RND = ckernel::{stochastic_rnd.value};"
-    )
+    if math_transpose_faces := test_config.get("math_transpose_faces"):  # TP
+        header_content.append(
+            f"constexpr bool MATH_TRANSPOSE_FACES = {math_transpose_faces};"
+        )
 
-    # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
-    # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
-    # L1_to_L1_iterations is the number of times we perform llk operations from L1 input tensor to L1 output tensor
-    # If L1_to_L1_ITERATIONS is 1, we take input tensor from L1 -> unpack -> math -> pack -> L1
-    # If L1_to_L1_ITERATIONS is greater than 1, we perform multiple iterations of unpack -> math -> pack, by taking results tensor in L1 to be input tensor of next iteration
-    fused_L1_to_L1 = test_config.get("L1_to_L1_iterations", 1)
-    header_content.append(
-        f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {fused_L1_to_L1};"
-    )
+    if stochastic_rnd := test_config.get("stochastic_rnd"):  # TP
+        header_content.append(
+            f"constexpr auto STOCHASTIC_RND = ckernel::{stochastic_rnd.value};"
+        )
 
-    # Data copy type
-    data_copy_type = test_config.get("data_copy_type", DataCopyType.A2D)
-    header_content.append(
-        f"constexpr auto DATA_COPY_TYPE = ckernel::DataCopyType::{data_copy_type.value};"
-    )
+    if data_copy_type := test_config.get("data_copy_type"):  # TP
+        header_content.append(
+            f"constexpr auto DATA_COPY_TYPE = ckernel::DataCopyType::{data_copy_type.value};"
+        )
 
-    # Broadcast type
-    if "broadcast_type" in test_config:
-        broadcast_type = test_config["broadcast_type"]
+    if broadcast_type := test_config.get("broadcast_type"):  # TP
         header_content.append(
             f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{broadcast_type.value};"
         )
 
-    # Accumulate to dest
-    if "acc_to_dest" in test_config:
-        acc_to_dest = str(test_config["acc_to_dest"]).lower()
-        header_content.append(f"constexpr bool ACC_TO_DEST = {acc_to_dest};")
+    if acc_to_dest := test_config.get("acc_to_dest"):  # TP
+        header_content.append(
+            f"constexpr bool ACC_TO_DEST = {str(acc_to_dest).lower()};"
+        )
 
-    # Reuse destination type
-    if "reuse_dest" in test_config:
-        reuse_dest = test_config["reuse_dest"]
+    if reuse_dest := test_config.get("reuse_dest"):  # TP
         header_content.append(
             f"constexpr auto REUSE_DEST_TYPE = ckernel::EltwiseBinaryReuseDestType::{reuse_dest.name};"
         )
 
-    if "disable_src_zero_flag" in test_config:
-        disable_src_zero_flag = str(test_config["disable_src_zero_flag"]).lower()
+    if disable_src_zero_flag := test_config.get("disable_src_zero_flag"):  # TP
         header_content.append(
-            f"constexpr bool disable_src_zero_flag = {disable_src_zero_flag};"
+            f"constexpr bool disable_src_zero_flag = {str(disable_src_zero_flag).lower()};"
         )
 
-    if "num_faces" in test_config:
-        num_faces = test_config["num_faces"]
+    if num_faces := test_config.get("num_faces"):  # RT
         header_content.append(f"constexpr std::uint32_t NUM_FACES = {num_faces};")
 
-    if "narrow_tile" in test_config:
-        narrow_tile = test_config["narrow_tile"].value
+    if narrow_tile := test_config.get("narrow_tile"):  # RT
         header_content.append(f"constexpr bool NARROW_TILE = {narrow_tile};")
 
     # Math fidelity & Approximation mode
-    header_content.append(
-        f"constexpr std::uint32_t MATH_FIDELITY = {test_config.get('math_fidelity', MathFidelity.LoFi).value};"
-    )
-    header_content.append(
-        f"constexpr bool APPROX_MODE = {test_config.get('approx_mode', ApproximationMode.No).value};"
-    )
 
-    # Tiny tile flag, used to handle dimension
-    tiny_tiles = test_config.get("tiny_tiles", False)
+    if math_fidelity := test_config.get("math_fidelity"):  # TP
+        header_content.append(
+            f"constexpr std::uint32_t MATH_FIDELITY = {math_fidelity.value};"
+        )
+    else:  # default value
+        header_content.append(
+            f"constexpr std::uint32_t MATH_FIDELITY = {MathFidelity.LoFi.value};"
+        )
+
+    if approx_mode := test_config.get("approx_mode"):  # TP
+
+        header_content.append(f"constexpr bool APPROX_MODE = {approx_mode.value};")
+    else:  # default value
+        header_content.append(
+            f"constexpr bool APPROX_MODE = {ApproximationMode.No.value};"
+        )
 
     # partial face - support separate configurations for A and B
     partial_face_A = str(
@@ -267,9 +248,11 @@ def generate_build_header(test_config) -> str:
     header_content.append(f"constexpr int TEST_FACE_R_DIM = {face_r_dim};")
     header_content.append(f"constexpr int TEST_FACE_C_DIM = {face_c_dim};")
 
+    # Tiny tile flag, used to handle dimension
+    tiny_tiles = test_config.get("tiny_tiles", False)
+
     # tile size
-    formats = test_config.get("formats")
-    if formats:
+    if formats := test_config.get("formats"):
         # Tile byte size mapping
         TILE_SIZES = {
             DataFormat.Bfp8_b: 68,
@@ -298,24 +281,26 @@ def generate_build_header(test_config) -> str:
         # Legacy TILE_SIZE for tests that still use it (e.g., tilize sweep)
         tile_size = 16 * 16 * num_faces
         header_content.append(f"constexpr std::uint32_t TILE_SIZE = {tile_size};")
+    else:
+        raise ValueError("Format Config not passed in test config")
 
     # Dest synchronisation mode
-    dest_sync = test_config.get("dest_sync", DestSync.Half)
+    dest_sync = test_config.get("dest_sync", DestSync.Half)  # TP
     header_content.append(
         f"constexpr auto dest_sync = ckernel::DstSync::Sync{dest_sync.name};"
     )
 
     # Destination index configuration
-    dst_index = test_config.get("dst_index", 0)
-    header_content.append(f"constexpr int DST_INDEX = {dst_index};")
+    if dst_index := test_config("dst_index"):  # RT
+        header_content.append(f"constexpr int DST_INDEX = {dst_index};")
 
     # Tilize
-    tilize_en = test_config.get("tilize", Tilize.No)
-    header_content.append(f"constexpr bool tilize_en = {tilize_en.value};")
+    if tilize_en := test_config.get("tilize"):  # TP / constexpr
+        header_content.append(f"constexpr bool tilize_en = {tilize_en.value};")
 
     # Reuse A times
-    srca_reuse_count = test_config.get("srca_reuse_count", 4)
-    header_content.append(f"constexpr int SRCA_REUSE_COUNT = {srca_reuse_count};")
+    if srca_reuse_count := test_config.get("srca_reuse_count"):  # RT
+        header_content.append(f"constexpr int SRCA_REUSE_COUNT = {srca_reuse_count};")
 
     # === DATA FORMAT INFERENCE & CONFIGURATION ===
 
@@ -328,8 +313,9 @@ def generate_build_header(test_config) -> str:
     if "profiler" in testname:
         format = DataFormat.Float16
         formats = FormatConfig(format, format, format, format, format)
-    if formats is None:
-        raise ValueError("Format Config not passed in test config")
+
+    # Dest accumulation
+    dest_acc = test_config.get("dest_acc", DestAccumulation.No)
 
     # Check if this is an outlier format combination that requires dest_acc to be enabled
     if is_format_combination_outlier(
@@ -338,11 +324,21 @@ def generate_build_header(test_config) -> str:
         # Automatically enable dest_acc for outlier combinations
         dest_acc = DestAccumulation.Yes
 
-    # Set dest_acc_en_input after potential outlier adjustment
-    header_content.append(f"constexpr bool dest_acc_en_input = {dest_acc.value};")
+    # Set is_fp32_dest_acc_en after potential outlier adjustment
+    header_content.append(f"constexpr bool is_fp32_dest_acc_en = {dest_acc.value};")
 
-    # Check if we need to generate multiple format configurations
-    l1_to_l1_iterations = test_config.get("L1_to_L1_iterations", 1)
+    # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
+    # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
+    # L1_to_L1_iterations is the number of times we perform llk operations from L1 input tensor to L1 output tensor
+    # If L1_to_L1_ITERATIONS is 1, we take input tensor from L1 -> unpack -> math -> pack -> L1
+    # If L1_to_L1_ITERATIONS is greater than 1, we perform multiple iterations of unpack -> math -> pack, by taking results tensor in L1 to be input tensor of next iteration
+
+    l1_to_l1_iterations = test_config.get(
+        "L1_to_L1_iterations", 1
+    )  # TP for fused tests in params.h, this one is weird cuz it's used to generate a lot of other variables that are used in just a few tests
+    header_content.append(
+        f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {l1_to_l1_iterations};"
+    )
 
     formats_config = data_formats(
         input_format=formats.input_format,
@@ -353,6 +349,8 @@ def generate_build_header(test_config) -> str:
         chip_arch=get_chip_architecture(),
         disable_format_inference=test_config.get("disable_format_inference", False),
     )
+
+    # Check if we need to generate multiple format configurations
 
     if l1_to_l1_iterations > 1:
         # Generate format data as arrays that params.h can use to construct FormatConfig objects
@@ -413,12 +411,12 @@ def generate_build_header(test_config) -> str:
         header_content.extend(_generate_operation_constants(mathop))
 
         # Handle reduce operations
-        if mathop in REDUCE_OPERATIONS:
+        if mathop in REDUCE_OPERATIONS:  # RT
             header_content.append(
                 f"constexpr auto REDUCE_DIM = ckernel::ReduceDim::{mathop.cpp_enum_value};"
             )
-            pool_type = test_config.get("pool_type", None)
-            if pool_type is not None:
+            if "pool_type" in test_config:  # TP
+                pool_type = test_config["pool_type"]
                 header_content.append(
                     f"constexpr auto POOL_TYPE = ckernel::PoolType::{pool_type.value};"
                 )
@@ -426,8 +424,7 @@ def generate_build_header(test_config) -> str:
     # Optional extra unary operation (used when both a binary and unary op
     # need to be present in the same kernel, e.g. binary-eltwise followed by
     # SFPU unary).  If 'unary_op' exists, append its constant.
-    unary_extra = test_config.get("unary_op", None)
-    if unary_extra is not None:
+    if unary_extra := test_config.get("unary_op"):  # TP
         # Only add if we haven't already added a unary operation from the main mathop
         if mathop == "no_mathop" or mathop not in SFPU_UNARY_OPERATIONS:
             header_content.extend(["", "// Additional SFPU unary operation"])
@@ -436,8 +433,7 @@ def generate_build_header(test_config) -> str:
             )
 
     # Destination sync mode configuration
-    dst_sync = test_config.get("dst_sync", None)
-    if dst_sync is not None:
+    if dst_sync := test_config.get("dst_sync"):  # TP
         header_content.extend(["", "// Destination sync configuration"])
         header_content.append(
             f"constexpr auto DST_SYNC = ckernel::DstSync::{dst_sync.value};"
@@ -495,7 +491,7 @@ def generate_build_header(test_config) -> str:
         ]
     )
 
-    # Add matrix multiplication tile dimensions if they exist
+    # Matrix multiplication tile dimensions
     if "rt_dim" in test_config:
         header_content.append(f"constexpr uint32_t RT_DIM = {test_config['rt_dim']};")
     if "ct_dim" in test_config:
@@ -504,13 +500,13 @@ def generate_build_header(test_config) -> str:
         header_content.append(f"constexpr uint32_t KT_DIM = {test_config['kt_dim']};")
 
     # Add top row flag
-    add_top_row = test_config.get("add_top_row", False)
+    add_top_row = test_config.get(
+        "add_top_row", False
+    )  # TODO I'm not sure what this is used for
     if add_top_row:
         header_content.append("constexpr bool ADD_TOP_ROW = true;")
 
-    header_content.append("")
-
-    if perf_run_type := test_config.get("perf_run_type"):
+    if perf_run_type := test_config.get("perf_run_type"):  # TP
         header_content.append("")
         header_content.append(
             f"constexpr auto PERF_RUN_TYPE = PerfRunType::{perf_run_type.name};"

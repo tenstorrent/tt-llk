@@ -11,7 +11,7 @@
 #include "build.h"
 #include "ckernel_defs.h"
 #include "ckernel_sfpu.h"
-#include "data_format_inference.h"
+// #include "data_format_inference.h"
 #include "tensix_types.h"
 
 inline uint32_t L1_ADDRESS(uint32_t buffer_address)
@@ -31,12 +31,33 @@ constexpr std::underlying_type_t<DataFormat> get_data_format(DataFormat format)
 }
 } // namespace
 
-constexpr bool unpack_to_dest = UNPACKING_TO_DEST;
-
 /*DATA FORMAT CONFIGURATION*/
 
-// Given input and output formats, infer the rest of the format configuration
-constexpr bool is_fp32_dest_acc_en = dest_acc_en_input; // dest_acc doesn't require adjustment; configuration is hard-coded
+/**
+ * @struct FormatConfig
+ * @brief Holds data format configurations for each stage of compute pipeline.
+ * including unpacking, math operations, and packing.
+ *
+ * Each member represents the data format used at a specific stage:
+ * - unpack_src: unpacker input format found in L1.
+ * - unpack_dst: unpacker output format when unpacking from L1 to the register(s).
+ * - math: math format used during compute operations and storing in dest register.
+ * - pack_src: packer input format, when packing from dest register to L1.
+ * - pack_dst: packer output format, desired result format in L1.
+ */
+struct FormatConfig
+{
+    const uint32_t unpack_src;
+    const uint32_t unpack_dst;
+    const uint32_t math;
+    const uint32_t pack_src;
+    const uint32_t pack_dst;
+
+    constexpr FormatConfig(uint32_t unpack_src_, uint32_t unpack_dst_, uint32_t math_, uint32_t pack_src_, uint32_t pack_dst_) :
+        unpack_src(unpack_src_), unpack_dst(unpack_dst_), math(math_), pack_src(pack_src_), pack_dst(pack_dst_)
+    {
+    }
+};
 
 // Build formats configurations L1-L1 run(s)
 #if FUSED_MULTIPLE_RUNS

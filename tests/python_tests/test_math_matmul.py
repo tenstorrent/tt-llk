@@ -177,7 +177,7 @@ def test_math_matmul(
         "partial_face_A": matmul_config.face_layout_config.partial_face_A,  # Partial face setting for matrix A
         "partial_face_B": matmul_config.face_layout_config.partial_face_B,  # Partial face setting for matrix B
         "tiny_tiles": matmul_config.tile_dimensions.in0_tile_r_dim <= 16,
-        "throttle": throttle,
+        "throttle_level": throttle,
         "dst_index": matmul_config.dst_index,
         "dest_sync": matmul_config.dest_sync,
     }

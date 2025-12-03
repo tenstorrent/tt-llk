@@ -144,7 +144,7 @@ def resolve_compile_options(
     ):
         return (OPTIONS_COMPILE, MEMORY_LAYOUT_LD_SCRIPT, NON_COVERAGE_OPTIONS_COMPILE)
 
-    MEMORY_LAYOUT_LD_SCRIPT = f"{LINKER_SCRIPTS}/memory.{ARCH}.ld"
+    MEMORY_LAYOUT_LD_SCRIPT = f"{LINKER_SCRIPTS}/memory.{ARCH}.debug.ld"
     OPTIONS_COMPILE = f"{INCLUDES} {INITIAL_OPTIONS_COMPILE} "
 
     if boot_mode == BootMode.TRISC:
@@ -218,11 +218,12 @@ def build_shared_artefacts(
             TESTS_WORKING_DIR,
         )
 
-    # for name in KERNEL_COMPONENTS:
-    #     build_kernel_part_main(name)
-
     with ThreadPoolExecutor(max_workers=3) as executor:
-        executor.map(build_kernel_part_main, KERNEL_COMPONENTS)
+        futures = [
+            executor.submit(build_kernel_part_main, name) for name in KERNEL_COMPONENTS
+        ]
+        for fut in futures:
+            fut.result()
 
     # brisc.elf : tmu-crt0.o brisc.o coverage.o
     run_shell_command(
@@ -306,11 +307,12 @@ def build_test_variant(
             TESTS_WORKING_DIR,
         )
 
-    # for name in KERNEL_COMPONENTS:
-    #     build_kernel_part(name)
-
     with ThreadPoolExecutor(max_workers=3) as executor:
-        executor.map(build_kernel_part, KERNEL_COMPONENTS)
+        futures = [
+            executor.submit(build_kernel_part, name) for name in KERNEL_COMPONENTS
+        ]
+        for fut in futures:
+            fut.result()
 
     if profiler_build == ProfilerBuild.Yes:
         # Extract profiler metadata
