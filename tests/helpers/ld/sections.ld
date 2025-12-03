@@ -39,7 +39,10 @@ SECTIONS
   } > REGION_LOADER_CODE
 
 
-
+  /*
+   * This section is used for testing pipeline optimisation. It solves the problem of needing to compile the whole
+   * kernel again on change of function arguments to LLK API functions
+   */
   .runtime_args :
   {
     __runtime_args_start = .;

@@ -58,19 +58,19 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     MATMUL_FORMATS, DEST_ACC_MODES
 )
 
-import json
+# import json
 
 
-class MyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if hasattr(obj, "to_json"):
-            return obj.to_json()
-        return super().default(obj)
+# class MyEncoder(json.JSONEncoder):
+#     def default(self, obj):
+#         if hasattr(obj, "to_json"):
+#             return obj.to_json()
+#         return super().default(obj)
 
 
-# Writing to a JSON file with indentation
-with open("output.json", "w") as outfile:
-    json.dump(ALL_MATMUL_COMBINATIONS, outfile, indent=4, cls=MyEncoder)
+# # Writing to a JSON file with indentation
+# with open("output.json", "w") as outfile:
+#     json.dump(ALL_MATMUL_COMBINATIONS, outfile, indent=4, cls=MyEncoder)
 
 
 @parametrize(
