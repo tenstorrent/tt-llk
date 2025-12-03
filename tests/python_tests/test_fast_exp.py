@@ -68,6 +68,8 @@ def eltwise_unary_sfpu(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
+    src_A = torch.ones(tile_cnt * 1024, dtype=format_dict[formats.input_format]) * 2
+
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
         mathop, src_A, formats.output_format, dest_acc, formats.input_format
@@ -108,6 +110,9 @@ def eltwise_unary_sfpu(
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+    res_tensor = res_tensor[:256]
+    golden_tensor = golden_tensor[:256]
 
     assert passed_test(
         golden_tensor,

@@ -162,95 +162,40 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
-        // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is more negative than that, swap the input
-        // value with -88.5 and store back to DEST
-        //  - in other words, after the sanitize step, the values in DEST will be in the range {-88.5 , +inf}
+        TTI_SFPLOAD(3, 0, 0, 0);
 
-        // Macro Sequence Register 1 configured to read back in the original values from dest, sanitize them to a range we can handle, and then store them back
-        // to dest
-        //  LD     : bring in the original value from DEST (y)
-        //  MAD    : unused
-        //  ROUND  : unused
-        //  SIMPLE : SWAP the larger value of y and -88.5 into the LREG
-        //  STORE  : store the sanitized value back to dest
-        TTI_SFPLOADMACRO(
-            4,
-            0,
-            ADDR_MOD_7,
-            0);     // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value - Dest offset  0 is targeting the even columns for rows   3: 0
-        TTI_SFPNOP; // NOP is necessary because the SWAP operation takes 2 cycles and unfortunately is not pipelined
-        TTI_SFPLOADMACRO(
-            5,
-            0,
-            ADDR_MOD_7,
-            2); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value - Dest offset  2 is targeting the odd  columns for rows   3: 0
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(
-            6,
-            0,
-            ADDR_MOD_7,
-            4); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value - Dest offset  4 is targeting the even columns for rows   7: 4
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(
-            7,
-            0,
-            ADDR_MOD_7,
-            6); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value - Dest offset  6 is targeting the odd  columns for rows   7: 4
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(
-            4,
-            0,
-            ADDR_MOD_7,
-            8); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value - Dest offset  8 is targeting the even columns for rows  11: 8
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(
-            5,
-            0,
-            ADDR_MOD_7,
-            10); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value - Dest offset 10 is targeting the even columns for rows  11: 8
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(
-            6,
-            0,
-            ADDR_MOD_7,
-            12); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value - Dest offset 12 is targeting the odd  columns for rows  15:12
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(
-            7,
-            0,
-            ADDR_MOD_7,
-            14); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value - Dest offset 14 is targeting the even columns for rows  15:12
-        // NOP not needed in this spot because the next LoadMacro is a computational macro which doesn't immediately use the SIMPLE unit
+        TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG3, p_sfpu::LCONST_0, p_sfpu::LREG3, 0); // lreg 3 = 1reg3*1g2 (e)
+        // Convert lreg[3] to unsigned int I (lreg1 = uint8 (lreg3))
+        TTI_SFP_STOCH_RND(2, 0, 0, p_sfpu::LREG3, p_sfpu::LREG1, 0x6);
 
-        // Macro Sequence Register 0 configured to read back in the sanitized values and calculate the approximate exponential value
-        //  LD     : the sanitized value from DEST (y)
-        //  MAD    : compute (A * y) + (B-C)  , where A = (2^8)/ln(2) , B = 127 * (2^8) , C = Adjustment parameter of roughly 11.2 to minimize error
-        //  ROUND  : convert the MAD result from FP32 to a 16-bit unsigned integer using stochastic rounding
-        //  SIMPLE : shift the 16-bit integer to the left by 15 bits to place the MSB of the computed value into the MSB of the exponent bits of the fp32 format
-        //  STORE  : store the shifted value back to dest
-        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 0); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[0] for loading and intermediate results
-                                               // - Dest offset  0 is targeting the even columns for rows   3: 0
-        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 2); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[1] for loading and intermediate results
-                                               // - Dest offset  2 is targeting the odd  columns for rows   3: 0
-        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 4); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[2] for loading and intermediate results
-                                               // - Dest offset  4 is targeting the even columns for rows   7: 4
-        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 6); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[3] for loading and intermediate results
-                                               // - Dest offset  6 is targeting the odd  columns for rows   7: 4
-        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 8); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[0] for loading and intermediate results
-                                               // - Dest offset  8 is targeting the even columns for rows  11: 8
-        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 10); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[1] for loading and intermediate
-                                                // results - Dest offset 10 is targeting the even columns for rows  11: 8
-        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 12); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[2] for loading and intermediate
-                                                // results - Dest offset 12 is targeting the odd  columns for rows  15:12
-        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 14); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[3] for loading and intermediate
-                                                // results - Dest offset 14 is targeting the even columns for rows  15:12
-        // NOP needed to allow time for the final Computation Loadmacro to complete before returning to the Sanitation Loadmacro at the top for the next
-        // iteration
-        //  - to be completely safe, use 3 NOP; in practice 1 seems to be enough, probably because the overhead of the DEST INCRW stuff introduces 2 cycles of
-        //  delay
-        TTI_SFPNOP;
-        // TTI_SFPNOP;
-        // TTI_SFPNOP;
+        TTI_SFPIADD(127, p_sfpu::LREG1, p_sfpu::LREG2, 0x1); // lreg2 = 1reg1+127
+        //// Saturate uint8
+        TTI_SFP_STOCH_RND(2, 0, 0, p_sfpu::LREG2, p_sfpu::LREG5, 0x4 | 0x8);
+
+        TTI_SFPSHFT(23, p_sfpu::LREG5, p_sfpu::LREG2, 0x5); // lreg2 = lreg2 << 23
+        // Compute fractional F
+        TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG0, 0x0);                                          // lreg0 = (float) 1reg1
+        TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG1, 1);                                       // lreg1 = abs(lreg3)
+        TTI_SFPMAD(p_sfpu::LCONST_1 /*1.0f*/, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LREG0, 0x1); // lreg0 = 1reg1
+        // Compute F ln2
+        TTI_SFPMAD(p_sfpu::LREG6, p_sfpu::LREG0, p_sfpu::LCONST_0 /*0.0*/, p_sfpu::LREG0, 0x0); // lreg0 = 1n2*1
+        // TTI_NOP; TTI_NOP; // MMDec 13 2022: Should no longer be needed
+        //  LUT for e^(Fln2)
+        TTI_SFPARECIP(0, p_sfpu::LREG0, p_sfpu::LREG0, 2);
+        // TTI_NOP; // MMDec 13 2022: Should no longer be needed
+        //  multiply 2^I and e^Fln2
+        TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LCONST_0 /*0.0*/, p_sfpu::LREG0, 0x0); // 1reg0 = 1reg2
+        // TTI_NOP; TTI_NOP; // MMDec 13 2022: Should no longer be needed
+        //  // Take reciprocal if lreg[3] is negative, copy LREG0 into LREG0
+        TTI_SFPARECIP(3, 0, 0, 1);
+        // TTI_NOP; // MMDec 13 2022: Should no longer be needed
+        //  Apply Error Correction to result
+        // TTI_SFPMAD (p_sfpu:: LREG0, P_sfpu:: LREG7, P_sfpu: :LCONST_0, P_sfpu:: LREG0, 0x0) ;
+        //  // 111/
+        //  // TTI_SFPLOAD(1, 0, 0, offset);
+        TTI_SFPSTORE(0, 0, 0, 0);
+        // load from dest
+        // Store from lreg[3] into dest registers
     }
     else
     {
