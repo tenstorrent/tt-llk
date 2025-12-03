@@ -23,6 +23,9 @@ class DataFormatInfo:
         """Returns the string representation of the data format info."""
         return f"{self.value.name} [ {self.byte_size} B ]"
 
+    def to_json(self) -> str:
+        return f"{self.value.name} [ {self.byte_size} B ]"
+
 
 class DataFormat(Enum):
     """
@@ -196,6 +199,16 @@ class InputOutputFormat:
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def to_json(self):
+        return {
+            "input": (
+                self.input.value if hasattr(self.input, "value") else str(self.input)
+            ),
+            "output": (
+                self.output.value if hasattr(self.output, "value") else str(self.output)
+            ),
+        }
 
 
 def create_formats_for_testing(formats: List[Tuple[DataFormat]]) -> List[FormatConfig]:

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import shutil
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from pathlib import Path
@@ -102,15 +103,29 @@ INCLUDES = f"-I../{ARCH_LLK_ROOT}/llk_lib -I../{ARCH_LLK_ROOT}/common/inc -I../{
 KERNEL_COMPONENTS = ["unpack", "math", "pack"]
 
 # Artefact directories
-BUILD_DIR = Path("/tmp/tt-llk-build")
-SHARED_DIR = BUILD_DIR / "shared"
-SHARED_OBJ_DIR = SHARED_DIR / "obj"
-SHARED_ELF_DIR = SHARED_DIR / "elf"
-COVERAGE_INFO_DIR = BUILD_DIR / "coverage_info"
 
-create_directories(
-    [BUILD_DIR, SHARED_DIR, SHARED_OBJ_DIR, SHARED_ELF_DIR, COVERAGE_INFO_DIR]
-)
+BUILD_DIR = None
+SHARED_DIR = None
+SHARED_OBJ_DIR = None
+SHARED_ELF_DIR = None
+COVERAGE_INFO_DIR = None
+
+
+def setup_build_dir(path: Path):
+    global BUILD_DIR, SHARED_DIR, SHARED_OBJ_DIR, SHARED_ELF_DIR, COVERAGE_INFO_DIR
+
+    shutil.rmtree(path, ignore_errors=True)  # Always have a fresh build
+
+    BUILD_DIR = path
+    SHARED_DIR = BUILD_DIR / "shared"
+    SHARED_OBJ_DIR = SHARED_DIR / "obj"
+    SHARED_ELF_DIR = SHARED_DIR / "elf"
+    COVERAGE_INFO_DIR = BUILD_DIR / "coverage_info"
+
+    create_directories(
+        [BUILD_DIR, SHARED_DIR, SHARED_OBJ_DIR, SHARED_ELF_DIR, COVERAGE_INFO_DIR]
+    )
+
 
 OPTIONS_COMPILE = None
 MEMORY_LAYOUT_LD_SCRIPT = None
@@ -164,7 +179,7 @@ def build_shared_artefacts(
     profiler_build: ProfilerBuild,
     coverage_build: CoverageBuild,
 ) -> bool:
-    global SHARED_ARTEFACTS_AVAILABLE
+    global SHARED_ARTEFACTS_AVAILABLE, BUILD_DIR, SHARED_DIR, SHARED_OBJ_DIR, SHARED_ELF_DIR, COVERAGE_INFO_DIR
     # Build shared files - brisc.o, coverage.o, C-runtime, brisc.elf and main_%.o files
     if SHARED_ARTEFACTS_AVAILABLE:
         return True
@@ -199,9 +214,12 @@ def build_shared_artefacts(
 
     def build_kernel_part_main(name: str):
         run_shell_command(  # main_%.o
-            f"""{GXX} {ARCH_COMPUTE} {OPTIONS_ALL} {local_non_coverage} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {SHARED_OBJ_DIR / f"main_{name}.o"} {RISCV_SOURCES / "trisc.cpp"}""",
+            f"""{GXX} {ARCH_COMPUTE} {OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {SHARED_OBJ_DIR / f"main_{name}.o"} {RISCV_SOURCES / "trisc.cpp"}""",
             TESTS_WORKING_DIR,
         )
+
+    # for name in KERNEL_COMPONENTS:
+    #     build_kernel_part_main(name)
 
     with ThreadPoolExecutor(max_workers=3) as executor:
         executor.map(build_kernel_part_main, KERNEL_COMPONENTS)
@@ -250,6 +268,7 @@ def build_test_variant(
     profiler_build: ProfilerBuild = ProfilerBuild.No,
     coverage_build: CoverageBuild = CoverageBuild.No,
 ):
+    global BUILD_DIR, SHARED_DIR, SHARED_OBJ_DIR, SHARED_ELF_DIR, COVERAGE_INFO_DIR
     VARIANT_DIR = BUILD_DIR / test_config["testname"] / variant_id
     VARIANT_OBJ_DIR = VARIANT_DIR / "obj"
     VARIANT_ELF_DIR = VARIANT_DIR / "elf"
@@ -283,9 +302,12 @@ def build_test_variant(
         )
 
         run_shell_command(  # %.elf : tmu-crt0.o main_%.o kernel_%.o coverage.o
-            f"""{GXX} {ARCH_COMPUTE} {OPTIONS_ALL} {OPTIONS_LINK} {SHARED_OBJ_DIR / "tmu-crt0.o"} {SHARED_OBJ_DIR / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {SFPI_DEPS} -T{local_memory_layout_ld} -T{LINKER_SCRIPTS / f"{name}.ld"} {LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
+            f"""{GXX} {ARCH_COMPUTE} {OPTIONS_ALL} {OPTIONS_LINK} {SHARED_OBJ_DIR / "tmu-crt0.o"} {SHARED_OBJ_DIR / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {SFPI_DEPS} -T{local_memory_layout_ld} -T{LINKER_SCRIPTS / f"{name}.ld"} -T{LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
             TESTS_WORKING_DIR,
         )
+
+    # for name in KERNEL_COMPONENTS:
+    #     build_kernel_part(name)
 
     with ThreadPoolExecutor(max_workers=3) as executor:
         executor.map(build_kernel_part, KERNEL_COMPONENTS)

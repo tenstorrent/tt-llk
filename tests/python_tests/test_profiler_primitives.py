@@ -4,8 +4,9 @@
 from hashlib import sha256
 
 import pandas as pd
+from helpers.makefile import ProfilerBuild
 from helpers.profiler import Profiler
-from helpers.test_config import ProfilerBuild, run_test
+from helpers.test_config import run_test
 
 
 def assert_marker(

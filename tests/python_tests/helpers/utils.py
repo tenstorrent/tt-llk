@@ -50,6 +50,7 @@ def run_shell_command(command: str, cwd: str | None = None):
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
     )
+
     if result.returncode != 0:
         raise RuntimeError(f"Build failed: {command}\n{result.stderr}")
     return result

@@ -19,6 +19,8 @@ class TestTargetConfig:
         simulator_port=5555,
         device_id=0,
         with_coverage=False,
+        compile_producer=None,
+        compile_consumer=None,
         log_level="INFO",
     ):
         """
@@ -35,6 +37,8 @@ class TestTargetConfig:
             self.simulator_port: int = simulator_port
             self.device_id: int = device_id
             self.with_coverage: bool = with_coverage
+            self.compile_producer: str = (compile_producer,)
+            self.compile_consumer: str = (compile_consumer,)
             self.log_level: str = log_level
             TestTargetConfig._initialized = True
 
@@ -43,6 +47,12 @@ class TestTargetConfig:
         self.run_simulator = config.getoption("--run_simulator", default=False)
         self.simulator_port = config.getoption("--port", default=5555)
         self.with_coverage = config.getoption("--coverage", default=False)
+        self.compile_producer = config.getoption(
+            "--compile-producer", default="/tmp/tt-llk-build/"
+        )  # TODO Discuss default paths
+        self.compile_consumer = config.getoption(
+            "--compile-consumer", default="/tmp/tt-llk-build/"
+        )  # TODO Discuss default paths
 
 
 def initialize_test_target_from_pytest(config):

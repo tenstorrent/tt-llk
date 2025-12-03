@@ -17,7 +17,11 @@ from test_matmul import test_matmul as run_matmul
     boot_mode=[BootMode.BRISC, BootMode.TRISC, BootMode.EXALENS],
 )
 def test_boot_modes(boot_mode, workers_tensix_coordinates):
+
+    # This needs to be executed only by itself, cuz it will kill other tests
+    # + firmware isn't compiled multiple times to account for bootmode change
     pytest.skip()
+
     test_name = "matmul_test"
     math_fidelity = MathFidelity.LoFi
     format_dest_acc_and_dims = (

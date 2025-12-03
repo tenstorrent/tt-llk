@@ -9,11 +9,9 @@ from pathlib import Path
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.device import reset_mailboxes
 from helpers.format_config import InputOutputFormat
 from helpers.log_utils import _format_log
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
-from ttexalens import tt_exalens_init
 from ttexalens.tt_exalens_lib import arc_msg
 
 
@@ -25,6 +23,10 @@ def init_llk_home():
 
 # Default LLK_HOME environment variable
 init_llk_home()
+
+from helpers.makefile import (
+    setup_build_dir,  # makefile.py uses  LLK_HOME environment variable
+)
 
 # imports for pytest fixtures
 from helpers.perf import perf_report  # noqa: F401  # isort:skip
@@ -91,10 +93,10 @@ def check_hardware_headers():
     print(f"✓ Hardware-specific headers for {arch_name} are present")
 
 
-@pytest.fixture(autouse=True)
-def reset_mailboxes_fixture():
-    reset_mailboxes()
-    yield
+# @pytest.fixture(autouse=True)
+# def reset_mailboxes_fixture():
+#     reset_mailboxes()
+#     yield
 
 
 @pytest.fixture()
@@ -124,10 +126,13 @@ def pytest_configure(config):
     initialize_test_target_from_pytest(config)
     test_target = TestTargetConfig()
 
-    if test_target.run_simulator:
-        tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
-    else:
-        tt_exalens_init.init_ttexalens()
+    if test_target.compile_producer:
+        return
+
+    # if test_target.run_simulator:
+    #     tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
+    # else:
+    #     tt_exalens_init.init_ttexalens()
 
 
 def _stringify_params(params):
@@ -178,9 +183,16 @@ def pytest_sessionstart(session):
     check_hardware_headers()
 
     test_target = TestTargetConfig()
-    if not test_target.run_simulator:
-        # Send ARC message for GO BUSY signal. This should increase device clock speed.
-        _send_arc_message("GO_BUSY", test_target.device_id)
+
+    if TestTargetConfig().compile_producer is None:
+        setup_build_dir(Path("/tmp/tt-llk-build"))
+    else:
+        print(Path(TestTargetConfig().compile_producer))
+        setup_build_dir(Path(TestTargetConfig().compile_producer))
+
+    # if not test_target.run_simulator and not test_target.compile_producer:
+    #     # Send ARC message for GO BUSY signal. This should increase device clock speed.
+    #     _send_arc_message("GO_BUSY", test_target.device_id)
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -225,10 +237,25 @@ def pytest_addoption(parser):
         default=5555,
         help="Integer number of the server port.",
     )
+
     parser.addoption(
         "--coverage",
         action="store_true",
-        help="Enables coverage file generation for every test run",
+        help="Enables coverage *.info file generation for every test variant run",
+    )
+
+    parser.addoption(
+        "--compile-producer",
+        action="store",
+        type=str,
+        help="Only compile *.elf(s) for every test variant selected and store them on path specified",
+    )
+
+    parser.addoption(
+        "--compile-consumer",
+        action="store",
+        type=str,
+        help="Consume pre-compiled *.elf(s) for every test variant selected, from pre-specified path, and execute specified variants",
     )
 
 

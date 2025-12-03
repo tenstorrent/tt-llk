@@ -38,6 +38,15 @@ SECTIONS
     __loader_code_end = .;
   } > REGION_LOADER_CODE
 
+
+
+  .runtime_args :
+  {
+    __runtime_args_start = .;
+    . += LENGTH(REGION_RUNTIME_ARGS);
+    __runtime_args_end = .;
+  } > REGION_RUNTIME_ARGS
+
   /*
    * Rest of the sections are standard sections
    */
