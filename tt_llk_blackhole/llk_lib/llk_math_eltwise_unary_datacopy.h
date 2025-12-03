@@ -18,10 +18,20 @@ using namespace ckernel;
 // local function declarations
 inline void eltwise_unary_configure_addrmod();
 
-template <DataCopyType type, DstSync Dst, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
+template <DataCopyType type, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
 inline void _llk_math_eltwise_unary_datacopy_(
     const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format, const std::uint32_t num_faces = 4)
 {
+    if constexpr (type == A2D)
+    {
+        llk_san_math_operand_check(dst_format, llk_san_x);
+    }
+    else
+    {
+        llk_san_math_operand_check(llk_san_x, dst_format);
+    }
+    llk_san_operation<llk_san_op::EltwiseUnaryDatacopy>(type, src_b_bcast_type, num_faces, dst_format);
+
     // For 32bit data, each half of DEST can take 16 tiles. Since dest offset is returned as if 16bit data are used, we need to
     // adjust it to offset in faces for 32bit data.
     std::uint32_t dest_base_offset_in_faces = get_dest_buffer_base() >> 5;
@@ -230,12 +240,18 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
 
 template <DataCopyType type, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool tilize = false, bool is_int_fpu_en = false>
 // within_face_16x16_transpose is used by unpacker, math does not transpose
-inline void _llk_math_eltwise_unary_datacopy_init_(
-    [[maybe_unused]] const std::uint32_t transpose_of_faces          = 0,
-    [[maybe_unused]] const std::uint32_t within_face_16x16_transpose = 0,
-    const std::uint32_t num_faces                                    = 4,
-    const std::uint32_t dst_format                                   = 255)
+inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces = 4, const std::uint32_t dst_format = 255)
 {
+    if constexpr (type == A2D)
+    {
+        llk_san_math_operand_check(dst_format, llk_san_x);
+    }
+    else
+    {
+        llk_san_math_operand_check(llk_san_x, dst_format);
+    }
+    llk_san_init<llk_san_op::EltwiseUnaryDatacopy>(type, src_b_bcast_type, num_faces, dst_format);
+
     eltwise_unary_configure_addrmod<type, src_b_bcast_type>();
 
     if constexpr (type == A2D)

@@ -21,9 +21,6 @@ using namespace ckernel;
 template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL>
 inline void matmul_configure_addrmod(
     const bool transpose,
-    [[maybe_unused]] const std::uint32_t ct_dim,
-    [[maybe_unused]] const std::uint32_t rt_dim,
-    [[maybe_unused]] const std::uint32_t kt_dim,
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
     const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
     const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
@@ -278,10 +275,8 @@ inline void matmul_configure_addrmod(
 
 template <int NUM_FIDELITY_PHASES>
 inline void matmul_configure_mop(
-    [[maybe_unused]] bool transpose,
     const std::uint32_t ct_dim,
     const std::uint32_t rt_dim,
-    [[maybe_unused]] const std::uint32_t kt_dim,
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
     const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
     const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
@@ -516,10 +511,8 @@ void run_throttled_sequence<5>()
  */
 template <int NUM_FIDELITY_PHASES, int THROTTLE_LEVEL>
 inline void matmul_configure_mop_throttled(
-    [[maybe_unused]] bool transpose,
     const std::uint32_t ct_dim,
     const std::uint32_t rt_dim,
-    [[maybe_unused]] const std::uint32_t kt_dim,
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
     const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
     const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
@@ -604,34 +597,30 @@ inline void _llk_math_matmul_init_(
     const bool partial_face            = false,
     const std::uint32_t transpose      = 0,
     const std::uint32_t ct_dim         = 1,
-    const std::uint32_t rt_dim         = 1,
-    const std::uint32_t kt_dim         = 1)
+    const std::uint32_t rt_dim         = 1)
 {
-    matmul_configure_addrmod<MATH_FIDELITY_DESC, THROTTLE_LEVEL>(
-        transpose, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
+    llk_san_init<llk_san_op::Matmul>(MATH_FIDELITY_DESC, THROTTLE_LEVEL, ct_dim, rt_dim);
+
+    matmul_configure_addrmod<MATH_FIDELITY_DESC, THROTTLE_LEVEL>(transpose, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
 
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     if constexpr (THROTTLE_LEVEL > 0)
     {
         matmul_configure_mop_throttled<MATH_FIDELITY_PHASES, THROTTLE_LEVEL>(
-            transpose > 0, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
+            ct_dim, rt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     }
     else
     {
-        matmul_configure_mop<MATH_FIDELITY_PHASES>(
-            transpose > 0, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
+        matmul_configure_mop<MATH_FIDELITY_PHASES>(ct_dim, rt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     }
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
 template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0>
-inline void _llk_math_matmul_(
-    uint dst_index,
-    [[maybe_unused]] const bool transpose       = false,
-    const std::uint32_t ct_dim                  = 1,
-    const std::uint32_t rt_dim                  = 1,
-    [[maybe_unused]] const std::uint32_t kt_dim = 1)
+inline void _llk_math_matmul_(uint dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
 {
+    llk_san_operation<llk_san_op::Matmul>(MATH_FIDELITY_DESC, THROTTLE_LEVEL, ct_dim, rt_dim);
+
     const bool reuse_a                = ct_dim >= rt_dim;
     const std::uint32_t t_dim         = reuse_a ? rt_dim : ct_dim;
     const std::uint32_t rut_dim       = reuse_a ? ct_dim : rt_dim; // reuse-dim

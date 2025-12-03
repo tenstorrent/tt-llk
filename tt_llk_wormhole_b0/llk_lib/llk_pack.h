@@ -105,9 +105,10 @@ inline void _llk_pack_reconfig_data_format_(
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
     const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false)
+    const bool partial_face        = false)
 {
+    llk_san_pack_hw_configure<true>(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, llk_san_x, num_faces, partial_face, llk_san_x);
+
     reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, face_r_dim, num_faces, partial_face);
 }
 
@@ -120,6 +121,8 @@ inline void _llk_pack_hw_configure_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
+    llk_san_pack_configure(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, llk_san_x, num_faces, partial_face, narrow_tile);
+
     configure_pack<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
@@ -131,34 +134,22 @@ inline void _llk_pack_init_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
+    llk_san_pack_operand_check(llk_san_x, llk_san_x, pack_dst_format, face_r_dim, llk_san_x, num_faces, partial_face, narrow_tile);
+    llk_san_init<llk_san_op::Pack>(untilize);
+
     _llk_pack_configure_addrmod_<untilize>();
     _llk_pack_mop_config_<untilize, zero_output>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+    set_packer_l1_offset(pack_dst_format, face_r_dim);
+    const uint face_dim   = face_r_dim * FACE_C_DIM;
+    const uint pack_x_dim = (narrow_tile || !untilize) ? face_dim : FACE_R_DIM;
+    TT_SETADCXX(p_setadc::PAC, pack_x_dim - 1, 0x0);
 }
 
-template <bool untilize = false, bool zero_output = false>
-inline void _llk_pack_init_(
-    const std::uint32_t pack_dst_format,
-    const std::uint32_t pack_src_format,
-    const std::uint32_t face_r_dim,
-    const std::uint32_t num_faces,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false,
-    const bool include_setup_calls = false)
-{
-    _llk_pack_configure_addrmod_<untilize>();
-    _llk_pack_mop_config_<untilize, zero_output, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
-    if (include_setup_calls)
-    {
-        set_packer_l1_offset(pack_dst_format);
-        const uint face_dim   = face_r_dim * FACE_C_DIM;
-        const uint pack_x_dim = (narrow_tile || !untilize) ? face_dim : FACE_R_DIM;
-        TT_SETADCXX(p_setadc::PAC, pack_x_dim - 1, 0x0);
-    }
-}
-
-template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
+template <bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
+    llk_san_operation<llk_san_op::Pack>(untilize);
+
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
     program_packer_destination(address);

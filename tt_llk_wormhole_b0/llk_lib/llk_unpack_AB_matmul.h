@@ -21,12 +21,7 @@ using namespace ckernel::unpacker;
 // transpose is unused, math is adjusted to take into account srca face layout when transpose=true
 template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
 inline void _llk_unpack_AB_matmul_mop_config_(
-    [[maybe_unused]] const bool transpose,
-    const std::uint32_t ct_dim,
-    const std::uint32_t rt_dim,
-    [[maybe_unused]] const std::uint32_t kt_dim,
-    const bool unpA_partial_face,
-    const bool unpB_partial_face)
+    const std::uint32_t ct_dim, const std::uint32_t rt_dim, const bool unpA_partial_face, const bool unpB_partial_face)
 {
     // in0/inA - loaded to SrcB
     // in1/inB - loaded to SrcA
@@ -171,6 +166,10 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     const std::uint32_t unpA_tile_size  = 0,
     const std::uint32_t unpB_tile_size  = 0)
 {
+    llk_san_init<llk_san_op::UnpackABMatmul>(
+        kernel_broadcast_a, kernel_broadcast_b, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face, unpA_tile_size, unpB_tile_size);
+    llk_san_extended_state_mask(llk_san_cfg::Transpose, llk_san_cfg::AdcXX, llk_san_cfg::Mop); // ADCZW counters and GPRS not tracked here for now
+
     // also turn on within_face_16x16_transpose if it was turned off by datacopy at runtime
     // on WH, the unpacker performs both transpose of faces as well as transpose each face.
     // the former is configured in mop, the latter is configured in cfg register in hw_configure
@@ -209,7 +208,7 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     TT_SETDMAREG(0, LOWER_HALFWORD(unpA_tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_A));
     TT_SETDMAREG(0, LOWER_HALFWORD(unpB_tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_B));
 
-    _llk_unpack_AB_matmul_mop_config_<kernel_broadcast_a, kernel_broadcast_b>(transpose != 0, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face);
+    _llk_unpack_AB_matmul_mop_config_<kernel_broadcast_a, kernel_broadcast_b>(ct_dim, rt_dim, unpA_partial_face, unpB_partial_face);
 }
 
 template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
@@ -220,14 +219,15 @@ inline void _llk_unpack_AB_matmul_(
     const std::uint32_t tile_index_b,
     const std::uint32_t tile_size_a,
     const std::uint32_t tile_size_b,
-    [[maybe_unused]] const std::uint32_t unpA_face_r_dim = FACE_R_DIM,
-    [[maybe_unused]] const std::uint32_t unpB_face_r_dim = FACE_R_DIM,
-    const bool unpA_partial_face                         = false,
-    const bool unpB_partial_face                         = false,
-    std::uint32_t ct_dim                                 = 1,
-    const std::uint32_t rt_dim                           = 1,
-    const std::uint32_t kt_dim                           = 1)
+    const bool unpA_partial_face = false,
+    const bool unpB_partial_face = false,
+    std::uint32_t ct_dim         = 1,
+    const std::uint32_t rt_dim   = 1,
+    const std::uint32_t kt_dim   = 1)
 {
+    llk_san_operation<llk_san_op::UnpackABMatmul>(
+        kernel_broadcast_a, kernel_broadcast_b, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face, tile_size_a, tile_size_b);
+
     // In0/InA -> srcB (supports partial face)
     // In1/InB -> srcA
 
