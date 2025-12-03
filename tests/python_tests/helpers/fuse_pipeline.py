@@ -8,7 +8,7 @@ import torch
 from helpers.fuse_math import BinarySfpu, EltwiseFpu, Math, MatmulFpu, UnarySfpu
 from helpers.fuse_operand import OperandRegistry
 from helpers.fuse_operation import PipelineOperation
-from helpers.fuse_packer import EltwisePacker, MatmulPacker
+from helpers.fuse_packer import Packer
 from helpers.fuse_unpacker import EltwiseUnpacker, MatmulUnpacker
 from helpers.llk_params import (
     ApproximationMode,
@@ -22,8 +22,8 @@ def create_fuse_pipeline(
 ) -> List[PipelineOperation]:
     formats = format_dest_acc_and_dims[0]
     dest_acc = format_dest_acc_and_dims[1]
-    input_A_dimensions = [64, 64]  # format_dest_acc_and_dims[2][0]
-    input_B_dimensions = [64, 64]  # format_dest_acc_and_dims[2][1]
+    input_A_dimensions = format_dest_acc_and_dims[2][0]
+    input_B_dimensions = format_dest_acc_and_dims[2][1]
 
     operands = OperandRegistry()
 
@@ -51,7 +51,7 @@ def create_fuse_pipeline(
                 src_a_dims=input_A_dimensions,
                 src_b_dims=input_B_dimensions,
                 input_format=formats.input_format,
-                output_format=formats.output_format,
+                output_format=formats.input_format,
                 # src_a_tensor=a_data,
                 # src_b_tensor=b_data,
             ),
@@ -59,53 +59,53 @@ def create_fuse_pipeline(
             math=Math(
                 EltwiseFpu(MathOperation.Elwadd),
                 [
-                    # UnarySfpu(
-                    #     MathOperation.Neg,
-                    #     ApproximationMode.No,
-                    #     32 * operands.get("elwadd1").tile_count,
-                    # ),
+                    UnarySfpu(
+                        MathOperation.Neg,
+                        ApproximationMode.No,
+                        32 * operands.get("elwadd1").tile_count,
+                    ),
                 ],
             ),
-            packer=EltwisePacker,
+            packer=Packer,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
         ),
         PipelineOperation(
             operand_mapping=operands.create_mapping(
-                src_a="input_A",
-                src_b="input_B",
+                src_a="elwadd1",
+                src_b="input_C",
                 output="matmul_result",
                 src_a_dims=input_A_dimensions,
                 src_b_dims=input_B_dimensions,
                 input_format=formats.input_format,
-                output_format=formats.output_format,
+                output_format=formats.input_format,
             ),
             unpacker=MatmulUnpacker,
             math=Math(MatmulFpu(), []),
-            packer=MatmulPacker,
+            packer=Packer,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
         ),
         PipelineOperation(
             operand_mapping=operands.create_mapping(
                 src_a="matmul_result",
-                src_b="input_C",
+                src_b="input_D",
                 output="final_output",
                 src_b_dims=input_B_dimensions,
-                input_format=formats.output_format,
-                output_format=formats.output_format,
+                input_format=formats.input_format,
+                output_format=formats.input_format,
             ),
             unpacker=MatmulUnpacker,
             math=Math(
                 MatmulFpu(),
                 [
                     UnarySfpu(
-                        MathOperation.Sqrt,
+                        MathOperation.Neg,
                         ApproximationMode.No,
                         32 * operands.get("final_output").tile_count,
                     ),
                     UnarySfpu(
-                        MathOperation.Neg,
+                        MathOperation.Sqrt,
                         ApproximationMode.No,
                         32 * operands.get("final_output").tile_count,
                     ),
@@ -119,7 +119,7 @@ def create_fuse_pipeline(
                     ),
                 ],
             ),
-            packer=MatmulPacker,
+            packer=Packer,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
         ),
