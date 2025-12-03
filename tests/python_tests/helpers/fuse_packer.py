@@ -4,6 +4,8 @@
 
 from typing import TYPE_CHECKING, List
 
+from .chip_architecture import ChipArchitecture
+
 if TYPE_CHECKING:
     from .fuse_operation import PipelineOperation
 
@@ -36,10 +38,13 @@ class Packer:
 
         buffer_Res_tile_size = operation_config.buffer_Res_tile_size
 
-        code = f"""
-    constexpr Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});
+        code = f"\n\t// Operation {stage}: Packer\n"
 
-#ifdef ARCH_BLACKHOLE
+        code += f"""
+    constexpr Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});
+"""
+        if operation_config.architecture == ChipArchitecture.BLACKHOLE:
+            code += f"""
     _llk_pack_hw_configure_<{dest_acc_value}, false, {TILIZE}>(
         {PACK_IN},
         {PACK_OUT},
@@ -49,7 +54,9 @@ class Packer:
         {PACK_OUT}
     );
     _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, DstTileFaceLayout::RowMajor>();
-#else
+"""
+        elif operation_config.architecture == ChipArchitecture.WORMHOLE:
+            code += f"""
     _llk_pack_hw_configure_<{dest_acc_value}, false>(
         {PACK_IN},
         {PACK_OUT},
@@ -59,7 +66,11 @@ class Packer:
         {PACK_OUT}
     );
     _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, DstTileFaceLayout::RowMajor, false>();
-#endif
+"""
+        else:
+            raise ValueError("Unsupported architecture for packer")
+
+        code += f"""
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < {TILE_CNT}; i++)
     {{

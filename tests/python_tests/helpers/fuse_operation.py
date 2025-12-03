@@ -68,6 +68,8 @@ class PipelineOperation:
     srca_reuse_count: int = 4
 
     def __post_init__(self):
+        self.architecture = get_chip_architecture()
+
         mapping = self.operand_mapping
         registry = mapping.operand_registry
 
