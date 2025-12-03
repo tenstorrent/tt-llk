@@ -69,13 +69,7 @@ inline void _llk_pack_configure_addrmod_()
 }
 
 template <bool untilize = false, bool zero_output = false, bool tilize = false>
-inline void _llk_pack_mop_config_(
-    [[maybe_unused]] const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim           = FACE_R_DIM,
-    const std::uint32_t tile_c_dim           = TILE_C_DIM,
-    const std::uint32_t num_faces            = 4,
-    [[maybe_unused]] const bool partial_face = false,
-    [[maybe_unused]] const bool narrow_tile  = false)
+inline void _llk_pack_mop_config_(const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t tile_c_dim = TILE_C_DIM, const std::uint32_t num_faces = 4)
 {
     constexpr uint MEGAROW          = 1;
     constexpr uint ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
@@ -457,9 +451,10 @@ inline void _llk_pack_reconfig_data_format_(
     const std::uint32_t face_r_dim = FACE_R_DIM,
     const std::uint32_t tile_c_dim = TILE_C_DIM,
     const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false)
+    const bool partial_face        = false)
 {
+    llk_san_pack_hw_configure<true>(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, llk_san_x);
+
     reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face);
 }
 
@@ -473,41 +468,27 @@ inline void _llk_pack_hw_configure_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
-    configure_pack<is_fp32_dest_acc_en, untilize, tilize>(pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+    llk_san_pack_configure(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+
+    configure_pack<is_fp32_dest_acc_en, false, false>(pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
 }
 
 template <bool untilize = false, bool zero_output = false, bool tilize = false>
-inline void _llk_pack_init_(
-    const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim = FACE_R_DIM,
-    const std::uint32_t tile_c_dim = TILE_C_DIM,
-    const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false)
+inline void _llk_pack_init_(const std::uint32_t pack_src_format, const std::uint32_t face_r_dim, const std::uint32_t tile_c_dim, const std::uint32_t num_faces)
 {
-    _llk_pack_configure_addrmod_<untilize, tilize>();
-    _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
-}
+    llk_san_pack_operand_check(llk_san_x, pack_src_format, llk_san_x, face_r_dim, tile_c_dim, num_faces, llk_san_x, llk_san_x);
+    llk_san_init<llk_san_op::Pack>();
 
-template <bool untilize = false, bool zero_output = false, bool tilize = false>
-inline void _llk_pack_init_(
-    const std::uint32_t pack_src_format,
-    const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim,
-    const std::uint32_t tile_c_dim,
-    const std::uint32_t num_faces,
-    const bool partial_face = false,
-    const bool narrow_tile  = false)
-{
     _llk_pack_configure_addrmod_<untilize, tilize>();
-    _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
-    set_packer_strides<untilize, tilize>(pack_src_format, pack_dst_format, tile_c_dim);
+    _llk_pack_mop_config_<untilize, zero_output, tilize>(face_r_dim, tile_c_dim, num_faces);
+    set_packer_strides<untilize, tilize>(pack_src_format, tile_c_dim);
     TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
 }
 
-template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
+    llk_san_operation<llk_san_op::Pack>();
+
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
     program_packer_destination(address);

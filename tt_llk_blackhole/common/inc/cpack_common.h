@@ -162,7 +162,7 @@ inline void packer_addr_counter_init()
 }
 
 template <bool untilize = false, bool tilize = false>
-inline void set_packer_strides(const uint pack_src_format, [[maybe_unused]] const uint pack_dst_format, const uint tile_c_dim)
+inline void set_packer_strides(const uint pack_src_format, const uint tile_c_dim)
 {
     uint x_stride = (uint)(pack_src_format & 0x3) == static_cast<DataFormatType>(DataFormat::Float32)   ? 4
                     : (uint)(pack_src_format & 0x3) == static_cast<DataFormatType>(DataFormat::Float16) ? 2
