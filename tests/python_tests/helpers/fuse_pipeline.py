@@ -5,14 +5,22 @@
 from typing import List
 
 import torch
-from helpers.fuse_math import BinarySfpu, EltwiseFpu, Math, MatmulFpu, UnarySfpu
+from helpers.fuse_math import (
+    BinarySfpu,
+    DatacopyFpu,
+    EltwiseFpu,
+    Math,
+    MatmulFpu,
+    UnarySfpu,
+)
 from helpers.fuse_operand import OperandRegistry
 from helpers.fuse_operation import PipelineOperation
 from helpers.fuse_packer import Packer
-from helpers.fuse_unpacker import EltwiseUnpacker, MatmulUnpacker
+from helpers.fuse_unpacker import MatmulUnpacker, UnpackerA, UnpackerAB
 from helpers.llk_params import (
     ApproximationMode,
     MathOperation,
+    Tilize,
 )
 
 
@@ -47,6 +55,27 @@ def create_fuse_pipeline(
             operand_mapping=operands.create_mapping(
                 src_a="input_A",
                 src_b="input_B",
+                output="datacopy_output",
+                src_a_dims=input_A_dimensions,
+                src_b_dims=input_B_dimensions,
+                input_format=formats.input_format,
+                output_format=formats.input_format,
+            ),
+            unpacker=UnpackerA,
+            math=Math(
+                DatacopyFpu(),
+                [],
+            ),
+            packer=Packer,
+            dest_acc=dest_acc,
+            math_fidelity=math_fidelity,
+            unpack_to_dest=False,
+            tilize=Tilize.No,
+        ),
+        PipelineOperation(
+            operand_mapping=operands.create_mapping(
+                src_a="datacopy_output",
+                src_b="input_B",
                 output="elwadd1",
                 src_a_dims=input_A_dimensions,
                 src_b_dims=input_B_dimensions,
@@ -55,7 +84,7 @@ def create_fuse_pipeline(
                 # src_a_tensor=a_data,
                 # src_b_tensor=b_data,
             ),
-            unpacker=EltwiseUnpacker,
+            unpacker=UnpackerAB,
             math=Math(
                 EltwiseFpu(MathOperation.Elwadd),
                 [

@@ -48,6 +48,9 @@ class Operand:
             sfpu=self.sfpu,
         )
 
+        height, width = self.dimensions[0], self.dimensions[1]
+        raw_data = raw_data.view(height, width)
+
         if self.data_format != DataFormat.Bfp8_b:
             tilized_data = tilize_block(
                 raw_data, dimensions=self.dimensions, stimuli_format=self.data_format

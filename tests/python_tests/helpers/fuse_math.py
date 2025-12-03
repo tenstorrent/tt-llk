@@ -155,6 +155,58 @@ class EltwiseFpu(Fpu):
         return code
 
 
+class DatacopyFpu(Fpu):
+    def get_headers(self) -> List[str]:
+        return [
+            "llk_math_common.h",
+            "llk_math_eltwise_unary_datacopy.h",
+        ]
+
+    def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
+        golden_tensor = operation_config.src_a.data.flatten()
+        return golden_tensor
+
+    def exec(self, operation_config: "PipelineOperation") -> str:
+        math_format = operation_config.math_format
+        MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
+
+        dest_acc = operation_config.dest_acc.value
+        tile_cnt = operation_config.output.tile_count
+        tilize_en = operation_config.tilize.value
+        brodcast_type = "NONE"  # TODO: make dynamic based on operation_config
+        unpack_to_dest = "true" if operation_config.unpack_to_dest else "false"
+        data_copy_type = operation_config.data_copy_type.value
+        num_faces = operation_config.num_faces
+        is_int_fpu_en = dest_acc
+        dst_index = operation_config.dst_index
+
+        code = f"""
+#ifdef ARCH_BLACKHOLE
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::{data_copy_type}, {dest_acc}, BroadcastType::{brodcast_type}, {tilize_en}, {is_int_fpu_en}>(
+        0, 0, {num_faces}, {MATH_FORMAT});
+#else
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::{data_copy_type}, {dest_acc}, BroadcastType::{brodcast_type}, {is_int_fpu_en}>(0, 0, {num_faces}, {MATH_FORMAT});
+#endif
+    _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();
+    _llk_math_hw_configure_<false, false>(
+        {MATH_FORMAT},
+        {MATH_FORMAT}
+    );
+    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+    for (int i = 0; i < {tile_cnt}; ++i)
+    {{
+#ifdef ARCH_BLACKHOLE
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::{data_copy_type}, DstSync::SyncHalf, {dest_acc}, BroadcastType::{brodcast_type}, {unpack_to_dest}>(
+            {dst_index} + i, {MATH_FORMAT}, {MATH_FORMAT}, {num_faces});
+#else
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::{data_copy_type}, DstSync::SyncHalf, {dest_acc}, BroadcastType::{brodcast_type}, {unpack_to_dest}>(
+            {dst_index} + i, {MATH_FORMAT}, {MATH_FORMAT});
+#endif
+    }}
+"""
+        return code
+
+
 class Sfpu:
     operation: MathOperation
     approx_mode: ApproximationMode
