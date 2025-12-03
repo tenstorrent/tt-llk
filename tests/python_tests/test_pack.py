@@ -12,6 +12,10 @@ Tests the LLK pack kernel with:
 
 import pytest
 import torch
+from helpers.constraints import (
+    get_valid_dest_accumulation_modes,
+    get_valid_dest_indices,
+)
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import PackGolden, get_golden_generator
@@ -37,31 +41,26 @@ from helpers.utils import passed_test
             DataFormat.Bfp8_b,
         ]
     ),
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     input_dimensions=[[32, 32], [64, 64], [32, 64], [64, 32]],
     relu_config=[0, 1],
     dst_sync=[DstSync.SyncHalf, DstSync.SyncFull],
+    dest_index=lambda dest_acc, dst_sync, input_dimensions: get_valid_dest_indices(
+        dest_sync=dst_sync,
+        dest_acc=dest_acc,
+        tile_count=(input_dimensions[0] * input_dimensions[1]) // (32 * 32),
+    ),
 )
-def test_pack(test_name, formats, dest_acc, input_dimensions, relu_config, dst_sync):
-    # Skip invalid format combinations
-    if formats.output_format == DataFormat.Bfp8_b:
-        pytest.skip("Pack does not support Bfp8_b output format")
+def test_pack(
+    test_name, formats, dest_acc, input_dimensions, relu_config, dst_sync, dest_index
+):
 
     if (formats.input_format == DataFormat.Int32) ^ (
         formats.output_format == DataFormat.Int32
     ):
-        pytest.skip("Pack does not support mixing Int32 with other formats")
-
-    if (
-        formats.input_format == DataFormat.Int32
-        and formats.output_format == DataFormat.Int32
-        and dest_acc == DestAccumulation.No
-    ):
-        pytest.skip("Dest must be in 32bit mode when input and output are Int32")
-
-    # Skip ReLU with integer formats
-    if relu_config != 0 and formats.output_format in [DataFormat.Int32]:
-        pytest.skip("ReLU not applicable for integer formats")
+        pytest.skip(
+            "Pack does not support mixing Int32 with other formats. Check format conversions in packer for more information."
+        )
 
     # Generate test data
     src_A, src_B, tile_cnt = generate_stimuli(
@@ -86,10 +85,12 @@ def test_pack(test_name, formats, dest_acc, input_dimensions, relu_config, dst_s
         "input_dimensions": input_dimensions,
         "input_A_dimensions": input_dimensions,
         "input_B_dimensions": input_dimensions,
-        "unpack_to_dest": formats.input_format.is_32_bit(),
+        "unpack_to_dest": formats.input_format.is_32_bit()
+        and dest_acc == DestAccumulation.Yes,
         "dest_acc": dest_acc,
         "relu_config": relu_config,
         "dst_sync": dst_sync,
+        "dest_index": dest_index,
     }
 
     res_address = write_stimuli_to_l1(
