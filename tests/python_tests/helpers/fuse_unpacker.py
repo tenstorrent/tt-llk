@@ -135,7 +135,7 @@ class UnpackerAB(Unpacker):
         dest_acc = operation_config.dest_acc
         dest_acc_value = dest_acc.value
 
-        code = ""
+        code = f"\n\t// Operation {stage}: Unpacker AB\n"
 
         if stage > 0:
             code += f"""
@@ -149,7 +149,6 @@ class UnpackerAB(Unpacker):
         code += f"""
     constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});
     constexpr Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});
-
 
     _llk_unpack_AB_hw_configure_<{dest_acc_value}, StochRndType::None>(
         {UNPACK_A_IN},
@@ -190,7 +189,7 @@ class UnpackerA(Unpacker):
 
         dest_acc = operation_config.dest_acc.value
 
-        code = ""
+        code = f"\n\t// Operation {stage}: Unpacker A\n"
 
         if stage > 0:
             code += f"""

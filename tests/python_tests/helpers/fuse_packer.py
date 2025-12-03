@@ -41,7 +41,11 @@ class Packer:
         code = f"\n\t// Operation {stage}: Packer\n"
 
         code += f"""
+<<<<<<< HEAD
     Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});
+=======
+    constexpr Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});
+>>>>>>> 7ce1d75c (refactor: better formatting for generated fuse_test.cpp)
 """
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
             code += f"""
