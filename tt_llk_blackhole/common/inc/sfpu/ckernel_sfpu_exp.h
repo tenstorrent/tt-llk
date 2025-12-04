@@ -162,21 +162,28 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
-        TTI_SFPLOAD(3, 0, 0, 0);
+        // Load LREG4 with A = 256/ln(2)
+        TTI_SFPLOADI(p_sfpu::LREG4, 0xA, 0xaa3b); // lower 16 bits
+        TTI_SFPLOADI(p_sfpu::LREG4, 0x8, 0x43b8); // upper 16 bits
+
+        // Load LREG6 with ln(2)
+        TTI_SFPLOADI(p_sfpu::LREG6, 0xA, 0x3f31); // lower 16 bits
+        TTI_SFPLOADI(p_sfpu::LREG6, 0x8, 0x3f31); // upper 16 bits
+
+        TTI_SFPLOAD(p_sfpu::LREG3, 0, 0, 0);
 
         TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG3, p_sfpu::LCONST_0, p_sfpu::LREG3, 0); // lreg 3 = 1reg3*1g2 (e)
         // Convert lreg[3] to unsigned int I (lreg1 = uint8 (lreg3))
-        TTI_SFP_STOCH_RND(2, 0, 0, p_sfpu::LREG3, p_sfpu::LREG1, 0x6);
-
+        TTI_SFP_STOCH_RND(1, 0, 0, p_sfpu::LREG3, p_sfpu::LREG1, 0x6);
         TTI_SFPIADD(127, p_sfpu::LREG1, p_sfpu::LREG2, 0x1); // lreg2 = 1reg1+127
-        //// Saturate uint8
-        TTI_SFP_STOCH_RND(2, 0, 0, p_sfpu::LREG2, p_sfpu::LREG5, 0x4 | 0x8);
+        TTI_SFP_STOCH_RND(1, 0, 0, p_sfpu::LREG2, p_sfpu::LREG5, 0x6);
+        TTI_SFPSHFT(23, p_sfpu::LREG5, p_sfpu::LREG2, 0x1); // lreg2 = lreg2 << 23
 
-        TTI_SFPSHFT(23, p_sfpu::LREG5, p_sfpu::LREG2, 0x5); // lreg2 = lreg2 << 23
         // Compute fractional F
         TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG0, 0x0);                                          // lreg0 = (float) 1reg1
         TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG1, 1);                                       // lreg1 = abs(lreg3)
         TTI_SFPMAD(p_sfpu::LCONST_1 /*1.0f*/, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LREG0, 0x1); // lreg0 = 1reg1
+
         // Compute F ln2
         TTI_SFPMAD(p_sfpu::LREG6, p_sfpu::LREG0, p_sfpu::LCONST_0 /*0.0*/, p_sfpu::LREG0, 0x0); // lreg0 = 1n2*1
         // TTI_NOP; TTI_NOP; // MMDec 13 2022: Should no longer be needed
@@ -185,17 +192,17 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         // TTI_NOP; // MMDec 13 2022: Should no longer be needed
         //  multiply 2^I and e^Fln2
         TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LCONST_0 /*0.0*/, p_sfpu::LREG0, 0x0); // 1reg0 = 1reg2
-        // TTI_NOP; TTI_NOP; // MMDec 13 2022: Should no longer be needed
+        TTI_NOP;
+        TTI_NOP; // MMDec 13 2022: Should no longer be needed
         //  // Take reciprocal if lreg[3] is negative, copy LREG0 into LREG0
-        TTI_SFPARECIP(3, 0, 0, 1);
+        TTI_SFPARECIP(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
         // TTI_NOP; // MMDec 13 2022: Should no longer be needed
         //  Apply Error Correction to result
-        // TTI_SFPMAD (p_sfpu:: LREG0, P_sfpu:: LREG7, P_sfpu: :LCONST_0, P_sfpu:: LREG0, 0x0) ;
+        // TTI_SFPMAD (p_sfpu::LREG0, p_sfpu::LREG7, p_sfpu::LCONST_0, p_sfpu::LREG0, 0x0) ;
         //  // 111/
         //  // TTI_SFPLOAD(1, 0, 0, offset);
-        TTI_SFPSTORE(0, 0, 0, 0);
-        // load from dest
-        // Store from lreg[3] into dest registers
+        TTI_SFPSTORE(p_sfpu::LREG0, 0, 0, 0);
+        // Store from lreg[0] into dest registers (contains final exp result)
     }
     else
     {

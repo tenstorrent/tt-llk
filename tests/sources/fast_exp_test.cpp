@@ -80,7 +80,7 @@ void run_kernel()
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
 
-    ckernel::sfpu::exp_init<true, true>();
+    // ckernel::sfpu::exp_init<true, true>();
 
     for (int i = 0; i < TILE_CNT; ++i)
     {
@@ -96,8 +96,10 @@ void run_kernel()
         // // this part is where parametrization of operation takes part
         // call_sfpu_operation(SFPU_UNARY_OPERATION, formats.math);
 
-        _llk_math_eltwise_unary_sfpu_params_<true>(
-            ckernel::sfpu::calculate_exponential<true, true, false, 32, false>, i, VectorMode::RC_custom, p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor*/);
+        // _llk_math_eltwise_unary_sfpu_params_<true>(
+        //     ckernel::sfpu::calculate_exponential<true, true, false, 32, false>, i, VectorMode::RC_custom, p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor*/);
+
+        ckernel::sfpu::calculate_exponential<true, true, false, 32, false>(p_sfpu::kCONST_1_FP16B);
 
         // _llk_math_eltwise_unary_sfpu_done_();
     }
