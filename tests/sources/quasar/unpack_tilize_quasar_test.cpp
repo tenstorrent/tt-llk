@@ -46,8 +46,8 @@ void run_kernel()
     td_val.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
 
     constexpr TileShape tile_shape = {.num_faces = num_faces, .face_r_dim = TEST_FACE_R_DIM, .face_c_dim = TEST_FACE_C_DIM, .narrow_tile = 0};
-    constexpr uint32_t C_DIM_FACES = (tile_shape.narrow_tile ? 1 : 2); // Tile width in faces
-    constexpr uint32_t R_DIM_FACES = 2;                                // Tile height in faces
+    constexpr uint32_t C_DIM_FACES = (tile_shape.narrow_tile ? 1 : 2);                    // Tile width in faces
+    constexpr uint32_t R_DIM_FACES = (num_faces == 2 && !tile_shape.narrow_tile) ? 1 : 2; // Tile height in faces
 
     if (is_fp32_dest_acc_en)
     {

@@ -105,8 +105,8 @@ void run_kernel()
 
     constexpr TileShape tile_shape = {.num_faces = num_faces, .face_r_dim = TEST_FACE_R_DIM, .face_c_dim = TEST_FACE_C_DIM, .narrow_tile = 0};
 
-    constexpr uint32_t C_DIM_FACES = (tile_shape.narrow_tile ? 1 : 2); // Tile width in faces
-    constexpr uint32_t R_DIM_FACES = 2;                                // Tile height in faces
+    constexpr uint32_t C_DIM_FACES = (tile_shape.narrow_tile ? 1 : 2);                    // Tile width in faces
+    constexpr uint32_t R_DIM_FACES = (num_faces == 2 && !tile_shape.narrow_tile) ? 1 : 2; // Tile height in faces
 
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
     _llk_pack_untilize_init_<BUF_DESC, FULL_CT_DIM, BLOCK_CT_DIM, C_DIM_FACES>(tile_shape);
