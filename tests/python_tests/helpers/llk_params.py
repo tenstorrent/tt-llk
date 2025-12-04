@@ -242,12 +242,6 @@ class DstSync(Enum):
     SyncFull = "SyncFull"
 
 
-class L1BufferLocations(Enum):
-    srcA = 0x18FE0
-    srcB = 0x18FE4
-    Result = 0x18FE8
-
-
 class BroadcastType(Enum):
     """
     Enum for broadcast types in LLK kernels.

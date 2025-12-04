@@ -14,8 +14,6 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
-constexpr bool disable_src_zero_flag = true;
-
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"

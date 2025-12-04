@@ -119,6 +119,7 @@ def test_ttnn_where(
         "tile_cnt_A": tile_cnt_A,
         "tile_cnt_B": tile_cnt_B,
         "tile_cnt_C": tile_cnt_C,
+        "disable_src_zero_flag": True,
     }
 
     run_test(test_config, location=workers_tensix_coordinates)
@@ -248,6 +249,7 @@ def test_ttnn_where_mcw(test_name, formats, dest_acc, mathop, height, width):
         "tile_cnt_A": tile_cnt_C,
         "tile_cnt_B": tile_cnt_T,
         "tile_cnt_C": tile_cnt_F,
+        "disable_src_zero_flag": True,
     }
 
     run_test(test_config)

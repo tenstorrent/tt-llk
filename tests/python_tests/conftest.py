@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import datetime
 import logging
 import os
 import sys
@@ -14,7 +13,6 @@ from helpers.format_config import InputOutputFormat
 from helpers.log_utils import _format_log
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 from ttexalens import tt_exalens_init
-from ttexalens.tt_exalens_lib import arc_msg
 
 
 def init_llk_home():
@@ -25,6 +23,8 @@ def init_llk_home():
 
 # Default LLK_HOME environment variable
 init_llk_home()
+
+from helpers.makefile import setup_build_dir
 
 # imports for pytest fixtures
 from helpers.perf import perf_report  # noqa: F401  # isort:skip
@@ -178,6 +178,8 @@ def pytest_sessionstart(session):
     check_hardware_headers()
 
     test_target = TestTargetConfig()
+
+    setup_build_dir(Path("/tmp/tt-llk-build/"))
     if not test_target.run_simulator:
         # Send ARC message for GO BUSY signal. This should increase device clock speed.
         _send_arc_message("GO_BUSY", test_target.device_id)
@@ -203,14 +205,14 @@ def _send_arc_message(message_type: str, device_id: int):
     ARC_COMMON_PREFIX = 0xAA00
     message_codes = {"GO_BUSY": 0x52, "GO_IDLE": 0x54}
 
-    arc_msg(
-        device_id=device_id,
-        msg_code=ARC_COMMON_PREFIX | message_codes[message_type],
-        wait_for_done=True,
-        arg0=0,
-        arg1=0,
-        timeout=datetime.timedelta(seconds=10),
-    )
+    # arc_msg(
+    #     device_id=device_id,
+    #     msg_code=ARC_COMMON_PREFIX | message_codes[message_type],
+    #     wait_for_done=True,
+    #     arg0=0,
+    #     arg1=0,
+    #     timeout=datetime.timedelta(seconds=10),
+    # )
 
 
 # Define the possible custom command line options
