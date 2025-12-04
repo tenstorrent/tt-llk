@@ -64,7 +64,18 @@ def create_fuse_pipeline(
             unpacker=UnpackerA,
             math=Math(
                 DatacopyFpu(),
-                [],
+                [
+                    UnarySfpu(
+                        MathOperation.Exp,
+                        ApproximationMode.No,
+                        32 * operands.get("datacopy_output").tile_count,
+                    ),
+                    UnarySfpu(
+                        MathOperation.Celu,
+                        ApproximationMode.No,
+                        32 * operands.get("datacopy_output").tile_count,
+                    ),
+                ],
             ),
             packer=Packer,
             dest_acc=dest_acc,
@@ -81,8 +92,6 @@ def create_fuse_pipeline(
                 src_b_dims=input_B_dimensions,
                 input_format=formats.input_format,
                 output_format=formats.input_format,
-                # src_a_tensor=a_data,
-                # src_b_tensor=b_data,
             ),
             unpacker=UnpackerAB,
             math=Math(
