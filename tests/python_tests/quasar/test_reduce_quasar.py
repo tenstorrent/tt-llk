@@ -5,7 +5,11 @@ import pytest
 import torch
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
-from helpers.golden_generators import ReduceFidelityGolden, get_golden_generator
+from helpers.golden_generators import (
+    ReduceGolden,
+    ReduceWithFidelityGolden,
+    get_golden_generator,
+)
 from helpers.llk_params import (
     DestAccumulation,
     MathFidelity,
@@ -27,6 +31,26 @@ mathop_mapping = {
     ReduceDimension.Scalar: MathOperation.ReduceScalar,
 }
 
+MATH_FIDELITY_MODES = [
+    MathFidelity.LoFi,
+    MathFidelity.HiFi2,
+    MathFidelity.HiFi3,
+    MathFidelity.HiFi4,
+]
+POOL_TYPES = [ReducePool.Max, ReducePool.Sum, ReducePool.Average]
+
+
+def generate_pool_type_and_math_fidelity_combinations():
+    combinations = []
+    for pool_type in POOL_TYPES:
+        for math_fidelity in MATH_FIDELITY_MODES:
+            # Math fidelity iterations work only for Sum and Average pool types
+            # Max pool type does eltwise max, Sum and Average pool types do matmul
+            if pool_type == ReducePool.Max and math_fidelity != MathFidelity.LoFi:
+                continue
+            combinations.append((pool_type, math_fidelity))
+    return combinations
+
 
 @pytest.mark.quasar
 @parametrize(
@@ -39,17 +63,13 @@ mathop_mapping = {
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
-    pool_type=[ReducePool.Sum, ReducePool.Average],
-    math_fidelity=[
-        MathFidelity.LoFi,
-        MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
-    ],
+    pool_type_and_math_fidelity=generate_pool_type_and_math_fidelity_combinations(),
 )
 def test_reduce_quasar(
-    test_name, formats, dest_acc, reduce_dim, pool_type, math_fidelity
+    test_name, formats, dest_acc, reduce_dim, pool_type_and_math_fidelity
 ):
+
+    pool_type, math_fidelity = pool_type_and_math_fidelity
 
     input_dimensions = [32, 32]
 
@@ -57,24 +77,25 @@ def test_reduce_quasar(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    # src_A = torch.repeat_interleave(torch.tensor([0.1, 0.2, 0.3, 0.4], dtype=format_dict[formats.input_format]), 256)
-
     if pool_type in [
         ReducePool.Max,
         ReducePool.Sum,
-    ]:  # result in srcA should be divided by 1
+    ]:  # result in srcA should be multiplied by 1
         src_B = torch.full((1024,), 1)
     else:
         # reduce average divides by length of elements in array we reduce
         src_B = torch.full((1024,), 1 / 32)
 
-    generate_golden = get_golden_generator(ReduceFidelityGolden)
-    golden_tensor = generate_golden(
-        src_A, src_B, formats.output_format, reduce_dim, math_fidelity
-    )
-
-    # generate_golden = get_golden_generator(ReduceGolden)
-    # golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
+    if pool_type == ReducePool.Max:
+        generate_golden = get_golden_generator(ReduceGolden)
+        golden_tensor = generate_golden(
+            src_A, reduce_dim, pool_type, formats.output_format
+        )
+    else:
+        generate_golden = get_golden_generator(ReduceWithFidelityGolden)
+        golden_tensor = generate_golden(
+            src_A, src_B, formats.output_format, reduce_dim, math_fidelity
+        )
 
     mathop = mathop_mapping[reduce_dim]
 
@@ -105,8 +126,5 @@ def test_reduce_quasar(
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize(res_tensor, formats.output_format)
-
-    print(f"res_tensor: {res_tensor}")
-    print(f"golden_tensor: {golden_tensor}")
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
