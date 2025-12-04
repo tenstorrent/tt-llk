@@ -1475,13 +1475,13 @@ class ReduceGolden:
 
 
 @register_golden
-class ReduceFidelityGolden(FidelityMasking):
-    """Golden generator for reduce operations with fidelity masking.
+class ReduceWithFidelityGolden(FidelityMasking):
+    """Golden generator for reduce operations with fidelity masking. Used for Sum and Average pool types.
 
     Hardware performs matmul (srcB @ srcA) for each face, accumulating across fidelity iterations.
     - Column reduce: f0+f2 (left), f1+f3 (right) → 1x32 row at row 0
     - Row reduce: srcA transposed, f0+f1 (upper), f2+f3 (lower) → 32x1 column at col 0
-    - Scalar reduce: all faces pooled → 1x16 → summed to single value at [0,0]
+    - Scalar reduce: all faces pooled together → 16x16 matrix pooled once more → single value at [0,0]
     """
 
     FIDELITY_ITER_COUNT = {
@@ -1504,6 +1504,15 @@ class ReduceFidelityGolden(FidelityMasking):
         # Only the first face of srcB input is unpacked and used for reduce operations
         src_b = to_tensor(operand2[:256], data_format)
 
+        # For row reduce, transpose srcA faces (models unpacker transpose within faces)
+        if reduce_dim == ReduceDimension.Row:
+            src_a = torch.cat(
+                [
+                    src_a[i * 256 : (i + 1) * 256].view(16, 16).T.flatten()
+                    for i in range(4)
+                ]
+            )
+
         fidelity_iter_count = self.FIDELITY_ITER_COUNT[math_fidelity]
         face_results = [0, 0, 0, 0]
 
@@ -1513,16 +1522,14 @@ class ReduceFidelityGolden(FidelityMasking):
             )
 
             # Split srcA into 4 faces (16x16 each)
-            faces = [a_masked[i * 256 : (i + 1) * 256].view(16, 16) for i in range(4)]
+            a_faces = [a_masked[i * 256 : (i + 1) * 256].view(16, 16) for i in range(4)]
             b_face = b_masked.view(16, 16)
 
-            # For row reduce, transpose srcA faces
-            if reduce_dim == ReduceDimension.Row:
-                faces = [f.T for f in faces]
-
             # Accumulate srcB @ srcA for each face
-            for i, face in enumerate(faces):
-                face_results[i] += torch.matmul(b_face, face).view(256).to(torch_format)
+            for i, a_face in enumerate(a_faces):
+                face_results[i] += (
+                    torch.matmul(b_face, a_face).view(256).to(torch_format)
+                )
 
         # Combine face results based on reduce dimension
         result = torch.zeros(32, 32, dtype=torch_format)
@@ -1542,20 +1549,21 @@ class ReduceFidelityGolden(FidelityMasking):
             result[16:32, 0] = lower_half[0, :]
 
         elif reduce_dim == ReduceDimension.Scalar:
-            # Scalar reduce: pool all 4 faces
+            # Scalar reduce: accumulate all 4 faces together and then pool again
             all_faces = (
                 face_results[0] + face_results[1] + face_results[2] + face_results[3]
             ).view(16, 16)
             all_faces = all_faces.T.flatten()
-            scalar_result = torch.zeros(16, 16, dtype=torch_format)
+
+            final_pool_result = torch.zeros(16, 16, dtype=torch_format)
             for fidelity_iter in range(fidelity_iter_count + 1):
                 a_masked, b_masked = self._apply_fidelity_masking(
                     data_format, all_faces, src_b, fidelity_iter
                 )
-                scalar_result += torch.matmul(
+                final_pool_result += torch.matmul(
                     b_masked.view(16, 16), a_masked.view(16, 16)
                 ).to(torch_format)
-            result[0, 0] = scalar_result[0, 0]
+            result[0, 0] = final_pool_result[0, 0]
 
         return result.flatten()
 
