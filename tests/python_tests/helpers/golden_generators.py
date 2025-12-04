@@ -4,6 +4,7 @@ import math
 from typing import Optional
 
 import torch
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     BroadcastType,
@@ -276,12 +277,20 @@ class FidelityMasking:
         if (fidelity_iteration < 0) or (fidelity_iteration > 3):
             raise ValueError(f"Invalid fidelity iteration: {fidelity_iteration}")
 
-        FP_FIDELITY_ITER_MASK = [
-            (0b11111000000, 0b11111110000),
-            (0b00000111110, 0b11111110000),
-            (0b11111000000, 0b00000001111),
-            (0b00000111110, 0b00000001111),
-        ]
+        if get_chip_architecture() == ChipArchitecture.QUASAR:
+            FP_FIDELITY_ITER_MASK = [
+                (0b11111111000, 0b11111111000),
+                (0b00000000111, 0b11111111000),
+                (0b11111111000, 0b00000000111),
+                (0b00000000111, 0b00000000111),
+            ]
+        else:
+            FP_FIDELITY_ITER_MASK = [
+                (0b11111000000, 0b11111110000),
+                (0b00000111110, 0b11111110000),
+                (0b11111000000, 0b00000001111),
+                (0b00000111110, 0b00000001111),
+            ]
 
         sign_a, exp_a, mant_a = SrcFormatModel.to_src_format(data_format, operand_a)
         sign_b, exp_b, mant_b = SrcFormatModel.to_src_format(data_format, operand_b)
@@ -1463,6 +1472,92 @@ class ReduceGolden:
             return torch.sum(tensor, dim=dim)
         else:
             raise ValueError(f"Unsupported pool type: {pool_type}")
+
+
+@register_golden
+class ReduceFidelityGolden(FidelityMasking):
+    """Golden generator for reduce operations with fidelity masking.
+
+    Hardware performs matmul (srcB @ srcA) for each face, accumulating across fidelity iterations.
+    - Column reduce: f0+f2 (left), f1+f3 (right) → 1x32 row at row 0
+    - Row reduce: srcA transposed, f0+f1 (upper), f2+f3 (lower) → 32x1 column at col 0
+    - Scalar reduce: all faces pooled → 1x16 → summed to single value at [0,0]
+    """
+
+    FIDELITY_ITER_COUNT = {
+        MathFidelity.LoFi: 0,
+        MathFidelity.HiFi2: 1,
+        MathFidelity.HiFi3: 2,
+        MathFidelity.HiFi4: 3,
+    }
+
+    def __call__(
+        self,
+        operand1,
+        operand2,
+        data_format,
+        reduce_dim,
+        math_fidelity=MathFidelity.LoFi,
+    ):
+        torch_format = format_dict[data_format]
+        src_a = to_tensor(operand1, data_format)
+        # Only the first face of srcB input is unpacked and used for reduce operations
+        src_b = to_tensor(operand2[:256], data_format)
+
+        fidelity_iter_count = self.FIDELITY_ITER_COUNT[math_fidelity]
+        face_results = [0, 0, 0, 0]
+
+        for fidelity_iter in range(fidelity_iter_count + 1):
+            a_masked, b_masked = self._apply_fidelity_masking(
+                data_format, src_a, src_b, fidelity_iter
+            )
+
+            # Split srcA into 4 faces (16x16 each)
+            faces = [a_masked[i * 256 : (i + 1) * 256].view(16, 16) for i in range(4)]
+            b_face = b_masked.view(16, 16)
+
+            # For row reduce, transpose srcA faces
+            if reduce_dim == ReduceDimension.Row:
+                faces = [f.T for f in faces]
+
+            # Accumulate srcB @ srcA for each face
+            for i, face in enumerate(faces):
+                face_results[i] += torch.matmul(b_face, face).view(256).to(torch_format)
+
+        # Combine face results based on reduce dimension
+        result = torch.zeros(32, 32, dtype=torch_format)
+
+        if reduce_dim == ReduceDimension.Column:
+            # Column reduce: accumulate f0+f2 (left), f1+f3 (right), place in row 0
+            left_half = (face_results[0] + face_results[2]).view(16, 16)
+            right_half = (face_results[1] + face_results[3]).view(16, 16)
+            result[0, 0:16] = left_half[0, :]
+            result[0, 16:32] = right_half[0, :]
+
+        elif reduce_dim == ReduceDimension.Row:
+            # Row reduce: accumulate f0+f1 (upper), f2+f3 (lower), place in column 0
+            upper_half = (face_results[0] + face_results[1]).view(16, 16)
+            lower_half = (face_results[2] + face_results[3]).view(16, 16)
+            result[0:16, 0] = upper_half[0, :]
+            result[16:32, 0] = lower_half[0, :]
+
+        elif reduce_dim == ReduceDimension.Scalar:
+            # Scalar reduce: pool all 4 faces
+            all_faces = (
+                face_results[0] + face_results[1] + face_results[2] + face_results[3]
+            ).view(16, 16)
+            all_faces = all_faces.T.flatten()
+            scalar_result = torch.zeros(16, 16, dtype=torch_format)
+            for fidelity_iter in range(fidelity_iter_count + 1):
+                a_masked, b_masked = self._apply_fidelity_masking(
+                    data_format, all_faces, src_b, fidelity_iter
+                )
+                scalar_result += torch.matmul(
+                    b_masked.view(16, 16), a_masked.view(16, 16)
+                ).to(torch_format)
+            result[0, 0] = scalar_result[0, 0]
+
+        return result.flatten()
 
 
 @register_golden
