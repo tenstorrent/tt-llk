@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import datetime
 import logging
 import os
 import sys
@@ -12,7 +11,7 @@ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import InputOutputFormat
 from helpers.log_utils import _format_log
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
-from ttexalens.tt_exalens_lib import arc_msg
+from ttexalens import tt_exalens_init
 
 
 def init_llk_home():
@@ -129,10 +128,10 @@ def pytest_configure(config):
     if test_target.compile_producer:
         return
 
-    # if test_target.run_simulator:
-    #     tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
-    # else:
-    #     tt_exalens_init.init_ttexalens()
+    if test_target.run_simulator:
+        tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
+    else:
+        tt_exalens_init.init_ttexalens()
 
 
 def _stringify_params(params):
@@ -185,14 +184,14 @@ def pytest_sessionstart(session):
     test_target = TestTargetConfig()
 
     if TestTargetConfig().compile_producer is None:
-        setup_build_dir(Path("/tmp/tt-llk-build"))
+        setup_build_dir(Path("../../temp_artefatcs"))
     else:
         print(Path(TestTargetConfig().compile_producer))
         setup_build_dir(Path(TestTargetConfig().compile_producer))
 
-    # if not test_target.run_simulator and not test_target.compile_producer:
-    #     # Send ARC message for GO BUSY signal. This should increase device clock speed.
-    #     _send_arc_message("GO_BUSY", test_target.device_id)
+    if not test_target.run_simulator and not test_target.compile_producer:
+        # Send ARC message for GO BUSY signal. This should increase device clock speed.
+        _send_arc_message("GO_BUSY", test_target.device_id)
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -215,14 +214,14 @@ def _send_arc_message(message_type: str, device_id: int):
     ARC_COMMON_PREFIX = 0xAA00
     message_codes = {"GO_BUSY": 0x52, "GO_IDLE": 0x54}
 
-    arc_msg(
-        device_id=device_id,
-        msg_code=ARC_COMMON_PREFIX | message_codes[message_type],
-        wait_for_done=True,
-        arg0=0,
-        arg1=0,
-        timeout=datetime.timedelta(seconds=10),
-    )
+    # arc_msg(
+    #     device_id=device_id,
+    #     msg_code=ARC_COMMON_PREFIX | message_codes[message_type],
+    #     wait_for_done=True,
+    #     arg0=0,
+    #     arg1=0,
+    #     timeout=datetime.timedelta(seconds=10),
+    # )
 
 
 # Define the possible custom command line options

@@ -3,7 +3,8 @@
 
 from typing import List
 
-from helpers.device import BootMode
+import torch
+from helpers.device import BootMode, collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
@@ -15,6 +16,7 @@ from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block
+from helpers.utils import passed_test
 
 
 def generate_format_aware_matmul_combinations(
@@ -138,27 +140,27 @@ def test_matmul(
     }
 
     # Use the new helper function for writing stimuli
-    # res_address = write_stimuli_to_l1(
-    #     test_config,
-    #     tilized_A.flatten(),
-    #     tilized_B.flatten(),
-    #     formats.input_format,
-    #     formats.input_format,
-    #     tile_cnt_A,
-    #     tile_cnt_B,
-    #     location=workers_tensix_coordinates,
-    # )
+    res_address = write_stimuli_to_l1(
+        test_config,
+        tilized_A.flatten(),
+        tilized_B.flatten(),
+        formats.input_format,
+        formats.input_format,
+        tile_cnt_A,
+        tile_cnt_B,
+        location=workers_tensix_coordinates,
+    )
 
     run_test(test_config, boot_mode, location=workers_tensix_coordinates)
 
-    # res_from_L1 = collect_results(
-    #     formats,
-    #     tile_count=matmul_dims.output_tile_cnt,
-    #     address=res_address,
-    #     location=workers_tensix_coordinates,
-    # )
-    # assert len(res_from_L1) == len(golden_tensor)
+    res_from_L1 = collect_results(
+        formats,
+        tile_count=matmul_dims.output_tile_cnt,
+        address=res_address,
+        location=workers_tensix_coordinates,
+    )
+    assert len(res_from_L1) == len(golden_tensor)
 
-    # res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    # assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
