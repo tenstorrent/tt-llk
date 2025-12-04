@@ -107,8 +107,7 @@ inline void _llk_pack_reconfig_data_format_(
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
     const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false)
+    const bool partial_face        = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, face_r_dim, num_faces, partial_face);
@@ -140,6 +139,7 @@ inline void _llk_pack_init_(
     _llk_pack_mop_config_<untilize, zero_output>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
+/* NC: Seems that it's not used anywhere but it seems more useful than the other _llk_pack_init_*/
 template <bool untilize = false, bool zero_output = false>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
@@ -152,7 +152,7 @@ inline void _llk_pack_init_(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     _llk_pack_configure_addrmod_<untilize>();
-    _llk_pack_mop_config_<untilize, zero_output, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+    _llk_pack_mop_config_<untilize, zero_output>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
     if (include_setup_calls)
     {
         set_packer_l1_offset(pack_dst_format);
@@ -327,7 +327,7 @@ inline void _llk_pack_fast_tilize_uninit_(
     // for some reason short inits avoid the packer init (probably since it is usually the same)
     // but that means calling it here with reasonable defaults is needed
     // it just initializes the address mods and mop
-    _llk_pack_init_<false, false, false>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+    _llk_pack_init_<false, false>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
 inline void _llk_pack_fast_tilize_block_(

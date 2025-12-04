@@ -664,15 +664,6 @@ inline void program_packer_untilized_destination(const uint32_t addr, const uint
     TTI_PACR(ADDR_MOD_2, 0, 0xf, 0, 0, 1, 0); // pack flush
 }
 
-inline void program_packer_dest_offset_registers(uint32_t dest_tile_offset)
-{
-    TT_SETDMAREG(0, LOWER_HALFWORD(dest_tile_offset), 0, LO_16(p_gpr_pack::TEMP_TILE_OFFSET));
-    TT_SETDMAREG(0, UPPER_HALFWORD(dest_tile_offset), 0, HI_16(p_gpr_pack::TEMP_TILE_OFFSET));
-    TTI_WRCFG(p_gpr_pack::TEMP_TILE_OFFSET, p_cfg::WRCFG_32b, PCK0_ADDR_BASE_REG_0_Base_ADDR32);
-    TTI_DMANOP;
-    TTI_DMANOP;
-}
-
 inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
 {
     // assumes all configured packers have these fields as common values
