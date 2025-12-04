@@ -5,9 +5,10 @@ import pytest
 import torch
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
-from helpers.golden_generators import ReduceGolden, get_golden_generator
+from helpers.golden_generators import ReduceFidelityGolden, get_golden_generator
 from helpers.llk_params import (
     DestAccumulation,
+    MathFidelity,
     MathOperation,
     ReduceDimension,
     ReducePool,
@@ -38,15 +39,25 @@ mathop_mapping = {
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
-    pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
+    pool_type=[ReducePool.Sum, ReducePool.Average],
+    math_fidelity=[
+        MathFidelity.LoFi,
+        MathFidelity.HiFi2,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
+    ],
 )
-def test_reduce_quasar(test_name, formats, dest_acc, reduce_dim, pool_type):
+def test_reduce_quasar(
+    test_name, formats, dest_acc, reduce_dim, pool_type, math_fidelity
+):
 
     input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
+
+    # src_A = torch.repeat_interleave(torch.tensor([0.1, 0.2, 0.3, 0.4], dtype=format_dict[formats.input_format]), 256)
 
     if pool_type in [
         ReducePool.Max,
@@ -57,8 +68,13 @@ def test_reduce_quasar(test_name, formats, dest_acc, reduce_dim, pool_type):
         # reduce average divides by length of elements in array we reduce
         src_B = torch.full((1024,), 1 / 32)
 
-    generate_golden = get_golden_generator(ReduceGolden)
-    golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
+    generate_golden = get_golden_generator(ReduceFidelityGolden)
+    golden_tensor = generate_golden(
+        src_A, src_B, formats.output_format, reduce_dim, math_fidelity
+    )
+
+    # generate_golden = get_golden_generator(ReduceGolden)
+    # golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
 
     mathop = mathop_mapping[reduce_dim]
 
@@ -69,6 +85,7 @@ def test_reduce_quasar(test_name, formats, dest_acc, reduce_dim, pool_type):
         "reduce_dim": reduce_dim,
         "pool_type": pool_type,
         "mathop": mathop,
+        "math_fidelity": math_fidelity,
     }
 
     res_address = write_stimuli_to_l1(
@@ -88,5 +105,8 @@ def test_reduce_quasar(test_name, formats, dest_acc, reduce_dim, pool_type):
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize(res_tensor, formats.output_format)
+
+    print(f"res_tensor: {res_tensor}")
+    print(f"golden_tensor: {golden_tensor}")
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
