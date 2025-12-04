@@ -75,7 +75,7 @@ def test_pack(
         src_A,
         formats.output_format,
         input_dimensions=input_dimensions,
-        relu_config=relu_config,
+        enable_relu=bool(relu_config),
     )
 
     test_config = {

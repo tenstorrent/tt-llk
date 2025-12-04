@@ -899,7 +899,7 @@ class PackGolden:
         num_faces: int = 4,
         input_dimensions: list[int] = [32, 32],
         face_r_dim: int = 16,
-        relu_config: int = 0,
+        enable_relu: bool = False,
     ):
         if num_faces not in [1, 2, 4]:
             raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
@@ -920,21 +920,17 @@ class PackGolden:
         # Each face is face_r_dim × 16, and we have num_faces
         elements_per_tile_needed = face_r_dim * FACE_DIM * num_faces
 
-        # Convert input to tensor if needed
         if not isinstance(operand1, torch.Tensor):
             operand1 = torch.tensor(operand1, dtype=torch_format)
+        elif operand1.dtype != torch_format:
+            operand1 = operand1.to(torch_format)
 
-        reshaped = operand1.view(tile_cnt, tile_size)
-        selected = reshaped[:, :elements_per_tile_needed]
-        result = selected.flatten()
+        result = operand1.view(tile_cnt, tile_size)[
+            :, :elements_per_tile_needed
+        ].reshape(-1)
 
-        # Apply ReLU if enabled
-        if relu_config != 0:
-            result = torch.clamp(result, min=0.0)
-
-        # Ensure result is in correct format if not already
-        if result.dtype != torch_format:
-            result = result.to(torch_format)
+        if enable_relu:
+            result = torch.relu(result)
 
         return result
 
