@@ -162,40 +162,49 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
-        // LREG4 = log2(e)
-        TTI_SFPLOADI(p_sfpu::LREG4, 0xA, 0xAA3B); // lower 16 bits
-        TTI_SFPLOADI(p_sfpu::LREG4, 0x8, 0x3FB8); // upper 16 bits
+// MUST LOOP over all iterations - each iteration processes one row of dest
+// Without this loop, you only process the first element!
+#pragma GCC unroll 0
+        for (int d = 0; d < ITERATIONS; d++)
+        {
+            // LREG4 = log2(e) = 1/ln(2)
+            TTI_SFPLOADI(p_sfpu::LREG4, 0xA, 0xAA3B); // lower 16 bits
+            TTI_SFPLOADI(p_sfpu::LREG4, 0x8, 0x3FB8); // upper 16 bits
 
-        // Load LREG6 with ln(2)
-        TTI_SFPLOADI(p_sfpu::LREG6, 0xA, 0x7218); // lower 16 bits
-        TTI_SFPLOADI(p_sfpu::LREG6, 0x8, 0x3f31); // upper 16 bits
+            // Load LREG6 with ln(2)
+            TTI_SFPLOADI(p_sfpu::LREG6, 0xA, 0x7218); // lower 16 bits
+            TTI_SFPLOADI(p_sfpu::LREG6, 0x8, 0x3f31); // upper 16 bits
 
-        TTI_SFPLOAD(p_sfpu::LREG3, 0, 0, 0);
+            // Load input from current dest position
+            TTI_SFPLOAD(p_sfpu::LREG3, 0, 0, 0);
 
-        TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG3, p_sfpu::LCONST_0, p_sfpu::LREG3, 0); // lreg 3 = 1reg3*1g2 (e)
-        // Convert lreg[3] to unsigned int I (lreg1 = uint8 (lreg3))
-        TTI_SFP_STOCH_RND(1, 0, 0, p_sfpu::LREG3, p_sfpu::LREG1, 0x6);
-        TTI_SFPIADD(127, p_sfpu::LREG1, p_sfpu::LREG2, 0x1); // lreg2 = 1reg1+127
-        TTI_SFP_STOCH_RND(1, 0, 0, p_sfpu::LREG2, p_sfpu::LREG5, 0x6);
-        TTI_SFPSHFT(23, p_sfpu::LREG5, p_sfpu::LREG2, 0x1); // lreg2 = lreg2 << 23
+            TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG3, p_sfpu::LCONST_0, p_sfpu::LREG3, 0); // lreg3 = lreg3 * lreg4 (x/ln2)
+            // Convert lreg[3] to unsigned int I (lreg1 = uint8 (lreg3))
+            TTI_SFP_STOCH_RND(1, 0, 0, p_sfpu::LREG3, p_sfpu::LREG1, 0xA);
+            TTI_SFPIADD(127, p_sfpu::LREG1, p_sfpu::LREG2, 0x1); // lreg2 = lreg1 + 127
+            TTI_SFP_STOCH_RND(1, 0, 0, p_sfpu::LREG2, p_sfpu::LREG5, 0xC);
+            TTI_SFPSHFT(23, p_sfpu::LREG5, p_sfpu::LREG2, 0x1); // lreg2 = lreg5 << 23
 
-        // Compute fractional F
-        TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG0, 0x0);                                          // lreg0 = (float) 1reg1
-        TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG1, 1);                                       // lreg1 = abs(lreg3)
-        TTI_SFPMAD(p_sfpu::LCONST_1 /*1.0f*/, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LREG0, 0x1); // lreg0 = 1reg1
+            // Compute fractional F
+            TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG0, 0x0);                                          // lreg0 = (float) lreg1
+            TTI_SFPSETSGN(0, p_sfpu::LREG3, p_sfpu::LREG1, 1);                                       // lreg1 = abs(lreg3)
+            TTI_SFPMAD(p_sfpu::LCONST_1 /*1.0f*/, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LREG0, 0x1); // lreg0 = lreg1 - lreg0
 
-        // Compute F ln2
-        TTI_SFPMAD(p_sfpu::LREG6, p_sfpu::LREG0, p_sfpu::LCONST_0 /*0.0*/, p_sfpu::LREG0, 0x0); // lreg0 = 1n2*1
-        //  LUT for e^(Fln2)
-        TTI_SFPARECIP(0, p_sfpu::LREG0, p_sfpu::LREG0, 2);
-        //  multiply 2^I and e^Fln2
-        TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LCONST_0 /*0.0*/, p_sfpu::LREG0, 0x0); // 1reg0 = 1reg2
-        //  // Take reciprocal if lreg[3] is negative, copy LREG0 into LREG0
-        TTI_SFPARECIP(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
-        //  Apply Error Correction to result
-        // TTI_SFPMAD (p_sfpu::LREG0, p_sfpu::LREG7, p_sfpu::LCONST_0, p_sfpu::LREG0, 0x0) ;
-        TTI_SFPSTORE(p_sfpu::LREG0, 0, 0, 0);
-        // Store from lreg[0] into dest registers (contains final exp result)
+            // Compute F * ln2
+            TTI_SFPMAD(p_sfpu::LREG6, p_sfpu::LREG0, p_sfpu::LCONST_0 /*0.0*/, p_sfpu::LREG0, 0x0); // lreg0 = lreg6 * lreg0
+            //  LUT for e^(F*ln2) using ARECIP with mode 2
+            TTI_SFPARECIP(0, p_sfpu::LREG0, p_sfpu::LREG0, 2);
+            //  multiply 2^I and e^(F*ln2)
+            TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LCONST_0 /*0.0*/, p_sfpu::LREG0, 0x0); // lreg0 = lreg2 * lreg0
+            //  Take reciprocal if lreg[3] is negative
+            TTI_SFPARECIP(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
+
+            // Store result back to current dest position
+            TTI_SFPSTORE(p_sfpu::LREG0, 0, 0, 0);
+
+            // INCREMENT DEST POINTER for next iteration - THIS IS CRITICAL!
+            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+        }
     }
     else
     {
@@ -219,6 +228,11 @@ inline void _init_exponential_()
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
+        // Simple init for direct TTI instruction version - no macros needed
+        // Just return, all constants are loaded inline in the calculation loop
+        return;
+
+        // Original macro-based init below (disabled)
         // Algorithm is adapted from:
         //      A Fast, Compact Approximation of the Exponential Function
         //      Nicol N. Schraudolph

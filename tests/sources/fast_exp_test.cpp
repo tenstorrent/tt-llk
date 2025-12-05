@@ -81,8 +81,8 @@ void run_kernel()
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
 
-    // Init is still needed for vConst setup even without macros
-    // ckernel::sfpu::exp_init<true, true>();
+    // Init may be needed for SFPU configuration
+    ckernel::sfpu::exp_init<true, true>();
 
     for (int i = 0; i < TILE_CNT; ++i)
     {
