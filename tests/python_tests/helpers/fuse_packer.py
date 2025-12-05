@@ -31,7 +31,7 @@ class Packer:
         pack_size = operation_config.tile_size_pack
 
         TILE_CNT = operation_config.output.tile_count
-        TILIZE = "false"
+        TILIZE = operation_config.tilize.value
 
         dest_acc = operation_config.dest_acc
         dest_acc_value = dest_acc.value
