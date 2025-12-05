@@ -23,9 +23,7 @@ def init_llk_home():
 # Default LLK_HOME environment variable
 init_llk_home()
 
-from helpers.makefile import (
-    setup_build_dir,  # makefile.py uses  LLK_HOME environment variable
-)
+from helpers.makefile import setup_build_dir
 
 # imports for pytest fixtures
 from helpers.perf import perf_report  # noqa: F401  # isort:skip
@@ -183,13 +181,8 @@ def pytest_sessionstart(session):
 
     test_target = TestTargetConfig()
 
-    if TestTargetConfig().compile_producer is None:
-        setup_build_dir(Path("../../temp_artefatcs"))
-    else:
-        print(Path(TestTargetConfig().compile_producer))
-        setup_build_dir(Path(TestTargetConfig().compile_producer))
-
-    if not test_target.run_simulator and not test_target.compile_producer:
+    setup_build_dir(Path("/tmp/tt-llk-build/"))
+    if not test_target.run_simulator:
         # Send ARC message for GO BUSY signal. This should increase device clock speed.
         _send_arc_message("GO_BUSY", test_target.device_id)
 

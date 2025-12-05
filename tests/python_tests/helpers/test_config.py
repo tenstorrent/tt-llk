@@ -3,9 +3,7 @@
 
 from hashlib import sha256
 
-from .device import (
-    BootMode,
-)
+from .device import BootMode, run_elf_files, wait_for_tensix_operations_finished
 from .makefile import (
     CoverageBuild,
     ProfilerBuild,
@@ -31,11 +29,10 @@ def run_test(
 
     build_test_variant(test_config, variant_id, boot_mode, profiler_build, coverage_bld)
 
-    # run test
-    # elfs = run_elf_files(
-    #     test_config["testname"], variant_id, boot_mode, location=location
-    # )
-    # wait_for_tensix_operations_finished(elfs, location)
+    elfs = run_elf_files(
+        test_config["testname"], variant_id, boot_mode, location=location
+    )
+    wait_for_tensix_operations_finished(elfs, location)
 
     # if test_target.with_coverage:
     #     generate_info_file_for_run(
