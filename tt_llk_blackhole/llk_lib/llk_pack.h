@@ -78,7 +78,6 @@ inline void _llk_pack_mop_config_(
     [[maybe_unused]] const bool partial_face = false,
     [[maybe_unused]] const bool narrow_tile  = false)
 {
-    static_assert(FaceLayout == DstTileFaceLayout::RowMajor, "FaceLayout must be RowMajor");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(!partial_face, "partial_face: this parameter is unused");
     LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
@@ -480,7 +479,7 @@ inline void _llk_pack_hw_configure_(
     const bool narrow_tile         = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    configure_pack<is_fp32_dest_acc_en, untilize, tilize>(pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+    configure_pack<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
 }
 
 template <bool untilize = false, bool zero_output = false, bool tilize = false>

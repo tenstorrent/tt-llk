@@ -59,7 +59,7 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(0, 0, 4, formats.math);
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+    _llk_math_hw_configure_(formats.math, formats.math);
 
     // Process each tile
     for (int i = 0; i < TILE_CNT; ++i)
@@ -89,19 +89,15 @@ void run_kernel()
 void run_kernel()
 {
     // Configure packer hardware
-#ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-#else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-#endif
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst);
 
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+    _llk_pack_init_<false, false>(formats.pack_dst);
 
     // Initialize destination for packing
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, false>();
 #endif
 
     _llk_packer_wait_for_math_done_();

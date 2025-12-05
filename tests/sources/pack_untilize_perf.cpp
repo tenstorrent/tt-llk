@@ -86,7 +86,8 @@ void run_kernel()
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats.math);
 #endif
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        _llk_math_hw_configure_<true, false>(formats.math, formats.math);
+        _llk_math_hw_configure_(formats.math, formats.math);
+        _llk_math_configure_remap_(true);
         PROFILER_SYNC();
     }
 
@@ -151,15 +152,14 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
 
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst);
 #ifdef ARCH_BLACKHOLE
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
         _llk_pack_untilize_init_<BLOCK_CT_DIM, FULL_CT_DIM>(formats.pack_src, formats.pack_dst, FACE_R_DIM, 4);
 #else
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
         _llk_pack_untilize_init_<BLOCK_CT_DIM, FULL_CT_DIM>(formats.pack_dst, FACE_R_DIM, 4);
 #endif
+        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+
         PROFILER_SYNC();
     }
 

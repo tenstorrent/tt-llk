@@ -61,7 +61,7 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        _llk_math_hw_configure_<>(formats.math, formats.math);
+        _llk_math_hw_configure_(formats.math, formats.math);
 
 #ifdef ARCH_BLACKHOLE
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(
@@ -108,8 +108,8 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
 
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
-        _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst);
+        _llk_pack_init_<false, false>(formats.pack_dst);
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         PROFILER_SYNC();
     }

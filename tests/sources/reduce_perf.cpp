@@ -31,7 +31,7 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, 8, false, 4);
+        _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, 8, 4);
         _llk_unpack_AB_init_<>(
             FACE_R_DIM,
             TILE_NUM_FACES,
@@ -77,7 +77,7 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        _llk_math_hw_configure_<>(formats.math, formats.math);
+        _llk_math_hw_configure_(formats.math, formats.math);
         _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, ENFORCE_FP32_ACC>();
         PROFILER_SYNC();
     }
@@ -132,12 +132,10 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst);
         _llk_pack_init_<
             /* untilize */ false,
-            /* zero output */ false,
-            DstTileFaceLayout::RowMajor,
-            /* write tile header */ false>(formats.pack_dst);
+            /* zero output */ false>(formats.pack_dst);
         _llk_pack_reduce_mask_config_<
             /* untilize */ false,
             REDUCE_DIM>();
