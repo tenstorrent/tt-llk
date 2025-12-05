@@ -136,6 +136,8 @@ def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=None):
     - BFP8_b: [64 exponents][1024 mantissas]
     - MXFP8:  [32 scales][1024 elements]
 
+    Uses ml_dtypes for FP8 element conversion and E8M0 scale encoding.
+
     Args:
         tensor: Input tensor (typically 1024 elements for full tile)
         fp8_dtype: ml_dtypes dtype (float8_e5m2 or float8_e4m3fn)
@@ -145,44 +147,44 @@ def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=None):
     Returns:
         List of packed bytes: [all scales][all elements]
     """
-    flattened_tensor = tensor.cpu().to(torch.float32).numpy().flatten()
+    # Convert to numpy and prepare data
+    fp32_array = tensor.cpu().to(torch.float32).numpy().flatten()
 
-    # Auto-calculate num_faces from tensor size if not provided
+    # Calculate num_faces
     elements_per_face = 256
     if num_faces is None:
-        num_faces = (len(flattened_tensor) + elements_per_face - 1) // elements_per_face
-        num_faces = min(num_faces, 4)  # Cap at 4 faces max
+        num_faces = min(
+            (len(fp32_array) + elements_per_face - 1) // elements_per_face, 4
+        )
 
     elements_to_pack = elements_per_face * num_faces
     assert (
-        len(flattened_tensor) >= elements_to_pack
-    ), f"Tensor has {len(flattened_tensor)} elements, need {elements_to_pack} for {num_faces} face(s)"
+        len(fp32_array) >= elements_to_pack
+    ), f"Tensor has {len(fp32_array)} elements, need {elements_to_pack} for {num_faces} face(s)"
 
-    flattened_tensor = flattened_tensor[:elements_to_pack]
-    num_blocks = len(flattened_tensor) // MXFP8_BLOCK_SIZE
+    fp32_array = fp32_array[:elements_to_pack]
 
-    all_scales = []
-    all_elements = []
+    # Reshape into blocks: (num_blocks, 32)
+    num_blocks = len(fp32_array) // MXFP8_BLOCK_SIZE
+    blocks = fp32_array[: num_blocks * MXFP8_BLOCK_SIZE].reshape(
+        num_blocks, MXFP8_BLOCK_SIZE
+    )
 
-    for i in range(num_blocks):
-        block = flattened_tensor[i * MXFP8_BLOCK_SIZE : (i + 1) * MXFP8_BLOCK_SIZE]
+    # Process all blocks: calculate scales and convert to FP8 using ml_dtypes
+    max_abs_values = np.max(np.abs(blocks), axis=1)
+    scales_e8m0 = [
+        encode_e8m0_scale(max_val, element_max_normal) for max_val in max_abs_values
+    ]
+    scale_factors = np.array([decode_e8m0_scale(s) for s in scales_e8m0])
 
-        # Calculate E8M0 scale
-        max_abs_value = np.max(np.abs(block))
-        scale_e8m0 = encode_e8m0_scale(max_abs_value, element_max_normal)
-        scale_factor = decode_e8m0_scale(scale_e8m0)
-
-        assert not np.isnan(scale_factor), f"Corrupted E8M0 scale: {scale_e8m0}"
-
-        # Scale and convert to FP8
-        scaled_block = block / scale_factor
-        fp8_elements = scaled_block.astype(fp8_dtype)
-
-        all_scales.append(scale_e8m0)
-        all_elements.extend(fp8_elements.tobytes())
+    # Scale blocks and convert to FP8
+    scaled_blocks = blocks / scale_factors[:, np.newaxis]
+    fp8_blocks = scaled_blocks.astype(fp8_dtype)
 
     # FULLY SEPARATED layout: all scales first, then all elements
-    return all_scales + all_elements
+    # Convert FP8 blocks to list of bytes (integers 0-255)
+    fp8_bytes = list(fp8_blocks.tobytes())
+    return scales_e8m0 + fp8_bytes
 
 
 def pack_mxfp8r(tensor, num_faces=None):
@@ -203,7 +205,8 @@ def pack_mxfp8r(tensor, num_faces=None):
         num_faces: Number of faces to pack (1, 2, or 4). If None, auto-calculated from tensor size.
 
     Returns:
-        List of packed bytes: [scale0, elem0-31, scale1, elem32-63, ...]
+        List of packed bytes in FULLY SEPARATED layout: [all_scales][all_elements]
+        Layout: [32 scales (1 per block)][1024 FP8 elements]
     """
     return _pack_mxfp8(tensor, ml_dtypes.float8_e5m2, MXFP8_E5M2_MAX_NORMAL, num_faces)
 
@@ -226,7 +229,8 @@ def pack_mxfp8p(tensor, num_faces=None):
         num_faces: Number of faces to pack (1, 2, or 4). If None, auto-calculated from tensor size.
 
     Returns:
-        List of packed bytes: [scale0, elem0-31, scale1, elem32-63, ...]
+        List of packed bytes in FULLY SEPARATED layout: [all_scales][all_elements]
+        Layout: [32 scales (1 per block)][1024 FP8 elements]
     """
     return _pack_mxfp8(
         tensor, ml_dtypes.float8_e4m3fn, MXFP8_E4M3_MAX_NORMAL, num_faces

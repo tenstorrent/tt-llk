@@ -10,6 +10,13 @@ from .format_config import (
 )
 from .llk_params import format_dict
 
+# Import quantize function for MX formats
+try:
+    from .golden_generators import quantize_mx_tensor_chunked
+except ImportError:
+    # Fallback if import fails (shouldn't happen in normal usage)
+    quantize_mx_tensor_chunked = None
+
 
 def flatten_list(sublists):
     return [item for sublist in sublists for item in sublist]
@@ -89,8 +96,6 @@ def _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu):
     else:  # MxFp8P
         scale = 0.05 * MXFP8_E4M3_MAX_NORMAL
 
-    # Generate normal distribution: ~68% within ±1σ, ~95% within ±2σ
-    # With σ=scale, most values stay well below max while creating realistic variance
     face_data = torch.randn(size, dtype=torch.bfloat16) * scale
 
     # Add SFPU-friendly offset if needed
@@ -166,6 +171,7 @@ def generate_stimuli(
     sfpu=True,
     face_r_dim=16,  # Add face_r_dim parameter
     num_faces=4,  # Add num_faces parameter for partial faces
+    output_format=None,  # Optional output format to consider for range constraints
 ):
 
     srcA = []
@@ -205,8 +211,38 @@ def generate_stimuli(
         if stimuli_format_B != DataFormat.Bfp8_b
         else torch.bfloat16
     )
-    return (
-        torch.tensor(srcA, dtype=dtype_A),
-        torch.tensor(srcB, dtype=dtype_B),
-        tile_cnt,
-    )
+
+    srcA = torch.tensor(srcA, dtype=dtype_A)
+    srcB = torch.tensor(srcB, dtype=dtype_B)
+
+    quantize_format_A = None
+    quantize_format_B = None
+
+    if stimuli_format_A.is_mx_format():
+        if stimuli_format_B.is_mx_format() and stimuli_format_A != stimuli_format_B:
+            quantize_format_A = DataFormat.MxFp8P
+            quantize_format_B = DataFormat.MxFp8P
+            srcA = torch.clamp(srcA, -MXFP8_E4M3_MAX_NORMAL, MXFP8_E4M3_MAX_NORMAL)
+            srcB = torch.clamp(srcB, -MXFP8_E4M3_MAX_NORMAL, MXFP8_E4M3_MAX_NORMAL)
+        else:
+            quantize_format_A = stimuli_format_A
+
+    if stimuli_format_B.is_mx_format() and quantize_format_B is None:
+        quantize_format_B = stimuli_format_B
+
+    if quantize_mx_tensor_chunked:
+        if quantize_format_A:
+            srcA = quantize_mx_tensor_chunked(srcA, quantize_format_A)
+        if quantize_format_B:
+            srcB = quantize_mx_tensor_chunked(srcB, quantize_format_B)
+
+    if output_format and output_format.is_mx_format():
+        element_max = (
+            MXFP8_E4M3_MAX_NORMAL
+            if output_format == DataFormat.MxFp8P
+            else MXFP8_E5M2_MAX_NORMAL
+        )
+        srcA = torch.clamp(srcA, -element_max, element_max)
+        srcB = torch.clamp(srcB, -element_max, element_max)
+
+    return srcA, srcB, tile_cnt

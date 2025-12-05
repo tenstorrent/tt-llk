@@ -13,7 +13,9 @@ from helpers.llk_params import (
     ReducePool,
     format_dict,
 )
+from helpers.pack import pack_mxfp8p, pack_mxfp8r
 from helpers.tilize_untilize import tilize_block, untilize
+from helpers.unpack import unpack_mxfp8p, unpack_mxfp8r
 
 # Tile and face dimension constants
 FACE_DIM = 16
@@ -105,6 +107,103 @@ def get_golden_generator(cls):
     if cls not in golden_registry:
         raise KeyError(f"Golden class {cls.__name__} is not registered.")
     return golden_registry[cls]
+
+
+def quantize_mx_stimuli(
+    tensor: torch.Tensor, data_format: DataFormat, num_faces: int = 4
+) -> torch.Tensor:
+    """
+    Quantize MX format tensor by pack→unpack roundtrip.
+
+    Args:
+        tensor: Input tensor (bfloat16 values)
+        data_format: MX format (MxFp8R or MxFp8P)
+        num_faces: Number of faces (1, 2, or 4)
+
+    Returns:
+        Quantized tensor (bfloat16 values)
+    """
+    # Validate data format
+    if not data_format.is_mx_format():
+        raise ValueError(
+            f"quantize_mx_stimuli only supports MX formats, got {data_format}"
+        )
+
+    # Validate num_faces
+    if num_faces not in [1, 2, 4]:
+        raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
+
+    # Validate tensor size matches expected for num_faces
+    elements_per_face = 256
+    expected_elements = elements_per_face * num_faces
+    actual_elements = tensor.numel()
+
+    if actual_elements < expected_elements:
+        raise ValueError(
+            f"Tensor has {actual_elements} elements, but need at least {expected_elements} "
+            f"for {num_faces} face(s)"
+        )
+
+    # Quantize based on format
+    if data_format == DataFormat.MxFp8R:
+        packed = pack_mxfp8r(tensor, num_faces=num_faces)
+        return unpack_mxfp8r(packed, num_faces=num_faces)
+    elif data_format == DataFormat.MxFp8P:
+        packed = pack_mxfp8p(tensor, num_faces=num_faces)
+        return unpack_mxfp8p(packed, num_faces=num_faces)
+    else:
+        # This should never happen due to validation above, but kept for safety
+        raise ValueError(f"Unsupported MX format: {data_format}")
+
+
+def quantize_mx_tensor_chunked(
+    tensor: torch.Tensor, data_format: DataFormat
+) -> torch.Tensor:
+    """
+    Quantize MX format tensor by processing in chunks.
+
+    Args:
+        tensor: Input tensor (bfloat16 values)
+        data_format: MX format (MxFp8R or MxFp8P)
+
+    Returns:
+        Quantized tensor (bfloat16 values)
+    """
+    tensor = tensor if isinstance(tensor, torch.Tensor) else torch.tensor(tensor)
+    tensor_size = tensor.numel()
+
+    if tensor_size == 0:
+        return tensor
+
+    quantized_chunks = []
+    idx = 0
+
+    while idx < tensor_size:
+        remaining = tensor_size - idx
+
+        # Use largest valid chunk size: 1024 (4 faces), 512 (2 faces), or 256 (1 face)
+        if remaining >= 1024:
+            chunk_size, chunk_num_faces = 1024, 4
+        elif remaining >= 512:
+            chunk_size, chunk_num_faces = 512, 2
+        else:
+            chunk_size, chunk_num_faces = 256, 1
+
+        actual_chunk_size = min(chunk_size, remaining)
+        chunk = tensor[idx : idx + actual_chunk_size]
+        if len(chunk) < chunk_size:
+            padding = torch.zeros(
+                chunk_size - len(chunk), dtype=chunk.dtype, device=chunk.device
+            )
+            chunk = torch.cat([chunk, padding])
+
+        quantized_chunk = quantize_mx_stimuli(
+            chunk, data_format, num_faces=chunk_num_faces
+        )
+        quantized_chunks.append(quantized_chunk[:actual_chunk_size])
+        idx += actual_chunk_size
+
+    return torch.cat(quantized_chunks) if quantized_chunks else tensor
 
 
 class SrcFormatModel:
@@ -1205,9 +1304,20 @@ class EltwiseBinaryGolden(FidelityMasking):
             MathOperation.Elwmul: self._mul,
         }
 
-    def __call__(self, op, operand1, operand2, data_format, math_fidelity):
+    def __call__(
+        self, op, operand1, operand2, data_format, math_fidelity, input_format=None
+    ):
         if op not in self.ops:
             raise ValueError(f"Unsupported Eltwise operation: {op}")
+
+        # Determine input format for quantization (use input_format if provided, otherwise use output format)
+        input_quant_format = input_format if input_format is not None else data_format
+
+        # Quantize MX format operands to match what hardware sees after unpack
+        # This simulates the quantization that occurs during pack→unpack roundtrip
+        if input_quant_format.is_mx_format():
+            operand1 = quantize_mx_tensor_chunked(operand1, input_quant_format)
+            operand2 = quantize_mx_tensor_chunked(operand2, input_quant_format)
 
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
@@ -1237,9 +1347,16 @@ class EltwiseBinaryGolden(FidelityMasking):
                 else:
                     res += phase_result
 
-            return res
+            result = res
         else:
-            return self.ops[op](t1, t2)
+            result = self.ops[op](t1, t2)
+
+        if data_format.is_mx_format():
+            if op == MathOperation.Elwmul:
+                result = result.to(torch.bfloat16)
+            result = quantize_mx_tensor_chunked(result, data_format)
+
+        return result
 
     # Operation methods
     def _add(self, t1, t2):

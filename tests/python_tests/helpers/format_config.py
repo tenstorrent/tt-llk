@@ -114,12 +114,6 @@ class DataFormat(Enum):
             DataFormat.MxFp8P,
         }
 
-    def get_mx_block_size(self) -> int:
-        """Returns the MX block size (32 elements per block for OCP MX spec)."""
-        if self.is_mx_format():
-            return 32
-        raise ValueError(f"{self} is not an MX format")
-
 
 # ============================================================================
 # MX (Microscaling) Format Utilities
