@@ -10,13 +10,6 @@ from .format_config import (
 )
 from .llk_params import format_dict
 
-# Import quantize function for MX formats
-try:
-    from .golden_generators import quantize_mx_tensor_chunked
-except ImportError:
-    # Fallback if import fails (shouldn't happen in normal usage)
-    quantize_mx_tensor_chunked = None
-
 
 def flatten_list(sublists):
     return [item for sublist in sublists for item in sublist]
@@ -215,27 +208,13 @@ def generate_stimuli(
     srcA = torch.tensor(srcA, dtype=dtype_A)
     srcB = torch.tensor(srcB, dtype=dtype_B)
 
-    quantize_format_A = None
-    quantize_format_B = None
-
-    if stimuli_format_A.is_mx_format():
-        if stimuli_format_B.is_mx_format() and stimuli_format_A != stimuli_format_B:
-            quantize_format_A = DataFormat.MxFp8P
-            quantize_format_B = DataFormat.MxFp8P
+    # Clamp inputs if both are different MX formats (use more restrictive MxFp8P)
+    if stimuli_format_A.is_mx_format() and stimuli_format_B.is_mx_format():
+        if stimuli_format_A != stimuli_format_B:
             srcA = torch.clamp(srcA, -MXFP8_E4M3_MAX_NORMAL, MXFP8_E4M3_MAX_NORMAL)
             srcB = torch.clamp(srcB, -MXFP8_E4M3_MAX_NORMAL, MXFP8_E4M3_MAX_NORMAL)
-        else:
-            quantize_format_A = stimuli_format_A
 
-    if stimuli_format_B.is_mx_format() and quantize_format_B is None:
-        quantize_format_B = stimuli_format_B
-
-    if quantize_mx_tensor_chunked:
-        if quantize_format_A:
-            srcA = quantize_mx_tensor_chunked(srcA, quantize_format_A)
-        if quantize_format_B:
-            srcB = quantize_mx_tensor_chunked(srcB, quantize_format_B)
-
+    # Clamp inputs based on output format to prevent excessive rounding errors
     if output_format and output_format.is_mx_format():
         element_max = (
             MXFP8_E4M3_MAX_NORMAL

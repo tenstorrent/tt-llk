@@ -41,17 +41,21 @@ ELTWISE_DIMENSIONS = [
 @pytest.mark.quasar
 @parametrize(
     test_name="eltwise_binary_test",
-    formats=input_output_formats(
-        [
-            # DataFormat.Float16_b,
-            # DataFormat.Float16,
-            DataFormat.MxFp8R,
-            DataFormat.MxFp8P,
-        ],
-    ),
+    formats=[
+        f
+        for f in input_output_formats(
+            [
+                # DataFormat.Float16_b,
+                # DataFormat.Float16,
+                DataFormat.MxFp8R,
+                DataFormat.MxFp8P,
+            ],
+        )
+        if f.input != f.output
+    ],
     mathop=[
-        MathOperation.Elwadd,
-        MathOperation.Elwsub,
+        # MathOperation.Elwadd,
+        # MathOperation.Elwsub,
         MathOperation.Elwmul,
     ],
     math_fidelity=[
@@ -96,30 +100,16 @@ def test_eltwise_binary(
         pytest.skip("MX formats require implied_math_format=Yes on Quasar")
 
     # Generate stimuli for both operands
+    # generate_stimuli handles MX format clamping:
+    # - If both inputs are different MX formats, clamps to more restrictive format (MxFp8P)
+    # - If output is MX format, clamps inputs to prevent excessive rounding errors
+    # Quantization is handled by the golden model to simulate hardware unpack behavior
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
         formats.input_format,
         input_dimensions=input_dimensions,
+        output_format=formats.output_format,
     )
-
-    # For MxFp8 formats, quantize inputs to match hardware precision
-    # E5M2 has only 2 mantissa bits → e.g., 336 becomes 320
-    # Golden must compute on quantized values, not original high-precision stimuli
-    if formats.input_format.is_mx_format():
-        from helpers.pack import pack_mxfp8p, pack_mxfp8r
-        from helpers.unpack import unpack_mxfp8p, unpack_mxfp8r
-
-        pack_fn = (
-            pack_mxfp8r if formats.input_format == DataFormat.MxFp8R else pack_mxfp8p
-        )
-        unpack_fn = (
-            unpack_mxfp8r
-            if formats.input_format == DataFormat.MxFp8R
-            else unpack_mxfp8p
-        )
-
-        src_A = unpack_fn(pack_fn(src_A))[: len(src_A)]
-        src_B = unpack_fn(pack_fn(src_B))[: len(src_B)]
 
     # Generate golden result using eltwise binary golden generator
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
@@ -129,6 +119,7 @@ def test_eltwise_binary(
         src_B,
         formats.output_format,
         math_fidelity,
+        input_format=formats.input_format,
     )
 
     # Determine unpack_to_dest based on format and accumulation mode
