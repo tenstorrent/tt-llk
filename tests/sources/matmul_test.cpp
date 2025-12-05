@@ -37,19 +37,7 @@ void run_kernel()
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
         _llk_unpack_AB_matmul_<>(
-            L1_ADDRESS(buffer_A[0]),
-            L1_ADDRESS(buffer_B[0]),
-            j,
-            j * CT_DIM,
-            TILE_SIZE_UNPACK_A,
-            TILE_SIZE_UNPACK_B,
-            FACE_R_DIM,
-            FACE_R_DIM,
-            false,
-            false,
-            CT_DIM,
-            RT_DIM,
-            KT_DIM);
+            L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), j, j * CT_DIM, TILE_SIZE_UNPACK_A, TILE_SIZE_UNPACK_B, false, false, CT_DIM, RT_DIM, KT_DIM);
     }
 }
 

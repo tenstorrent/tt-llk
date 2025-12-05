@@ -46,8 +46,6 @@ void run_kernel()
             j * CT_DIM,
             TILE_SIZE_UNPACK_A,
             TILE_SIZE_UNPACK_B,
-            FACE_R_DIM,
-            FACE_R_DIM,
             PARTIAL_FACE_A,
             PARTIAL_FACE_B,
             CT_DIM,
