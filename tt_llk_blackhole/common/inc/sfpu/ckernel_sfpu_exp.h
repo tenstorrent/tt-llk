@@ -163,11 +163,11 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
         // Load LREG4 with A = 256/ln(2)
-        TTI_SFPLOADI(p_sfpu::LREG4, 0xA, 0xaa3b); // lower 16 bits
-        TTI_SFPLOADI(p_sfpu::LREG4, 0x8, 0x43b8); // upper 16 bits
+        TTI_SFPLOADI(p_sfpu::LREG4, 0xA, 0x2837); // lower 16 bits
+        TTI_SFPLOADI(p_sfpu::LREG4, 0x8, 0x43BF); // upper 16 bits
 
         // Load LREG6 with ln(2)
-        TTI_SFPLOADI(p_sfpu::LREG6, 0xA, 0x3f31); // lower 16 bits
+        TTI_SFPLOADI(p_sfpu::LREG6, 0xA, 0x7218); // lower 16 bits
         TTI_SFPLOADI(p_sfpu::LREG6, 0x8, 0x3f31); // upper 16 bits
 
         TTI_SFPLOAD(p_sfpu::LREG3, 0, 0, 0);
@@ -186,21 +186,14 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 
         // Compute F ln2
         TTI_SFPMAD(p_sfpu::LREG6, p_sfpu::LREG0, p_sfpu::LCONST_0 /*0.0*/, p_sfpu::LREG0, 0x0); // lreg0 = 1n2*1
-        // TTI_NOP; TTI_NOP; // MMDec 13 2022: Should no longer be needed
         //  LUT for e^(Fln2)
         TTI_SFPARECIP(0, p_sfpu::LREG0, p_sfpu::LREG0, 2);
-        // TTI_NOP; // MMDec 13 2022: Should no longer be needed
         //  multiply 2^I and e^Fln2
         TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LCONST_0 /*0.0*/, p_sfpu::LREG0, 0x0); // 1reg0 = 1reg2
-        TTI_NOP;
-        TTI_NOP; // MMDec 13 2022: Should no longer be needed
         //  // Take reciprocal if lreg[3] is negative, copy LREG0 into LREG0
         TTI_SFPARECIP(0, p_sfpu::LREG0, p_sfpu::LREG0, 0);
-        // TTI_NOP; // MMDec 13 2022: Should no longer be needed
         //  Apply Error Correction to result
         // TTI_SFPMAD (p_sfpu::LREG0, p_sfpu::LREG7, p_sfpu::LCONST_0, p_sfpu::LREG0, 0x0) ;
-        //  // 111/
-        //  // TTI_SFPLOAD(1, 0, 0, offset);
         TTI_SFPSTORE(p_sfpu::LREG0, 0, 0, 0);
         // Store from lreg[0] into dest registers (contains final exp result)
     }

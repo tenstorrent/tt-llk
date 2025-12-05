@@ -43,6 +43,7 @@ void run_kernel()
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_eltwise_unary_sfpu.h"
 #include "llk_math_eltwise_unary_sfpu_params.h"
+#include "llk_sfpu_types.h"
 #include "params.h"
 
 using namespace ckernel;
@@ -80,28 +81,16 @@ void run_kernel()
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
 
+    // Init is still needed for vConst setup even without macros
     // ckernel::sfpu::exp_init<true, true>();
 
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math);
 
-        // calculation of sfpu operation on dest
-        // _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
-
-        // _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
-        // // calling sfpu function from ckernel
-        // // this part is where parametrization of operation takes part
-        // call_sfpu_operation(SFPU_UNARY_OPERATION, formats.math);
-
-        // _llk_math_eltwise_unary_sfpu_params_<true>(
-        //     ckernel::sfpu::calculate_exponential<true, true, false, 32, false>, i, VectorMode::RC_custom, p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor*/);
-
-        ckernel::sfpu::calculate_exponential<true, true, false, 32, false>(p_sfpu::kCONST_1_FP16B);
-
-        // _llk_math_eltwise_unary_sfpu_done_();
+        _llk_math_eltwise_unary_sfpu_params_<true>(
+            ckernel::sfpu::calculate_exponential<true, true, false, 32, false>, i, VectorMode::RC_custom, p_sfpu::kCONST_1_FP16B);
     }
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
