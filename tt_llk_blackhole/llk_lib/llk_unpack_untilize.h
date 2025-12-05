@@ -51,7 +51,11 @@ inline void _llk_unpack_untilize_mop_config_()
     tmp.program();
 }
 
-inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, const std::uint32_t tile_size, const std::uint32_t face_r_dim = FACE_R_DIM)
+inline void _llk_unpack_untilize_init_(
+    const std::uint32_t unpack_dst_format,
+    const std::uint32_t tile_size,
+    const std::uint32_t face_r_dim                 = FACE_R_DIM,
+    [[maybe_unused]] const std::uint32_t num_faces = 4)
 {
     llk_san_unpack_operand_check(llk_san_x, llk_san_x, llk_san_x, unpack_dst_format, llk_san_x, face_r_dim, llk_san_x, llk_san_x, llk_san_x);
     llk_san_init<llk_san_op::UnpackUntilize>();
@@ -59,6 +63,7 @@ inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, co
     llk_san_extended_state_mask(
         llk_san_cfg::Transpose, llk_san_cfg::AdcXX, llk_san_cfg::CH1Strides, llk_san_cfg::TileDesc, llk_san_cfg::Mop); // GPRS not tracked here for now
 
+    // Always include setup calls first for safety (as recommended by maintainer)
     // Disable transpose when unused
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
