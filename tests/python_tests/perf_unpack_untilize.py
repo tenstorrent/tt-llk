@@ -27,6 +27,7 @@ def test_perf_unpack_untilize(
 
     run_types = [
         PerfRunType.L1_TO_L1,
+        PerfRunType.PACK_ISOLATE,
     ]
 
     tile_count = full_rt_dim * full_ct_dim
