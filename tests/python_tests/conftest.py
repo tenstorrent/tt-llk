@@ -8,9 +8,11 @@ from pathlib import Path
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from helpers.device import reset_mailboxes
 from helpers.format_config import InputOutputFormat
 from helpers.log_utils import _format_log
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
+from helpers.test_config import TestConfig
 from ttexalens import tt_exalens_init
 
 
@@ -22,8 +24,6 @@ def init_llk_home():
 
 # Default LLK_HOME environment variable
 init_llk_home()
-
-from helpers.makefile import setup_build_dir
 
 # imports for pytest fixtures
 from helpers.perf import perf_report  # noqa: F401  # isort:skip
@@ -90,10 +90,10 @@ def check_hardware_headers():
     print(f"✓ Hardware-specific headers for {arch_name} are present")
 
 
-# @pytest.fixture(autouse=True)
-# def reset_mailboxes_fixture():
-#     reset_mailboxes()
-#     yield
+@pytest.fixture(autouse=True)
+def reset_mailboxes_fixture():
+    reset_mailboxes()
+    yield
 
 
 @pytest.fixture()
@@ -181,7 +181,7 @@ def pytest_sessionstart(session):
 
     test_target = TestTargetConfig()
 
-    setup_build_dir(Path("/tmp/tt-llk-build/"))
+    TestConfig.setup_build(Path(os.environ["LLK_HOME"]), Path("/tmp/tt-llk-build/"))
     if not test_target.run_simulator:
         # Send ARC message for GO BUSY signal. This should increase device clock speed.
         _send_arc_message("GO_BUSY", test_target.device_id)

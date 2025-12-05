@@ -14,7 +14,13 @@ from helpers.matmul_sweep import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import run_test
+from helpers.test_config import TestConfig
+from helpers.test_variant_parameters import (
+    CRK_TILE_DIMM,
+    INPUT_DIMENSIONS,
+    MATH_FIDELITY,
+    TILE_COUNT,
+)
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
@@ -126,11 +132,11 @@ def test_matmul(
         tilized_B = src_B
 
     test_config = {
-        "formats": formats,
-        "testname": test_name,
-        "dest_acc": dest_acc,
-        "math_fidelity": math_fidelity,
-        "tile_cnt": matmul_dims.output_tile_cnt,
+        "formats": formats,  # ++
+        "testname": test_name,  # ++
+        "dest_acc": dest_acc,  # ++
+        "math_fidelity": math_fidelity,  # ++
+        "tile_cnt": matmul_dims.output_tile_cnt,  # ++
         "input_A_dimensions": input_A_dimensions,
         "input_B_dimensions": input_B_dimensions,
         "output_dimensions": matmul_dims.output_dimensions,
@@ -151,7 +157,22 @@ def test_matmul(
         location=workers_tensix_coordinates,
     )
 
-    run_test(test_config, boot_mode, location=workers_tensix_coordinates)
+    configuration = TestConfig(
+        test_name,
+        formats,
+        templates=[
+            MATH_FIDELITY(math_fidelity),
+            INPUT_DIMENSIONS(input_A_dimensions, input_B_dimensions),
+        ],
+        runtimes=[
+            TILE_COUNT(matmul_dims.output_tile_cnt),
+            CRK_TILE_DIMM(matmul_dims.ct_dim, matmul_dims.rt_dim, matmul_dims.kt_dim),
+        ],
+        dest_acc=dest_acc,
+        boot_mode=boot_mode,
+    )
+
+    configuration.run(workers_tensix_coordinates)
 
     res_from_L1 = collect_results(
         formats,

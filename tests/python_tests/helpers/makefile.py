@@ -5,24 +5,12 @@
 import os
 import shutil
 from concurrent.futures import ThreadPoolExecutor
-from enum import Enum
 from pathlib import Path
 
 from .build_h_gen import generate_build_header
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .device import BootMode
 from .utils import create_directories, run_shell_command
-
-
-class ProfilerBuild(Enum):
-    Yes = "true"
-    No = "false"
-
-
-class CoverageBuild(Enum):
-    Yes = "true"
-    No = "false"
-
 
 # Architecture Selection
 ARCH_NON_COMPUTE = None

@@ -18,7 +18,13 @@ from helpers.device import (
     run_elf_files,
     wait_for_tensix_operations_finished,
 )
-from helpers.makefile import ProfilerBuild, build_test_variant
+
+
+class ProfilerBuild(Enum):
+    Yes = "true"
+    No = "false"
+
+
 from helpers.profiler import Profiler, ProfilerData
 
 

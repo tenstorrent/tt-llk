@@ -9,7 +9,6 @@ from .llk_params import (
     ApproximationMode,
     BroadcastType,
     DataCopyType,
-    DestAccumulation,
     DestSync,
     EltwiseBinaryReuseDestType,
     ImpliedMathFormat,
@@ -112,7 +111,7 @@ class MATH_FIDELITY(TemplateParameter):  # This one is mandatory
     fidelity: MathFidelity
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr std::uint32_t MATH_FIDELITY = {self.fidelity};"
+        return f"constexpr std::uint32_t MATH_FIDELITY = {self.fidelity.value};"
 
 
 @dataclass
@@ -166,14 +165,6 @@ class PERF_RUN_TYPE(TemplateParameter):
 
 
 @dataclass
-class DEST_ACC(TemplateParameter):  # TODO Should be no by default
-    dest_acc: DestAccumulation
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr bool is_fp32_dest_acc_en = {self.dest_acc.value};"
-
-
-@dataclass
 class REDUCE_POOL_TYPE(TemplateParameter):
     type: ReducePool
 
@@ -182,11 +173,11 @@ class REDUCE_POOL_TYPE(TemplateParameter):
 
 
 @dataclass
-class InputDimensions(TemplateParameter):
+class INPUT_DIMENSIONS(TemplateParameter):
     srcA: Tuple[int, int]
-    srcA: Tuple[int, int]
-    block_ct_dim: Optional[int]
-    block_rt_dim: Optional[int]
+    srcB: Tuple[int, int]
+    block_ct_dim: Optional[int] = None
+    block_rt_dim: Optional[int] = None
 
     def covert_to_cpp(self) -> str:
         num_rows, num_cols = 32, 32
@@ -286,9 +277,9 @@ class SRCA_REUSE_COUNT(RuntimeParameter):
 
 @dataclass
 class PARTIAL_FACE(RuntimeParameter):
-    partial_face: Optional[bool]
-    partial_a: Optional[bool]
-    partial_b: Optional[bool]
+    partial_face: Optional[bool] = False
+    partial_a: Optional[bool] = False
+    partial_b: Optional[bool] = False
 
     def covert_to_cpp(self) -> str:
         lines: list[str] = []

@@ -24,7 +24,6 @@ from ttexalens.tt_exalens_lib import (
     read_from_device,
     read_word_from_device,
     validate_device_id,
-    write_to_device,
     write_words_to_device,
 )
 
@@ -364,29 +363,6 @@ def write_stimuli_to_l1(
             raise ValueError(
                 f"Unsupported data format for buffer_C: {stimuli_C_format.name}"
             )
-
-    def write_matrix(
-        buffer, tile_count, pack_function, base_address, tile_size, num_faces
-    ):
-        addresses = []
-        packed_data_list = []
-
-        pack_function_lambda = lambda buffer_tile: (
-            pack_function(buffer_tile, num_faces=num_faces)
-            if pack_function == pack_bfp8_b
-            else pack_function(buffer_tile)
-        )
-
-        for i in range(tile_count):
-            start_idx = TILE_ELEMENTS * i
-            tile_data = buffer[start_idx : start_idx + TILE_ELEMENTS]
-            packed_data = pack_function_lambda(tile_data)
-
-            addresses.append(base_address + i * tile_size)
-            packed_data_list.append(packed_data)
-
-        for addr, data in zip(addresses, packed_data_list):
-            write_to_device(location, addr, data)
 
     write_matrix(
         buffer_A,

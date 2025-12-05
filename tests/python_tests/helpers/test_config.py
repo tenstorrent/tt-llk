@@ -4,8 +4,9 @@
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from ttexalens.tt_exalens_lib import (
     parse_elf,
@@ -23,10 +24,19 @@ from .format_config import DataFormat, FormatConfig
 from .llk_params import (
     DestAccumulation,
 )
-from .makefile import (
-    CoverageBuild,
-    ProfilerBuild,
-)
+from .target_config import TestTargetConfig
+
+
+class ProfilerBuild(Enum):
+    Yes = "true"
+    No = "false"
+
+
+class CoverageBuild(Enum):
+    Yes = "true"
+    No = "false"
+
+
 from .test_variant_parameters import RuntimeParameter, TemplateParameter
 from .utils import create_directories, run_shell_command
 
@@ -70,16 +80,19 @@ class TestConfig:
     GCOV_TOOL: ClassVar[str]
 
     # Compilation options
-    OPTIONS_ALL: ClassVar[str] = ""
-    OPTIONS_LINK: ClassVar[str] = ""
-    INITIAL_OPTIONS_COMPILE: ClassVar[str] = ""
-    INCLUDES: ClassVar[str] = ""
+    OPTIONS_ALL: ClassVar[str] = None
+    OPTIONS_LINK: ClassVar[str] = None
+    INITIAL_OPTIONS_COMPILE: ClassVar[str] = None
+    INCLUDES: ClassVar[str] = None
 
-    OPTIONS_COMPILE: ClassVar[str]
-    MEMORY_LAYOUT_LD_SCRIPT: ClassVar[str]
-    NON_COVERAGE_OPTIONS_COMPILE: ClassVar[str]
+    OPTIONS_COMPILE: ClassVar[str] = None
+    MEMORY_LAYOUT_LD_SCRIPT: ClassVar[str] = None
+    NON_COVERAGE_OPTIONS_COMPILE: ClassVar[str] = None
 
+    SHARED_ARTEFACTS_AVAILABLE: ClassVar[bool] = False
     KERNEL_COMPONENTS: ClassVar[list[str]] = ["unpack", "math", "pack"]
+
+    #
 
     @staticmethod
     def setup_arch():
@@ -162,25 +175,52 @@ class TestConfig:
     @staticmethod
     def setup_build(sources_path: Path, build_path: Path):
         TestConfig.setup_arch()
-        TestConfig.setup_build(sources_path, build_path)
+        TestConfig.setup_paths(sources_path, build_path)
         TestConfig.setup_compilation_options()
 
-    SHARED_ARTEFACTS_AVAILABLE: ClassVar[bool] = False
-
     # === Instance fields and methods ===
+    def __init__(
+        self,
+        # Required arguments
+        test_name: str,
+        formats: FormatConfig,
+        templates: set[TemplateParameter],
+        runtimes: set[RuntimeParameter],
+        # Arguments with valid default values
+        boot_mode: BootMode = BootMode.DEFAULT,
+        profiler_build: ProfilerBuild = ProfilerBuild.No,
+        L1_to_L1_iterations: int = 1,
+        unpack_to_dest: bool = False,
+        disable_format_inference: bool = False,
+        dest_acc: DestAccumulation = DestAccumulation.No,
+        tiny_tiles: bool = False,
+    ):
 
-    test_name: str
-    boot_mode: BootMode = BootMode.DEFAULT
-    coverage_build: CoverageBuild = CoverageBuild.No
-    profiler_build: ProfilerBuild = ProfilerBuild.No
-    templates: set[TemplateParameter]
-    runtimes: set[RuntimeParameter]
-    L1_to_L1_iterations: Optional[str]
-    unpack_to_dest: Optional[bool]
-    variant_id: Optional[str]
+        if TestTargetConfig().with_coverage:
+            self.coverage_build = CoverageBuild.Yes
+        else:
+            self.coverage_build = CoverageBuild.No
 
-    def generate_variant_id(self) -> str:
-        self.variant_id = ""
+        self.test_name = test_name
+        self.formats = formats
+        self.templates = templates
+        self.runtimes = runtimes
+        self.boot_mode = boot_mode
+        self.profiler_build = profiler_build
+        self.L1_to_L1_iterations = L1_to_L1_iterations
+        self.unpack_to_dest = unpack_to_dest
+        self.disable_format_inference = disable_format_inference
+        self.dest_acc = dest_acc
+
+        if (
+            self.coverage_build == CoverageBuild.Yes
+            and self.profiler_build == ProfilerBuild.Yes
+        ):
+            raise ValueError(
+                "You can't build profiler and coverage build at the same time, profiling tests will fail"
+            )
+
+        self.variant_id = "finnish_hashing_of_this_object"
 
     def resolve_compile_options(self) -> tuple[str, str, str]:
 
@@ -207,14 +247,6 @@ class TestConfig:
 
         NON_COVERAGE_OPTIONS_COMPILE = OPTIONS_COMPILE
 
-        if (
-            self.coverage_build == CoverageBuild.Yes
-            and self.profiler_build == ProfilerBuild.Yes
-        ):
-            raise ValueError(
-                "You can't build profiler and coverage build at the same time"
-            )
-
         if self.coverage_build == CoverageBuild.Yes:
             NON_COVERAGE_OPTIONS_COMPILE = OPTIONS_COMPILE
             OPTIONS_COMPILE += (
@@ -224,7 +256,7 @@ class TestConfig:
                 f"{TestConfig.LINKER_SCRIPTS}/memory.{TestConfig.ARCH}.debug.ld"
             )
 
-        if profiler_build == ProfilerBuild.Yes:
+        if self.profiler_build == ProfilerBuild.Yes:
             OPTIONS_COMPILE += "-DLLK_PROFILER "
 
         return (OPTIONS_COMPILE, MEMORY_LAYOUT_LD_SCRIPT, NON_COVERAGE_OPTIONS_COMPILE)
@@ -324,18 +356,19 @@ class TestConfig:
         # Profiler Tests don't pass formats to the test config, so we need to set them here
         if "profiler" in self.test_name:
             format = DataFormat.Float16
-            formats = FormatConfig(format, format, format, format, format)
+            self.formats = FormatConfig(format, format, format, format, format)
 
         # Dest accumulation
-        dest_acc = test_config.get("dest_acc", DestAccumulation.No)  # TP ++
-        header_content.append(f"constexpr bool is_fp32_dest_acc_en = {dest_acc.value};")
+        header_content.append(
+            f"constexpr bool is_fp32_dest_acc_en = {self.dest_acc.value};"
+        )
 
         # Check if this is an outlier format combination that requires dest_acc to be enabled
+        # Automatically enable dest_acc for outlier combinations
         if is_format_combination_outlier(
-            formats.input_format, formats.output_format, dest_acc
+            self.formats.input_format, self.formats.output_format, self.dest_acc
         ):
-            # Automatically enable dest_acc for outlier combinations
-            dest_acc = DestAccumulation.Yes
+            self.dest_acc = DestAccumulation.Yes
 
         # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
         # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
@@ -343,40 +376,30 @@ class TestConfig:
         # If L1_to_L1_ITERATIONS is 1, we take input tensor from L1 -> unpack -> math -> pack -> L1
         # If L1_to_L1_ITERATIONS is greater than 1, we perform multiple iterations of unpack -> math -> pack, by taking results tensor in L1 to be input tensor of next iteration
 
-        l1_to_l1_iterations = self.L1_to_L1_iterations
-        if self.L1_to_L1_iterations is None:
-            self.L1_to_L1_iterations = 1
+        formats_config = data_formats(
+            input_format=self.formats.input_format,
+            output_format=self.formats.output_format,
+            is_fp32_dest_acc_en=self.dest_acc,
+            num_iterations=self.L1_to_L1_iterations,
+            unpacking_to_dest=self.unpack_to_dest == "true",
+            chip_arch=get_chip_architecture(),
+            disable_format_inference=self.disable_format_inference,
+        )
 
-        # TP in blackhole and wormhole, RT in quasar
-
-        if self.unpack_to_dest is not None:
-            self.unpack_to_dest = str(self.unpack_to_des).lower()
-        else:
-            self.unpack_to_dest = "false"
-
+        self.unpack_to_dest = self.unpack_to_dest = str(self.unpack_to_dest).lower()
         header_content.append(f"constexpr bool unpack_to_dest = {self.unpack_to_dest};")
         header_content.append(
             f"constexpr bool UNPACKING_TO_DEST = {self.unpack_to_dest};"
         )
 
-        formats_config = data_formats(
-            input_format=formats.input_format,
-            output_format=formats.output_format,
-            is_fp32_dest_acc_en=dest_acc,
-            num_iterations=l1_to_l1_iterations,
-            unpacking_to_dest=self.unpack_to_dest == "true",
-            chip_arch=get_chip_architecture(),
-            disable_format_inference=test_config.get("disable_format_inference", False),
-        )
-
         # Check if we need to generate multiple format configurations
 
-        if l1_to_l1_iterations > 1:
+        if self.L1_to_L1_iterations > 1:
             # Generate format data as arrays that params.h can use to construct FormatConfig objects
             header_content.extend(
                 [
                     "// Format data for multiple L1-to-L1 iterations",
-                    f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {l1_to_l1_iterations};",
+                    f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {self.L1_to_L1_iterations};",
                     "#define FUSED_MULTIPLE_RUNS true",
                 ]
             )
@@ -564,7 +587,7 @@ class TestConfig:
                 VARIANT_DIR / f"{trisc_name}.raw.stream",
             )
 
-    def execute_variant(self, location):
+    def run(self, location):
 
         self.build_elfs()
         elfs = run_elf_files(
