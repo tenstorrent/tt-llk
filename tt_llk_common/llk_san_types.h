@@ -23,9 +23,15 @@ enum class llk_san_op
 
 enum class llk_san_cfg
 {
-    Transpose,
+    Addrmod,
+    Mop,
+    DvalidDisable,
+    CH0Strides,
+    CH1Strides,
+    TileDesc,
     AdcXX,
-    Mop
+    Transpose,
+    L1Offset
 };
 
 enum class llk_san_operand
