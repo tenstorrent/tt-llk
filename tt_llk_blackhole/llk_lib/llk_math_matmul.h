@@ -603,8 +603,7 @@ inline void _llk_math_matmul_init_(
     const bool partial_face            = false,
     const std::uint32_t transpose      = 0,
     const std::uint32_t ct_dim         = 1,
-    const std::uint32_t rt_dim         = 1,
-    const std::uint32_t kt_dim         = 1)
+    const std::uint32_t rt_dim         = 1)
 {
     matmul_configure_addrmod<MATH_FIDELITY_DESC, FaceLayout, THROTTLE_LEVEL>(
         transpose, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
