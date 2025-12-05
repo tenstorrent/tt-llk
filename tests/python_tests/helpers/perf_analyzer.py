@@ -397,7 +397,7 @@ def print_performance_analysis(
     iteration_data: Optional[List[Dict]] = None,
 ):
     """
-    Print performance counter data from multi-iteration profiling (10 signals per thread)
+    Print performance counter data from multi-iteration profiling (comprehensive multi-category coverage)
 
     Args:
         analysis: PerformanceAnalysis object from analyze_performance()
@@ -408,49 +408,234 @@ def print_performance_analysis(
         return
 
     print("\n" + "=" * 100)
-    print("⚡ PERFORMANCE COUNTER DATA (Multi-Iteration: 10 signals per thread)")
+    num_iterations = len(iteration_data) if iteration_data else 0
+    print(
+        f"⚡ PERFORMANCE COUNTER DATA (Multi-Iteration: {num_iterations} iterations, measuring all 66 counters)"
+    )
     print("=" * 100)
 
     # Define signal arrays (matching C++ perf_counters.h)
-    # Each thread has 10 relevant signals measured across 2 iterations (5 per iteration)
-
+    # UNPACK: 25 counters across 5 iterations (5 per iteration)
+    # Only FPU and TDMA_PACK are unused placeholders for UNPACK thread
     unpack_signal_names = [
-        "INST_UNPACK",  # 0
-        "INST_CFG",  # 1
-        "INST_SYNC",  # 2
-        "STALLED",  # 3
-        "SRCA_CLEARED_0",  # 4
-        "SRCB_CLEARED_0",  # 5
-        "SRCA_VALID_0",  # 6
-        "SRCB_VALID_0",  # 7
-        "STALL_SEM_ZERO",  # 8
-        "STALL_SEM_MAX",  # 9
+        "INST_CFG",
+        "FPU_OP_VALID",
+        "MATH_INSTR_SRC_READY",
+        "UNPACK_NO_ARB",
+        "DSTAC_RDEN_RAW_0",
+        "INST_SYNC",
+        "SFPU_OP_VALID",
+        "MATH_NOT_D2A_STALL",
+        "UNPACK_ARB_1",
+        "DSTAC_RDEN_RAW_1",
+        "INST_THCON",
+        "FPU_OP_VALID",
+        "MATH_FIDELITY_PHASES",
+        "TDMA_BUNDLE_0_ARB",
+        "DSTAC_RDEN_RAW_2",
+        "INST_XSEARCH",
+        "SFPU_OP_VALID",
+        "MATH_INSTR_BUF_RDEN",
+        "TDMA_BUNDLE_1_ARB",
+        "DSTAC_RDEN_RAW_3",
+        "INST_MOVE",
+        "FPU_OP_VALID",
+        "MATH_INSTR_VALID",
+        "NOC_RING0_OUTGOING_0",
+        "PACK_NOT_DEST_STALL",
+        "INST_MATH",
+        "SFPU_OP_VALID",
+        "TDMA_SRCB_REGIF_WREN",
+        "NOC_RING0_OUTGOING_1",
+        "PACK_NOT_SB_STALL",
+        "INST_UNPACK",
+        "FPU_OP_VALID",
+        "TDMA_SRCA_REGIF_WREN",
+        "NOC_RING0_INCOMING_0",
+        "PACK_BUSY_10",
+        "INST_PACK",
+        "SFPU_OP_VALID",
+        "UNPACK_BUSY_0",
+        "NOC_RING0_INCOMING_1",
+        "PACK_BUSY_11",
+        "STALLED",
+        "FPU_OP_VALID",
+        "UNPACK_BUSY_1",
+        "TDMA_PACKER_2_WR",
+        "DSTAC_RDEN_RAW_0",
+        "SRCA_CLEARED_0",
+        "SFPU_OP_VALID",
+        "UNPACK_BUSY_2",
+        "TDMA_EXT_UNPACK_9",
+        "DSTAC_RDEN_RAW_1",
+        "SRCA_CLEARED_1",
+        "FPU_OP_VALID",
+        "UNPACK_BUSY_3",
+        "TDMA_EXT_UNPACK_10",
+        "DSTAC_RDEN_RAW_2",
+        "SRCA_CLEARED_2",
+        "SFPU_OP_VALID",
+        "MATH_INSTR_SRC_READY",
+        "TDMA_EXT_UNPACK_11",
+        "DSTAC_RDEN_RAW_3",
+        "SRCB_CLEARED_0",
+        "FPU_OP_VALID",
+        "MATH_NOT_D2A_STALL",
+        "NOC_RING1_OUTGOING_0",
+        "PACK_NOT_DEST_STALL",
+        "SRCB_CLEARED_1",
+        "SFPU_OP_VALID",
+        "MATH_FIDELITY_PHASES",
+        "NOC_RING1_OUTGOING_1",
+        "PACK_NOT_SB_STALL",
     ]
 
+    # MATH: 70 counters across 14 iterations (5 per iteration)
     math_signal_names = [
-        "INST_MATH",  # 0
-        "INST_CFG",  # 1
-        "INST_SYNC",  # 2
-        "STALLED",  # 3
-        "SRCA_CLEARED_1",  # 4
-        "SRCB_CLEARED_1",  # 5
-        "SRCA_VALID_1",  # 6
-        "SRCB_VALID_1",  # 7
-        "STALL_MATH",  # 8
-        "STALL_SFPU",  # 9
+        "INST_CFG",
+        "FPU_OP_VALID",
+        "MATH_INSTR_SRC_READY",
+        "UNPACK_NO_ARB",
+        "DSTAC_RDEN_RAW_0",
+        "INST_SYNC",
+        "SFPU_OP_VALID",
+        "MATH_NOT_D2A_STALL",
+        "UNPACK_ARB_1",
+        "DSTAC_RDEN_RAW_1",
+        "INST_THCON",
+        "FPU_OP_VALID",
+        "MATH_FIDELITY_PHASES",
+        "TDMA_BUNDLE_0_ARB",
+        "DSTAC_RDEN_RAW_2",
+        "INST_XSEARCH",
+        "SFPU_OP_VALID",
+        "MATH_INSTR_BUF_RDEN",
+        "TDMA_BUNDLE_1_ARB",
+        "DSTAC_RDEN_RAW_3",
+        "INST_MOVE",
+        "FPU_OP_VALID",
+        "MATH_INSTR_VALID",
+        "NOC_RING0_OUTGOING_0",
+        "PACK_NOT_DEST_STALL",
+        "INST_MATH",
+        "SFPU_OP_VALID",
+        "TDMA_SRCB_REGIF_WREN",
+        "NOC_RING0_OUTGOING_1",
+        "PACK_NOT_SB_STALL",
+        "INST_UNPACK",
+        "FPU_OP_VALID",
+        "TDMA_SRCA_REGIF_WREN",
+        "NOC_RING0_INCOMING_0",
+        "PACK_BUSY_10",
+        "INST_PACK",
+        "SFPU_OP_VALID",
+        "UNPACK_BUSY_0",
+        "NOC_RING0_INCOMING_1",
+        "PACK_BUSY_11",
+        "STALLED",
+        "FPU_OP_VALID",
+        "UNPACK_BUSY_1",
+        "TDMA_PACKER_2_WR",
+        "DSTAC_RDEN_RAW_0",
+        "SRCA_CLEARED_0",
+        "SFPU_OP_VALID",
+        "UNPACK_BUSY_2",
+        "TDMA_EXT_UNPACK_9",
+        "DSTAC_RDEN_RAW_1",
+        "SRCA_CLEARED_1",
+        "FPU_OP_VALID",
+        "UNPACK_BUSY_3",
+        "TDMA_EXT_UNPACK_10",
+        "DSTAC_RDEN_RAW_2",
+        "SRCA_CLEARED_2",
+        "SFPU_OP_VALID",
+        "MATH_INSTR_SRC_READY",
+        "TDMA_EXT_UNPACK_11",
+        "DSTAC_RDEN_RAW_3",
+        "SRCB_CLEARED_0",
+        "FPU_OP_VALID",
+        "MATH_NOT_D2A_STALL",
+        "NOC_RING1_OUTGOING_0",
+        "PACK_NOT_DEST_STALL",
+        "SRCB_CLEARED_1",
+        "SFPU_OP_VALID",
+        "MATH_FIDELITY_PHASES",
+        "NOC_RING1_OUTGOING_1",
+        "PACK_NOT_SB_STALL",
     ]
 
+    # PACK: 70 counters across 14 iterations (5 per iteration)
     pack_signal_names = [
-        "INST_PACK",  # 0
-        "INST_CFG",  # 1
-        "INST_MOVE",  # 2
-        "STALLED",  # 3
-        "SRCA_CLEARED_2",  # 4
-        "SRCB_CLEARED_2",  # 5
-        "SRCA_VALID_2",  # 6
-        "SRCB_VALID_2",  # 7
-        "STALL_PACK0",  # 8
-        "STALL_MOVE",  # 9
+        "INST_CFG",
+        "FPU_OP_VALID",
+        "MATH_INSTR_SRC_READY",
+        "UNPACK_NO_ARB",
+        "DSTAC_RDEN_RAW_0",
+        "INST_SYNC",
+        "SFPU_OP_VALID",
+        "MATH_NOT_D2A_STALL",
+        "UNPACK_ARB_1",
+        "DSTAC_RDEN_RAW_1",
+        "INST_THCON",
+        "FPU_OP_VALID",
+        "MATH_FIDELITY_PHASES",
+        "TDMA_BUNDLE_0_ARB",
+        "DSTAC_RDEN_RAW_2",
+        "INST_XSEARCH",
+        "SFPU_OP_VALID",
+        "MATH_INSTR_BUF_RDEN",
+        "TDMA_BUNDLE_1_ARB",
+        "DSTAC_RDEN_RAW_3",
+        "INST_MOVE",
+        "FPU_OP_VALID",
+        "MATH_INSTR_VALID",
+        "NOC_RING0_OUTGOING_0",
+        "PACK_NOT_DEST_STALL",
+        "INST_MATH",
+        "SFPU_OP_VALID",
+        "TDMA_SRCB_REGIF_WREN",
+        "NOC_RING0_OUTGOING_1",
+        "PACK_NOT_SB_STALL",
+        "INST_UNPACK",
+        "FPU_OP_VALID",
+        "TDMA_SRCA_REGIF_WREN",
+        "NOC_RING0_INCOMING_0",
+        "PACK_BUSY_10",
+        "INST_PACK",
+        "SFPU_OP_VALID",
+        "UNPACK_BUSY_0",
+        "NOC_RING0_INCOMING_1",
+        "PACK_BUSY_11",
+        "STALLED",
+        "FPU_OP_VALID",
+        "UNPACK_BUSY_1",
+        "TDMA_PACKER_2_WR",
+        "DSTAC_RDEN_RAW_0",
+        "SRCA_CLEARED_0",
+        "SFPU_OP_VALID",
+        "UNPACK_BUSY_2",
+        "TDMA_EXT_UNPACK_9",
+        "DSTAC_RDEN_RAW_1",
+        "SRCA_CLEARED_1",
+        "FPU_OP_VALID",
+        "UNPACK_BUSY_3",
+        "TDMA_EXT_UNPACK_10",
+        "DSTAC_RDEN_RAW_2",
+        "SRCA_CLEARED_2",
+        "SFPU_OP_VALID",
+        "MATH_INSTR_SRC_READY",
+        "TDMA_EXT_UNPACK_11",
+        "DSTAC_RDEN_RAW_3",
+        "SRCB_CLEARED_0",
+        "FPU_OP_VALID",
+        "MATH_NOT_D2A_STALL",
+        "NOC_RING1_OUTGOING_0",
+        "PACK_NOT_DEST_STALL",
+        "SRCB_CLEARED_1",
+        "SFPU_OP_VALID",
+        "MATH_FIDELITY_PHASES",
+        "NOC_RING1_OUTGOING_1",
+        "PACK_NOT_SB_STALL",
     ]
 
     if iteration_data:
@@ -474,73 +659,58 @@ def print_performance_analysis(
             #   l1_mem[6,7]=UNPACK counter2, l1_mem[8,9]=MATH counter2, l1_mem[10,11]=PACK counter2
             # But with spacing: UNPACK uses [0,6,12,20,22], MATH [2,8,16,24,26], PACK [4,10,14,28,30]
 
-            # Actual L1 offsets from C++ code:
-            unpack_offsets = [
-                0,
-                6,
-                12,
-                20,
-                22,
-            ]  # Counter banks: INSTRN_THREAD, FPU, TDMA_UNPACK, L1, TDMA_PACK
-            math_offsets = [2, 8, 16, 24, 26]
-            pack_offsets = [4, 10, 14, 28, 30]
+            # NEW LAYOUT: Each thread writes to separate L1 regions
+            # UNPACK: offsets 0-139 (14 iterations × 10 words)
+            # MATH: offsets 200-339 (14 iterations × 10 words)
+            # PACK: offsets 400-539 (14 iterations × 10 words)
+            # Each iteration has 10 words: 5 counters × 2 words (cycles, count)
+            # Layout per iteration: [INSTRN(0,1), FPU(2,3), TDMA_UNPACK/PACK(4,5), L1(6,7), TDMA_PACK/UNPACK(8,9)]
 
             for i in range(5):
                 signal_idx = base_signal + i
 
-                # UNPACK: read from specific L1 offsets
+                # UNPACK: read from offset 0 + iteration*10 + i*2
                 if signal_idx < len(unpack_signal_names):
-                    offset = unpack_offsets[i]
+                    offset = 0 + (iteration * 10) + (i * 2)
                     if offset < len(perf_data) and offset + 1 < len(perf_data):
                         cycles = perf_data[offset]
                         count = perf_data[offset + 1]
-                        if cycles not in [0, 0xFFFFFFFF]:
-                            unpack_results[unpack_signal_names[signal_idx]] = (
-                                cycles,
-                                count,
-                            )
+                        signal_name = unpack_signal_names[signal_idx]
+                        unpack_results[signal_name] = (cycles, count)
 
-                # MATH: read from specific L1 offsets
+                # MATH: read from offset 200 + iteration*10 + i*2
                 if signal_idx < len(math_signal_names):
-                    offset = math_offsets[i]
+                    offset = 200 + (iteration * 10) + (i * 2)
                     if offset < len(perf_data) and offset + 1 < len(perf_data):
                         cycles = perf_data[offset]
                         count = perf_data[offset + 1]
-                        if cycles not in [0, 0xFFFFFFFF]:
-                            math_results[math_signal_names[signal_idx]] = (
-                                cycles,
-                                count,
-                            )
+                        signal_name = math_signal_names[signal_idx]
+                        math_results[signal_name] = (cycles, count)
 
-                # PACK: read from specific L1 offsets
+                # PACK: read from offset 400 + iteration*10 + i*2
                 if signal_idx < len(pack_signal_names):
-                    offset = pack_offsets[i]
+                    offset = 400 + (iteration * 10) + (i * 2)
                     if offset < len(perf_data) and offset + 1 < len(perf_data):
                         cycles = perf_data[offset]
                         count = perf_data[offset + 1]
-                        if cycles not in [0, 0xFFFFFFFF]:
-                            pack_results[pack_signal_names[signal_idx]] = (
-                                cycles,
-                                count,
-                            )
+                        signal_name = pack_signal_names[signal_idx]
+                        pack_results[signal_name] = (cycles, count)
 
-        print("\n🔧 UNPACK Thread (TRISC0) - 10 signals from multi-iteration:")
-        for signal_name in unpack_signal_names:
-            if signal_name in unpack_results:
-                cycles, count = unpack_results[signal_name]
-                print(f"   {signal_name:20s}: cycles={cycles:10d}, count={count:8d}")
+        # Sort by cycles value to check for patterns
+        print("\n🔧 UNPACK Thread (TRISC0) - Sorted by cycles:")
+        sorted_unpack = sorted(unpack_results.items(), key=lambda x: x[1][0])
+        for signal_name, (cycles, count) in sorted_unpack:
+            print(f"   {signal_name:25s}: cycles={cycles:10d}, count={count:8d}")
 
-        print("\n🔧 MATH Thread (TRISC1) - 10 signals from multi-iteration:")
-        for signal_name in math_signal_names:
-            if signal_name in math_results:
-                cycles, count = math_results[signal_name]
-                print(f"   {signal_name:20s}: cycles={cycles:10d}, count={count:8d}")
+        print("\n🔧 MATH Thread (TRISC1) - Sorted by cycles:")
+        sorted_math = sorted(math_results.items(), key=lambda x: x[1][0])
+        for signal_name, (cycles, count) in sorted_math:
+            print(f"   {signal_name:25s}: cycles={cycles:10d}, count={count:8d}")
 
-        print("\n🔧 PACK Thread (TRISC2) - 10 signals from multi-iteration:")
-        for signal_name in pack_signal_names:
-            if signal_name in pack_results:
-                cycles, count = pack_results[signal_name]
-                print(f"   {signal_name:20s}: cycles={cycles:10d}, count={count:8d}")
+        print("\n🔧 PACK Thread (TRISC2) - Sorted by cycles:")
+        sorted_pack = sorted(pack_results.items(), key=lambda x: x[1][0])
+        for signal_name, (cycles, count) in sorted_pack:
+            print(f"   {signal_name:25s}: cycles={cycles:10d}, count={count:8d}")
     else:
         # Legacy single-iteration mode
         print(
