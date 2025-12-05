@@ -94,7 +94,10 @@ class PerformanceAnalysis:
 
 
 def analyze_performance(
-    location: str = "0,0", workload_info: Optional[Dict] = None, iteration: int = 0
+    location: str = "0,0",
+    workload_info: Optional[Dict] = None,
+    iteration: int = 0,
+    iteration_data: Optional[List[Dict]] = None,
 ) -> Optional[PerformanceAnalysis]:
     """
     Automatically analyze all performance counters and provide insights
@@ -103,16 +106,23 @@ def analyze_performance(
         location: Device location (default: "0,0")
         workload_info: Optional dict with 'tile_ops' and 'macs' for context
         iteration: Which profiling iteration (0=default 5 counters, 1-11=additional signals)
+        iteration_data: Optional list of dicts with multi-iteration profiling data
+                       Each dict: {'iteration': int, 'data': list of counter values}
 
     Returns:
         PerformanceAnalysis object or None if no data available
     """
     try:
-        # Read counter data from L1 (0x2F800)
-        # 32 baseline words + 18 extra words from atomic counter_sel switching
-        perf_data = read_words_from_device(
-            location=location, addr=0x2F800, word_count=50
-        )
+        # If multi-iteration data provided, use the first iteration for baseline analysis
+        # (all iterations should have same overall cycles, just different signal selections)
+        if iteration_data:
+            perf_data = iteration_data[0]["data"]
+        else:
+            # Read counter data from L1 (0x2F800)
+            # 32 baseline words (5 counters × 3 threads × 2 values each, plus spacing)
+            perf_data = read_words_from_device(
+                location=location, addr=0x2F800, word_count=32
+            )
 
         if not perf_data or len(perf_data) < 32:
             return None
@@ -382,94 +392,159 @@ def _generate_recommendations(
 
 
 def print_performance_analysis(
-    analysis: Optional[PerformanceAnalysis], workload_info: Optional[Dict] = None
+    analysis: Optional[PerformanceAnalysis],
+    workload_info: Optional[Dict] = None,
+    iteration_data: Optional[List[Dict]] = None,
 ):
     """
-    Print all performance counters equally (11 per thread via atomic counter_sel switching)
+    Print performance counter data from multi-iteration profiling (10 signals per thread)
 
     Args:
         analysis: PerformanceAnalysis object from analyze_performance()
         workload_info: Optional dict with 'tile_ops' and 'macs' for context
+        iteration_data: Optional list of dicts with multi-iteration data
     """
     if not analysis:
         return
 
-    print("\n" + "=" * 90)
-    print("⚡ PERFORMANCE COUNTER DATA (11 signals per thread via atomic switching)")
-    print("=" * 90)
+    print("\n" + "=" * 100)
+    print("⚡ PERFORMANCE COUNTER DATA (Multi-Iteration: 10 signals per thread)")
+    print("=" * 100)
 
-    # Read all counter data (11 signals × 3 threads × 2 values = 66 words)
-    perf_data = read_words_from_device(
-        location="0,0", addr=0x2F800, word_count=84  # Extra space for safety
-    )
+    # Define signal arrays (matching C++ perf_counters.h)
+    # Each thread has 10 relevant signals measured across 2 iterations (5 per iteration)
 
-    # UNPACK Thread - 11 signals
-    unpack_signals = [
-        ("INST_UNPACK", 0, 1),
-        ("INST_CFG", 32, 33),
-        ("INST_SYNC", 34, 35),
-        ("INST_THCON", 36, 37),
-        ("INST_XSEARCH", 38, 39),
-        ("INST_MOVE", 40, 41),
-        ("INST_MATH", 42, 43),
-        ("INST_PACK", 44, 45),
-        ("STALLED", 46, 47),
-        ("SRCA_CLEARED", 48, 49),
-        ("SRCB_CLEARED", 50, 51),
+    unpack_signal_names = [
+        "INST_UNPACK",  # 0
+        "INST_CFG",  # 1
+        "INST_SYNC",  # 2
+        "STALLED",  # 3
+        "SRCA_CLEARED_0",  # 4
+        "SRCB_CLEARED_0",  # 5
+        "SRCA_VALID_0",  # 6
+        "SRCB_VALID_0",  # 7
+        "STALL_SEM_ZERO",  # 8
+        "STALL_SEM_MAX",  # 9
     ]
 
-    # MATH Thread - 11 signals
-    math_signals = [
-        ("INST_MATH", 2, 3),
-        ("INST_UNPACK", 44, 45),
-        ("INST_PACK", 46, 47),
-        ("STALLED", 48, 49),
-        ("SRCA_CLEARED", 50, 51),
-        ("SRCB_CLEARED", 52, 53),
-        ("SRCA_VALID", 54, 55),
-        ("SRCB_VALID", 56, 57),
-        ("STALL_THCON", 58, 59),
-        ("STALL_PACK0", 60, 61),
-        ("STALL_MATH", 62, 63),
+    math_signal_names = [
+        "INST_MATH",  # 0
+        "INST_CFG",  # 1
+        "INST_SYNC",  # 2
+        "STALLED",  # 3
+        "SRCA_CLEARED_1",  # 4
+        "SRCB_CLEARED_1",  # 5
+        "SRCA_VALID_1",  # 6
+        "SRCB_VALID_1",  # 7
+        "STALL_MATH",  # 8
+        "STALL_SFPU",  # 9
     ]
 
-    # PACK Thread - 11 signals
-    pack_signals = [
-        ("INST_PACK", 4, 5),
-        ("INST_MATH", 64, 65),
-        ("INST_PACK_2", 66, 67),
-        ("STALLED", 68, 69),
-        ("SRCA_CLEARED", 70, 71),
-        ("SRCB_CLEARED", 72, 73),
-        ("SRCA_VALID", 74, 75),
-        ("SRCB_VALID", 76, 77),
-        ("STALL_PACK0", 78, 79),
-        ("STALL_MOVE", 80, 81),
-        ("STALL_SFPU", 82, 83),
+    pack_signal_names = [
+        "INST_PACK",  # 0
+        "INST_CFG",  # 1
+        "INST_MOVE",  # 2
+        "STALLED",  # 3
+        "SRCA_CLEARED_2",  # 4
+        "SRCB_CLEARED_2",  # 5
+        "SRCA_VALID_2",  # 6
+        "SRCB_VALID_2",  # 7
+        "STALL_PACK0",  # 8
+        "STALL_MOVE",  # 9
     ]
 
-    print("\n🔧 UNPACK Thread (11 signals):")
-    for name, cycles_idx, count_idx in unpack_signals:
-        if cycles_idx < len(perf_data) and count_idx < len(perf_data):
-            cycles = perf_data[cycles_idx]
-            count = perf_data[count_idx]
-            if cycles not in [0, 0xFFFFFFFF]:
-                print(f"   {name:20s}: cycles={cycles:10d}, count={count:8d}")
+    if iteration_data:
+        # Multi-iteration mode: aggregate results from all iterations
+        # Each iteration measures 5 signals per thread
+        # L1 layout: UNPACK[0,1], MATH[2,3], PACK[4,5], (spacing), UNPACK[6,7], ...
 
-    print("\n🔧 MATH Thread (11 signals):")
-    for name, cycles_idx, count_idx in math_signals:
-        if cycles_idx < len(perf_data) and count_idx < len(perf_data):
-            cycles = perf_data[cycles_idx]
-            count = perf_data[count_idx]
-            if cycles not in [0, 0xFFFFFFFF]:
-                print(f"   {name:20s}: cycles={cycles:10d}, count={count:8d}")
+        # Build dictionaries mapping signal name to (cycles, count)
+        unpack_results = {}
+        math_results = {}
+        pack_results = {}
 
-    print("\n🔧 PACK Thread (11 signals):")
-    for name, cycles_idx, count_idx in pack_signals:
-        if cycles_idx < len(perf_data) and count_idx < len(perf_data):
-            cycles = perf_data[cycles_idx]
-            count = perf_data[count_idx]
-            if cycles not in [0, 0xFFFFFFFF]:
-                print(f"   {name:20s}: cycles={cycles:10d}, count={count:8d}")
+        for iter_info in iteration_data:
+            iteration = iter_info["iteration"]
+            perf_data = iter_info["data"]
+            base_signal = iteration * 5  # 5 signals per iteration
 
-    print("\n" + "=" * 70 + "\n")
+            # Read 5 counter banks (0-4), each writes UNPACK, MATH, PACK values
+            # Layout matches C++ stop_profiling():
+            #   l1_mem[0,1]=UNPACK counter1, l1_mem[2,3]=MATH counter1, l1_mem[4,5]=PACK counter1
+            #   l1_mem[6,7]=UNPACK counter2, l1_mem[8,9]=MATH counter2, l1_mem[10,11]=PACK counter2
+            # But with spacing: UNPACK uses [0,6,12,20,22], MATH [2,8,16,24,26], PACK [4,10,14,28,30]
+
+            # Actual L1 offsets from C++ code:
+            unpack_offsets = [
+                0,
+                6,
+                12,
+                20,
+                22,
+            ]  # Counter banks: INSTRN_THREAD, FPU, TDMA_UNPACK, L1, TDMA_PACK
+            math_offsets = [2, 8, 16, 24, 26]
+            pack_offsets = [4, 10, 14, 28, 30]
+
+            for i in range(5):
+                signal_idx = base_signal + i
+
+                # UNPACK: read from specific L1 offsets
+                if signal_idx < len(unpack_signal_names):
+                    offset = unpack_offsets[i]
+                    if offset < len(perf_data) and offset + 1 < len(perf_data):
+                        cycles = perf_data[offset]
+                        count = perf_data[offset + 1]
+                        if cycles not in [0, 0xFFFFFFFF]:
+                            unpack_results[unpack_signal_names[signal_idx]] = (
+                                cycles,
+                                count,
+                            )
+
+                # MATH: read from specific L1 offsets
+                if signal_idx < len(math_signal_names):
+                    offset = math_offsets[i]
+                    if offset < len(perf_data) and offset + 1 < len(perf_data):
+                        cycles = perf_data[offset]
+                        count = perf_data[offset + 1]
+                        if cycles not in [0, 0xFFFFFFFF]:
+                            math_results[math_signal_names[signal_idx]] = (
+                                cycles,
+                                count,
+                            )
+
+                # PACK: read from specific L1 offsets
+                if signal_idx < len(pack_signal_names):
+                    offset = pack_offsets[i]
+                    if offset < len(perf_data) and offset + 1 < len(perf_data):
+                        cycles = perf_data[offset]
+                        count = perf_data[offset + 1]
+                        if cycles not in [0, 0xFFFFFFFF]:
+                            pack_results[pack_signal_names[signal_idx]] = (
+                                cycles,
+                                count,
+                            )
+
+        print("\n🔧 UNPACK Thread (TRISC0) - 10 signals from multi-iteration:")
+        for signal_name in unpack_signal_names:
+            if signal_name in unpack_results:
+                cycles, count = unpack_results[signal_name]
+                print(f"   {signal_name:20s}: cycles={cycles:10d}, count={count:8d}")
+
+        print("\n🔧 MATH Thread (TRISC1) - 10 signals from multi-iteration:")
+        for signal_name in math_signal_names:
+            if signal_name in math_results:
+                cycles, count = math_results[signal_name]
+                print(f"   {signal_name:20s}: cycles={cycles:10d}, count={count:8d}")
+
+        print("\n🔧 PACK Thread (TRISC2) - 10 signals from multi-iteration:")
+        for signal_name in pack_signal_names:
+            if signal_name in pack_results:
+                cycles, count = pack_results[signal_name]
+                print(f"   {signal_name:20s}: cycles={cycles:10d}, count={count:8d}")
+    else:
+        # Legacy single-iteration mode
+        print(
+            "\n⚠️  No multi-iteration data provided - run test with multiple iterations for full signal coverage"
+        )
+
+    print("\n" + "=" * 100 + "\n")
