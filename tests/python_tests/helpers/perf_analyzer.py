@@ -37,19 +37,6 @@ def collect_perf_counter_data(location: str = "0,0"):
     return all_iteration_data
 
 
-def calculate_matmul_workload(rt_dim: int, ct_dim: int, kt_dim: int) -> Dict:
-    total_tile_ops = rt_dim * ct_dim * kt_dim
-    total_macs = total_tile_ops * MACS_PER_TILE
-
-    return {
-        "tile_ops": total_tile_ops,
-        "macs": total_macs,
-        "rt_dim": rt_dim,
-        "ct_dim": ct_dim,
-        "kt_dim": kt_dim,
-    }
-
-
 class PerfIndices:
     INST_UNPACK_CYCLES = 0
     INST_UNPACK_COUNT = 1
