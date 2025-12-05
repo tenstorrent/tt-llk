@@ -588,13 +588,45 @@ constexpr uint32_t UNPACK_STALL_COUNT  = PERF_COUNTER_CFG_BASE + 31;
 constexpr uint32_t TOTAL_CFGS = 32;
 } // namespace perf_indices
 
-// No state needed - using direct register access!
+// Global counter metadata - stored at L1 for Python to read
+#define PERF_ITERATION_ADDR    0x2F7FC
+#define PERF_COUNTER_DATA_ADDR 0x2F800
+#define PERF_METADATA_ADDR     0x2F700 // Signal names and config
+
+// Counter layout: All signals measured equally via atomic counter_sel switching
+// UNPACK Thread: 11 signals (1 baseline + 10 extra via switching)
+// MATH Thread:   11 signals (1 baseline + 10 extra via switching)
+// PACK Thread:   11 signals (1 baseline + 10 extra via switching)
+// Total: 33 signals × 2 values (cycles, count) = 66 words at 0x2F800
+
+/**
+ * @brief Set which counter configuration to use (for multi-iteration profiling)
+ *
+ * Call this from host before each kernel run to collect different counter sets.
+ * iteration=0: Default 5 counters per thread
+ * iteration=1-11: Additional INSTRN_THREAD signals (5 per iteration, covering 29 total signals)
+ */
+inline void set_profiling_iteration(uint32_t iteration)
+{
+    volatile uint32_t* iter_ptr = reinterpret_cast<volatile uint32_t*>(PERF_ITERATION_ADDR);
+    *iter_ptr                   = iteration;
+}
+
+/**
+ * @brief Get current profiling iteration
+ */
+inline uint32_t get_profiling_iteration()
+{
+    volatile uint32_t* iter_ptr = reinterpret_cast<volatile uint32_t*>(PERF_ITERATION_ADDR);
+    return *iter_ptr;
+}
 
 /**
  * @brief Start lightweight performance profiling
  *
  * Call this at the start of your kernel. It automatically configures and starts
  * essential counters for the current thread (minimal code footprint).
+ * Uses get_profiling_iteration() to determine which counter set to configure.
  */
 inline void start_profiling()
 {
@@ -738,6 +770,52 @@ inline void stop_profiling()
     count      = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
     l1_mem[22] = cycles;
     l1_mem[23] = count;
+
+    // ATOMIC COUNTER_SEL SWITCHING: Read additional signals from INSTRN_THREAD bank
+    // Hardware has latched all signals when we stopped the counter
+    // We can safely change counter_sel to read different latched values
+    // Using memory barriers and atomic operations to prevent interference
+
+    const uint32_t extra_signals[10] = {
+        counters::instrn_thread::INST_CFG,       // counter_sel=0
+        counters::instrn_thread::INST_SYNC,      // counter_sel=1
+        counters::instrn_thread::INST_THCON,     // counter_sel=2
+        counters::instrn_thread::INST_XSEARCH,   // counter_sel=3
+        counters::instrn_thread::INST_MOVE,      // counter_sel=4
+        counters::instrn_thread::INST_MATH,      // counter_sel=5
+        counters::instrn_thread::INST_PACK,      // counter_sel=7
+        counters::instrn_thread::STALLED,        // counter_sel=8
+        counters::instrn_thread::SRCA_CLEARED_0, // counter_sel=9
+        counters::instrn_thread::SRCB_CLEARED_0  // counter_sel=12
+    };
+
+    // Ensure all previous memory operations complete
+    asm volatile("fence" ::: "memory");
+
+    for (uint32_t i = 0; i < 10; i++)
+    {
+        // ATOMIC: Change counter_sel in mode register
+        // Use volatile to ensure this write isn't optimized or reordered
+        uint32_t mode_val                                                                     = (extra_signals[i] << 8) | (1 << 16);
+        dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD1 - RISCV_DEBUG_REGS_START_ADDR) / 4] = mode_val;
+
+        // Memory barrier: ensure mode write completes before reading outputs
+        asm volatile("fence" ::: "memory");
+
+        // ATOMIC: Read latched values (hardware preserved these when counter stopped)
+        cycles = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD - RISCV_DEBUG_REGS_START_ADDR) / 4];
+        count  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD - RISCV_DEBUG_REGS_START_ADDR) / 4];
+
+        // Memory barrier: ensure reads complete before writing to L1
+        asm volatile("fence" ::: "memory");
+
+        // Write to L1 at extended offsets
+        l1_mem[32 + i * 2]     = cycles;
+        l1_mem[32 + i * 2 + 1] = count;
+
+        // Final barrier: ensure L1 write completes before next iteration
+        asm volatile("fence" ::: "memory");
+    }
 #endif
 
 #ifdef LLK_TRISC_MATH
@@ -781,6 +859,37 @@ inline void stop_profiling()
     count      = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
     l1_mem[26] = cycles;
     l1_mem[27] = count;
+
+    // ATOMIC COUNTER_SEL SWITCHING: Read additional signals from INSTRN_THREAD bank
+    const uint32_t extra_signals[10] = {
+        counters::instrn_thread::INST_UNPACK,    // counter_sel=6
+        counters::instrn_thread::INST_PACK,      // counter_sel=7
+        counters::instrn_thread::STALLED,        // counter_sel=8
+        counters::instrn_thread::SRCA_CLEARED_1, // counter_sel=10
+        counters::instrn_thread::SRCB_CLEARED_1, // counter_sel=13
+        counters::instrn_thread::SRCA_VALID_1,   // counter_sel=16
+        counters::instrn_thread::SRCB_VALID_1,   // counter_sel=19
+        counters::instrn_thread::STALL_THCON,    // counter_sel=21
+        counters::instrn_thread::STALL_PACK0,    // counter_sel=22
+        counters::instrn_thread::STALL_MATH      // counter_sel=23
+    };
+
+    asm volatile("fence" ::: "memory");
+
+    for (uint32_t i = 0; i < 10; i++)
+    {
+        uint32_t mode_val                                                                     = (extra_signals[i] << 8) | (1 << 16);
+        dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD1 - RISCV_DEBUG_REGS_START_ADDR) / 4] = mode_val;
+        asm volatile("fence" ::: "memory");
+
+        cycles = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD - RISCV_DEBUG_REGS_START_ADDR) / 4];
+        count  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD - RISCV_DEBUG_REGS_START_ADDR) / 4];
+        asm volatile("fence" ::: "memory");
+
+        l1_mem[44 + i * 2]     = cycles;
+        l1_mem[44 + i * 2 + 1] = count;
+        asm volatile("fence" ::: "memory");
+    }
 #endif
 
 #ifdef LLK_TRISC_PACK
@@ -824,6 +933,37 @@ inline void stop_profiling()
     count      = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
     l1_mem[30] = cycles;
     l1_mem[31] = count;
+
+    // ATOMIC COUNTER_SEL SWITCHING: Read additional signals from INSTRN_THREAD bank
+    const uint32_t extra_signals[10] = {
+        counters::instrn_thread::INST_MATH,      // counter_sel=5
+        counters::instrn_thread::INST_PACK,      // counter_sel=7
+        counters::instrn_thread::STALLED,        // counter_sel=8
+        counters::instrn_thread::SRCA_CLEARED_2, // counter_sel=11
+        counters::instrn_thread::SRCB_CLEARED_2, // counter_sel=14
+        counters::instrn_thread::SRCA_VALID_2,   // counter_sel=17
+        counters::instrn_thread::SRCB_VALID_2,   // counter_sel=20
+        counters::instrn_thread::STALL_PACK0,    // counter_sel=22
+        counters::instrn_thread::STALL_MOVE,     // counter_sel=26
+        counters::instrn_thread::STALL_SFPU      // counter_sel=28
+    };
+
+    asm volatile("fence" ::: "memory");
+
+    for (uint32_t i = 0; i < 10; i++)
+    {
+        uint32_t mode_val                                                                     = (extra_signals[i] << 8) | (1 << 16);
+        dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD1 - RISCV_DEBUG_REGS_START_ADDR) / 4] = mode_val;
+        asm volatile("fence" ::: "memory");
+
+        cycles = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD - RISCV_DEBUG_REGS_START_ADDR) / 4];
+        count  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD - RISCV_DEBUG_REGS_START_ADDR) / 4];
+        asm volatile("fence" ::: "memory");
+
+        l1_mem[64 + i * 2]     = cycles;
+        l1_mem[64 + i * 2 + 1] = count;
+        asm volatile("fence" ::: "memory");
+    }
 #endif
 }
 

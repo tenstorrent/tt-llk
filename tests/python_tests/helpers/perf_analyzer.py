@@ -88,10 +88,13 @@ class PerformanceAnalysis:
     bottleneck: str
     bottleneck_reason: str
     recommendations: List[str]
+    extra_counters: Optional[Dict] = (
+        None  # Extra INSTRN_THREAD counters via counter_sel switching
+    )
 
 
 def analyze_performance(
-    location: str = "0,0", workload_info: Optional[Dict] = None
+    location: str = "0,0", workload_info: Optional[Dict] = None, iteration: int = 0
 ) -> Optional[PerformanceAnalysis]:
     """
     Automatically analyze all performance counters and provide insights
@@ -99,14 +102,16 @@ def analyze_performance(
     Args:
         location: Device location (default: "0,0")
         workload_info: Optional dict with 'tile_ops' and 'macs' for context
+        iteration: Which profiling iteration (0=default 5 counters, 1-11=additional signals)
 
     Returns:
         PerformanceAnalysis object or None if no data available
     """
     try:
         # Read counter data from L1 (0x2F800)
+        # 32 baseline words + 18 extra words from atomic counter_sel switching
         perf_data = read_words_from_device(
-            location=location, addr=0x2F800, word_count=32
+            location=location, addr=0x2F800, word_count=50
         )
 
         if not perf_data or len(perf_data) < 32:
@@ -194,6 +199,27 @@ def analyze_performance(
                 ),
             )
 
+        # Parse extra counters from atomic counter_sel switching (if available)
+        extra_counters = None
+        if len(perf_data) >= 50:
+            extra_counters = {
+                "unpack": {
+                    "INST_CFG": {"cycles": perf_data[32], "count": perf_data[33]},
+                    "INST_STALLED": {"cycles": perf_data[34], "count": perf_data[35]},
+                    "UNPACK_BUSY": {"cycles": perf_data[36], "count": perf_data[37]},
+                },
+                "math": {
+                    "INST_UNPACK": {"cycles": perf_data[38], "count": perf_data[39]},
+                    "INST_STALLED": {"cycles": perf_data[40], "count": perf_data[41]},
+                    "MATH_BUSY": {"cycles": perf_data[42], "count": perf_data[43]},
+                },
+                "pack": {
+                    "INST_MATH": {"cycles": perf_data[44], "count": perf_data[45]},
+                    "INST_STALLED": {"cycles": perf_data[46], "count": perf_data[47]},
+                    "PACK_BUSY": {"cycles": perf_data[48], "count": perf_data[49]},
+                },
+            }
+
         # Determine total cycles (max of all threads)
         total_cycles = max(
             unpack.cycles if unpack else 0,
@@ -217,6 +243,7 @@ def analyze_performance(
             bottleneck=bottleneck,
             bottleneck_reason=reason,
             recommendations=recommendations,
+            extra_counters=extra_counters if extra_counters else None,
         )
 
     except Exception as e:
@@ -358,7 +385,7 @@ def print_performance_analysis(
     analysis: Optional[PerformanceAnalysis], workload_info: Optional[Dict] = None
 ):
     """
-    Print comprehensive performance analysis with insights
+    Print all performance counters equally (11 per thread via atomic counter_sel switching)
 
     Args:
         analysis: PerformanceAnalysis object from analyze_performance()
@@ -367,59 +394,82 @@ def print_performance_analysis(
     if not analysis:
         return
 
-    print("\n" + "=" * 70)
-    print("⚡ AUTOMATIC PERFORMANCE ANALYSIS")
-    print("=" * 70)
+    print("\n" + "=" * 90)
+    print("⚡ PERFORMANCE COUNTER DATA (11 signals per thread via atomic switching)")
+    print("=" * 90)
 
-    # Pipeline summary
-    print("\n📊 PIPELINE SUMMARY:")
-    print(f"   Total execution: {analysis.total_cycles} cycles")
+    # Read all counter data (11 signals × 3 threads × 2 values = 66 words)
+    perf_data = read_words_from_device(
+        location="0,0", addr=0x2F800, word_count=84  # Extra space for safety
+    )
 
-    if workload_info:
-        tile_ops = workload_info.get("tile_ops", 0)
-        macs = workload_info.get("macs", 0)
-        if tile_ops > 0:
-            print(f"   Workload: {tile_ops} tile ops, {macs:,} MACs")
-            print(f"   Efficiency: {analysis.total_cycles / tile_ops:.1f} cycles/tile")
+    # UNPACK Thread - 11 signals
+    unpack_signals = [
+        ("INST_UNPACK", 0, 1),
+        ("INST_CFG", 32, 33),
+        ("INST_SYNC", 34, 35),
+        ("INST_THCON", 36, 37),
+        ("INST_XSEARCH", 38, 39),
+        ("INST_MOVE", 40, 41),
+        ("INST_MATH", 42, 43),
+        ("INST_PACK", 44, 45),
+        ("STALLED", 46, 47),
+        ("SRCA_CLEARED", 48, 49),
+        ("SRCB_CLEARED", 50, 51),
+    ]
 
-    # Thread details
-    print("\n🔧 THREAD BREAKDOWN:")
+    # MATH Thread - 11 signals
+    math_signals = [
+        ("INST_MATH", 2, 3),
+        ("INST_UNPACK", 44, 45),
+        ("INST_PACK", 46, 47),
+        ("STALLED", 48, 49),
+        ("SRCA_CLEARED", 50, 51),
+        ("SRCB_CLEARED", 52, 53),
+        ("SRCA_VALID", 54, 55),
+        ("SRCB_VALID", 56, 57),
+        ("STALL_THCON", 58, 59),
+        ("STALL_PACK0", 60, 61),
+        ("STALL_MATH", 62, 63),
+    ]
 
-    if analysis.unpack:
-        u = analysis.unpack
-        print(f"\n   UNPACK Thread:")
-        print(f"     Instructions: {u.instructions} ({u.utilization:.1f}% util)")
-        print(
-            f"     DMA Activity: {u.dma_busy_cycles} cycles ({u.dma_utilization:.1f}% busy)"
-        )
-        print(f"     Stalls:       {u.stall_cycles} cycles ({u.stall_percentage:.1f}%)")
+    # PACK Thread - 11 signals
+    pack_signals = [
+        ("INST_PACK", 4, 5),
+        ("INST_MATH", 64, 65),
+        ("INST_PACK_2", 66, 67),
+        ("STALLED", 68, 69),
+        ("SRCA_CLEARED", 70, 71),
+        ("SRCB_CLEARED", 72, 73),
+        ("SRCA_VALID", 74, 75),
+        ("SRCB_VALID", 76, 77),
+        ("STALL_PACK0", 78, 79),
+        ("STALL_MOVE", 80, 81),
+        ("STALL_SFPU", 82, 83),
+    ]
 
-    if analysis.math:
-        m = analysis.math
-        print(f"\n   MATH Thread:")
-        print(f"     Instructions: {m.instructions} ({m.utilization:.1f}% util)")
-        print(
-            f"     Active:       {m.dma_busy_cycles} cycles ({m.dma_utilization:.1f}%)"
-        )
-        print(f"     Stalls:       {m.stall_cycles} cycles ({m.stall_percentage:.1f}%)")
+    print("\n🔧 UNPACK Thread (11 signals):")
+    for name, cycles_idx, count_idx in unpack_signals:
+        if cycles_idx < len(perf_data) and count_idx < len(perf_data):
+            cycles = perf_data[cycles_idx]
+            count = perf_data[count_idx]
+            if cycles not in [0, 0xFFFFFFFF]:
+                print(f"   {name:20s}: cycles={cycles:10d}, count={count:8d}")
 
-    if analysis.pack:
-        p = analysis.pack
-        print(f"\n   PACK Thread:")
-        print(f"     Instructions: {p.instructions} ({p.utilization:.1f}% util)")
-        print(
-            f"     DMA Activity: {p.dma_busy_cycles} cycles ({p.dma_utilization:.1f}% busy)"
-        )
-        print(f"     Stalls:       {p.stall_cycles} cycles ({p.stall_percentage:.1f}%)")
+    print("\n🔧 MATH Thread (11 signals):")
+    for name, cycles_idx, count_idx in math_signals:
+        if cycles_idx < len(perf_data) and count_idx < len(perf_data):
+            cycles = perf_data[cycles_idx]
+            count = perf_data[count_idx]
+            if cycles not in [0, 0xFFFFFFFF]:
+                print(f"   {name:20s}: cycles={cycles:10d}, count={count:8d}")
 
-    # Bottleneck analysis
-    print(f"\n🎯 BOTTLENECK: {analysis.bottleneck}")
-    print(f"   {analysis.bottleneck_reason}")
-
-    # Recommendations
-    if analysis.recommendations:
-        print("\n💡 RECOMMENDATIONS:")
-        for rec in analysis.recommendations:
-            print(f"   {rec}")
+    print("\n🔧 PACK Thread (11 signals):")
+    for name, cycles_idx, count_idx in pack_signals:
+        if cycles_idx < len(perf_data) and count_idx < len(perf_data):
+            cycles = perf_data[cycles_idx]
+            count = perf_data[count_idx]
+            if cycles not in [0, 0xFFFFFFFF]:
+                print(f"   {name:20s}: cycles={cycles:10d}, count={count:8d}")
 
     print("\n" + "=" * 70 + "\n")
