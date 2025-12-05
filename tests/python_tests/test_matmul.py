@@ -13,6 +13,13 @@ from helpers.matmul_sweep import (
     generate_tile_dims,
 )
 from helpers.param_config import input_output_formats, parametrize
+from helpers.perf_analyzer import (
+    TILE_HEIGHT,
+    TILE_WIDTH,
+    analyze_performance,
+    collect_perf_counter_data,
+    print_performance_analysis,
+)
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block
@@ -147,6 +154,25 @@ def test_matmul(
     )
 
     run_test(test_config, boot_mode)
+
+    macs_per_tile = TILE_HEIGHT * TILE_WIDTH
+    total_tile_ops = matmul_dims.rt_dim * matmul_dims.ct_dim * matmul_dims.kt_dim
+    workload_info = {
+        "tile_ops": total_tile_ops,
+        "macs": total_tile_ops * macs_per_tile,
+        "rt_dim": matmul_dims.rt_dim,
+        "ct_dim": matmul_dims.ct_dim,
+        "kt_dim": matmul_dims.kt_dim,
+    }
+
+    all_iteration_data = collect_perf_counter_data()
+
+    analysis = analyze_performance(
+        workload_info=workload_info, iteration_data=all_iteration_data
+    )
+    print_performance_analysis(
+        analysis, workload_info, iteration_data=all_iteration_data
+    )
 
     res_from_L1 = collect_results(
         formats, tile_count=matmul_dims.output_tile_cnt, address=res_address

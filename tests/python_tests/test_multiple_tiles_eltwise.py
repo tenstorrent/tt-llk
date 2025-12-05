@@ -13,6 +13,13 @@ from helpers.llk_params import (
     format_dict,
 )
 from helpers.param_config import input_output_formats, parametrize
+from helpers.perf_analyzer import (
+    TILE_HEIGHT,
+    TILE_WIDTH,
+    analyze_performance,
+    collect_perf_counter_data,
+    print_performance_analysis,
+)
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.utils import passed_test
@@ -76,6 +83,22 @@ def test_multiple_tiles(
     )
 
     run_test(test_config)
+
+    workload_info = {
+        "tile_ops": tile_cnt,
+        "operations": tile_cnt * TILE_HEIGHT * TILE_WIDTH,
+        "tile_count": tile_cnt,
+        "input_dimensions": input_dimensions,
+        "operation": str(mathop),
+    }
+
+    all_iteration_data = collect_perf_counter_data()
+    analysis = analyze_performance(
+        workload_info=workload_info, iteration_data=all_iteration_data
+    )
+    print_performance_analysis(
+        analysis, workload_info, iteration_data=all_iteration_data
+    )
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)

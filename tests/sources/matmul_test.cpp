@@ -8,6 +8,9 @@
 
 #include "ckernel.h"
 #include "llk_defs.h"
+#include "perf_counters.h"
+
+using namespace llk_perf;
 
 // Globals
 uint32_t unp_cfg_context          = 0;
@@ -18,6 +21,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 #include "llk_unpack_AB_matmul.h"
 #include "params.h"
+#include "perf_counters.h"
 
 void run_kernel()
 {
@@ -34,6 +38,8 @@ void run_kernel()
         TILE_SIZE_UNPACK_A,
         TILE_SIZE_UNPACK_B);
     _llk_unpack_AB_matmul_init_<>(0, CT_DIM, RT_DIM, KT_DIM, FACE_R_DIM, FACE_R_DIM);
+
+    llk_perf::start_profiling();
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
         _llk_unpack_AB_matmul_<>(
@@ -51,6 +57,7 @@ void run_kernel()
             RT_DIM,
             KT_DIM);
     }
+    llk_perf::stop_profiling();
 }
 
 #endif
@@ -60,6 +67,7 @@ void run_kernel()
 #include "llk_math_common.h"
 #include "llk_math_matmul.h"
 #include "params.h"
+#include "perf_counters.h"
 
 void run_kernel()
 {
@@ -67,10 +75,14 @@ void run_kernel()
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+
+    llk_perf::start_profiling();
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
         _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0, 0, CT_DIM, RT_DIM, KT_DIM);
     }
+    llk_perf::stop_profiling();
+
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -81,6 +93,7 @@ void run_kernel()
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 #include "params.h"
+#include "perf_counters.h"
 
 void run_kernel()
 {
@@ -94,10 +107,14 @@ void run_kernel()
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
 #endif
     _llk_packer_wait_for_math_done_();
+
+    llk_perf::start_profiling();
     for (int i = 0; i < TILE_CNT; i++)
     {
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
+    llk_perf::stop_profiling();
+
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 

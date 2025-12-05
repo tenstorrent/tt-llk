@@ -13,6 +13,13 @@ from helpers.llk_params import (
     format_dict,
 )
 from helpers.param_config import input_output_formats, parametrize
+from helpers.perf_analyzer import (
+    TILE_HEIGHT,
+    TILE_WIDTH,
+    analyze_performance,
+    collect_perf_counter_data,
+    print_performance_analysis,
+)
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
 from helpers.tilize_untilize import untilize
@@ -82,6 +89,31 @@ def test_reduce(test_name, formats, dest_acc, reduce_dim, pool_type):
     )
 
     run_test(test_config)
+
+    reduce_dim_str = str(reduce_dim)
+    if "Row" in reduce_dim_str:
+        elements_reduced = TILE_HEIGHT
+    elif "Column" in reduce_dim_str:
+        elements_reduced = TILE_WIDTH
+    elif "Scalar" in reduce_dim_str:
+        elements_reduced = TILE_HEIGHT * TILE_WIDTH
+    else:
+        elements_reduced = TILE_HEIGHT
+
+    workload_info = {
+        "tile_ops": tile_cnt,
+        "reduce_dimension": reduce_dim_str,
+        "elements_per_tile": elements_reduced,
+        "operations": tile_cnt * elements_reduced,
+    }
+
+    all_iteration_data = collect_perf_counter_data()
+    analysis = analyze_performance(
+        workload_info=workload_info, iteration_data=all_iteration_data
+    )
+    print_performance_analysis(
+        analysis, workload_info, iteration_data=all_iteration_data
+    )
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
