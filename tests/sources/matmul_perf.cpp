@@ -70,8 +70,6 @@ void run_kernel()
                         j * CT_DIM,
                         TILE_SIZE_UNPACK_A,
                         TILE_SIZE_UNPACK_B,
-                        FACE_R_DIM,
-                        FACE_R_DIM,
                         /* partial face */ false,
                         /* partial face */ false,
                         CT_DIM,
@@ -105,8 +103,7 @@ void run_kernel()
             /* partial face */ false,
             /* transpose */ false,
             CT_DIM,
-            RT_DIM,
-            KT_DIM);
+            RT_DIM);
 
         PROFILER_SYNC();
     }

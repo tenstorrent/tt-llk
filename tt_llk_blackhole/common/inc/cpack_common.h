@@ -408,7 +408,7 @@ inline void configure_pack(
 
     const uint pack_output_src_format = (uint)pack_src_format & 0xF;
 
-    set_packer_strides<untilize, tilize>(pack_src_format, pack_dst_format, tile_c_dim);
+    set_packer_strides<untilize, tilize>(pack_src_format, tile_c_dim);
 
     t6_mutex_acquire(mutex::REG_RMW);
 
