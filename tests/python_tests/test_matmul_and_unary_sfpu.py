@@ -4,6 +4,7 @@
 
 import pytest
 import torch
+from conftest import skip_for_coverage
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
@@ -26,6 +27,9 @@ from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test
 
 
+# SFPI Issue link:
+# When some of these SPFU ops get compiled with coverage, `#pragma GCC unroll X` marked loops become invalid assembly
+@skip_for_coverage
 @parametrize(
     test_name="matmul_and_unary_sfpu_test",
     formats=input_output_formats(

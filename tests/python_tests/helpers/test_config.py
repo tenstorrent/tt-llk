@@ -2,13 +2,18 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import shutil
 from enum import Enum
+from hashlib import sha256
 from pathlib import Path
+
+from helpers.target_config import TestTargetConfig
 
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     BootMode,
+    generate_info_file_for_run,
     resolve_default_boot_mode,
     run_elf_files,
     wait_for_tensix_operations_finished,
@@ -539,23 +544,23 @@ def generate_build_header(test_config):
     return "\n".join(header_content)
 
 
-def write_build_header(test_config):
+def write_build_header(test_config, build_dir):
     header_content = generate_build_header(test_config)
-    llk_home = Path(os.environ.get("LLK_HOME"))
-    with open(llk_home / "tests/helpers/include/build.h", "w") as f:
+    with open(f"{build_dir}/build.h", "w") as f:
         f.write(header_content)
 
 
 def generate_make_command(
     test_config,
+    variant_id,
+    with_coverage,
     boot_mode: BootMode,
     profiler_build: ProfilerBuild,
 ):
     """Generate make command"""
 
     boot_mode = resolve_default_boot_mode(boot_mode)
-    # Simplified make command - only basic build parameters
-    make_cmd = f"make -j 6 --silent testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} all "
+    make_cmd = f"make -j 6 testname={test_config.get('testname')} bootmode={boot_mode.value} profiler_build={profiler_build.value} coverage_build={str(with_coverage).lower()} variant={variant_id} all "
 
     if profiler_build == ProfilerBuild.Yes:
         make_cmd += "profiler "
@@ -564,28 +569,57 @@ def generate_make_command(
 
 
 def build_test(
-    test_config,
+    test_config: dict,
+    variant_id: str,
+    with_coverage: bool,
     boot_mode: BootMode,
     profiler_build: ProfilerBuild,
 ):
     """Only builds the files required to run a test"""
     llk_home = Path(os.environ.get("LLK_HOME"))
     tests_dir = str((llk_home / "tests").absolute())
-    write_build_header(test_config)
-    make_cmd = generate_make_command(test_config, boot_mode, profiler_build)
+
+    os.makedirs(
+        f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}/obj", exist_ok=True
+    )
+
+    write_build_header(
+        test_config, f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}"
+    )
+
+    make_cmd = generate_make_command(
+        test_config, variant_id, with_coverage, boot_mode, profiler_build
+    )
 
     run_shell_command(make_cmd, cwd=tests_dir)
 
 
 def run_test(
-    test_config,
+    test_config: dict,
     boot_mode: BootMode = BootMode.DEFAULT,  # global override boot mode here
     profiler_build: ProfilerBuild = ProfilerBuild.No,
+    location="0,0",
 ):
     """Run the test with the given configuration"""
 
-    build_test(test_config, boot_mode, profiler_build)
+    variant_id = sha256(f"{str(test_config)}".encode()).hexdigest()
+    test_target = TestTargetConfig()
+
+    build_test(
+        test_config, variant_id, test_target.with_coverage, boot_mode, profiler_build
+    )
 
     # run test
-    elfs = run_elf_files(test_config["testname"], boot_mode)
+    elfs = run_elf_files(test_config["testname"], variant_id, boot_mode)
     wait_for_tensix_operations_finished(elfs)
+
+    if test_target.with_coverage:
+        generate_info_file_for_run(
+            test_config["testname"],
+            variant_id,
+            f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}",
+            0,
+            location,
+        )
+
+    shutil.rmtree(f"/tmp/tt-llk-build/{test_config['testname']}/{variant_id}")

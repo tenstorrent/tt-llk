@@ -4,12 +4,12 @@
 
 import os
 import re
+import shutil
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
 import pandas as pd
-from helpers.chip_architecture import get_chip_architecture
 from ttexalens.tt_exalens_lib import read_words_from_device
 
 
@@ -191,6 +191,8 @@ class Profiler:
 
     ENTRY_EXISTS_BIT = 0b1000 << ENTRY_TYPE_SHAMT
 
+    TMP_FS_ROOT = Path(f"/tmp/tt-llk-build/profiler_meta/")
+
     class EntryType(Enum):
         TIMESTAMP = 0b1000
         TIMESTAMP_DATA = 0b1001
@@ -236,19 +238,8 @@ class Profiler:
         )
 
     @staticmethod
-    def _get_meta(testname: str) -> dict[id, ProfilerFullMarker]:
-        chip_arch = get_chip_architecture()
-        llk_home = Path(os.environ.get("LLK_HOME"))
-
-        profiler_dir = (
-            llk_home
-            / "tests"
-            / "build"
-            / chip_arch.value
-            / "tests"
-            / testname
-            / "profiler"
-        )
+    def _get_meta(testname: str, variant_id: str) -> dict[id, ProfilerFullMarker]:
+        profiler_dir = Profiler.TMP_FS_ROOT / testname / variant_id
 
         files = [
             profiler_dir / "unpack.meta.bin",
@@ -268,11 +259,17 @@ class Profiler:
                     if marker:
                         Profiler._assert_no_collision(meta, marker)
                         meta[marker.id] = marker
+
         return meta
 
     @staticmethod
-    def get_data(testname: str) -> pd.DataFrame:
-        meta = Profiler._get_meta(testname)
+    def clean_variant_run_data(testname: str, variant_id: str):
+        profiler_dir = Profiler.TMP_FS_ROOT / testname / variant_id
+        shutil.rmtree(profiler_dir)
+
+    @staticmethod
+    def get_data(testname: str, variant_id: str) -> pd.DataFrame:
+        meta = Profiler._get_meta(testname, variant_id)
         return Profiler._parse_buffers(Profiler._load_buffers(), meta)
 
     @staticmethod
