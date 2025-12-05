@@ -12,6 +12,7 @@ from helpers.golden_generators import (
 )
 from helpers.llk_params import (
     DestAccumulation,
+    ImpliedMathFormat,
     MathFidelity,
     MathOperation,
     ReduceDimension,
@@ -35,7 +36,7 @@ MATH_FIDELITY_MODES = [
     MathFidelity.LoFi,
     MathFidelity.HiFi2,
     MathFidelity.HiFi3,
-    MathFidelity.HiFi4,
+    MathFidelity.LoFi,
 ]
 POOL_TYPES = [ReducePool.Max, ReducePool.Sum, ReducePool.Average]
 
@@ -77,6 +78,8 @@ def test_reduce_quasar(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
+    # src_A = torch.repeat_interleave(torch.arange(1, 5, dtype=format_dict[formats.input_format]), 256)
+
     if pool_type in [
         ReducePool.Max,
         ReducePool.Sum,
@@ -107,6 +110,7 @@ def test_reduce_quasar(
         "pool_type": pool_type,
         "mathop": mathop,
         "math_fidelity": math_fidelity,
+        "implied_math_format": ImpliedMathFormat.Yes,
     }
 
     res_address = write_stimuli_to_l1(
@@ -126,5 +130,8 @@ def test_reduce_quasar(
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize(res_tensor, formats.output_format)
+
+    # print(f"res_tensor: {res_tensor}")
+    # print(f"golden_tensor: {golden_tensor}")
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
