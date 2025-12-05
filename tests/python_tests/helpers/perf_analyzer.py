@@ -8,6 +8,46 @@ from typing import Dict, List, Optional
 from ttexalens.tt_exalens_lib import read_words_from_device
 
 PERF_COUNTER_CFG_BASE = 100
+PERF_COUNTERS_PER_ITERATION = 5
+PERF_REGISTER_BANKS = 5
+PERF_NUM_UNIQUE_COUNTERS = 70
+PERF_NUM_ITERATIONS = (
+    PERF_NUM_UNIQUE_COUNTERS + PERF_COUNTERS_PER_ITERATION - 1
+) // PERF_COUNTERS_PER_ITERATION
+PERF_WORDS_PER_ITERATION_PER_THREAD = PERF_COUNTERS_PER_ITERATION * 2
+PERF_WORDS_PER_THREAD = PERF_NUM_ITERATIONS * PERF_WORDS_PER_ITERATION_PER_THREAD
+PERF_L1_THREAD_OFFSET = 200
+PERF_TOTAL_WORDS = PERF_L1_THREAD_OFFSET * 2 + PERF_WORDS_PER_THREAD
+PERF_COUNTER_DATA_ADDR = 0x2F800
+
+TILE_HEIGHT = 32
+TILE_WIDTH = 32
+MACS_PER_TILE = TILE_HEIGHT * TILE_WIDTH
+
+
+def collect_perf_counter_data(location: str = "0,0"):
+    perf_data = read_words_from_device(
+        location=location, addr=PERF_COUNTER_DATA_ADDR, word_count=PERF_TOTAL_WORDS
+    )
+
+    all_iteration_data = []
+    for iteration in range(PERF_NUM_ITERATIONS):
+        all_iteration_data.append({"iteration": iteration, "data": perf_data})
+
+    return all_iteration_data
+
+
+def calculate_matmul_workload(rt_dim: int, ct_dim: int, kt_dim: int) -> Dict:
+    total_tile_ops = rt_dim * ct_dim * kt_dim
+    total_macs = total_tile_ops * MACS_PER_TILE
+
+    return {
+        "tile_ops": total_tile_ops,
+        "macs": total_macs,
+        "rt_dim": rt_dim,
+        "ct_dim": ct_dim,
+        "kt_dim": kt_dim,
+    }
 
 
 class PerfIndices:
