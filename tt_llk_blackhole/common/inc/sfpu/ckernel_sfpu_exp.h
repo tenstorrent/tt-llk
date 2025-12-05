@@ -162,9 +162,9 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
-        // Load LREG4 with A = 256/ln(2)
-        TTI_SFPLOADI(p_sfpu::LREG4, 0xA, 0x2837); // lower 16 bits
-        TTI_SFPLOADI(p_sfpu::LREG4, 0x8, 0x43BF); // upper 16 bits
+        // LREG4 = log2(e)
+        TTI_SFPLOADI(p_sfpu::LREG4, 0xA, 0xAA3B); // lower 16 bits
+        TTI_SFPLOADI(p_sfpu::LREG4, 0x8, 0x3FB8); // upper 16 bits
 
         // Load LREG6 with ln(2)
         TTI_SFPLOADI(p_sfpu::LREG6, 0xA, 0x7218); // lower 16 bits
