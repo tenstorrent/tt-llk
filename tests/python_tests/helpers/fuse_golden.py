@@ -4,7 +4,10 @@
 
 from typing import List
 
+import torch
+
 from .fuse_operation import PipelineOperation
+from .llk_params import format_dict
 from .utils import passed_test
 
 
@@ -38,7 +41,14 @@ class FuseGolden:
 
         golden_tensor = operation.golden()
 
-        res_tensor = output.data
+        res_tensor = torch.tensor(
+            output.raw_data, dtype=format_dict[output.data_format]
+        )
+
+        if golden_tensor.ndim != 1:
+            golden_tensor = golden_tensor.flatten()
+        if res_tensor.ndim != 1:
+            res_tensor = res_tensor.flatten()
 
         # print("golden")
         # print(golden_tensor)

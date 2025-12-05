@@ -81,7 +81,7 @@ def create_fuse_pipeline(
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
             unpack_to_dest=False,
-            tilize=Tilize.No,
+            tilize=Tilize.Yes,
         ),
         PipelineOperation(
             operand_mapping=operands.create_mapping(

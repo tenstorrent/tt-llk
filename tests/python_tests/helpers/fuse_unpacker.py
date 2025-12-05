@@ -144,19 +144,12 @@ class UnpackerAB(Unpacker):
         buffer_A_tile_size = operation_config.buffer_A_tile_size
         buffer_B_tile_size = operation_config.buffer_B_tile_size
 
-        tilize_en = operation_config.tilize
-        face_r_dim = operation_config.face_r_dim
-        num_faces = operation_config.num_faces
-        block_rt_dim = operation_config.block_rt_dim
-        block_ct_dim = operation_config.block_ct_dim
-
         code += f"""
     constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});
     constexpr Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});
 """
 
-        if tilize_en == Tilize.No:
-            code += f"""
+        code += f"""
     _llk_unpack_AB_hw_configure_<{dest_acc_value}, StochRndType::None>(
         {UNPACK_A_IN},
         {UNPACK_B_IN},
@@ -167,22 +160,6 @@ class UnpackerAB(Unpacker):
     for (int i = 0; i < {tile_cnt}; i++)
     {{
         _llk_unpack_AB_<>(L1_ADDRESS(buffer_A{stage}[i]), L1_ADDRESS(buffer_B{stage}[i]));
-    }}
-"""
-        else:
-            code += f"""
-    _llk_unpack_tilize_hw_configure_<{dest_acc_value}, StochRndType::None>({UNPACK_A_IN}, {UNPACK_A_OUT}, {face_r_dim}, 0, {num_faces});
-    _llk_unpack_tilize_init_({UNPACK_A_IN}, {UNPACK_A_OUT}, {block_ct_dim}, {face_r_dim}, false);
-
-    uint32_t read_offset = 0;
-
-    for (uint32_t i = 0; i < {block_rt_dim}; i++)
-    {{
-        for (uint32_t j = 0; j < {block_ct_dim}; j++)
-        {{
-            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[read_offset]), j, {UNPACK_A_IN}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);
-        }}
-        read_offset += {block_rt_dim};
     }}
 """
         return code

@@ -8,8 +8,10 @@ import torch
 
 from .golden_generators import (
     BinarySFPUGolden,
+    DataCopyGolden,
     EltwiseBinaryGolden,
     MatmulGolden,
+    TilizeGolden,
     UnarySFPUGolden,
     get_golden_generator,
 )
@@ -18,7 +20,7 @@ if TYPE_CHECKING:
     from .fuse_operation import PipelineOperation
 
 from .chip_architecture import ChipArchitecture
-from .llk_params import ApproximationMode, MathOperation, format_dict
+from .llk_params import ApproximationMode, MathOperation, Tilize
 
 from .llk_params import ApproximationMode, MathOperation
 
@@ -41,7 +43,12 @@ class MatmulFpu(Fpu):
             "llk_math_matmul.h",
         ]
 
-    def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "PipelineOperation",
+    ) -> torch.Tensor:
         src_a = operation_config.src_a
         src_b = operation_config.src_b
         output_format = operation_config.output.data_format
@@ -49,13 +56,13 @@ class MatmulFpu(Fpu):
 
         generate_golden = get_golden_generator(MatmulGolden)
         golden = generate_golden(
-            src_a.raw_data,
-            src_b.raw_data,
+            tensor_a,
+            tensor_b,
             output_format,
             math_fidelity,
             input_A_dimensions=src_a.dimensions,
             input_B_dimensions=src_b.dimensions,
-            tilize=True,
+            tilize=False,
         )
         return golden
 
@@ -104,27 +111,21 @@ class EltwiseFpu(Fpu):
             "llk_math_eltwise_binary.h",
         ]
 
-    def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
-        from .tilize_untilize import tilize_block
-
-        src_a = operation_config.src_a
-        src_b = operation_config.src_b
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "PipelineOperation",
+    ) -> torch.Tensor:
         output_format = operation_config.output.data_format
         math_fidelity = operation_config.math_fidelity
-        output_dimensions = operation_config.output.dimensions
 
         generate_golden = get_golden_generator(EltwiseBinaryGolden)
         golden_tensor = generate_golden(
-            self.operation, src_a.raw_data, src_b.raw_data, output_format, math_fidelity
-        )
+            self.operation, tensor_a, tensor_b, output_format, math_fidelity
+        ).flatten()
 
-        tilized_golden = tilize_block(
-            golden_tensor,
-            dimensions=output_dimensions,
-            stimuli_format=output_format,
-            num_faces=4,
-        )
-        return torch.tensor(tilized_golden, dtype=format_dict[output_format]).flatten()
+        return golden_tensor
 
     def exec(self, operation_config: "PipelineOperation") -> str:
         stage = operation_config.stage_id
@@ -171,8 +172,30 @@ class DatacopyFpu(Fpu):
             "llk_math_eltwise_unary_datacopy.h",
         ]
 
-    def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
-        golden_tensor = operation_config.src_a.data.flatten()
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "PipelineOperation",
+    ) -> torch.Tensor:
+        golden_tensor = tensor_a
+        if operation_config.tilize == Tilize.Yes:
+            golden_generator = get_golden_generator(TilizeGolden)
+            golden_tensor = golden_generator(
+                golden_tensor,
+                operation_config.src_a.dimensions,
+                operation_config.output.data_format,
+                operation_config.num_faces,
+            )
+        golden_generator = get_golden_generator(DataCopyGolden)
+        golden_tensor = golden_generator(
+            golden_tensor,
+            operation_config.output.data_format,
+            num_faces=operation_config.num_faces,
+            input_dimensions=operation_config.src_a.dimensions,
+            face_r_dim=operation_config.face_r_dim,
+        )
+
         return golden_tensor
 
     def exec(self, operation_config: "PipelineOperation") -> str:
@@ -430,7 +453,6 @@ class Math:
     def get_headers(self) -> List[str]:
         headers = set()
 
-        # fpu_instance = self.fpu()
         headers.update(self.fpu.get_headers())
 
         for sfpu in self.sfpu:
@@ -439,8 +461,10 @@ class Math:
         return sorted(list(headers))
 
     def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
-        # fpu_instance = self.fpu()
-        golden_tensor = self.fpu.golden(operation_config)
+        tensor_a = operation_config.src_a.raw_data
+        tensor_b = operation_config.src_b.raw_data
+
+        golden_tensor = self.fpu.golden(tensor_a, tensor_b, operation_config)
 
         for sfpu in self.sfpu:
             golden_tensor = sfpu.golden(golden_tensor, operation_config)
@@ -448,7 +472,6 @@ class Math:
         return golden_tensor
 
     def exec(self, operation_config: "PipelineOperation") -> str:
-        # fpu_instance = self.fpu()
         code = self.fpu.exec(operation_config)
 
         for sfpu in self.sfpu:
