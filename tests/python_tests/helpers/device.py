@@ -33,6 +33,8 @@ from .pack import (
     pack_fp32,
     pack_int8,
     pack_int32,
+    pack_mxfp8p,
+    pack_mxfp8r,
     pack_uint8,
     pack_uint16,
     pack_uint32,
@@ -45,6 +47,8 @@ from .unpack import (
     unpack_fp32,
     unpack_int8,
     unpack_int32,
+    unpack_mxfp8p,
+    unpack_mxfp8r,
     unpack_res_tiles,
     unpack_uint8,
     unpack_uint16,
@@ -334,6 +338,8 @@ def write_stimuli_to_l1(
             DataFormat.Float32: pack_fp32,
             DataFormat.Bfp8_b: pack_bfp8_b,
             DataFormat.Int32: pack_int32,
+            DataFormat.MXFP8R: pack_mxfp8r,
+            DataFormat.MXFP8P: pack_mxfp8p,
             DataFormat.UInt32: pack_uint32,
             DataFormat.UInt16: pack_uint16,
             DataFormat.Int8: pack_int8,
@@ -367,7 +373,7 @@ def write_stimuli_to_l1(
 
         pack_function_lambda = lambda buffer_tile: (
             pack_function(buffer_tile, num_faces=num_faces)
-            if pack_function == pack_bfp8_b
+            if pack_function in [pack_bfp8_b, pack_mxfp8r, pack_mxfp8p]
             else pack_function(buffer_tile)
         )
 
@@ -432,6 +438,8 @@ def get_result_from_device(
         DataFormat.Float16_b: unpack_bfp16,
         DataFormat.Float32: unpack_fp32,
         DataFormat.Int32: unpack_int32,
+        DataFormat.MXFP8R: unpack_mxfp8r,
+        DataFormat.MXFP8P: unpack_mxfp8p,
         DataFormat.UInt32: unpack_uint32,
         DataFormat.UInt16: unpack_uint16,
         DataFormat.Int8: unpack_int8,
@@ -445,6 +453,11 @@ def get_result_from_device(
         unpack_func = unpackers.get(formats.output_format)
 
     if unpack_func:
+        # MXFP8 formats take (packed_bytes, num_faces) not format arguments
+        if formats.output_format in {DataFormat.MXFP8R, DataFormat.MXFP8P}:
+            return unpack_func(read_data_bytes)
+
+        # Other multi-parameter functions take format arguments
         num_args = len(inspect.signature(unpack_func).parameters)
         if num_args > 1:
             return unpack_func(
@@ -508,11 +521,14 @@ def read_dest_register(dest_acc: DestAccumulation, num_tiles: int = 1):
 def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
     # check if the core is stuck on an EBREAK instruction
 
+    CHIP_ARCH = get_chip_architecture()
     context = check_context()
     device = context.devices[device_id]
     coordinate = convert_coordinate(core_loc, device_id, context)
     block = device.get_block(coordinate)
-    risc_debug = block.get_risc_debug(risc_name)
+    risc_debug = block.get_risc_debug(
+        risc_name, neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None
+    )
 
     return risc_debug.is_ebreak_hit()
 

@@ -3,7 +3,11 @@
 
 import torch
 
-from .format_config import DataFormat
+from .format_config import (
+    MXFP8_E4M3_MAX_NORMAL,
+    MXFP8_E5M2_MAX_NORMAL,
+    DataFormat,
+)
 from .llk_params import format_dict
 
 
@@ -36,7 +40,11 @@ def generate_random_face(
     face_r_dim=16,
 ):
     size = face_r_dim * 16  # face_r_dim rows × 16 columns
-    if stimuli_format != DataFormat.Bfp8_b:
+
+    if stimuli_format in [DataFormat.MXFP8R, DataFormat.MXFP8P]:
+        # MXFP8 optimized stimuli generation
+        return _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu)
+    elif stimuli_format != DataFormat.Bfp8_b:
         if stimuli_format.is_integer():
             max = 127 if stimuli_format == DataFormat.Int8 else 255
             srcA_face = torch.randint(
@@ -62,6 +70,34 @@ def generate_random_face(
             srcA_face = integer_part.to(dtype=torch.bfloat16) + fraction
 
     return srcA_face
+
+
+def _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu):
+    """
+    Generate test data for MXFP8 formats using normal distribution scaled to format range.
+
+    Uses conservative scaling (5% of max normal) to avoid saturation while creating
+    diverse test data with realistic dynamic range. Max values from format_config.py.
+    """
+    if const_face:
+        return torch.ones(size, dtype=torch.bfloat16) * const_value
+
+    # Scale factor: use 5% of format's max normal value
+    # This ensures values are well within representable range while maintaining diversity
+    if stimuli_format == DataFormat.MXFP8R:
+        scale = 0.05 * MXFP8_E5M2_MAX_NORMAL
+    else:  # MXFP8P
+        scale = 0.05 * MXFP8_E4M3_MAX_NORMAL
+
+    # Generate normal distribution: ~68% within ±1σ, ~95% within ±2σ
+    # With σ=scale, most values stay well below max while creating realistic variance
+    face_data = torch.randn(size, dtype=torch.bfloat16) * scale
+
+    # Add SFPU-friendly offset if needed
+    if sfpu:
+        face_data += 0.1
+
+    return face_data
 
 
 def generate_random_face_ab(
