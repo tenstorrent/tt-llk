@@ -268,6 +268,14 @@ class DataCopyType(Enum):
     B2D = "B2D"
 
 
+class PerfRunType(Enum):
+    L1_TO_L1 = 1
+    UNPACK_ISOLATE = 2
+    MATH_ISOLATE = 3
+    PACK_ISOLATE = 4
+    L1_CONGESTION = 5
+
+
 # ******** QUASAR specific ********
 class ImpliedMathFormat(Enum):
     No = "false"

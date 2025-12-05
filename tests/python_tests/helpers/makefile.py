@@ -103,7 +103,6 @@ INCLUDES = f"-I../{ARCH_LLK_ROOT}/llk_lib -I../{ARCH_LLK_ROOT}/common/inc -I../{
 KERNEL_COMPONENTS = ["unpack", "math", "pack"]
 
 # Artefact directories
-
 BUILD_DIR = None
 SHARED_DIR = None
 SHARED_OBJ_DIR = None
@@ -174,7 +173,7 @@ SHARED_ARTEFACTS_AVAILABLE = False
 
 
 def build_shared_artefacts(
-    test_config: dict,
+    test_name: str,
     boot_mode: BootMode,
     profiler_build: ProfilerBuild,
     coverage_build: CoverageBuild,
@@ -210,7 +209,7 @@ def build_shared_artefacts(
         )
 
     # Kernel mains
-    _, kernel_trisc_flag = select_kernel_source_and_flag(test_config["testname"])
+    _, kernel_trisc_flag = select_kernel_source_and_flag(test_name)
 
     def build_kernel_part_main(name: str):
         run_shell_command(  # main_%.o
@@ -234,7 +233,7 @@ def build_shared_artefacts(
     SHARED_ARTEFACTS_AVAILABLE = True
 
 
-def select_kernel_source_and_flag(testname: str) -> tuple[Path, str]:
+def select_kernel_source_and_flag(test_name: str) -> tuple[Path, str]:
     """
     Mimics the Makefile logic:
     - Returns the first existing kernel source file for the testname.
@@ -242,16 +241,16 @@ def select_kernel_source_and_flag(testname: str) -> tuple[Path, str]:
     """
 
     candidates = [
-        TESTS_WORKING_DIR / "sources" / "ai_gen" / f"{testname}.cpp",
-        TESTS_WORKING_DIR / "sources" / "quasar" / f"{testname}.cpp",
-        TESTS_WORKING_DIR / "sources" / f"{testname}.cpp",
+        TESTS_WORKING_DIR / "sources" / "ai_gen" / f"{test_name}.cpp",
+        TESTS_WORKING_DIR / "sources" / "quasar" / f"{test_name}.cpp",
+        TESTS_WORKING_DIR / "sources" / f"{test_name}.cpp",
     ]
     for candidate in candidates:
         if candidate.exists():
             kernel_source_file = candidate
             break
     else:
-        raise FileNotFoundError(f"No kernel source found for {testname}")
+        raise FileNotFoundError(f"No kernel source found for {test_name}")
 
     # Set TRISC flag: only empty if source is from quasar
 
@@ -276,7 +275,9 @@ def build_test_variant(
 
     create_directories([VARIANT_DIR, VARIANT_OBJ_DIR, VARIANT_ELF_DIR])
 
-    build_shared_artefacts(test_config, boot_mode, profiler_build, coverage_build)
+    build_shared_artefacts(
+        test_config["testname"], boot_mode, profiler_build, coverage_build
+    )
 
     local_options_compile, local_memory_layout_ld, _ = resolve_compile_options(
         boot_mode, profiler_build, coverage_build

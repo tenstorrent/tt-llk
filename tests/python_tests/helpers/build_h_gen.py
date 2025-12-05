@@ -122,7 +122,7 @@ def generate_build_header(test_config) -> str:
         implied_math_format = test_config.get(
             "implied_math_format", ImpliedMathFormat.No
         )
-        header_content.append(  # TP
+        header_content.append(  # TP ++
             f"constexpr bool IMPLIED_MATH_FORMAT = {implied_math_format.value};"
         )
 
@@ -130,7 +130,7 @@ def generate_build_header(test_config) -> str:
         unpacker_engine_sel = test_config.get(
             "unpacker_engine_sel", UnpackerEngine.UnpA
         )
-        header_content.append(  # TP
+        header_content.append(  # TP ++
             f"constexpr uint UNPACKER_ENGINE_SEL = p_unpacr::{unpacker_engine_sel.value};"
         )
     # *********************************
@@ -160,15 +160,19 @@ def generate_build_header(test_config) -> str:
     if "kt_dim" in test_config:  # RT ++
         header_content.append(f"constexpr uint32_t KT_DIM = {test_config['kt_dim']};")
 
-    # partial face - support separate configurations for A and B ++
+    # partial face - support separate configurations for A and B
     partial_face_A = str(
-        test_config.get("partial_face_A", test_config.get("partial_face", False))  # RT
+        test_config.get(
+            "partial_face_A", test_config.get("partial_face", False)
+        )  # RT ++
     ).lower()
     header_content.append(f"constexpr bool PARTIAL_FACE_A = {partial_face_A};")
     header_content.append(f"constexpr bool PARTIAL_FACE_PACK = {partial_face_A};")
 
     partial_face_B = str(
-        test_config.get("partial_face_B", test_config.get("partial_face", False))  # RT
+        test_config.get(
+            "partial_face_B", test_config.get("partial_face", False)
+        )  # RT ++
     ).lower()
     header_content.append(f"constexpr bool PARTIAL_FACE_B = {partial_face_B};")
     header_content.append(f"constexpr bool PARTIAL_FACE_MATH = {partial_face_B};")
@@ -374,11 +378,12 @@ def generate_build_header(test_config) -> str:
     if "add_top_row" in test_config:  # TP
         header_content.append("constexpr bool ADD_TOP_ROW = true;")
 
-    if perf_run_type := test_config.get("perf_run_type"):  # TP
+    if perf_run_type := test_config.get("perf_run_type"):  # TP ++
         header_content.extend(
             ["", f"constexpr auto PERF_RUN_TYPE = PerfRunType::{perf_run_type.name};"]
         )
 
+    # RT ++
     input_A_dimensions = test_config.get("input_A_dimensions", [32, 32])
     input_B_dimensions = test_config.get("input_B_dimensions", [32, 32])
 
@@ -414,7 +419,7 @@ def generate_build_header(test_config) -> str:
         formats = FormatConfig(format, format, format, format, format)
 
     # Dest accumulation
-    dest_acc = test_config.get("dest_acc", DestAccumulation.No)
+    dest_acc = test_config.get("dest_acc", DestAccumulation.No)  # TP ++
     header_content.append(f"constexpr bool is_fp32_dest_acc_en = {dest_acc.value};")
 
     # Check if this is an outlier format combination that requires dest_acc to be enabled
