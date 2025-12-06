@@ -21,18 +21,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
-        formats.unpack_src,
-        formats.unpack_src,
-        formats.unpack_dst,
-        formats.unpack_dst,
-        FACE_R_DIM,
-        FACE_R_DIM,
-        0,
-        4,
-        4,
-        TILE_SIZE_UNPACK_A,
-        TILE_SIZE_UNPACK_B);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, 4);
     _llk_unpack_AB_matmul_init_<>(0, CT_DIM, RT_DIM, KT_DIM, FACE_R_DIM, FACE_R_DIM);
     for (uint32_t j = 0; j < KT_DIM; j++)
     {

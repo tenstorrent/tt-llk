@@ -26,7 +26,7 @@ void run_kernel()
 {
     constexpr std::uint32_t tile_size = 128;
 
-    _llk_unpack_untilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, 4);
     _llk_unpack_untilize_init_(formats.unpack_dst, tile_size, FACE_R_DIM, 4);
 
     _llk_unpack_untilize_pass_<true>(L1_ADDRESS(buffer_A[0]), BLOCK_CT_DIM);

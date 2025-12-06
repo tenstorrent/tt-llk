@@ -34,8 +34,8 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
 
-        _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None, unpack_to_dest>(
-            formats.unpack_src, formats.unpack_dst, FACE_R_DIM, false, TILE_NUM_FACES);
+        _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+            formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, TILE_NUM_FACES);
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             UNPACK_TRANSPOSE_FACES, false, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_src, formats.unpack_dst);
         PROFILER_SYNC();
