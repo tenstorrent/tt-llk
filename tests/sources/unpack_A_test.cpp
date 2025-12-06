@@ -26,8 +26,9 @@ void run_kernel()
 {
     _llk_unpack_A_init_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(
         UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, TEST_FACE_R_DIM, NUM_FACES, formats.unpack_src, formats.unpack_dst);
-    // NC: Add disable_src_zero_flag function call here
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, TEST_FACE_R_DIM, NUM_FACES);
+    // NC: Add disable_src_zero_flag function call here
+    _llk_unpack_disable_src_zero_flag_(true);
     _llk_unpack_configure_stoch_rnd_<STOCHASTIC_RND>();
 
     for (int i = 0; i < TILE_CNT; ++i)

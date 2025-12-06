@@ -159,6 +159,11 @@ inline void _llk_enable_int8_fpu_math_()
     enable_int8_fpu_math();
 }
 
+inline void _llk_unpack_disable_src_zero_flag_(bool disable_src_zero_flag)
+{
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(disable_src_zero_flag);
+}
+
 inline void _llk_unpack_set_srcb_dummy_valid_()
 {
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::UNPACK | p_stall::SRCA_CLR | p_stall::SRCB_CLR);
