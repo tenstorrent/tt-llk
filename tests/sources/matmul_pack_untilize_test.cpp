@@ -21,6 +21,7 @@ const ckernel::DstSync sync       = ckernel::DstSync::SyncHalf;
 
 #ifdef LLK_TRISC_UNPACK
 
+#include "llk_unpack_AB.h"
 #include "llk_unpack_AB_matmul.h"
 #include "params.h"
 

@@ -33,6 +33,7 @@ static_assert(FULL_RT_DIM * FULL_CT_DIM == TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM 
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
+#include "llk_unpack_AB.h"
 #include "llk_unpack_common.h"
 
 void run_kernel()

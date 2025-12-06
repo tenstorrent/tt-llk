@@ -30,6 +30,7 @@ static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 #include <algorithm>
 
+#include "llk_unpack_AB.h"
 #include "llk_unpack_common.h"
 #include "llk_unpack_tilize.h"
 

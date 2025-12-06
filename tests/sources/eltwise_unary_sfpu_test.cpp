@@ -18,6 +18,7 @@ uint32_t math_sync_tile_dst_index = 0;
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
+#include "llk_unpack_AB.h"
 #include "llk_unpack_common.h"
 #include "params.h"
 

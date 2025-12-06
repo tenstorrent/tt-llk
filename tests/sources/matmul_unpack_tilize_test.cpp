@@ -21,6 +21,7 @@ constexpr uint32_t buffer_B_tilized = 0x1f000;
 
 #ifdef LLK_TRISC_UNPACK
 
+#include "llk_unpack_AB.h"
 #include "llk_unpack_AB_matmul.h"
 #include "llk_unpack_common.h"
 #include "llk_unpack_tilize.h"

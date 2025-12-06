@@ -23,6 +23,7 @@ constexpr uint32_t buffer_A_tilized = 0x17000;
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
+#include "llk_unpack_AB.h"
 #include "llk_unpack_AB_matmul.h"
 #include "llk_unpack_common.h"
 #include "params.h"

@@ -19,6 +19,7 @@ const std::uint32_t num_of_faces = 4;
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
+#include "llk_unpack_AB.h"
 #include "llk_unpack_common.h"
 
 void run_kernel()

@@ -25,6 +25,7 @@ static_assert(RT_DIM * CT_DIM * KT_DIM == TILE_CNT, "RT_DIM * CT_DIM * KT_DIM mu
 
 #ifdef LLK_TRISC_UNPACK
 
+#include "llk_unpack_AB.h"
 #include "llk_unpack_AB_matmul.h"
 #include "llk_unpack_common.h"
 
