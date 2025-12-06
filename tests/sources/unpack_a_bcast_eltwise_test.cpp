@@ -44,7 +44,7 @@ void run_kernel()
 void run_kernel()
 {
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+    _llk_math_hw_configure_(formats.math, formats.math);
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, 0>(SRCA_REUSE_COUNT);
 
     _llk_math_wait_for_dest_available_<dest_sync>();
@@ -67,18 +67,14 @@ void run_kernel()
 
 void run_kernel()
 {
-#ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-#else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-#endif
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst);
 
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+    _llk_pack_init_<false, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<dest_sync, false, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<dest_sync, false>();
 #endif
 
     _llk_packer_wait_for_math_done_();

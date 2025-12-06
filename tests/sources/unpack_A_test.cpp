@@ -18,6 +18,7 @@ uint32_t math_sync_tile_dst_index = 0;
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
+#include "llk_unpack_AB.h"
 #include "llk_unpack_common.h"
 #include "params.h"
 
@@ -25,8 +26,9 @@ void run_kernel()
 {
     _llk_unpack_A_init_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(
         UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, TEST_FACE_R_DIM, NUM_FACES, formats.unpack_src, formats.unpack_dst);
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, STOCHASTIC_RND, disable_src_zero_flag>(
-        formats.unpack_src, formats.unpack_dst, TEST_FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES);
+    // NC: Add disable_src_zero_flag function call here
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, TEST_FACE_R_DIM, NUM_FACES);
+    _llk_unpack_configure_stoch_rnd_<STOCHASTIC_RND>();
 
     for (int i = 0; i < TILE_CNT; ++i)
     {
@@ -64,7 +66,7 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_init_<copy_type, is_fp32_dest_acc_en, BROADCAST_TYPE, is_int_fpu_en>(0, 0, NUM_FACES, formats.math);
 #endif
     _llk_math_pack_sync_init_<sync_mode, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+    _llk_math_hw_configure_(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<sync_mode>();
     for (int i = 0; i < TILE_CNT; ++i)
     {
@@ -86,18 +88,17 @@ void run_kernel()
     // Test configuration constants
     constexpr DstSync sync_mode = DstSync::SyncHalf;
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
-        formats.pack_src, formats.pack_dst, TEST_FACE_R_DIM * TEST_FACE_C_DIM * 4, TEST_FACE_R_DIM, TILE_C_DIM, NUM_FACES);
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, TEST_FACE_R_DIM, TILE_C_DIM, NUM_FACES);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TEST_FACE_R_DIM, TILE_C_DIM, NUM_FACES);
+    _llk_pack_init_<false, false>(formats.pack_dst, TEST_FACE_R_DIM, TILE_C_DIM, NUM_FACES);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, TEST_FACE_R_DIM * TEST_FACE_C_DIM * 4, TEST_FACE_R_DIM, NUM_FACES);
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, TEST_FACE_R_DIM, NUM_FACES);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TEST_FACE_R_DIM, NUM_FACES);
+    _llk_pack_init_<false, false>(formats.pack_dst, TEST_FACE_R_DIM, NUM_FACES);
 #endif
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<sync_mode, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<sync_mode, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<sync_mode, false, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<sync_mode, false>();
 #endif
 
     _llk_packer_wait_for_math_done_();
