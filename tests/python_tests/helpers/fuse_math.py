@@ -461,8 +461,10 @@ class Math:
         return sorted(list(headers))
 
     def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
-        tensor_a = operation_config.src_a.raw_data
-        tensor_b = operation_config.src_b.raw_data
+        src_a_dims = operation_config.src_a.dimensions
+        src_b_dims = operation_config.src_b.dimensions
+        tensor_a = operation_config.src_a.raw_data.view(src_a_dims)
+        tensor_b = operation_config.src_b.raw_data.view(src_b_dims)
 
         golden_tensor = self.fpu.golden(tensor_a, tensor_b, operation_config)
 

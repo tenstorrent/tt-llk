@@ -721,11 +721,11 @@ def collect_pipeline_results(
         if output_operand.l1_address is None:
             raise ValueError(
                 f"Output operand '{output_name}' does not have an L1 address. "
-                "Make sure write_pipeline_operands_to_l1 was called before running the test."
             )
 
         output_dimensions = output_operand.dimensions
         output_format = output_operand.data_format
+        input_format = operation.src_a.data_format
         tile_cnt = output_operand.tile_count
 
         read_bytes_cnt = (
@@ -740,13 +740,13 @@ def collect_pipeline_results(
         res_from_L1 = unpack_res_tiles(
             read_data,
             InputOutputFormat(
-                input_format=output_format,
+                input_format=input_format,
                 output_format=output_format,
             ),
             tile_count=tile_cnt,
-            sfpu=output_operand.sfpu,
-            num_faces=4,
-            face_r_dim=16,
+            sfpu=False,
+            num_faces=operation.num_faces,
+            face_r_dim=operation.face_r_dim,
         )
 
         torch_format = format_dict[output_format]

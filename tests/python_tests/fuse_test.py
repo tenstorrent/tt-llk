@@ -58,7 +58,7 @@ def generate_format_aware_matmul_combinations(
 MATMUL_FORMATS = input_output_formats(
     [
         DataFormat.Float16_b,
-        # DataFormat.Float16,
+        DataFormat.Bfp8_b,
         DataFormat.Float32,
     ]
 )

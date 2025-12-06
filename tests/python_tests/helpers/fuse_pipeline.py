@@ -5,6 +5,7 @@
 from typing import List
 
 import torch
+from helpers.format_config import DataFormat
 from helpers.fuse_math import (
     BinarySfpu,
     DatacopyFpu,
@@ -81,7 +82,7 @@ def create_fuse_pipeline(
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
             unpack_to_dest=False,
-            tilize=Tilize.Yes,
+            tilize=Tilize.No,
         ),
         PipelineOperation(
             operand_mapping=operands.create_mapping(
@@ -108,6 +109,8 @@ def create_fuse_pipeline(
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
         ),
+    ]
+    matmul_ops = [
         PipelineOperation(
             operand_mapping=operands.create_mapping(
                 src_a="input_A",
@@ -180,5 +183,7 @@ def create_fuse_pipeline(
         #     math_fidelity=math_fidelity,
         # ),
     ]
+    if formats.input_format != DataFormat.Bfp8_b:
+        pipeline.extend(matmul_ops)
 
     return pipeline
