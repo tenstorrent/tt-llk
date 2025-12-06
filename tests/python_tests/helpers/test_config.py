@@ -233,7 +233,7 @@ def generate_build_header(test_config):
         f"constexpr std::uint32_t MATH_FIDELITY = {test_config.get('math_fidelity', MathFidelity.LoFi).value};"
     )
     header_content.append(
-        f"constexpr bool APPROX_MODE = {test_config.get('approx_mode', ApproximationMode.No).value};"
+        f"constexpr ApproximationMode APPROX_MODE = ApproximationMode::{test_config.get('approx_mode', ApproximationMode.Precise).value};"
     )
 
     # Tiny tile flag, used to handle dimension
