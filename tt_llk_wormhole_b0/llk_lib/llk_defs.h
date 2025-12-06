@@ -41,6 +41,7 @@ enum PoolType
     SUM,
     AVG,
     MAX,
+    MIN,
 };
 
 enum DataCopyType

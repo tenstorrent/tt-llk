@@ -10,6 +10,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cmath_common.h"
+#include "llk_assert.h"
 #include "llk_math_common.h"
 
 #ifndef HF
@@ -538,6 +539,9 @@ inline void matmul_configure_mop_throttled(
 
     constexpr bool high_fidelity = NUM_FIDELITY_PHASES > 0;
     static_assert((THROTTLE_LEVEL > 0) && (THROTTLE_LEVEL <= 5), "MM throttling only enabled for THROTTLE_LEVEL={1,2,3,4,5}");
+    LLK_ASSERT(
+        (in0_tile_r_dim == TILE_R_DIM) && (in0_tile_c_dim == TILE_C_DIM) && (in1_tile_r_dim == TILE_R_DIM) && (in1_tile_c_dim == TILE_C_DIM) && !partial_face,
+        "MM throttling only enabled for full 32x32 tile size");
 
     const bool reuse_a = ct_dim >= rt_dim;
 
@@ -634,6 +638,8 @@ inline void _llk_math_matmul_(
     const std::uint32_t rt_dim                  = 1,
     [[maybe_unused]] const std::uint32_t kt_dim = 1)
 {
+    LLK_ASSERT(!transpose, "transpose: this parameter is unused");
+    LLK_ASSERT(kt_dim == 1, "kt_dim: this parameter is unused");
     const bool reuse_a                = ct_dim >= rt_dim;
     const std::uint32_t t_dim         = reuse_a ? rt_dim : ct_dim;
     const std::uint32_t rut_dim       = reuse_a ? ct_dim : rt_dim; // reuse-dim
