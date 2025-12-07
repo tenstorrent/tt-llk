@@ -469,7 +469,7 @@ class Math:
     fpu: Fpu
     sfpu: List[Sfpu]
 
-    def __init__(self, fpu: Type[Fpu], sfpu: List[Sfpu]):
+    def __init__(self, fpu: Type[Fpu], sfpu: List[Sfpu] = []):
         self.fpu = fpu
         self.sfpu = sfpu
 

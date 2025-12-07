@@ -4,7 +4,6 @@
 
 from typing import List
 
-import torch
 from helpers.format_config import DataFormat
 from helpers.fuse_math import (
     BinarySfpu,
@@ -24,32 +23,17 @@ from helpers.llk_params import (
     Tilize,
 )
 
+from .llk_params import DestAccumulation, MathFidelity
 
-def create_fuse_pipeline(
-    format_dest_acc_and_dims,
-    math_fidelity,
-) -> List[PipelineOperation]:
-    formats = format_dest_acc_and_dims[0]
-    dest_acc = format_dest_acc_and_dims[1]
-    input_A_dimensions = [64, 64]  # format_dest_acc_and_dims[2][0]
-    input_B_dimensions = [64, 64]  # format_dest_acc_and_dims[2][1]
+
+def create_fuse_pipeline() -> List[PipelineOperation]:
+    math_fidelity = MathFidelity.LoFi
+    dest_acc = DestAccumulation.No
+    data_format = DataFormat.Float16_b
+    input_A_dimensions = [64, 64]
+    input_B_dimensions = [64, 64]
 
     operands = OperandRegistry()
-
-    a_data = torch.zeros(64, 64)
-    b_data = torch.zeros(64, 64)
-
-    a_data[0:32, 0:32] = 1.0
-    b_data[0:32, 0:32] = 1.0
-
-    a_data[0:32, 32:64] = 2.0
-    b_data[0:32, 32:64] = 2.0
-
-    a_data[32:64, 0:32] = 3.0
-    b_data[32:64, 0:32] = 3.0
-
-    a_data[32:64, 32:64] = 4.0
-    b_data[32:64, 32:64] = 4.0
 
     pipeline = [
         PipelineOperation(
@@ -59,8 +43,8 @@ def create_fuse_pipeline(
                 output="datacopy_output",
                 src_a_dims=input_A_dimensions,
                 src_b_dims=input_B_dimensions,
-                input_format=formats.input_format,
-                output_format=formats.input_format,
+                input_format=data_format,
+                output_format=data_format,
             ),
             unpacker=UnpackerA,
             math=Math(
@@ -81,7 +65,7 @@ def create_fuse_pipeline(
                         ApproximationMode.No,
                         32,
                         0,
-                        3,
+                        1,
                         1,
                     ),
                 ],
@@ -99,8 +83,8 @@ def create_fuse_pipeline(
                 output="elwadd1",
                 src_a_dims=input_A_dimensions,
                 src_b_dims=input_B_dimensions,
-                input_format=formats.input_format,
-                output_format=formats.input_format,
+                input_format=data_format,
+                output_format=data_format,
             ),
             unpacker=UnpackerAB,
             math=Math(
@@ -126,12 +110,10 @@ def create_fuse_pipeline(
                 output="elwadd1",
                 src_a_dims=input_A_dimensions,
                 src_b_dims=input_B_dimensions,
-                input_format=formats.input_format,
-                output_format=formats.output_format,
-                src_a_tensor=a_data,
-                src_b_tensor=b_data,
+                input_format=data_format,
+                output_format=data_format,
             ),
-            unpacker=EltwiseUnpacker,
+            unpacker=UnpackerAB,
             math=Math(EltwiseFpu(MathOperation.Elwadd), []),
             packer=Packer,
             dest_acc=dest_acc,
@@ -191,7 +173,7 @@ def create_fuse_pipeline(
         #     math_fidelity=math_fidelity,
         # ),
     ]
-    if formats.input_format != DataFormat.Bfp8_b:
+    if data_format != DataFormat.Bfp8_b:
         pipeline.extend(matmul_ops)
 
     return pipeline

@@ -50,10 +50,15 @@ class FuseGolden:
         if res_tensor.ndim != 1:
             res_tensor = res_tensor.flatten()
 
-        # print("golden")
-        # print(golden_tensor)
-        # print("result")
-        # print(res_tensor)
+        if self.verbose:
+            print("\nGolden:")
+            head = ", ".join(f"{x:.2f}" for x in golden_tensor[:32].tolist())
+            tail = ", ".join(f"{x:.2f}" for x in golden_tensor[-32:].tolist())
+            print(f"{head}\n...\n{tail}\n")
+            print("Result:")
+            head = ", ".join(f"{x:.2f}" for x in res_tensor[:32].tolist())
+            tail = ", ".join(f"{x:.2f}" for x in res_tensor[-32:].tolist())
+            print(f"{head}\n...\n{tail}\n")
 
         passed = passed_test(golden_tensor, res_tensor, output.data_format)
 

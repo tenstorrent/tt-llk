@@ -2,93 +2,27 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import List
 
 from helpers.device import (
-    BootMode,
     collect_pipeline_results,
     write_pipeline_operands_to_l1,
 )
-from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.fuse_golden import FuseGolden
 from helpers.fuse_pipeline import create_fuse_pipeline
-from helpers.llk_params import (
-    DestAccumulation,
-    MathFidelity,
-)
-from helpers.matmul_sweep import generate_matmul_dimension_combinations
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import parametrize
 from helpers.test_config import run_fuse_test
-
-
-def generate_format_aware_matmul_combinations(
-    formats_list: List[FormatConfig],
-    dest_acc_modes: List[DestAccumulation],
-):
-    """
-    Generate matmul dimension combinations for multiple tiles.
-
-    Rules:
-    1. Format outliers (Float16_b->Float16, Bfp8_b->Float16) MUST use dest_acc=Yes
-    2. Running matmul tests on DestSync.Half, max tile count is 8
-    3. When dest_acc=Yes: max 4 tiles (32-bit dest register)
-    4. When dest_acc=No: max 8 tiles (16-bit dest register)
-
-    Returns: List of (format, dest_acc, dimensions) tuples
-    """
-    combinations = []
-
-    for fmt in formats_list:
-        base_max_tiles = 4 if is_dest_acc_needed(fmt) else 8
-
-        for dest_acc in dest_acc_modes:
-            max_tiles = 4 if dest_acc == DestAccumulation.Yes else base_max_tiles
-            dimensions_list = generate_matmul_dimension_combinations(max_tiles)
-            combinations.extend(
-                [
-                    (fmt, dest_acc, dims)
-                    for dims in [[[32, 32], [32, 32]], [[64, 64], [64, 64]]]
-                ]
-            )
-
-    return combinations
-
-
-# Generate format-aware combinations
-MATMUL_FORMATS = input_output_formats(
-    [
-        DataFormat.Float16_b,
-        DataFormat.Bfp8_b,
-        DataFormat.Float32,
-    ]
-)
-DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
-ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
-    MATMUL_FORMATS, DEST_ACC_MODES
-)
 
 
 @parametrize(
     test_name="fuse_test",
-    math_fidelity=[
-        MathFidelity.LoFi,
-        MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
-    ],
-    format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
-def test_matmul(
-    test_name, math_fidelity, format_dest_acc_and_dims, boot_mode=BootMode.DEFAULT
-):
-    pipeline = create_fuse_pipeline(
-        format_dest_acc_and_dims,
-        math_fidelity,
-    )
+def test_fused(test_name):
+    # TODO: this argument should be used for specific yml/json config
+    pipeline = create_fuse_pipeline()
 
     write_pipeline_operands_to_l1(pipeline)
 
-    run_fuse_test(pipeline, boot_mode)
+    run_fuse_test(pipeline)
 
     collect_pipeline_results(pipeline)
 
