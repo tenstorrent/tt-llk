@@ -31,8 +31,8 @@ def create_fuse_pipeline(
 ) -> List[PipelineOperation]:
     formats = format_dest_acc_and_dims[0]
     dest_acc = format_dest_acc_and_dims[1]
-    input_A_dimensions = format_dest_acc_and_dims[2][0]
-    input_B_dimensions = format_dest_acc_and_dims[2][1]
+    input_A_dimensions = [64, 64]  # format_dest_acc_and_dims[2][0]
+    input_B_dimensions = [64, 64]  # format_dest_acc_and_dims[2][1]
 
     operands = OperandRegistry()
 
@@ -75,6 +75,14 @@ def create_fuse_pipeline(
                         MathOperation.Celu,
                         ApproximationMode.No,
                         32 * operands.get("datacopy_output").tile_count,
+                    ),
+                    BinarySfpu(
+                        MathOperation.SfpuElwadd,
+                        ApproximationMode.No,
+                        32,
+                        0,
+                        3,
+                        1,
                     ),
                 ],
             ),
