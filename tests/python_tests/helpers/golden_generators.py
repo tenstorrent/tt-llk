@@ -13,7 +13,7 @@ from helpers.llk_params import (
     ReducePool,
     format_dict,
 )
-from helpers.tilize_untilize import tilize_block
+from helpers.tilize_untilize import tilize_block, untilize_block
 
 # Tile and face dimension constants
 FACE_DIM = 16
@@ -1299,17 +1299,21 @@ class BinarySFPUGolden2(EltwiseBinaryGolden):
         src2_idx: int,
         dst_idx: int,
         num_iterations: int,
+        dimensions: tuple[int, int],
         data_format: DataFormat,
     ):
         if operation not in self.ops:
-            raise ValueError(f"Unsupported SFPU operation: {operation}")
+            raise ValueError(f"Unsupported binary SFPU operation: {operation}")
 
-        t = to_tensor(tensor, data_format)
+        if data_format != DataFormat.Bfp8_b:
+            result = tilize_block(tensor.flatten(), dimensions, data_format).flatten()
+        else:
+            result = tensor.flatten()
 
         if num_iterations < 1:
             raise ValueError(f"num_iterations must be at least 1, got {num_iterations}")
 
-        total_elements = len(t)
+        total_elements = dimensions[0] * dimensions[1]
         elements_per_tile = ELEMENTS_PER_TILE
         elements_per_row = 32
 
@@ -1352,8 +1356,6 @@ class BinarySFPUGolden2(EltwiseBinaryGolden):
                 f"but tensor has only {total_elements} elements)"
             )
 
-        result = t.clone()
-
         for iteration in range(num_iterations):
             row_offset = iteration * elements_per_row
 
@@ -1373,6 +1375,9 @@ class BinarySFPUGolden2(EltwiseBinaryGolden):
             )
 
             result[dst_row_start : dst_row_start + elements_per_row] = result_row
+
+        if data_format != DataFormat.Bfp8_b:
+            result = untilize_block(result, data_format, dimensions)
 
         return result
 

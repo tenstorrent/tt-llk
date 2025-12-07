@@ -20,9 +20,7 @@ if TYPE_CHECKING:
     from .fuse_operation import PipelineOperation
 
 from .chip_architecture import ChipArchitecture
-from .format_config import DataFormat
 from .llk_params import ApproximationMode, MathOperation, Tilize
-from .tilize_untilize import tilize_block, untilize_block
 
 from .llk_params import ApproximationMode, MathOperation
 
@@ -377,26 +375,17 @@ class BinarySfpu(Sfpu):
         math_format = operation_config.output.data_format
         dimensions = operation_config.output.dimensions
 
-        if math_format != DataFormat.Bfp8_b:
-            tilized_tensor = tilize_block(tensor.flatten(), dimensions, math_format)
-        else:
-            tilized_tensor = tensor.flatten()
-
         generate_binary_golden = get_golden_generator(BinarySFPUGolden2)
-        tilized_result = generate_binary_golden(
+        golden_tensor = generate_binary_golden(
             self.operation,
-            tilized_tensor.flatten(),
+            tensor,
             self.dst_index_in0,
             self.dst_index_in1,
             self.dst_index_out,
             self.iterations,
+            dimensions,
             math_format,
         )
-
-        if math_format != DataFormat.Bfp8_b:
-            golden_tensor = untilize_block(tilized_result, math_format, dimensions)
-        else:
-            golden_tensor = tilized_result
 
         return golden_tensor
 
