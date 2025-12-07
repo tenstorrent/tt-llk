@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, List, Type
 import torch
 
 from .golden_generators import (
-    BinarySFPUGolden,
+    BinarySFPUGolden2,
     DataCopyGolden,
     EltwiseBinaryGolden,
     MatmulGolden,
@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 from .chip_architecture import ChipArchitecture
 from .llk_params import ApproximationMode, MathOperation, Tilize
+from .tilize_untilize import tilize_block, untilize_block
 
 from .llk_params import ApproximationMode, MathOperation
 
@@ -373,9 +374,26 @@ class BinarySfpu(Sfpu):
         self, tensor: torch.Tensor, operation_config: "PipelineOperation"
     ) -> torch.Tensor:
         math_format = operation_config.output.data_format
+        dimensions = operation_config.output.dimensions
 
-        generate_binary_golden = get_golden_generator(BinarySFPUGolden)
-        return generate_binary_golden(self.operation, tensor, tensor, math_format)
+        # Convert to tilized format (tile-major) for hardware-accurate simulation
+        tilized_tensor = tilize_block(tensor.flatten(), dimensions, math_format)
+
+        generate_binary_golden = get_golden_generator(BinarySFPUGolden2)
+        tilized_result = generate_binary_golden(
+            self.operation,
+            tilized_tensor.flatten(),
+            self.dst_index_in0,
+            self.dst_index_in1,
+            self.dst_index_out,
+            self.iterations,
+            math_format,
+        )
+
+        # Convert back to row-major format for comparison
+        golden_tensor = untilize_block(tilized_result, math_format, dimensions)
+
+        return golden_tensor
 
     def exec(self, operation_config: "PipelineOperation") -> str:
         stage = operation_config.stage_id

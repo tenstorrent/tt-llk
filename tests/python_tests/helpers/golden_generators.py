@@ -1278,6 +1278,135 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
 
 
 @register_golden
+class BinarySFPUGolden2(EltwiseBinaryGolden):
+    def __init__(self):
+        self.ops = {
+            MathOperation.SfpuElwadd: self._add,
+            MathOperation.SfpuElwsub: self._sub,
+            MathOperation.SfpuElwmul: self._mul,
+            MathOperation.SfpuXlogy: self._xlogy,
+            MathOperation.SfpuElwRightShift: self._right_shift,
+            MathOperation.SfpuElwLeftShift: self._left_shift,
+            MathOperation.SfpuElwLogicalRightShift: self._logical_right_shift,
+            MathOperation.SfpuAddTopRow: self._add_top_row,
+        }
+
+    def __call__(
+        self,
+        operation: MathOperation,
+        tensor,
+        src1_idx: int,
+        src2_idx: int,
+        dst_idx: int,
+        num_iterations: int,
+        data_format: DataFormat,
+    ):
+        if operation not in self.ops:
+            raise ValueError(f"Unsupported SFPU operation: {operation}")
+
+        t = to_tensor(tensor, data_format)
+
+        if num_iterations < 1:
+            raise ValueError(f"num_iterations must be at least 1, got {num_iterations}")
+
+        total_elements = len(t)
+        elements_per_tile = ELEMENTS_PER_TILE
+        elements_per_row = 32
+
+        num_tiles = total_elements // elements_per_tile
+
+        if src1_idx < 0 or src1_idx >= num_tiles:
+            raise ValueError(
+                f"src1_idx {src1_idx} is out of bounds. Tensor has {num_tiles} tiles."
+            )
+        if src2_idx < 0 or src2_idx >= num_tiles:
+            raise ValueError(
+                f"src2_idx {src2_idx} is out of bounds. Tensor has {num_tiles} tiles."
+            )
+        if dst_idx < 0 or dst_idx >= num_tiles:
+            raise ValueError(
+                f"dst_idx {dst_idx} is out of bounds. Tensor has {num_tiles} tiles."
+            )
+
+        src1_start = src1_idx * elements_per_tile
+        src2_start = src2_idx * elements_per_tile
+        dst_start = dst_idx * elements_per_tile
+
+        elements_to_process = num_iterations * elements_per_row
+        if src1_start + elements_to_process > total_elements:
+            raise ValueError(
+                f"Processing {num_iterations} iterations from src1_idx {src1_idx} "
+                f"would exceed tensor bounds (trying to access element {src1_start + elements_to_process}, "
+                f"but tensor has only {total_elements} elements)"
+            )
+        if src2_start + elements_to_process > total_elements:
+            raise ValueError(
+                f"Processing {num_iterations} iterations from src2_idx {src2_idx} "
+                f"would exceed tensor bounds (trying to access element {src2_start + elements_to_process}, "
+                f"but tensor has only {total_elements} elements)"
+            )
+        if dst_start + elements_to_process > total_elements:
+            raise ValueError(
+                f"Processing {num_iterations} iterations to dst_idx {dst_idx} "
+                f"would exceed tensor bounds (trying to access element {dst_start + elements_to_process}, "
+                f"but tensor has only {total_elements} elements)"
+            )
+
+        result = t.clone()
+
+        for iteration in range(num_iterations):
+            row_offset = iteration * elements_per_row
+
+            src1_row_start = src1_start + row_offset
+            src2_row_start = src2_start + row_offset
+            dst_row_start = dst_start + row_offset
+
+            src1_row = result[src1_row_start : src1_row_start + elements_per_row]
+            src2_row = result[src2_row_start : src2_row_start + elements_per_row]
+
+            result_row = torch.tensor(
+                [
+                    self.ops[operation](src1_row[i], src2_row[i])
+                    for i in range(elements_per_row)
+                ],
+                dtype=format_dict[data_format],
+            )
+
+            result[dst_row_start : dst_row_start + elements_per_row] = result_row
+
+        return result
+
+    # Operation methods are covered by Eltwise Binary Golden
+    def _xlogy(self, x, y):
+        # Unable to model edge cases for Tensix behavior in golden.
+        # Tensix shows inconsistent patterns in handling non-finite results for xlogy, depending on the input,
+        # data format (both input and output), and destination accumulation (dest_acc).
+        # We need to work with the Tensix team to understand when and why certain results are returned,
+        # what configuration dependencies exist, and how to handle them appropriately.
+        # Without this understanding, discrepancies will occur between golden and Tensix results due to differing edge case handling.
+        pass
+
+    def _right_shift(self, t1, t2):
+        return torch.bitwise_right_shift(t1, t2).item()
+
+    def _left_shift(self, t1, t2):
+        return torch.bitwise_left_shift(t1, t2).item()
+
+    def _logical_right_shift(self, t1, t2):
+        # Perform logical right shift by treating t1 as unsigned 32-bit
+        t1_uint = t1.to(torch.int64) & 0xFFFFFFFF
+        result = (t1_uint >> t2).to(torch.int32)
+        return result
+
+    def _add_top_row(self, t1, t2):
+        """
+        Add top row operation for tile pairs.
+        Takes the element t1 of top row of tile 0 and adds it with element t2 of top row of tile 1.
+        """
+        return t1 + t2
+
+
+@register_golden
 class ReduceGolden:
     def __init__(self):
         self.dim_handlers = {
