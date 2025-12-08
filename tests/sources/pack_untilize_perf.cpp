@@ -88,7 +88,9 @@ void run_kernel()
 #endif
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_(formats.math, formats.math);
+#ifdef ARCH_BLACKHOLE
         _llk_math_configure_remap_(true);
+#endif
         PROFILER_SYNC();
     }
 
