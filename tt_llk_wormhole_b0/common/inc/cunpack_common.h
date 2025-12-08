@@ -455,8 +455,8 @@ inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, cons
 {
     const uint input_df  = unpack_src_format & 0xF;
     const uint output_df = unpack_dst_format & 0xF;
-    return ((input_df == (uint)DataFormat::Int32) || (input_df == (uint)DataFormat::Float32)) &&
-           ((output_df == (uint)DataFormat::Int32) || (output_df == (uint)DataFormat::Float32));
+    return ((input_df == (uint)DataFormat::Int32) || (input_df == (uint)DataFormat::Float32) || (input_df == (uint)DataFormat::Float16_b)) &&
+           ((output_df == (uint)DataFormat::Int32) || (output_df == (uint)DataFormat::Float32) || (output_df == (uint)DataFormat::Float16_b));
 }
 
 inline void wait_for_dest_available()

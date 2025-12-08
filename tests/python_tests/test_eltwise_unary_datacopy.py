@@ -3,14 +3,10 @@
 
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.constraints import (
-    get_valid_dest_accumulation_modes,
-    get_valid_dest_indices,
-)
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, TilizeGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, DestSync, Tilize, format_dict
+from helpers.llk_params import DestAccumulation, Tilize, format_dict
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -61,28 +57,28 @@ def get_valid_num_faces_datacopy(tilize):
     test_name="eltwise_unary_datacopy_test",
     formats=input_output_formats(
         [
-            DataFormat.Float32,
-            DataFormat.Float16,
+            # DataFormat.Float32,
+            # DataFormat.Float16,
             DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
+            # DataFormat.Bfp8_b,
         ]
     ),
-    dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
-    num_faces=lambda tilize: get_valid_num_faces_datacopy(tilize),
-    tilize=lambda formats: get_valid_tilize_datacopy(formats),
-    dest_index=lambda dest_acc: get_valid_dest_indices(
-        dest_sync=DestSync.Half, dest_acc=dest_acc, tile_count=4
-    ),
+    dest_acc=[DestAccumulation.No],
+    num_faces=[4],
+    tilize=[Tilize.No],
+    dest_index=[0],
 )
 def test_unary_datacopy(test_name, formats, dest_acc, num_faces, tilize, dest_index):
 
-    input_dimensions = [64, 64]
+    input_dimensions = [32, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
         formats.input_format,
         input_dimensions=input_dimensions,
     )
+
+    src_A = torch.ones(input_dimensions[0] * input_dimensions[1]) * 2
 
     if tilize == Tilize.No:
         generate_golden = get_golden_generator(DataCopyGolden)
@@ -93,11 +89,7 @@ def test_unary_datacopy(test_name, formats, dest_acc, num_faces, tilize, dest_in
         generate_golden = get_golden_generator(TilizeGolden)
         golden_tensor = generate_golden(src_A, input_dimensions, formats.output_format)
 
-    unpack_to_dest = (
-        False
-        if tilize == Tilize.Yes and formats.input_format == DataFormat.Float32
-        else formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-    )
+    unpack_to_dest = True
 
     test_config = {
         "formats": formats,

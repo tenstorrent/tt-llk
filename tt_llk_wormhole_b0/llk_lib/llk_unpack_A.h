@@ -71,8 +71,9 @@ inline void _llk_unpack_A_mop_config_(
         }
         else
         {
-            const uint32_t outerloop     = num_faces;
-            constexpr uint32_t innerloop = 1;
+            const uint32_t outerloop     = 1;
+            constexpr uint32_t innerloop = 4;
+            TTI_SETADCXX(p_setadc::UNP_A, 32 * 32 - 1, 0); // Directly set unpacker A counter to unpack whole tile
             ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest);
             tmp.program();
         }
@@ -164,6 +165,15 @@ inline void _llk_unpack_A_mop_config_(
                 ckernel_template tmp(outerloop, innerloop, unpack_srcb_zerosrc, unpack_srcb_set_dvalid);
                 tmp.set_start_op(unpack_srca);
                 tmp.program();
+
+                // const uint32_t outerloop = 1;
+                // constexpr uint32_t innerloop = 1;
+                // TTI_SETADCXX(p_setadc::UNP_A, 32 * 32 - 1, 0); // Directly set unpacker A counter to unpack whole tile
+                // static constexpr uint unpack_srca_tile =
+                //     TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+                // ckernel_template tmp(outerloop, innerloop, TT_OP_NOP);
+                // tmp.set_start_op(unpack_srca_tile);
+                // tmp.program();
             }
         }
     }
