@@ -34,10 +34,9 @@ from helpers.utils import passed_test
     test_name="pack_quasar_test",
     formats=input_output_formats(
         [
-            DataFormat.Float32,
             DataFormat.Float16_b,
             DataFormat.Float16,
-            # DataFormat.Float32,
+            DataFormat.Float32,
         ]
     ),
     unpack_to_dest=lambda formats: get_valid_unpack_to_dest_modes(formats),

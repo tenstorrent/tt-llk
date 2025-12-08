@@ -1,15 +1,18 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import List
 
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture
+from helpers.constraints import (
+    get_valid_dest_accumulation_modes,
+)
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_config import DataFormat, FormatConfig
+from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     TilizeGolden,
     get_golden_generator,
@@ -31,75 +34,29 @@ from helpers.test_config import BootMode, run_test
 from helpers.utils import passed_test
 
 
-def generate_unpack_tilize_combinations(
-    formats_list: List[FormatConfig],
-):
-    """
-    Generate unpack_tilize combinations.
-
-    Rules:
-    1. Tilize 32b data into dest is not yet supported
-
-    Args: List of input-output format pairs
-
-    Returns: List of (format, dest_acc, unpacker_sel, input_dimensions) tuples
-    """
-    dimensions_cache = {
-        DestAccumulation.No: tuple(
-            generate_unary_input_dimensions(DestAccumulation.No)
-        ),
-        DestAccumulation.Yes: tuple(
-            generate_unary_input_dimensions(DestAccumulation.Yes)
-        ),
-    }
-
-    combinations = []
-
-    for fmt in formats_list:
-        in_fmt = fmt.input_format
-        if in_fmt != fmt.output_format:
-            continue
-
-        if in_fmt.is_32_bit():
-            continue  # Tilize 32b data into dest not yet supported
-
-        dest_acc_modes = (DestAccumulation.No, DestAccumulation.Yes)
-        unpacker_engines = (UnpackerEngine.UnpA, UnpackerEngine.UnpB)
-
-        for dest_acc in dest_acc_modes:
-            for unpacker_sel in unpacker_engines:
-                for dimensions in dimensions_cache[dest_acc]:
-                    combinations.append((fmt, dest_acc, unpacker_sel, dimensions))
-
-    return combinations
-
-
-UNPACK_TILIZE_FORMATS = input_output_formats(
-    [
-        DataFormat.Float16_b,
-        DataFormat.Float16,
-    ]
-)
-ALL_UNPACK_TILIZE_COMBINATIONS = generate_unpack_tilize_combinations(
-    UNPACK_TILIZE_FORMATS
-)
-
-
 @pytest.mark.quasar
 @parametrize(
     test_name="unpack_tilize_quasar_test",
-    formats_dest_acc_unpack_sel_dimensions=ALL_UNPACK_TILIZE_COMBINATIONS,
+    formats=input_output_formats(
+        [
+            DataFormat.Float16_b,
+            DataFormat.Float16,
+        ]
+    ),
+    dest_acc=lambda formats: get_valid_dest_accumulation_modes(
+        ChipArchitecture.QUASAR, formats, unpack_to_dest=False
+    ),
+    unpacker_sel=[UnpackerEngine.UnpA, UnpackerEngine.UnpB],
+    input_dimensions=lambda dest_acc: generate_unary_input_dimensions(dest_acc),
 )
 def test_unpack_tilize_quasar(
-    test_name, formats_dest_acc_unpack_sel_dimensions, boot_mode=BootMode.DEFAULT
+    test_name,
+    formats,
+    dest_acc,
+    unpacker_sel,
+    input_dimensions,
+    boot_mode=BootMode.DEFAULT,
 ):
-    formats = formats_dest_acc_unpack_sel_dimensions[0]
-    dest_acc = formats_dest_acc_unpack_sel_dimensions[1]
-    unpacker_sel = formats_dest_acc_unpack_sel_dimensions[2]
-    input_dimensions = formats_dest_acc_unpack_sel_dimensions[3]
-
-    if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
-        pytest.skip("Fails for now.")
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
