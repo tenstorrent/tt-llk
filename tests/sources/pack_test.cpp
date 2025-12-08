@@ -23,7 +23,7 @@ uint32_t math_sync_tile_dst_index = 0;
 void run_kernel()
 {
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-        0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
+        0, 0, FACE_R_DIM, num_faces, formats.unpack_src, formats.unpack_dst);
     _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, num_faces);
     for (int i = 0; i < TILE_CNT; ++i)
     {
@@ -58,18 +58,18 @@ void run_kernel()
 #endif
     _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+    _llk_math_wait_for_dest_available_<DST_SYNC>();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_math_wait_for_dest_available_<DST_SYNC>();
 #ifdef ARCH_BLACKHOLE
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DST_SYNC, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-            DST_INDEX, formats.math, formats.math, num_faces);
+            DST_INDEX + i, formats.math, formats.math, num_faces);
 #else
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DST_SYNC, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-            DST_INDEX, formats.math, formats.math);
+            DST_INDEX + i, formats.math, formats.math);
 #endif
-        _llk_math_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
     }
+    _llk_math_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
 }
 
 #endif
@@ -91,12 +91,12 @@ void run_kernel()
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, FACE_R_DIM, num_faces);
     _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
 #endif
+    _llk_packer_wait_for_math_done_();
 
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_packer_wait_for_math_done_();
-        _llk_pack_<DST_SYNC, is_fp32_dest_acc_en, false>(DST_INDEX, L1_ADDRESS(buffer_Res[i]));
-        _llk_pack_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
+        _llk_pack_<DST_SYNC, is_fp32_dest_acc_en, false>(DST_INDEX + i, L1_ADDRESS(buffer_Res[i]));
     }
+    _llk_pack_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
 }
 #endif
