@@ -33,7 +33,19 @@ void run_kernel()
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats_array[run].unpack_src, formats_array[run].unpack_src, formats_array[run].unpack_dst, formats_array[run].unpack_dst);
-    _llk_unpack_AB_matmul_init_<>();
+    _llk_unpack_AB_matmul_init_<>(
+        UNPACK_TRANSPOSE_FACES,
+        CT_DIM,
+        RT_DIM,
+        KT_DIM,
+        FACE_R_DIM,
+        FACE_R_DIM,
+        num_faces_A,
+        num_faces_B,
+        PARTIAL_FACE_A,
+        PARTIAL_FACE_B,
+        TILE_SIZE_UNPACK_A,
+        TILE_SIZE_UNPACK_B);
     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), 0, 0, tile_size, tile_size);
 
     t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(semaphore::PACK_DONE);

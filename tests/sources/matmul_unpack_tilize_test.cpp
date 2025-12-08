@@ -51,7 +51,19 @@ void run_kernel()
         formats_array[run].unpack_dst); // have to reconfigure unpack kernel data formats_array if they change in this run
     _llk_unpack_reconfig_data_format_srcb_impl_<is_fp32_dest_acc_en>(formats_array[run].unpack_src, formats_array[run].unpack_dst);
     _llk_unpack_tilize_uninit_(formats_array[run].unpack_dst);
-    _llk_unpack_AB_matmul_init_<>();
+    _llk_unpack_AB_matmul_init_<>(
+        UNPACK_TRANSPOSE_FACES,
+        CT_DIM,
+        RT_DIM,
+        KT_DIM,
+        FACE_R_DIM,
+        FACE_R_DIM,
+        num_faces_A,
+        num_faces_B,
+        PARTIAL_FACE_A,
+        PARTIAL_FACE_B,
+        TILE_SIZE_UNPACK_A,
+        TILE_SIZE_UNPACK_B);
     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized), 0, 0, tile_size, tile_size);
 }
 
@@ -102,7 +114,22 @@ void run_kernel()
     _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en>(
         formats_array[run].math); // have to reconfigure math kernel data formats_array if they change in this run
     _llk_math_reconfig_data_format_srcb_<is_fp32_dest_acc_en>(formats_array[run].math);
-    _llk_math_matmul_init_<MATH_FIDELITY>();
+    _llk_math_matmul_init_<MATH_FIDELITY>(
+        0,
+        0,
+        0,
+        0,
+        PARTIAL_FACE_MATH,
+        UNPACK_TRANSPOSE_FACES,
+        CT_DIM,
+        RT_DIM,
+        KT_DIM,
+        TILE_R_DIM,
+        TILE_C_DIM,
+        TILE_SIZE_MATH_A,
+        TILE_SIZE_MATH_B,
+        TILE_SIZE_UNPACK_A,
+        TILE_SIZE_UNPACK_B);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_matmul_<MATH_FIDELITY>(0);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

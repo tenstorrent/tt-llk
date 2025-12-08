@@ -29,7 +29,19 @@ void run_kernel()
 {
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
     _llk_unpack_AB_matmul_init_<>();
-    _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), 0, 0, face_size, face_size);
+    _llk_unpack_AB_matmul_<>(
+        L1_ADDRESS(buffer_A[0]),
+        L1_ADDRESS(buffer_B[0]),
+        0,
+        0,
+        face_size,
+        face_size,
+        num_faces_A,
+        num_faces_B,
+        PARTIAL_FACE_A,
+        PARTIAL_FACE_B,
+        TILE_SIZE_UNPACK_A,
+        TILE_SIZE_UNPACK_B);
 }
 
 #endif

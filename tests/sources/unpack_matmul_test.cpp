@@ -27,7 +27,18 @@ void run_kernel()
     _llk_unpack_configure_stoch_rnd_<STOCHASTIC_RND>();
 
     _llk_unpack_AB_matmul_init_<>(
-        UNPACK_TRANSPOSE_FACES, CT_DIM, RT_DIM, KT_DIM, FACE_R_DIM, FACE_R_DIM, num_faces_A, num_faces_B, PARTIAL_FACE_A, PARTIAL_FACE_B);
+        UNPACK_TRANSPOSE_FACES,
+        CT_DIM,
+        RT_DIM,
+        KT_DIM,
+        FACE_R_DIM,
+        FACE_R_DIM,
+        num_faces_A,
+        num_faces_B,
+        PARTIAL_FACE_A,
+        PARTIAL_FACE_B,
+        TILE_SIZE_UNPACK_A,
+        TILE_SIZE_UNPACK_B);
 
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
