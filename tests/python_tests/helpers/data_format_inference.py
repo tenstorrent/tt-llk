@@ -296,8 +296,11 @@ def data_formats(
         math_format = (
             DataFormat.Float16_b if input_format.is_mx_format() else input_format
         )
+        # pack_src must match dest register format (math_format), not output format
         pack_src_format = (
-            DataFormat.Float16_b if output_format.is_mx_format() else output_format
+            DataFormat.Float16_b
+            if output_format.is_mx_format() or math_format == DataFormat.Float16_b
+            else output_format
         )
 
         return [
