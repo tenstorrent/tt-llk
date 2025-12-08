@@ -634,7 +634,6 @@ inline void select_packer_dest_registers()
 }
 
 // Program packer destination addresses from GPRs
-template <PackSelMask PackSel = PACK_ALL>
 inline void program_packer_destination(uint32_t addr, bool restore = true)
 {
     uint32_t new_l1_addr = (1 << 31) | addr;

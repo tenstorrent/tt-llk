@@ -50,18 +50,6 @@ enum ThreadId
     PackThreadId   = 3
 };
 
-enum DstTileLayout
-{
-    Default,
-    Interleaved,
-    // TightDest,
-    // Conv3x3,
-    // Conv1x1,
-    // L1ReadSource,
-    // NLLLoss,
-    // IndexAccumulate, //Add polling before packing to L1
-};
-
 enum DstTileFaceLayout
 {
     RowMajor, // default
@@ -80,30 +68,12 @@ enum DstTileShape
     Tile32x16 = 1,
     Tile16x16 = 2
 };
-enum class ParallelPackerMode
-{
-    Disabled,
-    SingleFTEntry,
-    MultiFTEntry,
-    TileParallel
-};
 
 enum register_space_e
 {
     TDMA_REGS     = 0x0,
     LOCAL_REGS    = 0x1,
     ADDR_COUNTERS = 0x2
-};
-
-enum PackSelMask
-{
-    PACK_ALL = 0xF, // default
-    PACK_0   = 0x1,
-    PACK_1   = 0x2,
-    PACK_2   = 0x4,
-    PACK_3   = 0x8,
-    PACK_01  = 0x3,
-    PACK_23  = 0xC
 };
 
 enum SortDir : bool
