@@ -1221,65 +1221,6 @@ class EltwiseBinaryGolden(FidelityMasking):
 @register_golden
 class BinarySFPUGolden(EltwiseBinaryGolden):
     def __init__(self):
-        super().__init__()
-        self.ops.update(
-            {
-                MathOperation.SfpuElwadd: self._add,
-                MathOperation.SfpuElwsub: self._sub,
-                MathOperation.SfpuElwmul: self._mul,
-                MathOperation.SfpuXlogy: self._xlogy,
-                MathOperation.SfpuElwRightShift: self._right_shift,
-                MathOperation.SfpuElwLeftShift: self._left_shift,
-                MathOperation.SfpuElwLogicalRightShift: self._logical_right_shift,
-                MathOperation.SfpuAddTopRow: self._add_top_row,
-            }
-        )
-
-    def __call__(
-        self, operation: MathOperation, operand1, operand2, data_format: DataFormat
-    ):
-        if operation not in self.ops:
-            raise ValueError(f"Unsupported SFPU operation: {operation}")
-
-        t1 = to_tensor(operand1, data_format)
-        t2 = to_tensor(operand2, data_format)
-
-        result = [self.ops[operation](t1[i], t2[i]) for i in range(len(t1))]
-        return torch.tensor(result, dtype=format_dict[data_format])
-
-    # Operation methods are covered by Eltwise Binary Golden
-    def _xlogy(self, x, y):
-        # Unable to model edge cases for Tensix behavior in golden.
-        # Tensix shows inconsistent patterns in handling non-finite results for xlogy, depending on the input,
-        # data format (both input and output), and destination accumulation (dest_acc).
-        # We need to work with the Tensix team to understand when and why certain results are returned,
-        # what configuration dependencies exist, and how to handle them appropriately.
-        # Without this understanding, discrepancies will occur between golden and Tensix results due to differing edge case handling.
-        pass
-
-    def _right_shift(self, t1, t2):
-        return torch.bitwise_right_shift(t1, t2).item()
-
-    def _left_shift(self, t1, t2):
-        return torch.bitwise_left_shift(t1, t2).item()
-
-    def _logical_right_shift(self, t1, t2):
-        # Perform logical right shift by treating t1 as unsigned 32-bit
-        t1_uint = t1.to(torch.int64) & 0xFFFFFFFF
-        result = (t1_uint >> t2).to(torch.int32)
-        return result
-
-    def _add_top_row(self, t1, t2):
-        """
-        Add top row operation for tile pairs.
-        Takes the element t1 of top row of tile 0 and adds it with element t2 of top row of tile 1.
-        """
-        return t1 + t2
-
-
-@register_golden
-class BinarySFPUGolden2(EltwiseBinaryGolden):
-    def __init__(self):
         self.ops = {
             MathOperation.SfpuElwadd: self._add,
             MathOperation.SfpuElwsub: self._sub,
@@ -1305,11 +1246,6 @@ class BinarySFPUGolden2(EltwiseBinaryGolden):
         if operation not in self.ops:
             raise ValueError(f"Unsupported binary SFPU operation: {operation}")
 
-        if data_format != DataFormat.Bfp8_b:
-            result = tilize_block(tensor.flatten(), dimensions, data_format).flatten()
-        else:
-            result = tensor.flatten()
-
         if num_iterations < 1:
             raise ValueError(f"num_iterations must be at least 1, got {num_iterations}")
 
@@ -1318,6 +1254,26 @@ class BinarySFPUGolden2(EltwiseBinaryGolden):
         elements_per_row = 32
 
         num_tiles = total_elements // elements_per_tile
+
+        src1_start = src1_idx * elements_per_tile
+        src2_start = src2_idx * elements_per_tile
+        dst_start = dst_idx * elements_per_tile
+
+        if operation == MathOperation.SfpuAddTopRow:
+            return self._add_top_row(
+                tensor.flatten(),
+                src1_idx,
+                src2_idx,
+                dst_idx,
+                num_iterations,
+                dimensions,
+                data_format,
+            )
+
+        if data_format != DataFormat.Bfp8_b:
+            result = tilize_block(tensor.flatten(), dimensions, data_format).flatten()
+        else:
+            result = tensor.flatten()
 
         if src1_idx < 0 or src1_idx >= num_tiles:
             raise ValueError(
@@ -1331,10 +1287,6 @@ class BinarySFPUGolden2(EltwiseBinaryGolden):
             raise ValueError(
                 f"dst_idx {dst_idx} is out of bounds. Tensor has {num_tiles} tiles."
             )
-
-        src1_start = src1_idx * elements_per_tile
-        src2_start = src2_idx * elements_per_tile
-        dst_start = dst_idx * elements_per_tile
 
         elements_to_process = num_iterations * elements_per_row
         if src1_start + elements_to_process > total_elements:
@@ -1403,12 +1355,32 @@ class BinarySFPUGolden2(EltwiseBinaryGolden):
         result = (t1_uint >> t2).to(torch.int32)
         return result
 
-    def _add_top_row(self, t1, t2):
+    def _add_top_row(
+        self,
+        tensor,
+        src1_idx,
+        src2_idx,
+        dst_idx,
+        num_iterations,
+        dimensions,
+        data_format,
+    ):
         """
         Add top row operation for tile pairs.
-        Takes the element t1 of top row of tile 0 and adds it with element t2 of top row of tile 1.
+        Takes the top row of tile 0 (first 16 datums of face 0 and face 1) and adds them
+        with the top row of tile 1 (first 16 datums of face 2 and face 3).
         """
-        return t1 + t2
+        src1_idx_start = src1_idx * ELEMENTS_PER_TILE
+        src2_idx_start = src2_idx * ELEMENTS_PER_TILE
+        dst_idx_start = dst_idx * ELEMENTS_PER_TILE
+
+        result = tensor.clone()
+        # Add the top 16 elements (faces 0 and 1) of tile 0 with the top 16 elements (faces 2 and 3) of tile 1
+        for i in range(32):
+            result[dst_idx_start + i] = (
+                tensor[src1_idx_start + i] + tensor[src2_idx_start + i]
+            )
+        return result
 
 
 @register_golden

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, List, Type
 import torch
 
 from .golden_generators import (
-    BinarySFPUGolden2,
+    BinarySFPUGolden,
     DataCopyGolden,
     EltwiseBinaryGolden,
     MatmulGolden,
@@ -375,7 +375,7 @@ class BinarySfpu(Sfpu):
         math_format = operation_config.output.data_format
         dimensions = operation_config.output.dimensions
 
-        generate_binary_golden = get_golden_generator(BinarySFPUGolden2)
+        generate_binary_golden = get_golden_generator(BinarySFPUGolden)
         golden_tensor = generate_binary_golden(
             self.operation,
             tensor,
