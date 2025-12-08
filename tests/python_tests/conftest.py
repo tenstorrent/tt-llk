@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import datetime
 import logging
 import os
 import sys
@@ -14,6 +15,7 @@ from helpers.log_utils import _format_log
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 from helpers.test_config import TestConfig
 from ttexalens import tt_exalens_init
+from ttexalens.tt_exalens_lib import arc_msg
 
 
 def init_llk_home():
@@ -123,8 +125,8 @@ def pytest_configure(config):
     initialize_test_target_from_pytest(config)
     test_target = TestTargetConfig()
 
-    if test_target.compile_producer:
-        return
+    TestConfig.setup_mode(test_target)
+    TestConfig.setup_build(Path(os.environ["LLK_HOME"]))
 
     if test_target.run_simulator:
         tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
@@ -158,7 +160,9 @@ def pytest_runtest_logreport(report):
 
     if report.when != "call":
         return
-    print(f"\nParameters: {report.test_params}")
+
+    # if TestConfig.MODE != TestMode.PRODUCE:
+    #     print(f"\nParameters: {report.test_params}")
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -180,7 +184,6 @@ def pytest_sessionstart(session):
     check_hardware_headers()
 
     test_target = TestTargetConfig()
-    TestConfig.setup_build(Path(os.environ["LLK_HOME"]), Path("/tmp/tt-llk-build/"))
 
     if not test_target.run_simulator:
         # Send ARC message for GO BUSY signal. This should increase device clock speed.
@@ -207,14 +210,13 @@ def _send_arc_message(message_type: str, device_id: int):
     ARC_COMMON_PREFIX = 0xAA00
     message_codes = {"GO_BUSY": 0x52, "GO_IDLE": 0x54}
 
-    # arc_msg(
-    #     device_id=device_id,
-    #     msg_code=ARC_COMMON_PREFIX | message_codes[message_type],
-    #     wait_for_done=True,
-    #     arg0=0,
-    #     arg1=0,
-    #     timeout=datetime.timedelta(seconds=10),
-    # )
+    arc_msg(
+        device_id=device_id,
+        msg_code=ARC_COMMON_PREFIX | message_codes[message_type],
+        wait_for_done=True,
+        args=[0, 0],
+        timeout=datetime.timedelta(seconds=10),
+    )
 
 
 # Define the possible custom command line options
@@ -238,15 +240,13 @@ def pytest_addoption(parser):
 
     parser.addoption(
         "--compile-producer",
-        action="store",
-        type=str,
+        action="store_true",
         help="Only compile *.elf(s) for every test variant selected and store them on path specified",
     )
 
     parser.addoption(
         "--compile-consumer",
-        action="store",
-        type=str,
+        action="store_true",
         help="Consume pre-compiled *.elf(s) for every test variant selected, from pre-specified path, and execute specified variants",
     )
 

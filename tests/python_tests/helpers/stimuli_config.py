@@ -42,10 +42,12 @@ class StimuliConfig:
         tile_count_A: int = 1,
         tile_count_B: int = None,
         tile_count_res: int = 1,
-        num_faces=4,
         buffer_C=None,
         stimuli_C_format: DataFormat = None,
         tile_count_C: int = None,
+        num_faces: int = 4,
+        face_r_dim: int = 16,
+        tile_dimensions: list[int] = [32, 32],
         sfpu=False,
     ):
 
@@ -62,6 +64,8 @@ class StimuliConfig:
         self.stimuli_res_format = stimuli_res_format
         self.tile_count_res = tile_count_res
         self.num_faces = num_faces
+        self.face_r_dim = face_r_dim
+        self.tile_dimensions = tile_dimensions
         self.sfpu = sfpu
 
         # Stimuli addresses calculation
@@ -136,15 +140,10 @@ class StimuliConfig:
         )
 
     def collect_results(self, location="0,0"):
-
-        # TODO Make these arguments to test config and give them these default values <3
-        # tile_dimensions=[32, 32] # These 2 fields are passed only in unpack_A test
-        # face_r_dim: int = 16
-
         # Always read full tiles - hardware still outputs full tile data
         # but with variable face dimensions, only part of it is valid
 
-        tile_elements = 32 * 32
+        tile_elements = self.tile_dimensions[0] * self.tile_dimensions[1]
         read_bytes_cnt = (
             self.stimuli_res_format.num_bytes_per_tile(tile_elements)
             * self.tile_count_res
@@ -156,8 +155,9 @@ class StimuliConfig:
         res_from_L1 = unpack_res_tiles(
             read_data,
             self.stimuli_res_format,
-            tile_count=self.tile_count_res,
-            sfpu=self.sfpu,
-            num_faces=self.num_faces,
+            self.tile_count_res,
+            self.sfpu,
+            self.num_faces,
+            self.face_r_dim,
         )
         return res_from_L1

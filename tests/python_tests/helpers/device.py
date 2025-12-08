@@ -19,7 +19,6 @@ from ttexalens.tt_exalens_lib import (
     callstack,
     check_context,
     convert_coordinate,
-    load_elf,
     parse_elf,
     read_from_device,
     read_word_from_device,
@@ -172,7 +171,7 @@ def collect_results(
     return res_from_L1
 
 
-def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
+def exalens_device_setup(chip_arch, location="0,0", device_id=0):
     context = check_context()
     device = context.devices[device_id]
     chip_coordinate = OnChipCoordinate.create(location, device=device)
@@ -195,81 +194,6 @@ def exalens_device_setup(chip_arch, device_id=0, location="0,0"):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 2), 0)
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 7), 0)
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
-
-
-def run_elf_files(
-    testname: str, variant_id: str, boot_mode: BootMode, device_id=0, location="0,0"
-):
-    CHIP_ARCH = get_chip_architecture()
-    BUILD_DIR = Path("/tmp/tt-llk-build/")
-
-    boot_mode = resolve_default_boot_mode(boot_mode)
-
-    if CHIP_ARCH == ChipArchitecture.QUASAR and boot_mode != BootMode.TRISC:
-        raise ValueError("Quasar only supports TRISC boot mode")
-
-    # Perform soft reset
-    set_tensix_soft_reset(1, location=location, device_id=device_id)
-
-    # Load TRISC ELF files
-    trisc_names = ["unpack", "math", "pack"]
-    trisc_start_addresses = [0x16DFF0, 0x16DFF4, 0x16DFF8]
-    is_wormhole = get_chip_architecture() == ChipArchitecture.WORMHOLE
-
-    elfs = [
-        str(
-            (BUILD_DIR / testname / variant_id / "elf" / f"{trisc_name}.elf").absolute()
-        )
-        for trisc_name in trisc_names
-    ]
-
-    for i, elf in enumerate(elfs):
-        if is_wormhole:
-            start_address = load_elf(
-                elf_file=elf,
-                location=location,
-                risc_name=f"trisc{i}",
-                neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None,
-                return_start_address=True,
-            )
-            write_words_to_device(location, trisc_start_addresses[i], [start_address])
-        else:
-            load_elf(
-                elf_file=elf,
-                location=location,
-                risc_name=f"trisc{i}",
-                neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None,
-            )
-
-    # Reset the profiler barrier
-    TRISC_PROFILER_BARRIER_ADDRESS = 0x16AFF4
-    write_words_to_device(location, TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0])
-
-    match boot_mode:
-        case BootMode.BRISC:
-            brisc_elf_path = BUILD_DIR / "shared" / "elf" / "brisc.elf"
-            load_elf(
-                elf_file=str(brisc_elf_path.absolute()),
-                location=location,
-                risc_name="brisc",
-            )
-            set_tensix_soft_reset(
-                0, [RiscCore.BRISC], location=location, device_id=device_id
-            )
-        case BootMode.TRISC:
-            set_tensix_soft_reset(
-                0, [RiscCore.TRISC0], location=location, device_id=device_id
-            )
-        case BootMode.EXALENS:
-            exalens_device_setup(CHIP_ARCH, device_id, location)
-            set_tensix_soft_reset(
-                0,
-                [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2],
-                location=location,
-                device_id=device_id,
-            )
-
-    return elfs
 
 
 def write_stimuli_to_l1(

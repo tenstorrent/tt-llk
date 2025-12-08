@@ -3,19 +3,27 @@
 
 import shutil
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
 from enum import Enum
+from hashlib import sha256
 from pathlib import Path
 from typing import ClassVar
 
-from ttexalens.tt_exalens_lib import parse_elf
+import pytest
+from ttexalens.tt_exalens_lib import (
+    load_elf,
+    parse_elf,
+    write_words_to_device,
+)
 
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
+    CHIP_DEFAULT_BOOT_MODES,
     BootMode,
+    RiscCore,
+    exalens_device_setup,
     pull_coverage_stream_from_tensix,
-    run_elf_files,
+    set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
 )
 from .format_config import DataFormat, FormatConfig
@@ -40,12 +48,15 @@ from .test_variant_parameters import RuntimeParameter, TemplateParameter
 from .utils import create_directories, run_shell_command
 
 
-@dataclass
+class TestMode(Enum):
+    DEFAULT = "Compile and consume sequentially"
+    PRODUCE = "Just compile tests without executing them"
+    CONSUME = "Just execute pre-compiled elfs"
+
+
 class TestConfig:
 
     # === STATIC VARIABLES ===
-
-    CURRENT_CONFIG: ClassVar["TestConfig"] = None
 
     # Architecture Selection
     ARCH_NON_COMPUTE: ClassVar[str]
@@ -53,9 +64,11 @@ class TestConfig:
     ARCH_DEFINE: ClassVar[str]
     ARCH_LLK_ROOT: ClassVar[str]
     ARCH: ClassVar[str]
+    CHIP_ARCH: ClassVar[ChipArchitecture]
 
     # Artefact directories
-    BUILD_DIR: ClassVar[str]
+    DEFAULT_ARTEFACTS_PATH: ClassVar[Path] = Path("../../temp_matmul_artefacts")
+    ARTEFACTS_DIR: ClassVar[Path]
     SHARED_DIR: ClassVar[str]
     SHARED_OBJ_DIR: ClassVar[str]
     SHARED_ELF_DIR: ClassVar[str]
@@ -91,37 +104,43 @@ class TestConfig:
     SHARED_ARTEFACTS_AVAILABLE: ClassVar[bool] = False
     KERNEL_COMPONENTS: ClassVar[list[str]] = ["unpack", "math", "pack"]
 
-    #
+    CURRENT_CONFIG: ClassVar[str] = "uninitialised"
+    MODE: ClassVar[TestMode] = TestMode.DEFAULT
+
+    # === Addresses ===
+    TRISC_PROFILER_BARRIER_ADDRESS: ClassVar[int] = 0x16AFF4
+    TRISC_START_ADDRS: ClassVar[list[int]] = [0x16DFF0, 0x16DFF4, 0x16DFF8]
 
     @staticmethod
     def setup_arch():
-        chip_arch = get_chip_architecture()
-        if chip_arch == ChipArchitecture.WORMHOLE:
-            TestConfig.ARCH_NON_COMPUTE = "-mcpu=tt-wh"
-            TestConfig.ARCH_COMPUTE = "-mcpu=tt-wh-tensix"
-            TestConfig.ARCH_DEFINE = "-DARCH_WORMHOLE"
-            TestConfig.ARCH_LLK_ROOT = "tt_llk_wormhole_b0"
-            TestConfig.ARCH = "wormhole"
-        elif chip_arch == ChipArchitecture.BLACKHOLE:
-            TestConfig.ARCH_NON_COMPUTE = "-mcpu=tt-bh"
-            TestConfig.ARCH_COMPUTE = "-mcpu=tt-bh-tensix"
-            TestConfig.ARCH_DEFINE = "-DARCH_BLACKHOLE"
-            TestConfig.ARCH_LLK_ROOT = "tt_llk_blackhole"
-            TestConfig.ARCH = "blackhole"
-        elif chip_arch == ChipArchitecture.QUASAR:
-            # until there is official support for quasar in SFPI fallback to BH
-            TestConfig.ARCH_NON_COMPUTE = "-mcpu=tt-bh"
-            TestConfig.ARCH_COMPUTE = "-mcpu=tt-bh-tensix"
-            TestConfig.ARCH_DEFINE = "-DARCH_BLACKHOLE"
-            TestConfig.ARCH_LLK_ROOT = "tt_llk_quasar"
-            TestConfig.ARCH = "quasar"
-        else:
-            raise ValueError(
-                "Must provide CHIP_ARCH environment variable (wormhole / blackhole / quasar)"
-            )
+        TestConfig.CHIP_ARCH = get_chip_architecture()
+        match TestConfig.CHIP_ARCH:
+            case ChipArchitecture.WORMHOLE:
+                TestConfig.ARCH_NON_COMPUTE = "-mcpu=tt-wh"
+                TestConfig.ARCH_COMPUTE = "-mcpu=tt-wh-tensix"
+                TestConfig.ARCH_DEFINE = "-DARCH_WORMHOLE"
+                TestConfig.ARCH_LLK_ROOT = "tt_llk_wormhole_b0"
+                TestConfig.ARCH = "wormhole"
+            case ChipArchitecture.BLACKHOLE:
+                TestConfig.ARCH_NON_COMPUTE = "-mcpu=tt-bh"
+                TestConfig.ARCH_COMPUTE = "-mcpu=tt-bh-tensix"
+                TestConfig.ARCH_DEFINE = "-DARCH_BLACKHOLE"
+                TestConfig.ARCH_LLK_ROOT = "tt_llk_blackhole"
+                TestConfig.ARCH = "blackhole"
+            case ChipArchitecture.QUASAR:
+                # until there is official support for quasar in SFPI fallback to BH
+                TestConfig.ARCH_NON_COMPUTE = "-mcpu=tt-bh"
+                TestConfig.ARCH_COMPUTE = "-mcpu=tt-bh-tensix"
+                TestConfig.ARCH_DEFINE = "-DARCH_BLACKHOLE"
+                TestConfig.ARCH_LLK_ROOT = "tt_llk_quasar"
+                TestConfig.ARCH = "quasar"
+            case _:
+                raise ValueError(
+                    "Must provide CHIP_ARCH environment variable (wormhole / blackhole / quasar)"
+                )
 
     @staticmethod
-    def setup_paths(sources_path: Path, build_path: Path):
+    def setup_paths(sources_path: Path):
         TestConfig.LLK_ROOT = sources_path
         TestConfig.TESTS_WORKING_DIR = TestConfig.LLK_ROOT / "tests"
         TestConfig.TOOL_PATH = TestConfig.LLK_ROOT / "tests/sfpi/compiler/bin"
@@ -146,17 +165,14 @@ class TestConfig:
             (TestConfig.TOOL_PATH / "riscv-tt-elf-gcov-tool").absolute()
         )
 
-        shutil.rmtree(build_path, ignore_errors=True)  # Always have a fresh build
-
-        TestConfig.BUILD_DIR = build_path
-        TestConfig.SHARED_DIR = TestConfig.BUILD_DIR / "shared"
+        TestConfig.SHARED_DIR = TestConfig.ARTEFACTS_DIR / "shared"
         TestConfig.SHARED_OBJ_DIR = TestConfig.SHARED_DIR / "obj"
         TestConfig.SHARED_ELF_DIR = TestConfig.SHARED_DIR / "elf"
-        TestConfig.COVERAGE_INFO_DIR = TestConfig.BUILD_DIR / "coverage_info"
+        TestConfig.COVERAGE_INFO_DIR = TestConfig.ARTEFACTS_DIR / "coverage_info"
 
         create_directories(
             [
-                TestConfig.BUILD_DIR,
+                TestConfig.ARTEFACTS_DIR,
                 TestConfig.SHARED_DIR,
                 TestConfig.SHARED_OBJ_DIR,
                 TestConfig.SHARED_ELF_DIR,
@@ -172,10 +188,31 @@ class TestConfig:
         TestConfig.INCLUDES = f"-I../{TestConfig.ARCH_LLK_ROOT}/llk_lib -I../{TestConfig.ARCH_LLK_ROOT}/common/inc -I../{TestConfig.ARCH_LLK_ROOT}/common/inc/sfpu -Isfpi/compiler/lib/gcc/riscv-tt-elf/*/include -I{TestConfig.HEADER_DIR} -Ifirmware/riscv/common -Isfpi/include -Ihelpers/include"
 
     @staticmethod
-    def setup_build(sources_path: Path, build_path: Path):
+    def setup_build(sources_path: Path):
         TestConfig.setup_arch()
-        TestConfig.setup_paths(sources_path, build_path)
+        TestConfig.setup_paths(sources_path)
         TestConfig.setup_compilation_options()
+
+    @staticmethod
+    def setup_mode(target_config: TestTargetConfig):
+
+        if target_config.compile_consumer and target_config.compile_producer:
+            raise ValueError(
+                "Pytest can be configured to be either compilation producer or compilation consumer, not both"
+            )
+
+        TestConfig.ARTEFACTS_DIR = TestConfig.DEFAULT_ARTEFACTS_PATH
+        TestConfig.MODE = TestMode.DEFAULT
+
+        if target_config.compile_producer:
+            TestConfig.MODE = TestMode.PRODUCE
+
+        if target_config.compile_consumer:
+            TestConfig.MODE = TestMode.CONSUME
+
+        # Always have a fresh build when compiling
+        if TestConfig.MODE != TestMode.CONSUME:
+            shutil.rmtree(TestConfig.ARTEFACTS_DIR.absolute(), ignore_errors=True)
 
     # === Instance fields and methods ===
     def __init__(
@@ -186,7 +223,7 @@ class TestConfig:
         templates: set[TemplateParameter],
         runtimes: set[RuntimeParameter],
         variant_stimuli: StimuliConfig,
-        # Arguments with valid default values
+        # Optional compilation arguments with their default values
         boot_mode: BootMode = BootMode.DEFAULT,
         profiler_build: ProfilerBuild = ProfilerBuild.No,
         L1_to_L1_iterations: int = 1,
@@ -220,10 +257,19 @@ class TestConfig:
             and self.profiler_build == ProfilerBuild.Yes
         ):
             raise ValueError(
-                "You can't build profiler and coverage build at the same time, profiling tests will fail"
+                "You can't build profiler and coverage build at the same time, profiling tests will fail."
             )
 
-        self.variant_id = "finnish_hashing_of_test_config_object"
+        self.generate_variant_hash()
+
+    NON_COMPILATION_ARGUMETNS = ["variant_stimuli"]  # "runtimes",
+
+    def generate_variant_hash(self):
+        temp_str = []
+        for field_name, value in self.__dict__.items():
+            if field_name not in TestConfig.NON_COMPILATION_ARGUMETNS:
+                temp_str.append(str(value))
+        self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
     def resolve_compile_options(self) -> tuple[str, str, str]:
 
@@ -522,7 +568,7 @@ class TestConfig:
         return "\n".join(header_content)
 
     def build_elfs(self):
-        VARIANT_DIR = TestConfig.BUILD_DIR / self.test_name / self.variant_id
+        VARIANT_DIR = TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id
         VARIANT_OBJ_DIR = VARIANT_DIR / "obj"
         VARIANT_ELF_DIR = VARIANT_DIR / "elf"
 
@@ -569,7 +615,7 @@ class TestConfig:
             # Extract profiler metadata
 
             PROFILER_VARIANT_META_DIR = Path(
-                TestConfig.BUILD_DIR
+                TestConfig.ARTEFACTS_DIR
                 / "profiler_meta"
                 / self.test_name
                 / self.variant_id
@@ -586,7 +632,7 @@ class TestConfig:
                 )
 
     def merge_coverage_streams_into_info(self):
-        VARIANT_DIR = TestConfig.BUILD_DIR / self.test_name / self.variant_id
+        VARIANT_DIR = TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id
         VARIANT_OBJ_DIR = VARIANT_DIR / "obj"
 
         for component in TestConfig.KERNEL_COMPONENTS:
@@ -609,7 +655,9 @@ class TestConfig:
         run_shell_command(command, TestConfig.TESTS_WORKING_DIR)
 
     def generate_info_file_for_run(self, location="0,0"):
-        VARIANT_DIR = TestConfig.BUILD_DIR / self.test_name / self.variant_id / "elf"
+        VARIANT_DIR = (
+            TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
+        )
         for trisc_name in TestConfig.KERNEL_COMPONENTS:
             pull_coverage_stream_from_tensix(
                 location,
@@ -617,20 +665,94 @@ class TestConfig:
                 VARIANT_DIR / f"{trisc_name}.raw.stream",
             )
 
-    def run(self, location):
+    def run_elf_files(self, location="0,0"):
+        if self.boot_mode == BootMode.DEFAULT:
+            self.boot_mode = CHIP_DEFAULT_BOOT_MODES[TestConfig.CHIP_ARCH]
+
+        if (
+            TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR
+            and self.boot_mode != BootMode.TRISC
+        ):
+            raise ValueError("Quasar only supports TRISC boot mode")
+
+        # Perform soft reset
+        set_tensix_soft_reset(1, location=location)
+
+        # Load TRISC ELF files
+        is_wormhole = TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE
+
+        VARIANT__ELF_DIR = (
+            TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
+        )
+
+        elfs = [
+            str((VARIANT__ELF_DIR / f"{trisc_name}.elf").absolute())
+            for trisc_name in TestConfig.KERNEL_COMPONENTS
+        ]
+
+        for i, elf in enumerate(elfs):
+            if is_wormhole:
+                start_address = load_elf(
+                    elf_file=elf,
+                    location=location,
+                    risc_name=f"trisc{i}",
+                    neo_id=(
+                        0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
+                    ),
+                    return_start_address=True,
+                )
+                write_words_to_device(
+                    location, TestConfig.TRISC_START_ADDRS[i], [start_address]
+                )
+            else:
+                load_elf(
+                    elf_file=elf,
+                    location=location,
+                    risc_name=f"trisc{i}",
+                    neo_id=(
+                        0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
+                    ),
+                )
+
+        # Reset the profiler barrier
+        write_words_to_device(
+            location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
+        )
+
+        match self.boot_mode:
+            case BootMode.BRISC:
+                load_elf(
+                    elf_file=str((TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()),
+                    location=location,
+                    risc_name="brisc",
+                )
+                set_tensix_soft_reset(0, [RiscCore.BRISC], location)
+            case BootMode.TRISC:
+                set_tensix_soft_reset(0, [RiscCore.TRISC0], location)
+            case BootMode.EXALENS:
+                exalens_device_setup(TestConfig.CHIP_ARCH, location)
+                set_tensix_soft_reset(
+                    0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
+                )
+
+        return elfs
+
+    def run(self, location, delete_artefacts: bool = True):
+        if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
+            self.build_elfs()
+
+        if TestConfig.MODE == TestMode.PRODUCE:
+            pytest.skip()
 
         self.variant_stimuli.write()
-        self.build_elfs()
-
-        elfs = run_elf_files(
-            self.test_name, self.variant_id, self.boot_mode, location=location
-        )
+        elfs = self.run_elf_files(location)
         wait_for_tensix_operations_finished(elfs, location)
 
         if self.coverage_build == CoverageBuild.Yes:
             self.generate_info_file_for_run(location)
             self.merge_coverage_streams_into_info()
 
-        # shutil.rmtree(TestConfig.BUILD_DIR / self.test_name / self.variant_id)
+        if delete_artefacts:
+            shutil.rmtree(TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id)
 
         return self.variant_stimuli.collect_results(location)

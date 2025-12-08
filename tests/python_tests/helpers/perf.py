@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
-import os
 import shutil
 from dataclasses import fields, is_dataclass
 from enum import Enum
@@ -15,7 +14,6 @@ import pytest
 from helpers.device import (
     BootMode,
     reset_mailboxes,
-    run_elf_files,
     wait_for_tensix_operations_finished,
 )
 

@@ -1,0 +1,38 @@
+-------------------------------------------------------------------------------------  -----------------------------  -----------------------------------------------------------------------------
+../../../../../opt/venv/bin/pytest:8                                                   <module>                       sys.exit(console_main())
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/config/__init__.py:201    console_main                   code = main()
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/config/__init__.py:156    main                           config = _prepareconfig(args, plugins)
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/config/__init__.py:342    _prepareconfig                 config = pluginmanager.hook.pytest_cmdline_parse(
+../../../../../opt/venv/lib/python3.10/site-packages/pluggy/_hooks.py:512              __call__                       return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+../../../../../opt/venv/lib/python3.10/site-packages/pluggy/_manager.py:120            _hookexec                      return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+../../../../../opt/venv/lib/python3.10/site-packages/pluggy/_callers.py:167            _multicall                     raise exception
+../../../../../opt/venv/lib/python3.10/site-packages/pluggy/_callers.py:139            _multicall                     teardown.throw(exception)
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/helpconfig.py:112         pytest_cmdline_parse           config = yield
+../../../../../opt/venv/lib/python3.10/site-packages/pluggy/_callers.py:121            _multicall                     res = hook_impl.function(*args)
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/config/__init__.py:1146   pytest_cmdline_parse           self.parse(args)
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/config/__init__.py:1527   parse                          self._preparse(args, addopts=addopts)
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/config/__init__.py:1431   _preparse                      self.hook.pytest_load_initial_conftests(
+../../../../../opt/venv/lib/python3.10/site-packages/pluggy/_hooks.py:512              __call__                       return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+../../../../../opt/venv/lib/python3.10/site-packages/pluggy/_manager.py:120            _hookexec                      return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+../../../../../opt/venv/lib/python3.10/site-packages/pluggy/_callers.py:167            _multicall                     raise exception
+../../../../../opt/venv/lib/python3.10/site-packages/pluggy/_callers.py:139            _multicall                     teardown.throw(exception)
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/warnings.py:129           pytest_load_initial_conftests  return (yield)
+../../../../../opt/venv/lib/python3.10/site-packages/pluggy/_callers.py:139            _multicall                     teardown.throw(exception)
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/capture.py:173            pytest_load_initial_conftests  yield
+../../../../../opt/venv/lib/python3.10/site-packages/pluggy/_callers.py:121            _multicall                     res = hook_impl.function(*args)
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/config/__init__.py:1228   pytest_load_initial_conftests  self.pluginmanager._set_initial_conftests(
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/config/__init__.py:583    _set_initial_conftests         self._try_load_conftest(
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/config/__init__.py:621    _try_load_conftest             self._loadconftestmodules(
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/config/__init__.py:661    _loadconftestmodules           mod = self._importconftest(
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/config/__init__.py:712    _importconftest                mod = import_path(
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/pathlib.py:587            import_path                    importlib.import_module(module_name)
+../../../../../usr/lib/python3.10/importlib/__init__.py:126                            import_module                  return _bootstrap._gcd_import(name[level:], package, level)
+../../../../../opt/venv/lib/python3.10/site-packages/_pytest/assertion/rewrite.py:186  exec_module                    exec(co, module.__dict__)
+python_tests/conftest.py:29                                                            <module>                       from helpers.perf import perf_report  # noqa: F401  # isort:skip
+python_tests/helpers/perf.py:11                                                        <module>                       import pandas as pd
+../../../../../opt/venv/lib/python3.10/site-packages/pandas/__init__.py:138            <module>                       from pandas import api, arrays, errors, io, plotting, tseries
+../../../../../opt/venv/lib/python3.10/site-packages/pandas/api/__init__.py:2          <module>                       from pandas.api import (
+../../../../../opt/venv/lib/python3.10/site-packages/pandas/api/typing/__init__.py:31  <module>                       from pandas.io.json._json import JsonReader
+../../../../../opt/venv/lib/python3.10/site-packages/pandas/io/json/__init__.py:1      <module>                       from pandas.io.json._json import (
+../../../../../opt/venv/lib/python3.10/site-packages/pandas/io/json/__init__.py:921    _find_spec                     KeyboardInterrupt:
+-------------------------------------------------------------------------------------  -----------------------------  -----------------------------------------------------------------------------
