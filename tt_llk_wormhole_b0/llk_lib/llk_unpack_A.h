@@ -286,10 +286,9 @@ inline void _llk_unpack_A_(
     {
         if (is_32bit_input(unpack_src_format, unpack_dst_format))
         {
+            set_dst_write_addr(unp_cfg_context, unpack_dst_format);
+            wait_for_dest_available();
         }
-        set_dst_write_addr(unp_cfg_context, unpack_dst_format);
-        wait_for_dest_available();
-        // }
     }
 
     // Trisc::SEMPOST for context acquire
@@ -306,10 +305,10 @@ inline void _llk_unpack_A_(
 
     if (unpack_to_dest)
     {
-        // if (is_32bit_input(unpack_src_format, unpack_dst_format))
-        // {
-        unpack_to_dest_tile_done(unp_cfg_context);
-        // }
+        if (is_32bit_input(unpack_src_format, unpack_dst_format))
+        {
+            unpack_to_dest_tile_done(unp_cfg_context);
+        }
     }
 
     // Switch unpacker config context
