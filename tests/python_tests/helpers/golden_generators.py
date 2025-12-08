@@ -113,7 +113,11 @@ def quantize_mx_stimuli(
     tensor: torch.Tensor, data_format: DataFormat, num_faces: int = 4
 ) -> torch.Tensor:
     """
-    Quantize MX format tensor by pack→unpack roundtrip.
+    Quantize MX format stimuli by performing pack→unpack roundtrip.
+
+    This simulates the quantization that occurs when data is stored in MX format
+    in L1 memory and then unpacked by hardware. The golden model should use
+    quantized values to match what hardware actually sees.
 
     Args:
         tensor: Input tensor (bfloat16 values)
@@ -121,7 +125,10 @@ def quantize_mx_stimuli(
         num_faces: Number of faces (1, 2, or 4)
 
     Returns:
-        Quantized tensor (bfloat16 values)
+        Quantized tensor (bfloat16 values after pack→unpack roundtrip)
+
+    Raises:
+        ValueError: If data_format is not an MX format, num_faces is invalid, or tensor size is incorrect
     """
     # Validate data format
     if not data_format.is_mx_format():

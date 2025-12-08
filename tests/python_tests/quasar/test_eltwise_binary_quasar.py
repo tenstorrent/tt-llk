@@ -99,11 +99,6 @@ def test_eltwise_binary(
     ):
         pytest.skip("MX formats require implied_math_format=Yes on Quasar")
 
-    # Generate stimuli for both operands
-    # generate_stimuli handles MX format clamping:
-    # - If both inputs are different MX formats, clamps to more restrictive format (MxFp8P)
-    # - If output is MX format, clamps inputs to prevent excessive rounding errors
-    # Quantization is handled by the golden model to simulate hardware unpack behavior
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
         formats.input_format,

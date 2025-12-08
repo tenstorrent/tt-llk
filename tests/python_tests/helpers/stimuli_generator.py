@@ -215,13 +215,11 @@ def generate_stimuli(
             srcB = torch.clamp(srcB, -MXFP8_E4M3_MAX_NORMAL, MXFP8_E4M3_MAX_NORMAL)
 
     # Clamp inputs based on output format to prevent excessive rounding errors
-    if output_format and output_format.is_mx_format():
-        element_max = (
-            MXFP8_E4M3_MAX_NORMAL
-            if output_format == DataFormat.MxFp8P
-            else MXFP8_E5M2_MAX_NORMAL
-        )
-        srcA = torch.clamp(srcA, -element_max, element_max)
-        srcB = torch.clamp(srcB, -element_max, element_max)
+    if output_format == DataFormat.MxFp8P:
+        srcA = torch.clamp(srcA, -MXFP8_E4M3_MAX_NORMAL, MXFP8_E4M3_MAX_NORMAL)
+        srcB = torch.clamp(srcB, -MXFP8_E4M3_MAX_NORMAL, MXFP8_E4M3_MAX_NORMAL)
+    elif output_format == DataFormat.MxFp8R:
+        srcA = torch.clamp(srcA, -MXFP8_E5M2_MAX_NORMAL, MXFP8_E5M2_MAX_NORMAL)
+        srcB = torch.clamp(srcB, -MXFP8_E5M2_MAX_NORMAL, MXFP8_E5M2_MAX_NORMAL)
 
     return srcA, srcB, tile_cnt
