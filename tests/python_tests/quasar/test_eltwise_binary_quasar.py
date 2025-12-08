@@ -3,6 +3,11 @@
 
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture
+from helpers.constraints import (
+    get_valid_dest_accumulation_modes,
+    get_valid_math_fidelities,
+)
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
@@ -13,29 +18,18 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
-    DestAccumulation,
     ImpliedMathFormat,
-    MathFidelity,
     MathOperation,
     format_dict,
 )
 from helpers.param_config import (
+    generate_unary_input_dimensions,
     input_output_formats,
     parametrize,
 )
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import BootMode, run_test
 from helpers.utils import passed_test
-
-# Quasar hardware constraints for eltwise operations
-TILE_DIM = 32  # Standard tile dimension (32x32)
-MAX_TILES_16_BIT_DEST = 8  # Max tiles with 16-bit dest (Float16/Float16_b)
-
-ELTWISE_DIMENSIONS = [
-    ([mt_dim * TILE_DIM, nt_dim * TILE_DIM], DestAccumulation.No)
-    for mt_dim in range(1, MAX_TILES_16_BIT_DEST + 1)
-    for nt_dim in range(1, MAX_TILES_16_BIT_DEST // mt_dim + 1)
-]
 
 
 @pytest.mark.quasar
@@ -45,6 +39,7 @@ ELTWISE_DIMENSIONS = [
         [
             DataFormat.Float16_b,
             DataFormat.Float16,
+            DataFormat.Float32,
         ],
     ),
     mathop=[
@@ -52,17 +47,15 @@ ELTWISE_DIMENSIONS = [
         MathOperation.Elwsub,
         MathOperation.Elwmul,
     ],
-    math_fidelity=[
-        MathFidelity.LoFi,
-        MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
-    ],
+    math_fidelity=lambda formats, mathop: get_valid_math_fidelities(formats, mathop),
+    dest_acc=lambda formats, mathop: get_valid_dest_accumulation_modes(
+        ChipArchitecture.QUASAR, formats, unpack_to_dest=False
+    ),
     implied_math_format=[
         ImpliedMathFormat.No,
         ImpliedMathFormat.Yes,
     ],
-    dimensions_dest_acc=ELTWISE_DIMENSIONS,
+    input_dimensions=lambda dest_acc: generate_unary_input_dimensions(dest_acc),
     num_faces=[4],
 )
 def test_eltwise_binary(
@@ -70,21 +63,12 @@ def test_eltwise_binary(
     formats,
     mathop,
     math_fidelity,
+    dest_acc,
     implied_math_format,
-    dimensions_dest_acc,
+    input_dimensions,
     num_faces,
     boot_mode=BootMode.DEFAULT,
 ):
-
-    # Unpack dimensions and dest_acc from the tuple
-    input_dimensions, dest_acc = dimensions_dest_acc
-
-    # Math fidelity only affects multiplication operations
-    if (
-        mathop in [MathOperation.Elwadd, MathOperation.Elwsub]
-        and math_fidelity != MathFidelity.LoFi
-    ):
-        pytest.skip("Math fidelity only affects multiplication operations")
 
     # Generate stimuli for both operands
     src_A, src_B, tile_cnt = generate_stimuli(
@@ -103,12 +87,6 @@ def test_eltwise_binary(
         math_fidelity,
     )
 
-    # Determine unpack_to_dest based on format and accumulation mode
-    # This follows the same logic as pack_test
-    unpack_to_dest = (
-        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-    )
-
     test_config = {
         "formats": formats,
         "testname": test_name,
@@ -118,7 +96,7 @@ def test_eltwise_binary(
         "dest_acc": dest_acc,
         "input_A_dimensions": input_dimensions,
         "input_B_dimensions": input_dimensions,
-        "unpack_to_dest": unpack_to_dest,
+        "unpack_to_dest": False,
         "tile_cnt": tile_cnt,
         "num_faces": num_faces,
     }
