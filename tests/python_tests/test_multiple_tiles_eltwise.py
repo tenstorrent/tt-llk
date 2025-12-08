@@ -87,7 +87,7 @@ def test_multiple_tiles(
 
     clear_perf_counter_memory()
 
-    for iteration in range(14):
+    for iteration in range(28):
         write_words_to_device(location="0,0", addr=0x2F7FC, data=iteration)
         run_test(test_config)
 

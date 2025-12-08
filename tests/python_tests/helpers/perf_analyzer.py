@@ -11,13 +11,14 @@ PERF_COUNTER_CFG_BASE = 100
 PERF_COUNTERS_PER_ITERATION = 5
 PERF_REGISTER_BANKS = 5
 PERF_NUM_UNIQUE_COUNTERS = 70
-PERF_NUM_ITERATIONS = (
-    PERF_NUM_UNIQUE_COUNTERS + PERF_COUNTERS_PER_ITERATION - 1
-) // PERF_COUNTERS_PER_ITERATION
+PERF_NUM_TOTAL_ITERATIONS = 28  # Doubled: 14 for grants + 14 for requests
+PERF_NUM_ITERATIONS = 14  # Per mode (grants or requests)
 PERF_WORDS_PER_ITERATION_PER_THREAD = PERF_COUNTERS_PER_ITERATION * 2
 PERF_WORDS_PER_THREAD = PERF_NUM_ITERATIONS * PERF_WORDS_PER_ITERATION_PER_THREAD
 PERF_L1_THREAD_OFFSET = 200
-PERF_TOTAL_WORDS = PERF_L1_THREAD_OFFSET * 2 + PERF_WORDS_PER_THREAD
+PERF_TOTAL_WORDS = (
+    PERF_L1_THREAD_OFFSET * 2 + PERF_WORDS_PER_THREAD
+) * 2  # Doubled for requests
 PERF_COUNTER_DATA_ADDR = 0x2F800
 
 TILE_HEIGHT = 32
@@ -30,11 +31,11 @@ def collect_perf_counter_data(location: str = "0,0"):
         location=location, addr=PERF_COUNTER_DATA_ADDR, word_count=PERF_TOTAL_WORDS
     )
 
-    all_iteration_data = []
-    for iteration in range(PERF_NUM_ITERATIONS):
-        all_iteration_data.append({"iteration": iteration, "data": perf_data})
-
-    return all_iteration_data
+    # Split data: first 540 words = grants (bit 16=1), next 540 = requests (bit 16=0)
+    return {
+        "grants": perf_data[: PERF_TOTAL_WORDS // 2],  # First 540 words
+        "requests": perf_data[PERF_TOTAL_WORDS // 2 :],  # Next 540 words
+    }
 
 
 def clear_perf_counter_memory(location: str = "0,0"):
@@ -363,9 +364,10 @@ def print_performance_analysis(
         math_results = {}
         pack_results = {}
 
-        for iter_info in iteration_data:
-            iteration = iter_info["iteration"]
-            perf_data = iter_info["data"]
+        grant_data = iteration_data.get("grants", [])
+        request_data = iteration_data.get("requests", [])
+
+        for iteration in range(14):
             base_signal = iteration * 5
 
             for i in range(5):
@@ -373,27 +375,69 @@ def print_performance_analysis(
 
                 if signal_idx < len(unpack_signal_names):
                     offset = 0 + (iteration * 10) + (i * 2)
-                    if offset < len(perf_data) and offset + 1 < len(perf_data):
-                        cycles = perf_data[offset]
-                        count = perf_data[offset + 1]
+                    if offset < len(grant_data) and offset + 1 < len(grant_data):
+                        grant_cycles = grant_data[offset]
+                        grant_count = grant_data[offset + 1]
+
+                        req_cycles = 0
+                        req_count = 0
+                        if offset < len(request_data) and offset + 1 < len(
+                            request_data
+                        ):
+                            req_cycles = request_data[offset]
+                            req_count = request_data[offset + 1]
+
                         signal_name = unpack_signal_names[signal_idx]
-                        unpack_results[signal_name] = (cycles, count)
+                        unpack_results[signal_name] = (
+                            grant_cycles,
+                            grant_count,
+                            req_cycles,
+                            req_count,
+                        )
 
                 if signal_idx < len(math_signal_names):
                     offset = 200 + (iteration * 10) + (i * 2)
-                    if offset < len(perf_data) and offset + 1 < len(perf_data):
-                        cycles = perf_data[offset]
-                        count = perf_data[offset + 1]
+                    if offset < len(grant_data) and offset + 1 < len(grant_data):
+                        grant_cycles = grant_data[offset]
+                        grant_count = grant_data[offset + 1]
+
+                        req_cycles = 0
+                        req_count = 0
+                        if offset < len(request_data) and offset + 1 < len(
+                            request_data
+                        ):
+                            req_cycles = request_data[offset]
+                            req_count = request_data[offset + 1]
+
                         signal_name = math_signal_names[signal_idx]
-                        math_results[signal_name] = (cycles, count)
+                        math_results[signal_name] = (
+                            grant_cycles,
+                            grant_count,
+                            req_cycles,
+                            req_count,
+                        )
 
                 if signal_idx < len(pack_signal_names):
                     offset = 400 + (iteration * 10) + (i * 2)
-                    if offset < len(perf_data) and offset + 1 < len(perf_data):
-                        cycles = perf_data[offset]
-                        count = perf_data[offset + 1]
+                    if offset < len(grant_data) and offset + 1 < len(grant_data):
+                        grant_cycles = grant_data[offset]
+                        grant_count = grant_data[offset + 1]
+
+                        req_cycles = 0
+                        req_count = 0
+                        if offset < len(request_data) and offset + 1 < len(
+                            request_data
+                        ):
+                            req_cycles = request_data[offset]
+                            req_count = request_data[offset + 1]
+
                         signal_name = pack_signal_names[signal_idx]
-                        pack_results[signal_name] = (cycles, count)
+                        pack_results[signal_name] = (
+                            grant_cycles,
+                            grant_count,
+                            req_cycles,
+                            req_count,
+                        )
 
         def get_category(signal_name):
             if signal_name.startswith("FPU_") or signal_name.startswith("SFPU_"):
@@ -425,36 +469,57 @@ def print_performance_analysis(
             unpack_results.items(), key=lambda x: (get_category(x[0])[0], x[0])
         )
         current_category = None
-        for signal_name, (cycles, count) in sorted_unpack:
+        for signal_name, (
+            grant_cycles,
+            grant_count,
+            req_cycles,
+            req_count,
+        ) in sorted_unpack:
             category = get_category(signal_name)[1]
             if category != current_category:
                 print(f"\n   [{category}]")
                 current_category = category
-            print(f"   {signal_name:25s}: cycles={cycles:10d}, count={count:8d}")
+            print(
+                f"   {signal_name:25s}: cycles={grant_cycles:10d}, requests={req_count:8d}, grants={grant_count:8d}"
+            )
 
         print("\n🔧 MATH Thread (TRISC1) - Sorted by category:")
         sorted_math = sorted(
             math_results.items(), key=lambda x: (get_category(x[0])[0], x[0])
         )
         current_category = None
-        for signal_name, (cycles, count) in sorted_math:
+        for signal_name, (
+            grant_cycles,
+            grant_count,
+            req_cycles,
+            req_count,
+        ) in sorted_math:
             category = get_category(signal_name)[1]
             if category != current_category:
                 print(f"\n   [{category}]")
                 current_category = category
-            print(f"   {signal_name:25s}: cycles={cycles:10d}, count={count:8d}")
+            print(
+                f"   {signal_name:25s}: cycles={grant_cycles:10d}, requests={req_count:8d}, grants={grant_count:8d}"
+            )
 
         print("\n🔧 PACK Thread (TRISC2) - Sorted by category:")
         sorted_pack = sorted(
             pack_results.items(), key=lambda x: (get_category(x[0])[0], x[0])
         )
         current_category = None
-        for signal_name, (cycles, count) in sorted_pack:
+        for signal_name, (
+            grant_cycles,
+            grant_count,
+            req_cycles,
+            req_count,
+        ) in sorted_pack:
             category = get_category(signal_name)[1]
             if category != current_category:
                 print(f"\n   [{category}]")
                 current_category = category
-            print(f"   {signal_name:25s}: cycles={cycles:10d}, count={count:8d}")
+            print(
+                f"   {signal_name:25s}: cycles={grant_cycles:10d}, requests={req_count:8d}, grants={grant_count:8d}"
+            )
     else:
         print(
             "\n⚠️  No multi-iteration data provided - run test with multiple iterations for full signal coverage"

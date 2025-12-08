@@ -129,7 +129,7 @@ constexpr uint32_t NOC_RING1_INCOMING_1 = 0;
 
 #define PERF_ITERATION_ADDR      0x2F7FC
 #define PERF_COUNTER_DATA_ADDR   0x2F800
-#define PERF_COUNTER_TOTAL_WORDS 540
+#define PERF_COUNTER_TOTAL_WORDS 1080
 
 inline void set_profiling_iteration(uint32_t iteration)
 {
@@ -141,6 +141,11 @@ inline uint32_t get_profiling_iteration()
 {
     volatile uint32_t* iter_ptr = reinterpret_cast<volatile uint32_t*>(PERF_ITERATION_ADDR);
     return *iter_ptr;
+}
+
+inline bool is_request_mode(uint32_t iteration)
+{
+    return iteration >= 14;
 }
 
 inline void init_profiling()
@@ -168,7 +173,9 @@ inline void start_profiling()
 #ifdef LLK_TRISC_UNPACK
 
     const uint32_t counters_per_iteration = 5;
-    uint32_t base_counter                 = iteration * counters_per_iteration;
+    bool request_mode                     = is_request_mode(iteration);
+    uint32_t actual_iteration             = request_mode ? (iteration - 14) : iteration;
+    uint32_t base_counter                 = actual_iteration * counters_per_iteration;
 
     const PerfCounterDef unpack_counters[] = {
 
@@ -253,6 +260,7 @@ inline void start_profiling()
         {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_NOT_SB_STALL},
     };
     const uint32_t num_unpack_counters = 70;
+    uint32_t mode_bits                 = request_mode ? 0 : (1 << 16);
 
     for (uint32_t i = 0; i < 5; i++)
     {
@@ -260,7 +268,7 @@ inline void start_profiling()
         const PerfCounterDef& counter = unpack_counters[counter_idx];
 
         dbg_regs[(counter.reg_base - RISCV_DEBUG_REGS_START_ADDR) / 4]     = 0xFFFFFFFF;
-        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8);
+        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8) | mode_bits;
         dbg_regs[(counter.reg_base + 8 - RISCV_DEBUG_REGS_START_ADDR) / 4] = 1;
     }
 #endif
@@ -268,7 +276,9 @@ inline void start_profiling()
 #ifdef LLK_TRISC_MATH
 
     const uint32_t counters_per_iteration = 5;
-    uint32_t base_counter                 = iteration * counters_per_iteration;
+    bool request_mode                     = is_request_mode(iteration);
+    uint32_t actual_iteration             = request_mode ? (iteration - 14) : iteration;
+    uint32_t base_counter                 = actual_iteration * counters_per_iteration;
 
     const PerfCounterDef math_counters[] = {
 
@@ -345,13 +355,15 @@ inline void start_profiling()
     };
     const uint32_t num_math_counters = 70;
 
+    uint32_t mode_bits = request_mode ? 0 : (1 << 16);
+
     for (uint32_t i = 0; i < 5; i++)
     {
         uint32_t counter_idx          = (base_counter + i) % num_math_counters;
         const PerfCounterDef& counter = math_counters[counter_idx];
 
         dbg_regs[(counter.reg_base - RISCV_DEBUG_REGS_START_ADDR) / 4]     = 0xFFFFFFFF;
-        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8);
+        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8) | mode_bits;
         dbg_regs[(counter.reg_base + 8 - RISCV_DEBUG_REGS_START_ADDR) / 4] = 1;
     }
 #endif
@@ -359,7 +371,9 @@ inline void start_profiling()
 #ifdef LLK_TRISC_PACK
 
     const uint32_t counters_per_iteration = 5;
-    uint32_t base_counter                 = iteration * counters_per_iteration;
+    bool request_mode                     = is_request_mode(iteration);
+    uint32_t actual_iteration             = request_mode ? (iteration - 14) : iteration;
+    uint32_t base_counter                 = actual_iteration * counters_per_iteration;
 
     const PerfCounterDef pack_counters[] = {
 
@@ -436,13 +450,15 @@ inline void start_profiling()
     };
     const uint32_t num_pack_counters = 70;
 
+    uint32_t mode_bits = request_mode ? 0 : (1 << 16);
+
     for (uint32_t i = 0; i < 5; i++)
     {
         uint32_t counter_idx          = (base_counter + i) % num_pack_counters;
         const PerfCounterDef& counter = pack_counters[counter_idx];
 
         dbg_regs[(counter.reg_base - RISCV_DEBUG_REGS_START_ADDR) / 4]     = 0xFFFFFFFF;
-        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8);
+        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8) | mode_bits;
         dbg_regs[(counter.reg_base + 8 - RISCV_DEBUG_REGS_START_ADDR) / 4] = 1;
     }
 #endif
@@ -462,7 +478,9 @@ inline void stop_profiling()
 
     volatile uint32_t* l1_control = reinterpret_cast<volatile uint32_t*>(0x2F7FC);
     uint32_t iteration            = l1_control[0];
-    uint32_t base_offset          = 0 + (iteration * 10);
+    bool request_mode             = is_request_mode(iteration);
+    uint32_t actual_iteration     = request_mode ? (iteration - 14) : iteration;
+    uint32_t base_offset          = (request_mode ? 540 : 0) + (actual_iteration * 10);
 
     volatile uint32_t* l1_mem = reinterpret_cast<volatile uint32_t*>(0x2F800);
     uint32_t cycles, count;
@@ -503,7 +521,9 @@ inline void stop_profiling()
 
     volatile uint32_t* l1_control = reinterpret_cast<volatile uint32_t*>(0x2F7FC);
     uint32_t iteration            = l1_control[0];
-    uint32_t base_offset          = 200 + (iteration * 10);
+    bool request_mode             = is_request_mode(iteration);
+    uint32_t actual_iteration     = request_mode ? (iteration - 14) : iteration;
+    uint32_t base_offset          = 200 + (request_mode ? 540 : 0) + (actual_iteration * 10);
 
     volatile uint32_t* l1_mem = reinterpret_cast<volatile uint32_t*>(0x2F800);
     uint32_t cycles, count;
@@ -544,7 +564,9 @@ inline void stop_profiling()
 
     volatile uint32_t* l1_control = reinterpret_cast<volatile uint32_t*>(0x2F7FC);
     uint32_t iteration            = l1_control[0];
-    uint32_t base_offset          = 400 + (iteration * 10);
+    bool request_mode             = is_request_mode(iteration);
+    uint32_t actual_iteration     = request_mode ? (iteration - 14) : iteration;
+    uint32_t base_offset          = 400 + (request_mode ? 540 : 0) + (actual_iteration * 10);
 
     volatile uint32_t* l1_mem = reinterpret_cast<volatile uint32_t*>(0x2F800);
     uint32_t cycles, count;
