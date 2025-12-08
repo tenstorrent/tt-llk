@@ -310,6 +310,7 @@ class UnarySfpu(Sfpu):
         format_input = operation_config.src_a.data_format
         format_output = operation_config.output.data_format
         dest_acc = operation_config.dest_acc
+        dimensions = operation_config.output.dimensions
 
         generate_sfpu_golden = get_golden_generator(UnarySFPUGolden)
 
@@ -319,6 +320,8 @@ class UnarySfpu(Sfpu):
             format_output,
             dest_acc,
             format_input,
+            dimensions,
+            self.iterations,
         )
 
     def exec(self, operation_config: "PipelineOperation") -> str:

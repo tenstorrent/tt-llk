@@ -921,6 +921,8 @@ class UnarySFPUGolden:
         data_format,
         dest_acc,
         input_format,
+        dimensions: tuple[int, int],
+        iterations: int = None,
         reduce_pool: Optional[ReducePool] = None,
     ):
         self.data_format = data_format
@@ -952,7 +954,25 @@ class UnarySFPUGolden:
 
         tensor = to_tensor(operand1, dst_format)
 
-        result = [self.ops[operation](x) for x in tensor.tolist()]
+        #################################
+        if iterations is None or iterations * 32 > tensor.numel():
+            iterations = tensor.numel() // 32
+
+        if iterations <= 0:
+            raise ValueError(f"Invalid iterations: {iterations}")
+
+        result = tensor.clone().flatten()
+
+        result = tilize_block(result, dimensions, data_format).flatten()
+
+        op_res = [self.ops[operation](x) for x in result.tolist()[0 : 32 * iterations]]
+
+        result[0 : 32 * iterations] = torch.tensor(
+            op_res, dtype=format_dict[dst_format]
+        )
+
+        result = untilize_block(result, data_format, dimensions).flatten()
+        ##############################
 
         if self.data_format == DataFormat.Bfp8_b:
             check_bfp8_b(result)
