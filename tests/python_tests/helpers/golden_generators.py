@@ -954,7 +954,6 @@ class UnarySFPUGolden:
 
         tensor = to_tensor(operand1, dst_format)
 
-        #################################
         if iterations is None or iterations * 32 > tensor.numel():
             iterations = tensor.numel() // 32
 
@@ -963,7 +962,7 @@ class UnarySFPUGolden:
 
         result = tensor.clone().flatten()
 
-        result = tilize_block(result, dimensions, data_format).flatten()
+        result = tilize_block(result, dimensions, input_format).flatten()
 
         op_res = [self.ops[operation](x) for x in result.tolist()[0 : 32 * iterations]]
 
@@ -971,8 +970,7 @@ class UnarySFPUGolden:
             op_res, dtype=format_dict[dst_format]
         )
 
-        result = untilize_block(result, data_format, dimensions).flatten()
-        ##############################
+        result = untilize_block(result, input_format, dimensions).flatten()
 
         if self.data_format == DataFormat.Bfp8_b:
             check_bfp8_b(result)
