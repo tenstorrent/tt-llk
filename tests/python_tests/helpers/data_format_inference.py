@@ -292,12 +292,22 @@ def data_formats(
 
     if disable_format_inference:
         # Return a single FormatConfig where all formats are the same if format inference is disabled or not supported for the architecture
+        # MX formats can only exist in L1, not in registers. Hardware unpacks MX to bfloat16 for math.
+        if input_format.is_mx_format():
+            unpack_dst = DataFormat.Float16_b
+            math_format = DataFormat.Float16_b
+            pack_src_format = DataFormat.Float16_b
+        else:
+            unpack_dst = input_format
+            math_format = input_format
+            pack_src_format = input_format
+
         return [
             FormatConfig(
                 unpack_A_src=input_format,
-                unpack_A_dst=input_format,
-                math=input_format,
-                pack_src=input_format,
+                unpack_A_dst=unpack_dst,
+                math=math_format,
+                pack_src=pack_src_format,
                 pack_dst=output_format,
             )
         ]  # No final config for single iteration
