@@ -143,7 +143,6 @@ void run_kernel()
         _llk_pack_init_<
             /* untilize */ false,
             /* zero output */ false,
-            DstTileFaceLayout::RowMajor,
             /* write tile header */ false>(formats.pack_dst);
         _llk_pack_reduce_mask_config_<
             /* untilize */ false,

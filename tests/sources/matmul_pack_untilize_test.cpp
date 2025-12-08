@@ -42,11 +42,11 @@ void run_kernel()
 
 void run_kernel()
 {
-    _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
+    _llk_math_matmul_init_<MATH_FIDELITY>();
     _llk_math_pack_sync_init_<sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<true, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<sync>();
-    _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
+    _llk_math_matmul_<MATH_FIDELITY>(0);
     _llk_math_dest_section_done_<sync, is_fp32_dest_acc_en>();
 }
 
@@ -62,11 +62,11 @@ void run_kernel()
 {
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, tile_size);
-    _llk_pack_dest_init_<sync, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<sync, is_fp32_dest_acc_en>();
     _llk_pack_untilize_init_<ct_dim>(formats.pack_src, formats.pack_dst, FACE_R_DIM, 4);
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, tile_size);
-    _llk_pack_dest_init_<sync, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+    _llk_pack_dest_init_<sync, is_fp32_dest_acc_en, UNTILIZE>();
     _llk_pack_untilize_init_<ct_dim>(formats.pack_dst, FACE_R_DIM, 4);
 #endif
     _llk_packer_wait_for_math_done_();

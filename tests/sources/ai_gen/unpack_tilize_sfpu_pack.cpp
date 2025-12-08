@@ -93,12 +93,12 @@ void run_kernel()
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst);
-    _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_init_<UNTILIZE, false, false, TILIZE>(formats.pack_dst);
+    _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
-    _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+    _llk_pack_init_<UNTILIZE, false, false>(formats.pack_dst);
+    _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en, UNTILIZE>();
 #endif
 
     // Pack the single result tile from destination register to output buffer
