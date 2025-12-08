@@ -8,6 +8,7 @@ from enum import Enum, IntEnum
 from pathlib import Path
 
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from helpers.hardware_controller import HardwareController
 from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.debug_tensix import TensixDebug
 from ttexalens.hardware.risc_debug import CallstackEntry, RiscDebug, RiscLocation
@@ -557,6 +558,7 @@ def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
             assertion_hits.append(core)
 
     if assertion_hits:
+        HardwareController().reset_card()
         raise DeviceAssertionError(assertion_hits)
 
 
