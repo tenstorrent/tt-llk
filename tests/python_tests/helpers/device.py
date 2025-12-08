@@ -26,7 +26,7 @@ from ttexalens.tt_exalens_lib import (
 )
 
 from .format_config import DataFormat, FormatConfig
-from .fuse_operation import PipelineOperation
+from .fused_operation import FusedOperation
 from .llk_params import DestAccumulation, Mailbox
 from .pack import (
     pack_bfp8_b,
@@ -424,7 +424,7 @@ def write_stimuli_to_l1(
 
 
 def write_pipeline_operands_to_l1(
-    pipeline: List[PipelineOperation],
+    pipeline: List[FusedOperation],
     location: str = "0,0",
 ):
     TILE_ELEMENTS = 1024
@@ -703,7 +703,7 @@ def reset_mailboxes():
 
 
 def collect_pipeline_results(
-    pipeline: List[PipelineOperation],
+    pipeline: List[FusedOperation],
     location: str = "0,0",
 ):
     import torch

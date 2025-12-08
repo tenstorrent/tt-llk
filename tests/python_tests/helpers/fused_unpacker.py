@@ -15,7 +15,7 @@ from .llk_params import DestAccumulation, format_tile_sizes
 
 
 class Unpacker:
-    def unpack(self, operation_config: "PipelineOperation") -> str:
+    def unpack(self, operation_config: "FusedOperation") -> str:
         return ""
 
     def get_headers(self) -> List[str]:
@@ -29,7 +29,7 @@ class MatmulUnpacker(Unpacker):
             "llk_unpack_common.h",
         ]
 
-    def unpack(self, operation_config: "PipelineOperation") -> str:
+    def unpack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         FACE_R_DIM = operation_config.face_r_dim
         CT_DIM = operation_config.ct_dim
@@ -112,7 +112,7 @@ class UnpackerAB(Unpacker):
             "llk_unpack_tilize.h",
         ]
 
-    def unpack(self, operation_config: "PipelineOperation") -> str:
+    def unpack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
 
         buffer_A_address = operation_config.src_a.l1_address
@@ -173,7 +173,7 @@ class UnpackerA(Unpacker):
             "llk_unpack_tilize.h",
         ]
 
-    def unpack(self, operation_config: "PipelineOperation") -> str:
+    def unpack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
 
         buffer_A_address = operation_config.src_a.l1_address

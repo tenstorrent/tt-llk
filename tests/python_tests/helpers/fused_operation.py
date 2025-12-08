@@ -10,10 +10,10 @@ import torch
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .format_config import DataFormat
-from .fuse_math import Math
-from .fuse_operand import Operand, OperandMapping
-from .fuse_packer import Packer
-from .fuse_unpacker import Unpacker
+from .fused_math import Math
+from .fused_operand import Operand, OperandMapping
+from .fused_packer import Packer
+from .fused_unpacker import Unpacker
 from .llk_params import (
     DataCopyType,
     DestAccumulation,
@@ -30,7 +30,7 @@ from .matmul_sweep import validate_tile_dimensions
 
 
 @dataclass
-class PipelineOperation:
+class FusedOperation:
     unpacker: Type[Unpacker]
     math: Math
     packer: Type[Packer]

@@ -16,8 +16,8 @@ from .device import (
     wait_for_tensix_operations_finished,
 )
 from .format_config import DataFormat, FormatConfig
-from .fuse_generator import KernelCompiler
-from .fuse_operation import PipelineOperation
+from .fused_generator import FusedKernelGenerator
+from .fused_operation import FusedOperation
 from .llk_params import (
     FPU_BINARY_OPERATIONS,
     REDUCE_OPERATIONS,
@@ -597,11 +597,11 @@ def run_test(
 
 
 def run_fuse_test(
-    pipeline: List[PipelineOperation],
+    pipeline: List[FusedOperation],
     boot_mode: BootMode = BootMode.DEFAULT,
     profiler_build: ProfilerBuild = ProfilerBuild.No,
 ):
-    compiler = KernelCompiler(pipeline)
+    compiler = FusedKernelGenerator(pipeline)
     compiler.write_kernel()
 
     llk_home = Path(os.environ.get("LLK_HOME"))

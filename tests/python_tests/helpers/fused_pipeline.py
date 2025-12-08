@@ -5,7 +5,7 @@
 from typing import List
 
 from helpers.format_config import DataFormat
-from helpers.fuse_math import (
+from helpers.fused_math import (
     BinarySfpu,
     DatacopyFpu,
     EltwiseFpu,
@@ -13,10 +13,10 @@ from helpers.fuse_math import (
     MatmulFpu,
     UnarySfpu,
 )
-from helpers.fuse_operand import OperandRegistry
-from helpers.fuse_operation import PipelineOperation
-from helpers.fuse_packer import Packer
-from helpers.fuse_unpacker import MatmulUnpacker, UnpackerA, UnpackerAB
+from helpers.fused_operand import OperandRegistry
+from helpers.fused_operation import FusedOperation
+from helpers.fused_packer import Packer
+from helpers.fused_unpacker import MatmulUnpacker, UnpackerA, UnpackerAB
 from helpers.llk_params import (
     ApproximationMode,
     MathOperation,
@@ -26,7 +26,7 @@ from helpers.llk_params import (
 from .llk_params import DestAccumulation, MathFidelity
 
 
-def create_fuse_pipeline() -> List[PipelineOperation]:
+def create_fuse_pipeline() -> List[FusedOperation]:
     math_fidelity = MathFidelity.LoFi
     dest_acc = DestAccumulation.No
     data_format = DataFormat.Float16_b
@@ -36,7 +36,7 @@ def create_fuse_pipeline() -> List[PipelineOperation]:
     operands = OperandRegistry()
 
     pipeline = [
-        PipelineOperation(
+        FusedOperation(
             operand_mapping=operands.create_mapping(
                 src_a="input_A",
                 src_b="input_B",
@@ -76,7 +76,7 @@ def create_fuse_pipeline() -> List[PipelineOperation]:
             unpack_to_dest=False,
             tilize=Tilize.No,
         ),
-        PipelineOperation(
+        FusedOperation(
             operand_mapping=operands.create_mapping(
                 src_a="datacopy_output",
                 src_b="input_B",
@@ -103,7 +103,7 @@ def create_fuse_pipeline() -> List[PipelineOperation]:
         ),
     ]
     matmul_ops = [
-        PipelineOperation(
+        FusedOperation(
             operand_mapping=operands.create_mapping(
                 src_a="input_A",
                 src_b="input_B",

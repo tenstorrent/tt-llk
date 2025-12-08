@@ -6,7 +6,7 @@ from typing import List
 
 import torch
 
-from .fuse_operation import PipelineOperation
+from .fused_operation import FusedOperation
 from .llk_params import format_dict
 from .utils import passed_test
 
@@ -16,7 +16,7 @@ class FuseGolden:
         self.verbose = verbose
         self.results = []
 
-    def check_operation(self, operation: PipelineOperation, step_number: int) -> bool:
+    def check_operation(self, operation: FusedOperation, step_number: int) -> bool:
         if self.verbose:
             print(f"\n{'='*60}")
             print(f"Operation {step_number}")
@@ -77,7 +77,7 @@ class FuseGolden:
 
         return passed
 
-    def check_pipeline(self, pipeline: List[PipelineOperation]) -> bool:
+    def check_pipeline(self, pipeline: List[FusedOperation]) -> bool:
         for i, operation in enumerate(pipeline, start=1):
             passed = self.check_operation(operation, i)
             if not passed:

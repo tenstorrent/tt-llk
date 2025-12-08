@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, List
 from .chip_architecture import ChipArchitecture
 
 if TYPE_CHECKING:
-    from .fuse_operation import PipelineOperation
+    from .fused_operation import FusedOperation
 
 
 class Packer:
@@ -17,7 +17,7 @@ class Packer:
             "llk_pack_common.h",
         ]
 
-    def pack(self, operation_config: "PipelineOperation") -> str:
+    def pack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         num_stages = operation_config.num_stages
         pack_src = operation_config.pack_in

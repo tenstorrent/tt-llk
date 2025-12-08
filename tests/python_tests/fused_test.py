@@ -7,8 +7,8 @@ from helpers.device import (
     collect_pipeline_results,
     write_pipeline_operands_to_l1,
 )
-from helpers.fuse_golden import FuseGolden
-from helpers.fuse_pipeline import create_fuse_pipeline
+from helpers.fused_golden import FuseGolden
+from helpers.fused_pipeline import create_fuse_pipeline
 from helpers.param_config import parametrize
 from helpers.test_config import run_fuse_test
 

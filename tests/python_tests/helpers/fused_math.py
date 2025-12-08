@@ -17,7 +17,7 @@ from .golden_generators import (
 )
 
 if TYPE_CHECKING:
-    from .fuse_operation import PipelineOperation
+    from .fused_operation import FusedOperation
 
 from .chip_architecture import ChipArchitecture
 from .llk_params import ApproximationMode, MathOperation, Tilize
@@ -26,10 +26,10 @@ from .llk_params import ApproximationMode, MathOperation
 
 
 class Fpu:
-    def exec(self, operation_config: "PipelineOperation") -> str:
+    def exec(self, operation_config: "FusedOperation") -> str:
         return ""
 
-    def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
+    def golden(self, operation_config: "FusedOperation") -> torch.Tensor:
         return torch.Tensor()
 
     def get_headers(self) -> List[str]:
@@ -47,7 +47,7 @@ class MatmulFpu(Fpu):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
-        operation_config: "PipelineOperation",
+        operation_config: "FusedOperation",
     ) -> torch.Tensor:
         src_a = operation_config.src_a
         src_b = operation_config.src_b
@@ -66,7 +66,7 @@ class MatmulFpu(Fpu):
         )
         return golden
 
-    def exec(self, operation_config: "PipelineOperation") -> str:
+    def exec(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         CT_DIM = operation_config.ct_dim
         RT_DIM = operation_config.rt_dim
@@ -115,7 +115,7 @@ class EltwiseFpu(Fpu):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
-        operation_config: "PipelineOperation",
+        operation_config: "FusedOperation",
     ) -> torch.Tensor:
         output_format = operation_config.output.data_format
         math_fidelity = operation_config.math_fidelity
@@ -127,7 +127,7 @@ class EltwiseFpu(Fpu):
 
         return golden_tensor
 
-    def exec(self, operation_config: "PipelineOperation") -> str:
+    def exec(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
@@ -176,7 +176,7 @@ class DatacopyFpu(Fpu):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
-        operation_config: "PipelineOperation",
+        operation_config: "FusedOperation",
     ) -> torch.Tensor:
         golden_tensor = tensor_a
         if operation_config.tilize == Tilize.Yes:
@@ -198,7 +198,7 @@ class DatacopyFpu(Fpu):
 
         return golden_tensor
 
-    def exec(self, operation_config: "PipelineOperation") -> str:
+    def exec(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
@@ -270,11 +270,11 @@ class Sfpu:
         self.approx_mode = approx_mode
         self.iterations = iterations
 
-    def exec(self, operation_config: "PipelineOperation") -> str:
+    def exec(self, operation_config: "FusedOperation") -> str:
         return ""
 
     def golden(
-        self, tensor: torch.Tensor, operation_config: "PipelineOperation"
+        self, tensor: torch.Tensor, operation_config: "FusedOperation"
     ) -> torch.Tensor:
         return tensor
 
@@ -305,7 +305,7 @@ class UnarySfpu(Sfpu):
         ]
 
     def golden(
-        self, tensor: torch.Tensor, operation_config: "PipelineOperation"
+        self, tensor: torch.Tensor, operation_config: "FusedOperation"
     ) -> torch.Tensor:
         format_input = operation_config.src_a.data_format
         format_output = operation_config.output.data_format
@@ -324,7 +324,7 @@ class UnarySfpu(Sfpu):
             self.iterations,
         )
 
-    def exec(self, operation_config: "PipelineOperation") -> str:
+    def exec(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         math_format = operation_config.math_format
         dest_acc = operation_config.dest_acc.value
@@ -373,7 +373,7 @@ class BinarySfpu(Sfpu):
         ]
 
     def golden(
-        self, tensor: torch.Tensor, operation_config: "PipelineOperation"
+        self, tensor: torch.Tensor, operation_config: "FusedOperation"
     ) -> torch.Tensor:
         math_format = operation_config.output.data_format
         dimensions = operation_config.output.dimensions
@@ -392,7 +392,7 @@ class BinarySfpu(Sfpu):
 
         return golden_tensor
 
-    def exec(self, operation_config: "PipelineOperation") -> str:
+    def exec(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
@@ -440,11 +440,11 @@ class SfpuWhere(Sfpu):
         ]
 
     def golden(
-        self, tensor: torch.Tensor, operation_config: "PipelineOperation"
+        self, tensor: torch.Tensor, operation_config: "FusedOperation"
     ) -> torch.Tensor:
         return tensor
 
-    def exec(self, operation_config: "PipelineOperation") -> str:
+    def exec(self, operation_config: "FusedOperation") -> str:
         math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
         code = f"""
@@ -475,7 +475,7 @@ class Math:
 
         return sorted(list(headers))
 
-    def golden(self, operation_config: "PipelineOperation") -> torch.Tensor:
+    def golden(self, operation_config: "FusedOperation") -> torch.Tensor:
         src_a_dims = operation_config.src_a.dimensions
         src_b_dims = operation_config.src_b.dimensions
         tensor_a = operation_config.src_a.raw_data.view(src_a_dims)
@@ -488,7 +488,7 @@ class Math:
 
         return golden_tensor
 
-    def exec(self, operation_config: "PipelineOperation") -> str:
+    def exec(self, operation_config: "FusedOperation") -> str:
         code = self.fpu.exec(operation_config)
 
         for sfpu in self.sfpu:

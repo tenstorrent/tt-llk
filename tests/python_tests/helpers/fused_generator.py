@@ -7,12 +7,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List
 
-from .fuse_operation import PipelineOperation
+from .fused_operation import FusedOperation
 
 
 @dataclass
 class UnpackKernelGenerator:
-    def __init__(self, operations: List[PipelineOperation]):
+    def __init__(self, operations: List[FusedOperation]):
         self.operations = operations
 
     def generate(self) -> str:
@@ -47,7 +47,7 @@ void run_kernel()
 
 @dataclass
 class MathKernelGenerator:
-    def __init__(self, operations: List[PipelineOperation]):
+    def __init__(self, operations: List[FusedOperation]):
         self.operations = operations
 
     def generate(self) -> str:
@@ -92,7 +92,7 @@ void run_kernel()
 
 @dataclass
 class PackKernelGenerator:
-    def __init__(self, operations: List[PipelineOperation]):
+    def __init__(self, operations: List[FusedOperation]):
         self.operations = operations
 
     def generate(self) -> str:
@@ -120,9 +120,9 @@ void run_kernel()
         return code
 
 
-class KernelCompiler:
+class FusedKernelGenerator:
 
-    def __init__(self, operations: List[PipelineOperation]):
+    def __init__(self, operations: List[FusedOperation]):
         self.operations = operations
         num_stages = len(self.operations)
 
