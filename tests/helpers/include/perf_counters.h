@@ -260,7 +260,7 @@ inline void start_profiling()
         const PerfCounterDef& counter = unpack_counters[counter_idx];
 
         dbg_regs[(counter.reg_base - RISCV_DEBUG_REGS_START_ADDR) / 4]     = 0xFFFFFFFF;
-        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8) | (1 << 16);
+        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8);
         dbg_regs[(counter.reg_base + 8 - RISCV_DEBUG_REGS_START_ADDR) / 4] = 1;
     }
 #endif
@@ -351,7 +351,7 @@ inline void start_profiling()
         const PerfCounterDef& counter = math_counters[counter_idx];
 
         dbg_regs[(counter.reg_base - RISCV_DEBUG_REGS_START_ADDR) / 4]     = 0xFFFFFFFF;
-        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8) | (1 << 16);
+        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8);
         dbg_regs[(counter.reg_base + 8 - RISCV_DEBUG_REGS_START_ADDR) / 4] = 1;
     }
 #endif
@@ -442,7 +442,7 @@ inline void start_profiling()
         const PerfCounterDef& counter = pack_counters[counter_idx];
 
         dbg_regs[(counter.reg_base - RISCV_DEBUG_REGS_START_ADDR) / 4]     = 0xFFFFFFFF;
-        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8) | (1 << 16);
+        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8);
         dbg_regs[(counter.reg_base + 8 - RISCV_DEBUG_REGS_START_ADDR) / 4] = 1;
     }
 #endif
