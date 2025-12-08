@@ -43,7 +43,10 @@ from helpers.utils import passed_test
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     input_dimensions=[[32, 32], [64, 64], [32, 64], [64, 32]],
-    relu_config=[0, 1],
+    relu_config=[
+        0,
+        1,
+    ],  # 0 stands for NO_RELU, and 1 for ZERO_RELU. TODO: Use Enum when available.
     dst_sync=[DstSync.SyncHalf, DstSync.SyncFull],
     dest_index=lambda dest_acc, dst_sync, input_dimensions: get_valid_dest_indices(
         dest_sync=dst_sync,
@@ -82,7 +85,6 @@ def test_pack(
         "formats": formats,
         "testname": test_name,
         "tile_cnt": tile_cnt,
-        "input_dimensions": input_dimensions,
         "input_A_dimensions": input_dimensions,
         "input_B_dimensions": input_dimensions,
         "unpack_to_dest": formats.input_format.is_32_bit()
@@ -109,7 +111,6 @@ def test_pack(
         formats,
         tile_count=tile_cnt,
         address=res_address,
-        tile_dimensions=input_dimensions,
     )
     assert len(res_from_L1) == len(golden_tensor)
 
