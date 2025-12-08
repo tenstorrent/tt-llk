@@ -21,7 +21,7 @@ inline void _calculate_square_()
         TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 0);
         // Multiply LREG0 * LREG0, store result in LREG0
         TTI_SFPMUL(p_sfpu::LREG0, p_sfpu::LREG0, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
-        TTI_NOP;
+        TTI_SFPNOP;
         // Store result back to destination
         TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 0);
         sfpi::dst_reg++;
