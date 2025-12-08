@@ -17,6 +17,7 @@ from helpers.perf_analyzer import (
     TILE_HEIGHT,
     TILE_WIDTH,
     analyze_performance,
+    clear_perf_counter_memory,
     collect_perf_counter_data,
     print_performance_analysis,
 )
@@ -82,7 +83,13 @@ def test_multiple_tiles(
         tile_count_B=tile_cnt,
     )
 
-    run_test(test_config)
+    from ttexalens.tt_exalens_lib import write_words_to_device
+
+    clear_perf_counter_memory()
+
+    for iteration in range(14):
+        write_words_to_device(location="0,0", addr=0x2F7FC, data=iteration)
+        run_test(test_config)
 
     workload_info = {
         "tile_ops": tile_cnt,

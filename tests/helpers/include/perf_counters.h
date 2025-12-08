@@ -127,8 +127,9 @@ constexpr uint32_t NOC_RING1_INCOMING_1 = 0;
 
 } // namespace counters
 
-#define PERF_ITERATION_ADDR    0x2F7FC
-#define PERF_COUNTER_DATA_ADDR 0x2F800
+#define PERF_ITERATION_ADDR      0x2F7FC
+#define PERF_COUNTER_DATA_ADDR   0x2F800
+#define PERF_COUNTER_TOTAL_WORDS 540
 
 inline void set_profiling_iteration(uint32_t iteration)
 {
@@ -140,6 +141,17 @@ inline uint32_t get_profiling_iteration()
 {
     volatile uint32_t* iter_ptr = reinterpret_cast<volatile uint32_t*>(PERF_ITERATION_ADDR);
     return *iter_ptr;
+}
+
+inline void init_profiling()
+{
+    set_profiling_iteration(0);
+
+    volatile uint32_t* l1_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_DATA_ADDR);
+    for (uint32_t i = 0; i < PERF_COUNTER_TOTAL_WORDS; i++)
+    {
+        l1_mem[i] = 0;
+    }
 }
 
 struct PerfCounterDef

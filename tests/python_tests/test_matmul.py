@@ -17,6 +17,7 @@ from helpers.perf_analyzer import (
     TILE_HEIGHT,
     TILE_WIDTH,
     analyze_performance,
+    clear_perf_counter_memory,
     collect_perf_counter_data,
     print_performance_analysis,
 )
@@ -153,7 +154,13 @@ def test_matmul(
         tile_cnt_B,
     )
 
-    run_test(test_config, boot_mode)
+    from ttexalens.tt_exalens_lib import write_words_to_device
+
+    clear_perf_counter_memory()
+
+    for iteration in range(14):
+        write_words_to_device(location="0,0", addr=0x2F7FC, data=iteration)
+        run_test(test_config, boot_mode)
 
     macs_per_tile = TILE_HEIGHT * TILE_WIDTH
     total_tile_ops = matmul_dims.rt_dim * matmul_dims.ct_dim * matmul_dims.kt_dim

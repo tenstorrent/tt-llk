@@ -37,6 +37,15 @@ def collect_perf_counter_data(location: str = "0,0"):
     return all_iteration_data
 
 
+def clear_perf_counter_memory(location: str = "0,0"):
+    from ttexalens.tt_exalens_lib import write_words_to_device
+
+    write_words_to_device(location=location, addr=0x2F7FC, data=0)
+
+    zeros = [0] * PERF_TOTAL_WORDS
+    write_words_to_device(location=location, addr=PERF_COUNTER_DATA_ADDR, data=zeros)
+
+
 class PerfIndices:
     INST_UNPACK_CYCLES = 0
     INST_UNPACK_COUNT = 1
