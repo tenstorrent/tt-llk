@@ -125,11 +125,11 @@ void run_kernel()
 #ifdef ARCH_BLACKHOLE
     const bool TILIZE = true;
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, false, TILIZE>(formats_array[run].pack_dst);
+    _llk_pack_init_<UNTILIZE, false, TILIZE>(formats_array[run].pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, false>(formats_array[run].pack_dst);
+    _llk_pack_init_<UNTILIZE, false>(formats_array[run].pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>();
 #endif
 
@@ -152,7 +152,7 @@ void run_kernel()
         tile_size); // need to reconfigure data formats_array for next pack, also calls set_packer_strides to readjust strides after pack tilizing
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_init_<false, false, false, false>(formats_array[run].pack_dst);
+    _llk_pack_init_<false, false, false>(formats_array[run].pack_dst);
 #endif
 
     _llk_packer_wait_for_math_done_();

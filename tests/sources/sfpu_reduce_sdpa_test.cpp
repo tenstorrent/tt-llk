@@ -95,7 +95,7 @@ void run_kernel()
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #endif
 
-    _llk_pack_init_<false, false, false>(formats.pack_dst);
+    _llk_pack_init_<false, false>(formats.pack_dst);
 
     // Initialize destination for packing
 #ifdef ARCH_BLACKHOLE

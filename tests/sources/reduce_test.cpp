@@ -72,7 +72,7 @@ void run_kernel()
 
 void run_kernel()
 {
-    _llk_pack_init_<false, false, false>(formats.pack_dst);
+    _llk_pack_init_<false, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);

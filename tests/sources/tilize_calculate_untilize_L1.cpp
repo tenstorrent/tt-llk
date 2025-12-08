@@ -133,11 +133,11 @@ void run_kernel()
 #ifdef ARCH_BLACKHOLE
     const bool TILIZE = true;
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, false, TILIZE>(formats_array[run].pack_dst);
+    _llk_pack_init_<UNTILIZE, false, TILIZE>(formats_array[run].pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, false>(formats_array[run].pack_dst);
+    _llk_pack_init_<UNTILIZE, false>(formats_array[run].pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>();
 #endif
 
@@ -154,7 +154,7 @@ void run_kernel()
     run = 1;                                   // second L1-to-L1 run, we access the second set of formats_array in our array
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, !TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, false, !TILIZE>(formats_array[run].pack_dst);
+    _llk_pack_init_<UNTILIZE, false, !TILIZE>(formats_array[run].pack_dst);
 #endif
 
     _llk_packer_wait_for_math_done_();
