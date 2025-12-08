@@ -52,7 +52,7 @@ inline void _llk_pack_configure_addrmod_()
         .set(ADDR_MOD_2);
 }
 
-template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
+template <bool untilize = false, bool zero_output = false, bool write_tile_header = true>
 inline void _llk_pack_mop_config_(
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
@@ -60,7 +60,6 @@ inline void _llk_pack_mop_config_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
-    static_assert(FaceLayout == DstTileFaceLayout::RowMajor, "FaceLayout must be RowMajor");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
     const uint PACKCNT              = (partial_face && IS_BFP_FORMAT(pack_dst_format)) ? 1 : num_faces;
@@ -108,11 +107,7 @@ inline void _llk_pack_mop_config_(
     }
 }
 
-template <
-    bool is_fp32_dest_acc_en,
-    bool is_tile_dim_reconfig_en = false,
-    DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
-    bool write_tile_header       = true>
+template <bool is_fp32_dest_acc_en, bool is_tile_dim_reconfig_en = false, bool write_tile_header = true>
 inline void _llk_pack_reconfig_data_format_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
@@ -127,7 +122,7 @@ inline void _llk_pack_reconfig_data_format_(
 
     if constexpr (is_tile_dim_reconfig_en)
     {
-        _llk_pack_mop_config_<false, false, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+        _llk_pack_mop_config_<false, false, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
     }
 }
 
@@ -222,7 +217,7 @@ inline void _llk_pack_reduce_hw_configure_(
     }
 }
 
-template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
+template <bool untilize = false, bool zero_output = false, bool write_tile_header = true>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
@@ -232,10 +227,10 @@ inline void _llk_pack_init_(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     _llk_pack_configure_addrmod_<untilize>();
-    _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+    _llk_pack_mop_config_<untilize, zero_output, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
-template <bool untilize = false, bool zero_output = false, DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor, bool write_tile_header = true>
+template <bool untilize = false, bool zero_output = false, bool write_tile_header = true>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
     const std::uint32_t pack_src_format,
@@ -247,7 +242,7 @@ inline void _llk_pack_init_(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     _llk_pack_configure_addrmod_<untilize>();
-    _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+    _llk_pack_mop_config_<untilize, zero_output, write_tile_header>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
     if (include_setup_calls)
     {
         set_packer_l1_offset(pack_dst_format);
@@ -418,7 +413,7 @@ inline void _llk_pack_fast_tilize_uninit_(
     cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(is_fp32_dest_acc_en);
 
     // restore default packer dest offsets
-    _llk_init_packer_dest_offset_registers_<Dst, DstTileFaceLayout::RowMajor>();
+    _llk_init_packer_dest_offset_registers_<Dst>();
 
     // packers pack a whole face by default, restore it
     TTI_SETADCXX(p_setadc::PAC, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
@@ -428,7 +423,7 @@ inline void _llk_pack_fast_tilize_uninit_(
     // for some reason short inits avoid the packer init (probably since it is usually the same)
     // but that means calling it here with reasonable defaults is needed
     // it just initializes the address mods and mop
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
+    _llk_pack_init_<false, false, false>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
 inline void _llk_pack_fast_tilize_block_(

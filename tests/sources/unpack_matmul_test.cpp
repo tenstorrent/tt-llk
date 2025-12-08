@@ -64,14 +64,14 @@ void run_kernel()
 
 void run_kernel()
 {
-    _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(
+    _llk_math_matmul_init_<MATH_FIDELITY>(
         in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, PARTIAL_FACE_MATH, UNPACK_TRANSPOSE_FACES, CT_DIM, RT_DIM);
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
-        _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0, CT_DIM, RT_DIM);
+        _llk_math_matmul_<MATH_FIDELITY>(0, CT_DIM, RT_DIM);
     }
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -90,13 +90,13 @@ void run_kernel()
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
         formats.pack_src, formats.pack_dst, TILE_SIZE_PACK, FACE_R_DIM, TILE_C_DIM, num_faces, PARTIAL_FACE_PACK);
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(
+    _llk_pack_init_<false, false, false, false>(
         formats.pack_dst, FACE_R_DIM, TILE_C_DIM, num_faces, false /* partial_face parameter is unused on BH */);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, TILE_SIZE_PACK, FACE_R_DIM, num_faces, PARTIAL_FACE_PACK);
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst, FACE_R_DIM, num_faces, PARTIAL_FACE_PACK);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_init_<false, false, false>(formats.pack_dst, FACE_R_DIM, num_faces, PARTIAL_FACE_PACK);
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>();
 #endif
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < TILE_CNT; i++)

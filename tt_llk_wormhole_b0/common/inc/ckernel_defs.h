@@ -50,12 +50,6 @@ enum ThreadId
     PackThreadId   = 3
 };
 
-enum DstTileFaceLayout
-{
-    RowMajor, // default
-    ColMajor,
-};
-
 enum class DataLayout
 {
     TILE      = 0,

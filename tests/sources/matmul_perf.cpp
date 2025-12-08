@@ -95,7 +95,7 @@ void run_kernel()
         ZONE_SCOPED("INIT")
         _llk_math_hw_configure_<false, false>(formats.math, formats.math);
         _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
-        _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor, THROTTLE_LEVEL>(
+        _llk_math_matmul_init_<MATH_FIDELITY, THROTTLE_LEVEL>(
             /* tile A */ TILE_R_DIM,
             /* tile A */ TILE_C_DIM,
             /* tile B */ TILE_R_DIM,
@@ -123,7 +123,7 @@ void run_kernel()
             {
                 for (uint32_t j = 0; j < KT_DIM; j++)
                 {
-                    _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor, THROTTLE_LEVEL>(
+                    _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(
                         /* dest_index */ 0, CT_DIM, RT_DIM);
                 }
             }
@@ -135,7 +135,7 @@ void run_kernel()
                 _llk_math_wait_for_dest_available_<dest_sync>();
                 for (uint32_t j = 0; j < KT_DIM; j++)
                 {
-                    _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor, THROTTLE_LEVEL>(
+                    _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(
                         /* dest_index */ 0, CT_DIM, RT_DIM);
                 }
                 _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
@@ -160,7 +160,6 @@ void run_kernel()
         _llk_pack_init_<
             /* untilize */ false,
             /* zero_output */ false,
-            DstTileFaceLayout::RowMajor,
             /* write_tile_header */ false>(formats.pack_dst);
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         PROFILER_SYNC();

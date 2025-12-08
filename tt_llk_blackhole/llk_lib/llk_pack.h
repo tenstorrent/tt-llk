@@ -69,12 +69,7 @@ inline void _llk_pack_configure_addrmod_()
     }
 }
 
-template <
-    bool untilize                = false,
-    bool zero_output             = false,
-    DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
-    bool write_tile_header       = true,
-    bool tilize                  = false>
+template <bool untilize = false, bool zero_output = false, bool write_tile_header = true, bool tilize = false>
 inline void _llk_pack_mop_config_(
     [[maybe_unused]] const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim           = FACE_R_DIM,
@@ -83,7 +78,6 @@ inline void _llk_pack_mop_config_(
     [[maybe_unused]] const bool partial_face = false,
     [[maybe_unused]] const bool narrow_tile  = false)
 {
-    static_assert(FaceLayout == DstTileFaceLayout::RowMajor, "FaceLayout must be RowMajor");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(!partial_face, "partial_face: this parameter is unused");
     LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
@@ -475,11 +469,7 @@ inline void _llk_pack_mop_config_(
     }
 }
 
-template <
-    bool is_fp32_dest_acc_en,
-    bool is_tile_dim_reconfig_en = false,
-    DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
-    bool write_tile_header       = true>
+template <bool is_fp32_dest_acc_en, bool is_tile_dim_reconfig_en = false, bool write_tile_header = true>
 inline void _llk_pack_reconfig_data_format_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
@@ -495,7 +485,7 @@ inline void _llk_pack_reconfig_data_format_(
 
     if constexpr (is_tile_dim_reconfig_en)
     {
-        _llk_pack_mop_config_<false, false, FaceLayout, write_tile_header>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+        _llk_pack_mop_config_<false, false, write_tile_header>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
     }
 }
 
@@ -580,12 +570,7 @@ inline void _llk_pack_reduce_hw_configure_(
     }
 }
 
-template <
-    bool untilize                = false,
-    bool zero_output             = false,
-    DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
-    bool write_tile_header       = true,
-    bool tilize                  = false>
+template <bool untilize = false, bool zero_output = false, bool write_tile_header = true, bool tilize = false>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
@@ -596,16 +581,10 @@ inline void _llk_pack_init_(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     _llk_pack_configure_addrmod_<untilize, tilize>();
-    _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header, tilize>(
-        pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+    _llk_pack_mop_config_<untilize, zero_output, write_tile_header, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
 }
 
-template <
-    bool untilize                = false,
-    bool zero_output             = false,
-    DstTileFaceLayout FaceLayout = DstTileFaceLayout::RowMajor,
-    bool write_tile_header       = true,
-    bool tilize                  = false>
+template <bool untilize = false, bool zero_output = false, bool write_tile_header = true, bool tilize = false>
 inline void _llk_pack_init_(
     const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
@@ -617,7 +596,7 @@ inline void _llk_pack_init_(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     _llk_pack_configure_addrmod_<untilize, tilize>();
-    _llk_pack_mop_config_<untilize, zero_output, FaceLayout, write_tile_header, tilize>(
+    _llk_pack_mop_config_<untilize, zero_output, write_tile_header, tilize>(
         pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
     set_packer_strides<untilize, tilize>(pack_src_format, tile_c_dim);
     TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
