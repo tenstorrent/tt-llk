@@ -5,6 +5,11 @@ from typing import List
 
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture
+from helpers.constraints import (
+    get_valid_dest_accumulation_modes,
+    get_valid_unpack_to_dest_modes,
+)
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, FormatConfig
 from helpers.golden_generators import UntilizeGolden, get_golden_generator
@@ -72,16 +77,22 @@ ALL_PACK_UNTILIZE_COMBINATIONS = generate_pack_untilize_combinations(
 @pytest.mark.quasar
 @parametrize(
     test_name="pack_untilize_quasar_test",
-    formats_dest_acc_dimensions=ALL_PACK_UNTILIZE_COMBINATIONS,
+    formats=input_output_formats(
+        [
+            DataFormat.Float16_b,
+            DataFormat.Float16,
+            DataFormat.Float32,
+        ]
+    ),
+    unpack_to_dest=lambda formats: get_valid_unpack_to_dest_modes(formats),
+    dest_acc=lambda formats: get_valid_dest_accumulation_modes(
+        ChipArchitecture.QUASAR, formats, unpack_to_dest=False
+    ),
+    input_dimensions=lambda dest_acc: generate_unary_input_dimensions(dest_acc),
 )
-def test_pack_untilize_quasar(test_name, formats_dest_acc_dimensions):
-
-    formats = formats_dest_acc_dimensions[0]
-    dest_acc = formats_dest_acc_dimensions[1]
-    input_dimensions = formats_dest_acc_dimensions[2]
-
-    if formats.input_format == DataFormat.Float16 and dest_acc == DestAccumulation.Yes:
-        pytest.skip("Fails for now.")
+def test_pack_untilize_quasar(
+    test_name, formats, dest_acc, unpack_to_dest, input_dimensions
+):
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
@@ -89,10 +100,6 @@ def test_pack_untilize_quasar(test_name, formats_dest_acc_dimensions):
 
     generate_golden = get_golden_generator(UntilizeGolden)
     golden_tensor = generate_golden(src_A, formats.output_format, input_dimensions)
-
-    unpack_to_dest = (
-        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-    )
 
     test_config = {
         "formats": formats,
