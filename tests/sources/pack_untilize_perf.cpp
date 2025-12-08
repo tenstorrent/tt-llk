@@ -148,8 +148,6 @@ void run_kernel()
 
 void run_kernel()
 {
-    constexpr bool UNTILIZE = true;
-
     {
         ZONE_SCOPED("INIT")
 
