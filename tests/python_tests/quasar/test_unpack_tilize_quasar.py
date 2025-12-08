@@ -19,7 +19,6 @@ from helpers.golden_generators import (
 )
 from helpers.llk_params import (
     DataCopyType,
-    DestAccumulation,
     ImpliedMathFormat,
     UnpackerEngine,
     format_dict,
@@ -39,6 +38,7 @@ from helpers.utils import passed_test
     test_name="unpack_tilize_quasar_test",
     formats=input_output_formats(
         [
+            DataFormat.Float32,
             DataFormat.Float16_b,
             DataFormat.Float16,
         ]
@@ -70,17 +70,13 @@ def test_unpack_tilize_quasar(
         golden_src, input_dimensions, formats.output_format, num_faces=4
     )
 
-    unpack_to_dest = (
-        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-    )
-
     test_config = {
         "formats": formats,
         "testname": test_name,
         "dest_acc": dest_acc,
         "input_A_dimensions": input_dimensions,
         "input_B_dimensions": input_dimensions,
-        "unpack_to_dest": unpack_to_dest,
+        "unpack_to_dest": False,
         "tile_cnt": tile_cnt,
         "unpacker_engine_sel": unpacker_sel,
         "implied_math_format": ImpliedMathFormat.Yes,

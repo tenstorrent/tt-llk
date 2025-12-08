@@ -1,15 +1,19 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import List
 
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture
+from helpers.constraints import (
+    get_valid_dest_accumulation_modes,
+    get_valid_unpack_to_dest_modes,
+)
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_config import DataFormat, FormatConfig
+from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     DataCopyGolden,
     TransposeGolden,
@@ -17,7 +21,6 @@ from helpers.golden_generators import (
 )
 from helpers.llk_params import (
     DataCopyType,
-    DestAccumulation,
     ImpliedMathFormat,
     Transpose,
     UnpackerEngine,
@@ -33,91 +36,40 @@ from helpers.test_config import BootMode, run_test
 from helpers.utils import passed_test
 
 
-def generate_unpack_unary_operand_combinations(
-    formats_list: List[FormatConfig],
-):
-    """
-    Generate unpack_unary_operand combinations.
-
-    Rules:
-    1. When unpacking to dest, transpose is not yet supported.
-
-    Args: List of input-output format pairs
-
-    Returns: List of (format, dest_acc, transpose_en, unpacker_sel, input_dimensions) tuples
-    """
-    dimensions_cache = {
-        DestAccumulation.No: tuple(
-            generate_unary_input_dimensions(DestAccumulation.No)
-        ),
-        DestAccumulation.Yes: tuple(
-            generate_unary_input_dimensions(DestAccumulation.Yes)
-        ),
-    }
-
-    combinations = []
-
-    for fmt in formats_list:
-        in_fmt = fmt.input_format
-
-        dest_acc_modes = (
-            (DestAccumulation.Yes,)
-            if in_fmt.is_32_bit()
-            else (DestAccumulation.No, DestAccumulation.Yes)
-        )
-        transpose_modes = (
-            (Transpose.No,) if in_fmt.is_32_bit() else (Transpose.No, Transpose.Yes)
-        )
-        unpacker_engines = (
-            (UnpackerEngine.UnpDest,)
-            if in_fmt.is_32_bit()
-            else (UnpackerEngine.UnpA, UnpackerEngine.UnpB)
-        )
-
-        for dest_acc in dest_acc_modes:
-            if (
-                in_fmt != DataFormat.Float32
-                and fmt.output_format == DataFormat.Float32
-                and dest_acc == DestAccumulation.No
-            ):
-                # Skip if input format is not Float32 and output format is Float32 and dest_acc is No
-                # This combination is not supported in the Quasar Packer format conversions
-                continue
-            for transpose_en in transpose_modes:
-                for unpacker_sel in unpacker_engines:
-                    for dimensions in dimensions_cache[dest_acc]:
-                        combinations.append(
-                            (fmt, dest_acc, transpose_en, unpacker_sel, dimensions)
-                        )
-
-    return combinations
-
-
-UNPACK_FORMATS = input_output_formats(
-    [
-        DataFormat.Float16_b,
-        DataFormat.Float16,
-        DataFormat.Float32,
-    ]
-)
-ALL_UNPACK_UNARY_OPERAND_COMBINATIONS = generate_unpack_unary_operand_combinations(
-    UNPACK_FORMATS
-)
-
-
 @pytest.mark.quasar
 @parametrize(
     test_name="unpack_unary_operand_quasar_test",
-    formats_dest_acc_transpose_unpack_sel_dims=ALL_UNPACK_UNARY_OPERAND_COMBINATIONS,
+    formats=input_output_formats(
+        [
+            DataFormat.Float16_b,
+            DataFormat.Float16,
+            DataFormat.Float32,
+        ]
+    ),
+    unpack_to_dest=lambda formats: get_valid_unpack_to_dest_modes(formats),
+    dest_acc=lambda formats, unpack_to_dest: get_valid_dest_accumulation_modes(
+        ChipArchitecture.QUASAR, formats, unpack_to_dest
+    ),
+    transpose_en=lambda unpack_to_dest: (
+        [Transpose.No] if unpack_to_dest else [Transpose.No, Transpose.Yes]
+    ),
+    unpacker_sel=lambda unpack_to_dest: (
+        [UnpackerEngine.UnpDest]
+        if unpack_to_dest
+        else [UnpackerEngine.UnpA, UnpackerEngine.UnpB]
+    ),
+    input_dimensions=lambda dest_acc: generate_unary_input_dimensions(dest_acc),
 )
 def test_unpack_unary_operand_quasar(
-    test_name, formats_dest_acc_transpose_unpack_sel_dims, boot_mode=BootMode.DEFAULT
+    test_name,
+    formats,
+    unpack_to_dest,
+    dest_acc,
+    transpose_en,
+    unpacker_sel,
+    input_dimensions,
+    boot_mode=BootMode.DEFAULT,
 ):
-    formats = formats_dest_acc_transpose_unpack_sel_dims[0]
-    dest_acc = formats_dest_acc_transpose_unpack_sel_dims[1]
-    transpose_en = formats_dest_acc_transpose_unpack_sel_dims[2]
-    unpacker_sel = formats_dest_acc_transpose_unpack_sel_dims[3]
-    input_dimensions = formats_dest_acc_transpose_unpack_sel_dims[4]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
@@ -152,10 +104,6 @@ def test_unpack_unary_operand_quasar(
             num_faces=4,
             input_dimensions=input_dimensions,
         )
-
-    unpack_to_dest = (
-        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-    )
 
     test_config = {
         "formats": formats,
