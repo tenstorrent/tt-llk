@@ -2,18 +2,29 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+from helpers.chip_architecture import ChipArchitecture
 from helpers.format_config import DataFormat
 from helpers.llk_params import DestAccumulation, DestSync, MathFidelity, MathOperation
 
 
-def get_valid_dest_accumulation_modes(formats):
+def get_valid_dest_accumulation_modes(chip_arch, formats, unpack_to_dest):
     """
     Base constraints for Dest Accumulation modes.
 
+    * QUASAR specific constraints:
+    - Dest accumulation must be ENABLED for the following format combination:
+        - Output format is Float32
+        Reason: HW limitation, Packer cannot convert Float16_b/Float16 (16-bit dest) to Float32.
+            When the dest register is in 32-bit mode, packer_in_fmt=packer_out_fmt=Fp32, which is a supported packer conversion.
+            When the dest register is in 16-bit mode, packer_in_fmt=Fp16/16_b and packer_out_fmt=Fp32, which is not a supported packer conversion.
+
+    * BH/WH specific constraints:
     - Dest accumulation must be ENABLED for the following format combinations:
         - Input format has B type exponent (bfp8_b, float16_b)
         - Output format is A type exponent (float16)
         Reason: HW limitation, Packer cannot convert expB to expA, so we convert it to Float32 first as intermediate. (Source???)
+
+    * Common constraints:
     - Dest accumulation must be ENABLED for the following format combination:
         - Input format is 32bit integer format (int32, uint32)
         Reason: HW limitation, Unpacker cannot unpack 32bit integer formats into SrcA and SrcB registers
@@ -23,16 +34,24 @@ def get_valid_dest_accumulation_modes(formats):
         So I'm not sure if they should also be handled here.
     """
 
-    if (
-        formats.input in [DataFormat.Bfp8_b, DataFormat.Float16_b]
-        and formats.output == DataFormat.Float16
-    ):
-        return [DestAccumulation.Yes]
+    if chip_arch == ChipArchitecture.QUASAR:
 
-    if formats.input in [DataFormat.Int32, DataFormat.UInt32]:
-        return [DestAccumulation.Yes]
+        if formats.output == DataFormat.Float32:
+            return [DestAccumulation.Yes]
 
-    return [DestAccumulation.No, DestAccumulation.Yes]
+    else:
+
+        if (
+            formats.input in [DataFormat.Bfp8_b, DataFormat.Float16_b]
+            and formats.output == DataFormat.Float16
+        ):
+            return [DestAccumulation.Yes]
+
+    return (
+        [DestAccumulation.Yes]
+        if unpack_to_dest
+        else [DestAccumulation.No, DestAccumulation.Yes]
+    )
 
 
 def get_valid_math_fidelities(format, operation, PERF_RUN: bool = False):
@@ -103,3 +122,25 @@ def get_valid_dest_indices(
         return list(range(start_index, end_index + 1))
 
     return [start_index] if start_index == end_index else [start_index, end_index]
+
+
+def get_valid_unpack_to_dest_modes(formats):
+    """
+    Base constraints for unpack to dest modes.
+
+    - Unpack to dest must be ENABLED for the following format combination:
+        - Input format is 32bit integer format (int32, uint32)
+        Reason: HW limitation, Unpacker cannot unpack 32bit integer formats into SrcA and SrcB registers
+    - Unpack to dest DISABLED for the following format combination:
+        - Input format is not a 32bit format
+        Reason: SW limitation, The API is designed to unpack to srcA and srcB registers for non 32bit formats.
+    - Otherwise it can be ENABLED or DISABLED
+    """
+
+    if formats.input in [DataFormat.Int32, DataFormat.UInt32]:
+        return [True]
+
+    if not formats.input.is_32_bit():
+        return [False]
+
+    return [False, True]

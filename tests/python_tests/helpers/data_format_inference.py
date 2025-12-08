@@ -114,8 +114,7 @@ def infer_pack_in(
 
     if is_quasar:
         if (
-            input_format in (DataFormat.Float16, DataFormat.Float16_b)
-            and output_format == DataFormat.Float32
+            output_format == DataFormat.Float32
             and is_fp32_dest_acc_en == DestAccumulation.No
         ):
             # When the dest register is in 32-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is valid
@@ -129,7 +128,7 @@ def infer_pack_in(
         return (
             DataFormat.Float32
             if is_fp32_dest_acc_en == DestAccumulation.Yes
-            else input_format
+            else unpack_out
         )
 
     # Wormhole + FP32 dest reg datums + Float16 output: keep Float32 for packer input for conversion to desired output format
@@ -302,11 +301,19 @@ def data_formats(
             )
         ]  # No final config for single iteration
 
-    intermediate_config = infer_data_formats(
-        input_format, input_format, is_fp32_dest_acc_en, unpacking_to_dest, chip_arch
-    )
     final_config = infer_data_formats(
         input_format, output_format, is_fp32_dest_acc_en, unpacking_to_dest, chip_arch
     )
 
-    return build_data_formats(num_iterations, intermediate_config, final_config)
+    # Compute intermediate_config when needed
+    if num_iterations > 1:
+        intermediate_config = infer_data_formats(
+            input_format,
+            input_format,
+            is_fp32_dest_acc_en,
+            unpacking_to_dest,
+            chip_arch,
+        )
+        return build_data_formats(num_iterations, intermediate_config, final_config)
+
+    return [final_config]
