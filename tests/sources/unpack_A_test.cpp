@@ -88,10 +88,10 @@ void run_kernel()
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
         formats.pack_src, formats.pack_dst, TEST_FACE_R_DIM * TEST_FACE_C_DIM * 4, TEST_FACE_R_DIM, TILE_C_DIM, NUM_FACES);
-    _llk_pack_init_<false, false, false>(formats.pack_dst, TEST_FACE_R_DIM, TILE_C_DIM, NUM_FACES);
+    _llk_pack_init_<false, false>(formats.pack_dst, TEST_FACE_R_DIM, TILE_C_DIM, NUM_FACES);
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, TEST_FACE_R_DIM * TEST_FACE_C_DIM * 4, TEST_FACE_R_DIM, NUM_FACES);
-    _llk_pack_init_<false, false, false>(formats.pack_dst, TEST_FACE_R_DIM, NUM_FACES);
+    _llk_pack_init_<false, false>(formats.pack_dst, TEST_FACE_R_DIM, NUM_FACES);
 #endif
 
 #ifdef ARCH_BLACKHOLE

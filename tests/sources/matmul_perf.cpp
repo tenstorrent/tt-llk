@@ -159,8 +159,7 @@ void run_kernel()
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_C_DIM * TILE_R_DIM);
         _llk_pack_init_<
             /* untilize */ false,
-            /* zero_output */ false,
-            /* write_tile_header */ false>(formats.pack_dst);
+            /* zero_output */ false>(formats.pack_dst);
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         PROFILER_SYNC();
     }

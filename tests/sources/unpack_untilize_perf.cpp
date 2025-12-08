@@ -125,7 +125,7 @@ void run_kernel()
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-        _llk_pack_init_<UNTILIZE, false, false>(formats.pack_dst);
+        _llk_pack_init_<UNTILIZE, false>(formats.pack_dst);
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>();
 #endif
         PROFILER_SYNC();

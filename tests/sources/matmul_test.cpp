@@ -74,11 +74,11 @@ void run_kernel()
 {
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, TILE_SIZE_PACK);
-    _llk_pack_init_<false, false, false, false>(formats.pack_dst);
+    _llk_pack_init_<false, false, false>(formats.pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, TILE_SIZE_PACK);
-    _llk_pack_init_<false, false, false>(formats.pack_dst);
+    _llk_pack_init_<false, false>(formats.pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>();
 #endif
     _llk_packer_wait_for_math_done_();

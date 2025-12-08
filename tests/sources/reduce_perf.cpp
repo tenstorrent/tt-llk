@@ -142,8 +142,7 @@ void run_kernel()
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
         _llk_pack_init_<
             /* untilize */ false,
-            /* zero output */ false,
-            /* write tile header */ false>(formats.pack_dst);
+            /* zero output */ false>(formats.pack_dst);
         _llk_pack_reduce_mask_config_<
             /* untilize */ false,
             REDUCE_DIM>();
