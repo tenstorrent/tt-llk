@@ -43,12 +43,12 @@ SECTIONS
    * This section is used for testing pipeline optimisation. It solves the problem of needing to compile the whole
    * kernel again on change of function arguments to LLK API functions
    */
-  .runtime_args :
+  /* .runtime_args :
   {
     __runtime_args_start = .;
     . += LENGTH(REGION_RUNTIME_ARGS);
     __runtime_args_end = .;
-  } > REGION_RUNTIME_ARGS
+  } > REGION_RUNTIME_ARGS */
 
   /*
    * Rest of the sections are standard sections

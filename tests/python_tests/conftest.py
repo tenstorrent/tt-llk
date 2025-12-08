@@ -180,8 +180,8 @@ def pytest_sessionstart(session):
     check_hardware_headers()
 
     test_target = TestTargetConfig()
-
     TestConfig.setup_build(Path(os.environ["LLK_HOME"]), Path("/tmp/tt-llk-build/"))
+
     if not test_target.run_simulator:
         # Send ARC message for GO BUSY signal. This should increase device clock speed.
         _send_arc_message("GO_BUSY", test_target.device_id)

@@ -24,6 +24,7 @@ from ttexalens.tt_exalens_lib import (
     read_from_device,
     read_word_from_device,
     validate_device_id,
+    write_to_device,
     write_words_to_device,
 )
 
@@ -145,7 +146,7 @@ def set_tensix_soft_reset(
 
 
 def collect_results(
-    formats: FormatConfig,
+    output_format,
     tile_count: int,
     address: int = 0x68000,  # Default L1 address of result, placed so both coverage and non-coverage elfs don't run it over
     location: str = "0,0",
@@ -157,14 +158,12 @@ def collect_results(
     # Always read full tiles - hardware still outputs full tile data
     # but with variable face dimensions, only part of it is valid
     tile_elements = tile_dimensions[0] * tile_dimensions[1]
-    read_bytes_cnt = (
-        formats.output_format.num_bytes_per_tile(tile_elements) * tile_count
-    )
+    read_bytes_cnt = output_format.num_bytes_per_tile(tile_elements) * tile_count
 
     read_data = read_from_device(location, address, num_bytes=read_bytes_cnt)
     res_from_L1 = unpack_res_tiles(
         read_data,
-        formats,
+        output_format,
         tile_count=tile_count,
         sfpu=sfpu,
         num_faces=num_faces,
@@ -363,6 +362,37 @@ def write_stimuli_to_l1(
             raise ValueError(
                 f"Unsupported data format for buffer_C: {stimuli_C_format.name}"
             )
+
+    def write_matrix(
+        buffer,
+        tile_count,
+        pack_function,
+        base_address,
+        tile_size,
+        num_faces,
+        location="0,0",
+    ):
+        addresses = []
+        packed_data_list = []
+
+        pack_function_lambda = lambda buffer_tile: (
+            pack_function(buffer_tile, num_faces=num_faces)
+            if pack_function == pack_bfp8_b
+            else pack_function(buffer_tile)
+        )
+
+        for ind in range(tile_count):
+            start_idx = TILE_ELEMENTS * ind
+            tile_data = buffer[start_idx : start_idx + TILE_ELEMENTS]
+            packed_data = pack_function_lambda(tile_data)
+
+            # print(f"TILE[{ind}] - {hex(base_address + ind * tile_size)} {hex(tile_size)}")
+
+            addresses.append(base_address + ind * tile_size)
+            packed_data_list.append(packed_data)
+
+        for addr, data in zip(addresses, packed_data_list):
+            write_to_device(location, addr, data)
 
     write_matrix(
         buffer_A,

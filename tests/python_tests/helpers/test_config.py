@@ -8,9 +8,7 @@ from enum import Enum
 from pathlib import Path
 from typing import ClassVar
 
-from ttexalens.tt_exalens_lib import (
-    parse_elf,
-)
+from ttexalens.tt_exalens_lib import parse_elf
 
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
@@ -24,6 +22,7 @@ from .format_config import DataFormat, FormatConfig
 from .llk_params import (
     DestAccumulation,
 )
+from .stimuli_config import StimuliConfig
 from .target_config import TestTargetConfig
 
 
@@ -186,6 +185,7 @@ class TestConfig:
         formats: FormatConfig,
         templates: set[TemplateParameter],
         runtimes: set[RuntimeParameter],
+        variant_stimuli: StimuliConfig,
         # Arguments with valid default values
         boot_mode: BootMode = BootMode.DEFAULT,
         profiler_build: ProfilerBuild = ProfilerBuild.No,
@@ -205,12 +205,15 @@ class TestConfig:
         self.formats = formats
         self.templates = templates
         self.runtimes = runtimes
+        self.variant_stimuli = variant_stimuli
+
         self.boot_mode = boot_mode
         self.profiler_build = profiler_build
         self.L1_to_L1_iterations = L1_to_L1_iterations
         self.unpack_to_dest = unpack_to_dest
         self.disable_format_inference = disable_format_inference
         self.dest_acc = dest_acc
+        self.tiny_tiles = tiny_tiles
 
         if (
             self.coverage_build == CoverageBuild.Yes
@@ -220,7 +223,7 @@ class TestConfig:
                 "You can't build profiler and coverage build at the same time, profiling tests will fail"
             )
 
-        self.variant_id = "finnish_hashing_of_this_object"
+        self.variant_id = "finnish_hashing_of_test_config_object"
 
     def resolve_compile_options(self) -> tuple[str, str, str]:
 
@@ -482,6 +485,33 @@ class TestConfig:
             "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
         ]
 
+        header_content.extend(
+            self.variant_stimuli.generate_stimuli_header_addresses(self.formats)
+        )
+
+        TILE_SIZES = {
+            DataFormat.Bfp8_b: 68,
+            DataFormat.Float32: 256,
+        }
+
+        pack_size = TILE_SIZES.get(self.formats.output_format, 128)
+        unpack_size_a = TILE_SIZES.get(self.formats.input_format, 128)
+        unpack_size_b = TILE_SIZES.get(self.formats.input_format, 128)
+
+        # Tiny tile flag, used to handle dimension
+        # if self.tiny_tiles:
+        #     pack_size = (pack_size // self.num_faces) * (self.in0_tile_r_dim // face_r_dim)
+        #     unpack_size_a = (unpack_size_a // num_faces_A) * (in0_tile_r_dim // face_r_dim)
+
+        # All are RT, used in only few tests, but there wasn't any mechanism not to include them
+        header_content.extend(
+            [
+                f"constexpr std::uint32_t TILE_SIZE_PACK = {pack_size};",
+                f"constexpr std::uint32_t TILE_SIZE_UNPACK_A = {unpack_size_a};",
+                f"constexpr std::uint32_t TILE_SIZE_UNPACK_B = {unpack_size_b};",
+            ]
+        )
+
         for parameter in self.templates:
             header_content.append(parameter.covert_to_cpp())
 
@@ -523,7 +553,7 @@ class TestConfig:
             )
 
             run_shell_command(  # %.elf : tmu-crt0.o main_%.o kernel_%.o coverage.o
-                f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {SHARED_OBJ_DIR / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {SFPI_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"{name}.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
+                f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {TestConfig.SHARED_OBJ_DIR / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {SFPI_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"{name}.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
                 TestConfig.TESTS_WORKING_DIR,
             )
 
@@ -555,7 +585,7 @@ class TestConfig:
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
-    def merge_coverage_streams_into_into(self):
+    def merge_coverage_streams_into_info(self):
         VARIANT_DIR = TestConfig.BUILD_DIR / self.test_name / self.variant_id
         VARIANT_OBJ_DIR = VARIANT_DIR / "obj"
 
@@ -589,7 +619,9 @@ class TestConfig:
 
     def run(self, location):
 
+        self.variant_stimuli.write()
         self.build_elfs()
+
         elfs = run_elf_files(
             self.test_name, self.variant_id, self.boot_mode, location=location
         )
@@ -597,6 +629,8 @@ class TestConfig:
 
         if self.coverage_build == CoverageBuild.Yes:
             self.generate_info_file_for_run(location)
-            self.merge_coverage_streams_into_into()
+            self.merge_coverage_streams_into_info()
 
-        shutil.rmtree(TestConfig.BUILD_DIR / self.test_name / self.variant_id)
+        # shutil.rmtree(TestConfig.BUILD_DIR / self.test_name / self.variant_id)
+
+        return self.variant_stimuli.buf_res_addr

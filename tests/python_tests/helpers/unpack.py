@@ -121,9 +121,8 @@ _UNPACKERS = {
 
 
 def unpack_res_tiles(
-    packed_list, formats, tile_count=1, sfpu=False, num_faces=4, face_r_dim=16
+    packed_list, output_format, tile_count=1, sfpu=False, num_faces=4, face_r_dim=16
 ):
-    output_format = formats.output_format
     output_dtype = format_dict[output_format]
 
     # Calculate tile size and determine elements per tile needed

@@ -4,7 +4,7 @@
 from typing import List
 
 import torch
-from helpers.device import BootMode, collect_results, write_stimuli_to_l1
+from helpers.device import BootMode, collect_results
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
@@ -13,6 +13,7 @@ from helpers.matmul_sweep import (
     generate_tile_dims,
 )
 from helpers.param_config import input_output_formats, parametrize
+from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
@@ -140,22 +141,22 @@ def test_matmul(
         "input_A_dimensions": input_A_dimensions,
         "input_B_dimensions": input_B_dimensions,
         "output_dimensions": matmul_dims.output_dimensions,
-        "rt_dim": matmul_dims.rt_dim,
-        "ct_dim": matmul_dims.ct_dim,
-        "kt_dim": matmul_dims.kt_dim,
+        "rt_dim": matmul_dims.rt_dim,  # ++
+        "ct_dim": matmul_dims.ct_dim,  # ++
+        "kt_dim": matmul_dims.kt_dim,  # ++
     }
 
     # Use the new helper function for writing stimuli
-    res_address = write_stimuli_to_l1(
-        test_config,
-        tilized_A.flatten(),
-        tilized_B.flatten(),
-        formats.input_format,
-        formats.input_format,
-        tile_cnt_A,
-        tile_cnt_B,
-        location=workers_tensix_coordinates,
-    )
+    # res_address = write_stimuli_to_l1(
+    #     test_config,
+    #     tilized_A.flatten(),
+    #     tilized_B.flatten(),
+    #     formats.input_format,
+    #     formats.input_format,
+    #     tile_cnt_A,
+    #     tile_cnt_B,
+    #     location=workers_tensix_coordinates,
+    # )
 
     configuration = TestConfig(
         test_name,
@@ -168,14 +169,22 @@ def test_matmul(
             TILE_COUNT(matmul_dims.output_tile_cnt),
             CRK_TILE_DIMM(matmul_dims.ct_dim, matmul_dims.rt_dim, matmul_dims.kt_dim),
         ],
+        variant_stimuli=StimuliConfig(
+            tilized_A.flatten(),
+            formats.input_format,
+            tilized_B.flatten(),
+            formats.input_format,
+            tile_cnt_A,
+            tile_cnt_B,
+        ),
         dest_acc=dest_acc,
         boot_mode=boot_mode,
     )
 
-    configuration.run(workers_tensix_coordinates)
+    res_address = configuration.run(workers_tensix_coordinates)
 
     res_from_L1 = collect_results(
-        formats,
+        formats.output_format,
         tile_count=matmul_dims.output_tile_cnt,
         address=res_address,
         location=workers_tensix_coordinates,
