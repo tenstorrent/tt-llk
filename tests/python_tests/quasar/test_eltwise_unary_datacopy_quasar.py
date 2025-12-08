@@ -1,15 +1,18 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import List
 
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture
+from helpers.constraints import (
+    get_valid_dest_accumulation_modes,
+)
 from helpers.device import (
     collect_results,
     write_stimuli_to_l1,
 )
-from helpers.format_config import DataFormat, FormatConfig
+from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     DataCopyGolden,
     get_golden_generator,
@@ -32,90 +35,36 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 
-def generate_eltwise_unary_datacopy_combinations(
-    formats_list: List[FormatConfig],
-):
-    """
-    Generate eltwise_unary_datacopy combinations.
-
-    Args: List of input-output format pairs
-
-    Returns: List of (format, dest_acc, data_copy_type, input_dimensions, edgecase_dest_index) tuples
-    """
-    dimensions_cache = {
-        DestAccumulation.No: tuple(
-            generate_unary_input_dimensions(DestAccumulation.No)
-        ),
-        DestAccumulation.Yes: tuple(
-            generate_unary_input_dimensions(DestAccumulation.Yes)
-        ),
-    }
-
-    combinations = []
-
-    for fmt in formats_list:
-        in_fmt = fmt.input_format
-
-        dest_acc_modes = (DestAccumulation.No, DestAccumulation.Yes)
-        data_copy_types = (DataCopyType.A2D, DataCopyType.B2D)
-
-        for dest_acc in dest_acc_modes:
-            if (
-                in_fmt != DataFormat.Float32
-                and fmt.output_format == DataFormat.Float32
-                and dest_acc == DestAccumulation.No
-            ):
-                # Skip if input format is not Float32 and output format is Float32 and dest_acc is No
-                # This combination is not supported in the Quasar Packer format conversions
-                continue
-
-            for data_copy_type in data_copy_types:
-                for dimensions in dimensions_cache[dest_acc]:
-                    for _, edgecase_dest_index in calculate_edgecase_dest_indices(
-                        True if dest_acc == DestAccumulation.Yes else False,
-                        dimensions[0] // 32 * dimensions[1] // 32,
-                    ):
-                        combinations.append(
-                            (
-                                fmt,
-                                dest_acc,
-                                data_copy_type,
-                                dimensions,
-                                edgecase_dest_index,
-                            )
-                        )
-
-    return combinations
-
-
-DATACOPY_FORMATS = input_output_formats(
-    [
-        DataFormat.Float16_b,
-        DataFormat.Float16,
-    ]
-)
-ALL_DATACOPY_COMBINATIONS = generate_eltwise_unary_datacopy_combinations(
-    DATACOPY_FORMATS
-)
-
-
 @pytest.mark.quasar
 @parametrize(
     test_name="eltwise_unary_datacopy_quasar_test",
-    formats_dest_acc_data_copy_type_dims_dest_indices=ALL_DATACOPY_COMBINATIONS,
+    formats=input_output_formats(
+        [
+            DataFormat.Float16_b,
+            DataFormat.Float16,
+            DataFormat.Float32,
+        ]
+    ),
+    dest_acc=lambda formats: get_valid_dest_accumulation_modes(
+        ChipArchitecture.QUASAR, formats, unpack_to_dest=False
+    ),
+    data_copy_type=[DataCopyType.A2D, DataCopyType.B2D],
+    input_dimensions=lambda dest_acc: generate_unary_input_dimensions(dest_acc),
+    dest_index=lambda dest_acc, input_dimensions: calculate_edgecase_dest_indices(
+        True if dest_acc == DestAccumulation.Yes else False,
+        input_dimensions[0] // 32 * input_dimensions[1] // 32,
+    ),
     implied_math_format=[ImpliedMathFormat.Yes, ImpliedMathFormat.No],
 )
 def test_eltwise_unary_datacopy_quasar(
     test_name,
-    formats_dest_acc_data_copy_type_dims_dest_indices,
+    formats,
+    dest_acc,
+    data_copy_type,
+    input_dimensions,
+    dest_index,
     implied_math_format,
 ):
-    formats = formats_dest_acc_data_copy_type_dims_dest_indices[0]
-    dest_acc = formats_dest_acc_data_copy_type_dims_dest_indices[1]
-    data_copy_type = formats_dest_acc_data_copy_type_dims_dest_indices[2]
-    input_dimensions = formats_dest_acc_data_copy_type_dims_dest_indices[3]
-    dest_index = formats_dest_acc_data_copy_type_dims_dest_indices[4]
-
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
         formats.input_format,
