@@ -32,8 +32,7 @@ void run_kernel()
 
         for (int i = 0; i < TILE_CNT; ++i)
         {
-            _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-                L1_ADDRESS(buffer_A[i]), 0, formats.unpack_src, formats.unpack_dst);
+            unpack_full_tile_to_dest_single_op(L1_ADDRESS(buffer_A[i]), formats.unpack_dst);
         }
     }
     else

@@ -34,10 +34,15 @@ inline void _llk_unpack_A_mop_config_(
         "Not supported configuration when unpacking to dest!");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
+    if (unpack_dst_format == 0 && unpack_src_format == static_cast<uint32_t>(DataFormat::Float16_b))
+    {
+    }
+
     static constexpr uint unpack_srca =
         TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint unpack_srca_to_dest =
-        TT_OP_UNPACR(SrcA, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // ch0/ch1 z_inc
+    // static constexpr uint unpack_srca_to_dest =
+    //     TT_OP_UNPACR(SrcA, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // ch0/ch1
+    //     z_inc
     static constexpr uint unpack_srca_to_dest_transpose_of_faces =
         TT_OP_UNPACR(SrcA, 0b00010010, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // inc srcA ch1_z+=1, ch0_z+=2
     static constexpr uint unpack_srca_zerosrc    = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
@@ -59,7 +64,7 @@ inline void _llk_unpack_A_mop_config_(
     static constexpr uint unpack_srca_zerosrc_set_dvalid = lltt::replay_insn(0, 2);
     static constexpr uint unpack_srcb_unpack_srcb        = lltt::replay_insn(2, 2);
 
-    if (unpack_to_dest && is_32bit_input(unpack_src_format, unpack_dst_format))
+    if (unpack_to_dest)
     {
         if (transpose_of_faces && num_faces == 4)
         {
@@ -71,10 +76,16 @@ inline void _llk_unpack_A_mop_config_(
         }
         else
         {
+            // Force x-end to 1024 for full tile unpack
+            TTI_SETADCXX(p_setadc::UNP_A, 1023, 0x0);
+
+            // Use single UNPACR command for full tile to dest
+            static constexpr uint unpack_srca_full_tile_to_dest = TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+            // Configure template with single iteration
             const uint32_t outerloop     = 1;
-            constexpr uint32_t innerloop = 4;
-            TTI_SETADCXX(p_setadc::UNP_A, 32 * 32 - 1, 0); // Directly set unpacker A counter to unpack whole tile
-            ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest);
+            constexpr uint32_t innerloop = 1;
+            ckernel_template tmp(outerloop, innerloop, unpack_srca_full_tile_to_dest);
             tmp.program();
         }
     }
@@ -275,9 +286,10 @@ inline void _llk_unpack_A_(
     {
         if (is_32bit_input(unpack_src_format, unpack_dst_format))
         {
-            set_dst_write_addr(unp_cfg_context, unpack_dst_format);
-            wait_for_dest_available();
         }
+        set_dst_write_addr(unp_cfg_context, unpack_dst_format);
+        wait_for_dest_available();
+        // }
     }
 
     // Trisc::SEMPOST for context acquire
@@ -294,12 +306,52 @@ inline void _llk_unpack_A_(
 
     if (unpack_to_dest)
     {
-        if (is_32bit_input(unpack_src_format, unpack_dst_format))
-        {
-            unpack_to_dest_tile_done(unp_cfg_context);
-        }
+        // if (is_32bit_input(unpack_src_format, unpack_dst_format))
+        // {
+        unpack_to_dest_tile_done(unp_cfg_context);
+        // }
     }
 
     // Switch unpacker config context
     switch_config_context(unp_cfg_context);
+}
+
+inline void unpack_full_tile_to_dest_single_op(
+    const uint32_t address,
+    // const uint32_t unpack_src_format,
+    const uint32_t unpack_dst_format)
+{
+    // Configure for unpack to dest
+    set_dst_write_addr(unp_cfg_context, unpack_dst_format);
+    wait_for_dest_available();
+
+    // Set unpacker to process entire tile in one operation
+    TTI_SETADCXX(p_setadc::UNP_A, 1023, 0x0);
+
+    // Program base address
+    volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
+    if (0 == unp_cfg_context)
+    {
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
+    }
+    else
+    {
+        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
+    }
+
+    // Single UNPACR operation for full tile
+    static constexpr uint unpack_op = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+    const uint32_t outerloop     = 1;
+    constexpr uint32_t innerloop = 1;
+    ckernel_template tmp(outerloop, innerloop, unpack_op);
+    tmp.program();
+
+    // Execute
+    semaphore_post(semaphore::UNPACK_SYNC);
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+    ckernel::ckernel_template::run();
+    t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+    unpack_to_dest_tile_done(unp_cfg_context);
 }
