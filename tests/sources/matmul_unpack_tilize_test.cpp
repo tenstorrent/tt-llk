@@ -99,9 +99,9 @@ void run_kernel()
 
     // Start of second math kernel to perform matmul on now tilized input data
     run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
-    _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en, false>(
+    _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en>(
         formats_array[run].math); // have to reconfigure math kernel data formats_array if they change in this run
-    _llk_math_reconfig_data_format_srcb_<is_fp32_dest_acc_en, false>(formats_array[run].math);
+    _llk_math_reconfig_data_format_srcb_<is_fp32_dest_acc_en>(formats_array[run].math);
     _llk_math_matmul_init_<MATH_FIDELITY>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_matmul_<MATH_FIDELITY>(0);

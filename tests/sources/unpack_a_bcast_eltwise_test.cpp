@@ -23,7 +23,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    _llk_unpack_bcastA_B_hw_config_<false>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
+    _llk_unpack_hw_config_<false>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
     _llk_unpack_bcastA_B_init_();
 
     // Single call works on 1 tile that goes to srcA and then reuses it for 4 srcB tiles that are changeable

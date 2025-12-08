@@ -75,7 +75,7 @@ void run_kernel()
 
     // Start of second math kernel to perform matmul on now tilized input data
     run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
-    _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en, false>(formats_array[run].math);
+    _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en>(formats_array[run].math);
     // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, formats_array[run].math);
