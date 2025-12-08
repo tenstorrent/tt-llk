@@ -377,7 +377,9 @@ def test_unpack_comprehensive(
 ):
 
     # Compute unpack_to_dest based on format and accumulation mode
-    unpack_to_dest = formats.input_format.is_32_bit()
+    unpack_to_dest = formats.input_format.is_32_bit() and (
+        acc_to_dest or dest_acc == DestAccumulation.Yes
+    )
 
     # Note: All constraint validation has been done during parameter generation
     # No need for pytest.skip() calls - invalid combinations have been filtered out
