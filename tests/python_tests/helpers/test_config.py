@@ -633,4 +633,4 @@ class TestConfig:
 
         # shutil.rmtree(TestConfig.BUILD_DIR / self.test_name / self.variant_id)
 
-        return self.variant_stimuli.buf_res_addr
+        return self.variant_stimuli.collect_results(location)

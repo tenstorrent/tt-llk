@@ -4,7 +4,7 @@
 from typing import List
 
 import torch
-from helpers.device import BootMode, collect_results
+from helpers.device import BootMode
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
@@ -93,16 +93,11 @@ def test_matmul(
     input_A_dimensions = format_dest_acc_and_dims[2][0]
     input_B_dimensions = format_dest_acc_and_dims[2][1]
 
-    src_A, _, tile_cnt_A = generate_stimuli(
-        formats.input_format,
-        formats.input_format,
-        input_dimensions=input_A_dimensions,
-        sfpu=False,
-    )
-    src_B, _, tile_cnt_B = generate_stimuli(
-        formats.input_format,
-        formats.input_format,
-        input_dimensions=input_B_dimensions,
+    src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
+        stimuli_format_A=formats.input_format,
+        input_dimensions_A=input_A_dimensions,
+        stimuli_format_B=formats.input_format,
+        input_dimensions_B=input_B_dimensions,
         sfpu=False,
     )
 
@@ -132,32 +127,6 @@ def test_matmul(
         tilized_A = src_A
         tilized_B = src_B
 
-    test_config = {
-        "formats": formats,  # ++
-        "testname": test_name,  # ++
-        "dest_acc": dest_acc,  # ++
-        "math_fidelity": math_fidelity,  # ++
-        "tile_cnt": matmul_dims.output_tile_cnt,  # ++
-        "input_A_dimensions": input_A_dimensions,
-        "input_B_dimensions": input_B_dimensions,
-        "output_dimensions": matmul_dims.output_dimensions,
-        "rt_dim": matmul_dims.rt_dim,  # ++
-        "ct_dim": matmul_dims.ct_dim,  # ++
-        "kt_dim": matmul_dims.kt_dim,  # ++
-    }
-
-    # Use the new helper function for writing stimuli
-    # res_address = write_stimuli_to_l1(
-    #     test_config,
-    #     tilized_A.flatten(),
-    #     tilized_B.flatten(),
-    #     formats.input_format,
-    #     formats.input_format,
-    #     tile_cnt_A,
-    #     tile_cnt_B,
-    #     location=workers_tensix_coordinates,
-    # )
-
     configuration = TestConfig(
         test_name,
         formats,
@@ -174,21 +143,17 @@ def test_matmul(
             formats.input_format,
             tilized_B.flatten(),
             formats.input_format,
+            formats.output_format,
             tile_cnt_A,
             tile_cnt_B,
+            matmul_dims.output_tile_cnt,
         ),
         dest_acc=dest_acc,
         boot_mode=boot_mode,
     )
 
-    res_address = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates)
 
-    res_from_L1 = collect_results(
-        formats.output_format,
-        tile_count=matmul_dims.output_tile_cnt,
-        address=res_address,
-        location=workers_tensix_coordinates,
-    )
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
