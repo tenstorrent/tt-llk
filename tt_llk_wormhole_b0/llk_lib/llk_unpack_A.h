@@ -34,15 +34,10 @@ inline void _llk_unpack_A_mop_config_(
         "Not supported configuration when unpacking to dest!");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
-    if (unpack_dst_format == 0 && unpack_src_format == static_cast<uint32_t>(DataFormat::Float16_b))
-    {
-    }
-
     static constexpr uint unpack_srca =
         TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    // static constexpr uint unpack_srca_to_dest =
-    //     TT_OP_UNPACR(SrcA, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // ch0/ch1
-    //     z_inc
+    static constexpr uint unpack_srca_to_dest =
+        TT_OP_UNPACR(SrcA, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // ch0/ch1 z_inc
     static constexpr uint unpack_srca_to_dest_transpose_of_faces =
         TT_OP_UNPACR(SrcA, 0b00010010, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // inc srcA ch1_z+=1, ch0_z+=2
     static constexpr uint unpack_srca_zerosrc    = TT_OP_UNPACR_NOP(SrcA, p_unpacr_nop::UNP_ZEROSRC);
@@ -64,7 +59,7 @@ inline void _llk_unpack_A_mop_config_(
     static constexpr uint unpack_srca_zerosrc_set_dvalid = lltt::replay_insn(0, 2);
     static constexpr uint unpack_srcb_unpack_srcb        = lltt::replay_insn(2, 2);
 
-    if (unpack_to_dest)
+    if (unpack_to_dest && is_32bit_input(unpack_src_format, unpack_dst_format))
     {
         if (transpose_of_faces && num_faces == 4)
         {
@@ -76,16 +71,9 @@ inline void _llk_unpack_A_mop_config_(
         }
         else
         {
-            // Force x-end to 1024 for full tile unpack
-            TTI_SETADCXX(p_setadc::UNP_A, 1023, 0x0);
-
-            // Use single UNPACR command for full tile to dest
-            static constexpr uint unpack_srca_full_tile_to_dest = TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-
-            // Configure template with single iteration
-            const uint32_t outerloop     = 1;
+            const uint32_t outerloop     = num_faces;
             constexpr uint32_t innerloop = 1;
-            ckernel_template tmp(outerloop, innerloop, unpack_srca_full_tile_to_dest);
+            ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest);
             tmp.program();
         }
     }
@@ -176,15 +164,6 @@ inline void _llk_unpack_A_mop_config_(
                 ckernel_template tmp(outerloop, innerloop, unpack_srcb_zerosrc, unpack_srcb_set_dvalid);
                 tmp.set_start_op(unpack_srca);
                 tmp.program();
-
-                // const uint32_t outerloop = 1;
-                // constexpr uint32_t innerloop = 1;
-                // TTI_SETADCXX(p_setadc::UNP_A, 32 * 32 - 1, 0); // Directly set unpacker A counter to unpack whole tile
-                // static constexpr uint unpack_srca_tile =
-                //     TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-                // ckernel_template tmp(outerloop, innerloop, TT_OP_NOP);
-                // tmp.set_start_op(unpack_srca_tile);
-                // tmp.program();
             }
         }
     }
