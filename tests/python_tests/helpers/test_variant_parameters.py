@@ -209,11 +209,6 @@ class INPUT_DIMENSIONS(TemplateParameter):
 #     def covert_to_cpp(self) -> str:
 #         return ""
 
-# @dataclass
-# class (TemplateParameter):
-#     def covert_to_cpp(self) -> str:
-#         return ""
-
 # === RUNTIME PARAMETER IMPLEMENTATIONS ===
 
 

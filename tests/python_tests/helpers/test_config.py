@@ -67,7 +67,7 @@ class TestConfig:
     CHIP_ARCH: ClassVar[ChipArchitecture]
 
     # Artefact directories
-    DEFAULT_ARTEFACTS_PATH: ClassVar[Path] = Path("../../temp_matmul_artefacts")
+    DEFAULT_ARTEFACTS_PATH: ClassVar[Path] = Path("/tmp/tt-llk-build/")
     ARTEFACTS_DIR: ClassVar[Path]
     SHARED_DIR: ClassVar[str]
     SHARED_OBJ_DIR: ClassVar[str]
@@ -400,7 +400,7 @@ class TestConfig:
 
         TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
 
-    def invfer_data_formats(self) -> list[str]:
+    def infer_data_formats(self) -> list[str]:
         header_content: list[str] = [
             "// Data formats inferred by Python inference model"
         ]
@@ -410,17 +410,17 @@ class TestConfig:
             format = DataFormat.Float16
             self.formats = FormatConfig(format, format, format, format, format)
 
-        # Dest accumulation
-        header_content.append(
-            f"constexpr bool is_fp32_dest_acc_en = {self.dest_acc.value};"
-        )
-
         # Check if this is an outlier format combination that requires dest_acc to be enabled
         # Automatically enable dest_acc for outlier combinations
         if is_format_combination_outlier(
             self.formats.input_format, self.formats.output_format, self.dest_acc
         ):
             self.dest_acc = DestAccumulation.Yes
+
+        # Dest accumulation
+        header_content.append(
+            f"constexpr bool is_fp32_dest_acc_en = {self.dest_acc.value};"
+        )
 
         # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
         # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
@@ -567,7 +567,7 @@ class TestConfig:
         for parameter in self.runtimes:
             header_content.append(parameter.covert_to_cpp())
 
-        header_content.extend(self.invfer_data_formats())
+        header_content.extend(self.infer_data_formats())
         return "\n".join(header_content)
 
     def build_elfs(self):

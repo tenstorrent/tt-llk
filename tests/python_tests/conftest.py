@@ -180,8 +180,6 @@ def pytest_runtest_makereport(item, call):
 
         if "SKIPPED_FOR_JUST_COMPILE" in skip_reason:
             report.outcome = "passed"
-            report.longrepr = None
-            report.wasxfail = None
 
     if report.failed and report.when == "call":
         if hasattr(report, "longrepr") and report.longrepr:
