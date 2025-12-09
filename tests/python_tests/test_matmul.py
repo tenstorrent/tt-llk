@@ -144,18 +144,22 @@ def test_matmul(
             tilized_B.flatten(),
             formats.input_format,
             formats.output_format,
-            tile_cnt_A,
-            tile_cnt_B,
-            matmul_dims.output_tile_cnt,
+            tile_count_A=tile_cnt_A,
+            tile_count_B=tile_cnt_B,
+            tile_count_res=matmul_dims.output_tile_cnt,
         ),
         dest_acc=dest_acc,
         boot_mode=boot_mode,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates, delete_artefacts=False)
 
-    assert len(res_from_L1) == len(golden_tensor)
+    assert len(res_from_L1) == len(
+        golden_tensor
+    ), "Result tensor and golder tensor are not of the same length"
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(
+        golden_tensor, res_tensor, formats.output_format
+    ), "Assert against golden failed"

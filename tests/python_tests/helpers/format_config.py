@@ -21,10 +21,14 @@ class DataFormatInfo:
 
     def __str__(self) -> str:
         """Returns the string representation of the data format info."""
-        return f"{self.value.name} [ {self.byte_size} B ]"
+        return f"{self.name}/{self.byte_size}B"
+
+    def __repr__(self) -> str:
+        """Returns the representation of the data format info."""
+        return self.__str__()
 
     def to_json(self) -> str:
-        return f"{self.value.name} [ {self.byte_size} B ]"
+        return f"{self.name}/{self.byte_size}B"
 
 
 class DataFormat(Enum):

@@ -69,16 +69,17 @@ class StimuliConfig:
         self.sfpu = sfpu
 
         # Stimuli addresses calculation
-        tile_size_A_bytes = self.stimuli_A_format.num_bytes_per_tile(
+        self.tile_size_A_bytes = self.stimuli_A_format.num_bytes_per_tile(
             StimuliConfig.TILE_ELEMENTS
         )
-        tile_size_B_bytes = self.stimuli_B_format.num_bytes_per_tile(
+        self.tile_size_B_bytes = self.stimuli_B_format.num_bytes_per_tile(
             StimuliConfig.TILE_ELEMENTS
         )
 
         self.buf_a_addr = StimuliConfig.STIMULI_L1_ADDRESS
-        self.buf_b_addr = self.buf_a_addr + tile_size_A_bytes * self.tile_count_A
-        self.buf_res_addr = self.buf_b_addr + tile_size_B_bytes * self.tile_count_B
+        self.buf_b_addr = self.buf_a_addr + self.tile_size_A_bytes * self.tile_count_A
+        self.buf_res_addr = self.buf_b_addr + self.tile_size_B_bytes * self.tile_count_B
+        # print(f"{hex(self.buf_a_addr)} {hex(self.buf_b_addr)} {hex(self.buf_res_addr)}")
 
     def generate_stimuli_header_addresses(self, formats) -> list[str]:
         buf_a_format = format_tile_sizes[
@@ -112,15 +113,34 @@ class StimuliConfig:
         return packers.get(data_format)
 
     @staticmethod
-    def write_matrix(buffer, pack_function, base_address, num_faces, location="0,0"):
+    def write_matrix(
+        buffer,
+        tile_count,
+        pack_function,
+        base_address,
+        tile_size,
+        num_faces,
+        location="0,0",
+    ):
+        addresses = []
+        packed_data_list = []
+
         pack_function_lambda = lambda buffer_tile: (
             pack_function(buffer_tile, num_faces=num_faces)
             if pack_function == pack_bfp8_b
             else pack_function(buffer_tile)
         )
 
-        packed_data = pack_function_lambda(buffer)
-        write_to_device(location, base_address, packed_data)
+        for ind in range(tile_count):
+            start_idx = StimuliConfig.TILE_ELEMENTS * ind
+            tile_data = buffer[start_idx : start_idx + StimuliConfig.TILE_ELEMENTS]
+            packed_data = pack_function_lambda(tile_data)
+
+            addresses.append(base_address + ind * tile_size)
+            packed_data_list.append(packed_data)
+
+        for addr, data in zip(addresses, packed_data_list):
+            write_to_device(location, addr, data)
 
     def write(self):
         pack_function_A = StimuliConfig.get_packer(self.stimuli_A_format)
@@ -133,11 +153,23 @@ class StimuliConfig:
             )
 
         StimuliConfig.write_matrix(
-            self.buffer_A, pack_function_A, self.buf_a_addr, self.num_faces
+            self.buffer_A,
+            self.tile_count_A,
+            pack_function_A,
+            self.buf_a_addr,
+            self.tile_size_A_bytes,
+            self.num_faces,
         )
         StimuliConfig.write_matrix(
-            self.buffer_B, pack_function_B, self.buf_b_addr, self.num_faces
+            self.buffer_B,
+            self.tile_count_B,
+            pack_function_B,
+            self.buf_b_addr,
+            self.tile_size_B_bytes,
+            self.num_faces,
         )
+
+        # TODO Handle writing C
 
     def collect_results(self, location="0,0"):
         # Always read full tiles - hardware still outputs full tile data

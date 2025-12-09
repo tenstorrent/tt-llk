@@ -262,7 +262,10 @@ class TestConfig:
 
         self.generate_variant_hash()
 
-    NON_COMPILATION_ARGUMETNS = ["variant_stimuli"]  # "runtimes",
+        # print(self.variant_id)
+        # pytest.skip()
+
+    NON_COMPILATION_ARGUMETNS = ["variant_stimuli"]  # , "runtimes"],
 
     def generate_variant_hash(self):
         temp_str = []
@@ -742,7 +745,7 @@ class TestConfig:
             self.build_elfs()
 
         if TestConfig.MODE == TestMode.PRODUCE:
-            pytest.skip()
+            pytest.skip("SKIPPED_FOR_JUST_COMPILE")
 
         self.variant_stimuli.write()
         elfs = self.run_elf_files(location)
@@ -752,7 +755,7 @@ class TestConfig:
             self.generate_info_file_for_run(location)
             self.merge_coverage_streams_into_info()
 
-        if delete_artefacts:
-            shutil.rmtree(TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id)
+        # if delete_artefacts:
+        #     shutil.rmtree(TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id)
 
         return self.variant_stimuli.collect_results(location)

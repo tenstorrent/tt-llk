@@ -214,7 +214,6 @@ def passed_test(
     #     values with less precision (Bfp8_b) and drops below 99% in that case
     if output_data_format == DataFormat.Bfp8_b:
         target_pcc = pow(0.99, L1_to_L1_iterations)
-    print("PCC:", pcc)
     return is_within_tolerance and (pcc > target_pcc)
 
 

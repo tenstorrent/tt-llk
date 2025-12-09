@@ -121,7 +121,12 @@ _UNPACKERS = {
 
 
 def unpack_res_tiles(
-    packed_list, output_format, tile_count=1, sfpu=False, num_faces=4, face_r_dim=16
+    packed_list,
+    output_format: DataFormat,
+    tile_count: int = 1,
+    sfpu: bool = False,
+    num_faces: int = 4,
+    face_r_dim: int = 16,
 ):
     output_dtype = format_dict[output_format]
 

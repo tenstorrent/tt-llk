@@ -29,11 +29,11 @@ def _mask_tile(tile: torch.Tensor, num_faces: int, is_matrix_A: bool) -> torch.T
 
 
 def generate_random_face(
-    stimuli_format=DataFormat.Float16_b,
-    const_value=1,
-    const_face=False,
-    sfpu=True,
-    face_r_dim=16,
+    stimuli_format: DataFormat = DataFormat.Float16_b,
+    const_value: int = 1,
+    const_face: bool = False,
+    sfpu: bool = True,
+    face_r_dim: int = 16,
 ):
     size = face_r_dim * 16  # face_r_dim rows × 16 columns
     if stimuli_format != DataFormat.Bfp8_b:
@@ -53,7 +53,6 @@ def generate_random_face(
                 if sfpu:
                     srcA_face += 0.1
     else:
-
         integer_part = torch.randint(0, 3, (size,))
         fraction = torch.randint(0, 16, (size,)).to(dtype=torch.bfloat16) / 16.0
         if const_face:
@@ -85,9 +84,6 @@ def generate_face_matmul_data(
     # Calculate number of tiles needed
     tile_cnt = input_dimensions[0] // 32 * input_dimensions[1] // 32
 
-    # Create list to store tiles
-    tiles = []
-
     # Create list to store tiles --> generate each tile with the right faces zeroed out
     tiles = [
         _mask_tile(
@@ -105,16 +101,16 @@ def generate_face_matmul_data(
 
 
 def generate_stimuli(
-    stimuli_format_A=DataFormat.Float16_b,
-    input_dimensions_A=[32, 32],
-    const_value_A=1,
-    stimuli_format_B=DataFormat.Float16_b,
-    input_dimensions_B=[32, 32],
-    const_value_B=1,
-    const_face=False,
-    sfpu=True,
-    face_r_dim=16,  # Add face_r_dim parameter
-    num_faces=4,  # Add num_faces parameter for partial faces
+    stimuli_format_A: DataFormat = DataFormat.Float16_b,
+    input_dimensions_A: list[int] = [32, 32],
+    const_value_A: int = 1,
+    stimuli_format_B: DataFormat = DataFormat.Float16_b,
+    input_dimensions_B: list[int] = [32, 32],
+    const_value_B: int = 1,
+    const_face: bool = False,
+    sfpu: bool = True,
+    face_r_dim: int = 16,  # Add face_r_dim parameter
+    num_faces: int = 4,  # Add num_faces parameter for partial faces
 ) -> tuple[torch.Tensor, int, torch.Tensor, int]:
 
     srcA = []
@@ -134,8 +130,8 @@ def generate_stimuli(
     for _ in range(faces_to_generate * tile_cnt_A):
         face_a = generate_random_face(
             stimuli_format_A,
-            const_face,
             const_value_A,
+            const_face,
             sfpu,
             face_r_dim,
         )
@@ -143,9 +139,9 @@ def generate_stimuli(
 
     for _ in range(faces_to_generate * tile_cnt_B):
         face_b = generate_random_face(
-            stimuli_format_A,
-            const_face,
+            stimuli_format_B,
             const_value_B,
+            const_face,
             sfpu,
             face_r_dim,
         )

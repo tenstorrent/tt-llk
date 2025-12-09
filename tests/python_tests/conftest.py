@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.device import reset_mailboxes
 from helpers.format_config import InputOutputFormat
 from helpers.log_utils import _format_log
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
@@ -92,10 +91,10 @@ def check_hardware_headers():
     print(f"✓ Hardware-specific headers for {arch_name} are present")
 
 
-@pytest.fixture(autouse=True)
-def reset_mailboxes_fixture():
-    reset_mailboxes()
-    yield
+# @pytest.fixture(autouse=True)
+# def reset_mailboxes_fixture():
+#     reset_mailboxes()
+#     yield
 
 
 @pytest.fixture()
@@ -115,6 +114,8 @@ def pytest_configure(config):
             os.remove(log_file)
     except:
         pass
+
+    # config.option.tbstyle = 'no'  # Change from 'line' to 'no'
 
     logging.basicConfig(
         filename=log_file,
@@ -153,16 +154,10 @@ def _stringify_params(params):
     return f"[{' | '.join(parts)}]"
 
 
-def pytest_runtest_logreport(report):
-    # Capture errors when tests fail
-    if report.failed:
-        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
-
-    if report.when != "call":
-        return
-
-    # if TestConfig.MODE != TestMode.PRODUCE:
-    #     print(f"\nParameters: {report.test_params}")
+# def pytest_runtest_logreport(report):
+#     """Capture errors when tests fail"""
+#     if report.failed:
+#         logging.error(f"Parameters: {report.test_params}")
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -175,6 +170,40 @@ def pytest_runtest_makereport(item, call):
         report.test_params = _stringify_params(item.callspec.params)
     else:
         report.test_params = None
+
+    if report.skipped and report.when == "call":
+        skip_reason = (
+            str(report.longrepr[2])
+            if hasattr(report.longrepr, "__getitem__") and len(report.longrepr) > 2
+            else str(report.longrepr)
+        )
+
+        if "SKIPPED_FOR_JUST_COMPILE" in skip_reason:
+            report.outcome = "passed"
+            report.longrepr = None
+            report.wasxfail = None
+
+    if report.failed and report.when == "call":
+        if hasattr(report, "longrepr") and report.longrepr:
+            if hasattr(call, "excinfo") and call.excinfo:
+                exc_type = call.excinfo.type
+
+                test_file_and_func = report.nodeid.split("[")[0]
+
+                if exc_type == AssertionError:
+                    # Handle assertion failures
+                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
+                    error_message = (
+                        f"⨯ {test_file_and_func}{report.test_params} {exc_msg}"
+                    )
+                else:
+                    exc_name = exc_type.__name__
+                    exc_msg = str(call.excinfo.value)
+                    error_message = (
+                        f"⚠ Exception: {exc_name} - {exc_msg} | {report.test_params}"
+                    )
+
+                report.longrepr = error_message
 
     return report
 
