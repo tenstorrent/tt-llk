@@ -1286,9 +1286,6 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
                 src1_idx,
                 src2_idx,
                 dst_idx,
-                num_iterations,
-                dimensions,
-                data_format,
             )
 
         if data_format != DataFormat.Bfp8_b:
@@ -1382,9 +1379,6 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         src1_idx,
         src2_idx,
         dst_idx,
-        num_iterations,
-        dimensions,
-        data_format,
     ):
         """
         Add top row operation for tile pairs.
@@ -1396,11 +1390,15 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         dst_idx_start = dst_idx * ELEMENTS_PER_TILE
 
         result = tensor.clone()
-        # Add the top 16 elements (faces 0 and 1) of tile 0 with the top 16 elements (faces 2 and 3) of tile 1
-        for i in range(32):
+
+        for i in range(64):
             result[dst_idx_start + i] = (
                 tensor[src1_idx_start + i] + tensor[src2_idx_start + i]
             )
+            result[dst_idx_start + 256 + i] = (
+                tensor[src1_idx_start + 256 + i] + tensor[src2_idx_start + 256 + i]
+            )
+
         return result
 
 

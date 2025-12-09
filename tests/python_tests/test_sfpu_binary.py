@@ -80,7 +80,7 @@ def test_sfpu_binary_int(test_name, formats, dest_acc, mathop):
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
 def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
-    input_dimensions = [32, 64]
+    input_dimensions = [64, 32]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
@@ -96,7 +96,7 @@ def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
         1,
         input_dimensions,
         formats.output_format,
-    )[:32]
+    ).view(input_dimensions)
 
     unpack_to_dest = formats.input_format.is_32_bit()
 
@@ -127,7 +127,7 @@ def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
 
     torch_format = format_dict[formats.output_format]
-    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)[:32]
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format).view(input_dimensions)
 
     assert len(res_tensor) == len(golden_tensor)
 
