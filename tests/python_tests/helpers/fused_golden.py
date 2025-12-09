@@ -39,28 +39,39 @@ class FuseGolden:
             print(f"  Math Fidelity: {operation.math_fidelity}")
             print(f"  Dest Accumulation: {operation.dest_acc}")
 
-        golden_tensor = operation.golden()
-
         res_tensor = torch.tensor(
             output.raw_data, dtype=format_dict[output.data_format]
         )
+        l1_golden = torch.tensor(output.l1_golden, dtype=format_dict[src_a.data_format])
+        master_golden = torch.tensor(
+            output.master_golden, dtype=format_dict[output.data_format]
+        )
 
-        if golden_tensor.ndim != 1:
-            golden_tensor = golden_tensor.flatten()
         if res_tensor.ndim != 1:
             res_tensor = res_tensor.flatten()
+        if l1_golden.ndim != 1:
+            l1_golden = l1_golden.flatten()
+        if master_golden.ndim != 1:
+            master_golden = master_golden.flatten()
 
         if self.verbose:
-            print("\nGolden:")
-            head = ", ".join(f"{x:.2f}" for x in golden_tensor[:32].tolist())
-            tail = ", ".join(f"{x:.2f}" for x in golden_tensor[-32:].tolist())
-            print(f"{head}\n...\n{tail}\n")
             print("Result:")
             head = ", ".join(f"{x:.2f}" for x in res_tensor[:32].tolist())
             tail = ", ".join(f"{x:.2f}" for x in res_tensor[-32:].tolist())
             print(f"{head}\n...\n{tail}\n")
+            print("\nL1 Golden:")
+            head = ", ".join(f"{x:.2f}" for x in l1_golden[:32].tolist())
+            tail = ", ".join(f"{x:.2f}" for x in l1_golden[-32:].tolist())
+            print(f"{head}\n...\n{tail}\n")
+            print("\nMaster Golden:")
+            head = ", ".join(f"{x:.2f}" for x in master_golden[:32].tolist())
+            tail = ", ".join(f"{x:.2f}" for x in master_golden[-32:].tolist())
+            print(f"{head}\n...\n{tail}\n")
 
-        passed = passed_test(golden_tensor, res_tensor, output.data_format)
+        print("Checking l1-to-golden data... ")
+        passed = passed_test(l1_golden, res_tensor, output.data_format)
+        print("Checking golden-to-golden data... ")
+        passed = passed_test(master_golden, res_tensor, output.data_format)
 
         result = {
             "step": step_number,
@@ -79,6 +90,7 @@ class FuseGolden:
 
     def check_pipeline(self, pipeline: List[FusedOperation]) -> bool:
         for i, operation in enumerate(pipeline, start=1):
+            operation.golden()
             passed = self.check_operation(operation, i)
             if not passed:
                 return False

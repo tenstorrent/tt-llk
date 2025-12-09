@@ -475,18 +475,31 @@ class Math:
 
         return sorted(list(headers))
 
-    def golden(self, operation_config: "FusedOperation") -> torch.Tensor:
+    def golden(self, operation_config: "FusedOperation"):
+        # calculate l1 golden
         src_a_dims = operation_config.src_a.dimensions
         src_b_dims = operation_config.src_b.dimensions
+
         tensor_a = operation_config.src_a.raw_data.view(src_a_dims)
         tensor_b = operation_config.src_b.raw_data.view(src_b_dims)
-
-        golden_tensor = self.fpu.golden(tensor_a, tensor_b, operation_config)
+        l1_golden_tensor = self.fpu.golden(tensor_a, tensor_b, operation_config)
 
         for sfpu in self.sfpu:
-            golden_tensor = sfpu.golden(golden_tensor, operation_config)
+            l1_golden_tensor = sfpu.golden(l1_golden_tensor, operation_config)
 
-        return golden_tensor
+        operation_config.output.l1_golden = l1_golden_tensor.flatten()
+
+        # calculate master golden
+        golden_tensor_a = operation_config.src_a.master_golden.view(src_a_dims)
+        golden_tensor_b = operation_config.src_b.master_golden.view(src_b_dims)
+        master_golden_tensor = self.fpu.golden(
+            golden_tensor_a, golden_tensor_b, operation_config
+        )
+
+        for sfpu in self.sfpu:
+            master_golden_tensor = sfpu.golden(master_golden_tensor, operation_config)
+
+        operation_config.output._master_golden = master_golden_tensor.flatten()
 
     def exec(self, operation_config: "FusedOperation") -> str:
         code = self.fpu.exec(operation_config)

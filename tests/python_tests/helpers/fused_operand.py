@@ -21,6 +21,8 @@ class Operand:
     sfpu: bool = True
     _data: Optional[torch.Tensor] = None
     _raw_data: Optional[torch.Tensor] = None
+    _master_golden: Optional[torch.Tensor] = None
+    l1_golden: Optional[torch.Tensor] = None
     _tile_count: Optional[int] = None
 
     def __post_init__(self):
@@ -89,6 +91,12 @@ class Operand:
         if self._raw_data is None and self.is_input():
             self.generate_data()
         return self._raw_data
+
+    @property
+    def master_golden(self) -> Optional[torch.Tensor]:
+        if self.is_input():
+            return self.raw_data
+        return self._master_golden
 
     @property
     def tile_count(self) -> Optional[int]:
@@ -178,7 +186,7 @@ class OperandRegistry:
         data_format: Optional[DataFormat] = None,
     ) -> Operand:
         if name in self.operands:
-            raise ValueError(f"Operand '{name}' already exists")
+            raise ValueError(f"Output operand '{name}' already exists")
 
         operand = Operand(
             name=name,
