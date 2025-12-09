@@ -13,20 +13,20 @@ from helpers.perf import PerfRunType, perf_benchmark, update_report
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
-            DataFormat.Float16,
-            DataFormat.Float32,
+            # DataFormat.Float16,
+            # DataFormat.Float32,
             # DataFormat.Bfp8_b, # sstanisic FIXME: add Bfp8_b support
         ]
     ),
-    full_rt_dim=[1, 2, 3, 4, 5, 6, 7, 8],
-    full_ct_dim=[1, 2, 3, 4, 5, 6, 7, 8],
+    full_rt_dim=[1],
+    full_ct_dim=[1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096],
 )
 def test_perf_unpack_untilize(
     perf_report, test_name, formats, full_rt_dim, full_ct_dim
 ):
 
     run_types = [
-        PerfRunType.L1_TO_L1,
+        # PerfRunType.L1_TO_L1,
         PerfRunType.PACK_ISOLATE,
     ]
 
