@@ -1498,11 +1498,40 @@ class ReduceGapoolGolden(FidelityMasking):
         data_format,
         reduce_dim,
         math_fidelity=MathFidelity.LoFi,
+        tile_cnt=1,
+    ):
+        tile_results = []
+
+        for tile_idx in range(tile_cnt):
+            tile_result = self._process_single_tile(
+                operand1, operand2, data_format, reduce_dim, math_fidelity, tile_idx
+            )
+            tile_results.append(tile_result)
+
+        return torch.cat(tile_results)
+
+    def _process_single_tile(
+        self,
+        operand1,
+        operand2,
+        data_format,
+        reduce_dim,
+        math_fidelity,
+        tile_idx,
     ):
         torch_format = format_dict[data_format]
-        src_a = to_tensor(operand1, data_format)
+
+        # Extract tile data (1024 elements per tile for srcA, 1024 for srcB)
+        tile_offset_a = tile_idx * ELEMENTS_PER_TILE
+        tile_offset_b = tile_idx * ELEMENTS_PER_TILE
+
+        src_a = to_tensor(
+            operand1[tile_offset_a : tile_offset_a + ELEMENTS_PER_TILE], data_format
+        )
         # Only the first face of srcB input is unpacked and used for reduce operations
-        src_b = to_tensor(operand2[:256], data_format)
+        src_b = to_tensor(
+            operand2[tile_offset_b : tile_offset_b + ELEMENTS_PER_FACE], data_format
+        )
 
         # For row reduce, transpose srcA faces (models unpacker transpose within faces)
         if reduce_dim == ReduceDimension.Row:
