@@ -82,7 +82,7 @@ void run_kernel()
 #endif
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats_array[run].math, formats_array[run].math);
+    _llk_math_hw_configure_(formats_array[run].math, formats_array[run].math);
 
     // copy tilized inputs to dest indexes 0 and 1
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();

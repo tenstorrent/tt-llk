@@ -689,8 +689,7 @@ inline void _llk_math_matmul_init_(
     const std::uint32_t ct_dim         = 1,
     const std::uint32_t rt_dim         = 1)
 {
-    matmul_configure_addrmod<MATH_FIDELITY_DESC, THROTTLE_LEVEL>(
-        transpose, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
+    matmul_configure_addrmod<MATH_FIDELITY_DESC, THROTTLE_LEVEL>(transpose, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     const bool reuse_a        = ct_dim >= rt_dim;
     const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
     if (t_dim > 1)
