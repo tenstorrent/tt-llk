@@ -331,6 +331,14 @@ class CRK_TILE_DIMM(RuntimeParameter):
         return "\n".join(lines)
 
 
+@dataclass
+class NUM_FACES(RuntimeParameter):
+    num_faces: int
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int num_faces = {self.num_faces};"
+
+
 # @dataclass
 # class (RuntimeParameter):
 #     def covert_to_cpp(self) -> str:

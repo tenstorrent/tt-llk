@@ -549,7 +549,7 @@ class TestConfig:
         unpack_size_a = TILE_SIZES.get(self.formats.input_format, 128)
         unpack_size_b = TILE_SIZES.get(self.formats.input_format, 128)
 
-        # Tiny tile flag, used to handle dimension
+        # TODO Tiny tile flag, used to handle dimension
         # if self.tiny_tiles:
         #     pack_size = (pack_size // self.num_faces) * (self.in0_tile_r_dim // face_r_dim)
         #     unpack_size_a = (unpack_size_a // num_faces_A) * (in0_tile_r_dim // face_r_dim)

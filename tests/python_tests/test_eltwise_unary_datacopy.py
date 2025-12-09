@@ -16,6 +16,7 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_INDEX,
     INPUT_DIMENSIONS,
+    NUM_FACES,
     TILE_COUNT,
     TILIZE,
 )
@@ -76,7 +77,7 @@ def test_unary_datacopy(test_name, datacopy_parameters, workers_tensix_coordinat
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             TILIZE(tilize_en),
         ],
-        runtimes=[DEST_INDEX(dest_index), TILE_COUNT(tile_cnt_A)],
+        runtimes=[DEST_INDEX(dest_index), TILE_COUNT(tile_cnt_A), NUM_FACES(num_faces)],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
