@@ -17,27 +17,12 @@ class FuseGolden:
         self.results = []
 
     def check_operation(self, operation: FusedOperation, step_number: int) -> bool:
-        if self.verbose:
-            print(f"\n{'='*60}")
-            print(f"Operation {step_number}")
-            print(f"{'='*60}")
-
         src_a = operation.src_a
         src_b = operation.src_b
         output = operation.output
 
         if self.verbose:
-            print(
-                f"  Input A: {src_a.name} (dims: {src_a.dimensions}, format: {src_a.data_format})"
-            )
-            print(
-                f"  Input B: {src_b.name} (dims: {src_b.dimensions}, format: {src_b.data_format})"
-            )
-            print(
-                f"  Output:  {output.name} (dims: {output.dimensions}, format: {output.data_format})"
-            )
-            print(f"  Math Fidelity: {operation.math_fidelity}")
-            print(f"  Dest Accumulation: {operation.dest_acc}")
+            print(operation)
 
         res_tensor = torch.tensor(
             output.raw_data, dtype=format_dict[output.data_format]

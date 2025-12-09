@@ -109,6 +109,9 @@ class Operand:
                 self.generate_data()
         return self._tile_count
 
+    def __str__(self) -> str:
+        return f"{self.name}, {self.dimensions}, {self.data_format}"
+
 
 class OperandMapping:
     def __init__(

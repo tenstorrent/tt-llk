@@ -186,3 +186,21 @@ class FusedOperation:
 
     def golden(self) -> torch.Tensor:
         return self.math.golden(self)
+
+    def __str__(self):
+        return (
+            f"\n{'='*60}\n"
+            f"Operation {self.stage_id}\n"
+            f"{'='*60}\n"
+            f"  Unpacker: {self.unpacker.__name__}\n"
+            f"  Math: {self.math}\n"
+            f"    Fpu Math Op: {self.math.fpu}\n"
+            f"    Sfpu Math Ops: {[op.__str__() for op in self.math.sfpu]}\n"
+            f"  Packer: {self.packer.__name__}\n"
+            f"  Src_A: {self.src_a}\n"
+            f"  Src_B: {self.src_b}\n"
+            f"  Output: {self.output}\n"
+            f"  Math Fidelity: {self.math_fidelity}\n"
+            f"  Dest Accumulation: {self.dest_acc}\n"
+            f"  Tilize: {self.tilize}\n"
+        )

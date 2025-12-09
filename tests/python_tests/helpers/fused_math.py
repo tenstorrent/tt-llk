@@ -35,6 +35,9 @@ class Fpu:
     def get_headers(self) -> List[str]:
         return []
 
+    def __str__(self) -> str:
+        return self.__class__.__name__
+
 
 class MatmulFpu(Fpu):
     def get_headers(self) -> List[str]:
@@ -164,6 +167,9 @@ class EltwiseFpu(Fpu):
 """
         return code
 
+    def __str__(self) -> str:
+        return f"EltwiseFpu({self.operation})"
+
 
 class DatacopyFpu(Fpu):
     def get_headers(self) -> List[str]:
@@ -281,6 +287,9 @@ class Sfpu:
     def get_headers(self) -> List[str]:
         return []
 
+    def __str__(self) -> str:
+        return f"{self.__name__}({self.operation})"
+
 
 class UnarySfpu(Sfpu):
     def __init__(
@@ -341,6 +350,9 @@ class UnarySfpu(Sfpu):
     _llk_math_eltwise_unary_sfpu_done_();
 """
         return code
+
+    def __str__(self) -> str:
+        return f"UnarySfpu({self.operation})"
 
 
 class BinarySfpu(Sfpu):
@@ -408,6 +420,9 @@ class BinarySfpu(Sfpu):
 """
         return code
 
+    def __str__(self) -> str:
+        return f"BinarySfpu({self.operation})"
+
 
 class SfpuWhere(Sfpu):
     dst_index_in0: int = 0
@@ -455,6 +470,9 @@ class SfpuWhere(Sfpu):
     _llk_math_eltwise_ternary_sfpu_done_();
 """
         return code
+
+    def __str__(self) -> str:
+        return "SfpuWhere"
 
 
 class Math:
