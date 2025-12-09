@@ -204,6 +204,8 @@ class TestConfig:
         TestConfig.ARTEFACTS_DIR = TestConfig.DEFAULT_ARTEFACTS_PATH
         TestConfig.MODE = TestMode.DEFAULT
 
+        print(TestConfig.ARTEFACTS_DIR)
+
         if target_config.compile_producer:
             TestConfig.MODE = TestMode.PRODUCE
 

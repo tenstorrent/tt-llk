@@ -13,7 +13,12 @@ from helpers.param_config import (
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
-from helpers.test_variant_parameters import DEST_INDEX, INPUT_DIMENSIONS, TILIZE
+from helpers.test_variant_parameters import (
+    DEST_INDEX,
+    INPUT_DIMENSIONS,
+    TILE_COUNT,
+    TILIZE,
+)
 from helpers.utils import passed_test
 
 DATACOPY_FORMATS = input_output_formats(
@@ -71,9 +76,7 @@ def test_unary_datacopy(test_name, datacopy_parameters, workers_tensix_coordinat
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             TILIZE(tilize_en),
         ],
-        runtimes=[
-            DEST_INDEX(dest_index),
-        ],
+        runtimes=[DEST_INDEX(dest_index), TILE_COUNT(tile_cnt_A)],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

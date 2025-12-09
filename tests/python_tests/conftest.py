@@ -125,7 +125,6 @@ def pytest_configure(config):
 
     initialize_test_target_from_pytest(config)
     test_target = TestTargetConfig()
-
     TestConfig.setup_mode(test_target)
     TestConfig.setup_build(Path(os.environ["LLK_HOME"]))
 
@@ -181,27 +180,27 @@ def pytest_runtest_makereport(item, call):
         if "SKIPPED_FOR_JUST_COMPILE" in skip_reason:
             report.outcome = "passed"
 
-    if report.failed and report.when == "call":
-        if hasattr(report, "longrepr") and report.longrepr:
-            if hasattr(call, "excinfo") and call.excinfo:
-                exc_type = call.excinfo.type
+    # if report.failed and report.when == "call":
+    #     if hasattr(report, "longrepr") and report.longrepr:
+    #         if hasattr(call, "excinfo") and call.excinfo:
+    #             exc_type = call.excinfo.type
 
-                test_file_and_func = report.nodeid.split("[")[0]
+    #             test_file_and_func = report.nodeid.split("[")[0]
 
-                if exc_type == AssertionError:
-                    # Handle assertion failures
-                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
-                    error_message = (
-                        f"⨯ {test_file_and_func}{report.test_params} {exc_msg}"
-                    )
-                else:
-                    exc_name = exc_type.__name__
-                    exc_msg = str(call.excinfo.value)
-                    error_message = (
-                        f"⚠ Exception: {exc_name} - {exc_msg} | {report.test_params}"
-                    )
+    #             if exc_type == AssertionError:
+    #                 # Handle assertion failures
+    #                 exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
+    #                 error_message = (
+    #                     f"⨯ {test_file_and_func}{report.test_params} {exc_msg}"
+    #                 )
+    #             else:
+    #                 exc_name = exc_type.__name__
+    #                 exc_msg = str(call.excinfo.value)
+    #                 error_message = (
+    #                     f"⚠ Exception: {exc_name} - {exc_msg} | {report.test_params}"
+    #                 )
 
-                report.longrepr = error_message
+    #             report.longrepr = error_message
 
     return report
 

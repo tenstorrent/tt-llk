@@ -211,8 +211,8 @@ class DestSync(Enum):
 
 
 class Tilize(Enum):
-    Yes = "true"
-    No = "false"
+    Yes = True
+    No = False
 
 
 class Mailbox(Enum):

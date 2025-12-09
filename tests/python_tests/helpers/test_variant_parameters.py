@@ -16,6 +16,7 @@ from .llk_params import (
     PerfRunType,
     ReducePool,
     StochasticRounding,
+    Tilize,
     UnpackerEngine,
 )
 from .matmul_sweep import validate_tile_dimensions
@@ -132,10 +133,10 @@ class DEST_SYNC(TemplateParameter):  # This one is mandatory
 
 @dataclass
 class TILIZE(TemplateParameter):
-    value: bool
+    choice: Tilize
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr bool tilize_en = {str(self.value).lower()};"
+        return f"constexpr bool tilize_en = {str(self.choice.value).lower()};"
 
 
 @dataclass
