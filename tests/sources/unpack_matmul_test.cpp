@@ -67,7 +67,7 @@ void run_kernel()
     _llk_math_matmul_init_<MATH_FIDELITY>(
         in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, PARTIAL_FACE_MATH, UNPACK_TRANSPOSE_FACES, CT_DIM, RT_DIM);
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+    _llk_math_hw_configure_(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (uint32_t j = 0; j < KT_DIM; j++)
     {

@@ -64,7 +64,7 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_init_<copy_type, is_fp32_dest_acc_en, BROADCAST_TYPE, is_int_fpu_en>(NUM_FACES, formats.math);
 #endif
     _llk_math_pack_sync_init_<sync_mode, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+    _llk_math_hw_configure_(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<sync_mode>();
     for (int i = 0; i < TILE_CNT; ++i)
     {

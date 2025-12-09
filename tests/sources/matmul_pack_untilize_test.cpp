@@ -44,7 +44,10 @@ void run_kernel()
 {
     _llk_math_matmul_init_<MATH_FIDELITY>();
     _llk_math_pack_sync_init_<sync, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<true, false>(formats.math, formats.math);
+    _llk_math_hw_configure_(formats.math, formats.math);
+#ifdef ARCH_BLACKHOLE
+    _llk_math_reconfig_remap_(true);
+#endif
     _llk_math_wait_for_dest_available_<sync>();
     _llk_math_matmul_<MATH_FIDELITY>(0);
     _llk_math_dest_section_done_<sync, is_fp32_dest_acc_en>();

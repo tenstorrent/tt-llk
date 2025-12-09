@@ -80,7 +80,8 @@ void run_kernel()
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
 
     // row_pool tells HW if pooling is performed across rows (affects transpose path)
-    _llk_math_hw_configure_<false, row_pool>(formats.math, formats.math);
+    // TODO NC: we passed row_pool here for skip_inputs, see if still needed
+    _llk_math_hw_configure_(formats.math, formats.math);
 
     //------------------------------------------------------------------
     // 1) Reduce operation

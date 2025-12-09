@@ -50,7 +50,7 @@ void run_kernel()
 void run_kernel()
 {
     _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+    _llk_math_hw_configure_(formats.math, formats.math);
 
     // Binary element-wise (FPU)
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0);
