@@ -4,6 +4,8 @@
 
 #pragma once
 
+#define ENABLE_LLK_ASSERT
+
 #ifdef ENABLE_LLK_ASSERT
 
 #ifdef ENV_LLK_INFRA
