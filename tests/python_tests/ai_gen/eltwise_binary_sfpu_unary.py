@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
@@ -107,6 +108,9 @@ def test_sweep_test(config):
     """Runs the C++ eltwise_binary_sfpu_unary.cpp kernel for a full sweep of all parameter combinations.
     Tests across all commonly used formats in the test infrastructure with 32×32 tensor shape (1 tile).
     """
+
+    if get_chip_architecture() == ChipArchitecture.BLACKHOLE:
+        pytest.skip("Fused eltwise binary + SFPU unary is not supported on Blackhole")
 
     # Extract parameters from config
     formats = config["formats"]
@@ -218,6 +222,7 @@ def test_sweep_test(config):
         formats.output_format,
         dest_acc,
         formats.output_format,
+        input_dimensions,
     )
 
     # ------------------------------------------------------------------

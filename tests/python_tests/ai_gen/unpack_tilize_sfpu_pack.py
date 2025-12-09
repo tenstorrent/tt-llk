@@ -3,6 +3,7 @@
 
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
@@ -111,6 +112,9 @@ def test_fused_tilize_sfpu_pack(config):
     - All format conversions maintain precision
     """
 
+    if get_chip_architecture() == ChipArchitecture.BLACKHOLE:
+        pytest.skip("Fused tilize + SFPU unary is not supported on Blackhole")
+
     # Extract test parameters
     formats = config["formats"]
     unary_op = config["unary_op"]
@@ -174,6 +178,7 @@ def test_fused_tilize_sfpu_pack(config):
         formats.output_format,
         dest_acc,
         formats.output_format,
+        input_dimensions,
     )
 
     # Final result remains in tile format (no untilize)

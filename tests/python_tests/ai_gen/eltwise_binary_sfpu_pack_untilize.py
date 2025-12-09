@@ -3,6 +3,7 @@
 
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
@@ -106,6 +107,9 @@ def test_sweep_test(config):
     Single 32×32 tile only.
     """
 
+    if get_chip_architecture() == ChipArchitecture.BLACKHOLE:
+        pytest.skip("Fused eltwise binary + SFPU unary is not supported on Blackhole")
+
     formats = config["formats"]
     mathop = config["mathop"]  # binary op
     unary_op = config["unary_op"]
@@ -158,7 +162,12 @@ def test_sweep_test(config):
 
     unary_golden_fn = get_golden_generator(UnarySFPUGolden)
     unary_out = unary_golden_fn(
-        unary_op, binary_out, formats.output_format, dest_acc, formats.output_format
+        unary_op,
+        binary_out,
+        formats.output_format,
+        dest_acc,
+        formats.output_format,
+        input_dimensions,
     )
 
     untilize_golden_fn = get_golden_generator(UntilizeGolden)

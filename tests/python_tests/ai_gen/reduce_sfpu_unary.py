@@ -111,6 +111,9 @@ _reduce_to_mathop = {
 def test_reduce_sfpu_unary(config):
     """Run the fused Reduce+SFPU kernel on Tensix and compare with golden."""
 
+    if get_chip_architecture() == ChipArchitecture.BLACKHOLE:
+        pytest.skip("Reduce + SFPU unary is not supported on Blackhole")
+
     if (
         config["unary_op"] in [MathOperation.Sin]
         and config["pool_type"] == ReducePool.Sum
@@ -194,7 +197,12 @@ def test_reduce_sfpu_unary(config):
 
     gen_unary = get_golden_generator(UnarySFPUGolden)
     golden_tensor = gen_unary(
-        unary_op, reduce_out, fmt.output_format, DestAccumulation.No, fmt.output_format
+        unary_op,
+        reduce_out,
+        fmt.output_format,
+        DestAccumulation.No,
+        fmt.output_format,
+        input_dimensions,
     )
 
     # --------------------- Device execution -------------------------------
