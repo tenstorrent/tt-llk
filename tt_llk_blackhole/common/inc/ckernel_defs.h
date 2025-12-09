@@ -76,12 +76,10 @@ enum SortDir : bool
     ArgMin = true,
 };
 
-constexpr std::uint32_t FACE_HEIGHT      = 16;
-constexpr std::uint32_t FACE_WIDTH       = 16;
-constexpr std::uint32_t TILE_HEIGHT      = 32;
-constexpr std::uint32_t TILE_WIDTH       = 32;
-constexpr std::uint32_t DATUMS_PER_ROW   = 16;
-constexpr std::uint32_t TILE_HEADER_SIZE = 1;
+constexpr std::uint32_t FACE_HEIGHT = 16;
+constexpr std::uint32_t FACE_WIDTH  = 16;
+constexpr std::uint32_t TILE_HEIGHT = 32;
+constexpr std::uint32_t TILE_WIDTH  = 32;
 
 constexpr std::uint32_t FACE_R_DIM = FACE_HEIGHT;
 constexpr std::uint32_t FACE_C_DIM = FACE_WIDTH;
