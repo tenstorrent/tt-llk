@@ -18,6 +18,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
+#include "llk_unpack_AB.h"
 #include "llk_unpack_common.h"
 #include "llk_unpack_tilize.h"
 
@@ -60,7 +61,7 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_fast_tilize_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_dst);
+        _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
         _llk_unpack_fast_tilize_init_(formats.unpack_dst, BLOCK_CT_DIM);
         PROFILER_SYNC();
     }
@@ -213,8 +214,8 @@ void run_kernel()
     uint32_t use_32bit_dest = formats.unpack_dst == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Tf32);
     {
         ZONE_SCOPED("INIT")
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
-        _llk_pack_fast_tilize_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst);
+        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst);
         _llk_pack_fast_tilize_init_<DstSync::SyncHalf>(use_32bit_dest, formats.pack_dst, BLOCK_CT_DIM == 1 ? 1 : 2);
         PROFILER_SYNC();
     }
