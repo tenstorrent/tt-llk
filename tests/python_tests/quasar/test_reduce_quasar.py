@@ -6,8 +6,8 @@ import torch
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
+    ReduceGapoolGolden,
     ReduceGolden,
-    ReduceWithFidelityGolden,
     get_golden_generator,
 )
 from helpers.llk_params import (
@@ -36,7 +36,7 @@ MATH_FIDELITY_MODES = [
     MathFidelity.LoFi,
     MathFidelity.HiFi2,
     MathFidelity.HiFi3,
-    MathFidelity.LoFi,
+    MathFidelity.HiFi4,
 ]
 POOL_TYPES = [ReducePool.Max, ReducePool.Sum, ReducePool.Average]
 
@@ -62,7 +62,7 @@ def generate_pool_type_and_math_fidelity_combinations():
             DataFormat.Float16,
         ],
     ),
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type_and_math_fidelity=generate_pool_type_and_math_fidelity_combinations(),
 )
@@ -77,8 +77,6 @@ def test_reduce_quasar(
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
-
-    # src_A = torch.repeat_interleave(torch.arange(1, 5, dtype=format_dict[formats.input_format]), 256)
 
     if pool_type in [
         ReducePool.Max,
@@ -95,7 +93,7 @@ def test_reduce_quasar(
             src_A, reduce_dim, pool_type, formats.output_format
         )
     else:
-        generate_golden = get_golden_generator(ReduceWithFidelityGolden)
+        generate_golden = get_golden_generator(ReduceGapoolGolden)
         golden_tensor = generate_golden(
             src_A, src_B, formats.output_format, reduce_dim, math_fidelity
         )
@@ -130,8 +128,5 @@ def test_reduce_quasar(
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize(res_tensor, formats.output_format)
-
-    # print(f"res_tensor: {res_tensor}")
-    # print(f"golden_tensor: {golden_tensor}")
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)

@@ -1475,13 +1475,13 @@ class ReduceGolden:
 
 
 @register_golden
-class ReduceWithFidelityGolden(FidelityMasking):
-    """Golden generator for reduce operations with fidelity masking. Used for Sum and Average pool types.
+class ReduceGapoolGolden(FidelityMasking):
+    """Golden generator for reduce operations with fidelity masking. Used for Sum and Average pool types (GAPOOL).
 
     Hardware performs matmul (srcB @ srcA) for each face, accumulating across fidelity iterations.
     - Column reduce: f0+f2 (left), f1+f3 (right) → 1x32 row at row 0
     - Row reduce: srcA transposed, f0+f1 (upper), f2+f3 (lower) → 32x1 column at col 0
-    - Scalar reduce: all faces pooled together → 16x16 matrix pooled once more → single value at [0,0]
+    - Scalar reduce: all faces pooled together → 16x16 matrix transposed and then pooled once more → single value at [0,0]
     """
 
     FIDELITY_ITER_COUNT = {
