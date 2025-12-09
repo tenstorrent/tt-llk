@@ -13,7 +13,7 @@ from helpers.llk_params import (
     ReducePool,
     format_dict,
 )
-from helpers.tilize_untilize import tilize_block
+from helpers.tilize_untilize import tilize_block, untilize_block
 
 # Tile and face dimension constants
 FACE_DIM = 16
@@ -921,6 +921,8 @@ class UnarySFPUGolden:
         data_format,
         dest_acc,
         input_format,
+        dimensions: tuple[int, int],
+        iterations: int = None,
         reduce_pool: Optional[ReducePool] = None,
     ):
         self.data_format = data_format
@@ -952,7 +954,23 @@ class UnarySFPUGolden:
 
         tensor = to_tensor(operand1, dst_format)
 
-        result = [self.ops[operation](x) for x in tensor.tolist()]
+        if iterations is None or iterations * 32 > tensor.numel():
+            iterations = tensor.numel() // 32
+
+        if iterations <= 0:
+            raise ValueError(f"Invalid iterations: {iterations}")
+
+        result = tensor.clone().flatten()
+
+        result = tilize_block(result, dimensions, input_format).flatten()
+
+        op_res = [self.ops[operation](x) for x in result.tolist()[0 : 32 * iterations]]
+
+        result[0 : 32 * iterations] = torch.tensor(
+            op_res, dtype=format_dict[dst_format]
+        )
+
+        result = untilize_block(result, input_format, dimensions).flatten()
 
         if self.data_format == DataFormat.Bfp8_b:
             check_bfp8_b(result)
@@ -1236,16 +1254,105 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         )
 
     def __call__(
-        self, operation: MathOperation, operand1, operand2, data_format: DataFormat
+        self,
+        operation: MathOperation,
+        tensor,
+        src1_idx: int,
+        src2_idx: int,
+        dst_idx: int,
+        num_iterations: int,
+        dimensions: tuple[int, int],
+        data_format: DataFormat,
     ):
         if operation not in self.ops:
             raise ValueError(f"Unsupported SFPU operation: {operation}")
 
-        t1 = to_tensor(operand1, data_format)
-        t2 = to_tensor(operand2, data_format)
+        if num_iterations < 1:
+            raise ValueError(f"num_iterations must be at least 1, got {num_iterations}")
 
-        result = [self.ops[operation](t1[i], t2[i]) for i in range(len(t1))]
-        return torch.tensor(result, dtype=format_dict[data_format])
+        total_elements = dimensions[0] * dimensions[1]
+        elements_per_tile = ELEMENTS_PER_TILE
+        elements_per_row = 32
+
+        num_tiles = total_elements // elements_per_tile
+
+        src1_start = src1_idx * elements_per_tile
+        src2_start = src2_idx * elements_per_tile
+        dst_start = dst_idx * elements_per_tile
+
+        if operation == MathOperation.SfpuAddTopRow:
+            return self._add_top_row(
+                tensor.flatten(),
+                src1_idx,
+                src2_idx,
+                dst_idx,
+                num_iterations,
+                dimensions,
+                data_format,
+            )
+
+        if data_format != DataFormat.Bfp8_b:
+            result = tilize_block(tensor.flatten(), dimensions, data_format).flatten()
+        else:
+            result = tensor.flatten()
+
+        if src1_idx < 0 or src1_idx >= num_tiles:
+            raise ValueError(
+                f"src1_idx {src1_idx} is out of bounds. Tensor has {num_tiles} tiles."
+            )
+        if src2_idx < 0 or src2_idx >= num_tiles:
+            raise ValueError(
+                f"src2_idx {src2_idx} is out of bounds. Tensor has {num_tiles} tiles."
+            )
+        if dst_idx < 0 or dst_idx >= num_tiles:
+            raise ValueError(
+                f"dst_idx {dst_idx} is out of bounds. Tensor has {num_tiles} tiles."
+            )
+
+        elements_to_process = num_iterations * elements_per_row
+        if src1_start + elements_to_process > total_elements:
+            raise ValueError(
+                f"Processing {num_iterations} iterations from src1_idx {src1_idx} "
+                f"would exceed tensor bounds (trying to access element {src1_start + elements_to_process}, "
+                f"but tensor has only {total_elements} elements)"
+            )
+        if src2_start + elements_to_process > total_elements:
+            raise ValueError(
+                f"Processing {num_iterations} iterations from src2_idx {src2_idx} "
+                f"would exceed tensor bounds (trying to access element {src2_start + elements_to_process}, "
+                f"but tensor has only {total_elements} elements)"
+            )
+        if dst_start + elements_to_process > total_elements:
+            raise ValueError(
+                f"Processing {num_iterations} iterations to dst_idx {dst_idx} "
+                f"would exceed tensor bounds (trying to access element {dst_start + elements_to_process}, "
+                f"but tensor has only {total_elements} elements)"
+            )
+
+        for iteration in range(num_iterations):
+            row_offset = iteration * elements_per_row
+
+            src1_row_start = src1_start + row_offset
+            src2_row_start = src2_start + row_offset
+            dst_row_start = dst_start + row_offset
+
+            src1_row = result[src1_row_start : src1_row_start + elements_per_row]
+            src2_row = result[src2_row_start : src2_row_start + elements_per_row]
+
+            result_row = torch.tensor(
+                [
+                    self.ops[operation](src1_row[i], src2_row[i])
+                    for i in range(elements_per_row)
+                ],
+                dtype=format_dict[data_format],
+            )
+
+            result[dst_row_start : dst_row_start + elements_per_row] = result_row
+
+        if data_format != DataFormat.Bfp8_b:
+            result = untilize_block(result, data_format, dimensions)
+
+        return result
 
     # Operation methods are covered by Eltwise Binary Golden
     def _xlogy(self, x, y):
@@ -1269,12 +1376,32 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         result = (t1_uint >> t2).to(torch.int32)
         return result
 
-    def _add_top_row(self, t1, t2):
+    def _add_top_row(
+        self,
+        tensor,
+        src1_idx,
+        src2_idx,
+        dst_idx,
+        num_iterations,
+        dimensions,
+        data_format,
+    ):
         """
         Add top row operation for tile pairs.
-        Takes the element t1 of top row of tile 0 and adds it with element t2 of top row of tile 1.
+        Takes the top row of tile 0 (first 16 datums of face 0 and face 1) and adds them
+        with the top row of tile 1 (first 16 datums of face 2 and face 3).
         """
-        return t1 + t2
+        src1_idx_start = src1_idx * ELEMENTS_PER_TILE
+        src2_idx_start = src2_idx * ELEMENTS_PER_TILE
+        dst_idx_start = dst_idx * ELEMENTS_PER_TILE
+
+        result = tensor.clone()
+        # Add the top 16 elements (faces 0 and 1) of tile 0 with the top 16 elements (faces 2 and 3) of tile 1
+        for i in range(32):
+            result[dst_idx_start + i] = (
+                tensor[src1_idx_start + i] + tensor[src2_idx_start + i]
+            )
+        return result
 
 
 @register_golden
