@@ -22,7 +22,7 @@ from helpers.llk_params import (
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
-from helpers.tilize_untilize import untilize
+from helpers.tilize_untilize import untilize_block
 from helpers.utils import passed_test
 
 # Helper dictionary to map reduce dimensions to math operations
@@ -78,14 +78,18 @@ def test_reduce_quasar(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
+    src_A = torch.repeat_interleave(
+        torch.arange(1, tile_cnt * 4 + 1, dtype=format_dict[formats.input_format]), 256
+    )
+
     if pool_type in [
         ReducePool.Max,
         ReducePool.Sum,
     ]:  # result in srcA should be multiplied by 1
-        src_B = torch.full((1024,), 1)
+        src_B = torch.full((1024 * tile_cnt,), 1)
     else:
         # reduce average divides by length of elements in array we reduce
-        src_B = torch.full((1024,), 1 / 32)
+        src_B = torch.full((1024 * tile_cnt,), 1 / 32)
 
     if pool_type == ReducePool.Max:
         generate_golden = get_golden_generator(ReduceGolden)
@@ -95,7 +99,7 @@ def test_reduce_quasar(
     else:
         generate_golden = get_golden_generator(ReduceGapoolGolden)
         golden_tensor = generate_golden(
-            src_A, src_B, formats.output_format, reduce_dim, math_fidelity
+            src_A, src_B, formats.output_format, reduce_dim, math_fidelity, tile_cnt
         )
 
     mathop = mathop_mapping[reduce_dim]
@@ -127,6 +131,11 @@ def test_reduce_quasar(
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
-    res_tensor = untilize(res_tensor, formats.output_format)
+    res_tensor = untilize_block(
+        res_tensor, formats.output_format, input_dimensions
+    ).flatten()
+
+    print(f"res_tensor: {res_tensor}")
+    print(f"golden_tensor: {golden_tensor}")
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
