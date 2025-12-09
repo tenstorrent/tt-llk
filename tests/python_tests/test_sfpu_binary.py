@@ -80,7 +80,11 @@ def test_sfpu_binary_int(test_name, formats, dest_acc, mathop):
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
 def test_sfpu_binary_add_top_row(test_name, formats, dest_acc, mathop):
+<<<<<<< HEAD
     input_dimensions = [64, 32]
+=======
+    input_dimensions = [32, 64]
+>>>>>>> 8bbc9732 (fix test_sfpu_binary.py)
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
