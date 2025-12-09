@@ -37,7 +37,11 @@ void run_kernel()
             FACE_R_DIM,
             /* within_face_16x16_transpose */ 0,
             /* num_faces */ 4);
-        _llk_unpack_AB_init_<>(FACE_R_DIM, TILE_NUM_FACES, false, false, dest_acc_en_input);
+        _llk_unpack_AB_init_<>(
+            FACE_R_DIM,
+            TILE_NUM_FACES,
+            /* narrow tile */ false,
+            /* transpose within face */ 0);
         PROFILER_SYNC();
     }
     {
