@@ -125,7 +125,7 @@ inline sfpi::vFloat _round_even_(sfpi::vFloat v)
     sfpi::vInt exp = sfpi::exexp(v);
     // Subtract 2**23 to restore exponent.
     tmp += -8388608.0f;
-    // Hide SFPNOP; check exponent.
+    // Hide SFPNOP; check exponent.  If x ≥ 2**23, then there is no fractional part.
     v_if (exp < 23)
     {
         // v.{Exp,Man}=tmp.{Exp,Man}; retaining original sign.
