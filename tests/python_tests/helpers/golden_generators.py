@@ -1293,38 +1293,29 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         else:
             result = tensor.flatten()
 
-        if src1_idx < 0 or src1_idx >= num_tiles:
-            raise ValueError(
-                f"src1_idx {src1_idx} is out of bounds. Tensor has {num_tiles} tiles."
-            )
-        if src2_idx < 0 or src2_idx >= num_tiles:
-            raise ValueError(
-                f"src2_idx {src2_idx} is out of bounds. Tensor has {num_tiles} tiles."
-            )
-        if dst_idx < 0 or dst_idx >= num_tiles:
-            raise ValueError(
-                f"dst_idx {dst_idx} is out of bounds. Tensor has {num_tiles} tiles."
-            )
+        for name, idx in [
+            ("src1_idx", src1_idx),
+            ("src2_idx", src2_idx),
+            ("dst_idx", dst_idx),
+        ]:
+            if not 0 <= idx < num_tiles:
+                raise ValueError(
+                    f"{name} {idx} is out of bounds. Tensor has {num_tiles} tiles."
+                )
 
         elements_to_process = num_iterations * elements_per_row
-        if src1_start + elements_to_process > total_elements:
-            raise ValueError(
-                f"Processing {num_iterations} iterations from src1_idx {src1_idx} "
-                f"would exceed tensor bounds (trying to access element {src1_start + elements_to_process}, "
-                f"but tensor has only {total_elements} elements)"
-            )
-        if src2_start + elements_to_process > total_elements:
-            raise ValueError(
-                f"Processing {num_iterations} iterations from src2_idx {src2_idx} "
-                f"would exceed tensor bounds (trying to access element {src2_start + elements_to_process}, "
-                f"but tensor has only {total_elements} elements)"
-            )
-        if dst_start + elements_to_process > total_elements:
-            raise ValueError(
-                f"Processing {num_iterations} iterations to dst_idx {dst_idx} "
-                f"would exceed tensor bounds (trying to access element {dst_start + elements_to_process}, "
-                f"but tensor has only {total_elements} elements)"
-            )
+
+        for name, start in [
+            ("src1_idx", src1_start),
+            ("src2_idx", src2_start),
+            ("dst_idx", dst_start),
+        ]:
+            if start + elements_to_process > total_elements:
+                raise ValueError(
+                    f"Processing {num_iterations} iterations from {name} "
+                    f"would exceed tensor bounds (trying to access element {start + elements_to_process}, "
+                    f"but tensor has only {total_elements} elements)"
+                )
 
         for iteration in range(num_iterations):
             row_offset = iteration * elements_per_row
@@ -1391,13 +1382,14 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
 
         result = tensor.clone()
 
-        for i in range(64):
-            result[dst_idx_start + i] = (
-                tensor[src1_idx_start + i] + tensor[src2_idx_start + i]
-            )
-            result[dst_idx_start + 256 + i] = (
-                tensor[src1_idx_start + 256 + i] + tensor[src2_idx_start + 256 + i]
-            )
+        result[dst_idx_start : dst_idx_start + 64] = (
+            tensor[src1_idx_start : src1_idx_start + 64]
+            + tensor[src2_idx_start : src2_idx_start + 64]
+        )
+        result[dst_idx_start + 256 : dst_idx_start + 320] = (
+            tensor[src1_idx_start + 256 : src1_idx_start + 320]
+            + tensor[src2_idx_start + 256 : src2_idx_start + 320]
+        )
 
         return result
 
