@@ -293,3 +293,14 @@ class UnpackerEngine(Enum):
 
 
 # *********************************
+
+
+class PackerReluType(Enum):
+    """
+    Relu activation function types for packer operations.
+    """
+
+    NoRelu = 0
+    ZeroRelu = 1
+    MinThresholdRelu = 2
+    MaxThresholdRelu = 3
