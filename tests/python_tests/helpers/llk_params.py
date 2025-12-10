@@ -258,9 +258,9 @@ class EltwiseBinaryReuseDestType(Enum):
     Enum for destination reuse types in elementwise binary ops.
     """
 
-    NONE = 0
-    DEST_TO_SRCA = 1
-    DEST_TO_SRCB = 2
+    NONE = "NONE"
+    DEST_TO_SRCA = "DEST_TO_SRCA"
+    DEST_TO_SRCB = "DEST_TO_SRCB"
 
 
 class DataCopyType(Enum):

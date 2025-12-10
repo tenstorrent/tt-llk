@@ -112,7 +112,8 @@ def test_matmul(
         math_fidelity,
         input_A_dimensions=input_A_dimensions,
         input_B_dimensions=input_B_dimensions,
-        tilize=True,  # Golden cannot model FPU strided for tilized data computation, so we tilize output after computation
+        # Golden cannot model FPU strided for tilized data computation, so we tilize output after computation
+        tilize=True,
     )
 
     if formats.input_format != DataFormat.Bfp8_b:

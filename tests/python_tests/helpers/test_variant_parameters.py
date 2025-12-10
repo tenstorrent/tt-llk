@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from typing import Optional, Tuple
 
 from .llk_params import (
+    FPU_BINARY_OPERATIONS,
+    REDUCE_OPERATIONS,
+    SFPU_BINARY_OPERATIONS,
+    SFPU_UNARY_OPERATIONS,
     ApproximationMode,
     BroadcastType,
     DataCopyType,
@@ -13,10 +17,13 @@ from .llk_params import (
     EltwiseBinaryReuseDestType,
     ImpliedMathFormat,
     MathFidelity,
+    MathOperation,
+    NarrowTile,
     PerfRunType,
     ReducePool,
     StochasticRounding,
     Tilize,
+    Transpose,
     UnpackerEngine,
 )
 from .matmul_sweep import validate_tile_dimensions
@@ -64,7 +71,7 @@ class STOCHASTIC_ROUNDING(TemplateParameter):
     type: StochasticRounding
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr auto STOCHASTIC_RND = ckernel::{self.type};"
+        return f"constexpr auto STOCHASTIC_RND = ckernel::{self.type.value};"
 
 
 @dataclass
@@ -80,7 +87,7 @@ class BROADCAST_TYPE(TemplateParameter):
     type: BroadcastType
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{self.type};"
+        return f"constexpr auto BROADCAST_TYPE = ckernel::BroadcastType::{self.type.value};"
 
 
 @dataclass
@@ -96,7 +103,67 @@ class REUSE_DEST_TYPE(TemplateParameter):
     type: EltwiseBinaryReuseDestType
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr auto REUSE_DEST_TYPE = ckernel::EltwiseBinaryReuseDestType::{self.type};"
+        return f"constexpr auto REUSE_DEST_TYPE = ckernel::EltwiseBinaryReuseDestType::{self.type.name};"
+
+
+def _generate_operation_constants(mathop: MathOperation) -> list[str]:
+    """Generate the appropriate operation constants based on the math operation type."""
+    constants = []
+
+    if mathop in SFPU_UNARY_OPERATIONS:
+        constants.append(
+            f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{mathop.cpp_enum_value};"
+        )
+    elif mathop in SFPU_BINARY_OPERATIONS:
+        constants.append(
+            f"constexpr auto SFPU_BINARY_OPERATION = ckernel::BinaryOp::{mathop.cpp_enum_value};"
+        )
+    elif mathop in FPU_BINARY_OPERATIONS:
+        constants.append(
+            f"constexpr auto ELTWISE_BINARY_OP = ckernel::EltwiseBinaryType::{mathop.cpp_enum_value};"
+        )
+
+    return constants
+
+
+# TODO Check if this is okay
+@dataclass
+class MATH_OP(TemplateParameter):
+    mathop: MathOperation = None
+    unary_extra: MathOperation = None
+    pool_type: ReducePool = None
+
+    def covert_to_cpp(self) -> str:
+        temp_header = []
+        if self.mathop:
+            temp_header.append("\n// Math operation configuration")
+            temp_header.extend(_generate_operation_constants(self.mathop))
+
+            # Handle reduce operations
+            if self.mathop in REDUCE_OPERATIONS:
+                temp_header.append(
+                    f"constexpr auto REDUCE_DIM = ckernel::ReduceDim::{self.mathop.cpp_enum_value};"
+                )
+                if self.pool_type:
+                    temp_header.append(
+                        f"constexpr auto POOL_TYPE = ckernel::PoolType::{self.pool_type.value};"
+                    )
+
+        # Optional extra unary operation (used when both a binary and unary op
+        # need to be present in the same kernel, e.g. binary-eltwise followed by
+        # SFPU unary).  If 'unary_op' exists, append its constant.
+        # Only add if we haven't already added a unary operation from the main mathop
+        if self.unary_extra and (
+            self.mathop is None or self.mathop not in SFPU_UNARY_OPERATIONS
+        ):
+            temp_header.extend(
+                [
+                    "\n// Additional SFPU unary operation",
+                    f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{self.unary_extra.cpp_enum_value};",
+                ]
+            )
+
+        return "\n".join(temp_header)
 
 
 @dataclass
@@ -120,7 +187,7 @@ class APPROX_MODE(TemplateParameter):  # This one is mandatory
     mode: ApproximationMode
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr bool APPROX_MODE = {self.mode};"
+        return f"constexpr bool APPROX_MODE = {self.mode.value};"
 
 
 @dataclass
@@ -170,7 +237,7 @@ class REDUCE_POOL_TYPE(TemplateParameter):
     type: ReducePool
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr auto POOL_TYPE = ckernel::PoolType::{self.type};"
+        return f"constexpr auto POOL_TYPE = ckernel::PoolType::{self.type.value};"
 
 
 @dataclass
@@ -218,33 +285,31 @@ class LOOP_FACTOR(RuntimeParameter):
     factor: int
 
     def covert_to_cpp(self) -> str:
-        f"constexpr int LOOP_FACTOR = {self.factor};"
+        return f"constexpr int LOOP_FACTOR = {self.factor};"
 
 
 @dataclass
 class UNPACK_TRANS_FACES(RuntimeParameter):
-    value: bool
+    do_or_not: Transpose
 
     def covert_to_cpp(self) -> str:
-        f"constexpr bool UNPACK_TRANSPOSE_FACES = {str(self.value).lower()};"
+        return f"constexpr bool UNPACK_TRANSPOSE_FACES = {self.do_or_not.value};"
 
 
 @dataclass
 class UNPACK_TRANS_WITHING_FACE(RuntimeParameter):
-    value: bool
+    do_or_not: Transpose
 
     def covert_to_cpp(self) -> str:
-        return (
-            f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {str(self.value).lower()};"
-        )
+        return f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {self.do_or_not.value};"
 
 
 @dataclass
 class NARROW_TILE(RuntimeParameter):
-    value: bool
+    is_or_isnt: NarrowTile
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr bool NARROW_TILE = {self.value};"
+        return f"constexpr bool NARROW_TILE = {self.is_or_isnt.value};"
 
 
 @dataclass
@@ -338,6 +403,27 @@ class NUM_FACES(RuntimeParameter):
     def covert_to_cpp(self) -> str:
         return f"constexpr int num_faces = {self.num_faces};"
 
+
+@dataclass
+class TEST_FACE_R_DIM(RuntimeParameter):
+    face_r_dim: int = 16
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int TEST_FACE_R_DIM = {self.face_r_dim};"
+
+
+@dataclass
+class TEST_FACE_C_DIM(RuntimeParameter):
+    face_c_dim: int = 16
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int TEST_FACE_C_DIM = {self.face_c_dim};"
+
+
+# @dataclass
+# class (RuntimeParameter):
+#     def covert_to_cpp(self) -> str:
+#         return ""
 
 # @dataclass
 # class (RuntimeParameter):

@@ -91,6 +91,7 @@ class StimuliConfig:
         buf_res_format = format_tile_sizes[
             DataFormat.Float16_b if formats is None else formats.output_format
         ]
+
         return [
             f"constexpr Operand buffer_A({hex(self.buf_a_addr)}, {buf_a_format});",
             f"constexpr Operand buffer_B({hex(self.buf_b_addr)}, {buf_b_format});",
@@ -122,9 +123,6 @@ class StimuliConfig:
         num_faces,
         location="0,0",
     ):
-        addresses = []
-        packed_data_list = []
-
         pack_function_lambda = lambda buffer_tile: (
             pack_function(buffer_tile, num_faces=num_faces)
             if pack_function == pack_bfp8_b
@@ -135,18 +133,7 @@ class StimuliConfig:
 
         write_to_device(location, base_address, packed_data)
 
-        # for ind in range(tile_count):
-        #     start_idx = StimuliConfig.TILE_ELEMENTS * ind
-        #     tile_data = buffer[start_idx : start_idx + StimuliConfig.TILE_ELEMENTS]
-        #     packed_data =
-
-        #     addresses.append(base_address + ind * tile_size)
-        #     packed_data_list.append(packed_data)
-
-        # for addr, data in zip(addresses, packed_data_list):
-        #     write_to_device(location, addr, data)
-
-    def write(self):
+    def write(self, location="0,0"):
         pack_function_A = StimuliConfig.get_packer(self.stimuli_A_format)
         pack_function_B = StimuliConfig.get_packer(self.stimuli_B_format)
 
@@ -163,6 +150,7 @@ class StimuliConfig:
             self.buf_a_addr,
             self.tile_size_A_bytes,
             self.num_faces,
+            location,
         )
         StimuliConfig.write_matrix(
             self.buffer_B,
@@ -171,6 +159,7 @@ class StimuliConfig:
             self.buf_b_addr,
             self.tile_size_B_bytes,
             self.num_faces,
+            location,
         )
 
         # TODO Handle writing C

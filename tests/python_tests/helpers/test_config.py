@@ -749,7 +749,7 @@ class TestConfig:
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip("SKIPPED_FOR_JUST_COMPILE")
 
-        self.variant_stimuli.write()
+        self.variant_stimuli.write(location)
         elfs = self.run_elf_files(location)
         wait_for_tensix_operations_finished(elfs, location)
 
