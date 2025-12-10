@@ -483,6 +483,7 @@ def test_unpack_comprehensive(
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
+
     assert len(res_from_L1) == len(
         golden_tensor
     ), "Result tensor and golder tensor are not of the same length"
