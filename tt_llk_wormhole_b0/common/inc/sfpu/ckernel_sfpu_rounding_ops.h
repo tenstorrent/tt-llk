@@ -118,6 +118,7 @@ inline void _calculate_frac_()
         _trunc_body_();
         // frac(x) = x - trunc(x)
         TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LCONST_neg1, p_sfpu::LREG0, p_sfpu::LREG1, 0);
+        TTI_SFPNOP;
         TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_3, 0);
         sfpi::dst_reg++;
     }
