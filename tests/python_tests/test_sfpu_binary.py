@@ -156,7 +156,7 @@ def sfpu_binary(test_name, formats, dest_acc, mathop):
             if formats.input_format == DataFormat.Bfp8_b
             else formats.input_format
         ),
-    )
+    ).flatten()
 
     unpack_to_dest = formats.input_format.is_32_bit()
 
@@ -186,7 +186,7 @@ def sfpu_binary(test_name, formats, dest_acc, mathop):
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
 
     torch_format = format_dict[formats.output_format]
-    res_tensor = torch.tensor(res_from_L1, dtype=torch_format).view(input_dimensions)
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format).flatten()
 
     assert len(res_tensor) == len(golden_tensor)
 
