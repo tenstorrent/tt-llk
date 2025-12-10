@@ -17,23 +17,13 @@ uint32_t math_sync_tile_dst_index = 0;
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_AB_matmul.h"
+#include "llk_unpack_common.h"
 #include "params.h"
 
 void run_kernel()
 {
-    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
-        formats.unpack_src,
-        formats.unpack_src,
-        formats.unpack_dst,
-        formats.unpack_dst,
-        FACE_R_DIM,
-        FACE_R_DIM,
-        0,
-        4,
-        4,
-        TILE_SIZE_UNPACK_A,
-        TILE_SIZE_UNPACK_B);
-    _llk_unpack_AB_matmul_init_<>(0, CT_DIM, RT_DIM, KT_DIM, FACE_R_DIM, FACE_R_DIM);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, num_faces_A);
+    _llk_unpack_AB_matmul_init_<>(0, CT_DIM, RT_DIM, KT_DIM, FACE_R_DIM, FACE_R_DIM, 4, 4, false, false, TILE_SIZE_UNPACK_A, TILE_SIZE_UNPACK_B);
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
         _llk_unpack_AB_matmul_<>(
@@ -57,7 +47,7 @@ void run_kernel()
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
-        _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0, CT_DIM, RT_DIM);
+        _llk_math_matmul_<MATH_FIDELITY>(0, CT_DIM, RT_DIM);
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

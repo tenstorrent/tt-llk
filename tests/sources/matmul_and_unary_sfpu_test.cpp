@@ -30,7 +30,7 @@ constexpr uint32_t buffer_A_tilized = 0x17000;
 void run_kernel()
 {
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
-    _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats_array[run].unpack_src, formats_array[run].unpack_src, formats_array[run].unpack_dst, formats_array[run].unpack_dst);
     _llk_unpack_AB_matmul_init_<>();
     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), 0, 0, tile_size, tile_size);

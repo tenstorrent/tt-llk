@@ -43,6 +43,23 @@ void _llk_zero_buffer_(const std::uint32_t base_address, const std::uint32_t siz
     }
 }
 
+template <bool is_fp32_dest_acc_en>
+inline void _llk_unpack_hw_configure_(
+    const std::uint32_t unpA_src_format,
+    const std::uint32_t unpB_src_format,
+    const std::uint32_t unpA_dst_format,
+    const std::uint32_t unpB_dst_format,
+    const std::uint32_t unpA_face_r_dim = FACE_R_DIM,
+    const std::uint32_t unpB_face_r_dim = FACE_R_DIM,
+    const std::uint32_t unpA_num_faces  = 4,
+    const std::uint32_t unpB_num_faces  = 4)
+{
+    LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
+    LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
+    configure_unpack_AB<is_fp32_dest_acc_en, false, false, false>(
+        unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, unpA_face_r_dim, unpB_face_r_dim, 0, unpA_num_faces, unpB_num_faces);
+}
+
 template <bool mail2math = true, bool mail2pack = true>
 inline void _llk_unpack_get_tile_(std::uint32_t address, std::uint32_t *p_tile)
 {
