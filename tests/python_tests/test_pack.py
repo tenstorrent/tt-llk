@@ -48,6 +48,10 @@ def is_relu_threshold_tolerance_issue(
     - FP16/BF16 precision differences
     - Rounding during format conversions
     - Threshold encoding/decoding precision loss
+    With values relatively close to the threshold, these small differences can lead to
+    one side being clamped to zero while the other retains a small non-zero value.
+    This function checks if all mismatches between golden and result tensors
+    can be explained by such near-threshold issues.
 
     Args:
         golden_tensor: Expected output tensor
@@ -63,6 +67,7 @@ def is_relu_threshold_tolerance_issue(
     relu_type = PackerReluType(relu_config & 0x3)
 
     # Only applicable for threshold-based ReLU modes
+    # Zero relu is exact because of the sign bit, so no tolerance issues there.
     if relu_type not in [
         PackerReluType.MinThresholdRelu,
         PackerReluType.MaxThresholdRelu,
@@ -73,19 +78,17 @@ def is_relu_threshold_tolerance_issue(
 
     # Define tolerance band around threshold
     threshold_tolerance = abs(threshold) * tolerance_factor if threshold != 0 else 0.01
-    threshold_lower = threshold - threshold_tolerance
-    threshold_upper = threshold + threshold_tolerance
+    threshold_upper_boundary = threshold + threshold_tolerance
 
     # Get the original input values that correspond to mismatches
     # Check both golden and result to see if they're in the tolerance band
-    golden_near_threshold = (golden_tensor[mismatches].abs() <= threshold_upper) | (
-        (golden_tensor[mismatches] - threshold).abs() <= threshold_tolerance
-    )
-    result_near_threshold = (result_tensor[mismatches].abs() <= threshold_upper) | (
-        (result_tensor[mismatches] - threshold).abs() <= threshold_tolerance
-    )
+    golden_near_threshold = (
+        golden_tensor[mismatches].abs() <= threshold_upper_boundary
+    ) | ((golden_tensor[mismatches] - threshold).abs() <= threshold_tolerance)
+    result_near_threshold = (
+        result_tensor[mismatches].abs() <= threshold_upper_boundary
+    ) | ((result_tensor[mismatches] - threshold).abs() <= threshold_tolerance)
 
-    # For MIN_THRESHOLD_RELU: Check if mismatch is between 0 and values near threshold
     if relu_type == PackerReluType.MinThresholdRelu:
         # One side should be 0, other should be near threshold
         golden_is_zero = golden_tensor[mismatches] == 0.0
@@ -149,14 +152,13 @@ def test_pack(
             "Pack does not support mixing Int32 with other formats. Check format conversions in packer for more information."
         )
 
-    # Generate test data
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
         formats.input_format,
         input_dimensions=input_dimensions,
+        negative_values=True,
     )
 
-    # Generate golden output
     generate_golden = get_golden_generator(PackGolden)
     golden_tensor = generate_golden(
         src_A,
@@ -164,18 +166,21 @@ def test_pack(
         input_dimensions=input_dimensions,
     )
 
+    unpack_to_dest = (
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+    )
+
+    # To come as close as possible to actual hardware behavior, we infer data formats here
+    # and use the inferred pack_src format for ReLU operations.
+    data_formats = infer_data_formats(
+        formats.input_format, formats.output_format, dest_acc, unpack_to_dest
+    )
+
     tensor_average = torch.mean(golden_tensor).item()
     relu_config = PackGolden.generate_relu_config(
         relu_type,
         relu_threshold=tensor_average,  # We use the average value for this.
-        intermediate_format=formats.output_format,
-    )
-
-    unpack_to_dest = (
-        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-    )
-    data_formats = infer_data_formats(
-        formats.input_format, formats.output_format, dest_acc, unpack_to_dest
+        intermediate_format=data_formats.pack_src,
     )
 
     # Perform relu.
@@ -220,25 +225,28 @@ def test_pack(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    # Check if test passes normally
     test_passed = passed_test(golden_tensor, res_tensor, formats.output_format)
 
-    # If test failed, check if it's due to threshold rounding issues
     if not test_passed and relu_type in [
         PackerReluType.MinThresholdRelu,
         PackerReluType.MaxThresholdRelu,
     ]:
-        if is_relu_threshold_tolerance_issue(
+
+        # When a datum is extremely close to the ReLU threshold, differences can arise due to
+        # floating point precision limitations and rounding during format conversions.
+        # We check if all mismatches are within a small tolerance of the threshold. If so, we consider the test as passed.
+        is_tolerance_issue = is_relu_threshold_tolerance_issue(
             golden_tensor,
             res_tensor,
             relu_config,
             tensor_average,
             formats.output_format,
-        ):
-            # Test failed due to acceptable threshold rounding - allow it to pass
-            pytest.skip(
-                f"Test skipped: Mismatches are due to threshold rounding issues near {tensor_average:.6f}. "
-                "This is expected behavior when values are very close to the ReLU threshold."
+        )
+
+        if is_tolerance_issue:
+            print(
+                f"This is a packer RELU threshold precision difference between hardware and software and it's not an issue. "
             )
+            test_passed = True
 
     assert test_passed
