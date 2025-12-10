@@ -117,12 +117,18 @@ inline void _calculate_frac_()
 
 inline sfpi::vFloat _round_even_(sfpi::vFloat v)
 {
+    // Create a temporary copy tmp = abs(v).
     sfpi::vFloat tmp = sfpi::setsgn(v, 0);
+    // For all 0 ≤ x < 2**23, x + 2**23 will shift out the fractional part with round-to-nearest-even.
     tmp += 8388608.0f;
+    // Hide SFPNOP; extract exponent.
     sfpi::vInt exp = sfpi::exexp(v);
+    // Subtract 2**23 to restore exponent.
     tmp += -8388608.0f;
+    // Hide SFPNOP; check exponent.
     v_if (exp < 23)
     {
+        // v.{Exp,Man}=tmp.{Exp,Man}; retaining original sign.
         v = sfpi::setsgn(tmp, v);
     }
     v_endif;
