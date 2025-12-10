@@ -17,7 +17,7 @@ from helpers.llk_params import (
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.target_config import TestTargetConfig
-from helpers.test_config import run_test
+from helpers.test_config import TestConfig, run_test
 from helpers.utils import passed_test
 
 
@@ -188,6 +188,8 @@ def eltwise_unary_sfpu(
         address=res_address,
         location=workers_tensix_coordinates,
     )
+
+    configuration = TestConfig()
 
     # res_from_L1 = res_from_L1[:1024]
     assert len(res_from_L1) == len(golden_tensor)

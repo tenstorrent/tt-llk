@@ -131,16 +131,20 @@ class StimuliConfig:
             else pack_function(buffer_tile)
         )
 
-        for ind in range(tile_count):
-            start_idx = StimuliConfig.TILE_ELEMENTS * ind
-            tile_data = buffer[start_idx : start_idx + StimuliConfig.TILE_ELEMENTS]
-            packed_data = pack_function_lambda(tile_data)
+        packed_data = pack_function_lambda(buffer)
 
-            addresses.append(base_address + ind * tile_size)
-            packed_data_list.append(packed_data)
+        write_to_device(location, base_address, packed_data)
 
-        for addr, data in zip(addresses, packed_data_list):
-            write_to_device(location, addr, data)
+        # for ind in range(tile_count):
+        #     start_idx = StimuliConfig.TILE_ELEMENTS * ind
+        #     tile_data = buffer[start_idx : start_idx + StimuliConfig.TILE_ELEMENTS]
+        #     packed_data =
+
+        #     addresses.append(base_address + ind * tile_size)
+        #     packed_data_list.append(packed_data)
+
+        # for addr, data in zip(addresses, packed_data_list):
+        #     write_to_device(location, addr, data)
 
     def write(self):
         pack_function_A = StimuliConfig.get_packer(self.stimuli_A_format)

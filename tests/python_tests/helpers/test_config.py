@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import shutil
+import time
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from hashlib import sha256
@@ -204,8 +205,6 @@ class TestConfig:
         TestConfig.ARTEFACTS_DIR = TestConfig.DEFAULT_ARTEFACTS_PATH
         TestConfig.MODE = TestMode.DEFAULT
 
-        print(TestConfig.ARTEFACTS_DIR)
-
         if target_config.compile_producer:
             TestConfig.MODE = TestMode.PRODUCE
 
@@ -264,15 +263,11 @@ class TestConfig:
 
         self.generate_variant_hash()
 
-        # print(self.variant_id)
-        # pytest.skip()
-
-    NON_COMPILATION_ARGUMETNS = ["variant_stimuli"]  # , "runtimes"],
-
     def generate_variant_hash(self):
+        NON_COMPILATION_ARGUMETNS = ["variant_stimuli"]  # , "runtimes"],
         temp_str = []
         for field_name, value in self.__dict__.items():
-            if field_name not in TestConfig.NON_COMPILATION_ARGUMETNS:
+            if field_name not in NON_COMPILATION_ARGUMETNS:
                 temp_str.append(str(value))
         self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
@@ -352,6 +347,8 @@ class TestConfig:
         if TestConfig.SHARED_ARTEFACTS_AVAILABLE:
             return
 
+        start_time = time.time()
+
         local_options_compile, local_memory_layout_ld, local_non_coverage = (
             self.resolve_compile_options()
         )
@@ -399,6 +396,9 @@ class TestConfig:
             f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {TestConfig.SHARED_OBJ_DIR / "brisc.o"} {COVERAGE_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / "brisc.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {TestConfig.SHARED_ELF_DIR / "brisc.elf"}""",
             TestConfig.TESTS_WORKING_DIR,
         )
+
+        end_time = time.time()
+        print(f"Building shared artefacts in {(end_time-start_time):.4f}s", end="")
 
         TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
 
