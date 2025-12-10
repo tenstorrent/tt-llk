@@ -10,4 +10,7 @@
 // Set or clear extended state mask bits
 // If set, check that set mask covers all ones currently set in state
 template <bool clear = false, typename... Ts>
-llk_san_extended_state_mask(Ts... args);
+llk_san_extended_state_mask(Ts... args)
+{
+    LLK_ASSERT(false, "not implemented");
+}
