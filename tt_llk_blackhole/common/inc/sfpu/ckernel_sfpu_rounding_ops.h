@@ -18,7 +18,7 @@ namespace ckernel
 namespace sfpu
 {
 
-// computes L1=trunc(L0).
+// computes L1=trunc(L0); requires _init_trunc_ to set L12=23.
 inline void _trunc_body_()
 {
     // mask = 0x8000_0000
