@@ -21,8 +21,6 @@ namespace sfpu
 // computes L1=trunc(L0).
 inline void _trunc_body_()
 {
-    // TODO store as constant
-    TTI_SFPLOADI(p_sfpu::LREG3, sfpi::SFPLOADI_MOD0_SHORT, 23);
     // mask = 0x8000_0000
     TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, 0x8000);
     // disable lanes where exp < 0
@@ -30,7 +28,7 @@ inline void _trunc_body_()
     // mask = 0xffff_ffff
     TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_SHORT, 0xffff);
     // exp = 23 - exp
-    TTI_SFPIADD(0, p_sfpu::LREG3, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_2SCOMP_LREG_DST | sfpi::SFPIADD_MOD1_CC_GTE0);
+    TTI_SFPIADD(0, p_sfpu::LREG12, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_2SCOMP_LREG_DST | sfpi::SFPIADD_MOD1_CC_GTE0);
     // mask <<= exp
     TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG2, p_sfpu::LREG1, sfpi::SFPSHFT2_MOD1_SHFT_LREG);
     // reset lanes
@@ -59,61 +57,6 @@ inline void _ceil_body_()
     TTI_SFPENCC(0, 0, 0, 0);
 }
 
-inline sfpi::vInt _float_to_int32_(sfpi::vFloat in)
-{
-    sfpi::vInt result;
-    sfpi::vInt exp = exexp(in); // extract exponent
-    v_if (exp < 0)
-    {
-        result = 0;
-    }
-    v_elseif (exp > 30) // overflow occurs above this range
-    {
-        // set to int32 max value in case of overflow
-        result = std::numeric_limits<int32_t>::max();
-        // check sign
-        v_if (in < 0)
-        {
-            result = sfpi::reinterpret<sfpi::vInt>(sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(result), 1));
-        }
-        v_endif;
-    }
-    v_else
-    {
-        // extract mantissa
-        sfpi::vInt man = exman8(in);
-        // shift the mantissa by (23-exponent) to the right
-        sfpi::vInt shift = exp - 23; // 23 is number of mantissa in float32
-        man              = shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
-        // check sign
-        v_if (in < 0)
-        {
-            man = sfpi::reinterpret<sfpi::vInt>(sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(man), 1));
-        }
-        v_endif;
-        result = man;
-    }
-    v_endif;
-    return result;
-}
-
-inline sfpi::vInt _float_to_int31_(sfpi::vFloat v)
-{
-    sfpi::vInt q = float_to_int16(v * 0x1p-15f, 0);
-    sfpi::vInt r = float_to_int16(v - int32_to_float(q, 0) * 0x1p15f, 0);
-    v_if (r < 0)
-    {
-        r = sfpi::setsgn(r, 0);
-        q = (q << 15) - r;
-    }
-    v_else
-    {
-        q = (q << 15) + r;
-    }
-    v_endif;
-    return q;
-}
-
 inline constexpr std::array<float, 84> PRECOMPUTED_POW10_TABLE = {
     1e-45F, 1e-44F, 1e-43F, 1e-42F, 1e-41F, 1e-40F, 1e-39F, 1e-38F, 1e-37F, 1e-36F, 1e-35F, 1e-34F, 1e-33F, 1e-32F, 1e-31F, 1e-30F, 1e-29F,
     1e-28F, 1e-27F, 1e-26F, 1e-25F, 1e-24F, 1e-23F, 1e-22F, 1e-21F, 1e-20F, 1e-19F, 1e-18F, 1e-17F, 1e-16F, 1e-15F, 1e-14F, 1e-13F, 1e-12F,
@@ -122,7 +65,7 @@ inline constexpr std::array<float, 84> PRECOMPUTED_POW10_TABLE = {
     1e23F,  1e24F,  1e25F,  1e26F,  1e27F,  1e28F,  1e29F,  1e30F,  1e31F,  1e32F,  1e33F,  1e34F,  1e35F,  1e36F,  1e37F,  1e38F,
 };
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
+template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
 inline void _calculate_floor_()
 {
     for (int d = 0; d < ITERATIONS; d++)
@@ -134,7 +77,7 @@ inline void _calculate_floor_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS = 8, bool USE_FP32 = false>
+template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
 inline void _calculate_ceil_()
 {
     for (int d = 0; d < ITERATIONS; d++)
@@ -146,7 +89,7 @@ inline void _calculate_ceil_()
     }
 }
 
-template <bool APPROXIMATION_MODE, bool USE_FP32 = false, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
 inline void _calculate_trunc_()
 {
     for (int d = 0; d < ITERATIONS; d++)
@@ -158,7 +101,7 @@ inline void _calculate_trunc_()
     }
 }
 
-template <bool APPROXIMATION_MODE, bool USE_FP32 = false, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
 inline void _calculate_frac_()
 {
     for (int d = 0; d < ITERATIONS; d++)
@@ -214,6 +157,12 @@ void _calculate_round_(const int decimals)
         sfpi::dst_reg[0]    = result;
         sfpi::dst_reg++;
     }
+}
+
+template <bool APPROXIMATION_MODE>
+inline void _init_trunc_()
+{
+    sfpi::vConstIntPrgm0 = 23;
 }
 
 } // namespace sfpu
