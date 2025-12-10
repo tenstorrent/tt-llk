@@ -751,7 +751,7 @@ class BroadcastGolden:
             tile_data = input_flat[tile_start:tile_end]
 
             tile_result = self.broadcast_handlers[broadcast_type](
-                tile_data, torch_format, num_faces, face_r_dim
+                tile_data, num_faces, face_r_dim
             )
             results.append(tile_result)
 
@@ -760,7 +760,6 @@ class BroadcastGolden:
     def _broadcast_scalar(
         self,
         tile_data,
-        torch_format,
         num_faces: int,
         face_r_dim: int,
     ):
@@ -772,7 +771,6 @@ class BroadcastGolden:
     def _broadcast_column(
         self,
         tile_data,
-        torch_format,
         num_faces: int,
         face_r_dim: int,
     ):
@@ -809,7 +807,6 @@ class BroadcastGolden:
     def _broadcast_row(
         self,
         tile_data,
-        torch_format,
         num_faces: int,
         face_r_dim: int,
     ):
