@@ -1554,7 +1554,7 @@ class ReduceGapoolGolden(FidelityMasking):
             a_faces = [a_masked[i * 256 : (i + 1) * 256].view(16, 16) for i in range(4)]
             b_face = b_masked.view(16, 16)
 
-            # Accumulate srcB @ srcA for each face
+            # For each face, accumulate srcB @ srcA for every fidelity iteration
             for i, a_face in enumerate(a_faces):
                 face_results[i] += (
                     torch.matmul(b_face, a_face).view(256).to(torch_format)
