@@ -3,13 +3,17 @@
 
 import pytest
 import torch
-from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import MatmulGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
 from helpers.param_config import input_output_formats, parametrize
+from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import run_test
+from helpers.test_config import TestConfig
+from helpers.test_variant_parameters import (
+    INPUT_DIMENSIONS,
+    MATH_FIDELITY,
+)
 from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test
 
@@ -41,8 +45,11 @@ def test_matmul_pack_untilize(
     torch_format = format_dict[formats.output_format]
     input_dimensions = [32, 32]
 
-    src_A, src_B, tile_cnt = generate_stimuli(
-        formats.input_format, formats.input_format
+    src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
+        stimuli_format_A=formats.input_format,
+        input_dimensions_A=input_dimensions,
+        stimuli_format_B=formats.input_format,
+        input_dimensions_B=input_dimensions,
     )
 
     generate_golden = get_golden_generator(MatmulGolden)
@@ -55,36 +62,34 @@ def test_matmul_pack_untilize(
         input_B_dimensions=input_dimensions,
     )
 
-    test_config = {
-        "testname": test_name,
-        "formats": formats,
-        "dest_acc": dest_acc,
-        "input_A_dimensions": input_dimensions,
-        "input_B_dimensions": input_dimensions,
-        "math_fidelity": math_fidelity,
-    }
-
-    res_address = write_stimuli_to_l1(
-        test_config,
-        tilize(src_A, formats.input_format),
-        tilize(src_B, formats.input_format),
-        formats.input_format,
-        formats.input_format,
-        tile_count_A=tile_cnt,
-        tile_count_B=tile_cnt,
-        location=workers_tensix_coordinates,
-    )
-
-    run_test(test_config, location=workers_tensix_coordinates)
-
-    res_from_L1 = collect_results(
+    configuration = TestConfig(
+        test_name,
         formats,
-        tile_count=tile_cnt,
-        address=res_address,
-        location=workers_tensix_coordinates,
+        templates=[
+            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+            MATH_FIDELITY(math_fidelity),
+        ],
+        runtimes=[],
+        variant_stimuli=StimuliConfig(
+            tilize(src_A, formats.input_format),
+            formats.input_format,
+            tilize(src_B, formats.input_format),
+            formats.input_format,
+            formats.output_format,
+            tile_count_A=tile_cnt_A,
+            tile_count_B=tile_cnt_B,
+            tile_count_res=tile_cnt_A,
+        ),
+        dest_acc=dest_acc,
     )
-    assert len(res_from_L1) == len(golden_tensor)
+
+    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    assert len(res_from_L1) == len(
+        golden_tensor
+    ), "Result tensor and golder tensor are not of the same length"
 
     res_tensor = torch.tensor(res_from_L1, dtype=(torch_format))
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(
+        golden_tensor, res_tensor, formats.output_format
+    ), "Assert against golden failed"
