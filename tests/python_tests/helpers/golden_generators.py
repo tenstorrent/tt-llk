@@ -898,7 +898,6 @@ class PackGolden:
         data_format,
         num_faces: int = 4,
         input_dimensions: list[int] = [32, 32],
-        face_r_dim: int = 16,
         enable_relu: bool = False,
     ):
         if num_faces not in [1, 2, 4]:
@@ -911,9 +910,8 @@ class PackGolden:
         tile_cnt = (height // 32) * (width // 32)
         tile_size = height * width // tile_cnt
 
-        # Calculate elements based on variable face dimensions
-        # Each face is face_r_dim × 16, and we have num_faces
-        elements_per_tile_needed = face_r_dim * FACE_DIM * num_faces
+        # Fixed face_r_dim at 16. TODO: enable other dimensions.
+        elements_per_tile_needed = 16 * FACE_DIM * num_faces
 
         if not isinstance(operand1, torch.Tensor):
             operand1 = torch.tensor(operand1, dtype=torch_format)
