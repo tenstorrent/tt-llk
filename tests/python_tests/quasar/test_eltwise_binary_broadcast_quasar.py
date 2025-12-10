@@ -13,10 +13,8 @@ from helpers.device import (
 )
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
-    ColumnBroadcastGolden,
+    BroadcastGolden,
     EltwiseBinaryGolden,
-    RowBroadcastGolden,
-    ScalarBroadcastGolden,
     get_golden_generator,
 )
 from helpers.llk_params import (
@@ -26,6 +24,7 @@ from helpers.llk_params import (
     format_dict,
 )
 from helpers.param_config import (
+    generate_unary_input_dimensions,
     input_output_formats,
     parametrize,
 )
@@ -59,7 +58,7 @@ from helpers.utils import passed_test
         ImpliedMathFormat.No,
         ImpliedMathFormat.Yes,
     ],
-    input_dimensions=[[32, 32]],
+    input_dimensions=lambda dest_acc: generate_unary_input_dimensions(dest_acc),
 )
 def test_eltwise_binary_broadcast_quasar(
     test_name,
@@ -79,37 +78,15 @@ def test_eltwise_binary_broadcast_quasar(
         input_dimensions=input_dimensions,
     )
 
-    bcast_src_B_tensor = None
-    if broadcast_type == BroadcastType.Scalar:
-        # Scalar broadcast: replicate first element across entire tile
-        generate_golden = get_golden_generator(ScalarBroadcastGolden)
-        bcast_src_B_tensor = generate_golden(
-            src_B,
-            formats.output_format,
-            num_faces=4,
-            input_dimensions=input_dimensions,
-            face_r_dim=16,
-        )
-    elif broadcast_type == BroadcastType.Column:
-        # Column broadcast: broadcast column values across rows
-        generate_golden = get_golden_generator(ColumnBroadcastGolden)
-        bcast_src_B_tensor = generate_golden(
-            src_B,
-            formats.output_format,
-            num_faces=4,
-            input_dimensions=input_dimensions,
-            face_r_dim=16,
-        )
-    else:
-        # Row broadcast: broadcast row values down columns
-        generate_golden = get_golden_generator(RowBroadcastGolden)
-        bcast_src_B_tensor = generate_golden(
-            src_B,
-            formats.output_format,
-            num_faces=4,
-            input_dimensions=input_dimensions,
-            face_r_dim=16,
-        )
+    generate_broadcast_golden = get_golden_generator(BroadcastGolden)
+    bcast_src_B_tensor = generate_broadcast_golden(
+        broadcast_type,
+        src_B,
+        formats.output_format,
+        num_faces=4,
+        tile_cnt=tile_cnt,
+        face_r_dim=16,
+    )
 
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
     golden_tensor = generate_golden(
