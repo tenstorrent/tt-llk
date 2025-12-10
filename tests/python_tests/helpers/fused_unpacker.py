@@ -66,8 +66,8 @@ class MatmulUnpacker(Unpacker):
         buffer_B_tile_size = operation_config.buffer_B_tile_size
 
         code += f"""
-    constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});
-    constexpr Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});
+    Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});
+    Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});
     _llk_unpack_AB_matmul_hw_configure_<{dest_acc_value}, StochRndType::None>(
         {UNPACK_A_IN},
         {UNPACK_A_IN},
@@ -145,8 +145,8 @@ class UnpackerAB(Unpacker):
         buffer_B_tile_size = operation_config.buffer_B_tile_size
 
         code += f"""
-    constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});
-    constexpr Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});
+    Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});
+    Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});
 """
 
         code += f"""
@@ -200,7 +200,7 @@ class UnpackerA(Unpacker):
         buffer_A_tile_size = operation_config.buffer_A_tile_size
 
         code += f"""
-    constexpr Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});
+    Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});
 """
         tilize_en = operation_config.tilize
         unpack_to_dest = "true" if operation_config.unpack_to_dest else "false"
