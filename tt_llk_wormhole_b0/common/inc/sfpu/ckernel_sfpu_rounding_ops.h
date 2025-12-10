@@ -78,9 +78,9 @@ inline void _calculate_floor_()
 {
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
         _floor_body_();
-        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, 0);
+        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_3, 0);
         sfpi::dst_reg++;
     }
 }
@@ -90,9 +90,9 @@ inline void _calculate_ceil_()
 {
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
         _ceil_body_();
-        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, 0);
+        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_3, 0);
         sfpi::dst_reg++;
     }
 }
@@ -102,9 +102,9 @@ inline void _calculate_trunc_()
 {
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
         _trunc_body_();
-        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, 0);
+        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_3, 0);
         sfpi::dst_reg++;
     }
 }
@@ -114,11 +114,11 @@ inline void _calculate_frac_()
 {
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
         _trunc_body_();
         // frac(x) = x - trunc(x)
         TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LCONST_neg1, p_sfpu::LREG0, p_sfpu::LREG1, 0);
-        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, 0);
+        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_3, 0);
         sfpi::dst_reg++;
     }
 }
