@@ -31,13 +31,12 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en>(
+        _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_src,
             formats.unpack_src,
             formats.unpack_dst,
             formats.unpack_dst,
             FACE_R_DIM,
-            /* within_face_16x16_transpose */ 0,
             /* num_faces */ 4);
         _llk_unpack_AB_init_<>(
             FACE_R_DIM,

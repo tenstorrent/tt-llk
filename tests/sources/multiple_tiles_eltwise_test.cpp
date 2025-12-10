@@ -22,7 +22,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst);
     _llk_unpack_AB_init_<>();
     for (int i = 0; i < TILE_CNT; i++)
     {
