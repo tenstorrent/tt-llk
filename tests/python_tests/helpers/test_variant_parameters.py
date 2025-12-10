@@ -60,10 +60,10 @@ class THROTTLE_LEVEL(TemplateParameter):
 
 @dataclass
 class MATH_TRANSPOSE_FACES(TemplateParameter):
-    value: bool
+    do_or_not: Transpose
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr bool MATH_TRANSPOSE_FACES = {str(self.value).lower()};"
+        return f"constexpr bool MATH_TRANSPOSE_FACES = {self.do_or_not.value};"
 
 
 @dataclass
