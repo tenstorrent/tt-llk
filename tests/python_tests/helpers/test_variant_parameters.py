@@ -272,6 +272,24 @@ class INPUT_DIMENSIONS(TemplateParameter):
         return "\n".join(lines)
 
 
+@dataclass
+class ADD_TOP_ROW(TemplateParameter):
+    do_or_dont: bool
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr bool ADD_TOP_ROW = {str(self.do_or_dont).lower()};"
+
+
+# @dataclass
+# class (TemplateParameter):
+#     def covert_to_cpp(self) -> str:
+#         return ""
+
+# @dataclass
+# class (TemplateParameter):
+#     def covert_to_cpp(self) -> str:
+#         return ""
+
 # @dataclass
 # class (TemplateParameter):
 #     def covert_to_cpp(self) -> str:
@@ -338,9 +356,9 @@ class SRCA_REUSE_COUNT(RuntimeParameter):
 
 @dataclass
 class PARTIAL_FACE(RuntimeParameter):
-    partial_face: Optional[bool] = False
-    partial_a: Optional[bool] = False
-    partial_b: Optional[bool] = False
+    partial_face: bool = None
+    partial_a: bool = None
+    partial_b: bool = None
 
     def covert_to_cpp(self) -> str:
         lines: list[str] = []
@@ -398,10 +416,25 @@ class CRK_TILE_DIMM(RuntimeParameter):
 
 @dataclass
 class NUM_FACES(RuntimeParameter):
-    num_faces: int
+    num_faces: int  # Number of active faces for result matrix
+    num_faces_A: int = None  # Number of active faces for matrix A
+    num_faces_B: int = None  # Number of active faces for matrix B
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr int num_faces = {self.num_faces};"
+        lines: list[str] = [
+            f"constexpr int num_faces = {self.num_faces};",
+            (
+                f"constexpr int num_faces_A = {self.num_faces_A};"
+                if self.num_faces_A
+                else ""
+            ),
+            (
+                f"constexpr int num_faces_B = {self.num_faces_B};"
+                if self.num_faces_B
+                else ""
+            ),
+        ]
+        return "\n".join(lines)
 
 
 @dataclass

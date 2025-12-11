@@ -4,10 +4,6 @@
 
 import pytest
 import torch
-from helpers.device import (
-    collect_results,
-    write_stimuli_to_l1,
-)
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     BinarySFPUGolden,
@@ -25,8 +21,16 @@ from helpers.param_config import (
     input_output_formats,
     parametrize,
 )
+from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import run_test
+from helpers.test_config import TestConfig
+from helpers.test_variant_parameters import (
+    ADD_TOP_ROW,
+    APPROX_MODE,
+    INPUT_DIMENSIONS,
+    MATH_OP,
+    TILE_COUNT,
+)
 from helpers.tilize_untilize import untilize
 from helpers.utils import passed_test
 
@@ -73,10 +77,12 @@ def test_sfpu_reduce(
     input_dimensions = dimension_combinations
     torch_format = format_dict[formats.input_format]
 
-    src_A, src_B, tile_cnt = generate_stimuli(
-        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+    src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
+        stimuli_format_A=formats.input_format,
+        input_dimensions_A=input_dimensions,
+        stimuli_format_B=formats.input_format,
+        input_dimensions_B=input_dimensions,
     )
-    src_A = torch.ones(tile_cnt * 1024, dtype=torch_format)
 
     # Generate 4 faces with all 2s for easy verification (column sums = 32*2 = 64, which is a multiple of 32)
     sign = -1 if negative_number else 1
@@ -96,7 +102,7 @@ def test_sfpu_reduce(
         # Add the top rows of all the tiles we reduced in dst register, accumulate the result in add_top_row_golden_tensor
         add_top_row_golden_tensor = torch.zeros(32, dtype=torch_format)
         generate_golden = get_golden_generator(BinarySFPUGolden)
-        for i in range(tile_cnt):
+        for i in range(tile_cnt_A):
             start, end = i * 32, (i + 1) * 32
             add_top_row_golden_tensor = generate_golden(
                 MathOperation.SfpuAddTopRow,
@@ -105,40 +111,31 @@ def test_sfpu_reduce(
                 formats.output_format,
             )
 
-    test_config = {
-        "formats": formats,
-        "testname": test_name,
-        "dest_acc": dest_acc,
-        "input_A_dimensions": input_dimensions,
-        "input_B_dimensions": input_dimensions,
-        "mathop": mathop,
-        "pool_type": reduce_pool,
-        "approx_mode": ApproximationMode.No,
-        "unpack_to_dest": True,
-        "tile_cnt": tile_cnt,
-        "disable_format_inference": True,
-        "add_top_row": add_top_row,
-    }
-
-    res_address = write_stimuli_to_l1(
-        test_config,
-        src_A,
-        src_B,
-        formats.input_format,
-        formats.input_format,
-        tile_count_A=tile_cnt,
-        tile_count_B=1,
-        location=workers_tensix_coordinates,
-    )
-    run_test(test_config, location=workers_tensix_coordinates)
-
-    torch_format = format_dict[formats.output_format]
-    res_from_L1 = collect_results(
+    configuration = TestConfig(
+        test_name,
         formats,
-        tile_count=tile_cnt,
-        address=res_address,
-        location=workers_tensix_coordinates,
+        templates=[
+            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+            APPROX_MODE(ApproximationMode.No),
+            MATH_OP(mathop=mathop, pool_type=reduce_pool),
+            ADD_TOP_ROW(add_top_row),
+        ],
+        runtimes=[TILE_COUNT(tile_cnt_A)],
+        variant_stimuli=StimuliConfig(
+            src_A,
+            formats.input_format,
+            src_B,
+            formats.input_format,
+            formats.output_format,
+            tile_count_A=tile_cnt_A,
+            tile_count_B=1,
+            tile_count_res=tile_cnt_A,
+        ),
+        dest_acc=dest_acc,
+        unpack_to_dest=True,
+        disable_format_inference=True,
     )
+    res_from_L1 = configuration.run(workers_tensix_coordinates)
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
@@ -153,7 +150,7 @@ def test_sfpu_reduce(
     # We do so for each tile we reduced
     reduce_result = []
     golden_result = []
-    for i in range(tile_cnt):
+    for i in range(tile_cnt_A):
         # Calculate starting indices for this tile
         start_res = i * 1024  # Each tile has 1024 elements in result tensor
         start_golden = i * 32  # Each tile contributes 32 elements to golden
@@ -170,4 +167,6 @@ def test_sfpu_reduce(
     # Convert to tensors and verify results match expected values
     reduce_tensor = torch.tensor(reduce_result, dtype=torch_format)
     golden_tensor = torch.tensor(golden_result, dtype=torch_format)
-    assert passed_test(golden_tensor, reduce_tensor, formats.output_format)
+    assert passed_test(
+        golden_tensor, reduce_tensor, formats.output_format
+    ), "Assert against golden failed"

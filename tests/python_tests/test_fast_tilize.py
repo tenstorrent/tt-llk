@@ -13,6 +13,7 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     INPUT_DIMENSIONS,
+    LOOP_FACTOR,
     TILE_COUNT,
 )
 from helpers.utils import passed_test
@@ -85,7 +86,7 @@ def test_fast_tilize(
         test_name,
         formats,
         templates=[INPUT_DIMENSIONS(input_dimensions, input_dimensions)],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[TILE_COUNT(tile_cnt_A), LOOP_FACTOR(1)],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

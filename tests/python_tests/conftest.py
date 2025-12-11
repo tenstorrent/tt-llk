@@ -45,7 +45,6 @@ def check_hardware_headers():
         "cfg_defines.h",
         "dev_mem_map.h",
         "tensix.h",
-        "tensix_dev_map.h",
         "tensix_types.h",
     ]
     required_headers_quasar = [
@@ -92,8 +91,15 @@ def check_hardware_headers():
 
 
 # @pytest.fixture(autouse=True)
-# def reset_mailboxes_fixture():
-#     reset_mailboxes()
+# def reset_mailboxes_fixture(worker_id):
+#     if worker_id == "master":
+#         coords = f"0,0"
+#     else:
+#         index = int(worker_id[2:])
+#         row, col = divmod(index, 8)
+#         coords = f"{row},{col}"
+
+#     reset_mailboxes(coords)
 #     yield
 
 
