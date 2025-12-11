@@ -26,6 +26,7 @@ static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
+#include "llk_unpack_common.h"
 
 void run_kernel()
 {

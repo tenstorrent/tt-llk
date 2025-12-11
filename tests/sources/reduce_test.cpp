@@ -26,7 +26,8 @@ constexpr bool row_pool                             = (REDUCE_DIM == ckernel::Re
 
 void run_kernel()
 {
-    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, 4);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4, 4);
 
     // For reduce, if reduce dimension is row, we need to transpose within the face
     // Transpose of faces should always be false
