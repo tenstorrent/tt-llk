@@ -23,7 +23,8 @@ const std::uint32_t num_of_faces = 4;
 
 void run_kernel()
 {
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, num_of_faces);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, num_of_faces, num_of_faces);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         UNPACK_TRANSPOSE_FACES, 0, FACE_R_DIM, num_of_faces, formats.unpack_src, formats.unpack_dst);
 
