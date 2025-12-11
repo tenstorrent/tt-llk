@@ -22,8 +22,6 @@ if TYPE_CHECKING:
 from .chip_architecture import ChipArchitecture
 from .llk_params import ApproximationMode, MathOperation, Tilize
 
-from .llk_params import ApproximationMode, MathOperation
-
 
 class Fpu:
     def exec(self, operation_config: "FusedOperation") -> str:
@@ -85,7 +83,7 @@ class MatmulFpu(Fpu):
         code = f"\n\t// Operation {stage}: Matmul FPU\n"
 
         code += f"""
-    _llk_math_matmul_init_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, {CT_DIM}, {RT_DIM}, {KT_DIM});
+    _llk_math_matmul_init_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, {CT_DIM}, {RT_DIM});
     _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();
     _llk_math_hw_configure_<false, false>(
         {MATH_FORMAT},
@@ -94,7 +92,7 @@ class MatmulFpu(Fpu):
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (uint32_t j = 0; j < {KT_DIM}; j++)
     {{
-        _llk_math_matmul_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(0, 0, {CT_DIM}, {RT_DIM}, {KT_DIM});
+        _llk_math_matmul_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(0, {CT_DIM}, {RT_DIM});
     }}
 """
         return code
@@ -151,7 +149,7 @@ class EltwiseFpu(Fpu):
         {MATH_FORMAT},
         {MATH_FORMAT}
     );
-    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{self.operation.cpp_enum_value}, BroadcastType::NONE, {MATH_FIDELITY}>(4, 0, 0);
+    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{self.operation.cpp_enum_value}, BroadcastType::NONE, {MATH_FIDELITY}>(4, 0);
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (int i = 0; i < {tile_cnt}; i++)
@@ -223,12 +221,11 @@ class DatacopyFpu(Fpu):
 
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
             code += f"""
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::{data_copy_type}, {dest_acc}, BroadcastType::{brodcast_type}, {tilize_en}, {is_int_fpu_en}>(
-        0, 0, {num_faces}, {MATH_FORMAT});
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::{data_copy_type}, {dest_acc}, BroadcastType::{brodcast_type}, {tilize_en}, {is_int_fpu_en}>({num_faces}, {MATH_FORMAT});
 """
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
             code += f"""
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::{data_copy_type}, {dest_acc}, BroadcastType::{brodcast_type}, {is_int_fpu_en}>(0, 0, {num_faces}, {MATH_FORMAT});
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::{data_copy_type}, {dest_acc}, BroadcastType::{brodcast_type}, {is_int_fpu_en}>({num_faces}, {MATH_FORMAT});
 """
         else:
             raise ValueError("Unsupported architecture for DatacopyFpu")

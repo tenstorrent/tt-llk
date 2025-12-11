@@ -7,11 +7,7 @@ from typing import TYPE_CHECKING, List
 from .llk_params import Tilize
 
 if TYPE_CHECKING:
-    from .fuse_operation import PipelineOperation
-    
-from .data_format_inference import is_format_combination_outlier
-from .format_config import DataFormat
-from .llk_params import DestAccumulation, format_tile_sizes
+    from .fused_operation import FusedOperation
 
 
 class Unpacker:
@@ -91,8 +87,6 @@ class MatmulUnpacker(Unpacker):
             j * {CT_DIM},
             {unpack_size_a},
             {unpack_size_b},
-            {FACE_R_DIM},
-            {FACE_R_DIM},
             false,
             false,
             {CT_DIM},
@@ -223,7 +217,7 @@ class UnpackerA(Unpacker):
     for (int i = 0; i < {tile_cnt}; ++i)
     {{
         _llk_unpack_A_<BroadcastType::{brodcast_type}, false, EltwiseBinaryReuseDestType::NONE, {unpack_to_dest}>(
-            L1_ADDRESS(buffer_A{stage}[i]), 0, {unpack_src_format}, {unpack_dst_format});
+            L1_ADDRESS(buffer_A{stage}[i]), {unpack_src_format}, {unpack_dst_format});
     }}
 """
         else:

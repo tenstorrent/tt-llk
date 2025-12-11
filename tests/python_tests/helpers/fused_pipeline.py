@@ -105,73 +105,57 @@ def create_fuse_pipeline() -> List[FusedOperation]:
     matmul_ops = [
         FusedOperation(
             operand_mapping=operands.create_mapping(
-                src_a="input_A",
-                src_b="input_B",
-                output="elwadd1",
+                src_a="elwadd1",
+                src_b="input_C",
+                output="matmul_result",
                 src_a_dims=input_A_dimensions,
                 src_b_dims=input_B_dimensions,
                 input_format=data_format,
                 output_format=data_format,
             ),
-            unpacker=UnpackerAB,
-            math=Math(EltwiseFpu(MathOperation.Elwadd), []),
+            unpacker=MatmulUnpacker,
+            math=Math(MatmulFpu()),
             packer=Packer,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
         ),
-        # PipelineOperation(
-        #     operand_mapping=operands.create_mapping(
-        #         src_a="input_A",
-        #         src_b="input_B",
-        #         output="matmul_result",
-        #         src_a_dims=input_A_dimensions,
-        #         src_b_dims=input_B_dimensions,
-        #         input_format=formats.input_format,
-        #         output_format=formats.output_format,
-        #     ),
-        #     unpacker=MatmulUnpacker,
-        #     math=Math(MatmulFpu(), []),
-        #     packer=MatmulPacker,
-        #     dest_acc=dest_acc,
-        #     math_fidelity=math_fidelity,
-        # ),
-        # PipelineOperation(
-        #     operand_mapping=operands.create_mapping(
-        #         src_a="matmul_result",
-        #         src_b="input_C",
-        #         output="final_output",
-        #         src_b_dims=input_B_dimensions,
-        #         input_format=formats.output_format,
-        #         output_format=formats.output_format,
-        #     ),
-        #     unpacker=MatmulUnpacker,
-        #     math=Math(
-        #         MatmulFpu(),
-        #         [
-        #             UnarySfpu(
-        #                 MathOperation.Sqrt,
-        #                 ApproximationMode.No,
-        #                 32 * operands.get("final_output").tile_count,
-        #             ),
-        #             UnarySfpu(
-        #                 MathOperation.Neg,
-        #                 ApproximationMode.No,
-        #                 32 * operands.get("final_output").tile_count,
-        #             ),
-        #             BinarySfpu(
-        #                 MathOperation.SfpuElwadd,
-        #                 ApproximationMode.No,
-        #                 32 * operands.get("final_output").tile_count,
-        #                 0,
-        #                 0,
-        #                 0,
-        #             ),
-        #         ],
-        #     ),
-        #     packer=MatmulPacker,
-        #     dest_acc=dest_acc,
-        #     math_fidelity=math_fidelity,
-        # ),
+        FusedOperation(
+            operand_mapping=operands.create_mapping(
+                src_a="matmul_result",
+                src_b="input_D",
+                output="final_output",
+                src_b_dims=input_B_dimensions,
+                input_format=data_format,
+                output_format=data_format,
+            ),
+            unpacker=MatmulUnpacker,
+            math=Math(
+                MatmulFpu(),
+                [
+                    UnarySfpu(
+                        MathOperation.Neg,
+                        ApproximationMode.No,
+                        32 * operands.get("final_output").tile_count,
+                    ),
+                    UnarySfpu(
+                        MathOperation.Sqrt,
+                        ApproximationMode.No,
+                        32 * operands.get("final_output").tile_count,
+                    ),
+                    BinarySfpu(
+                        MathOperation.SfpuElwadd,
+                        ApproximationMode.No,
+                        32 * operands.get("final_output").tile_count,
+                        0,
+                        0,
+                        0,
+                    ),
+                ],
+            ),
+            packer=Packer,
+            dest_acc=dest_acc,
+            math_fidelity=math_fidelity,
+        ),
     ]
     if data_format != DataFormat.Bfp8_b:
         pipeline.extend(matmul_ops)
