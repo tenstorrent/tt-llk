@@ -161,7 +161,7 @@ inline void _calculate_reduce_max_col_subblock_4x2_(const uint32_t block_height 
 inline void _reduce_max_col_subblock_4x2_prologue_()
 {
     t6_mutex_acquire(mutex::SFPU);
-    
+
     constexpr uint16_t neg_inf_fp16b = 0xFF80;
 
     // F0 - Initialize with negative infinity
@@ -171,7 +171,6 @@ inline void _reduce_max_col_subblock_4x2_prologue_()
 
 inline void _reduce_max_col_subblock_4x2_epilogue_()
 {
-    
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
     TTI_SFPMOV(0, p_sfpu::LREG1, p_sfpu::LREG4, 0); // move result of reduce to LREG4
@@ -187,7 +186,6 @@ inline void _reduce_max_col_subblock_4x2_epilogue_()
     TTI_SFPSTORE(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 64 + 2);
     TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 64 + 16);
     TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 64 + 18);
-
 
     t6_mutex_release(mutex::SFPU);
 }
