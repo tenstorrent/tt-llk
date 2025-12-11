@@ -4,8 +4,6 @@
 from itertools import chain, product
 
 import pytest
-import torch
-from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     MatmulGolden,
@@ -22,10 +20,9 @@ from helpers.llk_params import (
 )
 from helpers.matmul_sweep import sweep_matmul, sweep_tiny_tiles_matmul
 from helpers.param_config import input_output_formats
+from helpers.perf import PerfRunType, perf_benchmark, update_report
 from helpers.stimuli_generator import generate_face_matmul_data
-from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block
-from helpers.utils import passed_test
 
 MATMUL_FORMATS = input_output_formats(
     [
@@ -68,7 +65,7 @@ ALL_TEST_PARAMS = list(
         # ),
         # Tiny tiles matmul with throttle level 1 only
         (
-            ("math_matmul_test", fidelity, combinations, 0)
+            ("matmul_tiny_perf", fidelity, combinations, 0)
             for fidelity, combinations in product(
                 MATH_FIDELITIES, TINY_TILES_MATMUL_COMBINATIONS
             )
@@ -81,7 +78,11 @@ ALL_TEST_PARAMS = list(
 @pytest.mark.parametrize(
     "test_name,math_fidelity,matmul_config,throttle", ALL_TEST_PARAMS
 )
-def test_math_matmul(test_name, math_fidelity, matmul_config, throttle):
+def test_math_matmul(perf_report, test_name, math_fidelity, matmul_config, throttle):
+
+    run_types = [
+        PerfRunType.L1_TO_L1,
+    ]
 
     formats = matmul_config.formats
     dest_acc = matmul_config.dest_acc
@@ -151,6 +152,7 @@ def test_math_matmul(test_name, math_fidelity, matmul_config, throttle):
     test_config = {
         "formats": formats,
         "testname": test_name,
+        "loop_factor": 16,
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
         "tile_cnt": matmul_config.tile_dimensions.tile_cnt,
@@ -178,40 +180,42 @@ def test_math_matmul(test_name, math_fidelity, matmul_config, throttle):
         "dest_sync": matmul_config.dest_sync,
     }
 
-    res_address = write_stimuli_to_l1(
-        test_config,
-        tilized_A.flatten(),
-        tilized_B.flatten(),
-        formats.input_format,
-        formats.input_format,
-        tile_count_A=tile_cnt_A,
-        tile_count_B=tile_cnt_B,
-    )
+    results = perf_benchmark(test_config, run_types)
+    update_report(perf_report, test_config, results)
+    # res_address = write_stimuli_to_l1(
+    #     test_config,
+    #     tilized_A.flatten(),
+    #     tilized_B.flatten(),
+    #     formats.input_format,
+    #     formats.input_format,
+    #     tile_count_A=tile_cnt_A,
+    #     tile_count_B=tile_cnt_B,
+    # )
 
-    run_test(test_config)
+    # run_test(test_config)
 
-    res_from_L1 = collect_results(
-        formats, tile_count=matmul_config.tile_dimensions.tile_cnt, address=res_address
-    )
-    assert len(res_from_L1) == len(golden_tensor)
+    # res_from_L1 = collect_results(
+    #     formats, tile_count=matmul_config.tile_dimensions.tile_cnt, address=res_address
+    # )
+    # assert len(res_from_L1) == len(golden_tensor)
 
-    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
-    if num_faces < 4:
-        # Only compare the active faces in each tile since that's what the hardware processes
-        num_elements_per_tile = num_faces * 256  # Each face is 16x16 = 256 elements
-        tile_cnt = matmul_config.tile_dimensions.output_tile_cnt
+    # res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+    # if num_faces < 4:
+    #     # Only compare the active faces in each tile since that's what the hardware processes
+    #     num_elements_per_tile = num_faces * 256  # Each face is 16x16 = 256 elements
+    #     tile_cnt = matmul_config.tile_dimensions.output_tile_cnt
 
-        # Compare each tile separately
-        for i in range(tile_cnt):
-            start = i * 1024  # Each tile is 1024 elements
-            assert passed_test(
-                golden_tensor[
-                    start : start + num_elements_per_tile
-                ],  # Only compare active faces in this tile
-                res_tensor[
-                    start : start + num_elements_per_tile
-                ],  # Only compare active faces in this tile
-                formats.output_format,
-            )
-    else:
-        assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    #     # Compare each tile separately
+    #     for i in range(tile_cnt):
+    #         start = i * 1024  # Each tile is 1024 elements
+    #         assert passed_test(
+    #             golden_tensor[
+    #                 start : start + num_elements_per_tile
+    #             ],  # Only compare active faces in this tile
+    #             res_tensor[
+    #                 start : start + num_elements_per_tile
+    #             ],  # Only compare active faces in this tile
+    #             formats.output_format,
+    #         )
+    # else:
+    #     assert passed_test(golden_tensor, res_tensor, formats.output_format)

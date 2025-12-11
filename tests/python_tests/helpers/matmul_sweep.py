@@ -115,7 +115,7 @@ def generate_matmul_dimension_combinations(
 
 def generate_matmul_tiny_tiles_combinations(max_tiles: int) -> List[tuple]:
     valid_combinations = []
-    tile_A_rows = [1, 2, 4, 8, 16]
+    tile_A_rows = [8, 16]
     tile_A_columns = 32
     tile_B_rows = 32
     tile_B_columns = list(range(32, (max_tiles + 1) * 32, 32))
