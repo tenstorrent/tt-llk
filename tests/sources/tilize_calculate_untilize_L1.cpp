@@ -60,7 +60,14 @@ void run_kernel()
 
     run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats_array[run].unpack_src, formats_array[run].unpack_src, formats_array[run].unpack_dst, formats_array[run].unpack_dst, FACE_R_DIM, 4);
+        formats_array[run].unpack_src,
+        formats_array[run].unpack_src,
+        formats_array[run].unpack_dst,
+        formats_array[run].unpack_dst,
+        FACE_R_DIM,
+        FACE_R_DIM,
+        4,
+        4);
     _llk_unpack_AB_init_<>();
     _llk_unpack_AB_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized));
 }

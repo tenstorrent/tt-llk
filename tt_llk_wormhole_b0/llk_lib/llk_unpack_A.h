@@ -180,14 +180,21 @@ inline void _llk_unpack_A_init_(
     const std::uint32_t face_r_dim                  = FACE_R_DIM,
     const std::uint32_t num_faces                   = 4,
     const std::uint32_t unpack_src_format           = 0,
-    const std::uint32_t unpack_dst_format           = 0)
+    const std::uint32_t unpack_dst_format           = 0,
+    const bool disable_src_zero_flag                = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+
     // Set transpose register to prevent state pollution
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose);
 
+    // Disable src zero flags for uint16 dst format or if disable_src_zero_flag is true
+    uint32_t src_zeroflags_disable = ((uint)unpack_dst_format == (uint)DataFormat::UInt16) | disable_src_zero_flag;
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(src_zeroflags_disable);
+
     constexpr std::uint32_t UNP_SEL = (BType == BroadcastType::NONE) ? p_setadc::UNP_A : p_setadc::UNP_B;
     config_unpacker_x_end<UNP_SEL>(face_r_dim);
+
     _llk_unpack_A_mop_config_<BType, acc_to_dest, binary_reuse_dest, unpack_to_dest>(transpose_of_faces > 0, num_faces, unpack_src_format, unpack_dst_format);
 }
 
