@@ -16,7 +16,6 @@ from helpers.param_config import input_output_formats, parametrize
 from helpers.perf_analyzer import (
     TILE_HEIGHT,
     TILE_WIDTH,
-    analyze_performance,
     clear_perf_counter_memory,
     collect_perf_counter_data,
     print_performance_analysis,
@@ -100,11 +99,8 @@ def test_multiple_tiles(
     }
 
     all_iteration_data = collect_perf_counter_data()
-    analysis = analyze_performance(
-        workload_info=workload_info, iteration_data=all_iteration_data
-    )
     print_performance_analysis(
-        analysis, workload_info, iteration_data=all_iteration_data
+        workload_info=workload_info, iteration_data=all_iteration_data
     )
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)

@@ -2,24 +2,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from ttexalens.tt_exalens_lib import read_words_from_device
 
-PERF_COUNTER_CFG_BASE = 100
-PERF_COUNTERS_PER_ITERATION = 5
-PERF_REGISTER_BANKS = 5
-PERF_NUM_UNIQUE_COUNTERS = 70
-PERF_NUM_TOTAL_ITERATIONS = 28  # Doubled: 14 for grants + 14 for requests
-PERF_NUM_ITERATIONS = 14  # Per mode (grants or requests)
-PERF_WORDS_PER_ITERATION_PER_THREAD = PERF_COUNTERS_PER_ITERATION * 2
-PERF_WORDS_PER_THREAD = PERF_NUM_ITERATIONS * PERF_WORDS_PER_ITERATION_PER_THREAD
-PERF_L1_THREAD_OFFSET = 200
-PERF_TOTAL_WORDS = (
-    PERF_L1_THREAD_OFFSET * 2 + PERF_WORDS_PER_THREAD
-) * 2  # Doubled for requests
 PERF_COUNTER_DATA_ADDR = 0x2F800
+PERF_TOTAL_WORDS = 1080
 
 TILE_HEIGHT = 32
 TILE_WIDTH = 32
@@ -47,90 +35,11 @@ def clear_perf_counter_memory(location: str = "0,0"):
     write_words_to_device(location=location, addr=PERF_COUNTER_DATA_ADDR, data=zeros)
 
 
-class PerfIndices:
-    INST_UNPACK_CYCLES = 0
-    INST_UNPACK_COUNT = 1
-    INST_MATH_CYCLES = 2
-    INST_MATH_COUNT = 3
-    INST_PACK_CYCLES = 4
-    INST_PACK_COUNT = 5
-    INST_SYNC_CYCLES = 6
-    INST_SYNC_COUNT = 7
-    INST_CFG_CYCLES = 8
-    INST_CFG_COUNT = 9
-    INST_MOVE_CYCLES = 10
-    INST_MOVE_COUNT = 11
-
-    UNPACK_DMA_CYCLES = 12
-    UNPACK_DMA_BUSY = 13
-    PACK_DMA_CYCLES = 14
-    PACK_DMA_BUSY = 15
-    MATH_INSTR_VALID_CYCLES = 16
-    MATH_INSTR_VALID_COUNT = 17
-    SRCB_WREN_CYCLES = 18
-    SRCB_WREN_COUNT = 19
-
-    SRCA_STALL_CYCLES = 20
-    SRCA_STALL_COUNT = 21
-    SRCB_STALL_CYCLES = 22
-    SRCB_STALL_COUNT = 23
-    DEST_STALL_CYCLES = 24
-    DEST_STALL_COUNT = 25
-    MATH_STALL_CYCLES = 26
-    MATH_STALL_COUNT = 27
-    PACK_STALL_CYCLES = 28
-    PACK_STALL_COUNT = 29
-    UNPACK_STALL_CYCLES = 30
-    UNPACK_STALL_COUNT = 31
-
-    TOTAL_CFGS = 32
-
-
-@dataclass
-class PerformanceAnalysis:
-    exists: bool = True
-
-
-def analyze_performance(
-    location: str = "0,0",
-    workload_info: Optional[Dict] = None,
-    iteration: int = 0,
-    iteration_data: Optional[List[Dict]] = None,
-) -> Optional[PerformanceAnalysis]:
-    try:
-        if iteration_data:
-            return PerformanceAnalysis(exists=True) if iteration_data else None
-
-        perf_data = read_words_from_device(
-            location=location, addr=0x2F800, word_count=32
-        )
-
-        if not perf_data or len(perf_data) < 32:
-            return None
-
-        if all(
-            perf_data[i] == 0
-            for i in [
-                PerfIndices.INST_UNPACK_CYCLES,
-                PerfIndices.INST_MATH_CYCLES,
-                PerfIndices.INST_PACK_CYCLES,
-            ]
-        ):
-            return None
-
-        return PerformanceAnalysis(exists=True)
-
-    except Exception as e:
-        print(f"Warning: Could not check performance counters: {e}")
-        return None
-
-
 def print_performance_analysis(
-    analysis: Optional[PerformanceAnalysis],
     workload_info: Optional[Dict] = None,
     iteration_data: Optional[List[Dict]] = None,
 ):
-    if not analysis:
+    if not iteration_data:
         return
 
     print("\n" + "=" * 100)
