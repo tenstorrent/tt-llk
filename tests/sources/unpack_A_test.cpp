@@ -25,9 +25,10 @@ void run_kernel()
 {
     _llk_unpack_A_init_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(
         UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, TEST_FACE_R_DIM, NUM_FACES, formats.unpack_src, formats.unpack_dst);
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, STOCHASTIC_RND, disable_src_zero_flag>(
-        formats.unpack_src, formats.unpack_dst, TEST_FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES);
-
+    // TODO NC: used to pass STOCHASTIC_RND and disable_src_zero_flag to hw configure
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, TEST_FACE_R_DIM, TEST_FACE_R_DIM, NUM_FACES, NUM_FACES);
+    _llk_unpack_configure_stoch_rnd_<STOCHASTIC_RND>();
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_unpack_A_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
