@@ -51,12 +51,14 @@ inline void _init_reduce_max_col_subblock_4x2_()
 {
     static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
+    t6_mutex_acquire(mutex::SFPU);
+
     _init_sfpu_config_reg();
     sfpu_reduce_max_col_subblock_4x2_configure_addrmod();
 
     // ***********************************************************
     // Record replay buffer
-    lltt::record<lltt::NoExec>(0, 8);
+    lltt::record<lltt::NoExec>(16, 8);
 
     TTI_SFPLOAD(p_sfpu::LREG2, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG4 /*lreg_src_c*/, p_sfpu::LREG2 /*lreg_dest*/, 1 /*instr_mod1*/);
@@ -69,6 +71,7 @@ inline void _init_reduce_max_col_subblock_4x2_()
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG3 /*lreg_dest*/, 1 /*instr_mod1*/);
 
     // ***********************************************************
+    t6_mutex_release(mutex::SFPU);
 }
 
 inline void _move_to_next_subblock_4x2_()
@@ -103,7 +106,7 @@ inline void _calculate_reduce_max_col_subblock_4x2_(const uint32_t block_height 
 #pragma GCC unroll 8
         for (int j = 0; j < 8; j++)
         {
-            lltt::replay(0, 8);
+            lltt::replay(16, 8);
 
             if (j % 4 == 3)
             {
@@ -134,7 +137,7 @@ inline void _calculate_reduce_max_col_subblock_4x2_(const uint32_t block_height 
 #pragma GCC unroll 8
         for (int j = 0; j < 8; j++)
         {
-            lltt::replay(0, 8);
+            lltt::replay(16, 8);
 
             if (j % 4 == 3)
             {
@@ -157,6 +160,8 @@ inline void _calculate_reduce_max_col_subblock_4x2_(const uint32_t block_height 
 
 inline void _reduce_max_col_subblock_4x2_prologue_()
 {
+    t6_mutex_acquire(mutex::SFPU);
+    
     constexpr uint16_t neg_inf_fp16b = 0xFF80;
 
     // F0 - Initialize with negative infinity
@@ -166,6 +171,7 @@ inline void _reduce_max_col_subblock_4x2_prologue_()
 
 inline void _reduce_max_col_subblock_4x2_epilogue_()
 {
+    
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
     TTI_SFPMOV(0, p_sfpu::LREG1, p_sfpu::LREG4, 0); // move result of reduce to LREG4
@@ -181,6 +187,9 @@ inline void _reduce_max_col_subblock_4x2_epilogue_()
     TTI_SFPSTORE(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 64 + 2);
     TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 64 + 16);
     TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 64 + 18);
+
+
+    t6_mutex_release(mutex::SFPU);
 }
 
 } // namespace sfpu
