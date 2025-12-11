@@ -18,9 +18,11 @@ namespace ckernel
 namespace sfpu
 {
 
-// computes L1=trunc(L0); requires _init_trunc_ to set L12=23.
+// computes L1=trunc(L0).
 inline void _trunc_body_()
 {
+    // set L3=23.  TODO: this could be stored in a constant register, but use by rdiv prevents this for now.
+    TTI_SFPLOADI(p_sfpu::LREG3, sfpi::SFPLOADI_MOD0_SHORT, 23);
     // mask = 0x8000_0000
     TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, 0x8000);
     // disable lanes where exp < 0
@@ -28,7 +30,7 @@ inline void _trunc_body_()
     // mask = 0xffff_ffff
     TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_SHORT, 0xffff);
     // exp = 23 - exp
-    TTI_SFPIADD(0, p_sfpu::LREG12, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_2SCOMP_LREG_DST | sfpi::SFPIADD_MOD1_CC_GTE0);
+    TTI_SFPIADD(0, p_sfpu::LREG3, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_2SCOMP_LREG_DST | sfpi::SFPIADD_MOD1_CC_GTE0);
     // mask <<= exp
     TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG2, p_sfpu::LREG1, sfpi::SFPSHFT2_MOD1_SHFT_LREG);
     // reset lanes
@@ -163,12 +165,6 @@ void _calculate_round_(const int decimals)
         sfpi::dst_reg[0]    = result;
         sfpi::dst_reg++;
     }
-}
-
-template <bool APPROXIMATION_MODE>
-inline void _init_trunc_()
-{
-    sfpi::vConstIntPrgm0 = 23;
 }
 
 } // namespace sfpu
