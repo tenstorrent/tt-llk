@@ -711,7 +711,7 @@ class BroadcastGolden:
     - Column: Broadcasts column values across rows (Faces 0-1 use Face 0's column, Faces 2-3 use Face 2's column)
     - Row: Broadcasts row values down columns (first row of Face 0/1)
 
-    Output size = num_tiles * num_faces * (face_r_dim * 16) elements.
+    Output size = tile_cnt * num_faces * (face_r_dim * 16) elements.
     """
 
     def __init__(self):
@@ -751,22 +751,17 @@ class BroadcastGolden:
             tile_data = input_flat[tile_start:tile_end]
 
             tile_result = self.broadcast_handlers[broadcast_type](
-                tile_data, num_faces, face_r_dim
+                tile_data, num_faces=num_faces, face_r_dim=face_r_dim
             )
             results.append(tile_result)
 
         return torch.cat(results)
 
-    def _broadcast_scalar(
-        self,
-        tile_data,
-        num_faces: int,
-        face_r_dim: int,
-    ):
+    def _broadcast_scalar(self, tile_data, **kwargs):
         """Broadcast first element of each tile across the entire output tile."""
         scalar_value = tile_data[0]
 
-        return tile_data.fill_(scalar_value)
+        return torch.full_like(tile_data, scalar_value)
 
     def _broadcast_column(
         self,
