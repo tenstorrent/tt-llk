@@ -160,6 +160,9 @@ def sfpu_binary(test_name, formats, dest_acc, mathop):
 
     unpack_to_dest = formats.input_format.is_32_bit()
 
+    if formats.input_format in [DataFormat.Float16, DataFormat.Float32]:
+        dest_acc = DestAccumulation.Yes
+
     test_config = {
         "formats": formats,
         "testname": test_name,
