@@ -1310,17 +1310,22 @@ class EltwiseBinaryGolden(FidelityMasking):
         if op not in self.ops:
             raise ValueError(f"Unsupported Eltwise operation: {op}")
 
-        # Determine input format for quantization (use input_format if provided, otherwise use output format)
-        input_quant_format = input_format if input_format is not None else data_format
-
         # Quantize MX format operands to match what hardware sees after unpack
         # This simulates the quantization that occurs during pack→unpack roundtrip
-        if input_quant_format.is_mx_format():
-            operand1 = quantize_mx_tensor_chunked(operand1, input_quant_format)
-            operand2 = quantize_mx_tensor_chunked(operand2, input_quant_format)
-
-        t1 = to_tensor(operand1, data_format)
-        t2 = to_tensor(operand2, data_format)
+        # Only quantize if input_format is explicitly provided and is MX format.
+        # If input_format is None, operands are in an unknown format and should not be quantized.
+        if input_format is not None and input_format.is_mx_format():
+            operand1 = quantize_mx_tensor_chunked(operand1, input_format)
+            operand2 = quantize_mx_tensor_chunked(operand2, input_format)
+            # Keep as bfloat16 for math (hardware sees bfloat16 after unpacking MX)
+            t1 = operand1
+            t2 = operand2
+            # For fidelity masking, use bfloat16 format
+            math_format_for_fidelity = DataFormat.Float16_b
+        else:
+            t1 = to_tensor(operand1, data_format)
+            t2 = to_tensor(operand2, data_format)
+            math_format_for_fidelity = data_format
 
         MATH_FIDELITY_TO_ITER_COUNT = {
             MathFidelity.LoFi: 0,
@@ -1338,7 +1343,7 @@ class EltwiseBinaryGolden(FidelityMasking):
             res = None
             for fidelity_iter in range(fidelity_iter_count + 1):
                 t1, t2 = self._apply_fidelity_masking(
-                    data_format, t1, t2, fidelity_iter
+                    math_format_for_fidelity, t1, t2, fidelity_iter
                 )
                 phase_result = self.ops[op](t1, t2)
 
@@ -1355,6 +1360,9 @@ class EltwiseBinaryGolden(FidelityMasking):
             if op == MathOperation.Elwmul:
                 result = result.to(torch.bfloat16)
             result = quantize_mx_tensor_chunked(result, data_format)
+        else:
+            # Convert to output format when output is non-MX
+            result = to_tensor(result, data_format)
 
         return result
 
