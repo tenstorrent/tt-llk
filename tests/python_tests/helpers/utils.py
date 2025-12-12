@@ -201,11 +201,31 @@ def passed_test(
     if not is_within_tolerance:
         # Find all indices where values differ
         diff_indices = torch.where(~is_valid)[0]
-        print(f"Found {len(diff_indices)} differences:")
-        for idx in diff_indices:
-            print(
-                f"Failed at index {idx} with result={res_tensor[idx]}, golden={golden_tensor[idx]}"
-            )
+
+        # TODO Convert to tiles first
+
+        # Reshape tensors to 32x32 matrix
+        try:
+            matrix_shape = (32, 32)
+            res_matrix = res_tensor.view(matrix_shape)
+            golden_matrix = golden_tensor.view(matrix_shape)
+            error_matrix = ~is_valid.view(matrix_shape)
+
+            for row in range(32):
+                row_str = ""
+                for col in range(32):
+                    if error_matrix[row, col]:
+                        row_str += f"\033[41m{res_matrix[row, col]:7.2f} \033[0m"
+                    else:
+                        row_str += f"\033[42m{res_matrix[row, col]:7.2f} \033[0m"
+                print(row_str)
+
+        except RuntimeError:
+            print("Could not reshape to 32x32 matrix, showing linear indices:")
+            for idx in diff_indices[:10]:
+                print(
+                    f"Failed at index {idx} with result={res_tensor[idx]}, golden={golden_tensor[idx]}"
+                )
 
     pcc = calculate_pcc(res_tensor, golden_tensor)
     target_pcc = 0.99
