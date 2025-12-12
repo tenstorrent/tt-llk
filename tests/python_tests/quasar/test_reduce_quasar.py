@@ -37,7 +37,7 @@ MATH_FIDELITY_MODES = [
     MathFidelity.HiFi3,
     MathFidelity.HiFi4,
 ]
-POOL_TYPES = [ReducePool.Sum, ReducePool.Sum, ReducePool.Average]
+POOL_TYPES = [ReducePool.Max, ReducePool.Sum, ReducePool.Average]
 
 
 def generate_pool_type_and_math_fidelity_combinations():
@@ -71,7 +71,7 @@ def test_reduce_quasar(
 
     pool_type, math_fidelity = pool_type_and_math_fidelity
 
-    input_dimensions = [32, 64]
+    input_dimensions = [64, 64]
 
     src_A, _, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
@@ -89,7 +89,7 @@ def test_reduce_quasar(
     if pool_type == ReducePool.Max:
         generate_golden = get_golden_generator(ReduceGolden)
         golden_tensor = generate_golden(
-            src_A, reduce_dim, pool_type, formats.output_format
+            src_A, reduce_dim, pool_type, formats.output_format, tile_cnt
         )
     else:
         generate_golden = get_golden_generator(ReduceGapoolGolden)
