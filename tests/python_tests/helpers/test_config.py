@@ -686,8 +686,6 @@ class TestConfig:
         TILE_SIZES = {
             DataFormat.Bfp8_b: 68,
             DataFormat.Float32: 256,
-            DataFormat.Int32: 256,
-            DataFormat.UInt32: 256,
         }
 
         if self.formats is None:
