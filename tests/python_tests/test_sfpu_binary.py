@@ -3,7 +3,7 @@
 
 import pytest
 import torch
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from helpers.chip_architecture import ChipArchitecture
 from helpers.format_config import DataFormat
 from helpers.golden_generators import BinarySFPUGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, MathOperation, format_dict
@@ -40,12 +40,14 @@ from helpers.utils import passed_test
 def test_sfpu_binary_float(
     test_name, formats, dest_acc, mathop, workers_tensix_coordinates
 ):
-    chip_arch = get_chip_architecture()
-    if chip_arch == ChipArchitecture.WORMHOLE and mathop == MathOperation.SfpuElwsub:
+    if (
+        TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE
+        and mathop == MathOperation.SfpuElwsub
+    ):
         pytest.skip("Not currently supported in tests")
 
     if (
-        chip_arch == ChipArchitecture.BLACKHOLE
+        TestConfig.CHIP_ARCH == ChipArchitecture.BLACKHOLE
         and formats.input_format == DataFormat.Float16
         and dest_acc == DestAccumulation.No
     ):
@@ -156,13 +158,17 @@ def sfpu_binary(test_name, formats, dest_acc, mathop, workers_tensix_coordinates
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
+        sfpu=True,
     )
 
     generate_golden = get_golden_generator(BinarySFPUGolden)
     golden_tensor = generate_golden(mathop, src_A, src_B, formats.output_format)
 
-    # Blackhole needs this for some reason
-    if formats.input_format in [DataFormat.Float16, DataFormat.Float32]:
+    # ONLY Blackhole needs this for some reason
+    if (
+        formats.input_format in [DataFormat.Float16, DataFormat.Float32]
+        and TestConfig.CHIP_ARCH == ChipArchitecture.BLACKHOLE
+    ):
         dest_acc = DestAccumulation.Yes
 
     configuration = TestConfig(
@@ -185,7 +191,6 @@ def sfpu_binary(test_name, formats, dest_acc, mathop, workers_tensix_coordinates
         ),
         dest_acc=dest_acc,
         unpack_to_dest=formats.input_format.is_32_bit(),
-        disable_format_inference=True,
     )
     res_from_L1 = configuration.run(workers_tensix_coordinates)
 

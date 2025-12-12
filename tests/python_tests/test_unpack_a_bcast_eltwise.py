@@ -16,6 +16,7 @@ from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
+    DEST_SYNC,
     INPUT_DIMENSIONS,
     MATH_FIDELITY,
     MATH_OP,
@@ -126,6 +127,7 @@ def test_unp_bcast_sub_sdpa(
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_FIDELITY(math_fidelity),
             MATH_OP(mathop=mathop),
+            DEST_SYNC(),
         ],
         runtimes=[TILE_COUNT(tile_cnt_A), SRCA_REUSE_COUNT(srca_reuse_count)],
         variant_stimuli=StimuliConfig(

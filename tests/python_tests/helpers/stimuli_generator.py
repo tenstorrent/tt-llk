@@ -33,9 +33,8 @@ def generate_random_face(
     const_value: int = 1,
     const_face: bool = False,
     sfpu: bool = True,
-    face_r_dim: int = 16,
 ):
-    size = face_r_dim * 16  # face_r_dim rows × 16 columns
+    size = 256
     if stimuli_format != DataFormat.Bfp8_b:
         if stimuli_format.is_integer():
             max = 127 if stimuli_format == DataFormat.Int8 else 255
@@ -109,42 +108,28 @@ def generate_stimuli(
     const_value_B: int = 1,
     const_face: bool = False,
     sfpu: bool = True,
-    face_r_dim: int = 16,  # Add face_r_dim parameter
-    num_faces: int = 4,  # Add num_faces parameter for partial faces
 ) -> tuple[torch.Tensor, int, torch.Tensor, int]:
 
     srcA = []
     srcB = []
 
-    # Handle partial faces
-    if face_r_dim < 16:
-        # Partial face case: generate exactly num_faces worth of data
-        tile_cnt_A, tile_cnt_B = 1, 1
-        faces_to_generate = num_faces  # Generate exactly the right number of faces
-    else:
-        # Full tile case
-        tile_cnt_A = input_dimensions_A[0] // 32 * input_dimensions_A[1] // 32
-        tile_cnt_B = input_dimensions_B[0] // 32 * input_dimensions_B[1] // 32
-        faces_to_generate = 4
+    # # Handle partial faces
+    # if face_r_dim < 16:
+    #     # Partial face case: generate exactly num_faces worth of data
+    #     tile_cnt_A, tile_cnt_B = 1, 1
+    #     faces_to_generate = num_faces  # Generate exactly the right number of faces
+    # else:
+    # Full tile case
+    tile_cnt_A = input_dimensions_A[0] // 32 * input_dimensions_A[1] // 32
+    tile_cnt_B = input_dimensions_B[0] // 32 * input_dimensions_B[1] // 32
+    faces_to_generate = 4
 
     for _ in range(faces_to_generate * tile_cnt_A):
-        face_a = generate_random_face(
-            stimuli_format_A,
-            const_value_A,
-            const_face,
-            sfpu,
-            face_r_dim,
-        )
+        face_a = generate_random_face(stimuli_format_A, const_value_A, const_face, sfpu)
         srcA.extend(face_a.tolist())
 
     for _ in range(faces_to_generate * tile_cnt_B):
-        face_b = generate_random_face(
-            stimuli_format_B,
-            const_value_B,
-            const_face,
-            sfpu,
-            face_r_dim,
-        )
+        face_b = generate_random_face(stimuli_format_B, const_value_B, const_face, sfpu)
         srcB.extend(face_b.tolist())
 
     dtype_A = (

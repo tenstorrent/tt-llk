@@ -140,22 +140,33 @@ class StimuliConfig:
     @staticmethod
     def write_matrix(
         buffer,
+        tile_count: int,
         pack_function,
-        base_address,
-        num_faces,
-        location="0,0",
+        base_address: int,
+        tile_size: int,
+        num_faces: int,
+        location: str = "0,0",
     ):
+        addresses = []
+        packed_data_list = []
+
         pack_function_lambda = lambda buffer_tile: (
             pack_function(buffer_tile, num_faces=num_faces)
             if pack_function == pack_bfp8_b
             else pack_function(buffer_tile)
         )
 
-        packed_data = pack_function_lambda(buffer)
+        for ind in range(tile_count):
+            start_idx = StimuliConfig.TILE_ELEMENTS * ind
+            tile_data = buffer[start_idx : start_idx + StimuliConfig.TILE_ELEMENTS]
+            packed_data = pack_function_lambda(tile_data)
+            addresses.append(base_address + ind * tile_size)
+            packed_data_list.append(packed_data)
 
-        write_to_device(location, base_address, packed_data)
+        for addr, data in zip(addresses, packed_data_list):
+            write_to_device(location, addr, data)
 
-    def write(self, location="0,0"):
+    def write(self, location: str = "0,0"):
         pack_function_A = StimuliConfig.get_packer(self.stimuli_A_format)
         pack_function_B = StimuliConfig.get_packer(self.stimuli_B_format)
 
@@ -167,15 +178,19 @@ class StimuliConfig:
 
         StimuliConfig.write_matrix(
             self.buffer_A,
+            self.tile_count_A,
             pack_function_A,
             self.buf_a_addr,
+            self.tile_size_A_bytes,
             self.num_faces,
             location,
         )
         StimuliConfig.write_matrix(
             self.buffer_B,
+            self.tile_count_B,
             pack_function_B,
             self.buf_b_addr,
+            self.tile_size_B_bytes,
             self.num_faces,
             location,
         )
@@ -188,8 +203,10 @@ class StimuliConfig:
                 )
             StimuliConfig.write_matrix(
                 self.buffer_C,
+                self.tile_count_C,
                 pack_function_C,
                 self.buf_c_addr,
+                self.tile_size_C_bytes,
                 self.num_faces,
                 location,
             )

@@ -458,11 +458,11 @@ class TestConfig:
             is_fp32_dest_acc_en=self.dest_acc,
             num_iterations=self.L1_to_L1_iterations,
             unpacking_to_dest=self.unpack_to_dest == "true",
-            chip_arch=get_chip_architecture(),
+            chip_arch=TestConfig.CHIP_ARCH,
             disable_format_inference=self.disable_format_inference,
         )
 
-        self.unpack_to_dest = self.unpack_to_dest = str(self.unpack_to_dest).lower()
+        self.unpack_to_dest = str(self.unpack_to_dest).lower()
         header_content.append(f"constexpr bool unpack_to_dest = {self.unpack_to_dest};")
         header_content.append(
             f"constexpr bool UNPACKING_TO_DEST = {self.unpack_to_dest};"

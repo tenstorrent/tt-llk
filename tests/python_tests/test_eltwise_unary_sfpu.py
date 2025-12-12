@@ -66,7 +66,12 @@ from helpers.utils import passed_test
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_float(
-    test_name, formats, approx_mode, mathop, dest_acc, workers_tensix_coordinates
+    test_name: str,
+    formats: list[InputOutputFormat],
+    approx_mode: ApproximationMode,
+    mathop: MathOperation,
+    dest_acc: DestAccumulation,
+    workers_tensix_coordinates: str,
 ):
     if TestTargetConfig().with_coverage and mathop in [
         MathOperation.Acosh,
@@ -133,7 +138,12 @@ def test_eltwise_unary_sfpu_float(
     dest_acc=[DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_int(
-    test_name, formats, approx_mode, mathop, dest_acc, workers_tensix_coordinates
+    test_name: str,
+    formats: list[InputOutputFormat],
+    approx_mode: ApproximationMode,
+    mathop: MathOperation,
+    dest_acc: DestAccumulation,
+    workers_tensix_coordinates: str,
 ):
     if formats.input_format == DataFormat.Int32:
         pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
@@ -144,7 +154,12 @@ def test_eltwise_unary_sfpu_int(
 
 
 def eltwise_unary_sfpu(
-    test_name, formats, dest_acc, approx_mode, mathop, workers_tensix_coordinates
+    test_name,
+    formats: list[InputOutputFormat],
+    dest_acc,
+    approx_mode,
+    mathop,
+    workers_tensix_coordinates,
 ):
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
@@ -191,6 +206,7 @@ def eltwise_unary_sfpu(
     res_from_L1 = configuration.run(workers_tensix_coordinates)
 
     # res_from_L1 = res_from_L1[:1024]
+    # golden_tensor = golden_tensor[:1024]
     assert len(res_from_L1) == len(
         golden_tensor
     ), "Result tensor and golder tensor are not of the same length"

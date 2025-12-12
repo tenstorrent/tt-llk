@@ -163,7 +163,7 @@ def unpack_res_tiles(
         tile_data = packed_list[start_idx:end_idx]
 
         if unpack_func == unpack_bfp8_b:
-            unpacked_tile = unpack_func(tile_data, num_faces=num_faces)
+            unpacked_tile = unpack_func(tile_data, sfpu=sfpu, num_faces=num_faces)
         else:
             unpacked_tile = unpack_func(tile_data)
 

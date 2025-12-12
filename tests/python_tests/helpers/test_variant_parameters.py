@@ -192,7 +192,7 @@ class APPROX_MODE(TemplateParameter):
 
 @dataclass
 class DEST_SYNC(TemplateParameter):
-    mode: DestSync
+    mode: DestSync = DestSync.Half
 
     def covert_to_cpp(self) -> str:
         return f"constexpr auto dest_sync = ckernel::DstSync::Sync{self.mode.name};"

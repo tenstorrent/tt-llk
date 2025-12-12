@@ -143,7 +143,6 @@ def test_matmul_and_unary_sfpu(
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
             tile_count_res=tile_cnt_A,
-            sfpu=True,
         ),
         dest_acc=dest_acc,
         L1_to_L1_iterations=2,
