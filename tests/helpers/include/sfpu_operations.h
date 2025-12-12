@@ -117,6 +117,9 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
         case SfpuType::threshold:
             _calculate_threshold_<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);
             break;
+        case SfpuType::transpose_row:
+            _calculate_transpose_row_();
+            break;
         default:
             return; // Unsupported op – should never happen
     }

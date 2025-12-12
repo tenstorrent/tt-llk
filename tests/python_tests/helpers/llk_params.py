@@ -79,6 +79,7 @@ class MathOperation(Enum):
     Sqrt = OpSpec("sqrt", MathOpType.SFPU_UNARY)
     Square = OpSpec("square", MathOpType.SFPU_UNARY)
     Threshold = OpSpec("threshold", MathOpType.SFPU_UNARY)
+    TransposeRow = OpSpec("transpose_row", MathOpType.SFPU_UNARY)
     ReluMax = OpSpec(
         "relu_max", MathOpType.SFPU_UNARY
     )  # ReLU_max(x, U) = max(0, min(x, U))

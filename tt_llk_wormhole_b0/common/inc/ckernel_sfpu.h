@@ -55,6 +55,7 @@
 #include "sfpu/ckernel_sfpu_tanh_derivative.h"
 #include "sfpu/ckernel_sfpu_threshold.h"
 #include "sfpu/ckernel_sfpu_topk.h"
+#include "sfpu/ckernel_sfpu_transp_dest_row.h"
 #include "sfpu/ckernel_sfpu_trigonometry.h"
 #include "sfpu/ckernel_sfpu_typecast.h"
 #include "sfpu/ckernel_sfpu_welfords.h"

@@ -901,6 +901,7 @@ class UnarySFPUGolden:
             MathOperation.ReluMax: self._relu_max,
             MathOperation.ReluMin: self._relu_min,
             MathOperation.ReduceColumn: self._reduce_columns,
+            MathOperation.TransposeRow: self._transpose_row,
         }
         self.data_format = None
         self.dest_acc = DestAccumulation.No
@@ -920,9 +921,12 @@ class UnarySFPUGolden:
         if operation not in self.ops:
             raise ValueError(f"Unsupported operation: {operation}")
 
-        # Special handling for SumColumns which needs to process the entire tensor
+        # Special handling for operations that need to process the entire tensor
         if operation == MathOperation.ReduceColumn:
             return self.ops[operation](operand1, reduce_pool)
+
+        if operation == MathOperation.TransposeRow:
+            return self.ops[operation](operand1, data_format)
 
         # determine the data format for dst
         if self.dest_acc == DestAccumulation.Yes:
@@ -1150,6 +1154,36 @@ class UnarySFPUGolden:
         reduced_tile_tensor = torch.zeros_like(x)
         reduced_tile_tensor[0, :] = reduced_tile
         return reduced_tile_tensor
+
+    def _transpose_row(self, operand, data_format):
+        """Transpose row operation: takes first row and puts it as first column.
+
+        Takes a 32x32 tile (1024 elements) and transposes the first row into the first column.
+        The result is a 32x32 tile where:
+        - First column contains the values from the first row of the input
+        - All other elements are zero (or untouched depending on implementation)
+
+        Args:
+            operand: Input tensor (1024 elements representing a 32x32 tile)
+            data_format: Data format for the result
+
+        Returns:
+            torch.Tensor: Transposed tensor (1024 elements)
+        """
+        torch_format = format_dict[data_format]
+        tensor = to_tensor(operand, data_format)
+
+        # Reshape to 32x32 tile
+        tile = tensor.view(32, 32)
+
+        # Take the first row and transpose to first column
+        # This is equivalent to transposing the entire tile
+        transposed_tile = tile.T
+
+        # Flatten back to 1024 elements
+        result = transposed_tile.flatten().to(torch_format)
+
+        return result
 
 
 @register_golden
