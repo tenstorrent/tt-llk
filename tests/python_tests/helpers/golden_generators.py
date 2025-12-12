@@ -1417,6 +1417,14 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
 
 @register_golden
 class ReduceGolden:
+    """Golden for reduce operations (Max/Average/Sum pooling).
+
+    Reduce dimensions:
+        Column: f0+f2 (left), f1+f3 (right) → row 0
+        Row:    f0+f1 (upper), f2+f3 (lower) → col 0
+        Scalar: all elements → single value at [0]
+    """
+
     def __init__(self):
         self.dim_handlers = {
             ReduceDimension.Column: self._reduce_column,
@@ -1424,44 +1432,55 @@ class ReduceGolden:
             ReduceDimension.Scalar: self._reduce_scalar,
         }
 
-    def __call__(self, operand, reduce_dim, pool_type, data_format):
+    def __call__(self, operand, reduce_dim, pool_type, data_format, tile_cnt=1):
         if reduce_dim not in self.dim_handlers:
             raise ValueError(f"Unsupported reduce dimension: {reduce_dim}")
 
-        f0 = operand[:256].view(16, 16)
-        f1 = operand[256:512].view(16, 16)
-        f2 = operand[512:768].view(16, 16)
-        f3 = operand[768:].view(16, 16)
-        faces = [f0, f1, f2, f3]
-        if reduce_dim == ReduceDimension.Scalar:
-            faces = operand
+        return torch.cat(
+            [
+                self._process_tile(operand, reduce_dim, pool_type, data_format, tile)
+                for tile in range(tile_cnt)
+            ]
+        )
+
+    def _process_tile(self, operand, reduce_dim, pool_type, data_format, tile_idx):
+        tile_start = tile_idx * ELEMENTS_PER_TILE
+        tile_data = operand[tile_start : tile_start + ELEMENTS_PER_TILE]
+
+        # Extract 4 faces as 16x16 matrices
+        faces = tile_data.view(FACES_PER_TILE, FACE_DIM, FACE_DIM)
+
         return self.dim_handlers[reduce_dim](faces, pool_type, data_format)
 
     def _reduce_column(self, faces, pool_type, data_format):
-        left_half = torch.cat((faces[0], faces[2]), 0)
-        right_half = torch.cat((faces[1], faces[3]), 0)
-
-        result = torch.zeros(32, 32, dtype=format_dict[data_format])
-        result[0, 0:16] = self._apply_pooling(left_half, pool_type, dim=0)
-        result[0, 16:32] = self._apply_pooling(right_half, pool_type, dim=0)
-
-        return result.view(1024)
+        # Pool together f0+f2 (left cols) and f1+f3 (right cols) → row 0
+        left_half = torch.cat((faces[0], faces[2]), dim=0)  # 32x16
+        right_half = torch.cat((faces[1], faces[3]), dim=0)  # 32x16
+        result = torch.zeros(ELEMENTS_PER_TILE, dtype=format_dict[data_format])
+        result[:FACE_DIM] = self._apply_pooling(left_half, pool_type, dim=0)
+        result[ELEMENTS_PER_FACE : ELEMENTS_PER_FACE + FACE_DIM] = self._apply_pooling(
+            right_half, pool_type, dim=0
+        )
+        return result
 
     def _reduce_row(self, faces, pool_type, data_format):
-        upper_half = torch.cat((faces[0], faces[1]), 1)
-        lower_half = torch.cat((faces[2], faces[3]), 1)
+        # Pool together f0+f1 (upper rows) and f2+f3 (lower rows) → col 0
+        upper_half = torch.cat((faces[0], faces[1]), dim=1)  # 16x32
+        lower_half = torch.cat((faces[2], faces[3]), dim=1)  # 16x32
+        result = torch.zeros(ELEMENTS_PER_TILE, dtype=format_dict[data_format])
+        result[0:ELEMENTS_PER_FACE:FACE_DIM] = self._apply_pooling(
+            upper_half, pool_type, dim=1
+        )
+        result[2 * ELEMENTS_PER_FACE : 3 * ELEMENTS_PER_FACE : FACE_DIM] = (
+            self._apply_pooling(lower_half, pool_type, dim=1)
+        )
+        return result
 
-        result = torch.zeros(32, 32, dtype=format_dict[data_format])
-        result[0:16, 0] = self._apply_pooling(upper_half, pool_type, dim=1).view(16)
-        result[16:32, 0] = self._apply_pooling(lower_half, pool_type, dim=1).view(16)
-
-        return result.view(1024)
-
-    def _reduce_scalar(self, operand, pool_type, data_format):
-        tensor = operand.view(1024)
-        result = torch.zeros(32, 32, dtype=format_dict[data_format])
-        result[0, 0] = self._apply_pooling(tensor, pool_type, dim=0)
-        return result.view(1024)
+    def _reduce_scalar(self, faces, pool_type, data_format):
+        # Pool together all faces → single scalar at [0]
+        result = torch.zeros(ELEMENTS_PER_TILE, dtype=format_dict[data_format])
+        result[0] = self._apply_pooling(faces.flatten(), pool_type, dim=0)
+        return result
 
     def _apply_pooling(self, tensor, pool_type, dim):
         if pool_type == ReducePool.Max:
@@ -1503,7 +1522,7 @@ class ReduceGapoolGolden(FidelityMasking):
         tile_cnt=1,
     ):
 
-        fidelity_iter_count = self.MATH_FIDELITY_TO_ITER_COUNT[math_fidelity] + 1
+        fidelity_iter_count = self.MATH_FIDELITY_TO_ITER_COUNT[math_fidelity]
 
         return torch.cat(
             [
@@ -1523,8 +1542,9 @@ class ReduceGapoolGolden(FidelityMasking):
         self, operand1, operand2, data_format, reduce_dim, fidelity_iter_count, tile_idx
     ):
         # Extract srcA tile and srcB face0 (only f0 unpacked for srcB)
+        tile_start = tile_idx * ELEMENTS_PER_TILE
         src_a = to_tensor(
-            operand1[tile_idx * ELEMENTS_PER_TILE :][:ELEMENTS_PER_TILE], data_format
+            operand1[tile_start : tile_start + ELEMENTS_PER_TILE], data_format
         )
         src_b = to_tensor(operand2[:ELEMENTS_PER_FACE], data_format)
 
