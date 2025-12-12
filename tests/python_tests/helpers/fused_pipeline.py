@@ -9,6 +9,7 @@ from helpers.fused_math import (
     BinarySfpu,
     DatacopyFpu,
     EltwiseFpu,
+    Halt,
     Math,
     MatmulFpu,
     UnarySfpu,
@@ -55,6 +56,7 @@ def create_fuse_pipeline() -> List[FusedOperation]:
                         ApproximationMode.No,
                         32 * operands.get("datacopy_output").tile_count,
                     ),
+                    Halt(),
                     UnarySfpu(
                         MathOperation.Celu,
                         ApproximationMode.No,
