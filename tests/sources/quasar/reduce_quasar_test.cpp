@@ -55,7 +55,7 @@ void run_kernel()
     _llk_unpack_reduce_init_<BUF_DESC_ID_A, BUF_DESC_ID_B, REDUCE_DIM>(1, tile_shape_A);
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_unpack_reduce_(i, i);
+        _llk_unpack_reduce_(i, 0);
     }
 }
 
@@ -83,7 +83,7 @@ void run_kernel()
     _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, math_fidelity>(tile_shape_A);
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_math_reduce_(i + 1);
+        _llk_math_reduce_(i);
     }
     _llk_math_set_dvalid_<p_cleardvalid::FPU>();
 }
@@ -121,7 +121,7 @@ void run_kernel()
     _llk_pack_reduce_mask_config_<REDUCE_DIM>();
     for (int i = 0; i < TILE_CNT; ++i)
     {
-        _llk_pack_<p_pacr::PACK0>(i + 1, i);
+        _llk_pack_<p_pacr::PACK0>(i, i);
     }
     _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
     _llk_pack_reduce_mask_clear_();
