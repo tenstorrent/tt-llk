@@ -1476,15 +1476,17 @@ class ReduceGolden:
 
 @register_golden
 class ReduceGapoolGolden(FidelityMasking):
-    """Golden generator for reduce operations with fidelity masking. Used for Sum and Average pool types (GAPOOL).
+    """Golden for GAPOOL reduce (Sum/Average pooling) with fidelity masking.
 
-    Hardware performs matmul (srcB @ srcA) for each face, accumulating across fidelity iterations.
-    - Column reduce: f0+f2 (left), f1+f3 (right) → 1x32 row at row 0
-    - Row reduce: srcA transposed, f0+f1 (upper), f2+f3 (lower) → 32x1 column at col 0
-    - Scalar reduce: all faces pooled together → 16x16 matrix transposed and then pooled once more → single value at [0,0]
+    Hardware computes matmul (D = srcB @ srcA) per face, accumulating across fidelity iterations.
+
+    Reduce dimensions:
+        Column: f0+f2 (left), f1+f3 (right) → row 0
+        Row:    f0+f1 (upper), f2+f3 (lower) → col 0, (srcA transposed by unpacker)
+        Scalar: all faces summed → transpose → pool again → single value at [0]
     """
 
-    FIDELITY_ITER_COUNT = {
+    MATH_FIDELITY_TO_ITER_COUNT = {
         MathFidelity.LoFi: 0,
         MathFidelity.HiFi2: 1,
         MathFidelity.HiFi3: 2,
@@ -1500,104 +1502,100 @@ class ReduceGapoolGolden(FidelityMasking):
         math_fidelity=MathFidelity.LoFi,
         tile_cnt=1,
     ):
-        tile_results = []
 
-        for tile_idx in range(tile_cnt):
-            tile_result = self._process_single_tile(
-                operand1, operand2, data_format, reduce_dim, math_fidelity, tile_idx
-            )
-            tile_results.append(tile_result)
+        fidelity_iter_count = self.MATH_FIDELITY_TO_ITER_COUNT[math_fidelity] + 1
 
-        return torch.cat(tile_results)
-
-    def _process_single_tile(
-        self,
-        operand1,
-        operand2,
-        data_format,
-        reduce_dim,
-        math_fidelity,
-        tile_idx,
-    ):
-        torch_format = format_dict[data_format]
-
-        # Extract tile data (1024 elements per tile for srcA, 1024 for srcB)
-        tile_offset_a = tile_idx * ELEMENTS_PER_TILE
-        # tile_offset_b = tile_idx * ELEMENTS_PER_TILE
-
-        src_a = to_tensor(
-            operand1[tile_offset_a : tile_offset_a + ELEMENTS_PER_TILE], data_format
+        return torch.cat(
+            [
+                self._process_tile(
+                    operand1,
+                    operand2,
+                    data_format,
+                    reduce_dim,
+                    fidelity_iter_count,
+                    tile,
+                )
+                for tile in range(tile_cnt)
+            ]
         )
-        # Only the first face of srcB input is unpacked and used for reduce operations
-        src_b = to_tensor(operand2[0:ELEMENTS_PER_FACE], data_format)
 
-        # For row reduce, transpose srcA faces (models unpacker transpose within faces)
+    def _process_tile(
+        self, operand1, operand2, data_format, reduce_dim, fidelity_iter_count, tile_idx
+    ):
+        # Extract srcA tile and srcB face0 (only f0 unpacked for srcB)
+        src_a = to_tensor(
+            operand1[tile_idx * ELEMENTS_PER_TILE :][:ELEMENTS_PER_TILE], data_format
+        )
+        src_b = to_tensor(operand2[:ELEMENTS_PER_FACE], data_format)
+
+        # Row reduce: transpose within each face of SrcA (models unpacker behavior)
         if reduce_dim == ReduceDimension.Row:
-            src_a = torch.cat(
-                [
-                    src_a[i * 256 : (i + 1) * 256].view(16, 16).T.flatten()
-                    for i in range(4)
-                ]
+            src_a = (
+                src_a.view(FACES_PER_TILE, FACE_DIM, FACE_DIM).transpose(1, 2).flatten()
             )
 
-        fidelity_iter_count = self.FIDELITY_ITER_COUNT[math_fidelity]
-        face_results = [0, 0, 0, 0]
+        # Compute gapool for each face across all fidelity iterations
+        face_results = self._compute_gapool(
+            src_a, src_b, data_format, fidelity_iter_count
+        )
+
+        # Combine results based on reduce dimension
+        return self._accumulate_gapool_results(
+            face_results, src_b, data_format, reduce_dim, fidelity_iter_count
+        )
+
+    def _compute_gapool(
+        self, src_a, src_b, data_format, fidelity_iter_count, num_faces=FACES_PER_TILE
+    ):
+        """Compute D = srcB @ srcA for each face, accumulating across fidelity iterations."""
+        face_shape = (FACE_DIM, FACE_DIM)
+        face_results = [0] * num_faces
 
         for fidelity_iter in range(fidelity_iter_count + 1):
             a_masked, b_masked = self._apply_fidelity_masking(
                 data_format, src_a, src_b, fidelity_iter
             )
+            a_faces = a_masked.view(num_faces, FACE_DIM, FACE_DIM)
+            b_face = b_masked.view(face_shape)
 
-            # Split srcA into 4 faces (16x16 each)
-            a_faces = [a_masked[i * 256 : (i + 1) * 256].view(16, 16) for i in range(4)]
-            b_face = b_masked.view(16, 16)
-
-            # For each face, accumulate srcB @ srcA for every fidelity iteration
-            for i, a_face in enumerate(a_faces):
-                face_results[i] += (
-                    torch.matmul(b_face, a_face).view(256).to(torch_format)
+            for i in range(num_faces):
+                face_results[i] = (
+                    face_results[i] + torch.matmul(b_face, a_faces[i]).flatten()
                 )
 
-        # Combine face results based on reduce dimension
-        result = torch.zeros(1024, dtype=torch_format)
+        return face_results
+
+    def _accumulate_gapool_results(
+        self, face_results, src_b, data_format, reduce_dim, fidelity_iter_count
+    ):
+        """Place pooled results in output tile based on reduce dimension."""
+        face_shape = (FACE_DIM, FACE_DIM)
+        f0, f1, f2, f3 = face_results
+        result = torch.zeros(ELEMENTS_PER_TILE, dtype=f0.dtype)
 
         if reduce_dim == ReduceDimension.Column:
-            # Column reduce: accumulate f0+f2 (left), f1+f3 (right), place in row 0
-            left_half = face_results[0] + face_results[2]
-            right_half = face_results[1] + face_results[3]
-            result[0:FACE_DIM] = left_half[0:FACE_DIM]
-            result[ELEMENTS_PER_FACE : ELEMENTS_PER_FACE + FACE_DIM] = right_half[
-                0:FACE_DIM
+            # Sum left faces (f0+f2) → face0 row 0, right faces (f1+f3) → face1 row 0
+            result[:FACE_DIM] = (f0 + f2)[:FACE_DIM]
+            result[ELEMENTS_PER_FACE : ELEMENTS_PER_FACE + FACE_DIM] = (f1 + f3)[
+                :FACE_DIM
             ]
 
         elif reduce_dim == ReduceDimension.Row:
-            # Row reduce: accumulate f0+f1 (upper), f2+f3 (lower), place in column 0
-            upper_half = face_results[0] + face_results[1]
-            lower_half = face_results[2] + face_results[3]
-            # Column 0 indices: stride of FACE_DIM (16) within each face
-            result[0:ELEMENTS_PER_FACE:FACE_DIM] = upper_half[0:FACE_DIM]
+            # Sum top faces (f0+f1) → face0 col 0, bottom faces (f2+f3) → face2 col 0
+            result[0:ELEMENTS_PER_FACE:FACE_DIM] = (f0 + f1)[:FACE_DIM]
             result[2 * ELEMENTS_PER_FACE : 3 * ELEMENTS_PER_FACE : FACE_DIM] = (
-                lower_half[0:FACE_DIM]
-            )
+                f2 + f3
+            )[:FACE_DIM]
 
         elif reduce_dim == ReduceDimension.Scalar:
-            # Scalar reduce: accumulate all 4 faces together and then pool again
-            all_faces = (
-                face_results[0] + face_results[1] + face_results[2] + face_results[3]
-            ).view(16, 16)
-            all_faces = all_faces.T.flatten()
+            # Sum all faces, transpose, pool again to get single scalar
+            all_faces = (f0 + f1 + f2 + f3).view(face_shape).T.flatten()
+            pool_result = self._compute_gapool(
+                all_faces, src_b, data_format, fidelity_iter_count, num_faces=1
+            )
+            result[0] = pool_result[0][0]  # First element of a single face result
 
-            final_pool_result = torch.zeros(16, 16, dtype=torch_format)
-            for fidelity_iter in range(fidelity_iter_count + 1):
-                a_masked, b_masked = self._apply_fidelity_masking(
-                    data_format, all_faces, src_b, fidelity_iter
-                )
-                final_pool_result += torch.matmul(
-                    b_masked.view(16, 16), a_masked.view(16, 16)
-                ).to(torch_format)
-            result[0] = final_pool_result[0, 0]
-
-        return result.flatten()
+        return result
 
 
 @register_golden
