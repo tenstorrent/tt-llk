@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import shutil
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
@@ -264,12 +265,26 @@ class TestConfig:
         self.generate_variant_hash()
 
     def generate_variant_hash(self):
-        NON_COMPILATION_ARGUMETNS = ["variant_stimuli"]  # , "runtimes"],
+        NON_COMPILATION_ARGUMETNS = ["variant_stimuli", "runtimes"]
         temp_str = []
+
         for field_name, value in self.__dict__.items():
             if field_name not in NON_COMPILATION_ARGUMETNS:
                 temp_str.append(str(value))
+
         self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
+
+        # lock_file = Path("/tmp/pytest_print.lock")
+        # lock_file.touch(exist_ok=True)
+
+        # with open(lock_file, "w") as lock:
+        #     fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        #     try:
+        #         print(self.variant_id, file=sys.stderr)
+        #     finally:
+        #         fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+
+        # pytest.skip()
 
     def resolve_compile_options(self) -> tuple[str, str, str]:
 
@@ -398,8 +413,11 @@ class TestConfig:
         )
 
         end_time = time.time()
-        print(f"Building shared artefacts in {(end_time-start_time):.4f}s", end="")
-
+        print(
+            f"Built shared artefacts in {(end_time-start_time):.4f}s",
+            end="\r",
+            file=sys.stderr,
+        )
         TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
 
     def infer_data_formats(self) -> list[str]:
@@ -549,10 +567,11 @@ class TestConfig:
         unpack_size_a = TILE_SIZES.get(self.formats.input_format, 128)
         unpack_size_b = TILE_SIZES.get(self.formats.input_format, 128)
 
-        # TODO Tiny tile flag, used to handle dimension
-        # if self.tiny_tiles:
-        #     pack_size = (pack_size // self.num_faces) * (self.in0_tile_r_dim // face_r_dim)
-        #     unpack_size_a = (unpack_size_a // num_faces_A) * (in0_tile_r_dim // face_r_dim)
+        # TODO FINNISH THIS GUY
+        # if in0_tile_r_dim <= 16:
+        #     # EXTRACT THIS
+        #     pack_size = (pack_size // self.num_faces) * (in0_tile_r_dim // self.variant_stimuli.face_r_dim)
+        #     unpack_size_a = (unpack_size_a // num_faces_A) * (in0_tile_r_dim // self.variant_stimuli.face_r_dim)
 
         # All are RT, used in only few tests, but there wasn't any mechanism not to include them
         header_content.extend(

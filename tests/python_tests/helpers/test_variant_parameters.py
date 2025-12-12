@@ -175,7 +175,7 @@ class DISABLE_SRC_ZERO_FLAG(TemplateParameter):
 
 
 @dataclass
-class MATH_FIDELITY(TemplateParameter):  # This one is mandatory
+class MATH_FIDELITY(TemplateParameter):
     fidelity: MathFidelity
 
     def covert_to_cpp(self) -> str:
@@ -183,7 +183,7 @@ class MATH_FIDELITY(TemplateParameter):  # This one is mandatory
 
 
 @dataclass
-class APPROX_MODE(TemplateParameter):  # This one is mandatory
+class APPROX_MODE(TemplateParameter):
     mode: ApproximationMode
 
     def covert_to_cpp(self) -> str:
@@ -191,11 +191,11 @@ class APPROX_MODE(TemplateParameter):  # This one is mandatory
 
 
 @dataclass
-class DEST_SYNC(TemplateParameter):  # This one is mandatory
+class DEST_SYNC(TemplateParameter):
     mode: DestSync
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr auto dest_sync = ckernel::DstSync::Sync{self.mode};"
+        return f"constexpr auto dest_sync = ckernel::DstSync::Sync{self.mode.name};"
 
 
 @dataclass
@@ -356,7 +356,7 @@ class SRCA_REUSE_COUNT(RuntimeParameter):
 
 @dataclass
 class PARTIAL_FACE(RuntimeParameter):
-    partial_face: bool = None
+    partial_face: bool = True
     partial_a: bool = None
     partial_b: bool = None
 
@@ -371,7 +371,7 @@ class PARTIAL_FACE(RuntimeParameter):
                 f"constexpr bool PARTIAL_FACE_PACK = {str(self.partial_a).lower()};"
             )
 
-        if self.partial_a is None and self.partial_face:
+        if not self.partial_a and self.partial_face:
             lines.append(
                 f"constexpr bool PARTIAL_FACE_A = {str(self.partial_face).lower()};"
             )
@@ -387,7 +387,7 @@ class PARTIAL_FACE(RuntimeParameter):
                 f"constexpr bool PARTIAL_FACE_MATH = {str(self.partial_b).lower()};"
             )
 
-        if self.partial_b is None and self.partial_face:
+        if not self.partial_b and self.partial_face:
             lines.append(
                 f"constexpr bool PARTIAL_FACE_B = {str(self.partial_face).lower()};"
             )
@@ -438,25 +438,34 @@ class NUM_FACES(RuntimeParameter):
 
 
 @dataclass
-class TEST_FACE_R_DIM(RuntimeParameter):
+class TEST_FACE_DIMS(RuntimeParameter):
     face_r_dim: int = 16
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr int TEST_FACE_R_DIM = {self.face_r_dim};"
-
-
-@dataclass
-class TEST_FACE_C_DIM(RuntimeParameter):
     face_c_dim: int = 16
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr int TEST_FACE_C_DIM = {self.face_c_dim};"
+        lines: list[str] = [
+            f"constexpr int TEST_FACE_R_DIM = {self.face_r_dim};",
+            f"constexpr int TEST_FACE_C_DIM = {self.face_c_dim};",
+        ]
+        return "\n".join(lines)
 
 
-# @dataclass
-# class (RuntimeParameter):
-#     def covert_to_cpp(self) -> str:
-#         return ""
+@dataclass
+class IN_TILE_DIMS(RuntimeParameter):
+    in0_r_dim: int = 32
+    in0_c_dim: int = 32
+    in1_r_dim: int = 32
+    in1_c_dim: int = 32
+
+    def covert_to_cpp(self) -> str:
+        lines: list[str] = [
+            f"constexpr int in0_tile_r_dim = {self.in0_r_dim};",
+            f"constexpr int in0_tile_c_dim = {self.in0_c_dim};",
+            f"constexpr int in1_tile_r_dim = {self.in1_r_dim};",
+            f"constexpr int in1_tile_c_dim = {self.in1_c_dim};",
+        ]
+        return "\n".join(lines)
+
 
 # @dataclass
 # class (RuntimeParameter):

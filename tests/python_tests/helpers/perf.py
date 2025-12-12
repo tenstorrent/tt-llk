@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
+import os
 import shutil
 from dataclasses import fields, is_dataclass
 from enum import Enum
@@ -243,7 +244,6 @@ def perf_report(request):
 
     post = _postprocess_report(report)
     dump_csv(test_module, f"{test_module}.post.csv", post)
-    # dump_scatter(test_module, post)
 
 
 def _dataclass_names(parent, obj):

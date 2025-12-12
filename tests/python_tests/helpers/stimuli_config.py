@@ -78,8 +78,21 @@ class StimuliConfig:
 
         self.buf_a_addr = StimuliConfig.STIMULI_L1_ADDRESS
         self.buf_b_addr = self.buf_a_addr + self.tile_size_A_bytes * self.tile_count_A
-        self.buf_res_addr = self.buf_b_addr + self.tile_size_B_bytes * self.tile_count_B
-        # print(f"{hex(self.buf_a_addr)} {hex(self.buf_b_addr)} {hex(self.buf_res_addr)}")
+
+        if self.buffer_C is not None:
+            self.tile_size_C_bytes = self.stimuli_C_format.num_bytes_per_tile(
+                StimuliConfig.TILE_ELEMENTS
+            )
+            self.buf_c_addr = (
+                self.buf_b_addr + self.tile_size_B_bytes * self.tile_count_B
+            )
+            self.buf_res_addr = (
+                self.buf_c_addr + self.tile_size_C_bytes * self.tile_count_C
+            )
+        else:
+            self.buf_res_addr = (
+                self.buf_b_addr + self.tile_size_B_bytes * self.tile_count_B
+            )
 
     def generate_stimuli_header_addresses(self, formats) -> list[str]:
         buf_a_format = format_tile_sizes[
@@ -92,11 +105,22 @@ class StimuliConfig:
             DataFormat.Float16_b if formats is None else formats.output_format
         ]
 
-        return [
+        lines: list[str] = [
             f"constexpr Operand buffer_A({hex(self.buf_a_addr)}, {buf_a_format});",
             f"constexpr Operand buffer_B({hex(self.buf_b_addr)}, {buf_b_format});",
             f"constexpr Operand buffer_Res({hex(self.buf_res_addr)}, {buf_res_format});",
         ]
+
+        if self.buffer_C is not None:
+            buf_c_format = format_tile_sizes[
+                DataFormat.Float16_b if formats is None else formats.input_format
+            ]
+
+            lines.append(
+                f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {buf_c_format});"
+            )
+
+        return lines
 
     @staticmethod
     def get_packer(data_format):
@@ -116,10 +140,8 @@ class StimuliConfig:
     @staticmethod
     def write_matrix(
         buffer,
-        tile_count,
         pack_function,
         base_address,
-        tile_size,
         num_faces,
         location="0,0",
     ):
@@ -145,24 +167,32 @@ class StimuliConfig:
 
         StimuliConfig.write_matrix(
             self.buffer_A,
-            self.tile_count_A,
             pack_function_A,
             self.buf_a_addr,
-            self.tile_size_A_bytes,
             self.num_faces,
             location,
         )
         StimuliConfig.write_matrix(
             self.buffer_B,
-            self.tile_count_B,
             pack_function_B,
             self.buf_b_addr,
-            self.tile_size_B_bytes,
             self.num_faces,
             location,
         )
 
-        # TODO Handle writing C
+        if self.buffer_C is not None:
+            pack_function_C = StimuliConfig.get_packer(self.stimuli_C_format)
+            if not pack_function_C:
+                raise ValueError(
+                    f"Unsupported data format for operand C: srcA({self.stimuli_C_format.name})"
+                )
+            StimuliConfig.write_matrix(
+                self.buffer_C,
+                pack_function_C,
+                self.buf_c_addr,
+                self.num_faces,
+                location,
+            )
 
     def collect_results(self, location="0,0"):
         # Always read full tiles - hardware still outputs full tile data

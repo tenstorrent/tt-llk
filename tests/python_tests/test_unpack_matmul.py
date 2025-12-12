@@ -23,6 +23,7 @@ from helpers.stimuli_generator import generate_face_matmul_data
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     CRK_TILE_DIMM,
+    IN_TILE_DIMS,
     INPUT_DIMENSIONS,
     MATH_FIDELITY,
     NUM_FACES,
@@ -89,15 +90,12 @@ def test_unpack_matmul(
     dest_acc = matmul_config.dest_acc
     input_A_dimensions = matmul_config.tile_dimensions.input_A_dimensions
     input_B_dimensions = matmul_config.tile_dimensions.input_B_dimensions
-    stochastic_rnd = matmul_config.stochastic_rnd
     num_faces_A = matmul_config.face_layout_config.num_faces_A
     num_faces_B = matmul_config.face_layout_config.num_faces_B
     num_faces = matmul_config.face_layout_config.num_faces
     partial_face_A = matmul_config.face_layout_config.partial_face_A
     partial_face_B = matmul_config.face_layout_config.partial_face_B
     transpose = matmul_config.face_layout_config.unpack_transpose_faces
-
-    torch_format = format_dict[formats.output_format]
 
     # Generate test data for all tiles with the right faces zeroed out
     src_A = generate_face_matmul_data(
@@ -152,13 +150,6 @@ def test_unpack_matmul(
         src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
     )
 
-    test_config = {
-        "in0_tile_r_dim": matmul_config.tile_dimensions.in0_tile_r_dim,
-        "in0_tile_c_dim": matmul_config.tile_dimensions.in0_tile_c_dim,
-        "in1_tile_r_dim": matmul_config.tile_dimensions.in1_tile_r_dim,
-        "in1_tile_c_dim": matmul_config.tile_dimensions.in1_tile_c_dim,
-    }
-
     configuration = TestConfig(
         test_name,
         formats,
@@ -178,6 +169,12 @@ def test_unpack_matmul(
                 matmul_config.tile_dimensions.rt_dim,
                 matmul_config.tile_dimensions.kt_dim,
             ),
+            IN_TILE_DIMS(
+                matmul_config.tile_dimensions.in0_tile_r_dim,
+                matmul_config.tile_dimensions.in0_tile_c_dim,
+                matmul_config.tile_dimensions.in1_tile_r_dim,
+                matmul_config.tile_dimensions.in1_tile_c_dim,
+            ),
         ],
         variant_stimuli=StimuliConfig(
             tilized_A.flatten(),
@@ -191,7 +188,6 @@ def test_unpack_matmul(
         ),
         dest_acc=dest_acc,
         unpack_to_dest=formats.input_format.is_32_bit(),
-        tiny_tiles=matmul_config.tile_dimensions.in0_tile_r_dim <= 16,
     )
     res_from_L1 = configuration.run(workers_tensix_coordinates)
 
@@ -207,11 +203,12 @@ def test_unpack_matmul(
     #     DataFormat.Float32,
     # ]  # according to data format inference model
 
-    # res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
-
     # Only compare the active faces in each tile since that's what the hardware processes
     num_elements_per_tile = num_faces * 256  # Each face is 16x16 = 256 elements
     tile_cnt = matmul_config.tile_dimensions.output_tile_cnt
+
+    torch_format = format_dict[formats.output_format]
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     # Compare each tile separately
     for i in range(tile_cnt):
