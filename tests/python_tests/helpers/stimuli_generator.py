@@ -38,23 +38,9 @@ def generate_random_face(
     size = face_r_dim * 16  # face_r_dim rows × 16 columns
     if stimuli_format != DataFormat.Bfp8_b:
         if stimuli_format.is_integer():
-            if stimuli_format == DataFormat.Int8:
-                max = 127
-                min = -128
-            elif stimuli_format == DataFormat.UInt8:
-                max = 255
-                min = 0
-            elif stimuli_format == DataFormat.UInt16:
-                max = 65535
-                min = 0
-            elif stimuli_format == DataFormat.Int32:
-                max = 2147483647
-                min = -2147483648
-            elif stimuli_format == DataFormat.UInt32:
-                max = 4294967295
-                min = 0
+            max = 127 if stimuli_format == DataFormat.Int8 else 255
             srcA_face = torch.randint(
-                low=min, high=max, size=(size,), dtype=format_dict[stimuli_format]
+                low=0, high=max, size=(size,), dtype=format_dict[stimuli_format]
             )
         else:
             if const_face:
