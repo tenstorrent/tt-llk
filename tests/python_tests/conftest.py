@@ -134,10 +134,11 @@ def pytest_configure(config):
     TestConfig.setup_mode(test_target)
     TestConfig.setup_build(Path(os.environ["LLK_HOME"]))
 
-    if test_target.run_simulator:
-        tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
-    else:
-        tt_exalens_init.init_ttexalens()
+    if not test_target.compile_producer:
+        if test_target.run_simulator:
+            tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
+        else:
+            tt_exalens_init.init_ttexalens(wanted_devices=[0])
 
 
 def _stringify_params(params):
@@ -219,7 +220,7 @@ def pytest_sessionstart(session):
 
     test_target = TestTargetConfig()
 
-    if not test_target.run_simulator:
+    if not test_target.run_simulator and not test_target.compile_producer:
         # Send ARC message for GO BUSY signal. This should increase device clock speed.
         _send_arc_message("GO_BUSY", test_target.device_id)
 
@@ -234,7 +235,7 @@ def pytest_sessionfinish(session, exitstatus):
             print(f"{BOLD}{YELLOW}  {input_fmt} -> {output_fmt}{RESET}")
 
     test_target = TestTargetConfig()
-    if not test_target.run_simulator:
+    if not test_target.run_simulator and not test_target.compile_producer:
         # Send ARC message for GO IDLE signal. This should decrease device clock speed.
         _send_arc_message("GO_IDLE", test_target.device_id)
 
