@@ -17,20 +17,18 @@ namespace sfpu
  * @brief Calculates column-wise MaxPool of a tile, placing output values into the first row.
  *        Also places the index of the max value into the first row of the indices tile.
  *        Supports {FP16_B} for values, and {UINT16} for indices, inferred from the Dest mode used.
+ *        Can reduce up to 9 rows of a tile.
  * @tparam APPROXIMATION_MODE Whether to use the approximation mode (unused).
  * @tparam is_fp32_dest_acc_en Whether Dest is in 32bit mode (true) or 16bit mode (false).
- * @tparam num_rows The number of rows in the tile, must be <= 9
  * @tparam ITERATIONS The number of iterations to perform (unused).
  * @tparam layout Data layout format, either TILE (default) or ROW_MAJOR.
  * @param values_tile_idx The index of the tile in the Dest register containing the data to be reduced.
  * @param indices_tile_idx The index of the tile in the Dest register containing the indices of the data.
  * @param tile_idx Unused param, needed to conform with format in _llk_math_eltwise_binary_sfpu_params_.
  */
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int num_rows, int ITERATIONS = 8, ckernel::DataLayout layout = ckernel::DataLayout::TILE>
+template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS = 8, ckernel::DataLayout layout = ckernel::DataLayout::TILE>
 inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
 {
-    static_assert(num_rows <= 9, "num_rows must be <= 9"); // add others as support is added
-
     // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size   = 64;
     const uint values_tile_offset  = values_tile_idx * dst_tile_size;
@@ -62,7 +60,7 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
         // Face 0 Row 8
         // Face 1 Row 8
 
-        auto process_cols = [values_tile_offset, indices_tile_offset](const uint col_offset) __attribute__((always_inline))
+        auto process_columns = [values_tile_offset, indices_tile_offset](const uint col_offset) __attribute__((always_inline))
         {
             // data
             TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + 0 + col_offset);
@@ -90,10 +88,10 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
         };
 
         // F0 + F1 even and odd cols
-        constexpr int even_cols_offset = 0;
-        constexpr int odd_cols_offset  = 2;
-        process_cols(even_cols_offset);
-        process_cols(odd_cols_offset);
+        constexpr int even_column_offset = 0;
+        constexpr int odd_column_offset  = 2;
+        process_columns(even_column_offset);
+        process_columns(odd_column_offset);
     }
     else
     {
@@ -164,9 +162,9 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
  * @brief Calculates column-wise MaxPool of a tile, placing output values into the first row.
  *        Also places the index of the max value into the first row of the indices tile.
  *        Supports {FP16_B} for values, and {UINT16} for indices, inferred from the Dest mode used.
+ *        Can reduce up to 32 rows of a tile.
  * @tparam APPROXIMATION_MODE Whether to use the approximation mode (unused).
  * @tparam is_fp32_dest_acc_en Whether Dest is in 32bit mode (true) or 16bit mode (false).
- * @tparam num_rows The number of rows in the tile, must be <= 32
  * @tparam ITERATIONS The number of iterations to use for the MaxPool operation (unused).
  * @param values_tile_idx The index of the tile in the Dest register containing the data to be reduced.
  * @param indices_tile_idx The index of the tile in the Dest register containing the indices of the data.
@@ -175,11 +173,9 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
  * Note this function is only implemented for ROW_MAJOR data layout, so when _init_max_pool_with_indices_ is called
  * it must be called with layout=DataLayout::ROW_MAJOR.
  */
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int num_rows, int ITERATIONS>
+template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
 inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
 {
-    static_assert(num_rows <= 32, "num_rows must be <= 32");
-
     // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size   = 64;
     const uint values_tile_offset  = values_tile_idx * dst_tile_size;
@@ -224,10 +220,10 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
     //  F0 0,1,2,3   4,5,6,7
     //  F1 0,1,2,3   4,5,6,7
 
-    auto process_16_rows = [values_tile_offset, indices_tile_offset, face_offset](const uint base_offset, const uint col_offset) __attribute__((always_inline))
+    auto process_16_rows = [values_tile_offset, indices_tile_offset, face_offset, instr_mod_index](const uint base_offset, const uint col_offset) __attribute__((always_inline))
     {
         // Nested lambda to handle load, sort, and store for a face
-        auto load_sort_store = [values_tile_offset, indices_tile_offset, base_offset, col_offset](const uint face_offset_val) __attribute__((always_inline))
+        auto load_sort_store = [values_tile_offset, indices_tile_offset, base_offset, col_offset, instr_mod_index](const uint face_offset_val) __attribute__((always_inline))
         {
             // data
             TT_SFPLOAD(
@@ -268,17 +264,17 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
     };
 
     // First 16 rows
-    constexpr int even_cols_offset = 0;
-    constexpr int odd_cols_offset  = 2;
-    process_16_rows(0, even_cols_offset);
-    process_16_rows(0, odd_cols_offset);
+    constexpr int even_column_offset = 0;
+    constexpr int odd_column_offset  = 2;
+    process_16_rows(0, even_column_offset);
+    process_16_rows(0, odd_column_offset);
 
     // Second 16 rows
-    process_16_rows(tile_offset, even_cols_offset);
-    process_16_rows(tile_offset, odd_cols_offset);
+    process_16_rows(tile_offset, even_column_offset);
+    process_16_rows(tile_offset, odd_column_offset);
 
     // Final swap
-    auto final_swap = [values_tile_offset, indices_tile_offset, tile_offset](const uint col_offset) __attribute__((always_inline))
+    auto final_swap = [values_tile_offset, indices_tile_offset, tile_offset, instr_mod_index](const uint col_offset) __attribute__((always_inline))
     {
         TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + col_offset);
         TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, indices_tile_offset + col_offset);
@@ -289,8 +285,8 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
         TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + col_offset);
     };
 
-    final_swap(even_cols_offset);
-    final_swap(odd_cols_offset);
+    final_swap(even_column_offset);
+    final_swap(odd_column_offset);
 }
 
 template <ckernel::DataLayout layout = ckernel::DataLayout::TILE>
