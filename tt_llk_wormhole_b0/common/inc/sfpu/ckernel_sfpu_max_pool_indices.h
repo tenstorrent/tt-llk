@@ -220,10 +220,12 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
     //  F0 0,1,2,3   4,5,6,7
     //  F1 0,1,2,3   4,5,6,7
 
-    auto process_16_rows = [values_tile_offset, indices_tile_offset, face_offset, instr_mod_index](const uint base_offset, const uint col_offset) __attribute__((always_inline))
+    auto process_16_rows = [values_tile_offset, indices_tile_offset, face_offset, instr_mod_index](const uint base_offset, const uint col_offset)
+                               __attribute__((always_inline))
     {
         // Nested lambda to handle load, sort, and store for a face
-        auto load_sort_store = [values_tile_offset, indices_tile_offset, base_offset, col_offset, instr_mod_index](const uint face_offset_val) __attribute__((always_inline))
+        auto load_sort_store = [values_tile_offset, indices_tile_offset, base_offset, col_offset, instr_mod_index](const uint face_offset_val)
+                                   __attribute__((always_inline))
         {
             // data
             TT_SFPLOAD(
