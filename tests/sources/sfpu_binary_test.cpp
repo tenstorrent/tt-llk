@@ -43,45 +43,9 @@ void run_kernel()
 #include "llk_math_eltwise_binary_sfpu.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "params.h"
+#include "sfpu_operations.h"
 
 using namespace ckernel::sfpu;
-
-namespace
-{
-void call_binary_sfpu_operation(BinaryOp operation)
-{
-    switch (operation)
-    {
-        case BinaryOp::ADD:
-        case BinaryOp::SUB:
-        case BinaryOp::MUL:
-        case BinaryOp::XLOGY:
-            _sfpu_binary_init_<false, SFPU_BINARY_OPERATION>();
-            _calculate_sfpu_binary_<false, SFPU_BINARY_OPERATION, 32>(0, 1, 0);
-            break;
-        case BinaryOp::RSHFT:
-            _calculate_binary_right_shift_<false, 32, INT32, false>(0, 1, 0);
-            break;
-        case BinaryOp::LSHFT:
-            _calculate_binary_left_shift_<false, 32, INT32, false>(0, 1, 0);
-            break;
-        case BinaryOp::LOGICAL_RSHFT:
-            _calculate_logical_right_shift_<false, 32, INT32, false>(0, 1, 0);
-            break;
-        case BinaryOp::ADD_TOP_ROW:
-            _init_add_top_row_();
-            // Use actual format when compiling for ADD_TOP_ROW tests, otherwise use Float32 as safe default for static assert
-            {
-                constexpr DataFormat add_top_row_format =
-                    (SFPU_BINARY_OPERATION == BinaryOp::ADD_TOP_ROW) ? static_cast<DataFormat>(formats.math) : DataFormat::Float32;
-                _calculate_add_top_row_<add_top_row_format>(0, 1, 0);
-            }
-            break;
-        default:
-            return;
-    }
-}
-} // namespace
 
 void run_kernel()
 {
@@ -109,7 +73,7 @@ void run_kernel()
     // argument passed of _calculate_sfpu_binary_ is dest index of the second operand
 
     _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
-    call_binary_sfpu_operation(SFPU_BINARY_OPERATION);
+    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, 32, formats.math>(0, 1, 0);
 
     _llk_math_eltwise_binary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
