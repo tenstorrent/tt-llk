@@ -1523,15 +1523,13 @@ class ReduceGapoolGolden(FidelityMasking):
 
         # Extract tile data (1024 elements per tile for srcA, 1024 for srcB)
         tile_offset_a = tile_idx * ELEMENTS_PER_TILE
-        tile_offset_b = tile_idx * ELEMENTS_PER_TILE
+        # tile_offset_b = tile_idx * ELEMENTS_PER_TILE
 
         src_a = to_tensor(
             operand1[tile_offset_a : tile_offset_a + ELEMENTS_PER_TILE], data_format
         )
         # Only the first face of srcB input is unpacked and used for reduce operations
-        src_b = to_tensor(
-            operand2[tile_offset_b : tile_offset_b + ELEMENTS_PER_FACE], data_format
-        )
+        src_b = to_tensor(operand2[0:ELEMENTS_PER_FACE], data_format)
 
         # For row reduce, transpose srcA faces (models unpacker transpose within faces)
         if reduce_dim == ReduceDimension.Row:
@@ -1561,21 +1559,26 @@ class ReduceGapoolGolden(FidelityMasking):
                 )
 
         # Combine face results based on reduce dimension
-        result = torch.zeros(32, 32, dtype=torch_format)
+        result = torch.zeros(1024, dtype=torch_format)
 
         if reduce_dim == ReduceDimension.Column:
             # Column reduce: accumulate f0+f2 (left), f1+f3 (right), place in row 0
-            left_half = (face_results[0] + face_results[2]).view(16, 16)
-            right_half = (face_results[1] + face_results[3]).view(16, 16)
-            result[0, 0:16] = left_half[0, :]
-            result[0, 16:32] = right_half[0, :]
+            left_half = face_results[0] + face_results[2]
+            right_half = face_results[1] + face_results[3]
+            result[0:FACE_DIM] = left_half[0:FACE_DIM]
+            result[ELEMENTS_PER_FACE : ELEMENTS_PER_FACE + FACE_DIM] = right_half[
+                0:FACE_DIM
+            ]
 
         elif reduce_dim == ReduceDimension.Row:
             # Row reduce: accumulate f0+f1 (upper), f2+f3 (lower), place in column 0
-            upper_half = (face_results[0] + face_results[1]).view(16, 16)
-            lower_half = (face_results[2] + face_results[3]).view(16, 16)
-            result[0:16, 0] = upper_half[0, :]
-            result[16:32, 0] = lower_half[0, :]
+            upper_half = face_results[0] + face_results[1]
+            lower_half = face_results[2] + face_results[3]
+            # Column 0 indices: stride of FACE_DIM (16) within each face
+            result[0:ELEMENTS_PER_FACE:FACE_DIM] = upper_half[0:FACE_DIM]
+            result[2 * ELEMENTS_PER_FACE : 3 * ELEMENTS_PER_FACE : FACE_DIM] = (
+                lower_half[0:FACE_DIM]
+            )
 
         elif reduce_dim == ReduceDimension.Scalar:
             # Scalar reduce: accumulate all 4 faces together and then pool again
@@ -1592,7 +1595,7 @@ class ReduceGapoolGolden(FidelityMasking):
                 final_pool_result += torch.matmul(
                     b_masked.view(16, 16), a_masked.view(16, 16)
                 ).to(torch_format)
-            result[0, 0] = final_pool_result[0, 0]
+            result[0] = final_pool_result[0, 0]
 
         return result.flatten()
 

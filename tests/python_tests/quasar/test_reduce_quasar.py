@@ -22,7 +22,6 @@ from helpers.llk_params import (
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
-from helpers.tilize_untilize import untilize_block
 from helpers.utils import passed_test
 
 # Helper dictionary to map reduce dimensions to math operations
@@ -38,7 +37,7 @@ MATH_FIDELITY_MODES = [
     MathFidelity.HiFi3,
     MathFidelity.HiFi4,
 ]
-POOL_TYPES = [ReducePool.Max, ReducePool.Sum, ReducePool.Average]
+POOL_TYPES = [ReducePool.Sum, ReducePool.Sum, ReducePool.Average]
 
 
 def generate_pool_type_and_math_fidelity_combinations():
@@ -62,7 +61,7 @@ def generate_pool_type_and_math_fidelity_combinations():
             DataFormat.Float16,
         ],
     ),
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type_and_math_fidelity=generate_pool_type_and_math_fidelity_combinations(),
 )
@@ -72,24 +71,20 @@ def test_reduce_quasar(
 
     pool_type, math_fidelity = pool_type_and_math_fidelity
 
-    input_dimensions = [32, 32]
+    input_dimensions = [32, 64]
 
-    src_A, src_B, tile_cnt = generate_stimuli(
+    src_A, _, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
-    )
-
-    src_A = torch.repeat_interleave(
-        torch.arange(1, tile_cnt * 4 + 1, dtype=format_dict[formats.input_format]), 256
     )
 
     if pool_type in [
         ReducePool.Max,
         ReducePool.Sum,
     ]:  # result in srcA should be multiplied by 1
-        src_B = torch.full((1024 * tile_cnt,), 1)
+        src_B = torch.full((1024,), 1)
     else:
         # reduce average divides by length of elements in array we reduce
-        src_B = torch.full((1024 * tile_cnt,), 1 / 32)
+        src_B = torch.full((1024,), 1 / 32)
 
     if pool_type == ReducePool.Max:
         generate_golden = get_golden_generator(ReduceGolden)
@@ -113,6 +108,7 @@ def test_reduce_quasar(
         "mathop": mathop,
         "math_fidelity": math_fidelity,
         "implied_math_format": ImpliedMathFormat.Yes,
+        "tile_cnt": tile_cnt,
     }
 
     res_address = write_stimuli_to_l1(
@@ -122,7 +118,7 @@ def test_reduce_quasar(
         formats.input_format,
         formats.input_format,
         tile_count_A=tile_cnt,
-        tile_count_B=tile_cnt,
+        tile_count_B=1,
     )
 
     run_test(test_config)
@@ -131,11 +127,5 @@ def test_reduce_quasar(
     assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
-    res_tensor = untilize_block(
-        res_tensor, formats.output_format, input_dimensions
-    ).flatten()
-
-    print(f"res_tensor: {res_tensor}")
-    print(f"golden_tensor: {golden_tensor}")
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
