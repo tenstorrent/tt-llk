@@ -1372,9 +1372,7 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         dst_idx,
     ):
         """
-        Add top row operation for tile pairs.
-        Takes the top row of tile 0 (first 16 datums of face 0 and face 1) and adds them
-        with the top row of tile 1 (first 16 datums of face 2 and face 3).
+        Add top row operation for tile pairs in untilized format.
         """
         src1_idx_start = src1_idx * ELEMENTS_PER_TILE
         src2_idx_start = src2_idx * ELEMENTS_PER_TILE
@@ -1382,13 +1380,36 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
 
         result = tensor.clone()
 
-        result[dst_idx_start : dst_idx_start + 64] = (
-            tensor[src1_idx_start : src1_idx_start + 64]
-            + tensor[src2_idx_start : src2_idx_start + 64]
+        # Untilized format: row-wise layout
+        ROWS_0_1_OFFSET = 0  # Rows 0-1 start at element 0
+        ROWS_8_9_OFFSET = 256  # Rows 8-9 start at element 256
+        # Two consecutive rows = 2 rows × 32 columns = 64 elements
+        TWO_ROWS_ELEMENTS = 64
+
+        # Add rows 0-1 (elements 0-63)
+        rows_0_1_dst_start = dst_idx_start + ROWS_0_1_OFFSET
+        rows_0_1_dst_end = rows_0_1_dst_start + TWO_ROWS_ELEMENTS
+        rows_0_1_src1_start = src1_idx_start + ROWS_0_1_OFFSET
+        rows_0_1_src1_end = rows_0_1_src1_start + TWO_ROWS_ELEMENTS
+        rows_0_1_src2_start = src2_idx_start + ROWS_0_1_OFFSET
+        rows_0_1_src2_end = rows_0_1_src2_start + TWO_ROWS_ELEMENTS
+
+        result[rows_0_1_dst_start:rows_0_1_dst_end] = (
+            tensor[rows_0_1_src1_start:rows_0_1_src1_end]
+            + tensor[rows_0_1_src2_start:rows_0_1_src2_end]
         )
-        result[dst_idx_start + 256 : dst_idx_start + 320] = (
-            tensor[src1_idx_start + 256 : src1_idx_start + 320]
-            + tensor[src2_idx_start + 256 : src2_idx_start + 320]
+
+        # Add rows 8-9 (elements 256-319)
+        rows_8_9_dst_start = dst_idx_start + ROWS_8_9_OFFSET
+        rows_8_9_dst_end = rows_8_9_dst_start + TWO_ROWS_ELEMENTS
+        rows_8_9_src1_start = src1_idx_start + ROWS_8_9_OFFSET
+        rows_8_9_src1_end = rows_8_9_src1_start + TWO_ROWS_ELEMENTS
+        rows_8_9_src2_start = src2_idx_start + ROWS_8_9_OFFSET
+        rows_8_9_src2_end = rows_8_9_src2_start + TWO_ROWS_ELEMENTS
+
+        result[rows_8_9_dst_start:rows_8_9_dst_end] = (
+            tensor[rows_8_9_src1_start:rows_8_9_src1_end]
+            + tensor[rows_8_9_src2_start:rows_8_9_src2_end]
         )
 
         return result
