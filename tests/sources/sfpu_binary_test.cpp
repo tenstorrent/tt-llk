@@ -37,8 +37,6 @@ void run_kernel()
 
 #include "ckernel_defs.h"
 #include "ckernel_sfpu.h"
-#include "ckernel_sfpu_add_top_row.h"
-#include "ckernel_sfpu_binary.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary_sfpu.h"
 #include "llk_math_eltwise_unary_datacopy.h"
