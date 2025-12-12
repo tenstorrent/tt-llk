@@ -462,7 +462,7 @@ def test_unpack_comprehensive(
             UNPACK_TRANS_WITHING_FACE(within_face_16x16_transpose),
             NUM_FACES(num_faces),
             TILE_COUNT(tile_cnt_A),
-            TEST_FACE_DIMS(face_r_dim),
+            TEST_FACE_DIMS(face_r_dim=face_r_dim),
         ],
         variant_stimuli=StimuliConfig(
             src_A,

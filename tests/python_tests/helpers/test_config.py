@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import fcntl
 import shutil
 import sys
 import time
@@ -264,8 +265,23 @@ class TestConfig:
 
         self.generate_variant_hash()
 
+    def collect_hash(self):
+        lock_file = Path("/tmp/tt-llk-build-print.lock")
+        lock_file.touch(exist_ok=True)
+
+        with open(lock_file, "w") as lock:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+            try:
+                print(self.variant_id, file=sys.stderr)
+            finally:
+                fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+
+        pytest.skip()
+
     def generate_variant_hash(self):
-        NON_COMPILATION_ARGUMETNS = ["variant_stimuli", "runtimes"]
+        NON_COMPILATION_ARGUMETNS = [
+            "variant_stimuli"
+        ]  # , "runtimes"] # this induces compile error if included!
         temp_str = []
 
         for field_name, value in self.__dict__.items():
@@ -273,18 +289,6 @@ class TestConfig:
                 temp_str.append(str(value))
 
         self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
-
-        # lock_file = Path("/tmp/pytest_print.lock")
-        # lock_file.touch(exist_ok=True)
-
-        # with open(lock_file, "w") as lock:
-        #     fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
-        #     try:
-        #         print(self.variant_id, file=sys.stderr)
-        #     finally:
-        #         fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
-
-        # pytest.skip()
 
     def resolve_compile_options(self) -> tuple[str, str, str]:
 
