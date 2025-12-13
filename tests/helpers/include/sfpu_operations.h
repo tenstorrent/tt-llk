@@ -19,11 +19,13 @@ namespace test_utils
  * Template function to call SFPU operations with parameterized iteration count
  * and optional math format for type-specific behavior.
  *
+ * @tparam APPROX_MODE Whether to use approximation mode for the SFPU operation
+ * @tparam is_fp32_dest_acc_en Whether the destination accumulator is in FP32 mode
  * @tparam ITERATIONS Number of SFPU iterations (typically 32 for full tile)
  * @param operation The SFPU operation type to execute
  * @param math_format Optional math format for operations that need format-specific behavior
  */
-template <int ITERATIONS>
+template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
 void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
 {
     switch (operation)
@@ -69,7 +71,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             }
             else
             {
-                _calculate_fill_<APPROX_MODE, ITERATIONS>(1.0f);
+                _calculate_fill_<APPROX_MODE, ITERATIONS>(5.0f);
             }
             break;
         case SfpuType::gelu:
@@ -119,17 +121,15 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
         case SfpuType::threshold:
             _calculate_threshold_<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);
             break;
+        case SfpuType::relu_max:
+            ckernel::sfpu::_relu_max_<sfpi::vFloat, APPROX_MODE, ITERATIONS>(5.0f);
+            break;
+        case SfpuType::relu_min:
+            ckernel::sfpu::_relu_min_<sfpi::vFloat, APPROX_MODE, ITERATIONS>(5.0f);
+            break;
         default:
             return; // Unsupported op – should never happen
     }
-}
-
-/**
- * Convenience function for the common case of 32 iterations (full tile)
- */
-inline void call_sfpu_operation_32(SfpuType operation, uint32_t math_format = 0)
-{
-    call_sfpu_operation<32>(operation, math_format);
 }
 
 template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, uint32_t MATH_FORMAT = 0>
