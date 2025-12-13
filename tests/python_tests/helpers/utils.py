@@ -161,6 +161,9 @@ def passed_test(
     res_tensor,
     output_data_format: DataFormat = DataFormat.Float16_b,
     L1_to_L1_iterations: int = 1,
+    custom_rtol: float = None,
+    custom_atol: float = None,
+    one_face_check: bool = False,
 ):
     Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
 
@@ -178,7 +181,11 @@ def passed_test(
         }
 
         try:
-            return tolerances[output_data_format]
+            return (
+                Tolerance(atol=custom_atol, rtol=custom_rtol)
+                if (custom_atol is not None and custom_rtol is not None)
+                else tolerances[output_data_format]
+            )
         except KeyError:
             raise ValueError(f"Unsupported output data format: {output_data_format}")
 
@@ -190,7 +197,12 @@ def passed_test(
     is_close = torch.isclose(
         golden_tensor, res_tensor, rtol=tolerance.rtol, atol=tolerance.atol
     )
+
     is_nan = torch.isnan(golden_tensor) & torch.isnan(res_tensor)
+
+    if one_face_check:
+        is_close = is_close[:256]
+        is_nan = is_nan[:256]
 
     is_valid = is_close | is_nan
     is_within_tolerance = torch.all(is_valid)
