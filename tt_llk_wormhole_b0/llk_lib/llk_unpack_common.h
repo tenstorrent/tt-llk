@@ -44,6 +44,36 @@ void _llk_zero_buffer_(const std::uint32_t base_address, const std::uint32_t siz
     }
 }
 
+template <bool is_fp32_dest_acc_en>
+inline void _llk_unpack_hw_configure_(
+    const std::uint32_t unpA_src_format,
+    const std::uint32_t unpB_src_format,
+    const std::uint32_t unpA_dst_format,
+    const std::uint32_t unpB_dst_format,
+    const std::uint32_t unpA_face_r_dim = FACE_R_DIM,
+    const std::uint32_t unpB_face_r_dim = FACE_R_DIM,
+    const std::uint32_t unpA_num_faces  = 4,
+    const std::uint32_t unpB_num_faces  = 4)
+{
+    LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
+    LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
+    configure_unpack_AB<is_fp32_dest_acc_en, false, false, false>(
+        unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, unpA_face_r_dim, unpB_face_r_dim, 0, unpA_num_faces, unpB_num_faces);
+}
+
+template <StochRndType stoch_rnd_mode>
+inline void _llk_unpack_configure_stoch_rnd_()
+{
+    constexpr uint alu_stoch_rnd_mask = ALU_ROUNDING_MODE_Fpu_srnd_en_MASK | ALU_ROUNDING_MODE_Gasket_srnd_en_MASK | ALU_ROUNDING_MODE_Packer_srnd_en_MASK;
+    constexpr bool fpu_srnd_en        = (stoch_rnd_mode == StochRndType::All) || (stoch_rnd_mode == StochRndType::Fpu);
+    constexpr bool pack_srnd_en       = (stoch_rnd_mode == StochRndType::All) || (stoch_rnd_mode == StochRndType::Pack);
+    alu_config_u alu_payload          = {.val = 0};
+    alu_payload.f.ALU_ROUNDING_MODE_Fpu_srnd_en    = fpu_srnd_en;
+    alu_payload.f.ALU_ROUNDING_MODE_Gasket_srnd_en = pack_srnd_en;
+    alu_payload.f.ALU_ROUNDING_MODE_Packer_srnd_en = pack_srnd_en;
+    cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, alu_stoch_rnd_mask>(alu_payload.val);
+}
+
 template <bool mail2math = true, bool mail2pack = true>
 inline void _llk_unpack_get_tile_(std::uint32_t address, std::uint32_t *p_tile)
 {
