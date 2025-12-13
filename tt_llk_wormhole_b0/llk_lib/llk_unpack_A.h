@@ -220,6 +220,7 @@ inline void _llk_unpack_A_init_(
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // Set transpose register to prevent state pollution
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose);
+    TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::XY));
 
     constexpr std::uint32_t UNP_SEL = (BType == BroadcastType::NONE || unpack_to_dest) ? p_setadc::UNP_A : p_setadc::UNP_B;
     if constexpr ((BType == BroadcastType::ROW || BType == BroadcastType::SCALAR) && unpack_to_dest) // ROW and SCALAR bcast will only upk a single row
@@ -240,6 +241,10 @@ template <
     bool unpack_to_dest                          = false>
 inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpack_src_format = 0, const std::uint32_t unpack_dst_format = 0)
 {
+    // if (true) {
+    //     unpack_to_dest_tile_done(unp_cfg_context);
+    //     return;
+    // }
     // Clear z/w start counters
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 
@@ -279,9 +284,6 @@ inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpa
     // Run MOP
     ckernel::ckernel_template::run();
 
-    // T6::SEMGET for context release
-    t6_semaphore_get(semaphore::UNPACK_SYNC);
-
     if (unpack_to_dest)
     {
         if (is_32bit_input(unpack_src_format, unpack_dst_format))
@@ -289,6 +291,9 @@ inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpa
             unpack_to_dest_tile_done(unp_cfg_context);
         }
     }
+
+    // T6::SEMGET for context release
+    t6_semaphore_get(semaphore::UNPACK_SYNC);
 
     // Switch unpacker config context
     switch_config_context(unp_cfg_context);
