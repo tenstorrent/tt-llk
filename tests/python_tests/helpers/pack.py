@@ -7,6 +7,14 @@ import ml_dtypes
 import numpy as np
 import torch
 
+from .format_config import (
+    MXFP8_BLOCK_SIZE,
+    MXFP8_E4M3_MAX_NORMAL,
+    MXFP8_E5M2_MAX_NORMAL,
+    decode_e8m0_scale,
+    encode_e8m0_scale,
+)
+
 
 def pack_bfp16(torch_tensor):
     fp32_array = torch_tensor.cpu().to(torch.float32).numpy()
@@ -113,3 +121,117 @@ def pack_bfp8_b(tensor, block_size=16, num_faces=4):
         mantissas.extend(bfp8_mantissas)
 
     return exponents + mantissas
+
+
+# ============================================================================
+# MX (Microscaling) Format Support - OCP Specification
+# ============================================================================
+
+
+def _pack_mxfp8(tensor, fp8_dtype, element_max_normal, num_faces=None):
+    """
+    Internal helper to pack MXFP8 formats with FULLY SEPARATED layout.
+
+    Layout (similar to BFP8_b): [all_scales][all_elements]
+    - BFP8_b: [64 exponents][1024 mantissas]
+    - MXFP8:  [32 scales][1024 elements]
+
+    Uses ml_dtypes for FP8 element conversion and E8M0 scale encoding.
+
+    Args:
+        tensor: Input tensor (typically 1024 elements for full tile)
+        fp8_dtype: ml_dtypes dtype (float8_e5m2 or float8_e4m3fn)
+        element_max_normal: Maximum normal value for element format
+        num_faces: Number of faces to pack (1, 2, or 4). If None, auto-calculated from tensor size.
+
+    Returns:
+        List of packed bytes: [all scales][all elements]
+    """
+    # Convert to numpy and prepare data
+    fp32_array = tensor.cpu().to(torch.float32).numpy().flatten()
+
+    # Calculate num_faces
+    elements_per_face = 256
+    if num_faces is None:
+        num_faces = min(
+            (len(fp32_array) + elements_per_face - 1) // elements_per_face, 4
+        )
+
+    elements_to_pack = elements_per_face * num_faces
+    assert (
+        len(fp32_array) >= elements_to_pack
+    ), f"Tensor has {len(fp32_array)} elements, need {elements_to_pack} for {num_faces} face(s)"
+
+    fp32_array = fp32_array[:elements_to_pack]
+
+    # Reshape into blocks: (num_blocks, 32)
+    num_blocks = len(fp32_array) // MXFP8_BLOCK_SIZE
+    blocks = fp32_array[: num_blocks * MXFP8_BLOCK_SIZE].reshape(
+        num_blocks, MXFP8_BLOCK_SIZE
+    )
+
+    # Process all blocks: calculate scales and convert to FP8 using ml_dtypes
+    max_abs_values = np.max(np.abs(blocks), axis=1)
+    scales_e8m0 = [
+        encode_e8m0_scale(max_val, element_max_normal) for max_val in max_abs_values
+    ]
+    scale_factors = np.array([decode_e8m0_scale(s) for s in scales_e8m0])
+
+    # Scale blocks and convert to FP8
+    scaled_blocks = blocks / scale_factors[:, np.newaxis]
+    fp8_blocks = scaled_blocks.astype(fp8_dtype)
+
+    # FULLY SEPARATED layout: all scales first, then all elements
+    # Convert FP8 blocks to list of bytes (integers 0-255)
+    fp8_bytes = list(fp8_blocks.tobytes())
+    return scales_e8m0 + fp8_bytes
+
+
+def pack_mxfp8r(tensor, num_faces=None):
+    """
+    Pack tensor into MXFP8R format (MXFP8 E5M2 variant).
+
+    MXFP8 uses 32-element blocks per OCP MX spec, each with:
+    - 1 shared E8M0 scale (8 bits)
+    - 32 × float8_e5m2 elements (8 bits each)
+
+    Element format E5M2:
+    - 1 sign bit, 5 exponent bits (bias=15), 2 mantissa bits
+    - Max normal: ±57,344
+    - Has Inf and NaN support
+
+    Args:
+        tensor: Input tensor (typically 1024 elements for full tile)
+        num_faces: Number of faces to pack (1, 2, or 4). If None, auto-calculated from tensor size.
+
+    Returns:
+        List of packed bytes in FULLY SEPARATED layout: [all_scales][all_elements]
+        Layout: [32 scales (1 per block)][1024 FP8 elements]
+    """
+    return _pack_mxfp8(tensor, ml_dtypes.float8_e5m2, MXFP8_E5M2_MAX_NORMAL, num_faces)
+
+
+def pack_mxfp8p(tensor, num_faces=None):
+    """
+    Pack tensor into MXFP8P format (MXFP8 E4M3 variant).
+
+    MXFP8 uses 32-element blocks per OCP MX spec, each with:
+    - 1 shared E8M0 scale (8 bits)
+    - 32 × float8_e4m3fn elements (8 bits each)
+
+    Element format E4M3:
+    - 1 sign bit, 4 exponent bits (bias=7), 3 mantissa bits
+    - Max normal: ±448
+    - No Inf support, NaN represented by 0bS1111111
+
+    Args:
+        tensor: Input tensor (typically 1024 elements for full tile)
+        num_faces: Number of faces to pack (1, 2, or 4). If None, auto-calculated from tensor size.
+
+    Returns:
+        List of packed bytes in FULLY SEPARATED layout: [all_scales][all_elements]
+        Layout: [32 scales (1 per block)][1024 FP8 elements]
+    """
+    return _pack_mxfp8(
+        tensor, ml_dtypes.float8_e4m3fn, MXFP8_E4M3_MAX_NORMAL, num_faces
+    )

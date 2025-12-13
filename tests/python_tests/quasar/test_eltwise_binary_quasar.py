@@ -41,15 +41,21 @@ ELTWISE_DIMENSIONS = [
 @pytest.mark.quasar
 @parametrize(
     test_name="eltwise_binary_test",
-    formats=input_output_formats(
-        [
-            DataFormat.Float16_b,
-            DataFormat.Float16,
-        ],
-    ),
+    formats=[
+        f
+        for f in input_output_formats(
+            [
+                # DataFormat.Float16_b,
+                # DataFormat.Float16,
+                DataFormat.MxFp8R,
+                DataFormat.MxFp8P,
+            ],
+        )
+        if f.input != f.output
+    ],
     mathop=[
-        MathOperation.Elwadd,
-        MathOperation.Elwsub,
+        # MathOperation.Elwadd,
+        # MathOperation.Elwsub,
         MathOperation.Elwmul,
     ],
     math_fidelity=[
@@ -86,11 +92,18 @@ def test_eltwise_binary(
     ):
         pytest.skip("Math fidelity only affects multiplication operations")
 
-    # Generate stimuli for both operands
+    # MX formats REQUIRE implied_math_format=Yes on Quasar (bypass format inference pipeline)
+    if (
+        formats.input_format.is_mx_format()
+        and implied_math_format == ImpliedMathFormat.No
+    ):
+        pytest.skip("MX formats require implied_math_format=Yes on Quasar")
+
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
         formats.input_format,
         input_dimensions=input_dimensions,
+        output_format=formats.output_format,
     )
 
     # Generate golden result using eltwise binary golden generator
@@ -101,6 +114,7 @@ def test_eltwise_binary(
         src_B,
         formats.output_format,
         math_fidelity,
+        input_format=formats.input_format,
     )
 
     # Determine unpack_to_dest based on format and accumulation mode

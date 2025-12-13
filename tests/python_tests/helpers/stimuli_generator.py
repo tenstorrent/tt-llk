@@ -3,7 +3,11 @@
 
 import torch
 
-from .format_config import DataFormat
+from .format_config import (
+    MXFP8_E4M3_MAX_NORMAL,
+    MXFP8_E5M2_MAX_NORMAL,
+    DataFormat,
+)
 from .llk_params import format_dict
 
 
@@ -36,7 +40,11 @@ def generate_random_face(
     face_r_dim=16,
 ):
     size = face_r_dim * 16  # face_r_dim rows × 16 columns
-    if stimuli_format != DataFormat.Bfp8_b:
+
+    if stimuli_format in [DataFormat.MxFp8R, DataFormat.MxFp8P]:
+        # MXFP8 optimized stimuli generation
+        return _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu)
+    elif stimuli_format != DataFormat.Bfp8_b:
         if stimuli_format.is_integer():
             max = 127 if stimuli_format == DataFormat.Int8 else 255
             srcA_face = torch.randint(
@@ -62,6 +70,32 @@ def generate_random_face(
             srcA_face = integer_part.to(dtype=torch.bfloat16) + fraction
 
     return srcA_face
+
+
+def _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu):
+    """
+    Generate test data for MXFP8 formats using normal distribution scaled to format range.
+
+    Uses conservative scaling (5% of max normal) to avoid saturation while creating
+    diverse test data with realistic dynamic range. Max values from format_config.py.
+    """
+    if const_face:
+        return torch.ones(size, dtype=torch.bfloat16) * const_value
+
+    # Scale factor: use 5% of format's max normal value
+    # This ensures values are well within representable range while maintaining diversity
+    if stimuli_format == DataFormat.MxFp8R:
+        scale = 0.05 * MXFP8_E5M2_MAX_NORMAL
+    else:  # MxFp8P
+        scale = 0.05 * MXFP8_E4M3_MAX_NORMAL
+
+    face_data = torch.randn(size, dtype=torch.bfloat16) * scale
+
+    # Add SFPU-friendly offset if needed
+    if sfpu:
+        face_data += 0.1
+
+    return face_data
 
 
 def generate_random_face_ab(
@@ -130,6 +164,7 @@ def generate_stimuli(
     sfpu=True,
     face_r_dim=16,  # Add face_r_dim parameter
     num_faces=4,  # Add num_faces parameter for partial faces
+    output_format=None,  # Optional output format to consider for range constraints
 ):
 
     srcA = []
@@ -169,8 +204,22 @@ def generate_stimuli(
         if stimuli_format_B != DataFormat.Bfp8_b
         else torch.bfloat16
     )
-    return (
-        torch.tensor(srcA, dtype=dtype_A),
-        torch.tensor(srcB, dtype=dtype_B),
-        tile_cnt,
-    )
+
+    srcA = torch.tensor(srcA, dtype=dtype_A)
+    srcB = torch.tensor(srcB, dtype=dtype_B)
+
+    # Clamp inputs if both are different MX formats (use more restrictive MxFp8P)
+    if stimuli_format_A.is_mx_format() and stimuli_format_B.is_mx_format():
+        if stimuli_format_A != stimuli_format_B:
+            srcA = torch.clamp(srcA, -MXFP8_E4M3_MAX_NORMAL, MXFP8_E4M3_MAX_NORMAL)
+            srcB = torch.clamp(srcB, -MXFP8_E4M3_MAX_NORMAL, MXFP8_E4M3_MAX_NORMAL)
+
+    # Clamp inputs based on output format to prevent excessive rounding errors
+    if output_format == DataFormat.MxFp8P:
+        srcA = torch.clamp(srcA, -MXFP8_E4M3_MAX_NORMAL, MXFP8_E4M3_MAX_NORMAL)
+        srcB = torch.clamp(srcB, -MXFP8_E4M3_MAX_NORMAL, MXFP8_E4M3_MAX_NORMAL)
+    elif output_format == DataFormat.MxFp8R:
+        srcA = torch.clamp(srcA, -MXFP8_E5M2_MAX_NORMAL, MXFP8_E5M2_MAX_NORMAL)
+        srcB = torch.clamp(srcB, -MXFP8_E5M2_MAX_NORMAL, MXFP8_E5M2_MAX_NORMAL)
+
+    return srcA, srcB, tile_cnt
