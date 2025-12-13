@@ -74,70 +74,12 @@ inline void _llk_unpack_configure_stoch_rnd_()
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, alu_stoch_rnd_mask>(alu_payload.val);
 }
 
-template <bool mail2math = true, bool mail2pack = true>
-inline void _llk_unpack_get_tile_(std::uint32_t address, std::uint32_t *p_tile)
-{
-    std::uint32_t byte_address = (address) << 4;
-
-    if constexpr (mail2math || mail2pack)
-    {
-        // We only need to make sure the last semaphore_post happens before mailbox write.
-        // When we need to do 2 semaphore posts the first one is a general one, the second
-        // one is done using store_then_load. When we need only one, this one is skipped.
-        if constexpr (mail2math && mail2pack)
-        {
-            semaphore_post(semaphore::UNPACK_OPERAND_SYNC);
-        }
-
-        uint32_t sem_tmp = store_then_load(&pc_buf_base[PC_BUF_SEMAPHORE_BASE + semaphore::UNPACK_OPERAND_SYNC], 0);
-        consume_discard(sem_tmp);
-
-        if constexpr (mail2math)
-        {
-            mailbox_write(ThreadId::MathThreadId, byte_address);
-        }
-
-        if constexpr (mail2pack)
-        {
-            mailbox_write(ThreadId::PackThreadId, byte_address);
-        }
-    }
-
-    *p_tile = byte_address;
-}
-
-template <bool mail2math = true, bool mail2pack = true>
-inline void _llk_unpack_release_tile_()
-{
-    while (semaphore_read(semaphore::UNPACK_OPERAND_SYNC) > 0)
-        ;
-}
-
-inline void _llk_unpack_debug_dump_(std::uint8_t *data, std::uint32_t byte_size)
-{
-    debug_dump(data, byte_size);
-}
-
 inline void _llk_unpack_debug_dump_seek_(std::uint8_t offset)
 {
     debug_dump_seek(offset);
 }
 
-inline void _llk_unpack_config_tile_dim_srca_impl_(const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
-{
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 16, 0xffff0000>(num_faces);
-    config_unpacker_0_face_dim<true, p_setadc::UNP_A>(face_r_dim);
-}
-
-inline void _llk_unpack_config_tile_dim_srcb_impl_(const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
-{
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    const uint face_dim = face_r_dim * FACE_C_DIM;
-    cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32, 16, 0xffff0000>(face_dim);
-    cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32 + 1, 16, 0xffff0000>(num_faces);
-}
-
+// TODO NC: Clean up as the part of tt-metal#34499
 template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srca_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
@@ -153,6 +95,7 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_A)); // update gpr which holds tile size A
 }
 
+// TODO NC: Clean up as the part of tt-metal#34499
 template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
@@ -172,11 +115,6 @@ inline void _llk_unpack_dbg_feature_disable_()
 {
     reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1 << 11); // Set debug feature disable bit 11
                                                              // workaround for bug tenstorrent/budabackend#1372
-}
-
-inline void _llk_unpack_clear_dbg_feature_disable_()
-{
-    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0); // Unset debug feature disable
 }
 
 inline void _llk_enable_int8_fpu_math_()

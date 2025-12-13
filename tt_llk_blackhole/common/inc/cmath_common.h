@@ -149,7 +149,7 @@ inline void math_unpack_to_dest_tile_ready()
     t6_semaphore_get<p_stall::MATH | p_stall::WAIT_SFPU>(semaphore::UNPACK_TO_DEST);
 }
 
-template <DstTileShape tile_shape, bool unpack_to_dest = false>
+template <DstTileShape tile_shape, UnpackToDest unpack_to_dest>
 inline void set_dst_write_addr(uint32_t tile_index)
 {
     uint dst_index = tile_index << DstTileSizeLog2[tile_shape];

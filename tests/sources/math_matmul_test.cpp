@@ -71,7 +71,7 @@ void run_kernel()
     _llk_math_wait_for_dest_available_<dest_sync>();
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
-        _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(DST_INDEX, UNPACK_TRANSPOSE_FACES, CT_DIM, RT_DIM);
+        _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(DST_INDEX, CT_DIM, RT_DIM);
     }
 
     _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();

@@ -63,6 +63,12 @@ enum DstTileShape
     Tile16x16 = 2
 };
 
+enum UnpackToDest
+{
+    False = 0,
+    True  = 1
+};
+
 enum register_space_e
 {
     TDMA_REGS     = 0x0,

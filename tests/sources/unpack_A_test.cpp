@@ -23,7 +23,6 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    // TODO NC: used to pass STOCHASTIC_RND and disable_src_zero_flag to hw configure
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, TEST_FACE_R_DIM, TEST_FACE_R_DIM, NUM_FACES, NUM_FACES);
     _llk_unpack_configure_stoch_rnd_<STOCHASTIC_RND>();

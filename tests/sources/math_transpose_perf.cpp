@@ -34,7 +34,6 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
 
-        // TODO NC: used to pass unpack_to_dest as disable_src_zero_flag to hw configure
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, TILE_NUM_FACES, TILE_NUM_FACES);
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(

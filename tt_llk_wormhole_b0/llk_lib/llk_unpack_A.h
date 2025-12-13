@@ -189,8 +189,8 @@ inline void _llk_unpack_A_init_(
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose);
 
     // Disable src zero flags for uint16 dst format or if disable_src_zero_flag is true
-    uint32_t src_zeroflags_disable = ((uint)unpack_dst_format == (uint)DataFormat::UInt16) | disable_src_zero_flag;
-    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(src_zeroflags_disable);
+    uint32_t disable_src_zero_flag_mask = ((uint)unpack_dst_format == (uint)DataFormat::UInt16) | disable_src_zero_flag;
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(disable_src_zero_flag_mask);
 
     constexpr std::uint32_t UNP_SEL = (BType == BroadcastType::NONE) ? p_setadc::UNP_A : p_setadc::UNP_B;
     config_unpacker_x_end<UNP_SEL>(face_r_dim);
