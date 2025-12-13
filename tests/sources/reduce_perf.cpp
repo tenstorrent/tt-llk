@@ -37,6 +37,8 @@ void run_kernel()
             formats.unpack_dst,
             formats.unpack_dst,
             FACE_R_DIM,
+            FACE_R_DIM,
+            /* num_faces */ 4,
             /* num_faces */ 4);
         _llk_unpack_AB_init_<>(
             FACE_R_DIM,
