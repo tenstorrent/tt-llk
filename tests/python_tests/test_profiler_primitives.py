@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+from hashlib import sha256
+
 import pandas as pd
 from helpers.profiler import Profiler
 from helpers.test_config import ProfilerBuild, run_test
@@ -29,9 +31,9 @@ def test_profiler_primitives():
         "testname": "profiler_primitives_test",
     }
 
+    variant_id = sha256(f"{str(test_config)}".encode()).hexdigest()
     run_test(test_config, profiler_build=ProfilerBuild.Yes)
-
-    runtime = Profiler.get_data(test_config["testname"])
+    runtime = Profiler.get_data(test_config["testname"], variant_id)
 
     # ZONE_SCOPED - Get first ZONE type entry from UNPACK thread
     zones = runtime.unpack().zones().marker("TEST_ZONE").frame()

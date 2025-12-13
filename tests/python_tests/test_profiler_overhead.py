@@ -1,7 +1,10 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+from hashlib import sha256
+
 import pytest
+from conftest import skip_for_coverage
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.profiler import Profiler
 from helpers.test_config import ProfilerBuild, run_test
@@ -17,15 +20,18 @@ def get_expected_overhead():
             raise ValueError("Unsupported chip architecture")
 
 
+# Coverage uses different linker script, that doesn't utilize local data memory at all, only L1
+# Because of this, measured overhead is at 2.3k instead of ~23 cycles
+@skip_for_coverage
 def test_profiler_overhead():
-
     test_config = {
         "testname": "profiler_overhead_test",
     }
 
+    variant_id = sha256(f"{str(test_config)}".encode()).hexdigest()
     run_test(test_config, profiler_build=ProfilerBuild.Yes)
 
-    runtime = Profiler.get_data(test_config["testname"])
+    runtime = Profiler.get_data(test_config["testname"], variant_id)
 
     # filter out all zones that don't have marker "OVERHEAD"
 

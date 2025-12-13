@@ -5,6 +5,7 @@ import os
 import shutil
 from dataclasses import fields, is_dataclass
 from enum import Enum
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
@@ -146,19 +147,22 @@ def perf_benchmark(
         get_stats = STATS_FUNCTION[run_type]
 
         test_config["perf_run_type"] = run_type
-        build_test(test_config, boot_mode, ProfilerBuild.Yes)
+        variant_id = sha256(f"{str(test_config)} {str(run_type)}".encode()).hexdigest()
+        build_test(test_config, variant_id, False, boot_mode, ProfilerBuild.Yes)
 
         runs = []
         for _ in range(run_count):
             reset_mailboxes()
-            elfs = run_elf_files(test_config["testname"], boot_mode)
+            elfs = run_elf_files(test_config["testname"], variant_id, boot_mode)
             wait_for_tensix_operations_finished(elfs)
 
-            profiler_data = Profiler.get_data(test_config["testname"])
+            profiler_data = Profiler.get_data(test_config["testname"], variant_id)
 
             runs.append(profiler_data)
 
         results.append(get_stats(ProfilerData.concat(runs)))
+
+        Profiler.clean_variant_run_data(test_config["testname"], variant_id)
 
     results = pd.concat(results, ignore_index=True)
 

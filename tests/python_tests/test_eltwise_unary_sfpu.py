@@ -16,6 +16,7 @@ from helpers.llk_params import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
+from helpers.target_config import TestTargetConfig
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
@@ -60,6 +61,32 @@ from helpers.utils import passed_test
 )
 def test_eltwise_unary_sfpu_float(test_name, formats, approx_mode, mathop, dest_acc):
     arch = get_chip_architecture()
+
+    if TestTargetConfig().with_coverage and mathop in [
+        MathOperation.Acosh,
+        MathOperation.Log,
+        MathOperation.Reciprocal,
+        MathOperation.Sin,
+        MathOperation.Sqrt,
+        MathOperation.Rsqrt,
+        MathOperation.Square,
+        MathOperation.Celu,
+        MathOperation.Neg,
+        MathOperation.Hardsigmoid,
+        MathOperation.Threshold,
+        MathOperation.ReluMax,
+        MathOperation.ReluMin,
+    ]:
+        # SFPI Issue link: https://github.com/tenstorrent/tt-metal/issues/33268
+        pytest.skip(
+            reason="When these SPFU ops get compiled with coverage, `#pragma GCC unroll X` marked loops get compiled to invalid assembly"
+        )
+
+    if TestTargetConfig().with_coverage and mathop == MathOperation.Gelu:
+        # Issue link: https://github.com/tenstorrent/tt-llk/issues/883
+        pytest.skip(
+            reason="Compilation error when this mathop gets compiled with coverage"
+        )
 
     if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
         if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(

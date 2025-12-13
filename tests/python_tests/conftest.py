@@ -4,6 +4,7 @@
 import datetime
 import logging
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -90,11 +91,21 @@ def reset_mailboxes_fixture():
     yield
 
 
+@pytest.fixture()
+def workers_tensix_coordinates(worker_id):
+    if worker_id == "master":
+        return "0,0"
+    index = int(worker_id[2:])
+    row, col = divmod(index, 8)
+    return f"{row},{col}"
+
+
 def pytest_configure(config):
     log_file = "pytest_errors.log"
     # Clear the log file if it exists
     if os.path.exists(log_file):
         os.remove(log_file)
+
     logging.basicConfig(
         filename=log_file,
         level=logging.ERROR,
@@ -108,12 +119,6 @@ def pytest_configure(config):
         tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
     else:
         tt_exalens_init.init_ttexalens()
-
-
-def pytest_runtest_logreport(report):
-    # Capture errors when tests fail
-    if report.failed:
-        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
 
 
 def _stringify_params(params):
@@ -136,14 +141,13 @@ def _stringify_params(params):
 
 
 def pytest_runtest_logreport(report):
+    # Capture errors when tests fail
+    if report.failed:
+        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
+
     if report.when != "call":
         return
-
-    callspec = getattr(report.item, "callspec", None)
-    if callspec is None:
-        return
-
-    print(f"\nParameters: {_stringify_params(callspec.params)}")
+    print(f"\nParameters: {report.test_params}")
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -152,8 +156,11 @@ def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
 
-    # Attach the item to the report so it's available in logreport
-    report.item = item
+    if hasattr(item, "callspec") and item.callspec:
+        report.test_params = _stringify_params(item.callspec.params)
+    else:
+        report.test_params = None
+
     return report
 
 
@@ -203,6 +210,11 @@ def pytest_addoption(parser):
         default=5555,
         help="Integer number of the server port.",
     )
+    parser.addoption(
+        "--coverage",
+        action="store_true",
+        help="Enables coverage file generation for every test run",
+    )
 
 
 # Skip decorators for specific architectures
@@ -223,4 +235,9 @@ skip_for_blackhole = pytest.mark.skipif(
 skip_for_quasar = pytest.mark.skipif(
     get_chip_architecture() == ChipArchitecture.QUASAR,
     reason="Test is not supported on Quasar architecture",
+)
+
+skip_for_coverage = pytest.mark.skipif(
+    "--coverage" in sys.argv or any("coverage" in arg for arg in sys.argv),
+    reason="Coverage shouldn't be ran with this test",
 )
