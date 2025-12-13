@@ -167,5 +167,16 @@ void _calculate_round_(const int decimals)
     }
 }
 
+template <bool APPROXIMATE, int ITERATIONS = 8>
+inline void _calculate_stochastic_round_() {
+    #pragma GCC unroll ITERATIONS
+    for (int i = 0; i < ITERATIONS; i++) {
+        sfpi::vFloat a      = sfpi::dst_reg[0];
+        sfpi::vUInt rounded = sfpi::float_to_fp16b(a, 1);
+        sfpi::dst_reg[0]    = sfpi::reinterpret<sfpi::vFloat>(rounded);
+        sfpi::dst_reg++;
+    }
+}
+
 } // namespace sfpu
 } // namespace ckernel
