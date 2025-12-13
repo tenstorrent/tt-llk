@@ -23,8 +23,9 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, STOCHASTIC_RND>(
-        formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, NUM_FACES, NUM_FACES);
+    _llk_unpack_configure_stoch_rnd_<STOCHASTIC_RND>();
 
     // Initialize tilize unpacker
     _llk_unpack_tilize_init_(
