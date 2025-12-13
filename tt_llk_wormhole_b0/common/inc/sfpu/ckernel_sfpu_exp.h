@@ -159,6 +159,7 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uin
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK>
 void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
+    t6_mutex_acquire(mutex::SFPU);
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
         // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is more negative than that, swap the input
@@ -262,6 +263,7 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
             sfpi::dst_reg++;
         }
     }
+    t6_mutex_release(mutex::SFPU);
 }
 
 constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uint32_t, x); };
@@ -271,6 +273,8 @@ constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(
 template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
 inline void _init_exponential_()
 {
+    t6_mutex_acquire(mutex::SFPU);
+
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
         // Algorithm is adapted from:
@@ -409,6 +413,8 @@ inline void _init_exponential_()
         // Initialisation for use of _sfpu_reciprocal_<2> in _calculate_exponential_<APPROXIMATION_MODE=false>.
         _init_sfpu_reciprocal_<false>();
     }
+
+    t6_mutex_release(mutex::SFPU);
 }
 
 } // namespace ckernel::sfpu
