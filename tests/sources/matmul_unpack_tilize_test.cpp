@@ -30,7 +30,15 @@ void run_kernel()
 {
     const std::uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
     int run                          = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
-    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats_array[run].unpack_src, formats_array[run].unpack_dst, FACE_R_DIM, 0, 4);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats_array[run].unpack_src,
+        formats_array[run].unpack_src,
+        formats_array[run].unpack_dst,
+        formats_array[run].unpack_dst,
+        FACE_R_DIM,
+        FACE_R_DIM,
+        4,
+        4);
 
     _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
     _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats_array[run].unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
