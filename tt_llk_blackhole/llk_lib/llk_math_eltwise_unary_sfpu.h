@@ -51,7 +51,7 @@ inline void eltwise_unary_sfpu_configure_addrmod()
             .set(ADDR_MOD_6);
     }
 
-    if (sfpu_op == SfpuType::typecast)
+    if constexpr (sfpu_op == SfpuType::typecast)
     {
         addr_mod_t {
             .srca = {.incr = 0},
