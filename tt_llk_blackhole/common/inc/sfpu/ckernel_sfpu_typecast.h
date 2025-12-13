@@ -120,14 +120,36 @@ inline void _calculate_typecast_fp16b_to_int32_()
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_fp16b_()
 {
-#pragma GCC unroll 0
+    // This uses SFPLOADMACRO to achieve a throughput of 3 cycles per input row.
+    //
+    // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
+    //
+    // t | Load | Simple          | MAD | Round               | Store   |
+    // - | ---- | --------------- | --- | ------------------- | ------- |
+    // 0 |  [a] |                 |     |                     |         |
+    // 1 |  [b] |                 |     | [a] = shft2(a, -16) |         |
+    // 2 |      | a &= 1          |     |                     |         |
+    // 1 |  ... | [b] += 0x7fff   |     |                     |         |
+    // 2 |  ... | [a] L16 = a + b |     |                     | [a]     |
+    // 3 |  ... |                 |     |                     | [b] L16 |
+    //
+    // Note that [a] schedules a 32-bit store, writing all zeros except for the
+    // LSB, which may be 0 or 1.  Then, [b] schedules a 16-bit store with
+    // MOD0_FMT_BF16.
+
+    constexpr int b = p_sfpu::LREG2;
+
+#pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(0, 0, ADDR_MOD_7, 0);
-        TTI_SFP_STOCH_RND(0, 0, 2, 0, 1, 1);
-        TTI_SFPSTORE(1, 0, ADDR_MOD_7, 0);
-        sfpi::dst_reg++;
+        int a = d & 1;
+        TT_SFPLOADMACRO((0 << 2) | (a & 3), 0, ADDR_MOD_7, a >> 2);
+        TTI_SFPLOADMACRO((1 << 2) | (b & 3), 0, ADDR_MOD_6, b >> 2);
+        TT_SFPAND(0, p_sfpu::LREG12, a, 0);
     }
+    TTI_SFPNOP;
+    TTI_SFPNOP;
+    TTI_SFPNOP;
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
@@ -299,6 +321,56 @@ inline void _calculate_typecast_int32_to_uint16_()
         TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::LO16, ADDR_MOD_7, 0);         // Store output
         sfpi::dst_reg++;
     }
+}
+
+template <bool APPROXIMATION_MODE>
+inline void _init_typecast_fp32_to_fp16b_()
+{
+    constexpr int b = p_sfpu::LREG2;
+
+    sfpi::vConstIntPrgm0 = 1;
+    sfpi::vConstIntPrgm1 = 0x7fff;
+
+    // InstructionTemplate[0]
+    TTI_SFPSHFT2(-16 & 0xfff, 0, 12, 6);
+
+    // InstructionTemplate[1]
+    TTI_SFPIADD(0, p_sfpu::LREG13, 13, sfpi::SFPIADD_MOD1_CC_NONE);
+
+    // InstructionTemplate[2]
+    TTI_SFPIADD(0, b, 14, sfpi::SFPIADD_MOD1_CC_NONE);
+
+    // Macro 0: [a]
+    {
+        constexpr uint simple_bits = 0x80 | 0x40 | (3 << 3) | (4 + 2);
+        constexpr uint mad_bits    = 0;
+        constexpr uint round_bits  = 0x80 | 0x00 | (0 << 3) | (4 + 0);
+        constexpr uint store_bits  = 0x00 | 0x00 | (3 << 3) | 3;
+
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
+        TTI_SFPCONFIG(0, 4 + 0, 0);
+    }
+
+    // Macro 1: [b]
+    {
+        constexpr uint simple_bits = 0x80 | 0x00 | (1 << 3) | (4 + 1);
+        constexpr uint mad_bits    = 0;
+        constexpr uint round_bits  = 0;
+        constexpr uint store_bits  = 0x00 | 0x40 | (3 << 3) | 3;
+
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
+        TTI_SFPCONFIG(0, 4 + 1, 0);
+    }
+
+    // Misc: {UsesLoadMod0ForStore=1, WaitForElapsedInstructions=1} for all macros.
+    // Misc: {
+    //   StoreMod0: 2,
+    //   UsesLoadMod0ForStore: {1,0},
+    //   UnitDelayKind: {1,1}, (WaitForElapsedInstructions=1)
+    // }
+    TTI_SFPCONFIG(0x312, 8, 1);
 }
 
 } // namespace sfpu
