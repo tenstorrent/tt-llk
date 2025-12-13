@@ -81,13 +81,13 @@ inline void _calculate_typecast_fp32_to_int32_()
         TTI_SFPLOADI(p_sfpu::LREG1, 0, 0);
 
         // exp = in.Exp (LaneEnabled = exp >= 0)
-        TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, 0);
+        TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, sfpi::SFPEXEXP_MOD1_SET_CC_SGN_EXP | sfpi::SFPEXEXP_MOD1_SET_CC_COMP_EXP);
         // result = INT_MIN
         TTI_SFPLOADI(p_sfpu::LREG1, 0, 0x8000);
         // exp -= 31 (LaneEnabled = exp < 31)
-        TTI_SFPIADD(-31 & 0xfff, p_sfpu::LREG2, p_sfpu::LREG2, 1);
+        TTI_SFPIADD(-31 & 0xfff, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_IMM | sfpi::SFPIADD_MOD1_CC_LT0);
         // exp += 8
-        TTI_SFPIADD(8, p_sfpu::LREG2, p_sfpu::LREG2, 4|1);
+        TTI_SFPIADD(8, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_IMM | sfpi::SFPIADD_MOD1_CC_NONE);
         // result = exman8(in) << (exp - 23)
         TTI_SFPEXMAN(0, p_sfpu::LREG0, p_sfpu::LREG1, 0);
         TTI_SFPSHFT(0, p_sfpu::LREG2, p_sfpu::LREG1, 0);
@@ -95,9 +95,9 @@ inline void _calculate_typecast_fp32_to_int32_()
         TTI_SFPENCC(0, 0, 0, 0);
 
         // LaneEnabled = in < 0
-        TTI_SFPSETCC(0, p_sfpu::LREG0, 0, 0);
+        TTI_SFPSETCC(0, p_sfpu::LREG0, 0, sfpi::SFPSETCC_MOD1_LREG_LT0);
         // result = -result (two's complement)
-        TTI_SFPIADD(0, p_sfpu::LCONST_0, p_sfpu::LREG1, 2|4);
+        TTI_SFPIADD(0, p_sfpu::LCONST_0, p_sfpu::LREG1, sfpi::SFPIADD_MOD1_ARG_2SCOMP_LREG_DST | sfpi::SFPIADD_MOD1_CC_NONE);
         // LaneEnabled = true
         TTI_SFPENCC(0, 0, 0, 0);
 
@@ -116,15 +116,15 @@ inline void _calculate_typecast_fp32_to_uint32_()
         TTI_SFPLOADI(p_sfpu::LREG1, 0, 0);
 
         // LaneEnabled = in >= 0
-        TTI_SFPSETCC(0, p_sfpu::LREG0, 0, 4);
+        TTI_SFPSETCC(0, p_sfpu::LREG0, 0, sfpi::SFPSETCC_MOD1_LREG_GTE0);
         // exp = in.Exp (LaneEnabled = exp >= 0)
-        TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, 2|8);
+        TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, sfpi::SFPEXEXP_MOD1_SET_CC_SGN_EXP | sfpi::SFPEXEXP_MOD1_SET_CC_COMP_EXP);
         // result = 0xffffffff
         TTI_SFPLOADI(p_sfpu::LREG1, 4, 0xffff);
         // exp -= 31 (LaneEnabled = exp < 31)
-        TTI_SFPIADD(-31 & 0xfff, p_sfpu::LREG2, p_sfpu::LREG2, 1);
+        TTI_SFPIADD(-31 & 0xfff, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_IMM | sfpi::SFPIADD_MOD1_CC_LT0);
         // exp += 8
-        TTI_SFPIADD(8, p_sfpu::LREG2, p_sfpu::LREG2, 4|1);
+        TTI_SFPIADD(8, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_IMM | sfpi::SFPIADD_MOD1_CC_NONE);
         // result = exman8(in) << (exp - 23)
         TTI_SFPEXMAN(0, p_sfpu::LREG0, p_sfpu::LREG1, 0);
         TTI_SFPSHFT(0, p_sfpu::LREG2, p_sfpu::LREG1, 0);
