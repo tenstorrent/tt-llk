@@ -474,12 +474,6 @@ inline void _llk_unpack_tilizeA_B_uninit_(const std::uint32_t unpack_dst_format,
  * supported input formats are: FP32 (via FP16 or TF32) or FP16_B
  *************************************************************************/
 
-template <bool is_fp32_dest_acc_en>
-inline void _llk_unpack_fast_tilize_hw_configure_(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
-{
-    configure_unpack_AB<is_fp32_dest_acc_en>(unpack_src_format, unpack_src_format, unpack_dst_format, unpack_dst_format);
-}
-
 inline void _llk_unpack_fast_tilize_mop_config_()
 {
     // Y moves to the next tile, Z moves to the next row (both ch0 and ch1)
