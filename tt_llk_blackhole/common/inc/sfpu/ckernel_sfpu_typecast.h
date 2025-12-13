@@ -71,50 +71,67 @@ inline void _calculate_typecast_int32_to_fp16b_()
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_typecast_fp16b_to_int32_()
+inline void _calculate_typecast_fp32_to_int32_()
 {
-#pragma GCC unroll 0
+#pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat in = sfpi::dst_reg[0];
+        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        // result = 0
+        TTI_SFPLOADI(p_sfpu::LREG1, 0, 0);
 
-        // extract exponent
-        sfpi::vInt exp = exexp(in);
+        // exp = in.Exp (LaneEnabled = exp >= 0)
+        TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, 0);
+        // result = INT_MIN
+        TTI_SFPLOADI(p_sfpu::LREG1, 0, 0x8000);
+        // exp -= 31 (LaneEnabled = exp < 31)
+        TTI_SFPIADD(-31 & 0xfff, p_sfpu::LREG2, p_sfpu::LREG2, 1);
+        // exp += 8
+        TTI_SFPIADD(8, p_sfpu::LREG2, p_sfpu::LREG2, 4|1);
+        // result = exman8(in) << (exp - 23)
+        TTI_SFPEXMAN(0, p_sfpu::LREG0, p_sfpu::LREG1, 0);
+        TTI_SFPSHFT(0, p_sfpu::LREG2, p_sfpu::LREG1, 0);
+        // LaneEnabled = true
+        TTI_SFPENCC(0, 0, 0, 0);
 
-        v_if (exp < 0)
-        {
-            sfpi::dst_reg[0] = 0;
-        }
-        v_elseif (exp > 30)
-        {
-            // set to int32 max value in case of overflow
-            sfpi::vInt tmp = std::numeric_limits<int32_t>::max();
-            // check sign
-            v_if (in < 0)
-            {
-                // 2's complement conversion
-                tmp = (~tmp) + 1;
-            }
-            v_endif sfpi::dst_reg[0] = tmp;
-        }
-        v_else
-        {
-            // extract mantissa
-            sfpi::vInt man = exman8(in);
-            // shift the mantissa by (23-exponent) to the right
-            sfpi::vInt shift = exp - 23;
-            man              = sfpi::shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
-            // check sign
-            v_if (in < 0)
-            {
-                // 2's complement conversion
-                man = (~man) + 1;
-            }
-            v_endif sfpi::dst_reg[0] = man;
-        }
-        v_endif
+        // LaneEnabled = in < 0
+        TTI_SFPSETCC(0, p_sfpu::LREG0, 0, 0);
+        // result = -result (two's complement)
+        TTI_SFPIADD(0, p_sfpu::LCONST_0, p_sfpu::LREG1, 2|4);
+        // LaneEnabled = true
+        TTI_SFPENCC(0, 0, 0, 0);
 
-            sfpi::dst_reg++;
+        TTI_SFPSTORE(p_sfpu::LREG1, 4, ADDR_MOD_6, 0);
+    }
+}
+
+template <bool APPROXIMATION_MODE, int ITERATIONS>
+inline void _calculate_typecast_fp32_to_uint32_()
+{
+#pragma GCC unroll 8
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        // result = 0
+        TTI_SFPLOADI(p_sfpu::LREG1, 0, 0);
+
+        // LaneEnabled = in >= 0
+        TTI_SFPSETCC(0, p_sfpu::LREG0, 0, 4);
+        // exp = in.Exp (LaneEnabled = exp >= 0)
+        TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, 2|8);
+        // result = 0xffffffff
+        TTI_SFPLOADI(p_sfpu::LREG1, 4, 0xffff);
+        // exp -= 31 (LaneEnabled = exp < 31)
+        TTI_SFPIADD(-31 & 0xfff, p_sfpu::LREG2, p_sfpu::LREG2, 1);
+        // exp += 8
+        TTI_SFPIADD(8, p_sfpu::LREG2, p_sfpu::LREG2, 4|1);
+        // result = exman8(in) << (exp - 23)
+        TTI_SFPEXMAN(0, p_sfpu::LREG0, p_sfpu::LREG1, 0);
+        TTI_SFPSHFT(0, p_sfpu::LREG2, p_sfpu::LREG1, 0);
+        // LaneEnabled = true
+        TTI_SFPENCC(0, 0, 0, 0);
+
+        TTI_SFPSTORE(p_sfpu::LREG1, 4, ADDR_MOD_6, 0);
     }
 }
 
@@ -186,61 +203,6 @@ inline void _calculate_typecast_int32_to_fp32_()
         TTI_SFPCAST(0, 1, 0);
         TTI_SFPSTORE(1, 3, ADDR_MOD_7, 0);
         sfpi::dst_reg++;
-    }
-}
-
-template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_typecast_fp16b_to_uint32_()
-{
-#pragma GCC unroll 0
-    for (int d = 0; d < ITERATIONS; d++)
-    {
-        sfpi::vFloat in = sfpi::dst_reg[0];
-
-        // check sign
-        v_if (in <= 0)
-        {
-            sfpi::dst_reg[0] = 0;
-        }
-        v_else
-        {
-            // extract exponent
-            sfpi::vInt exp = exexp(in);
-
-            v_if (exp < 0)
-            {
-                sfpi::dst_reg[0] = 0;
-            }
-            v_elseif (exp > 31)
-            {
-                // set to uint32 max value in case of overflow
-                sfpi::vInt tmp   = std::numeric_limits<int32_t>::max();
-                sfpi::dst_reg[0] = sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(tmp), 1);
-            }
-            v_elseif (exp == 31)
-            {
-                // extract mantissa without hidden bit
-                sfpi::vInt man = exman9(in);
-                // shift the mantissa by (23-exponent) to the right
-                sfpi::vInt shift = exp - 23;
-                man              = sfpi::shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
-                // add hidden bit back (due to bug when shifting a 1 into MSB)
-                sfpi::dst_reg[0] = sfpi::setsgn(sfpi::reinterpret<sfpi::vFloat>(man), 1);
-            }
-            v_else
-            {
-                // extract mantissa
-                sfpi::vInt man = exman8(in);
-                // shift the mantissa by (23-exponent) to the right
-                sfpi::vInt shift = exp - 23;
-                man              = sfpi::shft(sfpi::reinterpret<sfpi::vUInt>(man), shift);
-                sfpi::dst_reg[0] = man;
-            }
-            v_endif
-        }
-        v_endif
-
-            sfpi::dst_reg++;
     }
 }
 
