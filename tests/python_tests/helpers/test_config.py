@@ -347,6 +347,7 @@ class TestConfig:
         )
         TestConfig.INCLUDES = [
             "-Isfpi/include",
+            "-I../tt_llk_common/",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/llk_lib",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/common/inc",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/common/inc/sfpu",
