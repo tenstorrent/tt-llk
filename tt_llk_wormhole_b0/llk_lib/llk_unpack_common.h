@@ -12,6 +12,7 @@
 #include "ckernel_ops.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_san.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -72,6 +73,17 @@ template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srca_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
 {
+    llk_san::unpack_hw_configure<true>(
+        llk_san::IGNORE,
+        unpack_src_format,
+        llk_san::IGNORE,
+        unpack_dst_format,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE);
+
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK0);
     if constexpr (to_from_int8)
     {
@@ -88,6 +100,17 @@ template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
 {
+    llk_san::unpack_hw_configure<true>(
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        unpack_src_format,
+        llk_san::IGNORE,
+        unpack_dst_format,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE);
+
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
     if constexpr (to_from_int8)
     {
