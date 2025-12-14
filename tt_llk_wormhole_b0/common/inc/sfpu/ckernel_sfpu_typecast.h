@@ -222,13 +222,12 @@ inline void _calculate_typecast_uint32_to_fp32_()
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_uint32_()
 {
-#pragma GCC unroll 0
+#pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::LO16, ADDR_MOD_3, 0);
-        TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::INT32, ADDR_MOD_3, 0);
-        sfpi::dst_reg++;
+        TTI_SFPLOADMACRO((0 << 2) | 0, InstrModLoadStore::LO16, ADDR_MOD_2, 0);
     }
+    TTI_SFPNOP;
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
@@ -305,13 +304,34 @@ inline void _init_typecast_fp32_to_fp16b_()
         TTI_SFPCONFIG(0, 4 + 1, 0);
     }
 
-    // Misc: {UsesLoadMod0ForStore=1, WaitForElapsedInstructions=1} for all macros.
     // Misc: {
     //   StoreMod0: 2,
     //   UsesLoadMod0ForStore: {1,0},
     //   UnitDelayKind: {1,1}, (WaitForElapsedInstructions=1)
     // }
     TTI_SFPCONFIG(0x312, 8, 1);
+}
+
+template <bool APPROXIMATION_MODE>
+inline void _init_typecast_uint16_to_uint32_()
+{
+    {
+        constexpr uint simple_bits = 0;
+        constexpr uint mad_bits    = 0;
+        constexpr uint round_bits  = 0;
+        constexpr uint store_bits  = 0x00 | 0x00 | (0 << 3) | 3;
+
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
+        TTI_SFPCONFIG(0, 4 + 0, 0);
+    }
+
+    // Misc: {
+    //   StoreMod0: InstrModLoadStore::INT32,
+    //   UsesLoadMod0ForStore: {0},
+    //   UnitDelayKind: {1}, (WaitForElapsedInstructions=1)
+    // }
+    TTI_SFPCONFIG(0x100 | InstrModLoadStore::INT32, 8, 1);
 }
 
 } // namespace sfpu
