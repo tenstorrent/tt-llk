@@ -203,8 +203,11 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     // 16x16 matmul not supported - no dedicated math path; falls to 32x32 default which is incorrect for < 4 faces
     LLK_ASSERT(!(unpA_num_faces == 1 && unpB_num_faces == 1), "16x16 by 16x16 matmul is not supported");
 
+    llk_san::unpack_operand_check(
+        llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, unpA_face_r_dim, unpB_face_r_dim, unpA_num_faces, unpB_num_faces);
     llk_san::operation_save<llk_san::operation_t::UnpackABMatmul>(
         kernel_broadcast_a, kernel_broadcast_b, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face);
+    // sstanisic todo: implement
     // llk_san::extended_state_mask(llk_san_cfg::Transpose, llk_san_cfg::AdcXX, llk_san_cfg::Mop); // ADCZW counters and GPRS not tracked here for now
 
     // also turn on within_face_16x16_transpose if it was turned off by datacopy at runtime

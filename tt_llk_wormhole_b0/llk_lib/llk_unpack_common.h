@@ -13,6 +13,7 @@
 #include "cunpack_common.h"
 #include "llk_assert.h"
 #include "llk_memory_checks.h"
+#include "sanitizer/api.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -86,6 +87,18 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
     const std::uint32_t unpack_num_faces  = 4)
 {
     LLK_ASSERT(unpack_num_faces == 1 || unpack_num_faces == 2 || unpack_num_faces == 4, "unpack_num_faces must be 1, 2, or 4");
+
+    llk_san::unpack_hw_configure<true>(
+        llk_san::IGNORE,
+        unpack_src_format,
+        llk_san::IGNORE,
+        unpack_dst_format,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE);
+
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK0);
     if constexpr (to_from_int8)
     {
@@ -129,6 +142,18 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     const std::uint32_t unpack_num_faces  = 4)
 {
     LLK_ASSERT(unpack_num_faces == 1 || unpack_num_faces == 2 || unpack_num_faces == 4, "unpack_num_faces must be 1, 2, or 4");
+
+    llk_san::unpack_hw_configure<true>(
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        unpack_src_format,
+        llk_san::IGNORE,
+        unpack_dst_format,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE);
+
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
     if constexpr (to_from_int8)
     {

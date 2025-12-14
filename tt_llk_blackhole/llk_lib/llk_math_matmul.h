@@ -606,6 +606,8 @@ inline void _llk_math_matmul_init_(
         "16x16 by 16x16 matmul is not supported");
     // in1=32x16 NOT supported with transpose (no addr_mod handling)
     LLK_ASSERT(!(transpose && (in1_tile_r_dim == TILE_R_DIM) && (in1_tile_c_dim == FACE_C_DIM)), "Transpose with input 1 dimensions 32x16 not supported");
+    // sstanisic todo: implement
+    // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop); // Counters are not tracked here for now
 
     llk_san::operation_save<llk_san::operation_t::Matmul>(math_fidelity, THROTTLE_LEVEL, ct_dim, rt_dim);
 

@@ -12,6 +12,7 @@
 #include "cmath_common.h"
 #include "llk_assert.h"
 #include "llk_math_common.h"
+#include "sanitizer/api.h"
 #include "lltt.h"
 
 #ifndef HF
@@ -693,6 +694,9 @@ inline void _llk_math_matmul_init_(
     // in1=32x16 NOT supported with transpose (no addr_mod handling)
     LLK_ASSERT(
         !(transpose && (in1_tile_r_dim == TILE_R_DIM) && (in1_tile_c_dim == FACE_C_DIM)), "in1=32x16 not supported with transpose (no addr_mod handling)");
+    // sstanisic todo: implement
+    // llk_san_init<llk_san_op::Matmul>(MATH_FIDELITY_DESC, THROTTLE_LEVEL, ct_dim, rt_dim);
+    // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::DvalidDisable, llk_san_cfg::Mop); // Counters are not tracked here for now
 
     matmul_configure_addrmod<math_fidelity, THROTTLE_LEVEL>(transpose, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     const bool reuse_a        = ct_dim >= rt_dim;
@@ -734,6 +738,9 @@ inline void _llk_math_matmul_uninit_()
 template <MathFidelity math_fidelity, int THROTTLE_LEVEL = 0>
 inline void _llk_math_matmul_(std::uint32_t dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
 {
+    // sstanisic todo: implement
+    // llk_san_operation<llk_san_op::Matmul>(MATH_FIDELITY_DESC, THROTTLE_LEVEL, ct_dim, rt_dim);
+
     const bool reuse_a           = ct_dim >= rt_dim;
     const std::uint32_t t_dim    = reuse_a ? rt_dim : ct_dim;
     const std::uint32_t rut_dim  = reuse_a ? ct_dim : rt_dim; // reuse-dim
