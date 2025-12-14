@@ -513,6 +513,9 @@ inline void _llk_pack_init_(
 
     llk_san::pack_operand_check(llk_san::IGNORE, llk_san::IGNORE, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
     llk_san::operation_save<llk_san::operation_t::Pack>();
+    // sstanisic todo: implement
+    // llk_san_must_uninit<llk_san_op::Pack>(); // lololol uninit doesn't exist
+    // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::CH0Strides, llk_san_cfg::CH1Strides, llk_san_cfg::AdcXX);
 
     _llk_pack_configure_addrmod_<untilize, tilize>();
     _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
@@ -533,6 +536,9 @@ inline void _llk_pack_init_(
 
     llk_san::pack_operand_check(llk_san::IGNORE, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
     llk_san::operation_save<llk_san::operation_t::Pack>();
+    // sstanisic todo: implement
+    // llk_san_must_uninit<llk_san_op::Pack>(); // lololol uninit doesn't exist
+    // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::CH0Strides, llk_san_cfg::CH1Strides, llk_san_cfg::AdcXX);
 
     _llk_pack_configure_addrmod_<untilize, tilize>();
     _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);

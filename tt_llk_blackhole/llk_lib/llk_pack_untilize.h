@@ -158,6 +158,9 @@ inline void _llk_pack_untilize_init_(
     llk_san::pack_operand_check(llk_san::IGNORE, pack_src_format, pack_dst_format, face_r_dim, llk_san::IGNORE, num_faces, llk_san::IGNORE, llk_san::IGNORE);
     // sstanisic note: added full_ct_dim, removed face_r_dim and num_faces as its already part of operand state
     llk_san::operation_save<llk_san::operation_t::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums);
+    // sstanisic todo: implement
+    // llk_san_must_uninit<llk_san_op::PackUntilize>();
+    // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::CH0Strides, llk_san_cfg::AdcXX); // GPRs are not tracked here for now
 
     _llk_pack_untilize_configure_addrmod_<diagonal>();
 
@@ -254,7 +257,9 @@ inline void _llk_pack_untilize_uninit_(const std::uint32_t pack_src_format)
 {
     llk_san::pack_operand_check(
         llk_san::IGNORE, pack_src_format, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE);
-    // sstanisic todo: llk_san::uninit<llk_san::operation_t::PackUntilize>();
+    // sstanisic todo: implement
+    // llk_san::uninit<llk_san::operation_t::PackUntilize>();
+    // llk_san_extended_state_mask<true>(llk_san_cfg::CH0Strides);
 
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
     const uint z_stride = SCALE_DATUM_SIZE(pack_src_format, FACE_R_DIM * FACE_C_DIM);
