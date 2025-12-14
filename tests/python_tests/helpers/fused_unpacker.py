@@ -210,9 +210,9 @@ class UnpackerA(Unpacker):
 
         if tilize_en == Tilize.No:
             code += f"""
+    _llk_unpack_A_hw_configure_<{dest_acc}, StochRndType::None>({unpack_src_format}, {unpack_dst_format}, {face_r_dim}, 0, {num_faces});
     _llk_unpack_A_init_<BroadcastType::{brodcast_type}, false, EltwiseBinaryReuseDestType::{eltwise_reuse_type}, {unpack_to_dest}>(
         0, 0, {face_r_dim}, {num_faces}, {unpack_src_format}, {unpack_dst_format});
-    _llk_unpack_A_hw_configure_<{dest_acc}, StochRndType::None>({unpack_src_format}, {unpack_dst_format}, {face_r_dim}, 0, {num_faces});
 
     for (int i = 0; i < {tile_cnt}; ++i)
     {{

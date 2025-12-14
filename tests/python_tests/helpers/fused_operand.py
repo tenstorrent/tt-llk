@@ -110,7 +110,7 @@ class Operand:
         return self._tile_count
 
     def __str__(self) -> str:
-        return f"{self.name}, {self.dimensions}, {self.data_format}"
+        return f"{self.name}, {self.dimensions}, {self.data_format}, L1 Addr: {hex(self.l1_address)}"
 
 
 class OperandMapping:

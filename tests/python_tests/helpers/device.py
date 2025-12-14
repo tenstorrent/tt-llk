@@ -477,37 +477,24 @@ def write_pipeline_operands_to_l1(
             addr = operand.l1_address + i * tile_size
             write_to_device(location, addr, packed_data)
 
-    all_operands = {}
     for operation in pipeline:
         src_a = operation.src_a
         src_b = operation.src_b
         output = operation.output
+        if src_a.is_input() and src_a.l1_address is None:
+            src_a.l1_address = current_address
+            current_address += calculate_size(src_a.data_format, src_a.tile_count)
+            write_operand_data(src_a, location)
 
-        all_operands[src_a.name] = src_a
-        all_operands[src_b.name] = src_b
-        all_operands[output.name] = output
+        if src_b.is_input() and src_b.l1_address is None:
+            src_b.l1_address = current_address
+            current_address += calculate_size(src_b.data_format, src_b.tile_count)
+            write_operand_data(src_b, location)
 
-    for operand in all_operands.values():
-        if operand.is_input() and operand.l1_address is None:
-            operand.l1_address = current_address
-            current_address += calculate_size(operand.data_format, operand.tile_count)
-            write_operand_data(operand, location)
-
-    final_result_address = None
-
-    for operation in pipeline:
-        output_operand = operation.output
-
-        if output_operand.l1_address is None:
-            output_tile_count = output_operand.tile_count
-            output_operand.l1_address = current_address
-            current_address += calculate_size(
-                output_operand.data_format, output_tile_count
-            )
-
-        final_result_address = output_operand.l1_address
-
-    return final_result_address
+        if output.l1_address is None:
+            output_tile_count = output.tile_count
+            output.l1_address = current_address
+            current_address += calculate_size(output.data_format, output_tile_count)
 
 
 def get_result_from_device(

@@ -611,4 +611,4 @@ def run_fuse_test(
     run_shell_command(make_cmd, cwd=tests_dir)
 
     elfs = run_elf_files("fuse_test", boot_mode)
-    wait_for_tensix_operations_finished(elfs)
+    wait_for_tensix_operations_finished(elfs, timeout=500)

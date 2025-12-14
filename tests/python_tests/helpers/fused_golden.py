@@ -27,7 +27,9 @@ class FuseGolden:
         res_tensor = torch.tensor(
             output.raw_data, dtype=format_dict[output.data_format]
         )
-        l1_golden = torch.tensor(output.l1_golden, dtype=format_dict[src_a.data_format])
+        l1_golden = torch.tensor(
+            output.l1_golden, dtype=format_dict[output.data_format]
+        )
         master_golden = torch.tensor(
             output.master_golden, dtype=format_dict[output.data_format]
         )
@@ -74,13 +76,14 @@ class FuseGolden:
         return passed
 
     def check_pipeline(self, pipeline: List[FusedOperation]) -> bool:
+        result = True
         for i, operation in enumerate(pipeline, start=1):
             operation.golden()
             passed = self.check_operation(operation, i)
             if not passed:
-                return False
+                result = False
 
-        return True
+        return result
 
     def get_results(self) -> List[dict]:
         return self.results.copy()
