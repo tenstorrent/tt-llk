@@ -16,8 +16,6 @@ class UnpackKernelGenerator:
         self.operations = operations
 
     def generate(self) -> str:
-        num_stages = len(self.operations)
-
         # Collect all unique headers from all operations
         all_headers = set()
         for op in self.operations:
@@ -27,21 +25,23 @@ class UnpackKernelGenerator:
         # Generate include statements
         includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
 
-        code = f"""
-#ifdef LLK_TRISC_UNPACK
+        # Generate unpacker calls for all operations
+        unpack_calls = "".join([op.unpack() for op in self.operations])
 
-{includes}
+        code = (
+            f"\n"
+            f"#ifdef LLK_TRISC_UNPACK\n"
+            f"\n"
+            f"{includes}\n"
+            f"\n"
+            f"void run_kernel()\n"
+            f"{{\n"
+            f"{unpack_calls}"
+            f"}}\n"
+            f"\n"
+            f"#endif\n"
+        )
 
-void run_kernel()
-{{"""
-        for op in self.operations:
-            code += op.unpack()
-
-        code += f"""
-}}
-
-#endif
-"""
         return code
 
 
@@ -59,34 +59,23 @@ class MathKernelGenerator:
         # Generate include statements
         includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
 
-        code = f"""
-#ifdef LLK_TRISC_MATH
-{includes}
+        # Generate math calls for all operations
+        math_calls = "".join([op.do_math() for op in self.operations])
 
-using namespace ckernel::sfpu;
+        code = (
+            f"\n"
+            f"#ifdef LLK_TRISC_MATH\n"
+            f"\n"
+            f"{includes}\n"
+            f"\n"
+            f"void run_kernel()\n"
+            f"{{\n"
+            f"{math_calls}"
+            f"}}\n"
+            f"\n"
+            f"#endif\n"
+        )
 
-#include "ckernel_defs.h"
-#include "ckernel_sfpu.h"
-#include "ckernel_sfpu_add_top_row.h"
-#include "ckernel_sfpu_binary.h"
-#include "llk_math_common.h"
-#include "llk_math_eltwise_binary_sfpu.h"
-#include "llk_math_eltwise_unary_datacopy.h"
-
-#include "llk_math_eltwise_unary_sfpu.h"
-#include "sfpu_operations.h"
-
-using namespace ckernel::sfpu;
-
-void run_kernel()
-{{"""
-        for op in self.operations:
-            code += op.do_math()
-
-        code += f"""
-}}
-#endif
-"""
         return code
 
 
@@ -105,18 +94,23 @@ class PackKernelGenerator:
         # Generate include statements
         includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
 
-        code = f"""
-#ifdef LLK_TRISC_PACK
-{includes}
-void run_kernel()
-{{"""
-        for op in self.operations:
-            code += op.pack()
+        # Generate packer calls for all operations
+        pack_calls = "".join([op.pack() for op in self.operations])
 
-        code += f"""
-}}
-#endif
-"""
+        code = (
+            f"\n"
+            f"#ifdef LLK_TRISC_PACK\n"
+            f"\n"
+            f"{includes}\n"
+            f"\n"
+            f"void run_kernel()\n"
+            f"{{\n"
+            f"{pack_calls}"
+            f"}}\n"
+            f"\n"
+            f"#endif\n"
+        )
+
         return code
 
 
@@ -142,52 +136,53 @@ class FusedKernelGenerator:
         }
 
     def write_kernel(self):
-        combined = f"""
-#define FUSE_TEST
-#include <cstdint>
-
-#include <array>
-#include <type_traits>
-
-#include <cstddef>
-#include <utility>
-
-#include "ckernel.h"
-#include "llk_defs.h"
-
-#include "ckernel_debug.h"
-#include "ckernel_defs.h"
-#include "ckernel_sfpu.h"
-#include "tensix_types.h"
-#include "operand.h"
-
-#include "llk_sfpu_types.h"
-
-using namespace ckernel;
-
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
-
-inline uint32_t L1_ADDRESS(uint32_t buffer_address)
-{{
-#ifdef ARCH_QUASAR
-    return buffer_address / 16;
-#else
-    return (buffer_address / 16) - 1;
-#endif
-}}
-
-constexpr bool UNPACKING_TO_DEST    = false;
-constexpr bool APPROX_MODE          = false;
-constexpr bool is_fp32_dest_acc_en  = false;
-
-#include "data_format_inference.h"
-"""
         kernels = self.generate_all()
-        combined += kernels["unpack"]
-        combined += kernels["math"]
-        combined += kernels["pack"]
+
+        combined = (
+            f"\n"
+            f"#define FUSE_TEST\n"
+            f"#include <cstdint>\n"
+            f"\n"
+            f"#include <array>\n"
+            f"#include <type_traits>\n"
+            f"\n"
+            f"#include <cstddef>\n"
+            f"#include <utility>\n"
+            f"\n"
+            f'#include "ckernel.h"\n'
+            f'#include "llk_defs.h"\n'
+            f"\n"
+            f'#include "ckernel_debug.h"\n'
+            f'#include "ckernel_defs.h"\n'
+            f'#include "ckernel_sfpu.h"\n'
+            f'#include "tensix_types.h"\n'
+            f'#include "operand.h"\n'
+            f"\n"
+            f'#include "llk_sfpu_types.h"\n'
+            f"\n"
+            f"uint32_t unp_cfg_context          = 0;\n"
+            f"uint32_t pack_sync_tile_dst_ptr   = 0;\n"
+            f"uint32_t math_sync_tile_dst_index = 0;\n"
+            f"\n"
+            f"constexpr bool UNPACKING_TO_DEST    = false;\n"
+            f"constexpr bool APPROX_MODE          = false;\n"
+            f"constexpr bool is_fp32_dest_acc_en  = false;\n"
+            f"\n"
+            f'#include "data_format_inference.h"\n'
+            f"\n"
+            f"inline uint32_t L1_ADDRESS(uint32_t buffer_address)\n"
+            f"{{\n"
+            f"#ifdef ARCH_QUASAR\n"
+            f"    return buffer_address / 16;\n"
+            f"#else\n"
+            f"    return (buffer_address / 16) - 1;\n"
+            f"#endif\n"
+            f"}}\n"
+            f"\n"
+            f"{kernels['unpack']}"
+            f"{kernels['math']}"
+            f"{kernels['pack']}"
+        )
 
         llk_home = Path(os.environ.get("LLK_HOME"))
         with open(llk_home / "tests/sources/fuse_test.cpp", "w") as f:

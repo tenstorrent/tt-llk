@@ -74,27 +74,25 @@ class MatmulFpu(Fpu):
         KT_DIM = operation_config.kt_dim
         math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
-
         fidelity = operation_config.math_fidelity
         MATH_FIDELITY = fidelity.value
-
         dest_acc = operation_config.dest_acc.value
 
-        code = f"\n\t// Operation {stage}: Matmul FPU\n"
+        code = (
+            f"    // Operation {stage}: Matmul FPU\n"
+            f"    _llk_math_matmul_init_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, {CT_DIM}, {RT_DIM});\n"
+            f"    _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();\n"
+            f"    _llk_math_hw_configure_<false, false>(\n"
+            f"        {MATH_FORMAT},\n"
+            f"        {MATH_FORMAT}\n"
+            f"    );\n"
+            f"    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();\n"
+            f"    for (uint32_t j = 0; j < {KT_DIM}; j++)\n"
+            f"    {{\n"
+            f"        _llk_math_matmul_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(0, {CT_DIM}, {RT_DIM});\n"
+            f"    }}\n"
+        )
 
-        code += f"""
-    _llk_math_matmul_init_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, {CT_DIM}, {RT_DIM});
-    _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();
-    _llk_math_hw_configure_<false, false>(
-        {MATH_FORMAT},
-        {MATH_FORMAT}
-    );
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (uint32_t j = 0; j < {KT_DIM}; j++)
-    {{
-        _llk_math_matmul_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(0, {CT_DIM}, {RT_DIM});
-    }}
-"""
         return code
 
 
@@ -132,37 +130,33 @@ class EltwiseFpu(Fpu):
         stage = operation_config.stage_id
         math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
-
         fidelity = operation_config.math_fidelity
         MATH_FIDELITY = fidelity.value
-
         dest_acc = operation_config.dest_acc.value
         tile_cnt = operation_config.output.tile_count
 
         code = (
-            f"\n\t// Operation {stage}: Eltwise {self.operation.cpp_enum_value} FPU\n"
+            f"    // Operation {stage}: Eltwise {self.operation.cpp_enum_value} FPU\n"
+            f"    _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();\n"
+            f"    _llk_math_hw_configure_<false, false>(\n"
+            f"        {MATH_FORMAT},\n"
+            f"        {MATH_FORMAT}\n"
+            f"    );\n"
+            f"    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{self.operation.cpp_enum_value}, BroadcastType::NONE, {MATH_FIDELITY}>(4, 0);\n"
+            f"\n"
+            f"    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();\n"
+            f"    for (int i = 0; i < {tile_cnt}; i++)\n"
+            f"    {{\n"
+            f"        _llk_math_eltwise_binary_<\n"
+            f"            {self.operation.cpp_enum_value},\n"
+            f"            BroadcastType::NONE,\n"
+            f"            DstSync::SyncHalf,\n"
+            f"            {dest_acc},\n"
+            f"            {MATH_FIDELITY},\n"
+            f"            EltwiseBinaryReuseDestType::NONE>(4, i, false);\n"
+            f"    }}\n"
         )
 
-        code += f"""
-    _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();
-    _llk_math_hw_configure_<false, false>(
-        {MATH_FORMAT},
-        {MATH_FORMAT}
-    );
-    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{self.operation.cpp_enum_value}, BroadcastType::NONE, {MATH_FIDELITY}>(4, 0);
-
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (int i = 0; i < {tile_cnt}; i++)
-    {{
-        _llk_math_eltwise_binary_<
-            {self.operation.cpp_enum_value},
-            BroadcastType::NONE,
-            DstSync::SyncHalf,
-            {dest_acc},
-            {MATH_FIDELITY},
-            EltwiseBinaryReuseDestType::NONE>(4, i, false);
-    }}
-"""
         return code
 
     def __str__(self) -> str:
@@ -206,7 +200,6 @@ class DatacopyFpu(Fpu):
         stage = operation_config.stage_id
         math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
-
         dest_acc = operation_config.dest_acc.value
         tile_cnt = operation_config.output.tile_count
         tilize_en = operation_config.tilize.value
@@ -217,44 +210,41 @@ class DatacopyFpu(Fpu):
         is_int_fpu_en = dest_acc
         dst_index = operation_config.dst_index
 
-        code = f"\n\t// Operation {stage}: Datacopy FPU\n"
+        code = f"    // Operation {stage}: Datacopy FPU\n"
 
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
-            code += f"""
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::{data_copy_type}, {dest_acc}, BroadcastType::{brodcast_type}, {tilize_en}, {is_int_fpu_en}>({num_faces}, {MATH_FORMAT});
-"""
+            code += f"    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::{data_copy_type}, {dest_acc}, BroadcastType::{brodcast_type}, {tilize_en}, {is_int_fpu_en}>({num_faces}, {MATH_FORMAT});\n"
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
-            code += f"""
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::{data_copy_type}, {dest_acc}, BroadcastType::{brodcast_type}, {is_int_fpu_en}>({num_faces}, {MATH_FORMAT});
-"""
+            code += f"    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::{data_copy_type}, {dest_acc}, BroadcastType::{brodcast_type}, {is_int_fpu_en}>({num_faces}, {MATH_FORMAT});\n"
         else:
             raise ValueError("Unsupported architecture for DatacopyFpu")
 
-        code += f"""
-    _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();
-    _llk_math_hw_configure_<false, false>(
-        {MATH_FORMAT},
-        {MATH_FORMAT}
-    );
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (int i = 0; i < {tile_cnt}; ++i)
-    {{
-    """
+        code += (
+            f"    _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();\n"
+            f"    _llk_math_hw_configure_<false, false>(\n"
+            f"        {MATH_FORMAT},\n"
+            f"        {MATH_FORMAT}\n"
+            f"    );\n"
+            f"    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();\n"
+            f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
+            f"    {{\n"
+        )
+
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
-            code += f"""
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::{data_copy_type}, DstSync::SyncHalf, {dest_acc}, BroadcastType::{brodcast_type}, {unpack_to_dest}>(
-            {dst_index} + i, {MATH_FORMAT}, {MATH_FORMAT}, {num_faces});
-        """
+            code += (
+                f"        _llk_math_eltwise_unary_datacopy_<DataCopyType::{data_copy_type}, DstSync::SyncHalf, {dest_acc}, BroadcastType::{brodcast_type}, {unpack_to_dest}>(\n"
+                f"            {dst_index} + i, {MATH_FORMAT}, {MATH_FORMAT}, {num_faces});\n"
+            )
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
-            code += f"""
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::{data_copy_type}, DstSync::SyncHalf, {dest_acc}, BroadcastType::{brodcast_type}, {unpack_to_dest}>(
-            {dst_index} + i, {MATH_FORMAT}, {MATH_FORMAT});
-"""
+            code += (
+                f"        _llk_math_eltwise_unary_datacopy_<DataCopyType::{data_copy_type}, DstSync::SyncHalf, {dest_acc}, BroadcastType::{brodcast_type}, {unpack_to_dest}>(\n"
+                f"            {dst_index} + i, {MATH_FORMAT}, {MATH_FORMAT});\n"
+            )
         else:
             raise ValueError("Unsupported architecture for DatacopyFpu")
-        code += f"""
-    }}
-"""
+
+        code += f"    }}\n"
+
         return code
 
 
@@ -335,17 +325,17 @@ class UnarySfpu(Sfpu):
         math_format = operation_config.math_format
         dest_acc = operation_config.dest_acc.value
 
-        code = f"\n\t// Operation {stage}: Unary {self.operation.cpp_enum_value} SFPU\n"
+        code = (
+            f"    // Operation {stage}: Unary {self.operation.cpp_enum_value} SFPU\n"
+            f"    _llk_math_eltwise_unary_sfpu_init_<SfpuType::{self.operation.cpp_enum_value}>();\n"
+            f"    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);\n"
+            f"    test_utils::call_sfpu_operation<{self.iterations}, {dest_acc}, {self.approx_mode.value}>(\n"
+            f"        SfpuType::{self.operation.cpp_enum_value},\n"
+            f"        static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})\n"
+            f"    );\n"
+            f"    _llk_math_eltwise_unary_sfpu_done_();\n"
+        )
 
-        code += f"""
-    _llk_math_eltwise_unary_sfpu_init_<SfpuType::{self.operation.cpp_enum_value}>();
-    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
-    test_utils::call_sfpu_operation<{self.iterations}, {dest_acc}, {self.approx_mode.value}>(
-        SfpuType::{self.operation.cpp_enum_value},
-        static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})
-    );
-    _llk_math_eltwise_unary_sfpu_done_();
-"""
         return code
 
     def __str__(self) -> str:
@@ -405,16 +395,15 @@ class BinarySfpu(Sfpu):
         stage = operation_config.stage_id
         math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
+
         code = (
-            f"\n\t// Operation {stage}: Binary {self.operation.cpp_enum_value} SFPU\n"
+            f"    // Operation {stage}: Binary {self.operation.cpp_enum_value} SFPU\n"
+            f"    _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();\n"
+            f"    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);\n"
+            f"    test_utils::call_binary_sfpu_operation<{self.approx_mode.value}, ckernel::BinaryOp::{self.operation.cpp_enum_value}, {self.iterations}, {MATH_FORMAT}>({self.dst_index_in0}, {self.dst_index_in1}, {self.dst_index_out});\n"
+            f"    _llk_math_eltwise_binary_sfpu_done_();\n"
         )
 
-        code += f"""
-    _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
-    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
-    test_utils::call_binary_sfpu_operation<{self.approx_mode.value}, ckernel::BinaryOp::{self.operation.cpp_enum_value}, {self.iterations}, {MATH_FORMAT}>({self.dst_index_in0}, {self.dst_index_in1}, {self.dst_index_out});
-    _llk_math_eltwise_binary_sfpu_done_();
-"""
         return code
 
     def __str__(self) -> str:
@@ -459,13 +448,15 @@ class SfpuWhere(Sfpu):
     def exec(self, operation_config: "FusedOperation") -> str:
         math_format = operation_config.math_format
         MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
-        code = f"""
-    _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();
-    ckernel::sfpu::_init_where_<{self.approx_mode.value}>();
-    _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);
-    ckernel::sfpu::_calculate_where_<false, static_cast<DataFormat>({MATH_FORMAT}), {self.iterations}>({self.dst_index_in0}, {self.dst_index_in1}, {self.dst_index_in2}, {self.dst_index_out});
-    _llk_math_eltwise_ternary_sfpu_done_();
-"""
+
+        code = (
+            f"    _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();\n"
+            f"    ckernel::sfpu::_init_where_<{self.approx_mode.value}>();\n"
+            f"    _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);\n"
+            f"    ckernel::sfpu::_calculate_where_<false, static_cast<DataFormat>({MATH_FORMAT}), {self.iterations}>({self.dst_index_in0}, {self.dst_index_in1}, {self.dst_index_in2}, {self.dst_index_out});\n"
+            f"    _llk_math_eltwise_ternary_sfpu_done_();\n"
+        )
+
         return code
 
     def __str__(self) -> str:
@@ -489,10 +480,10 @@ class Halt(Sfpu):
     def exec(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
 
-        code = f"""
-    // Operation {operation_config.stage_id}: Halt
-    dbg_thread_halt<MathThreadId>();
-"""
+        code = (
+            f"    // Operation {stage}: Halt\n"
+            f"    dbg_thread_halt<MathThreadId>();\n"
+        )
 
         return code
 
@@ -548,10 +539,12 @@ class Math:
         code = self.fpu.exec(operation_config)
 
         for sfpu in self.sfpu:
-            code += sfpu.exec(operation_config)
+            code += f"\n" f"{sfpu.exec(operation_config)}"
 
         dest_acc = operation_config.dest_acc.value
-        code += f"""
-    _llk_math_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();
-"""
+        code += (
+            f"\n"
+            f"    _llk_math_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();\n"
+            f"\n"
+        )
         return code
