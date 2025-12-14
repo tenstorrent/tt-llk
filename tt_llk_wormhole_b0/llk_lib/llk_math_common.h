@@ -10,11 +10,14 @@
 #include "ckernel_include.h"
 #include "ckernel_ops.h"
 #include "cmath_common.h"
+#include "llk_san.h"
 
 using namespace ckernel::math;
 
 inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)
 {
+    llk_san::math_hw_configure(srca_data_format, srcb_data_format);
+
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH | p_stall::WAIT_SFPU);
     uint exp_width         = ((uint)srca_data_format >> 2) & 0x1; // 0=5-bit, 1=8-bit
     uint int8_math_enabled = ((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) ||
@@ -101,9 +104,11 @@ inline void _llk_math_debug_dump_seek_(std::uint8_t offset)
     debug_dump_seek(offset);
 }
 
-template <bool is_fp32_dest_acc_en>
+// template <bool is_fp32_dest_acc_en> put this back once we re-add the assert as runtime
 inline void _llk_math_reconfig_data_format_srca_(const std::uint32_t srca_data_format)
 {
+    llk_san::math_hw_configure<true>(srca_data_format, llk_san::DONTCARE);
+
     // static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH | p_stall::WAIT_SFPU);
     uint int8_math_enabled     = ((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)srca_data_format == (uint)DataFormat::Int32);
@@ -112,9 +117,11 @@ inline void _llk_math_reconfig_data_format_srca_(const std::uint32_t srca_data_f
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, config_mask>(config_data);
 }
 
-template <bool is_fp32_dest_acc_en>
+// template <bool is_fp32_dest_acc_en> put this back once we re-add the assert as runtime
 inline void _llk_math_reconfig_data_format_srcb_(const std::uint32_t srcb_data_format)
 {
+    llk_san::math_hw_configure<true>(llk_san::DONTCARE, srcb_data_format);
+
     // static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH | p_stall::WAIT_SFPU);
     uint int8_math_enabled     = ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)srcb_data_format == (uint)DataFormat::Int32);
@@ -123,9 +130,11 @@ inline void _llk_math_reconfig_data_format_srcb_(const std::uint32_t srcb_data_f
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG1_SrcB_ADDR32, 0, config_mask>(config_data);
 }
 
-template <bool is_fp32_dest_acc_en>
+// template <bool is_fp32_dest_acc_en> put this back once we re-add the assert as runtime
 inline void _llk_math_reconfig_data_format_(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)
 {
+    llk_san::math_hw_configure<true>(srca_data_format, srcb_data_format);
+
     // static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH | p_stall::WAIT_SFPU);
     uint int8_math_enabled = ((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) ||

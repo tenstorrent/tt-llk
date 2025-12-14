@@ -12,6 +12,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
+#include "llk_san.h"
 #include "lltt.h"
 #include "sfpi.h"
 
@@ -51,48 +52,69 @@ inline void _llk_unpack_untilize_init_(
     const std::uint32_t unpack_dst_format,
     const std::uint32_t tile_size,
     const std::uint32_t face_r_dim                 = FACE_R_DIM,
-    [[maybe_unused]] const std::uint32_t num_faces = 4,
-    const bool include_setup_calls                 = false)
+    [[maybe_unused]] const std::uint32_t num_faces = 4)
 {
-    if (include_setup_calls)
-    {
-        // Disable transpose when unused
-        cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
+    llk_san::unpack_operand_check(
+        llk_san::DONTCARE,
+        llk_san::DONTCARE,
+        llk_san::DONTCARE,
+        unpack_dst_format,
+        llk_san::DONTCARE,
+        face_r_dim,
+        llk_san::DONTCARE,
+        llk_san::DONTCARE,
+        llk_san::DONTCARE);
+    // llk_san_init<llk_san_op::UnpackUntilize>();
+    // llk_san_must_uninit<llk_san_op::UnpackUntilize>(); // lololol uninit doesn't exist
+    // llk_san_extended_state_mask(
+    //     llk_san_cfg::Transpose, llk_san_cfg::AdcXX, llk_san_cfg::CH1Strides, llk_san_cfg::TileDesc, llk_san_cfg::Mop); // GPRS not tracked here for now
 
-        // Save state of unpacker config for quick restore
-        TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0,
-                  UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32); // Save unpack stride config
-        TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1,
-                  THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);                                              // Save tile x dim per context
-        TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1); // Save descriptor 1
-    }
+    // Disable transpose when unused
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
+    // Save state of unpacker config for quick restore
+    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0,
+              UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32); // Save unpack stride config
+    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1,
+              THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32); // Save tile x dim per context
+    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2,
+              THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1); // Save descriptor 1
+
+    // Core untilize initialization logic
     const std::uint32_t unpA_ch1_x_stride = (unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float32   ? 4
                                             : (unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float16 ? 2
                                                                                                               : 1;
     const std::uint32_t unpA_ch1_y_stride = FACE_R_DIM * unpA_ch1_x_stride;
 
+    // Set address control for unpacker A
     TT_SETADCXX(p_setadc::UNP_A, face_r_dim * FACE_C_DIM - 1, 0x0);
 
     // Get pointer to registers for current state ID
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK);
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32, UNP0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT, UNP0_ADDR_CTRL_XY_REG_1_Ystride_MASK>(unpA_ch1_y_stride);
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 0, 0xFFFF>(FACE_C_DIM);
+
+    // Configure tile dimensions
     TTI_REG2FLOP(
         1, 0, 0, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::FACE_DIM_1x16); // GPR preloaded with  16 | (16 << 16)
 
+    // Set tile size in DMA registers
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE));
     TT_SETDMAREG(0, UPPER_HALFWORD(tile_size), 0, HI_16(p_gpr_unpack::TILE_SIZE));
     // Reset TILE_OFFSET reg if some other API used it, it was used by tilize (not anymore) but better to clear it just in case
     TTI_SETDMAREG(0, LOWER_HALFWORD(0), 0, LO_16(p_gpr_unpack::TILE_OFFSET));
     TTI_SETDMAREG(0, UPPER_HALFWORD(0), 0, HI_16(p_gpr_unpack::TILE_OFFSET));
 
+    // Configure MOP (Memory Operation Program) for untilize
     _llk_unpack_untilize_mop_config_();
 }
 
 template <bool first_pass = true>
 inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const std::uint32_t block_tile_cols)
 {
+    // sstanisic todo: implement
+    // llk_san_operation<llk_san_op::UnpackUntilize>();
+
     std::uint32_t rem_blocks_in_row = block_tile_cols;
 
     // Program srcA and srcB base addresses
@@ -101,7 +123,7 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
     TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b0010); // Clear l1 addr y cnt
     if constexpr (first_pass)
     {
-        // Select bottom faces in the 2nd pass
+        // Select top faces in the 1st pass
         TT_SETADC(p_setadc::UNP0, p_setadc::CH_0, p_setadc::SET_Z, 0);
     }
     else

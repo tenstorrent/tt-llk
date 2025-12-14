@@ -12,6 +12,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
+#include "llk_san.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -88,6 +89,9 @@ inline void _llk_unpack_AB_hw_configure_(
     const std::uint32_t face_r_dim = FACE_R_DIM,
     const std::uint32_t num_faces  = 4)
 {
+    llk_san::unpack_hw_configure(
+        is_fp32_dest_acc_en, unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, face_r_dim, face_r_dim, num_faces, num_faces);
+
     configure_unpack_AB<is_fp32_dest_acc_en, false, false, false>(
         unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, face_r_dim, face_r_dim, 0, num_faces, num_faces);
 }

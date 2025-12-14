@@ -12,6 +12,7 @@
 #include "ckernel_template.h"
 #include "llk_defs.h"
 #include "llk_pack_common.h"
+#include "llk_san.h"
 
 using namespace ckernel;
 using namespace ckernel::packer;
@@ -457,9 +458,10 @@ inline void _llk_pack_reconfig_data_format_(
     const std::uint32_t face_r_dim = FACE_R_DIM,
     const std::uint32_t tile_c_dim = TILE_C_DIM,
     const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false)
+    const bool partial_face        = false)
 {
+    llk_san::pack_hw_configure<true>(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, llk_san::DONTCARE);
+
     reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face);
 }
 
@@ -473,11 +475,14 @@ inline void _llk_pack_hw_configure_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
-    configure_pack<is_fp32_dest_acc_en, untilize, tilize>(pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+    llk_san::pack_hw_configure(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+
+    configure_pack<is_fp32_dest_acc_en, false, false>(pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
 }
 
 template <bool untilize = false, bool zero_output = false, bool tilize = false>
 inline void _llk_pack_init_(
+    const std::uint32_t pack_src_format,
     const std::uint32_t pack_dst_format,
     const std::uint32_t face_r_dim = FACE_R_DIM,
     const std::uint32_t tile_c_dim = TILE_C_DIM,
@@ -485,20 +490,12 @@ inline void _llk_pack_init_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
-    _llk_pack_configure_addrmod_<untilize, tilize>();
-    _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
-}
+    llk_san::pack_operand_check(llk_san::DONTCARE, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+    // sstanisic todo: implement
+    // llk_san_init<llk_san_op::Pack>();
+    // llk_san_must_uninit<llk_san_op::Pack>(); // lololol uninit doesn't exist
+    // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::CH0Strides, llk_san_cfg::CH1Strides, llk_san_cfg::AdcXX);
 
-template <bool untilize = false, bool zero_output = false, bool tilize = false>
-inline void _llk_pack_init_(
-    const std::uint32_t pack_src_format,
-    const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim,
-    const std::uint32_t tile_c_dim,
-    const std::uint32_t num_faces,
-    const bool partial_face = false,
-    const bool narrow_tile  = false)
-{
     _llk_pack_configure_addrmod_<untilize, tilize>();
     _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
     set_packer_strides<untilize, tilize>(pack_src_format, pack_dst_format, tile_c_dim);
@@ -508,6 +505,9 @@ inline void _llk_pack_init_(
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
+    // sstanisic todo: implement
+    // llk_san_operation<llk_san_op::Pack>();
+
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
     program_packer_destination(address);

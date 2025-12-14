@@ -12,6 +12,7 @@
 #include "ckernel_template.h"
 #include "llk_defs.h"
 #include "llk_pack_common.h"
+#include "llk_san.h"
 #include "lltt.h"
 #include "sfpi.h"
 
@@ -105,9 +106,16 @@ inline void _llk_pack_untilize_mop_config_(const std::uint32_t face_r_dim = FACE
 }
 
 template <std::uint32_t block_ct_dim, std::uint32_t full_ct_dim = block_ct_dim, bool narrow_row = false, std::uint32_t row_num_datums = TILE_C_DIM>
-inline void _llk_pack_untilize_init_(
-    const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, const bool include_setup_calls = false)
+inline void _llk_pack_untilize_init_(const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
+    llk_san::pack_operand_check(
+        llk_san::DONTCARE, llk_san::DONTCARE, pack_dst_format, face_r_dim, llk_san::DONTCARE, num_faces, llk_san::DONTCARE, llk_san::DONTCARE);
+    // sstanisic todo: implement
+    // llk_san_init<llk_san_op::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, pack_dst_format, face_r_dim);
+    // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::AdcXX); // GPRs are not tracked here for now
+
+    static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
+
     _llk_pack_untilize_configure_addrmod_<narrow_row>();
 
     _llk_pack_untilize_mop_config_<block_ct_dim, full_ct_dim, narrow_row, row_num_datums>(face_r_dim, num_faces);
@@ -118,16 +126,13 @@ inline void _llk_pack_untilize_init_(
         TT_SETDMAREG(0, LOWER_HALFWORD(output_addr_offset / 16), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET)); // store 16B aligned row offset address
     }
 
-    if (include_setup_calls)
+    if constexpr (narrow_row)
     {
-        if constexpr (narrow_row)
-        {
-            TT_SETADCXX(p_setadc::PAC, row_num_datums - 1, 0x0);
-        }
-        else
-        {
-            TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
-        }
+        TT_SETADCXX(p_setadc::PAC, row_num_datums - 1, 0x0);
+    }
+    else
+    {
+        TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
     }
 }
 
@@ -144,6 +149,11 @@ inline void _llk_pack_untilize_(
     [[maybe_unused]] const std::uint32_t num_faces = 4,
     const std::uint32_t tile_dst_rt_offset         = 0)
 {
+    llk_san::pack_operand_check(
+        llk_san::DONTCARE, llk_san::DONTCARE, pack_dst_format, face_r_dim, llk_san::DONTCARE, llk_san::DONTCARE, llk_san::DONTCARE, llk_san::DONTCARE);
+    // sstanisic todo: implement
+    // llk_san_operation<llk_san_op::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, pack_dst_format, face_r_dim);
+
     static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
 
     program_packer_untilized_destination<block_ct_dim, full_ct_dim, row_num_datums>(address, pack_dst_format);

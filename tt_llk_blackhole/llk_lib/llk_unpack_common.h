@@ -10,6 +10,7 @@
 #include "ckernel_defs.h"
 #include "ckernel_ops.h"
 #include "cunpack_common.h"
+#include "llk_san.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -91,12 +92,14 @@ inline void _llk_unpack_debug_dump_seek_(std::uint8_t offset)
     debug_dump_seek(offset);
 }
 
+// These should get merged down into reconfigs
 inline void _llk_unpack_config_tile_dim_srca_impl_(const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 16, 0xffff0000>(num_faces);
     config_unpacker_0_face_dim<true, p_setadc::UNP_A>(face_r_dim);
 }
 
+// These should get merged down into reconfigs
 inline void _llk_unpack_config_tile_dim_srcb_impl_(const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
     const uint face_dim = face_r_dim * FACE_C_DIM;
@@ -104,9 +107,21 @@ inline void _llk_unpack_config_tile_dim_srcb_impl_(const std::uint32_t face_r_di
     cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32 + 1, 16, 0xffff0000>(num_faces);
 }
 
-template <bool is_fp32_dest_acc_en>
+// These should also probably be merged into a single reconfig for both Src regs
+// template <bool is_fp32_dest_acc_en> put this back once we re-add the assert as runtime
 inline void _llk_unpack_reconfig_data_format_srca_impl_(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
+    llk_san::unpack_hw_configure<true>(
+        llk_san::DONTCARE,
+        unpack_src_format,
+        llk_san::DONTCARE,
+        unpack_dst_format,
+        llk_san::DONTCARE,
+        llk_san::DONTCARE,
+        llk_san::DONTCARE,
+        llk_san::DONTCARE,
+        llk_san::DONTCARE);
+
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK0);
     // static_assert(is_fp32_dest_acc_en, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcAUnsigned_RMW>(((uint)unpack_src_format == (uint)DataFormat::UInt8) ? 1 : 0);
@@ -115,9 +130,21 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(const std::uint32_t unpa
     // TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_A)); // update gpr which holds tile size A
 }
 
-template <bool is_fp32_dest_acc_en>
+// These should also probably be merged into a single reconfig for both Src regs
+// template <bool is_fp32_dest_acc_en> put this back once we re-add the assert as runtime
 inline void _llk_unpack_reconfig_data_format_srcb_impl_(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
+    llk_san::unpack_hw_configure<true>(
+        llk_san::DONTCARE,
+        llk_san::DONTCARE,
+        unpack_src_format,
+        llk_san::DONTCARE,
+        unpack_dst_format,
+        llk_san::DONTCARE,
+        llk_san::DONTCARE,
+        llk_san::DONTCARE,
+        llk_san::DONTCARE);
+
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
     // static_assert(is_fp32_dest_acc_en, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcBUnsigned_RMW>(((uint)unpack_src_format == (uint)DataFormat::UInt8) ? 1 : 0);
