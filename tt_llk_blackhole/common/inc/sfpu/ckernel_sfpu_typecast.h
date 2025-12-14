@@ -142,18 +142,19 @@ inline void _calculate_typecast_fp32_to_fp16b_()
     //
     // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
     //
-    // t | Load | Simple          | MAD | Round               | Store   |
-    // - | ---- | --------------- | --- | ------------------- | ------- |
-    // 0 |  [a] |                 |     |                     |         |
-    // 1 |  [b] |                 |     | [a] = shft2(a, -16) |         |
-    // 2 |      | a &= 1          |     |                     |         |
-    // 1 |  ... | [b] += 0x7fff   |     |                     |         |
-    // 2 |  ... | [a] L16 = a + b |     |                     | [a]     |
-    // 3 |  ... |                 |     |                     | [b] L16 |
+    // t | Load | Simple          | MAD | Round      | Store   |
+    // - | ---- | --------------- | --- | ---------- | ------- |
+    // 0 |  [a] |                 |     |            |         |
+    // 1 |  [b] |                 |     | [a] >>= 16 |         |
+    // 2 |      | a &= 1          |     |            |         |
+    // 1 |  ... | [b] += 0x7fff   |     |            |         |
+    // 2 |  ... | [a] L16 = a + b |     |            | [a]     |
+    // 3 |  ... |                 |     |            | [b] L16 |
     //
     // Note that [a] schedules a 32-bit store, writing all zeros except for the
     // LSB, which may be 0 or 1.  Then, [b] schedules a 16-bit store with
-    // MOD0_FMT_BF16.
+    // MOD0_FMT_BF16.  The zeros mean that even if rounding is applied by
+    // packers, the result will be truncated.
 
     constexpr int b = p_sfpu::LREG2;
 
