@@ -7,9 +7,6 @@
 #include "ckernel_sfpu.h"
 #include "llk_sfpu_types.h"
 
-using namespace ckernel;
-using namespace ckernel::sfpu;
-
 namespace test_utils
 {
 
@@ -24,6 +21,8 @@ namespace test_utils
 template <int ITERATIONS>
 void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
 {
+    using namespace ckernel;
+    using namespace ckernel::sfpu;
     switch (operation)
     {
         case SfpuType::abs:
