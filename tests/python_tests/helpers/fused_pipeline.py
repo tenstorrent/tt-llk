@@ -28,8 +28,7 @@ from .llk_params import DestAccumulation, MathFidelity
 
 def create_fuse_pipeline() -> List[FusedOperation]:
     math_fidelity = MathFidelity.LoFi
-    dest_acc = DestAccumulation.No
-    data_format = DataFormat.Float16_b
+    dest_acc = DestAccumulation.Yes
     input_A_dimensions = [64, 64]
     input_B_dimensions = [64, 64]
 
@@ -43,8 +42,8 @@ def create_fuse_pipeline() -> List[FusedOperation]:
                 output="datacopy_output",
                 src_a_dims=input_A_dimensions,
                 src_b_dims=input_B_dimensions,
-                input_format=data_format,
-                output_format=data_format,
+                input_format=DataFormat.Float16_b,
+                output_format=DataFormat.Float16_b,
             ),
             unpacker=UnpackerA,
             math=Math(
@@ -83,8 +82,8 @@ def create_fuse_pipeline() -> List[FusedOperation]:
                 output="elwadd1",
                 src_a_dims=input_A_dimensions,
                 src_b_dims=input_B_dimensions,
-                input_format=data_format,
-                output_format=data_format,
+                input_format=DataFormat.Float16_b,
+                output_format=DataFormat.Float16_b,
             ),
             unpacker=UnpackerAB,
             math=Math(
@@ -101,8 +100,6 @@ def create_fuse_pipeline() -> List[FusedOperation]:
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
         ),
-    ]
-    matmul_ops = [
         FusedOperation(
             operand_mapping=operands.create_mapping(
                 src_a="elwadd1",
@@ -110,8 +107,8 @@ def create_fuse_pipeline() -> List[FusedOperation]:
                 output="matmul_result",
                 src_a_dims=input_A_dimensions,
                 src_b_dims=input_B_dimensions,
-                input_format=data_format,
-                output_format=data_format,
+                input_format=DataFormat.Float16_b,
+                output_format=DataFormat.Float32,
             ),
             unpacker=MatmulUnpacker,
             math=Math(MatmulFpu()),
@@ -125,8 +122,8 @@ def create_fuse_pipeline() -> List[FusedOperation]:
                 src_b="input_D",
                 output="final_output",
                 src_b_dims=input_B_dimensions,
-                input_format=data_format,
-                output_format=data_format,
+                input_format=DataFormat.Float32,
+                output_format=DataFormat.Float32,
             ),
             unpacker=MatmulUnpacker,
             math=Math(
@@ -157,7 +154,5 @@ def create_fuse_pipeline() -> List[FusedOperation]:
             math_fidelity=math_fidelity,
         ),
     ]
-    if data_format != DataFormat.Bfp8_b:
-        pipeline.extend(matmul_ops)
 
     return pipeline

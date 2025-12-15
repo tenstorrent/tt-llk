@@ -23,7 +23,6 @@ class Packer:
         pack_src = operation_config.pack_in
         pack_dst = operation_config.pack_out
 
-        PACK_IN = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_src.name})"
         PACK_OUT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name})"
 
         result_buffer_address = operation_config.output.l1_address
@@ -37,29 +36,36 @@ class Packer:
         code = (
             f"\t// Operation {stage}: Packer\n"
             f"    Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});\n"
+            f"    const uint32_t pack_in_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_src.name});\n"
+            f"    const uint32_t pack_out_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name});\n"
         )
 
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
+            if stage == 0:
+                code += (
+                    f"    _llk_pack_hw_configure_<{dest_acc_value}, false, {TILIZE}>(\n"
+                    f"        pack_in_format{stage}, pack_out_format{stage}, {pack_size}\n"
+                    f"    );\n"
+                )
+            else:
+                code += (
+                    f"    _llk_pack_reconfig_data_format_<{dest_acc_value}, false, DstTileFaceLayout::RowMajor, false>(\n"
+                    f"        pack_in_format{stage}, pack_out_format{stage}, {pack_size}\n"
+                    f"    );\n"
+                )
             code += (
-                f"    _llk_pack_hw_configure_<{dest_acc_value}, false, {TILIZE}>(\n"
-                f"        {PACK_IN},\n"
-                f"        {PACK_OUT},\n"
-                f"        {pack_size}\n"
-                f"    );\n"
                 f"    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, {TILIZE}>(\n"
-                f"        {PACK_OUT}\n"
+                f"        pack_out_format{stage}\n"
                 f"    );\n"
                 f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, DstTileFaceLayout::RowMajor>();\n"
             )
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
             code += (
                 f"    _llk_pack_hw_configure_<{dest_acc_value}, false>(\n"
-                f"        {PACK_IN},\n"
-                f"        {PACK_OUT},\n"
-                f"        {pack_size}\n"
+                f"        pack_in_format{stage}, pack_out_format{stage}, {pack_size}\n"
                 f"    );\n"
                 f"    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(\n"
-                f"        {PACK_OUT}\n"
+                f"        pack_out_format{stage}\n"
                 f"    );\n"
                 f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, DstTileFaceLayout::RowMajor, false>();\n"
             )
