@@ -121,10 +121,10 @@ inline void _calculate_typecast_fp32_to_uint32_()
         TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, sfpi::SFPEXEXP_MOD1_SET_CC_SGN_EXP | sfpi::SFPEXEXP_MOD1_SET_CC_COMP_EXP);
         // result = 0xffffffff
         TTI_SFPLOADI(p_sfpu::LREG1, 4, 0xffff);
-        // exp -= 31 (LaneEnabled = exp < 31)
-        TTI_SFPIADD(-31 & 0xfff, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_IMM | sfpi::SFPIADD_MOD1_CC_LT0);
-        // exp += 8
-        TTI_SFPIADD(8, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_IMM | sfpi::SFPIADD_MOD1_CC_NONE);
+        // exp -= 32 (LaneEnabled = exp < 31)
+        TTI_SFPIADD(-32 & 0xfff, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_IMM | sfpi::SFPIADD_MOD1_CC_LT0);
+        // exp += 9
+        TTI_SFPIADD(9, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_IMM | sfpi::SFPIADD_MOD1_CC_NONE);
         // result = exman8(in) << (exp - 23)
         TTI_SFPEXMAN(0, p_sfpu::LREG0, p_sfpu::LREG1, 0);
         TTI_SFPSHFT(0, p_sfpu::LREG2, p_sfpu::LREG1, 0);
@@ -147,9 +147,9 @@ inline void _calculate_typecast_fp32_to_fp16b_()
     // 0 |  [a] |                 |     |            |         |
     // 1 |  [b] |                 |     | [a] >>= 16 |         |
     // 2 |      | a &= 1          |     |            |         |
-    // 1 |  ... | [b] += 0x7fff   |     |            |         |
-    // 2 |  ... | [a] L16 = a + b |     |            | [a]     |
-    // 3 |  ... |                 |     |            | [b] L16 |
+    // 0 |  ... | [b] += 0x7fff   |     |            |         |
+    // 1 |  ... | [a] L16 = a + b |     |            | [a]     |
+    // 2 |  ... |                 |     |            | [b] L16 |
     //
     // Note that [a] schedules a 32-bit store, writing all zeros except for the
     // LSB, which may be 0 or 1.  Then, [b] schedules a 16-bit store with
