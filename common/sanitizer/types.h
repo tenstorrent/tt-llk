@@ -223,7 +223,7 @@ struct unpack_state_t
     unpack_src_state_t src_a;
     unpack_src_state_t src_b;
     state_t<bool> dest_width_32;
-    state_t<bool> is_configured;
+    bool is_configured = false;
 };
 
 // Math state
@@ -236,7 +236,7 @@ struct math_state_t
 {
     math_src_state_t src_a;
     math_src_state_t src_b;
-    state_t<bool> is_configured;
+    bool is_configured = false;
 };
 
 // Pack state
@@ -250,7 +250,7 @@ struct pack_state_t
     state_t<int32_t> partial_face;
     state_t<int32_t> narrow_tile;
     state_t<bool> dest_width_32;
-    state_t<bool> is_configured;
+    bool is_configured = false;
 };
 
 }; // namespace llk_san
