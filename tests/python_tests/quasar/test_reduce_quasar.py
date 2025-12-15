@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+from itertools import product
+
 import pytest
 import torch
 from helpers.device import collect_results, write_stimuli_to_l1
@@ -41,15 +43,18 @@ POOL_TYPES = [ReducePool.Max, ReducePool.Sum, ReducePool.Average]
 
 
 def generate_pool_type_and_math_fidelity_combinations():
-    combinations = []
-    for pool_type in POOL_TYPES:
-        for math_fidelity in MATH_FIDELITY_MODES:
-            # Math fidelity iterations work only for Sum and Average pool types
-            # Max pool type does eltwise max, Sum and Average pool types do matmul
-            if pool_type == ReducePool.Max and math_fidelity != MathFidelity.LoFi:
-                continue
-            combinations.append((pool_type, math_fidelity))
-    return combinations
+    def is_valid_combination(pool_type, math_fidelity):
+        # Max pool only supports LoFi
+        if pool_type == ReducePool.Max:
+            return math_fidelity == MathFidelity.LoFi
+        # Sum and Average support all fidelities
+        return True
+
+    return [
+        combo
+        for combo in product(POOL_TYPES, MATH_FIDELITY_MODES)
+        if is_valid_combination(*combo)
+    ]
 
 
 @pytest.mark.quasar

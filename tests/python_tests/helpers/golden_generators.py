@@ -1568,20 +1568,21 @@ class ReduceGapoolGolden(FidelityMasking):
         self, src_a, src_b, data_format, fidelity_iter_count, num_faces=FACES_PER_TILE
     ):
         """Compute D = srcB @ srcA for each face, accumulating across fidelity iterations."""
-        face_shape = (FACE_DIM, FACE_DIM)
-        face_results = [0] * num_faces
+        face_results = torch.zeros(
+            num_faces, FACE_DIM * FACE_DIM, dtype=src_a.dtype, device=src_a.device
+        )
 
         for fidelity_iter in range(fidelity_iter_count + 1):
             a_masked, b_masked = self._apply_fidelity_masking(
                 data_format, src_a, src_b, fidelity_iter
             )
-            a_faces = a_masked.view(num_faces, FACE_DIM, FACE_DIM)
-            b_face = b_masked.view(face_shape)
 
-            for i in range(num_faces):
-                face_results[i] = (
-                    face_results[i] + torch.matmul(b_face, a_faces[i]).flatten()
-                )
+            a_faces = a_masked.view(num_faces, FACE_DIM, FACE_DIM)
+            b_face = b_masked.view(1, FACE_DIM, FACE_DIM)
+            result = torch.matmul(b_face, a_faces)
+
+            # Flatten and accumulate in-place
+            face_results += result.view(num_faces, -1)
 
         return face_results
 
