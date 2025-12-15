@@ -120,6 +120,35 @@ def generate_face_matmul_data(
     return src
 
 
+def calculate_tile_and_face_counts(
+    input_dimensions: list,
+    face_r_dim: int,
+    num_faces: int,
+) -> tuple[int, int]:
+    """
+    Calculate tile count and faces to generate based on input dimensions and face configuration.
+
+    Args:
+        input_dimensions: [height, width] in elements
+        face_r_dim: Number of rows in a face (typically 16 for full faces)
+        num_faces: Number of faces to generate for partial face case
+
+    Returns:
+        tuple: (tile_cnt, faces_to_generate)
+    """
+    height, width = input_dimensions
+    if face_r_dim < 16:
+        # Partial face case: generate exactly num_faces worth of data
+        tile_cnt = 1
+        faces_to_generate = num_faces
+    else:
+        # Full tile case
+        tile_cnt = height // 32 * width // 32
+        faces_to_generate = 4
+
+    return tile_cnt, faces_to_generate
+
+
 def generate_stimuli(
     stimuli_format_A=DataFormat.Float16_b,
     stimuli_format_B=DataFormat.Float16_b,
@@ -136,15 +165,9 @@ def generate_stimuli(
     srcB = []
 
     # Handle partial faces
-    height, width = input_dimensions
-    if face_r_dim < 16:
-        # Partial face case: generate exactly num_faces worth of data
-        tile_cnt = 1
-        faces_to_generate = num_faces  # Generate exactly the right number of faces
-    else:
-        # Full tile case
-        tile_cnt = height // 32 * width // 32
-        faces_to_generate = 4
+    tile_cnt, faces_to_generate = calculate_tile_and_face_counts(
+        input_dimensions, face_r_dim, num_faces
+    )
 
     for _ in range(faces_to_generate * tile_cnt):
         face_a, face_b = generate_random_face_ab(
