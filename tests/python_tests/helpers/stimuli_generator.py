@@ -109,34 +109,36 @@ def generate_face_matmul_data(
 
 
 def calculate_tile_and_face_counts(
-    input_dimensions: list,
+    input_dimensions_A: list,
+    input_dimensions_B: list,
     face_r_dim: int,
     num_faces: int,
 ) -> tuple[int, int, int]:
     """
-    Calculate tile count and faces to generate based on input dimensions and face configuration.
+    Calculate tile counts and faces to generate based on input dimensions and face configuration.
 
     Args:
-        input_dimensions: [height, width] in elements
+        input_dimensions_A: [height, width] in elements for input A
+        input_dimensions_B: [height, width] in elements for input B
         face_r_dim: Number of rows in a face (typically 16 for full faces)
         num_faces: Number of faces to generate for partial face case
 
     Returns:
-        tuple: (tile_cnt, faces_to_generate)
+        tuple: (tile_cnt_A, tile_cnt_B, faces_to_generate)
     """
-    height, width = input_dimensions
+    # Handle partial faces
     if face_r_dim < 16:
         # Partial face case: generate exactly num_faces worth of data
-        tile_cnt_A = 1
-        tile_cnt_B = 1
-        faces_to_generate = num_faces
+        tile_cnt_A, tile_cnt_B = 1, 1
+        faces_to_generate = num_faces  # Generate exactly the right number of faces
     else:
         # Full tile case
-        tile_cnt_A = height // 32 * width // 32
-        tile_cnt_B = height // 32 * width // 32
+        tile_cnt_A = input_dimensions_A[0] // 32 * input_dimensions_A[1] // 32
+        tile_cnt_B = input_dimensions_B[0] // 32 * input_dimensions_B[1] // 32
         faces_to_generate = 4
 
     return tile_cnt_A, tile_cnt_B, faces_to_generate
+
 
 def generate_stimuli(
     stimuli_format_A=DataFormat.Float16_b,
@@ -155,9 +157,8 @@ def generate_stimuli(
     srcA = []
     srcB = []
 
-    # Handle partial faces
     tile_cnt_A, tile_cnt_B, faces_to_generate = calculate_tile_and_face_counts(
-        input_dimensions_A, face_r_dim, num_faces
+        input_dimensions_A, input_dimensions_B, face_r_dim, num_faces
     )
 
     for _ in range(faces_to_generate * tile_cnt_A):

@@ -48,6 +48,7 @@ NUM_FACES = 4
         MathOperation.SfpuElwmul,
         MathOperation.SfpuElwdiv,
         MathOperation.SfpuElwrsub,
+        MathOperation.SfpuElwpow,
     ],
     dest_acc=[
         DestAccumulation.Yes,
@@ -162,8 +163,8 @@ def test_perf_eltwise_binary_sfpu_int(
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
     )
 
-    tile_cnt, faces_to_generate = calculate_tile_and_face_counts(
-        input_dimensions, face_r_dim, num_faces
+    tile_cnt, _, faces_to_generate = calculate_tile_and_face_counts(
+        input_dimensions, input_dimensions, face_r_dim, num_faces
     )
 
     test_config = {
@@ -248,8 +249,8 @@ def test_perf_eltwise_binary_sfpu_add_top_row(
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
     )
 
-    tile_cnt, faces_to_generate = calculate_tile_and_face_counts(
-        input_dimensions, face_r_dim, num_faces
+    tile_cnt, _, faces_to_generate = calculate_tile_and_face_counts(
+        input_dimensions, input_dimensions, face_r_dim, num_faces
     )
 
     test_config = {

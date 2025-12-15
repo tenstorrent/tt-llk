@@ -27,6 +27,8 @@ using namespace ckernel::sfpu;
 template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false>
 void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
 {
+    using namespace ckernel;
+    using namespace ckernel::sfpu;
     switch (operation)
     {
         case SfpuType::abs:

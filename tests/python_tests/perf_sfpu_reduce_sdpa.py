@@ -36,6 +36,12 @@ NUM_FACES = 4
     loop_factor=list(
         range(10, 201, 10)
     ),  # Multiple loop factors to minimize profiler overhead
+    face_r_dim=[FACE_R_DIM],
+    num_faces=[NUM_FACES],
+    input_dimensions=[
+        [128, 64],
+    ],
+    run_types=[SFPU_ALL_RUN_TYPES],
 )
 def test_perf_sfpu_reduce_sdpa(
     perf_report,
