@@ -18,6 +18,10 @@ from helpers.test_variant_parameters import (
     REDUCE_POOL_TYPE,
     TILE_COUNT,
 )
+from helpers.stimuli_generator import calculate_tile_and_face_counts
+
+FACE_R_DIM = 16
+NUM_FACES = 4
 
 
 @skip_for_blackhole
@@ -33,6 +37,12 @@ from helpers.test_variant_parameters import (
     loop_factor=list(
         range(10, 201, 10)
     ),  # Multiple loop factors to minimize profiler overhead
+    face_r_dim=[FACE_R_DIM],
+    num_faces=[NUM_FACES],
+    input_dimensions=[
+        [128, 64],
+    ],
+    run_types=[SFPU_ALL_RUN_TYPES],
 )
 def test_perf_sfpu_reduce_sdpa(
     perf_report,
