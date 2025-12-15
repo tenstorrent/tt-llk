@@ -220,7 +220,6 @@ inline void _llk_unpack_A_init_(
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // Set transpose register to prevent state pollution
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose);
-    TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::XY));
 
     constexpr std::uint32_t UNP_SEL = (BType == BroadcastType::NONE || unpack_to_dest) ? p_setadc::UNP_A : p_setadc::UNP_B;
     if constexpr ((BType == BroadcastType::ROW || BType == BroadcastType::SCALAR) && unpack_to_dest) // ROW and SCALAR bcast will only upk a single row
