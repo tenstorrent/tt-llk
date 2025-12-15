@@ -78,8 +78,7 @@ void run_kernel()
     constexpr DataFormat src_format = static_cast<DataFormat>(formats.math);
     _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, false /* int32 dest */, src_format, src_format>();
 
-    constexpr ckernel::MathFidelity math_fidelity = static_cast<ckernel::MathFidelity>(MATH_FIDELITY);
-    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, math_fidelity>(tile_shape_A);
+    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, static_cast<MathFidelity>(MATH_FIDELITY)>(tile_shape_A);
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_math_reduce_(i);

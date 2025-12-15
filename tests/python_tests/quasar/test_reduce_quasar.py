@@ -61,12 +61,18 @@ def generate_pool_type_and_math_fidelity_combinations():
             DataFormat.Float16,
         ],
     ),
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type_and_math_fidelity=generate_pool_type_and_math_fidelity_combinations(),
+    implied_math_format=[ImpliedMathFormat.No, ImpliedMathFormat.Yes],
 )
 def test_reduce_quasar(
-    test_name, formats, dest_acc, reduce_dim, pool_type_and_math_fidelity
+    test_name,
+    formats,
+    dest_acc,
+    reduce_dim,
+    pool_type_and_math_fidelity,
+    implied_math_format,
 ):
 
     pool_type, math_fidelity = pool_type_and_math_fidelity
@@ -107,7 +113,7 @@ def test_reduce_quasar(
         "pool_type": pool_type,
         "mathop": mathop,
         "math_fidelity": math_fidelity,
-        "implied_math_format": ImpliedMathFormat.Yes,
+        "implied_math_format": implied_math_format,
         "tile_cnt": tile_cnt,
     }
 
