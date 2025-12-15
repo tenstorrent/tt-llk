@@ -19,7 +19,6 @@ inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const 
     llk_san::math_hw_configure(srca_data_format, srcb_data_format);
 
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH | p_stall::WAIT_SFPU);
-    uint exp_width         = ((uint)srca_data_format >> 2) & 0x1; // 0=5-bit, 1=8-bit
     uint int8_math_enabled = ((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) ||
                              ((uint)srca_data_format == (uint)DataFormat::Int32) || ((uint)srcb_data_format == (uint)DataFormat::Int32);
     uint config_data = (srca_data_format << ALU_FORMAT_SPEC_REG0_SrcA_SHAMT) | (srcb_data_format << ALU_FORMAT_SPEC_REG1_SrcB_SHAMT) |
