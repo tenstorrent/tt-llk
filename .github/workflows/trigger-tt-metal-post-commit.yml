@@ -10,8 +10,10 @@ on:
         required: true
         type: number
 
+# Stable concurrency group - uses inputs.pr_number first (for workflow_dispatch),
+# then PR number, with run_id as fallback to ensure group is never empty
 concurrency:
-  group: post-commit-tests-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+  group: post-commit-tests-${{ inputs.pr_number || github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 permissions:
@@ -22,8 +24,25 @@ permissions:
   checks: read
 
 jobs:
+  # Resolve PR number early to ensure stable values across all jobs
+  resolve-pr:
+    name: "🔢 Resolve PR number"
+    runs-on: ubuntu-latest
+    outputs:
+      pr-number: ${{ steps.pr.outputs.pr-number }}
+    steps:
+      - name: Resolve PR number
+        id: pr
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "pr-number=${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
+          else
+            echo "pr-number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          fi
+
   setup-branch:
     name: "🔧 Setup branch for testing"
+    needs: resolve-pr
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'workflow_dispatch' ||
@@ -42,7 +61,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # Manual dispatch - get PR info from API
-            PR_NUMBER="${{ github.event.inputs.pr_number }}"
+            PR_NUMBER="${{ inputs.pr_number }}"
             PR_DATA=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER)
             HEAD_REPO=$(echo "$PR_DATA" | jq -r '.head.repo.full_name')
             HEAD_REF=$(echo "$PR_DATA" | jq -r '.head.ref')
@@ -100,7 +119,7 @@ jobs:
 
   wait-for-mirror:
     name: "⏳ Wait for mirror completion"
-    needs: setup-branch
+    needs: [resolve-pr, setup-branch]
     if: |
       (contains(github.event.pull_request.labels.*.name, 'metal-post-commit-tests') ||
        github.event_name == 'workflow_dispatch') &&
@@ -142,7 +161,7 @@ jobs:
 
   detect-changes:
     name: "📁 Detect file changes and determine tests"
-    needs: [setup-branch, wait-for-mirror]
+    needs: [resolve-pr, setup-branch, wait-for-mirror]
     if: |
       always() &&
       (contains(github.event.pull_request.labels.*.name, 'metal-post-commit-tests') ||
@@ -178,7 +197,6 @@ jobs:
 
           # Check if any files in tt_llk_blackhole directory are changed
           BLACKHOLE_CHANGES=$(echo "$CHANGED_FILES" | grep -E "^tt_llk_blackhole/" || true)
-
           # Check if any files in tt_llk_wormhole_b0 directory are changed
           WORMHOLE_CHANGES=$(echo "$CHANGED_FILES" | grep -E "^tt_llk_wormhole_b0/" || true)
 
@@ -215,16 +233,74 @@ jobs:
             echo "should-skip=false" >> $GITHUB_OUTPUT
           fi
 
-  trigger-tt-metal-tests:
-    name: "🚀 Run post-commit tests"
-    needs: [setup-branch, wait-for-mirror, detect-changes]
+  # Cancel any previous tt-metal workflows BEFORE triggering new ones
+  cancel-previous-metal-workflows:
+    name: "🛑 Cancel previous tt-metal workflows"
+    needs: [resolve-pr, setup-branch, detect-changes]
     if: |
       always() &&
       (contains(github.event.pull_request.labels.*.name, 'metal-post-commit-tests') ||
-      github.event_name == 'workflow_dispatch') &&
+       github.event_name == 'workflow_dispatch') &&
       needs.detect-changes.result == 'success' &&
       needs.detect-changes.outputs.should-skip != 'true'
-    uses: tenstorrent/tt-metal/.github/workflows/test-llk-metal-integration.yaml@filip/monitor-running-workflows-in-parallel
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel previous spawned workflows on tt-metal
+        env:
+          GH_TOKEN: ${{ secrets.LLK_UPLIFT_PAT }}
+        run: |
+          echo "🛑 Cancelling any previous tt-metal workflows for this branch..."
+          MIRRORED_BRANCH="${{ needs.setup-branch.outputs.branch-to-run }}"
+
+          # Cancel test-llk-metal-integration runs matching our branch pattern
+          echo "🔍 Checking for test-llk-metal-integration runs..."
+          gh run list \
+            --repo tenstorrent/tt-metal \
+            --workflow test-llk-metal-integration.yaml \
+            --status in_progress \
+            --json databaseId,headBranch \
+            | jq -r --arg pattern "test-llk-$MIRRORED_BRANCH-" \
+              '.[] | select(.headBranch | startswith($pattern)) | .databaseId' \
+            | xargs -r -I {} sh -c 'echo "🛑 Cancelling run {}..." && gh run cancel {} --repo tenstorrent/tt-metal || true'
+
+          # Cancel spawned post-commit workflows
+          SPAWNED_WORKFLOWS=("all-post-commit-workflows.yaml" "blackhole-post-commit.yaml" "tt-metal-l2-nightly.yaml")
+          STATUSES=("queued" "in_progress")
+
+          for workflow in "${SPAWNED_WORKFLOWS[@]}"; do
+            for status in "${STATUSES[@]}"; do
+              echo "🔍 Checking for $status instances of $workflow..."
+              run_ids=$(gh run list \
+                --repo tenstorrent/tt-metal \
+                --workflow "$workflow" \
+                --status "$status" \
+                --limit 100 \
+                --json databaseId,headBranch \
+                | jq -r --arg pattern "test-llk-$MIRRORED_BRANCH-" \
+                  '.[] | select(.headBranch | startswith($pattern)) | .databaseId')
+
+              if [ -n "$run_ids" ]; then
+                for run_id in $run_ids; do
+                  echo "🛑 Cancelling run $run_id ($workflow)..."
+                  gh run cancel "$run_id" --repo tenstorrent/tt-metal || true
+                done
+              fi
+            done
+          done
+
+          echo "✅ Previous workflow cleanup completed"
+
+  trigger-tt-metal-tests:
+    name: "🚀 Run post-commit tests"
+    needs: [resolve-pr, setup-branch, wait-for-mirror, detect-changes, cancel-previous-metal-workflows]
+    if: |
+      always() &&
+      (contains(github.event.pull_request.labels.*.name, 'metal-post-commit-tests') ||
+       github.event_name == 'workflow_dispatch') &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.should-skip != 'true' &&
+      needs.cancel-previous-metal-workflows.result != 'failure'
+    uses: tenstorrent/tt-metal/.github/workflows/test-llk-metal-integration.yaml@main
     secrets: inherit
     with:
       mirrored_branch: ${{ needs.setup-branch.outputs.branch-to-run }}
@@ -232,27 +308,59 @@ jobs:
       run_blackhole_post_commit: ${{ needs.detect-changes.outputs.run-blackhole == 'true' }}
       workflow_timeout: 360
 
+  # Reactive cancellation - runs when this workflow is cancelled
+  cancel-on-workflow-cancellation:
+    name: "🧹 Cleanup on cancellation"
+    needs: [setup-branch, trigger-tt-metal-tests]
+    if: cancelled()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel downstream tt-metal runs
+        env:
+          GH_TOKEN: ${{ secrets.LLK_UPLIFT_PAT }}
+        run: |
+          echo "🛑 Workflow cancelled - cleaning up downstream tt-metal workflows..."
+          MIRRORED_BRANCH="${{ needs.setup-branch.outputs.branch-to-run }}"
+
+          # Cancel test-llk-metal-integration runs
+          gh run list \
+            --repo tenstorrent/tt-metal \
+            --workflow test-llk-metal-integration.yaml \
+            --status in_progress \
+            --json databaseId,headBranch \
+            | jq -r --arg pattern "test-llk-$MIRRORED_BRANCH-" \
+              '.[] | select(.headBranch | startswith($pattern)) | .databaseId' \
+            | xargs -r -I {} sh -c 'echo "🛑 Cancelling run {}..." && gh run cancel {} --repo tenstorrent/tt-metal || true'
+
+          # Cancel spawned workflows
+          for workflow in all-post-commit-workflows.yaml blackhole-post-commit.yaml tt-metal-l2-nightly.yaml; do
+            for status in queued in_progress; do
+              gh run list \
+                --repo tenstorrent/tt-metal \
+                --workflow "$workflow" \
+                --status "$status" \
+                --limit 100 \
+                --json databaseId,headBranch \
+                | jq -r --arg pattern "test-llk-$MIRRORED_BRANCH-" \
+                  '.[] | select(.headBranch | startswith($pattern)) | .databaseId' \
+                | xargs -r -I {} sh -c 'gh run cancel {} --repo tenstorrent/tt-metal || true'
+            done
+          done
+
+          echo "✅ Downstream cleanup completed"
+
   post-comment:
     name: "💬 Post workflow status comment"
-    needs: [setup-branch, detect-changes, trigger-tt-metal-tests]
+    needs: [resolve-pr, setup-branch, detect-changes, trigger-tt-metal-tests]
     if: |
       always() &&
       (contains(github.event.pull_request.labels.*.name, 'metal-post-commit-tests') ||
        github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     outputs:
-      pr-number: ${{ steps.get-pr-number.outputs.pr-number }}
+      pr-number: ${{ needs.resolve-pr.outputs.pr-number }}
       tt-metal-run-url: ${{ steps.find-run.outputs.run-url }}
     steps:
-      - name: Get PR number
-        id: get-pr-number
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "pr-number=${{ github.event.inputs.pr_number }}" >> $GITHUB_OUTPUT
-          else
-            echo "pr-number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Parse test results
         id: parse-results
         run: |
@@ -299,15 +407,8 @@ jobs:
           GH_TOKEN: ${{ secrets.LLK_UPLIFT_PAT }}
         run: |
           echo "🔍 Looking for the triggered tt-metal workflow run..."
-
-          # Wait a moment for the workflow to appear
           sleep 15
 
-          # Get recent workflow runs from tt-metal repo
-          # Look for runs that started around the same time as this workflow
-          CURRENT_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-
-          # Get workflow runs from the last 10 minutes
           RUN_DATA=$(gh run list \
             --repo tenstorrent/tt-metal \
             --workflow test-llk-metal-integration.yaml \
@@ -317,9 +418,7 @@ jobs:
           echo "Recent tt-metal runs:"
           echo "$RUN_DATA" | jq -r '.[] | "ID: \(.databaseId) Status: \(.status) Created: \(.createdAt) URL: \(.url)"'
 
-          # Get the most recent run (likely ours)
           LATEST_RUN=$(echo "$RUN_DATA" | jq -r '.[0]')
-
           if [ "$LATEST_RUN" != "null" ] && [ -n "$LATEST_RUN" ]; then
             RUN_ID=$(echo "$LATEST_RUN" | jq -r '.databaseId')
             RUN_URL=$(echo "$LATEST_RUN" | jq -r '.url')
@@ -388,6 +487,7 @@ jobs:
           RUN_WH="${{ needs.detect-changes.outputs.run-wormhole }}"
           RUN_BH="${{ needs.detect-changes.outputs.run-blackhole }}"
           [[ "$RUN_WH" == "true" || "$RUN_BH" == "true" ]] && RUN_L2="true" || RUN_L2="false"
+
           L2_RESULT=$(format_test_result "C++ post-commit" \
             "$RUN_L2" \
             "${{ steps.parse-results.outputs.l2-status }}" \
@@ -410,13 +510,13 @@ jobs:
       - name: Post comment on PR
         uses: mshick/add-pr-comment@v2
         with:
-          issue: ${{ steps.get-pr-number.outputs.pr-number }}
-          # using run_id to ensure it's unique for every workflow run
+          issue: ${{ needs.resolve-pr.outputs.pr-number }}
           message-id: llk-${{ github.run_id }}
           message: |
             ## 🚀 tt-metal post-commit tests
 
             **Branch:** `${{ needs.setup-branch.outputs.branch-to-run }}`
+
             **Test Configuration:**
             - Wormhole tests: ${{
                   needs.detect-changes.outputs.run-wormhole == 'true' &&
