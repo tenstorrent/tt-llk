@@ -53,14 +53,14 @@ template <bool reconfig>
 static inline void unpack_hw_configure_impl(
     unpack_state_t& state,
     state_t<bool> dst_acc_en,
-    state_t<int32_t> src_fmt_A,
-    state_t<int32_t> src_fmt_B,
-    state_t<int32_t> dst_fmt_A,
-    state_t<int32_t> dst_fmt_B,
-    state_t<int32_t> face_height_A,
-    state_t<int32_t> face_height_B,
-    state_t<int32_t> num_faces_A,
-    state_t<int32_t> num_faces_B)
+    state_t<uint32_t> src_fmt_A,
+    state_t<uint32_t> src_fmt_B,
+    state_t<uint32_t> dst_fmt_A,
+    state_t<uint32_t> dst_fmt_B,
+    state_t<uint32_t> face_height_A,
+    state_t<uint32_t> face_height_B,
+    state_t<uint32_t> num_faces_A,
+    state_t<uint32_t> num_faces_B)
 {
     LLK_SAN_PANIC(!reconfig && state.is_configured, "panic: llk_san: user tried to configure unpacker twice");
     LLK_SAN_PANIC(reconfig && !state.is_configured, "panic: llk_san: user tried to reconfigure unpacker before configuring it");
@@ -85,7 +85,7 @@ static inline void unpack_hw_configure_impl(
 
 // State set + no hw config within kernel check
 template <bool reconfig = false>
-static inline void math_hw_configure_impl(math_state_t& state, state_t<int32_t> math_fmt_A, state_t<int32_t> math_fmt_B)
+static inline void math_hw_configure_impl(math_state_t& state, state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
 {
     LLK_SAN_PANIC(!reconfig && state.is_configured, "panic: llk_san: user tried to configure math twice");
     LLK_SAN_PANIC(reconfig && !state.is_configured, "panic: llk_san: user tried to reconfigure math before configuring it");
@@ -100,13 +100,13 @@ template <bool reconfig>
 static inline void pack_hw_configure_impl(
     pack_state_t& state,
     state_t<bool> dest_acc_en,
-    state_t<int32_t> src_fmt,
-    state_t<int32_t> dst_fmt,
-    state_t<int32_t> face_height,
-    state_t<int32_t> tile_width,
-    state_t<int32_t> num_faces,
-    state_t<int32_t> partial_face,
-    state_t<int32_t> narrow_tile)
+    state_t<uint32_t> src_fmt,
+    state_t<uint32_t> dst_fmt,
+    state_t<uint32_t> face_height,
+    state_t<uint32_t> tile_width,
+    state_t<uint32_t> num_faces,
+    state_t<bool> partial_face,
+    state_t<bool> narrow_tile)
 {
     LLK_SAN_PANIC(reconfig && !state.is_configured, "panic: llk_san: user tried to reconfigure packer before configuring it");
     LLK_SAN_PANIC(!reconfig && state.is_configured, "panic: llk_san: user tried to configure packer twice");
@@ -127,14 +127,14 @@ static inline void pack_hw_configure_impl(
 static inline void unpack_operand_check_impl(
     unpack_state_t& state,
     state_t<bool> dest_acc_en,
-    state_t<int32_t> src_fmt_A,
-    state_t<int32_t> src_fmt_B,
-    state_t<int32_t> dst_fmt_A,
-    state_t<int32_t> dst_fmt_B,
-    state_t<int32_t> face_height_A,
-    state_t<int32_t> face_height_B,
-    state_t<int32_t> num_faces_A,
-    state_t<int32_t> num_faces_B)
+    state_t<uint32_t> src_fmt_A,
+    state_t<uint32_t> src_fmt_B,
+    state_t<uint32_t> dst_fmt_A,
+    state_t<uint32_t> dst_fmt_B,
+    state_t<uint32_t> face_height_A,
+    state_t<uint32_t> face_height_B,
+    state_t<uint32_t> num_faces_A,
+    state_t<uint32_t> num_faces_B)
 {
     LLK_SAN_PANIC(!state.is_configured, "panic: llk_san: executing init/execute/uninit before hwconfigure");
     LLK_SAN_PANIC(state.dest_width_32 == dest_acc_en, "panic: llk_san: dest_acc_en doesn't match state.dest_width_32");
@@ -149,7 +149,7 @@ static inline void unpack_operand_check_impl(
 }
 
 // No state set, just check that non x arguments match the stored ones
-static inline void math_operand_check_impl(math_state_t& state, state_t<int32_t> math_fmt_A, state_t<int32_t> math_fmt_B)
+static inline void math_operand_check_impl(math_state_t& state, state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
 {
     LLK_SAN_PANIC(!state.is_configured, "panic: llk_san: executing init/execute/uninit before hwconfigure");
     LLK_SAN_PANIC(state.src_a.input_format != math_fmt_A, "panic: llk_san: math_fmt_A doesn't match state.src_a.input_format");
@@ -160,13 +160,13 @@ static inline void math_operand_check_impl(math_state_t& state, state_t<int32_t>
 static inline void pack_operand_check_impl(
     pack_state_t& state,
     state_t<bool> dest_acc_en,
-    state_t<int32_t> src_fmt,
-    state_t<int32_t> dst_fmt,
-    state_t<int32_t> face_height,
-    state_t<int32_t> tile_width,
-    state_t<int32_t> num_faces,
-    state_t<int32_t> partial_face,
-    state_t<int32_t> narrow_tile)
+    state_t<uint32_t> src_fmt,
+    state_t<uint32_t> dst_fmt,
+    state_t<uint32_t> face_height,
+    state_t<uint32_t> tile_width,
+    state_t<uint32_t> num_faces,
+    state_t<bool> partial_face,
+    state_t<bool> narrow_tile)
 {
     LLK_SAN_PANIC(!state.is_configured, "panic: llk_san: executing init/execute/uninit before hwconfigure");
     LLK_SAN_PANIC(state.dest_width_32 != dest_acc_en, "panic: llk_san: dest_acc_en doesn't match state.dest_width_32");
