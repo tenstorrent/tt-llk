@@ -63,14 +63,14 @@ inline void _calculate_typecast_fp32_to_int32_()
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
+        TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::Default, ADDR_MOD_3, 0);
         // result = 0
-        TTI_SFPLOADI(p_sfpu::LREG1, 0, 0);
+        TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_USHORT, 0);
 
         // exp = in.Exp (LaneEnabled = exp >= 0)
         TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, sfpi::SFPEXEXP_MOD1_SET_CC_SGN_EXP | sfpi::SFPEXEXP_MOD1_SET_CC_COMP_EXP);
         // result = INT_MIN
-        TTI_SFPLOADI(p_sfpu::LREG1, 0, 0x8000);
+        TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, 0x8000);
         // exp -= 31 (LaneEnabled = exp < 31)
         TTI_SFPIADD(-31 & 0xfff, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_IMM | sfpi::SFPIADD_MOD1_CC_LT0);
         // exp += 8
@@ -88,7 +88,7 @@ inline void _calculate_typecast_fp32_to_int32_()
         // LaneEnabled = true
         TTI_SFPENCC(0, 0, 0, 0);
 
-        TTI_SFPSTORE(p_sfpu::LREG1, 4, ADDR_MOD_2, 0);
+        TTI_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::INT32, ADDR_MOD_2, 0);
     }
 }
 
@@ -98,16 +98,16 @@ inline void _calculate_typecast_fp32_to_uint32_()
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
+        TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::Default, ADDR_MOD_3, 0);
         // result = 0
-        TTI_SFPLOADI(p_sfpu::LREG1, 0, 0);
+        TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_USHORT, 0);
 
         // LaneEnabled = in >= 0
         TTI_SFPSETCC(0, p_sfpu::LREG0, 0, sfpi::SFPSETCC_MOD1_LREG_GTE0);
         // exp = in.Exp (LaneEnabled = exp >= 0)
         TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, sfpi::SFPEXEXP_MOD1_SET_CC_SGN_EXP | sfpi::SFPEXEXP_MOD1_SET_CC_COMP_EXP);
         // result = 0xffffffff
-        TTI_SFPLOADI(p_sfpu::LREG1, 4, 0xffff);
+        TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_SHORT, 0xffff);
         // exp -= 32 (LaneEnabled = exp < 31)
         TTI_SFPIADD(-32 & 0xfff, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_ARG_IMM | sfpi::SFPIADD_MOD1_CC_LT0);
         // exp += 9
@@ -118,7 +118,7 @@ inline void _calculate_typecast_fp32_to_uint32_()
         // LaneEnabled = true
         TTI_SFPENCC(0, 0, 0, 0);
 
-        TTI_SFPSTORE(p_sfpu::LREG1, 4, ADDR_MOD_2, 0);
+        TTI_SFPSTORE(p_sfpu::LREG1, InstrModLoadStore::INT32, ADDR_MOD_2, 0);
     }
 }
 
@@ -272,7 +272,7 @@ inline void _init_typecast_fp32_to_fp16b_()
     sfpi::vConstIntPrgm1 = 0x7fff;
 
     // InstructionTemplate[0]
-    TTI_SFPSHFT2(-16 & 0xfff, 0, 12, 6);
+    TTI_SFPSHFT2(-16 & 0xfff, 0, 12, 6); // SFPSHFT2_MOD1_SHFT_IMM
 
     // InstructionTemplate[1]
     TTI_SFPIADD(0, p_sfpu::LREG13, 13, sfpi::SFPIADD_MOD1_CC_NONE);
