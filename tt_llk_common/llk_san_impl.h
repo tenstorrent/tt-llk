@@ -151,6 +151,7 @@ static inline void unpack_operand_check_impl(
 // No state set, just check that non x arguments match the stored ones
 static inline void math_operand_check_impl(math_state_t& state, state_t<int32_t> math_fmt_A, state_t<int32_t> math_fmt_B)
 {
+    LLK_SAN_PANIC(!state.is_configured, "panic: llk_san: executing init/execute/uninit before hwconfigure");
     LLK_SAN_PANIC(state.src_a.input_format != math_fmt_A, "panic: llk_san: math_fmt_A doesn't match state.src_a.input_format");
     LLK_SAN_PANIC(state.src_b.input_format != math_fmt_B, "panic: llk_san: math_fmt_B doesn't match state.src_b.input_format");
 }
@@ -167,6 +168,7 @@ static inline void pack_operand_check_impl(
     state_t<int32_t> partial_face,
     state_t<int32_t> narrow_tile)
 {
+    LLK_SAN_PANIC(!state.is_configured, "panic: llk_san: executing init/execute/uninit before hwconfigure");
     LLK_SAN_PANIC(state.dest_width_32 != dest_acc_en, "panic: llk_san: dest_acc_en doesn't match state.dest_width_32");
     LLK_SAN_PANIC(state.input_format != src_fmt, "panic: llk_san: src_fmt doesn't match state.input_format");
     LLK_SAN_PANIC(state.output_format != dst_fmt, "panic: llk_san: dst_fmt doesn't match state.output_format");
