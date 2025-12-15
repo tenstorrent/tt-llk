@@ -13,14 +13,18 @@ from helpers.llk_params import (
     format_dict,
 )
 from helpers.param_config import input_output_formats, parametrize
-from helpers.perf_analyzer import (
-    TILE_HEIGHT,
-    TILE_WIDTH,
-    clear_perf_counter_memory,
-    collect_perf_counter_data,
-    print_performance_analysis,
+from helpers.perf_counters import (
+    CounterBank,
+    PerfCounterConfig,
+    clear_perf_counters,
+    collect_perf_counters,
+    print_perf_counters,
+    write_perf_config,
 )
 from helpers.stimuli_generator import generate_stimuli
+
+TILE_HEIGHT = 32
+TILE_WIDTH = 32
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
@@ -82,15 +86,22 @@ def test_multiple_tiles(
         tile_count_B=tile_cnt,
     )
 
-    from ttexalens.tt_exalens_lib import write_words_to_device
+    # Configure performance counters
+    perf_config = PerfCounterConfig()
+    perf_config.add_counter(CounterBank.FPU, "FPU_OP_VALID")
+    perf_config.add_counter(CounterBank.INSTRN_THREAD, "INST_UNPACK")
+    perf_config.add_counter(CounterBank.TDMA_UNPACK, "UNPACK_BUSY_0")
+    perf_config.add_counter(CounterBank.L1, "NOC_RING0_INCOMING_0")
+    perf_config.add_counter(CounterBank.TDMA_PACK, "PACK_BUSY_10")
+    perf_config.set_mode("grants")
 
-    clear_perf_counter_memory()
+    clear_perf_counters()
+    write_perf_config(perf_config)
 
-    for iteration in range(28):
-        write_words_to_device(location="0,0", addr=0x2F7FC, data=iteration)
-        run_test(test_config)
+    run_test(test_config)
 
     workload_info = {
+        "test": "eltwise",
         "tile_ops": tile_cnt,
         "operations": tile_cnt * TILE_HEIGHT * TILE_WIDTH,
         "tile_count": tile_cnt,
@@ -98,10 +109,8 @@ def test_multiple_tiles(
         "operation": str(mathop),
     }
 
-    all_iteration_data = collect_perf_counter_data()
-    print_performance_analysis(
-        workload_info=workload_info, iteration_data=all_iteration_data
-    )
+    results = collect_perf_counters(perf_config)
+    print_perf_counters(results, workload_info)
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)

@@ -28,13 +28,13 @@ void run_kernel()
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
 
-    llk_perf::start_profiling();
+    llk_perf::start_perf_counters();
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(buffer_A[i]), 0, formats.unpack_src, formats.unpack_dst);
     }
-    llk_perf::stop_profiling();
+    llk_perf::stop_perf_counters();
 }
 
 #endif
@@ -172,7 +172,7 @@ void run_kernel()
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
 
-    llk_perf::start_profiling();
+    llk_perf::start_perf_counters();
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
@@ -188,7 +188,7 @@ void run_kernel()
 
         _llk_math_eltwise_unary_sfpu_done_();
     }
-    llk_perf::stop_profiling();
+    llk_perf::stop_perf_counters();
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
@@ -219,12 +219,12 @@ void run_kernel()
 #endif
 
     _llk_packer_wait_for_math_done_();
-    llk_perf::start_profiling();
+    llk_perf::start_perf_counters();
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
-    llk_perf::stop_profiling();
+    llk_perf::stop_perf_counters();
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 

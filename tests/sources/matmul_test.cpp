@@ -39,7 +39,7 @@ void run_kernel()
         TILE_SIZE_UNPACK_B);
     _llk_unpack_AB_matmul_init_<>(0, CT_DIM, RT_DIM, KT_DIM, FACE_R_DIM, FACE_R_DIM);
 
-    llk_perf::start_profiling();
+    llk_perf::start_perf_counters();
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
         _llk_unpack_AB_matmul_<>(
@@ -57,7 +57,7 @@ void run_kernel()
             RT_DIM,
             KT_DIM);
     }
-    llk_perf::stop_profiling();
+    llk_perf::stop_perf_counters();
 }
 
 #endif
@@ -76,12 +76,12 @@ void run_kernel()
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
-    llk_perf::start_profiling();
+    llk_perf::start_perf_counters();
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
         _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0, 0, CT_DIM, RT_DIM, KT_DIM);
     }
-    llk_perf::stop_profiling();
+    llk_perf::stop_perf_counters();
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
@@ -108,12 +108,12 @@ void run_kernel()
 #endif
     _llk_packer_wait_for_math_done_();
 
-    llk_perf::start_profiling();
+    llk_perf::start_perf_counters();
     for (int i = 0; i < TILE_CNT; i++)
     {
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
-    llk_perf::stop_profiling();
+    llk_perf::stop_perf_counters();
 
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

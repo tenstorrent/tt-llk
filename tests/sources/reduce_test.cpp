@@ -39,9 +39,9 @@ void run_kernel()
     config_unpacker_x_end<UNP_SEL>(FACE_R_DIM);
     _llk_unpack_AB_mop_config_<BroadcastType::NONE>(false /* transpose_of_faces */, 4 /* num_faces */, false /* narrow_tile */);
 
-    llk_perf::start_profiling();
+    llk_perf::start_perf_counters();
     _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), false /* transpose_of_faces, unused */);
-    llk_perf::stop_profiling();
+    llk_perf::stop_perf_counters();
 }
 
 #endif
@@ -62,9 +62,9 @@ void run_kernel()
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
     _llk_math_hw_configure_<false, row_pool>(formats.math, formats.math);
     _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, enforce_fp32_accumulation>(within_face_16x16_transpose);
-    llk_perf::start_profiling();
+    llk_perf::start_perf_counters();
     _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, is_int_fpu_en, enforce_fp32_accumulation>(0);
-    llk_perf::stop_profiling();
+    llk_perf::stop_perf_counters();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -96,9 +96,9 @@ void run_kernel()
 #endif
 
     _llk_packer_wait_for_math_done_();
-    llk_perf::start_profiling();
+    llk_perf::start_perf_counters();
     _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
-    llk_perf::stop_profiling();
+    llk_perf::stop_perf_counters();
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
     _llk_pack_reduce_mask_clear_();

@@ -8,12 +8,48 @@
 
 #include "ckernel.h"
 
+/**
+ * Performance Counter API
+ *
+ * Provides a simple interface for measuring up to 5 hardware performance counters.
+ * Configuration is written by Python, and C++ code starts/stops counting.
+ *
+ * Usage from Python:
+ *   from helpers.perf_counters import PerfCounterConfig, CounterBank
+ *
+ *   config = PerfCounterConfig()
+ *   config.add_counter(CounterBank.FPU, "FPU_OP_VALID")
+ *   config.add_counter(CounterBank.INSTRN_THREAD, "INST_UNPACK")
+ *   config.set_mode("grants")  # or "requests"
+ *
+ *   write_perf_config(config)
+ *
+ * Usage from C++:
+ *   #include "perf_counters.h"
+ *
+ *   llk_perf::start_perf_counters();
+ *   // ... run workload ...
+ *   llk_perf::stop_perf_counters();
+ */
+
 namespace llk_perf
 {
-#define RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0 (RISCV_DEBUG_REGS_START_ADDR | 0xC)
-#define RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK1 (RISCV_DEBUG_REGS_START_ADDR | 0x10)
-#define RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK2 (RISCV_DEBUG_REGS_START_ADDR | 0x14)
 
+// Note: Most counter base register addresses are defined in hw_specific/<arch>/inc/tensix.h
+// TDMA_UNPACK registers are missing from hardware headers, so we define them here
+#ifndef RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0
+#define RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0 (RISCV_DEBUG_REGS_START_ADDR | 0x00C)
+#define RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK1 (RISCV_DEBUG_REGS_START_ADDR | 0x010)
+#define RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK2 (RISCV_DEBUG_REGS_START_ADDR | 0x014)
+#endif
+
+// L1 counter MUX control register - bit 4 selects which L1 counter set is active
+#ifndef RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL
+#define RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL (RISCV_DEBUG_REGS_START_ADDR | 0x218)
+#endif
+
+// Performance counter output registers (for reading cycle/count results)
+// NOTE: Table shows TDMA_UNPACK outputs at 0x018/0x01C but empirically 0x108/0x10C works
 #define RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD (RISCV_DEBUG_REGS_START_ADDR | 0x100)
 #define RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD (RISCV_DEBUG_REGS_START_ADDR | 0x104)
 #define RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK   (RISCV_DEBUG_REGS_START_ADDR | 0x108)
@@ -25,577 +61,191 @@ namespace llk_perf
 #define RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU           (RISCV_DEBUG_REGS_START_ADDR | 0x120)
 #define RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU           (RISCV_DEBUG_REGS_START_ADDR | 0x124)
 
-namespace counters
+// L1 Memory layout
+#define PERF_COUNTER_CONFIG_ADDR 0x2F7F0 // 5 words: configuration
+#define PERF_COUNTER_DATA_ADDR   0x2F800 // 10 words: output (5 counters × 2 words)
+
+// Configuration word format: [mode_bit(16), counter_sel(8-15), bank_id(0-7)]
+enum class CounterBank : uint32_t
 {
-namespace fpu
-{
-constexpr uint32_t FPU_OP_VALID  = 0;
-constexpr uint32_t SFPU_OP_VALID = 1;
-} // namespace fpu
-
-namespace instrn_thread
-{
-
-constexpr uint32_t INST_CFG     = 0;
-constexpr uint32_t INST_SYNC    = 1;
-constexpr uint32_t INST_THCON   = 2;
-constexpr uint32_t INST_XSEARCH = 3;
-constexpr uint32_t INST_MOVE    = 4;
-constexpr uint32_t INST_MATH    = 5;
-constexpr uint32_t INST_UNPACK  = 6;
-constexpr uint32_t INST_PACK    = 7;
-constexpr uint32_t STALLED      = 8;
-
-constexpr uint32_t SRCA_CLEARED_0 = 9;
-constexpr uint32_t SRCA_CLEARED_1 = 10;
-constexpr uint32_t SRCA_CLEARED_2 = 11;
-
-constexpr uint32_t SRCB_CLEARED_0 = 12;
-constexpr uint32_t SRCB_CLEARED_1 = 13;
-constexpr uint32_t SRCB_CLEARED_2 = 14;
-
-constexpr uint32_t SRCA_VALID_0 = 15;
-constexpr uint32_t SRCA_VALID_1 = 16;
-constexpr uint32_t SRCA_VALID_2 = 17;
-
-constexpr uint32_t SRCB_VALID_0 = 18;
-constexpr uint32_t SRCB_VALID_1 = 19;
-constexpr uint32_t SRCB_VALID_2 = 20;
-
-constexpr uint32_t STALL_THCON            = 21;
-constexpr uint32_t STALL_PACK0            = 22;
-constexpr uint32_t STALL_MATH             = 23;
-constexpr uint32_t STALL_SEM_ZERO         = 24;
-constexpr uint32_t STALL_SEM_MAX          = 25;
-constexpr uint32_t STALL_MOVE             = 26;
-constexpr uint32_t STALL_TRISC_REG_ACCESS = 27;
-constexpr uint32_t STALL_SFPU             = 28;
-} // namespace instrn_thread
-
-namespace tdma_unpack
-{
-
-constexpr uint32_t MATH_INSTR_SRC_READY = 0;
-constexpr uint32_t MATH_NOT_D2A_STALL   = 1;
-constexpr uint32_t MATH_FIDELITY_PHASES = 2;
-constexpr uint32_t MATH_INSTR_BUF_RDEN  = 3;
-constexpr uint32_t MATH_INSTR_VALID     = 4;
-constexpr uint32_t TDMA_SRCB_REGIF_WREN = 5;
-constexpr uint32_t TDMA_SRCA_REGIF_WREN = 6;
-constexpr uint32_t UNPACK_BUSY_0        = 7;
-constexpr uint32_t UNPACK_BUSY_1        = 8;
-constexpr uint32_t UNPACK_BUSY_2        = 9;
-constexpr uint32_t UNPACK_BUSY_3        = 10;
-
-} // namespace tdma_unpack
-
-namespace tdma_pack
-{
-
-constexpr uint32_t DSTAC_RDEN_RAW_0    = 0;
-constexpr uint32_t DSTAC_RDEN_RAW_1    = 1;
-constexpr uint32_t DSTAC_RDEN_RAW_2    = 2;
-constexpr uint32_t DSTAC_RDEN_RAW_3    = 3;
-constexpr uint32_t PACK_NOT_DEST_STALL = 4;
-constexpr uint32_t PACK_NOT_SB_STALL   = 5;
-constexpr uint32_t PACK_BUSY_10        = 6;
-constexpr uint32_t PACK_BUSY_11        = 7;
-
-} // namespace tdma_pack
-
-namespace l1
-{
-
-constexpr uint32_t UNPACK_NO_ARB        = 7;
-constexpr uint32_t UNPACK_ARB_1         = 6;
-constexpr uint32_t TDMA_BUNDLE_0_ARB    = 5;
-constexpr uint32_t TDMA_BUNDLE_1_ARB    = 4;
-constexpr uint32_t NOC_RING0_OUTGOING_0 = 3;
-constexpr uint32_t NOC_RING0_OUTGOING_1 = 2;
-constexpr uint32_t NOC_RING0_INCOMING_0 = 1;
-constexpr uint32_t NOC_RING0_INCOMING_1 = 0;
-
-constexpr uint32_t TDMA_PACKER_2_WR     = 7;
-constexpr uint32_t TDMA_EXT_UNPACK_9    = 6;
-constexpr uint32_t TDMA_EXT_UNPACK_10   = 5;
-constexpr uint32_t TDMA_EXT_UNPACK_11   = 4;
-constexpr uint32_t NOC_RING1_OUTGOING_0 = 3;
-constexpr uint32_t NOC_RING1_OUTGOING_1 = 2;
-constexpr uint32_t NOC_RING1_INCOMING_0 = 1;
-constexpr uint32_t NOC_RING1_INCOMING_1 = 0;
-} // namespace l1
-
-} // namespace counters
-
-#define PERF_ITERATION_ADDR      0x2F7FC
-#define PERF_COUNTER_DATA_ADDR   0x2F800
-#define PERF_COUNTER_TOTAL_WORDS 1080
-
-inline void set_profiling_iteration(uint32_t iteration)
-{
-    volatile uint32_t* iter_ptr = reinterpret_cast<volatile uint32_t*>(PERF_ITERATION_ADDR);
-    *iter_ptr                   = iteration;
-}
-
-inline uint32_t get_profiling_iteration()
-{
-    volatile uint32_t* iter_ptr = reinterpret_cast<volatile uint32_t*>(PERF_ITERATION_ADDR);
-    return *iter_ptr;
-}
-
-inline bool is_request_mode(uint32_t iteration)
-{
-    return iteration >= 14;
-}
-
-inline void init_profiling()
-{
-    set_profiling_iteration(0);
-
-    volatile uint32_t* l1_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_DATA_ADDR);
-    for (uint32_t i = 0; i < PERF_COUNTER_TOTAL_WORDS; i++)
-    {
-        l1_mem[i] = 0;
-    }
-}
-
-struct PerfCounterDef
-{
-    uint32_t reg_base;
-    uint32_t counter_sel;
+    INSTRN_THREAD = 0,
+    FPU           = 1,
+    TDMA_UNPACK   = 2,
+    L1            = 3,
+    TDMA_PACK     = 4,
 };
 
-inline void start_profiling()
+// Map bank enum to hardware register base addresses
+inline constexpr uint32_t get_counter_base_addr(CounterBank bank)
 {
-    volatile uint32_t* dbg_regs = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
-    uint32_t iteration          = get_profiling_iteration();
-
-#ifdef LLK_TRISC_UNPACK
-
-    const uint32_t counters_per_iteration = 5;
-    bool request_mode                     = is_request_mode(iteration);
-    uint32_t actual_iteration             = request_mode ? (iteration - 14) : iteration;
-    uint32_t base_counter                 = actual_iteration * counters_per_iteration;
-
-    const PerfCounterDef unpack_counters[] = {
-
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_CFG},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_INSTR_SRC_READY},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::UNPACK_NO_ARB},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_0},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_SYNC},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_NOT_D2A_STALL},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::UNPACK_ARB_1},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_1},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_THCON},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_FIDELITY_PHASES},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_BUNDLE_0_ARB},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_2},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_XSEARCH},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_INSTR_BUF_RDEN},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_BUNDLE_1_ARB},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_3},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_MOVE},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_INSTR_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING0_OUTGOING_0},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_NOT_DEST_STALL},
-
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_MATH},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::TDMA_SRCB_REGIF_WREN},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING0_OUTGOING_1},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_NOT_SB_STALL},
-
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_UNPACK},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::TDMA_SRCA_REGIF_WREN},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING0_INCOMING_0},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_BUSY_10},
-
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_PACK},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::UNPACK_BUSY_0},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING0_INCOMING_1},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_BUSY_11},
-
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::STALLED},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::UNPACK_BUSY_1},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_PACKER_2_WR},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_0},
-
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCA_CLEARED_0},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::UNPACK_BUSY_2},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_EXT_UNPACK_9},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_1},
-
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCA_CLEARED_1},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::UNPACK_BUSY_3},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_EXT_UNPACK_10},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_2},
-
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCA_CLEARED_2},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_INSTR_SRC_READY},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_EXT_UNPACK_11},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_3},
-
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCB_CLEARED_0},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_NOT_D2A_STALL},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING1_OUTGOING_0},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_NOT_DEST_STALL},
-
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCB_CLEARED_1},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_FIDELITY_PHASES},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING1_OUTGOING_1},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_NOT_SB_STALL},
-    };
-    const uint32_t num_unpack_counters = 70;
-    uint32_t mode_bits                 = request_mode ? 0 : (1 << 16);
-
-    for (uint32_t i = 0; i < 5; i++)
+    switch (bank)
     {
-        uint32_t counter_idx          = (base_counter + i) % num_unpack_counters;
-        const PerfCounterDef& counter = unpack_counters[counter_idx];
-
-        dbg_regs[(counter.reg_base - RISCV_DEBUG_REGS_START_ADDR) / 4]     = 0xFFFFFFFF;
-        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8) | mode_bits;
-        dbg_regs[(counter.reg_base + 8 - RISCV_DEBUG_REGS_START_ADDR) / 4] = 1;
+        case CounterBank::INSTRN_THREAD:
+            return RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0;
+        case CounterBank::FPU:
+            return RISCV_DEBUG_REG_PERF_CNT_FPU0;
+        case CounterBank::TDMA_UNPACK:
+            return RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0;
+        case CounterBank::L1:
+            return RISCV_DEBUG_REG_PERF_CNT_L1_0;
+        case CounterBank::TDMA_PACK:
+            return RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0;
+        default:
+            return 0;
     }
-#endif
-
-#ifdef LLK_TRISC_MATH
-
-    const uint32_t counters_per_iteration = 5;
-    bool request_mode                     = is_request_mode(iteration);
-    uint32_t actual_iteration             = request_mode ? (iteration - 14) : iteration;
-    uint32_t base_counter                 = actual_iteration * counters_per_iteration;
-
-    const PerfCounterDef math_counters[] = {
-
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_CFG},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_INSTR_SRC_READY},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::UNPACK_NO_ARB},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_0},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_SYNC},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_NOT_D2A_STALL},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::UNPACK_ARB_1},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_1},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_THCON},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_FIDELITY_PHASES},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_BUNDLE_0_ARB},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_2},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_XSEARCH},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_INSTR_BUF_RDEN},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_BUNDLE_1_ARB},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_3},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_MOVE},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_INSTR_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING0_OUTGOING_0},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_NOT_DEST_STALL},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_MATH},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::TDMA_SRCB_REGIF_WREN},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING0_OUTGOING_1},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_NOT_SB_STALL},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_UNPACK},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::TDMA_SRCA_REGIF_WREN},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING0_INCOMING_0},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_BUSY_10},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_PACK},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::UNPACK_BUSY_0},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING0_INCOMING_1},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_BUSY_11},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::STALLED},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::UNPACK_BUSY_1},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_PACKER_2_WR},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_0},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCA_CLEARED_0},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::UNPACK_BUSY_2},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_EXT_UNPACK_9},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_1},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCA_CLEARED_1},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::UNPACK_BUSY_3},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_EXT_UNPACK_10},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_2},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCA_CLEARED_2},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_INSTR_SRC_READY},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_EXT_UNPACK_11},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_3},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCB_CLEARED_0},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_NOT_D2A_STALL},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING1_OUTGOING_0},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_NOT_DEST_STALL},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCB_CLEARED_1},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_FIDELITY_PHASES},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING1_OUTGOING_1},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_NOT_SB_STALL},
-    };
-    const uint32_t num_math_counters = 70;
-
-    uint32_t mode_bits = request_mode ? 0 : (1 << 16);
-
-    for (uint32_t i = 0; i < 5; i++)
-    {
-        uint32_t counter_idx          = (base_counter + i) % num_math_counters;
-        const PerfCounterDef& counter = math_counters[counter_idx];
-
-        dbg_regs[(counter.reg_base - RISCV_DEBUG_REGS_START_ADDR) / 4]     = 0xFFFFFFFF;
-        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8) | mode_bits;
-        dbg_regs[(counter.reg_base + 8 - RISCV_DEBUG_REGS_START_ADDR) / 4] = 1;
-    }
-#endif
-
-#ifdef LLK_TRISC_PACK
-
-    const uint32_t counters_per_iteration = 5;
-    bool request_mode                     = is_request_mode(iteration);
-    uint32_t actual_iteration             = request_mode ? (iteration - 14) : iteration;
-    uint32_t base_counter                 = actual_iteration * counters_per_iteration;
-
-    const PerfCounterDef pack_counters[] = {
-
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_CFG},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_INSTR_SRC_READY},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::UNPACK_NO_ARB},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_0},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_SYNC},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_NOT_D2A_STALL},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::UNPACK_ARB_1},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_1},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_THCON},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_FIDELITY_PHASES},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_BUNDLE_0_ARB},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_2},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_XSEARCH},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_INSTR_BUF_RDEN},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_BUNDLE_1_ARB},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_3},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_MOVE},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_INSTR_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING0_OUTGOING_0},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_NOT_DEST_STALL},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_MATH},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::TDMA_SRCB_REGIF_WREN},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING0_OUTGOING_1},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_NOT_SB_STALL},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_UNPACK},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::TDMA_SRCA_REGIF_WREN},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING0_INCOMING_0},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_BUSY_10},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::INST_PACK},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::UNPACK_BUSY_0},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING0_INCOMING_1},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_BUSY_11},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::STALLED},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::UNPACK_BUSY_1},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_PACKER_2_WR},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_0},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCA_CLEARED_0},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::UNPACK_BUSY_2},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_EXT_UNPACK_9},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_1},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCA_CLEARED_1},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::UNPACK_BUSY_3},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_EXT_UNPACK_10},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_2},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCA_CLEARED_2},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_INSTR_SRC_READY},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::TDMA_EXT_UNPACK_11},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::DSTAC_RDEN_RAW_3},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCB_CLEARED_0},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::FPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_NOT_D2A_STALL},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING1_OUTGOING_0},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_NOT_DEST_STALL},
-        {RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, counters::instrn_thread::SRCB_CLEARED_1},
-        {RISCV_DEBUG_REG_PERF_CNT_FPU0, counters::fpu::SFPU_OP_VALID},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0, counters::tdma_unpack::MATH_FIDELITY_PHASES},
-        {RISCV_DEBUG_REG_PERF_CNT_L1_0, counters::l1::NOC_RING1_OUTGOING_1},
-        {RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0, counters::tdma_pack::PACK_NOT_SB_STALL},
-    };
-    const uint32_t num_pack_counters = 70;
-
-    uint32_t mode_bits = request_mode ? 0 : (1 << 16);
-
-    for (uint32_t i = 0; i < 5; i++)
-    {
-        uint32_t counter_idx          = (base_counter + i) % num_pack_counters;
-        const PerfCounterDef& counter = pack_counters[counter_idx];
-
-        dbg_regs[(counter.reg_base - RISCV_DEBUG_REGS_START_ADDR) / 4]     = 0xFFFFFFFF;
-        dbg_regs[(counter.reg_base + 4 - RISCV_DEBUG_REGS_START_ADDR) / 4] = (counter.counter_sel << 8) | mode_bits;
-        dbg_regs[(counter.reg_base + 8 - RISCV_DEBUG_REGS_START_ADDR) / 4] = 1;
-    }
-#endif
 }
 
-inline void stop_profiling()
+// Map bank enum to output register addresses (for reading cycle/count)
+inline constexpr uint32_t get_counter_output_low_addr(CounterBank bank)
 {
-    volatile uint32_t* dbg_regs = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
+    switch (bank)
+    {
+        case CounterBank::INSTRN_THREAD:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD;
+        case CounterBank::FPU:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU;
+        case CounterBank::TDMA_UNPACK:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK;
+        case CounterBank::L1:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_DBG_L1;
+        case CounterBank::TDMA_PACK:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_PACK;
+        default:
+            return 0;
+    }
+}
 
-#ifdef LLK_TRISC_UNPACK
+inline constexpr uint32_t get_counter_output_high_addr(CounterBank bank)
+{
+    switch (bank)
+    {
+        case CounterBank::INSTRN_THREAD:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD;
+        case CounterBank::FPU:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU;
+        case CounterBank::TDMA_UNPACK:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK;
+        case CounterBank::L1:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_DBG_L1;
+        case CounterBank::TDMA_PACK:
+            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK;
+        default:
+            return 0;
+    }
+}
 
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD2 - RISCV_DEBUG_REGS_START_ADDR) / 4] = 0;
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_FPU2 - RISCV_DEBUG_REGS_START_ADDR) / 4]           = 0;
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK2 - RISCV_DEBUG_REGS_START_ADDR) / 4]   = 0;
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_L1_2 - RISCV_DEBUG_REGS_START_ADDR) / 4]           = 0;
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK2 - RISCV_DEBUG_REGS_START_ADDR) / 4]     = 0;
+/**
+ * Initialize performance counters - clear all configuration and data
+ */
+inline void init_perf_counters()
+{
+    // Clear configuration
+    volatile uint32_t* config_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_CONFIG_ADDR);
+    for (uint32_t i = 0; i < 5; i++)
+    {
+        config_mem[i] = 0;
+    }
 
-    volatile uint32_t* l1_control = reinterpret_cast<volatile uint32_t*>(0x2F7FC);
-    uint32_t iteration            = l1_control[0];
-    bool request_mode             = is_request_mode(iteration);
-    uint32_t actual_iteration     = request_mode ? (iteration - 14) : iteration;
-    uint32_t base_offset          = (request_mode ? 540 : 0) + (actual_iteration * 10);
+    // Clear output data
+    volatile uint32_t* data_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_DATA_ADDR);
+    for (uint32_t i = 0; i < 10; i++)
+    {
+        data_mem[i] = 0;
+    }
+}
 
-    volatile uint32_t* l1_mem = reinterpret_cast<volatile uint32_t*>(0x2F800);
-    uint32_t cycles, count;
+/**
+ * Start performance counters based on configuration written by Python.
+ *
+ * Reads configuration from L1 memory and programs hardware registers accordingly.
+ * Each of the 3 TRISC cores (UNPACK, MATH, PACK) calls this independently.
+ */
+inline void start_perf_counters()
+{
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+    volatile uint32_t* dbg_regs   = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
+    volatile uint32_t* config_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_CONFIG_ADDR);
 
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 0] = cycles;
-    l1_mem[base_offset + 1] = count;
+    // Program each counter
+    for (uint32_t i = 0; i < 5; i++)
+    {
+        uint32_t config = config_mem[i];
+        if (config == 0)
+        {
+            continue; // Unused counter slot
+        }
 
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 2] = cycles;
-    l1_mem[base_offset + 3] = count;
+        // Decode configuration: [mux_ctrl_bit4(17), mode_bit(16), counter_sel(8-15), bank_id(0-7)]
+        uint32_t bank_id       = config & 0xFF;
+        uint32_t counter_sel   = (config >> 8) & 0xFF;
+        uint32_t mode_bit      = (config >> 16) & 0x1;
+        uint32_t mux_ctrl_bit4 = (config >> 17) & 0x1;
 
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 4] = cycles;
-    l1_mem[base_offset + 5] = count;
+        CounterBank bank = static_cast<CounterBank>(bank_id);
 
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_DBG_L1 - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_DBG_L1 - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 6] = cycles;
-    l1_mem[base_offset + 7] = count;
+        // If L1 counter, configure MUX_CTRL register bit 4
+        if (bank == CounterBank::L1)
+        {
+            uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            dbg_regs[mux_ctrl_addr] = (mux_ctrl_bit4 << 4);
+        }
 
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_PACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 8] = cycles;
-    l1_mem[base_offset + 9] = count;
-#endif
+        uint32_t counter_base     = get_counter_base_addr(bank);
+        uint32_t counter_reg_addr = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
 
-#ifdef LLK_TRISC_MATH
+        // Program counter: reset, configure mode/sel, start
+        dbg_regs[counter_reg_addr]     = 0xFFFFFFFF;                            // Reset counter
+        dbg_regs[counter_reg_addr + 1] = (counter_sel << 8) | (mode_bit << 16); // Mode register
+        dbg_regs[counter_reg_addr + 2] = 1;                                     // Start counting
+    }
+#pragma GCC diagnostic pop
+}
 
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD2 - RISCV_DEBUG_REGS_START_ADDR) / 4] = 0;
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_FPU2 - RISCV_DEBUG_REGS_START_ADDR) / 4]           = 0;
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK2 - RISCV_DEBUG_REGS_START_ADDR) / 4]   = 0;
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_L1_2 - RISCV_DEBUG_REGS_START_ADDR) / 4]           = 0;
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK2 - RISCV_DEBUG_REGS_START_ADDR) / 4]     = 0;
+/**
+ * Stop performance counters and save results to L1 memory.
+ *
+ * Reads cycle/count outputs from hardware registers and writes to L1
+ * for Python to collect later.
+ */
+inline void stop_perf_counters()
+{
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+    volatile uint32_t* dbg_regs   = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
+    volatile uint32_t* config_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_CONFIG_ADDR);
+    volatile uint32_t* data_mem   = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_DATA_ADDR);
 
-    volatile uint32_t* l1_control = reinterpret_cast<volatile uint32_t*>(0x2F7FC);
-    uint32_t iteration            = l1_control[0];
-    bool request_mode             = is_request_mode(iteration);
-    uint32_t actual_iteration     = request_mode ? (iteration - 14) : iteration;
-    uint32_t base_offset          = 200 + (request_mode ? 540 : 0) + (actual_iteration * 10);
+    // Stop all configured counters and read their outputs
+    for (uint32_t i = 0; i < 5; i++)
+    {
+        uint32_t config = config_mem[i];
+        if (config == 0)
+        {
+            continue; // Unused counter slot
+        }
 
-    volatile uint32_t* l1_mem = reinterpret_cast<volatile uint32_t*>(0x2F800);
-    uint32_t cycles, count;
+        // Decode bank
+        uint32_t bank_id = config & 0xFF;
+        CounterBank bank = static_cast<CounterBank>(bank_id);
 
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 0] = cycles;
-    l1_mem[base_offset + 1] = count;
+        // Stop counter
+        uint32_t counter_base          = get_counter_base_addr(bank);
+        uint32_t counter_reg_addr      = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
+        dbg_regs[counter_reg_addr + 2] = 0; // Stop bit
 
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 2] = cycles;
-    l1_mem[base_offset + 3] = count;
+        // Read outputs
+        uint32_t output_low_addr  = (get_counter_output_low_addr(bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
+        uint32_t output_high_addr = (get_counter_output_high_addr(bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
 
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 4] = cycles;
-    l1_mem[base_offset + 5] = count;
+        uint32_t cycles = dbg_regs[output_low_addr];
+        uint32_t count  = dbg_regs[output_high_addr];
 
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_DBG_L1 - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_DBG_L1 - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 6] = cycles;
-    l1_mem[base_offset + 7] = count;
-
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_PACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 8] = cycles;
-    l1_mem[base_offset + 9] = count;
-#endif
-
-#ifdef LLK_TRISC_PACK
-
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD2 - RISCV_DEBUG_REGS_START_ADDR) / 4] = 0;
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_FPU2 - RISCV_DEBUG_REGS_START_ADDR) / 4]           = 0;
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK2 - RISCV_DEBUG_REGS_START_ADDR) / 4]     = 0;
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_L1_2 - RISCV_DEBUG_REGS_START_ADDR) / 4]           = 0;
-    dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK2 - RISCV_DEBUG_REGS_START_ADDR) / 4]   = 0;
-
-    volatile uint32_t* l1_control = reinterpret_cast<volatile uint32_t*>(0x2F7FC);
-    uint32_t iteration            = l1_control[0];
-    bool request_mode             = is_request_mode(iteration);
-    uint32_t actual_iteration     = request_mode ? (iteration - 14) : iteration;
-    uint32_t base_offset          = 400 + (request_mode ? 540 : 0) + (actual_iteration * 10);
-
-    volatile uint32_t* l1_mem = reinterpret_cast<volatile uint32_t*>(0x2F800);
-    uint32_t cycles, count;
-
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 0] = cycles;
-    l1_mem[base_offset + 1] = count;
-
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 2] = cycles;
-    l1_mem[base_offset + 3] = count;
-
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_PACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 4] = cycles;
-    l1_mem[base_offset + 5] = count;
-
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_DBG_L1 - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_DBG_L1 - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 6] = cycles;
-    l1_mem[base_offset + 7] = count;
-
-    cycles                  = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    count                   = dbg_regs[(RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK - RISCV_DEBUG_REGS_START_ADDR) / 4];
-    l1_mem[base_offset + 8] = cycles;
-    l1_mem[base_offset + 9] = count;
-#endif
+        // Write to L1 memory (2 words per counter: cycles, count)
+        data_mem[i * 2]     = cycles;
+        data_mem[i * 2 + 1] = count;
+    }
+#pragma GCC diagnostic pop
 }
 
 } // namespace llk_perf
