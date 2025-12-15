@@ -212,10 +212,10 @@ enum class llk_san_operand_t
 // Unpacker state
 struct unpack_src_state_t
 {
-    state_t<int32_t> input_format;
-    state_t<int32_t> output_format;
-    state_t<int32_t> face_height;
-    state_t<int32_t> num_faces;
+    state_t<uint32_t> input_format;
+    state_t<uint32_t> output_format;
+    state_t<uint32_t> face_height;
+    state_t<uint32_t> num_faces;
 };
 
 struct unpack_state_t
@@ -229,7 +229,7 @@ struct unpack_state_t
 // Math state
 struct math_src_state_t
 {
-    state_t<int32_t> input_format;
+    state_t<uint32_t> input_format;
 };
 
 struct math_state_t
@@ -242,13 +242,13 @@ struct math_state_t
 // Pack state
 struct pack_state_t
 {
-    state_t<int32_t> input_format;
-    state_t<int32_t> output_format;
-    state_t<int32_t> face_height;
-    state_t<int32_t> tile_width;
-    state_t<int32_t> num_faces;
-    state_t<int32_t> partial_face;
-    state_t<int32_t> narrow_tile;
+    state_t<uint32_t> input_format;
+    state_t<uint32_t> output_format;
+    state_t<uint32_t> face_height;
+    state_t<uint32_t> tile_width;
+    state_t<uint32_t> num_faces;
+    state_t<bool> partial_face;
+    state_t<bool> narrow_tile;
     state_t<bool> dest_width_32;
     bool is_configured = false;
 };
