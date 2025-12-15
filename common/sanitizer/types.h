@@ -43,7 +43,7 @@ private:
 public:
     // CONSTRUCTION
     // Default to INDETERMINATE state because hardware is not initialized
-    state_t() : state_type(state_type_t::indeterminate), underlying {}
+    state_t() : underlying {}, state_type(state_type_t::indeterminate)
     {
     }
 
@@ -53,18 +53,18 @@ public:
     // - other                  -> state_t with state_type == determinate (storing the value)
 
     // Constructor for DONTCARE
-    constexpr state_t(dontcare_t) : state_type(state_type_t::dontcare), underlying {}
+    constexpr state_t(dontcare_t) : underlying {}, state_type(state_type_t::dontcare)
     {
     }
 
     // Constructor for INDETERMINATE
-    constexpr state_t(indeterminate_t) : state_type(state_type_t::indeterminate), underlying {}
+    constexpr state_t(indeterminate_t) : underlying {}, state_type(state_type_t::indeterminate)
     {
     }
 
     // Constructor for DETERMINATE value
     template <typename U, typename = std::enable_if_t<!std::is_same_v<std::decay_t<U>, state_t>>>
-    constexpr state_t(U&& value) : state_type(state_type_t::determinate), underlying(std::forward<U>(value))
+    constexpr state_t(U&& value) : underlying(std::forward<U>(value)), state_type(state_type_t::determinate)
     {
     }
 
