@@ -139,7 +139,6 @@ class FusedKernelGenerator:
         kernels = self.generate_all()
 
         combined = (
-            f"\n"
             f"#define FUSE_TEST\n"
             f"#include <cstdint>\n"
             f"\n"

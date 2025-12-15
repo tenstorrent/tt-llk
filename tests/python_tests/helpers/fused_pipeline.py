@@ -20,7 +20,6 @@ from helpers.fused_unpacker import MatmulUnpacker, UnpackerA, UnpackerAB
 from helpers.llk_params import (
     ApproximationMode,
     MathOperation,
-    Tilize,
 )
 
 from .llk_params import DestAccumulation, MathFidelity
@@ -72,8 +71,6 @@ def create_fuse_pipeline() -> List[FusedOperation]:
             packer=Packer,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
-            unpack_to_dest=False,
-            tilize=Tilize.No,
         ),
         FusedOperation(
             operand_mapping=operands.create_mapping(

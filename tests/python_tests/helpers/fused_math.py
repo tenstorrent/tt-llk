@@ -69,27 +69,23 @@ class MatmulFpu(Fpu):
 
     def exec(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
-        CT_DIM = operation_config.ct_dim
-        RT_DIM = operation_config.rt_dim
-        KT_DIM = operation_config.kt_dim
-        math_format = operation_config.math_format
-        MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
-        fidelity = operation_config.math_fidelity
-        MATH_FIDELITY = fidelity.value
+        ct_dim = operation_config.ct_dim
+        rt_dim = operation_config.rt_dim
+        kt_dim = operation_config.kt_dim
+        math_fidelity = operation_config.math_fidelity.value
         dest_acc = operation_config.dest_acc.value
 
         code = (
             f"    // Operation {stage}: Matmul FPU\n"
-            f"    _llk_math_matmul_init_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, {CT_DIM}, {RT_DIM});\n"
-            f"    _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();\n"
-            f"    _llk_math_hw_configure_<false, false>(\n"
-            f"        {MATH_FORMAT},\n"
-            f"        {MATH_FORMAT}\n"
+            f"    _llk_math_matmul_init_<{math_fidelity}, DstTileFaceLayout::RowMajor>(\n"
+            f"        TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, {ct_dim}, {rt_dim}\n"
             f"    );\n"
-            f"    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();\n"
-            f"    for (uint32_t j = 0; j < {KT_DIM}; j++)\n"
+            f"    _llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n"
+            f"    _llk_math_hw_configure_<false, false>(math_format{stage}, math_format{stage});\n"
+            f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
+            f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
             f"    {{\n"
-            f"        _llk_math_matmul_<{MATH_FIDELITY}, DstTileFaceLayout::RowMajor>(0, {CT_DIM}, {RT_DIM});\n"
+            f"        _llk_math_matmul_<{math_fidelity}, DstTileFaceLayout::RowMajor>(0, {ct_dim}, {rt_dim});\n"
             f"    }}\n"
         )
 
@@ -128,32 +124,22 @@ class EltwiseFpu(Fpu):
 
     def exec(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
-        math_format = operation_config.math_format
-        MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
-        fidelity = operation_config.math_fidelity
-        MATH_FIDELITY = fidelity.value
+        math_fidelity = operation_config.math_fidelity.value
         dest_acc = operation_config.dest_acc.value
         tile_cnt = operation_config.output.tile_count
+        op = self.operation.cpp_enum_value
 
         code = (
-            f"    // Operation {stage}: Eltwise {self.operation.cpp_enum_value} FPU\n"
-            f"    _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();\n"
-            f"    _llk_math_hw_configure_<false, false>(\n"
-            f"        {MATH_FORMAT},\n"
-            f"        {MATH_FORMAT}\n"
-            f"    );\n"
-            f"    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{self.operation.cpp_enum_value}, BroadcastType::NONE, {MATH_FIDELITY}>(4, 0);\n"
+            f"    // Operation {stage}: Eltwise {op} FPU\n"
+            f"    _llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n"
+            f"    _llk_math_hw_configure_<false, false>(math_format{stage}, math_format{stage});\n"
+            f"    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{op}, BroadcastType::NONE, {math_fidelity}>(4, 0);\n"
             f"\n"
-            f"    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();\n"
+            f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
             f"    for (int i = 0; i < {tile_cnt}; i++)\n"
             f"    {{\n"
-            f"        _llk_math_eltwise_binary_<\n"
-            f"            {self.operation.cpp_enum_value},\n"
-            f"            BroadcastType::NONE,\n"
-            f"            DstSync::SyncHalf,\n"
-            f"            {dest_acc},\n"
-            f"            {MATH_FIDELITY},\n"
-            f"            EltwiseBinaryReuseDestType::NONE>(4, i, false);\n"
+            f"        _llk_math_eltwise_binary_<{op}, BroadcastType::NONE, dest_sync{stage},\n"
+            f"            {dest_acc}, {math_fidelity}, EltwiseBinaryReuseDestType::NONE>(4, i, false);\n"
             f"    }}\n"
         )
 
@@ -198,14 +184,13 @@ class DatacopyFpu(Fpu):
 
     def exec(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
-        math_format = operation_config.math_format
-        MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
         dest_acc = operation_config.dest_acc.value
         tile_cnt = operation_config.output.tile_count
         tilize_en = operation_config.tilize.value
-        brodcast_type = "NONE"  # TODO: make dynamic based on operation_config
+        # TODO: make dynamic based on operation_config
+        brodcast_type = "BroadcastType::NONE"
         unpack_to_dest = "true" if operation_config.unpack_to_dest else "false"
-        data_copy_type = operation_config.data_copy_type.value
+        data_copy_type = f"DataCopyType::{operation_config.data_copy_type.name}"
         num_faces = operation_config.num_faces
         is_int_fpu_en = dest_acc
         dst_index = operation_config.dst_index
@@ -213,32 +198,37 @@ class DatacopyFpu(Fpu):
         code = f"    // Operation {stage}: Datacopy FPU\n"
 
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
-            code += f"    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::{data_copy_type}, {dest_acc}, BroadcastType::{brodcast_type}, {tilize_en}, {is_int_fpu_en}>({num_faces}, {MATH_FORMAT});\n"
+            code += (
+                f"    _llk_math_eltwise_unary_datacopy_init_<{data_copy_type}, {dest_acc}, {brodcast_type}, {tilize_en}, {is_int_fpu_en}>(\n"
+                f"        {num_faces}, math_format{stage}\n"
+                f"    );\n"
+            )
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
-            code += f"    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::{data_copy_type}, {dest_acc}, BroadcastType::{brodcast_type}, {is_int_fpu_en}>({num_faces}, {MATH_FORMAT});\n"
+            code += (
+                f"    _llk_math_eltwise_unary_datacopy_init_<{data_copy_type}, {dest_acc}, {brodcast_type}, {is_int_fpu_en}>(\n"
+                f"        {num_faces}, math_format{stage}\n"
+                f"    );\n"
+            )
         else:
             raise ValueError("Unsupported architecture for DatacopyFpu")
 
         code += (
-            f"    _llk_math_pack_sync_init_<DstSync::SyncHalf, {dest_acc}>();\n"
-            f"    _llk_math_hw_configure_<false, false>(\n"
-            f"        {MATH_FORMAT},\n"
-            f"        {MATH_FORMAT}\n"
-            f"    );\n"
-            f"    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();\n"
+            f"    _llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n"
+            f"    _llk_math_hw_configure_<false, false>(math_format{stage}, math_format{stage});\n"
+            f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
             f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
             f"    {{\n"
         )
 
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
             code += (
-                f"        _llk_math_eltwise_unary_datacopy_<DataCopyType::{data_copy_type}, DstSync::SyncHalf, {dest_acc}, BroadcastType::{brodcast_type}, {unpack_to_dest}>(\n"
-                f"            {dst_index} + i, {MATH_FORMAT}, {MATH_FORMAT}, {num_faces});\n"
+                f"        _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {brodcast_type}, {unpack_to_dest}>(\n"
+                f"            {dst_index} + i, math_format{stage}, math_format{stage}, {num_faces});\n"
             )
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
             code += (
-                f"        _llk_math_eltwise_unary_datacopy_<DataCopyType::{data_copy_type}, DstSync::SyncHalf, {dest_acc}, BroadcastType::{brodcast_type}, {unpack_to_dest}>(\n"
-                f"            {dst_index} + i, {MATH_FORMAT}, {MATH_FORMAT});\n"
+                f"        _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {brodcast_type}, {unpack_to_dest}>(\n"
+                f"            {dst_index} + i, math_format{stage}, math_format{stage});\n"
             )
         else:
             raise ValueError("Unsupported architecture for DatacopyFpu")
@@ -322,17 +312,14 @@ class UnarySfpu(Sfpu):
 
     def exec(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
-        math_format = operation_config.math_format
         dest_acc = operation_config.dest_acc.value
+        op = f"SfpuType::{self.operation.cpp_enum_value}"
 
         code = (
             f"    // Operation {stage}: Unary {self.operation.cpp_enum_value} SFPU\n"
             f"    _llk_math_eltwise_unary_sfpu_init_<SfpuType::{self.operation.cpp_enum_value}>();\n"
-            f"    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);\n"
-            f"    test_utils::call_sfpu_operation<{self.iterations}, {dest_acc}, {self.approx_mode.value}>(\n"
-            f"        SfpuType::{self.operation.cpp_enum_value},\n"
-            f"        static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})\n"
-            f"    );\n"
+            f"    _llk_math_eltwise_unary_sfpu_start_<dest_sync{stage}>(0);\n"
+            f"    test_utils::call_sfpu_operation<{self.iterations}, {dest_acc}, {self.approx_mode.value}>({op}, math_format{stage});\n"
             f"    _llk_math_eltwise_unary_sfpu_done_();\n"
         )
 
@@ -393,14 +380,18 @@ class BinarySfpu(Sfpu):
 
     def exec(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
-        math_format = operation_config.math_format
-        MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
+        op = f"ckernel::BinaryOp::{self.operation.cpp_enum_value}"
+        approx_mode = self.approx_mode.value
+        iterations = self.iterations
+        src1 = self.dst_index_in0
+        src2 = self.dst_index_in1
+        dst = self.dst_index_out
 
         code = (
             f"    // Operation {stage}: Binary {self.operation.cpp_enum_value} SFPU\n"
             f"    _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();\n"
-            f"    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);\n"
-            f"    test_utils::call_binary_sfpu_operation<{self.approx_mode.value}, ckernel::BinaryOp::{self.operation.cpp_enum_value}, {self.iterations}, {MATH_FORMAT}>({self.dst_index_in0}, {self.dst_index_in1}, {self.dst_index_out});\n"
+            f"    _llk_math_eltwise_binary_sfpu_start_<dest_sync{stage}>(0);\n"
+            f"    test_utils::call_binary_sfpu_operation<{approx_mode}, {op}, {iterations}, math_format{stage}>({src1}, {src2}, {dst});\n"
             f"    _llk_math_eltwise_binary_sfpu_done_();\n"
         )
 
@@ -446,14 +437,18 @@ class SfpuWhere(Sfpu):
         return tensor
 
     def exec(self, operation_config: "FusedOperation") -> str:
-        math_format = operation_config.math_format
-        MATH_FORMAT = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name})"
+        stage = operation_config.stage_id
+        src1 = self.dst_index_in0
+        src2 = self.dst_index_in1
+        src3 = self.dst_index_in2
+        dst = self.dst_index_out
 
         code = (
+            f"    // Operation {stage}: Binary {self.operation.cpp_enum_value} SFPU\n"
             f"    _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();\n"
             f"    ckernel::sfpu::_init_where_<{self.approx_mode.value}>();\n"
-            f"    _llk_math_eltwise_ternary_sfpu_start_<DstSync::SyncHalf>(0);\n"
-            f"    ckernel::sfpu::_calculate_where_<false, static_cast<DataFormat>({MATH_FORMAT}), {self.iterations}>({self.dst_index_in0}, {self.dst_index_in1}, {self.dst_index_in2}, {self.dst_index_out});\n"
+            f"    _llk_math_eltwise_ternary_sfpu_start_<dest_sync{stage}>(0);\n"
+            f"    ckernel::sfpu::_calculate_where_<false, math_format{stage}, {self.iterations}>({src1}, {src2}, {src3}, {dst});\n"
             f"    _llk_math_eltwise_ternary_sfpu_done_();\n"
         )
 
@@ -536,7 +531,15 @@ class Math:
         operation_config.output._master_golden = master_golden_tensor.flatten()
 
     def exec(self, operation_config: "FusedOperation") -> str:
-        code = self.fpu.exec(operation_config)
+        stage = operation_config.stage_id
+        format = f"DataFormat::{operation_config.math_format.name}"
+        code = (
+            f"    // Operation {stage}: Math Setup\n"
+            f"    const uint32_t math_format{stage} = static_cast<std::underlying_type_t<DataFormat>>({format});\n"
+            f"    const DstSync dest_sync{stage} = DstSync::Sync{operation_config.dest_sync.name};\n"
+            f"    \n"
+        )
+        code += self.fpu.exec(operation_config)
 
         for sfpu in self.sfpu:
             code += f"\n" f"{sfpu.exec(operation_config)}"
