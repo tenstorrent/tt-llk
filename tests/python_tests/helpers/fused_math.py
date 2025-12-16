@@ -6,11 +6,12 @@ from typing import TYPE_CHECKING, List, Type
 
 import torch
 
-from .golden_generators import (  # TilizeGolden,
+from .golden_generators import (
     BinarySFPUGolden,
     DataCopyGolden,
     EltwiseBinaryGolden,
     MatmulGolden,
+    TilizeGolden,
     UnarySFPUGolden,
     get_golden_generator,
 )
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
 
 from .chip_architecture import ChipArchitecture
-from .llk_params import ApproximationMode, MathOperation
+from .llk_params import ApproximationMode, MathOperation, Tilize
 
 
 class Fpu:

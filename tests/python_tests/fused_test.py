@@ -38,7 +38,6 @@ def test_fused(test_name):
         boot_mode=BootMode.DEFAULT,
         profiler_build=ProfilerBuild.No,
     )
-
     config.run_fused(pipeline)
 
     collect_pipeline_results(pipeline)

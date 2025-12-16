@@ -27,6 +27,7 @@ from ttexalens.tt_exalens_lib import (
     read_word_from_device,
     write_to_device,
     write_words_to_device,
+    write_to_device,
 )
 
 from .fused_operation import FusedOperation
@@ -47,6 +48,12 @@ from .tilize_untilize import untilize_block
 from .unpack import (
     unpack_res_tiles,
 )
+
+from .fused_operation import FusedOperation
+from .tilize_untilize import untilize_block
+from .unpack import unpack_res_tiles
+import torch
+
 
 # Constant - indicates the TRISC kernel run status
 KERNEL_COMPLETE = 1  # Kernel completed its run
