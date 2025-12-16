@@ -30,6 +30,15 @@ uint32_t open_zone_cnt    = 0;
 
 #endif
 
+#include "llk_san_types.h"
+
+namespace llk_san
+{
+unpack_state_t unpack_state;
+math_state_t math_state;
+pack_state_t pack_state;
+} // namespace llk_san
+
 __attribute__((weak)) void run_kernel()
 {
     return;
