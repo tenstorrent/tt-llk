@@ -167,7 +167,7 @@ void _calculate_round_(const int decimals)
     }
 }
 
-template <bool APPROXIMATE, int ITERATIONS = 8>
+template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
 inline void _calculate_stochastic_round_()
 {
 #pragma GCC unroll ITERATIONS
