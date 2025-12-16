@@ -61,7 +61,7 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-            formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4, 4);
+            formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
         _llk_unpack_fast_tilize_init_(formats.unpack_dst, BLOCK_CT_DIM);
         PROFILER_SYNC();
     }

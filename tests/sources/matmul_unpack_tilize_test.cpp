@@ -37,8 +37,8 @@ void run_kernel()
         formats_array[run].unpack_dst,
         FACE_R_DIM,
         FACE_R_DIM,
-        4,
-        4);
+        4 /* num_faces */,
+        4 /* num_faces */);
 
     _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
     _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats_array[run].unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
