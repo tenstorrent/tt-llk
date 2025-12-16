@@ -177,9 +177,11 @@ void _calculate_round_(const int decimals)
 }
 
 template <bool APPROXIMATE, int ITERATIONS = 8>
-inline void _calculate_stochastic_round_() {
-    #pragma GCC unroll ITERATIONS
-    for (int i = 0; i < ITERATIONS; i++) {
+inline void _calculate_stochastic_round_()
+{
+#pragma GCC unroll ITERATIONS
+    for (int i = 0; i < ITERATIONS; i++)
+    {
         TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
         // SFP_STOCH_RND(rnd_mode, imm8_math, lreg_src_b, lreg_src_c, lreg_dest, instr_mod1)
         // rnd_mode=1 (stochastic), lreg_src_c=LREG0, lreg_dest=LREG0, instr_mod1=1 (fp32->fp16b)
