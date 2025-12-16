@@ -120,9 +120,11 @@ def get_register_store(location="0,0", device_id=0, neo_id=0):
 
 
 def get_soft_reset_mask(cores: list[RiscCore]):
+    mask = 0b11110111000011111111111
+
     if INVALID_CORE in cores:
         raise ValueError("Attempting to reset a core that doesn't exist on this chip")
-    return sum(1 << core.value for core in cores)
+    return mask | sum(1 << core.value for core in cores)
 
 
 def set_tensix_soft_reset(
@@ -131,10 +133,18 @@ def set_tensix_soft_reset(
     soft_reset = get_register_store(location, device_id).read_register(
         "RISCV_DEBUG_REG_SOFT_RESET_0"
     )
+
+    print(f"RD RISCV_DEBUG_REG_SOFT_RESET_0: {soft_reset:023b}")
+
     if value:
-        soft_reset |= get_soft_reset_mask(cores)
+        mask_set = get_soft_reset_mask(cores)
+        soft_reset |= mask_set
     else:
-        soft_reset &= ~get_soft_reset_mask(cores)
+        mask_clear = get_soft_reset_mask(cores)
+        soft_reset &= ~mask_clear
+
+    print(f"WR RISCV_DEBUG_REG_SOFT_RESET_0: {soft_reset:023b}")
+
     get_register_store(location, device_id).write_register(
         "RISCV_DEBUG_REG_SOFT_RESET_0", soft_reset
     )
