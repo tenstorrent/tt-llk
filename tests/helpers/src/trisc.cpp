@@ -14,6 +14,7 @@
 #endif
 #include "boot.h"
 #include "profiler.h"
+#include "sanitizer/types.h"
 
 #ifdef LLK_PROFILER
 
@@ -27,6 +28,13 @@ std::uint32_t open_zone_cnt = 0;
 } // namespace llk_profiler
 
 #endif
+
+namespace llk_san
+{
+unpack_state_t unpack_state;
+math_state_t math_state;
+pack_state_t pack_state;
+} // namespace llk_san
 
 // Mailbox addresses
 #ifdef COVERAGE
