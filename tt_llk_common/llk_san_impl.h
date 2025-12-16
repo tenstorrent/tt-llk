@@ -137,7 +137,7 @@ static inline void unpack_operand_check_impl(
     state_t<uint32_t> num_faces_B)
 {
     LLK_SAN_PANIC(!state.is_configured, "panic: llk_san: executing init/execute/uninit before hwconfigure");
-    LLK_SAN_PANIC(state.dest_width_32 == dest_acc_en, "panic: llk_san: dest_acc_en doesn't match state.dest_width_32");
+    LLK_SAN_PANIC(state.dest_width_32 != dest_acc_en, "panic: llk_san: dest_acc_en doesn't match state.dest_width_32");
     LLK_SAN_PANIC(state.src_a.input_format != src_fmt_A, "panic: llk_san: src_fmt_A doesn't match state.src_a.input_format");
     LLK_SAN_PANIC(state.src_b.input_format != src_fmt_B, "panic: llk_san: src_fmt_B doesn't match state.src_b.input_format");
     LLK_SAN_PANIC(state.src_a.output_format != dst_fmt_A, "panic: llk_san: dst_fmt_A doesn't match state.src_a.output_format");
