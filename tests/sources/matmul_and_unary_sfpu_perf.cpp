@@ -48,13 +48,23 @@ void run_kernel()
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
+            // No idea how and why this works...
+            //
+            if (LOOP_FACTOR > 0)
             {
                 // Matmul only - skip unpack and only measure math
                 _perf_unpack_loop_set_valid</* src A */ true, /* src B */ true>(1);
 
-                // Unary SFPU only - skip unpack, only measure SFPU operations
-                _perf_unpack_loop_set_valid</* src A */ true, /* src B */ false>(1);
+                // For datacopy A2D before SFPU - only need SrcA valid
+                _perf_unpack_loop_set_valid</* src A */ true, /* src B */ false>(4);
+            }
+
+            for (uint32_t loop = 1; loop < LOOP_FACTOR; ++loop)
+            {
+                _perf_unpack_loop_set_valid</* src A */ true, /* src B */ true>(1);
+
+                // For datacopy A2D before SFPU - only need SrcA valid
+                _perf_unpack_loop_set_valid</* src A */ true, /* src B */ false>(7);
             }
         }
         else
@@ -82,7 +92,7 @@ void run_kernel()
                     /* transpose_of_faces */ 0,
                     /* within_face_16x16_transpose */ 0,
                     FACE_R_DIM,
-                    /* tile_size */ 4,
+                    NUM_FACES,
                     formats_array[run].unpack_src,
                     formats_array[run].unpack_dst);
                 _llk_unpack_A_<BroadcastType::NONE, is_fp32_dest_acc_en, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
@@ -122,39 +132,79 @@ void run_kernel()
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            return _perf_math_loop_clear_valid<true, true>(LOOP_FACTOR);
+            for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
+            {
+                // Matmul only
+                _perf_math_loop_clear_valid</* src A */ true, /* src B */ true>(1);
+
+                // Unary SFPU only
+                _perf_math_loop_clear_valid</* src A */ true, /* src B */ false>(1);
+            }
+            return;
         }
-        else
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
-                // int run = 0;
-                //_llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+                int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
+
                 _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(/* dst_index */ 0);
-                //_llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
-                // run = 1;
-                //  _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en, /* to_from_int8 */ false>(
-                //      formats_array[run].math);
-                // cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(formats_array[run].math);
+                // Start of second math kernel to perform matmul on now tilized input data
+                run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
 
-                // _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE>(
-                //     NUM_FACES,
-                //     formats_array[run].math);
+                _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en>(formats_array[run].math);
 
-                // //_llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-                // //_llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-                // _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                //     /* tile_idx */ 0,
-                //     formats_array[run].math,
-                //     formats_array[run].math);
+                // copy srca to dest
+                _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE>(NUM_FACES, formats_array[run].math);
 
+                _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+
+                _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                    /* tile_idx */ 0, formats_array[run].math, formats_array[run].math);
+
+                // calculation of sfpu operation on dest
                 _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
                 _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ 0);
+
+                // calling sfpu function from ckernel
+                // this part is where parametrization of operation takes part
                 test_utils::call_sfpu_operation_32(SFPU_UNARY_OPERATION);
 
                 _llk_math_eltwise_unary_sfpu_done_();
-                //_llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+            }
+        }
+        else
+        {
+            // Full pipeline: Matmul -> Unary SFPU
+            for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
+            {
+                int run = 0;
+                _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+                _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
+                _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+
+                // Start of second math kernel to perform matmul on now tilized input data
+                run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
+                _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en>(formats_array[run].math);
+                // copy srca to dest
+                _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE>(NUM_FACES, formats_array[run].math);
+                _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+
+                _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+                _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                    /* tile_idx */ 0, formats_array[run].math, formats_array[run].math);
+
+                // calculation of sfpu operation on dest
+                _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
+                _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ 0);
+
+                // calling sfpu function from ckernel
+                // this part is where parametrization of operation takes part
+                test_utils::call_sfpu_operation_32(SFPU_UNARY_OPERATION);
+
+                _llk_math_eltwise_unary_sfpu_done_();
+                _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
         }
         PROFILER_SYNC();
@@ -170,20 +220,14 @@ void run_kernel()
 
 void run_kernel()
 {
+    int run = 0;
     {
         ZONE_SCOPED("INIT")
-        int run = 0;
-#ifdef ARCH_BLACKHOLE
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
-            formats_array[run].pack_src, formats_array[run].pack_dst, TEST_FACE_R_DIM * TEST_FACE_C_DIM * NUM_FACES);
-        _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats_array[run].pack_dst);
+
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats_array[run].pack_src, formats_array[run].pack_dst, TEST_FACE_R_DIM * TEST_FACE_C_DIM * NUM_FACES);
+        _llk_pack_init_</* untilize */ false, /* zero_output */ false, DstTileFaceLayout::RowMajor>(formats_array[run].pack_dst);
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
-#else
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(
-            formats_array[run].pack_src, formats_array[run].pack_dst, TEST_FACE_R_DIM * TEST_FACE_C_DIM * NUM_FACES);
-        _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats_array[run].pack_dst);
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
-#endif
+
         PROFILER_SYNC();
     }
     {
@@ -197,21 +241,18 @@ void run_kernel()
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
                 int run = 0;
-                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_A_tilized));
+                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(
+                    /* tile_index */ 0, PERF_ADDRESS(PERF_OUTPUT, 0));
 
                 t6_semaphore_post<>(semaphore::PACK_DONE);
 
                 run = 1;
                 _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en>(formats_array[run].pack_src, formats_array[run].pack_dst, tile_size);
-                _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats_array[run].pack_dst);
+                _llk_pack_init_</* untilize */ false, /* zero_output */ false, DstTileFaceLayout::RowMajor>(formats_array[run].pack_dst);
 
-#ifdef ARCH_BLACKHOLE
                 _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
-#else
-                _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
-#endif
 
-                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, PERF_ADDRESS(PERF_OUTPUT, 0));
+                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, PERF_ADDRESS(PERF_OUTPUT, 0));
             }
         }
         else
@@ -220,23 +261,21 @@ void run_kernel()
             {
                 int run = 0;
                 _llk_packer_wait_for_math_done_();
-                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_A_tilized));
+                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(
+                    /* tile_index */ 0, PERF_ADDRESS(PERF_OUTPUT, 0));
                 _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
                 t6_semaphore_post<>(semaphore::PACK_DONE);
 
                 run = 1;
                 _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en>(formats_array[run].pack_src, formats_array[run].pack_dst, tile_size);
-                _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats_array[run].pack_dst);
 
-#ifdef ARCH_BLACKHOLE
+                _llk_pack_init_</* untilize */ false, /* zero_output */ false, DstTileFaceLayout::RowMajor>(formats_array[run].pack_dst);
                 _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
-#else
-                _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
-#endif
 
                 _llk_packer_wait_for_math_done_();
-                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, PERF_ADDRESS(PERF_OUTPUT, 0));
+                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(
+                    /* tile_index */ 0, PERF_ADDRESS(PERF_OUTPUT, 0));
                 _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
         }
