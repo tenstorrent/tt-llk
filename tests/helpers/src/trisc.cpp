@@ -12,6 +12,8 @@
 #include "ckernel_helper.h" // Only for WH/BH
 #endif
 #include "profiler.h"
+#include "llk_san_types.h"
+
 
 #if defined(LLK_TRISC_UNPACK) && defined(LLK_BOOT_MODE_TRISC)
 #include "boot.h"
@@ -29,6 +31,13 @@ uint32_t open_zone_cnt    = 0;
 } // namespace llk_profiler
 
 #endif
+
+namespace llk_san
+{
+unpack_state_t unpack_state;
+math_state_t math_state;
+pack_state_t pack_state;
+} // namespace llk_san
 
 __attribute__((weak)) void run_kernel()
 {
