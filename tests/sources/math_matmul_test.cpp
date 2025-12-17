@@ -90,8 +90,7 @@ void run_kernel()
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
         formats.pack_src, formats.pack_dst, TILE_SIZE_PACK, FACE_R_DIM, TILE_C_DIM, num_faces, PARTIAL_FACE_PACK);
-    _llk_pack_init_<false, false, false>(
-        formats.pack_dst, FACE_R_DIM, TILE_C_DIM, num_faces, false /* partial_face parameter is unused on BH */);
+    _llk_pack_init_<false, false, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, num_faces, false /* partial_face parameter is unused on BH */);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, TILE_SIZE_PACK, FACE_R_DIM, num_faces, PARTIAL_FACE_PACK);
