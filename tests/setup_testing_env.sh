@@ -50,40 +50,67 @@ activate_venv_if_exists() {
 get_chip_architecture() {
     local smi_output
 
-    # Try to find tt-smi in common locations if not in PATH
-    local tt_smi_cmd="tt-smi"
-    if ! command -v "$tt_smi_cmd" &> /dev/null; then
-        # Check common installation locations
+    # Determine which Python to use (prefer venv Python if available)
+    local python_cmd="python3"
+    if [[ -n "${VIRTUAL_ENV:-}" && -f "${VIRTUAL_ENV}/bin/python" ]]; then
+        python_cmd="${VIRTUAL_ENV}/bin/python"
+    elif [[ -f "${SCRIPT_DIR}/.venv/bin/python" ]]; then
+        python_cmd="${SCRIPT_DIR}/.venv/bin/python"
+    elif [[ -f "${SCRIPT_DIR}/../.venv/bin/python" ]]; then
+        python_cmd="${SCRIPT_DIR}/../.venv/bin/python"
+    fi
+
+    # Try to find tt-smi - prefer python -m tt_smi for wheel installations
+    local tt_smi_cmd=""
+
+    # First, try python -m tt_smi (most reliable for wheel installations)
+    if $python_cmd -m tt_smi --help &> /dev/null 2>&1; then
+        tt_smi_cmd="$python_cmd -m tt_smi"
+    # Check if tt-smi executable is in PATH
+    elif command -v tt-smi &> /dev/null; then
+        tt_smi_cmd="tt-smi"
+    # Check common installation locations
+    else
         local possible_paths=(
-            "/opt/venv/bin/tt-smi"
             "${VIRTUAL_ENV}/bin/tt-smi"
             "${SCRIPT_DIR}/.venv/bin/tt-smi"
             "${SCRIPT_DIR}/../.venv/bin/tt-smi"
+            "${HOME}/.local/bin/tt-smi"
+            "/opt/venv/bin/tt-smi"
             "/usr/local/bin/tt-smi"
             "/usr/bin/tt-smi"
         )
 
         for path in "${possible_paths[@]}"; do
-            if [[ -f "$path" && -x "$path" ]]; then
+            if [[ -n "$path" && -f "$path" && -x "$path" ]]; then
                 tt_smi_cmd="$path"
                 break
             fi
         done
 
-        # If still not found, try python -m tt_smi as fallback
-        if [[ "$tt_smi_cmd" == "tt-smi" ]] && command -v python3 &> /dev/null; then
-            if python3 -m tt_smi --help &> /dev/null 2>&1; then
-                tt_smi_cmd="python3 -m tt_smi"
-            fi
+        # Final fallback: try python -m tt_smi even if --help check failed
+        if [[ -z "$tt_smi_cmd" ]]; then
+            tt_smi_cmd="$python_cmd -m tt_smi"
         fi
+    fi
+
+    if [[ -z "$tt_smi_cmd" ]]; then
+        echo "ERROR: tt-smi command failed or not found. Please ensure tt-smi is installed and in your PATH." >&2
+        echo "Attempted to find tt-smi using Python: $python_cmd" >&2
+        if $python_cmd -c "import sys; print('Python path:', sys.executable)" 2>&1; then
+            echo "Checking if tt_smi module is available..." >&2
+            $python_cmd -c "import tt_smi; print('tt_smi module found')" 2>&1 || echo "tt_smi module not found" >&2
+        fi
+        exit 1
     fi
 
     if ! smi_output=$($tt_smi_cmd -ls 2>/dev/null); then
         echo "ERROR: tt-smi command failed or not found. Please ensure tt-smi is installed and in your PATH." >&2
         echo "Attempted to run: $tt_smi_cmd" >&2
-        if command -v python3 &> /dev/null; then
+        echo "Using Python: $python_cmd" >&2
+        if $python_cmd -c "import sys; print('Python path:', sys.executable)" 2>&1; then
             echo "Checking if tt_smi module is available..." >&2
-            python3 -c "import tt_smi" 2>&1 || echo "tt_smi module not found" >&2
+            $python_cmd -c "import tt_smi; print('tt_smi module found')" 2>&1 || echo "tt_smi module not found" >&2
         fi
         exit 1
     fi
