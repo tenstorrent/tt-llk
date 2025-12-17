@@ -62,7 +62,7 @@ void run_kernel()
     // Initialize math operations for element-wise binary subtraction
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
-    _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE>(TILE_CNT);
+    _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE>(NUM_FACES, 0);
 
     _llk_math_wait_for_dest_available_<dest_sync>();
 

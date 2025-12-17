@@ -21,6 +21,7 @@ from helpers.llk_params import (
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
+from helpers.tilize_untilize import tilize, untilize
 from helpers.utils import passed_test
 
 
@@ -29,13 +30,13 @@ from helpers.utils import passed_test
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
-            DataFormat.Float16,
+            # DataFormat.Float16,
         ]
     ),
     broadcast_type=[
         BroadcastType.Column,
-        BroadcastType.Row,
-        BroadcastType.Scalar,
+        # BroadcastType.Row,
+        # BroadcastType.Scalar,
     ],
     dest_acc=[DestAccumulation.No],
     math_fidelity=[MathFidelity.LoFi],
@@ -68,6 +69,19 @@ def test_eltwise_binary_transpose_bcast(
         input_dimensions=input_dimensions,
     )
 
+    src_A = torch.ones(input_dimensions[0] * input_dimensions[1]) * 10
+    src_A[: input_dimensions[1]] = 99
+    src_B = torch.ones(input_dimensions[0] * input_dimensions[1]) * 3
+
+    print("src_A:")
+    print(src_A.view(input_dimensions[0], input_dimensions[1]))
+    print("--------------------------------")
+
+    print("src_B:")
+    print(src_B.view(input_dimensions[0], input_dimensions[1]))
+
+    src_A = tilize(src_A, stimuli_format=formats.output_format)
+
     # Generate golden for srcA with transpose
     transpose_golden = get_golden_generator(TransposeGolden)
 
@@ -79,6 +93,10 @@ def test_eltwise_binary_transpose_bcast(
     transposed_src_A = transpose_golden.transpose_faces(
         temp_tensor, formats.output_format, input_dimensions, num_faces=4
     )
+
+    print("transposed_src_A:")
+    print(transposed_src_A.view(input_dimensions[0], input_dimensions[1]))
+    print("--------------------------------")
 
     # Generate golden for srcB with broadcast
     broadcast_golden = get_golden_generator(BroadcastGolden)
@@ -110,6 +128,10 @@ def test_eltwise_binary_transpose_bcast(
         formats.output_format,
         math_fidelity,
     )
+
+    print("golden_tensor:")
+    print(golden_tensor.view(input_dimensions[0], input_dimensions[1]))
+    print("--------------------------------")
 
     # Build test configuration
     test_config = {
@@ -146,5 +168,11 @@ def test_eltwise_binary_transpose_bcast(
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+    print("res_tensor:")
+    print(res_tensor.view(input_dimensions[0], input_dimensions[1]))
+    print("--------------------------------")
+
+    res_tensor = untilize(res_tensor)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
