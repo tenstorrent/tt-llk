@@ -31,7 +31,7 @@ inline void welfords_sfpu_configure_mop();
 template <DstSync Dst>
 inline void _llk_math_welfords_sfpu_start_(const uint dst_index)
 {
-    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackToDest::False>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackToDest::SrcRegs>(dst_index);
 
     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
 }
