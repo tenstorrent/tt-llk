@@ -169,7 +169,7 @@ void run_kernel()
 
                 // calling sfpu function from ckernel
                 // this part is where parametrization of operation takes part
-                test_utils::call_sfpu_operation_32(SFPU_UNARY_OPERATION);
+                test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations>(SFPU_UNARY_OPERATION, formats_array[run].math);
 
                 _llk_math_eltwise_unary_sfpu_done_();
             }
@@ -201,7 +201,7 @@ void run_kernel()
 
                 // calling sfpu function from ckernel
                 // this part is where parametrization of operation takes part
-                test_utils::call_sfpu_operation_32(SFPU_UNARY_OPERATION);
+                test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations>(SFPU_UNARY_OPERATION, formats_array[run].math);
 
                 _llk_math_eltwise_unary_sfpu_done_();
                 _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
