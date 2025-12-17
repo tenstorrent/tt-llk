@@ -197,10 +197,6 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
     // Face 0 Row 31
     // Face 1 Row 31
 
-    // LREG0         LREG2
-    //  F0 0,1,2,3   4,5,6,7
-    //  F1 0,1,2,3   4,5,6,7
-
     auto process_16_rows = [values_tile_offset, indices_tile_offset, eight_row_offset, instr_mod_index](const uint base_offset, const uint col_offset)
                                __attribute__((always_inline))
     {
@@ -216,7 +212,10 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
             TT_SFPLOAD(
                 p_sfpu::LREG2, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + eight_row_offset_val + base_offset + 8 + col_offset); // Row 4 and 5
             TT_SFPLOAD(
-                p_sfpu::LREG3, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + eight_row_offset_val + base_offset + 12 + col_offset); // Row 6 and 7
+                p_sfpu::LREG3,
+                InstrModLoadStore::DEFAULT,
+                ADDR_MOD_7,
+                values_tile_offset + eight_row_offset_val + base_offset + 12 + col_offset); // Row 6 and 7
             // index
             TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, indices_tile_offset + eight_row_offset_val + base_offset + 0 + col_offset);
             TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_7, indices_tile_offset + eight_row_offset_val + base_offset + 4 + col_offset);
@@ -265,7 +264,8 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
         // swap between the two sets of 8 rows
         TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + base_offset + 0 + col_offset); // Max(R0-7) for F0,1
         TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, indices_tile_offset + base_offset + 0 + col_offset);
-        TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + eight_row_offset + base_offset + 0 + col_offset); // Max(R8-15) for F0,1
+        TT_SFPLOAD(
+            p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + eight_row_offset + base_offset + 0 + col_offset); // Max(R8-15) for F0,1
         TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_7, indices_tile_offset + eight_row_offset + base_offset + 0 + col_offset);
 
         TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX); // LREG0 contains Max(R0-15) (or Max(R16-31)) for F0,1
