@@ -20,6 +20,7 @@ SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 activate_venv_if_exists() {
     # If VIRTUAL_ENV is already set, the venv is already activated
     if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+        echo "VIRTUAL_ENV already set to: $VIRTUAL_ENV"
         return 0
     fi
 
@@ -32,17 +33,30 @@ activate_venv_if_exists() {
         ".venv"
     )
 
+    echo "Searching for virtual environment..."
     for venv_path in "${venv_paths[@]}"; do
-        if [[ -d "$venv_path" && -d "$venv_path/bin" ]]; then
-            # Add venv bin to PATH if not already there
-            if [[ ":$PATH:" != *":$venv_path/bin:"* ]]; then
-                export PATH="$venv_path/bin:$PATH"
+        echo "  Checking: $venv_path"
+        if [[ -d "$venv_path" ]]; then
+            echo "    Directory exists"
+            if [[ -d "$venv_path/bin" ]]; then
+                echo "    bin/ subdirectory exists"
+                # Add venv bin to PATH if not already there
+                if [[ ":$PATH:" != *":$venv_path/bin:"* ]]; then
+                    export PATH="$venv_path/bin:$PATH"
+                    echo "    Added $venv_path/bin to PATH"
+                fi
+                export VIRTUAL_ENV="$venv_path"
+                echo "    Set VIRTUAL_ENV=$venv_path"
+                return 0
+            else
+                echo "    bin/ subdirectory NOT found"
             fi
-            export VIRTUAL_ENV="$venv_path"
-            return 0
+        else
+            echo "    Directory does NOT exist"
         fi
     done
 
+    echo "No virtual environment found in any of the checked paths"
     return 1
 }
 
