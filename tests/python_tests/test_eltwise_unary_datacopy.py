@@ -67,18 +67,17 @@ def get_valid_num_faces_datacopy(tilize):
     num_faces=[4],
     tilize=[Tilize.No],
     dest_index=[0],
+    input_dimensions=[[32, 32], [32, 64], [64, 32], [64, 64], [128, 64], [64, 128]],
 )
-def test_unary_datacopy(test_name, formats, dest_acc, num_faces, tilize, dest_index):
-
-    input_dimensions = [32, 32]
+def test_unary_datacopy(
+    test_name, formats, dest_acc, num_faces, tilize, dest_index, input_dimensions
+):
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
         formats.input_format,
         input_dimensions=input_dimensions,
     )
-
-    src_A = torch.ones(input_dimensions[0] * input_dimensions[1]) * 2
 
     if tilize == Tilize.No:
         generate_golden = get_golden_generator(DataCopyGolden)

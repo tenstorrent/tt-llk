@@ -303,6 +303,10 @@ inline void unpack_full_tile_to_dest_single_op(
     set_dst_write_addr(unp_cfg_context, unpack_dst_format);
     wait_for_dest_available();
 
+    // Clear z/w start counters to reset to beginning of buffer
+    // This is needed for each tile since we pass individual tile addresses
+    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
+
     // Set unpacker to process entire tile in one operation
     TTI_SETADCXX(p_setadc::UNP_A, 1023, 0x0);
 
