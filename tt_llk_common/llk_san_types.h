@@ -64,23 +64,29 @@ public:
     {
     }
 
+    state_t(const state_t&) = default;
+    state_t(state_t&&)      = default;
+
     // CONVERSION
     // - llk_san::DONTCARE      -> state_t with state_type == dontcare
     // - llk_san::INDETERMINATE -> state_t with state_type == indeterminate
     // - other                  -> state_t with state_type == determinate (storing the value)
 
     // Constructor for DONTCARE
-    constexpr state_t(dontcare_t) : underlying {}, state_type(state_type_t::dontcare)
+    constexpr state_t(const dontcare_t&) : underlying {}, state_type(state_type_t::dontcare)
     {
     }
 
     // Constructor for INDETERMINATE
-    constexpr state_t(indeterminate_t) : underlying {}, state_type(state_type_t::indeterminate)
+    constexpr state_t(const indeterminate_t&) : underlying {}, state_type(state_type_t::indeterminate)
     {
     }
 
     // Constructor for DETERMINATE value
-    template <typename U, typename = std::enable_if_t<!is_state_t_v<std::decay_t<U>>>>
+    template <
+        typename U,
+        typename = std::enable_if_t<
+            !is_state_t_v<std::decay_t<U>> && !std::is_same_v<std::decay_t<U>, dontcare_t> && !std::is_same_v<std::decay_t<U>, indeterminate_t>>>
     constexpr state_t(U&& value) : underlying(std::forward<U>(value)), state_type(state_type_t::determinate)
     {
     }
@@ -89,7 +95,7 @@ public:
     // if RHS of assignment is state_type_t::dontcare, noop (stays old value)
     // otherwise take the state_type and underlying of RHS
 
-    // RHS of assignment is state_t lvalue
+    // Template operators contain the actual logic
     template <typename U>
     state_t& operator=(const state_t<U>& rhs)
     {
@@ -104,7 +110,6 @@ public:
         return *this;
     }
 
-    // RHS of assignment is state_t rvalue
     template <typename U>
     state_t& operator=(state_t<U>&& rhs)
     {
@@ -117,6 +122,17 @@ public:
         underlying = std::move(rhs.underlying);
 
         return *this;
+    }
+
+    // Non-template overloads delegate to templates (to override implicit operators)
+    state_t& operator=(const state_t& rhs)
+    {
+        return this->template operator= <T>(rhs);
+    }
+
+    state_t& operator=(state_t&& rhs)
+    {
+        return this->template operator= <T>(std::move(rhs));
     }
 
     // RHS of assignment is:
@@ -145,9 +161,9 @@ public:
         return state_type == state_type_t::dontcare;
     }
 
-    T get_underlying() const
+    const T& get_underlying() const
     {
-        LLK_PANIC(!is_indeterminate(), "panic: llk_san: tried to get underlying value when state is not determinate");
+        LLK_ASSERT(is_determinate(), "panic: llk_san: underlying value is not determinate");
         return underlying;
     }
 };
@@ -155,33 +171,33 @@ public:
 template <typename T, typename U>
 static inline bool _assert_condition(const state_t<T>& lhs, const state_t<U>& rhs)
 {
-    if (lhs.state_type == state_type_t::dontcare || rhs.state_type == state_type_t::dontcare)
+    if (lhs.is_dontcare() || rhs.is_dontcare())
     {
         return true;
     }
 
-    if (lhs.state_type == state_type_t::indeterminate || rhs.state_type == state_type_t::indeterminate)
+    if (lhs.is_indeterminate() || rhs.is_indeterminate())
     {
         return false;
     }
 
-    return lhs.underlying == rhs.underlying;
+    return lhs.get_underlying() == rhs.get_underlying();
 }
 
 template <typename T, typename U>
 static inline bool _panic_condition(const state_t<T>& lhs, const state_t<U>& rhs)
 {
-    if (lhs.state_type == state_type_t::dontcare || rhs.state_type == state_type_t::dontcare)
+    if (lhs.is_dontcare() || rhs.is_dontcare())
     {
         return true;
     }
 
-    if (lhs.state_type == state_type_t::indeterminate || rhs.state_type == state_type_t::indeterminate)
+    if (lhs.is_indeterminate() || rhs.is_indeterminate())
     {
         return false;
     }
 
-    return lhs.underlying != rhs.underlying;
+    return lhs.get_underlying() != rhs.get_underlying();
 }
 
 // TODO: refactor below
