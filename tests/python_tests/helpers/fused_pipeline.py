@@ -19,6 +19,7 @@ from helpers.fused_packer import Packer
 from helpers.fused_unpacker import MatmulUnpacker, UnpackerA, UnpackerAB
 from helpers.llk_params import (
     ApproximationMode,
+    DestSync,
     MathOperation,
 )
 
@@ -96,6 +97,7 @@ def create_fuse_pipeline() -> List[FusedOperation]:
             packer=Packer,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
+            dest_sync=DestSync.Full,
         ),
         FusedOperation(
             operand_mapping=operands.create_mapping(

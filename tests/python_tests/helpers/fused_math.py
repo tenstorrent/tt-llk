@@ -80,8 +80,6 @@ class MatmulFpu(Fpu):
             f"    _llk_math_matmul_init_<{math_fidelity}, DstTileFaceLayout::RowMajor>(\n"
             f"        TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, {ct_dim}, {rt_dim}\n"
             f"    );\n"
-            f"    _llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n"
-            f"    _llk_math_hw_configure_<false, false>(math_format{stage}, math_format{stage});\n"
             f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
             f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
             f"    {{\n"
@@ -131,10 +129,7 @@ class EltwiseFpu(Fpu):
 
         code = (
             f"    // Operation {stage}: Eltwise {op} FPU\n"
-            f"    _llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n"
-            f"    _llk_math_hw_configure_<false, false>(math_format{stage}, math_format{stage});\n"
             f"    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{op}, BroadcastType::NONE, {math_fidelity}>(4, 0);\n"
-            f"\n"
             f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
             f"    for (int i = 0; i < {tile_cnt}; i++)\n"
             f"    {{\n"
@@ -213,8 +208,6 @@ class DatacopyFpu(Fpu):
             raise ValueError("Unsupported architecture for DatacopyFpu")
 
         code += (
-            f"    _llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n"
-            f"    _llk_math_hw_configure_<false, false>(math_format{stage}, math_format{stage});\n"
             f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
             f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
             f"    {{\n"
@@ -530,6 +523,18 @@ class Math:
 
         operation_config.output._master_golden = master_golden_tensor.flatten()
 
+    def hw_configure(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        dest_acc = operation_config.dest_acc.value
+        if stage == 0:
+            code = f"    _llk_math_hw_configure_<false, false>(math_format{stage}, math_format{stage});\n"
+        else:
+            code = f"    _llk_math_reconfig_data_format_<{dest_acc}, false>(math_format{stage}, math_format{stage});\n"
+
+        code += f"    _llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n\n"
+
+        return code
+
     def exec(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         format = f"DataFormat::{operation_config.math_format.name}"
@@ -537,8 +542,8 @@ class Math:
             f"    // Operation {stage}: Math Setup\n"
             f"    const uint32_t math_format{stage} = static_cast<std::underlying_type_t<DataFormat>>({format});\n"
             f"    const DstSync dest_sync{stage} = DstSync::Sync{operation_config.dest_sync.name};\n"
-            f"    \n"
         )
+        code += self.hw_configure(operation_config)
         code += self.fpu.exec(operation_config)
 
         for sfpu in self.sfpu:
@@ -547,7 +552,7 @@ class Math:
         dest_acc = operation_config.dest_acc.value
         code += (
             f"\n"
-            f"    _llk_math_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();\n"
+            f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
             f"\n"
         )
         return code
