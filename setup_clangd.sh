@@ -141,6 +141,7 @@ $ROOT_DIR/tests/sfpi/compiler/riscv-tt-elf/include/c++/15.1.0/riscv-tt-elf
 $ROOT_DIR/tests/sfpi/include
 -I$ROOT_DIR/tests/firmware/riscv/common
 -I$ROOT_DIR/tests/hw_specific/$CHIP_ARCH/inc
+-I$ROOT_DIR/tt_llk_common
 -I$ROOT_DIR/$ARCH_LLK_ROOT/common/inc
 -I$ROOT_DIR/$ARCH_LLK_ROOT/common/inc/sfpu
 -I$ROOT_DIR/$ARCH_LLK_ROOT/llk_lib
