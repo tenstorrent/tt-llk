@@ -6,12 +6,11 @@ from typing import TYPE_CHECKING, List, Type
 
 import torch
 
-from .golden_generators import (
+from .golden_generators import (  # TilizeGolden,
     BinarySFPUGolden,
     DataCopyGolden,
     EltwiseBinaryGolden,
     MatmulGolden,
-    TilizeGolden,
     UnarySFPUGolden,
     get_golden_generator,
 )
@@ -21,6 +20,7 @@ if TYPE_CHECKING:
 
 from .chip_architecture import ChipArchitecture
 from .llk_params import ApproximationMode, MathOperation, Tilize
+from .tilize_untilize import tilize_block
 
 
 class Fpu:
@@ -476,18 +476,6 @@ class Math:
         dest_acc = operation_config.dest_acc.value
         if stage == 0:
             code = f"    _llk_math_hw_configure_(math_format{stage}, math_format{stage});\n"
-        else:
-            code = f"    _llk_math_reconfig_data_format_<{dest_acc}, false>(math_format{stage}, math_format{stage});\n"
-
-        code += f"    _llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n\n"
-
-        return code
-
-    def hw_configure(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        dest_acc = operation_config.dest_acc.value
-        if stage == 0:
-            code = f"    _llk_math_hw_configure_<false, false>(math_format{stage}, math_format{stage});\n"
         else:
             code = f"    _llk_math_reconfig_data_format_<{dest_acc}, false>(math_format{stage}, math_format{stage});\n"
 
