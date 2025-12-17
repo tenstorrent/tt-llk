@@ -128,7 +128,7 @@ void run_kernel()
                 for (uint32_t i = 0; i < TILE_CNT; ++i)
                 {
                     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ i);
-                    test_utils::call_sfpu_operation<iterations>(SFPU_UNARY_OPERATION, formats.math);
+                    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations>(SFPU_UNARY_OPERATION, formats.math);
                     _llk_math_eltwise_unary_sfpu_done_();
 
                     // Clear the valid flag set by unpacker
@@ -159,7 +159,7 @@ void run_kernel()
                     // Start SFPU operation
                     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
 
-                    test_utils::call_sfpu_operation<iterations>(SFPU_UNARY_OPERATION, formats.math);
+                    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations>(SFPU_UNARY_OPERATION, formats.math);
 
                     _llk_math_eltwise_unary_sfpu_done_();
                     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
