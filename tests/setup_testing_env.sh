@@ -15,11 +15,76 @@ cleanup() {
 # --- Globals ---
 SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
+# Function to ensure virtual environment is accessible
+# Instead of full activation, we just add venv bin directories to PATH
+activate_venv_if_exists() {
+    # If VIRTUAL_ENV is already set, the venv is already activated
+    if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+        return 0
+    fi
+
+    # Check for venv in current directory or parent directory (tests/.venv or .venv)
+    # Also check /opt/venv which is commonly used in Docker containers
+    local venv_paths=(
+        "/opt/venv"
+        "${SCRIPT_DIR}/.venv"
+        "${SCRIPT_DIR}/../.venv"
+        ".venv"
+    )
+
+    for venv_path in "${venv_paths[@]}"; do
+        if [[ -d "$venv_path" && -d "$venv_path/bin" ]]; then
+            # Add venv bin to PATH if not already there
+            if [[ ":$PATH:" != *":$venv_path/bin:"* ]]; then
+                export PATH="$venv_path/bin:$PATH"
+            fi
+            export VIRTUAL_ENV="$venv_path"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
 # Function to get chip architecture using tt-smi
 get_chip_architecture() {
     local smi_output
-    if ! smi_output=$(tt-smi -ls 2>/dev/null); then
+
+    # Try to find tt-smi in common locations if not in PATH
+    local tt_smi_cmd="tt-smi"
+    if ! command -v "$tt_smi_cmd" &> /dev/null; then
+        # Check common installation locations
+        local possible_paths=(
+            "/opt/venv/bin/tt-smi"
+            "${VIRTUAL_ENV}/bin/tt-smi"
+            "${SCRIPT_DIR}/.venv/bin/tt-smi"
+            "${SCRIPT_DIR}/../.venv/bin/tt-smi"
+            "/usr/local/bin/tt-smi"
+            "/usr/bin/tt-smi"
+        )
+
+        for path in "${possible_paths[@]}"; do
+            if [[ -f "$path" && -x "$path" ]]; then
+                tt_smi_cmd="$path"
+                break
+            fi
+        done
+
+        # If still not found, try python -m tt_smi as fallback
+        if [[ "$tt_smi_cmd" == "tt-smi" ]] && command -v python3 &> /dev/null; then
+            if python3 -m tt_smi --help &> /dev/null 2>&1; then
+                tt_smi_cmd="python3 -m tt_smi"
+            fi
+        fi
+    fi
+
+    if ! smi_output=$($tt_smi_cmd -ls 2>/dev/null); then
         echo "ERROR: tt-smi command failed or not found. Please ensure tt-smi is installed and in your PATH." >&2
+        echo "Attempted to run: $tt_smi_cmd" >&2
+        if command -v python3 &> /dev/null; then
+            echo "Checking if tt_smi module is available..." >&2
+            python3 -c "import tt_smi" 2>&1 || echo "tt_smi module not found" >&2
+        fi
         exit 1
     fi
 
@@ -119,6 +184,9 @@ setup_precommit() {
 main() {
     # Set up trap for cleanup on exit
     trap cleanup EXIT
+
+    # Activate virtual environment if it exists (needed for tt-smi command)
+    activate_venv_if_exists || true
 
     # Get script directory and version file
     local version_file="$SCRIPT_DIR/sfpi-info.sh"
