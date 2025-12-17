@@ -19,7 +19,7 @@ class Packer:
 
     def hw_configure(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
-        tilize = operation_config.tilize.value
+        tilize = operation_config.pack_tilize.value
         dest_acc = operation_config.dest_acc.value
         pack_size = operation_config.tile_size_pack
 
@@ -51,9 +51,8 @@ class Packer:
         pack_src = operation_config.pack_in
         pack_dst = operation_config.pack_out
         result_buffer_address = operation_config.output.l1_address
-        pack_size = operation_config.tile_size_pack
         tile_cnt = operation_config.output.tile_count
-        tilize = operation_config.tilize.value
+        tilize = operation_config.pack_tilize.value
         dest_acc = operation_config.dest_acc
         dest_acc_value = dest_acc.value
         buffer_Res_tile_size = operation_config.buffer_Res_tile_size

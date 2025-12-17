@@ -16,7 +16,7 @@ from helpers.fused_math import (
 from helpers.fused_operand import OperandRegistry
 from helpers.fused_operation import FusedOperation
 from helpers.fused_packer import Packer
-from helpers.fused_unpacker import MatmulUnpacker, UnpackerA, UnpackerAB
+from helpers.fused_unpacker import MatmulUnpacker, UnpackerAB, UnpackerTilizeA
 from helpers.llk_params import (
     ApproximationMode,
     DestSync,
@@ -46,7 +46,7 @@ def create_fuse_pipeline() -> List[FusedOperation]:
                 input_format=DataFormat.Float16_b,
                 output_format=DataFormat.Float16_b,
             ),
-            unpacker=UnpackerA,
+            unpacker=UnpackerTilizeA,
             math=Math(
                 DatacopyFpu(),
                 [
@@ -73,7 +73,7 @@ def create_fuse_pipeline() -> List[FusedOperation]:
             packer=Packer,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
-            tilize=Tilize.Yes,
+            pack_tilize=Tilize.Yes,
         ),
         FusedOperation(
             operand_mapping=operands.create_mapping(
