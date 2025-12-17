@@ -1,5 +1,5 @@
 ARG FROM_TAG=latest
-FROM ghcr.io/tenstorrent/tt-llk/tt-llk-base-ubuntu-22-04:${FROM_TAG} AS ci-build
+FROM ghcr.io/tenstorrent/tt-llk/tt-llk-base-ubuntu-24-04:${FROM_TAG} AS ci-build
 SHELL ["/bin/bash", "-c"]
 
 ENV GITHUB_ACTIONS="true" \
