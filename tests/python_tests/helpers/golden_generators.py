@@ -4,8 +4,10 @@ import math
 from typing import Optional
 
 import torch
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
+    BroadcastType,
     DestAccumulation,
     MathFidelity,
     MathOperation,
@@ -13,7 +15,7 @@ from helpers.llk_params import (
     ReducePool,
     format_dict,
 )
-from helpers.tilize_untilize import tilize_block
+from helpers.tilize_untilize import tilize_block, untilize_block
 
 # Tile and face dimension constants
 FACE_DIM = 16
@@ -275,12 +277,20 @@ class FidelityMasking:
         if (fidelity_iteration < 0) or (fidelity_iteration > 3):
             raise ValueError(f"Invalid fidelity iteration: {fidelity_iteration}")
 
-        FP_FIDELITY_ITER_MASK = [
-            (0b11111000000, 0b11111110000),
-            (0b00000111110, 0b11111110000),
-            (0b11111000000, 0b00000001111),
-            (0b00000111110, 0b00000001111),
-        ]
+        if get_chip_architecture() == ChipArchitecture.QUASAR:
+            FP_FIDELITY_ITER_MASK = [
+                (0b11111111000, 0b11111111000),
+                (0b00000000111, 0b11111111000),
+                (0b11111111000, 0b00000000111),
+                (0b00000000111, 0b00000000111),
+            ]
+        else:
+            FP_FIDELITY_ITER_MASK = [
+                (0b11111000000, 0b11111110000),
+                (0b00000111110, 0b11111110000),
+                (0b11111000000, 0b00000001111),
+                (0b00000111110, 0b00000001111),
+            ]
 
         sign_a, exp_a, mant_a = SrcFormatModel.to_src_format(data_format, operand_a)
         sign_b, exp_b, mant_b = SrcFormatModel.to_src_format(data_format, operand_b)
@@ -701,135 +711,127 @@ class MatmulGolden(FidelityMasking):
 
 
 @register_golden
-class ScalarBroadcastGolden:
+class BroadcastGolden:
     """
-    Golden generator for scalar broadcast operations.
-    Takes the first element of the input tensor and broadcasts it across the entire output tile.
-    Output size = num_faces * (face_r_dim * 16) elements, all with the same scalar value.
+    Golden generator for broadcast operations (Scalar, Column, Row).
+
+    Broadcasts operand values according to the specified broadcast type:
+    - Scalar: Takes first element of each tile and broadcasts it across entire output tile
+    - Column: Broadcasts column values across rows (Faces 0-1 use Face 0's column, Faces 2-3 use Face 2's column)
+    - Row: Broadcasts row values down columns (first row of Face 0/1)
+
+    Output size = tile_cnt * num_faces * (face_r_dim * 16) elements.
     """
+
+    def __init__(self):
+        self.broadcast_handlers = {
+            BroadcastType.Scalar: self._broadcast_scalar,
+            BroadcastType.Column: self._broadcast_column,
+            BroadcastType.Row: self._broadcast_row,
+        }
 
     def __call__(
         self,
-        operand1,
+        broadcast_type,
+        operand,
         data_format,
         num_faces: int = 4,
-        input_dimensions: list[int] = [32, 32],
-        face_r_dim: int = 16,  # Default to 16 for backward compatibility
+        tile_cnt: int = 1,
+        face_r_dim: int = 16,
     ):
+        if broadcast_type not in self.broadcast_handlers:
+            raise ValueError(f"Unsupported broadcast type: {broadcast_type}")
+
         torch_format = format_dict[data_format]
 
         # Convert input to tensor
-        if not isinstance(operand1, torch.Tensor):
-            operand1 = torch.tensor(operand1)
-
-        # Take the first element as the scalar value to broadcast
-        scalar_value = operand1.flatten()[0]
+        if isinstance(operand, torch.Tensor):
+            input_flat = operand.flatten().to(torch_format)
+        else:
+            input_flat = torch.tensor(operand, dtype=torch_format).flatten()
 
         # Calculate output size based on variable face dimensions
         elements_per_tile = face_r_dim * FACE_DIM * num_faces
 
-        # Create output tensor with scalar value replicated across all elements
-        result = torch.full((elements_per_tile,), scalar_value, dtype=torch_format)
+        results = []
+        for tile_idx in range(tile_cnt):
+            tile_start = tile_idx * elements_per_tile
+            tile_end = tile_start + elements_per_tile
+            tile_data = input_flat[tile_start:tile_end]
 
-        return result
+            tile_result = self.broadcast_handlers[broadcast_type](
+                tile_data, num_faces=num_faces, face_r_dim=face_r_dim
+            )
+            results.append(tile_result)
 
+        return torch.cat(results)
 
-@register_golden
-class ColumnBroadcastGolden:
-    """
-    Golden generator for column broadcast operations.
-    Hardware behavior: Faces 0-1 use Face 0's column, Faces 2-3 use Face 2's column
-    (See llk_math_eltwise_binary_broadcast.h lines 136-141)
+    def _broadcast_scalar(self, tile_data, **kwargs):
+        """Broadcast first element of each tile across the entire output tile."""
+        scalar_value = tile_data[0]
 
-    For a face_r_dim x 16 face: input has face_r_dim unique values (one per row),
-    each value is replicated 16 times across its row.
-    Output pattern: [row0_val]*16, [row1_val]*16, ..., [row(face_r_dim-1)_val]*16
-    """
+        return torch.full_like(tile_data, scalar_value)
 
-    def __call__(
+    def _broadcast_column(
         self,
-        operand1,
-        data_format,
-        num_faces: int = 4,
-        input_dimensions: list[int] = [32, 32],
-        face_r_dim: int = 16,  # Default to 16 for backward compatibility
+        tile_data,
+        num_faces: int,
+        face_r_dim: int,
     ):
-        torch_format = format_dict[data_format]
+        """
+        Process a single tile for column broadcast.
 
-        # Convert input to tensor
-        if isinstance(operand1, torch.Tensor):
-            input_flat = operand1.flatten().to(torch_format)
-        else:
-            # Direct conversion avoids intermediate tensor
-            input_flat = torch.tensor(operand1, dtype=torch_format).flatten()
-
-        # Each face is face_r_dim x 16 elements
+        For a face_r_dim x 16 face: input has face_r_dim unique values (one per row),
+        each value is replicated 16 times across its row.
+        Output pattern: [row0_val]*16, [row1_val]*16, ..., [row(face_r_dim-1)_val]*16
+        """
         face_size = face_r_dim * FACE_DIM
 
         # Process face 0 (used by faces 0-1)
-        source_face_0 = input_flat[:face_size]
+        source_face_0 = tile_data[:face_size]
         col_values_0 = source_face_0[::FACE_DIM]
         face_0_broadcast = col_values_0.repeat_interleave(FACE_DIM)
 
-        # Handle different face counts efficiently
+        # Handle different face counts: 1, 2, 4
         if num_faces == 1:
-            output = face_0_broadcast
+            return face_0_broadcast
         elif num_faces == 2:
             # Both faces use face 0 - use repeat instead of cat
-            output = face_0_broadcast.repeat(2)
+            return face_0_broadcast.repeat(2)
         else:  # num_faces == 4
             # Process face 2 (used by faces 2-3)
-            source_face_2 = input_flat[2 * face_size : 3 * face_size]
+            source_face_2 = tile_data[2 * face_size : 3 * face_size]
             col_values_2 = source_face_2[::FACE_DIM]
             face_2_broadcast = col_values_2.repeat_interleave(FACE_DIM)
 
-            # Concatenate: face0, face0, face2, face2
-            output = torch.cat(
+            return torch.cat(
                 [face_0_broadcast, face_0_broadcast, face_2_broadcast, face_2_broadcast]
             )
 
-        return output
-
-
-@register_golden
-class RowBroadcastGolden:
-    """Golden generator for row broadcast operations with variable face dimensions."""
-
-    def __call__(
+    def _broadcast_row(
         self,
-        operand1,
-        data_format,
-        num_faces: int = 4,
-        input_dimensions: list[int] = [32, 32],
-        face_r_dim: int = 16,  # Default to 16 for backward compatibility
+        tile_data,
+        num_faces: int,
+        face_r_dim: int,
     ):
-        torch_format = format_dict[data_format]
-
-        # Convert input to tensor
-        if isinstance(operand1, torch.Tensor):
-            input_flat = operand1.flatten().to(torch_format)
-        else:
-            # Direct conversion avoids intermediate tensor
-            input_flat = torch.tensor(operand1, dtype=torch_format).flatten()
-
-        # Each face is face_r_dim x 16 elements
+        """Process a single tile for row broadcast."""
         face_size = face_r_dim * FACE_DIM
 
         # Process face 0: take first row and repeat to fill face
-        face_0_row = input_flat[:FACE_DIM]
+        face_0_row = tile_data[:FACE_DIM]
         face_0_broadcast = face_0_row.repeat(face_r_dim)
 
         if num_faces == 1:
-            output = face_0_broadcast
+            return face_0_broadcast
         elif num_faces in (2, 4):
             # Extract and repeat face 1 row
-            face_1_row = input_flat[face_size : face_size + FACE_DIM]
+            face_1_row = tile_data[face_size : face_size + FACE_DIM]
             face_1_broadcast = face_1_row.repeat(face_r_dim)
 
             if num_faces == 2:
-                output = torch.cat([face_0_broadcast, face_1_broadcast])
+                return torch.cat([face_0_broadcast, face_1_broadcast])
             else:  # num_faces == 4
-                output = torch.cat(
+                return torch.cat(
                     [
                         face_0_broadcast,
                         face_1_broadcast,
@@ -837,8 +839,6 @@ class RowBroadcastGolden:
                         face_1_broadcast,
                     ]
                 )
-
-        return output
 
 
 @register_golden
@@ -883,6 +883,52 @@ class DataCopyGolden:
 
 
 @register_golden
+class PackGolden:
+    """
+    Golden generator for pack operations with optional ReLU activation.
+
+    This is similar to DataCopyGolden but includes support for ReLU configuration.
+    It's implemented as a separate class to allow future pack testing extensions
+    without affecting DataCopyGolden.
+    """
+
+    def __call__(
+        self,
+        operand1,
+        data_format,
+        num_faces: int = 4,
+        input_dimensions: list[int] = [32, 32],
+        enable_relu: bool = False,
+    ):
+        if num_faces not in [1, 2, 4]:
+            raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
+
+        torch_format = format_dict[data_format]
+
+        height, width = input_dimensions[0], input_dimensions[1]
+
+        tile_cnt = (height // 32) * (width // 32)
+        tile_size = height * width // tile_cnt
+
+        # Fixed face_r_dim at 16. TODO: enable other dimensions.
+        elements_per_tile_needed = 16 * FACE_DIM * num_faces
+
+        if not isinstance(operand1, torch.Tensor):
+            operand1 = torch.tensor(operand1, dtype=torch_format)
+        elif operand1.dtype != torch_format:
+            operand1 = operand1.to(torch_format)
+
+        result = operand1.view(tile_cnt, tile_size)[
+            :, :elements_per_tile_needed
+        ].reshape(-1)
+
+        if enable_relu:
+            result = torch.relu(result)
+
+        return result
+
+
+@register_golden
 class UnarySFPUGolden:
     def __init__(self):
         self.ops = {
@@ -921,6 +967,8 @@ class UnarySFPUGolden:
         data_format,
         dest_acc,
         input_format,
+        dimensions: tuple[int, int],
+        iterations: int = None,
         reduce_pool: Optional[ReducePool] = None,
     ):
         self.data_format = data_format
@@ -952,7 +1000,23 @@ class UnarySFPUGolden:
 
         tensor = to_tensor(operand1, dst_format)
 
-        result = [self.ops[operation](x) for x in tensor.tolist()]
+        if iterations is None or iterations * 32 > tensor.numel():
+            iterations = tensor.numel() // 32
+
+        if iterations <= 0:
+            raise ValueError(f"Invalid iterations: {iterations}")
+
+        result = tensor.clone().flatten()
+
+        result = tilize_block(result, dimensions, input_format).flatten()
+
+        op_res = [self.ops[operation](x) for x in result.tolist()[0 : 32 * iterations]]
+
+        result[0 : 32 * iterations] = torch.tensor(
+            op_res, dtype=format_dict[dst_format]
+        )
+
+        result = untilize_block(result, input_format, dimensions).flatten()
 
         if self.data_format == DataFormat.Bfp8_b:
             check_bfp8_b(result)
@@ -1236,16 +1300,93 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         )
 
     def __call__(
-        self, operation: MathOperation, operand1, operand2, data_format: DataFormat
+        self,
+        operation: MathOperation,
+        tensor,
+        src1_idx: int,
+        src2_idx: int,
+        dst_idx: int,
+        num_iterations: int,
+        dimensions: tuple[int, int],
+        data_format: DataFormat,
     ):
         if operation not in self.ops:
             raise ValueError(f"Unsupported SFPU operation: {operation}")
 
-        t1 = to_tensor(operand1, data_format)
-        t2 = to_tensor(operand2, data_format)
+        if num_iterations < 1:
+            raise ValueError(f"num_iterations must be at least 1, got {num_iterations}")
 
-        result = [self.ops[operation](t1[i], t2[i]) for i in range(len(t1))]
-        return torch.tensor(result, dtype=format_dict[data_format])
+        total_elements = dimensions[0] * dimensions[1]
+        elements_per_tile = ELEMENTS_PER_TILE
+        elements_per_row = 32
+
+        num_tiles = total_elements // elements_per_tile
+
+        src1_start = src1_idx * elements_per_tile
+        src2_start = src2_idx * elements_per_tile
+        dst_start = dst_idx * elements_per_tile
+
+        if operation == MathOperation.SfpuAddTopRow:
+            return self._add_top_row(
+                tensor.flatten(),
+                src1_idx,
+                src2_idx,
+                dst_idx,
+            )
+
+        if data_format != DataFormat.Bfp8_b:
+            result = tilize_block(tensor.flatten(), dimensions, data_format).flatten()
+        else:
+            result = tensor.flatten()
+
+        for name, idx in [
+            ("src1_idx", src1_idx),
+            ("src2_idx", src2_idx),
+            ("dst_idx", dst_idx),
+        ]:
+            if not 0 <= idx < num_tiles:
+                raise ValueError(
+                    f"{name} {idx} is out of bounds. Tensor has {num_tiles} tiles."
+                )
+
+        elements_to_process = num_iterations * elements_per_row
+
+        for name, start in [
+            ("src1_idx", src1_start),
+            ("src2_idx", src2_start),
+            ("dst_idx", dst_start),
+        ]:
+            if start + elements_to_process > total_elements:
+                raise ValueError(
+                    f"Processing {num_iterations} iterations from {name} "
+                    f"would exceed tensor bounds (trying to access element {start + elements_to_process}, "
+                    f"but tensor has only {total_elements} elements)"
+                )
+
+        for iteration in range(num_iterations):
+            row_offset = iteration * elements_per_row
+
+            src1_row_start = src1_start + row_offset
+            src2_row_start = src2_start + row_offset
+            dst_row_start = dst_start + row_offset
+
+            src1_row = result[src1_row_start : src1_row_start + elements_per_row]
+            src2_row = result[src2_row_start : src2_row_start + elements_per_row]
+
+            result_row = torch.tensor(
+                [
+                    self.ops[operation](src1_row[i], src2_row[i])
+                    for i in range(elements_per_row)
+                ],
+                dtype=format_dict[data_format],
+            )
+
+            result[dst_row_start : dst_row_start + elements_per_row] = result_row
+
+        if data_format != DataFormat.Bfp8_b:
+            result = untilize_block(result, data_format, dimensions)
+
+        return result
 
     # Operation methods are covered by Eltwise Binary Golden
     def _xlogy(self, x, y):
@@ -1269,16 +1410,67 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         result = (t1_uint >> t2).to(torch.int32)
         return result
 
-    def _add_top_row(self, t1, t2):
+    def _add_top_row(
+        self,
+        tensor,
+        src1_idx,
+        src2_idx,
+        dst_idx,
+    ):
         """
-        Add top row operation for tile pairs.
-        Takes the element t1 of top row of tile 0 and adds it with element t2 of top row of tile 1.
+        Add top row operation for tile pairs in untilized format.
         """
-        return t1 + t2
+        src1_idx_start = src1_idx * ELEMENTS_PER_TILE
+        src2_idx_start = src2_idx * ELEMENTS_PER_TILE
+        dst_idx_start = dst_idx * ELEMENTS_PER_TILE
+
+        result = tensor.clone()
+
+        # Untilized format: row-wise layout
+        ROWS_0_1_OFFSET = 0  # Rows 0-1 start at element 0
+        ROWS_8_9_OFFSET = 256  # Rows 8-9 start at element 256
+        # Two consecutive rows = 2 rows × 32 columns = 64 elements
+        TWO_ROWS_ELEMENTS = 64
+
+        # Add rows 0-1 (elements 0-63)
+        rows_0_1_dst_start = dst_idx_start + ROWS_0_1_OFFSET
+        rows_0_1_dst_end = rows_0_1_dst_start + TWO_ROWS_ELEMENTS
+        rows_0_1_src1_start = src1_idx_start + ROWS_0_1_OFFSET
+        rows_0_1_src1_end = rows_0_1_src1_start + TWO_ROWS_ELEMENTS
+        rows_0_1_src2_start = src2_idx_start + ROWS_0_1_OFFSET
+        rows_0_1_src2_end = rows_0_1_src2_start + TWO_ROWS_ELEMENTS
+
+        result[rows_0_1_dst_start:rows_0_1_dst_end] = (
+            tensor[rows_0_1_src1_start:rows_0_1_src1_end]
+            + tensor[rows_0_1_src2_start:rows_0_1_src2_end]
+        )
+
+        # Add rows 8-9 (elements 256-319)
+        rows_8_9_dst_start = dst_idx_start + ROWS_8_9_OFFSET
+        rows_8_9_dst_end = rows_8_9_dst_start + TWO_ROWS_ELEMENTS
+        rows_8_9_src1_start = src1_idx_start + ROWS_8_9_OFFSET
+        rows_8_9_src1_end = rows_8_9_src1_start + TWO_ROWS_ELEMENTS
+        rows_8_9_src2_start = src2_idx_start + ROWS_8_9_OFFSET
+        rows_8_9_src2_end = rows_8_9_src2_start + TWO_ROWS_ELEMENTS
+
+        result[rows_8_9_dst_start:rows_8_9_dst_end] = (
+            tensor[rows_8_9_src1_start:rows_8_9_src1_end]
+            + tensor[rows_8_9_src2_start:rows_8_9_src2_end]
+        )
+
+        return result
 
 
 @register_golden
 class ReduceGolden:
+    """Golden for reduce operations (Max/Average/Sum pooling).
+
+    Reduce dimensions:
+        Column: f0+f2 (left), f1+f3 (right) → row 0
+        Row:    f0+f1 (upper), f2+f3 (lower) → col 0
+        Scalar: all elements → single value at [0]
+    """
+
     def __init__(self):
         self.dim_handlers = {
             ReduceDimension.Column: self._reduce_column,
@@ -1286,44 +1478,55 @@ class ReduceGolden:
             ReduceDimension.Scalar: self._reduce_scalar,
         }
 
-    def __call__(self, operand, reduce_dim, pool_type, data_format):
+    def __call__(self, operand, reduce_dim, pool_type, data_format, tile_cnt=1):
         if reduce_dim not in self.dim_handlers:
             raise ValueError(f"Unsupported reduce dimension: {reduce_dim}")
 
-        f0 = operand[:256].view(16, 16)
-        f1 = operand[256:512].view(16, 16)
-        f2 = operand[512:768].view(16, 16)
-        f3 = operand[768:].view(16, 16)
-        faces = [f0, f1, f2, f3]
-        if reduce_dim == ReduceDimension.Scalar:
-            faces = operand
+        return torch.cat(
+            [
+                self._process_tile(operand, reduce_dim, pool_type, data_format, tile)
+                for tile in range(tile_cnt)
+            ]
+        )
+
+    def _process_tile(self, operand, reduce_dim, pool_type, data_format, tile_idx):
+        tile_start = tile_idx * ELEMENTS_PER_TILE
+        tile_data = operand[tile_start : tile_start + ELEMENTS_PER_TILE]
+
+        # Extract 4 faces as 16x16 matrices
+        faces = tile_data.view(FACES_PER_TILE, FACE_DIM, FACE_DIM)
+
         return self.dim_handlers[reduce_dim](faces, pool_type, data_format)
 
     def _reduce_column(self, faces, pool_type, data_format):
-        left_half = torch.cat((faces[0], faces[2]), 0)
-        right_half = torch.cat((faces[1], faces[3]), 0)
-
-        result = torch.zeros(32, 32, dtype=format_dict[data_format])
-        result[0, 0:16] = self._apply_pooling(left_half, pool_type, dim=0)
-        result[0, 16:32] = self._apply_pooling(right_half, pool_type, dim=0)
-
-        return result.view(1024)
+        # Pool together f0+f2 (left cols) and f1+f3 (right cols) → row 0
+        left_half = torch.cat((faces[0], faces[2]), dim=0)  # 32x16
+        right_half = torch.cat((faces[1], faces[3]), dim=0)  # 32x16
+        result = torch.zeros(ELEMENTS_PER_TILE, dtype=format_dict[data_format])
+        result[:FACE_DIM] = self._apply_pooling(left_half, pool_type, dim=0)
+        result[ELEMENTS_PER_FACE : ELEMENTS_PER_FACE + FACE_DIM] = self._apply_pooling(
+            right_half, pool_type, dim=0
+        )
+        return result
 
     def _reduce_row(self, faces, pool_type, data_format):
-        upper_half = torch.cat((faces[0], faces[1]), 1)
-        lower_half = torch.cat((faces[2], faces[3]), 1)
+        # Pool together f0+f1 (upper rows) and f2+f3 (lower rows) → col 0
+        upper_half = torch.cat((faces[0], faces[1]), dim=1)  # 16x32
+        lower_half = torch.cat((faces[2], faces[3]), dim=1)  # 16x32
+        result = torch.zeros(ELEMENTS_PER_TILE, dtype=format_dict[data_format])
+        result[0:ELEMENTS_PER_FACE:FACE_DIM] = self._apply_pooling(
+            upper_half, pool_type, dim=1
+        )
+        result[2 * ELEMENTS_PER_FACE : 3 * ELEMENTS_PER_FACE : FACE_DIM] = (
+            self._apply_pooling(lower_half, pool_type, dim=1)
+        )
+        return result
 
-        result = torch.zeros(32, 32, dtype=format_dict[data_format])
-        result[0:16, 0] = self._apply_pooling(upper_half, pool_type, dim=1).view(16)
-        result[16:32, 0] = self._apply_pooling(lower_half, pool_type, dim=1).view(16)
-
-        return result.view(1024)
-
-    def _reduce_scalar(self, operand, pool_type, data_format):
-        tensor = operand.view(1024)
-        result = torch.zeros(32, 32, dtype=format_dict[data_format])
-        result[0, 0] = self._apply_pooling(tensor, pool_type, dim=0)
-        return result.view(1024)
+    def _reduce_scalar(self, faces, pool_type, data_format):
+        # Pool together all faces → single scalar at [0]
+        result = torch.zeros(ELEMENTS_PER_TILE, dtype=format_dict[data_format])
+        result[0] = self._apply_pooling(faces.flatten(), pool_type, dim=0)
+        return result
 
     def _apply_pooling(self, tensor, pool_type, dim):
         if pool_type == ReducePool.Max:
@@ -1334,6 +1537,132 @@ class ReduceGolden:
             return torch.sum(tensor, dim=dim)
         else:
             raise ValueError(f"Unsupported pool type: {pool_type}")
+
+
+@register_golden
+class ReduceGapoolGolden(FidelityMasking):
+    """Golden for GAPOOL reduce (Sum/Average pooling) with fidelity masking.
+
+    Hardware computes matmul (D = srcB @ srcA) per face, accumulating across fidelity iterations.
+
+    Reduce dimensions:
+        Column: f0+f2 (left), f1+f3 (right) → row 0
+        Row:    f0+f1 (upper), f2+f3 (lower) → col 0, (srcA transposed by unpacker)
+        Scalar: all faces summed → transpose → pool again → single value at [0]
+    """
+
+    MATH_FIDELITY_TO_ITER_COUNT = {
+        MathFidelity.LoFi: 0,
+        MathFidelity.HiFi2: 1,
+        MathFidelity.HiFi3: 2,
+        MathFidelity.HiFi4: 3,
+    }
+
+    def __call__(
+        self,
+        operand1,
+        operand2,
+        data_format,
+        reduce_dim,
+        math_fidelity=MathFidelity.LoFi,
+        tile_cnt=1,
+    ):
+
+        fidelity_iter_count = self.MATH_FIDELITY_TO_ITER_COUNT[math_fidelity]
+
+        return torch.cat(
+            [
+                self._process_tile(
+                    operand1,
+                    operand2,
+                    data_format,
+                    reduce_dim,
+                    fidelity_iter_count,
+                    tile,
+                )
+                for tile in range(tile_cnt)
+            ]
+        )
+
+    def _process_tile(
+        self, operand1, operand2, data_format, reduce_dim, fidelity_iter_count, tile_idx
+    ):
+        # Extract srcA tile and srcB face0 (only f0 unpacked for srcB)
+        tile_start = tile_idx * ELEMENTS_PER_TILE
+        src_a = to_tensor(
+            operand1[tile_start : tile_start + ELEMENTS_PER_TILE], data_format
+        )
+        src_b = to_tensor(operand2[:ELEMENTS_PER_FACE], data_format)
+
+        # Row reduce: transpose within each face of SrcA (models unpacker behavior)
+        if reduce_dim == ReduceDimension.Row:
+            src_a = (
+                src_a.view(FACES_PER_TILE, FACE_DIM, FACE_DIM).transpose(1, 2).flatten()
+            )
+
+        # Compute gapool for each face across all fidelity iterations
+        face_results = self._compute_gapool(
+            src_a, src_b, data_format, fidelity_iter_count
+        )
+
+        # Combine results based on reduce dimension
+        return self._accumulate_gapool_results(
+            face_results, src_b, data_format, reduce_dim, fidelity_iter_count
+        )
+
+    def _compute_gapool(
+        self, src_a, src_b, data_format, fidelity_iter_count, num_faces=FACES_PER_TILE
+    ):
+        """Compute D = srcB @ srcA for each face, accumulating across fidelity iterations."""
+        face_results = torch.zeros(
+            num_faces, FACE_DIM * FACE_DIM, dtype=src_a.dtype, device=src_a.device
+        )
+
+        for fidelity_iter in range(fidelity_iter_count + 1):
+            a_masked, b_masked = self._apply_fidelity_masking(
+                data_format, src_a, src_b, fidelity_iter
+            )
+
+            a_faces = a_masked.view(num_faces, FACE_DIM, FACE_DIM)
+            b_face = b_masked.view(1, FACE_DIM, FACE_DIM)
+            result = torch.matmul(b_face, a_faces)
+
+            # Flatten and accumulate in-place
+            face_results += result.view(num_faces, -1)
+
+        return face_results
+
+    def _accumulate_gapool_results(
+        self, face_results, src_b, data_format, reduce_dim, fidelity_iter_count
+    ):
+        """Place pooled results in output tile based on reduce dimension."""
+        face_shape = (FACE_DIM, FACE_DIM)
+        f0, f1, f2, f3 = face_results
+        result = torch.zeros(ELEMENTS_PER_TILE, dtype=f0.dtype)
+
+        if reduce_dim == ReduceDimension.Column:
+            # Sum left faces (f0+f2) → face0 row 0, right faces (f1+f3) → face1 row 0
+            result[:FACE_DIM] = (f0 + f2)[:FACE_DIM]
+            result[ELEMENTS_PER_FACE : ELEMENTS_PER_FACE + FACE_DIM] = (f1 + f3)[
+                :FACE_DIM
+            ]
+
+        elif reduce_dim == ReduceDimension.Row:
+            # Sum top faces (f0+f1) → face0 col 0, bottom faces (f2+f3) → face2 col 0
+            result[0:ELEMENTS_PER_FACE:FACE_DIM] = (f0 + f1)[:FACE_DIM]
+            result[2 * ELEMENTS_PER_FACE : 3 * ELEMENTS_PER_FACE : FACE_DIM] = (
+                f2 + f3
+            )[:FACE_DIM]
+
+        elif reduce_dim == ReduceDimension.Scalar:
+            # Sum all faces, transpose, pool again to get single scalar
+            all_faces = (f0 + f1 + f2 + f3).view(face_shape).T.flatten()
+            pool_result = self._compute_gapool(
+                all_faces, src_b, data_format, fidelity_iter_count, num_faces=1
+            )
+            result[0] = pool_result[0][0]  # First element of a single face result
+
+        return result
 
 
 @register_golden
