@@ -66,7 +66,7 @@ enum DstTileShape
 enum UnpackToDest
 {
     SrcRegs = 0,
-    DestReg  = 1
+    DestReg = 1
 };
 
 enum register_space_e
