@@ -15,7 +15,7 @@ from helpers.llk_params import (
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
-from helpers.tilize_untilize import untilize
+from helpers.tilize_untilize import tilize, untilize
 from helpers.utils import passed_test
 
 
@@ -44,9 +44,9 @@ def eltwise_unary_sfpu(test_name, formats, dest_acc, mathop):
     )
 
     src_A = torch.ones(1024)
-    src_A[0:32] = 2.0
+    src_A[0:32] = torch.arange(32)
 
-    # src_A = tilize(src_A, stimuli_format=formats.input_format)
+    src_A = tilize(src_A, stimuli_format=formats.input_format)
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
