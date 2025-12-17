@@ -11,6 +11,8 @@
 
 namespace test_utils
 {
+using namespace ckernel;
+using namespace ckernel::sfpu;
 
 /**
  * Template function to call SFPU operations with parameterized iteration count
@@ -25,8 +27,6 @@ namespace test_utils
 template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
 void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
 {
-    using namespace ckernel;
-    using namespace ckernel::sfpu;
     switch (operation)
     {
         case SfpuType::abs:
