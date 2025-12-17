@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <type_traits>
 #include <utility>
 
 #include "llk_defs.h"
@@ -32,6 +33,22 @@ enum class state_type_t : uint8_t
     indeterminate,
     dontcare
 };
+
+template <typename T>
+class state_t;
+
+template <typename T>
+struct is_state_t : std::false_type
+{
+};
+
+template <typename T>
+struct is_state_t<state_t<T>> : std::true_type
+{
+};
+
+template <typename T>
+inline constexpr bool is_state_t_v = is_state_t<T>::value;
 
 template <typename T>
 class state_t
@@ -63,7 +80,7 @@ public:
     }
 
     // Constructor for DETERMINATE value
-    template <typename U, typename = std::enable_if_t<!std::is_same_v<std::decay_t<U>, state_t>>>
+    template <typename U, typename = std::enable_if_t<!is_state_t_v<std::decay_t<U>>>>
     constexpr state_t(U&& value) : underlying(std::forward<U>(value)), state_type(state_type_t::determinate)
     {
     }
@@ -106,74 +123,65 @@ public:
     // - compatible with T
     // - indeterminate_t
     // - dontcare_t
-    template <typename U, typename = std::enable_if_t<!std::is_same_v<std::decay_t<U>, state_t>>>
+    template <typename U, typename = std::enable_if_t<!is_state_t_v<std::decay_t<U>>>>
     state_t& operator=(U&& rhs)
     {
         *this = state_t<T>(std::forward<U>(rhs));
         return *this;
     }
 
-    // EQUALITY
-    // if ANY side of comparison is state_type_t::dontcare return true
-    // else if ANY side of comparison is state_type_t::indeterminate return false
-    // otherwise return lhs.value == rhs.value
-
-    // We need to friend state_t<U> in case U != T because otherwise U->state_type is private
-    template <typename U>
-    friend class state_tconst;
-
-    // state_t == state_t
-    template <typename U>
-    bool operator==(state_t<U>& rhs) const
+    bool is_determinate() const
     {
-        // DONTCARE always returns true
-        if (this->state_type == state_type_t::dontcare || rhs.state_type == state_type_t::dontcare)
-        {
-            return true;
-        }
-
-        // If either is indeterminate, return false
-        if (this->state_type == state_type_t::indeterminate || rhs.state_type == state_type_t::indeterminate)
-        {
-            return false;
-        }
-
-        // Compare underlying values
-        return this->underlying == rhs.underlying;
+        return state_type == state_type_t::determinate;
     }
 
-    // state_t == llk_san::DONTCARE
-    bool operator==(const dontcare_t& rhs) const
+    bool is_indeterminate() const
     {
-        return *this == state_t<T>(rhs);
+        return state_type == state_type_t::indeterminate;
     }
 
-    // state_t == llk_san::INDETERMINATE
-    bool operator==(const indeterminate_t& rhs) const
+    bool is_dontcare() const
     {
-        return *this == state_t<T>(rhs);
+        return state_type == state_type_t::dontcare;
     }
 
-    // state_t == value
-    template <typename U, typename = std::enable_if_t<!std::is_same_v<std::decay_t<U>, state_t>>>
-    bool operator==(const U& rhs) const
+    T get_underlying() const
     {
-        return *this == state_t<U>(rhs);
+        LLK_PANIC(!is_indeterminate(), "panic: llk_san: tried to get underlying value when state is not determinate");
+        return underlying;
     }
 };
 
-template <typename U, typename V>
-static inline bool operator==(const V& lhs, const state_t<U>& rhs)
+template <typename T, typename U>
+static inline bool _assert_condition(const state_t<T>& lhs, const state_t<U>& rhs)
 {
-    // Equality is commutative
-    return rhs == lhs;
+    if (lhs.state_type == state_type_t::dontcare || rhs.state_type == state_type_t::dontcare)
+    {
+        return true;
+    }
+
+    if (lhs.state_type == state_type_t::indeterminate || rhs.state_type == state_type_t::indeterminate)
+    {
+        return false;
+    }
+
+    return lhs.underlying == rhs.underlying;
 }
 
-template <typename U, typename V>
-static inline bool operator!=(const V& lhs, const state_t<U>& rhs)
+template <typename T, typename U>
+static inline bool _panic_condition(const state_t<T>& lhs, const state_t<U>& rhs)
 {
-    // Inequality is commutative
-    return !(rhs == lhs);
+    if (lhs.state_type == state_type_t::dontcare || rhs.state_type == state_type_t::dontcare)
+    {
+        return true;
+    }
+
+    if (lhs.state_type == state_type_t::indeterminate || rhs.state_type == state_type_t::indeterminate)
+    {
+        return false;
+    }
+
+    return lhs.underlying != rhs.underlying;
 }
 
 // TODO: refactor below
