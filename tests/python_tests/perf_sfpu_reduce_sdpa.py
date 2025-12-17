@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
-from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     DestAccumulation,
@@ -14,7 +13,7 @@ from helpers.param_config import (
     parametrize,
 )
 from helpers.perf import (
-    SFPU_ALL_RUN_TYPES,
+    PerfRunType,
     perf_benchmark,
     update_report,
 )
@@ -24,7 +23,6 @@ FACE_R_DIM = 16
 NUM_FACES = 4
 
 
-@skip_for_blackhole
 @pytest.mark.perf
 @parametrize(
     test_name="sfpu_reduce_sdpa_perf",
@@ -35,15 +33,25 @@ NUM_FACES = 4
     dest_acc=[DestAccumulation.No],
     mathop=[MathOperation.ReduceColumn],
     reduce_pool=[ReducePool.Max],  # Only MAX is supported for SDPA reduce
-    loop_factor=list(
-        range(10, 201, 10)
-    ),  # Multiple loop factors to minimize profiler overhead
+    loop_factor=[
+        1,
+        2,
+        4,
+        8,
+    ],
     face_r_dim=[FACE_R_DIM],
     num_faces=[NUM_FACES],
     input_dimensions=[
-        [128, 64],
+        [32, 32],  # tile_cnt = 1
+        [128, 64],  # tile_cnt = 8
     ],
-    run_types=[SFPU_ALL_RUN_TYPES],
+    run_types=[
+        [PerfRunType.L1_TO_L1],
+        [PerfRunType.UNPACK_ISOLATE],
+        [PerfRunType.MATH_ISOLATE],
+        [PerfRunType.PACK_ISOLATE],
+        [PerfRunType.L1_CONGESTION],
+    ],
 )
 def test_perf_sfpu_reduce_sdpa(
     perf_report,
