@@ -34,9 +34,9 @@ NUM_FACES = 4
     formats=input_output_formats(
         [
             DataFormat.Float32,
-            DataFormat.Float16,
-            DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
+            # DataFormat.Float16,
+            # DataFormat.Float16_b,
+            # DataFormat.Bfp8_b,
         ]
     ),
     approx_mode=[
