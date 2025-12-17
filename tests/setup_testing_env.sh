@@ -18,9 +18,22 @@ SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 # Function to ensure virtual environment is accessible
 # Instead of full activation, we just add venv bin directories to PATH
 activate_venv_if_exists() {
-    # If VIRTUAL_ENV is already set, the venv is already activated
+    # If VIRTUAL_ENV is already set, ensure its bin is at front of PATH
     if [[ -n "${VIRTUAL_ENV:-}" ]]; then
         echo "VIRTUAL_ENV already set to: $VIRTUAL_ENV"
+        local venv_bin="$VIRTUAL_ENV/bin"
+        if [[ -d "$venv_bin" ]]; then
+            # Remove venv bin from PATH if it exists anywhere
+            if [[ ":$PATH:" == *":$venv_bin:"* ]]; then
+                PATH="${PATH//:$venv_bin:/:}"
+                PATH="${PATH/#$venv_bin:/}"
+                PATH="${PATH/%:$venv_bin/}"
+                echo "  Removed existing $venv_bin from PATH"
+            fi
+            # Add to front of PATH to ensure priority
+            export PATH="$venv_bin:$PATH"
+            echo "  Moved $venv_bin to front of PATH (takes priority)"
+        fi
         return 0
     fi
 
@@ -40,13 +53,22 @@ activate_venv_if_exists() {
             echo "    Directory exists"
             if [[ -d "$venv_path/bin" ]]; then
                 echo "    bin/ subdirectory exists"
-                # Add venv bin to PATH if not already there
-                if [[ ":$PATH:" != *":$venv_path/bin:"* ]]; then
-                    export PATH="$venv_path/bin:$PATH"
-                    echo "    Added $venv_path/bin to PATH"
+
+                # Remove venv bin from PATH if it exists anywhere, then add to front
+                # This ensures venv executables take priority over ~/.local/bin
+                local venv_bin="$venv_path/bin"
+                if [[ ":$PATH:" == *":$venv_bin:"* ]]; then
+                    # Remove existing entry
+                    PATH="${PATH//:$venv_bin:/:}"
+                    PATH="${PATH/#$venv_bin:/}"
+                    PATH="${PATH/%:$venv_bin/}"
+                    echo "    Removed existing $venv_bin from PATH"
                 fi
+
+                # Add to front of PATH
+                export PATH="$venv_bin:$PATH"
                 export VIRTUAL_ENV="$venv_path"
-                echo "    Set VIRTUAL_ENV=$venv_path"
+                echo "    Added $venv_bin to front of PATH (takes priority)"
                 return 0
             else
                 echo "    bin/ subdirectory NOT found"
@@ -58,6 +80,32 @@ activate_venv_if_exists() {
 
     echo "No virtual environment found in any of the checked paths"
     return 1
+}
+
+# Function to check for conflicting installations and warn
+check_conflicting_installations() {
+    if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+        local venv_bin="$VIRTUAL_ENV/bin"
+
+        # Check for tt-smi conflicts
+        if [[ -f "$HOME/.local/bin/tt-smi" && -f "$venv_bin/tt-smi" ]]; then
+            echo "WARNING: Found tt-smi in both ~/.local/bin and $venv_bin"
+            echo "  Using: $(which tt-smi)"
+
+            # Test if the one in PATH works
+            if ! tt-smi --version &>/dev/null; then
+                echo "  ERROR: Current tt-smi in PATH is broken!"
+                echo "  Consider removing: $HOME/.local/bin/tt-smi"
+                echo "  Working version at: $venv_bin/tt-smi"
+            fi
+        fi
+
+        # Check for tt-exalens conflicts
+        if [[ -f "$HOME/.local/bin/tt-exalens" && -f "$venv_bin/tt-exalens" ]]; then
+            echo "WARNING: Found tt-exalens in both ~/.local/bin and $venv_bin"
+            echo "  Using: $(which tt-exalens)"
+        fi
+    fi
 }
 
 # Function to get chip architecture using tt-smi
@@ -228,6 +276,9 @@ main() {
 
     # Activate virtual environment if it exists (needed for tt-smi command)
     activate_venv_if_exists || true
+
+    # Check for and warn about conflicting installations
+    check_conflicting_installations
 
     # Get script directory and version file
     local version_file="$SCRIPT_DIR/sfpi-info.sh"
