@@ -11,6 +11,8 @@
 
 #define LLK_ASSERT(condition, message) ASSERT(condition)
 
+#define LLK_PANIC(condition, message) LLK_ASSERT(!(condition), message)
+
 #else
 
 #include "ckernel.h"
@@ -24,5 +26,7 @@
             UNREACHABLE();             \
         }                              \
     } while (0)
+
+#define LLK_PANIC(condition, message) LLK_ASSERT(!(condition), message)
 
 #endif
