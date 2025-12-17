@@ -106,6 +106,13 @@ void run_kernel()
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
+            _perf_math_loop_clear_valid<
+                /* src A */ true,
+                /* src B */ true>(
+                /* iterations*/ NUM_FACES * TILE_CNT * LOOP_FACTOR);
+        }
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_CONGESTION_MATH_SYNC)
+        {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
                 _perf_math_loop_clear_valid<
@@ -125,9 +132,9 @@ void run_kernel()
             // For MATH_ISOLATE, skip datacopy and only measure SFPU operations
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
-                for (uint32_t i = 0; i < TILE_CNT; ++i)
+                for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ i);
+                    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
                     test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations>(SFPU_UNARY_OPERATION, formats.math);
                     _llk_math_eltwise_unary_sfpu_done_();
 
@@ -135,7 +142,7 @@ void run_kernel()
                     _perf_math_loop_clear_valid<
                         /* src A */ true,
                         /* src B */ false>(
-                        /* iterations*/ 1);
+                        /* iterations*/ MAX_TILES_DEST);
                 }
             }
         }
@@ -198,7 +205,7 @@ void run_kernel()
         {
             return;
         }
-        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE) // || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
+        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
