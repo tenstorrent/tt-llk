@@ -89,7 +89,7 @@ void run_kernel()
     _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, num_faces, false, false, RELU_CONFIG);
-    _llk_pack_init_<false, false, false>(formats.pack_dst, FACE_R_DIM, num_faces);
+    _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, num_faces);
     _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en, false>();
 #endif
     _llk_packer_wait_for_math_done_();
