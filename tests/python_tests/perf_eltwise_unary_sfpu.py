@@ -1,6 +1,16 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+"""
+All commented out formats, mathop options, loop factors, and input dimensions
+can be uncommented to expand the test coverage as needed.
+
+Uncommenting all options may lead to a large number of test cases being generated,
+which could increase the total test execution time significantly.
+
+Therefore, it's recommended to selectively enable options based on specific testing requirements.
+"""
+
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat, InputOutputFormat
@@ -10,10 +20,8 @@ from helpers.llk_params import (
     MathOperation,
 )
 from helpers.param_config import input_output_formats, parametrize
-from helpers.perf import PerfRunType, perf_benchmark, update_report
-from helpers.stimuli_generator import (
-    calculate_tile_and_face_counts,
-)
+from helpers.perf import ALL_RUN_TYPES, perf_benchmark, update_report
+from helpers.stimuli_generator import calculate_tile_and_face_counts
 
 FACE_R_DIM = 16
 NUM_FACES = 4
@@ -25,9 +33,9 @@ NUM_FACES = 4
     formats=input_output_formats(
         [
             DataFormat.Float32,
-            DataFormat.Float16,
-            DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
+            # DataFormat.Float16,
+            # DataFormat.Float16_b,
+            # DataFormat.Bfp8_b,
         ]
     ),
     approx_mode=[
@@ -36,28 +44,28 @@ NUM_FACES = 4
     ],
     mathop=[
         MathOperation.Abs,
-        MathOperation.Atanh,
-        MathOperation.Asinh,
-        MathOperation.Acosh,
-        MathOperation.Cos,
-        MathOperation.Log,
-        MathOperation.Reciprocal,
-        MathOperation.Sin,
-        MathOperation.Sqrt,
-        MathOperation.Rsqrt,
-        MathOperation.Square,
-        MathOperation.Celu,
-        MathOperation.Silu,
-        MathOperation.Gelu,
-        MathOperation.Neg,
-        MathOperation.Fill,
-        MathOperation.Elu,
-        MathOperation.Exp,
-        MathOperation.Exp2,
-        MathOperation.Hardsigmoid,
-        MathOperation.Threshold,
-        MathOperation.ReluMax,
-        MathOperation.ReluMin,
+        # MathOperation.Atanh,
+        # MathOperation.Asinh,
+        # MathOperation.Acosh,ß
+        # MathOperation.Cos,
+        # MathOperation.Log,
+        # MathOperation.Reciprocal,
+        # MathOperation.Sin,
+        # MathOperation.Sqrt,
+        # MathOperation.Rsqrt,
+        # MathOperation.Square,
+        # MathOperation.Celu,
+        # MathOperation.Silu,
+        # MathOperation.Gelu,
+        # MathOperation.Neg,
+        # MathOperation.Fill,
+        # MathOperation.Elu,
+        # MathOperation.Exp,
+        # MathOperation.Exp2,
+        # MathOperation.Hardsigmoid,
+        # MathOperation.Threshold,
+        # MathOperation.ReluMax,
+        # MathOperation.ReluMin,
     ],
     dest_acc=[
         DestAccumulation.No,
@@ -77,13 +85,7 @@ NUM_FACES = 4
         # [64, 64],  # tile_cnt: 4
         [128, 64],  # tile_cnt: 8
     ],  # Specifying different input sizes to cover different tile counts
-    run_types=[
-        [PerfRunType.L1_TO_L1],
-        [PerfRunType.UNPACK_ISOLATE],
-        [PerfRunType.MATH_ISOLATE],
-        [PerfRunType.PACK_ISOLATE],
-        [PerfRunType.L1_CONGESTION],
-    ],
+    run_types=[ALL_RUN_TYPES],
 )
 def test_perf_eltwise_unary_sfpu(
     perf_report,

@@ -44,13 +44,7 @@ NUM_FACES = 4
         [32, 32],  # tile_cnt = 1
         [128, 64],  # tile_cnt = 8
     ],
-    run_types=[
-        [PerfRunType.L1_TO_L1],
-        [PerfRunType.UNPACK_ISOLATE],
-        [PerfRunType.MATH_ISOLATE],
-        [PerfRunType.PACK_ISOLATE],
-        [PerfRunType.L1_CONGESTION],
-    ],
+    run_types=[ALL_RUN_TYPES],
 )
 def test_perf_sfpu_reduce_sdpa(
     perf_report,
