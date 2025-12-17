@@ -31,7 +31,7 @@ class Packer:
                     f"    );\n"
                 )
             elif operation_config.architecture == ChipArchitecture.WORMHOLE:
-                code += (
+                code = (
                     f"    _llk_pack_hw_configure_<{dest_acc}, false>(\n"
                     f"        pack_in_format{stage}, pack_out_format{stage}, {pack_size}\n"
                     f"    );\n"

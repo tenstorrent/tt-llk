@@ -158,6 +158,12 @@ class FusedOperation:
         self.ct_dim = input_B_dimensions[1] // num_cols
         self.kt_dim = input_A_dimensions[1] // num_cols
 
+        if (
+            self.architecture == ChipArchitecture.WORMHOLE
+            or formats.input_format == DataFormat.Bfp8_b
+        ):
+            self.tilize = Tilize.No
+
     @property
     def src_a(self) -> Operand:
         mapping = self.operand_mapping
