@@ -6,12 +6,11 @@ from typing import TYPE_CHECKING, List, Type
 
 import torch
 
-from .golden_generators import (
+from .golden_generators import (  # TilizeGolden,
     BinarySFPUGolden,
     DataCopyGolden,
     EltwiseBinaryGolden,
     MatmulGolden,
-    TilizeGolden,
     UnarySFPUGolden,
     get_golden_generator,
 )
@@ -21,6 +20,7 @@ if TYPE_CHECKING:
 
 from .chip_architecture import ChipArchitecture
 from .llk_params import ApproximationMode, MathOperation, Tilize
+from .tilize_untilize import tilize_block
 
 
 class Fpu:
@@ -157,18 +157,10 @@ class DatacopyFpu(Fpu):
         tensor_b: torch.Tensor,
         operation_config: "FusedOperation",
     ) -> torch.Tensor:
-        golden_tensor = tensor_a
-        if operation_config.tilize == Tilize.Yes:
-            golden_generator = get_golden_generator(TilizeGolden)
-            golden_tensor = golden_generator(
-                golden_tensor,
-                operation_config.src_a.dimensions,
-                operation_config.output.data_format,
-                operation_config.num_faces,
-            )
+        # golden_tensor = tensor_a
         golden_generator = get_golden_generator(DataCopyGolden)
         golden_tensor = golden_generator(
-            golden_tensor,
+            tensor_a,
             operation_config.output.data_format,
             num_faces=operation_config.num_faces,
             input_dimensions=operation_config.src_a.dimensions,
@@ -181,7 +173,7 @@ class DatacopyFpu(Fpu):
         stage = operation_config.stage_id
         dest_acc = operation_config.dest_acc.value
         tile_cnt = operation_config.output.tile_count
-        tilize_en = operation_config.tilize.value
+        tilize_en = operation_config.pack_tilize.value
         # TODO: make dynamic based on operation_config
         brodcast_type = "BroadcastType::NONE"
         unpack_to_dest = "true" if operation_config.unpack_to_dest else "false"
@@ -504,6 +496,15 @@ class Math:
 
         tensor_a = operation_config.src_a.raw_data.view(src_a_dims)
         tensor_b = operation_config.src_b.raw_data.view(src_b_dims)
+
+        if operation_config.pack_tilize == Tilize.Yes:
+            tensor_a = tilize_block(
+                tensor_a,
+                operation_config.output.dimensions,
+                operation_config.output.data_format,
+                operation_config.num_faces,
+            )
+
         l1_golden_tensor = self.fpu.golden(tensor_a, tensor_b, operation_config)
 
         for sfpu in self.sfpu:
@@ -514,6 +515,15 @@ class Math:
         # calculate master golden
         golden_tensor_a = operation_config.src_a.master_golden.view(src_a_dims)
         golden_tensor_b = operation_config.src_b.master_golden.view(src_b_dims)
+
+        if operation_config.pack_tilize == Tilize.Yes:
+            golden_tensor_a = tilize_block(
+                golden_tensor_a,
+                operation_config.output.dimensions,
+                operation_config.output.data_format,
+                operation_config.num_faces,
+            )
+
         master_golden_tensor = self.fpu.golden(
             golden_tensor_a, golden_tensor_b, operation_config
         )

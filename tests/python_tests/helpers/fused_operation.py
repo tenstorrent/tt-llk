@@ -64,7 +64,7 @@ class FusedOperation:
     face_c_dim: int = 16
     dest_sync: DestSync = DestSync.Half
     dst_index: int = 0
-    tilize: Tilize = Tilize.No
+    pack_tilize: Tilize = Tilize.No
     srca_reuse_count: int = 4
 
     def __post_init__(self):
@@ -162,7 +162,7 @@ class FusedOperation:
             self.architecture == ChipArchitecture.WORMHOLE
             or formats.input_format == DataFormat.Bfp8_b
         ):
-            self.tilize = Tilize.No
+            self.pack_tilize = Tilize.No
 
     @property
     def src_a(self) -> Operand:
@@ -208,5 +208,5 @@ class FusedOperation:
             f"  Output: {self.output}\n"
             f"  Math Fidelity: {self.math_fidelity}\n"
             f"  Dest Accumulation: {self.dest_acc}\n"
-            f"  Tilize: {self.tilize}\n"
+            f"  Pack Tilize: {self.pack_tilize}\n"
         )
