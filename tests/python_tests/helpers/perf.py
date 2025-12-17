@@ -30,13 +30,6 @@ class PerfRunType(Enum):
 
 
 ALL_RUN_TYPES = [type for type in PerfRunType]
-SFPU_ALL_RUN_TYPES = [
-    # PerfRunType.L1_TO_L1,          TODO: fix this case
-    # PerfRunType.UNPACK_ISOLATE,    TODO: fix this case
-    PerfRunType.MATH_ISOLATE,
-    # PerfRunType.PACK_ISOLATE,      TODO: fix this case
-    # PerfRunType.L1_CONGESTION,     TODO: fix this case
-]
 
 
 def _stats_timings(perf_data: pd.DataFrame) -> pd.DataFrame:

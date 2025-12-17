@@ -96,13 +96,29 @@ void run_kernel()
         {
             return;
         }
-        else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
         {
             // Clear valid for source A only (B is not used)
-            return _perf_math_loop_clear_valid<
+            _perf_math_loop_clear_valid<
                 /* src A */ true,
-                /* src B */ false>(
-                /* iterations*/ LOOP_FACTOR * TILE_CNT);
+                /* src B */ true>(
+                /* iterations*/ NUM_FACES * LOOP_FACTOR * TILE_CNT);
+        }
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
+        {
+            for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
+            {
+                _perf_math_loop_clear_valid<
+                    /* src A */ true,
+                    /* src B */ true>(
+                    /* iterations*/ NUM_FACES * TILE_CNT);
+
+                for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
+                {
+                    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+                    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                }
+            }
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
@@ -182,7 +198,7 @@ void run_kernel()
         {
             return;
         }
-        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
+        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE) // || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
