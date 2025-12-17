@@ -44,35 +44,35 @@ NUM_FACES = 4
     ],
     mathop=[
         MathOperation.Abs,
-        # MathOperation.Atanh,
-        # MathOperation.Asinh,
-        # MathOperation.Acosh,ß
-        # MathOperation.Cos,
-        # MathOperation.Log,
-        # MathOperation.Reciprocal,
-        # MathOperation.Sin,
-        # MathOperation.Sqrt,
-        # MathOperation.Rsqrt,
-        # MathOperation.Square,
-        # MathOperation.Celu,
-        # MathOperation.Silu,
-        # MathOperation.Gelu,
-        # MathOperation.Neg,
-        # MathOperation.Fill,
-        # MathOperation.Elu,
-        # MathOperation.Exp,
-        # MathOperation.Exp2,
-        # MathOperation.Hardsigmoid,
-        # MathOperation.Threshold,
-        # MathOperation.ReluMax,
-        # MathOperation.ReluMin,
+        MathOperation.Atanh,
+        MathOperation.Asinh,
+        MathOperation.Acosh,
+        MathOperation.Cos,
+        MathOperation.Log,
+        MathOperation.Reciprocal,
+        MathOperation.Sin,
+        MathOperation.Sqrt,
+        MathOperation.Rsqrt,
+        MathOperation.Square,
+        MathOperation.Celu,
+        MathOperation.Silu,
+        MathOperation.Gelu,
+        MathOperation.Neg,
+        MathOperation.Fill,
+        MathOperation.Elu,
+        MathOperation.Exp,
+        MathOperation.Exp2,
+        MathOperation.Hardsigmoid,
+        MathOperation.Threshold,
+        MathOperation.ReluMax,
+        MathOperation.ReluMin,
     ],
     dest_acc=[
         DestAccumulation.No,
         # DestAccumulation.Yes TODO: fix this case
     ],
     loop_factor=[
-        1,
+        # 1,
         # 2,
         # 4,
         8,
@@ -80,7 +80,7 @@ NUM_FACES = 4
     face_r_dim=[FACE_R_DIM],
     num_faces=[NUM_FACES],
     input_dimensions=[
-        [32, 32],  # tile_cnt: 1
+        # [32, 32],  # tile_cnt: 1
         # [64, 32],  # tile_cnt: 2
         # [64, 64],  # tile_cnt: 4
         [128, 64],  # tile_cnt: 8

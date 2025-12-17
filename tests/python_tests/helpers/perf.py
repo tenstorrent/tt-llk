@@ -27,9 +27,14 @@ class PerfRunType(Enum):
     MATH_ISOLATE = 3
     PACK_ISOLATE = 4
     L1_CONGESTION = 5
+    L1_CONGESTION_MATH_SYNC = 6
 
 
 ALL_RUN_TYPES = [type for type in PerfRunType]
+CONGESTIONS_RUN_TYPES = [
+    PerfRunType.L1_CONGESTION,
+    PerfRunType.L1_CONGESTION_MATH_SYNC,
+]
 
 
 def _stats_timings(perf_data: pd.DataFrame) -> pd.DataFrame:
@@ -125,6 +130,22 @@ def _stats_l1_congestion(data: ProfilerData) -> pd.DataFrame:
     return pd.concat(stats, ignore_index=True)
 
 
+def _stats_l1_congestion_math_sync(data: ProfilerData) -> pd.DataFrame:
+    stats = [
+        _stats_thread(
+            f"{PerfRunType.L1_CONGESTION_MATH_SYNC.name}[UNPACK]", data.unpack().raw()
+        ),
+        _stats_thread(
+            f"{PerfRunType.L1_CONGESTION_MATH_SYNC.name}[PACK]", data.pack().raw()
+        ),
+        _stats_thread(
+            f"{PerfRunType.L1_CONGESTION_MATH_SYNC.name}[MATH]", data.math().raw()
+        ),
+    ]
+
+    return pd.concat(stats, ignore_index=True)
+
+
 def perf_benchmark(
     test_config, run_types: list[PerfRunType], run_count=2, boot_mode=BootMode.DEFAULT
 ):  # global override boot mode for perf tests here
@@ -135,6 +156,7 @@ def perf_benchmark(
         PerfRunType.MATH_ISOLATE: _stats_math_isolate,
         PerfRunType.PACK_ISOLATE: _stats_pack_isolate,
         PerfRunType.L1_CONGESTION: _stats_l1_congestion,
+        PerfRunType.L1_CONGESTION_MATH_SYNC: _stats_l1_congestion_math_sync,
     }
     SUPPORTED_RUNS = STATS_FUNCTION.keys()
 
