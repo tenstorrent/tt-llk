@@ -224,6 +224,14 @@ main() {
         exit 1
     fi
 
+    echo "PATH: $PATH"
+    echo "VIRTUAL_ENV: $VIRTUAL_ENV"
+    echo "PYTHONPATH: $PYTHONPATH"
+    echo "PYTHON: $PYTHON"
+    echo "PYTHON_VERSION: $PYTHON_VERSION"
+    echo "which tt-exalens: $(which tt-exalens)"
+    echo "which tt-smi: $(which tt-smi)"
+
     # Get chip architecture
     local chip_arch
     if [[ -n "${CHIP_ARCH:-}" ]]; then
