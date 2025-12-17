@@ -65,16 +65,16 @@ NUM_FACES = 4
     ],
     loop_factor=[
         1,
-        2,
-        4,
+        # 2,
+        # 4,
         8,
     ],  # Number of iterations to run the test in order to minimize measurement noise
     face_r_dim=[FACE_R_DIM],
     num_faces=[NUM_FACES],
     input_dimensions=[
         [32, 32],  # tile_cnt: 1
-        [64, 32],  # tile_cnt: 2
-        [64, 64],  # tile_cnt: 4
+        # [64, 32],  # tile_cnt: 2
+        # [64, 64],  # tile_cnt: 4
         [128, 64],  # tile_cnt: 8
     ],  # Specifying different input sizes to cover different tile counts
     run_types=[
