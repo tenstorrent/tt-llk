@@ -100,7 +100,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             return;
         }
-        else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
         {
             // Clear valid for source A only (B is not used)
             return _perf_math_loop_clear_valid<true, false>(params->TILE_CNT * params->LOOP_FACTOR);
@@ -199,7 +199,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             return;
         }
-        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
+        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
