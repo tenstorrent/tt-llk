@@ -10,7 +10,7 @@ from helpers.llk_params import (
     MathOperation,
 )
 from helpers.param_config import input_output_formats, parametrize
-from helpers.perf import SFPU_ALL_RUN_TYPES, perf_benchmark, update_report
+from helpers.perf import PerfRunType, perf_benchmark, update_report
 from helpers.stimuli_generator import (
     calculate_tile_and_face_counts,
 )
@@ -64,19 +64,26 @@ NUM_FACES = 4
         # DestAccumulation.Yes TODO: fix this case
     ],
     loop_factor=[
-        # 1,
-        100,
+        1,
+        2,
+        4,
+        8,
     ],  # Number of iterations to run the test in order to minimize measurement noise
     face_r_dim=[FACE_R_DIM],
     num_faces=[NUM_FACES],
     input_dimensions=[
-        # [32, 32],   # tile_cnt: 1
-        # [64, 64],   # tile_cnt: 4
-        # [128, 128], # tile_cnt: 16
-        # [160, 160], # tile_cnt: 25
-        [256, 256],  # tile_cnt: 64
+        [32, 32],  # tile_cnt: 1
+        [64, 32],  # tile_cnt: 2
+        [64, 64],  # tile_cnt: 4
+        [128, 64],  # tile_cnt: 8
     ],  # Specifying different input sizes to cover different tile counts
-    run_types=[SFPU_ALL_RUN_TYPES],
+    run_types=[
+        [PerfRunType.L1_TO_L1],
+        [PerfRunType.UNPACK_ISOLATE],
+        [PerfRunType.MATH_ISOLATE],
+        [PerfRunType.PACK_ISOLATE],
+        [PerfRunType.L1_CONGESTION],
+    ],
 )
 def test_perf_eltwise_unary_sfpu(
     perf_report,
@@ -111,11 +118,12 @@ def test_perf_eltwise_unary_sfpu(
             reason="Exp-related operations are not supported for bf8_b format in approximation mode."
         )
 
+    # If dest_acc is off, we unpack Float32 into 16-bit format in src registers
+    # (later copied over in dest reg for SFPU op)
+    #
     # TODO: Fix and enable unpack to dest
     unpack_to_dest = (
-        formats.input_format.is_32_bit()
-        and dest_acc
-        == DestAccumulation.Yes  # If dest_acc is off, we unpack Float32 into 16-bit format in src registers (later copied over in dest reg for SFPU op)
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
     )
 
     tile_cnt, faces_to_generate = calculate_tile_and_face_counts(
