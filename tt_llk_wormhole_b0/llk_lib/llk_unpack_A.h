@@ -255,29 +255,29 @@ inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpa
     if constexpr (BType == BroadcastType::NONE)
     {
         llk_san::unpack_operand_check(
-            llk_san::DONTCARE,
+            llk_san::IGNORE,
             unpack_src_format,
-            llk_san::DONTCARE,
+            llk_san::IGNORE,
             unpack_dst_format,
-            llk_san::DONTCARE,
-            llk_san::DONTCARE,
-            llk_san::DONTCARE,
-            llk_san::DONTCARE,
-            llk_san::DONTCARE);
+            llk_san::IGNORE,
+            llk_san::IGNORE,
+            llk_san::IGNORE,
+            llk_san::IGNORE,
+            llk_san::IGNORE);
     }
     else
     {
         // If using broadcast UnpackA uses UNP_B... yeah i know...
         llk_san::unpack_operand_check(
-            llk_san::DONTCARE,
-            llk_san::DONTCARE,
+            llk_san::IGNORE,
+            llk_san::IGNORE,
             unpack_src_format,
-            llk_san::DONTCARE,
+            llk_san::IGNORE,
             unpack_dst_format,
-            llk_san::DONTCARE,
-            llk_san::DONTCARE,
-            llk_san::DONTCARE,
-            llk_san::DONTCARE);
+            llk_san::IGNORE,
+            llk_san::IGNORE,
+            llk_san::IGNORE,
+            llk_san::IGNORE);
     }
     // sstanisic todo: implement
     // llk_san_operation<llk_san_op::UnpackA>(BType, acc_to_dest, binary_reuse_dest, unpack_to_dest, unpack_src_format, unpack_dst_format);
