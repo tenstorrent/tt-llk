@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List
 import torch
 
 from .chip_architecture import ChipArchitecture
+from .llk_params import Tilize
 
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation

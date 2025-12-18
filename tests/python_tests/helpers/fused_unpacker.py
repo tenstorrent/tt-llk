@@ -237,6 +237,7 @@ class UnpackerTilizeA(Unpacker):
         num_faces = operation_config.num_faces
         block_rt_dim = operation_config.block_rt_dim
         block_ct_dim = operation_config.block_ct_dim
+        tile_cnt = operation_config.output.tile_count
 
         code = f"    _llk_unpack_tilize_init_(unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, false);\n"
 
@@ -262,6 +263,33 @@ class UnpackerTilizeA(Unpacker):
                 f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
                 f"        }}\n"
                 f"    }}\n"
+            )
+
+        else:
+            raise ValueError("Architecture is not supported")
+
+        # Blackhole
+        if operation_config.architecture == ChipArchitecture.BLACKHOLE:
+            code += (
+                f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
+                f"    {{\n"
+                f"        for (uint32_t j = 0; j < {block_ct_dim}; j++)\n"
+                f"        {{\n"
+                f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage});\n"
+                f"        }}\n"
+                f"    }}\n\n"
+            )
+
+        # Wormhole
+        elif operation_config.architecture == ChipArchitecture.WORMHOLE:
+            code += (
+                f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
+                f"    {{\n"
+                f"        for (uint32_t j = 0; j < {block_ct_dim}; j++)\n"
+                f"        {{\n"
+                f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
+                f"        }}\n"
+                f"    }}\n\n"
             )
 
         else:

@@ -19,8 +19,7 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
 
 from .chip_architecture import ChipArchitecture
-from .llk_params import ApproximationMode, MathOperation, Tilize
-from .tilize_untilize import tilize_block
+from .llk_params import ApproximationMode, MathOperation
 
 
 class Fpu:
