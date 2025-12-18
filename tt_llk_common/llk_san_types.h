@@ -29,7 +29,7 @@ static constexpr unknown_t UNKNOWN = unknown_t();
 
 enum class state_type_t : uint8_t
 {
-    determinate,
+    known,
     unknown,
     ignore
 };
@@ -70,7 +70,7 @@ public:
     // CONVERSION
     // - llk_san::IGNORE      -> state_t with state_type == ignore
     // - llk_san::UNKNOWN -> state_t with state_type == unknown
-    // - other                  -> state_t with state_type == determinate (storing the value)
+    // - other                  -> state_t with state_type == known (storing the value)
 
     // Constructor for IGNORE
     constexpr state_t(const ignore_t&) : underlying {}, state_type(state_type_t::ignore)
@@ -87,7 +87,7 @@ public:
         typename U,
         typename =
             std::enable_if_t<!is_state_t_v<std::decay_t<U>> && !std::is_same_v<std::decay_t<U>, ignore_t> && !std::is_same_v<std::decay_t<U>, unknown_t>>>
-    constexpr state_t(U&& value) : underlying(std::forward<U>(value)), state_type(state_type_t::determinate)
+    constexpr state_t(U&& value) : underlying(std::forward<U>(value)), state_type(state_type_t::known)
     {
     }
 
@@ -146,9 +146,9 @@ public:
         return *this;
     }
 
-    bool is_determinate() const
+    bool is_known() const
     {
-        return state_type == state_type_t::determinate;
+        return state_type == state_type_t::known;
     }
 
     bool is_unknown() const
@@ -163,7 +163,7 @@ public:
 
     const T& get_underlying() const
     {
-        LLK_ASSERT(is_determinate(), "panic: llk_san: underlying value is not determinate");
+        LLK_ASSERT(is_known(), "panic: llk_san: underlying value is not known");
         return underlying;
     }
 };
