@@ -15,17 +15,17 @@ void run_kernel()
     const llk_san::unpack_src_state_t& src_a = unpack_state.src_a;
     const llk_san::unpack_src_state_t& src_b = unpack_state.src_b;
 
-    // state gets default initialized to INDETERMINATE
+    // state gets default initialized to UNKNOWN
 
-    LLK_ASSERT(src_a.input_format.is_indeterminate(), "src_a.input_format must be in indeterminate state");
-    LLK_ASSERT(src_a.output_format.is_indeterminate(), "src_a.output_format must be in indeterminate state");
-    LLK_ASSERT(src_a.face_height.is_indeterminate(), "src_a.face_height must be in indeterminate state");
-    LLK_ASSERT(src_a.num_faces.is_indeterminate(), "src_a.num_faces must be in indeterminate state");
-    LLK_ASSERT(src_b.input_format.is_indeterminate(), "src_b.input_format must be in indeterminate state");
-    LLK_ASSERT(src_b.output_format.is_indeterminate(), "src_b.output_format must be in indeterminate state");
-    LLK_ASSERT(src_b.face_height.is_indeterminate(), "src_b.face_height must be in indeterminate state");
-    LLK_ASSERT(src_b.num_faces.is_indeterminate(), "src_b.num_faces must be in indeterminate state");
-    LLK_ASSERT(unpack_state.dest_width_32.is_indeterminate(), "unpack_state.dest_width_32 must be in indeterminate state");
+    LLK_ASSERT(src_a.input_format.is_unknown(), "src_a.input_format must be in unknown state");
+    LLK_ASSERT(src_a.output_format.is_unknown(), "src_a.output_format must be in unknown state");
+    LLK_ASSERT(src_a.face_height.is_unknown(), "src_a.face_height must be in unknown state");
+    LLK_ASSERT(src_a.num_faces.is_unknown(), "src_a.num_faces must be in unknown state");
+    LLK_ASSERT(src_b.input_format.is_unknown(), "src_b.input_format must be in unknown state");
+    LLK_ASSERT(src_b.output_format.is_unknown(), "src_b.output_format must be in unknown state");
+    LLK_ASSERT(src_b.face_height.is_unknown(), "src_b.face_height must be in unknown state");
+    LLK_ASSERT(src_b.num_faces.is_unknown(), "src_b.num_faces must be in unknown state");
+    LLK_ASSERT(unpack_state.dest_width_32.is_unknown(), "unpack_state.dest_width_32 must be in unknown state");
     LLK_ASSERT(!unpack_state.is_configured, "unpack_state must be not configured");
 
     // configure state
@@ -101,28 +101,28 @@ void run_kernel()
     // scramble parts of the state
     llk_san::unpack_hw_configure_impl<true>(
         unpack_state,
-        llk_san::INDETERMINATE /* dst_acc_en */,
+        llk_san::UNKNOWN /* dst_acc_en */,
         llk_san::IGNORE /* src_fmt_A */,
-        llk_san::INDETERMINATE /* src_fmt_B */,
-        llk_san::INDETERMINATE /* dst_fmt_A */,
-        llk_san::INDETERMINATE /* dst_fmt_B */,
+        llk_san::UNKNOWN /* src_fmt_B */,
+        llk_san::UNKNOWN /* dst_fmt_A */,
+        llk_san::UNKNOWN /* dst_fmt_B */,
         llk_san::IGNORE /* face_height_A */,
-        llk_san::INDETERMINATE /* face_height_B */,
-        llk_san::INDETERMINATE /* num_faces_A */,
-        llk_san::INDETERMINATE /* num_faces_B */
+        llk_san::UNKNOWN /* face_height_B */,
+        llk_san::UNKNOWN /* num_faces_A */,
+        llk_san::UNKNOWN /* num_faces_B */
     );
 
     LLK_ASSERT(src_a.input_format.is_determinate(), "src_a.input_format must be in determinate state");
     LLK_ASSERT(src_a.input_format.get_underlying() == 1, "src_a.input_format must be set to 1");
-    LLK_ASSERT(src_a.output_format.is_indeterminate(), "src_a.output_format must be in indeterminate state");
+    LLK_ASSERT(src_a.output_format.is_unknown(), "src_a.output_format must be in unknown state");
     LLK_ASSERT(src_a.face_height.is_determinate(), "src_a.face_height must be in determinate state");
     LLK_ASSERT(src_a.face_height.get_underlying() == 5, "src_a.face_height must be set to 5");
-    LLK_ASSERT(src_a.num_faces.is_indeterminate(), "src_a.num_faces must be in indeterminate state");
-    LLK_ASSERT(src_b.input_format.is_indeterminate(), "src_b.input_format must be in indeterminate state");
-    LLK_ASSERT(src_b.output_format.is_indeterminate(), "src_b.output_format must be in indeterminate state");
-    LLK_ASSERT(src_b.face_height.is_indeterminate(), "src_b.face_height must be in indeterminate state");
-    LLK_ASSERT(src_b.num_faces.is_indeterminate(), "src_b.num_faces must be in indeterminate state");
-    LLK_ASSERT(unpack_state.dest_width_32.is_indeterminate(), "unpack_state.dest_width_32 must be in indeterminate state");
+    LLK_ASSERT(src_a.num_faces.is_unknown(), "src_a.num_faces must be in unknown state");
+    LLK_ASSERT(src_b.input_format.is_unknown(), "src_b.input_format must be in unknown state");
+    LLK_ASSERT(src_b.output_format.is_unknown(), "src_b.output_format must be in unknown state");
+    LLK_ASSERT(src_b.face_height.is_unknown(), "src_b.face_height must be in unknown state");
+    LLK_ASSERT(src_b.num_faces.is_unknown(), "src_b.num_faces must be in unknown state");
+    LLK_ASSERT(unpack_state.dest_width_32.is_unknown(), "unpack_state.dest_width_32 must be in unknown state");
 }
 
 #endif
@@ -136,10 +136,10 @@ void run_kernel()
     const llk_san::math_src_state_t& src_a = math_state.src_a;
     const llk_san::math_src_state_t& src_b = math_state.src_b;
 
-    // state gets default initialized to INDETERMINATE
+    // state gets default initialized to UNKNOWN
 
-    LLK_ASSERT(src_a.input_format.is_indeterminate(), "src_a.input_format must be in indeterminate state");
-    LLK_ASSERT(src_b.input_format.is_indeterminate(), "src_b.input_format must be in indeterminate state");
+    LLK_ASSERT(src_a.input_format.is_unknown(), "src_a.input_format must be in unknown state");
+    LLK_ASSERT(src_b.input_format.is_unknown(), "src_b.input_format must be in unknown state");
     LLK_ASSERT(!math_state.is_configured, "math_state must be not configured");
 
     // configure state
@@ -168,10 +168,10 @@ void run_kernel()
 
     // scramble parts of the state
     llk_san::math_hw_configure_impl<true>(
-        math_state, llk_san::INDETERMINATE /* math_fmt_A */, llk_san::IGNORE /* math_fmt_B */
+        math_state, llk_san::UNKNOWN /* math_fmt_A */, llk_san::IGNORE /* math_fmt_B */
     );
 
-    LLK_ASSERT(src_a.input_format.is_indeterminate(), "src_a.input_format must be in indeterminate state");
+    LLK_ASSERT(src_a.input_format.is_unknown(), "src_a.input_format must be in unknown state");
     LLK_ASSERT(src_b.input_format.is_determinate(), "src_b.input_format must be in determinate state");
     LLK_ASSERT(src_b.input_format.get_underlying() == 9, "src_b.input_format must be set to 9");
 }
@@ -184,16 +184,16 @@ void run_kernel()
 {
     llk_san::pack_state_t pack_state;
 
-    // state gets default initialized to INDETERMINATE
+    // state gets default initialized to UNKNOWN
 
-    LLK_ASSERT(pack_state.input_format.is_indeterminate(), "pack_state.input_format must be in indeterminate state");
-    LLK_ASSERT(pack_state.output_format.is_indeterminate(), "pack_state.output_format must be in indeterminate state");
-    LLK_ASSERT(pack_state.face_height.is_indeterminate(), "pack_state.face_height must be in indeterminate state");
-    LLK_ASSERT(pack_state.tile_width.is_indeterminate(), "pack_state.tile_width must be in indeterminate state");
-    LLK_ASSERT(pack_state.num_faces.is_indeterminate(), "pack_state.num_faces must be in indeterminate state");
-    LLK_ASSERT(pack_state.partial_face.is_indeterminate(), "pack_state.partial_face must be in indeterminate state");
-    LLK_ASSERT(pack_state.narrow_tile.is_indeterminate(), "pack_state.narrow_tile must be in indeterminate state");
-    LLK_ASSERT(pack_state.dest_width_32.is_indeterminate(), "pack_state.dest_width_32 must be in indeterminate state");
+    LLK_ASSERT(pack_state.input_format.is_unknown(), "pack_state.input_format must be in unknown state");
+    LLK_ASSERT(pack_state.output_format.is_unknown(), "pack_state.output_format must be in unknown state");
+    LLK_ASSERT(pack_state.face_height.is_unknown(), "pack_state.face_height must be in unknown state");
+    LLK_ASSERT(pack_state.tile_width.is_unknown(), "pack_state.tile_width must be in unknown state");
+    LLK_ASSERT(pack_state.num_faces.is_unknown(), "pack_state.num_faces must be in unknown state");
+    LLK_ASSERT(pack_state.partial_face.is_unknown(), "pack_state.partial_face must be in unknown state");
+    LLK_ASSERT(pack_state.narrow_tile.is_unknown(), "pack_state.narrow_tile must be in unknown state");
+    LLK_ASSERT(pack_state.dest_width_32.is_unknown(), "pack_state.dest_width_32 must be in unknown state");
     LLK_ASSERT(!pack_state.is_configured, "pack_state must be not configured");
 
     // configure state
@@ -263,27 +263,27 @@ void run_kernel()
     // scramble parts of the state
     llk_san::pack_hw_configure_impl<true>(
         pack_state,
-        llk_san::INDETERMINATE /* dest_acc_en */,
+        llk_san::UNKNOWN /* dest_acc_en */,
         llk_san::IGNORE /* src_fmt */,
-        llk_san::INDETERMINATE /* dst_fmt */,
-        llk_san::INDETERMINATE /* face_height */,
+        llk_san::UNKNOWN /* dst_fmt */,
+        llk_san::UNKNOWN /* face_height */,
         llk_san::IGNORE /* tile_width */,
-        llk_san::INDETERMINATE /* num_faces */,
+        llk_san::UNKNOWN /* num_faces */,
         llk_san::IGNORE /* partial_face */,
-        llk_san::INDETERMINATE /* narrow_tile */
+        llk_san::UNKNOWN /* narrow_tile */
     );
 
     LLK_ASSERT(pack_state.input_format.is_determinate(), "pack_state.input_format must be in determinate state");
     LLK_ASSERT(pack_state.input_format.get_underlying() == 1, "pack_state.input_format must be set to 1");
-    LLK_ASSERT(pack_state.output_format.is_indeterminate(), "pack_state.output_format must be in indeterminate state");
-    LLK_ASSERT(pack_state.face_height.is_indeterminate(), "pack_state.face_height must be in indeterminate state");
+    LLK_ASSERT(pack_state.output_format.is_unknown(), "pack_state.output_format must be in unknown state");
+    LLK_ASSERT(pack_state.face_height.is_unknown(), "pack_state.face_height must be in unknown state");
     LLK_ASSERT(pack_state.tile_width.is_determinate(), "pack_state.tile_width must be in determinate state");
     LLK_ASSERT(pack_state.tile_width.get_underlying() == 10, "pack_state.tile_width must be set to 10");
-    LLK_ASSERT(pack_state.num_faces.is_indeterminate(), "pack_state.num_faces must be in indeterminate state");
+    LLK_ASSERT(pack_state.num_faces.is_unknown(), "pack_state.num_faces must be in unknown state");
     LLK_ASSERT(pack_state.partial_face.is_determinate(), "pack_state.partial_face must be in determinate state");
     LLK_ASSERT(pack_state.partial_face.get_underlying() == false, "pack_state.partial_face must be set to false");
-    LLK_ASSERT(pack_state.narrow_tile.is_indeterminate(), "pack_state.narrow_tile must be in indeterminate state");
-    LLK_ASSERT(pack_state.dest_width_32.is_indeterminate(), "pack_state.dest_width_32 must be in indeterminate state");
+    LLK_ASSERT(pack_state.narrow_tile.is_unknown(), "pack_state.narrow_tile must be in unknown state");
+    LLK_ASSERT(pack_state.dest_width_32.is_unknown(), "pack_state.dest_width_32 must be in unknown state");
 }
 
 #endif
