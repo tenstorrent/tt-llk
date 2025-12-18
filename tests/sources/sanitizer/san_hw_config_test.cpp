@@ -68,13 +68,13 @@ void run_kernel()
     llk_san::unpack_hw_configure_impl<true>(
         unpack_state,
         false /* dst_acc_en */,
-        llk_san::DONTCARE /* src_fmt_A */,
+        llk_san::IGNORE /* src_fmt_A */,
         9 /* src_fmt_B */,
-        llk_san::DONTCARE /* dst_fmt_A */,
+        llk_san::IGNORE /* dst_fmt_A */,
         10 /* dst_fmt_B */,
-        llk_san::DONTCARE /* face_height_A */,
+        llk_san::IGNORE /* face_height_A */,
         11 /* face_height_B */,
-        llk_san::DONTCARE /* num_faces_A */,
+        llk_san::IGNORE /* num_faces_A */,
         12 /* num_faces_B */
     );
 
@@ -102,11 +102,11 @@ void run_kernel()
     llk_san::unpack_hw_configure_impl<true>(
         unpack_state,
         llk_san::INDETERMINATE /* dst_acc_en */,
-        llk_san::DONTCARE /* src_fmt_A */,
+        llk_san::IGNORE /* src_fmt_A */,
         llk_san::INDETERMINATE /* src_fmt_B */,
         llk_san::INDETERMINATE /* dst_fmt_A */,
         llk_san::INDETERMINATE /* dst_fmt_B */,
-        llk_san::DONTCARE /* face_height_A */,
+        llk_san::IGNORE /* face_height_A */,
         llk_san::INDETERMINATE /* face_height_B */,
         llk_san::INDETERMINATE /* num_faces_A */,
         llk_san::INDETERMINATE /* num_faces_B */
@@ -157,7 +157,7 @@ void run_kernel()
     // reconfigure state
 
     llk_san::math_hw_configure_impl<true>(
-        math_state, llk_san::DONTCARE /* math_fmt_A */, 9 /* math_fmt_B */
+        math_state, llk_san::IGNORE /* math_fmt_A */, 9 /* math_fmt_B */
     );
 
     LLK_ASSERT(src_a.input_format.is_determinate(), "src_a.input_format must be in determinate state");
@@ -168,7 +168,7 @@ void run_kernel()
 
     // scramble parts of the state
     llk_san::math_hw_configure_impl<true>(
-        math_state, llk_san::INDETERMINATE /* math_fmt_A */, llk_san::DONTCARE /* math_fmt_B */
+        math_state, llk_san::INDETERMINATE /* math_fmt_A */, llk_san::IGNORE /* math_fmt_B */
     );
 
     LLK_ASSERT(src_a.input_format.is_indeterminate(), "src_a.input_format must be in indeterminate state");
@@ -233,11 +233,11 @@ void run_kernel()
     llk_san::pack_hw_configure_impl<true>(
         pack_state,
         false /* dest_acc_en */,
-        llk_san::DONTCARE /* src_fmt */,
+        llk_san::IGNORE /* src_fmt */,
         9 /* dst_fmt */,
-        llk_san::DONTCARE /* face_height */,
+        llk_san::IGNORE /* face_height */,
         10 /* tile_width */,
-        llk_san::DONTCARE /* num_faces */,
+        llk_san::IGNORE /* num_faces */,
         false /* partial_face */,
         true /* narrow_tile */
     );
@@ -264,12 +264,12 @@ void run_kernel()
     llk_san::pack_hw_configure_impl<true>(
         pack_state,
         llk_san::INDETERMINATE /* dest_acc_en */,
-        llk_san::DONTCARE /* src_fmt */,
+        llk_san::IGNORE /* src_fmt */,
         llk_san::INDETERMINATE /* dst_fmt */,
         llk_san::INDETERMINATE /* face_height */,
-        llk_san::DONTCARE /* tile_width */,
+        llk_san::IGNORE /* tile_width */,
         llk_san::INDETERMINATE /* num_faces */,
-        llk_san::DONTCARE /* partial_face */,
+        llk_san::IGNORE /* partial_face */,
         llk_san::INDETERMINATE /* narrow_tile */
     );
 
