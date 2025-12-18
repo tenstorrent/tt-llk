@@ -4,13 +4,15 @@
 
 #pragma once
 
+#include "ckernel.h"
+
 namespace ckernel
 {
 
-class T6MutexGuard
+class [[nodiscard]] T6MutexLockGuard final
 {
 public:
-    explicit T6MutexGuard(const uint8_t index) : mutex_index(index)
+    explicit T6MutexGuard(const uint8_t index) noexcept : mutex_index(index)
     {
         t6_mutex_acquire(mutex_index);
     }
