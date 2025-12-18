@@ -223,7 +223,7 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 
         // Macro Sequence Register 0 configured to read back in the sanitized values and calculate the approximate exponential value
         //  LD     : the sanitized value from DEST (y)
-        //  MAD    : compute (A * y) + (B-C)  , where A = (2^8)/ln(2) , B = 127 * (2^8) , C = Adjustment parameter of roughly 11.2 to minimize error
+        //  MAD    : compute (A * y) + (B-C)  , where A = (2^8)/ln(2) , B = 127 * (2^8) , C = Adjustment parameter of roughly 9.1 to minimize error
         //  ROUND  : convert the MAD result from FP32 to a 16-bit unsigned integer using stochastic rounding
         //  SIMPLE : shift the 16-bit integer to the left by 15 bits to place the MSB of the computed value into the MSB of the exponent bits of the fp32 format
         //  STORE  : store the shifted value back to dest
@@ -281,17 +281,17 @@ inline void _init_exponential_()
         // First, set up constant values which are needed for the computation
         //      We will first sanitize the input values (y) to be in the range that won't cause underflow, which for our hardware means we need to limit
         //      negative values to be greater than or equal to -88.5 The computation that is needed is (A * y) + (B - C) , where A = (2^8)/ln(2) , B = 127 *
-        //      (2^8) , C = Adjustment parameter of roughly 11.2 to minimize error
+        //      (2^8) , C = Adjustment parameter of roughly 9.1 to minimize error
         //          - NOTE: we would like to be able to use 2^23 instead of 2^8 and compute a 32-bit quantity, but our hardware only supports rounding FP32 into
         //          a 16-bit integer, so we use 2^8 and then shift left by 15 bits after rounding
         //      So we will set up the following constants:
         //          LREG[14] =       =    -88.5               = 0xc2b10000
         //          LREG[12] = A     =    369.329925537109375 = 0x43b8aa3b
-        //          LREG[13] = (B-C) =  32500.818359375       = 0x46fde9a3
+        //          LREG[13] = (B-C) =  32502.9429            = 0x46fdede3
 
         constexpr float LN2_RECIP = 1.4426950408889634f;
         constexpr float A         = 256.0f * LN2_RECIP;
-        constexpr float B_minus_C = 32500.818359375f;
+        constexpr float B_minus_C = 32502.9429f;
         constexpr float THRESHOLD = -88.5f;
 
         constexpr float scale_fp32 = __builtin_bit_cast(float, scale);
