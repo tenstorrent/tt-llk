@@ -174,11 +174,11 @@ inline void _calculate_stochastic_round_()
 #pragma GCC unroll ITERATIONS
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, 0);
         // SFP_STOCH_RND(rnd_mode, imm8_math, lreg_src_b, lreg_src_c, lreg_dest, instr_mod1)
         // rnd_mode=1 (stochastic), lreg_src_c=LREG0, lreg_dest=LREG0, instr_mod1=1 (fp32->fp16b)
         TTI_SFP_STOCH_RND(1, 0, 0, p_sfpu::LREG0, p_sfpu::LREG0, 1);
-        TTI_SFPSTORE(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, 0);
         sfpi::dst_reg++;
     }
 }
