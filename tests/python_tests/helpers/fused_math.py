@@ -170,7 +170,7 @@ class DatacopyFpu(Fpu):
         stage = operation_config.stage_id
         dest_acc = operation_config.dest_acc.value
         tile_cnt = operation_config.output.tile_count
-        tilize_en = operation_config.pack_tilize.value
+        tilize_en = operation_config.bh_tilize.value
         # TODO: make dynamic based on operation_config
         brodcast_type = "BroadcastType::NONE"
         unpack_to_dest = "true" if operation_config.unpack_to_dest else "false"
