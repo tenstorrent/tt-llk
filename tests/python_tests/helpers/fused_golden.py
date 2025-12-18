@@ -55,9 +55,9 @@ class FusedGolden:
             tail = ", ".join(f"{x:.2f}" for x in master_golden[-32:].tolist())
             print(f"{head}\n...\n{tail}\n")
 
-        print("Checking l1-to-golden data... ")
+        print("L1 golden check:")
         passed = passed_test(l1_golden, res_tensor, output.data_format)
-        print("Checking golden-to-golden data... ")
+        print("Master golden check:")
         passed = passed_test(master_golden, res_tensor, output.data_format)
 
         result = {
