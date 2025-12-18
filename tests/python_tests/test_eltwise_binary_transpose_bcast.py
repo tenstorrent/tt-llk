@@ -21,6 +21,7 @@ from helpers.llk_params import (
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
+from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test
 
 
@@ -56,6 +57,8 @@ def test_eltwise_binary_transpose_bcast(
         formats.input_format,
         input_dimensions=input_dimensions,
     )
+
+    src_A = tilize(src_A, stimuli_format=formats.output_format)
 
     src_A = torch.ones(input_dimensions[0] * input_dimensions[1]) * 10
     src_A[: input_dimensions[1]] = 99
