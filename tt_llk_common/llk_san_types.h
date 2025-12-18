@@ -68,9 +68,9 @@ public:
     state_t(state_t&&)      = default;
 
     // CONVERSION
-    // - llk_san::IGNORE      -> state_t with state_type == ignore
-    // - llk_san::UNKNOWN -> state_t with state_type == unknown
-    // - other                  -> state_t with state_type == known (storing the value)
+    // - llk_san::IGNORE     -> state_t with state_type == ignore
+    // - llk_san::UNKNOWN    -> state_t with state_type == unknown
+    // - other               -> state_t with state_type == known (storing the value)
 
     // Constructor for IGNORE
     constexpr state_t(const ignore_t&) : underlying {}, state_type(state_type_t::ignore)
@@ -95,7 +95,6 @@ public:
     // if RHS of assignment is state_type_t::ignore, noop (stays old value)
     // otherwise take the state_type and underlying of RHS
 
-    // Template operators contain the actual logic
     template <typename U>
     state_t& operator=(const state_t<U>& rhs)
     {
@@ -124,7 +123,6 @@ public:
         return *this;
     }
 
-    // Non-template overloads delegate to templates (to override implicit operators)
     state_t& operator=(const state_t& rhs)
     {
         return this->template operator= <T>(rhs);
