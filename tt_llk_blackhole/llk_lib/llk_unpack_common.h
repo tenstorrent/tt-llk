@@ -29,20 +29,6 @@ static inline __attribute__((always_inline)) uint32_t store_then_load(volatile u
     return result;
 }
 
-void _llk_zero_buffer_(const std::uint32_t base_address, const std::uint32_t size)
-{
-    TT_SETDMAREG(0, 0, 0, LO_16(p_gpr_unpack::OPERAND_OFFSET_ADDR));
-    TT_SETDMAREG(0, 0, 0, HI_16(p_gpr_unpack::OPERAND_OFFSET_ADDR));
-
-    TT_SETDMAREG(0, LOWER_HALFWORD(base_address), 0, LO_16(p_gpr_unpack::p_gpr_unpack::OPERAND_BASE_ADDR));
-    TT_SETDMAREG(0, UPPER_HALFWORD(base_address), 0, HI_16(p_gpr_unpack::p_gpr_unpack::OPERAND_BASE_ADDR));
-
-    for (std::uint32_t i = 0; i < size; i++)
-    {
-        TTI_STOREIND(1, 0, p_ind::LD_16B, LO_16(p_gpr_unpack::OPERAND_OFFSET_ADDR), p_ind::INC_16B, p_gpr_unpack::ZERO_0, p_gpr_unpack::OPERAND_BASE_ADDR);
-    }
-}
-
 template <bool is_fp32_dest_acc_en>
 inline void _llk_unpack_hw_configure_(
     const std::uint32_t unpA_src_format,
@@ -73,15 +59,9 @@ inline void _llk_unpack_configure_stoch_rnd_()
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, alu_stoch_rnd_mask>(alu_payload.val);
 }
 
-inline void _llk_unpack_debug_dump_seek_(std::uint8_t offset)
-{
-    debug_dump_seek(offset);
-}
-
 // TODO NC: Clean up as the part of tt-metal#34499
 template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
-inline void _llk_unpack_reconfig_data_format_srca_impl_(
-    const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
+inline void _llk_unpack_reconfig_data_format_srca_impl_(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK0);
     if constexpr (to_from_int8)
@@ -91,13 +71,11 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
     }
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32, 0, 0x0f>(unpack_src_format);
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Out_data_format_RMW>(unpack_dst_format);
-    TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_A)); // update gpr which holds tile size A
 }
 
 // TODO NC: Clean up as the part of tt-metal#34499
 template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
-inline void _llk_unpack_reconfig_data_format_srcb_impl_(
-    const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
+inline void _llk_unpack_reconfig_data_format_srcb_impl_(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
     if constexpr (to_from_int8)
@@ -107,7 +85,6 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     }
     cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32, 0, 0x0f>(unpack_src_format);
     cfg_reg_rmw_tensix<THCON_SEC1_REG2_Out_data_format_RMW>(unpack_dst_format);
-    TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_B)); // update gpr which holds tile size B
 }
 
 inline void _llk_unpack_dbg_feature_disable_()

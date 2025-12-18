@@ -47,7 +47,7 @@ void run_kernel()
 
     // Start of second unpack kernel to perform unpack matmul on now tilized input data
     run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
-    _llk_unpack_reconfig_data_format_srca_impl_<is_fp32_dest_acc_en, false>(formats_array[run].unpack_src, formats_array[run].unpack_dst, tile_size);
+    _llk_unpack_reconfig_data_format_srca_impl_<is_fp32_dest_acc_en, false>(formats_array[run].unpack_src, formats_array[run].unpack_dst);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0, 0, FACE_R_DIM, 4, formats_array[run].unpack_src, formats_array[run].unpack_dst);
     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(

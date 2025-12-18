@@ -54,9 +54,8 @@ void run_kernel()
     run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
     _llk_unpack_reconfig_data_format_srca_impl_<is_fp32_dest_acc_en, false>(
         formats_array[run].unpack_src,
-        formats_array[run].unpack_dst,
-        tile_size); // have to reconfigure unpack kernel data formats_array if they change in this run
-    _llk_unpack_reconfig_data_format_srcb_impl_<is_fp32_dest_acc_en, false>(formats_array[run].unpack_src, formats_array[run].unpack_dst, tile_size);
+        formats_array[run].unpack_dst); // have to reconfigure unpack kernel data formats_array if they change in this run
+    _llk_unpack_reconfig_data_format_srcb_impl_<is_fp32_dest_acc_en, false>(formats_array[run].unpack_src, formats_array[run].unpack_dst);
     _llk_unpack_tilize_uninit_(formats_array[run].unpack_dst);
     _llk_unpack_AB_matmul_init_<>();
     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized), 0, 0, tile_size, tile_size);
