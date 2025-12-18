@@ -21,7 +21,6 @@ from helpers.llk_params import (
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
-from helpers.tilize_untilize import tilize, untilize
 from helpers.utils import passed_test
 
 
@@ -52,17 +51,6 @@ def test_eltwise_binary_transpose_bcast(
     transpose_srca,
     input_dimensions,
 ):
-    """
-    Test element-wise binary subtraction with:
-    - Transpose operation on srcA (both within faces and face arrangement)
-    - Broadcast operation on srcB (column, row, or scalar)
-
-    This test demonstrates the combination of:
-    1. Unpacking srcA with transpose enabled
-    2. Unpacking srcB with broadcast enabled
-    3. Performing element-wise subtraction: result = transposed(srcA) - broadcast(srcB)
-    """
-
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
         formats.input_format,
@@ -79,10 +67,9 @@ def test_eltwise_binary_transpose_bcast(
 
     print("src_B:")
     print(src_B.view(input_dimensions[0], input_dimensions[1]))
+    print("--------------------------------")
 
-    src_A = tilize(src_A, stimuli_format=formats.output_format)
-
-    # Generate golden for srcA with transpose
+    # Generate golden for srcA with face-based transpose (hardware does this)
     transpose_golden = get_golden_generator(TransposeGolden)
 
     # Apply both transpose operations to srcA
@@ -94,7 +81,7 @@ def test_eltwise_binary_transpose_bcast(
         temp_tensor, formats.output_format, input_dimensions, num_faces=4
     )
 
-    print("transposed_src_A:")
+    print("transposed_src_A (expected from hardware):")
     print(transposed_src_A.view(input_dimensions[0], input_dimensions[1]))
     print("--------------------------------")
 
@@ -134,6 +121,7 @@ def test_eltwise_binary_transpose_bcast(
     print("--------------------------------")
 
     # Build test configuration
+    # Enable hardware transpose (both flags required for full transpose)
     test_config = {
         "formats": formats,
         "testname": test_name,
@@ -144,15 +132,15 @@ def test_eltwise_binary_transpose_bcast(
         "math_fidelity": math_fidelity,
         "tile_cnt": tile_cnt,
         "broadcast_type": broadcast_type,
-        "unpack_transpose_faces": transpose_srca,
-        "unpack_transpose_within_face": transpose_srca,
+        "unpack_transpose_faces": transpose_srca,  # Enable face rearrangement
+        "unpack_transpose_within_face": transpose_srca,  # Enable within-face transpose
         "num_faces": 4,
         "unpack_to_dest": False,
     }
 
     res_address = write_stimuli_to_l1(
         test_config,
-        src_A,
+        src_A,  # Send original data (hardware will transpose)
         src_B,
         formats.input_format,
         formats.input_format,
@@ -169,10 +157,10 @@ def test_eltwise_binary_transpose_bcast(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
+    # res_tensor = untilize(res_tensor)
+
     print("res_tensor:")
     print(res_tensor.view(input_dimensions[0], input_dimensions[1]))
     print("--------------------------------")
-
-    res_tensor = untilize(res_tensor)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
