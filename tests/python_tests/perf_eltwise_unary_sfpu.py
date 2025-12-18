@@ -126,6 +126,14 @@ def test_perf_eltwise_unary_sfpu(
             reason="Exp-related operations are not supported for bf8_b format in approximation mode."
         )
 
+    if (
+        formats.input_format in (DataFormat.Float16_b, DataFormat.Bfp8_b)
+        and formats.output_format == DataFormat.Float16
+    ):
+        pytest.skip(
+            reason="Float16_b or Bfp8_b as input with Float16 output are not supported in this test."
+        )
+
     # If dest_acc is off, we unpack Float32 into 16-bit format in src registers
     # (later copied over in dest reg for SFPU op)
     #
