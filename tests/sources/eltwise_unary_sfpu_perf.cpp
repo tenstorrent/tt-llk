@@ -122,7 +122,6 @@ void run_kernel()
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            // For MATH_ISOLATE, skip datacopy and only measure SFPU operations
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
                 for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
@@ -218,7 +217,6 @@ void run_kernel()
         }
         else
         {
-            // Full L1-to-L1 operation
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
                 for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
