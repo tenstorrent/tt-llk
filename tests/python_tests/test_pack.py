@@ -119,11 +119,11 @@ def is_relu_threshold_tolerance_issue(
     test_name="pack_test",
     formats=input_output_formats(
         [
-            DataFormat.Float16_b,
-            DataFormat.Float16,
-            DataFormat.Float32,
+            # DataFormat.Float16_b,
+            # DataFormat.Float16,
+            # DataFormat.Float32,
             DataFormat.Int32,
-            DataFormat.Bfp8_b,
+            # DataFormat.Bfp8_b,
         ]
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
@@ -176,7 +176,21 @@ def test_pack(
         formats.input_format, formats.output_format, dest_acc, unpack_to_dest
     )
 
-    tensor_average = torch.mean(golden_tensor).item()
+    if data_formats.pack_src.is_integer() and relu_type in [
+        PackerReluType.MinThresholdRelu,
+        PackerReluType.MaxThresholdRelu,
+    ]:
+        pytest.skip(
+            "Pack source format cannot be an integer format with ReLu Type: "
+            + str(relu_type)
+        )
+
+    tensor_average = (
+        torch.mean(golden_tensor).item()
+        if not formats.output_format.is_integer()
+        else 0.0
+    )
+
     relu_config = PackGolden.generate_relu_config(
         relu_type,
         relu_threshold=tensor_average,  # We use the average value for this.

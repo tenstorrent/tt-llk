@@ -189,6 +189,17 @@ class PackerReluType(Enum):
     MinThresholdRelu = 2
     MaxThresholdRelu = 3
 
+    def __str__(self):
+        match self:
+            case PackerReluType.NoRelu:
+                return "NO_RELU"
+            case PackerReluType.ZeroRelu:
+                return "ZERO_RELU"
+            case PackerReluType.MinThresholdRelu:
+                return "MIN_THRESHOLD_RELU"
+            case PackerReluType.MaxThresholdRelu:
+                return "MAX_THRESHOLD_RELU"
+
 
 class Haloize(Enum):
     Yes = "true"
