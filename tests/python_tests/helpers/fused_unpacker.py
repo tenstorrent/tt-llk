@@ -2,10 +2,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Tuple
+
+import torch
 
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
+
+from .chip_architecture import ChipArchitecture
+from .tilize_untilize import tilize_block
 
 
 class Unpacker:
@@ -14,6 +19,14 @@ class Unpacker:
 
     def get_headers(self) -> List[str]:
         return []
+
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "FusedOperation",
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        return tensor_a, tensor_b
 
 
 class MatmulUnpacker(Unpacker):
@@ -189,6 +202,21 @@ class UnpackerTilizeA(Unpacker):
             "llk_unpack_tilize.h",
         ]
 
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "FusedOperation",
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        tilized_a = tilize_block(
+            tensor_a,
+            operation_config.src_a.dimensions,
+            operation_config.src_a.data_format,
+            operation_config.num_faces,
+        )
+
+        return tilized_a, tensor_b
+
     def unpack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         buffer_A_address = operation_config.src_a.l1_address
@@ -200,6 +228,7 @@ class UnpackerTilizeA(Unpacker):
         num_faces = operation_config.num_faces
         block_rt_dim = operation_config.block_rt_dim
         block_ct_dim = operation_config.block_ct_dim
+        tile_cnt = operation_config.output.tile_count
 
         code = (
             f"    // Operation {stage}: Unpacker Tilize A\n"
@@ -219,13 +248,33 @@ class UnpackerTilizeA(Unpacker):
             f"        unpack_src_format{stage}, unpack_dst_format{stage}, {face_r_dim}, 0, {num_faces}\n"
             f"    );\n"
             f"    _llk_unpack_tilize_init_(unpack_src_format{stage}, unpack_dst_format{stage}, {block_ct_dim}, {face_r_dim}, false);\n"
-            f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
-            f"    {{\n"
-            f"        for (uint32_t j = 0; j < {block_ct_dim}; j++)\n"
-            f"        {{\n"
-            f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_src_format{stage});\n"
-            f"        }}\n"
-            f"    }}\n\n"
         )
+
+        # Blackhole
+        if operation_config.architecture == ChipArchitecture.BLACKHOLE:
+            code += (
+                f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
+                f"    {{\n"
+                f"        for (uint32_t j = 0; j < {block_ct_dim}; j++)\n"
+                f"        {{\n"
+                f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_src_format{stage});\n"
+                f"        }}\n"
+                f"    }}\n\n"
+            )
+
+        # Wormhole
+        elif operation_config.architecture == ChipArchitecture.WORMHOLE:
+            code += (
+                f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
+                f"    {{\n"
+                f"        for (uint32_t j = 0; j < {block_ct_dim}; j++)\n"
+                f"        {{\n"
+                f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_src_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
+                f"        }}\n"
+                f"    }}\n\n"
+            )
+
+        else:
+            raise ValueError("Architecture is not supported")
 
         return code
