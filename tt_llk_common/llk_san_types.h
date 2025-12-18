@@ -14,9 +14,9 @@
 namespace llk_san
 {
 
-struct dontcare_t
+struct ignore_t
 {
-    constexpr dontcare_t() = default;
+    constexpr ignore_t() = default;
 };
 
 struct indeterminate_t
@@ -24,14 +24,14 @@ struct indeterminate_t
     constexpr indeterminate_t() = default;
 };
 
-static constexpr dontcare_t DONTCARE           = dontcare_t();
+static constexpr ignore_t IGNORE               = ignore_t();
 static constexpr indeterminate_t INDETERMINATE = indeterminate_t();
 
 enum class state_type_t : uint8_t
 {
     determinate,
     indeterminate,
-    dontcare
+    ignore
 };
 
 template <typename T>
@@ -68,12 +68,12 @@ public:
     state_t(state_t&&)      = default;
 
     // CONVERSION
-    // - llk_san::DONTCARE      -> state_t with state_type == dontcare
+    // - llk_san::IGNORE      -> state_t with state_type == ignore
     // - llk_san::INDETERMINATE -> state_t with state_type == indeterminate
     // - other                  -> state_t with state_type == determinate (storing the value)
 
-    // Constructor for DONTCARE
-    constexpr state_t(const dontcare_t&) : underlying {}, state_type(state_type_t::dontcare)
+    // Constructor for IGNORE
+    constexpr state_t(const ignore_t&) : underlying {}, state_type(state_type_t::ignore)
     {
     }
 
@@ -85,21 +85,21 @@ public:
     // Constructor for DETERMINATE value
     template <
         typename U,
-        typename = std::enable_if_t<
-            !is_state_t_v<std::decay_t<U>> && !std::is_same_v<std::decay_t<U>, dontcare_t> && !std::is_same_v<std::decay_t<U>, indeterminate_t>>>
+        typename =
+            std::enable_if_t<!is_state_t_v<std::decay_t<U>> && !std::is_same_v<std::decay_t<U>, ignore_t> && !std::is_same_v<std::decay_t<U>, indeterminate_t>>>
     constexpr state_t(U&& value) : underlying(std::forward<U>(value)), state_type(state_type_t::determinate)
     {
     }
 
     // ASSIGNMENT
-    // if RHS of assignment is state_type_t::dontcare, noop (stays old value)
+    // if RHS of assignment is state_type_t::ignore, noop (stays old value)
     // otherwise take the state_type and underlying of RHS
 
     // Template operators contain the actual logic
     template <typename U>
     state_t& operator=(const state_t<U>& rhs)
     {
-        if (rhs.state_type == state_type_t::dontcare)
+        if (rhs.state_type == state_type_t::ignore)
         {
             return *this;
         }
@@ -113,7 +113,7 @@ public:
     template <typename U>
     state_t& operator=(state_t<U>&& rhs)
     {
-        if (rhs.state_type == state_type_t::dontcare)
+        if (rhs.state_type == state_type_t::ignore)
         {
             return *this; // No-op
         }
@@ -138,7 +138,7 @@ public:
     // RHS of assignment is:
     // - compatible with T
     // - indeterminate_t
-    // - dontcare_t
+    // - ignore_t
     template <typename U, typename = std::enable_if_t<!is_state_t_v<std::decay_t<U>>>>
     state_t& operator=(U&& rhs)
     {
@@ -156,9 +156,9 @@ public:
         return state_type == state_type_t::indeterminate;
     }
 
-    bool is_dontcare() const
+    bool is_ignore() const
     {
-        return state_type == state_type_t::dontcare;
+        return state_type == state_type_t::ignore;
     }
 
     const T& get_underlying() const
@@ -171,7 +171,7 @@ public:
 template <typename T, typename U>
 static inline bool _assert_condition(const state_t<T>& lhs, const state_t<U>& rhs)
 {
-    if (lhs.is_dontcare() || rhs.is_dontcare())
+    if (lhs.is_ignore() || rhs.is_ignore())
     {
         return true;
     }
@@ -187,7 +187,7 @@ static inline bool _assert_condition(const state_t<T>& lhs, const state_t<U>& rh
 template <typename T, typename U>
 static inline bool _panic_condition(const state_t<T>& lhs, const state_t<U>& rhs)
 {
-    if (lhs.is_dontcare() || rhs.is_dontcare())
+    if (lhs.is_ignore() || rhs.is_ignore())
     {
         return true;
     }
