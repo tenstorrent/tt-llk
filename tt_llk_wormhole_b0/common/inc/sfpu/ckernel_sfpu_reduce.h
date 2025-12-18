@@ -192,7 +192,7 @@ constexpr InstrModLoadStore get_instruction_mode()
 inline void configure_addrmod_max_min(uint32_t num_cols)
 {
     // Reduction done on first tile before looping through the rest, so we look at num_cols - 1 tile
-    uint32_t skip_rows = num_cols * ROWS_PER_TILE;
+    uint32_t skip_rows = (num_cols - 1) * ROWS_PER_TILE;
 
     addr_mod_t {
         .srca = {.incr = 0},

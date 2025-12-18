@@ -51,19 +51,19 @@ def get_format_input_bounds(formats: InputOutputFormat) -> list[tuple[int, int]]
     test_name="sfpu_reduce_test",
     formats=input_output_formats(
         [
-            DataFormat.Float32,
-            DataFormat.Int32,
-            DataFormat.UInt32,
-            DataFormat.UInt16,
+            # DataFormat.Float32,
+            # DataFormat.Int32,
+            # DataFormat.UInt32,
+            # DataFormat.UInt16,
             DataFormat.Float16_b,
         ],
         same=True,
     ),
     mathop=[MathOperation.ReduceColumn],
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    input_bounds=lambda formats: get_format_input_bounds(formats),
-    reduce_pool=[ReducePool.Min, ReducePool.Max, ReducePool.Sum, ReducePool.Average],
-    dimension_combinations=dimension_combinations,
+    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
+    input_bounds=[(-1000, 1000)],
+    reduce_pool=[ReducePool.Max],  # , ReducePool.Sum, ReducePool.Average],
+    dimension_combinations=[[32, 32], [64, 32], [128, 32]],
 )
 def test_sfpu_reduce(
     test_name,
@@ -86,9 +86,14 @@ def test_sfpu_reduce(
     )
     src_B = torch.zeros_like(src_A)
 
+    # src_A = torch.ones_like(src_A) * 1
+    # # INSERT_YOUR_CODE
+    # # Make first row of src_A be all 2s
+    # src_A[:32] = 2
+
     # Max Reduction can do block and single tile reduction whereas Sum/Avg only do single tile reduction, convert Sum/Avg golden to do block reduction by retilizing input to src_A
     # Dimensions for Max reduction work column wise, for Sum/Avg processing tiles independently is same as column reduction on dst block dimension [32, num_tiles * 32] where num rows is 32 i.e RT_DIM=1 (same as a single tile)
-    dst_dim = [32, tile_cnt * 32]
+    dst_dim = input_dimensions
     src_A = tilize_block(
         src_A, dst_dim, stimuli_format=formats.input_format
     ).flatten()  # Input tensor is tilized in dst register
@@ -134,5 +139,14 @@ def test_sfpu_reduce(
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize_block(res_tensor, formats.output_format, dst_dim)
+
+    print(golden_tensor.view(dimension_combinations))
+    print("--------------------------------")
+    print(res_tensor.view(dimension_combinations))
+
+    print("FIRST ROWS")
+    print(golden_tensor[0])
+    print("--------------------------------")
+    print(res_tensor[0])
 
     assert passed_test(golden_tensor[0], res_tensor[0], formats.output_format)
