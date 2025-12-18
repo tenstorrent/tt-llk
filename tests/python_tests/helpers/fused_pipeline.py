@@ -73,7 +73,7 @@ def create_fuse_pipeline() -> List[FusedOperation]:
             packer=Packer,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
-            pack_tilize=Tilize.Yes,
+            pack_tilize=Tilize.No,
         ),
         FusedOperation(
             operand_mapping=operands.create_mapping(

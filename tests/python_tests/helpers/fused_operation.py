@@ -191,7 +191,37 @@ class FusedOperation:
         return packer_instance.pack(self)
 
     def golden(self) -> torch.Tensor:
-        return self.math.golden(self)
+        # calculate l1 golden
+        src_a_dims = self.src_a.dimensions
+        src_b_dims = self.src_b.dimensions
+
+        tensor_a = self.src_a.raw_data.view(src_a_dims)
+        tensor_b = self.src_b.raw_data.view(src_b_dims)
+
+        tensor_a, tensor_b = self.unpacker().golden(tensor_a, tensor_b, self)
+        l1_golden_tensor = self.math.golden(tensor_a, tensor_b, self)
+
+        packer_instance = self.packer()
+        l1_golden_tensor = packer_instance.golden(l1_golden_tensor, self)
+
+        self.output.l1_golden = l1_golden_tensor.flatten()
+
+        # calculate master golden
+        golden_tensor_a = self.src_a.master_golden.view(src_a_dims)
+        golden_tensor_b = self.src_b.master_golden.view(src_b_dims)
+
+        golden_tensor_a, golden_tensor_b = self.unpacker().golden(
+            golden_tensor_a, golden_tensor_b, self
+        )
+
+        master_golden_tensor = self.math.golden(golden_tensor_a, golden_tensor_b, self)
+
+        packer_instance = self.packer()
+        master_golden_tensor = packer_instance.golden(master_golden_tensor, self)
+
+        self.output._master_golden = master_golden_tensor.flatten()
+
+        return master_golden_tensor
 
     def __str__(self):
         return (

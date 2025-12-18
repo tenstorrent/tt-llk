@@ -19,8 +19,7 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
 
 from .chip_architecture import ChipArchitecture
-from .llk_params import ApproximationMode, MathOperation, Tilize
-from .tilize_untilize import tilize_block
+from .llk_params import ApproximationMode, MathOperation
 
 
 class Fpu:
@@ -73,7 +72,6 @@ class MatmulFpu(Fpu):
         rt_dim = operation_config.rt_dim
         kt_dim = operation_config.kt_dim
         math_fidelity = operation_config.math_fidelity.value
-        dest_acc = operation_config.dest_acc.value
 
         code = (
             f"    // Operation {stage}: Matmul FPU\n"
@@ -157,7 +155,6 @@ class DatacopyFpu(Fpu):
         tensor_b: torch.Tensor,
         operation_config: "FusedOperation",
     ) -> torch.Tensor:
-        # golden_tensor = tensor_a
         golden_generator = get_golden_generator(DataCopyGolden)
         golden_tensor = golden_generator(
             tensor_a,
@@ -489,49 +486,18 @@ class Math:
 
         return sorted(list(headers))
 
-    def golden(self, operation_config: "FusedOperation"):
-        # calculate l1 golden
-        src_a_dims = operation_config.src_a.dimensions
-        src_b_dims = operation_config.src_b.dimensions
-
-        tensor_a = operation_config.src_a.raw_data.view(src_a_dims)
-        tensor_b = operation_config.src_b.raw_data.view(src_b_dims)
-
-        if operation_config.pack_tilize == Tilize.Yes:
-            tensor_a = tilize_block(
-                tensor_a,
-                operation_config.output.dimensions,
-                operation_config.output.data_format,
-                operation_config.num_faces,
-            )
-
-        l1_golden_tensor = self.fpu.golden(tensor_a, tensor_b, operation_config)
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "FusedOperation",
+    ) -> torch.Tensor:
+        result = self.fpu.golden(tensor_a, tensor_b, operation_config)
 
         for sfpu in self.sfpu:
-            l1_golden_tensor = sfpu.golden(l1_golden_tensor, operation_config)
+            result = sfpu.golden(result, operation_config)
 
-        operation_config.output.l1_golden = l1_golden_tensor.flatten()
-
-        # calculate master golden
-        golden_tensor_a = operation_config.src_a.master_golden.view(src_a_dims)
-        golden_tensor_b = operation_config.src_b.master_golden.view(src_b_dims)
-
-        if operation_config.pack_tilize == Tilize.Yes:
-            golden_tensor_a = tilize_block(
-                golden_tensor_a,
-                operation_config.output.dimensions,
-                operation_config.output.data_format,
-                operation_config.num_faces,
-            )
-
-        master_golden_tensor = self.fpu.golden(
-            golden_tensor_a, golden_tensor_b, operation_config
-        )
-
-        for sfpu in self.sfpu:
-            master_golden_tensor = sfpu.golden(master_golden_tensor, operation_config)
-
-        operation_config.output._master_golden = master_golden_tensor.flatten()
+        return result
 
     def hw_configure(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id

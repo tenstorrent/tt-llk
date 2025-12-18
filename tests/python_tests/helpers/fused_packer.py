@@ -4,7 +4,10 @@
 
 from typing import TYPE_CHECKING, List
 
+import torch
+
 from .chip_architecture import ChipArchitecture
+from .llk_params import Tilize
 
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
@@ -16,6 +19,23 @@ class Packer:
             "llk_pack.h",
             "llk_pack_common.h",
         ]
+
+    def golden(
+        self,
+        tensor: torch.Tensor,
+        operation_config: "FusedOperation",
+    ) -> torch.Tensor:
+        if operation_config.pack_tilize == Tilize.Yes:
+            from .tilize_untilize import tilize_block
+
+            tensor = tilize_block(
+                tensor.view(operation_config.output.dimensions),
+                operation_config.output.dimensions,
+                operation_config.output.data_format,
+                operation_config.num_faces,
+            )
+
+        return tensor
 
     def hw_configure(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
