@@ -440,34 +440,6 @@ class SfpuWhere(Sfpu):
         return "SfpuWhere"
 
 
-class Halt(Sfpu):
-    def __init__(self):
-        super().__init__(None)
-
-    def get_headers(self) -> List[str]:
-        return [
-            "ckernel_debug.h",
-        ]
-
-    def golden(
-        self, tensor: torch.Tensor, operation_config: "FusedOperation"
-    ) -> torch.Tensor:
-        return tensor
-
-    def exec(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-
-        code = (
-            f"    // Operation {stage}: Halt\n"
-            f"    dbg_thread_halt<MathThreadId>();\n"
-        )
-
-        return code
-
-    def __str__(self) -> str:
-        return "Halt"
-
-
 class Math:
     fpu: Fpu
     sfpu: List[Sfpu]
