@@ -192,7 +192,14 @@ constexpr InstrModLoadStore get_instruction_mode()
 inline void configure_addrmod_max_min(uint32_t num_cols)
 {
     // Reduction done on first tile before looping through the rest, so we look at num_cols - 1 tile
-    uint32_t skip_rows = (num_cols - 1) * ROWS_PER_TILE;
+    uint32_t skip_rows = num_cols * ROWS_PER_TILE;
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 0},
+    }
+        .set(ADDR_MOD_7);
 
     addr_mod_t {
         .srca = {.incr = 0},
@@ -213,6 +220,63 @@ inline void configure_addrmod_max_min(uint32_t num_cols)
 // Init Reduce Kernels
 // ============================================================================
 
+template <InstrModLoadStore INSTRUCTION_MODE>
+inline void preload_initial_values()
+{
+    // temporary assert: TODO remove and support all formats
+
+    static_assert(
+        INSTRUCTION_MODE == InstrModLoadStore::FP16B || INSTRUCTION_MODE == InstrModLoadStore::FP16A || INSTRUCTION_MODE == InstrModLoadStore::FP32 ||
+            INSTRUCTION_MODE == InstrModLoadStore::INT32,
+        "Unsupported INSTRUCTION_MODE for preload_initial_values");
+
+    constexpr uint16_t neg_inf_fp16b      = 0xFF80;
+    constexpr uint16_t neg_inf_fp16a      = 0xFC00;
+    constexpr uint16_t neg_inf_fp32_high  = 0xFF80;
+    constexpr uint16_t neg_inf_fp32_low   = 0x0000;
+    constexpr uint16_t neg_inf_int32_high = 0x8000;
+    constexpr uint16_t neg_inf_int32_low  = 0x0000;
+
+    if constexpr (INSTRUCTION_MODE == InstrModLoadStore::FP16B)
+    {
+        TTI_SFPLOADI(p_sfpu::LREG4, INSTRUCTION_MODE, neg_inf_fp16b);
+        TTI_SFPLOADI(p_sfpu::LREG5, INSTRUCTION_MODE, neg_inf_fp16b);
+        TTI_SFPLOADI(p_sfpu::LREG6, INSTRUCTION_MODE, neg_inf_fp16b);
+        TTI_SFPLOADI(p_sfpu::LREG7, INSTRUCTION_MODE, neg_inf_fp16b);
+    }
+    else if constexpr (INSTRUCTION_MODE == InstrModLoadStore::FP16A)
+    {
+        TTI_SFPLOADI(p_sfpu::LREG4, INSTRUCTION_MODE, neg_inf_fp16a);
+        TTI_SFPLOADI(p_sfpu::LREG5, INSTRUCTION_MODE, neg_inf_fp16a);
+        TTI_SFPLOADI(p_sfpu::LREG6, INSTRUCTION_MODE, neg_inf_fp16a);
+        TTI_SFPLOADI(p_sfpu::LREG7, INSTRUCTION_MODE, neg_inf_fp16a);
+    }
+    else if constexpr (INSTRUCTION_MODE == InstrModLoadStore::FP32)
+    {
+        // Load high and low bits separately for FP32
+        TTI_SFPLOADI(p_sfpu::LREG4, 8, neg_inf_fp32_high);
+        TTI_SFPLOADI(p_sfpu::LREG4, 10, neg_inf_fp32_low);
+        TTI_SFPLOADI(p_sfpu::LREG5, 8, neg_inf_fp32_high);
+        TTI_SFPLOADI(p_sfpu::LREG5, 10, neg_inf_fp32_low);
+        TTI_SFPLOADI(p_sfpu::LREG6, 8, neg_inf_fp32_high);
+        TTI_SFPLOADI(p_sfpu::LREG6, 10, neg_inf_fp32_low);
+        TTI_SFPLOADI(p_sfpu::LREG7, 8, neg_inf_fp32_high);
+        TTI_SFPLOADI(p_sfpu::LREG7, 10, neg_inf_fp32_low);
+    }
+    else if constexpr (INSTRUCTION_MODE == InstrModLoadStore::INT32)
+    {
+        // Load high and low bits separately for INT32
+        TTI_SFPLOADI(p_sfpu::LREG4, 8, neg_inf_int32_high);
+        TTI_SFPLOADI(p_sfpu::LREG4, 10, neg_inf_int32_low);
+        TTI_SFPLOADI(p_sfpu::LREG5, 8, neg_inf_int32_high);
+        TTI_SFPLOADI(p_sfpu::LREG5, 10, neg_inf_int32_low);
+        TTI_SFPLOADI(p_sfpu::LREG6, 8, neg_inf_int32_high);
+        TTI_SFPLOADI(p_sfpu::LREG6, 10, neg_inf_int32_low);
+        TTI_SFPLOADI(p_sfpu::LREG7, 8, neg_inf_int32_high);
+        TTI_SFPLOADI(p_sfpu::LREG7, 10, neg_inf_int32_low);
+    }
+}
+
 /**
  * @brief Initialization for SFPU reduce MAX/MIN kernel.
  *        Sets up LOADMACRO sequences for compare-and-swap operations, configures address modifiers,
@@ -228,6 +292,8 @@ inline void init_reduce_max_min(uint32_t num_cols)
 {
     // Initialize SFPU config and set swap direction before defining LOADMACRO sequences
     _init_sfpu_config_reg();
+
+    preload_initial_values<INSTRUCTION_MODE>();
 
     // Invert swap direction for MIN operations, set 8th bit in SFPU config register
     if constexpr (pool_type == PoolType::MIN)
@@ -254,17 +320,17 @@ inline void init_reduce_max_min(uint32_t num_cols)
     // Record replay buffer for compare-and-swap operations
     // MAX uses LOADMACRO mechanism
     lltt::record<lltt::NoExec>(0, 9);
-    TTI_INCRWC(0, 4, 0, 0);
     TTI_SFPLOADMACRO(5, INSTRUCTION_MODE, ADDR_MOD_3, 2);
     TTI_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, 16);
     TTI_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, 18);
     TTI_SFPSWAP(0, p_sfpu::LREG7, p_sfpu::LREG1, 1);
     TTI_SFPSWAP(0, p_sfpu::LREG6, p_sfpu::LREG0, 1);
     TTI_SFPLOADMACRO(0, INSTRUCTION_MODE, ADDR_MOD_3, 0);
+    TTI_INCRWC(0, 4, 0, 0);
 
     // Dummy loads to increment dest counters
-    TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_6, 0);
-    TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_5, 0);
+    TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_2, 0);
+    TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_1, 0);
 }
 
 /**
@@ -356,26 +422,26 @@ inline void calculate_reduce_max_min(const uint32_t block_height)
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
 
     constexpr uint32_t replay_buffer_offset    = 7;
-    constexpr uint32_t replay_buffer_next_face = 8;
+    constexpr uint32_t replay_buffer_next_face = replay_buffer_offset + 1;
 
     // Initial loads: LREG4-7 will hold maximum values across F0 and F1
-    TTI_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, 0);
-    TTI_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, 2);
-    TTI_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, 16);
-    TTI_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, 18);
+    // TTI_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, 0);
+    // TTI_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, 2);
+    // TTI_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, 16);
+    // TTI_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, 18);
 
-    // First tile processing (F0, F1, F2, F3)
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_next_face);
+    // // First tile processing (F0, F1, F2, F3)
+    // lltt::replay(0, replay_buffer_offset);
+    // lltt::replay(0, replay_buffer_offset);
+    // lltt::replay(0, replay_buffer_next_face);
 
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_offset);
-    lltt::replay(0, replay_buffer_next_face + 1);
+    // lltt::replay(0, replay_buffer_offset);
+    // lltt::replay(0, replay_buffer_offset);
+    // lltt::replay(0, replay_buffer_offset);
+    // lltt::replay(0, replay_buffer_next_face + 1);
 
     // Remaining tiles
-    for (uint32_t i = 0; i < block_height - 1; i++)
+    for (uint32_t i = 0; i < block_height; i++)
     {
         lltt::replay(0, replay_buffer_offset);
         lltt::replay(0, replay_buffer_offset);
