@@ -176,6 +176,7 @@ void _calculate_round_(const int decimals)
     }
 }
 
+// Performs stochastic rounding of values in DST from fp32 to fp16b format.
 template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
 inline void _calculate_stochastic_round_()
 {
