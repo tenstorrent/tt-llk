@@ -82,7 +82,7 @@ public:
     {
     }
 
-    // Constructor for DETERMINATE value
+    // Constructor for KNOWN value
     template <
         typename U,
         typename =
