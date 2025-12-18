@@ -12,23 +12,23 @@ namespace ckernel
 class [[nodiscard]] T6MutexLockGuard final
 {
 public:
-    explicit T6MutexGuard(const uint8_t index) noexcept : mutex_index(index)
+    explicit T6MutexLockGuard(const uint8_t index) noexcept : mutex_index(index)
     {
         t6_mutex_acquire(mutex_index);
     }
 
-    ~T6MutexGuard()
+    ~T6MutexLockGuard()
     {
         t6_mutex_release(mutex_index);
     }
 
     // Non-copyable
-    T6MutexGuard(const T6MutexGuard&)            = delete;
-    T6MutexGuard& operator=(const T6MutexGuard&) = delete;
+    T6MutexLockGuard(const T6MutexLockGuard&)            = delete;
+    T6MutexLockGuard& operator=(const T6MutexLockGuard&) = delete;
 
     // Non-movable
-    T6MutexGuard(T6MutexGuard&&)            = delete;
-    T6MutexGuard& operator=(T6MutexGuard&&) = delete;
+    T6MutexLockGuard(T6MutexLockGuard&&)            = delete;
+    T6MutexLockGuard& operator=(T6MutexLockGuard&&) = delete;
 
 private:
     const uint8_t mutex_index;
