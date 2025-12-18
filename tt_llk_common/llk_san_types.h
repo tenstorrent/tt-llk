@@ -19,18 +19,18 @@ struct ignore_t
     constexpr ignore_t() = default;
 };
 
-struct indeterminate_t
+struct unknown_t
 {
-    constexpr indeterminate_t() = default;
+    constexpr unknown_t() = default;
 };
 
-static constexpr ignore_t IGNORE               = ignore_t();
-static constexpr indeterminate_t INDETERMINATE = indeterminate_t();
+static constexpr ignore_t IGNORE   = ignore_t();
+static constexpr unknown_t UNKNOWN = unknown_t();
 
 enum class state_type_t : uint8_t
 {
     determinate,
-    indeterminate,
+    unknown,
     ignore
 };
 
@@ -59,8 +59,8 @@ private:
 
 public:
     // CONSTRUCTION
-    // Default to INDETERMINATE state because hardware is not initialized
-    state_t() : underlying {}, state_type(state_type_t::indeterminate)
+    // Default to UNKNOWN state because hardware is not initialized
+    state_t() : underlying {}, state_type(state_type_t::unknown)
     {
     }
 
@@ -69,7 +69,7 @@ public:
 
     // CONVERSION
     // - llk_san::IGNORE      -> state_t with state_type == ignore
-    // - llk_san::INDETERMINATE -> state_t with state_type == indeterminate
+    // - llk_san::UNKNOWN -> state_t with state_type == unknown
     // - other                  -> state_t with state_type == determinate (storing the value)
 
     // Constructor for IGNORE
@@ -77,8 +77,8 @@ public:
     {
     }
 
-    // Constructor for INDETERMINATE
-    constexpr state_t(const indeterminate_t&) : underlying {}, state_type(state_type_t::indeterminate)
+    // Constructor for UNKNOWN
+    constexpr state_t(const unknown_t&) : underlying {}, state_type(state_type_t::unknown)
     {
     }
 
@@ -86,7 +86,7 @@ public:
     template <
         typename U,
         typename =
-            std::enable_if_t<!is_state_t_v<std::decay_t<U>> && !std::is_same_v<std::decay_t<U>, ignore_t> && !std::is_same_v<std::decay_t<U>, indeterminate_t>>>
+            std::enable_if_t<!is_state_t_v<std::decay_t<U>> && !std::is_same_v<std::decay_t<U>, ignore_t> && !std::is_same_v<std::decay_t<U>, unknown_t>>>
     constexpr state_t(U&& value) : underlying(std::forward<U>(value)), state_type(state_type_t::determinate)
     {
     }
@@ -137,7 +137,7 @@ public:
 
     // RHS of assignment is:
     // - compatible with T
-    // - indeterminate_t
+    // - unknown_t
     // - ignore_t
     template <typename U, typename = std::enable_if_t<!is_state_t_v<std::decay_t<U>>>>
     state_t& operator=(U&& rhs)
@@ -151,9 +151,9 @@ public:
         return state_type == state_type_t::determinate;
     }
 
-    bool is_indeterminate() const
+    bool is_unknown() const
     {
-        return state_type == state_type_t::indeterminate;
+        return state_type == state_type_t::unknown;
     }
 
     bool is_ignore() const
@@ -176,7 +176,7 @@ static inline bool _assert_condition(const state_t<T>& lhs, const state_t<U>& rh
         return true;
     }
 
-    if (lhs.is_indeterminate() || rhs.is_indeterminate())
+    if (lhs.is_unknown() || rhs.is_unknown())
     {
         return false;
     }
@@ -192,7 +192,7 @@ static inline bool _panic_condition(const state_t<T>& lhs, const state_t<U>& rhs
         return true;
     }
 
-    if (lhs.is_indeterminate() || rhs.is_indeterminate())
+    if (lhs.is_unknown() || rhs.is_unknown())
     {
         return false;
     }
