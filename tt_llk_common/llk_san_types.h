@@ -277,4 +277,11 @@ struct pack_state_t
     bool is_configured = false;
 };
 
+struct hw_state_t
+{
+    unpack_state_t unpack;
+    math_state_t math;
+    pack_state_t pack;
+};
+
 }; // namespace llk_san

@@ -34,9 +34,7 @@ uint32_t open_zone_cnt    = 0;
 
 namespace llk_san
 {
-unpack_state_t unpack_state;
-math_state_t math_state;
-pack_state_t pack_state;
+hw_state_t hw_state;
 } // namespace llk_san
 
 __attribute__((weak)) void run_kernel()
