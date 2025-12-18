@@ -51,8 +51,6 @@ inline void _init_reduce_max_col_subblock_4x2_()
 {
     static_assert(format == DataFormat::Float16_b, "Unsupported data format. Supported formats: Float16_b");
 
-    t6_mutex_acquire(mutex::SFPU);
-
     _init_sfpu_config_reg();
     sfpu_reduce_max_col_subblock_4x2_configure_addrmod();
 
@@ -71,7 +69,6 @@ inline void _init_reduce_max_col_subblock_4x2_()
     TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG7 /*lreg_src_c*/, p_sfpu::LREG3 /*lreg_dest*/, 1 /*instr_mod1*/);
 
     // ***********************************************************
-    t6_mutex_release(mutex::SFPU);
 }
 
 inline void _move_to_next_subblock_4x2_()
@@ -160,8 +157,6 @@ inline void _calculate_reduce_max_col_subblock_4x2_(const uint32_t block_height 
 
 inline void _reduce_max_col_subblock_4x2_prologue_()
 {
-    t6_mutex_acquire(mutex::SFPU);
-
     constexpr uint16_t neg_inf_fp16b = 0xFF80;
 
     // F0 - Initialize with negative infinity
@@ -186,8 +181,6 @@ inline void _reduce_max_col_subblock_4x2_epilogue_()
     TTI_SFPSTORE(p_sfpu::LREG5, InstrModLoadStore::FP16B, ADDR_MOD_3, 64 + 2);
     TTI_SFPSTORE(p_sfpu::LREG6, InstrModLoadStore::FP16B, ADDR_MOD_3, 64 + 16);
     TTI_SFPSTORE(p_sfpu::LREG7, InstrModLoadStore::FP16B, ADDR_MOD_3, 64 + 18);
-
-    t6_mutex_release(mutex::SFPU);
 }
 
 } // namespace sfpu
