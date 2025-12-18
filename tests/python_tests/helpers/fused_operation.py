@@ -13,7 +13,7 @@ from .format_config import DataFormat
 from .fused_math import Math
 from .fused_operand import Operand, OperandMapping
 from .fused_packer import Packer
-from .fused_unpacker import Unpacker
+from .fused_unpacker import Unpacker, UnpackerTilizeA
 from .llk_params import (
     DataCopyType,
     DestAccumulation,
@@ -64,7 +64,6 @@ class FusedOperation:
     face_c_dim: int = 16
     dest_sync: DestSync = DestSync.Half
     dst_index: int = 0
-    pack_tilize: Tilize = Tilize.No
     srca_reuse_count: int = 4
 
     def __post_init__(self):
@@ -159,10 +158,13 @@ class FusedOperation:
         self.kt_dim = input_A_dimensions[1] // num_cols
 
         if (
-            self.architecture == ChipArchitecture.WORMHOLE
-            or formats.input_format == DataFormat.Bfp8_b
+            self.architecture == ChipArchitecture.BLACKHOLE
+            and self.unpacker is UnpackerTilizeA
+            and formats.input_format != DataFormat.Bfp8_b
         ):
-            self.pack_tilize = Tilize.No
+            self.bh_tilize = Tilize.Yes
+        else:
+            self.bh_tilize = Tilize.No
 
     @property
     def src_a(self) -> Operand:
@@ -238,5 +240,4 @@ class FusedOperation:
             f"  Output: {self.output}\n"
             f"  Math Fidelity: {self.math_fidelity}\n"
             f"  Dest Accumulation: {self.dest_acc}\n"
-            f"  Pack Tilize: {self.pack_tilize}\n"
         )
