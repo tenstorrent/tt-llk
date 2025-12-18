@@ -33,9 +33,9 @@ NUM_FACES = 4
     formats=input_output_formats(
         [
             DataFormat.Float32,
-            # DataFormat.Float16,
-            # DataFormat.Float16_b,
-            # DataFormat.Bfp8_b,
+            DataFormat.Float16,
+            DataFormat.Float16_b,
+            DataFormat.Bfp8_b,
         ]
     ),
     approx_mode=[
@@ -75,7 +75,11 @@ NUM_FACES = 4
         # 1,
         # 2,
         # 4,
-        8,
+        # 8,
+        16,
+        # 32,
+        # 64,
+        # 128,
     ],  # Number of iterations to run the test in order to minimize measurement noise
     face_r_dim=[FACE_R_DIM],
     num_faces=[NUM_FACES],
@@ -84,6 +88,8 @@ NUM_FACES = 4
         # [64, 32],  # tile_cnt: 2
         # [64, 64],  # tile_cnt: 4
         [128, 64],  # tile_cnt: 8
+        # [128, 128],  # tile_cnt: 16
+        # [256, 256],  # tile_cnt: 64
     ],  # Specifying different input sizes to cover different tile counts
     run_types=[ALL_RUN_TYPES],
 )
