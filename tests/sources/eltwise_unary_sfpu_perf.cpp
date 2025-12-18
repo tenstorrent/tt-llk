@@ -51,7 +51,7 @@ void run_kernel()
             return _perf_unpack_loop_set_valid<
                 /* src A */ true,
                 /* src B */ false>(
-                /* iterations*/ LOOP_FACTOR * TILE_CNT);
+                /* iterations*/ NUM_FACES * LOOP_FACTOR * TILE_CNT);
         }
         else
         {
@@ -96,16 +96,9 @@ void run_kernel()
         {
             return;
         }
-        else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             // Clear valid for source A only (B is not used)
-            _perf_math_loop_clear_valid<
-                /* src A */ true,
-                /* src B */ true>(
-                /* iterations*/ NUM_FACES * LOOP_FACTOR * TILE_CNT);
-        }
-        else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
-        {
             _perf_math_loop_clear_valid<
                 /* src A */ true,
                 /* src B */ true>(
@@ -134,15 +127,17 @@ void run_kernel()
             {
                 for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
                 {
+                    uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
+
+                    for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    {
+                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                            block_start + block_tile, formats.math, formats.math);
+                    }
+
                     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
                     test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations>(SFPU_UNARY_OPERATION, formats.math);
                     _llk_math_eltwise_unary_sfpu_done_();
-
-                    // Clear the valid flag set by unpacker
-                    _perf_math_loop_clear_valid<
-                        /* src A */ true,
-                        /* src B */ false>(
-                        /* iterations*/ MAX_TILES_DEST);
                 }
             }
         }
