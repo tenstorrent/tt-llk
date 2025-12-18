@@ -7,6 +7,7 @@
 #include <limits>
 
 #include "ckernel_sfpu_recip.h"
+#include "exp_config_params.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
@@ -378,7 +379,7 @@ void calculate_exponential_more_terms()
 template <int ITERATIONS, unsigned int NUM_TERMS, unsigned int NUM_SCALE>
 void calculate_exponential_no_swap_relu()
 {
-    LLK_ASSERT(NUM_TERMS == 2 || NUM_TERMS == 4, "Only 2 or 4 terms supported");
+    LLK_ASSERT(NUM_TERMS == 2 || NUM_TERMS == 4 || NUM_TERMS == 6, "Only 2, 4, or 6 terms supported");
 
     constexpr float SCALE   = 1.0f / float(1 << NUM_SCALE);
     constexpr float COEFF_1 = SCALE / 2.0f;
@@ -414,6 +415,35 @@ void calculate_exponential_no_swap_relu()
         TTI_SFPLOADI(0, 0x8, hi16(COEFF_1));
         TTI_SFPCONFIG(0, 14, 0);
     }
+    else if constexpr (NUM_TERMS == 6)
+    {
+        constexpr float COEFF_2 = SCALE * SCALE / 4.0f;
+        constexpr float COEFF_3 = SCALE * SCALE * SCALE / 12.0f;
+        constexpr float COEFF_4 = SCALE * SCALE * SCALE * SCALE / 48.0f;
+        constexpr float COEFF_5 = SCALE * SCALE * SCALE * SCALE * SCALE / 240.0f;
+
+        TTI_SFPLOADI(0, 0xA, lo16(COEFF_4));
+        TTI_SFPLOADI(0, 0x8, hi16(COEFF_4));
+        TTI_SFPCONFIG(0, 11, 0);
+
+        TTI_SFPLOADI(0, 0xA, lo16(COEFF_5));
+        TTI_SFPLOADI(0, 0x8, hi16(COEFF_5));
+        TTI_SFPCONFIG(0, 12, 0);
+
+        TTI_SFPLOADI(0, 0xA, lo16(COEFF_2));
+        TTI_SFPLOADI(0, 0x8, hi16(COEFF_2));
+        TTI_SFPCONFIG(0, 13, 0);
+
+        TTI_SFPLOADI(0, 0xA, lo16(COEFF_3));
+        TTI_SFPLOADI(0, 0x8, hi16(COEFF_3));
+        TTI_SFPCONFIG(0, 14, 0);
+
+        TTI_SFPLOADI(p_sfpu::LREG6, 0xA, lo16(0.5f));
+        TTI_SFPLOADI(p_sfpu::LREG6, 0x8, hi16(0.5f));
+
+        TTI_SFPLOADI(p_sfpu::LREG7, 0xA, lo16(COEFF_1));
+        TTI_SFPLOADI(p_sfpu::LREG7, 0x8, hi16(COEFF_1));
+    }
 
     addr_mod_t {
         .srca = {.incr = 0},
@@ -428,18 +458,25 @@ void calculate_exponential_no_swap_relu()
     for (int d = 0; d < ITERATIONS; d++)
     {
         // Load input.
-        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
-        TTI_SFPLOAD(p_sfpu::LREG1, 0, ADDR_MOD_7, 2);
+        TTI_SFPLOAD(p_sfpu::LREG0, 1, ADDR_MOD_7, 0);
+        TTI_SFPLOAD(p_sfpu::LREG1, 1, ADDR_MOD_7, 2);
 
         TTI_SFPMAD(p_sfpu::LREG12, p_sfpu::LREG0, p_sfpu::LREG11, p_sfpu::LREG2, 0);
         TTI_SFPMAD(p_sfpu::LREG12, p_sfpu::LREG1, p_sfpu::LREG11, p_sfpu::LREG3, 0);
 
-        if constexpr (NUM_TERMS == 4)
+        if constexpr (NUM_TERMS >= 4)
         {
             TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG2, 0);
             TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG3, 0);
             TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LREG13, p_sfpu::LREG2, 0);
             TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG1, p_sfpu::LREG13, p_sfpu::LREG3, 0);
+        }
+        if constexpr (NUM_TERMS >= 6)
+        {
+            TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LREG7, p_sfpu::LREG2, 0);
+            TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG1, p_sfpu::LREG7, p_sfpu::LREG3, 0);
+            TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LREG6, p_sfpu::LREG2, 0);
+            TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG1, p_sfpu::LREG6, p_sfpu::LREG3, 0);
         }
 
         TT_SFPABS(0, p_sfpu::LREG2, p_sfpu::LREG0, 1);
@@ -455,13 +492,13 @@ void calculate_exponential_no_swap_relu()
         }
 
         // Store the result.
-        TTI_SFPSTORE(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
-        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, 2);
+        TTI_SFPSTORE(p_sfpu::LREG0, 1, ADDR_MOD_7, 0);
+        TTI_SFPSTORE(p_sfpu::LREG1, 1, ADDR_MOD_7, 2);
         TTI_INCRWC(0, 4, 0, 0);
     }
 }
 
-#define EXPONENTIAL_TESTING
+// #define EXPONENTIAL_TESTING
 
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK>
 void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
@@ -469,7 +506,7 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
 #ifdef EXPONENTIAL_TESTING
     // calculate_exponential_no_swap<ITERATIONS>();
     // calculate_exponential_more_terms<ITERATIONS, 3>();
-    calculate_exponential_no_swap_relu<ITERATIONS, 4, 1>();
+    calculate_exponential_no_swap_relu<ITERATIONS, EXP_CONFIG_NUM_TERMS, EXP_CONFIG_NUM_SCALE>();
     return;
 #endif
 
