@@ -159,7 +159,7 @@ class UnpackerA(Unpacker):
         dest_acc = operation_config.dest_acc.value
         buffer_A_tile_size = operation_config.buffer_A_tile_size
         unpack_to_dest = "true" if operation_config.unpack_to_dest else "false"
-        brodcast_type = "NONE"  # TODO: make dynamic based on operation_config
+        broadcast_type = "NONE"  # TODO: make dynamic based on operation_config
         eltwise_reuse_type = "NONE"  # TODO: make dynamic based on operation_config
         face_r_dim = operation_config.face_r_dim
         num_faces = operation_config.num_faces
@@ -181,12 +181,12 @@ class UnpackerA(Unpacker):
             f"    _llk_unpack_A_hw_configure_<{dest_acc}, StochRndType::None>(\n"
             f"        unpack_src_format{stage}, unpack_dst_format{stage}, {face_r_dim}, 0, {num_faces}\n"
             f"    );\n"
-            f"    _llk_unpack_A_init_<BroadcastType::{brodcast_type}, false, EltwiseBinaryReuseDestType::{eltwise_reuse_type}, {unpack_to_dest}>(\n"
+            f"    _llk_unpack_A_init_<BroadcastType::{broadcast_type}, false, EltwiseBinaryReuseDestType::{eltwise_reuse_type}, {unpack_to_dest}>(\n"
             f"        0, 0, {face_r_dim}, {num_faces}, unpack_src_format{stage}, unpack_dst_format{stage}\n"
             f"    );\n"
             f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
             f"    {{\n"
-            f"        _llk_unpack_A_<BroadcastType::{brodcast_type}, false, EltwiseBinaryReuseDestType::NONE, {unpack_to_dest}>(\n"
+            f"        _llk_unpack_A_<BroadcastType::{broadcast_type}, false, EltwiseBinaryReuseDestType::NONE, {unpack_to_dest}>(\n"
             f"            L1_ADDRESS(buffer_A{stage}[i]), unpack_src_format{stage}, unpack_dst_format{stage}\n"
             f"        );\n"
             f"    }}\n\n"
