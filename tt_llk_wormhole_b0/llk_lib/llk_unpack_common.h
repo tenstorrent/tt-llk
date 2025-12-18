@@ -113,15 +113,15 @@ inline void _llk_unpack_config_tile_dim_srcb_impl_(const std::uint32_t face_r_di
 inline void _llk_unpack_reconfig_data_format_srca_impl_(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
     llk_san::unpack_hw_configure<true>(
-        llk_san::DONTCARE,
+        llk_san::IGNORE,
         unpack_src_format,
-        llk_san::DONTCARE,
+        llk_san::IGNORE,
         unpack_dst_format,
-        llk_san::DONTCARE,
-        llk_san::DONTCARE,
-        llk_san::DONTCARE,
-        llk_san::DONTCARE,
-        llk_san::DONTCARE);
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE);
 
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK0);
     // static_assert(is_fp32_dest_acc_en, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");
@@ -136,15 +136,15 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(const std::uint32_t unpa
 inline void _llk_unpack_reconfig_data_format_srcb_impl_(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
     llk_san::unpack_hw_configure<true>(
-        llk_san::DONTCARE,
-        llk_san::DONTCARE,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
         unpack_src_format,
-        llk_san::DONTCARE,
+        llk_san::IGNORE,
         unpack_dst_format,
-        llk_san::DONTCARE,
-        llk_san::DONTCARE,
-        llk_san::DONTCARE,
-        llk_san::DONTCARE);
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE);
 
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
     // static_assert(is_fp32_dest_acc_en, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");

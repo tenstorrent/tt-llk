@@ -25,11 +25,11 @@ inline void _llk_math_eltwise_unary_datacopy_(
 {
     if constexpr (type == A2D)
     {
-        llk_san::math_operand_check(dst_format, llk_san::DONTCARE);
+        llk_san::math_operand_check(dst_format, llk_san::IGNORE);
     }
     else
     {
-        llk_san::math_operand_check(llk_san::DONTCARE, dst_format);
+        llk_san::math_operand_check(llk_san::IGNORE, dst_format);
     }
     // sstanisic todo: implement
     // llk_san_operation<llk_san_op::EltwiseUnaryDatacopy>(type, src_b_bcast_type, num_faces, dst_format);
@@ -250,11 +250,11 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
 {
     if constexpr (type == A2D)
     {
-        llk_san::math_operand_check(dst_format, llk_san::DONTCARE);
+        llk_san::math_operand_check(dst_format, llk_san::IGNORE);
     }
     else
     {
-        llk_san::math_operand_check(llk_san::DONTCARE, dst_format);
+        llk_san::math_operand_check(llk_san::IGNORE, dst_format);
     }
     // sstanisic todo: implement
     // llk_san_init<llk_san_op::EltwiseUnaryDatacopy>(type, src_b_bcast_type, num_faces, dst_format);

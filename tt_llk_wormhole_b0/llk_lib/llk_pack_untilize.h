@@ -108,8 +108,7 @@ inline void _llk_pack_untilize_mop_config_(const std::uint32_t face_r_dim = FACE
 template <std::uint32_t block_ct_dim, std::uint32_t full_ct_dim = block_ct_dim, bool narrow_row = false, std::uint32_t row_num_datums = TILE_C_DIM>
 inline void _llk_pack_untilize_init_(const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
-    llk_san::pack_operand_check(
-        llk_san::DONTCARE, llk_san::DONTCARE, pack_dst_format, face_r_dim, llk_san::DONTCARE, num_faces, llk_san::DONTCARE, llk_san::DONTCARE);
+    llk_san::pack_operand_check(llk_san::IGNORE, llk_san::IGNORE, pack_dst_format, face_r_dim, llk_san::IGNORE, num_faces, llk_san::IGNORE, llk_san::IGNORE);
     // sstanisic todo: implement
     // llk_san_init<llk_san_op::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, pack_dst_format, face_r_dim);
     // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::AdcXX); // GPRs are not tracked here for now
@@ -150,7 +149,7 @@ inline void _llk_pack_untilize_(
     const std::uint32_t tile_dst_rt_offset         = 0)
 {
     llk_san::pack_operand_check(
-        llk_san::DONTCARE, llk_san::DONTCARE, pack_dst_format, face_r_dim, llk_san::DONTCARE, llk_san::DONTCARE, llk_san::DONTCARE, llk_san::DONTCARE);
+        llk_san::IGNORE, llk_san::IGNORE, pack_dst_format, face_r_dim, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE);
     // sstanisic todo: implement
     // llk_san_operation<llk_san_op::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, pack_dst_format, face_r_dim);
 

@@ -460,7 +460,7 @@ inline void _llk_pack_reconfig_data_format_(
     const std::uint32_t num_faces  = 4,
     const bool partial_face        = false)
 {
-    llk_san::pack_hw_configure<true>(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, llk_san::DONTCARE);
+    llk_san::pack_hw_configure<true>(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, llk_san::IGNORE);
 
     reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face);
 }
@@ -490,7 +490,7 @@ inline void _llk_pack_init_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
-    llk_san::pack_operand_check(llk_san::DONTCARE, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+    llk_san::pack_operand_check(llk_san::IGNORE, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
     // sstanisic todo: implement
     // llk_san_init<llk_san_op::Pack>();
     // llk_san_must_uninit<llk_san_op::Pack>(); // lololol uninit doesn't exist

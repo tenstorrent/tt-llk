@@ -55,15 +55,7 @@ inline void _llk_unpack_untilize_init_(
     [[maybe_unused]] const std::uint32_t num_faces = 4)
 {
     llk_san::unpack_operand_check(
-        llk_san::DONTCARE,
-        llk_san::DONTCARE,
-        llk_san::DONTCARE,
-        unpack_dst_format,
-        llk_san::DONTCARE,
-        face_r_dim,
-        llk_san::DONTCARE,
-        llk_san::DONTCARE,
-        llk_san::DONTCARE);
+        llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, unpack_dst_format, llk_san::IGNORE, face_r_dim, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE);
     // llk_san_init<llk_san_op::UnpackUntilize>();
     // llk_san_must_uninit<llk_san_op::UnpackUntilize>(); // lololol uninit doesn't exist
     // llk_san_extended_state_mask(
