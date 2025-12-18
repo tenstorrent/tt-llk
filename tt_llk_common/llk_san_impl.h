@@ -108,8 +108,8 @@ static inline void pack_hw_configure_impl(
     state_t<bool> partial_face,
     state_t<bool> narrow_tile)
 {
-    LLK_PANIC(reconfig && !state.is_configured, "panic: llk_san: user tried to reconfigure packer before configuring it");
     LLK_PANIC(!reconfig && state.is_configured, "panic: llk_san: user tried to configure packer twice");
+    LLK_PANIC(reconfig && !state.is_configured, "panic: llk_san: user tried to reconfigure packer before configuring it");
 
     state.input_format  = src_fmt;
     state.output_format = dst_fmt;
