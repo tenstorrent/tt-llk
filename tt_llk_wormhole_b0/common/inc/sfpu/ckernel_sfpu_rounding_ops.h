@@ -180,7 +180,7 @@ template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
 inline void _calculate_stochastic_round_()
 {
 #pragma GCC unroll ITERATIONS
-    for (int i = 0; i < ITERATIONS; i++)
+    for (int d = 0; d < ITERATIONS; d++)
     {
         TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
         // SFP_STOCH_RND(rnd_mode, imm8_math, lreg_src_b, lreg_src_c, lreg_dest, instr_mod1)
