@@ -8,6 +8,7 @@ from enum import Enum, IntEnum
 from pathlib import Path
 from typing import List
 
+import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.hardware_controller import HardwareController
 from ttexalens.coordinate import OnChipCoordinate
@@ -27,7 +28,7 @@ from ttexalens.tt_exalens_lib import (
 
 from .format_config import DataFormat, FormatConfig
 from .fused_operation import FusedOperation
-from .llk_params import DestAccumulation, Mailbox
+from .llk_params import DestAccumulation, Mailbox, format_dict
 from .pack import (
     pack_bfp8_b,
     pack_bfp16,
@@ -40,6 +41,7 @@ from .pack import (
     pack_uint32,
 )
 from .target_config import TestTargetConfig
+from .tilize_untilize import untilize_block
 from .unpack import (
     unpack_bfp8_b,
     unpack_bfp16,
@@ -176,12 +178,6 @@ def collect_pipeline_results(
     pipeline: List[FusedOperation],
     location: str = "0,0",
 ):
-    import torch
-
-    from .llk_params import format_dict
-    from .tilize_untilize import untilize_block
-    from .unpack import unpack_res_tiles
-
     TILE_ELEMENTS = 1024
 
     for operation in pipeline:
