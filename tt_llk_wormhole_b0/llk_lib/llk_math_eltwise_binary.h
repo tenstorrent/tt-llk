@@ -38,14 +38,26 @@ template <
     DstSync Dst,
     bool is_fp32_dest_acc_en,
     int NUM_FIDELITY_PHASES                      = 0,
-    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_index, const bool clear_fp32_dst_acc)
+    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE,
+    bool separate_src_dst                        = false>
+inline void _llk_math_eltwise_binary_(
+    const std::uint32_t num_faces,
+    uint dst_index,
+    const bool clear_fp32_dst_acc,
+    [[maybe_unused]] uint src_dst_index = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     constexpr bool high_fidelity     = (NUM_FIDELITY_PHASES > 0);
     constexpr uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
 
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    // Helper to check if we need separate source/dest addressing
+    constexpr bool need_separate_addr = separate_src_dst && (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE);
+
+    // Set initial dest address - only when NOT using separate addressing
+    if constexpr (!need_separate_addr)
+    {
+        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    }
 
     if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB))
     {
@@ -56,7 +68,15 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
 #pragma GCC unroll 0
             for (std::uint32_t n = 0; n < outerloop; n++)
             {
+                if constexpr (need_separate_addr)
+                {
+                    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(src_dst_index);
+                }
                 eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                if constexpr (need_separate_addr)
+                {
+                    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+                }
                 ckernel_template::run();
             }
             TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
@@ -65,7 +85,15 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
 #pragma GCC unroll 0
                 for (std::uint32_t n = 0; n < outerloop; n++)
                 {
+                    if constexpr (need_separate_addr)
+                    {
+                        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(src_dst_index);
+                    }
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                    if constexpr (need_separate_addr)
+                    {
+                        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+                    }
                     ckernel_template::run();
                 }
                 TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
@@ -77,7 +105,15 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
 #pragma GCC unroll 0
             for (std::uint32_t n = 0; n < outerloop; n++)
             {
+                if constexpr (need_separate_addr)
+                {
+                    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(src_dst_index);
+                }
                 eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                if constexpr (need_separate_addr)
+                {
+                    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+                }
                 ckernel_template::run();
             }
             // Manually clear B once mop is done for scaler bcast
@@ -98,7 +134,15 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
 #pragma GCC unroll 0
                 for (std::uint32_t n = 0; n < 2; n++)
                 {
+                    if constexpr (need_separate_addr)
+                    {
+                        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(src_dst_index);
+                    }
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                    if constexpr (need_separate_addr)
+                    {
+                        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+                    }
                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
                     {
                         auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((is_fp32_dest_acc_en && clear_fp32_dst_acc) ? 3 : 2));
@@ -121,7 +165,15 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
 #pragma GCC unroll 0
                 for (std::uint32_t n = 0; n < outerloop; n++)
                 {
+                    if constexpr (need_separate_addr)
+                    {
+                        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(src_dst_index);
+                    }
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                    if constexpr (need_separate_addr)
+                    {
+                        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+                    }
                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
                     {
                         auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((is_fp32_dest_acc_en && clear_fp32_dst_acc) ? 3 : 2));
@@ -147,7 +199,15 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
 #pragma GCC unroll 0
                     for (std::uint32_t n = 0; n < 2; n++)
                     {
+                        if constexpr (need_separate_addr)
+                        {
+                            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(src_dst_index);
+                        }
                         eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                        if constexpr (need_separate_addr)
+                        {
+                            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+                        }
                         if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
                         {
                             auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((is_fp32_dest_acc_en && clear_fp32_dst_acc) ? 3 : 2));
@@ -170,7 +230,15 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
 #pragma GCC unroll 0
                     for (std::uint32_t n = 0; n < outerloop; n++)
                     {
+                        if constexpr (need_separate_addr)
+                        {
+                            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(src_dst_index);
+                        }
                         eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                        if constexpr (need_separate_addr)
+                        {
+                            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+                        }
                         if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
                         {
                             auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((is_fp32_dest_acc_en && clear_fp32_dst_acc) ? 3 : 2));
@@ -200,7 +268,15 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
 #pragma GCC unroll 0
                 for (std::uint32_t n = 0; n < num_faces; n++)
                 {
+                    if constexpr (need_separate_addr)
+                    {
+                        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(src_dst_index);
+                    }
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                    if constexpr (need_separate_addr)
+                    {
+                        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+                    }
                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
                     {
                         auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((is_fp32_dest_acc_en && clear_fp32_dst_acc) ? 3 : 2));
@@ -223,7 +299,15 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
 #pragma GCC unroll 0
                 for (std::uint32_t n = 0; n < outerloop; n++)
                 {
+                    if constexpr (need_separate_addr)
+                    {
+                        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(src_dst_index);
+                    }
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+                    if constexpr (need_separate_addr)
+                    {
+                        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+                    }
                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
                     {
                         auto base_address = (get_dest_buffer_base() >> 4) + (dst_index << ((is_fp32_dest_acc_en && clear_fp32_dst_acc) ? 3 : 2));
