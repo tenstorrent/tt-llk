@@ -192,7 +192,7 @@ constexpr InstrModLoadStore get_instruction_mode()
 inline void configure_addrmod_max_min(uint32_t num_cols)
 {
     // Configure address mode for all tiles processed in loop
-    uint32_t skip_rows = (num_cols - 1) * ROWS_PER_TILE; // Skip first tile
+    uint32_t skip_rows = (num_cols - 1) * ROWS_PER_TILE;
 
     addr_mod_t {
         .srca = {.incr = 0},
@@ -227,7 +227,7 @@ inline void preload_initial_values()
 
     static_assert(
         INSTRUCTION_MODE == InstrModLoadStore::FP16B || INSTRUCTION_MODE == InstrModLoadStore::FP16A || INSTRUCTION_MODE == InstrModLoadStore::FP32 ||
-            INSTRUCTION_MODE == InstrModLoadStore::INT32,
+            INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::INT32_2S_COMP || INSTRUCTION_MODE == InstrModLoadStore::LO16,
         "Unsupported INSTRUCTION_MODE for preload_initial_values");
 
     constexpr uint16_t neg_inf_fp16b      = 0xFF80;
@@ -236,6 +236,7 @@ inline void preload_initial_values()
     constexpr uint16_t neg_inf_fp32_low   = 0x0000;
     constexpr uint16_t neg_inf_int32_high = 0x8000;
     constexpr uint16_t neg_inf_int32_low  = 0x0000;
+    constexpr uint16_t neg_inf_uint16     = 0x0000; // Minimum value for unsigned 16-bit
 
     if constexpr (INSTRUCTION_MODE == InstrModLoadStore::FP16B)
     {
@@ -263,9 +264,9 @@ inline void preload_initial_values()
         TTI_SFPLOADI(p_sfpu::LREG7, 8, neg_inf_fp32_high);
         TTI_SFPLOADI(p_sfpu::LREG7, 10, neg_inf_fp32_low);
     }
-    else if constexpr (INSTRUCTION_MODE == InstrModLoadStore::INT32)
+    else if constexpr (INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::INT32_2S_COMP)
     {
-        // Load high and low bits separately for INT32
+        // Load high and low bits separately for INT32 and INT32_2S_COMP
         TTI_SFPLOADI(p_sfpu::LREG4, 8, neg_inf_int32_high);
         TTI_SFPLOADI(p_sfpu::LREG4, 10, neg_inf_int32_low);
         TTI_SFPLOADI(p_sfpu::LREG5, 8, neg_inf_int32_high);
@@ -274,6 +275,14 @@ inline void preload_initial_values()
         TTI_SFPLOADI(p_sfpu::LREG6, 10, neg_inf_int32_low);
         TTI_SFPLOADI(p_sfpu::LREG7, 8, neg_inf_int32_high);
         TTI_SFPLOADI(p_sfpu::LREG7, 10, neg_inf_int32_low);
+    }
+    else if constexpr (INSTRUCTION_MODE == InstrModLoadStore::LO16)
+    {
+        // For UInt16, minimum value is 0 (not negative infinity)
+        TTI_SFPLOADI(p_sfpu::LREG4, INSTRUCTION_MODE, neg_inf_uint16);
+        TTI_SFPLOADI(p_sfpu::LREG5, INSTRUCTION_MODE, neg_inf_uint16);
+        TTI_SFPLOADI(p_sfpu::LREG6, INSTRUCTION_MODE, neg_inf_uint16);
+        TTI_SFPLOADI(p_sfpu::LREG7, INSTRUCTION_MODE, neg_inf_uint16);
     }
 }
 
@@ -424,7 +433,7 @@ inline void calculate_reduce_max_min(const uint32_t block_height)
 
     preload_initial_values<INSTRUCTION_MODE>();
 
-    // Remaining tiles
+    // Process all tiles
     for (uint32_t i = 0; i < block_height; i++)
     {
         lltt::replay(0, replay_buffer_offset);

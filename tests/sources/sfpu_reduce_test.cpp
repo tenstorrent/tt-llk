@@ -69,12 +69,25 @@ void run_kernel()
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
 
     ckernel::sfpu::_init_reduce_<POOL_TYPE, static_cast<DataFormat>(formats.math)>(BLOCK_CT_DIM);
-    for (uint32_t i = 0; i < TILE_CNT; i++)
-    {
-        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
-        ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(BLOCK_RT_DIM);
-    }
 
+    if (POOL_TYPE == PoolType::MAX || POOL_TYPE == PoolType::MIN)
+    {
+        // MAX/MIN: Process BLOCK_CT_DIM columns, each processes BLOCK_RT_DIM vertical tiles
+        for (uint32_t column = 0; column < BLOCK_CT_DIM; column++)
+        {
+            _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(column);
+            ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(BLOCK_RT_DIM);
+        }
+    }
+    else
+    {
+        // SUM/AVG: Process each tile independently
+        for (uint32_t i = 0; i < TILE_CNT; i++)
+        {
+            _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
+            ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(1); // Process single tile
+        }
+    }
     _llk_math_eltwise_unary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
@@ -104,9 +117,20 @@ void run_kernel()
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < TILE_CNT; ++i)
+
+    if (POOL_TYPE == PoolType::MAX || POOL_TYPE == PoolType::MIN)
     {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        for (uint32_t i = 0; i < BLOCK_CT_DIM; i++)
+        {
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        }
+    }
+    else
+    {
+        for (uint32_t i = 0; i < TILE_CNT; ++i)
+        {
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        }
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
