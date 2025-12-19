@@ -31,10 +31,9 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
         // Configure unpacker for Float16_b format
-        _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
-            formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES);
-        _llk_unpack_A_init_<BroadcastType::NONE, is_fp32_dest_acc_en, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, FACE_R_DIM, NUM_FACES, formats.unpack_src, formats.unpack_dst);
+        _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
+        _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+            0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
         PROFILER_SYNC();
     }
     {
@@ -46,11 +45,7 @@ void run_kernel()
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             // Set valid for source A only (B is not used in this operation)
-            // Works only when unpacking to dest is not used.
-            return _perf_unpack_loop_set_valid<
-                /* src A */ true,
-                /* src B */ false>(
-                /* iterations*/ LOOP_FACTOR * TILE_CNT);
+            return _perf_unpack_loop_set_valid<true, false>(TILE_CNT * LOOP_FACTOR);
         }
         else
         {
@@ -58,8 +53,8 @@ void run_kernel()
             {
                 for (uint32_t i = 0; i < TILE_CNT; ++i)
                 {
-                    _llk_unpack_A_<BroadcastType::NONE, is_fp32_dest_acc_en, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-                        PERF_ADDRESS(PERF_INPUT_A, /* tile_idx */ i), formats.unpack_src, formats.unpack_dst);
+                    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+                        PERF_ADDRESS(PERF_INPUT_A, i), formats.unpack_src, formats.unpack_dst);
                 }
             }
         }
@@ -76,6 +71,9 @@ void run_kernel()
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_eltwise_unary_sfpu.h"
 
+using namespace ckernel;
+using namespace ckernel::sfpu;
+
 void run_kernel()
 {
     constexpr uint32_t block_height = BLOCK_RT_DIM;
@@ -83,15 +81,19 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
         // Initialize datacopy from srcA to dest
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(NUM_FACES, formats.math);
+#ifdef ARCH_BLACKHOLE
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(4, formats.math);
+#else
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(4, formats.math);
+#endif
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        _llk_math_hw_configure_<>(formats.math, formats.math);
+        _llk_math_hw_configure_<false, false>(formats.math, formats.math);
 
         // Initialize SFPU for reduce operation
         _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
 
         // Initialize SDPA reduce using unified function
-        ckernel::sfpu::_init_reduce_<PoolType::MAX, DataFormat::Float16_b>(BLOCK_CT_DIM);
+        _init_reduce_<PoolType::MAX, DataFormat::Float16_b>(BLOCK_CT_DIM);
 
         PROFILER_SYNC();
     }
@@ -101,40 +103,20 @@ void run_kernel()
         {
             return;
         }
-        else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             // Clear valid for source A only (B is not used)
-            return _perf_math_loop_clear_valid</* src A */ true, /* src B */ true>(
-                /* iterations*/ NUM_FACES * LOOP_FACTOR * TILE_CNT);
-        }
-        else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
-        {
-            for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
-            {
-                for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
-                {
-                    uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
-
-                    // Wait for destination to be available
-                    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-
-                    // Copy from srcA to dest
-                    _perf_math_loop_clear_valid</* src A */ true, /* src B */ true>(
-                        /* iterations*/ NUM_FACES * block_tiles);
-
-                    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-                }
-            }
+            return _perf_math_loop_clear_valid<true, false>(TILE_CNT * LOOP_FACTOR);
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
+            _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
             // For MATH_ISOLATE, we need to properly handle data valid flags
             // The unpack thread sets valid flags, and we need to clear them
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
                 for (uint32_t i = 0; i < TILE_CNT; ++i)
                 {
-                    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ i);
                     // Wait for source A to be valid
                     // TTI_STALLWAIT(ckernel::p_stall::STALL_MATH, ckernel::p_stall::SRCA_VLD);
 
@@ -142,13 +124,10 @@ void run_kernel()
                     // Run the SFPU reduce SDPA calculation
                     // This is the core computation we want to measure
 
-                    ckernel::sfpu::_calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
+                    _calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
 
-                    // Clear the valid flag set by unpacker
-                    _perf_math_loop_clear_valid<
-                        /* src A */ true,
-                        /* src B */ false>(
-                        /* iterations*/ 1);
+                    // Clear the valid flag for source A
+                    TTI_CLEARDVALID(1, 0);
                 }
             }
 
@@ -174,11 +153,11 @@ void run_kernel()
                     }
 
                     // Start SFPU operation
-                    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(block_start);
+                    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 
                     // Call the SFPU SDPA reduce function
                     constexpr uint32_t block_height = BLOCK_RT_DIM;
-                    ckernel::sfpu::_calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
+                    _calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
 
                     _llk_math_eltwise_unary_sfpu_done_();
                     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -200,15 +179,21 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-
         // Configure packer hardware
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, FACE_R_DIM * FACE_C_DIM * NUM_FACES);
+#ifdef ARCH_BLACKHOLE
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+#else
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+#endif
 
-        _llk_pack_init_</* untilize */ false, /* zero_output */ false, DstTileFaceLayout::RowMajor, /* write_tile_header */ false>(formats.pack_dst);
+        _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
 
         // Initialize destination for packing
+#ifdef ARCH_BLACKHOLE
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
-
+#else
+        _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
+#endif
         PROFILER_SYNC();
     }
     {
@@ -217,7 +202,7 @@ void run_kernel()
         {
             return;
         }
-        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
+        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
@@ -227,15 +212,14 @@ void run_kernel()
 
                     for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
-                        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, /* untilize */ false>(
-                            block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
+                        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
                     }
                 }
             }
         }
         else
         {
-            // Full L1-to-L1 operation or L1 congestion
+            // Full L1-to-L1 operation
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
                 for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
@@ -245,8 +229,7 @@ void run_kernel()
                     _llk_packer_wait_for_math_done_();
                     for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
-                        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, /* untilize */ false>(
-                            block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
+                        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
                     }
                     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
                 }
