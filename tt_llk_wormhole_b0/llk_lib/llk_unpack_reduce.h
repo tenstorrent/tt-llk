@@ -46,6 +46,12 @@ inline void _llk_unpack_reduce_init_(const std::uint32_t within_face_16x16_trans
     _llk_unpack_reduce_mop_config_<type, dim>(num_faces);
 }
 
+inline void _llk_unpack_reduce_uninit_()
+{
+    // Restore x_end for UNP1 to default (single face)
+    TTI_SETADCXX(p_setadc::UNP1, FACE_SIZE - 1, 0x0);
+}
+
 template <PoolType type, ReduceDim dim>
 inline void _llk_unpack_reduce_(const std::uint32_t address)
 {
