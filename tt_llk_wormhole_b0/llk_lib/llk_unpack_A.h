@@ -27,8 +27,10 @@ template <
 inline void _llk_unpack_A_mop_config_(
     const bool transpose_of_faces, const std::uint32_t num_faces, const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format = 0)
 {
+    // Allow SCALAR broadcast with DEST_TO_SRCB (scalar from dest, tile from CB)
     static_assert(
-        !((BType != BroadcastType::NONE) && acc_to_dest && (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB)), "Not supported configuration!");
+        !((BType != BroadcastType::NONE) && (BType != BroadcastType::SCALAR) && acc_to_dest && (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB)),
+        "Not supported configuration!");
     static_assert(
         (((BType == BroadcastType::NONE) && (!acc_to_dest) && (binary_reuse_dest == EltwiseBinaryReuseDestType::NONE)) || (!unpack_to_dest)),
         "Not supported configuration when unpacking to dest!");
@@ -101,13 +103,24 @@ inline void _llk_unpack_A_mop_config_(
     }
     else if constexpr (BType == BroadcastType::SCALAR)
     {
-        static_assert((!acc_to_dest) && "accumulate into dest with broadcast scaler is not supported!");
-        const uint32_t outerloop     = 1;
-        constexpr uint32_t innerloop = 1;
-        ckernel_template tmp(outerloop, innerloop, unpack_srcb_inc_z_0);
-        // ELWADD used in datacopy due to WH broadcast bug, use zerosrca regardless of acc_to_dest
-        tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
-        tmp.program();
+        if constexpr (acc_to_dest)
+        {
+            static_assert(binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB, "acc_to_dest requires DEST_TO_SRCB for broadcast scalar!");
+            constexpr uint32_t outerloop = 1;
+            const uint32_t innerloop     = num_faces;
+            ckernel_template tmp(outerloop, innerloop, unpack_srca);
+            tmp.set_start_op(unpack_srcb_set_dvalid);  // srcB valid once (data from DEST)
+            tmp.program();
+        }
+        else
+        {
+            const uint32_t outerloop     = 1;
+            constexpr uint32_t innerloop = 1;
+            ckernel_template tmp(outerloop, innerloop, unpack_srcb_inc_z_0);
+            // ELWADD used in datacopy due to WH broadcast bug, use zerosrca regardless of acc_to_dest
+            tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
+            tmp.program();
+        }
     }
     else
     {

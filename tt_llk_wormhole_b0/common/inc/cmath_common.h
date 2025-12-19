@@ -68,6 +68,14 @@ inline void move_d2b_fixed_face(const uint8_t addrmod)
     TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 12, addrmod, p_movd2b::MOV_4_ROWS, 12);
 }
 
+inline void move_d2b_scalar(const uint8_t addrmod)
+{
+    // Move only row 0 from DEST to srcB for scalar broadcast
+    // The FPU will broadcast this value across the entire tile when using SRCB_BCAST_ALL
+    TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::SRCB_VLD);
+    TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 0, addrmod, p_movd2b::MOV_1_ROW, 0);
+}
+
 inline void move_d2a_row_broadcast_fixed_face(const uint8_t addrmod)
 {
     // // Seems to make things 200 clocks slower. Really shouldn't though.
