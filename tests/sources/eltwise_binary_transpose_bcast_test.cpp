@@ -23,24 +23,26 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    // Configure hardware for unpacking both A and B with transpose on A and broadcast on B
+    // Configure hardware for unpacking:
+    // - srcA with transpose enabled
+    // - srcB with column broadcast
     _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src,
         formats.unpack_src,
         formats.unpack_dst,
         formats.unpack_dst,
         FACE_R_DIM,
-        UNPACK_TRANSPOSE_WITHIN_FACE, // within_face_16x16_transpose
+        UNPACK_TRANSPOSE_WITHIN_FACE, // Enable within-face transpose for srcA
         NUM_FACES);
 
-    // Initialize unpack with broadcast type on srcB and transpose on srcA
+    // Initialize unpack with column broadcast on srcB and transpose on srcA
     _llk_unpack_AB_init_<BROADCAST_TYPE>(
         FACE_R_DIM,
         NUM_FACES,
         false,                   // narrow_tile
-        UNPACK_TRANSPOSE_FACES); // transpose parameter
+        UNPACK_TRANSPOSE_FACES); // Enable face rearrangement for srcA
 
-    // Unpack tiles for element-wise binary operation
+    // Unpack tiles: srcA will be transposed, srcB will be column broadcasted
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
@@ -59,15 +61,14 @@ using namespace ckernel;
 
 void run_kernel()
 {
-    // Initialize math operations for element-wise binary subtraction
+    // Initialize math for element-wise subtraction
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE>(NUM_FACES, 0);
 
     _llk_math_wait_for_dest_available_<dest_sync>();
 
-    // Perform element-wise subtraction: result = srcA - srcB
-    // where srcA has been transposed and srcB has been broadcast
+    // Perform element-wise subtraction: result = transposed(srcA) - column_broadcast(srcB)
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_math_eltwise_binary_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE, dest_sync, is_fp32_dest_acc_en>(
