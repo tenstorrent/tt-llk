@@ -191,8 +191,8 @@ constexpr InstrModLoadStore get_instruction_mode()
  */
 inline void configure_addrmod_max_min(uint32_t num_cols)
 {
-    // Reduction done on first tile before looping through the rest, so we look at num_cols - 1 tile
-    uint32_t skip_rows = (num_cols - 1) * ROWS_PER_TILE;
+    // Configure address mode for all tiles processed in loop
+    uint32_t skip_rows = (num_cols - 1) * ROWS_PER_TILE; // Skip first tile
 
     addr_mod_t {
         .srca = {.incr = 0},
@@ -292,8 +292,6 @@ inline void init_reduce_max_min(uint32_t num_cols)
 {
     // Initialize SFPU config and set swap direction before defining LOADMACRO sequences
     _init_sfpu_config_reg();
-
-    preload_initial_values<INSTRUCTION_MODE>();
 
     // Invert swap direction for MIN operations, set 8th bit in SFPU config register
     if constexpr (pool_type == PoolType::MIN)
@@ -424,21 +422,7 @@ inline void calculate_reduce_max_min(const uint32_t block_height)
     constexpr uint32_t replay_buffer_offset    = 7;
     constexpr uint32_t replay_buffer_next_face = replay_buffer_offset + 1;
 
-    // Initial loads: LREG4-7 will hold maximum values across F0 and F1
-    // TTI_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, 0);
-    // TTI_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, 2);
-    // TTI_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, 16);
-    // TTI_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, 18);
-
-    // // First tile processing (F0, F1, F2, F3)
-    // lltt::replay(0, replay_buffer_offset);
-    // lltt::replay(0, replay_buffer_offset);
-    // lltt::replay(0, replay_buffer_next_face);
-
-    // lltt::replay(0, replay_buffer_offset);
-    // lltt::replay(0, replay_buffer_offset);
-    // lltt::replay(0, replay_buffer_offset);
-    // lltt::replay(0, replay_buffer_next_face + 1);
+    preload_initial_values<INSTRUCTION_MODE>();
 
     // Remaining tiles
     for (uint32_t i = 0; i < block_height; i++)

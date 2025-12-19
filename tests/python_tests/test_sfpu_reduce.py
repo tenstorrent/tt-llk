@@ -86,11 +86,6 @@ def test_sfpu_reduce(
     )
     src_B = torch.zeros_like(src_A)
 
-    # src_A = torch.ones_like(src_A) * 1
-    # # INSERT_YOUR_CODE
-    # # Make first row of src_A be all 2s
-    # src_A[:32] = 2
-
     # Max Reduction can do block and single tile reduction whereas Sum/Avg only do single tile reduction, convert Sum/Avg golden to do block reduction by retilizing input to src_A
     # Dimensions for Max reduction work column wise, for Sum/Avg processing tiles independently is same as column reduction on dst block dimension [32, num_tiles * 32] where num rows is 32 i.e RT_DIM=1 (same as a single tile)
     dst_dim = input_dimensions

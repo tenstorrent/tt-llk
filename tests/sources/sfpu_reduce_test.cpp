@@ -68,11 +68,11 @@ void run_kernel()
 
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
 
-    ckernel::sfpu::_init_reduce_<POOL_TYPE, static_cast<DataFormat>(formats.math)>();
+    ckernel::sfpu::_init_reduce_<POOL_TYPE, static_cast<DataFormat>(formats.math)>(BLOCK_CT_DIM);
     for (uint32_t i = 0; i < TILE_CNT; i++)
     {
         _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
-        ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>();
+        ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(BLOCK_RT_DIM);
     }
 
     _llk_math_eltwise_unary_sfpu_done_();
