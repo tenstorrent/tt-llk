@@ -119,11 +119,11 @@ def is_relu_threshold_tolerance_issue(
     test_name="pack_test",
     formats=input_output_formats(
         [
-            # DataFormat.Float16_b,
-            # DataFormat.Float16,
-            # DataFormat.Float32,
+            DataFormat.Float16_b,
+            DataFormat.Float16,
+            DataFormat.Float32,
             DataFormat.Int32,
-            # DataFormat.Bfp8_b,
+            DataFormat.Bfp8_b,
         ]
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
