@@ -180,8 +180,7 @@ inline void _llk_unpack_A_init_(
     const std::uint32_t face_r_dim                  = FACE_R_DIM,
     const std::uint32_t num_faces                   = 4,
     const std::uint32_t unpack_src_format           = 0,
-    const std::uint32_t unpack_dst_format           = 0,
-    const bool disable_src_zero_flag                = false)
+    const std::uint32_t unpack_dst_format           = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
