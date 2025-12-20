@@ -149,12 +149,12 @@ inline void math_unpack_to_dest_tile_ready()
     t6_semaphore_get<p_stall::MATH | p_stall::WAIT_SFPU>(semaphore::UNPACK_TO_DEST);
 }
 
-template <DstTileShape tile_shape, UnpackToDest unpack_to_dest>
+template <DstTileShape tile_shape, UnpackDestination unpack_destination>
 inline void set_dst_write_addr(uint32_t tile_index)
 {
     uint dst_index = tile_index << DstTileSizeLog2[tile_shape];
     dst_index      = dst_index + get_dest_buffer_base();
-    if constexpr (unpack_to_dest)
+    if constexpr (unpack_destination == UnpackDestination::DstReg)
     {
         mailbox_write(ThreadId::UnpackThreadId, dst_index); // Send to unpacker
     }

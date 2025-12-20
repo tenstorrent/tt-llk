@@ -63,7 +63,7 @@ enum DstTileShape
     Tile16x16 = 2
 };
 
-enum UnpackToDest
+enum UnpackDestination
 {
     SrcRegs = 0,
     DestReg = 1
