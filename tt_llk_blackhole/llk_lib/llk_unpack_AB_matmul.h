@@ -236,8 +236,8 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
 
     TT_SETDMAREG(0, LOWER_HALFWORD(kt_dim), 0, LO_16(p_gpr_unpack::KT_DIM)); // store kt_dim to gpr for scaling tile size
 
-    TT_SETDMAREG(0, LOWER_HALFWORD(unpA_tile_size_in_bytes), 0, LO_16(p_gpr_unpack::TILE_SIZE_A));
-    TT_SETDMAREG(0, LOWER_HALFWORD(unpB_tile_size_in_bytes), 0, LO_16(p_gpr_unpack::TILE_SIZE_B));
+    // Note: TILE_SIZE_A and TILE_SIZE_B are now set during llk_unpack_reconfig_data_format_srca/srcb calls
+    // to ensure they stay in sync with format changes
 
     _llk_unpack_AB_matmul_mop_config_<kernel_broadcast_a, kernel_broadcast_b>(ct_dim, rt_dim, unpA_partial_face, unpB_partial_face);
 }
