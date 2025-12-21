@@ -136,6 +136,7 @@ inline void _llk_pack_hw_configure_(
     configure_pack<is_fp32_dest_acc_en, untilize>(pack_src_format, pack_dst_format, tile_size, face_r_dim, num_faces, partial_face, narrow_tile, relu_config);
 }
 
+// TODO NC: Clean up as the part of tt-metal#34587
 template <bool untilize = false, bool zero_output = false>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
@@ -149,6 +150,7 @@ inline void _llk_pack_init_(
     _llk_pack_mop_config_<untilize, zero_output>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
+// TODO NC: Clean up as the part of tt-metal#34587
 template <bool untilize = false, bool zero_output = false>
 inline void _llk_pack_init_(
     const std::uint32_t pack_dst_format,
