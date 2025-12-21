@@ -33,20 +33,17 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-            formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, num_faces_A, num_faces_B);
-        _llk_unpack_AB_matmul_init_<>(
-            UNPACK_TRANSPOSE_FACES,
-            CT_DIM,
-            RT_DIM,
-            KT_DIM,
+            formats.unpack_src,
+            formats.unpack_src,
+            formats.unpack_dst,
+            formats.unpack_dst,
             FACE_R_DIM,
             FACE_R_DIM,
-            TILE_NUM_FACES,
-            TILE_NUM_FACES,
-            false,
-            false,
+            num_faces_A,
+            num_faces_B,
             TILE_SIZE_UNPACK_A,
             TILE_SIZE_UNPACK_B);
+        _llk_unpack_AB_matmul_init_<>(UNPACK_TRANSPOSE_FACES, CT_DIM, RT_DIM, KT_DIM, FACE_R_DIM, FACE_R_DIM, TILE_NUM_FACES, TILE_NUM_FACES, false, false);
         PROFILER_SYNC();
     }
     {

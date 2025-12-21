@@ -185,18 +185,16 @@ inline void _llk_unpack_AB_matmul_mop_config_(
 
 template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
 __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
-    const std::uint32_t transpose               = 0,
-    const std::uint32_t ct_dim                  = 1,
-    const std::uint32_t rt_dim                  = 1,
-    const std::uint32_t kt_dim                  = 1,
-    const std::uint32_t unpA_face_r_dim         = FACE_R_DIM,
-    const std::uint32_t unpB_face_r_dim         = FACE_R_DIM,
-    const std::uint32_t unpA_num_faces          = 4,
-    const std::uint32_t unpB_num_faces          = 4,
-    const bool unpA_partial_face                = false,
-    const bool unpB_partial_face                = false,
-    const std::uint32_t unpA_tile_size_in_bytes = 0 /* Should be removed and calculated in the LLK instead, as the part of tt-metal#34495 */,
-    const std::uint32_t unpB_tile_size_in_bytes = 0 /* Should be removed and calculated in the LLK instead, as the part of tt-metal#34495 */)
+    const std::uint32_t transpose       = 0,
+    const std::uint32_t ct_dim          = 1,
+    const std::uint32_t rt_dim          = 1,
+    const std::uint32_t kt_dim          = 1,
+    const std::uint32_t unpA_face_r_dim = FACE_R_DIM,
+    const std::uint32_t unpB_face_r_dim = FACE_R_DIM,
+    const std::uint32_t unpA_num_faces  = 4,
+    const std::uint32_t unpB_num_faces  = 4,
+    const bool unpA_partial_face        = false,
+    const bool unpB_partial_face        = false)
 {
     LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
@@ -235,9 +233,6 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     }
 
     TT_SETDMAREG(0, LOWER_HALFWORD(kt_dim), 0, LO_16(p_gpr_unpack::KT_DIM)); // store kt_dim to gpr for scaling tile size
-
-    // Note: TILE_SIZE_A and TILE_SIZE_B are now set during llk_unpack_reconfig_data_format_srca/srcb calls
-    // to ensure they stay in sync with format changes
 
     _llk_unpack_AB_matmul_mop_config_<kernel_broadcast_a, kernel_broadcast_b>(ct_dim, rt_dim, unpA_partial_face, unpB_partial_face);
 }
