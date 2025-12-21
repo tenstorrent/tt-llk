@@ -42,8 +42,8 @@ inline void _llk_unpack_hw_configure_(
     const std::uint32_t unpB_face_r_dim,
     const std::uint32_t unpA_num_faces,
     const std::uint32_t unpB_num_faces,
-    const std::uint32_t unpA_tile_size,
-    const std::uint32_t unpB_tile_size)
+    const std::uint32_t unpA_tile_size = 0,
+    const std::uint32_t unpB_tile_size = 0)
 {
     LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
