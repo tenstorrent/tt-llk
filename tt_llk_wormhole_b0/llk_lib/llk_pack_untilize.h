@@ -164,6 +164,12 @@ inline void _llk_pack_untilize_init_(
     }
 }
 
+inline void _llk_pack_untilize_uninit_()
+{
+    // ToDo check if TT_SETDMAREG is needed
+    TTI_SETADCXX(p_setadc::PAC, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
+}
+
 template <
     std::uint32_t block_ct_dim,
     std::uint32_t full_ct_dim    = block_ct_dim,

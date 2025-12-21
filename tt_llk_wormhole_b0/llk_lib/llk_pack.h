@@ -173,6 +173,11 @@ inline void _llk_pack_init_(
     }
 }
 
+inline void _llk_pack_uninit_()
+{
+    TTI_SETADCXX(p_setadc::PAC, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
+}
+
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {

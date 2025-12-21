@@ -118,6 +118,11 @@ inline void _llk_pack_dest_init_(const std::uint32_t face_r_dim = FACE_R_DIM, co
     pack_sync_tile_dst_ptr = 0;
 }
 
+inline void _llk_pack_dest_uninit_()
+{
+    // No state to restore - all states are transient
+}
+
 template <bool mail2math = true, bool mail2pack = true>
 inline void _llk_pack_get_tile_(std::uint32_t tile_index, std::uint32_t *p_tile)
 {
