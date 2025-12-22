@@ -1,42 +1,186 @@
-name: Close stale issues and PRs
+name: 🔄 Revert Commit
 
 on:
-  schedule:
-    - cron: '0 3 * * *'  # Runs daily at 3:00 UTC
+  workflow_dispatch:
+    inputs:
+      commit_hash:
+        description: 'Commit hash to revert (full SHA)'
+        required: true
+        type: string
+      base_branch:
+        description: 'Base branch to create revert PR against'
+        required: false
+        type: string
+        default: 'main'
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  stale:
+  revert-commit:
+    name: "Revert commit and create PR"
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write
-      issues: write
-      pull-requests: write
     steps:
-      - uses: actions/stale@v9
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          # Issue settings
-          days-before-stale: 360
-          days-before-close: 20
-          stale-issue-message: >
-            This issue has been automatically marked as stale due to inactivity for 360 days.
-            It will be closed in 20 days if no further activity occurs.
-          close-issue-message: >
-            This issue was closed due to prolonged inactivity. Feel free to reopen if needed.
+          fetch-depth: 0
+          ref: ${{ inputs.base_branch }}
 
-          # PR settings
-          days-before-pr-stale: 90
-          days-before-pr-close: 10
-          stale-pr-message: >
-            This pull request has been automatically marked as stale due to 90 days of inactivity.
-            It will be closed in 10 days if no further activity occurs.
-          close-pr-message: >
-            This pull request was closed due to inactivity. Please reopen or create a new one if still relevant.
+      - name: Configure git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Labels
-          stale-issue-label: 'stale'
-          stale-pr-label: 'stale'
+      - name: Fetch all commits
+        run: |
+          git fetch --all --tags
 
-          # Misc
-          exempt-issue-labels: 'pinned,security'
-          exempt-pr-labels: 'work-in-progress'
+      - name: Verify commit exists
+        id: verify-commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COMMIT_HASH="${{ inputs.commit_hash }}"
+          if ! git cat-file -e "$COMMIT_HASH^{commit}" 2>/dev/null; then
+            echo "❌ Commit $COMMIT_HASH does not exist in this repository"
+            exit 1
+          fi
+          
+          COMMIT_MESSAGE=$(git log -1 --format="%s" "$COMMIT_HASH")
+          COMMIT_AUTHOR=$(git log -1 --format="%an" "$COMMIT_HASH")
+          COMMIT_DATE=$(git log -1 --format="%ad" --date=short "$COMMIT_HASH")
+          
+          echo "✅ Found commit: $COMMIT_HASH"
+          echo "   Message: $COMMIT_MESSAGE"
+          echo "   Author: $COMMIT_AUTHOR"
+          echo "   Date: $COMMIT_DATE"
+          echo "commit-message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
+          echo "commit-author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
+          echo "commit-date=$COMMIT_DATE" >> $GITHUB_OUTPUT
+
+      - name: Check if branch already exists
+        id: check-branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COMMIT_HASH="${{ inputs.commit_hash }}"
+          BRANCH_NAME="revert-commit/$COMMIT_HASH"
+          
+          if gh api "repos/${{ github.repository }}/git/ref/heads/$BRANCH_NAME" &>/dev/null; then
+            echo "⚠️ Branch $BRANCH_NAME already exists"
+            echo "branch-exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Branch $BRANCH_NAME does not exist, will create it"
+            echo "branch-exists=false" >> $GITHUB_OUTPUT
+          fi
+          echo "branch-name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Checkout existing branch or create new one
+        run: |
+          BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
+          if [ "${{ steps.check-branch.outputs.branch-exists }}" = "true" ]; then
+            echo "📥 Checking out existing branch: $BRANCH_NAME"
+            git fetch origin "$BRANCH_NAME"
+            git checkout "$BRANCH_NAME"
+          else
+            echo "🆕 Creating new branch: $BRANCH_NAME"
+            git checkout -b "$BRANCH_NAME"
+          fi
+
+      - name: Revert commit
+        id: revert
+        run: |
+          COMMIT_HASH="${{ inputs.commit_hash }}"
+          if ! git revert --no-edit "$COMMIT_HASH"; then
+            echo "❌ Failed to revert commit $COMMIT_HASH"
+            echo "   This may be due to merge conflicts or the commit is already reverted"
+            exit 1
+          fi
+          echo "✅ Successfully reverted commit $COMMIT_HASH"
+
+      - name: Push branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
+          git push origin "$BRANCH_NAME"
+          echo "✅ Pushed branch: $BRANCH_NAME"
+
+      - name: Check if PR already exists
+        id: check-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
+          BASE_BRANCH="${{ inputs.base_branch }}"
+          
+          EXISTING_PR=$(gh pr list \
+            --head "$BRANCH_NAME" \
+            --base "$BASE_BRANCH" \
+            --repo "${{ github.repository }}" \
+            --json number,url,state \
+            --jq '.[0]' 2>/dev/null || echo "")
+          
+          if [ -n "$EXISTING_PR" ] && [ "$EXISTING_PR" != "null" ]; then
+            PR_NUMBER=$(echo "$EXISTING_PR" | jq -r '.number')
+            PR_URL=$(echo "$EXISTING_PR" | jq -r '.url')
+            PR_STATE=$(echo "$EXISTING_PR" | jq -r '.state')
+            echo "⚠️ PR already exists: #$PR_NUMBER ($PR_STATE)"
+            echo "pr-exists=true" >> $GITHUB_OUTPUT
+            echo "pr-url=$PR_URL" >> $GITHUB_OUTPUT
+            echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "pr-state=$PR_STATE" >> $GITHUB_OUTPUT
+          else
+            echo "✅ No existing PR found, will create new one"
+            echo "pr-exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        id: create-pr
+        if: steps.check-pr.outputs.pr-exists != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COMMIT_HASH="${{ inputs.commit_hash }}"
+          COMMIT_MESSAGE="${{ steps.verify-commit.outputs.commit-message }}"
+          COMMIT_AUTHOR="${{ steps.verify-commit.outputs.commit-author }}"
+          COMMIT_DATE="${{ steps.verify-commit.outputs.commit-date }}"
+          BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
+          BASE_BRANCH="${{ inputs.base_branch }}"
+          
+          PR_TITLE="Revert \"$COMMIT_MESSAGE\""
+          PR_BODY="This PR reverts commit \`$COMMIT_HASH\`.
+
+**Original commit message:**
+\`\`\`
+$COMMIT_MESSAGE
+\`\`\`
+
+**Original commit details:**
+- **Commit:** \`$COMMIT_HASH\`
+- **Author:** $COMMIT_AUTHOR
+- **Date:** $COMMIT_DATE
+
+Created automatically by workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          PR_URL=$(gh pr create \
+            --title "$PR_TITLE" \
+            --body "$PR_BODY" \
+            --base "$BASE_BRANCH" \
+            --head "$BRANCH_NAME" \
+            --repo "${{ github.repository }}")
+          
+          echo "✅ Created PR: $PR_URL"
+          echo "pr-url=$PR_URL" >> $GITHUB_OUTPUT
+
+      - name: Output PR information
+        run: |
+          if [ "${{ steps.check-pr.outputs.pr-exists }}" = "true" ]; then
+            echo "📋 Existing PR: ${{ steps.check-pr.outputs.pr-url }}"
+            echo "   State: ${{ steps.check-pr.outputs.pr-state }}"
+          else
+            echo "📋 New PR created: ${{ steps.create-pr.outputs.pr-url }}"
+          fi
+
