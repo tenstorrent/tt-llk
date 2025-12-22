@@ -76,8 +76,6 @@ NUM_FACES = 4
     num_faces=[NUM_FACES],
     input_dimensions=[
         [128, 64],  # tile_cnt: 8
-        # [128, 128],  # tile_cnt: 16
-        # [256, 256],  # tile_cnt: 64
     ],  # Specifying different input sizes to cover different tile counts
     run_types=[ALL_RUN_TYPES],
 )
