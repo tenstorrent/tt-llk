@@ -151,22 +151,18 @@ jobs:
           BASE_BRANCH="${{ inputs.base_branch }}"
 
           PR_TITLE="Revert \"$COMMIT_MESSAGE\""
-          PR_BODY=$(cat <<EOF
-This PR reverts commit \`$COMMIT_HASH\`.
+          PR_BODY=$(printf '%s\n\n%s\n%s\n%s\n%s\n\n%s\n- %s\n- %s\n- %s\n\n%s' \
+            "This PR reverts commit \`$COMMIT_HASH\`." \
+            "**Original commit message:**" \
+            "\`\`\`" \
+            "$COMMIT_MESSAGE" \
+            "\`\`\`" \
+            "**Original commit details:**" \
+            "**Commit:** \`$COMMIT_HASH\`" \
+            "**Author:** $COMMIT_AUTHOR" \
+            "**Date:** $COMMIT_DATE" \
+            "Created automatically by workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
 
-**Original commit message:**
-\`\`\`
-$COMMIT_MESSAGE
-\`\`\`
-
-**Original commit details:**
-- **Commit:** \`$COMMIT_HASH\`
-- **Author:** $COMMIT_AUTHOR
-- **Date:** $COMMIT_DATE
-
-Created automatically by workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-EOF
-)
           PR_URL=$(gh pr create \
             --title "$PR_TITLE" \
             --body "$PR_BODY" \
