@@ -28,7 +28,6 @@ enum class PerfRunType
     MATH_ISOLATE,
     PACK_ISOLATE,
     L1_CONGESTION,
-    L1_CONGESTION_MATH_SYNC,
 };
 
 inline void _perf_unpack_set_valid(uint32_t source)
