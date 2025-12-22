@@ -142,13 +142,18 @@ void run_kernel()
             {
                 for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
                 {
-                    _perf_math_loop_clear_valid<
-                        /* src A */ true,
-                        /* src B */ true>(
-                        /* iterations*/ NUM_FACES * TILE_CNT);
-
                     for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
                     {
+                        uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
+
+                        for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                        {
+                            _perf_math_loop_clear_valid<
+                                /* src A */ true,
+                                /* src B */ true>(
+                                /* iterations*/ NUM_FACES);
+                        }
+
                         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
                         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
                     }
