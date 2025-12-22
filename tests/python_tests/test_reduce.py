@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+from helpers.counters import print_perf_counters, read_perf_counters
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import ReduceGolden, get_golden_generator
@@ -14,9 +15,6 @@ from helpers.llk_params import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
-
-TILE_HEIGHT = 32
-TILE_WIDTH = 32
 from helpers.test_config import run_test
 from helpers.tilize_untilize import untilize
 from helpers.utils import passed_test
@@ -86,22 +84,10 @@ def test_reduce(test_name, formats, dest_acc, reduce_dim, pool_type):
 
     run_test(test_config)
 
-    from helpers.counters import print_perf_counters, read_perf_counters
-
     for thread in ["UNPACK", "MATH", "PACK"]:
         results = read_perf_counters(thread=thread)
         if results:
             print_perf_counters(results, thread=thread)
-
-    reduce_dim_str = str(reduce_dim)
-    if "Row" in reduce_dim_str:
-        elements_reduced = TILE_HEIGHT
-    elif "Column" in reduce_dim_str:
-        elements_reduced = TILE_WIDTH
-    elif "Scalar" in reduce_dim_str:
-        elements_reduced = TILE_HEIGHT * TILE_WIDTH
-    else:
-        elements_reduced = TILE_HEIGHT
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)

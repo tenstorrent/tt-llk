@@ -15,9 +15,6 @@ from helpers.matmul_sweep import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
-
-TILE_HEIGHT = 32
-TILE_WIDTH = 32
 from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
@@ -152,15 +149,11 @@ def test_matmul(
 
     run_test(test_config, boot_mode)
 
-    print("\n" + "=" * 80)
     for thread in ["UNPACK", "MATH", "PACK"]:
         results = read_perf_counters(thread=thread)
         if results:
             print_perf_counters(results, thread=thread)
-            print()
-    print("=" * 80)
 
-    macs_per_tile = TILE_HEIGHT * TILE_WIDTH
     total_tile_ops = matmul_dims.rt_dim * matmul_dims.ct_dim * matmul_dims.kt_dim
 
     res_from_L1 = collect_results(

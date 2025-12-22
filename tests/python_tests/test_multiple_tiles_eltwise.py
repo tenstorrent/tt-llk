@@ -3,6 +3,7 @@
 
 import pytest
 import torch
+from helpers.counters import print_perf_counters, read_perf_counters
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
@@ -14,9 +15,6 @@ from helpers.llk_params import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
-
-TILE_HEIGHT = 32
-TILE_WIDTH = 32
 from helpers.test_config import run_test
 from helpers.utils import passed_test
 
@@ -80,21 +78,10 @@ def test_multiple_tiles(
 
     run_test(test_config)
 
-    from helpers.counters import print_perf_counters, read_perf_counters
-
     for thread in ["UNPACK", "MATH", "PACK"]:
         results = read_perf_counters(thread=thread)
         if results:
             print_perf_counters(results, thread=thread)
-
-    workload_info = {
-        "test": "eltwise",
-        "tile_ops": tile_cnt,
-        "operations": tile_cnt * TILE_HEIGHT * TILE_WIDTH,
-        "tile_count": tile_cnt,
-        "input_dimensions": input_dimensions,
-        "operation": str(mathop),
-    }
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)
