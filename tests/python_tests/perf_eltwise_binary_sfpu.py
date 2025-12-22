@@ -12,6 +12,7 @@ Therefore, it's recommended to selectively enable options based on specific test
 """
 
 import pytest
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     ApproximationMode,
@@ -21,11 +22,6 @@ from helpers.llk_params import (
 from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import ALL_RUN_TYPES, perf_benchmark, update_report
 from helpers.stimuli_generator import calculate_tile_and_face_counts
-
-from tests.python_tests.helpers.chip_architecture import (
-    ChipArchitecture,
-    get_chip_architecture,
-)
 
 FACE_R_DIM = 16
 NUM_FACES = 4
