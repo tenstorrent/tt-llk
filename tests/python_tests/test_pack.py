@@ -37,8 +37,8 @@ def is_relu_threshold_tolerance_issue(
     golden_tensor,
     result_tensor,
     relu_config,
-    threshold,
-    tolerance_factor=0.01,
+    rtol=0.05,
+    atol=0.05,
 ):
     """
     Check if test failure is due to threshold rounding/format conversion issues in ReLU.
@@ -55,13 +55,14 @@ def is_relu_threshold_tolerance_issue(
         golden_tensor: Expected output tensor
         result_tensor: Actual hardware output tensor
         relu_config: The ReLU configuration value
-        threshold: The threshold value used
-        data_format: The data format being used
-        tolerance_factor: Relative tolerance around threshold (default 1% of threshold)
+        rtol: Relative tolerance for threshold proximity checks (default 1e-3 = 0.1%)
+        atol: Absolute tolerance for threshold proximity checks (default 1e-4)
     Returns:
         bool: True if all mismatches are near-threshold rounding issues, False otherwise
     """
-    relu_type = PackerReluType(relu_config & 0x3)
+    relu_type = PackGolden.get_relu_type(relu_config)
+    threshold = PackGolden.get_relu_threshold(relu_config)
+
     # Only applicable for threshold-based ReLU modes
     # Zero relu is exact because of the sign bit, so no tolerance issues there.
     if relu_type not in [
@@ -69,16 +70,27 @@ def is_relu_threshold_tolerance_issue(
         PackerReluType.MaxThresholdRelu,
     ]:
         return False
-    mismatches = ~torch.isclose(golden_tensor, result_tensor, rtol=0.05, atol=0.05)
-    # Define tolerance band around threshold
-    threshold_tolerance = abs(threshold) * tolerance_factor if threshold != 0 else 0.01
+
+    mismatches = ~torch.isclose(golden_tensor, result_tensor, rtol=rtol, atol=atol)
+
+    if not mismatches.any():
+        return False
+
     # Check if values are within tolerance of the threshold
-    golden_near_threshold = (
-        golden_tensor[mismatches] - threshold
-    ).abs() <= threshold_tolerance
-    result_near_threshold = (
-        result_tensor[mismatches] - threshold
-    ).abs() <= threshold_tolerance
+    golden_near_threshold = torch.isclose(
+        golden_tensor[mismatches],
+        torch.full_like(golden_tensor[mismatches], threshold),
+        rtol=rtol,
+        atol=atol,
+    )
+    result_near_threshold = torch.isclose(
+        result_tensor[mismatches],
+        torch.full_like(result_tensor[mismatches], threshold),
+        rtol=rtol,
+        atol=atol,
+    )
+
+    acceptable = False
     if relu_type == PackerReluType.MinThresholdRelu:
         # One side should be 0, other should be near threshold
         golden_is_zero = golden_tensor[mismatches] == 0.0
@@ -86,16 +98,14 @@ def is_relu_threshold_tolerance_issue(
         acceptable = (golden_is_zero & result_near_threshold) | (
             result_is_zero & golden_near_threshold
         )
-        return acceptable.all().item()
-    # For MAX_THRESHOLD_RELU: Check if mismatch is near the threshold clamp point
-    elif relu_type == PackerReluType.MaxThresholdRelu:
+    else:  # For MAX_THRESHOLD_RELU: Check if mismatch is near the threshold clamp point
         both_near_threshold = golden_near_threshold & result_near_threshold
-        allowed_difference = (
-            golden_tensor[mismatches] - result_tensor[mismatches]
-        ).abs() <= threshold_tolerance
+        allowed_difference = torch.isclose(
+            golden_tensor[mismatches], result_tensor[mismatches], rtol=rtol, atol=atol
+        )
         acceptable = both_near_threshold & allowed_difference
-        return acceptable.all().item()
-    return False
+
+    return acceptable.all().item()
 
 
 @parametrize(
@@ -247,7 +257,6 @@ def test_pack(
             golden_tensor,
             res_tensor,
             relu_config,
-            tensor_average,
         )
 
         if is_tolerance_issue:

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 import math
+import struct
 from typing import Optional
 
 import torch
@@ -947,26 +948,56 @@ class PackGolden:
             PackerReluType.MinThresholdRelu,
             PackerReluType.MaxThresholdRelu,
         ]:
-            # TODO: Add more formats once available.
-            # FP16, FP8, BFP8a (Bfp8), BFP4a, BFP2a use FP16 interpretation.
-            fp16_formats = [DataFormat.Float16, DataFormat.Bfp8]
-
-            if intermediate_format in fp16_formats:
-                # Encode as FP16
-                threshold_tensor = torch.tensor(
-                    [relu_threshold], dtype=torch.float16
-                ).view(torch.uint16)
-                threshold_bits = int(threshold_tensor.item())
-            else:
-                # Encode as BF16 (upper 16 bits of FP32)
-                threshold_tensor = torch.tensor(
-                    [relu_threshold], dtype=torch.float32
-                ).view(torch.uint32)
-                threshold_bits = (int(threshold_tensor.item()) >> 16) & 0xFFFF
-
+            threshold_bits = PackGolden._encode_threshold_to_bits(
+                relu_threshold, intermediate_format
+            )
             relu_config |= threshold_bits << 16
 
         return relu_config
+
+    @staticmethod
+    def _encode_threshold_to_bits(
+        threshold: float, intermediate_format: DataFormat
+    ) -> int:
+        # FP16, FP8, BFP8a (Bfp8), BFP4a, BFP2a use FP16 interpretation
+        # TODO: Add more formats once available
+        fp16_formats = [DataFormat.Float16, DataFormat.Bfp8]
+
+        if intermediate_format in fp16_formats:
+            return (
+                torch.tensor(threshold, dtype=torch.float16).view(torch.uint16).item()
+            )
+        else:
+            # Encode as BF16 (upper 16 bits of FP32)
+            fp32_bits = struct.unpack(">I", struct.pack(">f", threshold))[0]
+            return (fp32_bits >> 16) & 0xFFFF
+
+    @staticmethod
+    def _decode_threshold_from_bits(
+        threshold_bits: int, intermediate_format: DataFormat
+    ) -> float:
+        # FP16, FP8, BFP8a (Bfp8), BFP4a, BFP2a use FP16 interpretation
+        # TODO: Add more formats once supported
+        fp16_formats = [DataFormat.Float16, DataFormat.Bfp8]
+
+        if intermediate_format in fp16_formats:
+            return (
+                torch.tensor(threshold_bits, dtype=torch.uint16)
+                .view(torch.float16)
+                .item()
+            )
+        else:
+            fp32_bits = threshold_bits << 16
+            return struct.unpack(">f", struct.pack(">I", fp32_bits))[0]
+
+    @staticmethod
+    def _extract_threshold_from_config(
+        relu_config: int, intermediate_format: DataFormat
+    ) -> float:
+        threshold_bits = (relu_config >> 16) & 0xFFFF
+        return PackGolden._decode_threshold_from_bits(
+            threshold_bits, intermediate_format
+        )
 
     @staticmethod
     def get_relu_type(relu_config):
@@ -1035,7 +1066,7 @@ class PackGolden:
             Tensor with ReLU applied
         """
 
-        relu_type = PackerReluType(relu_config & 0x3)
+        relu_type = PackGolden.get_relu_type(relu_config)
 
         match relu_type:
             case PackerReluType.NoRelu:
@@ -1045,7 +1076,7 @@ class PackGolden:
                 return torch.relu(result)
 
             case PackerReluType.MinThresholdRelu:
-                threshold = PackGolden.get_relu_threshold(
+                threshold = PackGolden._extract_threshold_from_config(
                     relu_config, intermediate_format
                 )
                 # Return 0 if x <= threshold, else x
@@ -1054,7 +1085,7 @@ class PackGolden:
                 )
 
             case PackerReluType.MaxThresholdRelu:
-                threshold = PackGolden.get_relu_threshold(
+                threshold = PackGolden._extract_threshold_from_config(
                     relu_config, intermediate_format
                 )
                 # Clamp between 0 and threshold
