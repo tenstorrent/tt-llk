@@ -122,7 +122,6 @@ inline void _llk_unpack_untilize_uninit_(const std::uint32_t unpack_dst_format, 
                                                                                                               : 1;
     const std::uint32_t unpA_ch1_y_stride = FACE_C_DIM * FACE_R_DIM * unpA_ch1_x_stride;
 
-    WAYPOINT("UPUW");
     // Check that unpacker is done (all contexts freed up) before starting hw configuration
     wait_for_idle();
 
@@ -133,7 +132,7 @@ inline void _llk_unpack_untilize_uninit_(const std::uint32_t unpack_dst_format, 
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK);
 
     // Reset the values to default in unpack AB common.
-    TT_SETADCXX(p_setadc::UNP_A, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
+    TTI_SETADCXX(p_setadc::UNP_A, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
     TTI_WRCFG(p_gpr_unpack::FACE_DIM_16x16, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
     TTI_NOP; // Wait for WRCFG to complete (takes 2 cycles)
@@ -141,7 +140,6 @@ inline void _llk_unpack_untilize_uninit_(const std::uint32_t unpack_dst_format, 
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32, UNP0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT, UNP0_ADDR_CTRL_XY_REG_1_Ystride_MASK>(unpA_ch1_y_stride);
     TTI_NOP;
     TTI_NOP; // Do we need this for WH?
-    WAYPOINT("UPUD");
 }
 
 template <bool first_pass = true>
