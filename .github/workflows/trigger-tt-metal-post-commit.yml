@@ -400,6 +400,7 @@ jobs:
           RUN_WH="${{ needs.detect-changes.outputs.run-wormhole }}"
           RUN_BH="${{ needs.detect-changes.outputs.run-blackhole }}"
           [[ "$RUN_WH" == "true" || "$RUN_BH" == "true" ]] && RUN_L2="true" || RUN_L2="false"
+          [[ "$RUN_WH" == "true" || "$RUN_BH" == "true" ]] && RUN_PERF="true" || RUN_PERF="false"
           L2_RESULT=$(format_test_result "C++ post-commit" \
             "$RUN_L2" \
             "${{ steps.parse-results.outputs.l2-status }}" \
@@ -421,7 +422,7 @@ jobs:
 
           # Format Device Perf Models results (runs for both Wormhole and Blackhole changes)
           PERF_RESULT=$(format_test_result "Device perf regressions" \
-            "$RUN_L2" \
+            "$RUN_PERF" \
             "${{ steps.parse-results.outputs.perf-status }}" \
             "${{ steps.parse-results.outputs.perf-url }}" \
             "${{ needs.trigger-tt-metal-tests.result }}")
