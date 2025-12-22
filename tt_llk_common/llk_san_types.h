@@ -60,12 +60,12 @@ private:
 public:
     // CONSTRUCTION
     // Default to UNKNOWN state because hardware is not initialized
-    state_t() : underlying {}, state_type(state_type_t::unknown)
+    state_t() noexcept(std::is_nothrow_default_constructible_v<T>) : underlying {}, state_type(state_type_t::unknown)
     {
     }
 
-    state_t(const state_t&) = default;
-    state_t(state_t&&)      = default;
+    state_t(const state_t&) noexcept(std::is_nothrow_copy_constructible_v<T>) = default;
+    state_t(state_t&&) noexcept(std::is_nothrow_move_constructible_v<T>)      = default;
 
     // CONVERSION
     // - llk_san::IGNORE     -> state_t with state_type == ignore
@@ -73,12 +73,12 @@ public:
     // - other               -> state_t with state_type == known (storing the value)
 
     // Constructor for IGNORE
-    constexpr state_t(const ignore_t&) : underlying {}, state_type(state_type_t::ignore)
+    constexpr state_t(const ignore_t&) noexcept : underlying {}, state_type(state_type_t::ignore)
     {
     }
 
     // Constructor for UNKNOWN
-    constexpr state_t(const unknown_t&) : underlying {}, state_type(state_type_t::unknown)
+    constexpr state_t(const unknown_t&) noexcept : underlying {}, state_type(state_type_t::unknown)
     {
     }
 
@@ -87,7 +87,7 @@ public:
         typename U,
         typename =
             std::enable_if_t<!is_state_t_v<std::decay_t<U>> && !std::is_same_v<std::decay_t<U>, ignore_t> && !std::is_same_v<std::decay_t<U>, unknown_t>>>
-    constexpr state_t(U&& value) : underlying(std::forward<U>(value)), state_type(state_type_t::known)
+    constexpr state_t(U&& value) noexcept(std::is_nothrow_constructible_v<T, U&&>) : underlying(std::forward<U>(value)), state_type(state_type_t::known)
     {
     }
 
@@ -96,7 +96,7 @@ public:
     // otherwise take the state_type and underlying of RHS
 
     template <typename U>
-    state_t& operator=(const state_t<U>& rhs)
+    state_t& operator=(const state_t<U>& rhs) noexcept(std::is_nothrow_copy_assignable_v<T>)
     {
         if (rhs.state_type == state_type_t::ignore)
         {
@@ -110,7 +110,7 @@ public:
     }
 
     template <typename U>
-    state_t& operator=(state_t<U>&& rhs)
+    state_t& operator=(state_t<U>&& rhs) noexcept(std::is_nothrow_move_assignable_v<T>)
     {
         if (rhs.state_type == state_type_t::ignore)
         {
@@ -123,12 +123,12 @@ public:
         return *this;
     }
 
-    state_t& operator=(const state_t& rhs)
+    state_t& operator=(const state_t& rhs) noexcept(std::is_nothrow_copy_assignable_v<T>)
     {
         return this->template operator= <T>(rhs);
     }
 
-    state_t& operator=(state_t&& rhs)
+    state_t& operator=(state_t&& rhs) noexcept(std::is_nothrow_move_assignable_v<T>)
     {
         return this->template operator= <T>(std::move(rhs));
     }
@@ -138,23 +138,23 @@ public:
     // - unknown_t
     // - ignore_t
     template <typename U, typename = std::enable_if_t<!is_state_t_v<std::decay_t<U>>>>
-    state_t& operator=(U&& rhs)
+    state_t& operator=(U&& rhs) noexcept(std::is_nothrow_constructible_v<T, U&&>)
     {
         *this = state_t<T>(std::forward<U>(rhs));
         return *this;
     }
 
-    bool is_known() const
+    bool is_known() const noexcept
     {
         return state_type == state_type_t::known;
     }
 
-    bool is_unknown() const
+    bool is_unknown() const noexcept
     {
         return state_type == state_type_t::unknown;
     }
 
-    bool is_ignore() const
+    bool is_ignore() const noexcept
     {
         return state_type == state_type_t::ignore;
     }
