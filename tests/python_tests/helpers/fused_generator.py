@@ -162,6 +162,8 @@ class FusedKernelGenerator:
             f"#endif\n"
             f"}}\n"
             f"\n"
+            f"#define UNUSED __attribute__((unused))\n"
+            f"\n"
             f"{kernels['unpack']}"
             f"{kernels['math']}"
             f"{kernels['pack']}"
