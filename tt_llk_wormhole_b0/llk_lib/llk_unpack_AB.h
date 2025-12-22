@@ -98,7 +98,7 @@ inline void _llk_unpack_AB_init_(
 inline void _llk_unpack_AB_uninit_()
 {
     // Restore x_end to default (single face)
-    TT_SETADCXX(p_setadc::UNP_AB, FACE_SIZE - 1, 0x0);
+    TTI_SETADCXX(p_setadc::UNP_AB, FACE_SIZE - 1, 0x0);
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
@@ -242,7 +242,7 @@ inline void _llk_unpack_bcastA_B_uninit_()
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(DEFAULT_Y_STRIDE);
 
     // Restore x_end to default (single face) for both UNP_A and UNP_B
-    TT_SETADCXX(p_setadc::UNP_AB, FACE_SIZE - 1, 0x0);
+    TTI_SETADCXX(p_setadc::UNP_AB, FACE_SIZE - 1, 0x0);
 }
 
 inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint32_t address_b, uint32_t srca_reuse_count = 4)

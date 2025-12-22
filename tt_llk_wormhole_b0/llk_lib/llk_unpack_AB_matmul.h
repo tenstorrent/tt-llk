@@ -208,7 +208,7 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
 inline void _llk_unpack_AB_matmul_uninit_()
 {
     // Restore x_end to default (single face) for both UNP_A and UNP_B
-    TT_SETADCXX(p_setadc::UNP_AB, FACE_SIZE - 1, 0x0);
+    TTI_SETADCXX(p_setadc::UNP_AB, FACE_SIZE - 1, 0x0);
 }
 
 template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>

@@ -191,11 +191,12 @@ inline void _llk_unpack_untilize_uninit_()
     else
     {
         // Restore x_end to default (single face)
-        TT_SETADCXX(p_setadc::UNP_A, FACE_SIZE - 1, 0x0);
+        TTI_SETADCXX(p_setadc::UNP_A, FACE_SIZE - 1, 0x0);
 
         // Restore Y_stride to default (FP16/BF16: FACE_R_DIM * 2 = 32)
         constexpr std::uint32_t DEFAULT_Y_STRIDE = FACE_R_DIM * 2;
-        cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32, UNP0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT, UNP0_ADDR_CTRL_XY_REG_1_Ystride_MASK>(DEFAULT_Y_STRIDE);
+        cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32, UNP0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT, UNP0_ADDR_CTRL_XY_REG_1_Ystride_MASK>(
+            DEFAULT_Y_STRIDE);
 
         // Restore tile_x_dim to default (16x16 face)
         TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::FACE_DIM_16x16);
