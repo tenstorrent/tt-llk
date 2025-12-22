@@ -22,6 +22,11 @@ from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import ALL_RUN_TYPES, perf_benchmark, update_report
 from helpers.stimuli_generator import calculate_tile_and_face_counts
 
+from tests.python_tests.helpers.chip_architecture import (
+    ChipArchitecture,
+    get_chip_architecture,
+)
+
 FACE_R_DIM = 16
 NUM_FACES = 4
 
@@ -216,6 +221,14 @@ def test_perf_eltwise_binary_sfpu_add_top_row(
     input_dimensions,
     run_types,
 ):
+    chip_arch = get_chip_architecture()
+
+    # Skip DestAccumulation.No on Blackhole for SfpuAddTopRow
+    if chip_arch == ChipArchitecture.BLACKHOLE and dest_acc == DestAccumulation.No:
+        pytest.skip(
+            "DestAccumulation.No is not supported for SfpuAddTopRow on Blackhole"
+        )
+
     unpack_to_dest = (
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
     )
