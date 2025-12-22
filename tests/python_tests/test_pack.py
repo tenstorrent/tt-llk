@@ -38,7 +38,6 @@ def is_relu_threshold_tolerance_issue(
     result_tensor,
     relu_config,
     threshold,
-    data_format,
     tolerance_factor=0.01,
 ):
     """
@@ -249,12 +248,12 @@ def test_pack(
             res_tensor,
             relu_config,
             tensor_average,
-            formats.output_format,
         )
 
         if is_tolerance_issue:
             print(
-                f"This is a packer RELU threshold precision difference between hardware and software and it's not an issue. "
+                "Detected a packer ReLU threshold precision difference between hardware and software "
+                "the discrepancy is within tolerance and is considered acceptable."
             )
             test_passed = True
 

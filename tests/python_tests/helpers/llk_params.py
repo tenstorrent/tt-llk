@@ -199,6 +199,8 @@ class PackerReluType(Enum):
                 return "MIN_THRESHOLD_RELU"
             case PackerReluType.MaxThresholdRelu:
                 return "MAX_THRESHOLD_RELU"
+            case _:
+                raise ValueError(f"Unsupported PackerReluType: {self!r}")
 
 
 class Haloize(Enum):

@@ -935,7 +935,7 @@ class PackGolden:
         Generate a 32-bit ReLU configuration value.
         Args:
             relu_type: The ReLU type (NO_RELU, ZERO_RELU, MIN_THRESHOLD_RELU, MAX_THRESHOLD_RELU)
-            threshold: The threshold value (default 0.0, ignored for NO_RELU and ZERO_RELU)
+            relu_threshold: The threshold value (default 0.0, ignored for NO_RELU and ZERO_RELU)
             intermediate_format: The intermediate data format (determines FP16 vs BF16 encoding)
         Returns:
             int: 32-bit ReLU configuration value with type in lower 2 bits and threshold in upper 16 bits
@@ -1029,8 +1029,8 @@ class PackGolden:
         Apply ReLU operation based on configuration.
         Args:
             result: Input tensor
-            relu_config: 32-bit ReLU configuration (lower 16 bits = type, upper 16 bits = threshold)
-            intermediate_format: The intermediate data format (DataFormat enum)
+        relu_config: 32-bit ReLU configuration (lowest 2 bits = type, bits 16–31 = threshold, bits 2–15 reserved)
+        intermediate_format: The intermediate data format (DataFormat enum)
         Returns:
             Tensor with ReLU applied
         """
