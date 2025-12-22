@@ -13,14 +13,6 @@ from helpers.llk_params import (
     format_dict,
 )
 from helpers.param_config import input_output_formats, parametrize
-from helpers.perf_counters import (
-    CounterBank,
-    PerfCounterConfig,
-    clear_perf_counters,
-    collect_perf_counters,
-    print_perf_counters,
-    write_perf_config,
-)
 from helpers.stimuli_generator import generate_stimuli
 
 TILE_HEIGHT = 32
@@ -92,19 +84,14 @@ def test_reduce(test_name, formats, dest_acc, reduce_dim, pool_type):
         tile_count_B=tile_cnt,
     )
 
-    # Configure performance counters
-    perf_config = PerfCounterConfig()
-    perf_config.add_counter(CounterBank.FPU, "SFPU_OP_VALID")
-    perf_config.add_counter(CounterBank.INSTRN_THREAD, "INST_MATH")
-    perf_config.add_counter(CounterBank.TDMA_UNPACK, "MATH_INSTR_VALID")
-    perf_config.add_counter(CounterBank.L1, "NOC_RING0_OUTGOING_0")
-    perf_config.add_counter(CounterBank.TDMA_PACK, "PACK_BUSY_10")
-    perf_config.set_mode("grants")
-
-    clear_perf_counters()
-    write_perf_config(perf_config)
-
     run_test(test_config)
+
+    from helpers.counters import print_perf_counters, read_perf_counters
+
+    for thread in ["UNPACK", "MATH", "PACK"]:
+        results = read_perf_counters(thread=thread)
+        if results:
+            print_perf_counters(results, thread=thread)
 
     reduce_dim_str = str(reduce_dim)
     if "Row" in reduce_dim_str:
@@ -115,17 +102,6 @@ def test_reduce(test_name, formats, dest_acc, reduce_dim, pool_type):
         elements_reduced = TILE_HEIGHT * TILE_WIDTH
     else:
         elements_reduced = TILE_HEIGHT
-
-    workload_info = {
-        "test": "reduce",
-        "tile_ops": tile_cnt,
-        "reduce_dimension": reduce_dim_str,
-        "elements_per_tile": elements_reduced,
-        "operations": tile_cnt * elements_reduced,
-    }
-
-    results = collect_perf_counters(perf_config)
-    print_perf_counters(results, workload_info)
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)

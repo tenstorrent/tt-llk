@@ -13,14 +13,6 @@ from helpers.llk_params import (
     format_dict,
 )
 from helpers.param_config import input_output_formats, parametrize
-from helpers.perf_counters import (
-    CounterBank,
-    PerfCounterConfig,
-    clear_perf_counters,
-    collect_perf_counters,
-    print_perf_counters,
-    write_perf_config,
-)
 from helpers.stimuli_generator import generate_stimuli
 
 TILE_HEIGHT = 32
@@ -86,19 +78,14 @@ def test_multiple_tiles(
         tile_count_B=tile_cnt,
     )
 
-    # Configure performance counters
-    perf_config = PerfCounterConfig()
-    perf_config.add_counter(CounterBank.FPU, "FPU_OP_VALID")
-    perf_config.add_counter(CounterBank.INSTRN_THREAD, "INST_UNPACK")
-    perf_config.add_counter(CounterBank.TDMA_UNPACK, "UNPACK_BUSY_0")
-    perf_config.add_counter(CounterBank.L1, "NOC_RING0_INCOMING_0")
-    perf_config.add_counter(CounterBank.TDMA_PACK, "PACK_BUSY_10")
-    perf_config.set_mode("grants")
-
-    clear_perf_counters()
-    write_perf_config(perf_config)
-
     run_test(test_config)
+
+    from helpers.counters import print_perf_counters, read_perf_counters
+
+    for thread in ["UNPACK", "MATH", "PACK"]:
+        results = read_perf_counters(thread=thread)
+        if results:
+            print_perf_counters(results, thread=thread)
 
     workload_info = {
         "test": "eltwise",
@@ -108,9 +95,6 @@ def test_multiple_tiles(
         "input_dimensions": input_dimensions,
         "operation": str(mathop),
     }
-
-    results = collect_perf_counters(perf_config)
-    print_perf_counters(results, workload_info)
 
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     assert len(res_from_L1) == len(golden_tensor)

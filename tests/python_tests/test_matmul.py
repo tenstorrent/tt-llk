@@ -4,6 +4,7 @@
 from typing import List
 
 import torch
+from helpers.counters import print_perf_counters, read_perf_counters
 from helpers.device import BootMode, collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
@@ -13,14 +14,6 @@ from helpers.matmul_sweep import (
     generate_tile_dims,
 )
 from helpers.param_config import input_output_formats, parametrize
-from helpers.perf_counters import (
-    CounterBank,
-    PerfCounterConfig,
-    clear_perf_counters,
-    collect_perf_counters,
-    print_perf_counters,
-    write_perf_config,
-)
 from helpers.stimuli_generator import generate_stimuli
 
 TILE_HEIGHT = 32
@@ -157,33 +150,18 @@ def test_matmul(
         tile_cnt_B,
     )
 
-    # Configure performance counters
-    perf_config = PerfCounterConfig()
-    perf_config.add_counter(CounterBank.FPU, "FPU_OP_VALID")
-    perf_config.add_counter(CounterBank.INSTRN_THREAD, "INST_MATH")
-    perf_config.add_counter(CounterBank.TDMA_UNPACK, "UNPACK_BUSY_0")
-    perf_config.add_counter(CounterBank.L1, "NOC_RING0_OUTGOING_0")
-    perf_config.add_counter(CounterBank.TDMA_PACK, "PACK_BUSY_10")
-    perf_config.set_mode("grants")
-
-    clear_perf_counters()
-    write_perf_config(perf_config)
-
     run_test(test_config, boot_mode)
+
+    print("\n" + "=" * 80)
+    for thread in ["UNPACK", "MATH", "PACK"]:
+        results = read_perf_counters(thread=thread)
+        if results:
+            print_perf_counters(results, thread=thread)
+            print()
+    print("=" * 80)
 
     macs_per_tile = TILE_HEIGHT * TILE_WIDTH
     total_tile_ops = matmul_dims.rt_dim * matmul_dims.ct_dim * matmul_dims.kt_dim
-    workload_info = {
-        "test": "matmul",
-        "tile_ops": total_tile_ops,
-        "macs": total_tile_ops * macs_per_tile,
-        "rt_dim": matmul_dims.rt_dim,
-        "ct_dim": matmul_dims.ct_dim,
-        "kt_dim": matmul_dims.kt_dim,
-    }
-
-    results = collect_perf_counters(perf_config)
-    print_perf_counters(results, workload_info)
 
     res_from_L1 = collect_results(
         formats, tile_count=matmul_dims.output_tile_cnt, address=res_address
