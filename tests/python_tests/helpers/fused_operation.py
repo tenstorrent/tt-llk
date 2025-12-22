@@ -183,7 +183,7 @@ class FusedOperation:
 
     def unpack(self) -> str:
         unpacker_instance = self.unpacker()
-        return unpacker_instance.unpack(self)
+        return unpacker_instance.exec(self)
 
     def do_math(self) -> str:
         return self.math.exec(self)
