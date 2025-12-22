@@ -23,7 +23,7 @@ from helpers.format_config import DataFormat
 from helpers.golden_generators import PackGolden, get_golden_generator
 from helpers.llk_params import (
     DestAccumulation,
-    DstSync,
+    DestSync,
     PackerReluType,
     format_dict,
 )
@@ -117,15 +117,15 @@ def is_relu_threshold_tolerance_issue(
         PackerReluType.MinThresholdRelu,
         PackerReluType.MaxThresholdRelu,
     ],
-    dst_sync=[DstSync.SyncHalf, DstSync.SyncFull],
-    dest_index=lambda dest_acc, dst_sync, input_dimensions: get_valid_dest_indices(
-        dest_sync=dst_sync,
+    dest_sync=[DestSync.Half, DestSync.Full],
+    dest_index=lambda dest_acc, dest_sync, input_dimensions: get_valid_dest_indices(
+        dest_sync=dest_sync,
         dest_acc=dest_acc,
         tile_count=(input_dimensions[0] * input_dimensions[1]) // (32 * 32),
     ),
 )
 def test_pack(
-    test_name, formats, dest_acc, input_dimensions, relu_type, dst_sync, dest_index
+    test_name, formats, dest_acc, input_dimensions, relu_type, dest_sync, dest_index
 ):
 
     if (formats.input_format == DataFormat.Int32) ^ (
@@ -208,7 +208,7 @@ def test_pack(
         "unpack_to_dest": unpack_to_dest,
         "dest_acc": dest_acc,
         "relu_config": relu_config,
-        "dst_sync": dst_sync,
+        "dest_sync": dest_sync,
         "dest_index": dest_index,
     }
 
