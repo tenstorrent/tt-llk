@@ -12,8 +12,7 @@ Therefore, it's recommended to selectively enable options based on specific test
 """
 
 import pytest
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.format_config import DataFormat, InputOutputFormat
+from helpers.format_config import DataFormat
 from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
@@ -68,28 +67,16 @@ NUM_FACES = 4
         MathOperation.ReluMin,
     ],
     dest_acc=[
+        DestAccumulation.Yes,
         DestAccumulation.No,
-        # DestAccumulation.Yes TODO: fix this case
     ],
     loop_factor=[
-        # 1,
-        # 2,
-        # 4,
-        # 8,
         16,
-        # 32,
-        # 64,
-        # 128,
-    ],  # Number of iterations to run the test in order to minimize measurement noise
+    ],  # Number of iterations to run the test in order to minimize profiler overhead in measurement
     face_r_dim=[FACE_R_DIM],
     num_faces=[NUM_FACES],
     input_dimensions=[
-        # [32, 32],  # tile_cnt: 1
-        # [64, 32],  # tile_cnt: 2
-        # [64, 64],  # tile_cnt: 4
         [128, 64],  # tile_cnt: 8
-        # [128, 128],  # tile_cnt: 16
-        # [256, 256],  # tile_cnt: 64
     ],  # Specifying different input sizes to cover different tile counts
     run_types=[ALL_RUN_TYPES],
 )
@@ -106,40 +93,11 @@ def test_perf_eltwise_unary_sfpu(
     input_dimensions,
     run_types,
 ):
-    arch = get_chip_architecture()
-
-    if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
-        if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(
-            DataFormat.Float32, DataFormat.Float16
-        ):
-            pytest.skip(reason="This combination is not supported on BH architecture")
-
-    if (
-        approx_mode == ApproximationMode.Yes
-        and mathop in [MathOperation.Exp, MathOperation.Exp2, MathOperation.Elu]
-        and (
-            formats.input_format == DataFormat.Bfp8_b
-            or formats.output_format == DataFormat.Bfp8_b
-        )
-    ):
-        pytest.skip(
-            reason="Exp-related operations are not supported for bf8_b format in approximation mode."
-        )
-
-    if (
-        formats.input_format in (DataFormat.Float16_b, DataFormat.Bfp8_b)
-        and formats.output_format == DataFormat.Float16
-    ):
-        pytest.skip(
-            reason="Float16_b or Bfp8_b as input with Float16 output are not supported in this test."
-        )
-
-    # If dest_acc is off, we unpack Float32 into 16-bit format in src registers
+    # If dest_acc is on, we unpack Float32 into 16-bit format in src registers
     # (later copied over in dest reg for SFPU op)
     #
-    # TODO: Fix and enable unpack to dest
     unpack_to_dest = (
-        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
     )
 
     tile_cnt, faces_to_generate = calculate_tile_and_face_counts(
