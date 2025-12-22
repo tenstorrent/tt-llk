@@ -108,6 +108,32 @@ class MatmulUnpacker(Unpacker):
             "llk_unpack_common.h",
         ]
 
+    def hw_configure(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        face_r_dim = operation_config.face_r_dim
+
+        unpack_tile_size_a = operation_config.tile_size_unpack_a
+        unpack_tile_size_b = operation_config.tile_size_unpack_b
+        dest_acc = operation_config.dest_acc.value
+
+        if stage == 0:
+            code = (
+                f"    _llk_unpack_AB_matmul_hw_configure_<{dest_acc}, StochRndType::None>(\n"
+                f"        unpack_a_src_format{stage}, unpack_b_src_format{stage}, unpack_a_dst_format{stage}, unpack_b_dst_format{stage},\n"
+                f"        {face_r_dim}, {face_r_dim}, 0, 4, 4, {unpack_tile_size_a}, {unpack_tile_size_b}\n"
+                f"    );\n"
+            )
+        else:
+            code = (
+                f"    _llk_unpack_reconfig_data_format_srca_impl_<{dest_acc}, false>(\n"
+                f"        unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {unpack_tile_size_a}\n"
+                f"    );\n"
+                f"    _llk_unpack_reconfig_data_format_srcb_impl_<{dest_acc}, false>(\n"
+                f"        unpack_b_src_format{stage}, unpack_b_dst_format{stage}, {unpack_tile_size_b}\n"
+                f"    );\n"
+            )
+        return code
+
     def unpack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         face_r_dim = operation_config.face_r_dim
@@ -140,6 +166,32 @@ class UnpackerAB(Unpacker):
             "llk_unpack_tilize.h",
         ]
 
+    def hw_configure(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+
+        unpack_tile_size_a = operation_config.tile_size_unpack_a
+        unpack_tile_size_b = operation_config.tile_size_unpack_b
+        dest_acc = operation_config.dest_acc.value
+        face_r_dim = operation_config.face_r_dim
+        num_faces = operation_config.num_faces
+
+        if stage == 0:
+            code = (
+                f"    _llk_unpack_AB_hw_configure_<{dest_acc}, StochRndType::None>(\n"
+                f"        unpack_a_src_format{stage}, unpack_b_src_format{stage}, unpack_a_dst_format{stage}, unpack_b_dst_format{stage}, {face_r_dim}, 0, {num_faces}\n"
+                f"    );\n"
+            )
+        else:
+            code = (
+                f"    _llk_unpack_reconfig_data_format_srca_impl_<{dest_acc}, false>(\n"
+                f"        unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {unpack_tile_size_a}\n"
+                f"    );\n"
+                f"    _llk_unpack_reconfig_data_format_srcb_impl_<{dest_acc}, false>(\n"
+                f"        unpack_b_src_format{stage}, unpack_b_dst_format{stage}, {unpack_tile_size_b}\n"
+                f"    );\n"
+            )
+        return code
+
     def unpack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         face_r_dim = operation_config.face_r_dim
@@ -166,6 +218,27 @@ class UnpackerA(Unpacker):
             "llk_unpack_common.h",
             "llk_unpack_tilize.h",
         ]
+
+    def hw_configure(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        face_r_dim = operation_config.face_r_dim
+        unpack_tile_size_a = operation_config.tile_size_unpack_a
+        dest_acc = operation_config.dest_acc.value
+        num_faces = operation_config.num_faces
+
+        if stage == 0:
+            code = (
+                f"    _llk_unpack_A_hw_configure_<{dest_acc}, StochRndType::None>(\n"
+                f"        unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {face_r_dim}, 0, {num_faces}\n"
+                f"    );\n"
+            )
+        else:
+            code = (
+                f"    _llk_unpack_reconfig_data_format_srca_impl_<{dest_acc}, false>(\n"
+                f"        unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {unpack_tile_size_a}\n"
+                f"    );\n"
+            )
+        return code
 
     def unpack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
@@ -237,7 +310,6 @@ class UnpackerTilizeA(Unpacker):
         num_faces = operation_config.num_faces
         block_rt_dim = operation_config.block_rt_dim
         block_ct_dim = operation_config.block_ct_dim
-        tile_cnt = operation_config.output.tile_count
 
         code = f"    _llk_unpack_tilize_init_(unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, false);\n"
 
@@ -277,7 +349,7 @@ class UnpackerTilizeA(Unpacker):
                 f"        {{\n"
                 f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage});\n"
                 f"        }}\n"
-                f"    }}\n\n"
+                f"    }}\n"
             )
 
         # Wormhole
@@ -289,7 +361,7 @@ class UnpackerTilizeA(Unpacker):
                 f"        {{\n"
                 f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
                 f"        }}\n"
-                f"    }}\n\n"
+                f"    }}\n"
             )
 
         else:
