@@ -95,7 +95,7 @@ constexpr std::uint32_t TILE_C_DIM = TILE_WIDTH;
 
 constexpr std::uint32_t TILE_NUM_FACES = ((TILE_R_DIM * TILE_C_DIM) / (FACE_R_DIM * FACE_C_DIM));
 
-constexpr std::uint32_t FACE_SIZE = FACE_R_DIM * FACE_C_DIM;  // 256 elements per face
+constexpr std::uint32_t FACE_SIZE = FACE_R_DIM * FACE_C_DIM; // 256 elements per face
 
 constexpr uint32_t DEST_NUM_TILES_FP16      = (DEST_REGISTER_FULL_SIZE * DEST_FACE_WIDTH) / (TILE_HEIGHT * TILE_HEIGHT);
 constexpr uint32_t DEST_NUM_TILES_FP16_HALF = DEST_NUM_TILES_FP16 / 2;
