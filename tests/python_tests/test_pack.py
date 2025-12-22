@@ -12,6 +12,7 @@ Tests the LLK pack kernel with:
 
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.constraints import (
     get_valid_dest_accumulation_modes,
     get_valid_dest_indices,
@@ -72,15 +73,13 @@ def is_relu_threshold_tolerance_issue(
     mismatches = ~torch.isclose(golden_tensor, result_tensor, rtol=0.05, atol=0.05)
     # Define tolerance band around threshold
     threshold_tolerance = abs(threshold) * tolerance_factor if threshold != 0 else 0.01
-    threshold_upper_boundary = threshold + threshold_tolerance
-    # Get the original input values that correspond to mismatches
-    # Check both golden and result to see if they're in the tolerance band
+    # Check if values are within tolerance of the threshold
     golden_near_threshold = (
-        golden_tensor[mismatches].abs() <= threshold_upper_boundary
-    ) | ((golden_tensor[mismatches] - threshold).abs() <= threshold_tolerance)
+        golden_tensor[mismatches] - threshold
+    ).abs() <= threshold_tolerance
     result_near_threshold = (
-        result_tensor[mismatches].abs() <= threshold_upper_boundary
-    ) | ((result_tensor[mismatches] - threshold).abs() <= threshold_tolerance)
+        result_tensor[mismatches] - threshold
+    ).abs() <= threshold_tolerance
     if relu_type == PackerReluType.MinThresholdRelu:
         # One side should be 0, other should be near threshold
         golden_is_zero = golden_tensor[mismatches] == 0.0
@@ -159,8 +158,19 @@ def test_pack(
     # To come as close as possible to actual hardware behavior, we infer data formats here
     # and use the inferred pack_src format for ReLU operations.
     data_formats = infer_data_formats(
-        formats.input_format, formats.output_format, dest_acc, unpack_to_dest
+        input_format=formats.input_format,
+        output_format=formats.output_format,
+        is_fp32_dest_acc_en=dest_acc,
+        unpacking_to_dest=unpack_to_dest,
     )
+
+    # This is a bug in infer_pack_in function for blackhole. Force Float32 intermediate for DestAccumulation.Yes
+    # TODO: fix infer_pack_in for blackhole.
+    if (
+        dest_acc == DestAccumulation.Yes
+        and get_chip_architecture() == ChipArchitecture.BLACKHOLE
+    ):
+        data_formats.pack_src = DataFormat.Float32
 
     if data_formats.pack_src.is_integer() and relu_type in [
         PackerReluType.MinThresholdRelu,

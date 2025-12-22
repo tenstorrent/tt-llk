@@ -899,7 +899,6 @@ class PackGolden:
         num_faces: int = 4,
         input_dimensions: list[int] = [32, 32],
         face_r_dim: int = 16,
-        enable_relu: bool = False,
     ):
         if num_faces not in [1, 2, 4]:
             raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
@@ -923,9 +922,6 @@ class PackGolden:
         result = operand1.view(tile_cnt, tile_size)[
             :, :elements_per_tile_needed
         ].reshape(-1)
-
-        if enable_relu:
-            result = torch.relu(result)
 
         return result
 
