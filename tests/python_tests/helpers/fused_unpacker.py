@@ -10,6 +10,8 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
 
 from .chip_architecture import ChipArchitecture
+from .golden_generators import TransposeGolden, get_golden_generator
+from .llk_params import Transpose
 from .tilize_untilize import tilize_block
 
 
@@ -108,6 +110,34 @@ class MatmulUnpacker(Unpacker):
             "llk_unpack_common.h",
         ]
 
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "FusedOperation",
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        t_matrix = get_golden_generator(TransposeGolden)
+
+        if operation_config.unpack_transpose_faces == Transpose.Yes:
+            tensor_b = t_matrix.transpose_faces_multi_tile(
+                tensor_b,
+                operation_config.src_b.data_format,
+                operation_config.src_b.tile_count,
+                tilize=True,
+                input_dimensions=operation_config.src_b.dimensions,
+            )
+
+        if operation_config.unpack_transpose_within_face == Transpose.Yes:
+            tensor_b = t_matrix.transpose_within_faces_multi_tile(
+                tensor_b,
+                operation_config.src_b.data_format,
+                operation_config.src_b.tile_count,
+                untilize=True,
+                input_dimensions=operation_config.src_b.dimensions,
+            )
+
+        return tensor_a, tensor_b
+
     def unpack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         face_r_dim = operation_config.face_r_dim
@@ -116,9 +146,10 @@ class MatmulUnpacker(Unpacker):
         kt_dim = operation_config.kt_dim
         unpack_tile_size_a = operation_config.tile_size_unpack_a
         unpack_tile_size_b = operation_config.tile_size_unpack_b
+        transpose = operation_config.unpack_transpose_faces.value
 
         code = (
-            f"    _llk_unpack_AB_matmul_init_<>(0, {ct_dim}, {rt_dim}, {kt_dim}, {face_r_dim}, {face_r_dim});\n"
+            f"    _llk_unpack_AB_matmul_init_<>({transpose}, {ct_dim}, {rt_dim}, {kt_dim}, {face_r_dim}, {face_r_dim});\n"
             f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
             f"    {{\n"
             f"        _llk_unpack_AB_matmul_<>(\n"
@@ -140,15 +171,44 @@ class UnpackerAB(Unpacker):
             "llk_unpack_tilize.h",
         ]
 
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "FusedOperation",
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        t_matrix = get_golden_generator(TransposeGolden)
+
+        if operation_config.unpack_transpose_faces == Transpose.Yes:
+            tensor_a = t_matrix.transpose_faces_multi_tile(
+                tensor_a,
+                operation_config.src_a.data_format,
+                operation_config.src_a.tile_count,
+                tilize=True,
+                input_dimensions=operation_config.src_a.dimensions,
+            )
+
+        if operation_config.unpack_transpose_within_face == Transpose.Yes:
+            tensor_a = t_matrix.transpose_within_faces_multi_tile(
+                tensor_a,
+                operation_config.src_a.data_format,
+                operation_config.src_a.tile_count,
+                untilize=True,
+                input_dimensions=operation_config.src_a.dimensions,
+            )
+
+        return tensor_a.flatten(), tensor_b.flatten()
+
     def unpack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         face_r_dim = operation_config.face_r_dim
         num_faces = operation_config.num_faces
         tile_cnt = operation_config.output.tile_count
         broadcast_type = "BroadcastType::NONE"
+        transpose = operation_config.unpack_transpose_faces.value
 
         code = (
-            f"    _llk_unpack_AB_init_<{broadcast_type}>({face_r_dim}, {num_faces}, false, 0);\n"
+            f"    _llk_unpack_AB_init_<{broadcast_type}>({face_r_dim}, {num_faces}, false, {transpose});\n"
             f"    for (int i = 0; i < {tile_cnt}; i++)\n"
             f"    {{\n"
             f"        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A{stage}[i]), L1_ADDRESS(buffer_B{stage}[i]));\n"
@@ -167,22 +227,52 @@ class UnpackerA(Unpacker):
             "llk_unpack_tilize.h",
         ]
 
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "FusedOperation",
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        t_matrix = get_golden_generator(TransposeGolden)
+
+        if operation_config.unpack_transpose_faces == Transpose.Yes:
+            tensor_a = t_matrix.transpose_faces_multi_tile(
+                tensor_a,
+                operation_config.src_a.data_format,
+                operation_config.src_a.tile_count,
+                tilize=True,
+                input_dimensions=operation_config.src_a.dimensions,
+            )
+
+        if operation_config.unpack_transpose_within_face == Transpose.Yes:
+            tensor_a = t_matrix.transpose_within_faces_multi_tile(
+                tensor_a,
+                operation_config.src_a.data_format,
+                operation_config.src_a.tile_count,
+                untilize=True,
+                input_dimensions=operation_config.src_a.dimensions,
+            )
+
+        return tensor_a.flatten(), tensor_b.flatten()
+
     def unpack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         tile_cnt = operation_config.output.tile_count
         unpack_to_dest = "true" if operation_config.unpack_to_dest else "false"
         broadcast_type = "BroadcastType::NONE"
-        eltwise_reuse_type = "NONE"
+        eltwise_reuse_type = "EltwiseBinaryReuseDestType::NONE"
         face_r_dim = operation_config.face_r_dim
         num_faces = operation_config.num_faces
+        transpose_faces = operation_config.unpack_transpose_faces.value
+        transpose_within_face = operation_config.unpack_transpose_within_face.value
 
         code = (
-            f"    _llk_unpack_A_init_<{broadcast_type}, false, EltwiseBinaryReuseDestType::{eltwise_reuse_type}, {unpack_to_dest}>(\n"
-            f"        0, 0, {face_r_dim}, {num_faces}, unpack_a_src_format{stage}, unpack_a_dst_format{stage}\n"
+            f"    _llk_unpack_A_init_<{broadcast_type}, false, {eltwise_reuse_type}, {unpack_to_dest}>(\n"
+            f"        {transpose_faces}, {transpose_within_face}, {face_r_dim}, {num_faces}, unpack_a_src_format{stage}, unpack_a_dst_format{stage}\n"
             f"    );\n"
             f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
             f"    {{\n"
-            f"        _llk_unpack_A_<{broadcast_type}, false, EltwiseBinaryReuseDestType::NONE, {unpack_to_dest}>(\n"
+            f"        _llk_unpack_A_<{broadcast_type}, false, {eltwise_reuse_type}, {unpack_to_dest}>(\n"
             f"            L1_ADDRESS(buffer_A{stage}[i]), unpack_a_src_format{stage}, unpack_a_dst_format{stage}\n"
             f"        );\n"
             f"    }}\n\n"
