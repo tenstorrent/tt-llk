@@ -287,8 +287,18 @@ class UnpackerTilizeA(Unpacker):
     def uninit(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         face_r_dim = operation_config.face_r_dim
+        num_faces = operation_config.num_faces
 
-        code = f"    _llk_unpack_tilize_uninit_(unpack_a_dst_format{stage}, {face_r_dim});\n\n"
+        # Blackhole
+        if operation_config.architecture == ChipArchitecture.BLACKHOLE:
+            code = f"    _llk_unpack_tilize_uninit_(unpack_a_dst_format{stage}, {num_faces}, {face_r_dim});\n"
+
+        # Wormhole
+        elif operation_config.architecture == ChipArchitecture.WORMHOLE:
+            code = f"    _llk_unpack_tilize_uninit_(unpack_a_dst_format{stage}, {face_r_dim});\n\n"
+
+        else:
+            raise ValueError("Architecture is not supported")
 
         return code
 
