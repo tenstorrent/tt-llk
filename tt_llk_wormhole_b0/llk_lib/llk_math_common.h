@@ -65,11 +65,6 @@ inline void _llk_math_pack_sync_init_()
     }
 }
 
-inline void _llk_math_pack_sync_uninit_()
-{
-    // No state to restore - all states are reset by every init
-}
-
 template <bool mail2math = true, bool mail2pack = true>
 inline void _llk_math_get_tile_(std::uint32_t tile_index, std::uint32_t* p_tile)
 {
