@@ -18,12 +18,14 @@ When the testing environment is correctly initialized, it will auto-detect the u
 - **If using the `tt-llk` Docker image**, run:
 
     ```bash
+    cd tests
     ./setup_testing_env.sh
     ```
 
 - **If you are an external developer or not using the Docker image**, run:
 
     ```bash
+    cd tests
     source ./setup_external_testing_env.sh
     ```
 
