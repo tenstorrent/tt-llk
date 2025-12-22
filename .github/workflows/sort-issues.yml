@@ -47,11 +47,11 @@ jobs:
             echo "❌ Commit $COMMIT_HASH does not exist in this repository"
             exit 1
           fi
-          
+
           COMMIT_MESSAGE=$(git log -1 --format="%s" "$COMMIT_HASH")
           COMMIT_AUTHOR=$(git log -1 --format="%an" "$COMMIT_HASH")
           COMMIT_DATE=$(git log -1 --format="%ad" --date=short "$COMMIT_HASH")
-          
+
           echo "✅ Found commit: $COMMIT_HASH"
           echo "   Message: $COMMIT_MESSAGE"
           echo "   Author: $COMMIT_AUTHOR"
@@ -67,7 +67,7 @@ jobs:
         run: |
           COMMIT_HASH="${{ inputs.commit_hash }}"
           BRANCH_NAME="revert-commit/$COMMIT_HASH"
-          
+
           if gh api "repos/${{ github.repository }}/git/ref/heads/$BRANCH_NAME" &>/dev/null; then
             echo "⚠️ Branch $BRANCH_NAME already exists"
             echo "branch-exists=true" >> $GITHUB_OUTPUT
@@ -115,14 +115,14 @@ jobs:
         run: |
           BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
           BASE_BRANCH="${{ inputs.base_branch }}"
-          
+
           EXISTING_PR=$(gh pr list \
             --head "$BRANCH_NAME" \
             --base "$BASE_BRANCH" \
             --repo "${{ github.repository }}" \
             --json number,url,state \
             --jq '.[0]' 2>/dev/null || echo "")
-          
+
           if [ -n "$EXISTING_PR" ] && [ "$EXISTING_PR" != "null" ]; then
             PR_NUMBER=$(echo "$EXISTING_PR" | jq -r '.number')
             PR_URL=$(echo "$EXISTING_PR" | jq -r '.url')
@@ -149,9 +149,10 @@ jobs:
           COMMIT_DATE="${{ steps.verify-commit.outputs.commit-date }}"
           BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
           BASE_BRANCH="${{ inputs.base_branch }}"
-          
+
           PR_TITLE="Revert \"$COMMIT_MESSAGE\""
-          PR_BODY="This PR reverts commit \`$COMMIT_HASH\`.
+          PR_BODY=$(cat <<EOF
+This PR reverts commit \`$COMMIT_HASH\`.
 
 **Original commit message:**
 \`\`\`
@@ -163,15 +164,16 @@ $COMMIT_MESSAGE
 - **Author:** $COMMIT_AUTHOR
 - **Date:** $COMMIT_DATE
 
-Created automatically by workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
+Created automatically by workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+EOF
+)
           PR_URL=$(gh pr create \
             --title "$PR_TITLE" \
             --body "$PR_BODY" \
             --base "$BASE_BRANCH" \
             --head "$BRANCH_NAME" \
             --repo "${{ github.repository }}")
-          
+
           echo "✅ Created PR: $PR_URL"
           echo "pr-url=$PR_URL" >> $GITHUB_OUTPUT
 
@@ -183,4 +185,3 @@ Created automatically by workflow run: ${{ github.server_url }}/${{ github.repos
           else
             echo "📋 New PR created: ${{ steps.create-pr.outputs.pr-url }}"
           fi
-
