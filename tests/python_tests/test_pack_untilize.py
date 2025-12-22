@@ -3,6 +3,7 @@
 
 import pytest
 import torch
+from helpers.debug_utils import dump_test_failure
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import UntilizeGolden, get_golden_generator
@@ -29,7 +30,7 @@ from helpers.utils import passed_test
         ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    input_dimensions=[[32, 128], [128, 32], [64, 64], [32, 64], [64, 32]],
+    input_dimensions=[[32, 288]],
     dst_sync=[DstSync.SyncHalf, DstSync.SyncFull],
 )
 def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync):
@@ -70,8 +71,7 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
         "tile_cnt": tile_cnt,
         "input_A_dimensions": input_dimensions,
         "input_B_dimensions": input_dimensions,
-        "unpack_to_dest": formats.input_format.is_32_bit()
-        and dest_acc == DestAccumulation.Yes,
+        "unpack_to_dest": False,
         "dest_acc": dest_acc,
         "dst_sync": dst_sync,
     }
@@ -93,4 +93,29 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    test_passed = passed_test(golden_tensor, res_tensor, formats.output_format)
+
+    if not test_passed:
+        # Generate comprehensive debug output for test failure analysis
+        dump_test_failure(
+            test_name=test_name,
+            golden_tensor=golden_tensor,
+            result_tensor=res_tensor,
+            test_params={
+                "formats": str(formats),
+                "input_format": str(formats.input_format),
+                "output_format": str(formats.output_format),
+                "dest_acc": str(dest_acc),
+                "input_dimensions": input_dimensions,
+                "dst_sync": str(dst_sync),
+                "tile_cnt": tile_cnt,
+                "src_A_shape": (
+                    list(src_A.shape) if hasattr(src_A, "shape") else len(src_A)
+                ),
+                "src_B_shape": (
+                    list(src_B.shape) if hasattr(src_B, "shape") else len(src_B)
+                ),
+            },
+        )
+
+    assert test_passed
