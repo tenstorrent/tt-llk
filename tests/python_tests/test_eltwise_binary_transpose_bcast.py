@@ -19,8 +19,9 @@ from helpers.llk_params import (
     format_dict,
 )
 from helpers.param_config import input_output_formats, parametrize
+from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
-from helpers.tilize_untilize import tilize, tilize_block, untilize
+from helpers.tilize_untilize import tilize, tilize_block
 from helpers.utils import passed_test
 
 
@@ -31,7 +32,7 @@ from helpers.utils import passed_test
             DataFormat.Float16_b,
         ]
     ),
-    broadcast_type=[BroadcastType.Column],
+    broadcast_type=[BroadcastType.Column, BroadcastType.Row],
     dest_acc=[DestAccumulation.No],
     math_fidelity=[MathFidelity.LoFi],
     transpose_srca=[Transpose.Yes],
@@ -46,30 +47,36 @@ def test_eltwise_binary_transpose_bcast(
 ):
     # 1 tile: 32x32
     tile_dimensions = [32, 32]
-    tile_cnt = 1
+    # tile_cnt = 1
 
-    src_A = torch.ones(tile_dimensions[0], tile_dimensions[1]) * 10
-    src_A[0, :] = 5  # Row 0 is all 5s
-    src_A = src_A.flatten()
+    src_A, src_B, tile_cnt = generate_stimuli(
+        formats.input_format,
+        formats.input_format,
+        input_dimensions=tile_dimensions,
+    )
+
+    # src_A = torch.ones(tile_dimensions[0], tile_dimensions[1]) * 10
+    # src_A[0, :] = 5  # Row 0 is all 5s
+    # src_A = src_A.flatten()
 
     # Tilize the input data for hardware
     src_A_tilized = tilize_block(src_A, tile_dimensions, formats.input_format)
 
     # Initialize srcB: column 0 is all 3s, rest is 1s
     # After column broadcast (per-face): entire tile becomes all 3s
-    src_B = torch.ones(tile_dimensions[0], tile_dimensions[1]) * 1
-    src_B[:, 0] = 3  # First column is all 3s
-    src_B = src_B.flatten()
+    # src_B = torch.ones(tile_dimensions[0], tile_dimensions[1]) * 1
+    # src_B[:, 0] = 3  # First column is all 3s
+    # src_B = src_B.flatten()
 
     src_B_tilized = tilize_block(src_B, tile_dimensions, formats.input_format)
 
-    print("srcA (before transpose):")
-    print(src_A.view(tile_dimensions[0], tile_dimensions[1]))
-    print("--------------------------------")
+    # print("srcA (before transpose):")
+    # print(src_A.view(tile_dimensions[0], tile_dimensions[1]))
+    # print("--------------------------------")
 
-    print("srcB (before column broadcast):")
-    print(src_B.view(tile_dimensions[0], tile_dimensions[1]))
-    print("--------------------------------")
+    # print("srcB (before column broadcast):")
+    # print(src_B.view(tile_dimensions[0], tile_dimensions[1]))
+    # print("--------------------------------")
 
     # Compute golden using proper transpose generator that understands tilized data
     transpose_golden = get_golden_generator(TransposeGolden)
@@ -90,9 +97,9 @@ def test_eltwise_binary_transpose_bcast(
         input_dimensions=tile_dimensions,
     )
 
-    print("srcA after transpose (golden):")
-    print(src_A_transposed.view(tile_dimensions[0], tile_dimensions[1]))
-    print("--------------------------------")
+    # print("srcA after transpose (golden):")
+    # print(src_A_transposed.view(tile_dimensions[0], tile_dimensions[1]))
+    # print("--------------------------------")
 
     # For column broadcast on tilized data, we need to use BroadcastGolden
     # which understands that column broadcast operates on tilized format:
@@ -111,13 +118,13 @@ def test_eltwise_binary_transpose_bcast(
         face_r_dim=16,
     )
     # Untilize for display only
-    src_B_broadcasted_display = untilize(
-        src_B_broadcasted_tilized, stimuli_format=formats.output_format
-    )
+    # src_B_broadcasted_display = untilize(
+    #     src_B_broadcasted_tilized, stimuli_format=formats.output_format
+    # )
 
-    print("srcB after column broadcast (golden - displayed in row-major):")
-    print(src_B_broadcasted_display.view(tile_dimensions[0], tile_dimensions[1]))
-    print("--------------------------------")
+    # print("srcB after column broadcast (golden - displayed in row-major):")
+    # print(src_B_broadcasted_display.view(tile_dimensions[0], tile_dimensions[1]))
+    # print("--------------------------------")
 
     # Now retilize the transposed srcA for golden computation
     # (transposes were done on tilized data then untilized, we need to tilize again)
@@ -136,10 +143,10 @@ def test_eltwise_binary_transpose_bcast(
     )
 
     # Untilize for display only
-    golden_display = untilize(golden_tensor, stimuli_format=formats.output_format)
-    print("Golden tensor (transposed_srcA - broadcast_srcB, displayed in row-major):")
-    print(golden_display.view(tile_dimensions[0], tile_dimensions[1]))
-    print("--------------------------------")
+    # golden_display = untilize(golden_tensor, stimuli_format=formats.output_format)
+    # print("Golden tensor (transposed_srcA - broadcast_srcB, displayed in row-major):")
+    # print(golden_display.view(tile_dimensions[0], tile_dimensions[1]))
+    # print("--------------------------------")
 
     # Build test configuration
     test_config = {
@@ -178,10 +185,10 @@ def test_eltwise_binary_transpose_bcast(
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     # Untilize for display only
-    res_display = untilize(res_tensor, stimuli_format=formats.output_format)
-    print("Result tensor from hardware (displayed in row-major):")
-    print(res_display.view(tile_dimensions[0], tile_dimensions[1]))
-    print("--------------------------------")
+    # res_display = untilize(res_tensor, stimuli_format=formats.output_format)
+    # print("Result tensor from hardware (displayed in row-major):")
+    # print(res_display.view(tile_dimensions[0], tile_dimensions[1]))
+    # print("--------------------------------")
 
     # Compare in tilized format
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
