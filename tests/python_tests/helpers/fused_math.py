@@ -217,7 +217,7 @@ class DatacopyFpu(Fpu):
         else:
             raise ValueError("Unsupported architecture for DatacopyFpu")
 
-        code += f"    }}\n"
+        code += "    }}\n"
 
         return code
 
