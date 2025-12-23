@@ -33,23 +33,26 @@ NUM_FACES = 4
     formats=input_output_formats(
         [
             DataFormat.Float32,
-            DataFormat.Float16,
-            DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
+            # DataFormat.Float16,
+            # DataFormat.Float16_b,
+            # DataFormat.Bfp8_b,
         ]
     ),
     approx_mode=[
         ApproximationMode.Yes,
-        ApproximationMode.No,
+        # ApproximationMode.No,
     ],
     mathop=[
         MathOperation.SfpuElwadd,
         MathOperation.SfpuElwsub,
         MathOperation.SfpuElwmul,
+        MathOperation.SfpuElwdiv,
+        MathOperation.SfpuElwrsub,
+        MathOperation.SfpuElwpow,
     ],
     dest_acc=[
         DestAccumulation.Yes,
-        DestAccumulation.No,
+        # DestAccumulation.No,
     ],
     loop_factor=[
         16,

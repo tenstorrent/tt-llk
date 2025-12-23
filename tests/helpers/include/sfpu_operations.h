@@ -7,7 +7,7 @@
 #include "ckernel_sfpu.h"
 #include "ckernel_sfpu_add_top_row.h"
 #include "ckernel_sfpu_binary.h"
-// #include "ckernel_sfpu_binary_pow.h"
+#include "ckernel_sfpu_binary_pow.h"
 #include "llk_sfpu_types.h"
 
 namespace test_utils
@@ -191,10 +191,10 @@ void call_binary_sfpu_operation(const uint dst_index_in0 = 0, const uint dst_ind
                 _calculate_add_top_row_<add_top_row_format>(dst_index_in0, dst_index_in1, dst_index_out);
             }
             break;
-        // case BinaryOp::POW:
-        //     _sfpu_binary_pow_init_<APPROXIMATION_MODE>();
-        //     _calculate_sfpu_binary_pow_<APPROXIMATION_MODE, ITERATIONS, is_fp32_dest_acc_en>(dst_index_in0, dst_index_in1, dst_index_out);
-        //     break;
+        case BinaryOp::POW:
+            _sfpu_binary_pow_init_<APPROXIMATION_MODE>();
+            _calculate_sfpu_binary_pow_<APPROXIMATION_MODE, ITERATIONS, is_fp32_dest_acc_en>(dst_index_in0, dst_index_in1, dst_index_out);
+            break;
         default:
             return;
     }
