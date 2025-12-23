@@ -15,11 +15,11 @@ inline sfpi::vFloat _sigmoid_piecewise_linear_positive_(sfpi::vFloat val)
     sfpi::vFloat result = 1.0f;
     v_if (val <= 1.0f)
     {
-        result = 0.229f * val + 0.5f; // linear appx as y = 0.229x + 0.5
+        result = 0.2415f * val + 0.5f; // linear appx as y = 0.2415f + 0.5
     }
-    v_elseif (val < 5.0f)
+    v_elseif (val < 7.7f)
     {
-        result = POLYVAL5<sfpi::vFloat>(0.00144462f, -0.01055479f, -0.01203685f, 0.24300185f, 0.50437757f, val);
+        result = POLYVAL5<sfpi::vFloat>(-3.82558889e-04f, 9.22008486e-03f, -8.34694910e-02f, 3.39967832e-01f, 4.66254244e-01f, val);
     }
     v_endif;
     return result;

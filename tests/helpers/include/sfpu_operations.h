@@ -7,6 +7,7 @@
 #include "ckernel_sfpu.h"
 #include "ckernel_sfpu_add_top_row.h"
 #include "ckernel_sfpu_binary.h"
+#include "ckernel_sfpu_binary_pow.h"
 #include "llk_sfpu_types.h"
 
 namespace test_utils
@@ -75,7 +76,14 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             break;
         case SfpuType::gelu:
             _init_gelu_<APPROX_MODE>();
-            _calculate_gelu_<APPROX_MODE, ITERATIONS>();
+            if constexpr (APPROXIMATION_MODE)
+            {
+                _calculate_gelu_<APPROXIMATION_MODE, ITERATIONS>();
+            }
+            else
+            {
+                _calculate_gelu_chebyshev_<ITERATIONS>();
+            }
             break;
         case SfpuType::hardsigmoid:
             _init_hardsigmoid_<APPROX_MODE>();
@@ -120,6 +128,15 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
         case SfpuType::threshold:
             _calculate_threshold_<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);
             break;
+        case SfpuType::topk_local_sort:
+            _bitonic_topk_phases_steps<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);
+            break;
+        case SfpuType::topk_merge:
+            _bitonic_topk_merge<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);
+            break;
+        case SfpuType::topk_rebuild:
+            _bitonic_topk_rebuild<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);
+            break;
         case SfpuType::relu_max:
             ckernel::sfpu::_relu_max_<sfpi::vFloat, APPROX_MODE, ITERATIONS>(5.0f);
             break;
@@ -131,7 +148,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
     }
 }
 
-template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, uint32_t MATH_FORMAT = 0>
+template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, bool is_fp32_dest_acc_en = false, uint32_t MATH_FORMAT = 0>
 void call_binary_sfpu_operation(const uint dst_index_in0 = 0, const uint dst_index_in1 = 1, const uint dst_index_out = 0)
 {
     switch (BINOP)
@@ -139,6 +156,8 @@ void call_binary_sfpu_operation(const uint dst_index_in0 = 0, const uint dst_ind
         case BinaryOp::ADD:
         case BinaryOp::SUB:
         case BinaryOp::MUL:
+        case BinaryOp::DIV:
+        case BinaryOp::RSUB:
         case BinaryOp::XLOGY:
             _sfpu_binary_init_<APPROXIMATION_MODE, BINOP>();
             _calculate_sfpu_binary_<APPROXIMATION_MODE, BINOP, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_out);
@@ -160,7 +179,11 @@ void call_binary_sfpu_operation(const uint dst_index_in0 = 0, const uint dst_ind
                 _calculate_add_top_row_<add_top_row_format>(dst_index_in0, dst_index_in1, dst_index_out);
             }
             break;
-        default:
+        case BinaryOp::POW:
+            _sfpu_binary_pow_init_<APPROXIMATION_MODE>();
+            _calculate_sfpu_binary_pow_<APPROXIMATION_MODE, ITERATIONS, is_fp32_dest_acc_en>(dst_index_in0, dst_index_in1, dst_index_out);
+            break;
+        case BinaryOp::Rec default:
             return;
     }
 }
