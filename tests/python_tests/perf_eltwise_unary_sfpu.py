@@ -55,7 +55,7 @@ NUM_FACES = 4
         # MathOperation.Square,
         # MathOperation.Celu,
         # MathOperation.Silu,
-        MathOperation.Gelu,
+        # MathOperation.Gelu,
         # MathOperation.Neg,
         # MathOperation.Fill,
         # MathOperation.Elu,
@@ -65,6 +65,9 @@ NUM_FACES = 4
         # MathOperation.Threshold,
         # MathOperation.ReluMax,
         # MathOperation.ReluMin,
+        MathOperation.TopKLocalSort,
+        MathOperation.TopKMerge,
+        MathOperation.TopKRebuild,
     ],
     dest_acc=[
         DestAccumulation.Yes,

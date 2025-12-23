@@ -83,6 +83,9 @@ class MathOperation(Enum):
         "relu_max", MathOpType.SFPU_UNARY
     )  # ReLU_max(x, U) = max(0, min(x, U))
     ReluMin = OpSpec("relu_min", MathOpType.SFPU_UNARY)  # ReLU_min(x, L) = max(x, L)
+    TopKLocalSort = OpSpec("topk_local_sort", MathOpType.SFPU_UNARY)
+    TopKMerge = OpSpec("topk_merge", MathOpType.SFPU_UNARY)
+    TopKRebuild = OpSpec("topk_rebuild", MathOpType.SFPU_UNARY)
     # =============================================================================
     # SFPU BINARY OPERATIONS
     # =============================================================================

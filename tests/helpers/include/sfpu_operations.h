@@ -25,7 +25,7 @@ using namespace ckernel::sfpu;
  * @param operation The SFPU operation type to execute
  * @param math_format Optional math format for operations that need format-specific behavior
  */
-template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
+template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool STABLE_SORT = false>
 void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
 {
     switch (operation)
@@ -133,20 +133,32 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
         case SfpuType::threshold:
             _calculate_threshold_<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);
             break;
-        // case SfpuType::topk_local_sort:
-        //     _bitonic_topk_phases_steps<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);
-        //     break;
-        // case SfpuType::topk_merge:
-        //     _bitonic_topk_merge<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);
-        //     break;
-        // case SfpuType::topk_rebuild:
-        //     _bitonic_topk_rebuild<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);
-        //  break;
+        case SfpuType::topk_local_sort:
+            _bitonic_topk_phases_steps<APPROX_MODE, is_fp32_dest_acc_en, STABLE_SORT>(
+                /* idir */ 0,
+                /* i_end_phase */ 5,
+                /* i_start_phase */ 0,
+                /* i_end_step */ 10,
+                /* i_start_step */ 0);
+            break;
+        case SfpuType::topk_merge:
+            _bitonic_topk_merge<APPROX_MODE, is_fp32_dest_acc_en, STABLE_SORT>(
+                /* m_iter */ 5,
+                /* k */ 10);
+            break;
+        case SfpuType::topk_rebuild:
+            _bitonic_topk_rebuild<APPROX_MODE, is_fp32_dest_acc_en, STABLE_SORT>(
+                /* idir */ 0,
+                /* m_iter */ 5,
+                /* k */ 10,
+                /* logk */ 3,
+                /* skip_second */ 0);
+            break;
         case SfpuType::relu_max:
-            ckernel::sfpu::_relu_max_<sfpi::vFloat, APPROX_MODE, ITERATIONS>(5.0f);
+            _relu_max_<sfpi::vFloat, APPROX_MODE, ITERATIONS>(5.0f);
             break;
         case SfpuType::relu_min:
-            ckernel::sfpu::_relu_min_<sfpi::vFloat, APPROX_MODE, ITERATIONS>(5.0f);
+            _relu_min_<sfpi::vFloat, APPROX_MODE, ITERATIONS>(5.0f);
             break;
         default:
             return; // Unsupported op – should never happen
