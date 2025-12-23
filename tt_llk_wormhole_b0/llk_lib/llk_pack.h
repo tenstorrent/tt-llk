@@ -292,12 +292,6 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
  * tiles are expected to be split into top and bottom faces in separate halves of the active dest bank
  *************************************************************************/
 
-template <bool is_fp32_dest_acc_en>
-inline void _llk_pack_fast_tilize_hw_configure_(const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format)
-{
-    configure_pack<is_fp32_dest_acc_en, false>(pack_src_format, pack_dst_format);
-}
-
 inline void _llk_pack_fast_tilize_addrmod_config_(const std::uint32_t unit_dim)
 {
     // first two address mods move to the next row, the stride depends on the number of contiguous faces loaded in the single unpacker instruction
