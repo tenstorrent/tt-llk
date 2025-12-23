@@ -3,6 +3,7 @@
 
 import pytest
 import torch
+from helpers.data_format_inference import infer_data_formats
 from helpers.debug_utils import dump_test_failure
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
@@ -18,6 +19,15 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 
+def get_block_ct_dim(input_dimensions):
+    # In the current programming model, block_ct_dim is never bigger than 8 tiles.
+    # This function calculates the block_ct_dim based on input dimensions.
+    full_ct_dim = input_dimensions[1] // 32  # Assuming tile width is 32
+    for block_ct_dim in range(8, 0, -1):
+        if full_ct_dim % block_ct_dim == 0:
+            return block_ct_dim
+
+
 @parametrize(
     test_name="pack_untilize_test",
     formats=input_output_formats(
@@ -30,7 +40,7 @@ from helpers.utils import passed_test
         ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    input_dimensions=[[32, 288]],
+    input_dimensions=[[96, 256]],
     dst_sync=[DstSync.SyncHalf, DstSync.SyncFull],
 )
 def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync):
@@ -58,6 +68,21 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
             "Input dimensions not supported for the given dest_acc and dst_sync configuration"
         )
 
+    data_formats = infer_data_formats(
+        formats.input_format,
+        formats.output_format,
+        dest_acc,
+        False,
+    )
+
+    # Handling a hardware limitation: cannot convert 8-bit exponent datums to Float16 without storing them as intermediate Float32 in dest register.
+    # For wormhole architecture, gasket cannot perform this conversion and packer takes input Float32 (from dest register) converting to Float16_A.
+    # For blackhole architecture, gasket able to convert Float32 to Float16_A before packing (reduces work on packer).`
+    if data_formats.pack_src.is_32_bit() and dest_acc == DestAccumulation.No:
+        pytest.skip(
+            "Due to hardware limitation, cannot convert 8-bit exponent datums to Float16 without storing them as intermediate Float32 in dest register. Therefore using dest_acc=No is not supported in this case."
+        )
+
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
@@ -74,6 +99,7 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
         "unpack_to_dest": False,
         "dest_acc": dest_acc,
         "dst_sync": dst_sync,
+        # "block_ct_dim": get_block_ct_dim(input_dimensions),
     }
 
     res_address = write_stimuli_to_l1(
@@ -115,6 +141,7 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
                 "src_B_shape": (
                     list(src_B.shape) if hasattr(src_B, "shape") else len(src_B)
                 ),
+                "data_formats": str(data_formats),
             },
         )
 

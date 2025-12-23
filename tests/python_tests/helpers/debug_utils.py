@@ -91,6 +91,7 @@ def dump_test_failure(
         f.write(f"Mean relative difference: {rel_diff.mean().item():.10f}\n")
         f.write(f"relu threshold: {test_params.get('relu_threshold', 'N/A')}\n")
         f.write(f"intermediate type: {test_params.get('intermediate_type', 'N/A')}\n")
+        f.write(test_params.get("data_formats", "Data formats: N/A") + "\n")
         f.write("\n")
 
         # Write detailed value comparison
