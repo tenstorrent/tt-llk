@@ -149,12 +149,9 @@ class MatmulUnpacker(Unpacker):
         transpose_faces = operation_config.unpack_transpose_faces.value
         transpose_within_face = operation_config.unpack_transpose_within_face.value
 
-        if (
-            operation_config.architecture == ChipArchitecture.BLACKHOLE
-            and transpose_within_face != transpose_faces
-        ):
+        if transpose_within_face != transpose_faces:
             raise ValueError(
-                "MatmulUnpacker on Blackhole does not support different values for transpose_faces and transpose_within_face"
+                "MatmulUnpacker does not support different values for transpose_faces and transpose_within_face"
             )
 
         code = (
@@ -219,12 +216,9 @@ class UnpackerAB(Unpacker):
         transpose_faces = operation_config.unpack_transpose_faces.value
         transpose_within_face = operation_config.unpack_transpose_within_face.value
 
-        if (
-            operation_config.architecture == ChipArchitecture.BLACKHOLE
-            and transpose_within_face != transpose_faces
-        ):
+        if transpose_within_face != transpose_faces:
             raise ValueError(
-                "UnpackerAB on Blackhole does not support different values for transpose_faces and transpose_within_face"
+                "UnpackerAB does not support different values for transpose_faces and transpose_within_face"
             )
 
         code = (

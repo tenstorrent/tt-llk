@@ -166,13 +166,6 @@ class FusedOperation:
         else:
             self.bh_tilize = Tilize.No
 
-        if (
-            self.architecture == ChipArchitecture.WORMHOLE
-            and self.unpack_transpose_faces != selfunpack_transpose_within_face
-        ):
-            self.unpack_transpose_faces = Transpose.Yes
-            self.unpack_transpose_within_face = Transpose.Yes
-
     @property
     def src_a(self) -> Operand:
         mapping = self.operand_mapping
