@@ -17,24 +17,6 @@ constexpr uint32_t SFPU_REPLAY_BUFFER_OFFSET       = 16;
 namespace ckernel::sfpu
 {
 
-/**
- * @brief Determine the instruction mode (load/store modifier) based on whether fp32 dest accumulation is enabled
- * @tparam is_fp32_dest_acc_en Whether fp32 destination accumulation is enabled
- * @return InstrModLoadStore::FP32 if fp32 is enabled, otherwise InstrModLoadStore::FP16B
- */
-template <bool is_fp32_dest_acc_en>
-constexpr InstrModLoadStore get_exp_instruction_mode()
-{
-    if constexpr (is_fp32_dest_acc_en)
-    {
-        return InstrModLoadStore::FP32;
-    }
-    else
-    {
-        return InstrModLoadStore::FP16B;
-    }
-}
-
 sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
 {
     // If exponent is > -1 extract it and replace with -1
@@ -220,7 +202,7 @@ inline void confige_faast_exp_addr_mod()
         .set(ADDR_MOD_7);
 }
 
-template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */, InstrModLoadStore INSTRUCTION_MODE>
+template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
 inline void _init_exponential_()
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
@@ -267,16 +249,16 @@ inline void _init_exponential_()
 
         lltt::record<lltt::NoExec>(SFPU_REPLAY_BUFFER_OFFSET, FAST_APPROX_LOADMACRO_INSTR_CNT);
 
-        TTI_SFPLOADMACRO(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, 0);
+        TTI_SFPLOADMACRO(p_sfpu::LREG0, 0, ADDR_MOD_3, 0);
         TTI_SFPNOP;
         TTI_SFPNOP;
-        TTI_SFPLOADMACRO(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, 0);
+        TTI_SFPLOADMACRO(p_sfpu::LREG1, 0, ADDR_MOD_3, 0);
         TTI_SFPNOP;
         TTI_SFPNOP;
-        TTI_SFPLOADMACRO(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_3, 0);
+        TTI_SFPLOADMACRO(p_sfpu::LREG2, 0, ADDR_MOD_3, 0);
         TTI_SFPNOP;
         TTI_SFPNOP;
-        TTI_SFPLOADMACRO(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_3, 0);
+        TTI_SFPLOADMACRO(p_sfpu::LREG3, 0, ADDR_MOD_3, 0);
         TTI_SFPNOP;
         TTI_SFPNOP;
     }

@@ -35,7 +35,7 @@ inline void _init_exp2_()
 {
     const uint32_t EXP_BASE_SCALE_FACTOR = 0x3F800000;
     const bool FAST_APPROX               = false; // Exp2 does not use fast approximation.
-    _init_exponential_<APPROXIMATION_MODE, FAST_APPROX, EXP_BASE_SCALE_FACTOR, InstrModLoadStore::FP16B>();
+    _init_exponential_<APPROXIMATION_MODE, FAST_APPROX, EXP_BASE_SCALE_FACTOR>();
 }
 
 } // namespace ckernel::sfpu
