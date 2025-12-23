@@ -25,13 +25,14 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
     static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr uint unpack_srcb = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
-    // Configure srcA with transpose support
+    // init srca_op to regular unpack of srca
     uint srca_op     = unpack_srca;
     uint srca_end_op = 0;
     if (transpose_of_faces && num_faces >= 4)
     {
+        // if transpose is enabled srca_op needs to count faces in order 0,2,1,3
         srca_op     = TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        srca_end_op = TT_OP_SETADCZW(0b001, 0, 0, 0, 1, 0b0001);
+        srca_end_op = TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001);
     }
 
     if constexpr (BType == BroadcastType::COL)
@@ -67,7 +68,7 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
     }
     else if constexpr (BType == BroadcastType::ROW)
     {
-        static constexpr uint unpack_srcb_clear_z  = TT_OP_SETADCZW(0b010, 0, 0, 0, 0, 0b0001);
+        static constexpr uint unpack_srcb_clear_z  = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001);
         static constexpr uint unpack_srcb_no_z_inc = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
         const uint32_t outerloop                   = num_faces < 4 ? 1 : 2;
         const uint32_t innerloop                   = num_faces < 2 ? 1 : 2;
@@ -94,7 +95,7 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
     {
         if (transpose_of_faces)
         {
-            static constexpr uint srca_set_z = TT_OP_SETADCZW(0b001, 0, 0, 0, 1, 0b0001);
+            static constexpr uint srca_set_z = TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001);
             const uint32_t outerloop         = num_faces < 4 ? 1 : 2;
             const uint32_t innerloop         = num_faces < 2 ? 1 : 2;
             ckernel_template tmp(outerloop, innerloop, num_faces < 4 ? unpack_srca : srca_op, unpack_srcb);
