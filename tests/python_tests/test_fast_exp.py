@@ -124,7 +124,7 @@ def eltwise_unary_sfpu(
         golden_tensor,
         res_tensor,
         formats.output_format,
-        custom_atol=0.1,
-        custom_rtol=0.1,
+        custom_atol=0.05,
+        custom_rtol=0.05,
         one_face_check=False,
     )

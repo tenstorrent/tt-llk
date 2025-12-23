@@ -220,7 +220,7 @@ inline void confige_faast_exp_addr_mod()
         .set(ADDR_MOD_7);
 }
 
-template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */, InstrModLoadStore INSTRUCTION_MODE = InstrModLoadStore::FP16B>
+template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */, InstrModLoadStore INSTRUCTION_MODE>
 inline void _init_exponential_()
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
