@@ -146,10 +146,19 @@ class MatmulUnpacker(Unpacker):
         kt_dim = operation_config.kt_dim
         unpack_tile_size_a = operation_config.tile_size_unpack_a
         unpack_tile_size_b = operation_config.tile_size_unpack_b
-        transpose = operation_config.unpack_transpose_faces.value
+        transpose_faces = operation_config.unpack_transpose_faces.value
+        transpose_within_face = operation_config.unpack_transpose_within_face.value
+
+        if (
+            operation_config.architecture == ChipArchitecture.BLACKHOLE
+            and transpose_within_face != transpose_faces
+        ):
+            raise ValueError(
+                "MatmulUnpacker on Blackhole does not support different values for transpose_faces and transpose_within_face"
+            )
 
         code = (
-            f"    _llk_unpack_AB_matmul_init_<>({transpose}, {ct_dim}, {rt_dim}, {kt_dim}, {face_r_dim}, {face_r_dim});\n"
+            f"    _llk_unpack_AB_matmul_init_<>({transpose_faces}, {ct_dim}, {rt_dim}, {kt_dim}, {face_r_dim}, {face_r_dim});\n"
             f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
             f"    {{\n"
             f"        _llk_unpack_AB_matmul_<>(\n"
@@ -185,6 +194,7 @@ class UnpackerAB(Unpacker):
                 operation_config.src_a.data_format,
                 operation_config.src_a.tile_count,
                 tilize=True,
+                untilize=True,
                 input_dimensions=operation_config.src_a.dimensions,
             )
 
@@ -193,6 +203,7 @@ class UnpackerAB(Unpacker):
                 tensor_a,
                 operation_config.src_a.data_format,
                 operation_config.src_a.tile_count,
+                tilize=True,
                 untilize=True,
                 input_dimensions=operation_config.src_a.dimensions,
             )
@@ -205,10 +216,19 @@ class UnpackerAB(Unpacker):
         num_faces = operation_config.num_faces
         tile_cnt = operation_config.output.tile_count
         broadcast_type = "BroadcastType::NONE"
-        transpose = operation_config.unpack_transpose_faces.value
+        transpose_faces = operation_config.unpack_transpose_faces.value
+        transpose_within_face = operation_config.unpack_transpose_within_face.value
+
+        if (
+            operation_config.architecture == ChipArchitecture.BLACKHOLE
+            and transpose_within_face != transpose_faces
+        ):
+            raise ValueError(
+                "UnpackerAB on Blackhole does not support different values for transpose_faces and transpose_within_face"
+            )
 
         code = (
-            f"    _llk_unpack_AB_init_<{broadcast_type}>({face_r_dim}, {num_faces}, false, {transpose});\n"
+            f"    _llk_unpack_AB_init_<{broadcast_type}>({face_r_dim}, {num_faces}, false, {transpose_faces});\n"
             f"    for (int i = 0; i < {tile_cnt}; i++)\n"
             f"    {{\n"
             f"        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A{stage}[i]), L1_ADDRESS(buffer_B{stage}[i]));\n"
@@ -241,6 +261,7 @@ class UnpackerA(Unpacker):
                 operation_config.src_a.data_format,
                 operation_config.src_a.tile_count,
                 tilize=True,
+                untilize=True,
                 input_dimensions=operation_config.src_a.dimensions,
             )
 
@@ -249,6 +270,7 @@ class UnpackerA(Unpacker):
                 tensor_a,
                 operation_config.src_a.data_format,
                 operation_config.src_a.tile_count,
+                tilize=True,
                 untilize=True,
                 input_dimensions=operation_config.src_a.dimensions,
             )

@@ -43,26 +43,6 @@ def create_fuse_pipeline() -> List[FusedOperation]:
     pipeline = [
         FusedOperation(
             operand_mapping=operands.create_mapping(
-                src_a="input_B",
-                src_b="input_A",
-                output="datacopy_output0",
-                src_a_dims=input_A_dimensions,
-                src_b_dims=input_B_dimensions,
-                input_format=DataFormat.Float16_b,
-                output_format=DataFormat.Float16_b,
-            ),
-            unpacker=UnpackerA,
-            math=Math(
-                DatacopyFpu(),
-            ),
-            packer=Packer,
-            dest_acc=dest_acc,
-            math_fidelity=math_fidelity,
-            unpack_transpose_within_face=Transpose.Yes,
-            unpack_transpose_faces=Transpose.Yes,
-        ),
-        FusedOperation(
-            operand_mapping=operands.create_mapping(
                 src_a="input_A",
                 src_b="input_B",
                 output="datacopy_output",
@@ -100,6 +80,26 @@ def create_fuse_pipeline() -> List[FusedOperation]:
             math_fidelity=math_fidelity,
             unpack_transpose_within_face=Transpose.Yes,
             unpack_transpose_faces=Transpose.Yes,
+        ),
+        FusedOperation(
+            operand_mapping=operands.create_mapping(
+                src_a="input_B",
+                src_b="input_A",
+                output="datacopy_output0",
+                src_a_dims=input_A_dimensions,
+                src_b_dims=input_B_dimensions,
+                input_format=DataFormat.Float16_b,
+                output_format=DataFormat.Float16_b,
+            ),
+            unpacker=UnpackerA,
+            math=Math(
+                DatacopyFpu(),
+            ),
+            packer=Packer,
+            dest_acc=dest_acc,
+            math_fidelity=math_fidelity,
+            unpack_transpose_within_face=Transpose.Yes,
+            unpack_transpose_faces=Transpose.No,
         ),
         FusedOperation(
             operand_mapping=operands.create_mapping(
