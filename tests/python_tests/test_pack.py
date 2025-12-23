@@ -37,6 +37,7 @@ def is_relu_threshold_tolerance_issue(
     golden_tensor,
     result_tensor,
     relu_config,
+    intermediate_format,
     rtol=0.05,
     atol=0.05,
 ):
@@ -61,7 +62,7 @@ def is_relu_threshold_tolerance_issue(
         bool: True if all mismatches are near-threshold rounding issues, False otherwise
     """
     relu_type = PackGolden.get_relu_type(relu_config)
-    threshold = PackGolden.get_relu_threshold(relu_config)
+    threshold = PackGolden.get_relu_threshold(relu_config, intermediate_format)
 
     # Only applicable for threshold-based ReLU modes
     # Zero relu is exact because of the sign bit, so no tolerance issues there.
@@ -257,6 +258,7 @@ def test_pack(
             golden_tensor,
             res_tensor,
             relu_config,
+            data_formats.pack_src,
         )
 
         if is_tolerance_issue:
