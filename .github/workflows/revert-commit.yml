@@ -169,9 +169,10 @@ jobs:
           BASE_BRANCH="${{ inputs.base_branch }}"
 
           PR_TITLE="Revert \"$COMMIT_MESSAGE\""
+          COMMIT_URL="${{ github.server_url }}/${{ github.repository }}/commit/$COMMIT_HASH"
           WORKFLOW_RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           PR_BODY=$(printf '%s\n\n%s\n%s\n%s\n%s\n\n%s\n- %s\n- %s\n- %s\n\n%s' \
-            "This PR reverts commit \`$COMMIT_HASH\`." \
+            "This PR reverts commit [\`$COMMIT_HASH\`]($COMMIT_URL)." \
             "**Original commit message:**" \
             "\`\`\`" \
             "$COMMIT_MESSAGE" \
