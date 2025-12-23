@@ -85,6 +85,8 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
     }
     else if constexpr (BType == BroadcastType::SCALAR)
     {
+        LLK_ASSERT(transpose_of_faces == 0, "SrcA transpose is not supported with scalar broadcast");
+
         const uint32_t outerloop = 1;
         const uint32_t innerloop = num_faces;
         ckernel_template tmp(outerloop, innerloop, unpack_srca);
