@@ -192,6 +192,16 @@ class ApproximationMode(Enum):
     No = "false"
 
 
+class FastMode(Enum):
+    Yes = "true"
+    No = "false"
+
+
+class StableSort(Enum):
+    Yes = "true"
+    No = "false"
+
+
 class Transpose(Enum):
     Yes = "true"
     No = "false"

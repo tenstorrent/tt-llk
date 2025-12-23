@@ -124,6 +124,24 @@ def generate_build_header(test_config):
 
     header_content.append(f"constexpr int LOOP_FACTOR = {loop_factor};")
 
+    # SFPU iterations
+    iterations = test_config.get("iterations", 32)
+    header_content.append(f"constexpr int ITERATIONS = {iterations};")
+
+    # Fast mode
+    fast_mode = test_config.get("fast_mode", "false")
+    fast_mode_value = (
+        fast_mode.value if hasattr(fast_mode, "value") else str(fast_mode).lower()
+    )
+    header_content.append(f"constexpr bool FAST_MODE = {fast_mode_value};")
+
+    # Stable sort
+    stable_sort = test_config.get("stable_sort", "false")
+    stable_sort_value = (
+        stable_sort.value if hasattr(stable_sort, "value") else str(stable_sort).lower()
+    )
+    header_content.append(f"constexpr bool STABLE_SORT = {stable_sort_value};")
+
     # Dest accumulation
     dest_acc = test_config.get("dest_acc", DestAccumulation.No)
 

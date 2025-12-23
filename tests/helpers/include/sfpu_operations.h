@@ -25,7 +25,7 @@ using namespace ckernel::sfpu;
  * @param operation The SFPU operation type to execute
  * @param math_format Optional math format for operations that need format-specific behavior
  */
-template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool STABLE_SORT = false>
+template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false>
 void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
 {
     switch (operation)
@@ -60,14 +60,9 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             _calculate_exp2_<APPROX_MODE, ITERATIONS>();
             break;
         case SfpuType::exponential:
-            _init_exponential_<APPROX_MODE, false /*fast_mode*/, 0x3F800000 /* exp_base_scale_factor */>();
-            _calculate_exponential_<
-                APPROX_MODE,
-                false /* scale_en */,
-                ITERATIONS,
-                false /* fast_approx */,
-                false /* skip_positive_check */,
-                is_fp32_dest_acc_en>(p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
+            _init_exponential_<APPROX_MODE, FAST_MODE, 0x3F800000 /* exp_base_scale_factor */>();
+            _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */, is_fp32_dest_acc_en>(
+                p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
             break;
         case SfpuType::fill:
             if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
@@ -115,7 +110,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             break;
         case SfpuType::rsqrt:
             _init_rsqrt_<APPROX_MODE>();
-            _calculate_rsqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, false>(ITERATIONS);
+            _calculate_rsqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, FAST_MODE>(ITERATIONS);
             break;
         case SfpuType::silu:
             _calculate_silu_<APPROX_MODE, ITERATIONS>();
@@ -125,7 +120,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             break;
         case SfpuType::sqrt:
             _init_sqrt_<APPROX_MODE>();
-            _calculate_sqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, false>(ITERATIONS);
+            _calculate_sqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, FAST_MODE>(ITERATIONS);
             break;
         case SfpuType::square:
             _calculate_square_<APPROX_MODE, ITERATIONS>();
