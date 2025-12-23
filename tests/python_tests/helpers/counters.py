@@ -4,7 +4,7 @@
 
 from typing import Dict, List
 
-from ttexalens.tt_exalens_lib import read_words_from_device
+from ttexalens.tt_exalens_lib import read_words_from_device, write_words_to_device
 
 # L1 Memory addresses - separate per TRISC thread
 PERF_COUNTER_UNPACK_CONFIG_ADDR = 0x2F7D0  # 5 words: UNPACK metadata
@@ -101,6 +101,107 @@ COUNTER_NAMES = {
         7: "PACK_BUSY_11",
     },
 }
+
+
+def counter(bank: str, counter_name: str, mux_ctrl_bit4: int = 0) -> Dict:
+    bank_name_to_id = {v: k for k, v in COUNTER_BANK_NAMES.items()}
+    if bank not in bank_name_to_id:
+        raise ValueError(
+            f"Unknown bank: {bank}. Valid banks: {list(bank_name_to_id.keys())}"
+        )
+
+    bank_id = bank_name_to_id[bank]
+
+    # Find counter ID by name
+    if bank not in COUNTER_NAMES:
+        raise ValueError(f"No counter definitions for bank: {bank}")
+
+    counter_map = COUNTER_NAMES[bank]
+
+    # For L1 counters, search with (counter_id, mux_ctrl_bit4) tuple
+    if bank == "L1":
+        # Reverse lookup: name -> (counter_id, mux_ctrl_bit4)
+        counter_id = None
+        for (cid, mux), name in counter_map.items():
+            if name == counter_name and mux == mux_ctrl_bit4:
+                counter_id = cid
+                break
+
+        if counter_id is None:
+            available = [
+                f"{name} (mux={mux})" for (_, mux), name in counter_map.items()
+            ]
+            raise ValueError(
+                f"Unknown L1 counter: {counter_name} with mux_ctrl_bit4={mux_ctrl_bit4}. Available: {available}"
+            )
+
+        return {"bank": bank, "counter_id": counter_id, "mux_ctrl_bit4": mux_ctrl_bit4}
+    else:
+        # For non-L1 counters, reverse lookup by name
+        counter_id = None
+        for cid, name in counter_map.items():
+            if name == counter_name:
+                counter_id = cid
+                break
+
+        if counter_id is None:
+            available = list(counter_map.values())
+            raise ValueError(
+                f"Unknown counter: {counter_name} in bank {bank}. Available: {available}"
+            )
+
+        return {"bank": bank, "counter_id": counter_id}
+
+
+def configure_perf_counters(
+    counters: List[Dict],
+    location: str = "0,0",
+    thread: str = "MATH",
+    mode: str = "GRANTS",
+) -> None:
+    thread = thread.upper()
+    if thread == "UNPACK":
+        config_addr = PERF_COUNTER_UNPACK_CONFIG_ADDR
+    elif thread == "MATH":
+        config_addr = PERF_COUNTER_MATH_CONFIG_ADDR
+    elif thread == "PACK":
+        config_addr = PERF_COUNTER_PACK_CONFIG_ADDR
+    else:
+        raise ValueError(f"Unknown thread: {thread}. Must be UNPACK, MATH, or PACK")
+
+    if len(counters) > 5:
+        raise ValueError(
+            f"Cannot configure more than 5 counters per thread in a single batch. Got {len(counters)}. Use measure_perf_counters_batched() for >5 counters."
+        )
+
+    # Reverse lookup for bank names
+    bank_name_to_id = {v: k for k, v in COUNTER_BANK_NAMES.items()}
+
+    mode_bit = 0 if mode.upper() == "GRANTS" else 1
+
+    # Encode counter configurations
+    config_words = []
+    for counter in counters:
+        bank_name = counter["bank"]
+        counter_id = counter["counter_id"]
+        mux_ctrl_bit4 = counter.get("mux_ctrl_bit4", 0)
+
+        bank_id = bank_name_to_id.get(bank_name)
+        if bank_id is None:
+            raise ValueError(f"Unknown bank: {bank_name}")
+
+        # Encode: [mux_ctrl_bit4(17), mode(16), counter_id(8-15), bank(0-7)]
+        config_word = (
+            (mux_ctrl_bit4 << 17) | (mode_bit << 16) | (counter_id << 8) | bank_id
+        )
+        config_words.append(config_word)
+
+    # Pad to 5 words
+    while len(config_words) < 5:
+        config_words.append(0)
+
+    # Write to L1
+    write_words_to_device(location=location, addr=config_addr, data=config_words)
 
 
 def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict]:
@@ -205,3 +306,40 @@ def print_perf_counters(results: List[Dict], thread: str = None) -> None:
             )
 
     print("=" * 80)
+
+
+def measure_perf_counters_batched(
+    counters: List[Dict],
+    run_test_func,
+    test_config,
+    boot_mode,
+    location: str = "0,0",
+    thread: str = "MATH",
+    mode: str = "GRANTS",
+) -> List[Dict]:
+    if len(counters) <= 5:
+        # Single batch - configure and run once
+        configure_perf_counters(counters, location, thread, mode)
+        run_test_func(test_config, boot_mode)
+        return read_perf_counters(location, thread)
+
+    # Multiple batches needed
+    num_batches = (len(counters) + 4) // 5  # Ceiling division
+    all_results = []
+
+    for batch_idx in range(num_batches):
+        start_idx = batch_idx * 5
+        end_idx = min(start_idx + 5, len(counters))
+        batch_counters = counters[start_idx:end_idx]
+
+        # Configure this batch
+        configure_perf_counters(batch_counters, location, thread, mode)
+
+        # Run test
+        run_test_func(test_config, boot_mode)
+
+        # Read results
+        batch_results = read_perf_counters(location, thread)
+        all_results.extend(batch_results)
+
+    return all_results

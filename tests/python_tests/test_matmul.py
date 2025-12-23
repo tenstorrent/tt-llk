@@ -4,7 +4,11 @@
 from typing import List
 
 import torch
-from helpers.counters import print_perf_counters, read_perf_counters
+from helpers.counters import (
+    counter,
+    measure_perf_counters_batched,
+    print_perf_counters,
+)
 from helpers.device import BootMode, collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
@@ -15,7 +19,6 @@ from helpers.matmul_sweep import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
@@ -147,12 +150,56 @@ def test_matmul(
         tile_cnt_B,
     )
 
-    run_test(test_config, boot_mode)
+    # Configure performance counters from Python (more than 5 per thread to test batching)
+    unpack_counters = [
+        counter("INSTRN_THREAD", "INST_UNPACK"),
+        counter("FPU", "FPU_OP_VALID"),
+        counter("TDMA_UNPACK", "UNPACK_BUSY_0"),
+        counter("L1", "NOC_RING0_INCOMING_1", mux_ctrl_bit4=0),
+        counter("TDMA_PACK", "DSTAC_RDEN_RAW_0"),
+        counter("TDMA_UNPACK", "UNPACK_BUSY_1"),  # 6th counter - triggers batching
+        counter("L1", "NOC_RING1_INCOMING_1", mux_ctrl_bit4=1),  # 7th counter
+    ]
 
-    for thread in ["UNPACK", "MATH", "PACK"]:
-        results = read_perf_counters(thread=thread)
-        if results:
-            print_perf_counters(results, thread=thread)
+    math_counters = [
+        counter("INSTRN_THREAD", "INST_MATH"),
+        counter("FPU", "FPU_OP_VALID"),
+        counter("TDMA_UNPACK", "MATH_INSTR_VALID"),
+        counter("L1", "L1_ARB_TDMA_BUNDLE_0", mux_ctrl_bit4=0),
+        counter("TDMA_PACK", "PACK_NOT_DEST_STALL"),
+        counter("FPU", "SFPU_OP_VALID"),  # 6th counter
+        counter("TDMA_UNPACK", "MATH_INSTR_BUF_RDEN"),  # 7th counter
+        counter("L1", "NOC_RING0_OUTGOING_0", mux_ctrl_bit4=0),  # 8th counter
+    ]
+
+    pack_counters = [
+        counter("INSTRN_THREAD", "INST_PACK"),
+        counter("FPU", "SFPU_OP_VALID"),
+        counter("TDMA_UNPACK", "MATH_INSTR_BUF_RDEN"),
+        counter("L1", "NOC_RING0_OUTGOING_1", mux_ctrl_bit4=0),
+        counter("TDMA_PACK", "PACK_BUSY_10"),
+        counter("TDMA_PACK", "PACK_BUSY_11"),  # 6th counter
+    ]
+
+    # Import run_test
+    from helpers.test_config import run_test
+
+    # Measure counters with batching for each thread
+    all_results = {}
+    for thread, counters in [
+        ("UNPACK", unpack_counters),
+        ("MATH", math_counters),
+        ("PACK", pack_counters),
+    ]:
+        print(f"\n{'='*80}")
+        print(f"Measuring {len(counters)} counters for {thread} thread")
+        print(f"{'='*80}")
+        results = measure_perf_counters_batched(
+            counters, run_test, test_config, boot_mode, thread=thread
+        )
+        print(f"Got {len(results)} results for {thread}")
+        all_results[thread] = results
+        print_perf_counters(results, thread=thread)
 
     total_tile_ops = matmul_dims.rt_dim * matmul_dims.ct_dim * matmul_dims.kt_dim
 

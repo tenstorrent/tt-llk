@@ -112,6 +112,19 @@ inline constexpr uint32_t get_counter_output_high_addr(CounterBank bank)
     }
 }
 
+inline volatile uint32_t* get_config_mem()
+{
+#if defined(LLK_TRISC_UNPACK)
+    return reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_UNPACK_CONFIG_ADDR);
+#elif defined(LLK_TRISC_MATH)
+    return reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_MATH_CONFIG_ADDR);
+#elif defined(LLK_TRISC_PACK)
+    return reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_PACK_CONFIG_ADDR);
+#else
+    return reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_MATH_CONFIG_ADDR);
+#endif
+}
+
 enum class CounterMode : uint32_t
 {
     GRANTS   = 0,
@@ -299,33 +312,72 @@ public:
 
     /**
      * Start all configured counters
+     * Reads configuration from L1 memory (set by Python or C++)
      */
     void start()
     {
-        write_metadata();
+        // If counters were added via C++ add(), write them to L1
+        if (counter_count > 0)
+        {
+            write_metadata();
+        }
+
+        // Read configuration from L1 (may have been set by Python or C++)
+        volatile uint32_t* config_mem = get_config_mem();
+
+        // Count how many valid counters are configured
+        uint32_t active_count = 0;
+        for (uint32_t i = 0; i < 5; i++)
+        {
+            if (config_mem[i] != 0)
+            {
+                active_count++;
+            }
+        }
+
+        // If no counters configured, update counter_count and return
+        if (active_count == 0)
+        {
+            counter_count = 0;
+            return;
+        }
+
+        // Update counter_count to match what's in L1
+        counter_count = active_count;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
         volatile uint32_t* dbg_regs = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
 
-        for (uint32_t i = 0; i < counter_count; i++)
+        for (uint32_t i = 0; i < active_count; i++)
         {
-            const auto& config = counters[i];
+            // Read config from L1: [mux_ctrl_bit4(17), mode(16), counter_id(8-15), bank(0-7)]
+            uint32_t metadata = config_mem[i];
+
+            uint32_t bank_id       = metadata & 0xFF;
+            uint32_t counter_id    = (metadata >> 8) & 0xFF;
+            uint32_t mode_bit      = (metadata >> 16) & 0x1;
+            uint32_t mux_ctrl_bit4 = (metadata >> 17) & 0x1;
+
+            CounterBank bank = static_cast<CounterBank>(bank_id);
+
+            // Update local copy for stop() to use
+            counters[i] = {bank, counter_id, mux_ctrl_bit4};
 
             // Configure L1 MUX if needed
-            if (config.bank == CounterBank::L1)
+            if (bank == CounterBank::L1)
             {
                 uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
-                dbg_regs[mux_ctrl_addr] = (config.mux_ctrl_bit4 << 4);
+                dbg_regs[mux_ctrl_addr] = (mux_ctrl_bit4 << 4);
             }
 
-            uint32_t counter_base     = get_counter_base_addr(config.bank);
+            uint32_t counter_base     = get_counter_base_addr(bank);
             uint32_t counter_reg_addr = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
 
             // Program counter: reset, configure mode/sel, start
-            dbg_regs[counter_reg_addr]     = 0xFFFFFFFF;                                                     // Reset
-            dbg_regs[counter_reg_addr + 1] = (config.counter_id << 8) | (static_cast<uint32_t>(mode) << 16); // Mode
-            dbg_regs[counter_reg_addr + 2] = 1;                                                              // Start
+            dbg_regs[counter_reg_addr]     = 0xFFFFFFFF;                           // Reset
+            dbg_regs[counter_reg_addr + 1] = (counter_id << 8) | (mode_bit << 16); // Mode
+            dbg_regs[counter_reg_addr + 2] = 1;                                    // Start
         }
 #pragma GCC diagnostic pop
     }

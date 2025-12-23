@@ -40,13 +40,6 @@ void run_kernel()
     _llk_unpack_AB_matmul_init_<>(0, CT_DIM, RT_DIM, KT_DIM, FACE_R_DIM, FACE_R_DIM);
 
     llk_perf::PerfCounters counters;
-    counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_UNPACK);
-    counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::FPU_OP_VALID);
-    counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::UNPACK_BUSY_0);
-    counters.add(llk_perf::CounterBank::L1, llk_perf::CounterId::L1::NOC_RING0_INCOMING_1, 0);
-    counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::DSTAC_RDEN_RAW_0);
-    counters.set_mode(llk_perf::CounterMode::GRANTS);
-
     counters.start();
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
@@ -85,13 +78,6 @@ void run_kernel()
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
     llk_perf::PerfCounters counters;
-    counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_MATH);
-    counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::FPU_OP_VALID);
-    counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::MATH_INSTR_VALID);
-    counters.add(llk_perf::CounterBank::L1, llk_perf::CounterId::L1::L1_ARB_TDMA_BUNDLE_0, 0);
-    counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::PACK_NOT_DEST_STALL);
-    counters.set_mode(llk_perf::CounterMode::GRANTS);
-
     counters.start();
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
@@ -125,13 +111,6 @@ void run_kernel()
     _llk_packer_wait_for_math_done_();
 
     llk_perf::PerfCounters counters;
-    counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_PACK);
-    counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::SFPU_OP_VALID);
-    counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::MATH_INSTR_BUF_RDEN);
-    counters.add(llk_perf::CounterBank::L1, llk_perf::CounterId::L1::NOC_RING0_OUTGOING_1, 0);
-    counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::PACK_BUSY_10);
-    counters.set_mode(llk_perf::CounterMode::GRANTS);
-
     counters.start();
     for (int i = 0; i < TILE_CNT; i++)
     {
