@@ -84,6 +84,7 @@ jobs:
             echo "📥 Checking out existing branch: $BRANCH_NAME"
             git fetch origin "$BRANCH_NAME"
             git checkout "$BRANCH_NAME"
+            git reset --hard "origin/${{ inputs.base_branch }}"
           else
             echo "🆕 Creating new branch: $BRANCH_NAME"
             git checkout -b "$BRANCH_NAME"
@@ -95,7 +96,24 @@ jobs:
           COMMIT_HASH="${{ inputs.commit_hash }}"
           if ! git revert --no-edit "$COMMIT_HASH"; then
             echo "❌ Failed to revert commit $COMMIT_HASH"
-            echo "   This may be due to merge conflicts or the commit is already reverted"
+            echo "   Common causes:"
+            echo "     - The revert introduced merge conflicts that must be resolved manually."
+            echo "     - The commit (or its changes) may already have been reverted."
+            echo ""
+            echo "🔎 Suggested next steps:"
+            echo "  1) Reproduce locally:"
+            echo "       git fetch origin \"${{ inputs.base_branch }}\""
+            echo "       git checkout \"${{ inputs.base_branch }}\""
+            echo "       git revert $COMMIT_HASH"
+            echo "       # Resolve any conflicts, then:"
+            echo "       git commit"
+            echo "       git push origin \"${{ inputs.base_branch }}\""
+            echo ""
+            echo "  2) Check if the commit was already reverted:"
+            echo "       git log --oneline | grep \"$COMMIT_HASH\" || true"
+            echo "       # or search for a prior \"Revert\" commit that references this change."
+            echo ""
+            echo "   After resolving the issue, you can re-run this workflow if needed."
             exit 1
           fi
           echo "✅ Successfully reverted commit $COMMIT_HASH"
@@ -105,7 +123,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BRANCH_NAME="${{ steps.check-branch.outputs.branch-name }}"
-          git push origin "$BRANCH_NAME"
+          git push --force-with-lease origin "$BRANCH_NAME"
           echo "✅ Pushed branch: $BRANCH_NAME"
 
       - name: Check if PR already exists
