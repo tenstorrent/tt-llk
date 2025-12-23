@@ -32,7 +32,7 @@ from helpers.utils import passed_test
             DataFormat.Float16_b,
         ]
     ),
-    broadcast_type=[BroadcastType.Column, BroadcastType.Row],  # BroadcastType.Scalar],
+    broadcast_type=[BroadcastType.Column, BroadcastType.Row, BroadcastType.Scalar],
     dest_acc=[DestAccumulation.No],
     math_fidelity=[MathFidelity.LoFi],
     transpose_srca=[Transpose.Yes],
