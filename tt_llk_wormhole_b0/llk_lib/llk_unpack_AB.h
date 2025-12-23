@@ -88,10 +88,6 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
         const uint32_t innerloop = num_faces;
         ckernel_template tmp(outerloop, innerloop, srca_op);
         tmp.set_start_op(unpack_srcb);
-        if (transpose_of_faces && num_faces >= 4)
-        {
-            tmp.set_end_op(srca_end_op);
-        }
         tmp.program();
     }
     else
