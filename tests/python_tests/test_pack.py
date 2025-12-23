@@ -56,8 +56,8 @@ def is_relu_threshold_tolerance_issue(
         golden_tensor: Expected output tensor
         result_tensor: Actual hardware output tensor
         relu_config: The ReLU configuration value
-        rtol: Relative tolerance for threshold proximity checks (default 1e-3 = 0.1%)
-        atol: Absolute tolerance for threshold proximity checks (default 1e-4)
+        rtol: Relative tolerance for threshold proximity checks (default 0.05)
+        atol: Absolute tolerance for threshold proximity checks (default 0.05)
     Returns:
         bool: True if all mismatches are near-threshold rounding issues, False otherwise
     """
@@ -179,6 +179,7 @@ def test_pack(
     if (
         dest_acc == DestAccumulation.Yes
         and get_chip_architecture() == ChipArchitecture.BLACKHOLE
+        and not formats.input_format.is_integer()
     ):
         data_formats.pack_src = DataFormat.Float32
 
