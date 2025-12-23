@@ -63,7 +63,8 @@ void calculate_exponential(const uint exp_base_scale_factor = p_sfpu::kCONST_1_F
 template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale = 0x3F800000>
 void exp_init()
 {
-    _init_exponential_<APPROXIMATION_MODE, FAST_APPROX, scale>();
+    constexpr InstrModLoadStore INSTRUCTION_MODE = get_exp_instruction_mode<is_fp32_dest_acc_en>();
+    _init_exponential_<APPROXIMATION_MODE, FAST_APPROX, scale, INSTRUCTION_MODE>();
 }
 
 } // namespace sfpu

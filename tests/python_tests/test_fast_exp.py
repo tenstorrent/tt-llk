@@ -27,17 +27,21 @@ from helpers.utils import passed_test
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
+            DataFormat.Float32,
         ]
     ),
     input_dimensions=[[32, 32], [32, 64], [64, 32], [64, 64], [128, 32], [32, 128]],
     approx_mode=[ApproximationMode.Yes],
     mathop=[MathOperation.Exp],
-    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_float(
     test_name, approx_mode, formats, mathop, dest_acc, input_dimensions
 ):
     arch = get_chip_architecture()
+
+    if formats.input_format == DataFormat.Float32 and dest_acc == DestAccumulation.No:
+        pytest.skip(reason="Float32 requires DestAccumulation.Yes")
 
     if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
         if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(
