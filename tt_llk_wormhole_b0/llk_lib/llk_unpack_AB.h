@@ -85,15 +85,10 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
     }
     else if constexpr (BType == BroadcastType::SCALAR)
     {
-        // When transpose is enabled with 4 faces, use 2x2 loop structure to properly handle face reordering
-        const uint32_t outerloop = (transpose_of_faces && num_faces >= 4) ? 2 : 1;
-        const uint32_t innerloop = (transpose_of_faces && num_faces >= 4) ? 2 : num_faces;
-        ckernel_template tmp(outerloop, innerloop, srca_op);
+        const uint32_t outerloop = 1;
+        const uint32_t innerloop = num_faces;
+        ckernel_template tmp(outerloop, innerloop, unpack_srca);
         tmp.set_start_op(unpack_srcb);
-        if (transpose_of_faces && num_faces >= 4)
-        {
-            tmp.set_end_op(srca_end_op);
-        }
         tmp.program();
     }
     else
