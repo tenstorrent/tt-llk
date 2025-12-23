@@ -45,12 +45,17 @@ def get_chip_architecture():
         return _cached_chip_architecture
 
     chip_architecture = os.getenv("CHIP_ARCH")
-    if not chip_architecture:
-        context = check_context()
-        chip_architecture = context.devices[0]._arch
-        if chip_architecture == "wormhole_b0":
-            chip_architecture = "wormhole"
-        os.environ["CHIP_ARCH"] = chip_architecture
+    if chip_architecture:
+        # If CHIP_ARCH is set, use it directly without checking hardware
+        _cached_chip_architecture = ChipArchitecture.from_string(chip_architecture)
+        return _cached_chip_architecture
+
+    # Only check hardware if CHIP_ARCH is not set
+    context = check_context()
+    chip_architecture = context.devices[0]._arch
+    if chip_architecture == "wormhole_b0":
+        chip_architecture = "wormhole"
+    os.environ["CHIP_ARCH"] = chip_architecture
 
     _cached_chip_architecture = ChipArchitecture.from_string(chip_architecture)
     return _cached_chip_architecture

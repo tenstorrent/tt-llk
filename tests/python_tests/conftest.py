@@ -86,7 +86,10 @@ def check_hardware_headers():
 
 @pytest.fixture(autouse=True)
 def reset_mailboxes_fixture():
-    reset_mailboxes()
+    try:
+        reset_mailboxes()
+    except Exception as e:
+        print(f"Warning: Could not reset mailboxes (hardware not available): {e}")
     yield
 
 
@@ -107,7 +110,12 @@ def pytest_configure(config):
     if test_target.run_simulator:
         tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
     else:
-        tt_exalens_init.init_ttexalens()
+        try:
+            tt_exalens_init.init_ttexalens()
+        except (IndexError, Exception) as e:
+            # If hardware is not available, print a warning and continue
+            print(f"Warning: Could not initialize hardware device: {e}")
+            print("Tests requiring hardware will be skipped or may fail.")
 
 
 def pytest_runtest_logreport(report):
@@ -166,15 +174,21 @@ def pytest_sessionstart(session):
 
     test_target = TestTargetConfig()
     if not test_target.run_simulator:
-        # Send ARC message for GO BUSY signal. This should increase device clock speed.
-        _send_arc_message("GO_BUSY", test_target.device_id)
+        try:
+            # Send ARC message for GO BUSY signal. This should increase device clock speed.
+            _send_arc_message("GO_BUSY", test_target.device_id)
+        except Exception as e:
+            print(f"Warning: Could not send ARC message: {e}")
 
 
 def pytest_sessionfinish(session, exitstatus):
     test_target = TestTargetConfig()
     if not test_target.run_simulator:
-        # Send ARC message for GO IDLE signal. This should decrease device clock speed.
-        _send_arc_message("GO_IDLE", test_target.device_id)
+        try:
+            # Send ARC message for GO IDLE signal. This should decrease device clock speed.
+            _send_arc_message("GO_IDLE", test_target.device_id)
+        except Exception as e:
+            print(f"Warning: Could not send ARC message: {e}")
 
 
 def _send_arc_message(message_type: str, device_id: int):

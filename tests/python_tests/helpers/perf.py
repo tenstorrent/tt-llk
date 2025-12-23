@@ -323,6 +323,10 @@ def get_benchmark_dir(testname: str) -> Path:
 
 
 def _postprocess_tile_loop(frame: pd.DataFrame) -> pd.DataFrame:
+    # Handle empty dataframe
+    if frame.empty or "marker" not in frame.columns:
+        return frame
+
     mask = frame["marker"] == "TILE_LOOP"
 
     if not mask.any():
