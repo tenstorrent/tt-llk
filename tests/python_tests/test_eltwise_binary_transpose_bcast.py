@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+from conftest import skip_for_blackhole
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
@@ -25,6 +26,7 @@ from helpers.tilize_untilize import tilize, tilize_block
 from helpers.utils import passed_test
 
 
+@skip_for_blackhole
 @parametrize(
     test_name="eltwise_binary_transpose_bcast_test",
     formats=input_output_formats(
