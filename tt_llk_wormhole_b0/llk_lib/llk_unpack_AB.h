@@ -47,7 +47,7 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
         {
             if (transpose_of_faces)
             {
-                LLK_ASSERT(num_faces == 4, "num_faces must be >= 4 when transpose_of_faces is true");
+                LLK_ASSERT(num_faces == 4, "num_faces must be 4 when transpose_of_faces is true");
                 tmp.set_end_ops(unpack_srcb, srca_end_op);
             }
             else
@@ -59,7 +59,7 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
         {
             if (transpose_of_faces)
             {
-                LLK_ASSERT(num_faces == 4, "num_faces must be >= 4 when transpose_of_faces is true");
+                LLK_ASSERT(num_faces == 4, "num_faces must be 4 when transpose_of_faces is true");
                 tmp.set_end_ops(unpack_srcb_set_z, srca_end_op);
             }
             else
@@ -78,7 +78,7 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
         ckernel_template tmp(outerloop, innerloop, narrow_tile ? unpack_srcb_no_z_inc : unpack_srcb, srca_op);
         if (transpose_of_faces)
         {
-            LLK_ASSERT(num_faces == 4, "num_faces must be >= 4 when transpose_of_faces is true");
+            LLK_ASSERT(num_faces == 4, "num_faces must be 4 when transpose_of_faces is true");
             tmp.set_end_ops(unpack_srcb_clear_z, srca_end_op);
         }
         else
