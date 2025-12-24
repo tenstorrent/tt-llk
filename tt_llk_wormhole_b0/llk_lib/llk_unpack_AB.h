@@ -28,8 +28,9 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
     // init srca_op to regular unpack of srca
     uint srca_op     = unpack_srca;
     uint srca_end_op = 0;
-    if (transpose_of_faces && num_faces >= 4)
+    if (transpose_of_faces)
     {
+        LLK_ASSERT(num_faces == 4, "num_faces must be 4 when transpose_of_faces is true");
         // if transpose is enabled srca_op needs to count faces in order 0,2,1,3
         srca_op     = TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
         srca_end_op = TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001);
@@ -44,8 +45,9 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
         tmp.set_start_op(unpack_srcb);
         if (narrow_tile)
         {
-            if (transpose_of_faces && num_faces >= 4)
+            if (transpose_of_faces)
             {
+                LLK_ASSERT(num_faces == 4, "num_faces must be >= 4 when transpose_of_faces is true");
                 tmp.set_end_ops(unpack_srcb, srca_end_op);
             }
             else
@@ -55,8 +57,9 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
         }
         else
         {
-            if (transpose_of_faces && num_faces >= 4)
+            if (transpose_of_faces)
             {
+                LLK_ASSERT(num_faces == 4, "num_faces must be >= 4 when transpose_of_faces is true");
                 tmp.set_end_ops(unpack_srcb_set_z, srca_end_op);
             }
             else
@@ -73,8 +76,9 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
         const uint32_t outerloop                   = num_faces < 4 ? 1 : 2;
         const uint32_t innerloop                   = num_faces < 2 ? 1 : 2;
         ckernel_template tmp(outerloop, innerloop, narrow_tile ? unpack_srcb_no_z_inc : unpack_srcb, srca_op);
-        if (transpose_of_faces && num_faces >= 4)
+        if (transpose_of_faces)
         {
+            LLK_ASSERT(num_faces == 4, "num_faces must be >= 4 when transpose_of_faces is true");
             tmp.set_end_ops(unpack_srcb_clear_z, srca_end_op);
         }
         else
