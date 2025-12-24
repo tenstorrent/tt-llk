@@ -184,6 +184,24 @@ def create_fuse_pipeline() -> List[FusedOperation]:
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
         ),
+        FusedOperation(
+            operand_mapping=operands.create_mapping(
+                src_a="x1",
+                src_b="y1",
+                output="unpack_untilize_out",
+                src_a_dims=input_A_dimensions,
+                src_b_dims=input_B_dimensions,
+                input_format=DataFormat.Float16_b,
+                output_format=DataFormat.Float16_b,
+            ),
+            unpacker=UnpackerA,
+            math=Math(
+                DatacopyFpu(),
+            ),
+            packer=Packer,
+            dest_acc=dest_acc,
+            math_fidelity=math_fidelity,
+        ),
     ]
 
     return pipeline
