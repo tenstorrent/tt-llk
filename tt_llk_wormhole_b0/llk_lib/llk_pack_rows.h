@@ -79,11 +79,14 @@ inline void _llk_pack_rows_mop_config_(const std::uint32_t num_rows)
 inline void _llk_pack_rows_init_(const std::uint32_t num_rows)
 {
     // Number of datums per row in row-major layout (16 datums = 1 row of 16 elements)
-    constexpr std::uint32_t row_num_datums = 16;
-
+    constexpr std::uint32_t row_num_datums      = 16;
+    constexpr std::uint32_t y_pos_counter_limit = 1;
     _llk_pack_rows_configure_addrmod_();
     _llk_pack_rows_mop_config_(num_rows);
 
+    // To ensure that Y_POS counter gets reset to 0 after the operation is completed,
+    // we need to set pack_reads_per_xy_plane to 1. When Y_POS counter hits that value, it will reset.
+    cfg_reg_rmw_tensix<PACK_COUNTERS_SEC0_pack_reads_per_xy_plane_RMW>(y_pos_counter_limit);
     // Set the packer X counter to pack the specified number of datums per row
     TTI_SETADCXX(p_setadc::PAC, row_num_datums - 1, 0x0);
 
@@ -119,4 +122,13 @@ inline void _llk_pack_rows_(const std::uint32_t tile_index, const std::uint32_t 
 
     // Close the pack operation
     TTI_PACR(ADDR_MOD_1, 0, 0xf, 0, 0, 1, 1);
+}
+
+/**
+ * @brief Restore packer addrmods and counters to a safe default state.
+ *
+ */
+inline void _llk_pack_rows_uninit_()
+{
+    TTI_SETADCXX(p_setadc::PAC, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
 }
