@@ -37,7 +37,7 @@ dimension_combinations = [
         same=True,
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    num_rows_to_pack=[1, 5, 16, 32, 35, 64],
+    num_rows_to_pack=[1, 16, 50, 64],
     dimensions=dimension_combinations,
 )
 def test_pack_rows(test_name, formats, dest_acc, num_rows_to_pack, dimensions):

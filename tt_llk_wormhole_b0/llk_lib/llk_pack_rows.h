@@ -10,6 +10,7 @@
 #include "ckernel_globals.h"
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
+#include "llk_assert.h"
 #include "llk_defs.h"
 #include "llk_pack_common.h"
 
@@ -48,11 +49,11 @@ inline void _llk_pack_rows_configure_addrmod_()
  */
 inline void _llk_pack_rows_mop_config_(const std::uint32_t num_rows)
 {
-    constexpr uint PACKCNT          = 1; // Use only packer 0
-    constexpr uint MEGAROW          = 0; // Not using megarow mode
-    constexpr uint ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
-    constexpr uint MOP_OUTER_LOOP   = 1;
-    const uint MOP_INNER_LOOP       = num_rows;
+    constexpr std::uint32_t PACKCNT          = 1; // Use only packer 0
+    constexpr std::uint32_t MEGAROW          = 0; // Not using megarow mode
+    constexpr std::uint32_t ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
+    constexpr std::uint32_t MOP_OUTER_LOOP   = 1;
+    const std::uint32_t MOP_INNER_LOOP       = num_rows;
 
     ckernel::ckernel_template tmp(MOP_OUTER_LOOP, MOP_INNER_LOOP, TT_OP_PACR(ADDR_MOD_0, ZERO_OUTPUT_FLAG, PACK_SEL(PACKCNT), 0, MEGAROW, 0, 0));
 
@@ -78,6 +79,11 @@ inline void _llk_pack_rows_mop_config_(const std::uint32_t num_rows)
  */
 inline void _llk_pack_rows_init_(const std::uint32_t num_rows)
 {
+    // In row-major layout, each row is FACE_C_DIM (16) datums.
+    // A full tile has TILE_R_DIM * TILE_C_DIM / FACE_C_DIM = 32 * 32 / 16 = 64 rows.
+    constexpr std::uint32_t MAX_ROWS = (TILE_R_DIM * TILE_C_DIM) / FACE_C_DIM;
+    LLK_ASSERT(num_rows >= 1 && num_rows <= MAX_ROWS, "num_rows must be between 1 and 64");
+
     // Number of datums per row in row-major layout (16 datums = 1 row of 16 elements)
     constexpr std::uint32_t row_num_datums      = 16;
     constexpr std::uint32_t y_pos_counter_limit = 1;
