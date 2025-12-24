@@ -228,8 +228,8 @@ inline void _calculate_typecast_uint32_to_fp32_()
     TTI_SFPLOADI(p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_USHORT, 0);
     TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, 0x4f00); // 2**31
 
-    constexpr int a = p_sfpu::LREG2;
-    constexpr int b = p_sfpu::LREG3;
+    constexpr int a  = p_sfpu::LREG2;
+    constexpr int b  = p_sfpu::LREG3;
     constexpr int L7 = p_sfpu::LREG7;
 
 #pragma GCC unroll 8
