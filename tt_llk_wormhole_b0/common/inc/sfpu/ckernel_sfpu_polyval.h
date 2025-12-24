@@ -55,7 +55,7 @@ struct PolynomialEvaluator
     }
 
     template <typename U, typename Coefficient0>
-    static constexpr auto eval(U x, Coefficient0 coeff0)
+    static constexpr auto eval(U /*x*/, Coefficient0 coeff0)
     {
         // Base case: f(x) = coeff0 (0-th degree polynomial)
         return coeff0;

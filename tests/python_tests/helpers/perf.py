@@ -36,12 +36,17 @@ def _stats_timings(perf_data: pd.DataFrame) -> pd.DataFrame:
 
     # dont aggregate marker column
     timings = perf_data.columns.drop("marker")
-    result = perf_data.groupby("marker", as_index=False)[timings].agg(["mean", "std"])
 
-    columns = ["marker"]
-    columns += [f"{stat}({col})" for col in timings for stat in ["mean", "std"]]
+    # Group by marker and aggregate
+    grouped = perf_data.groupby("marker")[timings].agg(["mean", "std"])
 
-    result.columns = columns
+    # Flatten the MultiIndex columns
+    # grouped.columns is MultiIndex like: [('L1_TO_L1', 'mean'), ('L1_TO_L1', 'std')]
+    grouped.columns = [f"{stat}({col})" for col, stat in grouped.columns]
+
+    # Reset index to make 'marker' a regular column
+    result = grouped.reset_index()
+
     return result
 
 

@@ -320,4 +320,5 @@ inline void _calculate_gelu_chebyshev_()
         sfpi::dst_reg[0] = result;
         sfpi::dst_reg++;
     }
+}
 } // namespace ckernel::sfpu

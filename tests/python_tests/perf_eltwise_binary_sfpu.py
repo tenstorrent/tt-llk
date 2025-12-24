@@ -33,14 +33,14 @@ NUM_FACES = 4
     formats=input_output_formats(
         [
             DataFormat.Float32,
-            # DataFormat.Float16,
-            # DataFormat.Float16_b,
-            # DataFormat.Bfp8_b,
+            DataFormat.Float16,
+            DataFormat.Float16_b,
+            DataFormat.Bfp8_b,
         ]
     ),
     approx_mode=[
         ApproximationMode.Yes,
-        # ApproximationMode.No,
+        ApproximationMode.No,
     ],
     mathop=[
         MathOperation.SfpuElwadd,
@@ -52,11 +52,15 @@ NUM_FACES = 4
     ],
     dest_acc=[
         DestAccumulation.Yes,
-        # DestAccumulation.No,
+        DestAccumulation.No,
     ],
     loop_factor=[
         16,
     ],  # Number of iterations to run the test in order to minimize profiler overhead in measurement
+    iterations=[
+        8,
+        32,
+    ],
     face_r_dim=[FACE_R_DIM],
     num_faces=[NUM_FACES],
     input_dimensions=[
@@ -72,6 +76,7 @@ def test_perf_eltwise_binary_sfpu_float(
     approx_mode,
     dest_acc,
     loop_factor,
+    iterations,
     face_r_dim,
     num_faces,
     input_dimensions,
@@ -98,6 +103,7 @@ def test_perf_eltwise_binary_sfpu_float(
         "face_r_dim": face_r_dim,
         "tile_cnt": tile_cnt,
         "loop_factor": loop_factor,
+        "iterations": iterations,
     }
 
     results = perf_benchmark(test_config, run_types)
@@ -128,6 +134,10 @@ def test_perf_eltwise_binary_sfpu_float(
     loop_factor=[
         16,
     ],
+    iterations=[
+        8,
+        32,
+    ],
     face_r_dim=[FACE_R_DIM],
     num_faces=[NUM_FACES],
     input_dimensions=[
@@ -143,6 +153,7 @@ def test_perf_eltwise_binary_sfpu_int(
     approx_mode,
     dest_acc,
     loop_factor,
+    iterations,
     face_r_dim,
     num_faces,
     input_dimensions,
@@ -169,6 +180,7 @@ def test_perf_eltwise_binary_sfpu_int(
         "face_r_dim": face_r_dim,
         "tile_cnt": tile_cnt,
         "loop_factor": loop_factor,
+        "iterations": iterations,
     }
 
     results = perf_benchmark(test_config, run_types)
@@ -200,6 +212,10 @@ def test_perf_eltwise_binary_sfpu_int(
     loop_factor=[
         16,
     ],
+    iterations=[
+        8,
+        32,
+    ],
     face_r_dim=[FACE_R_DIM],
     num_faces=[NUM_FACES],
     input_dimensions=[
@@ -215,6 +231,7 @@ def test_perf_eltwise_binary_sfpu_add_top_row(
     approx_mode,
     dest_acc,
     loop_factor,
+    iterations,
     face_r_dim,
     num_faces,
     input_dimensions,
@@ -249,6 +266,7 @@ def test_perf_eltwise_binary_sfpu_add_top_row(
         "face_r_dim": face_r_dim,
         "tile_cnt": tile_cnt,
         "loop_factor": loop_factor,
+        "iterations": iterations,
     }
 
     results = perf_benchmark(test_config, run_types)

@@ -34,9 +34,9 @@ NUM_FACES = 4
     formats=input_output_formats(
         [
             DataFormat.Float32,
-            # DataFormat.Float16,
-            # DataFormat.Float16_b,
-            # DataFormat.Bfp8_b,
+            DataFormat.Float16,
+            DataFormat.Float16_b,
+            DataFormat.Bfp8_b,
         ]
     ),
     approx_mode=[
@@ -113,6 +113,58 @@ def test_perf_eltwise_unary_sfpu(
     input_dimensions,
     run_types,
 ):
+    # Skip tests where template parameters are not used by the operation
+    # Operations that don't use is_fp32_dest_acc_en parameter
+    ops_without_dest_acc = {
+        MathOperation.Abs,
+        MathOperation.Acosh,
+        MathOperation.Asinh,
+        MathOperation.Celu,
+        MathOperation.Cos,
+        MathOperation.Elu,
+        MathOperation.Exp2,
+        MathOperation.Exp,
+        MathOperation.Fill,
+        MathOperation.Gelu,
+        MathOperation.Hardsigmoid,
+        MathOperation.Log,
+        MathOperation.Neg,
+        MathOperation.Silu,
+        MathOperation.Sin,
+        MathOperation.Square,
+        MathOperation.Threshold,
+        MathOperation.ReluMax,
+        MathOperation.ReluMin,
+    }
+
+    # Operations that use FAST_MODE
+    ops_with_fast_mode = {
+        MathOperation.Exp,
+        MathOperation.Rsqrt,
+        MathOperation.Sqrt,
+    }
+
+    # Operations that use STABLE_SORT
+    ops_with_stable_sort = {
+        MathOperation.TopKLocalSort,
+        MathOperation.TopKMerge,
+        MathOperation.TopKRebuild,
+    }
+
+    # Skip if dest_acc varies but operation doesn't use it
+    if mathop in ops_without_dest_acc and dest_acc == DestAccumulation.Yes:
+        pytest.skip(f"{mathop} does not use dest_acc parameter - skipping Yes variant")
+
+    # Skip if fast_mode varies but operation doesn't use it
+    if mathop not in ops_with_fast_mode and fast_mode == FastMode.Yes:
+        pytest.skip(f"{mathop} does not use fast_mode parameter - skipping Yes variant")
+
+    # Skip if stable_sort varies but operation doesn't use it
+    if mathop not in ops_with_stable_sort and stable_sort == StableSort.Yes:
+        pytest.skip(
+            f"{mathop} does not use stable_sort parameter - skipping Yes variant"
+        )
+
     # If dest_acc is on, we unpack Float32 into 16-bit format in src registers
     # (later copied over in dest reg for SFPU op)
     #
