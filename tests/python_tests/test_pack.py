@@ -38,8 +38,8 @@ def is_relu_threshold_tolerance_issue(
     result_tensor,
     relu_config,
     intermediate_format,
-    rtol=0.05,
-    atol=0.05,
+    rtol=0.01,
+    atol=0.01,
 ):
     """
     Check if test failure is due to threshold rounding/format conversion issues in ReLU.
@@ -56,8 +56,8 @@ def is_relu_threshold_tolerance_issue(
         golden_tensor: Expected output tensor
         result_tensor: Actual hardware output tensor
         relu_config: The ReLU configuration value
-        rtol: Relative tolerance for threshold proximity checks (default 0.05)
-        atol: Absolute tolerance for threshold proximity checks (default 0.05)
+        rtol: Relative tolerance for threshold proximity checks (default 0.01)
+        atol: Absolute tolerance for threshold proximity checks (default 0.01)
     Returns:
         bool: True if all mismatches are near-threshold rounding issues, False otherwise
     """
