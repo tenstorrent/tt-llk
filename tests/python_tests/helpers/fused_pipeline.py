@@ -21,6 +21,7 @@ from helpers.fused_unpacker import (
     UnpackerA,
     UnpackerAB,
     UnpackerTilizeA,
+    UnpackerUntilizeA,
 )
 from helpers.llk_params import (
     ApproximationMode,
@@ -194,7 +195,7 @@ def create_fuse_pipeline() -> List[FusedOperation]:
                 input_format=DataFormat.Float16_b,
                 output_format=DataFormat.Float16_b,
             ),
-            unpacker=UnpackerA,
+            unpacker=UnpackerUntilizeA,
             math=Math(
                 DatacopyFpu(),
             ),

@@ -11,6 +11,8 @@ from .chip_architecture import ChipArchitecture
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
 
+from .golden_generators import UntilizeGolden, get_golden_generator
+
 
 class Packer:
     def get_headers(self) -> List[str]:
@@ -121,3 +123,88 @@ class Packer:
             return "    t6_semaphore_post<>(semaphore::PACK_DONE);\n\n"
 
         return ""
+
+
+class PackerUntilize(Packer):
+    def golden(
+        self,
+        tensor: torch.Tensor,
+        operation_config: "FusedOperation",
+    ) -> torch.Tensor:
+        golden_packer = get_golden_generator(UntilizeGolden)
+
+        tensor = golden_packer(
+            tensor,
+            operation_config.output.data_format,
+            operation_config.output.dimensions,
+        )
+
+        return tensor
+
+    def hw_configure(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        tilize = operation_config.bh_tilize.value
+        dest_acc = operation_config.dest_acc.value
+        pack_size = operation_config.tile_size_pack
+
+        if stage == 0:
+            if operation_config.architecture == ChipArchitecture.BLACKHOLE:
+                code = (
+                    f"    _llk_pack_hw_configure_<{dest_acc}, true, {tilize}>(\n"
+                    f"        pack_src_format{stage}, pack_dst_format{stage}, {pack_size}\n"
+                    f"    );\n"
+                )
+            elif operation_config.architecture == ChipArchitecture.WORMHOLE:
+                code = (
+                    f"    _llk_pack_hw_configure_<{dest_acc}, true>(\n"
+                    f"        pack_src_format{stage}, pack_dst_format{stage}, {pack_size}\n"
+                    f"    );\n"
+                )
+        else:
+            code = (
+                f"    _llk_pack_reconfig_data_format_<{dest_acc}, false, DstTileFaceLayout::RowMajor, false>(\n"
+                f"        pack_src_format{stage}, pack_dst_format{stage}, {pack_size}\n"
+                f"    );\n"
+            )
+
+        return code
+
+    def pack(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        dest_acc = operation_config.dest_acc
+        dest_acc_value = dest_acc.value
+        face_r_dim = operation_config.face_r_dim
+        num_faces = operation_config.num_faces
+        block_ct_dim = operation_config.block_ct_dim
+        full_ct_dim = operation_config.full_ct_dim
+        full_rt_dim = operation_config.full_rt_dim
+
+        if operation_config.architecture == ChipArchitecture.BLACKHOLE:
+            code = (
+                f"    _llk_pack_untilize_init_<{block_ct_dim}, {full_ct_dim}, false, false, TILE_C_DIM>(\n"
+                f"        pack_src_format{stage}, pack_dst_format{stage}, {face_r_dim}, {num_faces}, false\n"
+                f"    );\n"
+                f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, DstTileFaceLayout::RowMajor>();\n"
+            )
+        elif operation_config.architecture == ChipArchitecture.WORMHOLE:
+            code = (
+                f"    _llk_pack_untilize_init_<{block_ct_dim}, {full_ct_dim}, false, false, TILE_C_DIM>(\n"
+                f"        pack_dst_format{stage}, {face_r_dim}, {num_faces}, false\n"
+                f"    );\n"
+                f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, DstTileFaceLayout::RowMajor, true>();\n"
+            )
+        else:
+            raise ValueError("Unsupported architecture for packer")
+
+        code += (
+            f"    _llk_packer_wait_for_math_done_();\n"
+            f"    for (int rt = 0; rt < {full_rt_dim}; rt++)\n"
+            f"    {{\n"
+            f"        _llk_pack_untilize_<{block_ct_dim}, {full_ct_dim}, false, false, TILE_C_DIM, 0>(\n"
+            f"            L1_ADDRESS(buffer_Res{stage}[rt * {full_ct_dim}]), pack_dst_format{stage}, {face_r_dim}, {num_faces}, rt * {full_ct_dim}\n"
+            f"        );\n"
+            f"    }}\n"
+            f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc_value}>();\n\n"
+        )
+
+        return code
