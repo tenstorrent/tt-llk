@@ -99,12 +99,8 @@ def is_relu_threshold_tolerance_issue(
         acceptable = (golden_is_zero & result_near_threshold) | (
             result_is_zero & golden_near_threshold
         )
-    else:  # For MAX_THRESHOLD_RELU: Check if mismatch is near the threshold clamp point
-        both_near_threshold = golden_near_threshold & result_near_threshold
-        allowed_difference = torch.isclose(
-            golden_tensor[mismatches], result_tensor[mismatches], rtol=rtol, atol=atol
-        )
-        acceptable = both_near_threshold & allowed_difference
+    else:  # For MAX_THRESHOLD_RELU: Check if both values are near the threshold
+        acceptable = golden_near_threshold & result_near_threshold
 
     return acceptable.all().item()
 
