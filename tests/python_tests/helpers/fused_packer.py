@@ -64,6 +64,7 @@ class Packer:
         dest_acc = operation_config.dest_acc
         dest_acc_value = dest_acc.value
         buffer_Res_tile_size = operation_config.buffer_Res_tile_size
+        bh_tilize = operation_config.bh_tilize.value
 
         code = (
             f"    // Operation {stage}: Packer\n"
@@ -76,7 +77,7 @@ class Packer:
 
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
             code += (
-                f"    _llk_pack_init_<false, false>(\n"
+                f"    _llk_pack_init_<false, false, {bh_tilize}>(\n"
                 f"        pack_out_format{stage}\n"
                 f"    );\n"
                 f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}>();\n"
