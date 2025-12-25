@@ -607,8 +607,8 @@ inline void _llk_math_matmul_init_(
     const std::uint32_t rt_dim         = 1,
     const std::uint32_t kt_dim         = 1)
 {
+    llk_san::operation_save<llk_san::operation_t::Matmul>(MATH_FIDELITY_DESC, THROTTLE_LEVEL, ct_dim, rt_dim);
     // sstanisic todo: implement
-    // llk_san_init<llk_san_op::Matmul>(MATH_FIDELITY_DESC, THROTTLE_LEVEL, ct_dim, rt_dim);
     // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop); // Counters are not tracked here for now
 
     matmul_configure_addrmod<MATH_FIDELITY_DESC, THROTTLE_LEVEL>(
@@ -636,8 +636,7 @@ inline void _llk_math_matmul_(
     const std::uint32_t rt_dim                  = 1,
     [[maybe_unused]] const std::uint32_t kt_dim = 1)
 {
-    // sstanisic todo: implement
-    // llk_san_operation<llk_san_op::Matmul>(MATH_FIDELITY_DESC, THROTTLE_LEVEL, ct_dim, rt_dim);
+    llk_san::operation_check<llk_san::operation_t::Matmul>(MATH_FIDELITY_DESC, THROTTLE_LEVEL, ct_dim, rt_dim);
 
     const bool reuse_a                = ct_dim >= rt_dim;
     const std::uint32_t t_dim         = reuse_a ? rt_dim : ct_dim;

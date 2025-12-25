@@ -31,8 +31,7 @@ inline void _llk_math_eltwise_unary_datacopy_(
     {
         llk_san::math_operand_check(llk_san::IGNORE, dst_format);
     }
-    // sstanisic todo: implement
-    // llk_san_operation<llk_san_op::EltwiseUnaryDatacopy>(type, src_b_bcast_type, num_faces, dst_format);
+    llk_san::operation_check<llk_san::operation_t::EltwiseUnaryDatacopy>(type, src_b_bcast_type, num_faces, dst_format);
 
     // For 32bit data, each half of DEST can take 16 tiles. Since dest offset is returned as if 16bit data are used, we need to
     // adjust it to offset in faces for 32bit data.
@@ -256,8 +255,9 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
     {
         llk_san::math_operand_check(llk_san::IGNORE, dst_format);
     }
+    llk_san::operation_save<llk_san::operation_t::EltwiseUnaryDatacopy>(type, src_b_bcast_type, num_faces, dst_format);
+
     // sstanisic todo: implement
-    // llk_san_init<llk_san_op::EltwiseUnaryDatacopy>(type, src_b_bcast_type, num_faces, dst_format);
     // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::DvalidDisable); // Counters are not tracked here for now
 
     eltwise_unary_configure_addrmod<type, src_b_bcast_type>();

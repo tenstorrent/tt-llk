@@ -134,8 +134,8 @@ inline void _llk_pack_untilize_init_(
     const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
     llk_san::pack_operand_check(llk_san::IGNORE, pack_src_format, pack_dst_format, face_r_dim, llk_san::IGNORE, num_faces, llk_san::IGNORE, llk_san::IGNORE);
+    llk_san::operation_save<llk_san::operation_t::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, face_r_dim, num_faces);
     // sstanisic todo: implement
-    // llk_san_init<llk_san_op::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, face_r_dim, num_faces);
     // llk_san_must_uninit<llk_san_op::PackUntilize>();
     // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::CH0Strides, llk_san_cfg::AdcXX); // GPRs are not tracked here for now
 
@@ -198,8 +198,7 @@ inline void _llk_pack_untilize_(
     [[maybe_unused]] const std::uint32_t tile_dst_rt_offset = 0)
 {
     llk_san::pack_operand_check(llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, face_r_dim, llk_san::IGNORE, num_faces, llk_san::IGNORE, llk_san::IGNORE);
-    // sstanisic todo: implement
-    // llk_san_operation<llk_san_op::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, face_r_dim, num_faces);
+    llk_san::operation_check<llk_san::operation_t::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, face_r_dim, num_faces);
 
     static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
 

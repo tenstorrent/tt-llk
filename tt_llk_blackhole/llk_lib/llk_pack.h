@@ -491,8 +491,9 @@ inline void _llk_pack_init_(
     const bool narrow_tile         = false)
 {
     llk_san::pack_operand_check(llk_san::IGNORE, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+    llk_san::operation_save<llk_san::operation_t::Pack>();
+
     // sstanisic todo: implement
-    // llk_san_init<llk_san_op::Pack>();
     // llk_san_must_uninit<llk_san_op::Pack>(); // lololol uninit doesn't exist
     // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::CH0Strides, llk_san_cfg::CH1Strides, llk_san_cfg::AdcXX);
 
@@ -505,8 +506,7 @@ inline void _llk_pack_init_(
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
-    // sstanisic todo: implement
-    // llk_san_operation<llk_san_op::Pack>();
+    llk_san::operation_check<llk_san::operation_t::Pack>();
 
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
