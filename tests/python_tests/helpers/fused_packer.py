@@ -44,9 +44,13 @@ class Packer:
 
         code += self.hw_configure(operation_config)
         code += self.pack(operation_config)
+        code += self.uninit(operation_config)
         code += self.sync(operation_config)
 
         return code
+
+    def uninit(self, operation_config: "FusedOperation") -> str:
+        return "\n"
 
     def hw_configure(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
@@ -81,7 +85,6 @@ class Packer:
         tile_cnt = operation_config.output.tile_count
         dest_acc = operation_config.dest_acc
         dest_acc_value = dest_acc.value
-        buffer_Res_tile_size = operation_config.buffer_Res_tile_size
         bh_tilize = operation_config.bh_tilize.value
         face_r_dim = operation_config.face_r_dim
         num_faces = operation_config.num_faces
@@ -162,12 +165,20 @@ class PackerUntilize(Packer):
                 )
         else:
             code = (
-                f"    _llk_pack_reconfig_data_format_<{dest_acc}, false, DstTileFaceLayout::RowMajor, false>(\n"
+                f"    _llk_pack_reconfig_data_format_<{dest_acc}, false>(\n"
                 f"        pack_src_format{stage}, pack_dst_format{stage}, {pack_size}\n"
                 f"    );\n"
             )
 
         return code
+
+    def uninit(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        architecture = operation_config.architecture
+        if architecture == ChipArchitecture.BLACKHOLE:
+            return f"    _llk_pack_untilize_uninit_(pack_src_format{stage})\n\n"
+        else:
+            return "\n"
 
     def pack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
@@ -184,14 +195,14 @@ class PackerUntilize(Packer):
                 f"    _llk_pack_untilize_init_<{block_ct_dim}, {full_ct_dim}, false, false, TILE_C_DIM>(\n"
                 f"        pack_src_format{stage}, pack_dst_format{stage}, {face_r_dim}, {num_faces}, false\n"
                 f"    );\n"
-                f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, DstTileFaceLayout::RowMajor>();\n"
+                f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}>();\n"
             )
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
             code = (
                 f"    _llk_pack_untilize_init_<{block_ct_dim}, {full_ct_dim}, false, false, TILE_C_DIM>(\n"
-                f"        pack_dst_format{stage}, {face_r_dim}, {num_faces}, false\n"
+                f"        pack_dst_format{stage}, {face_r_dim}, {num_faces}, true\n"
                 f"    );\n"
-                f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, DstTileFaceLayout::RowMajor, true>();\n"
+                f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, true>();\n"
             )
         else:
             raise ValueError("Unsupported architecture for packer")

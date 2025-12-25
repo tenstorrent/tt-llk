@@ -403,28 +403,6 @@ class UnpackerUntilizeA(Unpacker):
 
         return tilized_a, tensor_b
 
-    def hw_configure(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        face_r_dim = operation_config.face_r_dim
-        unpack_tile_size_a = operation_config.tile_size_unpack_a
-        dest_acc = operation_config.dest_acc.value
-        num_faces = operation_config.num_faces
-        transpose = operation_config.unpack_transpose_within_face.value
-
-        if stage == 0:
-            code = (
-                f"    _llk_unpack_untilize_hw_configure_<{dest_acc}, StochRndType::None>(\n"
-                f"        unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {face_r_dim}, {transpose}, {num_faces}\n"
-                f"    );\n"
-            )
-        else:
-            code = (
-                f"    _llk_unpack_reconfig_data_format_srca_impl_<{dest_acc}, false>(\n"
-                f"        unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {unpack_tile_size_a}\n"
-                f"    );\n"
-            )
-        return code
-
     def unpack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         face_r_dim = operation_config.face_r_dim

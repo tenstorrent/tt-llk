@@ -15,7 +15,7 @@ from helpers.fused_math import (
 )
 from helpers.fused_operand import OperandRegistry
 from helpers.fused_operation import FusedOperation
-from helpers.fused_packer import Packer
+from helpers.fused_packer import Packer, PackerUntilize
 from helpers.fused_unpacker import (
     MatmulUnpacker,
     UnpackerA,
@@ -142,7 +142,7 @@ def create_fuse_pipeline() -> List[FusedOperation]:
             ),
             unpacker=MatmulUnpacker,
             math=Math(MatmulFpu()),
-            packer=Packer,
+            packer=PackerUntilize,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
             unpack_transpose_within_face=Transpose.Yes,
@@ -199,7 +199,7 @@ def create_fuse_pipeline() -> List[FusedOperation]:
             math=Math(
                 DatacopyFpu(),
             ),
-            packer=Packer,
+            packer=PackerUntilize,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
         ),
