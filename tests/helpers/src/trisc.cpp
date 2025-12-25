@@ -35,6 +35,7 @@ uint32_t open_zone_cnt    = 0;
 namespace llk_san
 {
 hw_state_t hw_state;
+operation_state_t operation_state;
 } // namespace llk_san
 
 __attribute__((weak)) void run_kernel()

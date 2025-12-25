@@ -198,9 +198,7 @@ static inline bool _panic_condition(const state_t<T>& lhs, const state_t<U>& rhs
     return lhs.get_underlying() != rhs.get_underlying();
 }
 
-// TODO: refactor below
-
-enum class llk_san_op_t
+enum class operation_t : uint8_t
 {
     UnpackA,
     UnpackABMatmul,
@@ -210,6 +208,8 @@ enum class llk_san_op_t
     Pack,
     PackUntilize
 };
+
+// TODO: refactor below
 
 enum class llk_san_cfg_t
 {
@@ -280,6 +280,14 @@ struct hw_state_t
     unpack_state_t unpack;
     math_state_t math;
     pack_state_t pack;
+};
+
+struct operation_state_t
+{
+    static constexpr size_t BUFFER_SIZE = 96;
+
+    operation_t operation;
+    char __attribute__((aligned(alignof(max_align_t)))) buffer[BUFFER_SIZE];
 };
 
 }; // namespace llk_san
