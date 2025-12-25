@@ -39,9 +39,9 @@ inline void _llk_pack_rows_configure_addrmod_()
  *
  * @param num_rows Number of rows to pack from the destination register
  *
- * The MOP runs num_rows iterations:
- * - Each iteration packs one row (16 datums) using ADDR_MOD_0 (Y += 1)
- * - Final iteration uses ADDR_MOD_1 (Y = 0) with Last=1
+The MOP uses a single outer loop with num_rows inner iterations:
+ * - Each inner iteration packs one row (16 datums) using ADDR_MOD_0 (Y += 1)
+ * - The last outer loop iteration uses ADDR_MOD_1 with Last=1 to reset Y to 0 after num_rows rows
  */
 inline void _llk_pack_rows_mop_config_(const std::uint32_t num_rows)
 {
@@ -136,7 +136,7 @@ inline void _llk_pack_rows_init_(const std::uint32_t num_rows)
  * 1. Sets the W counter to the tile_index to select which dest tile to read from
  * 2. Programs the packer destination address in L1 where data will be written
  * 3. Executes the MOP template
- * 4. Closes the pack operation with a PACR instruction to clean up and reset state
+ * 4. Reset Z counters after pack operation
  */
 inline void _llk_pack_rows_(const std::uint32_t tile_index, const std::uint32_t address)
 {
