@@ -48,7 +48,7 @@ class Packer:
         else:
             code = (
                 f"    _llk_pack_reconfig_data_format_<{dest_acc}, false>(\n"
-                f"        pack_src_format{stage}, pack_out_format{stage}, {pack_size}\n"
+                f"        pack_src_format{stage}, pack_dst_format{stage}, {pack_size}\n"
                 f"    );\n"
             )
 
