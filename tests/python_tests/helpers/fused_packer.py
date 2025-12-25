@@ -47,7 +47,7 @@ class Packer:
                 )
         else:
             code = (
-                f"    _llk_pack_reconfig_data_format_<{dest_acc}, false, DstTileFaceLayout::RowMajor, false>(\n"
+                f"    _llk_pack_reconfig_data_format_<{dest_acc}, false>(\n"
                 f"        pack_in_format{stage}, pack_out_format{stage}, {pack_size}\n"
                 f"    );\n"
             )
@@ -61,7 +61,6 @@ class Packer:
         pack_dst = operation_config.pack_out
         result_buffer_address = operation_config.output.l1_address
         tile_cnt = operation_config.output.tile_count
-        tilize = operation_config.bh_tilize.value
         dest_acc = operation_config.dest_acc
         dest_acc_value = dest_acc.value
         buffer_Res_tile_size = operation_config.buffer_Res_tile_size
@@ -77,17 +76,17 @@ class Packer:
 
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
             code += (
-                f"    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, {tilize}>(\n"
+                f"    _llk_pack_init_<false, false>(\n"
                 f"        pack_out_format{stage}\n"
                 f"    );\n"
-                f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, DstTileFaceLayout::RowMajor>();\n"
+                f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}>();\n"
             )
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
             code += (
-                f"    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(\n"
+                f"    _llk_pack_init_<false, false>(\n"
                 f"        pack_out_format{stage}\n"
                 f"    );\n"
-                f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, DstTileFaceLayout::RowMajor, false>();\n"
+                f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, false>();\n"
             )
         else:
             raise ValueError("Unsupported architecture for packer")

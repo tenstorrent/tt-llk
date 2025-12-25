@@ -75,13 +75,13 @@ class MatmulFpu(Fpu):
 
         code = (
             f"    // Operation {stage}: Matmul FPU\n"
-            f"    _llk_math_matmul_init_<{math_fidelity}, DstTileFaceLayout::RowMajor>(\n"
+            f"    _llk_math_matmul_init_<{math_fidelity}>(\n"
             f"        TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, {ct_dim}, {rt_dim}\n"
             f"    );\n"
             f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
             f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
             f"    {{\n"
-            f"        _llk_math_matmul_<{math_fidelity}, DstTileFaceLayout::RowMajor>(0, {ct_dim}, {rt_dim});\n"
+            f"        _llk_math_matmul_<{math_fidelity}>(0, {ct_dim}, {rt_dim});\n"
             f"    }}\n"
         )
 
@@ -475,7 +475,7 @@ class Math:
         stage = operation_config.stage_id
         dest_acc = operation_config.dest_acc.value
         if stage == 0:
-            code = f"    _llk_math_hw_configure_<false, false>(math_format{stage}, math_format{stage});\n"
+            code = f"    _llk_math_hw_configure_(math_format{stage}, math_format{stage});\n"
         else:
             code = f"    _llk_math_reconfig_data_format_<{dest_acc}, false>(math_format{stage}, math_format{stage});\n"
 
