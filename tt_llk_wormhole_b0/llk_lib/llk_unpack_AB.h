@@ -28,13 +28,14 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
         LLK_ASSERT(num_faces == 4, "num_faces must be 4 when transpose_of_faces is true");
     }
 
-    static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint unpack_srcb = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint unpack_srca           = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint unpack_srcb           = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint unpack_srca_transpose = TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
     const uint32_t outerloop = num_faces < 4 ? 1 : 2;
     const uint32_t innerloop = num_faces < 2 ? 1 : 2;
 
-    const uint srca_op     = transpose_of_faces ? TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1) : unpack_srca;
+    const uint srca_op     = transpose_of_faces ? unpack_srca_transpose : unpack_srca;
     const uint srca_end_op = TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001);
 
     // Helper to set end op(s) based on transpose mode
