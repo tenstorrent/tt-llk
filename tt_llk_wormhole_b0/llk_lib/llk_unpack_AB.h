@@ -99,7 +99,6 @@ inline void _llk_unpack_AB_uninit_()
 {
     // Restore x_end to default (single face)
     TTI_SETADCXX(p_setadc::UNP_AB, FACE_SIZE - 1, 0x0);
-    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
@@ -244,7 +243,6 @@ inline void _llk_unpack_bcastA_B_uninit_()
 
     // Restore x_end to default (single face) for both UNP_A and UNP_B
     TTI_SETADCXX(p_setadc::UNP_AB, FACE_SIZE - 1, 0x0);
-    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
 }
 
 inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint32_t address_b, uint32_t srca_reuse_count = 4)

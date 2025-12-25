@@ -209,7 +209,6 @@ inline void _llk_unpack_AB_matmul_uninit_()
 {
     // Restore x_end to default (single face) for both UNP_A and UNP_B
     TTI_SETADCXX(p_setadc::UNP_AB, FACE_SIZE - 1, 0x0);
-    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
 }
 
 template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
