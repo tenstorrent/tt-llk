@@ -727,12 +727,6 @@ inline void _llk_math_matmul_uninit_()
     TTI_SETC16(CLR_DVALID_SrcB_Disable_ADDR32, 0);
 }
 
-inline void _llk_math_matmul_uninit_()
-{
-    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
-    TTI_SETC16(CLR_DVALID_SrcB_Disable_ADDR32, 0);
-}
-
 template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0>
 inline void _llk_math_matmul_(uint dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
 {
