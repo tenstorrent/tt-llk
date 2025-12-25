@@ -76,7 +76,7 @@ class MatmulFpu(Fpu):
 
         code = (
             f"    // Operation {stage}: Matmul FPU\n"
-            f"    _llk_math_matmul_init_<{math_fidelity}, DstTileFaceLayout::RowMajor>(\n"
+            f"    _llk_math_matmul_init_<{math_fidelity}>(\n"
             f"        TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, {transpose}, {ct_dim}, {rt_dim}\n"
             f"    );\n"
             f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
