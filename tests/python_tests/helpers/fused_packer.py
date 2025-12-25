@@ -87,7 +87,8 @@ class Packer:
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
             code += (
                 f"    _llk_pack_init_<false, false>(\n"
-                f"        pack_dst_format{stage}, pack_src_format{stage}, {face_r_dim}, {num_faces}, false, false, false\n"
+                # pack_src_format is unused
+                f"        pack_dst_format{stage}\n"  # , pack_src_format{stage}, {face_r_dim}, {num_faces}, false, false, false\n"
                 f"    );\n"
                 f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, false>();\n"
             )
