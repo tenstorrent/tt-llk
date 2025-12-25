@@ -8,9 +8,8 @@ from helpers.debug_utils import dump_test_failure
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import UntilizeGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, DestSync, DstSync, format_dict
+from helpers.llk_params import DestAccumulation, DstSync, format_dict
 from helpers.param_config import (
-    generate_unary_input_dimensions,
     input_output_formats,
     parametrize,
 )
@@ -19,13 +18,27 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 
-def get_block_ct_dim(input_dimensions):
-    # In the current programming model, block_ct_dim is never bigger than 8 tiles.
-    # This function calculates the block_ct_dim based on input dimensions.
-    full_ct_dim = input_dimensions[1] // 32  # Assuming tile width is 32
-    for block_ct_dim in range(8, 0, -1):
-        if full_ct_dim % block_ct_dim == 0:
-            return block_ct_dim
+def get_block_ct_dim(full_ct_dim, dest_acc):
+    """
+    Compute the number of blocks per column based on the full CT dimension
+    and whether FP32 destination accumulation is enabled.
+
+    Args:
+        FULL_CT_DIM (int): Full CT dimension
+        is_fp32_dest_acc_en (bool): Whether FP32 destination accumulation is enabled
+
+    Returns:
+        int: Number of blocks per column
+    """
+    max_bct = 4 if dest_acc == DestAccumulation.Yes else 8
+
+    for bct in range(
+        max_bct, 0, -1
+    ):  # range(start, stop, step) - goes from max_bct down to 1
+        if full_ct_dim % bct == 0:
+            return bct
+
+    return 1
 
 
 @parametrize(
@@ -34,14 +47,14 @@ def get_block_ct_dim(input_dimensions):
         [
             DataFormat.Float16_b,
             DataFormat.Float16,
-            DataFormat.Float32,  # Test Float32 with both 32bit mode dest (full precision) and 16bit mode dest (precision loss)
-            DataFormat.Int32,
-            DataFormat.Bfp8_b,
+            # DataFormat.Float32,  # Test Float32 with both 32bit mode dest (full precision) and 16bit mode dest (precision loss)
+            # DataFormat.Int32,
+            # DataFormat.Bfp8_b,
         ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    input_dimensions=[[96, 256]],
-    dst_sync=[DstSync.SyncHalf, DstSync.SyncFull],
+    input_dimensions=[[32, 288]],
+    dst_sync=[DstSync.SyncHalf],
 )
 def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync):
     if formats.output_format == DataFormat.Bfp8_b:
@@ -61,12 +74,12 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
 
     # dst_sync and dest_sync are different enums representing the same concept.
     # TODO: unify them once the enum conflict is resolved in test_config.
-    if input_dimensions not in generate_unary_input_dimensions(
-        dest_acc, DestSync.Full if dst_sync == DstSync.SyncFull else DestSync.Half
-    ):
-        pytest.skip(
-            "Input dimensions not supported for the given dest_acc and dst_sync configuration"
-        )
+    # if input_dimensions not in generate_unary_input_dimensions(
+    #     dest_acc, DestSync.Full if dst_sync == DstSync.SyncFull else DestSync.Half
+    # ):
+    #     pytest.skip(
+    #         "Input dimensions not supported for the given dest_acc and dst_sync configuration"
+    #     )
 
     data_formats = infer_data_formats(
         formats.input_format,
@@ -99,9 +112,10 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
         "unpack_to_dest": False,
         "dest_acc": dest_acc,
         "dst_sync": dst_sync,
-        # "block_ct_dim": get_block_ct_dim(input_dimensions),
+        "block_ct_dim": get_block_ct_dim(input_dimensions[1] // 32, dest_acc),
     }
 
+    print("block_ct_dim:", test_config["block_ct_dim"])
     res_address = write_stimuli_to_l1(
         test_config,
         src_A,

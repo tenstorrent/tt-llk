@@ -366,91 +366,140 @@ def print_tile_by_tile_analysis(golden_tensor, result_tensor, test_params):
                     f"({tile_height}x{tile_width}) - {status} ({error_rate:5.1f}%)"
                 )
 
-                if error_rate > 0:  # Only show detailed view for tiles with errors
-                    legend = f"Legend: {GREEN}●{RESET}=Match, {YELLOW}░{RESET}=Small diff, {RED}▓{RESET}=Med diff, {RED}█{RESET}=Large diff"
-                    print(legend)
-                    output_lines.append(
-                        "Legend: ●=Match, ░=Small diff, ▓=Med diff, █=Large diff"
+                # Always show detailed view for every tile with actual values
+                legend = f"Legend: {GREEN}●{RESET}=Match, {YELLOW}░{RESET}=Small diff, {RED}▓{RESET}=Med diff, {RED}█{RESET}=Large diff"
+                print(legend)
+                output_lines.append(
+                    "Legend: ●=Match, ░=Small diff, ▓=Med diff, █=Large diff"
+                )
+
+                # Column header
+                col_header = "    "
+                col_header_plain = "    "
+                for j in range(0, tile_width, 4):  # Every 4th column
+                    local_col = start_col + j
+                    col_header += f"{local_col:>4d}"
+                    col_header_plain += f"{local_col:>4d}"
+                print(col_header)
+                output_lines.append(col_header_plain)
+
+                # Print tile pattern map
+                for i in range(tile_height):
+                    row_str = f"{start_row + i:2d}: "
+                    row_str_plain = f"{start_row + i:2d}: "
+                    for j in range(tile_width):
+                        is_mismatch = tile_mismatches[i, j].item()
+                        if is_mismatch:
+                            golden_val = tile_golden[i, j].item()
+                            result_val = tile_result[i, j].item()
+                            abs_diff = abs(golden_val - result_val)
+
+                            if abs_diff > 0.5:
+                                symbol = f"{RED}█{RESET}"
+                                symbol_plain = "█"
+                            elif abs_diff > 0.1:
+                                symbol = f"{RED}▓{RESET}"
+                                symbol_plain = "▓"
+                            else:
+                                symbol = f"{YELLOW}░{RESET}"
+                                symbol_plain = "░"
+                        else:
+                            symbol = f"{GREEN}●{RESET}"
+                            symbol_plain = "●"
+
+                        row_str += symbol
+                        row_str_plain += symbol_plain
+                    print(row_str)
+                    output_lines.append(row_str_plain)
+
+                # Always show actual values for every tile (not just error tiles)
+                values_header = f"\n{CYAN}Actual values in this tile:{RESET}"
+                print(values_header)
+                output_lines.append("\nActual values in this tile:")
+
+                # Show a manageable subset of values for readability
+                # For 32x32 tiles, show corner samples + center + any mismatches
+                sample_positions = []
+
+                # Add corners
+                sample_positions.extend(
+                    [
+                        (0, 0),
+                        (0, min(4, tile_width - 1)),
+                        (min(4, tile_height - 1), 0),
+                        (min(4, tile_height - 1), min(4, tile_width - 1)),
+                    ]
+                )
+
+                # Add center if tile is large enough
+                if tile_height > 8 and tile_width > 8:
+                    center_row = tile_height // 2
+                    center_col = tile_width // 2
+                    sample_positions.extend(
+                        [
+                            (center_row, center_col),
+                            (center_row, center_col + 1),
+                            (center_row + 1, center_col),
+                            (center_row + 1, center_col + 1),
+                        ]
                     )
 
-                    # Column header
-                    col_header = "    "
-                    col_header_plain = "    "
-                    for j in range(0, tile_width, 4):  # Every 4th column
-                        local_col = start_col + j
-                        col_header += f"{local_col:>4d}"
-                        col_header_plain += f"{local_col:>4d}"
-                    print(col_header)
-                    output_lines.append(col_header_plain)
+                # Add all mismatches (but limit to prevent overflow)
+                mismatch_positions = []
+                for i in range(tile_height):
+                    for j in range(tile_width):
+                        if tile_mismatches[i, j].item():
+                            mismatch_positions.append((i, j))
 
-                    # Print tile pattern map
-                    for i in range(tile_height):
-                        row_str = f"{start_row + i:2d}: "
-                        row_str_plain = f"{start_row + i:2d}: "
-                        for j in range(tile_width):
-                            is_mismatch = tile_mismatches[i, j].item()
-                            if is_mismatch:
-                                golden_val = tile_golden[i, j].item()
-                                result_val = tile_result[i, j].item()
-                                abs_diff = abs(golden_val - result_val)
+                # Combine and deduplicate positions
+                all_positions = list(
+                    set(sample_positions + mismatch_positions[:20])
+                )  # Limit mismatches to 20
+                all_positions.sort()
 
-                                if abs_diff > 0.5:
-                                    symbol = f"{RED}█{RESET}"
-                                    symbol_plain = "█"
-                                elif abs_diff > 0.1:
-                                    symbol = f"{RED}▓{RESET}"
-                                    symbol_plain = "▓"
-                                else:
-                                    symbol = f"{YELLOW}░{RESET}"
-                                    symbol_plain = "░"
-                            else:
-                                symbol = f"{GREEN}●{RESET}"
-                                symbol_plain = "●"
+                if not all_positions:
+                    # If no specific positions, show a grid sample
+                    step_row = max(1, tile_height // 8)
+                    step_col = max(1, tile_width // 8)
+                    for i in range(0, tile_height, step_row):
+                        for j in range(0, tile_width, step_col):
+                            all_positions.append((i, j))
 
-                            row_str += symbol
-                            row_str_plain += symbol_plain
-                        print(row_str)
-                        output_lines.append(row_str_plain)
+                for i, j in all_positions:
+                    if i < tile_height and j < tile_width:
+                        golden_val = tile_golden[i, j].item()
+                        result_val = tile_result[i, j].item()
+                        global_row = start_row + i
+                        global_col = start_col + j
+                        is_mismatch = tile_mismatches[i, j].item()
 
-                    # Show some numerical examples for error tiles
-                    if error_rate > 5:
-                        samples_header = (
-                            f"\n{YELLOW}Sample mismatches in this tile:{RESET}"
+                        if is_mismatch:
+                            value_color = RED
+                            status_marker = "❌"
+                        else:
+                            value_color = GREEN
+                            status_marker = "✓"
+
+                        abs_diff = abs(golden_val - result_val)
+                        rel_diff = abs_diff / abs(golden_val) if golden_val != 0 else 0
+
+                        value_line = (
+                            f"  {value_color}[{global_row:2d},{global_col:3d}]: "
+                            f"golden={golden_val:8.4f}, result={result_val:8.4f}, "
+                            f"abs_diff={abs_diff:8.4f}, rel_diff={rel_diff:6.2%} {status_marker}{RESET}"
                         )
-                        print(samples_header)
-                        output_lines.append("\nSample mismatches in this tile:")
+                        value_line_plain = (
+                            f"  [{global_row:2d},{global_col:3d}]: "
+                            f"golden={golden_val:8.4f}, result={result_val:8.4f}, "
+                            f"abs_diff={abs_diff:8.4f}, rel_diff={rel_diff:6.2%} {status_marker}"
+                        )
+                        print(value_line)
+                        output_lines.append(value_line_plain)
 
-                        mismatch_count = 0
-                        for i in range(tile_height):
-                            for j in range(tile_width):
-                                if tile_mismatches[i, j].item():
-                                    golden_val = tile_golden[i, j].item()
-                                    result_val = tile_result[i, j].item()
-                                    global_row = start_row + i
-                                    global_col = start_col + j
-
-                                    sample_line = (
-                                        f"  [{global_row:2d},{global_col:3d}]: {golden_val:6.3f} → {result_val:6.3f} "
-                                        f"(diff: {abs(golden_val - result_val):6.3f})"
-                                    )
-                                    print(sample_line)
-                                    output_lines.append(sample_line)
-
-                                    mismatch_count += 1
-                                    if (
-                                        mismatch_count >= 5
-                                    ):  # Limit to 5 examples per tile
-                                        if tile_errors > 5:
-                                            remaining_line = f"  ... and {tile_errors - 5} more in this tile"
-                                            print(remaining_line)
-                                            output_lines.append(remaining_line)
-                                        break
-                            if mismatch_count >= 5:
-                                break
-                else:
-                    perfect_msg = f"  {GREEN}✓ Perfect tile - no errors{RESET}"
-                    print(perfect_msg)
-                    output_lines.append("  ✓ Perfect tile - no errors")
+                if len(mismatch_positions) > 20:
+                    remaining_line = f"  ... and {len(mismatch_positions) - 20} more mismatches in this tile"
+                    print(remaining_line)
+                    output_lines.append(remaining_line)
 
         footer = f"\n{CYAN}{'='*80}{RESET}"
         print(footer)
