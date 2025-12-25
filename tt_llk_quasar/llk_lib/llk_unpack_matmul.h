@@ -33,7 +33,7 @@ inline void _llk_unpack_matmul_mop_config_(std::uint8_t ct_dim, std::uint8_t rt_
     const bool reuse_a                = ct_dim >= rt_dim;
     constexpr uint32_t MOP_OUTER_LOOP = 1;
     const uint32_t MOP_INNER_LOOP     = reuse_a ? ct_dim : rt_dim;
-    static uint unpack_instrn;
+    uint unpack_instrn;
     // static uint inc_l1_instrn;
     static uint unpack_reuse_instrn;
 
