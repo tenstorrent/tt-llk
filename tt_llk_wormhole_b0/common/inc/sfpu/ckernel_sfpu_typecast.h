@@ -446,59 +446,6 @@ inline void _init_typecast_uint32_to_fp32_()
 }
 
 template <bool APPROXIMATION_MODE>
-inline void _init_typecast_uint32_to_fp32_()
-{
-    sfpi::vConstIntPrgm0 = -31;
-
-    constexpr int a = p_sfpu::LREG2;
-
-    // InstructionTemplate[0]
-    TTI_SFPSETSGN(0, 0, 12, 1); // SFPSETSGN_MOD1_ARG_IMM
-
-    // InstructionTemplate[1]
-    TTI_SFPCAST(a, 13, 0);
-
-    // InstructionTemplate[2]
-    TTI_SFPSHFT2(0, p_sfpu::LREG12, 14, 5); // SFPSHFT2_MOD1_SHFT_LREG
-
-    // InstructionTemplate[3]
-    TTI_SFPMAD(0, p_sfpu::LCONST_1, 0, 15, 4); // SFPMAD_MOD1_INDIRECT_VA
-
-    // Macro 0: [a]
-    {
-        constexpr uint simple_bits = 0x00 | 0x00 | (0 << 3) | (4 + 0);
-        constexpr uint mad_bits    = 0;
-
-        TTI_SFPCONFIG((mad_bits << 8) | simple_bits, 4 + 0, 1);
-    }
-    // Macro 1: [b]
-    {
-        constexpr uint simple_bits = 0x80 | 0x00 | (0 << 3) | (4 + 1);
-        constexpr uint mad_bits    = 0x00 | 0x40 | (2 << 3) | (4 + 3);
-
-        TTI_SFPCONFIG((mad_bits << 8) | simple_bits, 4 + 1, 1);
-    }
-    // Macro 2: [L7]
-    {
-        constexpr uint simple_bits = 0;
-        constexpr uint mad_bits    = 0;
-        constexpr uint round_bits  = 0x80 | 0x00 | (0 << 3) | (4 + 2);
-        constexpr uint store_bits  = 0x00 | 0x40 | (3 << 3) | 3;
-
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
-        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
-        TTI_SFPCONFIG(0, 4 + 2, 0);
-    }
-
-    // Misc: {
-    //   StoreMod0: FP32,
-    //   UsesLoadMod0ForStore: {0,0,0},
-    //   UnitDelayKind: {1,1,1}, (WaitForElapsedInstructions=1)
-    // }
-    TTI_SFPCONFIG(0x700 | InstrModLoadStore::FP32, 8, 1);
-}
-
-template <bool APPROXIMATION_MODE>
 inline void _init_typecast_int32_to_fp32_()
 {
     sfpi::vConstIntPrgm0 = -31;
