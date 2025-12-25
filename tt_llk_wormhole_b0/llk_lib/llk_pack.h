@@ -152,8 +152,9 @@ inline void _llk_pack_init_(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     llk_san::pack_operand_check(llk_san::IGNORE, llk_san::IGNORE, pack_dst_format, face_r_dim, llk_san::IGNORE, num_faces, partial_face, narrow_tile);
+    llk_san::operation_save<llk_san::operation_t::Pack>(untilize);
+
     // sstanisic todo: implement
-    // llk_san_init<llk_san_op::Pack>(untilize);
     // llk_san_must_uninit<llk_san_op::Pack>(); // lololol uninit doesn't exist
     // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::L1Offset, llk_san_cfg::AdcXX);
 
@@ -197,14 +198,18 @@ inline void _llk_pack_init_(
 
 inline void _llk_pack_uninit_(const std::uint32_t face_r_dim)
 {
+    // todo: sstanisic tag
+    // llk_san_pack_operand_check(llk_san_x, llk_san_x, llk_san_x, face_r_dim, llk_san_x, llk_san_x, llk_san_x, llk_san_x);
+    // llk_san_uninit<llk_san_op::Pack>();
+    // llk_san_extended_state_mask<true>(llk_san_cfg::AdcXX);
+
     TT_SETADCXX(p_setadc::PAC, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
 
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
-    // sstanisic todo: implement
-    // llk_san_operation<llk_san_op::Pack>(untilize);
+    llk_san::operation_check<llk_san::operation_t::Pack>(untilize);
 
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
