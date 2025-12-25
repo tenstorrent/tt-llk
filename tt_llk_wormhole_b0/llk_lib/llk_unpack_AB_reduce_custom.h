@@ -161,4 +161,5 @@ inline void _llk_unpack_AB_reduce_block_max_row_uninit_()
 {
     TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
     TTI_SETADCXX(p_setadc::UNP_AB, (FACE_R_DIM * FACE_C_DIM) - 1, 0x0);
+    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
 }

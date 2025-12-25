@@ -204,4 +204,5 @@ inline void _llk_unpack_untilize_uninit_()
         // Restore tile_descriptor y_dim to default (1)
         cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 0, 0xFFFF>(1);
     }
+    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
 }

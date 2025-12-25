@@ -283,4 +283,5 @@ inline void _llk_unpack_A_uninit_()
 {
     constexpr std::uint32_t UNP_SEL = (BType == BroadcastType::NONE) ? p_setadc::UNP_A : p_setadc::UNP_B;
     TTI_SETADCXX(UNP_SEL, FACE_SIZE - 1, 0x0);
+    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
 }

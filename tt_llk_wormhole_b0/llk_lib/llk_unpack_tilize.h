@@ -433,6 +433,7 @@ inline void _llk_unpack_tilize_uninit_(const std::uint32_t unpack_dst_format, co
         0,
         THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32,
         p_gpr_unpack::FACE_DIM_16x16); // GPR preloaded with  16 | (16 << 16)}
+    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
 }
 
 inline void _llk_unpack_tilizeA_B_uninit_(const std::uint32_t unpack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM)
@@ -459,6 +460,7 @@ inline void _llk_unpack_tilizeA_B_uninit_(const std::uint32_t unpack_dst_format,
         0,
         THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32,
         p_gpr_unpack::FACE_DIM_16x16); // GPR preloaded with  16 | (16 << 16)}
+    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
 }
 
 /*************************************************************************
@@ -554,6 +556,7 @@ inline void _llk_unpack_fast_tilize_uninit_()
     // reset all counters
     TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::XY));
     TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
+    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
 }
 
 inline void _llk_unpack_fast_tilize_block_(
