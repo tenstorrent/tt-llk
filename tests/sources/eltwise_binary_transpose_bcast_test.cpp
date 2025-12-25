@@ -26,19 +26,13 @@ void run_kernel()
     // Configure hardware for unpacking:
     // - srcA with transpose enabled
     // - srcB with column broadcast
-    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src,
-        formats.unpack_src,
-        formats.unpack_dst,
-        formats.unpack_dst,
-        FACE_R_DIM,
-        UNPACK_TRANSPOSE_WITHIN_FACE, // Enable within-face transpose for srcA
-        NUM_FACES);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
 
     // Initialize unpack with column broadcast on srcB and transpose on srcA
     _llk_unpack_AB_init_<BROADCAST_TYPE>(
         FACE_R_DIM,
-        NUM_FACES,
+        4 /* num_faces */,
         false,                   // narrow_tile
         UNPACK_TRANSPOSE_FACES); // Enable face rearrangement for srcA
 
@@ -63,8 +57,8 @@ void run_kernel()
 {
     // Initialize math for element-wise subtraction
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false /*untilize_en*/, false /*row_pool*/>(formats.math, formats.math);
-    _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE>(NUM_FACES, 0);
+    _llk_math_hw_configure_(formats.math, formats.math);
+    _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE>(4 /* num_faces */, 0);
 
     _llk_math_wait_for_dest_available_<dest_sync>();
 
@@ -72,7 +66,7 @@ void run_kernel()
     for (int i = 0; i < TILE_CNT; ++i)
     {
         _llk_math_eltwise_binary_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE, dest_sync, is_fp32_dest_acc_en>(
-            NUM_FACES, i /* dst_index */, false /* clear_fp32_dst_acc */);
+            4 /* num_faces */, i /* dst_index */, false /* clear_fp32_dst_acc */);
     }
 
     _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
@@ -94,12 +88,12 @@ void run_kernel()
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #endif
 
-    _llk_pack_init_<false /* untilize */, false /* zero_output */, DstTileFaceLayout::RowMajor, false /* write_tile_header */>(formats.pack_dst);
+    _llk_pack_init_<false /* untilize */, false /* zero_output */>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false /* untilize */>();
+    _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>();
 #endif
 
     _llk_packer_wait_for_math_done_();
