@@ -20,7 +20,8 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /*num_faces*/, 4 /*num_faces*/);
     _llk_unpack_A_init_<BroadcastType::NONE, false /*acc_to_dest*/, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0 /*transpose_of_faces*/, 0 /*within_face_16x16_transpose*/, FACE_R_DIM, 4 /*num_faces*/, formats.unpack_src, formats.unpack_dst);
     for (int i = 0; i < TILE_CNT; ++i)
@@ -44,7 +45,7 @@ void run_kernel()
 {
     const bool is_int_fpu_en = false;
 
-    _llk_math_hw_configure_<true, false>(formats.math, formats.math);
+    _llk_math_hw_configure_(formats.math, formats.math);
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4 /*num_faces*/, formats.math);
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
@@ -70,7 +71,7 @@ void run_kernel()
     const bool UNTILIZE = false;
 
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, FACE_R_DIM * FACE_C_DIM * TILE_NUM_FACES);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>();
     _llk_pack_rows_init_(NUM_ROWS_TO_PACK);
     _llk_packer_wait_for_math_done_();
 
