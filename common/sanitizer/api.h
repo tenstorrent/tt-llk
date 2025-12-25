@@ -13,9 +13,8 @@ namespace llk_san
 {
 
 // per thread state
-extern unpack_state_t unpack_state;
-extern math_state_t math_state;
-extern pack_state_t pack_state;
+extern hw_state_t hw_state;
+extern operation_state_t operation_state;
 
 // Goes in ComputeAPI
 // State set only
@@ -129,13 +128,12 @@ static inline void pack_operand_check(
 }
 
 // Goes in LLK_LIB in Init
-// Store operation type and push arguments to state stack
-// sstanisic todo: implement init_impl
-// template <llk_san_op op, typename... Ts>
-// static inline void init(Ts... args)
-// {
-//     init_impl<op, Ts...>(unpack_state, op, args...);
-// }
+// Store operation type and save arguments
+template <operation_t op, typename... Ts>
+static inline void operation_save(Ts... args)
+{
+    operation_save_impl<op, Ts...>(operation_state, args...);
+}
 
 // Set must uninit flag for operation
 // sstanisic todo: implement must_uninit_impl
@@ -147,12 +145,11 @@ static inline void pack_operand_check(
 
 // Goes in LLK_LIB in Execute
 // Check operation type and arguments against stored ones
-// sstanisic todo: implement operation_impl
-// template <llk_san_op op, typename... Ts>
-// static inline void llk_san_operation(Ts... args)
-// {
-//     llk_san_operation_impl<op, Ts...>(llk_san_state, op, args...);
-// }
+template <operation_t op, typename... Ts>
+static inline void operation_check(Ts... args)
+{
+    operation_check_impl<op, Ts...>(operation_state, args...);
+}
 
 // Goes in LLK_LIB in Uninit
 // Check operation type and clear must uninit flag
