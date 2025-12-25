@@ -201,15 +201,7 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
 
     llk_san::unpack_operand_check(
-        llk_san::IGNORE,
-        llk_san::IGNORE,
-        llk_san::IGNORE,
-        llk_san::IGNORE,
-        llk_san::IGNORE,
-        unpA_face_r_dim,
-        unpB_face_r_dim,
-        unpA_num_faces,
-        unpB_num_faces);
+        llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, unpA_face_r_dim, unpB_face_r_dim, unpA_num_faces, unpB_num_faces);
     llk_san::operation_save<llk_san::operation_t::UnpackABMatmul>(
         kernel_broadcast_a, kernel_broadcast_b, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face);
     // sstanisic todo: implement
