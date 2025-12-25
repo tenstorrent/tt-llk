@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <array>
+#include <cstring>
+#include <limits>
 #include <string>
 
 #include "llk_assert.h"
@@ -181,22 +184,134 @@ static inline void pack_operand_check_impl(
     LLK_SAN_ASSERT(state.narrow_tile, narrow_tile, "panic: llk_san: narrow_tile doesn't match state.narrow_tile");
 }
 
+template <typename... Ts>
+constexpr uint8_t _args_count()
+{
+    static_assert((sizeof...(Ts) <= std::numeric_limits<uint8_t>::max()), "llk_san: fault: argument count can't fit in uint8_t");
+
+    return static_cast<uint8_t>(sizeof...(Ts));
+}
+
+template <typename... Ts>
+constexpr std::array<uint8_t, sizeof...(Ts)> _args_sizeof()
+{
+    static_assert(((sizeof(Ts) <= std::numeric_limits<uint8_t>::max()) && ...), "llk_san: fault: sizeof can't fit in uint8_t");
+
+    return {static_cast<uint8_t>(sizeof(Ts))...};
+}
+
+template <typename... Ts>
+static inline constexpr std::array<uint8_t, sizeof...(Ts)> _args_alignof()
+{
+    static_assert(((alignof(Ts) <= std::numeric_limits<uint8_t>::max()) && ...), "llk_san: fault: alignof can't fit in uint8_t");
+
+    return {static_cast<uint8_t>(alignof(Ts))...};
+}
+
+template <size_t N>
+static inline constexpr std::array<size_t, N + 1> _args_offsetof(const std::array<uint8_t, N>& args_sizeof, const std::array<uint8_t, N>& args_alignof)
+{
+    std::array<size_t, N + 1> args_offset = {};
+
+    args_offset[0] = 0;
+    for (size_t i = 1; i < N; i++)
+    {
+        size_t align   = args_alignof[i];
+        size_t end     = args_offset[i - 1] + args_sizeof[i - 1];
+        size_t padding = (align - end % align) % align;
+        args_offset[i] = end + padding;
+    }
+
+    constexpr size_t max_align = alignof(max_align_t);
+    size_t final_end           = args_offset[N - 1] + args_sizeof[N - 1];
+    size_t final_padding       = (max_align - final_end % max_align) % max_align;
+    args_offset[N]             = final_end + final_padding;
+
+    return args_offset;
+}
+
 // Goes in LLK_LIB in Init
 // Store operation type and push arguments to state stack
-// sstanisic todo: implement init_impl
-// static inline void init_impl(Ts... args)
-// {
-//     LLK_ASSERT(false, "not implemented");
-// }
+template <operation_t op, typename... Ts>
+static inline void operation_save_impl(operation_state_t& state, Ts... args)
+{
+    state.operation = op;
+
+    constexpr uint8_t args_count = _args_count<Ts...>();
+
+    constexpr std::array<uint8_t, args_count> args_sizeof      = _args_sizeof<Ts...>();
+    constexpr std::array<uint8_t, args_count> args_alignof     = _args_alignof<Ts...>();
+    constexpr std::array<size_t, args_count + 1> args_offsetof = _args_offsetof(args_sizeof, args_alignof);
+
+    constexpr size_t entry_size = sizeof(args_count) + args_count * sizeof(args_sizeof[0]) + args_count * sizeof(args_alignof[0]) + args_offsetof[args_count];
+
+    static_assert(entry_size <= operation_state_t::BUFFER_SIZE, "llk_san: operation entry will overflow the buffer");
+
+    // | ARG_COUNT | SIZEOF(args[0]) ... | ALIGNOF(args[1]) ... | args[0] PADDING ... |
+
+    char* ptr = state.buffer;
+
+    memcpy(ptr, &args_count, sizeof(args_count));
+    ptr += sizeof(args_count);
+
+    if constexpr (args_count > 0)
+    {
+        memcpy(ptr, args_sizeof.data(), args_count * sizeof(args_sizeof[0]));
+        ptr += args_count * sizeof(args_sizeof[0]);
+
+        memcpy(ptr, args_alignof.data(), args_count * sizeof(args_alignof[0]));
+        ptr += args_count * sizeof(args_alignof[0]);
+    }
+
+    constexpr size_t max_align = alignof(max_align_t);
+    size_t padding             = (max_align - reinterpret_cast<uintptr_t>(ptr) % max_align) % max_align;
+    ptr += padding;
+
+    size_t i = 0;
+    (memcpy(ptr + args_offsetof[i++], &args, sizeof(args)), ...);
+}
 
 // Goes in LLK_LIB in Execute
 // Check operation type and arguments against stored ones
-// sstanisic todo: implement operation_impl
-// template <llk_san_op op, typename... Ts>
-// static inline void operation_impl(Ts... args)
-// {
-//     LLK_ASSERT(false, "not implemented");
-// }
+template <operation_t op, typename... Ts>
+static inline void operation_check_impl(operation_state_t& state, Ts... args)
+{
+    LLK_PANIC(state.operation != op, "llk_san: fault: operation type doesn't match stored operation");
+
+    constexpr uint8_t args_count = _args_count<Ts...>();
+
+    constexpr std::array<uint8_t, args_count> args_sizeof      = _args_sizeof<Ts...>();
+    constexpr std::array<uint8_t, args_count> args_alignof     = _args_alignof<Ts...>();
+    constexpr std::array<size_t, args_count + 1> args_offsetof = _args_offsetof(args_sizeof, args_alignof);
+
+    constexpr size_t entry_size = sizeof(args_count) + args_count * sizeof(args_sizeof[0]) + args_count * sizeof(args_alignof[0]) + args_offsetof[args_count];
+
+    static_assert(entry_size <= operation_state_t::BUFFER_SIZE, "llk_san: fault: operation entry will overflow the buffer");
+
+    // | ARG_COUNT | SIZEOF(args[0]) ... | ALIGNOF(args[1]) ... | args[0] PADDING ... |
+
+    char* ptr = state.buffer;
+
+    LLK_ASSERT(memcmp(&args_count, ptr, sizeof(args_count)) == 0, "llk_san: fault: saved vs provided args_count mismatch");
+    ptr += sizeof(args_count);
+
+    if constexpr (args_count > 0)
+    {
+        LLK_ASSERT(memcmp(args_sizeof.data(), ptr, args_count * sizeof(args_sizeof[0])) == 0, "llk_san: fault: saved vs provided args_sizeof mismatch");
+        ptr += args_count * sizeof(args_sizeof[0]);
+
+        LLK_ASSERT(memcmp(args_alignof.data(), ptr, args_count * sizeof(args_alignof[0])) == 0, "llk_san: fault: saved vs provided args_sizeof mismatch");
+        ptr += args_count * sizeof(args_alignof[0]);
+    }
+
+    constexpr size_t max_align = alignof(max_align_t);
+    size_t padding             = (max_align - reinterpret_cast<uintptr_t>(ptr) % max_align) % max_align;
+    ptr += padding;
+
+    // sstanisic fixme: remove the awful lambda
+    size_t i = 0;
+    ([&] { LLK_ASSERT(memcmp(ptr + args_offsetof[i++], &args, sizeof(args)) == 0, "llk_san: panic: saved vs provided args mismatch"); }(), ...);
+}
 
 // Goes in LLK_LIB in Uninit
 // Check operation type and clear must uninit flag
