@@ -209,8 +209,13 @@ static inline constexpr std::array<uint8_t, sizeof...(Ts)> _args_alignof()
 }
 
 template <size_t N>
-static inline constexpr std::array<size_t, N + 1> _args_offsetof(const std::array<uint8_t, N>& args_sizeof, const std::array<uint8_t, N>& args_alignof)
+constexpr std::array<size_t, N + 1> _args_offsetof(const std::array<uint8_t, N>& args_sizeof, const std::array<uint8_t, N>& args_alignof)
 {
+    if constexpr (N == 0)
+    {
+        return {0};
+    }
+
     std::array<size_t, N + 1> args_offset = {};
 
     args_offset[0] = 0;
@@ -261,14 +266,14 @@ static inline void operation_save_impl(operation_state_t& state, Ts... args)
 
         memcpy(ptr, args_alignof.data(), args_count * sizeof(args_alignof[0]));
         ptr += args_count * sizeof(args_alignof[0]);
+
+        constexpr size_t max_align = alignof(max_align_t);
+        size_t padding             = (max_align - reinterpret_cast<uintptr_t>(ptr) % max_align) % max_align;
+        ptr += padding;
+
+        size_t i = 0;
+        (memcpy(ptr + args_offsetof[i++], &args, sizeof(args)), ...);
     }
-
-    constexpr size_t max_align = alignof(max_align_t);
-    size_t padding             = (max_align - reinterpret_cast<uintptr_t>(ptr) % max_align) % max_align;
-    ptr += padding;
-
-    size_t i = 0;
-    (memcpy(ptr + args_offsetof[i++], &args, sizeof(args)), ...);
 }
 
 // Goes in LLK_LIB in Execute
@@ -302,15 +307,15 @@ static inline void operation_check_impl(operation_state_t& state, Ts... args)
 
         LLK_ASSERT(memcmp(args_alignof.data(), ptr, args_count * sizeof(args_alignof[0])) == 0, "llk_san: fault: saved vs provided args_sizeof mismatch");
         ptr += args_count * sizeof(args_alignof[0]);
+
+        constexpr size_t max_align = alignof(max_align_t);
+        size_t padding             = (max_align - reinterpret_cast<uintptr_t>(ptr) % max_align) % max_align;
+        ptr += padding;
+
+        // sstanisic fixme: remove the awful lambda
+        size_t i = 0;
+        ([&] { LLK_ASSERT(memcmp(ptr + args_offsetof[i++], &args, sizeof(args)) == 0, "llk_san: panic: saved vs provided args mismatch"); }(), ...);
     }
-
-    constexpr size_t max_align = alignof(max_align_t);
-    size_t padding             = (max_align - reinterpret_cast<uintptr_t>(ptr) % max_align) % max_align;
-    ptr += padding;
-
-    // sstanisic fixme: remove the awful lambda
-    size_t i = 0;
-    ([&] { LLK_ASSERT(memcmp(ptr + args_offsetof[i++], &args, sizeof(args)) == 0, "llk_san: panic: saved vs provided args mismatch"); }(), ...);
 }
 
 // Goes in LLK_LIB in Uninit
