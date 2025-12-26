@@ -187,6 +187,7 @@ class UnpackerA(Unpacker):
             f"        _llk_unpack_A_<{broadcast_type}, false, EltwiseBinaryReuseDestType::NONE, {unpack_to_dest}>(\n"
             f"            L1_ADDRESS(buffer_A{stage}[i]), unpack_a_src_format{stage}, unpack_a_dst_format{stage}\n"
             f"        );\n"
+            f"        _llk_unpack_set_srcb_dummy_valid_();\n"
             f"    }}\n\n"
         )
 

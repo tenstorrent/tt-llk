@@ -11,6 +11,7 @@ from .golden_generators import (  # TilizeGolden,
     DataCopyGolden,
     EltwiseBinaryGolden,
     MatmulGolden,
+    TransposeGolden,
     UnarySFPUGolden,
     get_golden_generator,
 )
@@ -47,9 +48,9 @@ class Fpu:
             )
 
             if operation_config.architecture == ChipArchitecture.BLACKHOLE:
-                code += f"    _llk_math_transpose_dest_<{dest_acc}, {transpose_faces}, {dest_acc}>(block_tile);"
+                code += f"        _llk_math_transpose_dest_<{dest_acc}, {transpose_faces}, {dest_acc}>(block_tile);\n"
             elif operation_config.architecture == ChipArchitecture.WORMHOLE:
-                code += f"    _llk_math_transpose_dest_<{transpose_faces}, {dest_acc}>(block_tile);"
+                code += f"        _llk_math_transpose_dest_<{transpose_faces}, {dest_acc}>(block_tile);\n"
             else:
                 raise ValueError("Transpose dest is not supported")
 
@@ -60,8 +61,43 @@ class Fpu:
     def exec(self, operation_config: "FusedOperation") -> str:
         return ""
 
-    def golden(self, operation_config: "FusedOperation") -> torch.Tensor:
-        return torch.Tensor()
+    def golden_fpu(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "FusedOperation",
+    ) -> torch.Tensor:
+        dest = self.golden(tensor_a, tensor_b, operation_config)
+
+        if self.transpose == Transpose.Yes:
+            transpose_generator = get_golden_generator(TransposeGolden)
+            dest = transpose_generator.transpose_within_faces_multi_tile(
+                dest,
+                operation_config.output.data_format,
+                operation_config.output.tile_count,
+                tilize=True,
+                untilize=True,
+                input_dimensions=operation_config.src_b.dimensions,
+            )
+            if self.transpose_faces == Transpose.Yes:
+                dest = transpose_generator.transpose_faces_multi_tile(
+                    dest,
+                    operation_config.output.data_format,
+                    operation_config.output.tile_count,
+                    tilize=True,
+                    untilize=True,
+                    input_dimensions=operation_config.src_b.dimensions,
+                )
+
+        return dest
+
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "FusedOperation",
+    ) -> torch.Tensor:
+        return tensor_a
 
     def get_headers(self) -> List[str]:
         return []
@@ -82,6 +118,7 @@ class MatmulFpu(Fpu):
         return [
             "llk_math_common.h",
             "llk_math_matmul.h",
+            "llk_math_transpose_dest.h",
         ]
 
     def golden(
@@ -147,6 +184,7 @@ class EltwiseFpu(Fpu):
         return [
             "llk_math_common.h",
             "llk_math_eltwise_binary.h",
+            "llk_math_transpose_dest.h",
         ]
 
     def golden(
@@ -201,6 +239,7 @@ class DatacopyFpu(Fpu):
         return [
             "llk_math_common.h",
             "llk_math_eltwise_unary_datacopy.h",
+            "llk_math_transpose_dest.h",
         ]
 
     def golden(
@@ -518,7 +557,7 @@ class Math:
         tensor_b: torch.Tensor,
         operation_config: "FusedOperation",
     ) -> torch.Tensor:
-        result = self.fpu.golden(tensor_a, tensor_b, operation_config)
+        result = self.fpu.golden_fpu(tensor_a, tensor_b, operation_config)
 
         for sfpu in self.sfpu:
             result = sfpu.golden(result, operation_config)
@@ -546,7 +585,7 @@ class Math:
             f"    const DstSync dest_sync{stage} = DstSync::Sync{operation_config.dest_sync.name};\n"
         )
         code += self.hw_configure(operation_config)
-        code += self.fpu.exec(operation_config)
+        code += self.fpu.exec_fpu(operation_config)
 
         for sfpu in self.sfpu:
             code += f"\n" f"{sfpu.exec(operation_config)}"
