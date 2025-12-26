@@ -74,6 +74,8 @@ void run_kernel(const volatile struct RuntimeParams*)
 
 #endif
 
+
+
 #ifdef LLK_TRISC_MATH
 
 #ifdef FORMAT_INT32
