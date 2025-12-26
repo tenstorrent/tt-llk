@@ -178,7 +178,7 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: ubuntu-latest
-      test_splits: 3
+      test_splits: 6
       pytest_markers: "quasar"
 
   perf-tests:
