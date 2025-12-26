@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import torch
-from helpers.llk_params import DataFormat
-from helpers.stimuli_generator import generate_stimuli
+from helpers.llk_params import DataFormat, format_dict
+from helpers.stimuli_generator import generate_random_face
 from helpers.tilize_untilize import tilize_block
 
 
@@ -43,15 +43,12 @@ class Operand:
                 f"Cannot generate data for operand '{self.name}' without dimensions and format"
             )
 
-        from helpers.stimuli_generator import generate_random_face
-        from helpers.llk_params import format_dict
-
         height, width = self.dimensions[0], self.dimensions[1]
         tile_count = (height // 32) * (width // 32)
-        
+
         faces_needed = tile_count * 4
         faces_data = []
-        
+
         for _ in range(faces_needed):
             face = generate_random_face(
                 stimuli_format=self.data_format,
@@ -62,9 +59,15 @@ class Operand:
                 negative_values=False,
             )
             faces_data.extend(face.tolist())
-        
-        dtype = format_dict[self.data_format] if self.data_format != DataFormat.Bfp8_b else torch.bfloat16
-        raw_data = torch.tensor(faces_data[:height * width], dtype=dtype).view(height, width)
+
+        dtype = (
+            format_dict[self.data_format]
+            if self.data_format != DataFormat.Bfp8_b
+            else torch.bfloat16
+        )
+        raw_data = torch.tensor(faces_data[: height * width], dtype=dtype).view(
+            height, width
+        )
 
         if self.data_format != DataFormat.Bfp8_b:
             tilized_data = tilize_block(
