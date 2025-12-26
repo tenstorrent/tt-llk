@@ -19,10 +19,44 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
 
 from .chip_architecture import ChipArchitecture
-from .llk_params import ApproximationMode, MathOperation
+from .llk_params import ApproximationMode, MathOperation, Transpose
 
 
 class Fpu:
+    transpose: Transpose = Transpose.No
+    transpose_faces: Transpose = Transpose.No
+
+    def __init__(self, transpose: Transpose, transpose_faces: Transpose):
+        self.transpose = transpose
+        self.transpose_faces = transpose_faces
+
+    def exec_fpu(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        dest_acc = operation_config.dest_acc.value
+        tile_cnt = operation_config.output.tile_count
+        transpose_faces = self.transpose_faces.value
+
+        code = self.exec(operation_config)
+
+        if self.transpose == Transpose.Yes:
+            code += (
+                f"    // Operation {stage}: Matmul FPU\n"
+                f"    _llk_math_transpose_dest_init_<{transpose_faces}, {dest_acc}>();\n"
+                f"    for (uint32_t block_tile = 0; block_tile < {tile_cnt}; block_tile++)\n"
+                f"    {{\n"
+            )
+
+            if operation_config.architecture == ChipArchitecture.BLACKHOLE:
+                code += f"    _llk_math_transpose_dest_<{dest_acc}, {transpose_faces}, {dest_acc}>(block_tile);"
+            elif operation_config.architecture == ChipArchitecture.WORMHOLE:
+                code += f"    _llk_math_transpose_dest_<{transpose_faces}, {dest_acc}>(block_tile);"
+            else:
+                raise ValueError("Transpose dest is not supported")
+
+            code += f"    }}\n\n"
+
+        return code
+
     def exec(self, operation_config: "FusedOperation") -> str:
         return ""
 
@@ -37,6 +71,13 @@ class Fpu:
 
 
 class MatmulFpu(Fpu):
+    def __init__(
+        self,
+        transpose: Transpose = Transpose.No,
+        transpose_faces: Transpose = Transpose.No,
+    ):
+        super().__init__(transpose, transpose_faces)
+
     def get_headers(self) -> List[str]:
         return [
             "llk_math_common.h",
@@ -89,7 +130,13 @@ class MatmulFpu(Fpu):
 
 
 class EltwiseFpu(Fpu):
-    def __init__(self, operation: MathOperation):
+    def __init__(
+        self,
+        operation: MathOperation,
+        transpose: Transpose = Transpose.No,
+        transpose_faces: Transpose = Transpose.No,
+    ):
+        super().__init__(transpose, transpose_faces)
         if not operation in MathOperation.get_fpu_binary_operations():
             raise ValueError(
                 f"Operation {operation} is not a valid FPU binary operation."
@@ -143,6 +190,13 @@ class EltwiseFpu(Fpu):
 
 
 class DatacopyFpu(Fpu):
+    def __init__(
+        self,
+        transpose: Transpose = Transpose.No,
+        transpose_faces: Transpose = Transpose.No,
+    ):
+        super().__init__(transpose, transpose_faces)
+
     def get_headers(self) -> List[str]:
         return [
             "llk_math_common.h",
