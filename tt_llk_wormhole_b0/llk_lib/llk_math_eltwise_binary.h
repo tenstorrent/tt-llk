@@ -65,6 +65,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
 #pragma GCC unroll 0
                 for (std::uint32_t n = 0; n < outerloop; n++)
                 {
+                    eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
                     ckernel_template::run();
                 }
                 TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
@@ -95,7 +96,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
             if constexpr (high_fidelity)
             {
 #pragma GCC unroll 0
-                for (std::uint32_t n = 0; n < 2; n++)
+                for (std::uint32_t n = 0; n < 1; n++)
                 {
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
                     if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
