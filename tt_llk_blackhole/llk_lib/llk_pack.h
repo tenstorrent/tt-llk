@@ -13,6 +13,7 @@
 #include "llk_assert.h"
 #include "llk_defs.h"
 #include "llk_pack_common.h"
+#include "sanitizer/api.h"
 
 using namespace ckernel;
 using namespace ckernel::packer;
@@ -328,6 +329,9 @@ inline void _llk_pack_reconfig_data_format_(
     const std::uint32_t num_tiles  = 1)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+
+    llk_san::pack_hw_configure<true>(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+
     reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, tile_size, face_r_dim, tile_c_dim, num_faces, partial_face);
 
     if constexpr (is_tile_dim_reconfig_en)
@@ -357,6 +361,9 @@ inline void _llk_pack_hw_configure_(
     const std::uint32_t relu_config = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+
+    llk_san::pack_hw_configure(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+
     configure_pack<is_fp32_dest_acc_en, untilize, tilize>(
         pack_src_format, pack_dst_format, tile_size, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, relu_config);
 }
@@ -373,6 +380,10 @@ inline void _llk_pack_init_(
     const std::uint32_t num_tiles  = 1)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+
+    llk_san::pack_operand_check(llk_san::IGNORE, llk_san::IGNORE, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+    llk_san::operation_save<llk_san::operation_t::Pack>();
+
     _llk_pack_configure_addrmod_<untilize, tilize>();
     _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, num_tiles);
 }
@@ -401,6 +412,9 @@ inline void _llk_pack_init_(
         LLK_ASSERT(num_tiles <= 8, "Max supported num_tiles for FLOAT16 or FLOAT16_B is 8.");
     }
 
+    llk_san::pack_operand_check(llk_san::IGNORE, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+    llk_san::operation_save<llk_san::operation_t::Pack>();
+
     // 8bit datums in the unpack src format are not affected by the blackhole issue,
     // so we can skip the workaround which involves unswizzling rows in the tile.
     if (skip_bh_tilize_workaround)
@@ -428,6 +442,8 @@ inline void _llk_pack_uninit_()
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
+    llk_san::operation_check<llk_san::operation_t::Pack>();
+
     set_dst_write_addr(tile_index);
 
     program_packer_destination(address);

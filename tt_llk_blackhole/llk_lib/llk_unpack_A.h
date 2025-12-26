@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "sanitizer/api.h"
 #include "llk_unpack_common.h"
 
 using namespace ckernel;
@@ -205,6 +206,20 @@ inline void _llk_unpack_A_init_(
     LLK_ASSERT(transpose_of_faces == 0 || face_r_dim == 16, "Partial faces are not supported for transpose datacopy, face_r_dim must be 16 rows");
     LLK_ASSERT(transpose_of_faces == 0 || num_faces == 4 || num_faces == 1, "Transpose requires num_faces == 4 or 1 (32x32 and 16x16 only)");
 
+    if constexpr (BType == BroadcastType::NONE)
+    {
+        llk_san::unpack_operand_check(
+            llk_san::IGNORE, unpack_src_format, llk_san::IGNORE, unpack_dst_format, llk_san::IGNORE, face_r_dim, llk_san::IGNORE, num_faces, llk_san::IGNORE);
+    }
+    else
+    {
+        // If using broadcast UnpackA uses UNP_B... yeah i know...
+        llk_san::unpack_operand_check(
+            llk_san::IGNORE, llk_san::IGNORE, unpack_src_format, llk_san::IGNORE, unpack_dst_format, llk_san::IGNORE, face_r_dim, llk_san::IGNORE, num_faces);
+    }
+    llk_san::operation_save<llk_san::operation_t::UnpackA>(BType, acc_to_dest, binary_reuse_dest, unpack_to_dest, unpack_src_format, unpack_dst_format);
+    // sstanisic todo: llk_san_extended_state_mask(llk_san_cfg::Transpose, llk_san_cfg::AdcXX, llk_san_cfg::Mop);
+
     // Set transpose register to prevent state pollution
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose);
 
@@ -247,6 +262,37 @@ template <
 inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpack_src_format = 0, const std::uint32_t unpack_dst_format = 0)
 {
     LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
+
+    if constexpr (BType == BroadcastType::NONE)
+    {
+        llk_san::unpack_operand_check(
+            llk_san::IGNORE,
+            unpack_src_format,
+            llk_san::IGNORE,
+            unpack_dst_format,
+            llk_san::IGNORE,
+            llk_san::IGNORE,
+            llk_san::IGNORE,
+            llk_san::IGNORE,
+            llk_san::IGNORE);
+    }
+    else
+    {
+        // If using broadcast UnpackA uses UNP_B... yeah i know...
+        llk_san::unpack_operand_check(
+            llk_san::IGNORE,
+            llk_san::IGNORE,
+            unpack_src_format,
+            llk_san::IGNORE,
+            unpack_dst_format,
+            llk_san::IGNORE,
+            llk_san::IGNORE,
+            llk_san::IGNORE,
+            llk_san::IGNORE);
+    }
+    llk_san::operation_check<llk_san::operation_t::UnpackA>(BType, acc_to_dest, binary_reuse_dest, unpack_to_dest, unpack_src_format, unpack_dst_format);
+
+
     // Clear z/w start counters
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 
