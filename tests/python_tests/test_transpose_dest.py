@@ -126,7 +126,7 @@ def transpose_dest(test_name, formats, dest_acc, math_transpose_faces, unpack_to
     if dest_acc == DestAccumulation.Yes and formats.input_format != DataFormat.Int32:
         pytest.skip("32-bit dest tests fail for Float formats due to bit No.11 issue.")
 
-    input_dimensions = [32, 32]
+    input_dimensions = [64, 64]
 
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format,
