@@ -28,7 +28,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
+        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+            L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }
     for (int i = 0; i < TILE_CNT; ++i)
     {
