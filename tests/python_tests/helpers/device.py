@@ -25,19 +25,12 @@ from ttexalens.tt_exalens_lib import (
     parse_elf,
     read_from_device,
     read_word_from_device,
-    write_words_to_device,
     write_to_device,
+    write_words_to_device,
 )
 
-from .llk_params import Mailbox, format_dict, DataFormat
-from .target_config import TestTargetConfig
-
 from .fused_operation import FusedOperation
-from .tilize_untilize import untilize_block
-from .unpack import unpack_res_tiles
-import torch
-
-from .llk_params import DestAccumulation, Mailbox, format_dict
+from .llk_params import DataFormat, Mailbox, format_dict
 from .pack import (
     pack_bfp8_b,
     pack_bfp16,
@@ -52,16 +45,7 @@ from .pack import (
 from .target_config import TestTargetConfig
 from .tilize_untilize import untilize_block
 from .unpack import (
-    unpack_bfp8_b,
-    unpack_bfp16,
-    unpack_fp16,
-    unpack_fp32,
-    unpack_int8,
-    unpack_int32,
     unpack_res_tiles,
-    unpack_uint8,
-    unpack_uint16,
-    unpack_uint32,
 )
 
 # Constant - indicates the TRISC kernel run status
@@ -406,14 +390,9 @@ def collect_pipeline_results(
             location, output_operand.l1_address, num_bytes=read_bytes_cnt
         )
 
-        from .format_config import InputOutputFormat
-
         res_from_L1 = unpack_res_tiles(
             read_data,
-            InputOutputFormat(
-                input_format=input_format,
-                output_format=output_format,
-            ),
+            output_format,
             tile_count=tile_cnt,
             sfpu=False,
             num_faces=operation.num_faces,
