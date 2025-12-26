@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_san.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -54,6 +55,13 @@ inline void _llk_unpack_untilize_mop_config_()
 
 inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, const std::uint32_t tile_size, const std::uint32_t face_r_dim = FACE_R_DIM)
 {
+    llk_san::unpack_operand_check(
+        llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, unpack_dst_format, llk_san::IGNORE, face_r_dim, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE);
+    llk_san::operation_save<llk_san::operation_t::UnpackUntilize>();
+    // sstanisic todo:: llk_san::must_uninit<llk_san_op::UnpackUntilize>(); // lololol uninit doesn't exist
+    // llk_san_extended_state_mask(llk_san_cfg::Transpose, llk_san_cfg::AdcXX, llk_san_cfg::CH1Strides, llk_san_cfg::TileDesc, llk_san_cfg::Mop); // GPRS not
+    // tracked here for now
+
     // Always include setup calls first for safety (as recommended by maintainer)
     // Disable transpose when unused
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
@@ -100,6 +108,8 @@ inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, co
 template <bool first_pass = true>
 inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const std::uint32_t block_tile_cols)
 {
+    llk_san::operation_check<llk_san::operation_t::UnpackUntilize>();
+
     std::uint32_t rem_blocks_in_row = block_tile_cols;
 
     // Program srcA and srcB base addresses
