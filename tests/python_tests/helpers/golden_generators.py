@@ -1455,6 +1455,7 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
                 MathOperation.SfpuElwadd: self._add,
                 MathOperation.SfpuElwsub: self._sub,
                 MathOperation.SfpuElwmul: self._mul,
+                MathOperation.SfpuElwmax: self._max,
                 MathOperation.SfpuXlogy: self._xlogy,
                 MathOperation.SfpuElwRightShift: self._right_shift,
                 MathOperation.SfpuElwLeftShift: self._left_shift,
@@ -1553,6 +1554,9 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
         return result
 
     # Operation methods are covered by Eltwise Binary Golden
+    def _max(self, t1, t2):
+        return torch.maximum(t1, t2).item()
+
     def _xlogy(self, x, y):
         # Unable to model edge cases for Tensix behavior in golden.
         # Tensix shows inconsistent patterns in handling non-finite results for xlogy, depending on the input,

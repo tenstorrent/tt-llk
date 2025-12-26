@@ -6,7 +6,8 @@ import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
-from helpers.llk_params import DestAccumulation, format_dict
+from helpers.golden_generators import BinarySFPUGolden, get_golden_generator
+from helpers.llk_params import DestAccumulation, MathOperation, format_dict
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
@@ -49,24 +50,23 @@ def sfpu_eltwise_max(test_name, formats, dest_acc, input_dimensions):
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    tile_size = 1024  # 32x32 elements per tile
-
-    # Convert to torch tensor for golden calculation
-    torch_format = format_dict[
+    # Use BinarySFPUGolden to generate golden result
+    # src1_idx=0 (tile 0), src2_idx=1 (tile 1), dst_idx=0, iterations=32 (full tile)
+    generate_golden = get_golden_generator(BinarySFPUGolden)
+    golden_tensor = generate_golden(
+        MathOperation.SfpuElwmax,
+        src_A,  # Contains tiles 0 and 1
+        0,  # src1_idx: use tile 0
+        1,  # src2_idx: use tile 1
+        0,  # dst_idx: write to tile 0
+        32,  # num_iterations: 32 rows (full tile)
+        input_dimensions,  # [64, 32] = 2 tiles
         (
-            formats.output_format
-            if formats.output_format != DataFormat.Bfp8_b
-            else DataFormat.Float16_b
-        )
-    ]
-    src_A_tensor = torch.tensor(src_A, dtype=torch_format)
-
-    # Split into two tiles
-    tile_0 = src_A_tensor[:tile_size]
-    tile_1 = src_A_tensor[tile_size : 2 * tile_size]
-
-    # Golden: elementwise max of the two tiles
-    golden_tensor = torch.maximum(tile_0, tile_1)
+            DataFormat.Float16_b
+            if formats.input_format == DataFormat.Bfp8_b
+            else formats.input_format
+        ),
+    ).flatten()
 
     unpack_to_dest = formats.input_format.is_32_bit()
 
@@ -99,14 +99,8 @@ def sfpu_eltwise_max(test_name, formats, dest_acc, input_dimensions):
     res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
 
     torch_format = format_dict[formats.output_format]
-    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)[
-        :tile_size
-    ]  # Only first tile has result
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format).flatten()
 
-    assert len(res_tensor) == len(
-        golden_tensor
-    ), f"Result length mismatch: got {len(res_tensor)}, expected {len(golden_tensor)}"
+    assert len(res_tensor) == len(golden_tensor)
 
-    assert passed_test(
-        golden_tensor, res_tensor, formats.output_format
-    ), f"Eltwise max test failed for format {formats.output_format}"
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
