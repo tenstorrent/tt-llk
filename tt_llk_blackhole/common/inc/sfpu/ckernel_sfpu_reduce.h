@@ -156,9 +156,13 @@ inline void perform_float_average()
     TTI_SFPMUL(p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
 }
 
-template <InstrModLoadStore INSTRUCTION_MODE>
+template <PoolType pool_type, InstrModLoadStore INSTRUCTION_MODE>
 inline void perform_reduce_col_sum_avg()
 {
+    // Determine if integer or float mode at compile time
+    constexpr bool is_integer_mode =
+        (INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::INT32_2S_COMP || INSTRUCTION_MODE == InstrModLoadStore::LO16);
+
     constexpr uint UPPER_FACE_ADDRS[NUM_FACES] = {0, 0, 16, 16};   // Face 0, 0, 1, 1
     constexpr uint LOWER_FACE_ADDRS[NUM_FACES] = {32, 32, 48, 48}; // Face 2, 2, 3, 3
     constexpr uint COLUMN_OFFSETS[NUM_FACES]   = {0, 2, 0, 2};     // even, odd, even, odd
@@ -212,22 +216,22 @@ inline void perform_reduce_row_sum_avg_tile(uint tile_row_offset)
 {
     constexpr uint LOAD_ROWS[8] = {0, 4, 8, 12, 16, 20, 24, 28};
     uint j                      = 0;
-    for (uint i = 0; i < NUM_FACES; i++)
+    for (uint i = 0; i < 1; i++)
     {
         uint load_row_offset_first = LOAD_ROWS[i + j];
         // load 4 rows of adjacent faces 0 and 1 or faces 2 and 3
         TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + load_row_offset_first);
         TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + load_row_offset_first + 2);
-        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + FACE_OFFSET + load_row_offset_first);
-        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + FACE_OFFSET + load_row_offset_first + 2);
+        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + ROWS_PER_FACE + load_row_offset_first);
+        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + ROWS_PER_FACE + load_row_offset_first + 2);
 
         j++;
         uint load_row_offset_second = LOAD_ROWS[i + j];
         // load next 4 rows of adjacent faces 0 and 1 or faces 2 and 3
         TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + load_row_offset_second);
-        TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + load_row_offset_second + 2)
-        TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + FACE_OFFSET + load_row_offset_second);
-        TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + FACE_OFFSET + load_row_offset_second + 2);
+        TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + load_row_offset_second + 2);
+        TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + ROWS_PER_FACE + load_row_offset_second);
+        TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + ROWS_PER_FACE + load_row_offset_second + 2);
 
         // perform sum of loaded rows, lreg0 contains sum of tile's first 4 rows, lreg4 contains sum of next 4 rows
         lltt::replay(0, 6);
@@ -642,7 +646,7 @@ template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTIO
 inline void calculate_reduce_sum_avg(uint num_columns, uint num_rows)
 {
     // Compile-time assertions to restrict to currently supported operations
-    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported on SFPU");
+    static_assert(reduce_dim == REDUCE_COL || reduce_dim == REDUCE_ROW, "Only column and row reduction are supported on SFPU");
     static_assert(pool_type == SUM || pool_type == AVG, "Only SUM and AVG pool types are currently supported on SFPU");
 
     // Determine if integer or float mode at compile time
@@ -654,7 +658,7 @@ inline void calculate_reduce_sum_avg(uint num_columns, uint num_rows)
 
     if constexpr (reduce_dim == REDUCE_COL)
     {
-        perform_reduce_col_sum_avg<INSTRUCTION_MODE>();
+        perform_reduce_col_sum_avg<pool_type, INSTRUCTION_MODE>();
     }
     else
     {
@@ -724,7 +728,7 @@ inline void _init_reduce_(uint32_t block_ct_dim = 1)
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
 inline void _calculate_reduce_(uint32_t block_rt_dim = 1, uint32_t block_ct_dim = 1)
 {
-    static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
+    static_assert(reduce_dim == REDUCE_COL || pool_type == PoolType::SUM, "Only column reduction (REDUCE_COL) is currently supported");
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
 
     // Determine InstrModLoadStore based on format in dst register and pool_type
