@@ -28,6 +28,7 @@ from ttexalens.tt_exalens_lib import (
     write_to_device,
     write_words_to_device,
     write_to_device,
+    write_words_to_device,
 )
 
 from .fused_operation import FusedOperation
