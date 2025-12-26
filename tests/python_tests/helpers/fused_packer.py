@@ -28,14 +28,14 @@ class Packer:
 
     def hw_configure(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
-        tilize = operation_config.bh_tilize.value
+        bh_tilize = "true" if operation_config.bh_tilize.value else "false"
         dest_acc = operation_config.dest_acc.value
         pack_size = operation_config.tile_size_pack
 
         if stage == 0:
             if operation_config.architecture == ChipArchitecture.BLACKHOLE:
                 code = (
-                    f"    _llk_pack_hw_configure_<{dest_acc}, false, {tilize}>(\n"
+                    f"    _llk_pack_hw_configure_<{dest_acc}, false, {bh_tilize}>(\n"
                     f"        pack_in_format{stage}, pack_out_format{stage}, {pack_size}\n"
                     f"    );\n"
                 )
@@ -64,7 +64,7 @@ class Packer:
         dest_acc = operation_config.dest_acc
         dest_acc_value = dest_acc.value
         buffer_Res_tile_size = operation_config.buffer_Res_tile_size
-        bh_tilize = operation_config.bh_tilize.value
+        bh_tilize = "true" if operation_config.bh_tilize.value else "false"
 
         code = (
             f"    // Operation {stage}: Packer\n"
