@@ -9,12 +9,7 @@
 #include <type_traits>
 #include <utility>
 
-#ifndef FUSED_TEST
 #include "build.h"
-#else
-constexpr bool UNPACKING_TO_DEST = false;
-#endif // FUSED_TEST
-
 #include "tensix_types.h"
 
 #if (defined(ARCH_WORMHOLE) + defined(ARCH_BLACKHOLE) + defined(ARCH_QUASAR)) != 1

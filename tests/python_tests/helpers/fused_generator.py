@@ -147,7 +147,6 @@ class FusedKernelGenerator:
             f'#include "ckernel_sfpu.h"\n'
             f'#include "tensix_types.h"\n'
             f'#include "operand.h"\n'
-            f'#include "data_format_inference.h"\n'
             f"\n"
             f"uint32_t unp_cfg_context          = 0;\n"
             f"uint32_t pack_sync_tile_dst_ptr   = 0;\n"
