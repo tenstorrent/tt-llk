@@ -109,7 +109,6 @@ def test_reduce_quasar(
         )
 
     mathop = mathop_mapping[reduce_dim]
-
     test_config = {
         "formats": formats,
         "testname": test_name,
