@@ -12,12 +12,12 @@ on:
         required: true
         type: string
       pytest_markers:
-        description: "Pytest mark expression to select/deselect tests (e.g., 'not perf', 'nightly or not perf')"
+        description: "Pytest mark expression to select which tests to compile (e.g., 'not perf', 'nightly or not perf')"
         required: false
         default: "quasar"
         type: string
       timeout_minutes:
-        description: "Timeout in minutes for the test job"
+        description: "Timeout in minutes for the build job"
         required: false
         default: 80
         type: number
@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: ${{ inputs.timeout_minutes }}
     container:
       image: harbor.ci.tenstorrent.net/${{ inputs.docker_image }}
-      options: "--rm --device /dev/tenstorrent --ulimit nofile=4096:4096"
+
     name: "🦄 Compile for Quasar"
     steps:
       # Step 1: Checkout the repository
@@ -71,3 +71,14 @@ jobs:
             ${{ (contains(inputs.pytest_markers, 'perf') && !contains(inputs.pytest_markers, 'not perf'))
                 && 'perf-' || '' }}junit-report-quasar-compile
           path: tests/python_tests/pytest-report-quasar-compile.xml
+
+      # Step 5: Publish Test Results
+      - name: Publish Test Results
+        if: always()
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: tests/python_tests/pytest-report-quasar-compile.xml
+          check_name: Quasar Compile Tests
+          detailed_summary: true
+          include_passed: true
+          fail_on_failure: false
