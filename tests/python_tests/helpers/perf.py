@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
 import os
-import shutil
+import re
 from dataclasses import fields, is_dataclass
 from enum import Enum
 from pathlib import Path
@@ -11,6 +11,7 @@ from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
 import pytest
+from helpers.chip_architecture import get_chip_architecture
 from helpers.device import (
     BootMode,
     reset_mailboxes,
@@ -19,6 +20,7 @@ from helpers.device import (
 )
 from helpers.profiler import Profiler, ProfilerData
 from helpers.test_config import ProfilerBuild, build_test
+from helpers.utils import run_shell_command
 
 
 class PerfRunType(Enum):
@@ -225,16 +227,17 @@ def perf_report(request):
 
     test_module = request.path.stem
 
-    delete_benchmark_dir(test_module)
     try:
         yield report
     except Exception as e:
         print("Perf: Unexpected error, Saving report anyway", e)
 
-    dump_csv(test_module, f"{test_module}.csv", report)
-
     post = _postprocess_report(report)
-    dump_csv(test_module, f"{test_module}.post.csv", post)
+
+    benchmark_dir = get_benchmark_dir(test_module)
+
+    dump_csv(benchmark_dir, f"{test_module}.csv", report)
+    dump_csv(benchmark_dir, f"{test_module}.post.csv", post)
     # dump_scatter(test_module, post)
 
 
@@ -295,30 +298,6 @@ def update_report(report: PerfReport, test_config, results):
     report.append(combined)
 
 
-def delete_benchmark_dir(testname: str):
-    root = os.environ.get("LLK_HOME")
-    if not root:
-        raise AssertionError("Environment variable LLK_HOME is not set")
-
-    path = Path(root) / "perf_data" / testname
-
-    if path.exists() and path.is_dir():
-        shutil.rmtree(path)
-
-
-def get_benchmark_dir(testname: str) -> Path:
-    root = os.environ.get("LLK_HOME")
-    if not root:
-        raise AssertionError("Environment variable LLK_HOME is not set")
-
-    path = Path(root) / "perf_data" / testname
-
-    if not path.exists():
-        path.mkdir(parents=True, exist_ok=True)
-
-    return path
-
-
 # Common postprocessing
 
 
@@ -356,8 +335,7 @@ def _postprocess_report(report: PerfReport) -> PerfReport:
     return PerfReport().append(frame)
 
 
-def dump_csv(testname: str, filename: str, post_report: PerfReport):
-    benchmark_dir = get_benchmark_dir(testname)
+def dump_csv(benchmark_dir: Path, filename: str, post_report: PerfReport):
     output_path = benchmark_dir / filename
     post_report.frame().to_csv(output_path, index=False)
 
@@ -416,3 +394,56 @@ def dump_scatter(testname: str, report: PerfReport):
     )
 
     fig.write_html(str(output_path))
+
+
+# directory management
+
+
+def _git_rev_parse(revision: str) -> str:
+    root = os.environ.get("LLK_HOME")
+    if not root:
+        raise AssertionError("Environment variable LLK_HOME is not set")
+
+    sha = run_shell_command(f"git rev-parse {revision}", root).stdout.strip()
+    return _verify_sha1(sha)
+
+
+def _git_commit_hash() -> str:
+    return _git_rev_parse("HEAD")
+
+
+def _get_iter_id(test_path: Path) -> str:
+    if not test_path.exists():
+        test_path.mkdir(parents=True, exist_ok=True)
+
+    children = [child for child in test_path.iterdir()]
+    numeric = [child.name for child in children if child.name.isnumeric()]
+    max_id = max(map(int, numeric), default=0)
+
+    return str(max_id + 1)
+
+
+def get_benchmark_dir(test_name: str) -> Path:
+    root = os.environ.get("LLK_HOME")
+    if not root:
+        raise AssertionError("Environment variable LLK_HOME is not set")
+
+    arch = str(get_chip_architecture())
+    commit_hash = _git_commit_hash()
+    test_dir = Path(root) / "perf_data" / arch / commit_hash / test_name
+    iter_id = _get_iter_id(test_dir)
+    path = test_dir / iter_id
+
+    if not path.exists():
+        path.mkdir(parents=True, exist_ok=False)
+
+    return path
+
+
+def _verify_sha1(hash: str) -> str:
+    SHA1_REGEX = r"[0-9a-fA-F]{40}"
+
+    if not re.fullmatch(SHA1_REGEX, hash):
+        raise ValueError(f"Expected SHA1, got {hash}")
+
+    return hash
