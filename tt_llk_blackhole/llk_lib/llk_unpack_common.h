@@ -12,6 +12,7 @@
 #include "cunpack_common.h"
 #include "llk_assert.h"
 #include "llk_memory_checks.h"
+#include "sanitizer/api.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -64,7 +65,7 @@ inline void _llk_unpack_hw_configure_(
         unpA_face_r_dim,
         unpB_face_r_dim,
         unpA_num_faces,
-        unpB_num_faces)
+        unpB_num_faces);
 
     configure_unpack_AB<is_fp32_dest_acc_en, false, false, false, disable_src_zero_flag>(
         unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, unpA_face_r_dim, unpB_face_r_dim, 0, unpA_num_faces, unpB_num_faces);
