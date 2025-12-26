@@ -53,11 +53,11 @@ def test_sfpu_eltwise_max(
 
     # DEBUG
 
-    tile_0 = torch.ones(1024, dtype=torch_format) * 5
-    for i in range(16):
-        tile_0[i] = i
+    # tile_0 = torch.ones(1024, dtype=torch_format) * 5
+    # for i in range(16):
+    #     tile_0[i] = i
 
-    tile_1 = torch.ones(1024, dtype=torch_format) * 3
+    # tile_1 = torch.ones(1024, dtype=torch_format) * 3
 
     # Tilize inputs for hardware
     tile_0_tilized = tilize(tile_0)

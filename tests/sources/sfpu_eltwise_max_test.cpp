@@ -79,6 +79,9 @@ void run_kernel()
     constexpr int ITERATIONS = 4;
 
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
+
+    ckernel::sfpu::_initialize_max_();
+
     ckernel::sfpu::_calculate_max_<APPROX_MODE, ITERATIONS>(ITERATIONS); // ITERATIONS=32 for 32 rows with sfpi stride
     _llk_math_eltwise_unary_sfpu_done_();
 
