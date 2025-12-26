@@ -480,6 +480,8 @@ class Math:
             code = f"    _llk_math_hw_configure_(math_format{stage}, math_format{stage});\n"
         else:
             code = f"    _llk_math_reconfig_data_format_<{dest_acc}, false>(math_format{stage}, math_format{stage});\n"
+        if operation_config.architecture == ChipArchitecture.BLACKHOLE:
+            code += f"    _llk_math_reconfig_remap_(true);\n"
 
         code += f"    _llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n\n"
 

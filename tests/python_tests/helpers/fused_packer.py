@@ -176,7 +176,7 @@ class PackerUntilize(Packer):
         stage = operation_config.stage_id
         architecture = operation_config.architecture
         if architecture == ChipArchitecture.BLACKHOLE:
-            return f"    _llk_pack_untilize_uninit_(pack_src_format{stage})\n\n"
+            return f"    _llk_pack_untilize_uninit_(pack_src_format{stage});\n\n"
         else:
             return "\n"
 
@@ -193,7 +193,7 @@ class PackerUntilize(Packer):
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
             code = (
                 f"    _llk_pack_untilize_init_<{block_ct_dim}, {full_ct_dim}, false, false, TILE_C_DIM>(\n"
-                f"        pack_src_format{stage}, pack_dst_format{stage}, {face_r_dim}, {num_faces}, false\n"
+                f"        pack_src_format{stage}, pack_dst_format{stage}, {face_r_dim}, {num_faces}\n"
                 f"    );\n"
                 f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}>();\n"
             )
