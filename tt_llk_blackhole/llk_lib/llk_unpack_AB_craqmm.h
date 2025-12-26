@@ -43,7 +43,7 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
             // === Context 0 ===
             // Wait for context available
             t6_semaphore_wait_on_zero<p_stall::STALL_UNPACK>(semaphore::UNPACK_SYNC);
-            
+
             // Unpack SrcA (in1/inB)
             TTI_UNPACR(SrcA, 0b00000000, 0, 0, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
 
@@ -67,7 +67,7 @@ inline void _llk_unpack_AB_craqmm_mop_config_(const bool unpB_partial_face)
             // === Context 1 ===
             // Wait for context available
             t6_semaphore_wait_on_zero<p_stall::STALL_UNPACK>(semaphore::UNPACK_SYNC);
-            
+
             // Unpack SrcA (in1/inB)
             TTI_UNPACR(SrcA, 0b00000000, 0, 1, 0, 1 /*Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0 /* Set ContextIdInc */, 0, 0, 1);
 
@@ -209,11 +209,11 @@ inline void _llk_unpack_AB_craqmm_(
 
     // Need to reset counters and update SrcB base address for each superloop over 128 kt_dim
     // I guess its due to some counters being overflowed
-    for (std::uint32_t i = 0; i < kt_dim; i+=128)
+    for (std::uint32_t i = 0; i < kt_dim; i += 128)
     {
         std::uint32_t superloop_kt_dim = kt_dim - i > 128 ? 128 : kt_dim - i;
-        std::uint32_t num_loops    = superloop_kt_dim / 16;
-        std::uint32_t remaining_kt = superloop_kt_dim % 16;
+        std::uint32_t num_loops        = superloop_kt_dim / 16;
+        std::uint32_t remaining_kt     = superloop_kt_dim % 16;
 
         // Wait for all contexts to be free
         wait_for_next_context(1);
@@ -228,7 +228,7 @@ inline void _llk_unpack_AB_craqmm_(
         for (std::uint32_t j = 0; j < num_loops; j++)
         {
             TTI_MOP(0, 15, 0xAAAA);
-    #pragma GCC unroll 8
+#pragma GCC unroll 8
             for (std::uint32_t k = 0; k < 8; k++)
             {
                 wait_for_next_context(2);
