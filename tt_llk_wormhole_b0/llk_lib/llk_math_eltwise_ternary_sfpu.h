@@ -24,6 +24,16 @@ inline void eltwise_ternary_sfpu_configure_addrmod()
         .dest = {.incr = 0},
     }
         .set(ADDR_MOD_7);
+
+    if (sfpu_op == SfpuType::where)
+    {
+        addr_mod_t {
+            .srca = {.incr = 0},
+            .srcb = {.incr = 0},
+            .dest = {.incr = 2},
+        }
+            .set(ADDR_MOD_6);
+    }
 }
 
 inline void eltwise_ternary_sfpu_configure_mop();
@@ -31,7 +41,7 @@ inline void eltwise_ternary_sfpu_configure_mop();
 template <DstSync Dst>
 inline void _llk_math_eltwise_ternary_sfpu_start_(const uint dst_index)
 {
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
     math::set_addr_mod_base();
     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);

@@ -68,6 +68,7 @@ enum class SfpuType
     requant_int32,
     dequant_int32,
     add_int32,
+    mul_int32,
     add1,
     topk_local_sort,
     topk_merge,
@@ -103,4 +104,6 @@ enum class SfpuType
     asinh,
     acosh,
     reduce,
+    add_top_row,
+    typecast,
 };

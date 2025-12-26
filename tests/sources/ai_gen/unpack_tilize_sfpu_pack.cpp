@@ -20,11 +20,12 @@ uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_tilize.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     // Configure unpack for tilize operation (row-major input -> tiled format)
     // This handles both A and B inputs which need to be tilized before binary ops
-    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
     _llk_unpack_tilize_init_(formats.unpack_src, formats.unpack_dst, BLOCK_CT_DIM, FACE_R_DIM, false);
 
     // Unpack and tilize single tile A (stored in src A register - index 0)
@@ -45,17 +46,17 @@ void run_kernel()
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     // Initialize datacopy operation (copy src A to dest)
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(4, formats.math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(0, 0, 4, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(4, formats.math);
 #endif
 
     _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+    _llk_math_hw_configure_(formats.math, formats.math);
 
     // Wait for destination to be available
     _llk_math_wait_for_dest_available_<DST_SYNC>();
@@ -85,7 +86,7 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     // Configure packer hardware for standard pack (no untilize)
     const bool UNTILIZE = false;
@@ -93,12 +94,12 @@ void run_kernel()
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats.pack_dst);
-    _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_init_<UNTILIZE, false, TILIZE>(formats.pack_dst);
+    _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
-    _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+    _llk_pack_init_<UNTILIZE, false>(formats.pack_dst);
+    _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en, UNTILIZE>();
 #endif
 
     // Pack the single result tile from destination register to output buffer

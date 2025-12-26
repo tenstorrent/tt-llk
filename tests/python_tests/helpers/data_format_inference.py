@@ -57,6 +57,10 @@ def infer_unpack_out(
     Returns the output format for the unpacker (data format config for registers)
     based on the input format in L1 and whether unpacking targets the source or destination register.
 
+    Note:
+        For Quasar, the unpacker can perform data conversions, but for now only conversions performed by the packer are tested.
+        For Quasar, the conditions determining which format Float32 truncates to are designed to minimize exponent mixing, but are not a hardware limitation.
+
     Args:
         input_format: The data format currently stored in L1 cache
         output_format: The final desired output format
@@ -106,6 +110,27 @@ def infer_pack_in(
         chip_arch = get_chip_architecture()
 
     is_wormhole = chip_arch == ChipArchitecture.WORMHOLE
+    is_quasar = chip_arch == ChipArchitecture.QUASAR
+
+    if is_quasar:
+        if (
+            input_format in (DataFormat.Float16, DataFormat.Float16_b)
+            and output_format == DataFormat.Float32
+            and is_fp32_dest_acc_en == DestAccumulation.No
+        ):
+            # When the dest register is in 32-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is valid
+            # because pack_in=pack_out=Fp32, which is a supported packer conversion.
+            # When dest register is in 16-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is not valid
+            # because pack_in=Fp16/16_b and pack_out=Fp32, which is not a supported packer conversion.
+            raise ValueError(
+                "Quasar packer does not support {input_format.name} to Float32 conversion when the dest register is in 16-bit mode"
+            )
+        # When the dest register is in 32-bit mode, the packer input format is 32-bit
+        return (
+            DataFormat.Float32
+            if is_fp32_dest_acc_en == DestAccumulation.Yes
+            else input_format
+        )
 
     # Wormhole + FP32 dest reg datums + Float16 output: keep Float32 for packer input for conversion to desired output format
     if (
@@ -176,8 +201,6 @@ def infer_data_formats(
     Returns:
         FormatConfig struct containing all formats (with same_src_format=True, so A and B formats match)
     """
-    if chip_arch is None:
-        chip_arch = get_chip_architecture()
 
     # Determine the intermediate formats
     unpack_out = infer_unpack_out(
@@ -240,6 +263,7 @@ def data_formats(
     num_iterations: int,
     unpacking_to_dest: bool = False,
     chip_arch: Optional[ChipArchitecture] = None,
+    disable_format_inference: bool = False,
 ) -> List[FormatConfig]:
     """
     Entry point for computing a list of FormatConfig objects.
@@ -254,16 +278,15 @@ def data_formats(
         num_iterations: The number of pipeline runs (iterations), determines list length
         unpacking_to_dest: Whether unpacking targets the destination register (default: False)
         chip_arch: The chip architecture (Wormhole or Blackhole). If None, will be detected automatically.
+        disable_format_inference: When True, disables automatic data format inference and conversions, ensuring input formats are the same in dest.
+                                  Used for testing specific math kernels with explicit format requirements.
 
     Returns:
         A list of FormatConfig objects of length num_iterations
     """
 
-    if chip_arch is None:
-        chip_arch = get_chip_architecture()
-
-    if chip_arch == ChipArchitecture.QUASAR:
-        # Data Format Inference is not supported for Quasar architecture, so we return a single FormatConfig where all formats are the same.
+    if disable_format_inference:
+        # Return a single FormatConfig where all formats are the same if format inference is disabled or not supported for the architecture
         return [
             FormatConfig(
                 unpack_A_src=input_format,

@@ -62,7 +62,6 @@ validate_directories() {
     local dirs_to_check=(
         "$ROOT_DIR/tests"
         "$ROOT_DIR/$ARCH_LLK_ROOT"
-        "$ROOT_DIR/tests/firmware/riscv/common"
     )
 
     for dir in "${dirs_to_check[@]}"; do
@@ -118,6 +117,8 @@ generate_compile_flags() {
     echo "Generating compile_flags.txt for $CHIP_ARCH architecture..."
 
     cat > "$ROOT_DIR/compile_flags.txt" <<EOF
+-DENV_LLK_INFRA
+
 -D$ARCH_DEFINE
 -DTENSIX_FIRMWARE
 -DCOMPILE_FOR_TRISC
@@ -129,6 +130,8 @@ generate_compile_flags() {
 -DLLK_TRISC_MATH
 -DLLK_TRISC_PACK
 
+-DENABLE_LLK_ASSERT
+
 -isystem
 $ROOT_DIR/tests/sfpi/compiler/lib/gcc/riscv-tt-elf/15.1.0/include/
 -isystem
@@ -139,7 +142,6 @@ $ROOT_DIR/tests/sfpi/compiler/riscv-tt-elf/include/c++/15.1.0
 $ROOT_DIR/tests/sfpi/compiler/riscv-tt-elf/include/c++/15.1.0/riscv-tt-elf
 -isystem
 $ROOT_DIR/tests/sfpi/include
--I$ROOT_DIR/tests/firmware/riscv/common
 -I$ROOT_DIR/tests/hw_specific/$CHIP_ARCH/inc
 -I$ROOT_DIR/$ARCH_LLK_ROOT/common/inc
 -I$ROOT_DIR/$ARCH_LLK_ROOT/common/inc/sfpu

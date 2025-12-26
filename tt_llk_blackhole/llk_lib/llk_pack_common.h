@@ -10,6 +10,7 @@
 #include "ckernel_defs.h"
 #include "ckernel_ops.h"
 #include "cpack_common.h"
+#include "llk_assert.h"
 #include "llk_defs.h"
 
 using namespace ckernel;
@@ -56,10 +57,12 @@ inline void _llk_pack_dest_section_done_()
     }
 }
 
-template <DstSync Dst, DstTileFaceLayout FaceLayout>
+template <DstSync Dst>
 inline void _llk_init_packer_dest_offset_registers_(
     [[maybe_unused]] const std::uint32_t face_r_dim = FACE_R_DIM, [[maybe_unused]] const bool narrow_tile = false)
 {
+    LLK_ASSERT(face_r_dim == FACE_R_DIM, "face_r_dim: this parameter is unused");
+    LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
     TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK); // wait for pack to finish
 
     // RowMajor order
@@ -70,12 +73,12 @@ inline void _llk_init_packer_dest_offset_registers_(
     select_packer_dest_registers<Dst>();
 }
 
-template <DstSync Dst, bool is_fp32_dest_acc_en, DstTileFaceLayout FaceLayout = RowMajor>
+template <DstSync Dst, bool is_fp32_dest_acc_en>
 inline void _llk_pack_dest_init_(const std::uint32_t face_r_dim = FACE_R_DIM, const bool narrow_tile = false)
 {
     tensix_sync();
     reset_dest_offset_id();
-    _llk_init_packer_dest_offset_registers_<Dst, FaceLayout>(face_r_dim, narrow_tile);
+    _llk_init_packer_dest_offset_registers_<Dst>(face_r_dim, narrow_tile);
     packer_addr_counter_init();
     pack_sync_tile_dst_ptr = 0;
 }

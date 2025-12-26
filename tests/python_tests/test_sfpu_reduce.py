@@ -2,14 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-import pytest
 import torch
-from helpers.device import (
-    collect_results,
-    write_stimuli_to_l1,
+from helpers.format_config import DataFormat, InputOutputFormat
+from helpers.golden_generators import (
+    UnarySFPUGolden,
+    get_golden_generator,
 )
-from helpers.format_config import DataFormat
-from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
@@ -21,9 +19,15 @@ from helpers.param_config import (
     input_output_formats,
     parametrize,
 )
-from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import run_test
-from helpers.tilize_untilize import untilize
+from helpers.stimuli_config import StimuliConfig
+from helpers.test_config import TestConfig
+from helpers.test_variant_parameters import (
+    APPROX_MODE,
+    INPUT_DIMENSIONS,
+    MATH_OP,
+    TILE_COUNT,
+)
+from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
 
 max_tiles = 4  # max number of tiles in 32-bit dest is 4
@@ -37,109 +41,101 @@ dimension_combinations = [
 ]
 
 
+def get_format_input_bounds(formats: InputOutputFormat) -> list[tuple[int, int]]:
+    """Get valid stimuli bounds based on data format.
+    - range needs to be cut off at 1000 for Sum reduction kernels with UInt16 input format to avoid overflow.
+    """
+    if formats.input_format in [DataFormat.UInt32, DataFormat.UInt16]:
+        return [(0, 1000)]
+    return [(-1000, 1000), (0, 1000), (-1000, 0)]
+
+
 @parametrize(
-    test_name="sfpu_reduce_test",
     formats=input_output_formats(
-        [DataFormat.Float32, DataFormat.UInt32, DataFormat.Int32],
+        [
+            DataFormat.Float32,
+            DataFormat.Int32,
+            DataFormat.UInt32,
+            DataFormat.UInt16,
+            DataFormat.Float16_b,
+        ],
         same=True,
     ),
     mathop=[MathOperation.ReduceColumn],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    negative_number=[False, True],
-    reduce_pool=[ReducePool.Sum, ReducePool.Average],
+    input_bounds=lambda formats: get_format_input_bounds(formats),
+    reduce_pool=[ReducePool.Min, ReducePool.Max, ReducePool.Sum, ReducePool.Average],
     dimension_combinations=dimension_combinations,
 )
 def test_sfpu_reduce(
-    test_name,
     formats,
     dest_acc,
     mathop,
     reduce_pool,
-    negative_number,
+    input_bounds,
     dimension_combinations,
+    workers_tensix_coordinates,
 ):
-    if negative_number and formats.input_format == DataFormat.UInt32:
-        pytest.skip(
-            f"Skipping negative_numbers=True for unsigned format {formats.input_format}"
-        )
-
+    min_value, max_value = input_bounds
     input_dimensions = dimension_combinations
     torch_format = format_dict[formats.input_format]
 
-    src_A, src_B, tile_cnt = generate_stimuli(
-        formats.input_format, formats.input_format, input_dimensions=input_dimensions
+    # STIMULI GENERATION
+    ELEMENTS_PER_TILE = 1024
+    tile_cnt = input_dimensions[0] * input_dimensions[1] // ELEMENTS_PER_TILE
+    src_A = torch.randint(
+        low=min_value, high=max_value, size=(tile_cnt * 1024,), dtype=torch_format
     )
-    src_A = torch.ones(tile_cnt * 1024, dtype=torch_format)
+    src_B = torch.zeros_like(src_A)
 
-    # Generate 4 faces with all 2s for easy verification (column sums = 32*2 = 64, which is a multiple of 32)
-    sign = -1 if negative_number else 1
-    src_A *= sign
+    # Max Reduction can do block and single tile reduction whereas Sum/Avg only do single tile reduction, convert Sum/Avg golden to do block reduction by retilizing input to src_A
+    # Dimensions for Max reduction work column wise, for Sum/Avg processing tiles independently is same as column reduction on dst block dimension [32, num_tiles * 32] where num rows is 32 i.e RT_DIM=1 (same as a single tile)
+    dst_dim = [32, tile_cnt * 32]
+    src_A = tilize_block(
+        src_A, dst_dim, stimuli_format=formats.input_format
+    ).flatten()  # Input tensor is tilized in dst register
+    src_A_untilized = untilize_block(
+        src_A, formats.input_format, dst_dim
+    )  # Passed into golden since PyTorch library has no concept of tilization
 
-    generate_golden = get_golden_generator(UnarySFPUGolden)
-    golden_tensor = generate_golden(
-        mathop,
-        src_A,
+    golden_tensor = get_golden_generator(UnarySFPUGolden)(
+        MathOperation.ReduceColumn,
+        src_A_untilized,
         formats.output_format,
         dest_acc,
         formats.input_format,
-        reduce_pool,
+        input_dimensions,
+        reduce_pool=reduce_pool,
     )
 
-    test_config = {
-        "formats": formats,
-        "testname": test_name,
-        "dest_acc": dest_acc,
-        "input_A_dimensions": input_dimensions,
-        "input_B_dimensions": input_dimensions,
-        "mathop": mathop,
-        "pool_type": reduce_pool,
-        "approx_mode": ApproximationMode.No,
-        "unpack_to_dest": True,
-        "tile_cnt": tile_cnt,
-    }
-
-    res_address = write_stimuli_to_l1(
-        test_config,
-        src_A,
-        src_B,
-        formats.input_format,
-        formats.input_format,
-        tile_count_A=tile_cnt,
-        tile_count_B=1,
+    configuration = TestConfig(
+        "sources/sfpu_reduce_test.cpp",
+        formats,
+        templates=[
+            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+            APPROX_MODE(ApproximationMode.No),
+            MATH_OP(mathop=mathop, pool_type=reduce_pool),
+        ],
+        runtimes=[TILE_COUNT(tile_cnt)],
+        variant_stimuli=StimuliConfig(
+            src_A,
+            formats.input_format,
+            src_B,
+            formats.input_format,
+            formats.output_format,
+            tile_count_A=tile_cnt,
+            tile_count_B=1,
+            tile_count_res=tile_cnt,
+        ),
+        dest_acc=dest_acc,
+        unpack_to_dest=True,
+        disable_format_inference=True,
     )
-    run_test(test_config)
+    res_from_L1 = configuration.run(workers_tensix_coordinates)
 
-    torch_format = format_dict[formats.output_format]
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
+    res_tensor = untilize_block(res_tensor, formats.output_format, dst_dim)
 
-    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
-
-    # collect all only the first row from each tile in result tensor (f0 and f1 row, 32 datums)
-    # SFPU reduce operation stores the result in the top row of each tile:
-    # - 16 datums in face 0 (first 16 elements of top row)
-    # - 16 datums in face 1 (last 16 elements of top row)
-    # However, we pack out the full tile (1024 elements), so we need to extract
-    # only the top row. Since the result is in tilized format, we must untilize
-    # to get row-major ordering, then extract the first 32 elements which
-    # correspond to the first row of face 0 and face 1.
-    # We do so for each tile we reduced
-    reduce_result = []
-    golden_result = []
-    for i in range(tile_cnt):
-        # Calculate starting indices for this tile
-        start_res = i * 1024  # Each tile has 1024 elements in result tensor
-        start_golden = i * 32  # Each tile contributes 32 elements to golden
-
-        # Extract and untilize the current tile, then get first 32 elements (top row)
-        result_tile_i = untilize(
-            res_tensor[start_res : start_res + 1024], formats.output_format
-        ).flatten()[:32]
-
-        # Accumulate results from all tiles
-        reduce_result.extend(result_tile_i)
-        golden_result.extend(golden_tensor[start_golden : start_golden + 32])
-
-    # Convert to tensors and verify results match expected values
-    reduce_tensor = torch.tensor(reduce_result, dtype=torch_format)
-    golden_tensor = torch.tensor(golden_result, dtype=torch_format)
-    assert passed_test(golden_tensor, reduce_tensor, formats.output_format)
+    assert passed_test(
+        golden_tensor[0], res_tensor[0], formats.output_format
+    ), "Assert against golden failed"

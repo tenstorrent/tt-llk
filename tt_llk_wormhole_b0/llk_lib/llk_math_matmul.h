@@ -10,6 +10,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cmath_common.h"
+#include "llk_assert.h"
 #include "llk_math_common.h"
 #include "lltt.h"
 
@@ -19,12 +20,9 @@
 
 using namespace ckernel;
 
-template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int THROTTLE_LEVEL>
+template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL>
 inline void matmul_configure_addrmod(
     const bool transpose,
-    [[maybe_unused]] const std::uint32_t ct_dim,
-    [[maybe_unused]] const std::uint32_t rt_dim,
-    [[maybe_unused]] const std::uint32_t kt_dim,
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
     const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
     const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
@@ -38,8 +36,6 @@ inline void matmul_configure_addrmod(
     const bool is_in0_16x32 = (in0_tile_r_dim <= FACE_R_DIM) && (in0_tile_c_dim > FACE_C_DIM);
     const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
     const bool is_in1_32x16 = (in1_tile_r_dim > FACE_R_DIM) && (in1_tile_c_dim <= FACE_C_DIM);
-
-    static_assert(FaceLayout == DstTileFaceLayout::RowMajor, "FaceLayout must be RowMajor");
 
     // MVMUL does D = B*A
 
@@ -302,12 +298,10 @@ inline void matmul_configure_addrmod(
     }
 }
 
-template <int NUM_FIDELITY_PHASES, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor>
+template <int NUM_FIDELITY_PHASES>
 inline void matmul_configure_mop(
-    [[maybe_unused]] bool transpose,
     const std::uint32_t ct_dim,
     const std::uint32_t rt_dim,
-    [[maybe_unused]] const std::uint32_t kt_dim,
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
     const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
     const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
@@ -597,12 +591,10 @@ void run_throttled_sequence(const std::uint32_t t_dim, const bool reuse_a)
  * Level 4: throttle to 40% of max
  * Level 5: throttle to 33% of max
  */
-template <int NUM_FIDELITY_PHASES, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int THROTTLE_LEVEL>
+template <int NUM_FIDELITY_PHASES, int THROTTLE_LEVEL>
 inline void matmul_configure_mop_throttled(
-    [[maybe_unused]] bool transpose,
     const std::uint32_t ct_dim,
     const std::uint32_t rt_dim,
-    [[maybe_unused]] const std::uint32_t kt_dim,
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
     const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
     const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
@@ -619,6 +611,9 @@ inline void matmul_configure_mop_throttled(
 
     constexpr bool high_fidelity = NUM_FIDELITY_PHASES > 0;
     static_assert((THROTTLE_LEVEL > 0) && (THROTTLE_LEVEL <= 5), "MM throttling only enabled for THROTTLE_LEVEL={1,2,3,4,5}");
+    LLK_ASSERT(
+        (in0_tile_r_dim == TILE_R_DIM) && (in0_tile_c_dim == TILE_C_DIM) && (in1_tile_r_dim == TILE_R_DIM) && (in1_tile_c_dim == TILE_C_DIM) && !partial_face,
+        "MM throttling only enabled for full 32x32 tile size");
 
     const bool reuse_a        = ct_dim >= rt_dim;
     const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
@@ -683,7 +678,7 @@ inline void matmul_configure_mop_throttled(
     tmp.program();
 }
 
-template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int THROTTLE_LEVEL = 0>
+template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0>
 inline void _llk_math_matmul_init_(
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
     const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
@@ -692,11 +687,9 @@ inline void _llk_math_matmul_init_(
     const bool partial_face            = false,
     const std::uint32_t transpose      = 0,
     const std::uint32_t ct_dim         = 1,
-    const std::uint32_t rt_dim         = 1,
-    const std::uint32_t kt_dim         = 1)
+    const std::uint32_t rt_dim         = 1)
 {
-    matmul_configure_addrmod<MATH_FIDELITY_DESC, FaceLayout, THROTTLE_LEVEL>(
-        transpose, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
+    matmul_configure_addrmod<MATH_FIDELITY_DESC, THROTTLE_LEVEL>(transpose, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     const bool reuse_a        = ct_dim >= rt_dim;
     const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
     if (t_dim > 1)
@@ -718,24 +711,18 @@ inline void _llk_math_matmul_init_(
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     if constexpr (THROTTLE_LEVEL > 0)
     {
-        matmul_configure_mop_throttled<MATH_FIDELITY_PHASES, FaceLayout, THROTTLE_LEVEL>(
-            transpose > 0, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
+        matmul_configure_mop_throttled<MATH_FIDELITY_PHASES, THROTTLE_LEVEL>(
+            ct_dim, rt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     }
     else
     {
-        matmul_configure_mop<MATH_FIDELITY_PHASES, FaceLayout>(
-            transpose > 0, ct_dim, rt_dim, kt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
+        matmul_configure_mop<MATH_FIDELITY_PHASES>(ct_dim, rt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     }
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-template <int MATH_FIDELITY_DESC, DstTileFaceLayout FaceLayout = DstTileFaceLayout::ColMajor, int THROTTLE_LEVEL = 0>
-inline void _llk_math_matmul_(
-    uint dst_index,
-    [[maybe_unused]] const bool transpose       = false,
-    const std::uint32_t ct_dim                  = 1,
-    const std::uint32_t rt_dim                  = 1,
-    [[maybe_unused]] const std::uint32_t kt_dim = 1)
+template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0>
+inline void _llk_math_matmul_(uint dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
 {
     const bool reuse_a                = ct_dim >= rt_dim;
     const std::uint32_t t_dim         = reuse_a ? rt_dim : ct_dim;
@@ -747,7 +734,7 @@ inline void _llk_math_matmul_(
     {
         for (uint rut = 0; rut < rut_dim; rut++)
         {
-            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index + (reuse_a ? ct_dim * t + rut : t + rut * ct_dim));
+            math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index + (reuse_a ? ct_dim * t + rut : t + rut * ct_dim));
 
             if (t_dim == 1)
             {
@@ -829,7 +816,7 @@ inline void _llk_math_matmul_(
                         }
                     }
 
-                    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(
+                    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(
                         dst_index + (reuse_a ? ct_dim * (t + 1) + rut : t + 1 + rut * ct_dim));
                     if constexpr (THROTTLE_LEVEL > 3 && high_fidelity)
                     {

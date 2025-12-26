@@ -6,8 +6,9 @@
 
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
+#include "internal/risc_attribs.h"
+#include "llk_assert.h"
 #include "llk_defs.h"
-#include "risc_attribs.h"
 
 // MT: This should be dissolved and moved to the appropriate place
 #include "tensix.h"
@@ -20,8 +21,11 @@
 #include "lltt.h"
 #endif
 
-// Compiler hint that a branch is unlikely to be taken
+// compiler hints
+#define LIKELY(condition)   __builtin_expect(static_cast<bool>(condition), 1)
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
+#define UNREACHABLE()       __builtin_unreachable()
+
 #define UNROLL_LOOP(factor) GCC unroll factor
 
 #ifndef EN_DEST_DOUBLE_BUFFERING
@@ -68,9 +72,6 @@ namespace ckernel
 {
 constexpr inline volatile uint32_t(tt_reg_ptr &instrn_buffer)[] = __instrn_buffer;
 extern volatile uint tt_reg_ptr *mailbox_base[4];
-extern volatile uint tt_reg_ptr *dbg_event_scratch;
-extern volatile uint tt_reg_ptr *trisc_l1_mailbox;
-extern volatile uint8_t tt_l1_ptr *debug_buffer;
 
 extern uint32_t cfg_state_id;
 extern uint32_t dest_offset_id;
@@ -404,16 +405,6 @@ inline uint32_t mailbox_read(const uint8_t thread)
 inline bool mailbox_not_empty(const uint8_t thread)
 {
     return mailbox_base[thread][1] > 0;
-}
-
-inline void trisc_l1_mailbox_write(const uint data)
-{
-    trisc_l1_mailbox[0] = data;
-}
-
-inline uint trisc_l1_mailbox_read()
-{
-    return trisc_l1_mailbox[0];
 }
 
 template <class T>

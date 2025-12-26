@@ -12,6 +12,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
+#include "llk_assert.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -34,35 +35,6 @@ inline void _llk_unpack_reduce_mop_config_()
         unpack_srcb,
         0);
     tmp.program();
-}
-
-template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
-inline void _llk_unpack_reduce_hw_configure_(
-    const std::uint32_t unpA_src_format,
-    const std::uint32_t unpB_src_format,
-    const std::uint32_t unpA_dst_format,
-    const std::uint32_t unpB_dst_format,
-    const std::uint32_t unpA_face_r_dim             = FACE_R_DIM,
-    const std::uint32_t unpB_face_r_dim             = FACE_R_DIM,
-    const std::uint32_t within_face_16x16_transpose = 0,
-    const std::uint32_t unpA_num_faces              = 4,
-    const std::uint32_t unpB_num_faces              = 4)
-{
-    constexpr bool is_row_pool  = true;
-    constexpr bool stoch_rnd_en = (stoch_rnd_mode == StochRndType::All);
-    constexpr bool fpu_srnd_en  = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Fpu);
-    constexpr bool pack_srnd_en = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Pack);
-
-    configure_unpack_AB<is_fp32_dest_acc_en, is_row_pool, fpu_srnd_en, pack_srnd_en>(
-        unpA_src_format,
-        unpB_src_format,
-        unpA_dst_format,
-        unpB_dst_format,
-        unpA_face_r_dim,
-        unpB_face_r_dim,
-        within_face_16x16_transpose,
-        unpA_num_faces,
-        unpB_num_faces);
 }
 
 template <PoolType type, ReduceDim dim>

@@ -18,6 +18,7 @@
 using namespace ckernel;
 
 // local function declarations
+template <SfpuType sfpu_op>
 inline void eltwise_binary_sfpu_configure_addrmod()
 {
     // NOTE: this kernel is typically used in conjunction with
@@ -30,6 +31,16 @@ inline void eltwise_binary_sfpu_configure_addrmod()
         .dest = {.incr = 0},
     }
         .set(ADDR_MOD_7);
+
+    if constexpr (sfpu_op == SfpuType::mul_int32)
+    {
+        addr_mod_t {
+            .srca = {.incr = 0},
+            .srcb = {.incr = 0},
+            .dest = {.incr = 2},
+        }
+            .set(ADDR_MOD_6);
+    }
 }
 
 inline void eltwise_binary_sfpu_configure_mop();
@@ -37,7 +48,7 @@ inline void eltwise_binary_sfpu_configure_mop();
 template <DstSync Dst>
 inline void _llk_math_eltwise_binary_sfpu_start_(const uint dst_index)
 {
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
 }
 
@@ -56,6 +67,6 @@ template <SfpuType sfpu_op>
 inline void _llk_math_eltwise_binary_sfpu_init_()
 {
     sfpu::_init_sfpu_config_reg();
-    eltwise_binary_sfpu_configure_addrmod();
+    eltwise_binary_sfpu_configure_addrmod<sfpu_op>();
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
