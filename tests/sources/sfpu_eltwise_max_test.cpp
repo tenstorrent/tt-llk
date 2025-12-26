@@ -76,7 +76,7 @@ void run_kernel()
     // Perform elementwise max between dest[0] and dest[32]
     // The max operation expects tile A at dest[0] and tile B at dest[32]
 
-    constexpr int ITERATIONS = 4;
+    constexpr int ITERATIONS = 32;
 
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 

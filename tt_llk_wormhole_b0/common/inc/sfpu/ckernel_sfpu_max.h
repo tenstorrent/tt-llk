@@ -12,59 +12,40 @@ namespace ckernel
 namespace sfpu
 {
 
+constexpr int REPLAY_INSTR_CNT_ELWMAX = 5;
+
 inline void eltwise_max_configure_addr_mod()
 {
+    // ADDR_MOD_7: No increment for initial load
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
         .dest = {.incr = 0},
     }
         .set(ADDR_MOD_7);
-
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 2},
-    }
-        .set(ADDR_MOD_6);
 }
 
 inline void _initialize_max_()
 {
     eltwise_max_configure_addr_mod();
 
-    lltt::record<lltt::NoExec>(0, 4);
-    TTI_SFPLOAD(p_sfpu::LREG0, 2, ADDR_MOD_3, 0);
-    TTI_SFPLOAD(p_sfpu::LREG1, 2, ADDR_MOD_3, 64);
-    TTI_SFPSWAP(0 /*unused*/, p_sfpu::LREG0, p_sfpu::LREG1, 1);
-    TTI_SFPSTORE(p_sfpu::LREG0, 2, ADDR_MOD_2, 0);
+    // Record replay buffer that processes 4 rows at a time
+    lltt::record<lltt::NoExec>(0, REPLAY_INSTR_CNT_ELWMAX);
 
-    // sfpi::dst_reg++;
-    // TTI_INCRWC(0, 2, 0, 0);
+    // Load from dest[0] (tile A) and dest[1] (tile B)
+    TTI_SFPLOAD(p_sfpu::LREG0, 2, ADDR_MOD_3, 0);    // Tile A, current row
+    TTI_SFPLOAD(p_sfpu::LREG1, 2, ADDR_MOD_3, 64);   // Tile B, current row (offset by 64)
+    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, 1); // Max operation
+    TTI_SFPSTORE(p_sfpu::LREG0, 2, ADDR_MOD_3, 0);   // Store result, advance by 2 rows
+    TTI_INCRWC(0, 2, 0, 0);
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_max_(const int iterations)
 {
-    for (int d = 0; d < iterations; d++)
+    for (int i = 0; i < iterations; i++)
     {
-        // sfpi::vFloat a = sfpi::dst_reg[0];
-        // sfpi::vFloat b = sfpi::dst_reg[32];
-        // v_if (a < b)
-        // {
-        //     sfpi::dst_reg[0] = b;
-        // }
-        // v_endif;
-
-        // TTI_SFPLOAD(p_sfpu::LREG0, 2, ADDR_MOD_3, 0);
-        // TTI_SFPLOAD(p_sfpu::LREG1, 2, ADDR_MOD_3, 64);
-        // TTI_SFPSWAP(0 /*unused*/,p_sfpu::LREG0, p_sfpu::LREG1, 1);
-        // TTI_SFPSTORE(p_sfpu::LREG0, 2, ADDR_MOD_3, 0);
-
-        // // sfpi::dst_reg++;
-        // TTI_INCRWC(0, 2, 0, 0);
-
-        lltt::replay(0, 4);
+        lltt::replay(0, REPLAY_INSTR_CNT_ELWMAX);
     }
 }
 

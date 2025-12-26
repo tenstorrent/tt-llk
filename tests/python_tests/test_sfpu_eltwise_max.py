@@ -99,25 +99,8 @@ def test_sfpu_eltwise_max(
     res_from_L1 = collect_results(formats, tile_count=1, address=res_address)
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
-    # Reshape to [64 rows, 16 datums] to extract row 0
-    # Row 0: Face 0 row 0 (row index 0) and Face 1 row 0 (row index 16)
-    res_reshaped = res_tensor.view(64, 16)
-    golden_reshaped = golden_tensor.view(64, 16)
+    # Compare whole tensors
+    print(f"Result tensor: {res_tensor}")
+    print(f"Golden tensor: {golden_tensor}")
 
-    # Extract only row 0 from each face
-    # Face 0 row 0: row index 0
-    # Face 1 row 0: row index 16
-    res_row0_face0 = res_reshaped[0, :]  # 16 datums from face 0 row 0
-    res_row0_face1 = res_reshaped[16, :]  # 16 datums from face 1 row 0
-
-    golden_row0_face0 = golden_reshaped[0, :]
-    golden_row0_face1 = golden_reshaped[16, :]
-
-    # Concatenate the two rows for comparison (32 datums total)
-    res_row0 = torch.cat([res_row0_face0, res_row0_face1])
-    golden_row0 = torch.cat([golden_row0_face0, golden_row0_face1])
-
-    print(f"Result row 0: {res_row0}")
-    print(f"Golden row 0: {golden_row0}")
-
-    assert passed_test(golden_row0, res_row0, formats.output_format)
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
