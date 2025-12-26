@@ -127,7 +127,7 @@ jobs:
       # Step 4.1: Upload generated info file per runner
       - name: Upload code coverage for this runner
         uses: actions/upload-artifact@v4
-        if: $ {{ inputs.coverage }}
+        if: ${{ inputs.coverage }}
         with:
           name: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
           path: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
