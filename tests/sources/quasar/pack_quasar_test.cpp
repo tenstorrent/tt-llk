@@ -35,11 +35,11 @@ void run_kernel()
     }
 
     buffer_descriptor_u bd_val = {0};
-    bd_val.f.l1_addr_16B = buffer_A[0] / 16;
-    bd_val.f.format      = static_cast<uint8_t>(formats.unpack_src);
-    bd_val.f.x_dim       = TEST_FACE_C_DIM;
-    bd_val.f.y_dim       = TEST_FACE_R_DIM;
-    bd_val.f.z_dim       = num_faces;
+    bd_val.f.l1_addr_16B       = buffer_A[0] / 16;
+    bd_val.f.format            = static_cast<uint8_t>(formats.unpack_src);
+    bd_val.f.x_dim             = TEST_FACE_C_DIM;
+    bd_val.f.y_dim             = TEST_FACE_R_DIM;
+    bd_val.f.z_dim             = num_faces;
 
     td_val.buf_desc        = bd_val;
     td_val.buf_desc_id     = buf_desc_id;
