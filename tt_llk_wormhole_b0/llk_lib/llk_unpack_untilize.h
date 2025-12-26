@@ -180,7 +180,7 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
 
 template <bool include_setup_calls = false>
 inline void _llk_unpack_untilize_uninit_(
-    const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t y_stride = FACE_R_DIM * 2, const std::uint32_t tile_y_dim = 1)
+    const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t y_stride = FACE_R_DIM * 2)
 {
     if constexpr (include_setup_calls)
     {
