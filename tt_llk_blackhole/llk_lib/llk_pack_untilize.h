@@ -13,6 +13,7 @@
 #include "llk_assert.h"
 #include "llk_defs.h"
 #include "llk_pack_common.h"
+#include "llk_san.h"
 
 using namespace ckernel;
 using namespace ckernel::packer;
@@ -151,7 +152,12 @@ inline void _llk_pack_untilize_init_(
         // Changed to check against TILE_C_DIM instead of FACE_C_DIM until tt-metal#24095 is investigated.
         static_assert(row_num_datums < TILE_C_DIM, "row_num_datums must be set to less than TILE_C_DIM for narrow_row packing");
     }
+
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+
+    llk_san::pack_operand_check(llk_san::IGNORE, pack_src_format, pack_dst_format, face_r_dim, llk_san::IGNORE, num_faces, llk_san::IGNORE, llk_san::IGNORE);
+    // sstanisic note: added full_ct_dim, removed face_r_dim and num_faces as its already part of operand state
+    llk_san::operation_save<llk_san::operation_t::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums);
 
     _llk_pack_untilize_configure_addrmod_<diagonal>();
 
@@ -206,6 +212,10 @@ inline void _llk_pack_untilize_(
     static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
+    llk_san::pack_operand_check(llk_san::IGNORE, llk_san::IGNORE, pack_dst_format, face_r_dim, llk_san::IGNORE, num_faces, llk_san::IGNORE, llk_san::IGNORE);
+    llk_san::operation_check<llk_san::operation_t::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums);
+    // sstanisic todo: llk_san::must_uninit<llk_san::operation_t::PackUntilize>();
+
     /*
     full_ct_dim represents the number of input tiles.
     For input widths greater than 8 tiles, input is split into blocks of equal sizes,
@@ -242,6 +252,10 @@ inline void _llk_pack_untilize_(
 
 inline void _llk_pack_untilize_uninit_(const std::uint32_t pack_src_format)
 {
+    llk_san::pack_operand_check(
+        llk_san::IGNORE, pack_src_format, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE);
+    // sstanisic todo: llk_san::uninit<llk_san::operation_t::PackUntilize>();
+
     const uint z_stride = SCALE_DATUM_SIZE(pack_src_format, FACE_R_DIM * FACE_C_DIM);
     cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(z_stride);
 }

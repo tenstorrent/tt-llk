@@ -10,11 +10,15 @@
 #include "ckernel_include.h"
 #include "ckernel_ops.h"
 #include "cmath_common.h"
+#include "llk_san.h"
 
 using namespace ckernel::math;
 
 inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)
 {
+    // LLK sanitizer hooks
+    llk_san::math_hw_configure(srca_data_format, srcb_data_format);
+
     // Legacy mode for ZEROACC
     cfg_reg_rmw_tensix<DEST_ACCESS_CFG_zeroacc_absolute_tile_mode_RMW>(1);
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
