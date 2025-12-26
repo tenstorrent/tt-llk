@@ -70,7 +70,7 @@ void run_kernel()
     _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
     _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
 
-    _calculate_max_<false, 32>(32);
+    _calculate_max_<APPROX_MODE, 32>(32);
 
     _llk_math_eltwise_binary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

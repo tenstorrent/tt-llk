@@ -92,6 +92,7 @@ class MathOperation(Enum):
     SfpuElwadd = OpSpec("ADD", MathOpType.SFPU_BINARY)
     SfpuElwLeftShift = OpSpec("LSHFT", MathOpType.SFPU_BINARY)
     SfpuElwLogicalRightShift = OpSpec("LOGICAL_RSHFT", MathOpType.SFPU_BINARY)
+    SfpuElwmax = OpSpec("MAX", MathOpType.SFPU_BINARY)
     SfpuElwmul = OpSpec("MUL", MathOpType.SFPU_BINARY)
     SfpuElwRightShift = OpSpec("RSHFT", MathOpType.SFPU_BINARY)
     SfpuElwsub = OpSpec("SUB", MathOpType.SFPU_BINARY)
