@@ -33,7 +33,7 @@ uint32_t open_zone_cnt    = 0;
 
 namespace llk_san
 {
-hw_state_t hw_state;
+operand_state_t operand_state;
 operation_state_t operation_state;
 } // namespace llk_san
 

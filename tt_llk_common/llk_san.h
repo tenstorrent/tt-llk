@@ -13,7 +13,7 @@ namespace llk_san
 {
 
 // per thread state
-extern hw_state_t hw_state;
+extern operand_state_t operand_state;
 extern operation_state_t operation_state;
 
 // Goes in ComputeAPI
@@ -66,14 +66,14 @@ static inline void unpack_hw_configure(
     state_t<uint32_t> num_faces_B)
 {
     unpack_hw_configure_impl<reconfig>(
-        unpack_state, dst_acc_en, src_fmt_A, src_fmt_B, dst_fmt_A, dst_fmt_B, face_height_A, face_height_B, num_faces_A, num_faces_B);
+        operand_state.unpack, dst_acc_en, src_fmt_A, src_fmt_B, dst_fmt_A, dst_fmt_B, face_height_A, face_height_B, num_faces_A, num_faces_B);
 }
 
 // State set + no hw config within kernel check
 template <bool reconfig = false>
 static inline void math_hw_configure(state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
 {
-    math_hw_configure_impl<reconfig>(math_state, math_fmt_A, math_fmt_B);
+    math_hw_configure_impl<reconfig>(operand_state.math, math_fmt_A, math_fmt_B);
 }
 
 // State set + no hw config within kernel check
@@ -88,7 +88,7 @@ static inline void pack_hw_configure(
     state_t<bool> partial_face,
     state_t<bool> narrow_tile)
 {
-    pack_hw_configure_impl<reconfig>(pack_state, dest_acc_en, src_fmt, dst_fmt, face_height, tile_width, num_faces, partial_face, narrow_tile);
+    pack_hw_configure_impl<reconfig>(operand_state.pack, dest_acc_en, src_fmt, dst_fmt, face_height, tile_width, num_faces, partial_face, narrow_tile);
 }
 
 // Goes in LLK_LIB in Init, Execute and Uninit
@@ -104,13 +104,14 @@ static inline void unpack_operand_check(
     state_t<uint32_t> num_faces_A,
     state_t<uint32_t> num_faces_B)
 {
-    unpack_operand_check_impl(unpack_state, dst_acc_en, src_fmt_A, src_fmt_B, dst_fmt_A, dst_fmt_B, face_height_A, face_height_B, num_faces_A, num_faces_B);
+    unpack_operand_check_impl(
+        operand_state.unpack, dst_acc_en, src_fmt_A, src_fmt_B, dst_fmt_A, dst_fmt_B, face_height_A, face_height_B, num_faces_A, num_faces_B);
 }
 
 // No state set, just check that non x arguments match the stored ones
 static inline void math_operand_check(state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
 {
-    math_operand_check_impl(math_state, math_fmt_A, math_fmt_B);
+    math_operand_check_impl(operand_state.math, math_fmt_A, math_fmt_B);
 }
 
 // No state set, just check that non x arguments match the stored ones
@@ -124,7 +125,7 @@ static inline void pack_operand_check(
     state_t<bool> partial_face,
     state_t<bool> narrow_tile)
 {
-    pack_operand_check_impl(pack_state, dest_acc_en, src_fmt, dst_fmt, face_height, tile_width, num_faces, partial_face, narrow_tile);
+    pack_operand_check_impl(operand_state.pack, dest_acc_en, src_fmt, dst_fmt, face_height, tile_width, num_faces, partial_face, narrow_tile);
 }
 
 // Goes in LLK_LIB in Init
