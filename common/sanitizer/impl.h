@@ -238,7 +238,7 @@ constexpr std::array<size_t, N + 1> _args_offsetof(const std::array<uint8_t, N>&
 // Goes in LLK_LIB in Init
 // Store operation type and push arguments to state stack
 template <operation_t op, typename... Ts>
-static inline void operation_save_impl(operation_state_t& state, Ts... args)
+static inline void operation_save_impl(operation_state_t& state, const Ts... args)
 {
     state.operation = op;
 
@@ -279,7 +279,7 @@ static inline void operation_save_impl(operation_state_t& state, Ts... args)
 // Goes in LLK_LIB in Execute
 // Check operation type and arguments against stored ones
 template <operation_t op, typename... Ts>
-static inline void operation_check_impl(operation_state_t& state, Ts... args)
+void operation_check_impl(operation_state_t& state, const Ts... args)
 {
     LLK_PANIC(state.operation != op, "llk_san: fault: operation type doesn't match stored operation");
 
