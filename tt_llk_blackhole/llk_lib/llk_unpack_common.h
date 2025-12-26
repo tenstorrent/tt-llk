@@ -11,6 +11,7 @@
 #include "ckernel_ops.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_san.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -56,10 +57,10 @@ inline void _llk_unpack_hw_configure_(
         unpA_face_r_dim,
         unpB_face_r_dim,
         unpA_num_faces,
-        unpB_num_faces)
+        unpB_num_faces);
 
-        configure_unpack_AB<is_fp32_dest_acc_en, false, false, false, disable_src_zero_flag>(
-            unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, unpA_face_r_dim, unpB_face_r_dim, 0, unpA_num_faces, unpB_num_faces);
+    configure_unpack_AB<is_fp32_dest_acc_en, false, false, false, disable_src_zero_flag>(
+        unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, unpA_face_r_dim, unpB_face_r_dim, 0, unpA_num_faces, unpB_num_faces);
 
     TT_SETDMAREG(0, LOWER_HALFWORD(unpA_tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_A));
     TT_SETDMAREG(0, LOWER_HALFWORD(unpB_tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_B));
@@ -119,7 +120,7 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
         llk_san::IGNORE,
         llk_san::IGNORE,
         llk_san::IGNORE,
-        llk_san::IGNORE, );
+        llk_san::IGNORE);
 
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
     if constexpr (to_from_int8)
