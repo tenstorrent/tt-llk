@@ -69,7 +69,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     {
         for (uint block_ct = 0; block_ct < BLOCK_CT_DIM; block_ct++)
         {
-            _llk_math_eltwise_unary_datacopy_<num_faces * TEST_FACE_R_DIM /*num_rows_per_tile*/>(block_ct);
+            _llk_math_eltwise_unary_datacopy_(num_faces * TEST_FACE_R_DIM /*num_rows_per_tile*/, block_ct);
         }
         _llk_math_set_dvalid_<p_cleardvalid::FPU>();
     }
