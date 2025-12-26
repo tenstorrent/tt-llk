@@ -1,0 +1,73 @@
+name: "⚙️ Compile for Quasar"
+
+on:
+  workflow_call:
+    inputs:
+      docker_image:
+        description: "The Docker image to use for the container"
+        required: true
+        type: string
+      runs_on:
+        description: "The runner to use for the job"
+        required: true
+        type: string
+      pytest_markers:
+        description: "Pytest mark expression to select/deselect tests (e.g., 'not perf', 'nightly or not perf')"
+        required: false
+        default: "quasar"
+        type: string
+      timeout_minutes:
+        description: "Timeout in minutes for the test job"
+        required: false
+        default: 80
+        type: number
+
+permissions:
+  checks: write
+  contents: read
+
+jobs:
+  compile-quasar:
+    runs-on: ${{ inputs.runs_on }}
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    container:
+      image: harbor.ci.tenstorrent.net/${{ inputs.docker_image }}
+      options: "--rm --device /dev/tenstorrent --ulimit nofile=4096:4096"
+    name: "🦄 Compile for Quasar"
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install SFPI
+      - name: Install SFPI
+        shell: bash
+        run: |
+          cd tests
+          ./setup_testing_env.sh
+          cd ..
+
+      # Step 3: Compile for Quasar
+      - name: Compile for Quasar
+        shell: bash
+        run: |
+          CHIP_ARCH=quasar
+          export CHIP_ARCH
+          echo "CHIP_ARCH=$CHIP_ARCH" >> $GITHUB_ENV
+          cd tests/python_tests/
+
+          echo "Compiling Quasar..."
+          pytest --compile-producer -n 10 \
+                -m "${{ inputs.pytest_markers }}" \
+                --override-ini="addopts=-v" --timeout=60 \
+                --junitxml=pytest-report-${CHIP_ARCH}-compile.xml .
+
+      # Step 4: Upload JUnit report for compiling elfs
+      - name: Upload JUnit report for compiling elfs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: >-
+            ${{ (contains(inputs.pytest_markers, 'perf') && !contains(inputs.pytest_markers, 'not perf'))
+                && 'perf-' || '' }}junit-report-quasar-compile
+          path: tests/python_tests/pytest-report-quasar-compile.xml
