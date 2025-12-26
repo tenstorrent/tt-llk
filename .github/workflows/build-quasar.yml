@@ -42,8 +42,13 @@ jobs:
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
   compile-quasar:
+    needs: generate-matrix
     runs-on: ${{ inputs.runs_on }}
     timeout-minutes: ${{ inputs.timeout_minutes }}
+    strategy:
+      fail-fast: false
+      matrix:
+        test_group: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
     container:
       image: ${{ inputs.docker_image }}
 
