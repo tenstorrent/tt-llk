@@ -179,7 +179,8 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
 }
 
 template <bool include_setup_calls = false>
-inline void _llk_unpack_untilize_uninit_()
+inline void _llk_unpack_untilize_uninit_(
+    const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t y_stride = FACE_R_DIM * 2, const std::uint32_t tile_y_dim = 1)
 {
     if constexpr (include_setup_calls)
     {
@@ -190,18 +191,9 @@ inline void _llk_unpack_untilize_uninit_()
     }
     else
     {
-        // Restore x_end to default (single face)
-        TTI_SETADCXX(p_setadc::UNP_A, FACE_SIZE - 1, 0x0);
-
-        // Restore Y_stride to default (FP16/BF16: FACE_R_DIM * 2 = 32)
-        constexpr std::uint32_t DEFAULT_Y_STRIDE = FACE_R_DIM * 2;
-        cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32, UNP0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT, UNP0_ADDR_CTRL_XY_REG_1_Ystride_MASK>(
-            DEFAULT_Y_STRIDE);
-
-        // Restore tile_x_dim to default (16x16 face)
+        TT_SETADCXX(p_setadc::UNP_A, face_r_dim * FACE_C_DIM - 1, 0x0);
+        cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32, UNP0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT, UNP0_ADDR_CTRL_XY_REG_1_Ystride_MASK>(y_stride);
         TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::FACE_DIM_16x16);
-
-        // Restore tile_descriptor y_dim to default (1)
-        cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 0, 0xFFFF>(1);
+        cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 0, 0xFFFF>(tile_y_dim);
     }
 }

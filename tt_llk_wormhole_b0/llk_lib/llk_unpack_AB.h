@@ -95,10 +95,9 @@ inline void _llk_unpack_AB_init_(
     _llk_unpack_AB_mop_config_<BType>(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
 }
 
-inline void _llk_unpack_AB_uninit_()
+inline void _llk_unpack_AB_uninit_(const std::uint32_t face_r_dim = FACE_R_DIM)
 {
-    // Restore x_end to default (single face)
-    TTI_SETADCXX(p_setadc::UNP_AB, FACE_SIZE - 1, 0x0);
+    TT_SETADCXX(p_setadc::UNP_AB, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
@@ -235,14 +234,10 @@ inline void _llk_unpack_bcastA_B_init_()
     _llk_unpack_bcastA_B_mop_config_();
 }
 
-inline void _llk_unpack_bcastA_B_uninit_()
+inline void _llk_unpack_bcastA_B_uninit_(const std::uint32_t y_stride = FACE_R_DIM * 2, const std::uint32_t face_r_dim = FACE_R_DIM)
 {
-    // Restore Y_stride to default (FP16/BF16: FACE_R_DIM * 2 = 32)
-    constexpr std::uint32_t DEFAULT_Y_STRIDE = FACE_R_DIM * 2;
-    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(DEFAULT_Y_STRIDE);
-
-    // Restore x_end to default (single face) for both UNP_A and UNP_B
-    TTI_SETADCXX(p_setadc::UNP_AB, FACE_SIZE - 1, 0x0);
+    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(y_stride);
+    TT_SETADCXX(p_setadc::UNP_AB, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
 
 inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint32_t address_b, uint32_t srca_reuse_count = 4)
