@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_san.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -198,6 +199,11 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
 {
     LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
+
+    llk_san::operation_save<llk_san::operation_t::UnpackABMatmul>(
+        kernel_broadcast_a, kernel_broadcast_b, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face);
+    // llk_san::extended_state_mask(llk_san_cfg::Transpose, llk_san_cfg::AdcXX, llk_san_cfg::Mop); // ADCZW counters and GPRS not tracked here for now
+
     // also turn on within_face_16x16_transpose if it was turned off by datacopy at runtime
     // on WH, the unpacker performs both transpose of faces as well as transpose each face.
     // the former is configured in mop, the latter is configured in cfg register in hw_configure
@@ -258,6 +264,9 @@ inline void _llk_unpack_AB_matmul_(
     const std::uint32_t rt_dim   = 1,
     const std::uint32_t kt_dim   = 1)
 {
+    llk_san::operation_check<llk_san::operation_t::UnpackABMatmul>(
+        kernel_broadcast_a, kernel_broadcast_b, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face);
+
     // In0/InA -> srcB (supports partial face)
     // In1/InB -> srcA
 
