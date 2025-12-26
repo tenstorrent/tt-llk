@@ -35,7 +35,6 @@ void run_kernel()
     }
 
     buffer_descriptor_u bd_val = {0};
-
     bd_val.f.l1_addr_16B = buffer_A[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.unpack_src);
     bd_val.f.x_dim       = TEST_FACE_C_DIM;
