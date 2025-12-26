@@ -31,7 +31,7 @@ jobs:
     runs-on: ${{ inputs.runs_on }}
     timeout-minutes: ${{ inputs.timeout_minutes }}
     container:
-      image: harbor.ci.tenstorrent.net/${{ inputs.docker_image }}
+      image: ${{ inputs.docker_image }}
 
     name: "🦄 Compile for Quasar"
     steps:
