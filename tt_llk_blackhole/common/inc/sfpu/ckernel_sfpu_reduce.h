@@ -34,6 +34,7 @@ constexpr uint FP16B_ONE_OVER_32_LOW  = 0x0000;
 
 // Constants for MAX reduction
 constexpr uint32_t ROWS_PER_TILE = 64;
+constexpr uint32_t ROWS_PER_FACE = 16;
 
 // ============================================================================
 // Helper Functions
@@ -153,6 +154,103 @@ inline void perform_float_average()
 
     // Multiply by 1/32 (divide by 32) - works for both float and integer formats
     TTI_SFPMUL(p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
+}
+
+template <InstrModLoadStore INSTRUCTION_MODE>
+inline void perform_reduce_col_sum_avg()
+{
+    constexpr uint UPPER_FACE_ADDRS[NUM_FACES] = {0, 0, 16, 16};   // Face 0, 0, 1, 1
+    constexpr uint LOWER_FACE_ADDRS[NUM_FACES] = {32, 32, 48, 48}; // Face 2, 2, 3, 3
+    constexpr uint COLUMN_OFFSETS[NUM_FACES]   = {0, 2, 0, 2};     // even, odd, even, odd
+    // Optimized approach: Process 4 iterations to handle all column combinations
+    // This reduces operations by processing complementary face pairs simultaneously, less load/store operations
+    for (uint i = 0; i < NUM_FACES; i++)
+    {
+        // Iteration mapping - Process vertically aligned faces (0+2, 1+3) to optimize column operations:
+        // i=0: even columns, left half  (faces 0 + 2, columns 0,2,4,6,8,10,12,14)
+        // i=1: odd columns,  left half  (faces 0 + 2, columns 1,3,5,7,9,11,13,15)
+        // i=2: even columns, right half (faces 1 + 3, columns 16,18,20,22,24,26,28,30)
+        // i=3: odd columns,  right half (faces 1 + 3, columns 17,19,21,23,25,27,29,31)
+        // Key optimization: Process faces 0+2 and 1+3 (vertically aligned) instead of 0+1 and 2+3
+        // This allows processing all 32 rows of a column at once (16 from upper face + 16 from lower face)
+        // Reduces load/store operations by accumulating all rows into one LREG per column group
+        // Final result stored in top row of upper face (first row in dest) - no intermediate storage needed
+        const uint upper_face_addr = UPPER_FACE_ADDRS[i];
+        const uint lower_face_addr = LOWER_FACE_ADDRS[i];
+        const uint column_offset   = COLUMN_OFFSETS[i];
+        load_face_data<INSTRUCTION_MODE>(upper_face_addr, lower_face_addr, column_offset);
+        // Perform column-wise summation (Blackhole uses replay buffer 6 for both int and float)
+        if constexpr (is_integer_mode)
+        {
+            sum_columns<6>();                                // Integer replay buffer
+            TTI_SFPIADD(0, p_sfpu::LREG4, p_sfpu::LREG0, 4); // LREG0 = upper_face_sums + lower_face_sums (int)
+        }
+        else
+        {
+            sum_columns<6>();                                                             // Float replay buffer (no NOPs needed for Blackhole)
+            TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG4, p_sfpu::LREG0, 0); // LREG0 = upper + lower (float)
+        }
+        // Perform averaging if requested (different for int vs float)
+        if constexpr (pool_type == AVG)
+        {
+            if constexpr (is_integer_mode)
+            {
+                perform_int_average<INSTRUCTION_MODE>();
+            }
+            else
+            {
+                perform_float_average();
+            }
+        }
+        // Store the final combined column sums
+        TTI_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, upper_face_addr + column_offset);
+    }
+}
+
+template <InstrModLoadStore INSTRUCTION_MODE>
+inline void perform_reduce_row_sum_avg_tile(uint tile_row_offset)
+{
+    constexpr uint LOAD_ROWS[8] = {0, 4, 8, 12, 16, 20, 24, 28};
+    uint j                      = 0;
+    for (uint i = 0; i < NUM_FACES; i++)
+    {
+        uint load_row_offset_first = LOAD_ROWS[i + j];
+        // load 4 rows of adjacent faces 0 and 1 or faces 2 and 3
+        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + load_row_offset_first);
+        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + load_row_offset_first + 2);
+        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + FACE_OFFSET + load_row_offset_first);
+        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + FACE_OFFSET + load_row_offset_first + 2);
+
+        j++;
+        uint load_row_offset_second = LOAD_ROWS[i + j];
+        // load next 4 rows of adjacent faces 0 and 1 or faces 2 and 3
+        TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + load_row_offset_second);
+        TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + load_row_offset_second + 2)
+        TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + FACE_OFFSET + load_row_offset_second);
+        TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + FACE_OFFSET + load_row_offset_second + 2);
+
+        // perform sum of loaded rows, lreg0 contains sum of tile's first 4 rows, lreg4 contains sum of next 4 rows
+        lltt::replay(0, 6);
+
+        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + load_row_offset_first);
+        TT_SFPSTORE(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + load_row_offset_second);
+    }
+}
+
+template <InstrModLoadStore INSTRUCTION_MODE>
+inline void perform_reduce_row_sum_avg(uint num_columns, uint num_rows)
+{
+    for (uint i = 0; i < num_rows; i++)
+    {
+        uint tile_row_offset = ROWS_PER_TILE * num_columns * i;
+        perform_reduce_row_sum_avg_tile<INSTRUCTION_MODE>(tile_row_offset);
+
+        for (uint j = 1; j < num_columns; j++)
+        {
+            uint tile_offset = tile_row_offset + (ROWS_PER_TILE * j);
+            TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_offset);
+        }
+    }
 }
 
 /**
@@ -541,7 +639,7 @@ inline void calculate_reduce_max_min(const uint32_t block_height)
  * @tparam INSTRUCTION_MODE The instruction mode for integer and float formats: INT32, INT32_2S_COMP, LO16, FP32, FP16B
  */
 template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTION_MODE>
-inline void calculate_reduce_sum_avg()
+inline void calculate_reduce_sum_avg(uint num_columns, uint num_rows)
 {
     // Compile-time assertions to restrict to currently supported operations
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported on SFPU");
@@ -554,61 +652,15 @@ inline void calculate_reduce_sum_avg()
 
     static_assert(is_integer_mode || is_float_mode, "INSTRUCTION_MODE must be one of: INT32, INT32_2S_COMP, LO16, FP32, FP16B");
 
-    constexpr uint UPPER_FACE_ADDRS[NUM_FACES] = {0, 0, 16, 16};   // Face 0, 0, 1, 1
-    constexpr uint LOWER_FACE_ADDRS[NUM_FACES] = {32, 32, 48, 48}; // Face 2, 2, 3, 3
-    constexpr uint COLUMN_OFFSETS[NUM_FACES]   = {0, 2, 0, 2};     // even, odd, even, odd
-
-    // Optimized approach: Process 4 iterations to handle all column combinations
-    // This reduces operations by processing complementary face pairs simultaneously, less load/store operations
-    for (uint i = 0; i < NUM_FACES; i++)
+    if constexpr (reduce_dim == REDUCE_COL)
     {
-        // Iteration mapping - Process vertically aligned faces (0+2, 1+3) to optimize column operations:
-        // i=0: even columns, left half  (faces 0 + 2, columns 0,2,4,6,8,10,12,14)
-        // i=1: odd columns,  left half  (faces 0 + 2, columns 1,3,5,7,9,11,13,15)
-        // i=2: even columns, right half (faces 1 + 3, columns 16,18,20,22,24,26,28,30)
-        // i=3: odd columns,  right half (faces 1 + 3, columns 17,19,21,23,25,27,29,31)
-
-        // Key optimization: Process faces 0+2 and 1+3 (vertically aligned) instead of 0+1 and 2+3
-        // This allows processing all 32 rows of a column at once (16 from upper face + 16 from lower face)
-        // Reduces load/store operations by accumulating all rows into one LREG per column group
-        // Final result stored in top row of upper face (first row in dest) - no intermediate storage needed
-
-        const uint upper_face_addr = UPPER_FACE_ADDRS[i];
-        const uint lower_face_addr = LOWER_FACE_ADDRS[i];
-        const uint column_offset   = COLUMN_OFFSETS[i];
-
-        load_face_data<INSTRUCTION_MODE>(upper_face_addr, lower_face_addr, column_offset);
-
-        // Perform column-wise summation (Blackhole uses replay buffer 6 for both int and float)
-        if constexpr (is_integer_mode)
-        {
-            sum_columns<6>();                                // Integer replay buffer
-            TTI_SFPIADD(0, p_sfpu::LREG4, p_sfpu::LREG0, 4); // LREG0 = upper_face_sums + lower_face_sums (int)
-        }
-        else
-        {
-            sum_columns<6>();                                                             // Float replay buffer (no NOPs needed for Blackhole)
-            TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG4, p_sfpu::LREG0, 0); // LREG0 = upper + lower (float)
-        }
-
-        // Perform averaging if requested (different for int vs float)
-        if constexpr (pool_type == AVG)
-        {
-            if constexpr (is_integer_mode)
-            {
-                perform_int_average<INSTRUCTION_MODE>();
-            }
-            else
-            {
-                perform_float_average();
-            }
-        }
-
-        // Store the final combined column sums
-        TTI_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, upper_face_addr + column_offset);
+        perform_reduce_col_sum_avg<INSTRUCTION_MODE>();
     }
-
-    // After this loop, the column sums are stored at first row in dest reg:
+    else
+    {
+        perform_reduce_row_sum_avg<INSTRUCTION_MODE>(num_columns, num_rows);
+    }
+    // Sums are stored in the first row of tensor in dest reg:
     // Address 0:  even columns, left half  (columns 0,2,4,6,8,10,12,14)
     // Address 2:  odd columns,  left half  (columns 1,3,5,7,9,11,13,15)
     // Address 16: even columns, right half (columns 16,18,20,22,24,26,28,30)
@@ -670,7 +722,7 @@ inline void _init_reduce_(uint32_t block_ct_dim = 1)
  *       - MAX/MIN with Int32 format only supports block_rt_dim == 1 (single tile)
  */
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_(uint32_t block_rt_dim = 1)
+inline void _calculate_reduce_(uint32_t block_rt_dim = 1, uint32_t block_ct_dim = 1)
 {
     static_assert(reduce_dim == REDUCE_COL, "Only column reduction (REDUCE_COL) is currently supported");
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
@@ -692,7 +744,7 @@ inline void _calculate_reduce_(uint32_t block_rt_dim = 1)
     }
     else if constexpr (pool_type == PoolType::SUM || pool_type == PoolType::AVG)
     {
-        calculate_reduce_sum_avg<pool_type, reduce_dim, INSTRUCTION_MODE>();
+        calculate_reduce_sum_avg<pool_type, reduce_dim, INSTRUCTION_MODE>(block_ct_dim, block_rt_dim);
     }
     else
     {

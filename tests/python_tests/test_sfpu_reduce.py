@@ -47,6 +47,12 @@ def get_format_input_bounds(formats: InputOutputFormat) -> list[tuple[int, int]]
     return [(-1000, 1000), (0, 1000), (-1000, 0)]
 
 
+def get_supported_reduce_axioms(reduce_pool: ReducePool) -> list[ReducePool]:
+    if reduce_pool == ReducePool.Sum:
+        return [MathOperation.ReduceColumn, MathOperation.ReduceRow]
+    return [MathOperation.ReduceColumn]
+
+
 @parametrize(
     test_name="sfpu_reduce_test",
     formats=input_output_formats(
@@ -59,7 +65,7 @@ def get_format_input_bounds(formats: InputOutputFormat) -> list[tuple[int, int]]
         ],
         same=True,
     ),
-    mathop=[MathOperation.ReduceColumn],
+    mathop=lambda reduce_pool: get_supported_reduce_axioms(reduce_pool),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     input_bounds=lambda formats: get_format_input_bounds(formats),
     reduce_pool=[ReducePool.Min, ReducePool.Max, ReducePool.Sum, ReducePool.Average],
@@ -97,7 +103,7 @@ def test_sfpu_reduce(
     )  # Passed into golden since PyTorch library has no concept of tilization
 
     golden_tensor = get_golden_generator(UnarySFPUGolden)(
-        MathOperation.ReduceColumn,
+        mathop,
         src_A_untilized,
         formats.output_format,
         dest_acc,
@@ -135,4 +141,9 @@ def test_sfpu_reduce(
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize_block(res_tensor, formats.output_format, dst_dim)
 
-    assert passed_test(golden_tensor[0], res_tensor[0], formats.output_format)
+    if mathop == MathOperation.ReduceColumn:
+        assert passed_test(golden_tensor[0], res_tensor[0], formats.output_format)
+    elif mathop == MathOperation.ReduceRow:
+        assert passed_test(golden_tensor[:, 0], res_tensor[:, 0], formats.output_format)
+    else:
+        raise ValueError(f"Unsupported math operation: {mathop}")
