@@ -34,3 +34,5 @@
 #define LLK_ASSERT(condition, message) ((void)(condition), (void)(message))
 
 #endif // ENABLE_LLK_ASSERT
+
+#define LLK_PANIC(condition, message) LLK_ASSERT(!(condition), message)

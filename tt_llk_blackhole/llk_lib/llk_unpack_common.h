@@ -46,8 +46,20 @@ inline void _llk_unpack_hw_configure_(
 {
     LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
-    configure_unpack_AB<is_fp32_dest_acc_en, false, false, false, disable_src_zero_flag>(
-        unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, unpA_face_r_dim, unpB_face_r_dim, 0, unpA_num_faces, unpB_num_faces);
+
+    llk_san::unpack_hw_configure(
+        is_fp32_dest_acc_en,
+        unpA_src_format,
+        unpB_src_format,
+        unpA_dst_format,
+        unpB_dst_format,
+        unpA_face_r_dim,
+        unpB_face_r_dim,
+        unpA_num_faces,
+        unpB_num_faces)
+
+        configure_unpack_AB<is_fp32_dest_acc_en, false, false, false, disable_src_zero_flag>(
+            unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, unpA_face_r_dim, unpB_face_r_dim, 0, unpA_num_faces, unpB_num_faces);
 
     TT_SETDMAREG(0, LOWER_HALFWORD(unpA_tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_A));
     TT_SETDMAREG(0, LOWER_HALFWORD(unpB_tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_B));
@@ -71,6 +83,17 @@ template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srca_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
 {
+    llk_san::unpack_hw_configure<true>(
+        llk_san::IGNORE,
+        unpack_src_format,
+        llk_san::IGNORE,
+        unpack_dst_format,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE);
+
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK0);
     if constexpr (to_from_int8)
     {
@@ -87,6 +110,17 @@ template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
 {
+    llk_san::unpack_hw_configure<true>(
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        unpack_src_format,
+        llk_san::IGNORE,
+        unpack_dst_format,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE,
+        llk_san::IGNORE, );
+
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
     if constexpr (to_from_int8)
     {

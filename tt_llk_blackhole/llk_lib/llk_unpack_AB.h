@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_san.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
