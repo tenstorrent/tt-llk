@@ -147,7 +147,8 @@ jobs:
     needs: [build-images, detect-changes]
     if: ${{ github.event_name != 'push' &&
             (needs.detect-changes.outputs.wormhole == 'true' ||
-             needs.detect-changes.outputs.tests == 'true') }}
+             needs.detect-changes.outputs.tests == 'true' ||
+             needs.detect-changes.outputs.github == 'true') }}
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-n150-stable
@@ -160,7 +161,8 @@ jobs:
     needs: [build-images, detect-changes]
     if: ${{ github.event_name != 'push' &&
             (needs.detect-changes.outputs.blackhole == 'true' ||
-             needs.detect-changes.outputs.tests == 'true') }}
+             needs.detect-changes.outputs.tests == 'true' ||
+             needs.detect-changes.outputs.github == 'true') }}
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-p150b-stable
