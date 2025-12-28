@@ -98,8 +98,6 @@ def create_fuse_pipeline() -> List[FusedOperation]:
             packer=Packer,
             dest_acc=dest_acc,
             math_fidelity=math_fidelity,
-            unpack_transpose_within_face=Transpose.Yes,
-            unpack_transpose_faces=Transpose.Yes,
         ),
         FusedOperation(
             operand_mapping=operands.create_mapping(

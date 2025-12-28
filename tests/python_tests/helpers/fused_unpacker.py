@@ -355,6 +355,11 @@ class UnpackerTilizeA(Unpacker):
         num_faces = operation_config.num_faces
         block_rt_dim = operation_config.block_rt_dim
         block_ct_dim = operation_config.block_ct_dim
+        transpose_faces = operation_config.unpack_transpose_faces.value
+        transpose_within_face = operation_config.unpack_transpose_within_face.value
+
+        if transpose_faces or transpose_within_face:
+            raise ValueError("UnpackerTilizeA does not support transpose")
 
         code = f"    _llk_unpack_tilize_init_(unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, false);\n"
 
