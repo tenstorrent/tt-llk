@@ -56,9 +56,11 @@ class FusedGolden:
             print(f"{head}\n...\n{tail}\n")
 
         print("L1 golden check:")
-        passed = passed_test(l1_golden, res_tensor, output.data_format)
+        l1_passed = passed_test(l1_golden, res_tensor, output.data_format)
         print("Master golden check:")
-        passed = passed_test(master_golden, res_tensor, output.data_format)
+        master_passed = passed_test(master_golden, res_tensor, output.data_format)
+
+        passed = l1_passed and master_passed
 
         result = {
             "step": step_number,
