@@ -172,7 +172,7 @@ class DatacopyFpu(Fpu):
         tile_cnt = operation_config.output.tile_count
         tilize_en = "true" if operation_config.bh_tilize.value else "false"
         # TODO: make dynamic based on operation_config
-        brodcast_type = "BroadcastType::NONE"
+        broadcast_type = "BroadcastType::NONE"
         unpack_to_dest = "true" if operation_config.unpack_to_dest else "false"
         data_copy_type = f"DataCopyType::{operation_config.data_copy_type.name}"
         num_faces = operation_config.num_faces
@@ -183,13 +183,13 @@ class DatacopyFpu(Fpu):
 
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
             code += (
-                f"    _llk_math_eltwise_unary_datacopy_init_<{data_copy_type}, {dest_acc}, {brodcast_type}, {tilize_en}, {is_int_fpu_en}>(\n"
+                f"    _llk_math_eltwise_unary_datacopy_init_<{data_copy_type}, {dest_acc}, {broadcast_type}, {tilize_en}, {is_int_fpu_en}>(\n"
                 f"        {num_faces}, math_format{stage}\n"
                 f"    );\n"
             )
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
             code += (
-                f"    _llk_math_eltwise_unary_datacopy_init_<{data_copy_type}, {dest_acc}, {brodcast_type}, {is_int_fpu_en}>(\n"
+                f"    _llk_math_eltwise_unary_datacopy_init_<{data_copy_type}, {dest_acc}, {broadcast_type}, {is_int_fpu_en}>(\n"
                 f"        {num_faces}, math_format{stage}\n"
                 f"    );\n"
             )
@@ -204,12 +204,12 @@ class DatacopyFpu(Fpu):
 
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
             code += (
-                f"        _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {brodcast_type}, {unpack_to_dest}>(\n"
+                f"        _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {broadcast_type}, {unpack_to_dest}>(\n"
                 f"            {dst_index} + i, math_format{stage}, math_format{stage}, {num_faces});\n"
             )
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
             code += (
-                f"        _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {brodcast_type}, {unpack_to_dest}>(\n"
+                f"        _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {broadcast_type}, {unpack_to_dest}>(\n"
                 f"            {dst_index} + i, math_format{stage}, math_format{stage});\n"
             )
         else:
