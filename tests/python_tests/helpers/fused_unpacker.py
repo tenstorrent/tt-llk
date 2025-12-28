@@ -146,8 +146,12 @@ class MatmulUnpacker(Unpacker):
         kt_dim = operation_config.kt_dim
         unpack_tile_size_a = operation_config.tile_size_unpack_a
         unpack_tile_size_b = operation_config.tile_size_unpack_b
-        transpose_faces = operation_config.unpack_transpose_faces.value
-        transpose_within_face = operation_config.unpack_transpose_within_face.value
+        transpose_faces = (
+            "true" if operation_config.unpack_transpose_faces.value else "false"
+        )
+        transpose_within_face = (
+            "true" if operation_config.unpack_transpose_within_face.value else "false"
+        )
 
         if transpose_within_face != transpose_faces:
             raise ValueError(
@@ -213,8 +217,12 @@ class UnpackerAB(Unpacker):
         num_faces = operation_config.num_faces
         tile_cnt = operation_config.output.tile_count
         broadcast_type = "BroadcastType::NONE"
-        transpose_faces = operation_config.unpack_transpose_faces.value
-        transpose_within_face = operation_config.unpack_transpose_within_face.value
+        transpose_faces = (
+            "true" if operation_config.unpack_transpose_faces.value else "false"
+        )
+        transpose_within_face = (
+            "true" if operation_config.unpack_transpose_within_face.value else "false"
+        )
 
         if transpose_within_face != transpose_faces:
             raise ValueError(
@@ -279,8 +287,12 @@ class UnpackerA(Unpacker):
         eltwise_reuse_type = "EltwiseBinaryReuseDestType::NONE"
         face_r_dim = operation_config.face_r_dim
         num_faces = operation_config.num_faces
-        transpose_faces = operation_config.unpack_transpose_faces.value
-        transpose_within_face = operation_config.unpack_transpose_within_face.value
+        transpose_faces = (
+            "true" if operation_config.unpack_transpose_faces.value else "false"
+        )
+        transpose_within_face = (
+            "true" if operation_config.unpack_transpose_within_face.value else "false"
+        )
 
         code = (
             f"    _llk_unpack_A_init_<{broadcast_type}, false, {eltwise_reuse_type}, {unpack_to_dest}>(\n"

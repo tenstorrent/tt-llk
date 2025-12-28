@@ -11,7 +11,6 @@ from .golden_generators import (
     DataCopyGolden,
     EltwiseBinaryGolden,
     MatmulGolden,
-    TilizeGolden,
     UnarySFPUGolden,
     get_golden_generator,
 )
@@ -20,7 +19,7 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
 
 from .chip_architecture import ChipArchitecture
-from .llk_params import ApproximationMode, MathOperation, Tilize
+from .llk_params import ApproximationMode, MathOperation
 
 
 class Fpu:
@@ -73,7 +72,7 @@ class MatmulFpu(Fpu):
         rt_dim = operation_config.rt_dim
         kt_dim = operation_config.kt_dim
         math_fidelity = operation_config.math_fidelity.value
-        transpose = operation_config.unpack_transpose_faces.value
+        transpose = "true" if operation_config.unpack_transpose_faces.value else "false"
 
         code = (
             f"    // Operation {stage}: Matmul FPU\n"
