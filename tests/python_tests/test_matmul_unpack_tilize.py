@@ -2,22 +2,19 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import MatmulGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
 from helpers.param_config import input_output_formats, parametrize
-from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import TestConfig
-from helpers.test_variant_parameters import (
-    INPUT_DIMENSIONS,
-    MATH_FIDELITY,
-)
+from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test
 
 
 @parametrize(
+    test_name="matmul_unpack_tilize_test",
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
@@ -34,18 +31,13 @@ from helpers.utils import passed_test
         MathFidelity.HiFi4,
     ],
 )
-def test_matmul_unpack_tilize(
-    formats, dest_acc, math_fidelity, workers_tensix_coordinates
-):
+def test_matmul_unpack_tilize(test_name, formats, dest_acc, math_fidelity):
 
     torch_format = format_dict[formats.output_format]
     input_dimensions = [32, 32]
 
-    src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
-        stimuli_format_A=formats.input_format,
-        input_dimensions_A=input_dimensions,
-        stimuli_format_B=formats.input_format,
-        input_dimensions_B=input_dimensions,
+    src_A, src_B, tile_cnt = generate_stimuli(
+        formats.input_format, formats.input_format
     )
 
     generate_golden = get_golden_generator(MatmulGolden)
@@ -61,34 +53,30 @@ def test_matmul_unpack_tilize(
     )
     golden_tensor = golden_tensor.to(torch_format)
 
-    L1_to_L1_iterations = 2
-    configuration = TestConfig(
-        "sources/matmul_unpack_tilize_test.cpp",
-        formats,
-        templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
-            MATH_FIDELITY(math_fidelity),
-        ],
-        runtimes=[],
-        variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
-            tile_count_A=tile_cnt_A,
-            tile_count_B=tile_cnt_B,
-            tile_count_res=tile_cnt_A,
-        ),
-        dest_acc=dest_acc,
-        L1_to_L1_iterations=L1_to_L1_iterations,
+    test_config = {
+        "formats": formats,
+        "testname": test_name,
+        "dest_acc": dest_acc,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
+        "math_fidelity": math_fidelity,
+        "L1_to_L1_iterations": 2,
+    }
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    run_test(test_config)
 
-    assert len(res_from_L1) == len(
-        golden_tensor
-    ), "Result tensor and golder tensor are not of the same length"
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
@@ -96,6 +84,7 @@ def test_matmul_unpack_tilize(
         golden_tensor,
         res_tensor,
         formats.output_format,
-        # Needed to calculate accumulated precision loss for fused tests that copy result tensor as input for next runs
-        L1_to_L1_iterations=L1_to_L1_iterations,
-    ), "Assert against golden failed"
+        test_config.get(
+            "L1_to_L1_iterations"  # Needed to calculate accumulated precision loss for fused tests that copy result tensor as input for next runs
+        ),
+    )

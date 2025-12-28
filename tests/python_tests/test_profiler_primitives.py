@@ -1,15 +1,9 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-
 import pandas as pd
-import pytest
-from conftest import skip_for_blackhole, skip_for_coverage, skip_for_wormhole
-from helpers.format_config import DataFormat
-from helpers.param_config import input_output_formats
-from helpers.profiler import ProfilerConfig
-from helpers.stimuli_config import StimuliConfig
-from helpers.test_config import TestConfig, TestMode
+from helpers.profiler import Profiler
+from helpers.test_config import ProfilerBuild, run_test
 
 
 def assert_marker(
@@ -29,28 +23,15 @@ def assert_marker(
     ), f"Expected marker_id = {expected_id}, got {entry['marker_id']}"
 
 
-# TODO Skip for all until hash bug with new infra is resolved
-@skip_for_coverage
-@skip_for_blackhole
-@skip_for_wormhole
-def test_profiler_primitives(workers_tensix_coordinates):
+def test_profiler_primitives():
 
-    if TestConfig.MODE == TestMode.PRODUCE:
-        pytest.skip()
+    test_config = {
+        "testname": "profiler_primitives_test",
+    }
 
-    configuration = ProfilerConfig(
-        "sources/profiler_primitives_test.cpp",
-        input_output_formats([DataFormat.Float16])[0],
-        variant_stimuli=StimuliConfig(
-            [], DataFormat.Float16, [], DataFormat.Float16, DataFormat.Float16, 1, 1
-        ),
-    )
+    run_test(test_config, profiler_build=ProfilerBuild.Yes)
 
-    configuration.generate_variant_hash()
-    configuration.build_elfs()
-    configuration.run_elf_files(workers_tensix_coordinates)
-
-    runtime = configuration.get_data(workers_tensix_coordinates)
+    runtime = Profiler.get_data(test_config["testname"])
 
     # ZONE_SCOPED - Get first ZONE type entry from UNPACK thread
     zones = runtime.unpack().zones().marker("TEST_ZONE").frame()
@@ -62,7 +43,7 @@ def test_profiler_primitives(workers_tensix_coordinates):
         "TEST_ZONE",
         "profiler_primitives_test.cpp",
         17,
-        36872,
+        42158,
     )
     assert (
         zone["timestamp"] > 0
@@ -79,7 +60,7 @@ def test_profiler_primitives(workers_tensix_coordinates):
         "TEST_TIMESTAMP",
         "profiler_primitives_test.cpp",
         26,
-        43956,
+        28111,
     )
     assert (
         timestamp["timestamp"] > 0
@@ -101,7 +82,7 @@ def test_profiler_primitives(workers_tensix_coordinates):
         "TEST_TIMESTAMP_DATA",
         "profiler_primitives_test.cpp",
         35,
-        31808,
+        18694,
     )
     assert (
         timestamp_data["timestamp"] > 0

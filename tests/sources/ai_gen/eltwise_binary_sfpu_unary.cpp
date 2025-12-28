@@ -20,7 +20,7 @@ uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel()
 {
     // Configure hardware for unpacking AB (two inputs for binary elementwise operation)
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -45,7 +45,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel()
 {
     // Initialize math operations
     _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();
@@ -78,7 +78,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel()
 {
     // Configure packer hardware
 #ifdef ARCH_BLACKHOLE

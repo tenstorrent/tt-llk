@@ -2,13 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
-from conftest import skip_for_coverage
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.format_config import DataFormat
-from helpers.param_config import input_output_formats
-from helpers.profiler import ProfilerConfig
-from helpers.stimuli_config import StimuliConfig
-from helpers.test_config import TestConfig, TestMode
+from helpers.profiler import Profiler
+from helpers.test_config import ProfilerBuild, run_test
 
 
 def get_expected_overhead():
@@ -21,27 +17,15 @@ def get_expected_overhead():
             raise ValueError("Unsupported chip architecture")
 
 
-# Coverage uses different linker script, that doesn't utilize local data memory at all, only L1
-# Because of this, measured overhead is at 2.3k instead of ~23 cycles
-@skip_for_coverage
-def test_profiler_overhead(workers_tensix_coordinates):
+def test_profiler_overhead():
 
-    if TestConfig.MODE == TestMode.PRODUCE:
-        pytest.skip()
+    test_config = {
+        "testname": "profiler_overhead_test",
+    }
 
-    configuration = ProfilerConfig(
-        "sources/profiler_overhead_test.cpp",
-        input_output_formats([DataFormat.Float16])[0],
-        variant_stimuli=StimuliConfig(
-            [], DataFormat.Float16, [], DataFormat.Float16, DataFormat.Float16, 1, 1
-        ),
-    )
+    run_test(test_config, profiler_build=ProfilerBuild.Yes)
 
-    configuration.generate_variant_hash()
-    configuration.build_elfs()
-    configuration.run_elf_files(workers_tensix_coordinates)
-
-    runtime = configuration.get_data(workers_tensix_coordinates)
+    runtime = Profiler.get_data(test_config["testname"])
 
     # filter out all zones that don't have marker "OVERHEAD"
 

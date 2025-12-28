@@ -30,8 +30,10 @@ uint32_t open_zone_cnt    = 0;
 
 #endif
 
-extern const volatile struct RuntimeParams __runtime_args_start[];
-extern void run_kernel(const volatile struct RuntimeParams* params);
+__attribute__((weak)) void run_kernel()
+{
+    return;
+}
 
 int main()
 {
@@ -63,7 +65,7 @@ int main()
 
     {
         ZONE_SCOPED("KERNEL")
-        run_kernel(__runtime_args_start);
+        run_kernel();
         ckernel::tensix_sync();
     }
 

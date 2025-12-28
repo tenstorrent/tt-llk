@@ -12,7 +12,7 @@ uint32_t pack_sync_tile_dst_ptr = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel()
 {
     ZONE_SCOPED("TEST_ZONE")
 }
@@ -21,7 +21,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #ifdef LLK_TRISC_MATH
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel()
 {
     TIMESTAMP("TEST_TIMESTAMP")
 }
@@ -30,7 +30,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #ifdef LLK_TRISC_PACK
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel()
 {
     TIMESTAMP_DATA("TEST_TIMESTAMP_DATA", 0xBADC0FFE0DDF00D);
 }

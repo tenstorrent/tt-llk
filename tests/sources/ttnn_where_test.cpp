@@ -14,13 +14,15 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
+constexpr bool disable_src_zero_flag = true;
+
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel()
 {
     using DataFormatUT = std::underlying_type_t<DataFormat>;
     auto to_ufmt       = [](DataFormat fmt) constexpr { return static_cast<DataFormatUT>(fmt); };
@@ -71,7 +73,7 @@ using namespace ckernel;
 
 // using namespace sfpu;
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel()
 {
     using DataFormatUT = std::underlying_type_t<DataFormat>;
     auto to_ufmt       = [](DataFormat fmt) constexpr { return static_cast<DataFormatUT>(fmt); };
@@ -133,7 +135,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel()
 {
     using DataFormatUT = std::underlying_type_t<DataFormat>;
     auto to_ufmt       = [](DataFormat fmt) constexpr { return static_cast<DataFormatUT>(fmt); };

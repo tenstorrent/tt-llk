@@ -3,19 +3,13 @@
 
 import pytest
 from helpers.format_config import DataFormat
-from helpers.llk_params import PerfRunType
 from helpers.param_config import input_output_formats, parametrize
-from helpers.profiler import ProfilerConfig
-from helpers.stimuli_config import StimuliConfig
-from helpers.test_variant_parameters import (
-    INPUT_DIMENSIONS,
-    LOOP_FACTOR,
-    TILE_COUNT,
-)
+from helpers.perf import PerfRunType, perf_benchmark, update_report
 
 
 @pytest.mark.perf
 @parametrize(
+    test_name="unpack_tilize_perf",
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
@@ -27,59 +21,44 @@ from helpers.test_variant_parameters import (
     rt_dim=[1, 2, 3, 4, 5, 6, 7, 8],
     ct_dim=[1, 2, 3, 4, 5, 6, 7, 8],
 )
-def test_perf_unpack_tilize_float(
-    perf_report, formats, rt_dim, ct_dim, workers_tensix_coordinates
-):
+def test_perf_unpack_tilize_float(perf_report, test_name, formats, rt_dim, ct_dim):
     if formats.input_format == DataFormat.Bfp8_b:
         pytest.skip("Bfp8_b input not supported for unpack_tilize")
 
-    _perf_unpack_tilize(
-        perf_report, formats, rt_dim, ct_dim, workers_tensix_coordinates
-    )
+    _perf_unpack_tilize(perf_report, test_name, formats, rt_dim, ct_dim)
 
 
 @pytest.mark.perf
 @parametrize(
+    test_name="unpack_tilize_perf",
     formats=input_output_formats([DataFormat.Int32]),
     rt_dim=[1, 2],
     ct_dim=[1, 2],
 )
-def test_perf_unpack_tilize_int(
-    perf_report, formats, rt_dim, ct_dim, workers_tensix_coordinates
-):
-    _perf_unpack_tilize(
-        perf_report, formats, rt_dim, ct_dim, workers_tensix_coordinates
-    )
+def test_perf_unpack_tilize_int(perf_report, test_name, formats, rt_dim, ct_dim):
+    _perf_unpack_tilize(perf_report, test_name, formats, rt_dim, ct_dim)
 
 
-def _perf_unpack_tilize(
-    perf_report, formats, rt_dim, ct_dim, workers_tensix_coordinates
-):
+def _perf_unpack_tilize(perf_report, test_name, formats, rt_dim, ct_dim):
+    run_types = [
+        PerfRunType.L1_TO_L1,
+        PerfRunType.UNPACK_ISOLATE,
+        PerfRunType.PACK_ISOLATE,
+        PerfRunType.L1_CONGESTION,
+    ]
+
     tile_count = rt_dim * ct_dim
     dimensions = [rt_dim * 32, ct_dim * 32]
 
-    configuration = ProfilerConfig(
-        "sources/unpack_tilize_perf.cpp",
-        formats,
-        run_types=[
-            PerfRunType.L1_TO_L1,
-            PerfRunType.UNPACK_ISOLATE,
-            PerfRunType.PACK_ISOLATE,
-            PerfRunType.L1_CONGESTION,
-        ],
-        templates=[INPUT_DIMENSIONS(dimensions, dimensions)],
-        runtimes=[TILE_COUNT(tile_count), LOOP_FACTOR(4)],
-        variant_stimuli=StimuliConfig(
-            None,
-            formats.input_format,
-            None,
-            formats.input_format,
-            formats.output_format,
-            tile_count_A=tile_count,
-            tile_count_B=tile_count,
-            tile_count_res=tile_count,
-        ),
-        unpack_to_dest=formats.input_format == DataFormat.Int32,
-    )
+    test_config = {
+        "formats": formats,
+        "testname": test_name,
+        "loop_factor": 4,
+        "tile_cnt": tile_count,
+        "input_A_dimensions": dimensions,
+        "input_B_dimensions": dimensions,
+        "unpack_to_dest": formats.input_format == DataFormat.Int32,
+    }
 
-    configuration.run(perf_report, location=workers_tensix_coordinates)
+    results = perf_benchmark(test_config, run_types)
+    update_report(perf_report, test_config, results)

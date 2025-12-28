@@ -8,7 +8,7 @@
 
 #include "profiler.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel()
 {
     // measure length of zones of different sizes
 
@@ -34,24 +34,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
             asm volatile goto("bgtu %0, zero, %l1" : : "r"(cnt) : : loop);
         }
     }
-}
-
-#endif
-
-#ifdef LLK_TRISC_MATH
-
-void run_kernel(const volatile struct RuntimeParams *params)
-{
-    // Only unpack kernel is measuring profiler overhead
-}
-
-#endif
-
-#ifdef LLK_TRISC_PACK
-
-void run_kernel(const volatile struct RuntimeParams *params)
-{
-    // Only unpack kernel is measuring profiler overhead
 }
 
 #endif

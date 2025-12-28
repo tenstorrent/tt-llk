@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
 from helpers.golden_generators import ReduceGolden, get_golden_generator
 from helpers.llk_params import (
@@ -12,12 +13,8 @@ from helpers.llk_params import (
     format_dict,
 )
 from helpers.param_config import input_output_formats, parametrize
-from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import TestConfig
-from helpers.test_variant_parameters import (
-    MATH_OP,
-)
+from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 # Helper dictionary to map reduce dimensions to math operations
@@ -29,6 +26,7 @@ mathop_mapping = {
 
 
 @parametrize(
+    test_name="reduce_test",
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
@@ -41,14 +39,12 @@ mathop_mapping = {
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )
-def test_reduce(formats, dest_acc, reduce_dim, pool_type, workers_tensix_coordinates):
+def test_reduce(test_name, formats, dest_acc, reduce_dim, pool_type):
+
     input_dimensions = [32, 32]
 
-    src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
-        stimuli_format_A=formats.input_format,
-        input_dimensions_A=input_dimensions,
-        stimuli_format_B=formats.input_format,
-        input_dimensions_B=input_dimensions,
+    src_A, src_B, tile_cnt = generate_stimuli(
+        formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
     if pool_type in [
@@ -63,32 +59,32 @@ def test_reduce(formats, dest_acc, reduce_dim, pool_type, workers_tensix_coordin
     generate_golden = get_golden_generator(ReduceGolden)
     golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
 
-    configuration = TestConfig(
-        "sources/reduce_test.cpp",
-        formats,
-        templates=[MATH_OP(mathop=mathop_mapping[reduce_dim], pool_type=pool_type)],
-        runtimes=[],
-        variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
-            tile_count_A=tile_cnt_A,
-            tile_count_B=tile_cnt_B,
-            tile_count_res=tile_cnt_A,
-        ),
-        dest_acc=dest_acc,
+    mathop = mathop_mapping[reduce_dim]
+
+    test_config = {
+        "formats": formats,
+        "testname": test_name,
+        "dest_acc": dest_acc,
+        "reduce_dim": reduce_dim,
+        "pool_type": pool_type,
+        "mathop": mathop,
+    }
+
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    run_test(test_config)
 
-    assert len(res_from_L1) == len(
-        golden_tensor
-    ), "Result tensor and golder tensor are not of the same length"
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    assert len(res_from_L1) == len(golden_tensor)
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
-    assert passed_test(
-        golden_tensor, res_tensor, formats.output_format
-    ), "Assert against golden failed"
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)

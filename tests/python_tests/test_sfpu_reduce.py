@@ -3,6 +3,10 @@
 
 
 import torch
+from helpers.device import (
+    collect_results,
+    write_stimuli_to_l1,
+)
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
     UnarySFPUGolden,
@@ -19,14 +23,7 @@ from helpers.param_config import (
     input_output_formats,
     parametrize,
 )
-from helpers.stimuli_config import StimuliConfig
-from helpers.test_config import TestConfig
-from helpers.test_variant_parameters import (
-    APPROX_MODE,
-    INPUT_DIMENSIONS,
-    MATH_OP,
-    TILE_COUNT,
-)
+from helpers.test_config import run_test
 from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
 
@@ -51,6 +48,7 @@ def get_format_input_bounds(formats: InputOutputFormat) -> list[tuple[int, int]]
 
 
 @parametrize(
+    test_name="sfpu_reduce_test",
     formats=input_output_formats(
         [
             DataFormat.Float32,
@@ -68,13 +66,13 @@ def get_format_input_bounds(formats: InputOutputFormat) -> list[tuple[int, int]]
     dimension_combinations=dimension_combinations,
 )
 def test_sfpu_reduce(
+    test_name,
     formats,
     dest_acc,
     mathop,
     reduce_pool,
     input_bounds,
     dimension_combinations,
-    workers_tensix_coordinates,
 ):
     min_value, max_value = input_bounds
     input_dimensions = dimension_combinations
@@ -108,34 +106,33 @@ def test_sfpu_reduce(
         reduce_pool=reduce_pool,
     )
 
-    configuration = TestConfig(
-        "sources/sfpu_reduce_test.cpp",
-        formats,
-        templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
-            APPROX_MODE(ApproximationMode.No),
-            MATH_OP(mathop=mathop, pool_type=reduce_pool),
-        ],
-        runtimes=[TILE_COUNT(tile_cnt)],
-        variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
-            tile_count_A=tile_cnt,
-            tile_count_B=1,
-            tile_count_res=tile_cnt,
-        ),
-        dest_acc=dest_acc,
-        unpack_to_dest=True,
-        disable_format_inference=True,
-    )
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    test_config = {
+        "formats": formats,
+        "testname": test_name,
+        "dest_acc": dest_acc,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
+        "mathop": mathop,
+        "pool_type": reduce_pool,
+        "approx_mode": ApproximationMode.No,
+        "unpack_to_dest": True,
+        "tile_cnt": tile_cnt,
+        "disable_format_inference": True,
+    }
 
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=1,
+    )
+    run_test(test_config)
+
+    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize_block(res_tensor, formats.output_format, dst_dim)
 
-    assert passed_test(
-        golden_tensor[0], res_tensor[0], formats.output_format
-    ), "Assert against golden failed"
+    assert passed_test(golden_tensor[0], res_tensor[0], formats.output_format)

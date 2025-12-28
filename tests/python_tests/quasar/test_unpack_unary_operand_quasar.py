@@ -5,6 +5,10 @@ from typing import List
 
 import pytest
 import torch
+from helpers.device import (
+    collect_results,
+    write_stimuli_to_l1,
+)
 from helpers.format_config import DataFormat, FormatConfig
 from helpers.golden_generators import (
     DataCopyGolden,
@@ -24,21 +28,8 @@ from helpers.param_config import (
     input_output_formats,
     parametrize,
 )
-from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import BootMode, TestConfig
-from helpers.test_variant_parameters import (
-    DATA_COPY_TYPE,
-    DEST_SYNC,
-    IMPLIED_MATH_FORMAT,
-    INPUT_DIMENSIONS,
-    NUM_FACES,
-    TEST_FACE_DIMS,
-    TILE_COUNT,
-    UNPACK_TRANS_FACES,
-    UNPACK_TRANS_WITHING_FACE,
-    UNPACKER_ENGINE_SEL,
-)
+from helpers.test_config import BootMode, run_test
 from helpers.utils import passed_test
 
 
@@ -116,28 +107,23 @@ ALL_UNPACK_UNARY_OPERAND_COMBINATIONS = generate_unpack_unary_operand_combinatio
 
 @pytest.mark.quasar
 @parametrize(
+    test_name="unpack_unary_operand_quasar_test",
     formats_dest_acc_transpose_unpack_sel_dims=ALL_UNPACK_UNARY_OPERAND_COMBINATIONS,
 )
 def test_unpack_unary_operand_quasar(
-    formats_dest_acc_transpose_unpack_sel_dims, boot_mode=BootMode.DEFAULT
+    test_name, formats_dest_acc_transpose_unpack_sel_dims, boot_mode=BootMode.DEFAULT
 ):
-    formats_dest_acc_transpose_unpack_sel_dims = (
-        formats_dest_acc_transpose_unpack_sel_dims[0]
-    )
     formats = formats_dest_acc_transpose_unpack_sel_dims[0]
     dest_acc = formats_dest_acc_transpose_unpack_sel_dims[1]
     transpose_en = formats_dest_acc_transpose_unpack_sel_dims[2]
     unpacker_sel = formats_dest_acc_transpose_unpack_sel_dims[3]
     input_dimensions = formats_dest_acc_transpose_unpack_sel_dims[4]
 
-    src_A, tile_cnt_A, src_B, _ = generate_stimuli(
-        stimuli_format_A=formats.input_format,
-        input_dimensions_A=input_dimensions,
-        stimuli_format_B=formats.input_format,
-        input_dimensions_B=input_dimensions,
+    src_A, src_B, tile_cnt = generate_stimuli(
+        formats.input_format,
+        formats.input_format,
+        input_dimensions=input_dimensions,
     )
-
-    num_faces = 4
 
     golden_src = (
         src_B if unpacker_sel == UnpackerEngine.UnpB else src_A
@@ -147,14 +133,14 @@ def test_unpack_unary_operand_quasar(
         golden_tensor = generate_golden.transpose_faces_multi_tile(
             golden_src,
             formats.output_format,
-            num_tiles=tile_cnt_A,
+            num_tiles=tile_cnt,
             tilize=False,
             input_dimensions=input_dimensions,
         )
         golden_tensor = generate_golden.transpose_within_faces_multi_tile(
             golden_tensor,
             formats.output_format,
-            num_tiles=tile_cnt_A,
+            num_tiles=tile_cnt,
             untilize=False,
             input_dimensions=input_dimensions,
         )
@@ -163,57 +149,53 @@ def test_unpack_unary_operand_quasar(
         golden_tensor = generate_golden(
             golden_src,
             formats.output_format,
-            num_faces=num_faces,
+            num_faces=4,
             input_dimensions=input_dimensions,
         )
 
-    configuration = TestConfig(
-        "sources/quasar/unpack_unary_operand_quasar_test.cpp",
-        formats,
-        templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
-            IMPLIED_MATH_FORMAT(ImpliedMathFormat.Yes),
-            UNPACKER_ENGINE_SEL(unpacker_sel),
-            DATA_COPY_TYPE(
-                DataCopyType.B2D
-                if unpacker_sel == UnpackerEngine.UnpB
-                else DataCopyType.A2D
-            ),
-            DEST_SYNC(),
-            UNPACK_TRANS_FACES(transpose_en),
-            UNPACK_TRANS_WITHING_FACE(transpose_en),
-            TEST_FACE_DIMS(),
-            NUM_FACES(num_faces),
-            TILE_COUNT(tile_cnt_A),
-        ],
-        runtimes=[],
-        variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
-            tile_count_A=tile_cnt_A,
-            tile_count_B=tile_cnt_A,
-            tile_count_res=tile_cnt_A,
-            num_faces=num_faces,
-        ),
-        unpack_to_dest=(
-            formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-        ),
-        dest_acc=dest_acc,
-        boot_mode=boot_mode,
+    unpack_to_dest = (
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
     )
 
-    res_from_L1 = configuration.run()
+    test_config = {
+        "formats": formats,
+        "testname": test_name,
+        "dest_acc": dest_acc,
+        "input_A_dimensions": input_dimensions,
+        "input_B_dimensions": input_dimensions,
+        "unpack_to_dest": unpack_to_dest,
+        "tile_cnt": tile_cnt,
+        "unpack_transpose_faces": transpose_en,
+        "unpack_transpose_within_face": transpose_en,
+        "unpacker_engine_sel": unpacker_sel,
+        "implied_math_format": ImpliedMathFormat.Yes,
+        "data_copy_type": (
+            DataCopyType.B2D
+            if unpacker_sel == UnpackerEngine.UnpB
+            else DataCopyType.A2D
+        ),
+    }
 
-    assert len(res_from_L1) == len(
-        golden_tensor
-    ), "Result tensor and golder tensor are not of the same length"
+    res_address = write_stimuli_to_l1(
+        test_config,
+        src_A,
+        src_B,
+        formats.input_format,
+        formats.input_format,
+        tile_count_A=tile_cnt,
+        tile_count_B=tile_cnt,
+        num_faces=4,
+    )
+
+    run_test(test_config, boot_mode=boot_mode)
+
+    res_from_L1 = collect_results(
+        formats, tile_count=tile_cnt, address=res_address, num_faces=4
+    )
+
+    assert len(res_from_L1) == len(golden_tensor)
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(
-        golden_tensor, res_tensor, formats.output_format
-    ), "Assert against golden failed"
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
