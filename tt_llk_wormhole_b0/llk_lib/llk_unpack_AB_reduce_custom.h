@@ -162,5 +162,8 @@ inline void _llk_unpack_AB_reduce_block_max_row_uninit_(const std::uint32_t unpA
     TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
     TT_SETADCXX(p_setadc::UNP_A, unpA_face_r_dim * FACE_C_DIM - 1, 0x0);
     TT_SETADCXX(p_setadc::UNP_B, unpB_face_r_dim * FACE_C_DIM - 1, 0x0);
-    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
+    // Fix under tt-metal#33825, move from compute API level down to here.
+    // Requires clear_fp32_accumulation flag or is_fp32_dest_acc_en flag.
+    // In compute API has tensix_sync(), why?
+    // reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
 }
