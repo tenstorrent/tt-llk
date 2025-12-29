@@ -607,7 +607,6 @@ class ProfilerConfig(TestConfig):
             values.extend(ProfilerConfig._dataclass_values(param))
 
         sweep = pd.DataFrame([values], columns=names)
-
         combined = sweep.merge(run_results, how="cross")
 
         perf_report.append(combined)
