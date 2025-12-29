@@ -227,7 +227,7 @@ def parse_operation(
 def create_fuse_pipeline(yaml_path: str) -> List[FusedOperation]:
     yaml_file = Path(yaml_path)
     if not yaml_file.exists():
-        raise FileNotFoundError(f"YAML fajl ne postoji: {yaml_path}")
+        raise FileNotFoundError(f"YAML file does not exist: {yaml_path}")
 
     with open(yaml_file, "r") as f:
         config = yaml.safe_load(f)
