@@ -17,19 +17,18 @@ namespace sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_typecast_fp16b_to_uint16_()
+inline void _calculate_typecast_fp32_to_uint16_()
 {
-#pragma GCC unroll 0
+#pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(0, 0, ADDR_MOD_7, 0);
-        TTI_SFPSETCC(0, 0, 0, 0);
-        TTI_SFPLOADI(0, 0, 0);
-        TTI_SFPENCC(0, 0, 0, 0);
-        TTI_SFP_STOCH_RND(0, 0, 2, 0, 1, 6);
-        TTI_SFPSTORE(1, 6, ADDR_MOD_7, 0);
-        sfpi::dst_reg++;
+        int v = d & 1;
+        TT_SFPLOADMACRO((0 << 2) | (v & 3), InstrModLoadStore::DEFAULT, ADDR_MOD_6, v >> 2);
+        TTI_SFPNOP;
     }
+    TTI_SFPNOP;
+    TTI_SFPNOP;
+    TTI_SFPNOP;
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
@@ -657,6 +656,35 @@ inline void _init_typecast_uint32_to_fp16b_()
     //   UnitDelayKind: {1}, (WaitForElapsedInstructions=1)
     // }
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::DEFAULT, 8, 1);
+}
+
+template <bool APPROXIMATION_MODE>
+inline void _init_typecast_fp32_to_uint16_()
+{
+    // InstructionTemplate[0]
+    TTI_SFPSWAP(0, p_sfpu::LCONST_0, 12, 0xf); // L[VD] = max(0, L[VD])
+
+    // InstructionTemplate[1]
+    TTI_SFP_STOCH_RND(0, 0, 0, 0, 13, 6); // SFPSTOCHRND_MOD1_FP32_TO_UINT16
+
+    // Macro 0
+    {
+        constexpr uint simple_bits = 0x80 | 0x00 | (0 << 3) | (4 + 0);
+        constexpr uint mad_bits    = 0;
+        constexpr uint round_bits  = 0x00 | 0x40 | (2 << 3) | (4 + 1);
+        constexpr uint store_bits  = 0x00 | 0x40 | (3 << 3) | 3;
+
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
+        TTI_SFPCONFIG(0, 4 + 0, 0);
+    }
+
+    // Misc: {
+    //   StoreMod0: LO16,
+    //   UsesLoadMod0ForStore: {0},
+    //   UnitDelayKind: {1}, (WaitForElapsedInstructions=1)
+    // }
+    TTI_SFPCONFIG(0x100 | InstrModLoadStore::LO16, 8, 1);
 }
 
 } // namespace sfpu
