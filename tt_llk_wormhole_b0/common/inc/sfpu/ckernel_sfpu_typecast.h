@@ -46,15 +46,46 @@ inline void _calculate_typecast_uint16_to_fp16b_()
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_typecast_int32_to_fp16b_()
 {
-#pragma GCC unroll 0
+    // This uses SFPLOADMACRO to achieve a throughput of 4 cycles per input row.
+    //
+    // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
+    //
+    // Note: L0=0.0 and L1=2**31.  The sign bit is stored in L7 and used to pick L0 or L1
+    // for SFPMAD's VA:
+    //
+    // - if sign bit is 0, then compute L0*1.0 + v = v
+    // - if sign bit is 1, then compute L1*1.0 + v = 2**31 + v
+    //
+    // t | Load | Simple             | MAD                 | Round            | Store   |
+    // - | ---- | ------------------ | ------------------- | ---------------- | ------- |
+    // 0 | [v]  |                    |                     |                  |         |
+    // 1 |      | t = abs(v)         |                     |                  |         |
+    // 2 |      |                    |                     | L7 = t >> 31     |         |
+    // 3 |      | t = cast(t)        |                     |                  |         |
+    // 0 | ...  | [v] = setsgn(t, v) |                     |                  |         |
+    // 1 | ...  |                    | [v] = L[L7]*1.0 + v |                  |         |
+    // 2 | ...  |                    |                     |                  |         |
+    // 3 | ...  |                    |                     | [v] L16 = rnd(v) |         |
+    // 0 | ...  |                    |                     |                  | [v] L16 |
+
+    constexpr int t = p_sfpu::LREG4;
+
+    TTI_SFPLOADI(p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_USHORT, 0);
+    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, 0x4f00); // 2**31
+
+#pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        TTI_SFPLOAD(0, 12, 3, 0);
-        TTI_SFPCAST(0, 1, 0);
-        TTI_SFP_STOCH_RND(0, 0, 3, 1, 2, 1);
-        TTI_SFPSTORE(2, 0, 3, 0);
-        sfpi::dst_reg++;
+        int v = 2 + (d & 1);
+        TT_SFPLOADMACRO((0 << 2) | (v & 3), InstrModLoadStore::INT32, ADDR_MOD_2, v >> 2);
+        TT_SFPABS(0, v, t, 0);
+        TTI_SFPSHFT2(t, p_sfpu::LREG12, p_sfpu::LREG7, 5); // SFPSHFT2_MOD1_SHFT_LREG
+        TTI_SFPCAST(t, t, 0);
     }
+    TTI_SFPNOP;
+    TTI_SFPNOP;
+    TTI_SFPNOP;
+    TTI_SFPNOP;
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
@@ -179,37 +210,36 @@ inline void _calculate_typecast_int32_to_fp32_()
     //
     // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
     //
-    // Note: L0=0.0 and L1=2**31.  The sign bit is stored in L7 and used to pick L0 or L1
-    // for SFPMAD's VA:
+    // Note: L0=0.0 and L1=-2**31.  The sign bit of abs(v) is stored in L7 and
+    // used to pick L0 or L1 for SFPMAD's VA:
     //
     // - if sign bit is 0, then compute L0*1.0 + v = v
-    // - if sign bit is 1, then compute L1*1.0 + v = 2**31 + v
+    // - if sign bit is 1, then compute L1*1.0 + v = -2**31 + 0.0 = -2**31
     //
-    // t | Load | Simple                 | MAD                 | Round        | Store   |
-    // - | ---- | ---------------------- | ------------------- | ------------ | ------- |
-    // 0 | [v]  |                        |                     |              |         |
-    // 1 |      | v = abs(v)             |                     |              |         |
-    // 2 |      |                        |                     | L7 = v >> 31 |         |
-    // 3 | [t]  | [v] = cast(v)          |                     |              |         |
-    // 0 | ...  |                        | [v] = L[L7]*1.0 + v |              |         |
-    // 1 | ...  |                        |                     |              |         |
-    // 2 | ...  | [t] L16 = setsgn(v, t) |                     |              |         |
-    // 3 | ...  |                        |                     |              | [v] L16 |
+    // t | Load | Simple             | MAD                     | Round        | Store   |
+    // - | ---- | ------------------ | ----------------------- | ------------ | ------- |
+    // 0 | [v]  |                    |                         |              |         |
+    // 1 |      | t = abs(v)         |                         |              |         |
+    // 2 |      |                    |                         | L7 = t >> 31 |         |
+    // 3 |      | t = cast(t)        |                         |              |         |
+    // 0 | ...  | [v] = setsgn(t, v) |                         |              |         |
+    // 1 | ...  |                    | [v] L16 = L[L7]*1.0 + v |              |         |
+    // 2 | ...  |                    |                         |              |         |
+    // 3 | ...  |                    |                         |              | [v] L16 |
 
-    constexpr int t = 4;
+    constexpr int t = p_sfpu::LREG4;
 
     TTI_SFPLOADI(p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_USHORT, 0);
-    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, 0x4f00); // 2**31
+    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, 0xcf00); // -2**31
 
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         int v = 2 + (d & 1);
-        TT_SFPLOADMACRO((0 << 2) | (v & 3), InstrModLoadStore::INT32, ADDR_MOD_3, v >> 2);
-        TT_SFPABS(0, v, v, 0);
-        TT_SFPSHFT2(v, p_sfpu::LREG12, p_sfpu::LREG7, 5); // SFPSHFT2_MOD1_SHFT_LREG
-        int macroIndex = 1 + (d & 1);
-        TTI_SFPLOADMACRO((macroIndex << 2) | (t & 3), InstrModLoadStore::INT32, ADDR_MOD_2, t >> 2);
+        TT_SFPLOADMACRO((0 << 2) | (v & 3), InstrModLoadStore::INT32, ADDR_MOD_2, v >> 2);
+        TT_SFPABS(0, v, t, 0);
+        TTI_SFPSHFT2(t, p_sfpu::LREG12, p_sfpu::LREG7, 5); // SFPSHFT2_MOD1_SHFT_LREG
+        TTI_SFPCAST(t, t, 0);
     }
     TTI_SFPNOP;
     TTI_SFPNOP;
@@ -449,24 +479,20 @@ inline void _init_typecast_uint32_to_fp32_()
 template <bool APPROXIMATION_MODE>
 inline void _init_typecast_int32_to_fp32_()
 {
+    constexpr int t = p_sfpu::LREG4;
+
     sfpi::vConstIntPrgm0 = -31;
 
     // InstructionTemplate[0]
-    TTI_SFPCAST(0, 12, 0);
+    TTI_SFPSETSGN(0, t, 12, 0);
 
     // InstructionTemplate[1]
     TTI_SFPMAD(0, p_sfpu::LCONST_1, 0, 13, 4); // SFPMAD_MOD1_INDIRECT_VA
 
-    // InstructionTemplate[2]
-    TTI_SFPSETSGN(0, p_sfpu::LREG2, 14, 0);
-
-    // InstructionTemplate[3]
-    TTI_SFPSETSGN(0, p_sfpu::LREG3, 15, 0);
-
     // Macro 0: [v]
     {
-        constexpr uint simple_bits = 0x00 | 0x00 | (2 << 3) | (4 + 0);
-        constexpr uint mad_bits    = 0x00 | 0x00 | (3 << 3) | (4 + 1);
+        constexpr uint simple_bits = 0x80 | 0x00 | (3 << 3) | (4 + 0);
+        constexpr uint mad_bits    = 0x00 | 0x40 | (4 << 3) | (4 + 1);
         constexpr uint round_bits  = 0;
         constexpr uint store_bits  = 0x00 | 0x40 | (6 << 3) | 3;
 
@@ -475,28 +501,48 @@ inline void _init_typecast_int32_to_fp32_()
         TTI_SFPCONFIG(0, 4 + 0, 0);
     }
 
-    // Macro 1: [t0]
+    // Misc: {
+    //   StoreMod0: FP32,
+    //   UsesLoadMod0ForStore: {0},
+    //   UnitDelayKind: {1}, (WaitForElapsedInstructions=1)
+    // }
+    TTI_SFPCONFIG(0x100 | InstrModLoadStore::FP32, 8, 1);
+}
+
+template <bool APPROXIMATION_MODE>
+inline void _init_typecast_int32_to_fp16b_()
+{
+    constexpr int t = p_sfpu::LREG4;
+
+    sfpi::vConstIntPrgm0 = -31;
+
+    // InstructionTemplate[0]
+    TTI_SFPSETSGN(0, t, 12, 0);
+
+    // InstructionTemplate[1]
+    TTI_SFPMAD(0, p_sfpu::LCONST_1, 0, 13, 4); // SFPMAD_MOD1_INDIRECT_VA
+
+    // InstructionTemplate[2]
+    TTI_SFP_STOCH_RND(0, 0, 0, 0, 14, 1); // SFPSTOCHRND_MOD1_FP32_TO_FP16B
+
+    // Macro 0: [v]
     {
-        constexpr uint simple_bits = 0x80 | 0x40 | (2 << 3) | (4 + 2);
-        constexpr uint mad_bits    = 0;
+        constexpr uint simple_bits = 0x80 | 0x00 | (3 << 3) | (4 + 0);
+        constexpr uint mad_bits    = 0x00 | 0x00 | (4 << 3) | (4 + 1);
+        constexpr uint round_bits  = 0x00 | 0x40 | (6 << 3) | (4 + 2);
+        constexpr uint store_bits  = 0x00 | 0x40 | (7 << 3) | 3;
 
-        TTI_SFPCONFIG((mad_bits << 8) | simple_bits, 4 + 1, 1);
-    }
-
-    // Macro 2: [t1]
-    {
-        constexpr uint simple_bits = 0x80 | 0x40 | (2 << 3) | (4 + 3);
-        constexpr uint mad_bits    = 0;
-
-        TTI_SFPCONFIG((mad_bits << 8) | simple_bits, 4 + 2, 1);
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
+        TTI_SFPCONFIG(0, 4 + 0, 0);
     }
 
     // Misc: {
-    //   StoreMod0: FP32,
-    //   UsesLoadMod0ForStore: {0,0,0},
-    //   UnitDelayKind: {1,1,1}, (WaitForElapsedInstructions=1)
+    //   StoreMod0: DEFAULT,
+    //   UsesLoadMod0ForStore: {0},
+    //   UnitDelayKind: {1}, (WaitForElapsedInstructions=1)
     // }
-    TTI_SFPCONFIG(0x700 | InstrModLoadStore::FP32, 8, 1);
+    TTI_SFPCONFIG(0x100 | InstrModLoadStore::DEFAULT, 8, 1);
 }
 
 template <bool APPROXIMATION_MODE>
