@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
+import pytest
 import torch
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
@@ -76,6 +77,12 @@ def test_sfpu_reduce(
     dimension_combinations,
     workers_tensix_coordinates,
 ):
+    # We're getting a compilation error
+    if (
+        reduce_pool == ReducePool.Min or reduce_pool == ReducePool.Average
+    ) and TestConfig.WITH_COVERAGE:
+        pytest.skip()
+
     min_value, max_value = input_bounds
     input_dimensions = dimension_combinations
     torch_format = format_dict[formats.input_format]

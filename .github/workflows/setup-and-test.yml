@@ -121,6 +121,18 @@ jobs:
                    pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}-run.xml \
                    pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml
 
+          if [[ "${{ inputs.coverage }}" == "true" ]]; then
+            cd ../../
+            cp /tmp/tt-llk-build/merged_coverage.info code-coverage-${CHIP_ARCH}-${{ matrix.test_group }}.info
+          fi
+
+      - name: Upload code coverage for this runner
+        uses: actions/upload-artifact@v4
+        if: ${{ inputs.coverage }}
+        with:
+          name: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
+          path: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
+
       # Step 4: Zip performance data if perf tests were run
       - name: Zip performance data
         if: always() && contains(inputs.pytest_markers, 'perf') && hashFiles('perf_data/**') != ''
@@ -128,14 +140,6 @@ jobs:
         run: |
           zip -r perf_data-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.zip perf_data/
           echo "Performance data zipped successfully"
-
-      # Step 4.1: Upload generated info file per runner
-      - name: Upload code coverage for this runner
-        uses: actions/upload-artifact@v4
-        if: ${{ inputs.coverage }}
-        with:
-          name: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
-          path: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
 
       # Step 5: Upload performance data
       - name: Upload performance data

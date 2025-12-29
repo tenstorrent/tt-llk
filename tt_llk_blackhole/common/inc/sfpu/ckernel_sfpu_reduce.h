@@ -605,7 +605,7 @@ inline void calculate_reduce_sum_avg()
         }
 
         // Store the final combined column sums
-        TTI_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, upper_face_addr + column_offset);
+        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, upper_face_addr + column_offset);
     }
 
     // After this loop, the column sums are stored at first row in dest reg:
