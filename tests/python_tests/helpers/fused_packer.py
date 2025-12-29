@@ -65,6 +65,8 @@ class Packer:
         dest_acc_value = dest_acc.value
         buffer_Res_tile_size = operation_config.buffer_Res_tile_size
         bh_tilize = "true" if operation_config.bh_tilize.value else "false"
+        face_r_dim = operation_config.face_r_dim
+        num_faces = operation_config.num_faces
 
         code = (
             f"    // Operation {stage}: Packer\n"
@@ -78,7 +80,7 @@ class Packer:
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
             code += (
                 f"    _llk_pack_init_<false, false, {bh_tilize}>(\n"
-                f"        pack_dst_format{stage}\n"
+                f"        pack_dst_format{stage}, pack_dst_format{stage}, {face_r_dim}, TILE_C_DIM, {num_faces}, false, false"
                 f"    );\n"
                 f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}>();\n"
             )
