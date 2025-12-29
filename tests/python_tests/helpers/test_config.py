@@ -17,6 +17,7 @@ from typing import ClassVar, List
 
 import numpy as np
 import pytest
+from filelock import FileLock
 from ttexalens.tt_exalens_lib import (
     TTException,
     load_elf,
@@ -664,25 +665,17 @@ class TestConfig:
         return "\n".join(header_content)
 
     def should_skip_building(self, variant_dir: Path) -> bool:
+        """Check if variant should be built. Uses lock to prevent race conditions."""
+        lock_file = TestConfig.SYNC_DIR / f"{self.variant_id}.lock"
+        done_marker = variant_dir / ".build_complete"
+        lock = FileLock(lock_file)
 
-        return variant_dir.exists()
-
-        # TODO Implement some level of sync against elfs, if need be
-        # sync_file = open(
-        #     TestConfig.SYNC_DIR / f"{self.test_name}_{self.variant_id}.sync", "w"
-        # )
-        # return_status = False
-
-        # try:
-        #     fcntl.flock(sync_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        #     return_status = not variant_dir.exists()
-        #     variant_dir.mkdir(exist_ok=True, parents=True)
-        #     fcntl.flock(sync_file.fileno(), fcntl.LOCK_UN)
-        # except BlockingIOError:
-        #     pass
-
-        # sync_file.close()
-        # return return_status
+        with lock:
+            if done_marker.exists():
+                return True  # Build is complete
+            # Either dir doesn't exist, or build is incomplete - we will build
+            variant_dir.mkdir(exist_ok=True, parents=True)
+            return False
 
     def build_elfs(self):
         self.build_shared_artefacts()
@@ -749,6 +742,9 @@ class TestConfig:
                     f"{TestConfig.OBJCOPY} -O binary -j .profiler_meta {elf_path} {meta_bin_path}",
                     TestConfig.TESTS_WORKING_DIR,
                 )
+
+        # Mark build as complete so other processes know they can use the artefacts
+        (VARIANT_DIR / ".build_complete").touch()
 
     def read_coverage_data_from_device(self, location="0,0"):
         VARIANT_DIR = TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id
