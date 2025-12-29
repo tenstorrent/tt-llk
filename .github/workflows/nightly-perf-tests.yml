@@ -28,13 +28,11 @@ jobs:
         env:
           COMMIT_URL: >-
             https://github.com/tenstorrent/tt-metal/commit/${{ github.sha }}
-          RUN_URL: >-
-            ${{ github.server_url }}/${{ github.repository }}/actions/runs/
-            ${{ github.run_id }}/job/${{ job.check_run_id }}
+          RUN_BASE: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_URL: ${{ env.RUN_BASE }}/job/${{ job.check_run_id }}
           MESSAGE_TEXT: >-
             :alert: Hey, just so you know `${{ github.event.sender.login }}`
-            broke ${{ github.workflow }} with ${{ env.COMMIT_URL }} at
-            ${{ env.RUN_URL }}
+            broke ${{ github.workflow }} with ${{ env.COMMIT_URL }} at ${{ env.RUN_URL }}
         with:
           method: chat.postMessage
           token: ${{ secrets.SLACK_BOT_TOKEN }}
