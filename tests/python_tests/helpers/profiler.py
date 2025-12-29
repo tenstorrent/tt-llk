@@ -543,7 +543,7 @@ class ProfilerConfig(TestConfig):
     @staticmethod
     def _dataclass_names(parent, obj):
         """Provides the **names** of the columns for the report"""
-        return [f"{parent}.{f.name}" for f in fields(obj)]
+        return [f.name for f in fields(obj)]
 
     @staticmethod
     def _dataclass_values(obj):
@@ -607,6 +607,7 @@ class ProfilerConfig(TestConfig):
             values.extend(ProfilerConfig._dataclass_values(param))
 
         sweep = pd.DataFrame([values], columns=names)
+
         combined = sweep.merge(run_results, how="cross")
 
         perf_report.append(combined)
