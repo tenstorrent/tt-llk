@@ -53,14 +53,7 @@ def sfpu_eltwise_max(test_name, formats, dest_acc, input_dimensions):
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
-
-    print("TILE COUNT: ", tile_cnt)
-
-    # Compute golden as element-wise max of src_A and src_B
     golden_tensor = torch.maximum(src_A, src_B).flatten()
-
-    # Concatenate src_A and src_B into combined tensor for C++
-    # C++ will receive: [src_A tiles, src_B tiles] in srcA buffer
     src_A_combined = torch.cat([src_A, src_B], dim=0)
 
     # Tile counts: srcA has 2x tiles (A tiles + B tiles), srcB not used
