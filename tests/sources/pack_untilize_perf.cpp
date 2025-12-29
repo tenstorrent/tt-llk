@@ -28,20 +28,21 @@ static_assert(BLOCK_CT_DIM <= MAX_TILES_DEST, "Block must fit in Dest register")
 static_assert(FULL_CT_DIM % BLOCK_CT_DIM == 0, "FULL_CT_DIM must be divisible by BLOCK_CT_DIM");
 
 // Test assumptions
-static_assert(FULL_RT_DIM * FULL_CT_DIM == TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to TILE_CNT");
+// static_assert(FULL_RT_DIM * FULL_CT_DIM == params->TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to params->TILE_CNT");
 
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams* params)
 {
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
-        _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
+        _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+            formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
         PROFILER_SYNC();
     }
 
@@ -52,9 +53,9 @@ void run_kernel()
             return;
         }
 
-        for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
+        for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
         {
-            for (int i = 0; i < TILE_CNT; ++i)
+            for (int i = 0; i < params->TILE_CNT; ++i)
             {
                 _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
                     PERF_ADDRESS(PERF_INPUT_A, i), formats.unpack_src, formats.unpack_dst);
@@ -73,7 +74,7 @@ void run_kernel()
 
 using namespace ckernel;
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams* params)
 {
     constexpr bool is_int_fpu_en = false;
 
@@ -86,7 +87,10 @@ void run_kernel()
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats.math);
 #endif
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        _llk_math_hw_configure_<true, false>(formats.math, formats.math);
+        _llk_math_hw_configure_(formats.math, formats.math);
+#ifdef ARCH_BLACKHOLE
+        _llk_math_reconfig_remap_(true);
+#endif
         PROFILER_SYNC();
     }
 
@@ -101,14 +105,14 @@ void run_kernel()
         {
             if constexpr (!unpack_to_dest)
             {
-                _perf_math_loop_clear_valid<true, true>(LOOP_FACTOR * TILE_CNT * TILE_NUM_FACES);
+                _perf_math_loop_clear_valid<true, true>(params->LOOP_FACTOR * params->TILE_CNT * TILE_NUM_FACES);
                 return;
             }
 
             // FIXME: Currently have no way to mock math for unpack to dest
-            for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
+            for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
             {
-                for (uint32_t block = 0; block < TILE_CNT / BLOCK_CT_DIM; block++)
+                for (uint32_t block = 0; block < params->TILE_CNT / BLOCK_CT_DIM; block++)
                 {
                     for (uint32_t block_tile = 0; block_tile < BLOCK_CT_DIM; block_tile++)
                     {
@@ -120,9 +124,9 @@ void run_kernel()
             return;
         }
 
-        for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
+        for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
         {
-            for (uint32_t block = 0; block < TILE_CNT / BLOCK_CT_DIM; block++)
+            for (uint32_t block = 0; block < params->TILE_CNT / BLOCK_CT_DIM; block++)
             {
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
                 for (uint32_t block_tile = 0; block_tile < BLOCK_CT_DIM; block_tile++)
@@ -144,7 +148,7 @@ void run_kernel()
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams* params)
 {
     constexpr bool UNTILIZE = true;
 
@@ -153,11 +157,11 @@ void run_kernel()
 
 #ifdef ARCH_BLACKHOLE
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_pack_untilize_init_<BLOCK_CT_DIM, FULL_CT_DIM>(formats.pack_src, formats.pack_dst, FACE_R_DIM, 4);
 #else
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>();
         _llk_pack_untilize_init_<BLOCK_CT_DIM, FULL_CT_DIM>(formats.pack_dst, FACE_R_DIM, 4);
 #endif
         PROFILER_SYNC();
@@ -168,9 +172,9 @@ void run_kernel()
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
+            for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
             {
-                for (uint32_t tile = 0; tile < TILE_CNT; tile += BLOCK_CT_DIM)
+                for (uint32_t tile = 0; tile < params->TILE_CNT; tile += BLOCK_CT_DIM)
                 {
                     _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM>(PERF_ADDRESS(PERF_OUTPUT, tile), formats.pack_dst, FACE_R_DIM, 4, 0);
                 }
@@ -179,9 +183,9 @@ void run_kernel()
             return;
         }
 
-        for (uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
+        for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
         {
-            for (uint32_t i = 0; i < TILE_CNT; i += BLOCK_CT_DIM)
+            for (uint32_t i = 0; i < params->TILE_CNT; i += BLOCK_CT_DIM)
             {
                 _llk_packer_wait_for_math_done_();
                 _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM>(PERF_ADDRESS(PERF_OUTPUT, i), formats.pack_dst, FACE_R_DIM, 4, 0);

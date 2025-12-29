@@ -45,7 +45,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
     constexpr bool high_fidelity     = (NUM_FIDELITY_PHASES > 0);
     constexpr uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
 
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
     if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB))
     {
@@ -73,7 +73,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
         }
         else
         {
-            constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 4 : 1;
+            const uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? num_faces : 1;
 #pragma GCC unroll 0
             for (std::uint32_t n = 0; n < outerloop; n++)
             {
@@ -411,6 +411,11 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, const 
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
+inline void _llk_math_eltwise_binary_uninit_()
+{
+    // No state to restore - all states are transient or default
+}
+
 /*************************************************************************
  * LLK eltwise_bcast_row_tile math implementation for SDPA
 
@@ -514,7 +519,7 @@ inline void _llk_math_eltwise_binary_init_(uint32_t srca_reuse_count = 4)
 
 inline void _llk_math_eltwise_binary_(uint32_t dst_index)
 {
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB);
 

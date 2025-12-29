@@ -25,12 +25,12 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
     if (unpack_to_dest && is_32bit_input(src_format, dst_format))
     {
         math_unpack_to_dest_math_ready();
-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32, true>(dst_index);
+        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(dst_index);
         math::math_unpack_to_dest_tile_ready();
     }
     else
     {
-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
         if constexpr (type == A2D)
         {
@@ -219,6 +219,11 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
+inline void _llk_math_eltwise_unary_datacopy_uninit_()
+{
+    // No state to restore - all states are transient or default
+}
+
 /*************************************************************************
  * LLK MATH FAST TILIZE (Tilize single input using both unpackers and packer)
  * unit_dim is the number of tiles processed in a single iteration, num_units is the number of units processed in a single call
@@ -334,7 +339,7 @@ inline void _llk_math_fast_tilize_block_(
 {
     // split dest and write the top faces in the first half and the bottom faces in the second half (or more precisely quarter, since dest sync half)
     // make life easier by lying to set_dst_write_addr that tile shape is 32x16 so correct stride is obtained for dst_index
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x16>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x16, UnpackDestination::SrcRegs>(dst_index);
 
     for (uint i = 0; i < num_units; i++)
     {
@@ -408,7 +413,7 @@ inline void _llk_math_fast_tilize_block_(
             // offset to the bottom is the number of tiles that fit into the dest bank
             // since half size faces are specified, this gets into the correct position in the second half
             uint32_t bottom_face_offset = top_face_offset + (unpack_dst_format == (uint)DataFormat::Tf32 ? 4 : 8);
-            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x16>(bottom_face_offset);
+            math::set_dst_write_addr<DstTileShape::Tile32x16, UnpackDestination::SrcRegs>(bottom_face_offset);
             // srcA has the top 8 rows of the bottom faces (6 of them), copy them
             // inside mop:
             // for (uint j = 0; j < 6; j++)
