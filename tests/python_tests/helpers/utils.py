@@ -261,12 +261,14 @@ def passed_test(
 
 def create_directories(dirs: list[Path]):
     """Create directories with file lock to handle race conditions in parallel execution."""
+    import os
+
     # If all directories exist, skip locking entirely
     if all(dir.exists() for dir in dirs):
         return
 
-    # Acquire lock and create
+    # Acquire lock and create using os.makedirs (more robust than pathlib.mkdir)
     lock = FileLock("/tmp/tt-llk-build.lock")
     with lock:
         for dir in dirs:
-            dir.mkdir(exist_ok=True, parents=True)
+            os.makedirs(dir, exist_ok=True)

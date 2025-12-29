@@ -205,8 +205,8 @@ class TestConfig:
 
         create_directories(
             [
+                TestConfig.ARTEFACTS_DIR,  # Parent first
                 TestConfig.SYNC_DIR,
-                TestConfig.ARTEFACTS_DIR,
                 TestConfig.SHARED_DIR,
                 TestConfig.SHARED_OBJ_DIR,
                 TestConfig.SHARED_ELF_DIR,

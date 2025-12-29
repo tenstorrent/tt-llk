@@ -81,7 +81,7 @@ jobs:
           pytest --compile-producer -n 10 \
                 -m "${{ inputs.pytest_markers }}" \
                 --splits $TEST_SPLITS --group ${{ matrix.test_group }} \
-                -q --no-header --timeout=60 \
+                --override-ini="addopts=-v" --tb=short --timeout=60 \
                 --junitxml=pytest-report-${CHIP_ARCH}-compile.xml .
 
       # Step 4: Upload JUnit report for compiling elfs
