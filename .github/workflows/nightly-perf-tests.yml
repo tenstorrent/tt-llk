@@ -13,23 +13,32 @@ permissions:
   pull-requests: write
 
 jobs:
+  # nightly-performance-tests:
+  #   name: "🚀 Nightly Performance Tests"
+  #   uses: ./.github/workflows/run-perf-tests.yml
+  #   secrets: inherit
+
   report-failure:
     name: "🔔 Report failure"
-    uses: slackapi/slack-github-action@v2.1.1
+    runs-on: ubuntu-latest
     if: ${{ always() }}
-    env:
-      COMMIT_URL: >-
-        https://github.com/tenstorrent/tt-metal/commit/${{ github.sha }}
-      RUN_URL: >-
-        ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/job/${{ job.check_run_id }}
-    with:
-      method: chat.postMessage
-      token: ${{ secrets.SLACK_BOT_TOKEN }}
-      payload: |
-        {
-          "channel": "${{ secrets.SLACK_CHANNEL_ID }}",
-          "text": >-
-            :alert: Hey, just so you know `${{ github.event.sender.login }}`
-            broke ${{ github.workflow }} with ${{ env.COMMIT_URL }} at
-            ${{ env.RUN_URL }}
-        }
+    steps:
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2.1.1
+        env:
+          COMMIT_URL: >-
+            https://github.com/tenstorrent/tt-metal/commit/${{ github.sha }}
+          RUN_URL: >-
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/
+            ${{ github.run_id }}/job/${{ job.check_run_id }}
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          payload: |
+            {
+              "channel": "${{ secrets.SLACK_CHANNEL_ID }}",
+              "text": >-
+                :alert: Hey, just so you know `${{ github.event.sender.login }}`
+                broke ${{ github.workflow }} with ${{ env.COMMIT_URL }} at
+                ${{ env.RUN_URL }}
+            }
