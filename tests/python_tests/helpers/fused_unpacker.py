@@ -171,10 +171,8 @@ class UnpackerA(Unpacker):
         stage = operation_config.stage_id
         tile_cnt = operation_config.output.tile_count
         unpack_to_dest = "true" if operation_config.unpack_to_dest else "false"
-        broadcast_type = (
-            "BroadcastType::NONE"  # TODO: make dynamic based on operation_config
-        )
-        eltwise_reuse_type = "NONE"  # TODO: make dynamic based on operation_config
+        broadcast_type = "BroadcastType::NONE"
+        eltwise_reuse_type = "NONE"
         face_r_dim = operation_config.face_r_dim
         num_faces = operation_config.num_faces
 

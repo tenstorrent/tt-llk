@@ -18,7 +18,6 @@ from helpers.test_config import BootMode, ProfilerBuild, TestConfig
     test_name="fused_test",
 )
 def test_fused(test_name):
-    # TODO: this argument should be used for specific yml/json config
     pipeline = create_fuse_pipeline()
 
     write_pipeline_operands_to_l1(pipeline)
