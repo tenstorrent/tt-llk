@@ -834,7 +834,9 @@ class TestConfig:
                     )
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
             case BootMode.TRISC:
-                set_tensix_soft_reset(0, [RiscCore.TRISC0], location)
+                set_tensix_soft_reset(
+                    0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
+                )
             case BootMode.EXALENS:
                 exalens_device_setup(TestConfig.CHIP_ARCH, location)
                 set_tensix_soft_reset(
