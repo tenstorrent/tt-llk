@@ -179,6 +179,30 @@ class StochasticRounding(Enum):
     All = "StochRndType::All"
 
 
+class PackerReluType(Enum):
+    """
+    Relu activation function types for packer operations.
+    """
+
+    NoRelu = 0
+    ZeroRelu = 1
+    MinThresholdRelu = 2
+    MaxThresholdRelu = 3
+
+    def __str__(self):
+        match self:
+            case PackerReluType.NoRelu:
+                return "NO_RELU"
+            case PackerReluType.ZeroRelu:
+                return "ZERO_RELU"
+            case PackerReluType.MinThresholdRelu:
+                return "MIN_THRESHOLD_RELU"
+            case PackerReluType.MaxThresholdRelu:
+                return "MAX_THRESHOLD_RELU"
+            case _:
+                raise ValueError(f"Unsupported PackerReluType: {self!r}")
+
+
 class Haloize(Enum):
     Yes = "true"
     No = "false"
@@ -190,8 +214,8 @@ class ApproximationMode(Enum):
 
 
 class Transpose(Enum):
-    Yes = "true"
-    No = "false"
+    Yes = True
+    No = False
 
 
 class MathFidelity(Enum):
@@ -202,8 +226,8 @@ class MathFidelity(Enum):
 
 
 class NarrowTile(Enum):
-    Yes = "true"
-    No = "false"
+    Yes = True
+    No = False
 
 
 class DestSync(Enum):
@@ -212,8 +236,8 @@ class DestSync(Enum):
 
 
 class Tilize(Enum):
-    Yes = "true"
-    No = "false"
+    Yes = True
+    No = False
 
 
 class Mailbox(Enum):
@@ -243,12 +267,6 @@ class DstSync(Enum):
     SyncFull = "SyncFull"
 
 
-class L1BufferLocations(Enum):
-    srcA = 0x18FE0
-    srcB = 0x18FE4
-    Result = 0x18FE8
-
-
 class BroadcastType(Enum):
     """
     Enum for broadcast types in LLK kernels.
@@ -265,14 +283,22 @@ class EltwiseBinaryReuseDestType(Enum):
     Enum for destination reuse types in elementwise binary ops.
     """
 
-    NONE = 0
-    DEST_TO_SRCA = 1
-    DEST_TO_SRCB = 2
+    NONE = "NONE"
+    DEST_TO_SRCA = "DEST_TO_SRCA"
+    DEST_TO_SRCB = "DEST_TO_SRCB"
 
 
 class DataCopyType(Enum):
     A2D = "A2D"
     B2D = "B2D"
+
+
+class PerfRunType(Enum):
+    L1_TO_L1 = 1
+    UNPACK_ISOLATE = 2
+    MATH_ISOLATE = 3
+    PACK_ISOLATE = 4
+    L1_CONGESTION = 5
 
 
 # ******** QUASAR specific ********
@@ -290,6 +316,11 @@ class UnpackerEngine(Enum):
     UnpB = "UNP_B"
     UnpS = "UNP_S"
     UnpDest = "UNP_DEST"
+
+
+class ReluConfig(Enum):
+    NoRelu = 0
+    ZeroRelu = 1
 
 
 # *********************************
