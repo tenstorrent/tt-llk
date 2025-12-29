@@ -163,6 +163,7 @@ void call_binary_sfpu_operation(const uint dst_index_in0 = 0, const uint dst_ind
         case BinaryOp::DIV:
         case BinaryOp::RSUB:
         case BinaryOp::XLOGY:
+        case BinaryOp::POW:
             _sfpu_binary_init_<APPROXIMATION_MODE, BINOP>();
             _calculate_sfpu_binary_<APPROXIMATION_MODE, BINOP, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_out);
             break;

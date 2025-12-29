@@ -77,8 +77,6 @@ void run_kernel()
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "sfpu_operations.h"
 
-const int iterations = 32;
-
 void run_kernel()
 {
     {
@@ -179,7 +177,7 @@ void run_kernel()
 
                     _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
 
-                    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, iterations>(block_start, formats.math);
+                    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, ITERATIONS>(block_start, formats.math);
 
                     _llk_math_eltwise_binary_sfpu_done_();
                 }
@@ -205,7 +203,7 @@ void run_kernel()
                     // Start SFPU binary operation
                     _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
 
-                    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, iterations>(block_start, formats.math);
+                    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, ITERATIONS>(block_start, formats.math);
 
                     _llk_math_eltwise_binary_sfpu_done_();
                     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
