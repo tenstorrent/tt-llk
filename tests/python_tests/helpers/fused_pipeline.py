@@ -130,7 +130,7 @@ APPROXIMATION_MODE_MAP: Dict[str, ApproximationMode] = {
 def parse_math_operation(
     math_config: Dict[str, Any], operands: OperandRegistry
 ) -> Math:
-    fpu_type = math_config.get("fpu", "DatacopyFpu")
+    fpu_type = math_config.get("fpu", "Datacopy")
 
     if fpu_type in MATH_OPERATION_MAP:
         math_op = MATH_OPERATION_MAP[fpu_type]
