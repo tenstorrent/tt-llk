@@ -17,3 +17,37 @@ jobs:
     name: "🚀 Nightly Performance Tests"
     uses: ./.github/workflows/run-perf-tests.yml
     secrets: inherit
+
+  report-failure:
+    name: "🔔 Report failure"
+    runs-on: ubuntu-latest
+    if: ${{ failure() }}
+    needs: nightly-performance-tests
+    steps:
+      - name: Construct message
+        id: message
+        run: |
+          COMMIT_URL="https://github.com/tenstorrent/tt-metal/commit/${{ github.sha }}"
+          COMMIT_SHA="${GITHUB_SHA:0:7}"
+          RUN_BASE="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          RUN_URL="$RUN_BASE/job/${{ job.check_run_id }}"
+          TRIGGERER="${{ github.event.sender.login }}"
+          if [ -z "$TRIGGERER" ]; then
+            TRIGGERER="scheduled run"
+          fi
+          MESSAGE=":alert: *Nightly Performance Tests* have failed :alert:"
+          MESSAGE="$MESSAGE\n\n⚠️ Looks like something broke! The nightly tests didn't complete successfully."
+          MESSAGE="$MESSAGE\n\nTriggered by: \`$TRIGGERER\`"
+          MESSAGE="$MESSAGE\nCommit: <$COMMIT_URL|$COMMIT_SHA>"
+          MESSAGE="$MESSAGE\n<${RUN_URL}|Check what went wrong>"
+          echo "text=$MESSAGE" >> $GITHUB_OUTPUT
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          payload: |
+            {
+              "channel": "${{ secrets.SLACK_CHANNEL_ID }}",
+              "text": "${{ steps.message.outputs.text }}"
+            }
