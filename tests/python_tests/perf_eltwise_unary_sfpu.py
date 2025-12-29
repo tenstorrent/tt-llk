@@ -16,7 +16,9 @@ from helpers.format_config import DataFormat
 from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
+    FastMode,
     MathOperation,
+    StableSort,
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import ALL_RUN_TYPES, perf_benchmark, update_report
@@ -42,29 +44,14 @@ NUM_FACES = 4
         ApproximationMode.No,
     ],
     mathop=[
-        MathOperation.Abs,
-        MathOperation.Atanh,
-        MathOperation.Asinh,
-        MathOperation.Acosh,
-        MathOperation.Cos,
-        MathOperation.Log,
         MathOperation.Reciprocal,
-        MathOperation.Sin,
         MathOperation.Sqrt,
-        MathOperation.Rsqrt,
-        MathOperation.Square,
-        MathOperation.Celu,
         MathOperation.Silu,
         MathOperation.Gelu,
-        MathOperation.Neg,
-        MathOperation.Fill,
-        MathOperation.Elu,
         MathOperation.Exp,
-        MathOperation.Exp2,
-        MathOperation.Hardsigmoid,
-        MathOperation.Threshold,
-        MathOperation.ReluMax,
-        MathOperation.ReluMin,
+        MathOperation.TopKLocalSort,
+        MathOperation.TopKMerge,
+        MathOperation.TopKRebuild,
     ],
     dest_acc=[
         DestAccumulation.Yes,
@@ -73,6 +60,18 @@ NUM_FACES = 4
     loop_factor=[
         16,
     ],  # Number of iterations to run the test in order to minimize profiler overhead in measurement
+    iterations=[
+        8,
+        32,
+    ],  # Number of SFPU iterations
+    fast_mode=[
+        FastMode.Yes,
+        FastMode.No,
+    ],
+    stable_sort=[
+        StableSort.Yes,
+        StableSort.No,
+    ],
     face_r_dim=[FACE_R_DIM],
     num_faces=[NUM_FACES],
     input_dimensions=[
@@ -88,11 +87,66 @@ def test_perf_eltwise_unary_sfpu(
     approx_mode,
     dest_acc,
     loop_factor,
+    iterations,
+    fast_mode,
+    stable_sort,
     face_r_dim,
     num_faces,
     input_dimensions,
     run_types,
 ):
+    # Skip tests where template parameters are not used by the operation
+    # Operations that don't use is_fp32_dest_acc_en parameter
+    ops_without_dest_acc = {
+        MathOperation.Abs,
+        MathOperation.Acosh,
+        MathOperation.Asinh,
+        MathOperation.Celu,
+        MathOperation.Cos,
+        MathOperation.Elu,
+        MathOperation.Exp2,
+        MathOperation.Exp,
+        MathOperation.Fill,
+        MathOperation.Gelu,
+        MathOperation.Hardsigmoid,
+        MathOperation.Log,
+        MathOperation.Neg,
+        MathOperation.Silu,
+        MathOperation.Sin,
+        MathOperation.Square,
+        MathOperation.Threshold,
+        MathOperation.ReluMax,
+        MathOperation.ReluMin,
+    }
+
+    # Operations that use FAST_MODE
+    ops_with_fast_mode = {
+        MathOperation.Exp,
+        MathOperation.Rsqrt,
+        MathOperation.Sqrt,
+    }
+
+    # Operations that use STABLE_SORT
+    ops_with_stable_sort = {
+        MathOperation.TopKLocalSort,
+        MathOperation.TopKMerge,
+        MathOperation.TopKRebuild,
+    }
+
+    # Skip if dest_acc varies but operation doesn't use it
+    if mathop in ops_without_dest_acc and dest_acc == DestAccumulation.Yes:
+        pytest.skip(f"{mathop} does not use dest_acc parameter - skipping Yes variant")
+
+    # Skip if fast_mode varies but operation doesn't use it
+    if mathop not in ops_with_fast_mode and fast_mode == FastMode.Yes:
+        pytest.skip(f"{mathop} does not use fast_mode parameter - skipping Yes variant")
+
+    # Skip if stable_sort varies but operation doesn't use it
+    if mathop not in ops_with_stable_sort and stable_sort == StableSort.Yes:
+        pytest.skip(
+            f"{mathop} does not use stable_sort parameter - skipping Yes variant"
+        )
+
     # If dest_acc is on, we unpack Float32 into 16-bit format in src registers
     # (later copied over in dest reg for SFPU op)
     #
@@ -117,6 +171,9 @@ def test_perf_eltwise_unary_sfpu(
         "face_r_dim": face_r_dim,
         "tile_cnt": tile_cnt,
         "loop_factor": loop_factor,
+        "iterations": iterations,
+        "fast_mode": fast_mode,
+        "stable_sort": stable_sort,
     }
 
     results = perf_benchmark(test_config, run_types)
