@@ -136,8 +136,8 @@ def _generate_operation_constants(mathop: MathOperation) -> list[str]:
 @dataclass
 class MATH_OP(TemplateParameter):
     mathop: MathOperation = None
-    mathop_unary_extra: MathOperation = None
-    mathop_pool_type: ReducePool = None
+    unary_extra: MathOperation = None
+    pool_type: ReducePool = None
 
     def covert_to_cpp(self) -> str:
         temp_header = []
@@ -150,22 +150,22 @@ class MATH_OP(TemplateParameter):
                 temp_header.append(
                     f"constexpr auto REDUCE_DIM = ckernel::ReduceDim::{self.mathop.cpp_enum_value};"
                 )
-                if self.mathop_pool_type:
+                if self.pool_type:
                     temp_header.append(
-                        f"constexpr auto POOL_TYPE = ckernel::PoolType::{self.mathop_pool_type.value};"
+                        f"constexpr auto POOL_TYPE = ckernel::PoolType::{self.pool_type.value};"
                     )
 
         # Optional extra unary operation (used when both a binary and unary op
         # need to be present in the same kernel, e.g. binary-eltwise followed by
         # SFPU unary).  If 'unary_op' exists, append its constant.
         # Only add if we haven't already added a unary operation from the main mathop
-        if self.mathop_unary_extra and (
+        if self.unary_extra and (
             self.mathop is None or self.mathop not in SFPU_UNARY_OPERATIONS
         ):
             temp_header.extend(
                 [
                     "\n// Additional SFPU unary operation",
-                    f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{self.mathop_unary_extra.cpp_enum_value};",
+                    f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{self.unary_extra.cpp_enum_value};",
                 ]
             )
 
