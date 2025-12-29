@@ -36,19 +36,19 @@ class Packer:
             if operation_config.architecture == ChipArchitecture.BLACKHOLE:
                 code = (
                     f"    _llk_pack_hw_configure_<{dest_acc}, false, {bh_tilize}>(\n"
-                    f"        pack_in_format{stage}, pack_out_format{stage}, {pack_size}\n"
+                    f"        pack_src_format{stage}, pack_dst_format{stage}, {pack_size}\n"
                     f"    );\n"
                 )
             elif operation_config.architecture == ChipArchitecture.WORMHOLE:
                 code = (
                     f"    _llk_pack_hw_configure_<{dest_acc}, false>(\n"
-                    f"        pack_in_format{stage}, pack_out_format{stage}, {pack_size}\n"
+                    f"        pack_src_format{stage}, pack_dst_format{stage}, {pack_size}\n"
                     f"    );\n"
                 )
         else:
             code = (
                 f"    _llk_pack_reconfig_data_format_<{dest_acc}, false>(\n"
-                f"        pack_in_format{stage}, pack_out_format{stage}, {pack_size}\n"
+                f"        pack_src_format{stage}, pack_dst_format{stage}, {pack_size}\n"
                 f"    );\n"
             )
 
@@ -69,8 +69,8 @@ class Packer:
         code = (
             f"    // Operation {stage}: Packer\n"
             f"    const Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});\n"
-            f"    const uint32_t pack_in_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_src.name});\n"
-            f"    const uint32_t pack_out_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name});\n"
+            f"    const uint32_t pack_src_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_src.name});\n"
+            f"    const uint32_t pack_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name});\n"
         )
 
         code += self.hw_configure(operation_config)
@@ -78,14 +78,14 @@ class Packer:
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
             code += (
                 f"    _llk_pack_init_<false, false, {bh_tilize}>(\n"
-                f"        pack_out_format{stage}\n"
+                f"        pack_dst_format{stage}\n"
                 f"    );\n"
                 f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}>();\n"
             )
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
             code += (
                 f"    _llk_pack_init_<false, false>(\n"
-                f"        pack_out_format{stage}\n"
+                f"        pack_dst_format{stage}\n"
                 f"    );\n"
                 f"    _llk_pack_dest_init_<DstSync::SyncHalf, {dest_acc_value}, false>();\n"
             )
