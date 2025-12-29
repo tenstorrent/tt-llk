@@ -560,11 +560,11 @@ inline void _init_typecast_uint16_to_fp16b_()
     }
 
     // Misc: {
-    //   StoreMod0: FP32,
+    //   StoreMod0: DEFAULT,
     //   UsesLoadMod0ForStore: {0},
     //   UnitDelayKind: {1}, (WaitForElapsedInstructions=1)
     // }
-    TTI_SFPCONFIG(0x100 | InstrModLoadStore::FP32, 8, 1);
+    TTI_SFPCONFIG(0x100 | InstrModLoadStore::DEFAULT, 8, 1);
 }
 
 } // namespace sfpu
