@@ -259,10 +259,25 @@ def passed_test(
     return is_within_tolerance and (pcc > target_pcc)
 
 
+_directories_created = False
+
+
 def create_directories(dirs: list[Path]):
     """Create directories with file lock to handle race conditions in parallel execution."""
+    global _directories_created
 
+    # Fast path: already verified in this process
+    if _directories_created:
+        return
+
+    # Check filesystem once
+    if all(dir.exists() for dir in dirs):
+        _directories_created = True
+        return
+
+    # Acquire lock and create
     lock = FileLock("/tmp/tt-llk-build.lock")
     with lock:
         for dir in dirs:
             dir.mkdir(exist_ok=True, parents=True)
+    _directories_created = True
