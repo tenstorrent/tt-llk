@@ -170,7 +170,7 @@ jobs:
       pytest_markers: "not perf and not nightly and not quasar"
 
   build-quasar:
-    name: "🌟 Build Quasar"
+    name: "🌟 Build Quasar tests"
     uses: ./.github/workflows/build-quasar.yml
     needs: [build-images, detect-changes]
     if: ${{ github.event_name != 'push' &&
@@ -178,7 +178,7 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: ubuntu-latest
-      test_splits: 6
+      test_splits: 8
       pytest_markers: "quasar"
 
   perf-tests:
