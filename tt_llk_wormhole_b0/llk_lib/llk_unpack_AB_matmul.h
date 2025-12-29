@@ -170,7 +170,7 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     llk_san::unpack_operand_check(
         llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, unpA_face_r_dim, unpB_face_r_dim, unpA_num_faces, unpB_num_faces);
     llk_san::operation_save<llk_san::operation_t::UnpackABMatmul>(
-        kernel_broadcast_a, kernel_broadcast_b, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face, unpA_tile_size, unpB_tile_size);
+        kernel_broadcast_a, kernel_broadcast_b, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face);
 
     // sstanisic todo: implement
     // llk_san_extended_state_mask(llk_san_cfg::Transpose, llk_san_cfg::AdcXX, llk_san_cfg::Mop); // ADCZW counters and GPRS not tracked here for now
@@ -234,7 +234,7 @@ inline void _llk_unpack_AB_matmul_(
     const std::uint32_t kt_dim   = 1)
 {
     llk_san::operation_check<llk_san::operation_t::UnpackABMatmul>(
-        kernel_broadcast_a, kernel_broadcast_b, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face, tile_size_a, tile_size_b);
+        kernel_broadcast_a, kernel_broadcast_b, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face);
 
     // In0/InA -> srcB (supports partial face)
     // In1/InB -> srcA
