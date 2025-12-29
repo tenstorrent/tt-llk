@@ -91,7 +91,7 @@ jobs:
         with:
           name: >-
             ${{ (contains(inputs.pytest_markers, 'perf') && !contains(inputs.pytest_markers, 'not perf'))
-                && 'perf-' || '' }}junit-report-quasar-compile
+                && 'perf-' || '' }}junit-report-quasar-${{ matrix.test_group }}-compile
           path: tests/python_tests/pytest-report-quasar-compile.xml
 
       # Step 5: Publish Test Results
