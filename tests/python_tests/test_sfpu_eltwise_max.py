@@ -6,8 +6,7 @@ import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat
-from helpers.golden_generators import BinarySFPUGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, MathOperation, format_dict
+from helpers.llk_params import DestAccumulation, format_dict
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import run_test
@@ -25,7 +24,12 @@ from helpers.utils import passed_test
         ]
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    input_dimensions=[[64, 32]],  # 64x32 = 2 tiles (each tile is 32x32)
+    input_dimensions=[
+        [32, 32],
+        [32, 64],
+        [64, 32],
+        [64, 64],
+    ],  # Base dimensions for srcA and srcB (each 1 tile)
 )
 def test_sfpu_eltwise_max_float(test_name, formats, dest_acc, input_dimensions):
 
@@ -45,28 +49,29 @@ def test_sfpu_eltwise_max_float(test_name, formats, dest_acc, input_dimensions):
 
 def sfpu_eltwise_max(test_name, formats, dest_acc, input_dimensions):
 
-    # Generate stimuli - src_A contains 2 tiles
+    # Generate stimuli - src_A and src_B each have input_dimensions
     src_A, src_B, tile_cnt = generate_stimuli(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    # Use BinarySFPUGolden to generate golden result
-    # src1_idx=0 (tile 0), src2_idx=1 (tile 1), dst_idx=0, iterations=32 (full tile)
-    generate_golden = get_golden_generator(BinarySFPUGolden)
-    golden_tensor = generate_golden(
-        MathOperation.SfpuElwmax,
-        src_A,  # Contains tiles 0 and 1
-        0,  # src1_idx: use tile 0
-        1,  # src2_idx: use tile 1
-        0,  # dst_idx: write to tile 0
-        32,  # num_iterations: 32 rows (full tile)
-        input_dimensions,  # [64, 32] = 2 tiles
-        (
-            DataFormat.Float16_b
-            if formats.input_format == DataFormat.Bfp8_b
-            else formats.input_format
-        ),
-    ).flatten()
+    print("TILE COUNT: ", tile_cnt)
+
+    # Compute golden as element-wise max of src_A and src_B
+    golden_tensor = torch.maximum(src_A, src_B).flatten()
+
+    # Concatenate src_A and src_B into combined tensor for C++
+    # C++ will receive: [src_A tiles, src_B tiles] in srcA buffer
+    src_A_combined = torch.cat([src_A, src_B], dim=0)
+
+    # Tile counts: srcA has 2x tiles (A tiles + B tiles), srcB not used
+    tile_cnt_A = tile_cnt * 2
+    tile_cnt_B = 0
+
+    # Output tile count = input tile count (one output per A,B pair)
+    output_tile_cnt = tile_cnt
+
+    # Dimensions for combined srcA (doubled in first dimension)
+    srcA_dimensions = [input_dimensions[0] * 2, input_dimensions[1]]
 
     unpack_to_dest = formats.input_format.is_32_bit()
 
@@ -78,25 +83,27 @@ def sfpu_eltwise_max(test_name, formats, dest_acc, input_dimensions):
         "formats": formats,
         "testname": test_name,
         "dest_acc": dest_acc,
-        "input_A_dimensions": input_dimensions,
+        "input_A_dimensions": srcA_dimensions,
         "input_B_dimensions": input_dimensions,
         "unpack_to_dest": unpack_to_dest,
-        "tile_cnt": tile_cnt,
+        "tile_cnt": tile_cnt_A,  # C++ needs total tile count for srcA
     }
 
     res_address = write_stimuli_to_l1(
         test_config,
-        src_A,
-        src_B,
+        src_A_combined,
+        src_B,  # Not used (tile_cnt_B = 0)
         formats.input_format,
         formats.input_format,
-        tile_count_A=tile_cnt,
-        tile_count_B=tile_cnt,
+        tile_count_A=tile_cnt_A,
+        tile_count_B=tile_cnt_B,
     )
 
     run_test(test_config)
 
-    res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
+    res_from_L1 = collect_results(
+        formats, tile_count=output_tile_cnt, address=res_address
+    )
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format).flatten()
