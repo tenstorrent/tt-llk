@@ -34,11 +34,11 @@ jobs:
           if [ -z "$TRIGGERER" ]; then
             TRIGGERER="scheduled run"
           fi
-          MESSAGE="🌙 *Nightly Performance Tests*"
+          MESSAGE=":alert: *Nightly Performance Tests* have failed :alert:"
           MESSAGE="$MESSAGE\n\n⚠️ Looks like something broke! The nightly tests didn't complete successfully."
           MESSAGE="$MESSAGE\n\nTriggered by: \`$TRIGGERER\`"
           MESSAGE="$MESSAGE\nCommit: <$COMMIT_URL|$COMMIT_SHA>"
-          MESSAGE="$MESSAGE\n<${RUN_URL}|Check what went wrong →>"
+          MESSAGE="$MESSAGE\n<${RUN_URL}|Check what went wrong>"
           echo "text=$MESSAGE" >> $GITHUB_OUTPUT
       - name: Send Slack notification
         uses: slackapi/slack-github-action@v2.1.1
