@@ -116,12 +116,11 @@ def test_eltwise_binary(
             MATH_OP(mathop=mathop),
             IMPLIED_MATH_FORMAT(implied_math_format),
             DEST_SYNC(),
-        ],
-        runtimes=[
             TILE_COUNT(tile_cnt_A),
             NUM_FACES(num_faces),
             TEST_FACE_DIMS(),
         ],
+        runtimes=[],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
