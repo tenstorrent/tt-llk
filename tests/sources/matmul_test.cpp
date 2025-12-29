@@ -25,6 +25,17 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
+    llk_perf::PerfCounters counters;
+    // counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_UNPACK);
+    // counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_CFG);
+    // counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::FPU_OP_VALID);
+    // counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::SFPU_OP_VALID);
+    // counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::UNPACK_BUSY_0);
+    // counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::UNPACK_BUSY_1);
+    // counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::PACK_NOT_DEST_STALL);
+    // counters.add(llk_perf::CounterBank::L1, llk_perf::CounterId::L1::NOC_RING0_INCOMING_1, 0);
+    counters.start();
+
     _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
         formats.unpack_src,
         formats.unpack_src,
@@ -39,8 +50,6 @@ void run_kernel()
         TILE_SIZE_UNPACK_B);
     _llk_unpack_AB_matmul_init_<>(0, CT_DIM, RT_DIM, KT_DIM, FACE_R_DIM, FACE_R_DIM);
 
-    llk_perf::PerfCounters counters;
-    counters.start();
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
         _llk_unpack_AB_matmul_<>(
@@ -58,6 +67,7 @@ void run_kernel()
             RT_DIM,
             KT_DIM);
     }
+
     counters.stop();
 }
 
@@ -72,17 +82,27 @@ void run_kernel()
 
 void run_kernel()
 {
+    llk_perf::PerfCounters counters;
+    // counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_MATH);
+    // counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::STALLED);
+    // counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::FPU_OP_VALID);
+    // counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::SFPU_OP_VALID);
+    // counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::MATH_INSTR_VALID);
+    // counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::MATH_INSTR_SRC_READY);
+    // counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::PACK_NOT_DEST_STALL);
+    // counters.add(llk_perf::CounterBank::L1, llk_perf::CounterId::L1::L1_ARB_TDMA_BUNDLE_0, 0);
+    counters.start();
+
     _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, CT_DIM, RT_DIM, KT_DIM);
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<false, false>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
-    llk_perf::PerfCounters counters;
-    counters.start();
     for (uint32_t j = 0; j < KT_DIM; j++)
     {
         _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0, 0, CT_DIM, RT_DIM, KT_DIM);
     }
+
     counters.stop();
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -99,6 +119,17 @@ void run_kernel()
 
 void run_kernel()
 {
+    llk_perf::PerfCounters counters;
+    // counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_PACK);
+    // counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_CFG);
+    // counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::SFPU_OP_VALID);
+    // counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::FPU_OP_VALID);
+    // counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::PACK_BUSY_10);
+    // counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::PACK_BUSY_11);
+    // counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::UNPACK_BUSY_0);
+    // counters.add(llk_perf::CounterBank::L1, llk_perf::CounterId::L1::NOC_RING0_OUTGOING_1, 0);
+    counters.start();
+
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, TILE_SIZE_PACK);
     _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats.pack_dst);
@@ -110,12 +141,11 @@ void run_kernel()
 #endif
     _llk_packer_wait_for_math_done_();
 
-    llk_perf::PerfCounters counters;
-    counters.start();
     for (int i = 0; i < TILE_CNT; i++)
     {
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
+
     counters.stop();
 
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

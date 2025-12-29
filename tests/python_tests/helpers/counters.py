@@ -7,12 +7,14 @@ from typing import Dict, List
 from ttexalens.tt_exalens_lib import read_words_from_device, write_words_to_device
 
 # L1 Memory addresses - separate per TRISC thread
-PERF_COUNTER_UNPACK_CONFIG_ADDR = 0x2F7D0  # 5 words: UNPACK metadata
-PERF_COUNTER_UNPACK_DATA_ADDR = 0x2F7E4  # 10 words: UNPACK results
-PERF_COUNTER_MATH_CONFIG_ADDR = 0x2F80C  # 5 words: MATH metadata
-PERF_COUNTER_MATH_DATA_ADDR = 0x2F820  # 10 words: MATH results
-PERF_COUNTER_PACK_CONFIG_ADDR = 0x2F848  # 5 words: PACK metadata
-PERF_COUNTER_PACK_DATA_ADDR = 0x2F85C  # 10 words: PACK results
+# Support up to 10 counters: 10 config words + 20 data words per thread
+# Each thread needs 30 words (120 bytes) total: CONFIG (40 bytes) + DATA (80 bytes)
+PERF_COUNTER_UNPACK_CONFIG_ADDR = 0x2F7D0  # 10 words: UNPACK metadata
+PERF_COUNTER_UNPACK_DATA_ADDR = 0x2F7F8  # 20 words: UNPACK results
+PERF_COUNTER_MATH_CONFIG_ADDR = 0x2F848  # 10 words: MATH metadata (0x2F7D0 + 120)
+PERF_COUNTER_MATH_DATA_ADDR = 0x2F870  # 20 words: MATH results
+PERF_COUNTER_PACK_CONFIG_ADDR = 0x2F8C0  # 10 words: PACK metadata (0x2F848 + 120)
+PERF_COUNTER_PACK_DATA_ADDR = 0x2F8E8  # 20 words: PACK results
 
 COUNTER_BANK_NAMES = {
     0: "INSTRN_THREAD",
@@ -162,16 +164,19 @@ def configure_perf_counters(
     thread = thread.upper()
     if thread == "UNPACK":
         config_addr = PERF_COUNTER_UNPACK_CONFIG_ADDR
+        data_addr = PERF_COUNTER_UNPACK_DATA_ADDR
     elif thread == "MATH":
         config_addr = PERF_COUNTER_MATH_CONFIG_ADDR
+        data_addr = PERF_COUNTER_MATH_DATA_ADDR
     elif thread == "PACK":
         config_addr = PERF_COUNTER_PACK_CONFIG_ADDR
+        data_addr = PERF_COUNTER_PACK_DATA_ADDR
     else:
         raise ValueError(f"Unknown thread: {thread}. Must be UNPACK, MATH, or PACK")
 
-    if len(counters) > 5:
+    if len(counters) > 10:
         raise ValueError(
-            f"Cannot configure more than 5 counters per thread in a single batch. Got {len(counters)}. Use measure_perf_counters_batched() for >5 counters."
+            f"Cannot configure more than 10 counters per thread. Got {len(counters)}."
         )
 
     # Reverse lookup for bank names
@@ -181,7 +186,8 @@ def configure_perf_counters(
 
     # Encode counter configurations
     config_words = []
-    for counter in counters:
+    print(f"\n[DEBUG {thread}] Configuring {len(counters)} counters:")
+    for idx, counter in enumerate(counters):
         bank_name = counter["bank"]
         counter_id = counter["counter_id"]
         mux_ctrl_bit4 = counter.get("mux_ctrl_bit4", 0)
@@ -190,18 +196,35 @@ def configure_perf_counters(
         if bank_id is None:
             raise ValueError(f"Unknown bank: {bank_name}")
 
-        # Encode: [mux_ctrl_bit4(17), mode(16), counter_id(8-15), bank(0-7)]
+        # Encode: [valid(31), mux_ctrl_bit4(17), mode(16), counter_id(8-15), bank(0-7)]
         config_word = (
-            (mux_ctrl_bit4 << 17) | (mode_bit << 16) | (counter_id << 8) | bank_id
+            (1 << 31)  # Valid bit to distinguish from empty slots
+            | (mux_ctrl_bit4 << 17)
+            | (mode_bit << 16)
+            | (counter_id << 8)
+            | bank_id
         )
         config_words.append(config_word)
+        print(
+            f"  [{idx}] {bank_name}:{counter_id} (bank_id={bank_id}) -> 0x{config_word:08x}"
+        )
 
-    # Pad to 5 words
-    while len(config_words) < 5:
+    # Pad to 10 words
+    while len(config_words) < 10:
         config_words.append(0)
 
-    # Write to L1
+    print(f"[DEBUG {thread}] Memory layout:")
+    print(f"  CONFIG addr: 0x{config_addr:08x}")
+    print(f"  DATA addr:   0x{data_addr:08x}")
+    print(f"  Writing {len(config_words)} config words")
+
+    # Clear data region (20 words) to prevent garbage from previous runs
+    zero_data = [0] * 20
+    write_words_to_device(location=location, addr=data_addr, data=zero_data)
+
+    # Write configuration to L1
     write_words_to_device(location=location, addr=config_addr, data=config_words)
+    print(f"[DEBUG {thread}] Configuration written to L1\n")
 
 
 def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict]:
@@ -218,19 +241,44 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
     else:
         raise ValueError(f"Unknown thread: {thread}. Must be UNPACK, MATH, or PACK")
 
-    # Read metadata (5 words)
-    metadata = read_words_from_device(location=location, addr=config_addr, word_count=5)
+    # Read metadata (10 words)
+    metadata = read_words_from_device(
+        location=location, addr=config_addr, word_count=10
+    )
 
-    # Read results (10 words: 5 counters × 2 values)
-    data = read_words_from_device(location=location, addr=data_addr, word_count=10)
+    print(f"\n[DEBUG {thread}] Reading counters from L1:")
+    print(f"  CONFIG addr: 0x{config_addr:08x}")
+    print(f"  DATA addr:   0x{data_addr:08x}")
 
-    if not metadata or not data:
+    if not metadata:
+        print(f"[DEBUG {thread}] No metadata read!")
+        return []
+
+    # Count valid configs (check bit 31)
+    valid_count = sum(1 for m in metadata if (m & 0x80000000) != 0)
+    print(f"[DEBUG {thread}] Metadata slots:")
+    for i, m in enumerate(metadata):
+        if m != 0:
+            print(f"  Slot {i}: 0x{m:08x} valid={bool(m & 0x80000000)}")
+    print(f"[DEBUG {thread}] Valid counter count: {valid_count}")
+
+    if valid_count == 0:
+        return []
+
+    # Read ONLY data for valid counters (no UNKNOWN counters)
+    data = read_words_from_device(
+        location=location, addr=data_addr, word_count=valid_count * 2
+    )
+
+    if not data or len(data) < valid_count * 2:
         return []
 
     results = []
-    for i in range(5):
+    data_idx = 0
+    print(f"[DEBUG {thread}] Processing counter results:")
+    for i in range(10):
         config_word = metadata[i]
-        if config_word == 0:
+        if (config_word & 0x80000000) == 0:  # Check valid bit
             continue  # Unused slot
 
         # Decode metadata: [mux_ctrl_bit4(17), mode(16), counter_id(8-15), bank(0-7)]
@@ -252,9 +300,13 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
                 counter_id, f"{bank_name}_UNKNOWN_{counter_id}"
             )
 
-        # Extract results
-        cycles = data[i * 2]
-        count = data[i * 2 + 1]
+        # Extract results using data_idx
+        cycles = data[data_idx * 2]
+        count = data[data_idx * 2 + 1]
+        print(
+            f"  [{i}] {bank_name}:{counter_name} data_idx={data_idx} cycles={cycles} count={count}"
+        )
+        data_idx += 1
 
         results.append(
             {
@@ -269,6 +321,194 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
         )
 
     return results
+
+
+def measure_perf_counters_from_cpp(
+    run_test_func,
+    test_config,
+    boot_mode,
+    location: str = "0,0",
+) -> Dict[str, List[Dict]]:
+    # Helper to read counter configurations from L1 memory (written by C++ code)
+    def read_cpp_counter_configs(thread):
+        if thread == "UNPACK":
+            config_addr = PERF_COUNTER_UNPACK_CONFIG_ADDR
+        elif thread == "MATH":
+            config_addr = PERF_COUNTER_MATH_CONFIG_ADDR
+        elif thread == "PACK":
+            config_addr = PERF_COUNTER_PACK_CONFIG_ADDR
+        else:
+            return []
+
+        # Read metadata (10 words)
+        metadata = read_words_from_device(
+            location=location, addr=config_addr, word_count=10
+        )
+
+        counters = []
+        for config_word in metadata:
+            if (config_word & 0x80000000) == 0:  # Check valid bit
+                continue
+
+            # Decode: [valid(31), mux_ctrl_bit4(17), mode(16), counter_id(8-15), bank(0-7)]
+            bank_id = config_word & 0xFF
+            counter_id = (config_word >> 8) & 0xFF
+            mux_ctrl_bit4 = (config_word >> 17) & 0x1
+
+            bank_name = COUNTER_BANK_NAMES.get(bank_id, f"UNKNOWN_{bank_id}")
+
+            counters.append(
+                {
+                    "bank": bank_name,
+                    "counter_id": counter_id,
+                    "mux_ctrl_bit4": mux_ctrl_bit4 if bank_name == "L1" else 0,
+                }
+            )
+
+        return counters
+
+    # Run test ONCE to detect C++ counter configurations
+    print(f"\n{'='*80}")
+    print("Detecting C++ counter configurations...")
+    print(f"{'='*80}\n")
+
+    # Clear L1 counter configs to force C++ to write its configurations
+    zero_config = [0] * 10
+    write_words_to_device(
+        location=location, addr=PERF_COUNTER_UNPACK_CONFIG_ADDR, data=zero_config
+    )
+    write_words_to_device(
+        location=location, addr=PERF_COUNTER_MATH_CONFIG_ADDR, data=zero_config
+    )
+    write_words_to_device(
+        location=location, addr=PERF_COUNTER_PACK_CONFIG_ADDR, data=zero_config
+    )
+
+    run_test_func(test_config, boot_mode)
+
+    # Read counter configs from C++ (written to L1)
+    unpack_counters = read_cpp_counter_configs("UNPACK")
+    math_counters = read_cpp_counter_configs("MATH")
+    pack_counters = read_cpp_counter_configs("PACK")
+
+    print(f"\nDetected counters:")
+    print(f"  UNPACK: {len(unpack_counters)} counters")
+    print(f"  MATH:   {len(math_counters)} counters")
+    print(f"  PACK:   {len(pack_counters)} counters")
+
+    # If no counters configured, return empty
+    if not unpack_counters and not math_counters and not pack_counters:
+        print("No performance counters detected in C++ code")
+        return {"UNPACK": [], "MATH": [], "PACK": []}
+
+    # Group counters by bank to detect conflicts
+    def group_by_bank(counters):
+        by_bank = {}
+        for c in counters:
+            bank = c["bank"]
+            if bank not in by_bank:
+                by_bank[bank] = []
+            by_bank[bank].append(c)
+        return by_bank
+
+    unpack_by_bank = group_by_bank(unpack_counters)
+    math_by_bank = group_by_bank(math_counters)
+    pack_by_bank = group_by_bank(pack_counters)
+
+    # Calculate maximum batch count needed
+    max_batches = max(
+        (
+            max(len(counters) for counters in unpack_by_bank.values())
+            if unpack_by_bank
+            else 1
+        ),
+        max(len(counters) for counters in math_by_bank.values()) if math_by_bank else 1,
+        max(len(counters) for counters in pack_by_bank.values()) if pack_by_bank else 1,
+    )
+
+    if max_batches > 1:
+        print(f"\n⚠️  Hardware limitation detected: Multiple counters from same bank")
+        print(f"   Will run test {max_batches} times (time-division multiplexing)")
+        print(f"   Each bank can only measure 1 counter simultaneously\n")
+    else:
+        print(
+            "\n✓ No bank conflicts detected - all counters can be measured in one run\n"
+        )
+
+    # Accumulate results across all batches
+    all_results = {"UNPACK": [], "MATH": [], "PACK": []}
+
+    # Run test for each batch
+    for batch_idx in range(max_batches):
+        if max_batches > 1:
+            print(f"\n{'='*60}")
+            print(f"Batch {batch_idx + 1}/{max_batches}")
+            print(f"{'='*60}")
+
+        # Select one counter per bank for this batch
+        def select_batch(counters_by_bank, batch_idx):
+            batch = []
+            for bank, counters in counters_by_bank.items():
+                if batch_idx < len(counters):
+                    batch.append(counters[batch_idx])
+            return batch
+
+        batch_unpack = (
+            select_batch(unpack_by_bank, batch_idx) if unpack_counters else []
+        )
+        batch_math = select_batch(math_by_bank, batch_idx) if math_counters else []
+        batch_pack = select_batch(pack_by_bank, batch_idx) if pack_counters else []
+
+        if max_batches > 1:
+            print(
+                f"Configuring {len(batch_unpack)} UNPACK, {len(batch_math)} MATH, {len(batch_pack)} PACK counters..."
+            )
+
+        # Configure threads with batch-specific counters (Python overwrites C++ configs)
+        # Always configure all three threads to clear any C++ configs even if empty batch
+        configure_perf_counters(
+            batch_unpack if batch_unpack else [], location, "UNPACK", "GRANTS"
+        )
+        configure_perf_counters(
+            batch_math if batch_math else [], location, "MATH", "GRANTS"
+        )
+        configure_perf_counters(
+            batch_pack if batch_pack else [], location, "PACK", "GRANTS"
+        )
+
+        # Run test (C++ will read configs from L1 that Python just wrote)
+        if max_batches > 1:
+            print("Running test...")
+        run_test_func(test_config, boot_mode)
+        if max_batches > 1:
+            print("Test completed\n")
+
+        # Read results
+        if batch_unpack:
+            batch_results = read_perf_counters(location, "UNPACK")
+            all_results["UNPACK"].extend(batch_results)
+            if max_batches > 1:
+                print(f"UNPACK: Collected {len(batch_results)} counter results")
+        if batch_math:
+            batch_results = read_perf_counters(location, "MATH")
+            all_results["MATH"].extend(batch_results)
+            if max_batches > 1:
+                print(f"MATH: Collected {len(batch_results)} counter results")
+        if batch_pack:
+            batch_results = read_perf_counters(location, "PACK")
+            all_results["PACK"].extend(batch_results)
+            if max_batches > 1:
+                print(f"PACK: Collected {len(batch_results)} counter results")
+
+    print(f"\n{'='*80}")
+    print("C++ Performance Counter Measurement Complete")
+    print(f"{'='*80}")
+    print(f"UNPACK: {len(all_results['UNPACK'])} total counters collected")
+    print(f"MATH:   {len(all_results['MATH'])} total counters collected")
+    print(f"PACK:   {len(all_results['PACK'])} total counters collected")
+    print(f"{'='*80}\n")
+
+    return all_results
 
 
 def print_perf_counters(results: List[Dict], thread: str = None) -> None:
@@ -308,38 +548,100 @@ def print_perf_counters(results: List[Dict], thread: str = None) -> None:
     print("=" * 80)
 
 
-def measure_perf_counters_batched(
-    counters: List[Dict],
+def measure_perf_counters_indexed(
+    unpack_counters: List[Dict],
+    math_counters: List[Dict],
+    pack_counters: List[Dict],
     run_test_func,
     test_config,
     boot_mode,
     location: str = "0,0",
-    thread: str = "MATH",
     mode: str = "GRANTS",
-) -> List[Dict]:
-    if len(counters) <= 5:
-        # Single batch - configure and run once
-        configure_perf_counters(counters, location, thread, mode)
+) -> Dict[str, List[Dict]]:
+    # Group counters by bank to detect conflicts
+    def group_by_bank(counters):
+        by_bank = {}
+        for c in counters:
+            bank = c["bank"]
+            if bank not in by_bank:
+                by_bank[bank] = []
+            by_bank[bank].append(c)
+        return by_bank
+
+    unpack_by_bank = group_by_bank(unpack_counters)
+    math_by_bank = group_by_bank(math_counters)
+    pack_by_bank = group_by_bank(pack_counters)
+
+    # Calculate maximum batch count needed (max counters per bank across all threads)
+    max_batches = max(
+        (
+            max(len(counters) for counters in unpack_by_bank.values())
+            if unpack_by_bank
+            else 1
+        ),
+        max(len(counters) for counters in math_by_bank.values()) if math_by_bank else 1,
+        max(len(counters) for counters in pack_by_bank.values()) if pack_by_bank else 1,
+    )
+
+    if max_batches > 1:
+        print(
+            f"\\n⚠️  Hardware limitation detected: Multiple counters from same bank requested"
+        )
+        print(f"   Will run test {max_batches} times (time-division multiplexing)")
+        print(f"   Each bank can only measure 1 counter simultaneously\\n")
+
+    # Accumulate results across all batches
+    all_results = {"UNPACK": [], "MATH": [], "PACK": []}
+
+    # Run test once for each batch
+    for batch_idx in range(max_batches):
+        print(f"\\n{'='*60}")
+        print(f"Batch {batch_idx + 1}/{max_batches}")
+        print(f"{'='*60}")
+
+        # Select one counter per bank for this batch
+        def select_batch(counters_by_bank, batch_idx):
+            batch = []
+            for bank, counters in counters_by_bank.items():
+                if batch_idx < len(counters):
+                    batch.append(counters[batch_idx])
+            return batch
+
+        batch_unpack = (
+            select_batch(unpack_by_bank, batch_idx) if unpack_counters else []
+        )
+        batch_math = select_batch(math_by_bank, batch_idx) if math_counters else []
+        batch_pack = select_batch(pack_by_bank, batch_idx) if pack_counters else []
+
+        print(
+            f"Configuring {len(batch_unpack)} UNPACK, {len(batch_math)} MATH, {len(batch_pack)} PACK counters..."
+        )
+
+        # Configure all threads for this batch
+        if batch_unpack:
+            configure_perf_counters(batch_unpack, location, "UNPACK", mode)
+        if batch_math:
+            configure_perf_counters(batch_math, location, "MATH", mode)
+        if batch_pack:
+            configure_perf_counters(batch_pack, location, "PACK", mode)
+
+        # Run test for this batch
+        print("Running test...")
         run_test_func(test_config, boot_mode)
-        return read_perf_counters(location, thread)
+        print("Test completed\\n")
 
-    # Multiple batches needed
-    num_batches = (len(counters) + 4) // 5  # Ceiling division
-    all_results = []
-
-    for batch_idx in range(num_batches):
-        start_idx = batch_idx * 5
-        end_idx = min(start_idx + 5, len(counters))
-        batch_counters = counters[start_idx:end_idx]
-
-        # Configure this batch
-        configure_perf_counters(batch_counters, location, thread, mode)
-
-        # Run test
-        run_test_func(test_config, boot_mode)
-
-        # Read results
-        batch_results = read_perf_counters(location, thread)
-        all_results.extend(batch_results)
+        # Read results for this batch
+        if batch_unpack:
+            batch_results = read_perf_counters(location, "UNPACK")
+            all_results["UNPACK"].extend(batch_results)
+            print(f"UNPACK: Collected {len(batch_results)} counter results")
+        if batch_math:
+            batch_results = read_perf_counters(location, "MATH")
+            all_results["MATH"].extend(batch_results)
+            print(f"MATH: Collected {len(batch_results)} counter results")
+        if batch_pack:
+            batch_results = read_perf_counters(location, "PACK")
+            all_results["PACK"].extend(batch_results)
+            print(f"PACK: Collected {len(batch_results)} counter results")
 
     return all_results
