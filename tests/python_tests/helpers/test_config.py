@@ -195,6 +195,9 @@ class TestConfig:
         TestConfig.PROFILER_META = TestConfig.ARTEFACTS_DIR / "profiler_meta"
         TestConfig.SYNC_DIR = TestConfig.ARTEFACTS_DIR / "sync_primitives"
 
+    @staticmethod
+    def create_build_directories():
+        """Create build directories. Should only be called from main process, not xdist workers."""
         create_directories(
             [
                 TestConfig.SYNC_DIR,

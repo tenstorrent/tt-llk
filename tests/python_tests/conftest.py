@@ -126,6 +126,8 @@ def pytest_configure(config):
 
     log_file = "pytest_errors.log"
     if not hasattr(config, "workerinput"):
+        # Only create directories from main process, not xdist workers (avoids race condition)
+        TestConfig.create_build_directories()
         check_hardware_headers()
         if os.path.exists(log_file):
             os.remove(log_file)
