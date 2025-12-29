@@ -18,18 +18,28 @@ from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
     MathOperation,
+    PerfRunType,
+    Transpose,
 )
 from helpers.param_config import input_output_formats, parametrize
-from helpers.perf import ALL_RUN_TYPES, perf_benchmark, update_report
+from helpers.profiler import ProfilerConfig
+from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import calculate_tile_and_face_counts
-
-FACE_R_DIM = 16
-NUM_FACES = 4
+from helpers.test_variant_parameters import (
+    APPROX_MODE,
+    INPUT_DIMENSIONS,
+    ITERATIONS,
+    LOOP_FACTOR,
+    MATH_OP,
+    NUM_FACES,
+    TILE_COUNT,
+    UNPACK_TRANS_FACES,
+    UNPACK_TRANS_WITHING_FACE,
+)
 
 
 @pytest.mark.perf
 @parametrize(
-    test_name="eltwise_binary_sfpu_perf",
     formats=input_output_formats(
         [
             DataFormat.Float32,
@@ -61,58 +71,71 @@ NUM_FACES = 4
         8,
         32,
     ],
-    face_r_dim=[FACE_R_DIM],
-    num_faces=[NUM_FACES],
     input_dimensions=[
         [128, 64],  # tile_cnt: 8
     ],  # Specifying different input sizes to cover different tile counts
-    run_types=[ALL_RUN_TYPES],
 )
 def test_perf_eltwise_binary_sfpu_float(
     perf_report,
-    test_name,
     formats,
     mathop,
     approx_mode,
     dest_acc,
     loop_factor,
     iterations,
-    face_r_dim,
-    num_faces,
     input_dimensions,
-    run_types,
+    workers_tensix_coordinates,
 ):
     unpack_to_dest = (
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
     )
 
-    tile_cnt, faces_to_generate = calculate_tile_and_face_counts(
-        input_dimensions, face_r_dim, num_faces
+    tile_count, _, faces_to_generate = calculate_tile_and_face_counts(
+        input_dimensions, input_dimensions, face_r_dim=16, num_faces=4
     )
 
-    test_config = {
-        "formats": formats,
-        "testname": test_name,
-        "dest_acc": dest_acc,
-        "input_A_dimensions": input_dimensions,
-        "input_B_dimensions": input_dimensions,
-        "mathop": mathop,
-        "approx_mode": approx_mode,
-        "unpack_to_dest": unpack_to_dest,
-        "num_faces": faces_to_generate,
-        "face_r_dim": face_r_dim,
-        "tile_cnt": tile_cnt,
-        "loop_factor": loop_factor,
-        "iterations": iterations,
-    }
+    configuration = ProfilerConfig(
+        "sources/eltwise_binary_sfpu_perf.cpp",
+        formats,
+        run_types=[
+            PerfRunType.L1_TO_L1,
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        ],
+        templates=[
+            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+            MATH_OP(mathop=mathop),
+            APPROX_MODE(approx_mode),
+            ITERATIONS(iterations),
+        ],
+        runtimes=[
+            TILE_COUNT(tile_count),
+            LOOP_FACTOR(loop_factor),
+            NUM_FACES(num_faces=faces_to_generate),
+            UNPACK_TRANS_FACES(Transpose.No),
+            UNPACK_TRANS_WITHING_FACE(Transpose.No),
+        ],
+        variant_stimuli=StimuliConfig(
+            None,
+            formats.input_format,
+            None,
+            formats.input_format,
+            formats.output_format,
+            tile_count_A=tile_count,
+            tile_count_B=tile_count,
+            tile_count_res=tile_count,
+        ),
+        unpack_to_dest=unpack_to_dest,
+        dest_acc=dest_acc,
+    )
 
-    results = perf_benchmark(test_config, run_types)
-    update_report(perf_report, test_config, results)
+    configuration.run(perf_report, location=workers_tensix_coordinates)
 
 
 @pytest.mark.perf
 @parametrize(
-    test_name="eltwise_binary_sfpu_perf",
     formats=input_output_formats(
         [
             DataFormat.Int32,
@@ -138,58 +161,71 @@ def test_perf_eltwise_binary_sfpu_float(
         8,
         32,
     ],
-    face_r_dim=[FACE_R_DIM],
-    num_faces=[NUM_FACES],
     input_dimensions=[
         [128, 64],  # tile_cnt: 8
     ],
-    run_types=[ALL_RUN_TYPES],
 )
 def test_perf_eltwise_binary_sfpu_int(
     perf_report,
-    test_name,
     formats,
     mathop,
     approx_mode,
     dest_acc,
     loop_factor,
     iterations,
-    face_r_dim,
-    num_faces,
     input_dimensions,
-    run_types,
+    workers_tensix_coordinates,
 ):
     unpack_to_dest = (
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
     )
 
-    tile_cnt, _, faces_to_generate = calculate_tile_and_face_counts(
-        input_dimensions, input_dimensions, face_r_dim, num_faces
+    tile_count, _, faces_to_generate = calculate_tile_and_face_counts(
+        input_dimensions, input_dimensions, face_r_dim=16, num_faces=4
     )
 
-    test_config = {
-        "formats": formats,
-        "testname": test_name,
-        "dest_acc": dest_acc,
-        "input_A_dimensions": input_dimensions,
-        "input_B_dimensions": input_dimensions,
-        "mathop": mathop,
-        "approx_mode": approx_mode,
-        "unpack_to_dest": unpack_to_dest,
-        "num_faces": faces_to_generate,
-        "face_r_dim": face_r_dim,
-        "tile_cnt": tile_cnt,
-        "loop_factor": loop_factor,
-        "iterations": iterations,
-    }
+    configuration = ProfilerConfig(
+        "sources/eltwise_binary_sfpu_perf.cpp",
+        formats,
+        run_types=[
+            PerfRunType.L1_TO_L1,
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        ],
+        templates=[
+            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+            MATH_OP(mathop=mathop),
+            APPROX_MODE(approx_mode),
+            ITERATIONS(iterations),
+        ],
+        runtimes=[
+            TILE_COUNT(tile_count),
+            LOOP_FACTOR(loop_factor),
+            NUM_FACES(num_faces=faces_to_generate),
+            UNPACK_TRANS_FACES(Transpose.No),
+            UNPACK_TRANS_WITHING_FACE(Transpose.No),
+        ],
+        variant_stimuli=StimuliConfig(
+            None,
+            formats.input_format,
+            None,
+            formats.input_format,
+            formats.output_format,
+            tile_count_A=tile_count,
+            tile_count_B=tile_count,
+            tile_count_res=tile_count,
+        ),
+        unpack_to_dest=unpack_to_dest,
+        dest_acc=dest_acc,
+    )
 
-    results = perf_benchmark(test_config, run_types)
-    update_report(perf_report, test_config, results)
+    configuration.run(perf_report, location=workers_tensix_coordinates)
 
 
 @pytest.mark.perf
 @parametrize(
-    test_name="eltwise_binary_sfpu_perf",
     formats=input_output_formats(
         [
             DataFormat.Float32,
@@ -216,26 +252,20 @@ def test_perf_eltwise_binary_sfpu_int(
         8,
         32,
     ],
-    face_r_dim=[FACE_R_DIM],
-    num_faces=[NUM_FACES],
     input_dimensions=[
         [128, 64],  # tile_cnt: 8
     ],
-    run_types=[ALL_RUN_TYPES],
 )
 def test_perf_eltwise_binary_sfpu_add_top_row(
     perf_report,
-    test_name,
     formats,
     mathop,
     approx_mode,
     dest_acc,
     loop_factor,
     iterations,
-    face_r_dim,
-    num_faces,
     input_dimensions,
-    run_types,
+    workers_tensix_coordinates,
 ):
     chip_arch = get_chip_architecture()
 
@@ -249,25 +279,45 @@ def test_perf_eltwise_binary_sfpu_add_top_row(
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
     )
 
-    tile_cnt, _, faces_to_generate = calculate_tile_and_face_counts(
-        input_dimensions, input_dimensions, face_r_dim, num_faces
+    tile_count, _, faces_to_generate = calculate_tile_and_face_counts(
+        input_dimensions, input_dimensions, face_r_dim=16, num_faces=4
     )
 
-    test_config = {
-        "formats": formats,
-        "testname": test_name,
-        "dest_acc": dest_acc,
-        "input_A_dimensions": input_dimensions,
-        "input_B_dimensions": input_dimensions,
-        "mathop": mathop,
-        "approx_mode": approx_mode,
-        "unpack_to_dest": unpack_to_dest,
-        "num_faces": faces_to_generate,
-        "face_r_dim": face_r_dim,
-        "tile_cnt": tile_cnt,
-        "loop_factor": loop_factor,
-        "iterations": iterations,
-    }
+    configuration = ProfilerConfig(
+        "sources/eltwise_binary_sfpu_perf.cpp",
+        formats,
+        run_types=[
+            PerfRunType.L1_TO_L1,
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        ],
+        templates=[
+            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+            MATH_OP(mathop=mathop),
+            APPROX_MODE(approx_mode),
+            ITERATIONS(iterations),
+        ],
+        runtimes=[
+            TILE_COUNT(tile_count),
+            LOOP_FACTOR(loop_factor),
+            NUM_FACES(num_faces=faces_to_generate),
+            UNPACK_TRANS_FACES(Transpose.No),
+            UNPACK_TRANS_WITHING_FACE(Transpose.No),
+        ],
+        variant_stimuli=StimuliConfig(
+            None,
+            formats.input_format,
+            None,
+            formats.input_format,
+            formats.output_format,
+            tile_count_A=tile_count,
+            tile_count_B=tile_count,
+            tile_count_res=tile_count,
+        ),
+        unpack_to_dest=unpack_to_dest,
+        dest_acc=dest_acc,
+    )
 
-    results = perf_benchmark(test_config, run_types)
-    update_report(perf_report, test_config, results)
+    configuration.run(perf_report, location=workers_tensix_coordinates)

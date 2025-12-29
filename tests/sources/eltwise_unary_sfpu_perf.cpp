@@ -15,27 +15,26 @@
 #include "profiler.h"
 
 // Globals
-uint32_t unp_cfg_context                 = 0;
-uint32_t pack_sync_tile_dst_ptr          = 0;
-uint32_t math_sync_tile_dst_index        = 0;
-static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
+uint32_t unp_cfg_context            = 0;
+uint32_t pack_sync_tile_dst_ptr     = 0;
+uint32_t math_sync_tile_dst_index   = 0;
+static constexpr int MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams* params)
 {
     {
         ZONE_SCOPED("INIT")
 
-        _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
-            formats.unpack_src, formats.unpack_dst, FACE_R_DIM, UNPACK_TRANSPOSE_WITHIN_FACE, NUM_FACES);
+        _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+            formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, params->num_faces, params->num_faces);
 
         _llk_unpack_A_init_<BroadcastType::NONE, is_fp32_dest_acc_en, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE, FACE_R_DIM, NUM_FACES, formats.unpack_src, formats.unpack_dst);
-
+            params->UNPACK_TRANSPOSE_FACES, params->UNPACK_TRANSPOSE_WITHIN_FACE, FACE_R_DIM, params->num_faces, formats.unpack_src, formats.unpack_dst);
         PROFILER_SYNC();
     }
     {
@@ -51,14 +50,14 @@ void run_kernel()
                 _perf_unpack_loop_set_valid<
                     /* src A */ true,
                     /* src B */ is_fp32_dest_acc_en>(
-                    /* iterations*/ NUM_FACES * TILE_CNT * LOOP_FACTOR);
+                    /* iterations*/ params->num_faces * params->TILE_CNT * params->LOOP_FACTOR);
             }
         }
         else if constexpr (PERF_RUN_TYPE != PerfRunType::PACK_ISOLATE)
         {
-            for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (uint32_t i = 0; i < TILE_CNT; ++i)
+                for (int i = 0; i < params->TILE_CNT; ++i)
                 {
                     _llk_unpack_A_<BroadcastType::NONE, is_fp32_dest_acc_en, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
                         PERF_ADDRESS(PERF_INPUT_A, /* tile_idx */ i), formats.unpack_src, formats.unpack_dst);
@@ -77,14 +76,14 @@ void run_kernel()
 #include "llk_math_eltwise_unary_sfpu.h"
 #include "sfpu_operations.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams* params)
 {
     {
         ZONE_SCOPED("INIT")
 
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(NUM_FACES, formats.math);
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(params->num_faces, formats.math);
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        _llk_math_hw_configure_<>(formats.math, formats.math);
+        _llk_math_hw_configure_(formats.math, formats.math);
 
         _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
         PROFILER_SYNC();
@@ -96,9 +95,9 @@ void run_kernel()
         {
             if constexpr (unpack_to_dest)
             {
-                for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
+                for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
                 {
-                    for (uint32_t i = 0; i < TILE_CNT; ++i)
+                    for (int i = 0; i < params->TILE_CNT; ++i)
                     {
                         // Only perform synchronization with unpacker, it does not copy
                         // the data when unpack_to_dest is true - as data is already in dest.
@@ -113,20 +112,19 @@ void run_kernel()
                 _perf_math_loop_clear_valid<
                     /* src A */ true,
                     /* src B */ true>(
-                    /* iterations*/ NUM_FACES * TILE_CNT * LOOP_FACTOR);
+                    /* iterations*/ params->num_faces * params->TILE_CNT * params->LOOP_FACTOR);
             }
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             if constexpr (unpack_to_dest)
             {
-                for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
+                for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
                 {
-                    for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
+                    for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                     {
-                        uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
-
-                        for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                        int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                        for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                         {
                             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                                 block_start + block_tile, formats.math, formats.math);
@@ -138,18 +136,18 @@ void run_kernel()
             }
             else
             {
-                for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
+                for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
                 {
-                    for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
+                    for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                     {
-                        uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
+                        int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
-                        for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                        for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                         {
                             _perf_math_loop_clear_valid<
                                 /* src A */ true,
                                 /* src B */ true>(
-                                /* iterations*/ NUM_FACES);
+                                /* iterations*/ params->num_faces);
                         }
 
                         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
@@ -160,15 +158,15 @@ void run_kernel()
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
                     if constexpr (!unpack_to_dest)
                     {
-                        uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
+                        int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
-                        for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                        for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                         {
                             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                                 block_start + block_tile, formats.math, formats.math);
@@ -183,16 +181,16 @@ void run_kernel()
         }
         else if constexpr (PERF_RUN_TYPE != PerfRunType::PACK_ISOLATE)
         {
-            for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
+                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
                     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
                     // Copy from srcA to dest
-                    for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
                         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                             block_start + block_tile, formats.math, formats.math);
@@ -219,18 +217,21 @@ void run_kernel()
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams* params)
 {
     {
         ZONE_SCOPED("INIT")
 
         // Configure packer hardware
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, FACE_R_DIM * FACE_C_DIM * NUM_FACES);
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, FACE_R_DIM * FACE_C_DIM * params->num_faces);
 
-        _llk_pack_init_</* untilize */ false, /* zero_output */ false, DstTileFaceLayout::RowMajor, /* write_tile_header */ false>(formats.pack_dst);
-
+#ifdef ARCH_BLACKHOLE
+        _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces);
+#else
+        _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, params->num_faces);
+#endif
         // Initialize destination for packing
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
         PROFILER_SYNC();
     }
@@ -239,13 +240,13 @@ void run_kernel()
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
-            for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
+                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
-                    for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
                         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, /* untilize */ false>(
                             block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
@@ -255,14 +256,14 @@ void run_kernel()
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_TO_L1 || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
+                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
                     _llk_packer_wait_for_math_done_();
-                    for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
                         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, /* untilize */ false>(
                             block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
