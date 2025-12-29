@@ -129,6 +129,7 @@ class TestConfig:
     CURRENT_CONFIG: ClassVar[str] = "uninitialised"
     MODE: ClassVar[TestMode] = TestMode.DEFAULT
     SKIP_JUST_FOR_COMPILE_MARKER: ClassVar[str] = "SKIPPED_JUST_FOR_COMPILE"
+    _BUILD_DIRS_CREATED: ClassVar[bool] = False
 
     # === Addresses ===
     TRISC_PROFILER_BARRIER_ADDRESS: ClassVar[int] = 0x16AFF4
@@ -197,7 +198,10 @@ class TestConfig:
 
     @staticmethod
     def create_build_directories():
-        """Create build directories. Should only be called from main process, not xdist workers."""
+        """Create build directories. Uses class flag to skip redundant filesystem checks."""
+        if TestConfig._BUILD_DIRS_CREATED:
+            return
+
         create_directories(
             [
                 TestConfig.SYNC_DIR,
@@ -208,6 +212,7 @@ class TestConfig:
                 TestConfig.COVERAGE_INFO_DIR,
             ]
         )
+        TestConfig._BUILD_DIRS_CREATED = True
 
     @staticmethod
     def setup_compilation_options(
