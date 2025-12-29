@@ -31,14 +31,15 @@ jobs:
           RUN_URL: >-
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/
             ${{ github.run_id }}/job/${{ job.check_run_id }}
+          MESSAGE_TEXT: >-
+            :alert: Hey, just so you know `${{ github.event.sender.login }}`
+            broke ${{ github.workflow }} with ${{ env.COMMIT_URL }} at
+            ${{ env.RUN_URL }}
         with:
           method: chat.postMessage
           token: ${{ secrets.SLACK_BOT_TOKEN }}
           payload: |
             {
               "channel": "${{ secrets.SLACK_CHANNEL_ID }}",
-              "text": >-
-                :alert: Hey, just so you know `${{ github.event.sender.login }}`
-                broke ${{ github.workflow }} with ${{ env.COMMIT_URL }} at
-                ${{ env.RUN_URL }}
+              "text": "${{ env.MESSAGE_TEXT }}"
             }
