@@ -23,21 +23,22 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ always() }}
     steps:
+      - name: Construct message
+        id: message
+        run: |
+          COMMIT_URL="https://github.com/tenstorrent/tt-metal/commit/${{ github.sha }}"
+          RUN_BASE="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          RUN_URL="$RUN_BASE/job/${{ job.check_run_id }}"
+          MESSAGE=":alert: Hey, just so you know \`${{ github.event.sender.login }}\` broke ${{ github.workflow }}"
+          MESSAGE="$MESSAGE with $COMMIT_URL at $RUN_URL"
+          echo "text=$MESSAGE" >> $GITHUB_OUTPUT
       - name: Send Slack notification
         uses: slackapi/slack-github-action@v2.1.1
-        env:
-          COMMIT_URL: >-
-            https://github.com/tenstorrent/tt-metal/commit/${{ github.sha }}
-          RUN_BASE: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          RUN_URL: ${{ env.RUN_BASE }}/job/${{ job.check_run_id }}
-          MESSAGE_TEXT: >-
-            :alert: Hey, just so you know `${{ github.event.sender.login }}`
-            broke ${{ github.workflow }} with ${{ env.COMMIT_URL }} at ${{ env.RUN_URL }}
         with:
           method: chat.postMessage
           token: ${{ secrets.SLACK_BOT_TOKEN }}
           payload: |
             {
               "channel": "${{ secrets.SLACK_CHANNEL_ID }}",
-              "text": "${{ env.MESSAGE_TEXT }}"
+              "text": "${{ steps.message.outputs.text }}"
             }
