@@ -19,11 +19,11 @@ uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     // TILE_CNT = 2 * num_pairs (A tiles followed by B tiles in buffer_A)
     // For each pair i: unpack buffer_A[i] (A tile) and buffer_A[i + TILE_CNT/2] (B tile)
-    const int num_pairs = TILE_CNT / 2;
+    const int num_pairs = params->TILE_CNT / 2;
 
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
@@ -56,7 +56,7 @@ void run_kernel()
 
 using namespace ckernel::sfpu;
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     const bool is_int_fpu_en = false;
 
@@ -69,10 +69,10 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats.math);
 #endif
 
-    const int num_pairs = TILE_CNT / 2;
+    const int num_pairs = params->TILE_CNT / 2;
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (int i = 0; i < TILE_CNT; i++)
+    for (int i = 0; i < params->TILE_CNT; i++)
     {
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math);
@@ -84,7 +84,7 @@ void run_kernel()
     for (int i = 0; i < num_pairs; i++)
     {
         _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(i * 2);
-        _calculate_max_<APPROX_MODE, 32>(32);
+        _calculate_max_<false, 32>(32);
         _llk_math_eltwise_binary_sfpu_done_();
     }
 
@@ -99,7 +99,7 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16);
@@ -115,7 +115,7 @@ void run_kernel()
     _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
 #endif
 
-    const int num_pairs = TILE_CNT / 2;
+    const int num_pairs = params->TILE_CNT / 2;
 
     _llk_packer_wait_for_math_done_();
     // Pack results from tiles 0, 2, 4, ... (each pair produces one result at even indices)
