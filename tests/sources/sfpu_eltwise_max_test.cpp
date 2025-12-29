@@ -21,14 +21,23 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel()
 {
+    // TILE_CNT = 2 * num_pairs (A tiles followed by B tiles in buffer_A)
+    // For each pair i: unpack buffer_A[i] (A tile) and buffer_A[i + TILE_CNT/2] (B tile)
+    const int num_pairs = TILE_CNT / 2;
+
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
-    for (int i = 0; i < TILE_CNT; i++)
+
+    for (int i = 0; i < num_pairs; i++)
     {
+        // Unpack A tile (index i) to dest[0]
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
+        // Unpack B tile (index i + num_pairs) to dest[1]
+        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+            L1_ADDRESS(buffer_A[i + num_pairs]), formats.unpack_src, formats.unpack_dst);
     }
 }
 
@@ -60,6 +69,8 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats.math);
 #endif
 
+    const int num_pairs = TILE_CNT / 2;
+
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (int i = 0; i < TILE_CNT; i++)
     {
@@ -68,11 +79,15 @@ void run_kernel()
     }
 
     _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
-    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
 
-    _calculate_max_<APPROX_MODE, 32>(32);
+    // Process each pair: max(dest[i*2], dest[i*2+1]) -> dest[i*2]
+    for (int i = 0; i < num_pairs; i++)
+    {
+        _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(i * 2);
+        _calculate_max_<APPROX_MODE, 32>(32);
+        _llk_math_eltwise_binary_sfpu_done_();
+    }
 
-    _llk_math_eltwise_binary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -100,10 +115,13 @@ void run_kernel()
     _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
 #endif
 
+    const int num_pairs = TILE_CNT / 2;
+
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < TILE_CNT; i++)
+    // Pack results from tiles 0, 2, 4, ... (each pair produces one result at even indices)
+    for (int i = 0; i < num_pairs; i++)
     {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i * 2, L1_ADDRESS(buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
