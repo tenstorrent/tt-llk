@@ -18,12 +18,9 @@ from helpers.test_variant_parameters import (
     REDUCE_POOL_TYPE,
     TILE_COUNT,
 )
-from helpers.stimuli_generator import calculate_tile_and_face_counts
-
-FACE_R_DIM = 16
-NUM_FACES = 4
 
 
+@skip_for_blackhole
 @pytest.mark.perf
 @parametrize(
     formats=input_output_formats(

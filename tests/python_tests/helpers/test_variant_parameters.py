@@ -17,12 +17,14 @@ from .llk_params import (
     DataCopyType,
     DestSync,
     EltwiseBinaryReuseDestType,
+    FastMode,
     ImpliedMathFormat,
     MathFidelity,
     MathOperation,
     NarrowTile,
     PerfRunType,
     ReducePool,
+    StableSort,
     StochasticRounding,
     Tilize,
     Transpose,
@@ -194,6 +196,30 @@ class APPROX_MODE(TemplateParameter):
 
     def covert_to_cpp(self) -> str:
         return f"constexpr bool APPROX_MODE = {self.mode.value};"
+
+
+@dataclass
+class ITERATIONS(TemplateParameter):
+    iterations: int = 8
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int ITERATIONS = {self.iterations};"
+
+
+@dataclass
+class FAST_MODE(TemplateParameter):
+    fast_mode: FastMode = FastMode.No
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr bool FAST_MODE = {str(self.fast_mode.value).lower()};"
+
+
+@dataclass
+class STABLE_SORT(TemplateParameter):
+    stable_sort: StableSort = StableSort.No
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr bool STABLE_SORT = {str(self.stable_sort.value).lower()};"
 
 
 @dataclass
