@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
 
 from .chip_architecture import ChipArchitecture
+from .fused_unpacker import UnpackerA
 from .llk_params import ApproximationMode, MathOperation, Transpose
 
 
@@ -36,8 +37,30 @@ class Fpu:
         dest_acc = operation_config.dest_acc.value
         tile_cnt = operation_config.output.tile_count
         transpose_faces = self.transpose_faces.value
+        is_32bit_value = operation_config.output.data_format.is_32_bit()
+        is_32bit = "true" if is_32bit_value else "false"
+        unpack_a = operation_config.unpacker is UnpackerA
+        num_faces = operation_config.num_faces
+        face_r_dim = operation_config.face_r_dim
+        face_c_dim = operation_config.face_c_dim
 
         code = self.exec(operation_config)
+
+        # Notes on these template parameters:
+        # 1. <transpose_of_faces=false, is_32bit=false>: not supported.
+        # 2. <transpose_of_faces=false, is_32bit=true>: 4x 16x16 face transpose; can be combined with _llk_unpack_A_ with transpose_of_faces=true.
+        # 3. <transpose_of_faces=true, is_32bit=false>: the default case (full 32x32 tile transpose, non-32-bit).
+        # 4. <transpose_of_faces=true, is_32bit=true>: full 32x32 tile transpose for 32-bit.
+        if self.transpose_faces == Transpose.No and not is_32bit_value:
+            raise ValueError(
+                "<transpose_of_faces=false, is_32bit=false>: not supported"
+            )
+
+        if self.transpose_faces == Transpose.No and is_32bit:
+            if not unpack_a or num_faces != 4 or face_r_dim != 16 or face_c_dim != 16:
+                raise ValueError(
+                    "ranspose_of_faces=false, is_32bit=true>: 4x 16x16 face transpose; can be combined with _llk_unpack_A_ with transpose_of_faces=true."
+                )
 
         if self.transpose == Transpose.Yes:
             code += (
@@ -48,9 +71,9 @@ class Fpu:
             )
 
             if operation_config.architecture == ChipArchitecture.BLACKHOLE:
-                code += f"        _llk_math_transpose_dest_<{dest_acc}, {transpose_faces}, {dest_acc}>(block_tile);\n"
+                code += f"        _llk_math_transpose_dest_<{dest_acc}, {transpose_faces}, {is_32bit}>(block_tile);\n"
             elif operation_config.architecture == ChipArchitecture.WORMHOLE:
-                code += f"        _llk_math_transpose_dest_<{transpose_faces}, {dest_acc}>(block_tile);\n"
+                code += f"        _llk_math_transpose_dest_<{transpose_faces}, {is_32bit}>(block_tile);\n"
             else:
                 raise ValueError("Transpose dest is not supported")
 
@@ -77,7 +100,7 @@ class Fpu:
                 operation_config.output.tile_count,
                 tilize=True,
                 untilize=True,
-                input_dimensions=operation_config.src_b.dimensions,
+                input_dimensions=operation_config.output.dimensions,
             )
             if self.transpose_faces == Transpose.Yes:
                 dest = transpose_generator.transpose_faces_multi_tile(
@@ -86,7 +109,7 @@ class Fpu:
                     operation_config.output.tile_count,
                     tilize=True,
                     untilize=True,
-                    input_dimensions=operation_config.src_b.dimensions,
+                    input_dimensions=operation_config.output.dimensions,
                 )
 
         return dest

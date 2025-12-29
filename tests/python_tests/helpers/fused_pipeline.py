@@ -20,7 +20,7 @@ from .llk_params import DestAccumulation, MathFidelity
 
 def create_fuse_pipeline() -> List[FusedOperation]:
     math_fidelity = MathFidelity.LoFi
-    dest_acc = DestAccumulation.Yes
+    dest_acc = DestAccumulation.No
     input_A_dimensions = [64, 64]
     input_B_dimensions = [64, 64]
 
@@ -41,7 +41,7 @@ def create_fuse_pipeline() -> List[FusedOperation]:
             math=Math(
                 DatacopyFpu(
                     transpose=Transpose.Yes,
-                    # transpose_faces=Transpose.Yes,
+                    transpose_faces=Transpose.Yes,
                 ),
             ),
             packer=Packer,
