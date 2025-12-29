@@ -219,7 +219,7 @@ class TestConfig:
             )
 
         TestConfig.OPTIONS_LINK = "-nodefaultlibs -fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace"
-        TestConfig.INITIAL_OPTIONS_COMPILE = f"-fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Wunused-parameter -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -nostdlib -fno-builtin -Wmaybe-uninitialized -DTENSIX_FIRMWARE -DENV_LLK_INFRA -DENABLE_LLK_ASSERT {TestConfig.ARCH_DEFINE}"
+        TestConfig.INITIAL_OPTIONS_COMPILE = f"-g -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Wunused-parameter -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -nostdlib -fno-builtin -Wmaybe-uninitialized -DTENSIX_FIRMWARE -DENV_LLK_INFRA -DENABLE_LLK_ASSERT {TestConfig.ARCH_DEFINE}"
         TestConfig.INCLUDES = f"-I../{TestConfig.ARCH_LLK_ROOT}/llk_lib -I../{TestConfig.ARCH_LLK_ROOT}/common/inc -I../{TestConfig.ARCH_LLK_ROOT}/common/inc/sfpu -Isfpi/compiler/lib/gcc/riscv-tt-elf/*/include -I{TestConfig.HEADER_DIR} -Ifirmware/riscv/common -Isfpi/include -Ihelpers/include"
 
     @staticmethod
