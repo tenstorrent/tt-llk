@@ -47,8 +47,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #include "ckernel_defs.h"
 #include "ckernel_sfpu.h"
-#include "ckernel_sfpu_max.h"
-#include "ckernel_sfpu_max_int32.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary_sfpu.h"
 #include "llk_math_eltwise_unary_datacopy.h"
