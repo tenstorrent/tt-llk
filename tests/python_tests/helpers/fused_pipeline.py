@@ -127,17 +127,17 @@ APPROXIMATION_MODE_MAP: Dict[str, ApproximationMode] = {
 }
 
 
-def _parse_math_operation(
+def parse_math_operation(
     math_config: Dict[str, Any], operands: OperandRegistry
 ) -> Math:
     fpu_type = math_config.get("fpu", "DatacopyFpu")
 
-    if fpu_type == "DatacopyFpu":
-        fpu = DatacopyFpu()
-    elif fpu_type == "EltwiseFpu":
-        math_op = MATH_OPERATION_MAP[math_config.get("fpu_operation", "Elwadd")]
+    if fpu_type in MATH_OPERATION_MAP:
+        math_op = MATH_OPERATION_MAP[fpu_type]
         fpu = EltwiseFpu(math_op)
-    elif fpu_type == "MatmulFpu":
+    elif fpu_type == "Datacopy":
+        fpu = DatacopyFpu()
+    elif fpu_type == "Matmul":
         fpu = MatmulFpu()
 
     sfpu_ops = []
@@ -178,7 +178,7 @@ def _parse_math_operation(
     return Math(fpu, sfpu_ops)
 
 
-def _parse_operation(
+def parse_operation(
     op_config: Dict[str, Any], operands: OperandRegistry
 ) -> FusedOperation:
     operand_mapping = operands.create_mapping(
@@ -192,7 +192,7 @@ def _parse_operation(
     )
 
     unpacker = UNPACKER_MAP[op_config.get("unpacker", "UnpackerA")]
-    math = _parse_math_operation(op_config.get("math", {}), operands)
+    math = parse_math_operation(op_config.get("math", {}), operands)
     packer = PACKER_MAP[op_config.get("packer", "Packer")]
     dest_acc = DEST_ACCUMULATION_MAP.get(
         op_config.get("dest_acc", "No"), DestAccumulation.No
@@ -236,7 +236,7 @@ def create_fuse_pipeline(yaml_path: str) -> List[FusedOperation]:
 
     pipeline = []
     for op_config in config.get("operations", []):
-        operation = _parse_operation(op_config, operands)
+        operation = parse_operation(op_config, operands)
         pipeline.append(operation)
 
     return pipeline

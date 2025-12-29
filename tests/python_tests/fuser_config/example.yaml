@@ -8,7 +8,7 @@ operations:
     output_format: "Float16_b"
     unpacker: "UnpackerA"
     math:
-      fpu: "DatacopyFpu"
+      fpu: "Datacopy"
     packer: "Packer"
     dest_acc: "Yes"
     math_fidelity: "LoFi"
@@ -24,7 +24,7 @@ operations:
     output_format: "Float16_b"
     unpacker: "UnpackerTilizeA"
     math:
-      fpu: "DatacopyFpu"
+      fpu: "Datacopy"
       sfpu:
         - type: "UnarySfpu"
           operation: "Exp"
@@ -54,8 +54,7 @@ operations:
     output_format: "Float16_b"
     unpacker: "UnpackerAB"
     math:
-      fpu: "EltwiseFpu"
-      fpu_operation: "Elwadd"
+      fpu: "Elwadd"
       sfpu:
         - type: "UnarySfpu"
           operation: "Neg"
@@ -77,7 +76,7 @@ operations:
     output_format: "Float32"
     unpacker: "MatmulUnpacker"
     math:
-      fpu: "MatmulFpu"
+      fpu: "Matmul"
     packer: "Packer"
     dest_acc: "Yes"
     math_fidelity: "HiFi2"
@@ -91,7 +90,7 @@ operations:
     output_format: "Float32"
     unpacker: "MatmulUnpacker"
     math:
-      fpu: "MatmulFpu"
+      fpu: "Matmul"
       sfpu:
         - type: "UnarySfpu"
           operation: "Neg"
