@@ -34,7 +34,7 @@ from helpers.test_variant_parameters import (
     NUM_FACES,
     TILE_COUNT,
     UNPACK_TRANS_FACES,
-    UNPACK_TRANS_WITHING_FACE,
+    UNPACK_TRANS_WITHIN_FACE,
 )
 
 
@@ -115,7 +115,7 @@ def test_perf_eltwise_binary_sfpu_float(
             LOOP_FACTOR(loop_factor),
             NUM_FACES(num_faces=faces_to_generate),
             UNPACK_TRANS_FACES(Transpose.No),
-            UNPACK_TRANS_WITHING_FACE(Transpose.No),
+            UNPACK_TRANS_WITHIN_FACE(Transpose.No),
         ],
         variant_stimuli=StimuliConfig(
             None,
@@ -205,7 +205,7 @@ def test_perf_eltwise_binary_sfpu_int(
             LOOP_FACTOR(loop_factor),
             NUM_FACES(num_faces=faces_to_generate),
             UNPACK_TRANS_FACES(Transpose.No),
-            UNPACK_TRANS_WITHING_FACE(Transpose.No),
+            UNPACK_TRANS_WITHIN_FACE(Transpose.No),
         ],
         variant_stimuli=StimuliConfig(
             None,
@@ -304,7 +304,7 @@ def test_perf_eltwise_binary_sfpu_add_top_row(
             LOOP_FACTOR(loop_factor),
             NUM_FACES(num_faces=faces_to_generate),
             UNPACK_TRANS_FACES(Transpose.No),
-            UNPACK_TRANS_WITHING_FACE(Transpose.No),
+            UNPACK_TRANS_WITHIN_FACE(Transpose.No),
         ],
         variant_stimuli=StimuliConfig(
             None,
