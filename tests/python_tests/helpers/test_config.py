@@ -355,145 +355,84 @@ class TestConfig:
             "runtime_format",
             "runtimes",
         ]
+    )
 
-        temp_str = [
-            str(value)
-            for field_name, value in self.__dict__.items()
-            if field_name not in NON_COMPILATION_ARGUMETNS
-        ]
-        self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
+    loop_factor = test_config.get("loop_factor", 1)
 
-    def resolve_compile_options(self) -> tuple[str, str, str]:
+    header_content.append(f"constexpr int LOOP_FACTOR = {loop_factor};")
 
-        if (
-            TestConfig.OPTIONS_COMPILE is not None
-            and TestConfig.MEMORY_LAYOUT_LD_SCRIPT is not None
-            and TestConfig.NON_COVERAGE_OPTIONS_COMPILE is not None
-        ):
-            return (
-                TestConfig.OPTIONS_COMPILE,
-                MEMORY_LAYOUT_LD_SCRIPT,
-                NON_COVERAGE_OPTIONS_COMPILE,
-            )
+    # SFPU iterations
+    iterations = test_config.get("iterations", 32)
+    header_content.append(f"constexpr int ITERATIONS = {iterations};")
 
-        MEMORY_LAYOUT_LD_SCRIPT = (
-            f"{TestConfig.LINKER_SCRIPTS}/memory.{TestConfig.ARCH.value}.ld"
+    # Fast mode
+    fast_mode = test_config.get("fast_mode", "false")
+    fast_mode_value = (
+        fast_mode.value if hasattr(fast_mode, "value") else str(fast_mode).lower()
+    )
+    header_content.append(f"constexpr bool FAST_MODE = {fast_mode_value};")
+
+    # Stable sort
+    stable_sort = test_config.get("stable_sort", "false")
+    stable_sort_value = (
+        stable_sort.value if hasattr(stable_sort, "value") else str(stable_sort).lower()
+    )
+    header_content.append(f"constexpr bool STABLE_SORT = {stable_sort_value};")
+
+    # Dest accumulation
+    dest_acc = test_config.get("dest_acc", DestAccumulation.No)
+
+    # Unpack to dest
+    unpack_to_dest = str(test_config.get("unpack_to_dest", False)).lower()
+    header_content.append(f"constexpr bool UNPACKING_TO_DEST = {unpack_to_dest};")
+
+    # Unpack transpose faces
+    unpack_transpose_faces = test_config.get("unpack_transpose_faces", Transpose.No)
+    header_content.append(
+        f"constexpr bool UNPACK_TRANSPOSE_FACES = {unpack_transpose_faces.value};"
+    )
+
+    # Unpack transpose within face
+    unpack_transpose_within_face = test_config.get(
+        "unpack_transpose_within_face", Transpose.No
+    )
+    header_content.append(
+        f"constexpr bool UNPACK_TRANSPOSE_WITHIN_FACE = {unpack_transpose_within_face.value};"
+    )
+
+    # ******** QUASAR specific ********
+    if get_chip_architecture() == ChipArchitecture.QUASAR:
+        # Implied math format
+        implied_math_format = test_config.get(
+            "implied_math_format", ImpliedMathFormat.No
         )
-        OPTIONS_COMPILE = f"{TestConfig.INCLUDES} {TestConfig.INITIAL_OPTIONS_COMPILE} "
-
-        if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR:
-            OPTIONS_COMPILE += "-DLLK_BOOT_MODE_TRISC "
-        else:
-            OPTIONS_COMPILE += "-DLLK_BOOT_MODE_BRISC "
-
-        NON_COVERAGE_OPTIONS_COMPILE = OPTIONS_COMPILE
-
-        if self.coverage_build == CoverageBuild.Yes:
-            NON_COVERAGE_OPTIONS_COMPILE = OPTIONS_COMPILE
-            OPTIONS_COMPILE += (
-                "-fprofile-arcs -ftest-coverage -fprofile-info-section -DCOVERAGE "
-            )
-            MEMORY_LAYOUT_LD_SCRIPT = (
-                f"{TestConfig.LINKER_SCRIPTS}/memory.{TestConfig.ARCH.value}.debug.ld"
-            )
-
-        if self.profiler_build == ProfilerBuild.Yes:
-            OPTIONS_COMPILE += "-DLLK_PROFILER "
-
-        return (OPTIONS_COMPILE, MEMORY_LAYOUT_LD_SCRIPT, NON_COVERAGE_OPTIONS_COMPILE)
-
-    def build_shared_artefacts(self):
-        if TestConfig.SHARED_ARTEFACTS_AVAILABLE:
-            return
-
-        TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
-        sync_file = open("/tmp/tt-llk-build-worker.sync", "w")
-
-        # Determining which worker will build shared artefacts, others just wait until that's done
-        try:
-            fcntl.flock(sync_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            skip_shared_compilation = False
-        except BlockingIOError:
-            fcntl.flock(sync_file.fileno(), fcntl.LOCK_SH)
-            skip_shared_compilation = True
-
-        if skip_shared_compilation:
-            fcntl.flock(sync_file.fileno(), fcntl.LOCK_UN)
-            sync_file.close()
-            return
-
-        # Kernel mains
-        kernel_trisc_flag = ""
-        if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-            kernel_trisc_flag = "-DCOMPILE_FOR_TRISC="
-
-        local_options_compile, local_memory_layout_ld, local_non_coverage = (
-            self.resolve_compile_options()
+        header_content.append(
+            f"constexpr bool IMPLIED_MATH_FORMAT = {implied_math_format.value};"
         )
 
-        # tmu-crt0.o : tmu-crt0.S
-        run_shell_command(
-            f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} -c -o {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {TestConfig.HELPERS / "tmu-crt0.S"}""",
-            TestConfig.TESTS_WORKING_DIR,
+        # Select unpacker
+        unpacker_engine_sel = test_config.get(
+            "unpacker_engine_sel", UnpackerEngine.UnpA
         )
+        header_content.append(
+            f"constexpr uint UNPACKER_ENGINE_SEL = p_unpacr::{unpacker_engine_sel.value};"
+        )
+    # *********************************
 
-        # brisc.o : brisc.cpp
+    # Throttle level
+    throttle = test_config.get("throttle", 0)
+    header_content.append(f"constexpr int THROTTLE_LEVEL = {throttle};")
 
-        if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-            run_shell_command(
-                f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} -c -o {TestConfig.SHARED_OBJ_DIR / "brisc.o"} {TestConfig.RISCV_SOURCES / "brisc.cpp"}""",
-                TestConfig.TESTS_WORKING_DIR,
-            )
-
-        COVERAGE_DEPS = ""
-        if self.coverage_build == CoverageBuild.Yes:
-            COVERAGE_DEPS = f"{TestConfig.SHARED_OBJ_DIR}/coverage.o -lgcov"
-            # coverage.o : coverage.cpp
-            run_shell_command(
-                f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} -fno-strict-aliasing -c -o {TestConfig.SHARED_OBJ_DIR / "coverage.o"} {TestConfig.RISCV_SOURCES / "coverage.cpp"}""",
-                TestConfig.TESTS_WORKING_DIR,
-            )
-
-        def build_kernel_part_main(name: str):
-            run_shell_command(  # main_%.o
-                f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {TestConfig.SHARED_OBJ_DIR / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
-                TestConfig.TESTS_WORKING_DIR,
-            )
-
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            futures = [
-                executor.submit(build_kernel_part_main, name)
-                for name in TestConfig.KERNEL_COMPONENTS
-            ]
-            for fut in futures:
-                fut.result()
-
-        if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-            # brisc.elf : tmu-crt0.o brisc.o
-            run_shell_command(
-                f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {TestConfig.SHARED_OBJ_DIR / "brisc.o"} {COVERAGE_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / "brisc.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {TestConfig.SHARED_ELF_DIR / "brisc.elf"}""",
-                TestConfig.TESTS_WORKING_DIR,
-            )
-
-        # Letting other pytest workers know that shared artefacts are built
-        fcntl.flock(sync_file.fileno(), fcntl.LOCK_UN)
-        sync_file.close()
-
-    def infer_data_formats(self) -> list[str]:
-        header_content: list[str] = [
-            "// Data formats inferred by Python inference model"
-        ]
-
-        dest_acc = self.dest_acc
-        # Check if this is an outlier format combination that requires dest_acc to be enabled
-        # Automatically enable dest_acc for outlier combinations
-        if is_format_combination_outlier(
-            self.formats.input_format, self.formats.output_format, self.dest_acc
-        ):
-            dest_acc = DestAccumulation.Yes
-
-        # Dest accumulation
-        header_content.append(f"constexpr bool is_fp32_dest_acc_en = {dest_acc.value};")
+    # Math transpose faces
+    math_transpose_faces = test_config.get("math_transpose_faces", Transpose.No).value
+    header_content.append(
+        f"constexpr bool MATH_TRANSPOSE_FACES = {math_transpose_faces};"
+    )
+    # Stochastic Rounding
+    stochastic_rnd = test_config.get("stochastic_rnd", StochasticRounding.No)
+    header_content.append(
+        f"constexpr auto STOCHASTIC_RND = ckernel::{stochastic_rnd.value};"
+    )
 
         # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
         # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration

@@ -77,8 +77,6 @@ void run_kernel()
 #include "llk_math_eltwise_unary_sfpu.h"
 #include "sfpu_operations.h"
 
-const int iterations = 32;
-
 void run_kernel()
 {
     {
@@ -178,7 +176,7 @@ void run_kernel()
                     }
 
                     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
-                    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations>(SFPU_UNARY_OPERATION, formats.math);
+                    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS, FAST_MODE, STABLE_SORT>(SFPU_UNARY_OPERATION, formats.math);
                     _llk_math_eltwise_unary_sfpu_done_();
                 }
             }
@@ -203,7 +201,7 @@ void run_kernel()
                     // Start SFPU operation
                     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
 
-                    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations>(SFPU_UNARY_OPERATION, formats.math);
+                    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS, FAST_MODE, STABLE_SORT>(SFPU_UNARY_OPERATION, formats.math);
 
                     _llk_math_eltwise_unary_sfpu_done_();
                     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
