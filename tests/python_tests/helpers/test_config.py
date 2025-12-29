@@ -415,78 +415,78 @@ class TestConfig:
         if TestConfig.SHARED_ARTEFACTS_AVAILABLE:
             return
 
-        TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
-        sync_file = open("/tmp/tt-llk-build-worker.sync", "w")
+        done_marker = TestConfig.SHARED_OBJ_DIR / ".shared_complete"
 
-        # Determining which worker will build shared artefacts, others just wait until that's done
-        try:
-            fcntl.flock(sync_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            skip_shared_compilation = False
-        except BlockingIOError:
-            fcntl.flock(sync_file.fileno(), fcntl.LOCK_SH)
-            skip_shared_compilation = True
-
-        if skip_shared_compilation:
-            fcntl.flock(sync_file.fileno(), fcntl.LOCK_UN)
-            sync_file.close()
+        # Fast path: if shared artefacts are already built
+        if done_marker.exists():
+            TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
             return
 
-        # Kernel mains
-        kernel_trisc_flag = ""
-        if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-            kernel_trisc_flag = "-DCOMPILE_FOR_TRISC="
+        # Acquire lock for building shared artefacts
+        lock = FileLock("/tmp/tt-llk-build-shared.lock")
 
-        local_options_compile, local_memory_layout_ld, local_non_coverage = (
-            self.resolve_compile_options()
-        )
+        with lock:
+            # Check again inside lock
+            if done_marker.exists():
+                TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
+                return
 
-        # tmu-crt0.o : tmu-crt0.S
-        run_shell_command(
-            f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} -c -o {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {TestConfig.HELPERS / "tmu-crt0.S"}""",
-            TestConfig.TESTS_WORKING_DIR,
-        )
+            # Kernel mains
+            kernel_trisc_flag = ""
+            if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
+                kernel_trisc_flag = "-DCOMPILE_FOR_TRISC="
 
-        # brisc.o : brisc.cpp
+            local_options_compile, local_memory_layout_ld, local_non_coverage = (
+                self.resolve_compile_options()
+            )
 
-        if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
+            # tmu-crt0.o : tmu-crt0.S
             run_shell_command(
-                f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} -c -o {TestConfig.SHARED_OBJ_DIR / "brisc.o"} {TestConfig.RISCV_SOURCES / "brisc.cpp"}""",
+                f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} -c -o {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {TestConfig.HELPERS / "tmu-crt0.S"}""",
                 TestConfig.TESTS_WORKING_DIR,
             )
 
-        COVERAGE_DEPS = ""
-        if self.coverage_build == CoverageBuild.Yes:
-            COVERAGE_DEPS = f"{TestConfig.SHARED_OBJ_DIR}/coverage.o -lgcov"
-            # coverage.o : coverage.cpp
-            run_shell_command(
-                f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} -fno-strict-aliasing -c -o {TestConfig.SHARED_OBJ_DIR / "coverage.o"} {TestConfig.RISCV_SOURCES / "coverage.cpp"}""",
-                TestConfig.TESTS_WORKING_DIR,
-            )
+            # brisc.o : brisc.cpp
 
-        def build_kernel_part_main(name: str):
-            run_shell_command(  # main_%.o
-                f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {TestConfig.SHARED_OBJ_DIR / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
-                TestConfig.TESTS_WORKING_DIR,
-            )
+            if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
+                run_shell_command(
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} -c -o {TestConfig.SHARED_OBJ_DIR / "brisc.o"} {TestConfig.RISCV_SOURCES / "brisc.cpp"}""",
+                    TestConfig.TESTS_WORKING_DIR,
+                )
 
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            futures = [
-                executor.submit(build_kernel_part_main, name)
-                for name in TestConfig.KERNEL_COMPONENTS
-            ]
-            for fut in futures:
-                fut.result()
+            COVERAGE_DEPS = ""
+            if self.coverage_build == CoverageBuild.Yes:
+                COVERAGE_DEPS = f"{TestConfig.SHARED_OBJ_DIR}/coverage.o -lgcov"
+                # coverage.o : coverage.cpp
+                run_shell_command(
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} -fno-strict-aliasing -c -o {TestConfig.SHARED_OBJ_DIR / "coverage.o"} {TestConfig.RISCV_SOURCES / "coverage.cpp"}""",
+                    TestConfig.TESTS_WORKING_DIR,
+                )
 
-        if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-            # brisc.elf : tmu-crt0.o brisc.o
-            run_shell_command(
-                f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {TestConfig.SHARED_OBJ_DIR / "brisc.o"} {COVERAGE_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / "brisc.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {TestConfig.SHARED_ELF_DIR / "brisc.elf"}""",
-                TestConfig.TESTS_WORKING_DIR,
-            )
+            def build_kernel_part_main(name: str):
+                run_shell_command(  # main_%.o
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {TestConfig.SHARED_OBJ_DIR / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
+                    TestConfig.TESTS_WORKING_DIR,
+                )
 
-        # Letting other pytest workers know that shared artefacts are built
-        fcntl.flock(sync_file.fileno(), fcntl.LOCK_UN)
-        sync_file.close()
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                futures = [
+                    executor.submit(build_kernel_part_main, name)
+                    for name in TestConfig.KERNEL_COMPONENTS
+                ]
+                for fut in futures:
+                    fut.result()
+
+            if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
+                # brisc.elf : tmu-crt0.o brisc.o
+                run_shell_command(
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {TestConfig.SHARED_OBJ_DIR / "brisc.o"} {COVERAGE_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / "brisc.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {TestConfig.SHARED_ELF_DIR / "brisc.elf"}""",
+                    TestConfig.TESTS_WORKING_DIR,
+                )
+
+            # Mark shared artefacts as complete
+            done_marker.touch()
+            TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
 
     def infer_data_formats(self) -> list[str]:
         header_content: list[str] = [

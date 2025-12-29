@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import os
 import subprocess
 import sys
 from collections import namedtuple
@@ -261,7 +262,6 @@ def passed_test(
 
 def create_directories(dirs: list[Path]):
     """Create directories with file lock to handle race conditions in parallel execution."""
-    import os
 
     # If all directories exist, skip locking entirely
     if all(dir.exists() for dir in dirs):

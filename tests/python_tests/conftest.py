@@ -124,21 +124,14 @@ def pytest_configure(config):
         Path(os.environ["LLK_HOME"]), with_coverage, detailed_artefacts
     )
 
+    # Create directories from all processes - lock in create_directories handles race
+    TestConfig.create_build_directories()
+
     log_file = "pytest_errors.log"
     if not hasattr(config, "workerinput"):
-        # Main process: create directories before workers start
-        TestConfig.create_build_directories()
         check_hardware_headers()
         if os.path.exists(log_file):
             os.remove(log_file)
-    else:
-        # Worker: wait for directories to exist (main process creates them)
-        import time
-
-        for _ in range(50):  # Wait up to 5 seconds
-            if TestConfig.ARTEFACTS_DIR.exists():
-                break
-            time.sleep(0.1)
 
     # config.option.tbstyle = 'line'
 
