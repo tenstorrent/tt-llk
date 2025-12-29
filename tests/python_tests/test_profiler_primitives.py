@@ -45,6 +45,20 @@ def test_profiler_primitives(workers_tensix_coordinates):
 
     runtime = configuration.get_data(workers_tensix_coordinates)
 
+    # Get metadata to look up marker IDs (stable across build environments)
+    metadata = ProfilerConfig._get_meta(
+        configuration.test_name, configuration.variant_id
+    )
+    expected_zone_id = ProfilerConfig._get_marker_id(
+        metadata, "TEST_ZONE", "profiler_primitives_test.cpp", 17
+    )
+    expected_timestamp_id = ProfilerConfig._get_marker_id(
+        metadata, "TEST_TIMESTAMP", "profiler_primitives_test.cpp", 26
+    )
+    expected_timestamp_data_id = ProfilerConfig._get_marker_id(
+        metadata, "TEST_TIMESTAMP_DATA", "profiler_primitives_test.cpp", 35
+    )
+
     # ZONE_SCOPED - Get first ZONE type entry from UNPACK thread
     zones = runtime.unpack().zones().marker("TEST_ZONE").frame()
     assert len(zones) > 0, "Expected at least one TEST_ZONE entry"
@@ -55,7 +69,7 @@ def test_profiler_primitives(workers_tensix_coordinates):
         "TEST_ZONE",
         "profiler_primitives_test.cpp",
         17,
-        48187,
+        expected_zone_id,
     )
     assert (
         zone["timestamp"] > 0
@@ -72,7 +86,7 @@ def test_profiler_primitives(workers_tensix_coordinates):
         "TEST_TIMESTAMP",
         "profiler_primitives_test.cpp",
         26,
-        65499,
+        expected_timestamp_id,
     )
     assert (
         timestamp["timestamp"] > 0
@@ -94,7 +108,7 @@ def test_profiler_primitives(workers_tensix_coordinates):
         "TEST_TIMESTAMP_DATA",
         "profiler_primitives_test.cpp",
         35,
-        62735,
+        expected_timestamp_data_id,
     )
     assert (
         timestamp_data["timestamp"] > 0
