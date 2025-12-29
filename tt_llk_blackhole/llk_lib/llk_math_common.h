@@ -16,7 +16,6 @@ using namespace ckernel::math;
 
 inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)
 {
-    // LLK sanitizer hooks
     llk_san::math_hw_configure(srca_data_format, srcb_data_format);
 
     // Legacy mode for ZEROACC
@@ -120,6 +119,8 @@ inline void _llk_math_debug_dump_seek_(std::uint8_t offset)
 template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_math_reconfig_data_format_srca_(const std::uint32_t srca_data_format)
 {
+    llk_san::math_hw_configure<true>(srca_data_format, llk_san::IGNORE);
+
     if constexpr (to_from_int8)
     {
         static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
@@ -132,6 +133,8 @@ inline void _llk_math_reconfig_data_format_srca_(const std::uint32_t srca_data_f
 template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_math_reconfig_data_format_srcb_(const std::uint32_t srcb_data_format)
 {
+    llk_san::math_hw_configure<true>(llk_san::IGNORE, srcb_data_format);
+
     if constexpr (to_from_int8)
     {
         static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
@@ -144,6 +147,8 @@ inline void _llk_math_reconfig_data_format_srcb_(const std::uint32_t srcb_data_f
 template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_math_reconfig_data_format_(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)
 {
+    llk_san::math_hw_configure<true>(srca_data_format, srcb_data_format);
+
     if constexpr (to_from_int8)
     {
         static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");

@@ -22,6 +22,17 @@ inline void eltwise_unary_configure_addrmod();
 template <DataCopyType type, DstSync Dst, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
 inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format)
 {
+    if constexpr (type == A2D)
+    {
+        llk_san::math_operand_check(dst_format, llk_san::IGNORE);
+    }
+    else
+    {
+        llk_san::math_operand_check(llk_san::IGNORE, dst_format);
+    }
+    llk_san::operation_check<llk_san::operation_t::EltwiseUnaryDatacopy>(type, src_b_bcast_type, dst_format);
+
+
     if (unpack_to_dest && is_32bit_input(src_format, dst_format))
     {
         math_unpack_to_dest_math_ready();
@@ -203,6 +214,17 @@ template <DataCopyType type, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast
 inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces = 4, const std::uint32_t dst_format = 255)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+
+    if constexpr (type == A2D)
+    {
+        llk_san::math_operand_check(dst_format, llk_san::IGNORE);
+    }
+    else
+    {
+        llk_san::math_operand_check(llk_san::IGNORE, dst_format);
+    }
+    llk_san::operation_save<llk_san::operation_t::EltwiseUnaryDatacopy>(type, src_b_bcast_type, dst_format);
+
     eltwise_unary_configure_addrmod<type, src_b_bcast_type>();
 
     if constexpr (type == A2D)
