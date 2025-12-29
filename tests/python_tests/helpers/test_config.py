@@ -124,6 +124,7 @@ class TestConfig:
     NON_COVERAGE_OPTIONS_COMPILE: ClassVar[str] = None
 
     SHARED_ARTEFACTS_AVAILABLE: ClassVar[bool] = False
+    PROFILER_SHARED_ARTEFACTS_AVAILABLE: ClassVar[bool] = False
     KERNEL_COMPONENTS: ClassVar[list[str]] = ["unpack", "math", "pack"]
 
     # === Runtime static variables, for keeping context of multiple test runs
@@ -193,6 +194,10 @@ class TestConfig:
         TestConfig.SHARED_DIR = TestConfig.ARTEFACTS_DIR / "shared"
         TestConfig.SHARED_OBJ_DIR = TestConfig.SHARED_DIR / "obj"
         TestConfig.SHARED_ELF_DIR = TestConfig.SHARED_DIR / "elf"
+        # Profiler builds need separate shared artefacts (trisc.cpp compiles differently with -DLLK_PROFILER)
+        TestConfig.PROFILER_SHARED_DIR = TestConfig.ARTEFACTS_DIR / "shared-profiler"
+        TestConfig.PROFILER_SHARED_OBJ_DIR = TestConfig.PROFILER_SHARED_DIR / "obj"
+        TestConfig.PROFILER_SHARED_ELF_DIR = TestConfig.PROFILER_SHARED_DIR / "elf"
         TestConfig.COVERAGE_INFO_DIR = TestConfig.ARTEFACTS_DIR / "coverage_info"
         TestConfig.PROFILER_META = TestConfig.ARTEFACTS_DIR / "profiler_meta"
         TestConfig.SYNC_DIR = TestConfig.ARTEFACTS_DIR / "sync_primitives"
@@ -210,6 +215,9 @@ class TestConfig:
                 TestConfig.SHARED_DIR,
                 TestConfig.SHARED_OBJ_DIR,
                 TestConfig.SHARED_ELF_DIR,
+                TestConfig.PROFILER_SHARED_DIR,
+                TestConfig.PROFILER_SHARED_OBJ_DIR,
+                TestConfig.PROFILER_SHARED_ELF_DIR,
                 TestConfig.COVERAGE_INFO_DIR,
             ]
         )
@@ -412,23 +420,43 @@ class TestConfig:
         return (OPTIONS_COMPILE, MEMORY_LAYOUT_LD_SCRIPT, NON_COVERAGE_OPTIONS_COMPILE)
 
     def build_shared_artefacts(self):
-        if TestConfig.SHARED_ARTEFACTS_AVAILABLE:
-            return
+        # Profiler builds require different shared artefacts (trisc.cpp compiles with -DLLK_PROFILER)
+        is_profiler = self.profiler_build == ProfilerBuild.Yes
 
-        done_marker = TestConfig.SHARED_OBJ_DIR / ".shared_complete"
+        # Select appropriate directories, flags, and lock based on build type
+        if is_profiler:
+            if TestConfig.PROFILER_SHARED_ARTEFACTS_AVAILABLE:
+                return
+            shared_obj_dir = TestConfig.PROFILER_SHARED_OBJ_DIR
+            shared_elf_dir = TestConfig.PROFILER_SHARED_ELF_DIR
+            lock_file = "/tmp/tt-llk-build-shared-profiler.lock"
+        else:
+            if TestConfig.SHARED_ARTEFACTS_AVAILABLE:
+                return
+            shared_obj_dir = TestConfig.SHARED_OBJ_DIR
+            shared_elf_dir = TestConfig.SHARED_ELF_DIR
+            lock_file = "/tmp/tt-llk-build-shared.lock"
+
+        done_marker = shared_obj_dir / ".shared_complete"
 
         # Fast path: if shared artefacts are already built
         if done_marker.exists():
-            TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
+            if is_profiler:
+                TestConfig.PROFILER_SHARED_ARTEFACTS_AVAILABLE = True
+            else:
+                TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
             return
 
         # Acquire lock for building shared artefacts
-        lock = FileLock("/tmp/tt-llk-build-shared.lock")
+        lock = FileLock(lock_file)
 
         with lock:
             # Check again inside lock
             if done_marker.exists():
-                TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
+                if is_profiler:
+                    TestConfig.PROFILER_SHARED_ARTEFACTS_AVAILABLE = True
+                else:
+                    TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
                 return
 
             # Kernel mains
@@ -442,7 +470,7 @@ class TestConfig:
 
             # tmu-crt0.o : tmu-crt0.S
             run_shell_command(
-                f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} -c -o {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {TestConfig.HELPERS / "tmu-crt0.S"}""",
+                f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} -c -o {shared_obj_dir / "tmu-crt0.o"} {TestConfig.HELPERS / "tmu-crt0.S"}""",
                 TestConfig.TESTS_WORKING_DIR,
             )
 
@@ -450,22 +478,22 @@ class TestConfig:
 
             if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
                 run_shell_command(
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} -c -o {TestConfig.SHARED_OBJ_DIR / "brisc.o"} {TestConfig.RISCV_SOURCES / "brisc.cpp"}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} -c -o {shared_obj_dir / "brisc.o"} {TestConfig.RISCV_SOURCES / "brisc.cpp"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
             COVERAGE_DEPS = ""
             if self.coverage_build == CoverageBuild.Yes:
-                COVERAGE_DEPS = f"{TestConfig.SHARED_OBJ_DIR}/coverage.o -lgcov"
+                COVERAGE_DEPS = f"{shared_obj_dir}/coverage.o -lgcov"
                 # coverage.o : coverage.cpp
                 run_shell_command(
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} -fno-strict-aliasing -c -o {TestConfig.SHARED_OBJ_DIR / "coverage.o"} {TestConfig.RISCV_SOURCES / "coverage.cpp"}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} -fno-strict-aliasing -c -o {shared_obj_dir / "coverage.o"} {TestConfig.RISCV_SOURCES / "coverage.cpp"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
             def build_kernel_part_main(name: str):
                 run_shell_command(  # main_%.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {TestConfig.SHARED_OBJ_DIR / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {shared_obj_dir / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
@@ -480,13 +508,16 @@ class TestConfig:
             if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
                 # brisc.elf : tmu-crt0.o brisc.o
                 run_shell_command(
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {TestConfig.SHARED_OBJ_DIR / "brisc.o"} {COVERAGE_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / "brisc.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {TestConfig.SHARED_ELF_DIR / "brisc.elf"}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {shared_obj_dir / "tmu-crt0.o"} {shared_obj_dir / "brisc.o"} {COVERAGE_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / "brisc.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {shared_elf_dir / "brisc.elf"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
             # Mark shared artefacts as complete
             done_marker.touch()
-            TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
+            if is_profiler:
+                TestConfig.PROFILER_SHARED_ARTEFACTS_AVAILABLE = True
+            else:
+                TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
 
     def infer_data_formats(self) -> list[str]:
         header_content: list[str] = [
@@ -700,11 +731,18 @@ class TestConfig:
             if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
                 kernel_trisc_flag = "-DCOMPILE_FOR_TRISC="
 
+            # Use correct shared artefact directory based on profiler build
+            shared_obj_dir = (
+                TestConfig.PROFILER_SHARED_OBJ_DIR
+                if self.profiler_build == ProfilerBuild.Yes
+                else TestConfig.SHARED_OBJ_DIR
+            )
+
             SFPI_DEPS = ""
             COVERAGE_DEPS = ""
             if self.coverage_build == CoverageBuild.Yes:
                 SFPI_DEPS = "-lgcov"
-                COVERAGE_DEPS = TestConfig.SHARED_OBJ_DIR / "coverage.o"
+                COVERAGE_DEPS = shared_obj_dir / "coverage.o"
 
             def build_kernel_part(name: str):
                 run_shell_command(  # kernel_%.o
@@ -713,7 +751,7 @@ class TestConfig:
                 )
 
                 run_shell_command(  # %.elf : main_%.o kernel_%.o [coverage.o] tmu-crt0.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {TestConfig.SHARED_OBJ_DIR / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {SFPI_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"{name}.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {shared_obj_dir / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {shared_obj_dir / "tmu-crt0.o"} {SFPI_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"{name}.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
@@ -768,6 +806,7 @@ class TestConfig:
             fd.write(coverage_stream)
 
     BRISC_ELF_LOADED: ClassVar[bool] = False
+    PROFILER_BRISC_ELF_LOADED: ClassVar[bool] = False
 
     def run_elf_files(self, location="0,0") -> list:
         boot_mode = (
@@ -828,15 +867,30 @@ class TestConfig:
 
         match boot_mode:
             case BootMode.BRISC:
-                if not TestConfig.BRISC_ELF_LOADED:
-                    TestConfig.BRISC_ELF_LOADED = True
-                    load_elf(
-                        elf_file=str(
-                            (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
-                        ),
-                        location=location,
-                        risc_name="brisc",
-                    )
+                # Use correct shared ELF directory and loading flag based on profiler build
+                is_profiler = self.profiler_build == ProfilerBuild.Yes
+                if is_profiler:
+                    if not TestConfig.PROFILER_BRISC_ELF_LOADED:
+                        TestConfig.PROFILER_BRISC_ELF_LOADED = True
+                        load_elf(
+                            elf_file=str(
+                                (
+                                    TestConfig.PROFILER_SHARED_ELF_DIR / "brisc.elf"
+                                ).absolute()
+                            ),
+                            location=location,
+                            risc_name="brisc",
+                        )
+                else:
+                    if not TestConfig.BRISC_ELF_LOADED:
+                        TestConfig.BRISC_ELF_LOADED = True
+                        load_elf(
+                            elf_file=str(
+                                (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
+                            ),
+                            location=location,
+                            risc_name="brisc",
+                        )
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
             case BootMode.TRISC:
                 set_tensix_soft_reset(

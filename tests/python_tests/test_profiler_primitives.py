@@ -3,13 +3,11 @@
 
 
 import pandas as pd
-import pytest
-from conftest import skip_for_blackhole, skip_for_coverage, skip_for_wormhole
+from conftest import skip_for_coverage
 from helpers.format_config import DataFormat
 from helpers.param_config import input_output_formats
 from helpers.profiler import ProfilerConfig
 from helpers.stimuli_config import StimuliConfig
-from helpers.test_config import TestConfig, TestMode
 
 
 def assert_marker(
@@ -31,12 +29,7 @@ def assert_marker(
 
 # TODO Skip for all until hash bug with new infra is resolved
 @skip_for_coverage
-@skip_for_blackhole
-@skip_for_wormhole
 def test_profiler_primitives(workers_tensix_coordinates):
-
-    if TestConfig.MODE == TestMode.PRODUCE:
-        pytest.skip()
 
     configuration = ProfilerConfig(
         "sources/profiler_primitives_test.cpp",
@@ -62,7 +55,7 @@ def test_profiler_primitives(workers_tensix_coordinates):
         "TEST_ZONE",
         "profiler_primitives_test.cpp",
         17,
-        36872,
+        48187,
     )
     assert (
         zone["timestamp"] > 0
@@ -79,7 +72,7 @@ def test_profiler_primitives(workers_tensix_coordinates):
         "TEST_TIMESTAMP",
         "profiler_primitives_test.cpp",
         26,
-        43956,
+        65499,
     )
     assert (
         timestamp["timestamp"] > 0
@@ -101,7 +94,7 @@ def test_profiler_primitives(workers_tensix_coordinates):
         "TEST_TIMESTAMP_DATA",
         "profiler_primitives_test.cpp",
         35,
-        31808,
+        62735,
     )
     assert (
         timestamp_data["timestamp"] > 0
