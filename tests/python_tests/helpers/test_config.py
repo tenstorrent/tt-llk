@@ -664,87 +664,85 @@ class TestConfig:
 
         return "\n".join(header_content)
 
-    def should_skip_building(self, variant_dir: Path) -> bool:
-        """Check if variant should be built. Uses lock to prevent race conditions."""
-        lock_file = TestConfig.SYNC_DIR / f"{self.variant_id}.lock"
-        done_marker = variant_dir / ".build_complete"
-        lock = FileLock(lock_file)
-
-        with lock:
-            if done_marker.exists():
-                return True  # Build is complete
-            # Either dir doesn't exist, or build is incomplete - we will build
-            variant_dir.mkdir(exist_ok=True, parents=True)
-            return False
-
     def build_elfs(self):
         self.build_shared_artefacts()
 
         VARIANT_DIR = TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id
+        done_marker = VARIANT_DIR / ".build_complete"
 
-        if self.should_skip_building(VARIANT_DIR):
+        # Fast path: if build is already complete, skip entirely
+        if done_marker.exists():
             return
 
-        VARIANT_OBJ_DIR = VARIANT_DIR / "obj"
-        VARIANT_ELF_DIR = VARIANT_DIR / "elf"
+        # Acquire lock for this variant to prevent concurrent builds
+        lock_file = TestConfig.SYNC_DIR / f"{self.variant_id}.lock"
+        lock = FileLock(lock_file)
 
-        create_directories([VARIANT_OBJ_DIR, VARIANT_ELF_DIR])
+        with lock:
+            # Check again inside lock in case another process just finished
+            if done_marker.exists():
+                return
 
-        local_options_compile, local_memory_layout_ld, _ = (
-            self.resolve_compile_options()
-        )
+            VARIANT_OBJ_DIR = VARIANT_DIR / "obj"
+            VARIANT_ELF_DIR = VARIANT_DIR / "elf"
 
-        header_content = self.generate_build_header()
-        with open(VARIANT_DIR / "build.h", "w") as f:
-            f.write(header_content)
+            create_directories([VARIANT_OBJ_DIR, VARIANT_ELF_DIR])
 
-        kernel_trisc_flag = ""
-        if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-            kernel_trisc_flag = "-DCOMPILE_FOR_TRISC="
-
-        SFPI_DEPS = ""
-        COVERAGE_DEPS = ""
-        if self.coverage_build == CoverageBuild.Yes:
-            SFPI_DEPS = "-lgcov"
-            COVERAGE_DEPS = TestConfig.SHARED_OBJ_DIR / "coverage.o"
-
-        def build_kernel_part(name: str):
-            run_shell_command(  # kernel_%.o
-                f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {TestConfig.TESTS_WORKING_DIR / self.test_name}""",
-                TestConfig.TESTS_WORKING_DIR,
+            local_options_compile, local_memory_layout_ld, _ = (
+                self.resolve_compile_options()
             )
 
-            run_shell_command(  # %.elf : main_%.o kernel_%.o [coverage.o] tmu-crt0.o
-                f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {TestConfig.SHARED_OBJ_DIR / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {SFPI_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"{name}.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
-                TestConfig.TESTS_WORKING_DIR,
-            )
+            header_content = self.generate_build_header()
+            with open(VARIANT_DIR / "build.h", "w") as f:
+                f.write(header_content)
 
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            futures = [
-                executor.submit(build_kernel_part, name)
-                for name in TestConfig.KERNEL_COMPONENTS
-            ]
-            for fut in futures:
-                fut.result()
+            kernel_trisc_flag = ""
+            if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
+                kernel_trisc_flag = "-DCOMPILE_FOR_TRISC="
 
-        if self.profiler_build == ProfilerBuild.Yes:
-            # Extract profiler metadata
-            PROFILER_VARIANT_META_DIR = Path(
-                TestConfig.PROFILER_META / self.test_name / self.variant_id
-            )
+            SFPI_DEPS = ""
+            COVERAGE_DEPS = ""
+            if self.coverage_build == CoverageBuild.Yes:
+                SFPI_DEPS = "-lgcov"
+                COVERAGE_DEPS = TestConfig.SHARED_OBJ_DIR / "coverage.o"
 
-            PROFILER_VARIANT_META_DIR.mkdir(exist_ok=True, parents=True)
-
-            for component in TestConfig.KERNEL_COMPONENTS:
-                elf_path = VARIANT_ELF_DIR / f"{component}.elf"
-                meta_bin_path = PROFILER_VARIANT_META_DIR / f"{component}.meta.bin"
-                run_shell_command(
-                    f"{TestConfig.OBJCOPY} -O binary -j .profiler_meta {elf_path} {meta_bin_path}",
+            def build_kernel_part(name: str):
+                run_shell_command(  # kernel_%.o
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {TestConfig.TESTS_WORKING_DIR / self.test_name}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
-        # Mark build as complete so other processes know they can use the artefacts
-        (VARIANT_DIR / ".build_complete").touch()
+                run_shell_command(  # %.elf : main_%.o kernel_%.o [coverage.o] tmu-crt0.o
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {TestConfig.SHARED_OBJ_DIR / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {SFPI_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"{name}.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
+                    TestConfig.TESTS_WORKING_DIR,
+                )
+
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                futures = [
+                    executor.submit(build_kernel_part, name)
+                    for name in TestConfig.KERNEL_COMPONENTS
+                ]
+                for fut in futures:
+                    fut.result()
+
+            if self.profiler_build == ProfilerBuild.Yes:
+                # Extract profiler metadata
+                PROFILER_VARIANT_META_DIR = Path(
+                    TestConfig.PROFILER_META / self.test_name / self.variant_id
+                )
+
+                PROFILER_VARIANT_META_DIR.mkdir(exist_ok=True, parents=True)
+
+                for component in TestConfig.KERNEL_COMPONENTS:
+                    elf_path = VARIANT_ELF_DIR / f"{component}.elf"
+                    meta_bin_path = PROFILER_VARIANT_META_DIR / f"{component}.meta.bin"
+                    run_shell_command(
+                        f"{TestConfig.OBJCOPY} -O binary -j .profiler_meta {elf_path} {meta_bin_path}",
+                        TestConfig.TESTS_WORKING_DIR,
+                    )
+
+            # Mark build as complete so other processes know they can use the artefacts
+            done_marker.touch()
 
     def read_coverage_data_from_device(self, location="0,0"):
         VARIANT_DIR = TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id
