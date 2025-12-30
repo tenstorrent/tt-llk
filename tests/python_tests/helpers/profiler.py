@@ -522,7 +522,7 @@ class ProfilerConfig(TestConfig):
         return ProfilerConfig._parse_buffers(buffer_data, meta)
 
     def generate_variant_hash(self):
-        NON_COMPILATION_ARGUMETNS = [
+        NON_COMPILATION_ARGUMENTS = [
             "variant_stimuli",
             "run_configs",
             "variant_id",
@@ -533,7 +533,7 @@ class ProfilerConfig(TestConfig):
         temp_str = [
             str(value)
             for field_name, value in self.__dict__.items()
-            if field_name not in NON_COMPILATION_ARGUMETNS
+            if field_name not in NON_COMPILATION_ARGUMENTS
         ]
 
         self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
