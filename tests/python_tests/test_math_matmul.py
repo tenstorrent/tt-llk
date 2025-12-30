@@ -162,16 +162,16 @@ def test_math_matmul(
     )
 
     configuration = TestConfig(
-        "sources/math_matmul_test.cpp",
-        formats,
-        templates=[
+        test_name="sources/math_matmul_test.cpp",
+        formats=formats,
+        template_parameters=[
             INPUT_DIMENSIONS(input_A_dimensions, input_B_dimensions),
             STOCHASTIC_ROUNDING(matmul_config.stochastic_rnd),
             MATH_FIDELITY(math_fidelity),
             THROTTLE_LEVEL(throttle),
             DEST_SYNC(matmul_config.dest_sync),
         ],
-        runtimes=[
+        runtime_parameters=[
             TILE_COUNT(matmul_config.tile_dimensions.tile_cnt),
             NUM_FACES(num_faces, num_faces_A, num_faces_B),
             UNPACK_TRANS_FACES(transpose),
@@ -196,11 +196,11 @@ def test_math_matmul(
             DEST_INDEX(matmul_config.dst_index),
         ],
         variant_stimuli=StimuliConfig(
-            tilized_A.flatten(),
-            formats.input_format,
-            tilized_B.flatten(),
-            formats.input_format,
-            formats.output_format,
+            buffer_A=tilized_A.flatten(),
+            stimuli_A_format=formats.input_format,
+            buffer_B=tilized_B.flatten(),
+            stimuli_B_format=formats.input_format,
+            stimuli_res_format=formats.output_format,
             tile_count_A=matmul_config.tile_dimensions.tile_cnt_A,
             tile_count_B=matmul_config.tile_dimensions.tile_cnt_B,
             tile_count_res=matmul_config.tile_dimensions.tile_cnt,

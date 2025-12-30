@@ -70,11 +70,11 @@ def test_fast_tilize_perf(
     formats = InputOutputFormat(input_format, output_format)
 
     configuration = ProfilerConfig(
-        "sources/fast_tilize_test.cpp",
-        formats,
+        test_name="sources/fast_tilize_test.cpp",
+        formats=formats,
         run_types=[PerfRunType.L1_TO_L1],
-        templates=[INPUT_DIMENSIONS(input_dimensions, input_dimensions)],
-        runtimes=[TILE_COUNT(tile_count), LOOP_FACTOR(1024)],
+        template_parameters=[INPUT_DIMENSIONS(input_dimensions, input_dimensions)],
+        runtime_parameters=[TILE_COUNT(tile_count), LOOP_FACTOR(1024)],
         variant_stimuli=StimuliConfig(
             None,
             formats.input_format,

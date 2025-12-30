@@ -116,26 +116,26 @@ def test_eltwise_binary_transpose_bcast(
     )
 
     configuration = TestConfig(
-        "sources/eltwise_binary_transpose_bcast_test.cpp",
-        formats,
-        templates=[
+        test_name="sources/eltwise_binary_transpose_bcast_test.cpp",
+        formats=formats,
+        template_parameters=[
             MATH_FIDELITY(math_fidelity),
             BROADCAST_TYPE(broadcast_type),
             MATH_OP(mathop=MathOperation.Elwsub),
             DEST_SYNC(),
         ],
-        runtimes=[
+        runtime_parameters=[
             UNPACK_TRANS_FACES(transpose_srca),
             UNPACK_TRANS_WITHING_FACE(transpose_srca),
             TILE_COUNT(tile_cnt_A),
             NUM_FACES(4),
         ],
         variant_stimuli=StimuliConfig(
-            src_A_tilized,
-            formats.input_format,
-            src_B_tilized,
-            formats.input_format,
-            formats.output_format,
+            buffer_A=src_A_tilized,
+            stimuli_A_format=formats.input_format,
+            buffer_B=src_B_tilized,
+            stimuli_B_format=formats.input_format,
+            stimuli_res_format=formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
             tile_count_res=tile_cnt_A,

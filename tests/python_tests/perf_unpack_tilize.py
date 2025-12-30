@@ -59,16 +59,16 @@ def _perf_unpack_tilize(
     dimensions = [rt_dim * 32, ct_dim * 32]
 
     configuration = ProfilerConfig(
-        "sources/unpack_tilize_perf.cpp",
-        formats,
+        test_name="sources/unpack_tilize_perf.cpp",
+        formats=formats,
         run_types=[
             PerfRunType.L1_TO_L1,
             PerfRunType.UNPACK_ISOLATE,
             PerfRunType.PACK_ISOLATE,
             PerfRunType.L1_CONGESTION,
         ],
-        templates=[INPUT_DIMENSIONS(dimensions, dimensions)],
-        runtimes=[TILE_COUNT(tile_count), LOOP_FACTOR(4)],
+        template_parameters=[INPUT_DIMENSIONS(dimensions, dimensions)],
+        runtime_parameters=[TILE_COUNT(tile_count), LOOP_FACTOR(4)],
         variant_stimuli=StimuliConfig(
             None,
             formats.input_format,

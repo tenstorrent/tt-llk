@@ -103,9 +103,9 @@ def test_pack_untilize_quasar(formats_dest_acc_dimensions):
 
     num_faces = 4
     configuration = TestConfig(
-        "sources/quasar/pack_untilize_quasar_test.cpp",
-        formats,
-        templates=[
+        test_name="sources/quasar/pack_untilize_quasar_test.cpp",
+        formats=formats,
+        template_parameters=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             IMPLIED_MATH_FORMAT(ImpliedMathFormat.Yes),
             DEST_SYNC(),
@@ -114,13 +114,13 @@ def test_pack_untilize_quasar(formats_dest_acc_dimensions):
             NUM_FACES(num_faces),
             TILE_COUNT(tile_cnt_A),
         ],
-        runtimes=[],
+        runtime_parameters=[],
         variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
+            buffer_A=src_A,
+            stimuli_A_format=formats.input_format,
+            buffer_B=src_B,
+            stimuli_B_format=formats.input_format,
+            stimuli_res_format=formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_A,
             tile_count_res=tile_cnt_A,

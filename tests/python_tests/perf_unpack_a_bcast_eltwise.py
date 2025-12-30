@@ -57,17 +57,17 @@ def test_perf_col_tile_sdpa(
     tile_count = input_dimensions[0] * input_dimensions[1] // 1024
 
     configuration = ProfilerConfig(
-        "sources/unpack_a_bcast_eltwise_perf.cpp",
-        formats,
+        test_name="sources/unpack_a_bcast_eltwise_perf.cpp",
+        formats=formats,
         # For now only L1_TO_L1 and PACK_ISOLATE are supported because of custom usage of dvalid signals
         run_types=[PerfRunType.L1_TO_L1, PerfRunType.PACK_ISOLATE],
-        templates=[
+        template_parameters=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_FIDELITY(math_fidelity),
             MATH_OP(mathop=mathop),
             DEST_SYNC(),
         ],
-        runtimes=[TILE_COUNT(tile_count), SRCA_REUSE_COUNT(srca_reuse_count)],
+        runtime_parameters=[TILE_COUNT(tile_count), SRCA_REUSE_COUNT(srca_reuse_count)],
         variant_stimuli=StimuliConfig(
             None,
             formats.input_format,

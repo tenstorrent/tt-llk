@@ -109,19 +109,23 @@ def test_unary_datacopy(
     )
 
     configuration = TestConfig(
-        "sources/eltwise_unary_datacopy_test.cpp",
-        formats,
-        templates=[
+        test_name="sources/eltwise_unary_datacopy_test.cpp",
+        formats=formats,
+        template_parameters=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             TILIZE(tilize),
         ],
-        runtimes=[DEST_INDEX(dest_index), TILE_COUNT(tile_cnt_A), NUM_FACES(num_faces)],
+        runtime_parameters=[
+            DEST_INDEX(dest_index),
+            TILE_COUNT(tile_cnt_A),
+            NUM_FACES(num_faces),
+        ],
         variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
+            buffer_A=src_A,
+            stimuli_A_format=formats.input_format,
+            buffer_B=src_B,
+            stimuli_B_format=formats.input_format,
+            stimuli_res_format=formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
             tile_count_res=tile_cnt_A,

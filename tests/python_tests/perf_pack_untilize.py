@@ -68,15 +68,15 @@ def test_perf_pack_untilize(
     dimensions = [full_rt_dim * 32, full_ct_dim * 32]
 
     configuration = ProfilerConfig(
-        "sources/pack_untilize_perf.cpp",
-        formats,
+        test_name="sources/pack_untilize_perf.cpp",
+        formats=formats,
         run_types=[
             PerfRunType.L1_TO_L1,
             PerfRunType.PACK_ISOLATE,
             PerfRunType.L1_CONGESTION,
         ],
-        templates=[INPUT_DIMENSIONS(dimensions, dimensions, block_ct_dim)],
-        runtimes=[TILE_COUNT(tile_count), LOOP_FACTOR()],
+        template_parameters=[INPUT_DIMENSIONS(dimensions, dimensions, block_ct_dim)],
+        runtime_parameters=[TILE_COUNT(tile_count), LOOP_FACTOR()],
         variant_stimuli=StimuliConfig(
             None,
             formats.input_format,

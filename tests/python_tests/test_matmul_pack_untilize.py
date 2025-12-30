@@ -62,13 +62,13 @@ def test_matmul_pack_untilize(
     )
 
     configuration = TestConfig(
-        "sources/matmul_pack_untilize_test.cpp",
-        formats,
-        templates=[
+        test_name="sources/matmul_pack_untilize_test.cpp",
+        formats=formats,
+        template_parameters=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_FIDELITY(math_fidelity),
         ],
-        runtimes=[],
+        runtime_parameters=[],
         variant_stimuli=StimuliConfig(
             tilize(src_A, formats.input_format),
             formats.input_format,

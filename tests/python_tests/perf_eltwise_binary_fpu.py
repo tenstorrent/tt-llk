@@ -47,8 +47,8 @@ def test_perf_eltwise_binary_fpu(
         pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
 
     configuration = ProfilerConfig(
-        "sources/eltwise_binary_fpu_perf.cpp",
-        formats,
+        test_name="sources/eltwise_binary_fpu_perf.cpp",
+        formats=formats,
         run_types=[
             PerfRunType.L1_TO_L1,
             PerfRunType.UNPACK_ISOLATE,
@@ -56,8 +56,8 @@ def test_perf_eltwise_binary_fpu(
             PerfRunType.PACK_ISOLATE,
             PerfRunType.L1_CONGESTION,
         ],
-        templates=[MATH_FIDELITY(math_fidelity), MATH_OP(mathop=mathop)],
-        runtimes=[TILE_COUNT(tile_count)],
+        template_parameters=[MATH_FIDELITY(math_fidelity), MATH_OP(mathop=mathop)],
+        runtime_parameters=[TILE_COUNT(tile_count)],
         variant_stimuli=StimuliConfig(
             None,
             formats.input_format,

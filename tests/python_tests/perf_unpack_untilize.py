@@ -34,11 +34,11 @@ def test_perf_unpack_untilize(
     input_dimensions = [full_rt_dim * 32, full_ct_dim * 32]
 
     configuration = ProfilerConfig(
-        "sources/unpack_untilize_perf.cpp",
-        formats,
-        [PerfRunType.L1_TO_L1],
-        templates=[INPUT_DIMENSIONS(input_dimensions, input_dimensions)],
-        runtimes=[TILE_COUNT(tile_count), LOOP_FACTOR()],
+        test_name="sources/unpack_untilize_perf.cpp",
+        formats=formats,
+        run_types=[PerfRunType.L1_TO_L1],
+        template_parameters=[INPUT_DIMENSIONS(input_dimensions, input_dimensions)],
+        runtime_parameters=[TILE_COUNT(tile_count), LOOP_FACTOR()],
         variant_stimuli=StimuliConfig(
             None,
             formats.input_format,

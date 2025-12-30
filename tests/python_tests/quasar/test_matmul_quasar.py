@@ -150,9 +150,9 @@ def test_matmul(
     num_faces = 4
 
     configuration = TestConfig(
-        "sources/quasar/matmul_quasar_test.cpp",
-        format,
-        templates=[
+        test_name="sources/quasar/matmul_quasar_test.cpp",
+        formats=format,
+        template_parameters=[
             MATH_FIDELITY(math_fidelity),
             INPUT_DIMENSIONS(input_A_dimensions, input_B_dimensions),
             IMPLIED_MATH_FORMAT(implied_math_format),
@@ -162,13 +162,13 @@ def test_matmul(
             TILE_COUNT(matmul_dims.output_tile_cnt),
             NUM_FACES(num_faces, num_faces, num_faces),
         ],
-        runtimes=[],
+        runtime_parameters=[],
         variant_stimuli=StimuliConfig(
-            tilized_A.flatten(),
-            format.input_format,
-            tilized_B.flatten(),
-            format.input_format,
-            format.output_format,
+            buffer_A=tilized_A.flatten(),
+            stimuli_A_format=format.input_format,
+            buffer_B=tilized_B.flatten(),
+            stimuli_B_format=format.input_format,
+            stimuli_res_format=format.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_A,
             tile_count_res=tile_cnt_A,

@@ -94,16 +94,16 @@ def test_perf_matmul(perf_report, combos, math_fidelity):
     variant_tile_count = dims.rt_dim * dims.ct_dim * dims.kt_dim
 
     configuration = ProfilerConfig(
-        "sources/matmul_perf.cpp",
-        formats,
-        run_types,
-        templates=[
+        test_name="sources/matmul_perf.cpp",
+        formats=formats,
+        run_types=run_types,
+        template_parameters=[
             INPUT_DIMENSIONS(matrix_a, matrix_b),
             MATH_FIDELITY(math_fidelity),
             DEST_SYNC(),
             THROTTLE_LEVEL(),
         ],
-        runtimes=[
+        runtime_parameters=[
             UNPACK_TRANS_FACES(Transpose.No),
             NUM_FACES(),
             LOOP_FACTOR(16),

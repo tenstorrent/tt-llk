@@ -54,8 +54,8 @@ def test_perf_reduce(
 
     tile_count = 16
     configuration = ProfilerConfig(
-        "sources/reduce_perf.cpp",
-        formats,
+        test_name="sources/reduce_perf.cpp",
+        formats=formats,
         run_types=[
             PerfRunType.L1_TO_L1,
             PerfRunType.UNPACK_ISOLATE,
@@ -63,11 +63,11 @@ def test_perf_reduce(
             PerfRunType.PACK_ISOLATE,
             PerfRunType.L1_CONGESTION,
         ],
-        templates=[
+        template_parameters=[
             MATH_OP(mathop=REDUCE_MATHOP[reduce_dim]),
             REDUCE_POOL_TYPE(pool_type),
         ],
-        runtimes=[TILE_COUNT(tile_count)],
+        runtime_parameters=[TILE_COUNT(tile_count)],
         variant_stimuli=StimuliConfig(
             None,
             formats.input_format,

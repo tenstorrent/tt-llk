@@ -64,16 +64,18 @@ def test_reduce(formats, dest_acc, reduce_dim, pool_type, workers_tensix_coordin
     golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
 
     configuration = TestConfig(
-        "sources/reduce_test.cpp",
-        formats,
-        templates=[MATH_OP(mathop=mathop_mapping[reduce_dim], pool_type=pool_type)],
-        runtimes=[],
+        test_name="sources/reduce_test.cpp",
+        formats=formats,
+        template_parameters=[
+            MATH_OP(mathop=mathop_mapping[reduce_dim], pool_type=pool_type)
+        ],
+        runtime_parameters=[],
         variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
+            buffer_A=src_A,
+            stimuli_A_format=formats.input_format,
+            buffer_B=src_B,
+            stimuli_B_format=formats.input_format,
+            stimuli_res_format=formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
             tile_count_res=tile_cnt_A,

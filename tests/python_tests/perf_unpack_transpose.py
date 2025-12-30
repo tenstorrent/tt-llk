@@ -47,11 +47,11 @@ def test_perf_unpack_transpose(
     tile_count = 16
 
     configuration = ProfilerConfig(
-        "sources/unpack_transpose_perf.cpp",
-        formats,
+        test_name="sources/unpack_transpose_perf.cpp",
+        formats=formats,
         run_types=[PerfRunType.L1_TO_L1, PerfRunType.UNPACK_ISOLATE],
-        templates=[],
-        runtimes=[
+        template_parameters=[],
+        runtime_parameters=[
             TILE_COUNT(tile_count),
             UNPACK_TRANS_FACES(unpack_transpose_faces),
             UNPACK_TRANS_WITHING_FACE(unpack_transpose_within_face),

@@ -128,23 +128,23 @@ def test_matmul(
         tilized_B = src_B
 
     configuration = TestConfig(
-        "sources/matmul_test.cpp",
-        formats,
-        templates=[
+        test_name="sources/matmul_test.cpp",
+        formats=formats,
+        template_parameters=[
             MATH_FIDELITY(math_fidelity),
             INPUT_DIMENSIONS(input_A_dimensions, input_B_dimensions),
         ],
-        runtimes=[
+        runtime_parameters=[
             NUM_FACES(),
             TILE_COUNT(matmul_dims.output_tile_cnt),
             CRK_TILE_DIMM(matmul_dims.ct_dim, matmul_dims.rt_dim, matmul_dims.kt_dim),
         ],
         variant_stimuli=StimuliConfig(
-            tilized_A.flatten(),
-            formats.input_format,
-            tilized_B.flatten(),
-            formats.input_format,
-            formats.output_format,
+            buffer_A=tilized_A.flatten(),
+            stimuli_A_format=formats.input_format,
+            buffer_B=tilized_B.flatten(),
+            stimuli_B_format=formats.input_format,
+            stimuli_res_format=formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
             tile_count_res=matmul_dims.output_tile_cnt,

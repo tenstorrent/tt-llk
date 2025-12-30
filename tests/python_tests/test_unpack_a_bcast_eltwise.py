@@ -121,9 +121,9 @@ def test_unp_bcast_sub_sdpa(
     ]
 
     configuration = TestConfig(
-        "sources/unpack_a_bcast_eltwise_test.cpp",
-        formats,
-        templates=[
+        test_name="sources/unpack_a_bcast_eltwise_test.cpp",
+        formats=formats,
+        template_parameters=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_FIDELITY(math_fidelity),
             MATH_OP(mathop=mathop),
@@ -131,16 +131,16 @@ def test_unp_bcast_sub_sdpa(
             TILE_COUNT(tile_cnt_A),
             SRCA_REUSE_COUNT(srca_reuse_count),
         ],
-        runtimes=[
+        runtime_parameters=[
             TILE_COUNT(tile_cnt_A),
             SRCA_REUSE_COUNT(srca_reuse_count),
         ],
         variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
+            buffer_A=src_A,
+            stimuli_A_format=formats.input_format,
+            buffer_B=src_B,
+            stimuli_B_format=formats.input_format,
+            stimuli_res_format=formats.output_format,
             tile_count_A=reuse_factor,
             tile_count_B=reuse_factor,
             tile_count_res=reuse_factor,

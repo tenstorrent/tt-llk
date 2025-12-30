@@ -444,9 +444,9 @@ def test_unpack_comprehensive(
             )
 
     configuration = TestConfig(
-        testname,
-        formats,
-        templates=[
+        test_name=testname,
+        formats=formats,
+        template_parameters=[
             STOCHASTIC_ROUNDING(stochastic_rnd),
             BROADCAST_TYPE(broadcast_type),
             ACC_TO_DEST(acc_to_dest),
@@ -459,7 +459,7 @@ def test_unpack_comprehensive(
             ),
             DISABLE_SRC_ZERO_FLAG(disable_src_zero),
         ],
-        runtimes=[
+        runtime_parameters=[
             UNPACK_TRANS_FACES(transpose_of_faces),
             UNPACK_TRANS_WITHING_FACE(within_face_16x16_transpose),
             NUM_FACES(num_faces),
@@ -467,11 +467,11 @@ def test_unpack_comprehensive(
             TEST_FACE_DIMS(face_r_dim=face_r_dim),
         ],
         variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
+            buffer_A=src_A,
+            stimuli_A_format=formats.input_format,
+            buffer_B=src_B,
+            stimuli_B_format=formats.input_format,
+            stimuli_res_format=formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
             tile_count_res=tile_cnt_A,

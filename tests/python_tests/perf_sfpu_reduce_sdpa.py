@@ -61,20 +61,20 @@ def test_perf_sfpu_reduce_sdpa(
     # MATH_ISOLATE measures only the math operation cycles, excluding unpack/pack
     # This specifically measures the _calculate_reduce_sdpa_ function cycles
     configuration = ProfilerConfig(
-        "sources/sfpu_reduce_sdpa_perf.cpp",
-        formats,
+        test_name="sources/sfpu_reduce_sdpa_perf.cpp",
+        formats=formats,
         run_types=[
             # PerfRunType.L1_TO_L1,         # Full operation timing
             PerfRunType.MATH_ISOLATE,  # Only SFPU computation cycles (_calculate_reduce_sdpa_)
             # PerfRunType.UNPACK_ISOLATE,   # Unpack timing for reference
             # PerfRunType.PACK_ISOLATE,     # Pack timing for reference
         ],
-        templates=[
+        template_parameters=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
             REDUCE_POOL_TYPE(reduce_pool),
         ],
-        runtimes=[
+        runtime_parameters=[
             TILE_COUNT(tile_count),
             LOOP_FACTOR(loop_factor),  # Used to minimize profiler overhead
         ],

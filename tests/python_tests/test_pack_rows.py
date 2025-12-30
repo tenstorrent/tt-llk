@@ -67,21 +67,21 @@ def test_pack_rows(
     output_elements_per_tile = num_rows_to_pack * row_num_datums
 
     configuration = TestConfig(
-        "sources/pack_rows_test.cpp",
-        formats,
-        templates=[
+        test_name="sources/pack_rows_test.cpp",
+        formats=formats,
+        template_parameters=[
             INPUT_DIMENSIONS(dimensions, dimensions),
         ],
-        runtimes=[
+        runtime_parameters=[
             TILE_COUNT(tile_cnt_A),
             NUM_ROWS_TO_PACK(num_rows_to_pack),
         ],
         variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
+            buffer_A=src_A,
+            stimuli_A_format=formats.input_format,
+            buffer_B=src_B,
+            stimuli_B_format=formats.input_format,
+            stimuli_res_format=formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
             tile_count_res=tile_cnt_A,

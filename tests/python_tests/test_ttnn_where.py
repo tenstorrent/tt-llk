@@ -81,16 +81,16 @@ def test_ttnn_where(formats, dest_acc, mathop, test_case, workers_tensix_coordin
     golden = generate_golden(src_A, src_B, src_C)
 
     configuration = TestConfig(
-        "sources/ttnn_where_test.cpp",
-        formats,
-        templates=[MATH_OP(mathop), DISABLE_SRC_ZERO_FLAG(True)],
-        runtimes=[],
+        test_name="sources/ttnn_where_test.cpp",
+        formats=formats,
+        template_parameters=[MATH_OP(mathop), DISABLE_SRC_ZERO_FLAG(True)],
+        runtime_parameters=[],
         variant_stimuli=StimuliConfig(
-            src_A.flatten(),
-            formats.input_format,
-            src_B.flatten(),
-            formats.input_format,
-            formats.output_format,
+            buffer_A=src_A.flatten(),
+            stimuli_A_format=formats.input_format,
+            buffer_B=src_B.flatten(),
+            stimuli_B_format=formats.input_format,
+            stimuli_res_format=formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
             tile_count_res=tile_cnt_A,
@@ -171,10 +171,10 @@ def test_ttnn_where_mcw(
     golden = generate_golden(C, T, F)
 
     configuration = TestConfig(
-        "sources/ttnn_where_test.cpp",
-        formats,
-        templates=[MATH_OP(mathop), DISABLE_SRC_ZERO_FLAG(True)],
-        runtimes=[],
+        test_name="sources/ttnn_where_test.cpp",
+        formats=formats,
+        template_parameters=[MATH_OP(mathop), DISABLE_SRC_ZERO_FLAG(True)],
+        runtime_parameters=[],
         variant_stimuli=StimuliConfig(
             C.flatten(),
             formats.input_format,

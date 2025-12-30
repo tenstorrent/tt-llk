@@ -53,13 +53,13 @@ def test_perf_math_transpose(
     tile_count = 16
 
     configuration = ProfilerConfig(
-        "sources/math_transpose_perf.cpp",
-        formats,
+        test_name="sources/math_transpose_perf.cpp",
+        formats=formats,
         run_types=[PerfRunType.L1_TO_L1],
-        templates=[
+        template_parameters=[
             MATH_TRANSPOSE_FACES(math_transpose_faces),
         ],
-        runtimes=[
+        runtime_parameters=[
             TILE_COUNT(tile_count),
             UNPACK_TRANS_FACES(unpack_transpose_faces),
         ],

@@ -108,25 +108,25 @@ def test_eltwise_binary(
     )
 
     configuration = TestConfig(
-        "sources/quasar/eltwise_binary_test.cpp",
-        formats,
-        templates=[
+        test_name="sources/quasar/eltwise_binary_test.cpp",
+        formats=formats,
+        template_parameters=[
             MATH_FIDELITY(math_fidelity),
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
             IMPLIED_MATH_FORMAT(implied_math_format),
             DEST_SYNC(),
         ],
-        runtimes=[
+        runtime_parameters=[
             TILE_COUNT(tile_cnt_A),
             NUM_FACES(num_faces),
             TEST_FACE_DIMS(),
         ],
         variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
+            buffer_A=src_A,
+            stimuli_A_format=formats.input_format,
+            buffer_B=src_B,
+            stimuli_B_format=formats.input_format,
             formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_A,

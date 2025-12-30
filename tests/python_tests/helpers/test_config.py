@@ -259,8 +259,8 @@ class TestConfig:
         # Required arguments
         test_name: str,
         formats: FormatConfig,
-        templates: set[TemplateParameter],
-        runtimes: set[RuntimeParameter],
+        template_parameters: set[TemplateParameter],
+        runtime_parameters: set[RuntimeParameter],
         variant_stimuli: StimuliConfig = None,
         # Optional compilation arguments with their default values
         boot_mode: BootMode = BootMode.DEFAULT,
@@ -275,8 +275,8 @@ class TestConfig:
         )
         self.test_name = test_name
         self.formats = formats
-        self.templates = templates
-        self.runtimes = runtimes
+        self.template_parameters = template_parameters
+        self.runtime_parameters = runtime_parameters
         self.variant_stimuli = variant_stimuli
         self.boot_mode = boot_mode
         self.profiler_build = profiler_build
@@ -306,7 +306,7 @@ class TestConfig:
         ]
 
         self.runtime_format = "@"
-        for parameter in self.runtimes:
+        for parameter in self.runtime_parameters:
             field_str, param_field_types = parameter.convert_to_struct_fields()
             lines.append(field_str)
             self.runtime_format += param_field_types
@@ -316,7 +316,7 @@ class TestConfig:
 
     def write_runtimes_to_L1(self, location: str = "0,0"):
         argument_data = []
-        for param in self.runtimes:
+        for param in self.runtime_parameters:
             argument_data.extend(
                 [
                     (
@@ -353,7 +353,7 @@ class TestConfig:
             "variant_id",
             "runtime_params_struct",
             "runtime_format",
-            "runtimes",
+            "runtime_parameters",
         ]
 
         temp_str = [
@@ -619,10 +619,20 @@ class TestConfig:
         unpack_size_b = TILE_SIZES.get(self.formats.input_format, 128)
 
         itd_param = next(
-            (param for param in self.runtimes if isinstance(param, IN_TILE_DIMS)), None
+            (
+                param
+                for param in self.runtime_parameters
+                if isinstance(param, IN_TILE_DIMS)
+            ),
+            None,
         )
         faces_param = next(
-            (param for param in self.runtimes if isinstance(param, NUM_FACES)), None
+            (
+                param
+                for param in self.runtime_parameters
+                if isinstance(param, NUM_FACES)
+            ),
+            None,
         )
         if itd_param and faces_param:
             temp_num_faces_A = (
@@ -647,7 +657,7 @@ class TestConfig:
             ]
         )
 
-        for parameter in self.templates:
+        for parameter in self.template_parameters:
             header_content.append(parameter.covert_to_cpp())
 
         header_content.extend(self.infer_data_formats())
@@ -760,7 +770,7 @@ class TestConfig:
 
         with open(
             VARIANT_DIR
-            / f"{sha256(str(' | '.join([str(run_arg) for run_arg in self.runtimes])).encode()).hexdigest()}.stream",
+            / f"{sha256(str(' | '.join([str(run_arg) for run_arg in self.runtime_parameters])).encode()).hexdigest()}.stream",
             "wb",
         ) as fd:
             fd.write(coverage_stream)

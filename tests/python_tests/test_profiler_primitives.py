@@ -39,8 +39,8 @@ def test_profiler_primitives(workers_tensix_coordinates):
         pytest.skip()
 
     configuration = ProfilerConfig(
-        "sources/profiler_primitives_test.cpp",
-        input_output_formats([DataFormat.Float16])[0],
+        test_name="sources/profiler_primitives_test.cpp",
+        formats=input_output_formats([DataFormat.Float16])[0],
         variant_stimuli=StimuliConfig(
             [], DataFormat.Float16, [], DataFormat.Float16, DataFormat.Float16, 1, 1
         ),

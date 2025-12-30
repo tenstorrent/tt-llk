@@ -33,16 +33,16 @@ def test_risc_compute(workers_tensix_coordinates):
     )
 
     configuration = TestConfig(
-        "sources/risc_compute_test.cpp",
-        formats,
-        templates=[],
-        runtimes=[],
+        test_name="sources/risc_compute_test.cpp",
+        formats=formats,
+        template_parameters=[],
+        runtime_parameters=[],
         variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
+            buffer_A=src_A,
+            stimuli_A_format=formats.input_format,
+            buffer_B=src_B,
+            stimuli_B_format=formats.input_format,
+            stimuli_res_format=formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
             tile_count_res=tile_cnt_A,

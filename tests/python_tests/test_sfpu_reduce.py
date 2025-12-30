@@ -109,20 +109,20 @@ def test_sfpu_reduce(
     )
 
     configuration = TestConfig(
-        "sources/sfpu_reduce_test.cpp",
-        formats,
-        templates=[
+        test_name="sources/sfpu_reduce_test.cpp",
+        formats=formats,
+        template_parameters=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             APPROX_MODE(ApproximationMode.No),
             MATH_OP(mathop=mathop, pool_type=reduce_pool),
         ],
-        runtimes=[TILE_COUNT(tile_cnt)],
+        runtime_parameters=[TILE_COUNT(tile_cnt)],
         variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
+            buffer_A=src_A,
+            stimuli_A_format=formats.input_format,
+            buffer_B=src_B,
+            stimuli_B_format=formats.input_format,
+            stimuli_res_format=formats.output_format,
             tile_count_A=tile_cnt,
             tile_count_B=1,
             tile_count_res=tile_cnt,

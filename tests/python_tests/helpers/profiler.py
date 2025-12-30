@@ -471,28 +471,29 @@ class ProfilerConfig(TestConfig):
 
     def __init__(
         self,
+        *,
         test_name: str,
         formats: FormatConfig,
         run_types: list[PerfRunType] = [],
-        templates: set[TemplateParameter] = [],
-        runtimes: set[RuntimeParameter] = [],
+        template_parameters: set[TemplateParameter] = [],
+        runtime_parameters: set[RuntimeParameter] = [],
         variant_stimuli: StimuliConfig = None,
         unpack_to_dest=False,
         disable_format_inference=False,
         dest_acc=DestAccumulation.No,
     ):
         super().__init__(
-            test_name,
-            formats,
-            templates,
-            runtimes,
-            variant_stimuli,
-            BootMode.DEFAULT,
-            ProfilerBuild.Yes,
-            1,  # L1_2_L1s
-            unpack_to_dest,
-            disable_format_inference,
-            dest_acc,
+            test_name=test_name,
+            formats=formats,
+            template_parameters=template_parameters,
+            runtime_parameters=runtime_parameters,
+            variant_stimuli=variant_stimuli,
+            boot_mode=BootMode.DEFAULT,
+            profiler_build=ProfilerBuild.Yes,
+            L1_to_L1_iterations=1,
+            unpack_to_dest=unpack_to_dest,
+            disable_format_inference=disable_format_inference,
+            dest_acc=dest_acc,
         )
 
         for run_type in run_types:
@@ -500,11 +501,15 @@ class ProfilerConfig(TestConfig):
                 run_type in ProfilerConfig.SUPPORTED_RUNS
             ), f"ERROR: run_type={run_type} not implemented"
 
-        self.passed_templates = templates
-        self.passed_runtimes = runtimes
+        self.passed_templates = template_parameters
+        self.passed_runtimes = runtime_parameters
         self.current_run_type = None
         self.run_configs = [
-            (templates.copy() + [PERF_RUN_TYPE(run_type)], runtimes.copy(), run_type)
+            (
+                template_parameters.copy() + [PERF_RUN_TYPE(run_type)],
+                runtime_parameters.copy(),
+                run_type,
+            )
             for run_type in run_types
         ]
 
@@ -561,20 +566,20 @@ class ProfilerConfig(TestConfig):
         results = []
 
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
-            for templates, runtimes, run_type in self.run_configs:
+            for template_parameters, runtime_parameters, run_type in self.run_configs:
                 self.current_run_type = run_type
-                self.templates = templates
-                self.runtimes = runtimes
+                self.templates = template_parameters
+                self.runtimes = runtime_parameters
                 self.generate_variant_hash()
                 self.build_elfs()
 
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-        for templates, runtimes, run_type in self.run_configs:
+        for template_parameters, runtime_parameters, run_type in self.run_configs:
             self.current_run_type = run_type
-            self.templates = templates
-            self.runtimes = runtimes
+            self.templates = template_parameters
+            self.runtimes = runtime_parameters
             self.generate_variant_hash()
             runs = []
             for _ in range(run_count):

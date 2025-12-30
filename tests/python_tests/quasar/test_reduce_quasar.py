@@ -124,9 +124,9 @@ def test_reduce_quasar(
     mathop = mathop_mapping[reduce_dim]
 
     configuration = TestConfig(
-        "sources/quasar/reduce_quasar_test.cpp",
-        formats,
-        templates=[
+        test_name="sources/quasar/reduce_quasar_test.cpp",
+        formats=formats,
+        template_parameters=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_FIDELITY(math_fidelity),
             MATH_OP(mathop=mathop, pool_type=pool_type),
@@ -134,17 +134,17 @@ def test_reduce_quasar(
             IMPLIED_MATH_FORMAT(implied_math_format),
             DEST_SYNC(),
         ],
-        runtimes=[
+        runtime_parameters=[
             TILE_COUNT(tile_cnt),
             TEST_FACE_DIMS(),
             NUM_FACES(),
         ],
         variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
+            buffer_A=src_A,
+            stimuli_A_format=formats.input_format,
+            buffer_B=src_B,
+            stimuli_B_format=formats.input_format,
+            stimuli_res_format=formats.output_format,
             tile_count_A=tile_cnt,
             tile_count_B=1,
             tile_count_res=tile_cnt,
