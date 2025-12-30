@@ -19,17 +19,6 @@ from helpers.utils import passed_test
 
 
 def get_block_ct_dim(full_ct_dim, dest_acc):
-    """
-    Compute the number of blocks per column based on the full CT dimension
-    and whether FP32 destination accumulation is enabled.
-
-    Args:
-        FULL_CT_DIM (int): Full CT dimension
-        is_fp32_dest_acc_en (bool): Whether FP32 destination accumulation is enabled
-
-    Returns:
-        int: Number of blocks per column
-    """
     max_bct = 4 if dest_acc == DestAccumulation.Yes else 8
 
     for bct in range(
@@ -47,14 +36,14 @@ def get_block_ct_dim(full_ct_dim, dest_acc):
         [
             DataFormat.Float16_b,
             DataFormat.Float16,
-            # DataFormat.Float32,  # Test Float32 with both 32bit mode dest (full precision) and 16bit mode dest (precision loss)
-            # DataFormat.Int32,
-            # DataFormat.Bfp8_b,
+            DataFormat.Float32,  # Test Float32 with both 32bit mode dest (full precision) and 16bit mode dest (precision loss)
+            DataFormat.Int32,
+            DataFormat.Bfp8_b,
         ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    input_dimensions=[[32, 256]],
-    dst_sync=[DstSync.SyncHalf],
+    input_dimensions=[[64, 288]],
+    dst_sync=[DstSync.SyncHalf, DstSync.SyncFull],
 )
 def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync):
     if formats.output_format == DataFormat.Bfp8_b:
@@ -72,15 +61,6 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
     ):
         pytest.skip("Dest must be in 32bit mode when input and output are Int32")
 
-    # dst_sync and dest_sync are different enums representing the same concept.
-    # TODO: unify them once the enum conflict is resolved in test_config.
-    # if input_dimensions not in generate_unary_input_dimensions(
-    #     dest_acc, DestSync.Full if dst_sync == DstSync.SyncFull else DestSync.Half
-    # ):
-    #     pytest.skip(
-    #         "Input dimensions not supported for the given dest_acc and dst_sync configuration"
-    #     )
-
     data_formats = infer_data_formats(
         formats.input_format,
         formats.output_format,
@@ -91,7 +71,11 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
     # Handling a hardware limitation: cannot convert 8-bit exponent datums to Float16 without storing them as intermediate Float32 in dest register.
     # For wormhole architecture, gasket cannot perform this conversion and packer takes input Float32 (from dest register) converting to Float16_A.
     # For blackhole architecture, gasket able to convert Float32 to Float16_A before packing (reduces work on packer).`
-    if data_formats.pack_src.is_32_bit() and dest_acc == DestAccumulation.No:
+    if (
+        formats.input_format == DataFormat.Float16
+        and data_formats.pack_src.is_32_bit()
+        and dest_acc == DestAccumulation.No
+    ):
         pytest.skip(
             "Due to hardware limitation, cannot convert 8-bit exponent datums to Float16 without storing them as intermediate Float32 in dest register. Therefore using dest_acc=No is not supported in this case."
         )
@@ -113,9 +97,9 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
         "dest_acc": dest_acc,
         "dst_sync": dst_sync,
         "block_ct_dim": get_block_ct_dim(input_dimensions[1] // 32, dest_acc),
+        "num_faces": 4,
     }
 
-    print("block_ct_dim:", test_config["block_ct_dim"])
     res_address = write_stimuli_to_l1(
         test_config,
         src_A,
