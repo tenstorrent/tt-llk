@@ -1842,25 +1842,24 @@ class UntilizeGolden:
 
 @register_golden
 class TilizeGolden:
-    def __call__(self, operand, dimensions, data_format, num_faces=4):
+    def __call__(
+        self, operand, dimensions, data_format, num_faces=4, tile_dimensions=None
+    ):
         from helpers.llk_params import format_dict
         from helpers.tilize_untilize import tilize_block
+
+        if tile_dimensions is None:
+            tile_dimensions = [32, 32]
 
         # Validate the number of faces
         if not (1 <= num_faces <= 4):
             raise ValueError(f"`num_faces` must be between 1 and 4, got {num_faces}")
 
-        # Always do full tilization first
-        result = tilize_block(operand, dimensions, data_format)
+        # Tilize with proper tile dimensions
+        result = tilize_block(
+            operand, dimensions, data_format, num_faces, tile_dimensions
+        )
         torch_format = format_dict[data_format]
-
-        # Then select the appropriate number of faces from the tilized result
-        if num_faces < FACES_PER_TILE:
-            elements_per_tile_needed = num_faces * ELEMENTS_PER_FACE
-            tile_cnt = result.numel() // ELEMENTS_PER_TILE
-            result = result.reshape(tile_cnt, ELEMENTS_PER_TILE)[
-                :, :elements_per_tile_needed
-            ]
 
         return result.flatten().to(torch_format)
 
