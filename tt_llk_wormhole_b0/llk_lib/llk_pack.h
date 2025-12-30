@@ -180,8 +180,9 @@ inline void _llk_pack_init_(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     llk_san::pack_operand_check(llk_san::IGNORE, llk_san::IGNORE, pack_dst_format, face_r_dim, llk_san::IGNORE, num_faces, partial_face, narrow_tile);
+    llk_san::operation_save<llk_san::operation_t::Pack>(untilize);
+
     // sstanisic todo: implement
-    // llk_san_init<llk_san_op::Pack>(untilize);
     // llk_san_must_uninit<llk_san_op::Pack>(); // lololol uninit doesn't exist
     // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::L1Offset, llk_san_cfg::AdcXX);
 
