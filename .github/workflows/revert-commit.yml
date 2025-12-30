@@ -159,16 +159,8 @@ jobs:
         id: create-pr
         if: steps.check-pr.outputs.pr-exists != 'true'
         env:
-          # Using LLK_UPLIFT_PAT to trigger on-pr.yml workflow (GITHUB_TOKEN won't trigger other workflows)
-          GH_TOKEN: ${{ secrets.LLK_UPLIFT_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "❌ Error: GH_PAT secret is not set."
-            echo "   To enable automatic PR checks, create a Personal Access Token with 'repo' and 'workflow' scopes"
-            echo "   and add it as a repository secret named 'GH_PAT'."
-            exit 1
-          fi
-
           COMMIT_HASH="${{ inputs.commit_hash }}"
           COMMIT_MESSAGE="${{ steps.verify-commit.outputs.commit-message }}"
           COMMIT_AUTHOR="${{ steps.verify-commit.outputs.commit-author }}"
@@ -199,7 +191,6 @@ jobs:
             --repo "${{ github.repository }}")
 
           echo "✅ Created PR: $PR_URL"
-          echo "✅ The on-pr.yml workflow will be triggered automatically."
           echo "pr-url=$PR_URL" >> $GITHUB_OUTPUT
 
       - name: Output PR information
@@ -207,10 +198,8 @@ jobs:
           if [ "${{ steps.check-pr.outputs.pr-exists }}" = "true" ]; then
             echo "📋 Existing PR: ${{ steps.check-pr.outputs.pr-url }}"
             echo "   State: ${{ steps.check-pr.outputs.pr-state }}"
-            echo "ℹ️  To trigger checks on the existing PR, push a new commit or close/reopen it."
           else
             echo "📋 New PR created: ${{ steps.create-pr.outputs.pr-url }}"
-            echo "✅ PR checks (on-pr.yml) will run automatically."
           fi
 
   check-all-green:
