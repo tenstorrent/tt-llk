@@ -194,14 +194,13 @@ def parse_operation(
     unpacker = UNPACKER_MAP[op_config.get("unpacker", "UnpackerA")]
     math = parse_math_operation(op_config.get("math", {}), operands)
     packer = PACKER_MAP[op_config.get("packer", "Packer")]
-    dest_acc = DEST_ACCUMULATION_MAP.get(
-        op_config.get("dest_acc", "No"), DestAccumulation.No
-    )
-    math_fidelity = MATH_FIDELITY_MAP.get(
-        op_config.get("math_fidelity", "LoFi"), MathFidelity.LoFi
-    )
 
     kwargs = {}
+
+    if "dest_acc" in op_config:
+        kwargs["dest_acc"] = DEST_ACCUMULATION_MAP[op_config["dest_acc"]]
+    if "math_fidelity" in op_config:
+        kwargs["math_fidelity"] = MATH_FIDELITY_MAP[op_config["math_fidelity"]]
     if "dest_sync" in op_config:
         kwargs["dest_sync"] = DEST_SYNC_MAP[op_config["dest_sync"]]
     if "unpack_transpose_within_face" in op_config:
@@ -218,8 +217,6 @@ def parse_operation(
         unpacker=unpacker,
         math=math,
         packer=packer,
-        dest_acc=dest_acc,
-        math_fidelity=math_fidelity,
         **kwargs,
     )
 
