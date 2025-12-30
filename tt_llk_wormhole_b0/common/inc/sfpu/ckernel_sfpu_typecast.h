@@ -16,6 +16,18 @@ namespace sfpu
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_uint16_()
 {
+    // This uses SFPLOADMACRO to achieve a throughput of 2 cycles per input row.
+    //
+    // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
+    //
+    // t | Load | Simple            | MAD | Round            | Store   |
+    // - | ---- | ----------------- | --- | ---------------- | ------- |
+    // 0 | [v]  |                   |     |                  |         |
+    // 1 | nop  | [v] = max(v, 0.0) |     |                  |         |
+    // 0 | ...  | (must be idle)    |     | (must be idle)   |         |
+    // 1 | ...  |                   |     | [v] L16 = rnd(v) |         |
+    // 0 | ...  |                   |     |                  | [v] L16 |
+
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
@@ -31,6 +43,17 @@ inline void _calculate_typecast_fp32_to_uint16_()
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_fp16b_()
 {
+    // This uses SFPLOADMACRO to achieve a throughput of 1 cycle per input row.
+    //
+    // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
+    //
+    // t | Load | Simple        | MAD | Round            | Store   |
+    // - | ---- | ------------- | --- | ---------------- | ------- |
+    // 0 | [v]  |               |     |                  |         |
+    // 0 | ...  | [v] = cast(v) |     |                  |         |
+    // 0 | ...  |               |     | [v] L16 = rnd(v) |         |
+    // 0 | ...  |               |     |                  | [v] L16 |
+
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
@@ -81,6 +104,7 @@ inline void _calculate_typecast_int32_to_fp16b_()
         TTI_SFPSHFT2(t, p_sfpu::LREG12, p_sfpu::LREG7, 5); // SFPSHFT2_MOD1_SHFT_LREG
         TTI_SFPCAST(t, t, 0);
     }
+    TTI_SFPNOP;
     TTI_SFPNOP;
     TTI_SFPNOP;
     TTI_SFPNOP;
@@ -191,6 +215,16 @@ inline void _calculate_typecast_fp32_to_fp16b_()
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_fp32_()
 {
+    // This uses SFPLOADMACRO to achieve a throughput of 1 cycle per input row.
+    //
+    // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
+    //
+    // t | Load | Simple            | MAD | Round | Store   |
+    // - | ---- | ----------------- | --- | ----- | ------- |
+    // 0 | [v]  |                   |     |       |         |
+    // 0 | ...  | [v] L16 = cast(v) |     |       |         |
+    // 0 | ...  |                   |     |       | [v] L16 |
+
     constexpr int v = p_sfpu::LREG0;
 
 #pragma GCC unroll 8
@@ -334,6 +368,15 @@ inline void _calculate_typecast_uint32_to_fp32_()
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_uint32_()
 {
+    // This uses SFPLOADMACRO to achieve a throughput of 1 cycle per input row.
+    //
+    // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
+    //
+    // t | Load | Simple | MAD | Round | Store |
+    // - | ---- | ------ | --- | ----- | ----- |
+    // 0 | [v]  |        |     |       |       |
+    // 0 | ...  |        |     |       | [v]   |
+
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
