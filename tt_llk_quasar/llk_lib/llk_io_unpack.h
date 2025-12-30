@@ -34,6 +34,13 @@ inline void _llk_pop_tiles_(const std::int32_t cb_id, const std::int32_t num_til
     const std::uint32_t num_words = num_tiles * get_local_cb_interface(cb_id).fifo_page_size;
     get_local_cb_interface(cb_id).fifo_rd_ptr += num_words;
 
+    // Update read tile index, wrapping at fifo_num_pages
+    get_local_cb_interface(cb_id).fifo_rd_tile_idx += num_tiles;
+    if (get_local_cb_interface(cb_id).fifo_rd_tile_idx >= get_local_cb_interface(cb_id).fifo_num_pages)
+    {
+        get_local_cb_interface(cb_id).fifo_rd_tile_idx -= get_local_cb_interface(cb_id).fifo_num_pages;
+    }
+
     if (get_local_cb_interface(cb_id).fifo_rd_ptr >= get_local_cb_interface(cb_id).fifo_limit)
     {
         get_local_cb_interface(cb_id).fifo_rd_ptr -= get_local_cb_interface(cb_id).fifo_size;
