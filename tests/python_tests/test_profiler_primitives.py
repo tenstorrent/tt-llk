@@ -3,11 +3,10 @@
 
 
 import pandas as pd
+import pytest
 from conftest import skip_for_coverage
-from helpers.format_config import DataFormat
-from helpers.param_config import input_output_formats
 from helpers.profiler import ProfilerConfig
-from helpers.stimuli_config import StimuliConfig
+from helpers.test_config import TestConfig, TestMode
 
 
 def assert_marker(
@@ -31,13 +30,10 @@ def assert_marker(
 @skip_for_coverage
 def test_profiler_primitives(workers_tensix_coordinates):
 
-    configuration = ProfilerConfig(
-        "sources/profiler_primitives_test.cpp",
-        input_output_formats([DataFormat.Float16])[0],
-        variant_stimuli=StimuliConfig(
-            [], DataFormat.Float16, [], DataFormat.Float16, DataFormat.Float16, 1, 1
-        ),
-    )
+    if TestConfig.MODE == TestMode.PRODUCE:
+        pytest.skip()
+
+    configuration = ProfilerConfig("sources/profiler_primitives_test.cpp")
 
     configuration.generate_variant_hash()
     configuration.build_elfs()

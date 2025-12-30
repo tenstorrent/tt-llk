@@ -58,7 +58,7 @@ def run_shell_command(
     )
 
     if result.returncode != 0:
-        raise RuntimeError(f"Build failed: {command}\n{result.stderr}")
+        raise RuntimeError(f"Command:\n{command}\n\nCommand's stdrr:\n{result.stderr}")
     return result
 
 
