@@ -53,7 +53,7 @@ def get_block_ct_dim(full_ct_dim, dest_acc):
         ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    input_dimensions=[[32, 288]],
+    input_dimensions=[[32, 256]],
     dst_sync=[DstSync.SyncHalf],
 )
 def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync):

@@ -34,13 +34,13 @@ constexpr static std::uint32_t format_size_in_bytes(uint format)
 
 constexpr uint32_t compute_num_blocks_per_col(uint32_t FULL_CT_DIM, bool is_fp32_dest_acc_en)
 {
-    const uint32_t max_bct = is_fp32_dest_acc_en ? 4 : 8;
+    const uint32_t max_tiles_in_dest = is_fp32_dest_acc_en ? 4 : 8;
 
-    for (uint32_t bct = max_bct; bct >= 1; --bct)
+    for (uint32_t num_tiles_in_dest = max_tiles_in_dest; num_tiles_in_dest >= 1; --num_tiles_in_dest)
     {
-        if (FULL_CT_DIM % bct == 0)
+        if (FULL_CT_DIM % num_tiles_in_dest == 0)
         {
-            return FULL_CT_DIM / bct;
+            return FULL_CT_DIM / num_tiles_in_dest;
         }
     }
 
@@ -160,9 +160,10 @@ void run_kernel()
         for (uint32_t b = 0; b < num_blocks_per_col; ++b) // Loop over blocks in the column (dst reg)
         {
             _llk_packer_wait_for_math_done_();
-            uint32_t address =
-                rt * FULL_CT_DIM * 32 * format_size_in_bytes(formats.pack_dst) + b * 2 * BLOCK_CT_DIM * FACE_C_DIM * format_size_in_bytes(formats.pack_dst);
-            _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM>(L1_ADDRESS(buffer_Res[address]), formats.pack_dst, FACE_R_DIM, 4, 0);
+            uint32_t L1_tile_address = buffer_Res[rt * FULL_CT_DIM];
+            L1_tile_address += (b * BLOCK_CT_DIM) * (num_faces * 2) * FACE_C_DIM * format_size_in_bytes(formats.pack_dst);
+            // rt * FULL_CT_DIM * 32 * format_size_in_bytes(formats.pack_dst) + b * 2 * BLOCK_CT_DIM * FACE_C_DIM * format_size_in_bytes(formats.pack_dst);
+            _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM>(L1_ADDRESS(L1_tile_address), formats.pack_dst, FACE_R_DIM, 4, 0);
 
             _llk_pack_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
         }
