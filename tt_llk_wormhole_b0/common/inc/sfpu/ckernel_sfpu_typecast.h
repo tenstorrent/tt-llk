@@ -49,11 +49,11 @@ inline void _calculate_typecast_int32_to_fp16b_()
     //
     // Notation: [x] means scheduled by SFPLOADMACRO with VD=x.
     //
-    // Note: L0=0.0 and L1=2**31.  The sign bit is stored in L7 and used to pick L0 or L1
-    // for SFPMAD's VA:
+    // Note: L0=0.0 and L1=-2**31.  The sign bit of abs(v) is stored in L7 and
+    // used to pick L0 or L1 for SFPMAD's VA:
     //
     // - if sign bit is 0, then compute L0*1.0 + v = v
-    // - if sign bit is 1, then compute L1*1.0 + v = 2**31 + v
+    // - if sign bit is 1, then compute L1*1.0 + v = -2**31 + 0.0 = -2**31
     //
     // t | Load | Simple             | MAD                 | Round            | Store   |
     // - | ---- | ------------------ | ------------------- | ---------------- | ------- |
@@ -70,7 +70,7 @@ inline void _calculate_typecast_int32_to_fp16b_()
     constexpr int t = p_sfpu::LREG4;
 
     TTI_SFPLOADI(p_sfpu::LREG0, sfpi::SFPLOADI_MOD0_USHORT, 0);
-    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, 0x4f00); // 2**31
+    TTI_SFPLOADI(p_sfpu::LREG1, sfpi::SFPLOADI_MOD0_FLOATB, 0xcf00); // -2**31
 
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
