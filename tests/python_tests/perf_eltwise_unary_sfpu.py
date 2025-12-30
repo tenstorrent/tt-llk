@@ -1,15 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-"""
-All commented out formats, mathop options, loop factors, and input dimensions
-can be uncommented to expand the test coverage as needed.
-
-Uncommenting all options may lead to a large number of test cases being generated,
-which could increase the total test execution time significantly.
-
-Therefore, it's recommended to selectively enable options based on specific testing requirements.
-"""
 
 import pytest
 from helpers.format_config import DataFormat

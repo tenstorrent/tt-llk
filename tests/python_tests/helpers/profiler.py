@@ -529,10 +529,6 @@ class ProfilerConfig(TestConfig):
             "runtime_params_struct",
             "runtime_format",
             "runtimes",
-            "current_run_type",
-            "passed_templates",
-            "passed_runtimes",
-            "boot_mode",
         ]
         temp_str = [
             str(value)
