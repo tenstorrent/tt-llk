@@ -137,6 +137,7 @@ inline void _llk_pack_untilize_init_(
     const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, const bool include_setup_calls = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+
     llk_san::pack_operand_check(llk_san::IGNORE, llk_san::IGNORE, pack_dst_format, face_r_dim, llk_san::IGNORE, num_faces, llk_san::IGNORE, llk_san::IGNORE);
     llk_san::operation_save<llk_san::operation_t::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, pack_dst_format, face_r_dim);
 
@@ -173,8 +174,10 @@ inline void _llk_pack_untilize_init_(
 
 inline void _llk_pack_untilize_uninit_(const std::uint32_t face_r_dim)
 {
-    // todo sstanisic: tag
-    // llk_san_pack_operand_check(llk_san_x, llk_san_x, llk_san_x, face_r_dim, llk_san_x, llk_san_x, llk_san_x, llk_san_x);
+    llk_san::pack_operand_check(
+        llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, face_r_dim, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE);
+
+    // sstanisic todo: implement
     // llk_san_uninit<llk_san_op::PackUntilize>();
     // llk_san_extended_state_mask<true>(llk_san_cfg::AdcXX);
 

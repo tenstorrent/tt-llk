@@ -48,10 +48,18 @@ inline void _llk_unpack_hw_configure_(
 {
     LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
-    // todo sstanisic: tag
-    // llk_san_unpack_hw_configure(
-    //     is_fp32_dest_acc_en, unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, unpA_face_r_dim, unpB_face_r_dim, unpA_num_faces,
-    //     unpB_num_faces, unpA_tile_size, unpB_tile_size);
+
+    // sstanisic todo: add tile_size_a and tile_size_b to operand state?
+    llk_san::unpack_hw_configure(
+        is_fp32_dest_acc_en,
+        unpA_src_format,
+        unpB_src_format,
+        unpA_dst_format,
+        unpB_dst_format,
+        unpA_face_r_dim,
+        unpB_face_r_dim,
+        unpA_num_faces,
+        unpB_num_faces);
 
     configure_unpack_AB<is_fp32_dest_acc_en, false, false, false, disable_src_zero_flag>(
         unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, unpA_face_r_dim, unpB_face_r_dim, 0, unpA_num_faces, unpB_num_faces);

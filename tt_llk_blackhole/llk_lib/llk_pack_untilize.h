@@ -156,7 +156,6 @@ inline void _llk_pack_untilize_init_(
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
     llk_san::pack_operand_check(llk_san::IGNORE, pack_src_format, pack_dst_format, face_r_dim, llk_san::IGNORE, num_faces, llk_san::IGNORE, llk_san::IGNORE);
-    // sstanisic note: added full_ct_dim, removed face_r_dim and num_faces as its already part of operand state
     llk_san::operation_save<llk_san::operation_t::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums);
     // sstanisic todo: implement
     // llk_san_must_uninit<llk_san_op::PackUntilize>();
