@@ -5,78 +5,114 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
-#include <type_traits>
 
 #include "ckernel.h"
 #include "llk_defs.h"
 
-// Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
-
 #ifdef LLK_TRISC_UNPACK
 
-#include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
+#include "llk_unpack_unary_operand.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-        0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
+    tdma_descriptor_t td_val;
+    const uint buf_desc_id          = 0;
+    const uint num_tiles_per_unpack = params->TILE_CNT;
 
-    for (int i = 0; i < TILE_CNT; ++i)
+    // Setup data valid scheme
+    set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
+
+    buffer_descriptor_u bd_val = {0};
+
+    bd_val.f.l1_addr_16B = buffer_A[0] / 16;
+    bd_val.f.format      = static_cast<uint8_t>(formats.unpack_src);
+    bd_val.f.x_dim       = params->TEST_FACE_C_DIM;
+    bd_val.f.y_dim       = params->TEST_FACE_R_DIM;
+    bd_val.f.z_dim       = params->num_faces;
+
+    td_val.buf_desc        = bd_val;
+    td_val.buf_desc_id     = buf_desc_id;
+    td_val.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
+
+    if (is_fp32_dest_acc_en)
     {
-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
+        // If Dst fmt is 32b and operation is Mov2D, we need both SrcA/B fmts to be configured since Mov2D will be implemented via ELWADD
+        _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val, td_val);
     }
+    else
+    {
+        _llk_unpack_configure_unary_<UNPACKER_ENGINE_SEL>(td_val);
+    }
+
+    _llk_unpack_unary_operand_init_<UNPACKER_ENGINE_SEL, false /*transpose*/, is_fp32_dest_acc_en>(buf_desc_id, num_tiles_per_unpack);
+    _llk_unpack_unary_operand_<UNPACKER_ENGINE_SEL>(0);
 }
 
 #endif
 
 #ifdef LLK_TRISC_MATH
 
-#include "ckernel_sfpu.h"
+#ifdef FORMAT_INT32
+const bool is_int_fpu_en = true;
+#else
+const bool is_int_fpu_en = false;
+#endif
+
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
-#include "llk_math_eltwise_unary_sfpu.h"
+#include "llk_math_eltwise_unary_sfpu_common.h"
 #include "params.h"
-#include "sfpu_operations.h"
+#include "sfpu/ckernel_sfpu_rsqrt.h"
 
 using namespace ckernel;
+using namespace ckernel::math;
 using namespace ckernel::sfpu;
 
-const int iterations = 32;
-
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
-    // copy srca to dest
-#ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(4, formats.math);
-#else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(4, formats.math);
-#endif
-    _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+    // Process all rows in a tile: num_faces * TEST_FACE_R_DIM = 4 * 16 = 64 rows
+    // Each SFPU iteration processes SFP_ROWS = 2 rows
+    // So we need 64 / 2 = 32 iterations to process a full tile
+    const int iterations = params->num_faces * params->TEST_FACE_R_DIM / ckernel::math::SFP_ROWS;
 
-    for (int i = 0; i < TILE_CNT; ++i)
+    set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
+
+    DataFormat src_format = static_cast<DataFormat>(formats.math);
+    _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en>(src_format, src_format);
+
+    // Initialize datacopy
+    _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(
+        params->num_faces * params->TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
+
+    // Initialize SFPU once before processing all tiles (configures addrmods and resets counters)
+    _llk_math_eltwise_unary_sfpu_init_();
+
+    // Process each tile: datacopy then SFPU
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-            i, formats.math, formats.math);
+        // Copy srcA to dest for this tile
+        _llk_math_eltwise_unary_datacopy_(params->num_faces * params->TEST_FACE_R_DIM /*num_rows_per_tile*/, params->DST_INDEX + i);
 
-        // calculation of rsqrt operation on dest
-        _llk_math_eltwise_unary_sfpu_init_<SfpuType::rsqrt>();
-        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
-        // calling rsqrt function from ckernel
-        test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations>(SfpuType::rsqrt, formats.math);
+        // Wait for MOP to complete to ensure datacopy has finished writing to dest register
+        wait_mop_idle();
 
+        // Start SFPU for this tile - sets base address and waits for readiness
+        _llk_math_eltwise_unary_sfpu_start_(i);
+
+        // Call rsqrt function directly from Quasar implementation
+        _calculate_rsqrt_<APPROX_MODE>(iterations);
+
+        // Wait for SFPU operations to complete
+        wait_sfpu_idle();
+
+        // Signal this tile is done - resets dest counter
         _llk_math_eltwise_unary_sfpu_done_();
     }
 
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    // Set data valid flag to signal packer that SFPU is complete
+    _llk_math_set_dvalid_<p_cleardvalid::SFPU>();
 }
 
 #endif
@@ -87,28 +123,29 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
-#ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-#else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-#endif
+    uint32_t const buf_desc_id    = 8;
+    const uint num_tiles_per_pack = params->TILE_CNT;
 
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+    set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
 
-#ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
-#else
-    _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
-#endif
+    buffer_descriptor_u bd_val = {0};
+    tdma_descriptor_t tdma_desc;
 
-    _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < TILE_CNT; ++i)
-    {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
-    }
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
+    bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
+    bd_val.f.x_dim       = params->TEST_FACE_C_DIM;
+    bd_val.f.y_dim       = params->TEST_FACE_R_DIM;
+    bd_val.f.z_dim       = params->num_faces;
+
+    tdma_desc.buf_desc        = bd_val;
+    tdma_desc.buf_desc_id     = buf_desc_id;
+    tdma_desc.reg_data_format = static_cast<uint8_t>(formats.pack_src);
+
+    _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
+    _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, num_tiles_per_pack);
+    _llk_pack_<p_pacr::PACK0>(params->DST_INDEX, 0);
+    _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
-
 #endif

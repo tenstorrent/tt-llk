@@ -10,15 +10,7 @@ namespace ckernel
 {
 namespace sfpu
 {
-// Initialization for RSQRT operation - no-op for Quasar (uses hardware instructions, no polynomial setup needed)
-template <bool APPROXIMATION_MODE>
-inline void _init_rsqrt_()
-{
-    // Quasar uses hardware SFPNONLINEAR instructions directly, no initialization needed
-}
-
 // Calculates RSQRT (reciprocal square root) for number of rows of output SFPU ops (Quasar = 2 rows)
-// Computes 1/sqrt(x) by first computing sqrt(x) then taking its reciprocal
 template <bool APPROXIMATION_MODE>
 inline void _calculate_rsqrt_sfp_rows_()
 {
@@ -29,8 +21,7 @@ inline void _calculate_rsqrt_sfp_rows_()
     {
         TTI_SFPNONLINEAR(p_sfpu::LREG0, p_sfpu::LREG1, p_sfpnonlinear::SQRT_MODE); // Read value from lreg[0], approximate sqrt, load back into lreg[1]
 
-        // TTI_SFPNOP(0, 0, 0); // NOP to ensure sqrt completes before recip operation
-        //  Then compute 1/sqrt(x) = recip(sqrt(x)) into LREG2
+        // Then compute 1/sqrt(x) = recip(sqrt(x)) into LREG2
         TTI_SFPNONLINEAR(p_sfpu::LREG1, p_sfpu::LREG2, p_sfpnonlinear::RECIP_MODE); // Read value from lreg[1], approximate recip, load back into lreg[2]
     }
 
