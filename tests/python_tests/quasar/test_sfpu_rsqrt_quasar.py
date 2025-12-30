@@ -78,9 +78,8 @@ def test_sfpu_rsqrt_quasar(
     )
 
     # Generate random values in range (0, 1] for rsqrt testing
-    # Avoid exactly 0 to prevent division by zero in rsqrt = 1/sqrt(x)
-    # Preserve the original dtype from generate_stimuli
-    src_A = (torch.rand_like(src_A) * 0.99 + 0.01).to(src_A.dtype)
+    # Use torch.rand with explicit dtype instead of torch.rand_like to ensure correct dtype handling
+    src_A = torch.rand(src_A.shape[0], dtype=src_A.dtype) * 0.99 + 0.01
 
     # Generate golden reference using UnarySFPUGolden for rsqrt operation
     generate_golden = get_golden_generator(UnarySFPUGolden)
