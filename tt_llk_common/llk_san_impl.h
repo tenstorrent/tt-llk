@@ -256,15 +256,15 @@ static inline void operation_save_impl(operation_state_t& state, const Ts... arg
 
     char* ptr = state.buffer;
 
-    memcpy(ptr, &args_count, sizeof(args_count));
+    std::memcpy(ptr, &args_count, sizeof(args_count));
     ptr += sizeof(args_count);
 
     if constexpr (args_count > 0)
     {
-        memcpy(ptr, args_sizeof.data(), args_count * sizeof(args_sizeof[0]));
+        std::memcpy(ptr, args_sizeof.data(), args_count * sizeof(args_sizeof[0]));
         ptr += args_count * sizeof(args_sizeof[0]);
 
-        memcpy(ptr, args_alignof.data(), args_count * sizeof(args_alignof[0]));
+        std::memcpy(ptr, args_alignof.data(), args_count * sizeof(args_alignof[0]));
         ptr += args_count * sizeof(args_alignof[0]);
 
         constexpr size_t max_align = alignof(max_align_t);
@@ -272,7 +272,7 @@ static inline void operation_save_impl(operation_state_t& state, const Ts... arg
         ptr += padding;
 
         size_t i = 0;
-        (memcpy(ptr + args_offsetof[i++], &args, sizeof(args)), ...);
+        (std::memcpy(ptr + args_offsetof[i++], &args, sizeof(args)), ...);
     }
 }
 
@@ -297,15 +297,15 @@ void operation_check_impl(operation_state_t& state, const Ts... args)
 
     char* ptr = state.buffer;
 
-    LLK_ASSERT(memcmp(&args_count, ptr, sizeof(args_count)) == 0, "llk_san: fault: saved vs provided args_count mismatch");
+    LLK_ASSERT(std::memcmp(&args_count, ptr, sizeof(args_count)) == 0, "llk_san: fault: saved vs provided args_count mismatch");
     ptr += sizeof(args_count);
 
     if constexpr (args_count > 0)
     {
-        LLK_ASSERT(memcmp(args_sizeof.data(), ptr, args_count * sizeof(args_sizeof[0])) == 0, "llk_san: fault: saved vs provided args_sizeof mismatch");
+        LLK_ASSERT(std::memcmp(args_sizeof.data(), ptr, args_count * sizeof(args_sizeof[0])) == 0, "llk_san: fault: saved vs provided args_sizeof mismatch");
         ptr += args_count * sizeof(args_sizeof[0]);
 
-        LLK_ASSERT(memcmp(args_alignof.data(), ptr, args_count * sizeof(args_alignof[0])) == 0, "llk_san: fault: saved vs provided args_sizeof mismatch");
+        LLK_ASSERT(std::memcmp(args_alignof.data(), ptr, args_count * sizeof(args_alignof[0])) == 0, "llk_san: fault: saved vs provided args_sizeof mismatch");
         ptr += args_count * sizeof(args_alignof[0]);
 
         constexpr size_t max_align = alignof(max_align_t);
@@ -314,7 +314,7 @@ void operation_check_impl(operation_state_t& state, const Ts... args)
 
         // sstanisic fixme: remove the awful lambda
         size_t i = 0;
-        ([&] { LLK_ASSERT(memcmp(ptr + args_offsetof[i++], &args, sizeof(args)) == 0, "llk_san: panic: saved vs provided args mismatch"); }(), ...);
+        ([&] { LLK_ASSERT(std::memcmp(ptr + args_offsetof[i++], &args, sizeof(args)) == 0, "llk_san: panic: saved vs provided args mismatch"); }(), ...);
     }
 }
 
