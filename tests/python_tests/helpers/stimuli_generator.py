@@ -126,23 +126,11 @@ def calculate_tile_and_face_counts(
     Returns:
         tuple: (tile_cnt_A, tile_cnt_B, faces_to_generate)
     """
-    assert face_r_dim == 16, f"face_r_dim must be 16, got {face_r_dim}"
+    assert (
+        face_r_dim == 16 or face_r_dim == input_dimensions_A[0]
+    ), f"Invalid face_r_dim, got {face_r_dim}"
 
-    # TODO: Add support for 32x16 and 16x32 tiles
-    assert (
-        input_dimensions_A[0] % 32 == 0
-    ), f"input_dimensions_A[0] must be divisible by 32, got {input_dimensions_A[0]}"
-    assert (
-        input_dimensions_A[1] % 32 == 0
-    ), f"input_dimensions_A[1] must be divisible by 32, got {input_dimensions_A[1]}"
-    assert (
-        input_dimensions_B[0] % 32 == 0
-    ), f"input_dimensions_B[0] must be divisible by 32, got {input_dimensions_B[0]}"
-    assert (
-        input_dimensions_B[1] % 32 == 0
-    ), f"input_dimensions_B[1] must be divisible by 32, got {input_dimensions_B[1]}"
-
-    # Handle partial faces - TODO: Verify this logic with actual tests.
+    # Handle partial faces
     if face_r_dim < 16:
         # Partial face case: generate exactly num_faces worth of data
         tile_cnt_A, tile_cnt_B = 1, 1
