@@ -145,6 +145,7 @@ class StimuliConfig:
         base_address: int,
         tile_size: int,
         num_faces: int,
+        tile_elements: int,
         location: str = "0,0",
     ):
         addresses = []
@@ -157,8 +158,8 @@ class StimuliConfig:
         )
 
         for ind in range(tile_count):
-            start_idx = StimuliConfig.TILE_ELEMENTS * ind
-            tile_data = buffer[start_idx : start_idx + StimuliConfig.TILE_ELEMENTS]
+            start_idx = tile_elements * ind
+            tile_data = buffer[start_idx : start_idx + tile_elements]
             packed_data = pack_function_lambda(tile_data)
             addresses.append(base_address + ind * tile_size)
             packed_data_list.append(packed_data)
@@ -176,6 +177,9 @@ class StimuliConfig:
                 f"Unsupported data formats: srcA({self.stimuli_A_format.name}), srcB({self.stimuli_B_format.name})"
             )
 
+        # Calculate tile elements from tile dimensions
+        tile_elements = self.tile_dimensions[0] * self.tile_dimensions[1]
+
         StimuliConfig.write_matrix(
             self.buffer_A,
             self.tile_count_A,
@@ -183,6 +187,7 @@ class StimuliConfig:
             self.buf_a_addr,
             self.tile_size_A_bytes,
             self.num_faces,
+            tile_elements,
             location,
         )
         StimuliConfig.write_matrix(
@@ -192,6 +197,7 @@ class StimuliConfig:
             self.buf_b_addr,
             self.tile_size_B_bytes,
             self.num_faces,
+            tile_elements,
             location,
         )
 
@@ -208,6 +214,7 @@ class StimuliConfig:
                 self.buf_c_addr,
                 self.tile_size_C_bytes,
                 self.num_faces,
+                tile_elements,
                 location,
             )
 
@@ -231,5 +238,6 @@ class StimuliConfig:
             self.sfpu,
             self.num_faces,
             self.face_r_dim,
+            self.tile_dimensions,
         )
         return res_from_L1
