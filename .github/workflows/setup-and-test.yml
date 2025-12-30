@@ -82,9 +82,6 @@ jobs:
         env:
           TEST_SPLITS: ${{ inputs.test_splits }}
         run: |
-          # Setup terminal colors
-          script -q -e -c "export TERM=xterm-256color; bash --noprofile --norc -eo pipefail {0}
-
           CHIP_ARCH=unknown
           if [[ "${{ inputs.runs_on }}" =~ n150 ]]; then
             CHIP_ARCH=wormhole
@@ -119,22 +116,19 @@ jobs:
                 --override-ini="addopts=-v" --tb=short --timeout=60 \
                 --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}-run.xml .
 
-          pip install junitparser
           junitparser merge pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}-compile.xml \
                    pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}-run.xml \
                    pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml
 
           if [[ "${{ inputs.coverage }}" == "true" ]]; then
+            if [ ! -f "/tmp/tt-llk-build/merged_coverage.info" ]; then
+              echo "Error: Coverage file /tmp/tt-llk-build/merged_coverage.info not found." >&2
+              echo "Ensure coverage artefcats was generated!" >&2
+              exit 1
+            fi
             cd ../../
             cp /tmp/tt-llk-build/merged_coverage.info code-coverage-${CHIP_ARCH}-${{ matrix.test_group }}.info
           fi
-
-      - name: Upload code coverage for this runner
-        uses: actions/upload-artifact@v4
-        if: ${{ inputs.coverage }}
-        with:
-          name: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
-          path: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
 
       # Step 4: Zip performance data if perf tests were run
       - name: Zip performance data
@@ -143,6 +137,14 @@ jobs:
         run: |
           zip -r perf_data-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.zip perf_data/
           echo "Performance data zipped successfully"
+
+      # Step 4.1: Upload generated info file per runner
+      - name: Upload code coverage for this runner
+        uses: actions/upload-artifact@v4
+        if: ${{ inputs.coverage }}
+        with:
+          name: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
+          path: code-coverage-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}.info
 
       # Step 5: Upload performance data
       - name: Upload performance data
