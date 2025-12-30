@@ -21,6 +21,7 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     MATH_TRANSPOSE_FACES,
+    NUM_FACES,
     TILE_COUNT,
     UNPACK_TRANS_FACES,
 )
@@ -196,6 +197,7 @@ def transpose_dest(
                 else Transpose.No
             ),
             TILE_COUNT(tile_cnt_A),
+            NUM_FACES(),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
