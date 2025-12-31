@@ -97,12 +97,12 @@ inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, co
     _llk_unpack_untilize_mop_config_();
 }
 
-inline void _llk_unpack_untilize_uninit_(const std::uint32_t unpack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM)
+inline void _llk_unpack_untilize_uninit_(const std::uint32_t unpack_dst_format, const std::uint32_t face_r_dim)
 {
     std::uint32_t unpA_ch1_x_stride = (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
                                       : (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
                                                                                                      : 1;
-    std::uint32_t unpA_ch1_y_stride = FACE_C_DIM * FACE_R_DIM * unpA_ch1_x_stride;
+    std::uint32_t unpA_ch1_y_stride = FACE_C_DIM * face_r_dim * unpA_ch1_x_stride;
 
     // Check that unpacker is done (all contexts freed up) before starting hw configuration
     wait_for_idle();
@@ -113,7 +113,7 @@ inline void _llk_unpack_untilize_uninit_(const std::uint32_t unpack_dst_format, 
     // Wait for cfg to be free to edit
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK);
 
-    // Reset the values to default in unpack AB common.
+    // TODO NC: Issue tt-llk#1036 will make this transient
     TT_SETADCXX(p_setadc::UNP_A, face_r_dim * FACE_C_DIM - 1, 0x0);
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
     TTI_WRCFG(p_gpr_unpack::FACE_DIM_16x16, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
