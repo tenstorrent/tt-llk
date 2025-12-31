@@ -117,7 +117,7 @@ Specifies which unpacker to use. Options:
 
 - **`"UnpackerTilizeA"`** - Unpacks and tilizes the `src_a` operand by converting row-major data to tilized format during unpacking. It's compatible with `Datacopy`.
 
-- **`"MatmulUnpacker"`** - Specialized unpacker for matrix multiplication that unpacks both operands with matmul-specific layout. This is required for the `Matmul` FPU operation and is not compatible with `Datacopy` or element-wise FPU operations.
+- **`"MatmulUnpacker"`** - Specialized unpacker for matrix multiplication that unpacks both operands with matmul specific layout. This is required for the `Matmul` FPU operation and is not compatible with `Datacopy` or element-wise FPU operations.
 
 **Compatibility Matrix:**
 
@@ -255,23 +255,23 @@ Specifies which packer to use. Options:
 ### Hardware Configuration
 
 #### `dest_acc` (string, required)
-Controls whether dest operates in 32-bit accumulation mode. When set to `"Yes"`, dest operates in 32-bit format, which is required when using 32-bit data formats like `Float32`. When set to `"No"` (the default), dest operates in 16-bit format. The available dest tile capacity depends on this setting—see the dest tile capacity table below.
+Controls whether dest operates in 32-bit accumulation mode. When set to `"Yes"`, dest operates in 32-bit format, which is required when using 32-bit data formats like `Float32`. When set to `"No"` (the default), dest operates in 16-bit format. The available dest tile capacity depends on this setting. See the dest tile capacity table below.
 
 **Important:** The `dest_acc` setting cannot be changed in the middle of kernel execution. All operations in a fused pipeline must use the same `dest_acc` setting. If any operation uses a 32-bit data format, `dest_acc` must be set to `"Yes"` for all operations.
 
 #### `dest_sync` (string, optional)
 Controls the synchronization mode between the math unit and packer. When set to `"Half"` (the default), dest operates in half synchronization mode (double buffering), where the math unit and packer can work on different halves of dest simultaneously. When set to `"Full"`, dest operates in full synchronization mode (single buffering), where the math unit and packer share the full dest space without overlap.
 
-**Important:** Due to the synchronization between unpacker and packer (the unpacker waits for the packer from the previous operation to finish), `dest_sync` does not impact overall pipeline performance—it only affects dest capacity.
+**Important:** Due to the synchronization between unpacker and packer (the unpacker waits for the packer from the previous operation to finish), `dest_sync` does not impact overall pipeline performance. It only affects dest capacity.
 
 **Dest Tile Capacity:**
 
 The available dest tile capacity depends on both `dest_sync` and `dest_acc` settings:
 
-| `dest_sync`        | `dest_acc: "No"` (16-bit, default) | `dest_acc: "Yes"` (32-bit) |
-|--------------------|------------------------------------|----------------------------|
-| `"Half"` (default) | 8 tiles                            | 4 tiles                    |
-| `"Full"`           | 16 tiles                           | 8 tiles                    |
+| Dest Capacity                 | `dest_acc: "No"` (16-bit, default) | `dest_acc: "Yes"` (32-bit) |
+|-------------------------------|------------------------------------|----------------------------|
+| `dest_sync: "Half"` (default) | 8 tiles                            | 4 tiles                    |
+| `dest_sync: "Full"`           | 16 tiles                           | 8 tiles                    |
 
 #### `math_fidelity` (string, required)
 Controls the precision/speed tradeoff for math operations. Available settings are `"LoFi"`, `"HiFi2"`, `"HiFi3"`, and `"HiFi4"`. Higher fidelity settings provide greater precision at the cost of slower execution. The actual impact depends on the specific operation.
