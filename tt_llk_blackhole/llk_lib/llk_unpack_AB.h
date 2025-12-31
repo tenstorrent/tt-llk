@@ -94,8 +94,9 @@ inline void _llk_unpack_AB_init_(
     _llk_unpack_AB_mop_config_<BType>(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
 }
 
-inline void _llk_unpack_AB_uninit_(const std::uint32_t unpA_face_r_dim = FACE_R_DIM, const std::uint32_t unpB_face_r_dim = FACE_R_DIM)
+inline void _llk_unpack_AB_uninit_(const std::uint32_t unpA_face_r_dim, const std::uint32_t unpB_face_r_dim)
 {
+    // TODO NC: Issue tt-llk#1036 will make this transient
     TT_SETADCXX(p_setadc::UNP_A, unpA_face_r_dim * FACE_C_DIM - 1, 0x0);
     TT_SETADCXX(p_setadc::UNP_B, unpB_face_r_dim * FACE_C_DIM - 1, 0x0);
 }
