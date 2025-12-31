@@ -230,7 +230,7 @@ jobs:
       mirrored_branch: ${{ needs.setup-branch.outputs.branch-to-run }}
       run_all_post_commit: ${{ needs.detect-changes.outputs.run-wormhole == 'true' }}
       run_blackhole_post_commit: ${{ needs.detect-changes.outputs.run-blackhole == 'true' }}
-      workflow_timeout: 360
+      workflow_timeout: 720
 
   post-comment:
     name: "💬 Post workflow status comment"
