@@ -59,18 +59,31 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_(formats.math, formats.math);
-    _llk_math_wait_for_dest_available_<dest_sync>();
-    for (int i = 0; i < params->TILE_CNT; ++i)
+
+    uint32_t dest_tile_capacity = is_fp32_dest_acc_en ? (dest_sync == DstSync::Full ? 8 : 4) : (dest_sync == DstSync::Full ? 16 : 8);
+    ;
+
+    // Calculate total iterations needed to process all tiles in dest capacity chunks
+    uint32_t number_of_tile_chunks = (params->TILE_CNT + dest_tile_capacity - 1) / dest_tile_capacity;
+
+    for (int i = 0; i < number_of_tile_chunks; ++i)
     {
+        _llk_math_wait_for_dest_available_<dest_sync>();
+
+        uint32_t num_tiles_this_chunk = (i == number_of_tile_chunks - 1) ? (params->TILE_CNT - i * dest_tile_capacity) : dest_tile_capacity;
+
+        for (int j = 0; j < num_tiles_this_chunk; ++j)
+        {
 #ifdef ARCH_BLACKHOLE
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-            params->DST_INDEX + i, formats.math, formats.math, params->num_faces);
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                params->DST_INDEX + j, formats.math, formats.math, params->num_faces);
 #else
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-            params->DST_INDEX + i, formats.math, formats.math);
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                params->DST_INDEX + j, formats.math, formats.math);
 #endif
+        }
+        _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
-    _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 
 #endif
@@ -93,12 +106,24 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, params->num_faces);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, false>();
 #endif
-    _llk_packer_wait_for_math_done_();
 
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    uint32_t dest_tile_capacity = is_fp32_dest_acc_en ? (dest_sync == DstSync::Full ? 8 : 4) : (dest_sync == DstSync::Full ? 16 : 8);
+    ;
+
+    // Calculate total iterations needed to process all tiles in dest capacity chunks
+    uint32_t number_of_tile_chunks = (params->TILE_CNT + dest_tile_capacity - 1) / dest_tile_capacity;
+
+    for (int i = 0; i < number_of_tile_chunks; ++i)
     {
-        _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(params->DST_INDEX + i, L1_ADDRESS(buffer_Res[i]));
+        _llk_packer_wait_for_math_done_();
+
+        uint32_t num_tiles_this_chunk = (i == number_of_tile_chunks - 1) ? (params->TILE_CNT - i * dest_tile_capacity) : dest_tile_capacity;
+
+        for (int j = 0; j < num_tiles_this_chunk; ++j)
+        {
+            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(params->DST_INDEX + j, L1_ADDRESS(buffer_Res[i * dest_tile_capacity + j]));
+        }
+        _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
-    _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 #endif
