@@ -153,8 +153,8 @@ template <DstTileShape tile_shape, UnpackDestination unpack_destination>
 inline void set_dst_write_addr(uint32_t tile_index)
 {
     static_assert(
-        TILE_SHAPE == ckernel::trisc::DstTileShape::Tile32x32 || TILE_SHAPE == ckernel::trisc::DstTileShape::Tile32x16 ||
-            TILE_SHAPE == ckernel::trisc::DstTileShape::Tile16x16,
+        tile_shape == ckernel::trisc::DstTileShape::Tile32x32 || tile_shape == ckernel::trisc::DstTileShape::Tile32x16 ||
+            tile_shape == ckernel::trisc::DstTileShape::Tile16x16,
         "Invalid tile shape");
     uint dst_index = tile_index << DstTileSizeLog2[tile_shape];
     dst_index      = dst_index + get_dest_buffer_base();
