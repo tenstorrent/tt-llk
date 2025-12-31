@@ -22,12 +22,13 @@ namespace sfpu
  * @tparam is_fp32_dest_acc_en Whether Dest is in 32bit mode (true) or 16bit mode (false).
  * @tparam ITERATIONS The number of iterations to perform (unused).
  * @tparam layout Data layout format, either TILE (default) or ROW_MAJOR.
+ * @tparam accumulate Whether to accumulate results for large kernels (default is false).
  * @param values_tile_idx The index of the tile in the Dest register containing the data to be reduced.
  * @param indices_tile_idx The index of the tile in the Dest register containing the indices of the data.
- * @param tile_idx Unused param, needed to conform with format in _llk_math_eltwise_binary_sfpu_params_.
+ * @param chunk The chunk index for large kernel accumulation
  */
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS = 8, ckernel::DataLayout layout = ckernel::DataLayout::TILE>
-inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
+template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS = 8, ckernel::DataLayout layout = ckernel::DataLayout::TILE, bool accumulate = false>
+inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const uint indices_tile_idx, const uint chunk)
 {
     // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size   = 64;
@@ -95,6 +96,7 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
     }
     else
     {
+        static_assert(!accumulate, "accumulate mode is not supported for TILE layout");
         // TILE (ORIGINAL) VERSION OF MPWI
         // F0
         // data
@@ -166,20 +168,23 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
  * @tparam APPROXIMATION_MODE Whether to use the approximation mode (unused).
  * @tparam is_fp32_dest_acc_en Whether Dest is in 32bit mode (true) or 16bit mode (false).
  * @tparam ITERATIONS The number of iterations to use for the MaxPool operation (unused).
+ * @tparam accumulate Whether to accumulate results for large kernels (default is false).
  * @param values_tile_idx The index of the tile in the Dest register containing the data to be reduced.
  * @param indices_tile_idx The index of the tile in the Dest register containing the indices of the data.
- * @param tile_idx Unused param, needed to conform with format in _llk_math_eltwise_binary_sfpu_params_.
+ * @param chunk The chunk index for large kernel accumulation
  *
  * Note this function is only implemented for ROW_MAJOR data layout, so when _init_max_pool_with_indices_ is called
  * it must be called with layout=DataLayout::ROW_MAJOR.
  */
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
-inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
+template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool accumulate>
+inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx, const uint indices_tile_idx, const uint chunk)
 {
     // size of each tile in Dest is 64 rows
     constexpr uint dst_tile_size   = 64;
     const uint values_tile_offset  = values_tile_idx * dst_tile_size;
     const uint indices_tile_offset = indices_tile_idx * dst_tile_size;
+    const uint values_accum_tile_offset = (values_tile_idx + 1) * dst_tile_size;
+    const uint indices_accum_tile_offset = (indices_tile_idx + 1) * dst_tile_size;
     // each face is 16 rows
     constexpr uint eight_row_offset   = 16;
     constexpr uint sixteen_row_offset = 32;
@@ -285,13 +290,26 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
     process_16_rows(sixteen_row_offset, odd_column_offset);
 
     // Final swap
-    auto final_swap = [values_tile_offset, indices_tile_offset, sixteen_row_offset, instr_mod_index](const uint col_offset) __attribute__((always_inline))
+    auto final_swap = [values_tile_offset, indices_tile_offset, values_accum_tile_offset, indices_accum_tile_offset, sixteen_row_offset, instr_mod_index, chunk](const uint col_offset) __attribute__((always_inline))
     {
         TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + col_offset); // Max(R0-15) for F0,1
         TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, indices_tile_offset + col_offset);
         TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + sixteen_row_offset + col_offset); // Max(R16-31) for F0,1
         TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_7, indices_tile_offset + sixteen_row_offset + col_offset);
         TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX); // LREG0 contains Max(R0-31) for F0,1
+
+        if constexpr (accumulate) {
+            if (chunk > 0) { // for all but the first chunk we need to load the previous result from DST 1 and 3 and do a max with the current result in DST 0 and 2
+                TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_accum_tile_offset + col_offset); // previous accumulated value
+                TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_7, indices_accum_tile_offset + col_offset); // previous accumulated index
+                TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX); // LREG0 contains max of current and previous value
+            }
+            // for each chunk we store the running result to DST 1 and 3
+            TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, indices_accum_tile_offset + col_offset);
+            TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_accum_tile_offset + col_offset);
+        }
+
+        // store the final result to DST 0 (data) and DST 2 (indexes)
         TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, indices_tile_offset + col_offset);
         TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + col_offset);
     };
