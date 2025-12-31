@@ -146,6 +146,8 @@ def parse_math_operation(
         fpu = DatacopyFpu()
     elif fpu_type == "Matmul":
         fpu = MatmulFpu()
+    else:
+        raise ValueError(f"Unsupported FPU type: {fpu_type}")
 
     sfpu_ops = []
     if "sfpu" in math_config:
@@ -181,6 +183,8 @@ def parse_math_operation(
                         dst_dest_tile_index,
                     )
                 )
+            else:
+                raise ValueError(f"Unsupported SFPU type: {sfpu_type}")
 
     return Math(fpu, sfpu_ops)
 
@@ -188,19 +192,49 @@ def parse_math_operation(
 def parse_operation(
     op_config: Dict[str, Any], operands: OperandRegistry
 ) -> FusedOperation:
+    input_format_name = op_config.get("input_format", "Float16_b")
+    input_format = DATA_FORMAT_MAP.get(input_format_name)
+    if input_format is None:
+        raise ValueError(
+            f"Invalid input_format '{input_format_name}'. "
+            f"Expected one of: {list(DATA_FORMAT_MAP.keys())}"
+        )
+    output_format_name = op_config.get("output_format", "Float16_b")
+    output_format = DATA_FORMAT_MAP.get(output_format_name)
+    if output_format is None:
+        raise ValueError(
+            f"Invalid output_format '{output_format_name}'. "
+            f"Expected one of: {list(DATA_FORMAT_MAP.keys())}"
+        )
     operand_mapping = operands.create_mapping(
         src_a=op_config["src_a"],
         src_b=op_config["src_b"],
         output=op_config["output"],
         src_a_dims=op_config.get("src_a_dims", [32, 32]),
         src_b_dims=op_config.get("src_b_dims", [32, 32]),
-        input_format=DATA_FORMAT_MAP[op_config.get("input_format", "Float16_b")],
-        output_format=DATA_FORMAT_MAP[op_config.get("output_format", "Float16_b")],
+        input_format=input_format,
+        output_format=output_format,
     )
 
-    unpacker = UNPACKER_MAP[op_config.get("unpacker", "UnpackerA")]
+    unpacker_name = op_config.get("unpacker", "UnpackerA")
+    unpacker = UNPACKER_MAP.get(unpacker_name)
+    if unpacker is None:
+        valid_unpackers = ", ".join(UNPACKER_MAP.keys())
+        raise ValueError(
+            f"Invalid unpacker '{unpacker_name}' in operation config. "
+            f"Valid unpackers are: {valid_unpackers}"
+        )
+
     math = parse_math_operation(op_config.get("math", {}), operands)
-    packer = PACKER_MAP[op_config.get("packer", "Packer")]
+
+    packer_name = op_config.get("packer", "Packer")
+    packer = PACKER_MAP.get(packer_name)
+    if packer is None:
+        valid_packers = ", ".join(PACKER_MAP.keys())
+        raise ValueError(
+            f"Invalid packer {packer_name} in operation config. "
+            f"Valid packers are: {valid_packers}"
+        )
 
     kwargs = {}
 
