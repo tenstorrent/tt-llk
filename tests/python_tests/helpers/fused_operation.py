@@ -190,7 +190,7 @@ class FusedOperation:
 
     def pack(self) -> str:
         packer_instance = self.packer()
-        return packer_instance.pack(self)
+        return packer_instance.exec(self)
 
     def golden(self) -> torch.Tensor:
         # calculate l1 golden

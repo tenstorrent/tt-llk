@@ -17,13 +17,14 @@ from helpers.fused_math import (
 )
 from helpers.fused_operand import OperandRegistry
 from helpers.fused_operation import FusedOperation
-from helpers.fused_packer import Packer
+from helpers.fused_packer import Packer, PackerUntilize
 from helpers.fused_unpacker import (
     MatmulUnpacker,
     Unpacker,
     UnpackerA,
     UnpackerAB,
     UnpackerTilizeA,
+    UnpackerUntilizeA,
 )
 from helpers.llk_params import (
     ApproximationMode,
@@ -38,11 +39,13 @@ UNPACKER_MAP: Dict[str, Type[Unpacker]] = {
     "UnpackerA": UnpackerA,
     "UnpackerAB": UnpackerAB,
     "UnpackerTilizeA": UnpackerTilizeA,
+    "UnpackerUntilizeA": UnpackerUntilizeA,
     "MatmulUnpacker": MatmulUnpacker,
 }
 
 PACKER_MAP: Dict[str, Type[Packer]] = {
     "Packer": Packer,
+    "PackerUntilize": PackerUntilize,
 }
 
 DATA_FORMAT_MAP: Dict[str, DataFormat] = {

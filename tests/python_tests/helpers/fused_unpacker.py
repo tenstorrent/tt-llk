@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 from .chip_architecture import ChipArchitecture
 from .golden_generators import TransposeGolden, get_golden_generator
 from .llk_params import Transpose
-from .tilize_untilize import tilize_block
+from .tilize_untilize import tilize_block, untilize_block
 
 
 class Unpacker:
@@ -389,5 +389,61 @@ class UnpackerTilizeA(Unpacker):
 
         else:
             raise ValueError("Architecture is not supported")
+
+        return code
+
+
+class UnpackerUntilizeA(Unpacker):
+    """
+    TODO:
+        Implement `uninit` for this operation. Until then, this unpacker must
+        be the last unpack in the sequence; no subsequent unpack operations are allowed.
+    """
+
+    def get_headers(self) -> List[str]:
+        return [
+            "llk_unpack_common.h",
+            "llk_unpack_untilize.h",
+        ]
+
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "FusedOperation",
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        untilized_a = untilize_block(
+            tensor_a,
+            operation_config.src_a.data_format,
+            operation_config.src_a.dimensions,
+        )
+
+        return untilized_a, tensor_b
+
+    def uninit(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        architecture = operation_config.architecture
+        face_r_dim = operation_config.face_r_dim
+        if architecture == ChipArchitecture.WORMHOLE:
+            return f"    _llk_unpack_untilize_uninit_<true>({face_r_dim}, {face_r_dim * 2});\n\n"
+        else:
+            return "\n"
+
+    def unpack(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        face_r_dim = operation_config.face_r_dim
+        tile_size = operation_config.tile_size_unpack_a
+        full_ct_dim = operation_config.full_ct_dim
+        tile_cnt = operation_config.src_a.tile_count
+
+        code = f"    _llk_unpack_untilize_init_(unpack_a_dst_format{stage}, {tile_size}, {face_r_dim}, true);\n"
+
+        code += (
+            f"    for (uint32_t tile = 0; tile < {tile_cnt}; tile += {full_ct_dim})\n"
+            f"    {{\n"
+            f"        _llk_unpack_untilize_pass_<true>(L1_ADDRESS(buffer_A{stage}[tile]), {full_ct_dim});\n"
+            f"        _llk_unpack_untilize_pass_<false>(L1_ADDRESS(buffer_A{stage}[tile]), {full_ct_dim});\n"
+            f"    }}\n"
+        )
 
         return code
