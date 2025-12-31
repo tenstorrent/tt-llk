@@ -31,7 +31,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }
-    for (int i = 0; i < TILE_CNT; ++i)
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_set_srcb_dummy_valid_();
     }
@@ -74,7 +74,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is32>();
 
-    for (int i = 0; i < TILE_CNT; ++i)
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
 #ifdef ARCH_BLACKHOLE
         _llk_math_transpose_dest_<is_fp32_dest_acc_en, MATH_TRANSPOSE_FACES, is32>(i);
