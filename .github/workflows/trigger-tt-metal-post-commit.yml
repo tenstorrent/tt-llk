@@ -368,13 +368,13 @@ jobs:
               result="⚪ Not run"
             # Handle timeout status (check this first, even if workflow didn't complete normally)
             elif [ "$status" = "timeout" ]; then
-              if [ -n "$url" ] && [ "$url" != "" ]; then
+              if [ -n "$url" ]; then
                 result="⏰ **Timed out** - [View run]($url)"
               else
                 result="⏰ **Timed out** - Workflow exceeded timeout limit"
               fi
             # Handle cases where we have a status from the workflow output
-            elif [ -n "$status" ] && [ "$status" != "" ]; then
+            elif [ -n "$status" ]; then
               case "$status" in
                 "success")
                   result="🎯 Passed - [View run]($url)"
@@ -388,19 +388,22 @@ jobs:
               esac
             # Handle workflow-level failures (when status is not available but workflow failed)
             elif [ "$workflow_result" = "failure" ]; then
-              if [ -n "$url" ] && [ "$url" != "" ]; then
+              if [ -n "$url" ]; then
                 result="🛑 Workflow Failed - [View run]($url)"
               else
                 result="🛑 Workflow Failed - Check logs for details"
               fi
             # Handle workflow cancellation or timeout at workflow level
             elif [ "$workflow_result" = "cancelled" ]; then
-              result="🚫 Workflow Cancelled"
+              if [ -n "$url" ]; then
+                result="🚫 Workflow Cancelled - [View run]($url)"
+              else
+                result="🚫 Workflow Cancelled - Check logs for details"
+              fi
             elif [ "$workflow_result" != "success" ] && \
-                 [ "$workflow_result" != "failure" ] && \
-                 [ "$workflow_result" != "" ]; then
+                 [ "$workflow_result" != "failure" ]; then
               # Workflow completed with an unexpected status (e.g., timed_out)
-              if [ -n "$url" ] && [ "$url" != "" ]; then
+              if [ -n "$url" ]; then
                 result="⚠️ Workflow $workflow_result - [View run]($url)"
               else
                 result="⚠️ Workflow $workflow_result - Check logs for details"
