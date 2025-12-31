@@ -113,6 +113,11 @@ def perf_report(request, worker_id):
     temp_report.dump_csv(f"{test_module}.{worker_id}.post.csv")
 
 
+@pytest.fixture
+def regenerate_cpp(request):
+    return not request.config.getoption("--skip-codegen")
+
+
 def pytest_configure(config):
     compile_producer = config.getoption("--compile-producer", default=False)
     compile_consumer = config.getoption("--compile-consumer", default=False)
@@ -123,6 +128,9 @@ def pytest_configure(config):
     TestConfig.setup_build(
         Path(os.environ["LLK_HOME"]), with_coverage, detailed_artefacts
     )
+
+    # Create directories from all processes - lock in create_directories handles race
+    TestConfig.create_build_directories()
 
     log_file = "pytest_errors.log"
     if not hasattr(config, "workerinput"):
@@ -265,6 +273,13 @@ def pytest_addoption(parser):
         "--detailed-artefacts",
         action="store_true",
         help="Insert few more compilation flags to produce binary artefacts suitable for debugging",
+    )
+
+    parser.addoption(
+        "--skip-codegen",
+        action="store_true",
+        default=False,
+        help="Skip C++ code generation for fused tests and use existing files",
     )
 
 
