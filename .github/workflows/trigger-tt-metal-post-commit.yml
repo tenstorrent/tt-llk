@@ -361,24 +361,49 @@ jobs:
             local url="$4"
             local workflow_result="$5"
 
-            if [ "$workflow_result" != "success" ] && [ "$workflow_result" != "failure" ]; then
-              echo ""
-              return
-            fi
-
             local result=""
+            
+            # Handle cases where test was not run
             if [ "$run_flag" != "true" ]; then
               result="⚪ Not run"
-            elif [ "$status" = "success" ]; then
-              result="🎯 Passed - [View run]($url)"
-            elif [ "$status" = "failure" ]; then
-              result="🛑 Failed - [View run]($url)"
+            # Handle timeout status (check this first, even if workflow didn't complete normally)
             elif [ "$status" = "timeout" ]; then
-              result="⏰ Timed out - [View run]($url)"
-            elif [ -n "$status" ]; then
-              result="⚪ $status - [View run]($url)"
+              if [ -n "$url" ] && [ "$url" != "" ]; then
+                result="⏰ **Timed out** - [View run]($url)"
+              else
+                result="⏰ **Timed out** - Workflow exceeded timeout limit"
+              fi
+            # Handle cases where we have a status from the workflow output
+            elif [ -n "$status" ] && [ "$status" != "" ]; then
+              case "$status" in
+                "success")
+                  result="🎯 Passed - [View run]($url)"
+                  ;;
+                "failure")
+                  result="🛑 Failed - [View run]($url)"
+                  ;;
+                *)
+                  result="⚪ $status - [View run]($url)"
+                  ;;
+              esac
+            # Handle workflow-level failures (when status is not available but workflow failed)
             elif [ "$workflow_result" = "failure" ]; then
-              result="🛑 Workflow Failed - Check logs for details"
+              if [ -n "$url" ] && [ "$url" != "" ]; then
+                result="🛑 Workflow Failed - [View run]($url)"
+              else
+                result="🛑 Workflow Failed - Check logs for details"
+              fi
+            # Handle workflow cancellation or timeout at workflow level
+            elif [ "$workflow_result" = "cancelled" ]; then
+              result="🚫 Workflow Cancelled"
+            elif [ "$workflow_result" != "success" ] && [ "$workflow_result" != "failure" ] && [ "$workflow_result" != "" ]; then
+              # Workflow completed with an unexpected status (e.g., timed_out)
+              if [ -n "$url" ] && [ "$url" != "" ]; then
+                result="⚠️ Workflow $workflow_result - [View run]($url)"
+              else
+                result="⚠️ Workflow $workflow_result - Check logs for details"
+              fi
+            # Default case - workflow still running or unknown state
             else
               result="⏳ Running..."
             fi
