@@ -74,12 +74,13 @@ TRANSPOSE_MAP: Dict[str, Transpose] = {
     "No": Transpose.No,
 }
 
-MATH_OPERATION_MAP: Dict[str, MathOperation] = {
-    # FPU BINARY OPERATIONS
+FPU_OPERATION_MAP: Dict[str, MathOperation] = {
     "Elwadd": MathOperation.Elwadd,
     "Elwmul": MathOperation.Elwmul,
     "Elwsub": MathOperation.Elwsub,
-    # SFPU UNARY OPERATIONS
+}
+
+SFPU_UNARY_OPERATION_MAP: Dict[str, MathOperation] = {
     "Abs": MathOperation.Abs,
     "Acosh": MathOperation.Acosh,
     "Asinh": MathOperation.Asinh,
@@ -103,7 +104,9 @@ MATH_OPERATION_MAP: Dict[str, MathOperation] = {
     "Sqrt": MathOperation.Sqrt,
     "Square": MathOperation.Square,
     "Threshold": MathOperation.Threshold,
-    # SFPU BINARY OPERATIONS
+}
+
+SFPU_BINARY_OPERATION_MAP: Dict[str, MathOperation] = {
     "SfpuElwadd": MathOperation.SfpuElwadd,
     "SfpuElwmul": MathOperation.SfpuElwmul,
     "SfpuElwsub": MathOperation.SfpuElwsub,
@@ -112,10 +115,14 @@ MATH_OPERATION_MAP: Dict[str, MathOperation] = {
     "SfpuElwLogicalRightShift": MathOperation.SfpuElwLogicalRightShift,
     "SfpuXlogy": MathOperation.SfpuXlogy,
     "SfpuAddTopRow": MathOperation.SfpuAddTopRow,
-    # SFPU TERNARY OPERATIONS
+}
+
+SFPU_TERNARY_OPERATION_MAP: Dict[str, MathOperation] = {
     "SfpuWhere": MathOperation.SfpuWhere,
     "TTNNWhere": MathOperation.TTNNWhere,
-    # REDUCE OPERATIONS
+}
+
+REDUCE_OPERATION_MAP: Dict[str, MathOperation] = {
     "ReduceColumn": MathOperation.ReduceColumn,
     "ReduceRow": MathOperation.ReduceRow,
     "ReduceScalar": MathOperation.ReduceScalar,
@@ -132,8 +139,8 @@ def parse_math_operation(
 ) -> Math:
     fpu_type = math_config.get("fpu", "Datacopy")
 
-    if fpu_type in MATH_OPERATION_MAP:
-        math_op = MATH_OPERATION_MAP[fpu_type]
+    if fpu_type in FPU_OPERATION_MAP:
+        math_op = FPU_OPERATION_MAP[fpu_type]
         fpu = EltwiseFpu(math_op)
     elif fpu_type == "Datacopy":
         fpu = DatacopyFpu()
@@ -146,7 +153,7 @@ def parse_math_operation(
             sfpu_type = sfpu_config.get("type")
 
             if sfpu_type == "UnarySfpu":
-                operation = MATH_OPERATION_MAP[sfpu_config["operation"]]
+                operation = SFPU_UNARY_OPERATION_MAP[sfpu_config["operation"]]
                 approx_mode = APPROXIMATION_MODE_MAP.get(
                     sfpu_config.get("approximation_mode", "No"), ApproximationMode.No
                 )
@@ -155,7 +162,7 @@ def parse_math_operation(
                 sfpu_ops.append(UnarySfpu(operation, approx_mode, iterations))
 
             elif sfpu_type == "BinarySfpu":
-                operation = MATH_OPERATION_MAP[sfpu_config["operation"]]
+                operation = SFPU_BINARY_OPERATION_MAP[sfpu_config["operation"]]
                 approx_mode = APPROXIMATION_MODE_MAP.get(
                     sfpu_config.get("approximation_mode", "No"), ApproximationMode.No
                 )
