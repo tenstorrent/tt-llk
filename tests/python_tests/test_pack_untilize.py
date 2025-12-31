@@ -18,8 +18,11 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 
-def get_block_ct_dim(full_ct_dim, dest_acc):
+def get_block_ct_dim(full_ct_dim, dest_acc, dst_sync):
     max_bct = 4 if dest_acc == DestAccumulation.Yes else 8
+
+    if dst_sync == DstSync.SyncFull:
+        max_bct *= 2
 
     for bct in range(
         max_bct, 0, -1
@@ -42,7 +45,7 @@ def get_block_ct_dim(full_ct_dim, dest_acc):
         ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    input_dimensions=[[64, 288]],
+    input_dimensions=[[64, 288], [32, 128], [128, 128], [32, 64]],
     dst_sync=[DstSync.SyncHalf, DstSync.SyncFull],
 )
 def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync):
@@ -96,7 +99,7 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
         "unpack_to_dest": False,
         "dest_acc": dest_acc,
         "dst_sync": dst_sync,
-        "block_ct_dim": get_block_ct_dim(input_dimensions[1] // 32, dest_acc),
+        "block_ct_dim": get_block_ct_dim(input_dimensions[1] // 32, dest_acc, dst_sync),
         "num_faces": 4,
     }
 
