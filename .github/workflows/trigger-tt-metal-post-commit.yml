@@ -362,7 +362,7 @@ jobs:
             local workflow_result="$5"
 
             local result=""
-            
+
             # Handle cases where test was not run
             if [ "$run_flag" != "true" ]; then
               result="⚪ Not run"
@@ -396,7 +396,9 @@ jobs:
             # Handle workflow cancellation or timeout at workflow level
             elif [ "$workflow_result" = "cancelled" ]; then
               result="🚫 Workflow Cancelled"
-            elif [ "$workflow_result" != "success" ] && [ "$workflow_result" != "failure" ] && [ "$workflow_result" != "" ]; then
+            elif [ "$workflow_result" != "success" ] && \
+                 [ "$workflow_result" != "failure" ] && \
+                 [ "$workflow_result" != "" ]; then
               # Workflow completed with an unexpected status (e.g., timed_out)
               if [ -n "$url" ] && [ "$url" != "" ]; then
                 result="⚠️ Workflow $workflow_result - [View run]($url)"
