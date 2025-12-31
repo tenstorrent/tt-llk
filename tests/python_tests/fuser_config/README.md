@@ -172,7 +172,7 @@ sfpu:
 The `type` field must be set to `"UnarySfpu"`.
 
 The `operation` field specifies which unary SFPU operation to perform. Available operations include:
-  - **Activation Functions**: `"Gelu"`, `"Relu"`, `"ReluMax"`, `"ReluMin"`, `"Silu"`, `"Elu"`, `"Celu"`, `"Hardsigmoid"`
+  - **Activation Functions**: `"Gelu"`, `"ReluMax"`, `"ReluMin"`, `"Silu"`, `"Elu"`, `"Celu"`, `"Hardsigmoid"`
   - **Trigonometric**: `"Sin"`, `"Cos"`
   - **Hyperbolic**: `"Asinh"`, `"Acosh"`, `"Atanh"`
   - **Exponential/Logarithmic**: `"Exp"`, `"Exp2"`, `"Log"`
