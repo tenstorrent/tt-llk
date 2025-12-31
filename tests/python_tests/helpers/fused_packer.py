@@ -85,7 +85,7 @@ class Packer:
         tile_cnt = operation_config.output.tile_count
         dest_acc = operation_config.dest_acc
         dest_acc_value = dest_acc.value
-        bh_tilize = operation_config.bh_tilize.value
+        bh_tilize = "true" if operation_config.bh_tilize.value else "false"
         face_r_dim = operation_config.face_r_dim
         num_faces = operation_config.num_faces
 

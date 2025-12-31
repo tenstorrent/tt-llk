@@ -436,7 +436,7 @@ class UnpackerUntilizeA(Unpacker):
         full_ct_dim = operation_config.full_ct_dim
         tile_cnt = operation_config.src_a.tile_count
 
-        code = f"    _llk_unpack_untilize_init_(unpack_a_dst_format{stage}, {tile_size}, {face_r_dim}, true);\n"
+        code = f"    _llk_unpack_untilize_init_(unpack_a_dst_format{stage}, {tile_size}, {face_r_dim});\n"
 
         code += (
             f"    for (uint32_t tile = 0; tile < {tile_cnt}; tile += {full_ct_dim})\n"
