@@ -397,7 +397,7 @@ To run all tests, execute the following command from the `tests/python_tests/` d
 pytest fused_test.py
 ```
 
-This command runs all YAML configuration files from the `tests/python_tests/fuser_config/` directory. For each test, it generates corresponding C++ code in `tests/sources/fused_test/`.
+This command runs all YAML configuration files from the `tests/python_tests/fuser_config/` directory. For each test, it generates corresponding C++ code in `tests/sources/fused_tests/`.
 
 ### Running a Specific Test
 
@@ -407,7 +407,7 @@ To run a specific test, use the test name (YAML filename without extension) as a
 pytest fused_test.py::test_fused[example]
 ```
 
-This command runs only `example.yaml` from the `tests/python_tests/fuser_config/` directory and generates `tests/sources/fused_test/example.cpp`.
+This command runs only `example.yaml` from the `tests/python_tests/fuser_config/` directory and generates `tests/sources/fused_tests/example.cpp`.
 
 ### Debugging with Manual C++ Edits
 
