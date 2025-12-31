@@ -153,9 +153,7 @@ template <DstTileShape tile_shape, UnpackDestination unpack_destination>
 inline void set_dst_write_addr(uint32_t tile_index)
 {
     static_assert(
-        tile_shape == ckernel::trisc::DstTileShape::Tile32x32 || tile_shape == ckernel::trisc::DstTileShape::Tile32x16 ||
-            tile_shape == ckernel::trisc::DstTileShape::Tile16x16,
-        "Invalid tile shape");
+        tile_shape == DstTileShape::Tile32x32 || tile_shape == DstTileShape::Tile32x16 || tile_shape == DstTileShape::Tile16x16, "Invalid tile shape");
     uint dst_index = tile_index << DstTileSizeLog2[tile_shape];
     dst_index      = dst_index + get_dest_buffer_base();
     LLK_ASSERT(dst_index < DEST_REGISTER_FULL_SIZE, "dst_index out of range");
