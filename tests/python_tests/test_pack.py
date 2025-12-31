@@ -123,7 +123,7 @@ def get_pack_test_valid_dest_indices(
         capacity //= 2
 
     if tile_count > capacity:
-        return 0
+        return [0]
 
     return get_valid_dest_indices(
         dest_sync=dest_sync,

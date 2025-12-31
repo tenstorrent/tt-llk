@@ -60,8 +60,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_(formats.math, formats.math);
 
-    uint32_t dest_tile_capacity = is_fp32_dest_acc_en ? (dest_sync == DstSync::Full ? 8 : 4) : (dest_sync == DstSync::Full ? 16 : 8);
-    ;
+    uint32_t dest_tile_capacity = is_fp32_dest_acc_en ? (dest_sync == DstSync::SyncFull ? 8 : 4) : (dest_sync == DstSync::SyncFull ? 16 : 8);
 
     // Calculate total iterations needed to process all tiles in dest capacity chunks
     uint32_t number_of_tile_chunks = (params->TILE_CNT + dest_tile_capacity - 1) / dest_tile_capacity;
@@ -107,8 +106,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, false>();
 #endif
 
-    uint32_t dest_tile_capacity = is_fp32_dest_acc_en ? (dest_sync == DstSync::Full ? 8 : 4) : (dest_sync == DstSync::Full ? 16 : 8);
-    ;
+    uint32_t dest_tile_capacity = is_fp32_dest_acc_en ? (dest_sync == DstSync::SyncFull ? 8 : 4) : (dest_sync == DstSync::SyncFull ? 16 : 8);
 
     // Calculate total iterations needed to process all tiles in dest capacity chunks
     uint32_t number_of_tile_chunks = (params->TILE_CNT + dest_tile_capacity - 1) / dest_tile_capacity;
