@@ -143,7 +143,7 @@ enum InstrModLoadStore
     INT32_2S_COMP = 12,
     INT8_2S_COMP  = 13,
     LO16_ONLY     = 14,
-    HI16_ONLY     = 15
+    HI16_ONLY     = 15,
 };
 
 } // namespace ckernel
