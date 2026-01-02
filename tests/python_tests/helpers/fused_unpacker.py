@@ -421,7 +421,6 @@ class UnpackerUntilizeA(Unpacker):
         return untilized_a, tensor_b
 
     def uninit(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
         architecture = operation_config.architecture
         face_r_dim = operation_config.face_r_dim
         if architecture == ChipArchitecture.WORMHOLE:
@@ -431,12 +430,18 @@ class UnpackerUntilizeA(Unpacker):
 
     def unpack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
+        architecture = operation_config.architecture
         face_r_dim = operation_config.face_r_dim
         tile_size = operation_config.tile_size_unpack_a
         full_ct_dim = operation_config.full_ct_dim
         tile_cnt = operation_config.src_a.tile_count
 
-        code = f"    _llk_unpack_untilize_init_(unpack_a_dst_format{stage}, {tile_size}, {face_r_dim});\n"
+        if architecture == ChipArchitecture.WORMHOLE:
+            code = f"    _llk_unpack_untilize_init_(unpack_a_dst_format{stage}, {tile_size}, {face_r_dim}, true);\n"
+        elif architecture == ChipArchitecture.BLACKHOLE:
+            code = f"    _llk_unpack_untilize_init_(unpack_a_dst_format{stage}, {tile_size}, {face_r_dim});\n"
+        else:
+            raise ValueError("Architecture is not supported")
 
         code += (
             f"    for (uint32_t tile = 0; tile < {tile_cnt}; tile += {full_ct_dim})\n"
