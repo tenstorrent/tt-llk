@@ -525,12 +525,10 @@ class TestConfig:
         ]
 
         dest_acc = self.dest_acc
-        if dest_acc is None:
-            dest_acc = DestAccumulation.No
         # Check if this is an outlier format combination that requires dest_acc to be enabled
         # Automatically enable dest_acc for outlier combinations
         if is_format_combination_outlier(
-            self.formats.input_format, self.formats.output_format, dest_acc
+            self.formats.input_format, self.formats.output_format, self.dest_acc
         ):
             dest_acc = DestAccumulation.Yes
 
