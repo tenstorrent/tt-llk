@@ -9,9 +9,11 @@ inputs:
   slack_bot_token:
     description: 'Slack bot token'
     required: true
+    type: string
   slack_channel_id:
     description: 'Slack channel ID'
     required: true
+    type: string
 
 runs:
   using: composite
