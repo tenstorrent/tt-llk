@@ -15,20 +15,20 @@ operations:
     unpack_transpose_within_face: "Yes"
     unpack_transpose_faces: "No"
 
-  # - src_a: "datacopy_output0"
-  #   src_b: "input_A"
-  #   output: "unpack_untilize_output"
-  #   src_a_dims: [64, 64]
-  #   src_b_dims: [64, 64]
-  #   input_format: "Float16_b"
-  #   output_format: "Float16_b"
-  #   unpacker: "UnpackerUntilizeA"
-  #   math:
-  #     fpu: "Datacopy"
-  #   packer: "Packer"
-  #   dest_acc: "Yes"
-  #   math_fidelity: "HiFi4"
-  #
+  - src_a: "datacopy_output0"
+    src_b: "input_A"
+    output: "unpack_untilize_output"
+    src_a_dims: [64, 64]
+    src_b_dims: [64, 64]
+    input_format: "Float16_b"
+    output_format: "Float16_b"
+    unpacker: "UnpackerUntilizeA"
+    math:
+      fpu: "Datacopy"
+    packer: "Packer"
+    dest_acc: "Yes"
+    math_fidelity: "HiFi4"
+
   - src_a: "unpack_untilize_output"
     src_b: "input_B"
     output: "datacopy_output"
