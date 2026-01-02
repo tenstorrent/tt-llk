@@ -179,6 +179,9 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
         TTI_INCADCXY(0b001, 0, 0, 1, 0); // inc l1 addr y cnt
     }
 
+    // TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b1010);
+    unpacker_addr_counter_init();
+
     // T6::SEMGET for context release
     t6_semaphore_get(semaphore::UNPACK_SYNC);
 
