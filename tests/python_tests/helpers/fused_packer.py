@@ -145,14 +145,14 @@ class PackerUntilize(Packer):
 
     def hw_configure(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
-        tilize = operation_config.bh_tilize.value
+        bh_tilize = "true" if operation_config.bh_tilize.value else "false"
         dest_acc = operation_config.dest_acc.value
         pack_size = operation_config.tile_size_pack
 
         if stage == 0:
             if operation_config.architecture == ChipArchitecture.BLACKHOLE:
                 code = (
-                    f"    _llk_pack_hw_configure_<{dest_acc}, true, {tilize}>(\n"
+                    f"    _llk_pack_hw_configure_<{dest_acc}, true, {bh_tilize}>(\n"
                     f"        pack_src_format{stage}, pack_dst_format{stage}, {pack_size}\n"
                     f"    );\n"
                 )

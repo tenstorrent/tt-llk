@@ -74,7 +74,7 @@ operations:
           operation: "Neg"
           approximation_mode: "No"
           iterations: 128
-    packer: "Packer"
+    packer: "PackerUntilize"
     dest_acc: "Yes"
     math_fidelity: "HiFi3"
     dest_sync: "Full"
