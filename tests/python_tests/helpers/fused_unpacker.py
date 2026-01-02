@@ -425,6 +425,8 @@ class UnpackerUntilizeA(Unpacker):
         face_r_dim = operation_config.face_r_dim
         if architecture == ChipArchitecture.WORMHOLE:
             return f"    _llk_unpack_untilize_uninit_<true>({face_r_dim}, {face_r_dim * 2});\n\n"
+        elif architecture == ChipArchitecture.BLACKHOLE:
+            return f"    _llk_unpack_untilize_uninit_();\n\n"
         else:
             return "\n"
 

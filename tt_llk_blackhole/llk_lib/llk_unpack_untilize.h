@@ -179,9 +179,18 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
         TTI_INCADCXY(0b001, 0, 0, 1, 0); // inc l1 addr y cnt
     }
 
+    TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b0010);
+
     // T6::SEMGET for context release
     t6_semaphore_get(semaphore::UNPACK_SYNC);
 
     // Switch unpacker config context
     switch_config_context(unp_cfg_context);
+}
+
+inline void _llk_unpack_untilize_uninit_()
+{
+    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, p_cfg::WRCFG_32b, UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32);
+    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
+    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
 }
