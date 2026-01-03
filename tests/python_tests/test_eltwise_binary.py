@@ -30,7 +30,7 @@ from helpers.test_variant_parameters import (
     NUM_TILES_IN_BLOCK,
     TEST_FACE_DIMS,
     UNPACK_TRANS_FACES,
-    UNPACK_TRANS_WITHING_FACE,
+    UNPACK_TRANS_WITHIN_FACE,
 )
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
@@ -150,7 +150,7 @@ def test_eltwise_binary(
         ],
         runtimes=[
             UNPACK_TRANS_FACES(transpose_srca),
-            UNPACK_TRANS_WITHING_FACE(transpose_srca),
+            UNPACK_TRANS_WITHIN_FACE(transpose_srca),
             NUM_TILES_IN_BLOCK(num_tiles_in_block),
             NUM_BLOCKS(num_blocks),
             NUM_FACES(num_faces),
