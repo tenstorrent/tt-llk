@@ -418,37 +418,6 @@ inline void config_unpacker_x_end(const uint32_t face_r_dim)
     }
 }
 
-template <bool INSERT_FENCE = false, std::uint32_t UNP_SEL = p_setadc::UNP_AB>
-inline void config_unpacker_0_face_dim(const uint32_t face_r_dim)
-{
-    // tile x dim registers are only for unpacker 0
-    static_assert(UNP_SEL != p_setadc::UNP_B);
-    TTI_STALLWAIT(p_stall::STALL_THCON, p_stall::UNPACK0);
-    switch (face_r_dim)
-    {
-        case 1:
-            TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::FACE_DIM_1x16);
-            break;
-        case 2:
-            TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::FACE_DIM_2x16);
-            break;
-        case 4:
-            TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::FACE_DIM_4x16);
-            break;
-        case 8:
-            TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::FACE_DIM_8x16);
-            break;
-        default:
-            TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::FACE_DIM_16x16);
-            break;
-    }
-
-    if constexpr (INSERT_FENCE)
-    {
-        TTI_DMANOP; // Insert fence if reg2flop is followed by an unpack
-    }
-}
-
 inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
     const uint input_df  = unpack_src_format & 0xF;
