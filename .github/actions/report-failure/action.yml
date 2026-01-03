@@ -22,7 +22,7 @@ runs:
       id: message
       shell: bash
       run: |
-        COMMIT_URL="https://github.com/tenstorrent/tt-metal/commit/${{ github.sha }}"
+        COMMIT_URL="https://github.com/tenstorrent/tt-llk/commit/${{ github.sha }}"
         COMMIT_SHA="${GITHUB_SHA:0:7}"
         # GitHub does not expose job IDs; link to the workflow run instead
         RUN_BASE="${{ github.server_url }}/${{ github.repository }}/actions/runs"
