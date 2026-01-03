@@ -15,11 +15,165 @@ cleanup() {
 # --- Globals ---
 SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
+# Function to ensure virtual environment is accessible
+# Instead of full activation, we just add venv bin directories to PATH
+activate_venv_if_exists() {
+    # If VIRTUAL_ENV is already set, ensure its bin is at front of PATH
+    if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+        echo "VIRTUAL_ENV already set to: $VIRTUAL_ENV"
+        local venv_bin="$VIRTUAL_ENV/bin"
+        if [[ -d "$venv_bin" ]]; then
+            # Remove venv bin from PATH if it exists anywhere
+            if [[ ":$PATH:" == *":$venv_bin:"* ]]; then
+                PATH="${PATH//:$venv_bin:/:}"
+                PATH="${PATH/#$venv_bin:/}"
+                PATH="${PATH/%:$venv_bin/}"
+                echo "  Removed existing $venv_bin from PATH"
+            fi
+            # Add to front of PATH to ensure priority
+            export PATH="$venv_bin:$PATH"
+            echo "  Moved $venv_bin to front of PATH (takes priority)"
+        fi
+        return 0
+    fi
+
+    # Check for venv in current directory or parent directory (tests/.venv or .venv)
+    # Also check /opt/venv which is commonly used in Docker containers
+    local venv_paths=(
+        "/opt/venv"
+        "${SCRIPT_DIR}/.venv"
+        "${SCRIPT_DIR}/../.venv"
+        ".venv"
+    )
+
+    echo "Searching for virtual environment..."
+    for venv_path in "${venv_paths[@]}"; do
+        echo "  Checking: $venv_path"
+        if [[ -d "$venv_path" ]]; then
+            echo "    Directory exists"
+            if [[ -d "$venv_path/bin" ]]; then
+                echo "    bin/ subdirectory exists"
+
+                # Remove venv bin from PATH if it exists anywhere, then add to front
+                # This ensures venv executables take priority over ~/.local/bin
+                local venv_bin="$venv_path/bin"
+                if [[ ":$PATH:" == *":$venv_bin:"* ]]; then
+                    # Remove existing entry
+                    PATH="${PATH//:$venv_bin:/:}"
+                    PATH="${PATH/#$venv_bin:/}"
+                    PATH="${PATH/%:$venv_bin/}"
+                    echo "    Removed existing $venv_bin from PATH"
+                fi
+
+                # Add to front of PATH
+                export PATH="$venv_bin:$PATH"
+                export VIRTUAL_ENV="$venv_path"
+                echo "    Added $venv_bin to front of PATH (takes priority)"
+                return 0
+            else
+                echo "    bin/ subdirectory NOT found"
+            fi
+        else
+            echo "    Directory does NOT exist"
+        fi
+    done
+
+    echo "No virtual environment found in any of the checked paths"
+    return 1
+}
+
+# Function to check for conflicting installations and warn
+check_conflicting_installations() {
+    if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+        local venv_bin="$VIRTUAL_ENV/bin"
+
+        # Check for tt-smi conflicts
+        if [[ -f "$HOME/.local/bin/tt-smi" && -f "$venv_bin/tt-smi" ]]; then
+            echo "WARNING: Found tt-smi in both ~/.local/bin and $venv_bin"
+            echo "  Using: $(which tt-smi)"
+
+            # Test if the one in PATH works
+            if ! tt-smi --version &>/dev/null; then
+                echo "  ERROR: Current tt-smi in PATH is broken!"
+                echo "  Consider removing: $HOME/.local/bin/tt-smi"
+                echo "  Working version at: $venv_bin/tt-smi"
+            fi
+        fi
+
+        # Check for tt-exalens conflicts
+        if [[ -f "$HOME/.local/bin/tt-exalens" && -f "$venv_bin/tt-exalens" ]]; then
+            echo "WARNING: Found tt-exalens in both ~/.local/bin and $venv_bin"
+            echo "  Using: $(which tt-exalens)"
+        fi
+    fi
+}
+
 # Function to get chip architecture using tt-smi
 get_chip_architecture() {
     local smi_output
-    if ! smi_output=$(tt-smi -ls 2>/dev/null); then
+
+    # Determine which Python to use (prefer venv Python if available)
+    local python_cmd="python3"
+    if [[ -n "${VIRTUAL_ENV:-}" && -f "${VIRTUAL_ENV}/bin/python" ]]; then
+        python_cmd="${VIRTUAL_ENV}/bin/python"
+    elif [[ -f "${SCRIPT_DIR}/.venv/bin/python" ]]; then
+        python_cmd="${SCRIPT_DIR}/.venv/bin/python"
+    elif [[ -f "${SCRIPT_DIR}/../.venv/bin/python" ]]; then
+        python_cmd="${SCRIPT_DIR}/../.venv/bin/python"
+    fi
+
+    # Try to find tt-smi - prefer python -m tt_smi for wheel installations
+    local tt_smi_cmd=""
+
+    # First, try python -m tt_smi (most reliable for wheel installations)
+    if $python_cmd -m tt_smi --help &> /dev/null 2>&1; then
+        tt_smi_cmd="$python_cmd -m tt_smi"
+    # Check if tt-smi executable is in PATH
+    elif command -v tt-smi &> /dev/null; then
+        tt_smi_cmd="tt-smi"
+    # Check common installation locations
+    else
+        local possible_paths=(
+            "${VIRTUAL_ENV}/bin/tt-smi"
+            "${SCRIPT_DIR}/.venv/bin/tt-smi"
+            "${SCRIPT_DIR}/../.venv/bin/tt-smi"
+            "${HOME}/.local/bin/tt-smi"
+            "/opt/venv/bin/tt-smi"
+            "/usr/local/bin/tt-smi"
+            "/usr/bin/tt-smi"
+        )
+
+        for path in "${possible_paths[@]}"; do
+            if [[ -n "$path" && -f "$path" && -x "$path" ]]; then
+                tt_smi_cmd="$path"
+                break
+            fi
+        done
+
+        # Final fallback: try python -m tt_smi even if --help check failed
+        if [[ -z "$tt_smi_cmd" ]]; then
+            tt_smi_cmd="$python_cmd -m tt_smi"
+        fi
+    fi
+
+    if [[ -z "$tt_smi_cmd" ]]; then
         echo "ERROR: tt-smi command failed or not found. Please ensure tt-smi is installed and in your PATH." >&2
+        echo "Attempted to find tt-smi using Python: $python_cmd" >&2
+        if $python_cmd -c "import sys; print('Python path:', sys.executable)" 2>&1; then
+            echo "Checking if tt_smi module is available..." >&2
+            $python_cmd -c "import tt_smi; print('tt_smi module found')" 2>&1 || echo "tt_smi module not found" >&2
+        fi
+        exit 1
+    fi
+
+    if ! smi_output=$($tt_smi_cmd -ls 2>/dev/null); then
+        echo "ERROR: tt-smi command failed or not found. Please ensure tt-smi is installed and in your PATH." >&2
+        echo "Attempted to run: $tt_smi_cmd" >&2
+        echo "Using Python: $python_cmd" >&2
+        if $python_cmd -c "import sys; print('Python path:', sys.executable)" 2>&1; then
+            echo "Checking if tt_smi module is available..." >&2
+            $python_cmd -c "import tt_smi; print('tt_smi module found')" 2>&1 || echo "tt_smi module not found" >&2
+        fi
         exit 1
     fi
 
@@ -120,6 +274,12 @@ main() {
     # Set up trap for cleanup on exit
     trap cleanup EXIT
 
+    # Activate virtual environment if it exists (needed for tt-smi command)
+    activate_venv_if_exists || true
+
+    # Check for and warn about conflicting installations
+    check_conflicting_installations
+
     # Get script directory and version file
     local version_file="$SCRIPT_DIR/sfpi-info.sh"
 
@@ -128,6 +288,14 @@ main() {
         echo "ERROR: sfpi-info.sh not found or not readable at '$version_file'" >&2
         exit 1
     fi
+
+    echo "PATH: $PATH"
+    echo "VIRTUAL_ENV: $VIRTUAL_ENV"
+    echo "PYTHONPATH: $PYTHONPATH"
+    echo "PYTHON: $PYTHON"
+    echo "PYTHON_VERSION: $PYTHON_VERSION"
+    echo "which tt-exalens: $(which tt-exalens)"
+    echo "which tt-smi: $(which tt-smi)"
 
     # Get chip architecture
     local chip_arch
