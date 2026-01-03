@@ -157,11 +157,536 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uin
     return result;
 }
 
+constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uint32_t, x); };
+constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
+constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
+
+template <int ITERATIONS>
+void calculate_exponential_approx_no_swap_relu()
+{
+    /*
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 0},
+    }
+        .set(ADDR_MOD_7);
+
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+    */
+    // #pragma GCC unroll 4
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        // Load input.
+        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TTI_SFPLOAD(p_sfpu::LREG1, 0, ADDR_MOD_7, 2);
+
+        // Compute i = A * x + (B-C).
+        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG11, p_sfpu::LREG12, p_sfpu::LREG0, 0);
+        TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG11, p_sfpu::LREG12, p_sfpu::LREG1, 0);
+
+        // Abs.
+        TTI_SFPABS(0, p_sfpu::LREG0, p_sfpu::LREG2, 0);
+        TTI_SFPABS(0, p_sfpu::LREG1, p_sfpu::LREG3, 0);
+
+        // Add.
+        TTI_SFPADD(p_sfpu::LCONST_1, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG0, 0);
+        TTI_SFPADD(p_sfpu::LCONST_1, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpu::LREG1, 0);
+
+        // Convert to int and left shift by 15 bits.
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG0, p_sfpu::LREG0, sfpi::SFPSTOCHRND_MOD1_FP32_TO_UINT16);
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG1, p_sfpu::LREG1, sfpi::SFPSTOCHRND_MOD1_FP32_TO_UINT16);
+        TTI_SFPSHFT(15, p_sfpu::LREG0, p_sfpu::LREG0, 0x1);
+        TTI_SFPSHFT(15, p_sfpu::LREG1, p_sfpu::LREG1, 0x1);
+
+        // Store the result.
+        TTI_SFPSTORE(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, 2);
+        // TTI_INCRWC(0, 4, 0, 0);
+    }
+}
+
+template <int ITERATIONS>
+void calculate_exponential_no_swap()
+{
+    /*
+    constexpr float M_LN2     = -0.69314718055994530942f; // -ln(2)
+    constexpr float LN2_RECIP = 1.44269504088896340736f;  // 1/ln(2)
+    constexpr float A         = 369.32992553710937500f;   // 256 / ln(2)
+    constexpr float B_MINUS_C = 32500.81835937500000f;    // Polynomial offset
+
+    // 1/ln(2) (for computing k = y/ln2).
+    TTI_SFPLOADI(0, 0xA, lo16(LN2_RECIP));
+    TTI_SFPLOADI(0, 0x8, hi16(LN2_RECIP));
+    TTI_SFPCONFIG(0, 11, 0);
+
+    // -ln(2) (for computing r = y - k*ln2).
+    TTI_SFPLOADI(0, 0xA, lo16(M_LN2));
+    TTI_SFPLOADI(0, 0x8, hi16(M_LN2));
+    TTI_SFPCONFIG(0, 12, 0);
+
+    // A = 256/ln(2) (for computing i = A*r + (B-C)).
+    TTI_SFPLOADI(0, 0xA, lo16(A));
+    TTI_SFPLOADI(0, 0x8, hi16(A));
+    TTI_SFPCONFIG(0, 13, 0);
+
+    // (B-C).
+    TTI_SFPLOADI(0, 0xA, lo16(B_MINUS_C));
+    TTI_SFPLOADI(0, 0x8, hi16(B_MINUS_C));
+    TTI_SFPCONFIG(0, 14, 0);
+
+    // 0.5.
+    TTI_SFPLOADI(p_sfpu::LREG7, 0xA, lo16(0.5f));
+    TTI_SFPLOADI(p_sfpu::LREG7, 0x8, hi16(0.5f));
+    */
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 0},
+    }
+        .set(ADDR_MOD_7);
+
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+
+    // Enable conditional execution.
+    // TTI_SFPENCC(1, 0, 0, 2);  // Mod1=2 (EI), Imm2=1: UseLaneFlagsForLaneEnable=true, sets all LaneFlags=true
+
+    // #pragma GCC unroll 8
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        // Load y.
+        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TTI_SFPLOAD(p_sfpu::LREG1, 0, ADDR_MOD_7, 2);
+
+        // Multiply y by 1/ln(2), round to nearest and convert to int16.
+        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG11, p_sfpu::LCONST_0, p_sfpu::LREG4, 0);
+        TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG11, p_sfpu::LCONST_0, p_sfpu::LREG5, 0);
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG4, p_sfpu::LREG2, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG5, p_sfpu::LREG3, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+
+        // Convert back to FP32 and compute r = y - k*ln2.
+        TTI_SFPCAST(p_sfpu::LREG2, p_sfpu::LREG2, 0x0);
+        TTI_SFPCAST(p_sfpu::LREG3, p_sfpu::LREG3, 0x0);
+        TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG12, p_sfpu::LREG0, p_sfpu::LREG0, 0);
+        TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG12, p_sfpu::LREG1, p_sfpu::LREG1, 0);
+
+        // Compute i = A * r + (B-C).
+        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG13, p_sfpu::LREG14, p_sfpu::LREG0, 0);
+        TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG13, p_sfpu::LREG14, p_sfpu::LREG1, 0);
+
+        // Convert to int and left shift by 15 bits.
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG0, p_sfpu::LREG0, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG1, p_sfpu::LREG1, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+        TTI_SFPSHFT(15, p_sfpu::LREG0, p_sfpu::LREG0, 0x1);
+        TTI_SFPSHFT(15, p_sfpu::LREG1, p_sfpu::LREG1, 0x1);
+
+        // Extract exponent and add k.
+        TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG4, 1); // 0=debias, values ~0 1=no debias, values ~127
+        TTI_SFPEXEXP(0, p_sfpu::LREG1, p_sfpu::LREG5, 1); // 0=debias, values ~0 1=no debias, values ~127
+
+        // Cast to float to add signed values.
+        TTI_SFPCAST(p_sfpu::LREG4, p_sfpu::LREG4, 0x0);
+        TTI_SFPCAST(p_sfpu::LREG5, p_sfpu::LREG5, 0x0);
+        TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG4, p_sfpu::LREG4, 0);
+        TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG5, p_sfpu::LREG5, 0);
+
+        // Clamp negative values to 0 using ReLU(x) = 0.5*(x + abs(x)).
+        TT_SFPSETSGN(0, p_sfpu::LREG4, p_sfpu::LREG2, 0x1);
+        TT_SFPSETSGN(0, p_sfpu::LREG5, p_sfpu::LREG3, 0x1);
+        TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG4, p_sfpu::LREG4, 0);
+        TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG5, p_sfpu::LREG5, 0);
+        TTI_SFPMAD(p_sfpu::LREG7, p_sfpu::LREG4, p_sfpu::LCONST_0, p_sfpu::LREG4, 0);
+        TTI_SFPMAD(p_sfpu::LREG7, p_sfpu::LREG5, p_sfpu::LCONST_0, p_sfpu::LREG5, 0);
+
+        // Cast to int16.
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG4, p_sfpu::LREG4, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG5, p_sfpu::LREG5, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+
+        // Clamp negative values to 0.
+        // TTI_SFPSETCC(0, p_sfpu::LREG4, 0, 0);
+        // TTI_SFPLOADI(p_sfpu::LREG4, 2, 0);
+        // TTI_SFPENCC(2, 0, 0, 8);  // Re-enable all lanes. Mod1=8 (RI), Imm2=2 (bit1=1): sets all LaneFlags=true
+        // TTI_SFPSETCC(0, p_sfpu::LREG5, 0, 0);
+        // TTI_SFPLOADI(p_sfpu::LREG5, 2, 0);
+        // TTI_SFPENCC(2, 0, 0, 8);
+
+        // Set the new exponent.
+        TTI_SFPSETEXP(0, p_sfpu::LREG0, p_sfpu::LREG4, 0x0);
+        TTI_SFPSETEXP(0, p_sfpu::LREG1, p_sfpu::LREG5, 0x0);
+
+        // Store the result.
+        TTI_SFPSTORE(p_sfpu::LREG4, 0, ADDR_MOD_7, 0);
+        TTI_SFPSTORE(p_sfpu::LREG5, 0, ADDR_MOD_7, 2);
+        TTI_INCRWC(0, 4, 0, 0);
+    }
+}
+
+template <int ITERATIONS, int NUM_TERMS>
+void calculate_exponential_more_terms()
+{
+    LLK_ASSERT(NUM_TERMS >= 1 && NUM_TERMS <= 3, "Only 1, 2, or 3 terms is supported");
+
+    constexpr float M_LN2     = -0.69314718055994530942f; // -ln(2)
+    constexpr float LN2_RECIP = 1.44269504088896340736f;  // 1/ln(2)
+
+    // 1/ln(2) (for computing k = y/ln2).
+    TTI_SFPLOADI(0, 0xA, lo16(LN2_RECIP));
+    TTI_SFPLOADI(0, 0x8, hi16(LN2_RECIP));
+    TTI_SFPCONFIG(0, 11, 0);
+
+    // -ln(2) (for computing r = y - k*ln2).
+    TTI_SFPLOADI(0, 0xA, lo16(M_LN2));
+    TTI_SFPLOADI(0, 0x8, hi16(M_LN2));
+    TTI_SFPCONFIG(0, 12, 0);
+
+    // int(1).
+    TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_USHORT, 1);
+    TTI_SFPCONFIG(0, 13, 0);
+
+    // 1/2.
+    TTI_SFPLOADI(0, 0xA, lo16(0.5f));
+    TTI_SFPLOADI(0, 0x8, hi16(0.5f));
+    TTI_SFPCONFIG(0, 14, 0);
+
+    // 1/6.
+    TTI_SFPLOADI(p_sfpu::LREG7, 0xA, lo16(1.f / 6.f));
+    TTI_SFPLOADI(p_sfpu::LREG7, 0x8, hi16(1.f / 6.f));
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 0},
+    }
+        .set(ADDR_MOD_7);
+
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+
+    // #pragma GCC unroll 8
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        // Load y.
+        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TTI_SFPLOAD(p_sfpu::LREG1, 0, ADDR_MOD_7, 2);
+
+        // Multiply y by 1/ln(2), round to nearest and convert to int16.
+        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG11, p_sfpu::LCONST_0, p_sfpu::LREG2, 0);
+        TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG11, p_sfpu::LCONST_0, p_sfpu::LREG3, 0);
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG3, p_sfpu::LREG3, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+
+        // Convert back to FP32 and compute r = y - k*ln2.
+        TTI_SFPCAST(p_sfpu::LREG2, p_sfpu::LREG2, 0x0);
+        TTI_SFPCAST(p_sfpu::LREG3, p_sfpu::LREG3, 0x0);
+        TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG12, p_sfpu::LREG0, p_sfpu::LREG0, 0);
+        TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG12, p_sfpu::LREG1, p_sfpu::LREG1, 0);
+
+        // Compute Taylor series.
+        if constexpr (NUM_TERMS == 1)
+        {
+            TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LCONST_1, p_sfpu::LREG0, 0);
+            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LCONST_1, p_sfpu::LREG1, 0);
+        }
+        else if constexpr (NUM_TERMS == 2)
+        {
+            TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LCONST_1, p_sfpu::LREG4, 0);
+            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LCONST_1, p_sfpu::LREG5, 0);
+            TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG4, p_sfpu::LCONST_1, p_sfpu::LREG0, 0);
+            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG1, 0);
+        }
+        else if constexpr (NUM_TERMS == 3)
+        {
+            TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG7, p_sfpu::LREG14, p_sfpu::LREG4, 0);
+            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG7, p_sfpu::LREG14, p_sfpu::LREG5, 0);
+            TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG4, p_sfpu::LCONST_1, p_sfpu::LREG4, 0);
+            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG5, 0);
+            TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG4, p_sfpu::LCONST_1, p_sfpu::LREG0, 0);
+            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG1, 0);
+        }
+
+        // Set the new exponent.
+        TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG4, 1); // 0=debias, values ~0 1=no debias, values ~127
+        TTI_SFPEXEXP(0, p_sfpu::LREG1, p_sfpu::LREG5, 1); // 0=debias, values ~0 1=no debias, values ~127
+        TTI_SFPCAST(p_sfpu::LREG4, p_sfpu::LREG4, 0x0);
+        TTI_SFPCAST(p_sfpu::LREG5, p_sfpu::LREG5, 0x0);
+        TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG4, p_sfpu::LREG4, 0);
+        TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG5, p_sfpu::LREG5, 0);
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG4, p_sfpu::LREG4, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG5, p_sfpu::LREG5, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+        TTI_SFPSETEXP(0, p_sfpu::LREG0, p_sfpu::LREG4, 0x0);
+        TTI_SFPSETEXP(0, p_sfpu::LREG1, p_sfpu::LREG5, 0x0);
+
+        // Store the result.
+        TTI_SFPSTORE(p_sfpu::LREG4, 0, ADDR_MOD_7, 0);
+        TTI_SFPSTORE(p_sfpu::LREG5, 0, ADDR_MOD_7, 2);
+        TTI_INCRWC(0, 4, 0, 0);
+    }
+}
+
+template <int ITERATIONS, unsigned int NUM_TERMS, unsigned int NUM_SCALE>
+void calculate_exponential_no_swap_relu()
+{
+    LLK_ASSERT(NUM_TERMS == 2 || NUM_TERMS == 4 || NUM_TERMS == 6, "Only 2, 4, or 6 terms supported");
+    /*
+    constexpr float SCALE   = 1.0f / float(1 << NUM_SCALE);
+    constexpr float COEFF_1 = SCALE / 2.0f;
+
+    if constexpr (NUM_TERMS == 2)
+    {
+        TTI_SFPLOADI(0, 0xA, lo16(0.5f));
+        TTI_SFPLOADI(0, 0x8, hi16(0.5f));
+        TTI_SFPCONFIG(0, 11, 0);
+
+        TTI_SFPLOADI(0, 0xA, lo16(COEFF_1));
+        TTI_SFPLOADI(0, 0x8, hi16(COEFF_1));
+        TTI_SFPCONFIG(0, 12, 0);
+    }
+    else if constexpr (NUM_TERMS == 4)
+    {
+        constexpr float COEFF_2 = SCALE * SCALE / 4.0f;
+        constexpr float COEFF_3 = SCALE * SCALE * SCALE / 12.0f;
+
+        TTI_SFPLOADI(0, 0xA, lo16(COEFF_2));
+        TTI_SFPLOADI(0, 0x8, hi16(COEFF_2));
+        TTI_SFPCONFIG(0, 11, 0);
+
+        TTI_SFPLOADI(0, 0xA, lo16(COEFF_3));
+        TTI_SFPLOADI(0, 0x8, hi16(COEFF_3));
+        TTI_SFPCONFIG(0, 12, 0);
+
+        TTI_SFPLOADI(0, 0xA, lo16(0.5f));
+        TTI_SFPLOADI(0, 0x8, hi16(0.5f));
+        TTI_SFPCONFIG(0, 13, 0);
+
+        TTI_SFPLOADI(0, 0xA, lo16(COEFF_1));
+        TTI_SFPLOADI(0, 0x8, hi16(COEFF_1));
+        TTI_SFPCONFIG(0, 14, 0);
+    }
+    else if constexpr (NUM_TERMS == 6)
+    {
+        constexpr float COEFF_2 = SCALE * SCALE / 4.0f;
+        constexpr float COEFF_3 = SCALE * SCALE * SCALE / 12.0f;
+        constexpr float COEFF_4 = SCALE * SCALE * SCALE * SCALE / 48.0f;
+        constexpr float COEFF_5 = SCALE * SCALE * SCALE * SCALE * SCALE / 240.0f;
+
+        TTI_SFPLOADI(0, 0xA, lo16(COEFF_4));
+        TTI_SFPLOADI(0, 0x8, hi16(COEFF_4));
+        TTI_SFPCONFIG(0, 11, 0);
+
+        TTI_SFPLOADI(0, 0xA, lo16(COEFF_5));
+        TTI_SFPLOADI(0, 0x8, hi16(COEFF_5));
+        TTI_SFPCONFIG(0, 12, 0);
+
+        TTI_SFPLOADI(0, 0xA, lo16(COEFF_2));
+        TTI_SFPLOADI(0, 0x8, hi16(COEFF_2));
+        TTI_SFPCONFIG(0, 13, 0);
+
+        TTI_SFPLOADI(0, 0xA, lo16(COEFF_3));
+        TTI_SFPLOADI(0, 0x8, hi16(COEFF_3));
+        TTI_SFPCONFIG(0, 14, 0);
+
+        TTI_SFPLOADI(p_sfpu::LREG6, 0xA, lo16(0.5f));
+        TTI_SFPLOADI(p_sfpu::LREG6, 0x8, hi16(0.5f));
+
+        TTI_SFPLOADI(p_sfpu::LREG7, 0xA, lo16(COEFF_1));
+        TTI_SFPLOADI(p_sfpu::LREG7, 0x8, hi16(COEFF_1));
+    }
+    */
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 0},
+    }
+        .set(ADDR_MOD_7);
+
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+
+    // #pragma GCC unroll 8
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        // Load input.
+        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TTI_SFPLOAD(p_sfpu::LREG1, 0, ADDR_MOD_7, 2);
+
+        TTI_SFPMAD(p_sfpu::LREG12, p_sfpu::LREG0, p_sfpu::LREG11, p_sfpu::LREG2, 0);
+        TTI_SFPMAD(p_sfpu::LREG12, p_sfpu::LREG1, p_sfpu::LREG11, p_sfpu::LREG3, 0);
+
+        if constexpr (NUM_TERMS >= 4)
+        {
+            TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG2, 0);
+            TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG3, 0);
+            TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LREG13, p_sfpu::LREG2, 0);
+            TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG1, p_sfpu::LREG13, p_sfpu::LREG3, 0);
+        }
+        if constexpr (NUM_TERMS >= 6)
+        {
+            TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LREG7, p_sfpu::LREG2, 0);
+            TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG1, p_sfpu::LREG7, p_sfpu::LREG3, 0);
+            TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LREG6, p_sfpu::LREG2, 0);
+            TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG1, p_sfpu::LREG6, p_sfpu::LREG3, 0);
+        }
+
+        TTI_SFPABS(0, p_sfpu::LREG2, p_sfpu::LREG0, 1);
+        TTI_SFPABS(0, p_sfpu::LREG3, p_sfpu::LREG1, 1);
+
+        TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG0, 0);
+        TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpu::LREG1, 0);
+
+        for (unsigned int i = 0; i < NUM_SCALE; i++)
+        {
+            TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG0, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
+            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG1, p_sfpu::LCONST_0, p_sfpu::LREG1, 0);
+        }
+
+        // Store the result.
+        TTI_SFPSTORE(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, 2);
+        TTI_INCRWC(0, 4, 0, 0);
+    }
+}
+
+sfpi_inline sfpi::vInt _float_to_int32_exp21f_(sfpi::vFloat val)
+{
+    sfpi::vInt exp   = exexp(val);
+    sfpi::vInt man   = exman8(val); // get mantissa with implicit bit (man in [1; 2])
+    sfpi::vInt shift = exp - 23;
+    man              = sfpi::reinterpret<sfpi::vInt>(shft(sfpi::reinterpret<sfpi::vUInt>(man), shift));
+    return man;
+}
+
+template <bool is_fp32_dest_acc_en = false>
+sfpi_inline sfpi::vFloat _sfpu_exp_21f_(sfpi::vFloat val)
+{
+    sfpi::vFloat y = sfpi::vConst0;
+    // Intermediary values can overflow if abs(val) is above 88.5f, which leads to output increasing again instead
+    // of staying at 0 (or becoming finite on large inputs). This overflow happens when `| log2(e) * val | > 127.0f`,
+    // which correspond to `|val| > 88.5f`
+    // Intermediary values can overflow if values exceeds 88.72283935546875 or -88.72283172607421875
+    // To prevent this, we clamp -88.5 < x < 89
+    // (thresholds values are rounded to bf16, as it does not change result but only requires one SFPLOADI vs. two)
+    sfpi::vFloat threshold_high = sfpi::vFloat(89);
+    sfpi::vFloat threshold_low  = sfpi::vFloat(-88.5);
+    vec_min_max(threshold_low, val);
+    vec_min_max(val, threshold_high);
+
+    // The paper relies on the following formula (c.f. Section 2 and 3 of paper):
+    // z = (bias + x * factor * N_m); where:
+    // factor = 0x00b8aa3b (computed through log(e))
+    // bias = 0x3f800000
+    //
+    // Fundamentally, this computes exp(x) = 2**(x / ln2) = 2**(x_i) * 2**(x_f) where
+    // - z_i = trunc(x / ln2) (integer part)
+    // - z_f = x/ln2 - trunc(x/ln2) (fractional part)
+    sfpi::vInt z                = _float_to_int32_exp21f_(val * sfpi::vFloat(0x00b8aa3b) + sfpi::vFloat(0x3f800000));
+    sfpi::vInt exponential_part = exexp_nodebias(sfpi::reinterpret<sfpi::vFloat>(z)); // Extract exponent ( = 2**(integer part of val/ln2))
+    sfpi::vInt fractional_part  = sfpi::exman9(sfpi::reinterpret<sfpi::vFloat>(z));   // Extract mantissa ( = leftover part, in [0; 1])
+
+    // To refine approximation of 2**(x_f), we use an approximation of 2**x on [0; 1]
+    // This uses a 2nd degree polynomial adjustment of the fractional part
+    constexpr float POLY_D1 = 0.40196114e-7f;
+    constexpr int POLY_D2   = 0xf94ee7;
+    constexpr int POLY_D3   = 0x560e;
+
+    // Compute polynomial through Horner's method
+    sfpi::vFloat d1 = sfpi::vFloat(POLY_D1);
+    sfpi::vFloat d2 = sfpi::int32_to_float(sfpi::vInt(POLY_D2) + fractional_part, 0);
+    sfpi::vFloat d3 = sfpi::int32_to_float(sfpi::vInt(POLY_D3) + fractional_part, 0);
+    d2              = d1 * d2;
+
+    // Compute 2**(adjusted fractional part) through float -> int conversion
+    fractional_part = _float_to_int32_exp21f_(d2 * d3);
+
+    // Recombined exponent and mantissa: this is equivalent to 2**(x_i) * 2**(x_f)
+    exponential_part = sfpi::reinterpret<sfpi::vInt>(sfpi::setexp(sfpi::reinterpret<sfpi::vFloat>(fractional_part), exponential_part)); // restore exponent
+
+    y = sfpi::reinterpret<sfpi::vFloat>(exponential_part);
+
+    if constexpr (!is_fp32_dest_acc_en)
+    {
+        // LRegs work on float32 data. If DST is bfloat16 then SFPSTORE will truncate it.
+        // This can reduce accuracy: for instance, 9**2 = 80.8 gets round to 80.5
+        // rather than 81 (which would have been correct).
+        // To avoid this issue, we explicitly convert to bfloat16 using round-to-nearest-even.
+        y = sfpi::reinterpret<sfpi::vFloat>(sfpi::float_to_fp16b(y, 0));
+    }
+
+    return y;
+}
+
+template <bool is_fp32_dest_acc_en>
+sfpi_inline sfpi::vFloat _sfpu_exp_improved_(sfpi::vFloat val);
+
+// is_fp32_dest_acc_en == false
+template <>
+sfpi_inline sfpi::vFloat _sfpu_exp_improved_<false>(sfpi::vFloat val)
+{
+    return _sfpu_exp_21f_<false>(val);
+}
+
+// is_fp32_dest_acc_en == true
+// template <>
+// sfpi_inline sfpi::vFloat _sfpu_exp_improved_<true>(sfpi::vFloat val) {
+//    return _sfpu_exp_f32_accurate_(val);
+//}
+
+/*constexpr uint32_t EXPONENTIAL_INSTRUCTIONS = 30;
+
+sfpi_inline void _program_exponential_replay_buffer_()
+{
+    lltt::record(0, EXPONENTIAL_INSTRUCTIONS);
+    calculate_exponential_approx_no_swap_relu<2>();
+}
+
+sfpi_inline void _execute_exponential_replay_buffer_()
+{
+    lltt::replay(0, EXPONENTIAL_INSTRUCTIONS);
+}*/
+
+#define EXPONENTIAL_TESTING_MODE 3
+#define EXP_CONFIG_NUM_TERMS     2
+#define EXP_CONFIG_NUM_SCALE     3
+
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK>
 void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
+#if EXPONENTIAL_TESTING_MODE == 1
+        calculate_exponential_approx_no_swap_relu<ITERATIONS>();
+        //_execute_exponential_replay_buffer_();
+        return;
+#elif EXPONENTIAL_TESTING_MODE == 2
+        calculate_exponential_no_swap<ITERATIONS>();
+        return;
+#elif EXPONENTIAL_TESTING_MODE == 3
+        calculate_exponential_more_terms<ITERATIONS, EXP_CONFIG_NUM_TERMS>();
+        return;
+#elif EXPONENTIAL_TESTING_MODE == 4
+        calculate_exponential_no_swap_relu<ITERATIONS, EXP_CONFIG_NUM_TERMS, EXP_CONFIG_NUM_SCALE>();
+        return;
+#elif EXPONENTIAL_TESTING_MODE == 5
+        /* template args:
+         *   bool APPROXIMATION_MODE,
+         *   bool FAST_APPROX,
+         *   bool is_fp32_dest_acc_en,
+         *   bool SCALE_EN = false,
+         *   int ITERATIONS = 8,
+         *   bool SKIP_POSITIVE_CHECK = false
+         */
+        // calculate_exponential<false,FAST_APPROX,false,false,ITERATIONS,false>(1);
+        for (int d = 0; d < ITERATIONS; d++)
+        {
+            sfpi::vFloat val = sfpi::dst_reg[0];
+            if constexpr (SCALE_EN)
+            {
+                val = val * sfpi::s2vFloat16b(exp_base_scale_factor);
+            }
+            sfpi::vFloat result = _sfpu_exp_improved_<false>(val);
+            sfpi::dst_reg[0]    = result;
+            sfpi::dst_reg++;
+        }
+        return;
+#endif
+
         // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is more negative than that, swap the input
         // value with -88.5 and store back to DEST
         //  - in other words, after the sanitize step, the values in DEST will be in the range {-88.5 , +inf}
@@ -265,15 +790,35 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
     }
 }
 
-constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uint32_t, x); };
-constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
-constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
-
 template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
 inline void _init_exponential_()
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
+#if EXPONENTIAL_TESTING_MODE == 1
+        constexpr float scale_fp32_ = __builtin_bit_cast(float, scale);
+        constexpr float A_          = 184.6649652337873f;
+        constexpr float A_scaled_   = A_ * scale_fp32_;
+        constexpr float B_minus_C_  = 16250.4091796875f;
+
+        // A.
+        TTI_SFPLOADI(0, 0xA, lo16(A_scaled_));
+        TTI_SFPLOADI(0, 0x8, hi16(A_scaled_));
+        TTI_SFPCONFIG(0, 11, 0);
+
+        // (B-C).
+        TTI_SFPLOADI(0, 0xA, lo16(B_minus_C_));
+        TTI_SFPLOADI(0, 0x8, hi16(B_minus_C_));
+        TTI_SFPCONFIG(0, 12, 0);
+
+        //_program_exponential_replay_buffer_();
+
+        return;
+/*#elif EXPONENTIAL_TESTING_MODE == 2
+#elif EXPONENTIAL_TESTING_MODE == 3
+#elif EXPONENTIAL_TESTING_MODE == 4*/
+#endif
+
         // Algorithm is adapted from:
         //      A Fast, Compact Approximation of the Exponential Function
         //      Nicol N. Schraudolph

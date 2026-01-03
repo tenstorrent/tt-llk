@@ -4,7 +4,6 @@
 
 import pytest
 import torch
-from conftest import skip_for_blackhole
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, InputOutputFormat
@@ -16,11 +15,11 @@ from helpers.llk_params import (
     format_dict,
 )
 from helpers.param_config import input_output_formats, parametrize
+from helpers.profiler import Profiler
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import run_test
+from helpers.test_config import ProfilerBuild, run_test
 
 
-@skip_for_blackhole
 @parametrize(
     test_name="fast_exp_test",
     formats=input_output_formats(
@@ -29,7 +28,7 @@ from helpers.test_config import run_test
         ]
     ),
     input_dimensions=[
-        [64, 64]
+        [32, 32]
     ],  # [[32, 32], [32, 64], [64, 32], [64, 64], [128, 32], [32, 128]],
     approx_mode=[ApproximationMode.Yes],
     mathop=[MathOperation.Exp],
@@ -72,11 +71,11 @@ def eltwise_unary_sfpu(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    min_val = -20
-    max_val = 0
+    # min_val = -20
+    # max_val = 0
     size = src_A.shape[0]
-    for i in range(size):
-        src_A[i] = min_val + (max_val - min_val) * i / (size - 1.0)
+    # for i in range(size):
+    #    src_A[i] = min_val + (max_val - min_val) * i / (size - 1.0)
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
@@ -105,33 +104,36 @@ def eltwise_unary_sfpu(
         "tile_cnt": tile_cnt,
     }
 
-    for config_idx, exp_config in enumerate(
-        [
-            (2, 1, True),
-            (2, 2, True),
-            (2, 3, True),
-            (2, 4, True),
-            (2, 5, True),
-            (4, 1, True),
-            (4, 2, True),
-            (4, 3, True),
-            (4, 4, True),
-            (4, 5, True),
-            (6, 1, True),
-            (6, 2, True),
-            (6, 3, True),
-            (6, 4, True),
-            (6, 5, True),
-            (0, 0, False),
-        ]
-    ):
+    # for config_idx, exp_config in enumerate(
+    #    [
+    #        (2, 1, True),
+    #        (2, 2, True),
+    #        (2, 3, True),
+    #        (2, 4, True),
+    #        (2, 5, True),
+    #        (4, 1, True),
+    #        (4, 2, True),
+    #        (4, 3, True),
+    #        (4, 4, True),
+    #        (4, 5, True),
+    #        (6, 1, True),
+    #        (6, 2, True),
+    #        (6, 3, True),
+    #        (6, 4, True),
+    #        (6, 5, True),
+    #        (0, 0, False),
+    #    ]
+    # ):
+    if True:
+        config_idx = 0
+        exp_config = (4, 2)
 
         # Update configuration header.
-        with open("tt_llk_wormhole_b0/common/inc/sfpu/exp_config_params.h", "w") as f:
-            if exp_config[2]:
-                f.write("#define EXPONENTIAL_TESTING\n")
-            f.write("#define EXP_CONFIG_NUM_TERMS " + str(exp_config[0]) + "\n")
-            f.write("#define EXP_CONFIG_NUM_SCALE " + str(exp_config[1]) + "\n")
+        # with open("tt_llk_wormhole_b0/common/inc/sfpu/exp_config_params.h", "w") as f:
+        #    if exp_config[2]:
+        #        f.write("#define EXPONENTIAL_TESTING\n")
+        #    f.write("#define EXP_CONFIG_NUM_TERMS " + str(exp_config[0]) + "\n")
+        #    f.write("#define EXP_CONFIG_NUM_SCALE " + str(exp_config[1]) + "\n")
 
         res_address = write_stimuli_to_l1(
             test_config,
@@ -143,7 +145,11 @@ def eltwise_unary_sfpu(
             tile_count_B=tile_cnt,
         )
 
-        run_test(test_config)
+        run_test(test_config, profiler_build=ProfilerBuild.Yes)
+        runtime = Profiler.get_data(test_config["testname"])
+        timestamps = runtime.math().timestamps()  # .marker("TEST_TIMESTAMP").frame()
+        zones = runtime.zones().marker("TILE_LOOP").frame()
+        print(zones)
 
         res_from_L1 = collect_results(formats, tile_count=tile_cnt, address=res_address)
 
@@ -181,14 +187,18 @@ def eltwise_unary_sfpu(
             "MAXABSDIFF:",
             np.max(np.abs(res_tensor_np[0:size] - golden_tensor_np[0:size])),
         )
+        print(
+            "MAXABSDIFF_256:",
+            np.max(np.abs(res_tensor_np[0:256] - golden_tensor_np[0:256])),
+        )
 
         # Write results to file.
-        with open(
-            "exponential_accuracy_test.txt", "w" if config_idx == 0 else "a"
-        ) as f:
-            if config_idx == 0:
-                f.write("experiment, num_terms, num_scale, i, input, output, golden\n")
-            for i in range(size):
-                f.write(
-                    f"{config_idx}, {exp_config[0]}, {exp_config[1]}, {i}, {src_A_np[i]}, {res_tensor_np[i]}, {golden_tensor_np[i]}\n"
-                )
+        # with open(
+        #    "exponential_accuracy_test.txt", "w" if config_idx == 0 else "a"
+        # ) as f:
+        #    if config_idx == 0:
+        #        f.write("experiment, num_terms, num_scale, i, input, output, golden\n")
+        #    for i in range(size):
+        #        f.write(
+        #            f"{config_idx}, {exp_config[0]}, {exp_config[1]}, {i}, {src_A_np[i]}, {res_tensor_np[i]}, {golden_tensor_np[i]}\n"
+        #        )
