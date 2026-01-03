@@ -32,7 +32,7 @@ runs:
           TRIGGERER="scheduled run"
         fi
         MESSAGE=":alert: *${{ inputs.test_name }}* have failed :alert:"
-        MESSAGE="$MESSAGE\n\n⚠️ Looks like something broke! The nightly tests didn't complete successfully."
+        MESSAGE="$MESSAGE\n\nLooks like something broke! Some tests didn't complete successfully."
         MESSAGE="$MESSAGE\n\nTriggered by: \`$TRIGGERER\`"
         MESSAGE="$MESSAGE\nCommit: <$COMMIT_URL|$COMMIT_SHA>"
         MESSAGE="$MESSAGE\n<${RUN_URL}|Check what went wrong>"
