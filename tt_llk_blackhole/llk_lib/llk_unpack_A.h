@@ -200,6 +200,16 @@ inline void _llk_unpack_A_init_(
     _llk_unpack_A_mop_config_<BType, acc_to_dest, binary_reuse_dest, unpack_to_dest>(transpose_of_faces > 0, num_faces, unpack_src_format, unpack_dst_format);
 }
 
+template <BroadcastType BType = BroadcastType::NONE>
+inline void _llk_unpack_A_uninit_(const std::uint32_t face_r_dim)
+{
+    // Unpack A is used for all single unpacker operations, except bcast, since bcast HW feature is only available on unpacker B
+    constexpr std::uint32_t UNP_SEL = (BType == BroadcastType::NONE) ? p_setadc::UNP_A : p_setadc::UNP_B;
+    // TODO NC: Issue tt-llk#1036 will make this transient
+    TT_SETADCXX(UNP_SEL, face_r_dim * FACE_C_DIM - 1, 0x0);
+    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
+}
+
 template <
     BroadcastType BType                          = BroadcastType::NONE,
     bool acc_to_dest                             = false,
