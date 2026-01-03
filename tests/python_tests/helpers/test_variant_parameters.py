@@ -115,11 +115,19 @@ class REUSE_DEST_TYPE(TemplateParameter):
 
 def _generate_operation_constants(mathop: MathOperation) -> list[str]:
     """Generate the appropriate operation constants based on the math operation type."""
+    from .chip_architecture import ChipArchitecture, get_chip_architecture
+
     constants = []
 
     if mathop in SFPU_UNARY_OPERATIONS:
+        # For Quasar, use ckernel::SfpuType to avoid ambiguity with ::SfpuType from llk_sfpu_types.h
+        sfpu_type = (
+            "ckernel::SfpuType"
+            if get_chip_architecture() == ChipArchitecture.QUASAR
+            else "SfpuType"
+        )
         constants.append(
-            f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{mathop.cpp_enum_value};"
+            f"constexpr auto SFPU_UNARY_OPERATION = {sfpu_type}::{mathop.cpp_enum_value};"
         )
     elif mathop in SFPU_BINARY_OPERATIONS:
         constants.append(
@@ -162,10 +170,18 @@ class MATH_OP(TemplateParameter):
         if self.unary_extra and (
             self.mathop is None or self.mathop not in SFPU_UNARY_OPERATIONS
         ):
+            from .chip_architecture import ChipArchitecture, get_chip_architecture
+
+            # For Quasar, use ckernel::SfpuType to avoid ambiguity with ::SfpuType from llk_sfpu_types.h
+            sfpu_type = (
+                "ckernel::SfpuType"
+                if get_chip_architecture() == ChipArchitecture.QUASAR
+                else "SfpuType"
+            )
             temp_header.extend(
                 [
                     "\n// Additional SFPU unary operation",
-                    f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{self.unary_extra.cpp_enum_value};",
+                    f"constexpr auto SFPU_UNARY_OPERATION = {sfpu_type}::{self.unary_extra.cpp_enum_value};",
                 ]
             )
 

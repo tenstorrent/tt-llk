@@ -50,6 +50,7 @@ enum class SfpuType : uint32_t
     exponential,
     reciprocal,
     sqrt,
+    rsqrt,
     relu,
     lrelu,
     relumin,
