@@ -116,10 +116,19 @@ jobs:
                 --override-ini="addopts=-v" --tb=short --timeout=60 \
                 --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}-run.xml .
 
-          pip install junitparser
           junitparser merge pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}-compile.xml \
                    pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}-run.xml \
                    pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}.xml
+
+          if [[ "${{ inputs.coverage }}" == "true" ]]; then
+            if [ ! -f "/tmp/tt-llk-build/merged_coverage.info" ]; then
+              echo "Error: Coverage file /tmp/tt-llk-build/merged_coverage.info not found." >&2
+              echo "Ensure coverage artefcats was generated!" >&2
+              exit 1
+            fi
+            cd ../../
+            cp /tmp/tt-llk-build/merged_coverage.info code-coverage-${CHIP_ARCH}-${{ matrix.test_group }}.info
+          fi
 
       # Step 4: Zip performance data if perf tests were run
       - name: Zip performance data
