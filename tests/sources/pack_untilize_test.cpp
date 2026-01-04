@@ -61,7 +61,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_wait_for_dest_available_<dest_sync>();
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math);
     }
     _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();

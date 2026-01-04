@@ -63,10 +63,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
 #ifdef ARCH_BLACKHOLE
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
             params->DST_INDEX + i, formats.math, formats.math, params->num_faces);
 #else
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
             params->DST_INDEX + i, formats.math, formats.math);
 #endif
     }
