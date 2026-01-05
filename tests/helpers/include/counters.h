@@ -418,6 +418,13 @@ public:
         {
             const auto& config = counters[i];
 
+            // Configure L1 MUX if needed (must be set before reading)
+            if (config.bank == CounterBank::L1)
+            {
+                uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
+                dbg_regs[mux_ctrl_addr] = (config.mux_ctrl_bit4 << 4);
+            }
+
             // Stop counter
             uint32_t counter_base          = get_counter_base_addr(config.bank);
             uint32_t counter_reg_addr      = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
