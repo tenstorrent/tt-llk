@@ -14,9 +14,9 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
-constexpr static std::uint32_t format_size_in_bytes(uint format)
+constexpr static std::uint32_t format_size_in_bytes(uint data_format)
 {
-    switch (static_cast<DataFormat>(format & 0xF))
+    switch (static_cast<DataFormat>(data_format & 0xF))
     {
         case DataFormat::Int32:
         case DataFormat::Float32:
@@ -45,18 +45,17 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0, 0, FACE_R_DIM, params->num_faces, formats.unpack_src, formats.unpack_dst);
 
-    const uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM; // FULL_CT_DIM must be divisible by BLOCK_CT_DIM. Assertion is done in initialization phase.
+    const uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM;
 
     for (uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
     {
-        for (uint32_t b = 0; b < num_blocks_per_col; ++b) // Loop over blocks in the column (dst reg)
+        for (uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the column (dst reg)
         {
-            for (uint32_t t = 0; t < BLOCK_CT_DIM; ++t) // Loop over tiles in the block
+            for (uint32_t tile_index_within_block = 0; tile_index_within_block < BLOCK_CT_DIM; ++tile_index_within_block) // Loop over tiles in the block
             {
-                uint32_t tile_index = rt * FULL_CT_DIM + b * BLOCK_CT_DIM + t;
-
+                uint32_t tile_index_in_memory = rt * FULL_CT_DIM + block_num * BLOCK_CT_DIM + tile_index_within_block;
                 _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-                    L1_ADDRESS(buffer_A[tile_index]), formats.unpack_src, formats.unpack_dst);
+                    L1_ADDRESS(buffer_A[tile_index_in_memory]), formats.unpack_src, formats.unpack_dst);
             }
         }
     }
@@ -87,17 +86,17 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_reconfig_remap_(true);
 #endif
 
-    const uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM; // FULL_CT_DIM must be divisible by BLOCK_CT_DIM. Assertion is done in initialization phase.
+    const uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM;
 
     for (uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
     {
-        for (uint32_t b = 0; b < num_blocks_per_col; ++b) // Loop over blocks in the column (dst reg)
+        for (uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the column (dst reg)
         {
             _llk_math_wait_for_dest_available_<dest_sync>();
-            for (uint32_t t = 0; t < BLOCK_CT_DIM; ++t) // Loop over tiles in the block
+            for (uint32_t tile_index_within_block = 0; tile_index_within_block < BLOCK_CT_DIM; ++tile_index_within_block) // Loop over tiles in the block
             {
                 _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                    t, formats.math, formats.math);
+                    tile_index_within_block, formats.math, formats.math);
             }
             _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
         }
@@ -133,13 +132,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, UNTILIZE>();
     _llk_pack_untilize_init_<BLOCK_CT_DIM, FULL_CT_DIM>(formats.pack_dst, FACE_R_DIM, params->num_faces);
 #endif
-    const uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM; // FULL_CT_DIM must be divisible by BLOCK_CT_DIM. Assertion is done in initialization phase.
+    const uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM;
 
     for (uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
     {
-        for (uint32_t b = 0; b < num_blocks_per_col; ++b) // Loop over blocks in the column (dst reg)
+        for (uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the column (dst reg)
         {
-            uint32_t pack_addr_16B = base_addr_16B + rt * row_stride_16B + b * block_stride_16B;
+            uint32_t pack_addr_16B = base_addr_16B + rt * row_stride_16B + block_num * block_stride_16B;
 
             _llk_packer_wait_for_math_done_();
             _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM>(pack_addr_16B, formats.pack_dst, FACE_R_DIM, params->num_faces, 0 /* tile_dst_rt_offset */);

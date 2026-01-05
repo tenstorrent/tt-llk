@@ -24,18 +24,6 @@ from helpers.test_variant_parameters import (
 from helpers.utils import passed_test
 
 
-def get_block_ct_dim(full_ct_dim, dest_acc):
-    # _llk_pack_untilize_init_ has a static_assert that checks if block_ct_dim is less or equal to 8.
-    # TODO: Update this logic to accept more than 8 tiles per block if the static_assert changes in the future.
-    max_bct = 4 if dest_acc == DestAccumulation.Yes else 8
-
-    for bct in range(max_bct, 0, -1):
-        if full_ct_dim % bct == 0:
-            return bct
-
-    return 1
-
-
 @parametrize(
     formats=input_output_formats(
         [
@@ -70,7 +58,7 @@ def test_pack_untilize(
 
     # Handling a hardware limitation: cannot convert 8-bit exponent datums to Float16 without storing them as intermediate Float32 in dest register.
     # For wormhole architecture, gasket cannot perform this conversion and packer takes input Float32 (from dest register) converting to Float16_A.
-    # For blackhole architecture, gasket able to convert Float32 to Float16_A before packing (reduces work on packer).`
+    # For blackhole architecture, gasket is able to convert Float32 to Float16_A before packing (reduces work on packer).`
     if (
         formats.input_format == DataFormat.Float16
         and data_formats.pack_src.is_32_bit()
@@ -96,6 +84,14 @@ def test_pack_untilize(
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
     )
 
+    # _llk_pack_untilize_init_ has a static_assert that checks if block_ct_dim is less or equal to 8.
+    # TODO: Update this logic to accept more than 8 tiles per block if the static_assert changes in the future.
+    max_bct_dim = 8 if dest_acc == DestAccumulation.No else 4
+    full_ct_dim = input_dimensions[1] // 32
+    block_ct_dim = next(
+        (bct for bct in range(max_bct_dim, 0, -1) if full_ct_dim % bct == 0), 1
+    )
+
     configuration = TestConfig(
         "sources/pack_untilize_test.cpp",
         formats,
@@ -103,7 +99,7 @@ def test_pack_untilize(
             INPUT_DIMENSIONS(
                 input_dimensions,
                 input_dimensions,
-                get_block_ct_dim(input_dimensions[1] // 32, dest_acc),
+                block_ct_dim,
             ),
             DEST_SYNC(dest_sync),
         ],
@@ -120,7 +116,7 @@ def test_pack_untilize(
             sfpu=False,
         ),
         dest_acc=dest_acc,
-        unpack_to_dest=unpack_to_dest and dest_acc == dest_acc,
+        unpack_to_dest=unpack_to_dest,
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
