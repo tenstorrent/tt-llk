@@ -42,16 +42,30 @@ dimension_combinations = [
 ]
 
 
-def get_format_input_bounds(formats: InputOutputFormat) -> list[tuple[int, int]]:
+def get_format_input_bounds(
+    formats: InputOutputFormat, mathop: MathOperation
+) -> list[tuple[int, int]]:
     """Get valid stimuli bounds based on data format.
     - range needs to be cut off at 1000 for Sum reduction kernels with UInt16 input format to avoid overflow.
     """
-    if formats.input_format in [DataFormat.UInt32, DataFormat.UInt16]:
+    if formats.input_format == DataFormat.UInt32:
         return [(0, 1000)]
-    return [(-1000, 1000), (0, 1000), (-1000, 0)]
+    elif formats.input_format == DataFormat.UInt16:
+        return [
+            (0, 500)
+        ]  # Leads to overflow for Sum reduction kernel with UInt16 input format
+    bounds = [(0, 1000), (-1000, 0)]
+    # Float16_b excluded from mixed-sign range: when summing 32 columns with positive/negative
+    # values that cancel, results near zero have large relative errors (7-bit mantissa limit)
+    if (
+        formats.input_format != DataFormat.Float16_b
+        or mathop == MathOperation.ReduceColumn
+    ):
+        bounds.append((-1000, 1000))
+    return bounds
 
 
-def get_supported_reduce_axioms(reduce_pool: ReducePool) -> list[MathOperation]:
+def get_supported_reduce_axes(reduce_pool: ReducePool) -> list[MathOperation]:
     if reduce_pool == ReducePool.Sum:
         return [MathOperation.ReduceRow, MathOperation.ReduceColumn]
     return [MathOperation.ReduceColumn]
@@ -68,9 +82,9 @@ def get_supported_reduce_axioms(reduce_pool: ReducePool) -> list[MathOperation]:
         ],
         same=True,
     ),
-    mathop=lambda reduce_pool: get_supported_reduce_axioms(reduce_pool),
+    mathop=lambda reduce_pool: get_supported_reduce_axes(reduce_pool),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    input_bounds=lambda formats: get_format_input_bounds(formats),
+    input_bounds=lambda formats, mathop: get_format_input_bounds(formats, mathop),
     reduce_pool=[ReducePool.Min, ReducePool.Max, ReducePool.Sum, ReducePool.Average],
     dimension_combinations=dimension_combinations,
 )
@@ -101,7 +115,6 @@ def test_sfpu_reduce(
         low=min_value, high=max_value, size=(tile_cnt * 1024,), dtype=torch_format
     )
     src_B = torch.zeros_like(src_A)
-    src_A = torch.ones_like(src_A)
 
     # Max Reduction can do block and single tile reduction whereas Sum/Avg only do single tile reduction, convert Sum/Avg golden to do block reduction by retilizing input to src_A
     # Dimensions for Max reduction work column wise, for Sum/Avg processing tiles independently is same as column reduction on dst block dimension [32, num_tiles * 32] where num rows is 32 i.e RT_DIM=1 (same as a single tile)
@@ -154,11 +167,6 @@ def test_sfpu_reduce(
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
     res_tensor = untilize_block(res_tensor, formats.output_format, dst_dim)
-
-    print(f"res_tensor: {res_tensor.view(input_dimensions[0], input_dimensions[1])}")
-    print(
-        f"golden_tensor: {golden_tensor.view(input_dimensions[0], input_dimensions[1])}"
-    )
 
     if mathop == MathOperation.ReduceColumn:
         assert passed_test(golden_tensor[0], res_tensor[0], formats.output_format)

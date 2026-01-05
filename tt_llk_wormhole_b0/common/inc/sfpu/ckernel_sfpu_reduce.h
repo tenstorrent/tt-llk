@@ -282,7 +282,7 @@ inline void horizontal_reduce_to_column_zero()
 }
 
 template <InstrModLoadStore INSTRUCTION_MODE>
-inline void perform_reduce_row_sum_avg_tile(uint tile_row_offset)
+inline void perform_reduce_row_sum_tile(uint tile_row_offset)
 {
     // Determine if integer or float mode at compile time
     constexpr bool is_integer_mode =
@@ -350,7 +350,7 @@ inline void perform_reduce_row_sum_avg_tile(uint tile_row_offset)
  * - Store result back to tile 0
  *
  * Row results are stored at offsets: 0, 4, 8, 12, 32, 36, 40, 44 (8 total per tile)
- * corresponding to the 8 groups of 4 rows processed by perform_reduce_row_sum_avg_tile.
+ * corresponding to the 8 groups of 4 rows processed by perform_reduce_row_sum_tile.
  *
  * @tparam INSTRUCTION_MODE The load/store instruction mode
  * @param tile_row_base Base address of the first tile in this row of tiles
@@ -488,7 +488,7 @@ inline void sum_first_columns_across_tiles(uint tile_row_base, uint num_columns)
 }
 
 template <InstrModLoadStore INSTRUCTION_MODE>
-inline void perform_reduce_row_sum_avg(uint num_columns, uint num_rows)
+inline void perform_reduce_row_sum(uint num_columns, uint num_rows)
 {
     for (uint i = 0; i < num_rows; i++)
     {
@@ -498,7 +498,7 @@ inline void perform_reduce_row_sum_avg(uint num_columns, uint num_rows)
         for (uint j = 0; j < num_columns; j++)
         {
             uint tile_offset = tile_row_offset + (ROWS_PER_TILE * j);
-            perform_reduce_row_sum_avg_tile<INSTRUCTION_MODE>(tile_offset);
+            perform_reduce_row_sum_tile<INSTRUCTION_MODE>(tile_offset);
         }
 
         // Step 2: Sum column 0 from all tiles in this row into tile 0's column 0
@@ -818,13 +818,11 @@ inline void calculate_reduce_sum_avg(uint num_columns, uint num_rows)
     }
     else
     {
-        perform_reduce_row_sum_avg<INSTRUCTION_MODE>(num_columns, num_rows);
+        static_assert(pool_type == PoolType::SUM, "Row reduction (REDUCE_ROW) is allowed only for SUM");
+        perform_reduce_row_sum<INSTRUCTION_MODE>(num_columns, num_rows);
     }
-    // Sums are stored in the first row of tensor in dest reg:
-    // Address 0:  even columns, left half  (columns 0,2,4,6,8,10,12,14)
-    // Address 2:  odd columns,  left half  (columns 1,3,5,7,9,11,13,15)
-    // Address 16: even columns, right half (columns 16,18,20,22,24,26,28,30)
-    // Address 18: odd columns,  right half (columns 17,19,21,23,25,27,29,31)
+    // For column reductions: sums are stored horizontally in the first row of tensor in dest reg
+    // For row reductions: sums are stored vertically in the first column of tensor in dest reg
 }
 
 // ============================================================================
@@ -877,7 +875,9 @@ inline void _init_reduce_(std::uint32_t block_ct_dim = 1)
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
 inline void _calculate_reduce_(uint32_t block_rt_dim = 1, uint32_t block_ct_dim = 1)
 {
-    static_assert(reduce_dim == REDUCE_COL || pool_type == PoolType::SUM, "Only column reduction (REDUCE_COL) is currently supported");
+    static_assert(
+        reduce_dim == REDUCE_COL || pool_type == PoolType::SUM,
+        "Only column reduction (REDUCE_COL) is supported, except row reduction (REDUCE_ROW) is allowed only for SUM");
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
 
     // Determine InstrModLoadStore based on format in dst register
