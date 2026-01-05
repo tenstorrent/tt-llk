@@ -54,18 +54,18 @@ struct PolynomialEvaluator
         return U {0};
     }
 
-    template <typename U, typename Coefficient0>
-    sfpi_inline static constexpr auto eval(U x, Coefficient0 coeff0)
+    template <typename U, typename Coefficient0, typename... Rest>
+    sfpi_inline static constexpr auto eval(U x, Coefficient0 c0, Rest... rest)
     {
-        // Base case: f(x) = coeff0 (0-th degree polynomial)
-        return coeff0;
-    }
+        U acc {0};
 
-    template <typename U, typename Coefficient0, typename... OtherCoefficients>
-    sfpi_inline static constexpr auto eval(U x, Coefficient0 coeff0, OtherCoefficients... other_coefficients)
-    {
-        // Recursive case: Horner's method
-        return coeff0 + x * eval(x, other_coefficients...);
+        // First coefficient
+        acc = acc * x + U {c0};
+
+        // Remaining coefficients (safe: Rest... may be empty)
+        ((acc = acc * x + U {rest}), ...);
+
+        return acc;
     }
 };
 
