@@ -339,14 +339,14 @@ inline void perform_reduce_row_sum_tile(uint tile_row_offset)
 }
 
 /**
- * @brief Sums column 0 from multiple tiles in a row into tile 0's column 0.
+ * @brief Sums column 0 from multiple tiles in a row into tile_0 column 0.
  *
- * After per-tile row reduction, each tile has partial row sums in column 0.
- * This function accumulates those sums across all tiles in a tile-row into tile 0.
+ * After per-tile row reduction, each tile has partial row sums in its column 0.
+ * This function accumulates those sums across all tiles in the same row into the first tile of that row.
  *
- * Strategy for maximum LREG utilization:
- * - Load the same row offset from up to 8 tiles simultaneously into LREG0-7
- * - Perform tree reduction to sum all loaded values into LREG0
+ * Strategy: Load and accumulate iteratively using only 2 LREGs.
+ * - Load tile 0 into LREG0
+ * - For each subsequent tile, load into LREG1 and add to LREG0
  * - Store result back to tile 0
  *
  * Row results are stored at offsets: 0, 4, 8, 12, 32, 36, 40, 44 (8 total per tile)
@@ -354,131 +354,38 @@ inline void perform_reduce_row_sum_tile(uint tile_row_offset)
  *
  * @tparam INSTRUCTION_MODE The load/store instruction mode
  * @param tile_row_base Base address of the first tile in this row of tiles
- * @param num_columns Number of tiles to sum (2-8)
+ * @param block_ct_dim Number of tiles along x axis of tensor (column tiles)
  */
 template <InstrModLoadStore INSTRUCTION_MODE>
-inline void sum_first_columns_across_tiles(uint tile_row_base, uint num_columns)
+inline void sum_first_columns_across_tiles(uint tile_row_base, uint block_ct_dim)
 {
     constexpr bool is_integer_mode =
         (INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::INT32_2S_COMP || INSTRUCTION_MODE == InstrModLoadStore::LO16);
 
     // Row offsets where per-tile reduction results are stored
-    // face_pair 0: rows 0, 4, 8, 12 (row_group 0: 0,4; row_group 1: 8,12)
-    // face_pair 1: rows 32, 36, 40, 44 (base offset 32)
+    // note: tiles stored in tilized-mode in dest, we store results in column 0 for face 0 and face 2
+    // rows 0-12 occupy face 0, rows 32-44 occupy face 2 (since 16-31 is face 1)
     constexpr uint RESULT_ROWS[8] = {0, 4, 8, 12, 32, 36, 40, 44};
 
     for (uint r = 0; r < 8; r++)
     {
         uint row = RESULT_ROWS[r];
 
-        // Load row from all tiles at once (maximizing LREG usage)
-        // Tile 0 always goes to LREG0
+        // Load tile 0 into LREG0
         TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_base + row);
 
-        // Load remaining tiles based on num_columns
-        // Using explicit checks to allow compiler optimization and avoid runtime LREG indexing
-        if (num_columns >= 2)
+        // Load remaining tiles one at a time and accumulate into LREG0
+        for (uint t = 1; t < block_ct_dim; t++)
         {
-            TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_base + ROWS_PER_TILE + row);
-        }
-        if (num_columns >= 3)
-        {
-            TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_base + 2 * ROWS_PER_TILE + row);
-        }
-        if (num_columns >= 4)
-        {
-            TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_base + 3 * ROWS_PER_TILE + row);
-        }
-        if (num_columns >= 5)
-        {
-            TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_base + 4 * ROWS_PER_TILE + row);
-        }
-        if (num_columns >= 6)
-        {
-            TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_base + 5 * ROWS_PER_TILE + row);
-        }
-        if (num_columns >= 7)
-        {
-            TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_base + 6 * ROWS_PER_TILE + row);
-        }
-        if (num_columns >= 8)
-        {
-            TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_base + 7 * ROWS_PER_TILE + row);
-        }
-
-        // Tree reduction: sum all loaded LREGs into LREG0
-        // Level 1: Add pairs (LREG0 += LREG1, LREG2 += LREG3, LREG4 += LREG5, LREG6 += LREG7)
-        if constexpr (is_integer_mode)
-        {
-            if (num_columns >= 2)
+            TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, tile_row_base + t * ROWS_PER_TILE + row);
+            if constexpr (is_integer_mode)
             {
                 TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
             }
-            if (num_columns >= 4)
-            {
-                TTI_SFPIADD(0, p_sfpu::LREG3, p_sfpu::LREG2, 4);
-            }
-            if (num_columns >= 6)
-            {
-                TTI_SFPIADD(0, p_sfpu::LREG5, p_sfpu::LREG4, 4);
-            }
-            if (num_columns >= 8)
-            {
-                TTI_SFPIADD(0, p_sfpu::LREG7, p_sfpu::LREG6, 4);
-            }
-
-            // Level 2: Add remaining pairs
-            if (num_columns >= 3)
-            {
-                TTI_SFPIADD(0, p_sfpu::LREG2, p_sfpu::LREG0, 4);
-            }
-            if (num_columns >= 5)
-            {
-                TTI_SFPIADD(0, p_sfpu::LREG4, p_sfpu::LREG0, 4);
-            }
-            if (num_columns >= 7)
-            {
-                TTI_SFPIADD(0, p_sfpu::LREG6, p_sfpu::LREG0, 4);
-            }
-        }
-        else
-        {
-            if (num_columns >= 2)
+            else
             {
                 TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG1, p_sfpu::LREG0, 0);
                 TTI_SFPNOP; // Required for Wormhole float latency
-            }
-            if (num_columns >= 4)
-            {
-                TTI_SFPADD(p_sfpu::LREG2, p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG2, 0);
-                TTI_SFPNOP;
-            }
-            if (num_columns >= 6)
-            {
-                TTI_SFPADD(p_sfpu::LREG4, p_sfpu::LCONST_1, p_sfpu::LREG5, p_sfpu::LREG4, 0);
-                TTI_SFPNOP;
-            }
-            if (num_columns >= 8)
-            {
-                TTI_SFPADD(p_sfpu::LREG6, p_sfpu::LCONST_1, p_sfpu::LREG7, p_sfpu::LREG6, 0);
-                TTI_SFPNOP;
-            }
-
-            // Level 2: Add remaining pairs
-            if (num_columns >= 3)
-            {
-                TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG0, 0);
-                TTI_SFPNOP;
-            }
-            if (num_columns >= 5)
-            {
-                TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG4, p_sfpu::LREG0, 0);
-                TTI_SFPNOP;
-            }
-            if (num_columns >= 7)
-            {
-                TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG6, p_sfpu::LREG0, 0);
-                TTI_SFPNOP;
             }
         }
 
@@ -488,23 +395,23 @@ inline void sum_first_columns_across_tiles(uint tile_row_base, uint num_columns)
 }
 
 template <InstrModLoadStore INSTRUCTION_MODE>
-inline void perform_reduce_row_sum(uint num_columns, uint num_rows)
+inline void perform_reduce_row_sum(uint block_ct_dim, uint block_rt_dim)
 {
-    for (uint i = 0; i < num_rows; i++)
+    for (uint i = 0; i < block_rt_dim; i++)
     {
-        uint tile_row_offset = ROWS_PER_TILE * num_columns * i;
+        uint tile_row_offset = ROWS_PER_TILE * block_ct_dim * i;
 
         // Step 1: Reduce each tile individually (horizontal reduction within each tile)
-        for (uint j = 0; j < num_columns; j++)
+        for (uint j = 0; j < block_ct_dim; j++)
         {
             uint tile_offset = tile_row_offset + (ROWS_PER_TILE * j);
             perform_reduce_row_sum_tile<INSTRUCTION_MODE>(tile_offset);
         }
 
-        // Step 2: Sum column 0 from all tiles in this row into tile 0's column 0
-        if (num_columns > 1)
+        // Step 2: Sum column 0 from all tiles in this row into tile 0's column 0 of this row
+        if (block_ct_dim > 1)
         {
-            sum_first_columns_across_tiles<INSTRUCTION_MODE>(tile_row_offset, num_columns);
+            sum_first_columns_across_tiles<INSTRUCTION_MODE>(tile_row_offset, block_ct_dim);
         }
     }
 }
@@ -799,7 +706,7 @@ inline void calculate_reduce_max_min(const std::uint32_t block_height)
  * @tparam INSTRUCTION_MODE The instruction mode for integer and float formats: INT32, INT32_2S_COMP, LO16, DEFAULT (FP32, FP16B)
  */
 template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTION_MODE>
-inline void calculate_reduce_sum_avg(uint num_columns, uint num_rows)
+inline void calculate_reduce_sum_avg(uint block_ct_dim, uint block_rt_dim)
 {
     // Compile-time assertions to restrict to currently supported operations
     static_assert(reduce_dim == REDUCE_COL || reduce_dim == REDUCE_ROW, "Only column and row reduction are supported on SFPU");
@@ -819,7 +726,7 @@ inline void calculate_reduce_sum_avg(uint num_columns, uint num_rows)
     else
     {
         static_assert(pool_type == PoolType::SUM, "Row reduction (REDUCE_ROW) is allowed only for SUM");
-        perform_reduce_row_sum<INSTRUCTION_MODE>(num_columns, num_rows);
+        perform_reduce_row_sum<INSTRUCTION_MODE>(block_ct_dim, block_rt_dim);
     }
     // For column reductions: sums are stored horizontally in the first row of tensor in dest reg
     // For row reductions: sums are stored vertically in the first column of tensor in dest reg
