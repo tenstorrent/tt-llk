@@ -166,6 +166,8 @@ def test_matmul(
         counter("TDMA_UNPACK", "UNPACK_BUSY_1"),
         counter("TDMA_PACK", "PACK_NOT_DEST_STALL"),
         counter("L1", "NOC_RING0_INCOMING_1", mux_ctrl_bit4=0),
+        counter("TDMA_UNPACK", "UNPACK_BUSY_2"),
+        counter("L1", "L1_ARB_UNPACKER", mux_ctrl_bit4=0),
     ]
 
     # MATH counters (same as C++ version)
@@ -178,6 +180,8 @@ def test_matmul(
         counter("TDMA_UNPACK", "MATH_INSTR_SRC_READY"),
         counter("TDMA_PACK", "PACK_NOT_DEST_STALL"),
         counter("L1", "L1_ARB_TDMA_BUNDLE_0", mux_ctrl_bit4=0),
+        counter("TDMA_UNPACK", "MATH_INSTR_BUF_RDEN"),
+        counter("L1", "L1_ARB_TDMA_BUNDLE_1", mux_ctrl_bit4=0),
     ]
 
     # PACK counters (same as C++ version)
@@ -190,17 +194,28 @@ def test_matmul(
         counter("TDMA_PACK", "PACK_BUSY_11"),
         counter("TDMA_UNPACK", "UNPACK_BUSY_0"),
         counter("L1", "NOC_RING0_OUTGOING_1", mux_ctrl_bit4=0),
+        counter("TDMA_PACK", "PACK_NOT_SB_STALL"),
+        counter("L1", "TDMA_BUNDLE_1_ARB", mux_ctrl_bit4=1),
     ]
 
     # Configure counters for each thread
     configure_perf_counters(
-        unpack_counters, location=workers_tensix_coordinates, thread="UNPACK"
+        unpack_counters,
+        location=workers_tensix_coordinates,
+        thread="UNPACK",
+        mode="REQUESTS",
     )
     configure_perf_counters(
-        math_counters, location=workers_tensix_coordinates, thread="MATH"
+        math_counters,
+        location=workers_tensix_coordinates,
+        thread="MATH",
+        mode="REQUESTS",
     )
     configure_perf_counters(
-        pack_counters, location=workers_tensix_coordinates, thread="PACK"
+        pack_counters,
+        location=workers_tensix_coordinates,
+        thread="PACK",
+        mode="REQUESTS",
     )
 
     # Run the test - counters configured from Python

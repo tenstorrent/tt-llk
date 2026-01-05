@@ -182,7 +182,8 @@ def configure_perf_counters(
     # Reverse lookup for bank names
     bank_name_to_id = {v: k for k, v in COUNTER_BANK_NAMES.items()}
 
-    mode_bit = 0 if mode.upper() == "GRANTS" else 1
+    # Bit16: 0 = REQUESTS, 1 = GRANTS
+    mode_bit = 1 if mode.upper() == "GRANTS" else 0
 
     # Encode counter configurations
     config_words = []
@@ -206,7 +207,7 @@ def configure_perf_counters(
         )
         config_words.append(config_word)
         print(
-            f"  [{idx}] {bank_name}:{counter_id} (bank_id={bank_id}) -> 0x{config_word:08x}"
+            f"  [{idx}] {bank_name}:{counter_id} (bank_id={bank_id}, mode_bit={mode_bit}, mux={mux_ctrl_bit4}) -> 0x{config_word:08x}"
         )
 
     # Pad to 10 words
@@ -288,7 +289,8 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
         mux_ctrl_bit4 = (config_word >> 17) & 0x1
 
         bank_name = COUNTER_BANK_NAMES.get(bank_id, f"UNKNOWN_{bank_id}")
-        mode = "GRANTS" if mode_bit == 0 else "REQUESTS"
+        # Hardware doc: bit16 = 1 -> GRANTS, 0 -> REQUESTS
+        mode = "GRANTS" if mode_bit == 1 else "REQUESTS"
 
         # Get counter name
         if bank_name == "L1":
@@ -348,13 +350,34 @@ def print_perf_counters(results: List[Dict], thread: str = None) -> None:
     for bank_name in sorted(by_bank.keys()):
         print(f"\n{bank_name}:")
         print("-" * 80)
+        # Optional diagnostic: detect identical counts within a bank
+        counts = [r["count"] for r in by_bank[bank_name]]
+        cycles_list = [r["cycles"] for r in by_bank[bank_name]]
+        # The cycles register for a bank reflects the measurement window and is shared
+        # across selections; identical cycles are expected when scanning different events
+        shared_cycles = cycles_list[0] if cycles_list else 0
+        if len(counts) > 1 and len(set(counts)) == 1:
+            print(
+                f"  [DIAG] All counter counts identical in bank {bank_name}: {counts[0]}"
+            )
+        if len(cycles_list) > 1 and len(set(cycles_list)) == 1:
+            print(
+                f"  [DIAG] Shared reference cycles (bank window) in {bank_name}: {shared_cycles}"
+            )
+        else:
+            print(
+                f"  [DIAG] Reference cycles vary in {bank_name}: {', '.join(str(c) for c in cycles_list)}"
+            )
+
+        # Print shared cycles once, then per-counter count and rate
+        print(f"  Shared cycles: {shared_cycles}")
         for result in by_bank[bank_name]:
             name = result["counter_name"]
-            cycles = result["cycles"]
             count = result["count"]
             mode = result["mode"]
+            rate = (count / shared_cycles) if shared_cycles else 0.0
             print(
-                f"  {name:30s} | Cycles: {cycles:12d} | Count: {count:12d} | Mode: {mode}"
+                f"  {name:30s} | Count: {count:12d} | Rate: {rate:8.3f} | Mode: {mode}"
             )
 
     print("=" * 80)

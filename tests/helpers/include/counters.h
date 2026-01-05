@@ -26,6 +26,11 @@ namespace llk_perf
 
 // Performance counter output registers (for reading cycle/count results)
 // NOTE: Table shows TDMA_UNPACK outputs at 0x018/0x01C but empirically 0x108/0x10C works
+// IMPORTANT: The low output (`OUT_L`) returns the reference cycle count for the bank's
+// measurement window. This value is independent of the selected event and will be
+// identical across selections when scanning multiple counters in the same bank.
+// The high output (`OUT_H`) returns the event-specific count for the currently selected
+// counter (set via bits [15:8] of the mode register).
 #define RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD (RISCV_DEBUG_REGS_START_ADDR | 0x100)
 #define RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD (RISCV_DEBUG_REGS_START_ADDR | 0x104)
 #define RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK   (RISCV_DEBUG_REGS_START_ADDR | 0x108)
@@ -115,8 +120,8 @@ inline constexpr uint32_t get_counter_output_high_addr(CounterBank bank)
 
 enum class CounterMode : uint32_t
 {
-    GRANTS   = 0,
-    REQUESTS = 1,
+    REQUESTS = 0,
+    GRANTS   = 1,
 };
 
 struct CounterResult
@@ -229,6 +234,7 @@ private:
         CounterBank bank;
         uint32_t counter_id;
         uint32_t mux_ctrl_bit4; // Only used for L1 counters
+        uint32_t mode_bit;      // 0 = REQUESTS, 1 = GRANTS
     };
 
     CounterConfig counters[10];
@@ -347,46 +353,58 @@ public:
 #pragma GCC diagnostic ignored "-Warray-bounds"
         volatile uint32_t* dbg_regs = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
 
+        // First decode configs and store locally
         uint32_t counter_idx = 0; // Separate index for storing configs
         for (uint32_t i = 0; i < 10 && counter_idx < 10; i++)
         {
             uint32_t metadata = config_mem[i];
 
-            // Check valid bit (bit 31)
             if ((metadata & 0x80000000u) == 0)
             {
                 continue;
             }
 
-            // Decode: [valid(31), mux_ctrl_bit4(17), mode(16), counter_id(8-15), bank(0-7)]
             uint8_t bank_id        = metadata & 0xFF;
             uint8_t counter_id_val = (metadata >> 8) & 0xFF;
             uint8_t mode_bit       = (metadata >> 16) & 0x1;
             uint8_t mux_ctrl_val   = (metadata >> 17) & 0x1;
 
-            // Store in internal array for stop() to use
             counters[counter_idx].bank          = static_cast<CounterBank>(bank_id);
             counters[counter_idx].counter_id    = counter_id_val;
             counters[counter_idx].mux_ctrl_bit4 = mux_ctrl_val;
+            counters[counter_idx].mode_bit      = mode_bit;
+            counter_idx++;
+        }
 
-            const auto& config = counters[counter_idx];
+        // Avoid repeated resets/starts per bank
+        bool bank_started[5] = {false, false, false, false, false};
+        for (uint32_t i = 0; i < counter_idx; i++)
+        {
+            const auto& config = counters[i];
 
-            // Configure L1 MUX if needed
+            // Configure L1 MUX if needed (doesn't affect counting, but safe)
             if (config.bank == CounterBank::L1)
             {
                 uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
-                dbg_regs[mux_ctrl_addr] = (config.mux_ctrl_bit4 << 4);
+                uint32_t cur            = dbg_regs[mux_ctrl_addr];
+                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((config.mux_ctrl_bit4 & 0x1u) << 4);
             }
 
+            uint32_t bank_index       = static_cast<uint32_t>(config.bank);
             uint32_t counter_base     = get_counter_base_addr(config.bank);
             uint32_t counter_reg_addr = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
 
-            // Program counter: reset, configure mode/sel, start
-            dbg_regs[counter_reg_addr]     = 0xFFFFFFFF;                                  // Reset
-            dbg_regs[counter_reg_addr + 1] = (config.counter_id << 8) | (mode_bit << 16); // Mode
-            dbg_regs[counter_reg_addr + 2] = 1;                                           // Start
-
-            counter_idx++;
+            if (!bank_started[bank_index])
+            {
+                // Reset
+                dbg_regs[counter_reg_addr] = 0xFFFFFFFF;
+                // Set counting mode to continuous (bits [7:0] = 0). Selection/mode_bit do not affect counting.
+                dbg_regs[counter_reg_addr + 1] = 0;
+                // Ensure 0->1 transition on start bit
+                dbg_regs[counter_reg_addr + 2] = 0;
+                dbg_regs[counter_reg_addr + 2] = 1;
+                bank_started[bank_index]       = true;
+            }
         }
 #pragma GCC diagnostic pop
     }
@@ -414,26 +432,50 @@ public:
         volatile uint32_t* data_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_MATH_DATA_ADDR);
 #endif
 
+        // Stop all banks once via 0->1 transition on stop bit
+        bool bank_stopped[5] = {false, false, false, false, false};
+        for (uint32_t i = 0; i < counter_count; i++)
+        {
+            const auto& config = counters[i];
+            uint32_t bank_idx  = static_cast<uint32_t>(config.bank);
+            uint32_t base      = get_counter_base_addr(config.bank);
+            uint32_t reg_addr  = (base - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            if (!bank_stopped[bank_idx])
+            {
+                dbg_regs[reg_addr + 2] = 0; // Clear
+                dbg_regs[reg_addr + 2] = 2; // Stop (bit1 0->1)
+                bank_stopped[bank_idx] = true;
+            }
+        }
+
+        // Now scan each configured counter: select via mode register and read outputs
         for (uint32_t i = 0; i < counter_count; i++)
         {
             const auto& config = counters[i];
 
-            // Configure L1 MUX if needed (must be set before reading)
+            // Configure L1 MUX if needed before reading
             if (config.bank == CounterBank::L1)
             {
                 uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
-                dbg_regs[mux_ctrl_addr] = (config.mux_ctrl_bit4 << 4);
+                uint32_t cur            = dbg_regs[mux_ctrl_addr];
+                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((config.mux_ctrl_bit4 & 0x1u) << 4);
             }
 
-            // Stop counter
-            uint32_t counter_base          = get_counter_base_addr(config.bank);
-            uint32_t counter_reg_addr      = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
-            dbg_regs[counter_reg_addr + 2] = 0; // Stop bit
+            uint32_t counter_base     = get_counter_base_addr(config.bank);
+            uint32_t counter_reg_addr = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
 
-            // Read outputs
-            uint32_t output_low_addr  = (get_counter_output_low_addr(config.bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
-            uint32_t output_high_addr = (get_counter_output_high_addr(config.bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            // Select the desired counter and req/grant output in mode register
+            dbg_regs[counter_reg_addr + 1] = (config.counter_id << 8) | ((config.mode_bit & 0x1u) << 16);
 
+            // Allow selection/mux to settle: perform a dummy read sequence
+            uint32_t output_low_addr       = (get_counter_output_low_addr(config.bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            uint32_t output_high_addr      = (get_counter_output_high_addr(config.bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            volatile uint32_t dummy_cycles = dbg_regs[output_low_addr];
+            volatile uint32_t dummy_count  = dbg_regs[output_high_addr];
+            (void)dummy_cycles;
+            (void)dummy_count;
+
+            // Read outputs again for the actual value
             results[i].cycles     = dbg_regs[output_low_addr];
             results[i].count      = dbg_regs[output_high_addr];
             results[i].bank       = config.bank;
