@@ -60,10 +60,10 @@ struct PolynomialEvaluator
         U acc {0};
 
         // First coefficient
-        acc = acc * x + U {c0};
+        acc = acc * x + static_cast<U>(c0);
 
         // Remaining coefficients (safe: Rest... may be empty)
-        ((acc = acc * x + U {rest}), ...);
+        ((acc = acc * x + static_cast<U>(rest)), ...);
 
         return acc;
     }
