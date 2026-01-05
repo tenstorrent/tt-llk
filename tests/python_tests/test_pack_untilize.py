@@ -3,6 +3,7 @@
 
 import pytest
 import torch
+from helpers.constraints import get_valid_dest_accumulation_modes
 from helpers.data_format_inference import infer_data_formats
 from helpers.debug_utils import dump_test_failure
 from helpers.device import collect_results, write_stimuli_to_l1
@@ -18,15 +19,10 @@ from helpers.test_config import run_test
 from helpers.utils import passed_test
 
 
-def get_block_ct_dim(full_ct_dim, dest_acc, dst_sync):
+def get_block_ct_dim(full_ct_dim, dest_acc):
     max_bct = 4 if dest_acc == DestAccumulation.Yes else 8
 
-    if dst_sync == DstSync.SyncFull:
-        max_bct *= 2
-
-    for bct in range(
-        max_bct, 0, -1
-    ):  # range(start, stop, step) - goes from max_bct down to 1
+    for bct in range(max_bct, 0, -1):
         if full_ct_dim % bct == 0:
             return bct
 
@@ -44,8 +40,8 @@ def get_block_ct_dim(full_ct_dim, dest_acc, dst_sync):
             DataFormat.Bfp8_b,
         ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
     ),
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    input_dimensions=[[64, 288], [32, 128], [128, 128], [32, 64]],
+    dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
+    input_dimensions=[[96, 288], [64, 64], [32, 128], [128, 128], [32, 64]],
     dst_sync=[DstSync.SyncHalf, DstSync.SyncFull],
 )
 def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync):
@@ -56,13 +52,6 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
         formats.output_format == DataFormat.Int32
     ):
         pytest.skip("Pack Untilize does not support mixing Int32 with other formats")
-
-    if (
-        formats.input_format == DataFormat.Int32
-        and formats.output_format == DataFormat.Int32
-        and dest_acc == DestAccumulation.No
-    ):
-        pytest.skip("Dest must be in 32bit mode when input and output are Int32")
 
     data_formats = infer_data_formats(
         formats.input_format,
@@ -88,7 +77,12 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
     )
 
     generate_golden = get_golden_generator(UntilizeGolden)
+
     golden_tensor = generate_golden(src_A, formats.output_format, input_dimensions)
+
+    unpack_to_dest = (
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+    )
 
     test_config = {
         "formats": formats,
@@ -96,10 +90,10 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
         "tile_cnt": tile_cnt,
         "input_A_dimensions": input_dimensions,
         "input_B_dimensions": input_dimensions,
-        "unpack_to_dest": False,
+        "unpack_to_dest": unpack_to_dest,
         "dest_acc": dest_acc,
         "dst_sync": dst_sync,
-        "block_ct_dim": get_block_ct_dim(input_dimensions[1] // 32, dest_acc, dst_sync),
+        "block_ct_dim": get_block_ct_dim(input_dimensions[1] // 32, dest_acc),
         "num_faces": 4,
     }
 
@@ -143,6 +137,7 @@ def test_pack_untilize(test_name, formats, dest_acc, input_dimensions, dst_sync)
                     list(src_B.shape) if hasattr(src_B, "shape") else len(src_B)
                 ),
                 "data_formats": str(data_formats),
+                "block_ct_dim": test_config["block_ct_dim"],
             },
         )
 
