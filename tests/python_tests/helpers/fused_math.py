@@ -73,7 +73,7 @@ class MatmulFpu(Fpu):
         ct_dim = operation_config.ct_dim
         rt_dim = operation_config.rt_dim
         kt_dim = operation_config.kt_dim
-        math_fidelity = operation_config.math_fidelity.value
+        math_fidelity = operation_config.math_fidelity.cpp_enum_value
         transpose = "true" if operation_config.unpack_transpose_faces.value else "false"
 
         code = (
@@ -123,7 +123,7 @@ class EltwiseFpu(Fpu):
 
     def exec(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
-        math_fidelity = operation_config.math_fidelity.value
+        math_fidelity = operation_config.math_fidelity.cpp_enum_value
         dest_acc = operation_config.dest_acc.value
         tile_cnt = operation_config.output.tile_count
         op = self.operation.cpp_enum_value
@@ -573,7 +573,7 @@ class Math:
         format = f"DataFormat::{operation_config.math_format.name}"
         code = (
             f"    // Operation {stage}: Math Setup\n"
-            f"    const uint32_t math_format{stage} = static_cast<std::underlying_type_t<DataFormat>>({format});\n"
+            f"    const uint32_t math_format{stage} = ckernel::to_underlying({format});\n"
             f"    const DstSync dest_sync{stage} = DstSync::Sync{operation_config.dest_sync.name};\n"
         )
         code += self.hw_configure(operation_config)

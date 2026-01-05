@@ -42,7 +42,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         params->num_faces,
         formats.unpack_src,
         formats.unpack_dst);
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (uint32_t i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_A_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }
@@ -81,7 +81,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_pack_sync_init_<sync_mode, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<sync_mode>();
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (uint32_t i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_math_eltwise_unary_datacopy_<copy_type, sync_mode, is_fp32_dest_acc_en, BROADCAST_TYPE, unpack_to_dest>(i, formats.math, formats.math);
     }
@@ -118,7 +118,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (uint32_t i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_pack_<sync_mode, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }

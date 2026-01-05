@@ -208,20 +208,15 @@ inline void set_dest_section_base()
 
 inline constexpr bool is_32bit_input(const std::uint32_t src_format, const std::uint32_t dst_format)
 {
-    const uint input_df  = src_format & 0xF;
-    const uint output_df = dst_format & 0xF;
-    return ((input_df == (uint)DataFormat::Int32) || (input_df == (uint)DataFormat::Float32)) &&
-           ((output_df == (uint)DataFormat::Int32) || (output_df == (uint)DataFormat::Float32));
+    const uint32_t input_df  = src_format & 0xF;
+    const uint32_t output_df = dst_format & 0xF;
+    return ((input_df == to_underlying(DataFormat::Int32)) || (input_df == to_underlying(DataFormat::Float32))) &&
+           ((output_df == to_underlying(DataFormat::Int32)) || (output_df == to_underlying(DataFormat::Float32)));
 }
 
-inline constexpr int get_math_num_fidelity_phases(const int math_fidelity_desc)
+inline constexpr bool is_high_fidelity(const MathFidelity math_fidelity_desc)
 {
-    return (math_fidelity_desc & 0x7);
-}
-
-inline constexpr int get_math_fidelity_increment(const int math_fidelity_desc)
-{
-    return ((math_fidelity_desc >> 3) & 0x1) + 1;
+    return math_fidelity_desc != MathFidelity::LoFi;
 }
 
 // Returns DEST base in faces for 16-bit DEST mode. Half of the DEST can store 32 faces,

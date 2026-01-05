@@ -52,8 +52,7 @@ inline void _llk_unpack_tilize_init_(
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
     // In case of 32-bit integer numbers, we have to unpack into dest register
-    const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
-                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32));
+    const bool unpack_to_dest = (unpack_src_format == to_underlying(DataFormat::UInt32)) || (unpack_src_format == to_underlying(DataFormat::Int32));
 
     const std::uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
 
@@ -189,8 +188,7 @@ inline void _llk_unpack_tilize_(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // In case of 32-bit integer numbers, we have to unpack into dest register
-    const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
-                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32));
+    const bool unpack_to_dest = (unpack_src_format == to_underlying(DataFormat::UInt32)) || (unpack_src_format == to_underlying(DataFormat::Int32));
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
     // Each iteration unpacks 2 face_r_dimx16 faces (1st 0,1 2nd 2,3 unless tile is <=16x32)
@@ -534,7 +532,7 @@ inline void _llk_unpack_fast_tilize_init_(const std::uint32_t unpack_dst_format,
     // for unit_dim 1 unpacker reads whole tile per iteration so CH1 counter is not used
     // why are CH1 strides in bytes?
     // SCALE_DATUM_SIZE wouldn't work here since it doesn't have a case for TF32
-    uint ch1_x_stride = (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float32 ? 4 : 2;
+    uint ch1_x_stride = (unpack_dst_format & 0x3) == to_underlying(DataFormat::Float32) ? 4 : 2;
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(TILE_C_DIM * ch1_x_stride);
     cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(TILE_C_DIM * ch1_x_stride);
 

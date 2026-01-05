@@ -64,7 +64,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
                 p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
             break;
         case SfpuType::fill:
-            if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
+            if (math_format == ckernel::to_underlying(DataFormat::Int32))
             {
                 _calculate_fill_int_<APPROX_MODE, ITERATIONS>(5);
             }
@@ -87,7 +87,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             break;
         case SfpuType::neg:
         case SfpuType::negative:
-            if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
+            if (math_format == ckernel::to_underlying(DataFormat::Int32))
             {
                 _calculate_negative_int_<APPROX_MODE, ITERATIONS>();
             }

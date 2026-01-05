@@ -185,7 +185,7 @@ class MATH_FIDELITY(TemplateParameter):
     math_fidelity: MathFidelity
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr std::uint32_t MATH_FIDELITY = {self.math_fidelity.value};"
+        return f"constexpr ckernel::MathFidelity MATH_FIDELITY = {self.math_fidelity.cpp_enum_value};"
 
 
 @dataclass
@@ -317,10 +317,10 @@ class LOOP_FACTOR(RuntimeParameter):
     loop_factor: int = 1
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr int LOOP_FACTOR = {self.loop_factor};"
+        return f"constexpr uint32_t LOOP_FACTOR = {self.loop_factor};"
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return f"int LOOP_FACTOR;", "i"
+        return f"uint32_t LOOP_FACTOR;", "I"
 
 
 @dataclass
@@ -372,10 +372,10 @@ class TILE_COUNT(RuntimeParameter):
     tile_cnt: int = 0
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr int TILE_CNT = {self.tile_cnt};"
+        return f"constexpr uint32_t TILE_CNT = {self.tile_cnt};"
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return f"int TILE_CNT;", "i"
+        return f"uint32_t TILE_CNT;", "I"
 
 
 @dataclass

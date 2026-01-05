@@ -38,7 +38,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     tdma_desc_src_a.buf_desc.f.y_dim        = FACE_R_DIM;  // Default face dimension is 16, tiny tiles not supported for quasar
     tdma_desc_src_a.buf_desc.f.z_dim        = num_faces_A; // Number of faces = 4, tiny tiles not supported for quasar
     tdma_desc_src_a.buf_desc_id             = buf_desc_id_src_a;
-    tdma_desc_src_a.reg_data_format         = (uint)formats.unpack_dst;
+    tdma_desc_src_a.reg_data_format         = static_cast<uint32_t>(formats.unpack_dst);
 
     // src B input configuration
     tdma_descriptor_t tdma_desc_src_b;
@@ -49,7 +49,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     tdma_desc_src_b.buf_desc.f.y_dim        = FACE_R_DIM;  // Default face dimension is 16, tiny tiles not supported for quasar
     tdma_desc_src_b.buf_desc.f.z_dim        = num_faces_B; // Number of faces = 4, tiny tiles not supported for quasar
     tdma_desc_src_b.buf_desc_id             = buf_desc_id_src_b;
-    tdma_desc_src_b.reg_data_format         = (uint)formats.unpack_dst;
+    tdma_desc_src_b.reg_data_format         = static_cast<uint32_t>(formats.unpack_dst);
 
     _llk_unpack_hw_configure_<ckernel::p_unpacr::UNP_B>(tdma_desc_src_a);
     _llk_unpack_hw_configure_<ckernel::p_unpacr::UNP_A>(tdma_desc_src_b);

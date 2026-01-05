@@ -159,8 +159,8 @@ inline void _llk_pack_untilize_init_(
     tile_dst_offset_state = 0;
 
     // Set CH0 Zstride = 2x16x16 faces, .z_src = {.incr = 1} jumps 2 faces
-    uint x_stride       = (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float32 ? 4 : (uint)(pack_src_format & 0x3) == (uint)DataFormat::Float16 ? 2 : 1;
-    uint y_stride       = FACE_C_DIM * x_stride;
+    uint x_stride = (pack_src_format & 0x3) == to_underlying(DataFormat::Float32) ? 4 : (pack_src_format & 0x3) == to_underlying(DataFormat::Float16) ? 2 : 1;
+    uint y_stride = FACE_C_DIM * x_stride;
     const uint z_stride = 2 * face_r_dim * y_stride;
     cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(z_stride);
 

@@ -55,7 +55,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
         {
-            for (int i = 0; i < params->TILE_CNT; ++i)
+            for (uint32_t i = 0; i < params->TILE_CNT; ++i)
             {
                 _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
                     PERF_ADDRESS(PERF_INPUT_A, i), formats.unpack_src, formats.unpack_dst);

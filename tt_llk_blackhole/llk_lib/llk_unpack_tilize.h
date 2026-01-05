@@ -51,8 +51,7 @@ inline void _llk_unpack_tilize_init_(
     const std::uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
 
     // In case of 32-bit integer numbers, we have to unpack into dest register
-    const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
-                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32));
+    const bool unpack_to_dest = (unpack_src_format == to_underlying(DataFormat::UInt32)) || (unpack_src_format == to_underlying(DataFormat::Int32));
 
     // Set face dim
     TT_SETADCXX(p_setadc::UNP_A, face_r_dim * FACE_C_DIM - 1, 0x0);
@@ -101,8 +100,7 @@ inline void _llk_unpack_tilize_(
     volatile uint tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // In case of 32-bit integer numbers, we have to unpack into dest register
-    const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
-                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32));
+    const bool unpack_to_dest = (unpack_src_format == to_underlying(DataFormat::UInt32)) || (unpack_src_format == to_underlying(DataFormat::Int32));
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
 
