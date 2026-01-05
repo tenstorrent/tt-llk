@@ -23,6 +23,10 @@ def get_expected_overhead():
 @skip_for_coverage
 def test_profiler_overhead(workers_tensix_coordinates):
 
+    # This is a test of the profiler itself and doesn't use configuration.run method at all,
+    # therefore it can't levarege default producer-consumer separation of compile and execute phases.
+    # In order to avoid compiling the test elf twice we run it in only one of two phases - the consumer/execute phase,
+    # where everything is done.
     if TestConfig.MODE == TestMode.PRODUCE:
         pytest.skip()
 

@@ -490,9 +490,9 @@ class ProfilerConfig(TestConfig):
         self,
         test_name: str,
         formats: FormatConfig = None,
-        run_types: list[PerfRunType] = None,
-        templates: set[TemplateParameter] = None,
-        runtimes: set[RuntimeParameter] = None,
+        run_types: list[PerfRunType] = [],
+        templates: list[TemplateParameter] = [],
+        runtimes: list[RuntimeParameter] = [],
         variant_stimuli: StimuliConfig = None,
         unpack_to_dest=False,
         disable_format_inference=False,
@@ -511,15 +511,6 @@ class ProfilerConfig(TestConfig):
             disable_format_inference,
             dest_acc,
         )
-
-        if runtimes is None:
-            runtimes = []
-
-        if templates is None:
-            templates = []
-
-        if run_types is None:
-            run_types = []
 
         self.passed_templates = templates
         self.passed_runtimes = runtimes

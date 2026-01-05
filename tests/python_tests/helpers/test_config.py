@@ -134,7 +134,7 @@ class TestConfig:
     _BUILD_DIRS_CREATED: ClassVar[bool] = False
 
     # When the infrastructure itself needs to be tested, some functionality like compiling the artefacts and writing them
-    # to tmpfs can be skipped. This flag is used to ship such code to enable fast execution of infra tests.
+    # to tmpfs can be skipped (eg. object, elf and coverage data files etc.). This flag is used to skip such code to enable fast execution of infra tests.
     INFRA_TESTING: ClassVar[bool] = False
 
     # === Addresses ===
@@ -288,8 +288,8 @@ class TestConfig:
         self,
         test_name: str,
         formats: FormatConfig = None,
-        templates: set[TemplateParameter] = None,
-        runtimes: set[RuntimeParameter] = None,
+        templates: list[TemplateParameter] = [],
+        runtimes: list[RuntimeParameter] = [],
         variant_stimuli: StimuliConfig = None,
         boot_mode: BootMode = BootMode.DEFAULT,
         profiler_build: ProfilerBuild = ProfilerBuild.No,
@@ -303,7 +303,7 @@ class TestConfig:
         )
 
         if test_name is None:
-            raise ValueError(
+            raise RuntimeError(
                 "test_name argument needs to be passed in order to resolve which C++ file is compiled"
             )
 
@@ -339,18 +339,17 @@ class TestConfig:
 
         self.runtime_format = "@"
 
-        if self.runtimes is not None:
-            for parameter in self.runtimes:
-                field_str, param_field_types = parameter.convert_to_struct_fields()
-                lines.append(field_str)
-                self.runtime_format += param_field_types
+        for parameter in self.runtimes:
+            field_str, param_field_types = parameter.convert_to_struct_fields()
+            lines.append(field_str)
+            self.runtime_format += param_field_types
 
         lines.append("};")
 
         self.runtime_params_struct = lines
 
     def write_runtimes_to_L1(self, location: str = "0,0"):
-        if self.runtimes is None:
+        if len(self.runtimes) == 0:
             return
 
         argument_data = []
@@ -696,7 +695,7 @@ class TestConfig:
             unpack_size_a = TILE_SIZES.get(self.formats.input_format, 128)
             unpack_size_b = TILE_SIZES.get(self.formats.input_format, 128)
 
-        if self.runtimes is not None:
+        if len(self.runtimes) > 0:
             itd_param = next(
                 (param for param in self.runtimes if isinstance(param, IN_TILE_DIMS)),
                 None,
@@ -726,7 +725,7 @@ class TestConfig:
             ]
         )
 
-        for parameter in ([] if self.templates is None else self.templates):
+        for parameter in self.templates:
             header_content.append(parameter.covert_to_cpp())
 
         header_content.extend(self.infer_data_formats())
@@ -841,7 +840,7 @@ class TestConfig:
                 location, coverage_start + 4, num_bytes=length - 4
             )
 
-        if self.runtimes is None or self.runtimes == []:
+        if len(self.runtimes) == 0:
             stream_name = "deafult_stream_name.stream"
         else:
             stream_name = f"{sha256(str(' | '.join([str(run_arg) for run_arg in self.runtimes])).encode()).hexdigest()}.stream"
