@@ -75,7 +75,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     if (REDUCE_DIM == ReduceDim::REDUCE_COL)
     {
-        for (uint32_t i = 0; i < TILE_CNT; i++)
+        for (int i = 0; i < params->TILE_CNT; ++i)
         {
             LLK_ASSERT(
                 (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
