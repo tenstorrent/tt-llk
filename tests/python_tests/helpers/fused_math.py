@@ -213,13 +213,14 @@ class ReduceFpu(Fpu):
 
         code = (
             f"    // Operation {stage}: Reduce {self.operation.cpp_enum_value} FPU\n"
-            f"    _llk_math_reduce_init_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}>();\n"
+            f"    _llk_math_reduce_init_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false>();\n"
             f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
             f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
             f"    {{\n"
             f"        _llk_math_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false, false>(\n"
             f"            i, false, {num_faces});\n"
             f"    }}\n"
+            f"    _llk_math_reduce_uninit_();\n"
         )
 
         return code

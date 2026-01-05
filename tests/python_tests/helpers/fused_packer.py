@@ -11,8 +11,6 @@ from .chip_architecture import ChipArchitecture
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
 
-from .fused_math import ReduceFpu
-
 
 class Packer:
     def get_headers(self) -> List[str]:
@@ -97,10 +95,9 @@ class Packer:
         else:
             raise ValueError("Unsupported architecture for packer")
 
-        # if operation_config.math.fpu is ReduceFpu:
-        if isinstance(operation_config.math.fpu, ReduceFpu):
-            reduce_dim = operation_config.math.fpu._reduce_dim_enum()
-            code += f"    _llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
+        # if isinstance(operation_config.math.fpu, ReduceFpu):
+        #     reduce_dim = operation_config.math.fpu._reduce_dim_enum()
+        #     code += f"    _llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
 
         code += (
             f"    _llk_packer_wait_for_math_done_();\n"
@@ -111,9 +108,8 @@ class Packer:
             f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc_value}>();\n"
         )
 
-        # if operation_config.math.fpu is ReduceFpu:
-        if isinstance(operation_config.math.fpu, ReduceFpu):
-            code += "    _llk_pack_reduce_mask_clear_();\n"
+        # if isinstance(operation_config.math.fpu, ReduceFpu):
+        #     code += "    _llk_pack_reduce_mask_clear_();\n"
 
         if stage < num_stages - 1:
             code += "    t6_semaphore_post<>(semaphore::PACK_DONE);\n\n"
