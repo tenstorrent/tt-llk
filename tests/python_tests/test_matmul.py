@@ -214,16 +214,6 @@ def test_matmul(
         if results:
             print_perf_counters(results, thread=thread)
 
-    print("\n" + "=" * 80)
-    print("Counter Collection Summary")
-    print("=" * 80)
-    for thread in ["UNPACK", "MATH", "PACK"]:
-        results = read_perf_counters(thread=thread)
-        count = len(results) if results else 0
-        status = "✓" if count == 8 else "✗"
-        print(f"{status} {thread}: {count}/8 counters collected")
-    print("=" * 80)
-
     assert len(res_from_L1) == len(
         golden_tensor
     ), "Result tensor and golder tensor are not of the same length"
