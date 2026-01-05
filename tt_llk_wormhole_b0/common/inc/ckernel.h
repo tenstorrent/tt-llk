@@ -466,4 +466,10 @@ inline constexpr bool is_valid_instruction_mode(InstrModLoadStore mode)
     return mode == InstrModLoadStore::INT32_2S_COMP || mode == InstrModLoadStore::INT32 || mode == InstrModLoadStore::LO16;
 }
 
+template <typename T>
+constexpr auto to_underlying(T t) noexcept
+{
+    return static_cast<std::underlying_type_t<T>>(t);
+}
+
 } // namespace ckernel

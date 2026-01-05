@@ -60,7 +60,7 @@ inline void _llk_math_eltwise_binary_mop_config_(const TileShape& tile_shape)
 {
     const uint32_t total_num_rows_per_tile = tile_shape.num_faces * tile_shape.face_r_dim;
     const uint32_t MOP_OUTER_LOOP          = (total_num_rows_per_tile >> math_rows_log2(ELTWISE_MATH_ROWS));
-    constexpr uint32_t MOP_INNER_LOOP      = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 1 : static_cast<uint32_t>(MATH_FIDELITY_TYPE);
+    constexpr uint32_t MOP_INNER_LOOP      = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 1 : to_underlying(MATH_FIDELITY_TYPE);
     constexpr bool math_fidelity_enable    = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
     static_assert(!(math_fidelity_enable && ELTWISE_BINARY_TYPE != EltwiseBinaryType::ELWMUL), "Math fidelity larger than LoFi only works with Eltwise MUL");
     const uint32_t EN_DST_ACC_EN = math_fidelity_enable;
@@ -91,7 +91,7 @@ inline void _llk_math_eltwise_di_binary_mop_config_(const TileShape& tile_shape)
 {
     const uint32_t total_num_rows_per_tile = tile_shape.num_faces * tile_shape.face_r_dim;
     const uint32_t REPLAY_BUF_LEN          = (total_num_rows_per_tile >> math_rows_log2(ELTWISE_MATH_ROWS));
-    const uint32_t MOP_INNER_LOOP          = static_cast<uint32_t>(MATH_FIDELITY_TYPE) + 1;
+    const uint32_t MOP_INNER_LOOP          = to_underlying(MATH_FIDELITY_TYPE) + 1;
     constexpr bool math_fidelity_enable    = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
     static_assert(!(math_fidelity_enable && ELTWISE_BINARY_TYPE != EltwiseBinaryType::ELWMUL), "Math fidelity larger than LoFi only works with Eltwise MUL");
     const uint32_t EN_DST_ACC_EN = math_fidelity_enable;
@@ -186,12 +186,12 @@ template <ckernel::MathFidelity MATH_FIDELITY_TYPE>
 inline void _llk_math_eltwise_di_binary_addrmod_()
 {
     constexpr bool math_fidelity_enable = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
-    constexpr int FIDELITY_INCREMENT    = math_fidelity_enable ? 1 : 0;
+    constexpr int fidelity_increment    = math_fidelity_enable ? 1 : 0;
     addr_mod_t {
         .srca     = {.incr = 0, .clr = 0, .cr = 0},
         .srcb     = {.incr = 0, .clr = 0, .cr = 0},
         .dest     = {.incr = 0, .clr = 0, .cr = 0},
-        .fidelity = {.incr = FIDELITY_INCREMENT, .clr = 0},
+        .fidelity = {.incr = fidelity_increment, .clr = 0},
     }
         .set(ADDR_MOD_1);
 }

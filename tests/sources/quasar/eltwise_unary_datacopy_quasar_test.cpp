@@ -86,7 +86,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(
         params->num_faces * params->TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (uint32_t i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_math_eltwise_unary_datacopy_(params->num_faces * params->TEST_FACE_R_DIM /*num_rows_per_tile*/, params->DST_INDEX + i);
     }

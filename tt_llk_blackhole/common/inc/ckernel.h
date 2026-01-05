@@ -682,4 +682,10 @@ inline void apply_sign_magnitude_conversion(uint src, uint dst, InstrModCast cas
     TTI_SFPSETSGN(0 /* imm */, dst /*lreg_c*/, src /*ldest*/, 0 /*imod*/);
 }
 
+template <typename T>
+constexpr auto to_underlying(T t) noexcept
+{
+    return static_cast<std::underlying_type_t<T>>(t);
+}
+
 } // namespace ckernel
