@@ -247,6 +247,7 @@ class TestConfig:
         TestConfig.INITIAL_OPTIONS_COMPILE = f"-nostdlib -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Wunused-parameter -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -Wmaybe-uninitialized -DTENSIX_FIRMWARE -DENV_LLK_INFRA -DENABLE_LLK_ASSERT {TestConfig.ARCH_DEFINE}"
         TestConfig.INCLUDES = [
             "-Isfpi/include",
+            "-I../tt_llk_common/",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/llk_lib",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/common/inc",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/common/inc/sfpu",
