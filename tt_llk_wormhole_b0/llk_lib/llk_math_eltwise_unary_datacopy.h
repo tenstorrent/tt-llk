@@ -11,6 +11,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cmath_common.h"
+#include "llk_assert.h"
 #include "llk_math_common.h"
 
 using namespace ckernel;
@@ -24,12 +25,12 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
     if (unpack_to_dest && is_32bit_input(src_format, dst_format))
     {
         math_unpack_to_dest_math_ready();
-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32, true>(dst_index);
+        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(dst_index);
         math::math_unpack_to_dest_tile_ready();
     }
     else
     {
-        math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
         if constexpr (type == A2D)
         {
@@ -118,6 +119,7 @@ inline void eltwise_unary_configure_addrmod()
 template <DataCopyType type, bool is_fp32_dest_acc_en, BroadcastType bcast_type = BroadcastType::NONE, bool is_int_fpu_en = false>
 inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, const uint num_faces, const uint dst_format)
 {
+    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // always move 32x32 tile, packed as 16x16x4
 
     if constexpr (type == A2D)
@@ -198,13 +200,9 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
 }
 
 template <DataCopyType type, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool is_int_fpu_en = false>
-// within_face_16x16_transpose is used by unpacker, math does not transpose
-inline void _llk_math_eltwise_unary_datacopy_init_(
-    [[maybe_unused]] const std::uint32_t transpose_of_faces          = 0,
-    [[maybe_unused]] const std::uint32_t within_face_16x16_transpose = 0,
-    const std::uint32_t num_faces                                    = 4,
-    const std::uint32_t dst_format                                   = 255)
+inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces = 4, const std::uint32_t dst_format = 255)
 {
+    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     eltwise_unary_configure_addrmod<type, src_b_bcast_type>();
 
     if constexpr (type == A2D)
@@ -219,6 +217,11 @@ inline void _llk_math_eltwise_unary_datacopy_init_(
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+inline void _llk_math_eltwise_unary_datacopy_uninit_()
+{
+    // No state to restore - all states are transient or default
 }
 
 /*************************************************************************
@@ -336,7 +339,7 @@ inline void _llk_math_fast_tilize_block_(
 {
     // split dest and write the top faces in the first half and the bottom faces in the second half (or more precisely quarter, since dest sync half)
     // make life easier by lying to set_dst_write_addr that tile shape is 32x16 so correct stride is obtained for dst_index
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x16>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x16, UnpackDestination::SrcRegs>(dst_index);
 
     for (uint i = 0; i < num_units; i++)
     {
@@ -410,7 +413,7 @@ inline void _llk_math_fast_tilize_block_(
             // offset to the bottom is the number of tiles that fit into the dest bank
             // since half size faces are specified, this gets into the correct position in the second half
             uint32_t bottom_face_offset = top_face_offset + (unpack_dst_format == (uint)DataFormat::Tf32 ? 4 : 8);
-            math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x16>(bottom_face_offset);
+            math::set_dst_write_addr<DstTileShape::Tile32x16, UnpackDestination::SrcRegs>(bottom_face_offset);
             // srcA has the top 8 rows of the bottom faces (6 of them), copy them
             // inside mop:
             // for (uint j = 0; j < 6; j++)

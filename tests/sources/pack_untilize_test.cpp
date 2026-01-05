@@ -20,15 +20,16 @@ uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
-    for (int i = 0; i < TILE_CNT; ++i)
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            L1_ADDRESS(buffer_A[i]), 0, formats.unpack_src, formats.unpack_dst);
+            L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }
 }
 
@@ -42,25 +43,28 @@ void run_kernel()
 
 using namespace ckernel;
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     const bool is_int_fpu_en = false;
 
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(0, 0, 4, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(4, formats.math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats.math);
 #endif
-    _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<true, false>(formats.math, formats.math);
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (int i = 0; i < TILE_CNT; ++i)
+    _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
+    _llk_math_hw_configure_(formats.math, formats.math);
+#ifdef ARCH_BLACKHOLE
+    _llk_math_reconfig_remap_(true);
+#endif
+    _llk_math_wait_for_dest_available_<dest_sync>();
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math);
     }
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 
 #endif
@@ -71,24 +75,34 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     const bool UNTILIZE = true;
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
-    _llk_pack_untilize_init_<BLOCK_CT_DIM>(formats.pack_src, formats.pack_dst, FACE_R_DIM, 4);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4 /* tile_size */);
+    _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
+    _llk_pack_untilize_init_<BLOCK_CT_DIM, FULL_CT_DIM>(formats.pack_src, formats.pack_dst, FACE_R_DIM, 4 /* num_faces */);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
-    _llk_pack_untilize_init_<BLOCK_CT_DIM>(formats.pack_dst, FACE_R_DIM, 4);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4 /* tile_size */);
+    _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, UNTILIZE>();
+    _llk_pack_untilize_init_<BLOCK_CT_DIM, FULL_CT_DIM>(formats.pack_dst, FACE_R_DIM, 4 /* num_faces */);
 #endif
 
     _llk_packer_wait_for_math_done_();
 
-    _llk_pack_untilize_<BLOCK_CT_DIM>(L1_ADDRESS(buffer_Res[0]), formats.pack_dst, FACE_R_DIM, 4, 0);
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    // Loop over all tiles vertically.
+    for (uint32_t rt = 0; rt < FULL_RT_DIM; rt++)
+    {
+        _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM>(
+            L1_ADDRESS(buffer_Res[rt * BLOCK_CT_DIM]),
+            formats.pack_dst,
+            FACE_R_DIM,
+            4,
+            rt * FULL_CT_DIM // tile_dst_rt_offset - offset by full row width
+        );
+    }
+    _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 
 #endif

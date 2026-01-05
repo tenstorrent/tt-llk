@@ -48,7 +48,7 @@ inline void eltwise_binary_sfpu_configure_mop();
 template <DstSync Dst>
 inline void _llk_math_eltwise_binary_sfpu_start_(const uint dst_index)
 {
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     math::set_addr_mod_base();
     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
 }
@@ -73,4 +73,9 @@ inline void _llk_math_eltwise_binary_sfpu_init_()
     sfpu::_init_sfpu_config_reg();
     eltwise_binary_sfpu_configure_addrmod<sfpu_op>();
     math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+inline void _llk_math_eltwise_binary_sfpu_uninit_()
+{
+    // No state to restore - all states are transient or default
 }

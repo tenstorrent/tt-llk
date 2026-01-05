@@ -12,21 +12,16 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
+#include "llk_assert.h"
 #include "lltt.h"
 #include "sfpi.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
-// transpose is unused, math is adjusted to take into account srca face layout when transpose=true
 template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
 inline void _llk_unpack_AB_matmul_mop_config_(
-    [[maybe_unused]] const bool transpose,
-    const std::uint32_t ct_dim,
-    const std::uint32_t rt_dim,
-    [[maybe_unused]] const std::uint32_t kt_dim,
-    const bool unpA_partial_face,
-    const bool unpB_partial_face)
+    const std::uint32_t ct_dim, const std::uint32_t rt_dim, const bool unpA_partial_face, const bool unpB_partial_face)
 {
     // in0/inA - loaded to SrcB
     // in1/inB - loaded to SrcA
@@ -156,47 +151,6 @@ inline void _llk_unpack_AB_matmul_mop_config_(
     tmp.program();
 }
 
-template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
-inline void _llk_unpack_AB_matmul_hw_configure_(
-    const std::uint32_t unpA_src_format,
-    const std::uint32_t unpB_src_format,
-    const std::uint32_t unpA_dst_format,
-    const std::uint32_t unpB_dst_format,
-    const std::uint32_t unpA_face_r_dim             = FACE_R_DIM,
-    const std::uint32_t unpB_face_r_dim             = FACE_R_DIM,
-    const std::uint32_t within_face_16x16_transpose = 0,
-    const std::uint32_t unpA_num_faces              = 4,
-    const std::uint32_t unpB_num_faces              = 4,
-    const std::uint32_t unpA_tile_size              = 0,
-    const std::uint32_t unpB_tile_size              = 0)
-{
-    constexpr bool is_row_pool  = false;
-    constexpr bool stoch_rnd_en = (stoch_rnd_mode == StochRndType::All);
-    constexpr bool fpu_srnd_en  = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Fpu);
-    constexpr bool pack_srnd_en = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Pack);
-
-    configure_unpack_AB<is_fp32_dest_acc_en, is_row_pool, fpu_srnd_en, pack_srnd_en>(
-        unpA_src_format,
-        unpB_src_format,
-        unpA_dst_format,
-        unpB_dst_format,
-        unpA_face_r_dim,
-        unpB_face_r_dim,
-        within_face_16x16_transpose,
-        unpA_num_faces,
-        unpB_num_faces);
-
-    // Configure tile size in datums
-    const uint32_t unpA_x_end = unpA_num_faces * unpA_face_r_dim * FACE_C_DIM - 1;
-    const uint32_t unpB_x_end = unpB_num_faces * unpB_face_r_dim * FACE_C_DIM - 1;
-    TT_SETADCXX(p_setadc::UNP_A, unpA_x_end, 0x0);
-    TT_SETADCXX(p_setadc::UNP_B, unpB_x_end, 0x0);
-
-    regfile[p_gpr_unpack::TILE_SIZE_A] = unpA_tile_size;
-    regfile[p_gpr_unpack::TILE_SIZE_B] = unpB_tile_size;
-    sync_regfile_write(p_gpr_unpack::TILE_SIZE_B);
-}
-
 template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
 __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     const std::uint32_t transpose       = 0,
@@ -210,6 +164,8 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     const bool unpA_partial_face        = false,
     const bool unpB_partial_face        = false)
 {
+    LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
+    LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
     // also turn on within_face_16x16_transpose if it was turned off by datacopy at runtime
     // on WH, the unpacker performs both transpose of faces as well as transpose each face.
     // the former is configured in mop, the latter is configured in cfg register in hw_configure
@@ -246,7 +202,12 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
 
     TT_SETDMAREG(0, LOWER_HALFWORD(kt_dim), 0, LO_16(p_gpr_unpack::KT_DIM)); // store kt_dim to gpr for scaling tile size
 
-    _llk_unpack_AB_matmul_mop_config_<kernel_broadcast_a, kernel_broadcast_b>(transpose != 0, ct_dim, rt_dim, kt_dim, unpA_partial_face, unpB_partial_face);
+    _llk_unpack_AB_matmul_mop_config_<kernel_broadcast_a, kernel_broadcast_b>(ct_dim, rt_dim, unpA_partial_face, unpB_partial_face);
+}
+
+inline void _llk_unpack_AB_matmul_uninit_(const std::uint32_t face_r_dim = FACE_R_DIM)
+{
+    TT_SETADCXX(p_setadc::UNP_AB, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
 
 template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
@@ -257,13 +218,11 @@ inline void _llk_unpack_AB_matmul_(
     const std::uint32_t tile_index_b,
     const std::uint32_t tile_size_a,
     const std::uint32_t tile_size_b,
-    [[maybe_unused]] const std::uint32_t unpA_face_r_dim = FACE_R_DIM,
-    [[maybe_unused]] const std::uint32_t unpB_face_r_dim = FACE_R_DIM,
-    const bool unpA_partial_face                         = false,
-    const bool unpB_partial_face                         = false,
-    std::uint32_t ct_dim                                 = 1,
-    const std::uint32_t rt_dim                           = 1,
-    const std::uint32_t kt_dim                           = 1)
+    const bool unpA_partial_face = false,
+    const bool unpB_partial_face = false,
+    std::uint32_t ct_dim         = 1,
+    const std::uint32_t rt_dim   = 1,
+    const std::uint32_t kt_dim   = 1)
 {
     // In0/InA -> srcB (supports partial face)
     // In1/InB -> srcA

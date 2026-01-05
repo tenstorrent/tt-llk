@@ -1,9 +1,13 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+
 import pandas as pd
-from helpers.profiler import Profiler
-from helpers.test_config import ProfilerBuild, run_test
+from conftest import skip_for_coverage
+from helpers.format_config import DataFormat
+from helpers.param_config import input_output_formats
+from helpers.profiler import ProfilerConfig
+from helpers.stimuli_config import StimuliConfig
 
 
 def assert_marker(
@@ -23,15 +27,37 @@ def assert_marker(
     ), f"Expected marker_id = {expected_id}, got {entry['marker_id']}"
 
 
-def test_profiler_primitives():
+# TODO Skip for all until hash bug with new infra is resolved
+@skip_for_coverage
+def test_profiler_primitives(workers_tensix_coordinates):
 
-    test_config = {
-        "testname": "profiler_primitives_test",
-    }
+    configuration = ProfilerConfig(
+        "sources/profiler_primitives_test.cpp",
+        input_output_formats([DataFormat.Float16])[0],
+        variant_stimuli=StimuliConfig(
+            [], DataFormat.Float16, [], DataFormat.Float16, DataFormat.Float16, 1, 1
+        ),
+    )
 
-    run_test(test_config, profiler_build=ProfilerBuild.Yes)
+    configuration.generate_variant_hash()
+    configuration.build_elfs()
+    configuration.run_elf_files(workers_tensix_coordinates)
 
-    runtime = Profiler.get_data(test_config["testname"])
+    runtime = configuration.get_data(workers_tensix_coordinates)
+
+    # Get metadata to look up marker IDs (stable across build environments)
+    metadata = ProfilerConfig._get_meta(
+        configuration.test_name, configuration.variant_id
+    )
+    expected_zone_id = ProfilerConfig._get_marker_id(
+        metadata, "TEST_ZONE", "profiler_primitives_test.cpp", 17
+    )
+    expected_timestamp_id = ProfilerConfig._get_marker_id(
+        metadata, "TEST_TIMESTAMP", "profiler_primitives_test.cpp", 26
+    )
+    expected_timestamp_data_id = ProfilerConfig._get_marker_id(
+        metadata, "TEST_TIMESTAMP_DATA", "profiler_primitives_test.cpp", 35
+    )
 
     # ZONE_SCOPED - Get first ZONE type entry from UNPACK thread
     zones = runtime.unpack().zones().marker("TEST_ZONE").frame()
@@ -43,7 +69,7 @@ def test_profiler_primitives():
         "TEST_ZONE",
         "profiler_primitives_test.cpp",
         17,
-        42158,
+        expected_zone_id,
     )
     assert (
         zone["timestamp"] > 0
@@ -60,7 +86,7 @@ def test_profiler_primitives():
         "TEST_TIMESTAMP",
         "profiler_primitives_test.cpp",
         26,
-        28111,
+        expected_timestamp_id,
     )
     assert (
         timestamp["timestamp"] > 0
@@ -82,7 +108,7 @@ def test_profiler_primitives():
         "TEST_TIMESTAMP_DATA",
         "profiler_primitives_test.cpp",
         35,
-        18694,
+        expected_timestamp_data_id,
     )
     assert (
         timestamp_data["timestamp"] > 0

@@ -9,6 +9,7 @@
 
 #include "ckernel.h"
 #include "ckernel_globals.h"
+#include "llk_assert.h"
 
 namespace ckernel::unpacker
 {
@@ -214,6 +215,8 @@ inline void configure_unpack_AB(
     const uint unpA_num_faces       = 4,
     const uint unpB_num_faces       = 4)
 {
+    LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
+    LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
     // Check that unpacker is done (all contexts freed up) before starting hw configuration
     wait_for_idle();
 
@@ -282,12 +285,10 @@ inline void configure_unpack_AB(
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, alu_mask>(alu_payload.val);
 
-    uint32_t src_zeroflags_disable = ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16);
-    if constexpr (disable_src_zero_flag)
-    {
-        src_zeroflags_disable = true;
-    }
-    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(src_zeroflags_disable);
+    // TODO NC: Find out why we need to disable src zero flags for uint16 dst format #960
+    bool disable_src_zero_flag_val = disable_src_zero_flag || (static_cast<uint>(unpA_dst_format) == static_cast<uint>(DataFormat::UInt16)) ||
+                                     (static_cast<uint>(unpB_dst_format) == static_cast<uint>(DataFormat::UInt16));
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(disable_src_zero_flag_val ? 1 : 0);
 
     t6_mutex_release(mutex::REG_RMW);
 

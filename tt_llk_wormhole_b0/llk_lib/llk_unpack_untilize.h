@@ -12,6 +12,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
+#include "llk_assert.h"
 #include "lltt.h"
 #include "sfpi.h"
 
@@ -47,28 +48,8 @@ inline void _llk_unpack_untilize_mop_config_()
     tmp.program();
 }
 
-template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
-inline void _llk_unpack_untilize_hw_configure_(
-    const std::uint32_t unpack_src_format,
-    const std::uint32_t unpack_dst_format,
-    const std::uint32_t face_r_dim                  = FACE_R_DIM,
-    const std::uint32_t within_face_16x16_transpose = 0,
-    const std::uint32_t num_faces                   = 4)
-{
-    constexpr bool is_row_pool  = false;
-    constexpr bool stoch_rnd_en = (stoch_rnd_mode == StochRndType::All);
-    constexpr bool fpu_srnd_en  = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Fpu);
-    constexpr bool pack_srnd_en = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Pack);
-    configure_unpack_AB<is_fp32_dest_acc_en, is_row_pool, fpu_srnd_en, pack_srnd_en>(
-        unpack_src_format, unpack_src_format, unpack_dst_format, unpack_dst_format, face_r_dim, face_r_dim, within_face_16x16_transpose, num_faces, num_faces);
-}
-
 inline void _llk_unpack_untilize_init_(
-    const std::uint32_t unpack_dst_format,
-    const std::uint32_t tile_size,
-    const std::uint32_t face_r_dim                 = FACE_R_DIM,
-    [[maybe_unused]] const std::uint32_t num_faces = 4,
-    const bool include_setup_calls                 = false)
+    const std::uint32_t unpack_dst_format, const std::uint32_t tile_size, const std::uint32_t face_r_dim = FACE_R_DIM, const bool include_setup_calls = false)
 {
     if (include_setup_calls)
     {
@@ -195,4 +176,24 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
 
     // Switch unpacker config context
     switch_config_context(unp_cfg_context);
+}
+
+template <bool include_setup_calls = false>
+inline void _llk_unpack_untilize_uninit_(const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t y_stride = FACE_R_DIM * 2)
+{
+    if constexpr (include_setup_calls)
+    {
+        // Restore from saved GPRs
+        TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, p_cfg::WRCFG_32b, UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32);
+        TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
+        TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
+    }
+    else
+    {
+        TT_SETADCXX(p_setadc::UNP_A, face_r_dim * FACE_C_DIM - 1, 0x0);
+        // Revisit default stride value in tt-llk#1015
+        cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32, UNP0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT, UNP0_ADDR_CTRL_XY_REG_1_Ystride_MASK>(y_stride);
+        TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::FACE_DIM_16x16);
+        cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 0, 0xFFFF>(1);
+    }
 }

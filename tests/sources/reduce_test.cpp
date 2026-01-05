@@ -20,15 +20,14 @@ constexpr bool row_pool                             = (REDUCE_DIM == ckernel::Re
 
 #ifdef LLK_TRISC_UNPACK
 
-#include "counters.h"
 #include "llk_unpack_AB.h"
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
-    _llk_unpack_AB_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, within_face_16x16_transpose);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
 
     // For reduce, if reduce dimension is row, we need to transpose within the face
     // Transpose of faces should always be false
@@ -39,48 +38,27 @@ void run_kernel()
     config_unpacker_x_end<UNP_SEL>(FACE_R_DIM);
     _llk_unpack_AB_mop_config_<BroadcastType::NONE>(false /* transpose_of_faces */, 4 /* num_faces */, false /* narrow_tile */);
 
-    llk_perf::PerfCounters counters;
-    counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_UNPACK);
-    counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::FPU_OP_VALID);
-    counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::UNPACK_BUSY_0);
-    counters.add(llk_perf::CounterBank::L1, llk_perf::CounterId::L1::L1_ARB_TDMA_BUNDLE_0, 0);
-    counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::PACK_BUSY_10);
-    counters.set_mode(llk_perf::CounterMode::GRANTS);
-    counters.start();
-    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), false /* transpose_of_faces, unused */);
-    counters.stop();
+    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]));
 }
 
 #endif
 
 #ifdef LLK_TRISC_MATH
 
-#include "counters.h"
 #include "llk_math_common.h"
 #include "llk_math_reduce.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     const std::uint32_t math_fid         = 4;
     const bool is_int_fpu_en             = false;
     const bool enforce_fp32_accumulation = false;
     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
     _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
-    _llk_math_hw_configure_<false, row_pool>(formats.math, formats.math);
-    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, enforce_fp32_accumulation>(within_face_16x16_transpose);
-
-    llk_perf::PerfCounters counters;
-    counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_MATH);
-    counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::SFPU_OP_VALID);
-    counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::MATH_INSTR_VALID);
-    counters.add(llk_perf::CounterBank::L1, llk_perf::CounterId::L1::NOC_RING0_OUTGOING_0, 0);
-    counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::PACK_BUSY_10);
-    counters.set_mode(llk_perf::CounterMode::GRANTS);
-
-    counters.start();
+    _llk_math_hw_configure_(formats.math, formats.math);
+    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, enforce_fp32_accumulation>();
     _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, is_int_fpu_en, enforce_fp32_accumulation>(0);
-    counters.stop();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -88,14 +66,13 @@ void run_kernel()
 
 #ifdef LLK_TRISC_PACK
 
-#include "counters.h"
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+    _llk_pack_init_<false, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -106,22 +83,13 @@ void run_kernel()
     _llk_pack_reduce_mask_config_<false, REDUCE_DIM>();
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncFull, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<DstSync::SyncFull, is_fp32_dest_acc_en, false>();
 #endif
 
     _llk_packer_wait_for_math_done_();
-    llk_perf::PerfCounters counters;
-    counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_PACK);
-    counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::FPU_OP_VALID);
-    counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::MATH_INSTR_VALID);
-    counters.add(llk_perf::CounterBank::L1, llk_perf::CounterId::L1::NOC_RING0_OUTGOING_0, 0);
-    counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::PACK_NOT_DEST_STALL);
-    counters.set_mode(llk_perf::CounterMode::GRANTS);
-    counters.start();
     _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
-    counters.stop();
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
     _llk_pack_reduce_mask_clear_();

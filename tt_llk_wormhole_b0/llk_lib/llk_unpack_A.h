@@ -12,6 +12,7 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
+#include "llk_assert.h"
 #include "lltt.h"
 #include "sfpi.h"
 
@@ -31,6 +32,7 @@ inline void _llk_unpack_A_mop_config_(
     static_assert(
         (((BType == BroadcastType::NONE) && (!acc_to_dest) && (binary_reuse_dest == EltwiseBinaryReuseDestType::NONE)) || (!unpack_to_dest)),
         "Not supported configuration when unpacking to dest!");
+    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
     static constexpr uint unpack_srca =
         TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
@@ -167,22 +169,6 @@ inline void _llk_unpack_A_mop_config_(
     }
 }
 
-template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None, bool disable_src_zero_flag = false>
-inline void _llk_unpack_A_hw_configure_(
-    const std::uint32_t unpack_src_format,
-    const std::uint32_t unpack_dst_format,
-    const std::uint32_t face_r_dim                  = FACE_R_DIM,
-    const std::uint32_t within_face_16x16_transpose = 0,
-    const std::uint32_t num_faces                   = 4)
-{
-    constexpr bool is_row_pool  = false;
-    constexpr bool stoch_rnd_en = (stoch_rnd_mode == StochRndType::All);
-    constexpr bool fpu_srnd_en  = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Fpu);
-    constexpr bool pack_srnd_en = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Pack);
-    configure_unpack_AB<is_fp32_dest_acc_en, is_row_pool, fpu_srnd_en, pack_srnd_en, disable_src_zero_flag>(
-        unpack_src_format, unpack_src_format, unpack_dst_format, unpack_dst_format, face_r_dim, face_r_dim, within_face_16x16_transpose, num_faces, num_faces);
-}
-
 template <
     BroadcastType BType                          = BroadcastType::NONE,
     bool acc_to_dest                             = false,
@@ -196,11 +182,18 @@ inline void _llk_unpack_A_init_(
     const std::uint32_t unpack_src_format           = 0,
     const std::uint32_t unpack_dst_format           = 0)
 {
+    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+
     // Set transpose register to prevent state pollution
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose);
 
+    // TODO NC: Find out why we need to disable src zero flags for uint16 dst format #960
+    // bool disable_src_zero_flag_val = disable_src_zero_flag || (static_cast<uint>(unpack_dst_format) == static_cast<uint>(DataFormat::UInt16));
+    // cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(disable_src_zero_flag_val ? 1 : 0);
+
     constexpr std::uint32_t UNP_SEL = (BType == BroadcastType::NONE) ? p_setadc::UNP_A : p_setadc::UNP_B;
     config_unpacker_x_end<UNP_SEL>(face_r_dim);
+
     _llk_unpack_A_mop_config_<BType, acc_to_dest, binary_reuse_dest, unpack_to_dest>(transpose_of_faces > 0, num_faces, unpack_src_format, unpack_dst_format);
 }
 
@@ -209,11 +202,7 @@ template <
     bool acc_to_dest                             = false,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE,
     bool unpack_to_dest                          = false>
-inline void _llk_unpack_A_(
-    const std::uint32_t address,
-    [[maybe_unused]] const bool transpose_of_faces = 0,
-    const std::uint32_t unpack_src_format          = 0,
-    const std::uint32_t unpack_dst_format          = 0)
+inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpack_src_format = 0, const std::uint32_t unpack_dst_format = 0)
 {
     // Clear z/w start counters
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
@@ -287,4 +276,12 @@ inline void _llk_unpack_A_(
 
     // Switch unpacker config context
     switch_config_context(unp_cfg_context);
+}
+
+template <BroadcastType BType = BroadcastType::NONE>
+inline void _llk_unpack_A_uninit_(const std::uint32_t face_r_dim = FACE_R_DIM)
+{
+    constexpr std::uint32_t UNP_SEL = (BType == BroadcastType::NONE) ? p_setadc::UNP_A : p_setadc::UNP_B;
+    TT_SETADCXX(UNP_SEL, face_r_dim * FACE_C_DIM - 1, 0x0);
+    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
 }
