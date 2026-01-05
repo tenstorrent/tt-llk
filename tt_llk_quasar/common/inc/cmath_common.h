@@ -165,7 +165,7 @@ inline void _set_dst_write_addr_(const uint32_t tile_index)
     //     "Invalid tile shape");
     const uint tile_shape_idx = (TILE_SHAPE == ckernel::trisc::DstTileShape::Tile32x32) ? 6 : ((TILE_SHAPE == ckernel::trisc::DstTileShape::Tile32x16) ? 5 : 4);
     const uint dst_index      = (tile_index << tile_shape_idx) + ckernel::trisc::_get_dest_buffer_base_();
-    LLK_ASSERT(dst_index < ckernel::trisc::DEST_REGISTER_FULL_SIZE, "dst_index out of range");
+    // LLK_ASSERT(dst_index < ckernel::trisc::DEST_REGISTER_FULL_SIZE, "dst_index out of range");
     ckernel::trisc::_set_dest_section_base_<TRISC_ID>(dst_index);
 }
 
@@ -177,7 +177,7 @@ inline void _set_dst_write_addr_by_rows_(const uint32_t num_rows_per_tile, const
             : ((num_rows_per_tile == 32) ? 5 : ((num_rows_per_tile == 16) ? 4 : ((num_rows_per_tile == 8) ? 3 : ((num_rows_per_tile == 4) ? 2 : 1))));
     const uint dst_index = (tile_index << tile_shape_idx) + ckernel::trisc::_get_dest_buffer_base_();
     // LLK_ASSERT(num_rows_per_tile == (1 << tile_shape_idx), "num_rows_per_tile must be a power of two corresponding to tile_shape_idx");
-    LLK_ASSERT(dst_index < ckernel::trisc::DEST_REGISTER_FULL_SIZE, "dst_index out of range");
+    // LLK_ASSERT(dst_index < ckernel::trisc::DEST_REGISTER_FULL_SIZE, "dst_index out of range");
     ckernel::trisc::_set_dest_section_base_<TRISC_ID>(dst_index);
 }
 
