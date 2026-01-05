@@ -11,8 +11,6 @@ from .chip_architecture import ChipArchitecture
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
 
-from .fused_math import ReduceFpu
-
 
 class Packer:
     def get_headers(self) -> List[str]:
