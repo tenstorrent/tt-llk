@@ -11,6 +11,7 @@ from .golden_generators import (  # TilizeGolden,
     DataCopyGolden,
     EltwiseBinaryGolden,
     MatmulGolden,
+    ReduceGolden,
     UnarySFPUGolden,
     get_golden_generator,
 )
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
 
 from .chip_architecture import ChipArchitecture
-from .llk_params import ApproximationMode, MathOperation
+from .llk_params import ApproximationMode, MathOperation, ReduceDimension, ReducePool
 
 
 class Fpu:
@@ -142,6 +143,89 @@ class EltwiseFpu(Fpu):
 
     def __str__(self) -> str:
         return f"EltwiseFpu({self.operation})"
+
+
+class ReduceFpu(Fpu):
+    def __init__(self, operation: MathOperation, pool: ReducePool = ReducePool.Max):
+        if operation not in MathOperation.get_reduce_operations():
+            raise ValueError(f"Operation {operation} is not a valid REDUCE operation.")
+        self.operation = operation
+        self.pool = pool
+
+    def get_headers(self) -> List[str]:
+        return [
+            "llk_math_common.h",
+            "llk_math_reduce.h",
+        ]
+
+    def _reduce_dim_enum(self) -> str:
+        if self.operation == MathOperation.ReduceColumn:
+            return "ReduceDim::REDUCE_COL"
+        elif self.operation == MathOperation.ReduceRow:
+            return "ReduceDim::REDUCE_ROW"
+        elif self.operation == MathOperation.ReduceScalar:
+            return "ReduceDim::REDUCE_SCALAR"
+        else:
+            raise ValueError(f"Unsupported reduce operation: {self.operation}")
+
+    def _reduce_dim_golden(self) -> ReduceDimension:
+        if self.operation == MathOperation.ReduceColumn:
+            return ReduceDimension.Column
+        elif self.operation == MathOperation.ReduceRow:
+            return ReduceDimension.Row
+        elif self.operation == MathOperation.ReduceScalar:
+            return ReduceDimension.Scalar
+        else:
+            raise ValueError(f"Unsupported reduce operation: {self.operation}")
+
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "FusedOperation",
+    ) -> torch.Tensor:
+        output_format = operation_config.output.data_format
+        tile_cnt = operation_config.output.tile_count
+
+        reduce_dim = self._reduce_dim_golden()
+        pool_type = self.pool
+
+        generate_golden = get_golden_generator(ReduceGolden)
+        golden_tensor = generate_golden(
+            tensor_a,
+            reduce_dim,
+            pool_type,
+            output_format,
+            tile_cnt=tile_cnt,
+        ).flatten()
+
+        return golden_tensor.flatten()
+
+    def exec(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        math_fidelity = operation_config.math_fidelity.value
+        dest_acc = operation_config.dest_acc.value
+        tile_cnt = operation_config.output.tile_count
+        num_faces = operation_config.num_faces
+
+        pool_type_cpp = f"PoolType::{self.pool.value}"
+        reduce_dim_cpp = self._reduce_dim_enum()
+
+        code = (
+            f"    // Operation {stage}: Reduce {self.operation.cpp_enum_value} FPU\n"
+            f"    _llk_math_reduce_init_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}>();\n"
+            f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
+            f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
+            f"    {{\n"
+            f"        _llk_math_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false, false>(\n"
+            f"            i, false, {num_faces});\n"
+            f"    }}\n"
+        )
+
+        return code
+
+    def __str__(self) -> str:
+        return f"ReduceFpu({self.operation}, pool={self.pool})"
 
 
 class DatacopyFpu(Fpu):

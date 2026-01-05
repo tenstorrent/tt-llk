@@ -13,6 +13,7 @@ from helpers.fused_math import (
     EltwiseFpu,
     Math,
     MatmulFpu,
+    ReduceFpu,
     UnarySfpu,
 )
 from helpers.fused_operand import OperandRegistry
@@ -20,6 +21,7 @@ from helpers.fused_operation import FusedOperation
 from helpers.fused_packer import Packer
 from helpers.fused_unpacker import (
     MatmulUnpacker,
+    ReduceUnpacker,
     Unpacker,
     UnpackerA,
     UnpackerAB,
@@ -29,6 +31,7 @@ from helpers.llk_params import (
     ApproximationMode,
     DestSync,
     MathOperation,
+    ReducePool,
     Transpose,
 )
 
@@ -39,6 +42,7 @@ UNPACKER_MAP: Dict[str, Type[Unpacker]] = {
     "UnpackerAB": UnpackerAB,
     "UnpackerTilizeA": UnpackerTilizeA,
     "MatmulUnpacker": MatmulUnpacker,
+    "ReduceUnpacker": ReduceUnpacker,
 }
 
 PACKER_MAP: Dict[str, Type[Packer]] = {
@@ -142,6 +146,9 @@ def parse_math_operation(
     if fpu_type in FPU_OPERATION_MAP:
         math_op = FPU_OPERATION_MAP[fpu_type]
         fpu = EltwiseFpu(math_op)
+    elif fpu_type in REDUCE_OPERATION_MAP:
+        math_op = REDUCE_OPERATION_MAP[fpu_type]
+        fpu = ReduceFpu(math_op, pool=ReducePool.Max)
     elif fpu_type == "Datacopy":
         fpu = DatacopyFpu()
     elif fpu_type == "Matmul":
