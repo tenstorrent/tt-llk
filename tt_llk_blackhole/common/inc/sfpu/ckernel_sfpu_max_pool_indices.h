@@ -181,7 +181,7 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
  * Note this function is only implemented for ROW_MAJOR data layout, so when _init_max_pool_with_indices_ is called
  * it must be called with layout=DataLayout::ROW_MAJOR.
  */
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool accumulate>
+template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool accumulate = false>
 inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx, const uint indices_tile_idx, const uint chunk)
 {
     // size of each tile in Dest is 64 rows
