@@ -25,7 +25,7 @@ namespace sfpu
  * @tparam accumulate Whether to accumulate results for large kernels (default is false).
  * @param values_tile_idx The index of the tile in the Dest register containing the data to be reduced.
  * @param indices_tile_idx The index of the tile in the Dest register containing the indices of the data.
- * @param chunk The chunk index for large kernel accumulation
+ * @param chunk The chunk index for large kernel accumulation.
  */
 template <
     bool APPROXIMATION_MODE,
@@ -176,7 +176,7 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
  * @tparam accumulate Whether to accumulate results for large kernels (default is false).
  * @param values_tile_idx The index of the tile in the Dest register containing the data to be reduced.
  * @param indices_tile_idx The index of the tile in the Dest register containing the indices of the data.
- * @param chunk The chunk index for large kernel accumulation
+ * @param chunk The chunk index for large kernel accumulation.
  *
  * Note this function is only implemented for ROW_MAJOR data layout, so when _init_max_pool_with_indices_ is called
  * it must be called with layout=DataLayout::ROW_MAJOR.
@@ -318,7 +318,7 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
             TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_accum_tile_offset + col_offset);
         }
 
-        // store the final result to DST 0 (data) and DST 2 (indexes)
+        // store the final result to DST 0 (data) and DST 2 (indices)
         TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_3, indices_tile_offset + col_offset);
         TT_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset + col_offset);
     };
