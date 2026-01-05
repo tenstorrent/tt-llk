@@ -9,6 +9,7 @@
 #include "ckernel.h"
 #include "counters.h"
 #include "llk_defs.h"
+#include "params.h"
 
 using namespace llk_perf;
 
@@ -19,22 +20,13 @@ uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
-#include "counters.h"
 #include "llk_unpack_AB_matmul.h"
 #include "llk_unpack_common.h"
-#include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    // Counters configured from Python - just start/stop them
     llk_perf::PerfCounters counters;
-    counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_UNPACK);
-    counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_CFG);
-    counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::FPU_OP_VALID);
-    counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::SFPU_OP_VALID);
-    counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::UNPACK_BUSY_0);
-    counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::UNPACK_BUSY_1);
-    counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::PACK_NOT_DEST_STALL);
-    counters.add(llk_perf::CounterBank::L1, llk_perf::CounterId::L1::NOC_RING0_INCOMING_1, 0);
     counters.start();
 
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -72,22 +64,13 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #ifdef LLK_TRISC_MATH
 
-#include "counters.h"
 #include "llk_math_common.h"
 #include "llk_math_matmul.h"
-#include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    // Counters configured from Python - just start/stop them
     llk_perf::PerfCounters counters;
-    counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_MATH);
-    counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::STALLED);
-    counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::FPU_OP_VALID);
-    counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::SFPU_OP_VALID);
-    counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::MATH_INSTR_VALID);
-    counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::MATH_INSTR_SRC_READY);
-    counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::PACK_NOT_DEST_STALL);
-    counters.add(llk_perf::CounterBank::L1, llk_perf::CounterId::L1::L1_ARB_TDMA_BUNDLE_0, 0);
     counters.start();
 
     _llk_math_matmul_init_<MATH_FIDELITY>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, params->CT_DIM, params->RT_DIM);
@@ -108,22 +91,13 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #ifdef LLK_TRISC_PACK
 
-#include "counters.h"
 #include "llk_pack.h"
 #include "llk_pack_common.h"
-#include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    // Counters configured from Python - just start/stop them
     llk_perf::PerfCounters counters;
-    counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_PACK);
-    counters.add(llk_perf::CounterBank::INSTRN_THREAD, llk_perf::CounterId::InstrnThread::INST_CFG);
-    counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::SFPU_OP_VALID);
-    counters.add(llk_perf::CounterBank::FPU, llk_perf::CounterId::Fpu::FPU_OP_VALID);
-    counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::PACK_BUSY_10);
-    counters.add(llk_perf::CounterBank::TDMA_PACK, llk_perf::CounterId::TdmaPack::PACK_BUSY_11);
-    counters.add(llk_perf::CounterBank::TDMA_UNPACK, llk_perf::CounterId::TdmaUnpack::UNPACK_BUSY_0);
-    counters.add(llk_perf::CounterBank::L1, llk_perf::CounterId::L1::NOC_RING0_OUTGOING_1, 0);
     counters.start();
 
 #ifdef ARCH_BLACKHOLE

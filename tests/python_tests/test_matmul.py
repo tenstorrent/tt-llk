@@ -4,7 +4,6 @@
 from typing import List
 
 import torch
-from helpers.counters import measure_perf_counters, print_perf_counters
 from helpers.device import BootMode
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
@@ -154,32 +153,76 @@ def test_matmul(
         boot_mode=boot_mode,
     )
 
-    # Test C++ auto-detection mode (no counters specified in Python)
-    # Wrap configuration.run() to measure performance counters
-    def run_with_counters():
-        return configuration.run(workers_tensix_coordinates)
+    # Configure performance counters from Python
+    from helpers.counters import configure_perf_counters, counter
 
-    all_results = measure_perf_counters(
-        run_with_counters,
-        configuration.test_config,
-        boot_mode,
+    # UNPACK counters (same as C++ version)
+    unpack_counters = [
+        counter("INSTRN_THREAD", "INST_UNPACK"),
+        counter("INSTRN_THREAD", "INST_CFG"),
+        counter("FPU", "FPU_OP_VALID"),
+        counter("FPU", "SFPU_OP_VALID"),
+        counter("TDMA_UNPACK", "UNPACK_BUSY_0"),
+        counter("TDMA_UNPACK", "UNPACK_BUSY_1"),
+        counter("TDMA_PACK", "PACK_NOT_DEST_STALL"),
+        counter("L1", "NOC_RING0_INCOMING_1", mux_ctrl_bit4=0),
+    ]
+
+    # MATH counters (same as C++ version)
+    math_counters = [
+        counter("INSTRN_THREAD", "INST_MATH"),
+        counter("INSTRN_THREAD", "STALLED"),
+        counter("FPU", "FPU_OP_VALID"),
+        counter("FPU", "SFPU_OP_VALID"),
+        counter("TDMA_UNPACK", "MATH_INSTR_VALID"),
+        counter("TDMA_UNPACK", "MATH_INSTR_SRC_READY"),
+        counter("TDMA_PACK", "PACK_NOT_DEST_STALL"),
+        counter("L1", "L1_ARB_TDMA_BUNDLE_0", mux_ctrl_bit4=0),
+    ]
+
+    # PACK counters (same as C++ version)
+    pack_counters = [
+        counter("INSTRN_THREAD", "INST_PACK"),
+        counter("INSTRN_THREAD", "INST_CFG"),
+        counter("FPU", "SFPU_OP_VALID"),
+        counter("FPU", "FPU_OP_VALID"),
+        counter("TDMA_PACK", "PACK_BUSY_10"),
+        counter("TDMA_PACK", "PACK_BUSY_11"),
+        counter("TDMA_UNPACK", "UNPACK_BUSY_0"),
+        counter("L1", "NOC_RING0_OUTGOING_1", mux_ctrl_bit4=0),
+    ]
+
+    # Configure counters for each thread
+    configure_perf_counters(
+        unpack_counters, location=workers_tensix_coordinates, thread="UNPACK"
+    )
+    configure_perf_counters(
+        math_counters, location=workers_tensix_coordinates, thread="MATH"
+    )
+    configure_perf_counters(
+        pack_counters, location=workers_tensix_coordinates, thread="PACK"
     )
 
-    for thread in ["UNPACK", "MATH", "PACK"]:
-        if thread in all_results and all_results[thread]:
-            print_perf_counters(all_results[thread], thread=thread)
+    # Run the test - counters configured from Python
+    res_from_L1 = configuration.run(workers_tensix_coordinates)
 
-    print("\\n" + "=" * 80)
+    # Read and print the counter results
+    from helpers.counters import print_perf_counters, read_perf_counters
+
+    for thread in ["UNPACK", "MATH", "PACK"]:
+        results = read_perf_counters(thread=thread)
+        if results:
+            print_perf_counters(results, thread=thread)
+
+    print("\n" + "=" * 80)
     print("Counter Collection Summary")
     print("=" * 80)
     for thread in ["UNPACK", "MATH", "PACK"]:
-        count = len(all_results.get(thread, []))
+        results = read_perf_counters(thread=thread)
+        count = len(results) if results else 0
         status = "✓" if count == 8 else "✗"
         print(f"{status} {thread}: {count}/8 counters collected")
     print("=" * 80)
-
-    # Get the result from the last run (measure_perf_counters runs the test)
-    res_from_L1 = run_with_counters()
 
     assert len(res_from_L1) == len(
         golden_tensor

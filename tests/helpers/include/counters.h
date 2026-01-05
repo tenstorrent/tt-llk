@@ -264,11 +264,6 @@ private:
         {
             config_mem[i] = 0;
         }
-
-        for (uint32_t i = counter_count; i < 5; i++)
-        {
-            config_mem[i] = 0;
-        }
     }
 
 public:
@@ -322,12 +317,8 @@ public:
         volatile uint32_t* config_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_MATH_CONFIG_ADDR);
 #endif
 
-        // Check if Python has already configured counters (valid bit set on first slot)
-        // If so, Python is managing time-division multiplexing, so don't overwrite
-        bool python_configured = (config_mem[0] & 0x80000000) != 0;
-
-        // If counters were added via C++ add() AND Python hasn't configured yet, write to L1
-        if (counter_count > 0 && !python_configured)
+        // If counters were added via C++ add(), write metadata to L1
+        if (counter_count > 0)
         {
             write_metadata();
         }
