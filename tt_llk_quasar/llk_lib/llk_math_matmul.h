@@ -16,7 +16,7 @@ template <ckernel::MathFidelity MATH_FIDELITY_TYPE>
 inline void _llk_math_matmul_addrmod_(std::uint8_t ct_dim, std::uint8_t rt_dim)
 {
     constexpr bool high_fidelity     = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
-    constexpr int FIDELITY_INCREMENT = high_fidelity ? 1 : 0;
+    constexpr int fidelity_increment = high_fidelity ? 1 : 0;
     const uint16_t num_tile_incr     = (ct_dim >= rt_dim) ? 64 : ct_dim * 64;
 
     // MVMUL does D = B*A
@@ -68,7 +68,7 @@ inline void _llk_math_matmul_addrmod_(std::uint8_t ct_dim, std::uint8_t rt_dim)
         .srca     = {.incr = 0, .clr = 1, .cr = 0},
         .srcb     = {.incr = 0, .clr = 1, .cr = 0},
         .dest     = {.incr = 0, .clr = 0, .cr = 1},
-        .fidelity = {.incr = FIDELITY_INCREMENT, .clr = 0},
+        .fidelity = {.incr = fidelity_increment, .clr = 0},
     }
         .set(ADDR_MOD_5);
 }
@@ -78,7 +78,7 @@ template <ckernel::MathFidelity MATH_FIDELITY_TYPE>
 inline void _llk_math_matmul_di_addrmod_(std::uint8_t ct_dim, std::uint8_t rt_dim)
 {
     constexpr bool high_fidelity     = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
-    constexpr int FIDELITY_INCREMENT = high_fidelity ? 1 : 0;
+    constexpr int fidelity_increment = high_fidelity ? 1 : 0;
     const uint16_t num_tile_incr     = (ct_dim >= rt_dim) ? 64 : ct_dim * 64;
 
     // only increment fidelity if we have more fidelity phases
@@ -86,7 +86,7 @@ inline void _llk_math_matmul_di_addrmod_(std::uint8_t ct_dim, std::uint8_t rt_di
         .srca     = {.incr = 0, .clr = 0, .cr = 0},
         .srcb     = {.incr = 0, .clr = 0, .cr = 0},
         .dest     = {.incr = 0, .clr = 0, .cr = 0},
-        .fidelity = {.incr = FIDELITY_INCREMENT, .clr = 0},
+        .fidelity = {.incr = fidelity_increment, .clr = 0},
     }
         .set(ADDR_MOD_1);
 
@@ -117,7 +117,7 @@ inline void _llk_math_matmul_mop_config_(std::uint8_t ct_dim, std::uint8_t rt_di
     // Unpacker will always load faces in f0,f1,f2,f3 order
     // if in1 is transposed then faces 1&2 need to be swapped during read
     // by changing address increment amount via addr_mods
-    constexpr int FIDELITY_PHASES = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 1 : static_cast<uint32_t>(MATH_FIDELITY_TYPE);
+    constexpr int FIDELITY_PHASES = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 1 : to_underlying(MATH_FIDELITY_TYPE);
 
     const bool reuse_a = ct_dim >= rt_dim;
 
@@ -171,7 +171,7 @@ inline void _llk_math_matmul_di_mop_config_(std::uint8_t ct_dim, std::uint8_t rt
     // Unpacker will always load faces in f0,f1,f2,f3 order
     // if in1 is transposed then faces 1&2 need to be swapped during read
     // by changing address increment amount via addr_mods
-    constexpr int FIDELITY_PHASES = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 1 : static_cast<uint32_t>(MATH_FIDELITY_TYPE);
+    constexpr int FIDELITY_PHASES = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 1 : to_underlying(MATH_FIDELITY_TYPE);
     const bool reuse_a            = ct_dim >= rt_dim;
 
     constexpr std::uint32_t replay_buf_len = EN_X2 ? 8 - 1 : 16 - 1; // -1 since the last instruction for the Tile * Tile operation will come out of the MOP

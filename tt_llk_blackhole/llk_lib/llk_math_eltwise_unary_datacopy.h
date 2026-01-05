@@ -40,7 +40,7 @@ inline void _llk_math_eltwise_unary_datacopy_(
         // To mitigate that, we issue additional zero flag clear instruction immediately after unpack tile to dest is done.
         // RISC-to-dest event is not currently used.
 
-        const int clear_fp32          = static_cast<int>(dst_format == (uint)DataFormat::Float32);
+        const int clear_fp32          = static_cast<int>(dst_format == to_underlying(DataFormat::Float32) || dst_format == to_underlying(DataFormat::Int32) || dst_format == to_underlying(DataFormat::UInt32));
         const uint32_t tiles_per_bank = clear_fp32 ? 4 : 8;
         const uint32_t local_tile     = dst_index & (tiles_per_bank - 1);
 #pragma GCC unroll 0
@@ -257,7 +257,7 @@ inline void eltwise_unary_configure_addrmod(const uint dst_format)
                 .set(ADDR_MOD_0);
 
             // Just unpack into B and move to Dest
-            if (dst_format == (uint)DataFormat::UInt16) // UInt16 case needs to use MOVB2D, which is 4 rows per op
+            if (dst_format == to_underlying(DataFormat::UInt16)) // UInt16 case needs to use MOVB2D, which is 4 rows per op
             {
                 addr_mod_t {
                     .srca = {.incr = 0},
@@ -290,7 +290,7 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
         uint innerloop = (rows_per_inst == p_mova2d::MOV_1_ROW) ? total_rows : (total_rows >> 3);
         uint outerloop = tilize ? 1 : num_faces;
 
-        if (((is_fp32_dest_acc_en || is_int_fpu_en) && !(dst_format == (uint)DataFormat::UInt16)) || (dst_format == (uint)DataFormat::UInt8))
+        if (((is_fp32_dest_acc_en || is_int_fpu_en) && !(dst_format == to_underlying(DataFormat::UInt16))) || (dst_format == to_underlying(DataFormat::UInt8)))
         {
             // use elwadd to handle unpacking data into src A as fp16, but dest is in fp32 mode OR to handle uint8 datums
             ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0));
@@ -318,7 +318,7 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
             outerloop = 2;
             // ELWADD with zeros will be used for non UInt16 case, since it moves 8 rows per cycle
             broadcast_type = p_elwise::SRCB_BCAST_COL;
-            if (dst_format == (uint)DataFormat::UInt16)
+            if (dst_format == to_underlying(DataFormat::UInt16))
             {
                 innerloop      = 16 >> 2; // movb2d produces 4 rows per op
                 broadcast_type = p_movb2d::MOV_4_ROWS_D0_BRCST;
@@ -344,7 +344,8 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
         }
         else if constexpr (bcast_type == BroadcastType::COL)
         {
-            if (dst_format == (uint)DataFormat::UInt16) // UInt16 case needs to use MOVB2D because for ELWADD FPU interprets some numbers as a float with exp 0
+            if (dst_format ==
+                to_underlying(DataFormat::UInt16)) // UInt16 case needs to use MOVB2D because for ELWADD FPU interprets some numbers as a float with exp 0
             {
                 ckernel_template tmp(outerloop, innerloop, TT_OP_MOVB2D(0, 0, addr_mod, broadcast_type, 0));
                 tmp.set_end_op(TT_OP_SETRWC(0, p_setrwc::CR_B, 0, 0, 0, p_setrwc::SET_B));

@@ -97,7 +97,7 @@ void run_kernel(const volatile struct RuntimeParams*)
     _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en>(src_format, src_format);
 
     _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(num_faces * TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
-    for (int i = 0; i < TILE_CNT; ++i)
+    for (uint32_t i = 0; i < TILE_CNT; ++i)
     {
         _llk_math_eltwise_unary_datacopy_(num_faces * TEST_FACE_R_DIM /*num_rows_per_tile*/, i);
     }
