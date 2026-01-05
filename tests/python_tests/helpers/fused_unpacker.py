@@ -405,3 +405,44 @@ class UnpackerTilizeA(Unpacker):
             raise ValueError("Architecture is not supported")
 
         return code
+
+
+class ReduceUnpacker(Unpacker):
+    def get_headers(self) -> List[str]:
+        return [
+            "llk_unpack_reduce.h",
+            "llk_unpack_AB.h",
+            "llk_unpack_common.h",
+        ]
+
+    def unpack(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        tile_cnt = operation_config.output.tile_count
+        num_faces = operation_config.num_faces
+
+        pool_type = "PoolType::MAX"
+        reduce_dim = "ReduceDim::REDUCE_SCALAR"
+        within_face_16x16_transpose = 0
+
+        code = (
+            # f"    _llk_unpack_reduce_init_<{pool_type}, {reduce_dim}>({within_face_16x16_transpose}, {num_faces});\n"
+            f"    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>({within_face_16x16_transpose});\n"
+            f"    constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;\n"
+            f"    config_unpacker_x_end<UNP_SEL>(FACE_R_DIM);\n"
+            f"    _llk_unpack_AB_mop_config_<BroadcastType::NONE>(false /* transpose_of_faces */, 4 /* num_faces */, false /* narrow_tile */);\n"
+            f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
+            f"    {{\n"
+            # f"        _llk_unpack_reduce_<{pool_type}, {reduce_dim}>(L1_ADDRESS(buffer_A{stage}[i]));\n"
+            f"        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A{stage}[i]), L1_ADDRESS(buffer_B{stage}[i]));\n"
+            f"    }}\n\n"
+        )
+
+        return code
+
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation_config: "FusedOperation",
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        return tensor_a.flatten(), tensor_b.flatten()
