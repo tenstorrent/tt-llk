@@ -116,9 +116,7 @@ def get_pack_test_valid_dest_indices(
     tile_count: int,
     all_indices: bool = False,
 ):
-    capacity = 16
-    if dest_sync == DestSync.Half:
-        capacity //= 2
+    capacity = 8
     if dest_acc == DestAccumulation.Yes:
         capacity //= 2
 
