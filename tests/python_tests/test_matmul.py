@@ -4,7 +4,7 @@
 from typing import List
 
 import torch
-from helpers.counters import counter, measure_perf_counters_indexed, print_perf_counters
+from helpers.counters import measure_perf_counters, print_perf_counters
 from helpers.device import BootMode, collect_results, write_stimuli_to_l1
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
@@ -147,41 +147,11 @@ def test_matmul(
         tile_cnt_B,
     )
 
-    unpack_counters = [
-        counter("INSTRN_THREAD", "INST_UNPACK"),
-        counter("INSTRN_THREAD", "INST_CFG"),
-        counter("FPU", "FPU_OP_VALID"),
-        counter("FPU", "SFPU_OP_VALID"),
-        counter("TDMA_UNPACK", "UNPACK_BUSY_0"),
-        counter("TDMA_UNPACK", "UNPACK_BUSY_1"),
-        counter("TDMA_PACK", "PACK_NOT_DEST_STALL"),
-        counter("L1", "NOC_RING0_INCOMING_1", mux_ctrl_bit4=0),
-    ]
-
-    math_counters = [
-        counter("INSTRN_THREAD", "INST_MATH"),
-        counter("INSTRN_THREAD", "STALLED"),
-        counter("FPU", "FPU_OP_VALID"),
-        counter("FPU", "SFPU_OP_VALID"),
-        counter("TDMA_UNPACK", "MATH_INSTR_VALID"),
-        counter("TDMA_UNPACK", "MATH_INSTR_SRC_READY"),
-        counter("TDMA_PACK", "PACK_NOT_DEST_STALL"),
-        counter("L1", "L1_ARB_TDMA_BUNDLE_0", mux_ctrl_bit4=0),
-    ]
-
-    pack_counters = [
-        counter("INSTRN_THREAD", "INST_PACK"),
-        counter("INSTRN_THREAD", "INST_CFG"),
-        counter("FPU", "SFPU_OP_VALID"),
-        counter("FPU", "FPU_OP_VALID"),
-        counter("TDMA_PACK", "PACK_BUSY_10"),
-        counter("TDMA_PACK", "PACK_BUSY_11"),
-        counter("TDMA_UNPACK", "UNPACK_BUSY_0"),
-        counter("L1", "NOC_RING0_OUTGOING_1", mux_ctrl_bit4=0),
-    ]
-
-    all_results = measure_perf_counters_indexed(
-        unpack_counters, math_counters, pack_counters, run_test, test_config, boot_mode
+    # Test C++ auto-detection mode (no counters specified in Python)
+    all_results = measure_perf_counters(
+        run_test,
+        test_config,
+        boot_mode,
     )
 
     for thread in ["UNPACK", "MATH", "PACK"]:
