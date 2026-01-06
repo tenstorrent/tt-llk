@@ -475,18 +475,12 @@ void calculate_exponential_more_terms_init()
 }
 
 template <bool USE_ARECIP_INSTR, bool SCALE_EN, int ITERATIONS, int NUM_TERMS>
-void calculate_exponential_more_terms(const uint16_t /*exp_base_scale_factor*/)
+void calculate_exponential_more_terms(const uint16_t exp_base_scale_factor)
 {
     // Clamp values < -88.5 to 0.
     run_clamp_loadmacro();
 
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-
-    // scale factor.
-    // if constexpr (SCALE_EN)
-    //{
-    //    TTI_SFPLOADI(p_sfpu::LREG3, 0, exp_base_scale_factor);
-    //}
 
     if constexpr (!USE_ARECIP_INSTR)
     {
@@ -520,10 +514,11 @@ void calculate_exponential_more_terms(const uint16_t /*exp_base_scale_factor*/)
         // Load the input.
         TTI_SFPLOAD(p_sfpu::LREG4, 0, ADDR_MOD_7, 0);
 
-        // if constexpr (SCALE_EN)
-        //{
-        //     TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG3, p_sfpu::LCONST_0, p_sfpu::LREG4, 0);
-        // }
+        if constexpr (SCALE_EN)
+        {
+            TTI_SFPLOADI(p_sfpu::LREG3, 0, exp_base_scale_factor); // TODO: Move out of loop.
+            TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG3, p_sfpu::LCONST_0, p_sfpu::LREG4, 0);
+        }
 
         // Multiply by 1/ln(2).
         TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG12, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
