@@ -24,7 +24,8 @@ from helpers.test_config import ProfilerBuild, run_test
     test_name="fast_exp_test",
     formats=input_output_formats(
         [
-            DataFormat.Float16_b,
+            # DataFormat.Float16_b,
+            DataFormat.Float32,
         ]
     ),
     input_dimensions=[
@@ -32,7 +33,7 @@ from helpers.test_config import ProfilerBuild, run_test
     ],  # [[32, 32], [32, 64], [64, 32], [64, 64], [128, 32], [32, 128]],
     approx_mode=[ApproximationMode.Yes],
     mathop=[MathOperation.Exp],
-    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.Yes],  # , DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_float(
     test_name, approx_mode, formats, mathop, dest_acc, input_dimensions
@@ -92,6 +93,7 @@ def eltwise_unary_sfpu(
         and dest_acc
         == DestAccumulation.Yes  # If dest_acc is off, we unpack Float32 into 16-bit format in src registers (later copied over in dest reg for SFPU op)
     )
+
     test_config = {
         "formats": formats,
         "testname": test_name,
@@ -191,6 +193,14 @@ def eltwise_unary_sfpu(
             "MAXABSDIFF_256:",
             np.max(np.abs(res_tensor_np[0:256] - golden_tensor_np[0:256])),
         )
+        for i in range(256):
+            print(
+                i,
+                src_A_np[i],
+                golden_tensor_np[i],
+                res_tensor_np[i],
+                np.max(np.abs(res_tensor_np[i] - golden_tensor_np[i])),
+            )
 
         # Write results to file.
         # with open(
