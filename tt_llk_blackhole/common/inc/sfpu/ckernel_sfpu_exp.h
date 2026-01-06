@@ -433,35 +433,35 @@ void calculate_exponential_no_swap()
     }
 }
 
-#define USE_ARECIP_INSTR_ 0
-
 template <bool USE_ARECIP_INSTR, int NUM_TERMS, uint32_t SCALE>
 void calculate_exponential_more_terms_init()
 {
     constexpr float M_LN2     = -0.69314718055994530942f; // -ln(2)
     constexpr float LN2_RECIP = 1.44269504088896340736f;  // 1/ln(2)
 
+    // L11 is used by LCONST_neg1 in the floor function.
+    // L14 is used by SWAP LoadMacro.
+
     // 1/ln(2) (for computing k = y/ln2).
     TTI_SFPLOADI(0, 0xA, lo16(LN2_RECIP));
     TTI_SFPLOADI(0, 0x8, hi16(LN2_RECIP));
-    TTI_SFPCONFIG(0, 11, 0);
+    TTI_SFPCONFIG(0, 12, 0);
 
     // -ln(2) (for computing r = y - k*ln2).
     TTI_SFPLOADI(0, 0xA, lo16(M_LN2));
     TTI_SFPLOADI(0, 0x8, hi16(M_LN2));
-    TTI_SFPCONFIG(0, 12, 0);
+    TTI_SFPCONFIG(0, 13, 0);
 
     if constexpr (!USE_ARECIP_INSTR)
     {
         LLK_ASSERT(NUM_TERMS >= 1 && NUM_TERMS <= 3, "Only 1, 2, or 3 terms is supported");
 
-        // First coefficient in expansion.
-        float c0 = (NUM_TERMS == 1)   ? 0.95696433397637822605477003788850394713182741710354f
-                   : (NUM_TERMS == 2) ? 1.00247605640014803650231996175375441870054216548083f
-                                      : 0.99989296565052922983621778370827266474330264667853;
+        float c0 = (NUM_TERMS == 1)   ? 1.1233623192692236032135985743012506909535502780929f
+                   : (NUM_TERMS == 2) ? 0.99753586992155448808365863701299141006547850119893f
+                                      : 0.9987744242042385423631271908377461652500045536011f;
         TTI_SFPLOADI(0, 0xA, lo16(c0));
         TTI_SFPLOADI(0, 0x8, hi16(c0));
-        TTI_SFPCONFIG(0, 13, 0);
+        TTI_SFPCONFIG(0, 11, 0); // L11 also used by the floor function.
     }
 
     addr_mod_t {
@@ -475,7 +475,7 @@ void calculate_exponential_more_terms_init()
 }
 
 template <bool USE_ARECIP_INSTR, bool SCALE_EN, int ITERATIONS, int NUM_TERMS>
-void calculate_exponential_more_terms(const uint16_t exp_base_scale_factor)
+void calculate_exponential_more_terms(const uint16_t /*exp_base_scale_factor*/)
 {
     // Clamp values < -88.5 to 0.
     run_clamp_loadmacro();
@@ -483,21 +483,22 @@ void calculate_exponential_more_terms(const uint16_t exp_base_scale_factor)
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
     // scale factor.
-    if constexpr (SCALE_EN)
-    {
-        TTI_SFPLOADI(p_sfpu::LREG3, 0, exp_base_scale_factor);
-    }
+    // if constexpr (SCALE_EN)
+    //{
+    //    TTI_SFPLOADI(p_sfpu::LREG3, 0, exp_base_scale_factor);
+    //}
 
     if constexpr (!USE_ARECIP_INSTR)
     {
         LLK_ASSERT(NUM_TERMS >= 1 && NUM_TERMS <= 3, "Only 1, 2, or 3 terms is supported");
-        float c1 = (NUM_TERMS == 1)   ? 1.44269504088896339978827134447864798074740875888603f
-                   : (NUM_TERMS == 2) ? 0.93926196133115784467495772308965170123990519277365f
-                                      : 1.00477562994735353143572627317263842140761033115717f;
+
+        float c1 = (NUM_TERMS == 1)   ? 1.0820212806667225532377520284909768979269800054308f
+                   : (NUM_TERMS == 2) ? 1.06124048373286974827555447405224249606107006990166f
+                                      : 0.99901998795742600963202540686824558627408454106245f;
         float c2 = (NUM_TERMS == 1)   ? 0
-                   : (NUM_TERMS == 2) ? 0.71599323332452799859983839812738341840434589928973f
-                                      : 0.46693091371682332628846847179930982027545404395215;
-        float c3 = (NUM_TERMS == 1) ? 0 : (NUM_TERMS == 2) ? 0 : 0.237832964457101087894820992366976881073392833669424f;
+                   : (NUM_TERMS == 2) ? 0.52547100916184135258988956948179959663957303082728f
+                                      : 0.52031779522223959306148327026770360633893731713813f;
+        float c3 = (NUM_TERMS == 1) ? 0 : (NUM_TERMS == 2) ? 0 : 0.17275631602849673535810267286740793455047549878205f;
         switch (NUM_TERMS)
         {
             case 3:
@@ -517,45 +518,44 @@ void calculate_exponential_more_terms(const uint16_t exp_base_scale_factor)
     for (int d = 0; d < ITERATIONS; d++)
     {
         // Load the input.
-        TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
+        TTI_SFPLOAD(p_sfpu::LREG4, 0, ADDR_MOD_7, 0);
 
-        if constexpr (SCALE_EN)
-        {
-            TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG3, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
-        }
+        // if constexpr (SCALE_EN)
+        //{
+        //     TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG3, p_sfpu::LCONST_0, p_sfpu::LREG4, 0);
+        // }
 
         // Multiply by 1/ln(2).
-        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG11, p_sfpu::LCONST_0, p_sfpu::LREG1, 0);
-
-        // On BH this will round incorrectly for 3 values: 0.9999998807907, 0.9999999403954, 1.999999880791.
-        // Alternatively _floor_body_() could be used.
-        TTI_SFP_STOCH_RND(2, 0, 0, p_sfpu::LREG1, p_sfpu::LREG1, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
-
-        // Compute r = x - k*ln2.
-        TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG1, 0);
-        TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG12, p_sfpu::LREG0, p_sfpu::LREG0, 0);
+        TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG12, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
 
         if constexpr (USE_ARECIP_INSTR)
         {
+            _floor_body_(); // L1=floor(L0).
+            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG13, p_sfpu::LREG4, p_sfpu::LREG0, 0);
             TTI_SFPARECIP(0, p_sfpu::LREG0, p_sfpu::LREG0, 2);
         }
         else
         {
+            // Compute r = x - k*ln2.
+            TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG0, p_sfpu::LREG1, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+            TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG1, 0);
+            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG13, p_sfpu::LREG4, p_sfpu::LREG0, 0);
+
             // Compute polynomial.
             if constexpr (NUM_TERMS == 1)
             {
-                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG7, p_sfpu::LREG13, p_sfpu::LREG0, 0);
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG7, p_sfpu::LREG11, p_sfpu::LREG0, 0);
             }
             else if constexpr (NUM_TERMS == 2)
             {
                 TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG6, p_sfpu::LREG7, p_sfpu::LREG2, 0);
-                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG13, p_sfpu::LREG0, 0);
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG11, p_sfpu::LREG0, 0);
             }
             else
             {
                 TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG5, p_sfpu::LREG6, p_sfpu::LREG2, 0);
                 TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG7, p_sfpu::LREG2, 0);
-                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG13, p_sfpu::LREG0, 0);
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG11, p_sfpu::LREG0, 0);
             }
         }
 
@@ -785,8 +785,9 @@ sfpi_inline void _execute_exponential_replay_buffer_()
 }*/
 
 #define EXPONENTIAL_TESTING_MODE 3
-#define EXP_CONFIG_NUM_TERMS     2
+#define EXP_CONFIG_NUM_TERMS     3
 #define EXP_CONFIG_NUM_SCALE     3
+#define EXP_USE_BH_INSTR         0
 
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK>
 void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
@@ -801,7 +802,7 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         calculate_exponential_no_swap<ITERATIONS>();
         return;
 #elif EXPONENTIAL_TESTING_MODE == 3
-        calculate_exponential_more_terms<USE_ARECIP_INSTR_, SCALE_EN, ITERATIONS, EXP_CONFIG_NUM_TERMS>(exp_base_scale_factor);
+        calculate_exponential_more_terms<EXP_USE_BH_INSTR, SCALE_EN, ITERATIONS, EXP_CONFIG_NUM_TERMS>(exp_base_scale_factor);
         return;
 #elif EXPONENTIAL_TESTING_MODE == 4
         calculate_exponential_no_swap_relu<ITERATIONS, EXP_CONFIG_NUM_TERMS, EXP_CONFIG_NUM_SCALE>();
@@ -888,7 +889,7 @@ inline void _init_exponential_()
         calculate_exponential_no_swap_init<scale>();
         return;
 #elif EXPONENTIAL_TESTING_MODE == 3
-        calculate_exponential_more_terms_init<USE_ARECIP_INSTR_, EXP_CONFIG_NUM_TERMS, scale>();
+        calculate_exponential_more_terms_init<EXP_USE_BH_INSTR, EXP_CONFIG_NUM_TERMS, scale>();
         return;
 #elif EXPONENTIAL_TESTING_MODE == 4
         calculate_exponential_no_swap_relu_init<EXP_CONFIG_NUM_TERMS, EXP_CONFIG_NUM_SCALE>();

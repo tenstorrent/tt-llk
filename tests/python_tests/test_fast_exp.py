@@ -72,11 +72,11 @@ def eltwise_unary_sfpu(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    # min_val = -20
-    # max_val = 0
+    min_val = 0
+    max_val = 1
     size = src_A.shape[0]
-    # for i in range(size):
-    #    src_A[i] = min_val + (max_val - min_val) * i / (size - 1.0)
+    for i in range(size):
+        src_A[i] = min_val + (max_val - min_val) * i / (size - 1.0)
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
@@ -193,14 +193,14 @@ def eltwise_unary_sfpu(
             "MAXABSDIFF_256:",
             np.max(np.abs(res_tensor_np[0:256] - golden_tensor_np[0:256])),
         )
-        for i in range(256):
-            print(
-                i,
-                src_A_np[i],
-                golden_tensor_np[i],
-                res_tensor_np[i],
-                np.max(np.abs(res_tensor_np[i] - golden_tensor_np[i])),
-            )
+        # for i in range(256):
+        #    print(
+        #        i,
+        #        src_A_np[i],
+        #        golden_tensor_np[i],
+        #        res_tensor_np[i],
+        #        np.max(np.abs(res_tensor_np[i] - golden_tensor_np[i])),
+        #    )
 
         # Write results to file.
         # with open(
