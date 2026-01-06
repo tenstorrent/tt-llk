@@ -477,6 +477,7 @@ void calculate_exponential_more_terms_init()
 template <bool USE_ARECIP_INSTR, bool SCALE_EN, int ITERATIONS, int NUM_TERMS>
 void calculate_exponential_more_terms(const uint16_t exp_base_scale_factor)
 {
+    // Clamp values < -88.5 to 0.
     run_clamp_loadmacro();
 
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
@@ -515,7 +516,7 @@ void calculate_exponential_more_terms(const uint16_t exp_base_scale_factor)
 
     for (int d = 0; d < ITERATIONS; d++)
     {
-        // Load.
+        // Load the input.
         TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
 
         if constexpr (SCALE_EN)
@@ -527,11 +528,11 @@ void calculate_exponential_more_terms(const uint16_t exp_base_scale_factor)
         TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG11, p_sfpu::LCONST_0, p_sfpu::LREG1, 0);
 
         // On BH this will round incorrectly for 3 values: 0.9999998807907, 0.9999999403954, 1.999999880791.
-        // Alternatively _floor_body_() can be used.
+        // Alternatively _floor_body_() could be used.
         TTI_SFP_STOCH_RND(2, 0, 0, p_sfpu::LREG1, p_sfpu::LREG1, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
 
-        // Compute r = y - k*ln2.
-        TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG1, 0x0);
+        // Compute r = x - k*ln2.
+        TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG1, 0);
         TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG12, p_sfpu::LREG0, p_sfpu::LREG0, 0);
 
         if constexpr (USE_ARECIP_INSTR)
@@ -560,10 +561,10 @@ void calculate_exponential_more_terms(const uint16_t exp_base_scale_factor)
 
         // Set the new exponent.
         TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, 1); // 0=debias, 1=no debias.
-        TTI_SFPCAST(p_sfpu::LREG2, p_sfpu::LREG2, 0x0);
+        TTI_SFPCAST(p_sfpu::LREG2, p_sfpu::LREG2, 0);
         TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG1, p_sfpu::LREG2, p_sfpu::LREG2, 0);
         TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
-        TTI_SFPSETEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, 0x0);
+        TTI_SFPSETEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, 0);
 
         // Store the result.
         TTI_SFPSTORE(p_sfpu::LREG2, 0, ADDR_MOD_7, 0);
@@ -784,7 +785,7 @@ sfpi_inline void _execute_exponential_replay_buffer_()
 }*/
 
 #define EXPONENTIAL_TESTING_MODE 3
-#define EXP_CONFIG_NUM_TERMS     3
+#define EXP_CONFIG_NUM_TERMS     2
 #define EXP_CONFIG_NUM_SCALE     3
 
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK>
