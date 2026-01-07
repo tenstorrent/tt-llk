@@ -218,7 +218,9 @@ def passed_test(
                     res_tile = res_tensor[tile_no * 1024 : (tile_no + 1) * 1024].view(
                         tile_shape
                     )
-                    # golden_tile = golden_tensor[tile_no*1024:(tile_no+1)*1024].view(tile_shape)
+                    golden_tile = golden_tensor[
+                        tile_no * 1024 : (tile_no + 1) * 1024
+                    ].view(tile_shape)
                     error_tile = ~is_valid[tile_no * 1024 : (tile_no + 1) * 1024].view(
                         tile_shape
                     )
@@ -249,7 +251,7 @@ def passed_test(
                             row_str += (
                                 "\033[41m" if error_tile[row, col] else "\033[42m"
                             )
-                            row_str += f"{golden_tensor[row, col]:7.2f}\033[0m"
+                            row_str += f"{golden_tile[row, col]:7.2f}\033[0m"
 
                             if col == 15:
                                 row_str += " "

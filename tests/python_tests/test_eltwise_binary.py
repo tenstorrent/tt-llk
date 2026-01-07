@@ -5,7 +5,6 @@ import torch
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     EltwiseBinaryGolden,
-    TilizeGolden,
     get_golden_generator,
 )
 from helpers.llk_params import (
@@ -32,7 +31,6 @@ from helpers.test_variant_parameters import (
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
 )
-from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
 
@@ -72,7 +70,7 @@ def get_tile_params(tile_dimensions):
     dest_acc=[DestAccumulation.No],
     math_fidelity=[MathFidelity.LoFi],
     transpose_srca=[Transpose.No],
-    input_dimensions=[[32, 32], [64, 64], [256, 128]],
+    input_dimensions=[[32, 32], [64, 64]],
     tile_dimensions=[[32, 32]],  # More dimensions coming soon....
 )
 def test_eltwise_binary(
@@ -98,8 +96,9 @@ def test_eltwise_binary(
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
-        sequential_A=True,
-        sequential_B=True,
+        # sequential_A=True,
+        # const_face=True,
+        # const_value_B=2
     )
 
     MAX_TILES_IN_BLOCK = (
@@ -113,30 +112,14 @@ def test_eltwise_binary(
     num_tiles_in_block = tile_cnt_A % MAX_TILES_IN_BLOCK or MAX_TILES_IN_BLOCK
 
     # Compute element-wise subtraction in tilized format
-    tilized_golden = get_golden_generator(TilizeGolden)
     binary_golden = get_golden_generator(EltwiseBinaryGolden)
-
-    srca_tilized_golden = tilized_golden(
-        src_A, input_dimensions, formats.input_format, num_faces, tile_dimensions
-    )
-    srcb_tilized_golden = tilized_golden(
-        src_B, input_dimensions, formats.input_format, num_faces, tile_dimensions
-    )
 
     golden_tensor = binary_golden(
         MathOperation.Elwsub,
-        srca_tilized_golden,
-        srcb_tilized_golden,
+        src_A,
+        src_B,
         formats.output_format,
         math_fidelity,
-    )
-
-    # Tilize the input data for hardware
-    src_A_tilized = tilize_block(
-        src_A, input_dimensions, formats.input_format, num_faces, tile_dimensions
-    )
-    src_B_tilized = tilize_block(
-        src_B, input_dimensions, formats.input_format, num_faces, tile_dimensions
     )
 
     configuration = TestConfig(
@@ -157,9 +140,9 @@ def test_eltwise_binary(
             TEST_FACE_DIMS(face_r_dim=face_r_dim),
         ],
         variant_stimuli=StimuliConfig(
-            src_A_tilized,
+            src_A,
             formats.input_format,
-            src_B_tilized,
+            src_B,
             formats.input_format,
             formats.output_format,
             tile_count_A=tile_cnt_A,

@@ -145,9 +145,12 @@ class StimuliConfig:
         base_address: int,
         tile_size: int,
         num_faces: int,
-        tile_elements: int,
+        tile_elements: int = None,
         location: str = "0,0",
     ):
+        if tile_elements is None:
+            tile_elements = StimuliConfig.TILE_ELEMENTS
+
         addresses = []
         packed_data_list = []
 

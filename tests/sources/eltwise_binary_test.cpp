@@ -68,7 +68,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_hw_configure_(formats.math, formats.math);
     _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE>(num_faces, 0);
 
-    // Perform element-wise subtraction: result = transposed(srcA) - column_broadcast(srcB)
+    // Perform element-wise subtraction
     for (int block = 0; block < num_blocks; block++)
     {
         _llk_math_wait_for_dest_available_<dest_sync>();
@@ -118,7 +118,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         _llk_packer_wait_for_math_done_();
         for (int tile = 0; tile < num_tiles_in_block; tile++)
         {
-            int res_tile_idx = block * num_tiles_in_block + tile;
+            int res_tile_idx = (block * num_tiles_in_block) + tile;
             _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(tile, L1_ADDRESS(buffer_Res[res_tile_idx]));
         }
         _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
