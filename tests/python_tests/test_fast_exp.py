@@ -74,7 +74,7 @@ def eltwise_unary_sfpu(
 
     min_val = 0
     max_val = 1
-    size = src_A.shape[0]
+    size = 256  # src_A.shape[0]
     for i in range(size):
         src_A[i] = min_val + (max_val - min_val) * i / (size - 1.0)
 
@@ -192,6 +192,15 @@ def eltwise_unary_sfpu(
         print(
             "MAXABSDIFF_256:",
             np.max(np.abs(res_tensor_np[0:256] - golden_tensor_np[0:256])),
+        )
+        print(
+            "MAXRELDIFF_256:",
+            np.max(
+                np.abs(
+                    (res_tensor_np[0:256] - golden_tensor_np[0:256])
+                    / (golden_tensor_np[0:256] + 1e-8)
+                )
+            ),
         )
         # for i in range(256):
         #    print(

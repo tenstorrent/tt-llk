@@ -436,18 +436,17 @@ void calculate_exponential_no_swap()
 template <bool USE_ARECIP_INSTR, int NUM_TERMS, uint32_t SCALE>
 void calculate_exponential_more_terms_init()
 {
-    constexpr float M_LN2     = -0.69314718055994530942f; // -ln(2)
-    constexpr float LN2_RECIP = 1.44269504088896340736f;  // 1/ln(2)
+    constexpr float M_LN2 = -0.69314718055994530942f; // -ln(2)
 
     // L11 is used by LCONST_neg1 in the floor function.
     // L14 is used by SWAP LoadMacro.
 
-    // 1/ln(2) (for computing k = y/ln2).
-    TTI_SFPLOADI(0, 0xA, lo16(LN2_RECIP));
-    TTI_SFPLOADI(0, 0x8, hi16(LN2_RECIP));
+    constexpr float scale_fp32 = __builtin_bit_cast(float, SCALE);
+    TTI_SFPLOADI(0, 0xA, lo16(1.f / scale_fp32));
+    TTI_SFPLOADI(0, 0x8, hi16(1.f / scale_fp32));
     TTI_SFPCONFIG(0, 12, 0);
 
-    // -ln(2) (for computing r = y - k*ln2).
+    // -ln(2) for computing r = x - k*ln2.
     TTI_SFPLOADI(0, 0xA, lo16(M_LN2));
     TTI_SFPLOADI(0, 0x8, hi16(M_LN2));
     TTI_SFPCONFIG(0, 13, 0);
@@ -464,6 +463,15 @@ void calculate_exponential_more_terms_init()
         TTI_SFPCONFIG(0, 11, 0); // L11 also used by the floor function.
     }
 
+    init_clamp_loadmacro<SCALE>();
+}
+
+template <bool USE_ARECIP_INSTR, bool SCALE_EN, int ITERATIONS, int NUM_TERMS>
+void calculate_exponential_more_terms(const uint16_t /*exp_base_scale_factor*/)
+{
+    // Clamp values < -88.5 to 0.
+    run_clamp_loadmacro();
+
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
@@ -471,20 +479,21 @@ void calculate_exponential_more_terms_init()
     }
         .set(ADDR_MOD_7);
 
-    init_clamp_loadmacro<SCALE>();
-}
-
-template <bool USE_ARECIP_INSTR, bool SCALE_EN, int ITERATIONS, int NUM_TERMS>
-void calculate_exponential_more_terms(const uint16_t exp_base_scale_factor)
-{
-    // Clamp values < -88.5 to 0.
-    run_clamp_loadmacro();
-
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
-    if constexpr (!USE_ARECIP_INSTR)
+    constexpr float LN2_RECIP = 1.44269504088896340736f; // 1/ln(2)
+
+    if constexpr (USE_ARECIP_INSTR)
+    {
+        TTI_SFPLOADI(p_sfpu::LREG5, 0xA, lo16(LN2_RECIP));
+        TTI_SFPLOADI(p_sfpu::LREG5, 0x8, hi16(LN2_RECIP));
+    }
+    else
     {
         LLK_ASSERT(NUM_TERMS >= 1 && NUM_TERMS <= 3, "Only 1, 2, or 3 terms is supported");
+
+        TTI_SFPLOADI(p_sfpu::LREG3, 0xA, lo16(LN2_RECIP));
+        TTI_SFPLOADI(p_sfpu::LREG3, 0x8, hi16(LN2_RECIP));
 
         float c1 = (NUM_TERMS == 1)   ? 1.0820212806667225532377520284909768979269800054308f
                    : (NUM_TERMS == 2) ? 1.06124048373286974827555447405224249606107006990166f
@@ -516,21 +525,24 @@ void calculate_exponential_more_terms(const uint16_t exp_base_scale_factor)
 
         if constexpr (SCALE_EN)
         {
-            TTI_SFPLOADI(p_sfpu::LREG3, 0, exp_base_scale_factor); // TODO: Move out of loop.
-            TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG3, p_sfpu::LCONST_0, p_sfpu::LREG4, 0);
+            TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG12, p_sfpu::LCONST_0, p_sfpu::LREG4, 0);
         }
-
-        // Multiply by 1/ln(2).
-        TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG12, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
 
         if constexpr (USE_ARECIP_INSTR)
         {
+            // Multiply by 1/ln(2).
+            TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG5, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
+
+            // Compute exp(x - k*ln2).
             _floor_body_(); // L1=floor(L0).
             TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG13, p_sfpu::LREG4, p_sfpu::LREG0, 0);
             TTI_SFPARECIP(0, p_sfpu::LREG0, p_sfpu::LREG0, 2);
         }
         else
         {
+            // Multiply by 1/ln(2).
+            TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG3, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
+
             // Compute r = x - k*ln2.
             TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG0, p_sfpu::LREG1, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
             TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG1, 0);
