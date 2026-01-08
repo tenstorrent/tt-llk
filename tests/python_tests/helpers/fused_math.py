@@ -199,13 +199,7 @@ class ReduceFpu(Fpu):
             tile_cnt=tile_cnt,
         ).flatten()
 
-<<<<<<< HEAD
         golden_tensor = untilize_block(golden_tensor, output_format, dimensions)
-=======
-        golden_tensor = untilize_block(
-            golden_tensor, output_format, operation_config.output.dimensions
-        )
->>>>>>> 853e731b (untilize reduce output)
 
         return golden_tensor.flatten()
 
@@ -221,6 +215,8 @@ class ReduceFpu(Fpu):
 
         unp_a_src_format = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{operation_config.src_a.data_format})"
 
+        unp_a_src_format = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{operation_config.src_a.data_format})"
+
         code = (
             f"    // Operation {stage}: Reduce {self.operation.cpp_enum_value} FPU\n"
             f"    _llk_math_reduce_init_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false>();\n"
@@ -231,7 +227,7 @@ class ReduceFpu(Fpu):
             f"            i, false, {num_faces}\n"
             f"        );\n"
             f"    }}\n"
-            f"    _llk_math_reduce_uninit_();\n"
+            f"    _llk_math_reduce_uninit_({unp_a_src_format});\n"
         )
 
         if operation_config.architecture == ChipArchitecture.WORMHOLE:
