@@ -375,7 +375,6 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
     }
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
-    TTI_SETC16(CLR_DVALID_SrcB_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
@@ -480,7 +479,6 @@ inline void _llk_math_fast_tilize_init_(const std::uint32_t unpack_dst_format, c
 
     // everything else is quite standard math init
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
-    TTI_SETC16(CLR_DVALID_SrcB_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 
