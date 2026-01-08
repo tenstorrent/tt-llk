@@ -35,7 +35,7 @@ inline void transpose_dest_configure_mop();
 template <bool transpose_of_faces = true, bool is_32bit = false>
 inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 {
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     math::reset_counters(p_setrwc::SET_ABD_F);
 
     // Wait condition SRCA_VLD is required as MOVB2A doesn't automatically wait
@@ -230,4 +230,9 @@ inline void _llk_math_transpose_dest_init_()
     transpose_dest_configure_mop<transpose_of_faces, is_32bit>();
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+}
+
+inline void _llk_math_transpose_dest_uninit_()
+{
+    // No state to restore - all states are transient or default
 }

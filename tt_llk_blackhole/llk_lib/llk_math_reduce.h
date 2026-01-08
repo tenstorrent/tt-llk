@@ -35,7 +35,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     if constexpr (dim == ReduceDim::REDUCE_ROW)
     {
         // Transpose for each face in src A done at unpacker, and pool
@@ -328,7 +328,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     }
     else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
     {
-        for (int tile = 0; tile < 3; tile++)
+        for (uint face_num = 0; face_num < (num_faces - 1); face_num++)
         {
             // Wait and pool
             if constexpr (type == PoolType::MAX)
