@@ -422,7 +422,7 @@ inline void _calculate_typecast_int32_to_uint16_()
     }
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_fp32_to_fp16b_()
 {
     constexpr int b = p_sfpu::LREG2;
@@ -471,7 +471,7 @@ inline void _init_typecast_fp32_to_fp16b_()
     TTI_SFPCONFIG(0x310 | InstrModLoadStore::FP16B, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint16_to_uint32_()
 {
     {
@@ -493,7 +493,7 @@ inline void _init_typecast_uint16_to_uint32_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::INT32, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint32_to_fp32_()
 {
     sfpi::vConstIntPrgm0 = -31;
@@ -546,7 +546,7 @@ inline void _init_typecast_uint32_to_fp32_()
     TTI_SFPCONFIG(0x700 | InstrModLoadStore::FP32, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_int32_to_fp32_()
 {
     constexpr int t = p_sfpu::LREG4;
@@ -579,7 +579,7 @@ inline void _init_typecast_int32_to_fp32_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::FP32, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_int32_to_fp16b_()
 {
     constexpr int t = p_sfpu::LREG4;
@@ -615,7 +615,7 @@ inline void _init_typecast_int32_to_fp16b_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::DEFAULT, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint16_to_fp32_()
 {
     // InstructionTemplate[0]
@@ -641,7 +641,7 @@ inline void _init_typecast_uint16_to_fp32_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::FP32, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint16_to_fp16b_()
 {
     // InstructionTemplate[0]
@@ -670,7 +670,7 @@ inline void _init_typecast_uint16_to_fp16b_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::DEFAULT, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_uint32_to_fp16b_()
 {
     // InstructionTemplate[0]
@@ -702,7 +702,7 @@ inline void _init_typecast_uint32_to_fp16b_()
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::DEFAULT, 8, 1);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline void _init_typecast_fp32_to_uint16_()
 {
     // InstructionTemplate[0]
