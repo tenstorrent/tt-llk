@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 from .chip_architecture import ChipArchitecture
 from .llk_params import ApproximationMode, MathOperation, ReduceDimension, ReducePool
+from .tilize_untilize import untilize_block
 
 
 class Fpu:
@@ -198,6 +199,10 @@ class ReduceFpu(Fpu):
             output_format,
             tile_cnt=tile_cnt,
         ).flatten()
+
+        golden_tensor = untilize_block(
+            golden_tensor, output_format, operation_config.output.dimensions
+        )
 
         return golden_tensor.flatten()
 
