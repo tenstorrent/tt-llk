@@ -404,7 +404,8 @@ inline void _llk_math_eltwise_unary_datacopy_uninit_()
     // clear debug feature disable
     if constexpr (src_b_bcast_type != BroadcastType::NONE && unpack_to_dest)
     {
-        tensix_sync();
+        wait(1); // faster than tensix_sync()
+        // TTI_STALLWAIT(p_stall::STALL_THREAD, p_stall::MATH); //this does not work, but wait(1) does
         reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
     }
 }
