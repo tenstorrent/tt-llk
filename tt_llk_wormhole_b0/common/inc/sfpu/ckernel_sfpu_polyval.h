@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <cstddef>
+#include <utility>
+
 namespace ckernel::sfpu
 {
 
@@ -24,7 +27,7 @@ constexpr T POLYVAL7(T coef6, T coef5, T coef4, T coef3, T coef2, T coef1, T coe
  *
  * This template struct provides efficient polynomial evaluation at both compile-time
  * and runtime using Horner's method (synthetic division).
- * This implementation uses a recursive variadic template function to compute the polynomial value.
+ * This implementation uses fold expressions to compute the polynomial value.
  *
  * The polynomial is represented by coefficients in ascending order of powers:
  * coef[0] + coef[1]*x + coef[2]*x^2 + ... + coef[N-1]*x^(N-1)
@@ -36,15 +39,36 @@ constexpr T POLYVAL7(T coef6, T coef5, T coef4, T coef3, T coef2, T coef1, T coe
  */
 struct PolynomialEvaluator
 {
+private:
+    // Helper to apply Horner's method with fold expressions
+    // Process coefficients in reverse order: c_n, c_(n-1), ..., c_1, c_0
+    template <typename U, typename... Coefficients, std::size_t... Is>
+    sfpi_inline static constexpr auto eval_impl(U x, std::index_sequence<Is...>, Coefficients... coeffs)
+    {
+        // Store coefficients in an array for reverse indexing
+        U coeff_array[]         = {static_cast<U>(coeffs)...};
+        constexpr std::size_t N = sizeof...(Coefficients);
+
+        // Start with highest degree coefficient
+        U acc = coeff_array[N - 1];
+
+        // Fold expression: process remaining coefficients in reverse order
+        // For each coefficient from N-2 down to 0: acc = acc * x + coeff[i]
+        ((acc = acc * x + coeff_array[N - 2 - Is]), ...);
+
+        return acc;
+    }
+
+public:
     /**
      * @brief Evaluates the polynomial at the given point.
      *
      * @param x The point at which to evaluate the polynomial
-     * @param coeff0 First coefficient in the polynomial.
-     * @param other_coefficients Rest of the polynomial coefficients in ascending order of powers.
-     * @return The value of the polynomial at the given point
+     * @param coeffs Polynomial coefficients in ascending order of powers (c0, c1, c2, ..., cn)
+     * @return The value of the polynomial at x using Horner's method
      *
      * @note Coefficients can be either float, sfpi::vFloat, ... (scalar and sfpi typed arguments can be mixed)
+     * @note For polynomial c0 + c1*x + c2*x^2 + c3*x^3, computes: c0 + x*(c1 + x*(c2 + x*c3))
      */
 
     // Base case: f(x) = 0 (empty polynomial)
@@ -54,18 +78,12 @@ struct PolynomialEvaluator
         return U {0};
     }
 
+    // One or more coefficients: use Horner's method with fold expressions
     template <typename U, typename Coefficient0, typename... Rest>
-    sfpi_inline static constexpr auto eval(U x, Coefficient0 c0, Rest... rest)
+    sfpi_inline static constexpr auto eval(U x, Coefficient0 coeff0, Rest... rest)
     {
-        U acc {0};
-
-        // First coefficient
-        acc = acc * x + static_cast<U>(c0);
-
-        // Remaining coefficients (safe: Rest... may be empty)
-        ((acc = acc * x + static_cast<U>(rest)), ...);
-
-        return acc;
+        constexpr std::size_t N = sizeof...(Rest) + 1;
+        return eval_impl(x, std::make_index_sequence<N - 1> {}, coeff0, rest...);
     }
 };
 
