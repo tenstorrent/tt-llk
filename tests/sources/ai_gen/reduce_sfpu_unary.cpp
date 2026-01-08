@@ -90,7 +90,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     constexpr uint32_t math_fid = 4;
     _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid>();
-    _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, is_int_fpu_en, fp32_transpose>(0);
+    _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, is_int_fpu_en, fp32_transpose, DstSync::SyncFull>(0);
 
     //------------------------------------------------------------------
     // 2) SFPU unary directly on the reduced result in dest regs

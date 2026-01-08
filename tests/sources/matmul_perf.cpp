@@ -129,7 +129,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (uint32_t j = 0; j < params->KT_DIM; j++)
                 {
-                    _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(
+                    _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL, dest_sync>(
                         /* dest_index */ 0, params->CT_DIM, params->RT_DIM);
                 }
             }
@@ -141,7 +141,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 _llk_math_wait_for_dest_available_<dest_sync>();
                 for (uint32_t j = 0; j < params->KT_DIM; j++)
                 {
-                    _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(
+                    _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL, dest_sync>(
                         /* dest_index */ 0, params->CT_DIM, params->RT_DIM);
                 }
                 _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();

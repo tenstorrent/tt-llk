@@ -32,10 +32,10 @@ inline void transpose_dest_configure_mop();
 // We may want to revisit these template parameters, and perhaps the
 // transpose_dest API generally as it's not currently widely used:
 // https://github.com/tenstorrent/tt-llk/issues/290
-template <bool transpose_of_faces = true, bool is_32bit = false>
+template <bool transpose_of_faces = true, bool is_32bit = false, DstSync Dst = DstSync::SyncFull>
 inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
 {
-    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
+    math::set_dst_write_addr<Dst, DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     math::reset_counters(p_setrwc::SET_ABD_F);
 
     // Wait condition SRCA_VLD is required as MOVB2A doesn't automatically wait

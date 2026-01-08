@@ -52,7 +52,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     for (int i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
     {
-        _llk_math_eltwise_binary_(i * params->SRCA_REUSE_COUNT /* dst_index */);
+        _llk_math_eltwise_binary_<dest_sync>(i * params->SRCA_REUSE_COUNT /* dst_index */);
     }
 
     _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();

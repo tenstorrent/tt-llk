@@ -50,7 +50,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_reconfig_remap_(true);
 #endif
     _llk_math_wait_for_dest_available_<sync>();
-    _llk_math_matmul_<MATH_FIDELITY>(0);
+    _llk_math_matmul_<MATH_FIDELITY, sync>(0);
     _llk_math_dest_section_done_<sync, is_fp32_dest_acc_en>();
 }
 

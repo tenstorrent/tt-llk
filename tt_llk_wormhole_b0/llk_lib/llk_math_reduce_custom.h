@@ -227,10 +227,10 @@ inline void _llk_math_reduce_block_max_row_uninit_()
  * Use the standard _llk_math_reduce_<PoolType::MAX, ReduceDim::REDUCE_ROW>() in a loop
  * for general-purpose block reduction across multiple tiles.
  */
-template <uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
+template <uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false, DstSync Dst = DstSync::SyncFull>
 inline void _llk_math_reduce_block_max_row_(const uint dst_index)
 {
-    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
+    math::set_dst_write_addr<Dst, DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
     if constexpr (is_fp32_dest_acc_en)
     {

@@ -82,7 +82,7 @@ class MatmulFpu(Fpu):
             f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
             f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
             f"    {{\n"
-            f"        _llk_math_matmul_<{math_fidelity}>(0, {ct_dim}, {rt_dim});\n"
+            f"        _llk_math_matmul_<{math_fidelity}, THROTTLE_LEVEL, dest_sync{stage}>(0, {ct_dim}, {rt_dim});\n"
             f"    }}\n"
         )
 
