@@ -83,7 +83,7 @@ def test_sfpu_reduce(
 
     if dest_acc == DestAccumulation.No and formats.input_format.is_32_bit():
         pytest.skip(reason="Dest must be in 32bit mode when input is 32bit")
-        
+
     min_value, max_value = input_bounds
     input_dimensions = dimension_combinations
     torch_format = format_dict[formats.input_format]
