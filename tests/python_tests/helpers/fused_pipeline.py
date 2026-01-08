@@ -132,6 +132,13 @@ REDUCE_OPERATION_MAP: Dict[str, MathOperation] = {
     "ReduceScalar": MathOperation.ReduceScalar,
 }
 
+REDUCE_POOL_MAP: Dict[str, ReducePool] = {
+    "Sum": ReducePool.Sum,
+    "Min": ReducePool.Min,
+    "Max": ReducePool.Max,
+    "Average": ReducePool.Average,
+}
+
 APPROXIMATION_MODE_MAP: Dict[str, ApproximationMode] = {
     "Yes": ApproximationMode.Yes,
     "No": ApproximationMode.No,
@@ -148,7 +155,15 @@ def parse_math_operation(
         fpu = EltwiseFpu(math_op)
     elif fpu_type in REDUCE_OPERATION_MAP:
         math_op = REDUCE_OPERATION_MAP[fpu_type]
-        fpu = ReduceFpu(math_op, pool=ReducePool.Sum)
+
+        pool_str = math_config.get("reduce_pool", "Max")
+        try:
+            pool = REDUCE_POOL_MAP[pool_str]
+        except KeyError:
+            raise ValueError(f"Unsupported reduce pool: {pool_str}")
+
+        fpu = ReduceFpu(math_op, pool=pool)
+
     elif fpu_type == "Datacopy":
         fpu = DatacopyFpu()
     elif fpu_type == "Matmul":

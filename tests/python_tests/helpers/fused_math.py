@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 from .chip_architecture import ChipArchitecture
 from .llk_params import ApproximationMode, MathOperation, ReduceDimension, ReducePool
-from .tilize_untilize import untilize_block
+from .tilize_untilize import tilize_block, untilize_block
 
 
 class Fpu:
@@ -187,9 +187,15 @@ class ReduceFpu(Fpu):
     ) -> torch.Tensor:
         output_format = operation_config.output.data_format
         tile_cnt = operation_config.output.tile_count
+        dimensions = operation_config.output.dimensions
+        num_faces = operation_config.num_faces
 
         reduce_dim = self._reduce_dim_golden()
         pool_type = self.pool
+
+        tensor_a = tilize_block(
+            tensor_a, dimensions, output_format, num_faces
+        ).flatten()
 
         generate_golden = get_golden_generator(ReduceGolden)
         golden_tensor = generate_golden(
@@ -200,9 +206,7 @@ class ReduceFpu(Fpu):
             tile_cnt=tile_cnt,
         ).flatten()
 
-        golden_tensor = untilize_block(
-            golden_tensor, output_format, operation_config.output.dimensions
-        )
+        golden_tensor = untilize_block(golden_tensor, output_format, dimensions)
 
         return golden_tensor.flatten()
 
@@ -216,6 +220,8 @@ class ReduceFpu(Fpu):
         pool_type_cpp = f"PoolType::{self.pool.value}"
         reduce_dim_cpp = self._reduce_dim_enum()
 
+        unp_a_src_format = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{operation_config.src_a.data_format})"
+
         code = (
             f"    // Operation {stage}: Reduce {self.operation.cpp_enum_value} FPU\n"
             f"    _llk_math_reduce_init_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false>();\n"
@@ -225,7 +231,7 @@ class ReduceFpu(Fpu):
             f"        _llk_math_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false, false>(\n"
             f"            i, false, {num_faces});\n"
             f"    }}\n"
-            f"    _llk_math_reduce_uninit_();\n"
+            f"    _llk_math_reduce_uninit_({unp_a_src_format});\n"
         )
 
         return code
