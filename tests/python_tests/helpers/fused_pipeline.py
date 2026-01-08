@@ -148,7 +148,7 @@ def parse_math_operation(
         fpu = EltwiseFpu(math_op)
     elif fpu_type in REDUCE_OPERATION_MAP:
         math_op = REDUCE_OPERATION_MAP[fpu_type]
-        fpu = ReduceFpu(math_op, pool=ReducePool.Max)
+        fpu = ReduceFpu(math_op, pool=ReducePool.Sum)
     elif fpu_type == "Datacopy":
         fpu = DatacopyFpu()
     elif fpu_type == "Matmul":
@@ -221,6 +221,8 @@ def parse_operation(
         src_b_dims=op_config.get("src_b_dims", [32, 32]),
         input_format=input_format,
         output_format=output_format,
+        src_a_const_value=op_config.get("src_a_const_value"),
+        src_b_const_value=op_config.get("src_b_const_value"),
     )
 
     unpacker_name = op_config.get("unpacker", "UnpackerA")

@@ -34,7 +34,7 @@ class Operand:
     def is_input(self) -> bool:
         return not self.is_output
 
-    def generate_data(self, num=1):
+    def generate_data(self, num=1, const_value=None):
         if self._data is not None:
             return
 
@@ -47,27 +47,36 @@ class Operand:
         tile_count = (height // 32) * (width // 32)
 
         faces_needed = tile_count * 4
-        faces_data = []
 
-        for _ in range(faces_needed):
-            face = generate_random_face(
-                stimuli_format=self.data_format,
-                const_value=1,
-                const_face=False,
-                sfpu=self.sfpu,
-                face_r_dim=16,
-                negative_values=False,
+        if const_value is not None:
+            dtype = (
+                format_dict[self.data_format]
+                if self.data_format != DataFormat.Bfp8_b
+                else torch.bfloat16
             )
-            faces_data.extend(face.tolist())
+            raw_data = torch.full((height, width), const_value, dtype=dtype)
+        else:
+            faces_data = []
 
-        dtype = (
-            format_dict[self.data_format]
-            if self.data_format != DataFormat.Bfp8_b
-            else torch.bfloat16
-        )
-        raw_data = torch.tensor(faces_data[: height * width], dtype=dtype).view(
-            height, width
-        )
+            for _ in range(faces_needed):
+                face = generate_random_face(
+                    stimuli_format=self.data_format,
+                    const_value=1,
+                    const_face=False,
+                    sfpu=self.sfpu,
+                    face_r_dim=16,
+                    negative_values=False,
+                )
+                faces_data.extend(face.tolist())
+
+            dtype = (
+                format_dict[self.data_format]
+                if self.data_format != DataFormat.Bfp8_b
+                else torch.bfloat16
+            )
+            raw_data = torch.tensor(faces_data[: height * width], dtype=dtype).view(
+                height, width
+            )
 
         if self.data_format != DataFormat.Bfp8_b:
             tilized_data = tilize_block(
@@ -244,6 +253,8 @@ class OperandRegistry:
         output_format: DataFormat = DataFormat.Float16_b,
         src_a_tensor: torch.Tensor = None,
         src_b_tensor: torch.Tensor = None,
+        src_a_const_value: Optional[float] = None,
+        src_b_const_value: Optional[float] = None,
     ) -> OperandMapping:
         if src_a not in self.operands:
             self.add_input(src_a, dimensions=src_a_dims, data_format=input_format)
@@ -251,11 +262,17 @@ class OperandRegistry:
         if src_b not in self.operands:
             self.add_input(src_b, dimensions=src_b_dims, data_format=input_format)
 
+        if src_a_const_value is not None:
+            self.operands[src_a].generate_data(const_value=src_a_const_value)
+
+        if src_b_const_value is not None:
+            self.operands[src_b].generate_data(const_value=src_b_const_value)
+
         if src_a_tensor is not None:
-            self.operands.get(src_a).set_data(src_a_tensor)
+            self.operands[src_a].set_data(src_a_tensor)
 
         if src_b_tensor is not None:
-            self.operands.get(src_b).set_data(src_b_tensor)
+            self.operands[src_b].set_data(src_b_tensor)
 
         mapping = OperandMapping(
             src_a=src_a,

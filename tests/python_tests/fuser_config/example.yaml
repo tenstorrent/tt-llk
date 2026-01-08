@@ -2,8 +2,9 @@ operations:
   - src_a: "X"
     src_b: "Y"
     output: "reduce"
-    src_a_dims: [32, 32]
-    src_b_dims: [32, 32]
+    src_a_dims: [64, 32]
+    src_b_dims: [64, 32]
+    src_b_const_value: 1.0
     input_format: "Float16_b"
     output_format: "Float16_b"
     unpacker: "ReduceUnpacker"
