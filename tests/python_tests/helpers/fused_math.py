@@ -199,7 +199,13 @@ class ReduceFpu(Fpu):
             tile_cnt=tile_cnt,
         ).flatten()
 
+<<<<<<< HEAD
         golden_tensor = untilize_block(golden_tensor, output_format, dimensions)
+=======
+        golden_tensor = untilize_block(
+            golden_tensor, output_format, operation_config.output.dimensions
+        )
+>>>>>>> 853e731b (untilize reduce output)
 
         return golden_tensor.flatten()
 
