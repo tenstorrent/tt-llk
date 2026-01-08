@@ -9,6 +9,7 @@
 #include "ckernel_sfpu.h"
 #include "ckernel_sfpu_add_top_row.h"
 #include "ckernel_sfpu_binary.h"
+#include "llk_defs.h"
 #include "llk_sfpu_types.h"
 
 // Metal SFPU operations from tt-metal repository
@@ -184,7 +185,7 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
     }
 }
 
-template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, std::uint32_t MATH_FORMAT = 0>
+template <ApproximationMode APPROX_MODE, BinaryOp BINOP, int ITERATIONS = 32, std::uint32_t MATH_FORMAT = 0>
 void call_binary_sfpu_operation(const std::uint32_t dst_index_in0 = 0, const std::uint32_t dst_index_in1 = 1, const std::uint32_t dst_index_out = 0)
 {
     switch (BINOP)
@@ -196,17 +197,17 @@ void call_binary_sfpu_operation(const std::uint32_t dst_index_in0 = 0, const std
         case BinaryOp::RSUB:
         case BinaryOp::XLOGY:
         case BinaryOp::POW:
-            _sfpu_binary_init_<APPROXIMATION_MODE, BINOP>();
-            _calculate_sfpu_binary_<APPROXIMATION_MODE, BINOP, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_out);
+            _sfpu_binary_init_<APPROX_MODE, BINOP>();
+            _calculate_sfpu_binary_<APPROX_MODE, BINOP, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_out);
             break;
         case BinaryOp::RSHFT:
-            _calculate_binary_right_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
+            _calculate_binary_right_shift_<APPROX_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
             break;
         case BinaryOp::LSHFT:
-            _calculate_binary_left_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
+            _calculate_binary_left_shift_<APPROX_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
             break;
         case BinaryOp::LOGICAL_RSHFT:
-            _calculate_logical_right_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
+            _calculate_logical_right_shift_<APPROX_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
             break;
         case BinaryOp::ADD_TOP_ROW:
             _init_add_top_row_();
