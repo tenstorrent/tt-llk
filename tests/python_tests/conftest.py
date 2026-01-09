@@ -109,6 +109,9 @@ def perf_report(request, worker_id):
     if ProfilerConfig.TEST_COUNTER == 0:
         return
 
+    if TestConfig.INFRA_TESTING:
+        return
+
     temp_report.dump_csv(f"{test_module}.{worker_id}.csv")
     temp_report.post_process()
     temp_report.dump_csv(f"{test_module}.{worker_id}.post.csv")
@@ -122,7 +125,8 @@ def regenerate_cpp(request):
 def pytest_configure(config):
     compile_producer = config.getoption("--compile-producer", default=False)
     compile_consumer = config.getoption("--compile-consumer", default=False)
-    TestConfig.setup_mode(compile_consumer, compile_producer)
+    infra_testing = config.getoption("--infra", default=False)
+    TestConfig.setup_mode(compile_consumer, compile_producer, infra_testing)
 
     with_coverage = config.getoption("--coverage", default=False)
     detailed_artefacts = config.getoption("--detailed-artefacts", default=False)
@@ -324,6 +328,13 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
         help="Skip C++ code generation for fused tests and use existing files",
+    )
+
+    parser.addoption(
+        "--infra",
+        action="store_true",
+        default=False,
+        help="Setup TestConfig object for its testing, shall be placed only for infra tests!",
     )
 
 

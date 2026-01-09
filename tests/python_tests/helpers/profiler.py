@@ -599,13 +599,21 @@ class ProfilerConfig(TestConfig):
             self.generate_variant_hash()
             runs = []
             for _ in range(run_count):
-                self.write_runtimes_to_L1(location)
-                elfs = self.run_elf_files(location)
-                wait_for_tensix_operations_finished(elfs, location)
+                if not TestConfig.INFRA_TESTING:
+                    self.write_runtimes_to_L1(location)
 
+                elfs = self.run_elf_files(location)
+
+                if TestConfig.INFRA_TESTING:
+                    continue
+
+                wait_for_tensix_operations_finished(elfs, location)
                 profiler_data = self.get_data(location)
 
                 runs.append(profiler_data)
+
+            if TestConfig.INFRA_TESTING:
+                continue
 
             get_stats = ProfilerConfig.STATS_FUNCTION[run_type]
             results.append(get_stats(ProfilerData.concat(runs)))
@@ -614,6 +622,9 @@ class ProfilerConfig(TestConfig):
                 shutil.rmtree(
                     TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id
                 )
+
+        if TestConfig.INFRA_TESTING:
+            return
 
         results = pd.concat(results, ignore_index=True)
         run_results = results.groupby("marker").first().reset_index()

@@ -67,6 +67,14 @@ from .test_variant_parameters import (
 )
 from .utils import create_directories, run_shell_command
 
+chosen_run_shell_command = run_shell_command
+
+
+def testing_run_shell_command(
+    command: str, cwd: str | None = None, stdin_data: str | bytes = None, text=True
+):
+    pass
+
 
 class TestMode(Enum):
     DEFAULT = "Compile and consume sequentially"
@@ -263,8 +271,12 @@ class TestConfig:
         TestConfig.setup_compilation_options(with_coverage, detailed_artefacts)
 
     @staticmethod
-    def setup_mode(compile_consumer: bool = False, compile_producer: bool = False):
-
+    def setup_mode(
+        compile_consumer: bool = False,
+        compile_producer: bool = False,
+        infra_testing: bool = False,
+    ):
+        global chosen_run_shell_command
         if compile_consumer and compile_producer:
             raise ValueError(
                 "Pytest can be configured to be either compilation producer or compilation consumer, not both"
@@ -282,6 +294,11 @@ class TestConfig:
         # Always have a fresh build when compiling
         if TestConfig.MODE != TestMode.CONSUME:
             shutil.rmtree(TestConfig.ARTEFACTS_DIR.absolute(), ignore_errors=True)
+
+        if infra_testing:
+            TestConfig.INFRA_TESTING = True
+            chosen_run_shell_command = testing_run_shell_command
+            return
 
     # === Instance fields and methods ===
     def __init__(
@@ -491,7 +508,7 @@ class TestConfig:
             )
 
             # tmu-crt0.o : tmu-crt0.S
-            run_shell_command(
+            chosen_run_shell_command(
                 f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} -c -o {shared_obj_dir / "tmu-crt0.o"} {TestConfig.HELPERS / "tmu-crt0.S"}""",
                 TestConfig.TESTS_WORKING_DIR,
             )
@@ -499,7 +516,7 @@ class TestConfig:
             # brisc.o : brisc.cpp
 
             if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-                run_shell_command(
+                chosen_run_shell_command(
                     f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} -c -o {shared_obj_dir / "brisc.o"} {TestConfig.RISCV_SOURCES / "brisc.cpp"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
@@ -508,13 +525,13 @@ class TestConfig:
             if self.coverage_build == CoverageBuild.Yes:
                 COVERAGE_DEPS = f"{shared_obj_dir}/coverage.o -lgcov"
                 # coverage.o : coverage.cpp
-                run_shell_command(
+                chosen_run_shell_command(
                     f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} -fno-strict-aliasing -c -o {shared_obj_dir / "coverage.o"} {TestConfig.RISCV_SOURCES / "coverage.cpp"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
             def build_kernel_part_main(name: str):
-                run_shell_command(  # main_%.o
+                chosen_run_shell_command(  # main_%.o
                     f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {shared_obj_dir / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
@@ -529,7 +546,7 @@ class TestConfig:
 
             if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
                 # brisc.elf : tmu-crt0.o brisc.o
-                run_shell_command(
+                chosen_run_shell_command(
                     f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {shared_obj_dir / "tmu-crt0.o"} {shared_obj_dir / "brisc.o"} {COVERAGE_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / "brisc.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {shared_elf_dir / "brisc.elf"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
@@ -739,9 +756,6 @@ class TestConfig:
         header_content = self.generate_build_header()
         done_marker = VARIANT_DIR / ".build_complete"
 
-        if TestConfig.INFRA_TESTING:
-            return
-
         self.build_shared_artefacts()
 
         # Fast path: if build is already complete, skip entirely
@@ -787,12 +801,12 @@ class TestConfig:
                 COVERAGE_DEPS = shared_obj_dir / "coverage.o"
 
             def build_kernel_part(name: str):
-                run_shell_command(  # kernel_%.o
+                chosen_run_shell_command(  # kernel_%.o
                     f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {TestConfig.TESTS_WORKING_DIR / self.test_name}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
-                run_shell_command(  # %.elf : main_%.o kernel_%.o [coverage.o] tmu-crt0.o
+                chosen_run_shell_command(  # %.elf : main_%.o kernel_%.o [coverage.o] tmu-crt0.o
                     f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {shared_obj_dir / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {shared_obj_dir / "tmu-crt0.o"} {SFPI_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"{name}.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
@@ -816,7 +830,7 @@ class TestConfig:
                 for component in TestConfig.KERNEL_COMPONENTS:
                     elf_path = VARIANT_ELF_DIR / f"{component}.elf"
                     meta_bin_path = PROFILER_VARIANT_META_DIR / f"{component}.meta.bin"
-                    run_shell_command(
+                    chosen_run_shell_command(
                         f"{TestConfig.OBJCOPY} -O binary -j .profiler_meta {elf_path} {meta_bin_path}",
                         TestConfig.TESTS_WORKING_DIR,
                     )
@@ -867,19 +881,24 @@ class TestConfig:
         ):
             raise ValueError("Quasar only supports TRISC boot mode")
 
-        reset_mailboxes(location)
-
-        # Perform soft reset
-        set_tensix_soft_reset(1, location=location)
-
         VARIANT__ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
         )
+
+        if TestConfig.INFRA_TESTING:
+            if not Path(VARIANT__ELF_DIR).exists():
+                raise RuntimeError(
+                    f"INFRA TEST: Variant elf dir not found: {VARIANT__ELF_DIR}"
+                )
+            return
 
         elfs = [
             str((VARIANT__ELF_DIR / f"{trisc_name}.elf").absolute())
             for trisc_name in TestConfig.KERNEL_COMPONENTS
         ]
+
+        reset_mailboxes(location)
+        set_tensix_soft_reset(1, location=location)
 
         # Load TRISC ELF files
         for i, elf in enumerate(elfs):
@@ -914,8 +933,7 @@ class TestConfig:
         match boot_mode:
             case BootMode.BRISC:
                 # Use correct shared ELF directory and loading flag based on profiler build
-                is_profiler = self.profiler_build == ProfilerBuild.Yes
-                if is_profiler:
+                if self.profiler_build == ProfilerBuild.Yes:
                     if not TestConfig.PROFILER_BRISC_ELF_LOADED:
                         TestConfig.PROFILER_BRISC_ELF_LOADED = True
                         load_elf(
@@ -994,12 +1012,12 @@ class TestConfig:
             # Compile and link each kernel component
             for name in TestConfig.KERNEL_COMPONENTS:
                 # Compile kernel
-                run_shell_command(
+                chosen_run_shell_command(
                     f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {VARIANT_OBJ_DIR}/{name}.o {TestConfig.TESTS_WORKING_DIR / self.test_name}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
                 # Link
-                run_shell_command(
+                chosen_run_shell_command(
                     f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {TestConfig.SHARED_OBJ_DIR / f"main_{name}.o"} {VARIANT_OBJ_DIR}/{name}.o {COVERAGE_DEPS} {TestConfig.SHARED_OBJ_DIR / "tmu-crt0.o"} {SFPI_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"{name}.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
@@ -1047,7 +1065,7 @@ def process_coverage_run_artefacts() -> bool:
 
                 with open(stream, "rb") as fd:
                     coverage_stream = fd.read()
-                run_shell_command(
+                chosen_run_shell_command(
                     f"{TestConfig.GCOV_TOOL} merge-stream",
                     TestConfig.TESTS_WORKING_DIR,
                     coverage_stream,
@@ -1061,7 +1079,7 @@ def process_coverage_run_artefacts() -> bool:
                     f"--output-file {TestConfig.COVERAGE_INFO_DIR}/{info_hash}.info "
                     "--rc lcov_branch_coverage=1"
                 )
-                run_shell_command(command, TestConfig.TESTS_WORKING_DIR)
+                chosen_run_shell_command(command, TestConfig.TESTS_WORKING_DIR)
 
     worker_num = 25
 
@@ -1096,7 +1114,7 @@ def process_coverage_run_artefacts() -> bool:
         merged_path = TestConfig.ARTEFACTS_DIR / f"merged_coverage_{index}.info"
         for info_file in info_files:
             cmd = f"lcov -a {merged_path} -a {info_file} -o {merged_path}"
-            result = run_shell_command(cmd, TestConfig.ARTEFACTS_DIR)
+            result = chosen_run_shell_command(cmd, TestConfig.ARTEFACTS_DIR)
 
             if result.returncode:
                 print(f"Warning: Failed to merge {info_file}, skipping")
@@ -1116,7 +1134,7 @@ def process_coverage_run_artefacts() -> bool:
     for i in range(1, worker_num):
         info_file = TestConfig.ARTEFACTS_DIR / f"merged_coverage_{i}.info"
         cmd = f"lcov -a {merged_path} -a {info_file} -o {merged_path}"
-        result = run_shell_command(cmd, TestConfig.ARTEFACTS_DIR)
+        result = chosen_run_shell_command(cmd, TestConfig.ARTEFACTS_DIR)
 
         if result.returncode:
             print(f"Warning: Failed to merge {info_file}, skipping")
