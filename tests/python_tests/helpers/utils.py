@@ -214,19 +214,14 @@ def passed_test(
 
                 for tile_no in range(num_tiles):
 
-                    error_tile = ~is_valid[tile_no * 1024 : (tile_no + 1) * 1024].view(
-                        tile_shape
-                    )
-                    if error_tile.sum() == 0:
-                        continue
-
                     tile_str = f"Row\t === Tile {tile_no+1} ===\n"
                     res_tile = res_tensor[tile_no * 1024 : (tile_no + 1) * 1024].view(
                         tile_shape
                     )
-                    golden_tile = golden_tensor[
-                        tile_no * 1024 : (tile_no + 1) * 1024
-                    ].view(tile_shape)
+                    # golden_tile = golden_tensor[tile_no*1024:(tile_no+1)*1024].view(tile_shape)
+                    error_tile = ~is_valid[tile_no * 1024 : (tile_no + 1) * 1024].view(
+                        tile_shape
+                    )
 
                     for row in range(32):
                         row_str = ""
@@ -246,15 +241,15 @@ def passed_test(
 
                     print(tile_str, file=sys.stderr)
 
-                    tile_str = f"Row\t === Golden Tile  {tile_no+1} ===\n"
+                    tile_str = f"Row\t === Golden tile Tile {tile_no+1} ===\n"
 
                     for row in range(32):
                         row_str = ""
                         for col in range(32):
                             row_str += (
-                                "\033[30;41m" if error_tile[row, col] else "\033[30;43m"
+                                "\033[41m" if error_tile[row, col] else "\033[42m"
                             )
-                            row_str += f"{golden_tile[row, col]:7.2f}\033[0m"
+                            row_str += f"{golden_tensor[row, col]:7.2f}\033[0m"
 
                             if col == 15:
                                 row_str += " "
