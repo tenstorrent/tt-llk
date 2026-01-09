@@ -10,9 +10,18 @@
 
 template <bool APPROXIMATE, typename Callable, typename... Args>
 inline void _llk_math_eltwise_binary_sfpu_params_(
-    Callable&& sfpu_func, uint dst_index_in0, uint dst_index_in1, uint dst_index_out, int vector_mode = (int)VectorMode::RC, Args&&... args)
+    Callable&& sfpu_func,
+    const uint dst_index_in0,
+    const uint dst_index_in1,
+    const uint dst_index_out,
+    const int vector_mode = (int)VectorMode::RC,
+    Args&&... args)
 {
-    _llk_math_eltwise_binary_sfpu_start_<DST_SYNC_MODE>(0);
+    _llk_math_eltwise_binary_sfpu_start_<DST_SYNC_MODE>(0); // Is this ok?
+    static constexpr uint DESTREG_MAX_INDEX = 16;
+    LLK_ASSERT(dst_index_in0 < DESTREG_MAX_INDEX, "dst_index_in0 out of range");
+    LLK_ASSERT(dst_index_in1 < DESTREG_MAX_INDEX, "dst_index_in1 out of range");
+    LLK_ASSERT(dst_index_out < DESTREG_MAX_INDEX, "dst_index_out out of range");
 
     VectorMode mode = static_cast<VectorMode>(vector_mode);
 
