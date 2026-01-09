@@ -150,22 +150,22 @@ inline void _llk_math_eltwise_unary_datacopy_(
             for (int offset = 0; offset < 2; ++offset)
             {
 #pragma GCC unroll 2
-                for (int dest_32b_lo = 0; dest_32b_lo < 2; ++dest_32b_lo)
+                for (int dst_32b_hi_lo_idx = 0; dst_32b_hi_lo_idx < 2; ++dst_32b_hi_lo_idx)
                 {
                     // move hi bits D2B
-                    TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movd2b::MOV_4_ROWS, offset * 32 + 0);
-                    TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET + 4, ADDR_MOD_3, p_movd2b::MOV_4_ROWS, offset * 32 + 4);
-                    TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET + 8, ADDR_MOD_3, p_movd2b::MOV_4_ROWS, offset * 32 + 8);
-                    TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movd2b::MOV_4_ROWS, offset * 32 + 12);
+                    TTI_MOVD2B(dst_32b_hi_lo_idx, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movd2b::MOV_4_ROWS, offset * 32 + 0);
+                    TTI_MOVD2B(dst_32b_hi_lo_idx, p_movd2b::SRC_ROW16_OFFSET + 4, ADDR_MOD_3, p_movd2b::MOV_4_ROWS, offset * 32 + 4);
+                    TTI_MOVD2B(dst_32b_hi_lo_idx, p_movd2b::SRC_ROW16_OFFSET + 8, ADDR_MOD_3, p_movd2b::MOV_4_ROWS, offset * 32 + 8);
+                    TTI_MOVD2B(dst_32b_hi_lo_idx, p_movd2b::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movd2b::MOV_4_ROWS, offset * 32 + 12);
 
-                    TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 0);
-                    TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 4);
-                    TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 8);
-                    TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 12);
-                    TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 16);
-                    TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 20);
-                    TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 24);
-                    TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 28);
+                    TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 0);
+                    TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 4);
+                    TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 8);
+                    TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 12);
+                    TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 16);
+                    TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 20);
+                    TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 24);
+                    TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 28);
                 }
             }
 
@@ -334,7 +334,6 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
         }
         else if constexpr (bcast_type == BroadcastType::SCALAR)
         {
-            // ELTWADD with zeros will be used as a workaround
             outerloop      = 1;
             innerloop      = num_faces * (total_rows >> 3);
             broadcast_type = p_movb2d::MOV_8_ROW_BRCST_D0_BRCST;
@@ -348,7 +347,7 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
         }
         else if constexpr (bcast_type == BroadcastType::COL)
         {
-            if (dst_format == (uint)DataFormat::UInt16) // UInt16 case needs to use MOVB2D because for ELWADD FPU interprests some numbers as a float with exp 0
+            if (dst_format == (uint)DataFormat::UInt16) // UInt16 case needs to use MOVB2D because for ELWADD FPU interprets some numbers as a float with exp 0
             {
                 ckernel_template tmp(outerloop, innerloop, TT_OP_MOVB2D(0, 0, addr_mod, broadcast_type, 0));
                 tmp.set_end_op(TT_OP_SETRWC(0, p_setrwc::CR_B, 0, 0, 0, p_setrwc::SET_B));
@@ -403,8 +402,7 @@ inline void _llk_math_eltwise_unary_datacopy_uninit_()
     // clear debug feature disable
     if constexpr (src_b_bcast_type != BroadcastType::NONE && unpack_to_dest)
     {
-        wait(1); // faster than tensix_sync()
-        // TTI_STALLWAIT(p_stall::STALL_THREAD, p_stall::MATH); //this does not work, but wait(1) does
+        tensix_sync();
         reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
     }
 }
