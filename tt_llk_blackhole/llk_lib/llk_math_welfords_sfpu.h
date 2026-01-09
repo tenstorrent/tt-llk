@@ -28,10 +28,10 @@ inline void welfords_sfpu_configure_addrmod()
 
 inline void welfords_sfpu_configure_mop();
 
-template <DstSync Dst>
+template <DstSync Dst, bool is_fp32_dest_acc_en = false>
 inline void _llk_math_welfords_sfpu_start_(const uint dst_index)
 {
-    math::set_dst_write_addr<Dst, DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
+    math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
 }

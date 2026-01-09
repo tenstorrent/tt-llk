@@ -31,7 +31,7 @@ inline void _llk_math_eltwise_unary_datacopy_(
         // adjust it to offset in faces for 32bit data.
         const std::uint32_t dest_base_offset_in_faces = get_dest_buffer_base_32b();
         math_unpack_to_dest_math_ready();
-        math::set_dst_write_addr<Dst, DstTileShape::Tile32x32, UnpackDestination::DestReg>(dst_index);
+        math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, DstTileShape::Tile32x32, UnpackDestination::DestReg>(dst_index);
         math::math_unpack_to_dest_tile_ready();
 
         // Due to bug in Blackhole Tensix (more details in budabackend/#2730) when an event with side effect of clearing DEST zero flags
@@ -176,7 +176,7 @@ inline void _llk_math_eltwise_unary_datacopy_(
     }
     else
     {
-        math::set_dst_write_addr<Dst, DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
+        math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
         if constexpr (type == A2D)
         {

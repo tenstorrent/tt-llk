@@ -38,11 +38,11 @@ inline void eltwise_unary_sfpi_configure_addrmod()
 
 inline void eltwise_unary_sfpi_configure_mop();
 
-template <SfpiTestType sfpu_op, DstSync Dst>
+template <SfpiTestType sfpu_op, DstSync Dst, bool is_fp32_dest_acc_en = false>
 inline void llk_math_eltwise_unary_sfpi(uint dst_index, uint param0 = 0, uint param1 = 0, uint param2 = 0, uint param3 = 0, uint param4 = 0, uint param5 = 0)
 {
     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
-    math::set_dst_write_addr<Dst, DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
+    math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
     int face = 0;
     sfpi_test::calculate_sfpi<sfpu_op>(param0, param1, param2, param3, param4, param5);

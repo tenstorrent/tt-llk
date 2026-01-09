@@ -140,6 +140,7 @@ inline void _llk_pack_rows_init_(const std::uint32_t num_rows)
  */
 inline void _llk_pack_rows_(const std::uint32_t tile_index, const std::uint32_t address)
 {
+    // TODO: Validate tile_index range
     // Set the tile index in dest to read from
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 

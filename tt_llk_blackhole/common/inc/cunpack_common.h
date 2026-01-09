@@ -428,8 +428,11 @@ inline void config_unpacker_x_end(const uint32_t face_r_dim)
         case 8:
             TTI_SETADCXX(UNP_SEL, 8 * FACE_C_DIM - 1, 0x0);
             break;
+        case 16:
+            TTI_SETADCXX(UNP_SEL, 16 * FACE_C_DIM - 1, 0x0);
+            break;
         default:
-            TTI_SETADCXX(UNP_SEL, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
+            LLK_ASSERT(false, "Invalid face_r_dim in config_unpacker_x_end");
             break;
     }
 }

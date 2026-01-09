@@ -101,10 +101,6 @@ inline void _calculate_sfpu_binary_(const uint dst_index_in0, const uint dst_ind
 {
     static constexpr float nan               = std::numeric_limits<float>::quiet_NaN();
     static constexpr uint dst_tile_size_sfpi = 32;
-    static constexpr uint DESTREG_MAX_INDEX  = sfpi::SFP_DESTREG_MAX_ADDR / dst_tile_size_sfpi;
-    LLK_ASSERT(dst_index_in0 < DESTREG_MAX_INDEX, "dst_index_in0 out of range");
-    LLK_ASSERT(dst_index_in1 < DESTREG_MAX_INDEX, "dst_index_in1 out of range");
-    LLK_ASSERT(dst_index_out < DESTREG_MAX_INDEX, "dst_index_out out of range");
 
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)

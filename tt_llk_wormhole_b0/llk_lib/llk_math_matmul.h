@@ -727,8 +727,8 @@ inline void _llk_math_matmul_uninit_()
     TTI_SETC16(CLR_DVALID_SrcB_Disable_ADDR32, 0);
 }
 
-template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0, DstSync Dst = DstSync::SyncFull>
-inline void _llk_math_matmul_(uint dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
+template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0, DstSync Dst = DstSync::SyncFull, bool is_fp32_dest_acc_en = false>
+inline void _llk_math_matmul_(const uint dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
 {
     const bool reuse_a                = ct_dim >= rt_dim;
     const std::uint32_t t_dim         = reuse_a ? rt_dim : ct_dim;
@@ -740,7 +740,8 @@ inline void _llk_math_matmul_(uint dst_index, const std::uint32_t ct_dim = 1, co
     {
         for (uint rut = 0; rut < rut_dim; rut++)
         {
-            math::set_dst_write_addr<Dst, DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index + (reuse_a ? ct_dim * t + rut : t + rut * ct_dim));
+            math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(
+                dst_index + (reuse_a ? ct_dim * t + rut : t + rut * ct_dim));
 
             if (t_dim == 1)
             {
@@ -822,7 +823,7 @@ inline void _llk_math_matmul_(uint dst_index, const std::uint32_t ct_dim = 1, co
                         }
                     }
 
-                    math::set_dst_write_addr<Dst, DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(
+                    math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(
                         dst_index + (reuse_a ? ct_dim * (t + 1) + rut : t + 1 + rut * ct_dim));
                     if constexpr (THROTTLE_LEVEL > 3 && high_fidelity)
                     {
