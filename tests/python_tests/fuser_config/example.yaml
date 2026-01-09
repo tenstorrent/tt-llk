@@ -9,6 +9,10 @@ operations:
     unpacker: "UnpackerA"
     math:
       fpu: "Datacopy"
+      sfpu:
+        - type: "ReduceSfpu"
+          operation: "ReduceColumn"
+          reduce_pool: "Max"
     packer: "Packer"
     dest_acc: "Yes"
     math_fidelity: "LoFi"
