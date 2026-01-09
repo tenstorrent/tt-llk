@@ -7,14 +7,14 @@ from typing import Dict, List
 from ttexalens.tt_exalens_lib import read_words_from_device, write_words_to_device
 
 # L1 Memory addresses - separate per TRISC thread
-# Support up to 10 counters: 10 config words + 20 data words per thread
-# Each thread needs 30 words (120 bytes) total: CONFIG (40 bytes) + DATA (80 bytes)
-PERF_COUNTER_UNPACK_CONFIG_ADDR = 0x2F7D0  # 10 words: UNPACK metadata
-PERF_COUNTER_UNPACK_DATA_ADDR = 0x2F7F8  # 20 words: UNPACK results
-PERF_COUNTER_MATH_CONFIG_ADDR = 0x2F848  # 10 words: MATH metadata (0x2F7D0 + 120)
-PERF_COUNTER_MATH_DATA_ADDR = 0x2F870  # 20 words: MATH results
-PERF_COUNTER_PACK_CONFIG_ADDR = 0x2F8C0  # 10 words: PACK metadata (0x2F848 + 120)
-PERF_COUNTER_PACK_DATA_ADDR = 0x2F8E8  # 20 words: PACK results
+# Support up to 30 counters: 30 config words + 60 data words per thread
+# Each thread needs 90 words (360 bytes) total: CONFIG (120 bytes) + DATA (240 bytes)
+PERF_COUNTER_UNPACK_CONFIG_ADDR = 0x2F7D0  # 30 words: UNPACK metadata
+PERF_COUNTER_UNPACK_DATA_ADDR = 0x2F848  # 60 words: UNPACK results
+PERF_COUNTER_MATH_CONFIG_ADDR = 0x2F938  # 30 words: MATH metadata (UNPACK + 360)
+PERF_COUNTER_MATH_DATA_ADDR = 0x2F9B0  # 60 words: MATH results
+PERF_COUNTER_PACK_CONFIG_ADDR = 0x2FAA0  # 30 words: PACK metadata (MATH + 360)
+PERF_COUNTER_PACK_DATA_ADDR = 0x2FB18  # 60 words: PACK results
 
 COUNTER_BANK_NAMES = {
     0: "INSTRN_THREAD",
@@ -174,9 +174,9 @@ def configure_perf_counters(
     else:
         raise ValueError(f"Unknown thread: {thread}. Must be UNPACK, MATH, or PACK")
 
-    if len(counters) > 10:
+    if len(counters) > 30:
         raise ValueError(
-            f"Cannot configure more than 10 counters per thread. Got {len(counters)}."
+            f"Cannot configure more than 30 counters per thread. Got {len(counters)}."
         )
 
     # Reverse lookup for bank names
@@ -210,8 +210,8 @@ def configure_perf_counters(
             f"  [{idx}] {bank_name}:{counter_id} (bank_id={bank_id}, mode_bit={mode_bit}, mux={mux_ctrl_bit4}) -> 0x{config_word:08x}"
         )
 
-    # Pad to 10 words
-    while len(config_words) < 10:
+    # Pad to 30 words
+    while len(config_words) < 30:
         config_words.append(0)
 
     print(f"[DEBUG {thread}] Memory layout:")
@@ -219,8 +219,8 @@ def configure_perf_counters(
     print(f"  DATA addr:   0x{data_addr:08x}")
     print(f"  Writing {len(config_words)} config words")
 
-    # Clear data region (20 words) to prevent garbage from previous runs
-    zero_data = [0] * 20
+    # Clear data region (60 words) to prevent garbage from previous runs
+    zero_data = [0] * 60
     write_words_to_device(location=location, addr=data_addr, data=zero_data)
 
     # Write configuration to L1
@@ -242,9 +242,9 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
     else:
         raise ValueError(f"Unknown thread: {thread}. Must be UNPACK, MATH, or PACK")
 
-    # Read metadata (10 words)
+    # Read metadata (30 words)
     metadata = read_words_from_device(
-        location=location, addr=config_addr, word_count=10
+        location=location, addr=config_addr, word_count=30
     )
 
     print(f"\n[DEBUG {thread}] Reading counters from L1:")
@@ -277,7 +277,7 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
     results = []
     data_idx = 0
     print(f"[DEBUG {thread}] Processing counter results:")
-    for i in range(10):
+    for i in range(30):
         config_word = metadata[i]
         if (config_word & 0x80000000) == 0:  # Check valid bit
             continue  # Unused slot
