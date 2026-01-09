@@ -1,0 +1,15 @@
+name: "👷‍♀️ Infrastructure tests"
+
+permissions:
+  checks: write
+  contents: read
+
+jobs:
+  setup-and-test:
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run tests
+        shell: bash
+        run:

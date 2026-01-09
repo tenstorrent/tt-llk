@@ -72,6 +72,9 @@ jobs:
               - '**/*.rst'
             performance:
               - '**/*perf**'
+            infrastructure:
+              - 'tests/python_tests/infra/**'
+              - 'tests/python_tests/helpers/**'
               - '**/*profiler**'
 
   label-pr:
@@ -141,10 +144,22 @@ jobs:
     needs: pre-commit
     secrets: inherit
 
+  infrastructure-tests:
+    name: "👷‍♀️ Infrastructure tests"
+    uses: ./.github/workflows/infrastructure-tests.yml
+    needs: [build-images, detect-changes]
+    if: ${{ github.event_name != 'push' &&
+            (needs.detect-changes.outputs.infrastructure == 'true' ||
+             needs.detect-changes.outputs.tests == 'true' ||
+             needs.detect-changes.outputs.github == 'true') }}
+    with:
+      docker_image: ${{ needs.build-images.outputs.docker-image }}
+      runs_on: ubuntu-latest
+
   setup-and-test-wormhole:
     name: "🌀 Perform checks (Wormhole)"
     uses: ./.github/workflows/setup-and-test.yml
-    needs: [build-images, detect-changes]
+    needs: [build-images, detect-changes, infrastructure-tests]
     if: ${{ github.event_name != 'push' &&
             (needs.detect-changes.outputs.wormhole == 'true' ||
              needs.detect-changes.outputs.tests == 'true' ||
@@ -158,7 +173,7 @@ jobs:
   setup-and-test-blackhole:
     name: "🕳️ Perform checks (Blackhole)"
     uses: ./.github/workflows/setup-and-test.yml
-    needs: [build-images, detect-changes]
+    needs: [build-images, detect-changes, infrastructure-tests]
     if: ${{ github.event_name != 'push' &&
             (needs.detect-changes.outputs.blackhole == 'true' ||
              needs.detect-changes.outputs.tests == 'true' ||
@@ -172,7 +187,7 @@ jobs:
   build-quasar:
     name: "🌟 Build Quasar tests"
     uses: ./.github/workflows/build-quasar.yml
-    needs: [build-images, detect-changes]
+    needs: [build-images, detect-changes, infrastructure-tests]
     if: ${{ github.event_name != 'push' &&
             needs.detect-changes.outputs.quasar == 'true' }}
     with:
@@ -184,7 +199,7 @@ jobs:
   perf-tests:
     name: "⚡ Performance tests (${{ matrix.target }})"
     uses: ./.github/workflows/setup-and-test.yml
-    needs: [build-images, detect-changes]
+    needs: [build-images, detect-changes, infrastructure-tests]
     if: ${{ github.event_name != 'push' &&
             needs.detect-changes.outputs.performance == 'true' }}
     strategy:
@@ -206,6 +221,7 @@ jobs:
     name: "✅ Check all green"
     if: always()
     needs:
+      - infrastructure-tests
       - pre-commit
       - build-images
       - setup-and-test-wormhole
