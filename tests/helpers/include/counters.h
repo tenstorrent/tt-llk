@@ -43,17 +43,17 @@ namespace llk_perf
 #define RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU           (RISCV_DEBUG_REGS_START_ADDR | 0x124)
 
 // L1 Memory addresses - separate per TRISC thread
-// Expanded to support up to 30 counters: 30 config words (120 bytes) + 60 data words (240 bytes) = 360 bytes per thread
+// Expanded to support up to 66 counters: 66 config words (264 bytes) + 132 data words (528 bytes) = 792 bytes per thread
 // Thread blocks:
-// UNPACK: CONFIG 0x2F7D0, DATA 0x2F848
-// MATH:   CONFIG 0x2F938, DATA 0x2F9B0
-// PACK:   CONFIG 0x2FAA0, DATA 0x2FB18
-#define PERF_COUNTER_UNPACK_CONFIG_ADDR 0x2F7D0 // 30 words: UNPACK metadata
-#define PERF_COUNTER_UNPACK_DATA_ADDR   0x2F848 // 60 words: UNPACK results
-#define PERF_COUNTER_MATH_CONFIG_ADDR   0x2F938 // 30 words: MATH metadata (UNPACK + 360)
-#define PERF_COUNTER_MATH_DATA_ADDR     0x2F9B0 // 60 words: MATH results
-#define PERF_COUNTER_PACK_CONFIG_ADDR   0x2FAA0 // 30 words: PACK metadata (MATH + 360)
-#define PERF_COUNTER_PACK_DATA_ADDR     0x2FB18 // 60 words: PACK results
+// UNPACK: CONFIG 0x2F7D0, DATA 0x2F8D8 (0x2F7D0 + 0x108)
+// MATH:   CONFIG 0x2FAE8, DATA 0x2FBF0 (UNPACK + 0x318)
+// PACK:   CONFIG 0x2FE00, DATA 0x2FF08 (MATH + 0x318)
+#define PERF_COUNTER_UNPACK_CONFIG_ADDR 0x2F7D0 // 66 words: UNPACK metadata
+#define PERF_COUNTER_UNPACK_DATA_ADDR   0x2F8D8 // 132 words: UNPACK results
+#define PERF_COUNTER_MATH_CONFIG_ADDR   0x2FAE8 // 66 words: MATH metadata
+#define PERF_COUNTER_MATH_DATA_ADDR     0x2FBF0 // 132 words: MATH results
+#define PERF_COUNTER_PACK_CONFIG_ADDR   0x2FE00 // 66 words: PACK metadata
+#define PERF_COUNTER_PACK_DATA_ADDR     0x2FF08 // 132 words: PACK results
 
 // Configuration word format: [mode_bit(16), counter_sel(8-15), bank_id(0-7)]
 enum class CounterBank : uint32_t
@@ -241,7 +241,7 @@ private:
         uint32_t mode_bit;      // 0 = REQUESTS, 1 = GRANTS
     };
 
-    CounterConfig counters[30];
+    CounterConfig counters[66];
     uint32_t counter_count;
     CounterMode mode;
 
@@ -270,7 +270,7 @@ private:
         }
 
         // Clear remaining slots
-        for (uint32_t i = counter_count; i < 30; i++)
+        for (uint32_t i = counter_count; i < 66; i++)
         {
             config_mem[i] = 0;
         }
@@ -335,7 +335,7 @@ public:
 
         // Count how many valid counters are configured (check bit 31)
         uint32_t active_count = 0;
-        for (uint32_t i = 0; i < 30; i++)
+        for (uint32_t i = 0; i < 66; i++)
         {
             if ((config_mem[i] & 0x80000000) != 0)
             {
@@ -359,7 +359,7 @@ public:
 
         // First decode configs and store locally
         uint32_t counter_idx = 0; // Separate index for storing configs
-        for (uint32_t i = 0; i < 30 && counter_idx < 30; i++)
+        for (uint32_t i = 0; i < 66 && counter_idx < 66; i++)
         {
             uint32_t metadata = config_mem[i];
 
@@ -420,7 +420,7 @@ public:
      */
     CounterResult* stop()
     {
-        static CounterResult results[30];
+        static CounterResult results[66];
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
