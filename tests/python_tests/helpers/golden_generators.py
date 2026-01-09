@@ -1695,6 +1695,8 @@ class ReduceGolden:
     def _apply_pooling(self, tensor, pool_type, dim):
         if pool_type == ReducePool.Max:
             return torch.max(tensor, dim=dim).values
+        elif pool_type == ReducePool.Min:
+            return torch.min(tensor, dim=dim).values
         elif pool_type == ReducePool.Average:
             return torch.mean(tensor, dim=dim)
         elif pool_type == ReducePool.Sum:
