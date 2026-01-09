@@ -115,52 +115,35 @@ def calculate_pcc(golden, input):
     if torch.equal(golden, input):
         return 1.0
 
+    # Mask invalid values (nan/inf)
+    def mask_invalid(x):
+        x = x.clone()
+        mask = torch.logical_or(
+            torch.isnan(x), torch.logical_or(torch.isinf(x), torch.isneginf(x))
+        )
+        x[mask] = 0
+        return x
+
+    golden = mask_invalid(golden)
+    input = mask_invalid(input)
+
     # Convert bfloat16 to float32 for correlation calculation
     if golden.dtype == torch.bfloat16:
         golden = golden.type(torch.float32)
         input = input.type(torch.float32)
 
-    # Convert to numpy and mask invalid values (nan/inf) - don't set to 0, just mask them
-    golden_np = np.ma.masked_invalid(torch.squeeze(golden).detach().numpy()).flatten()
-    input_np = np.ma.masked_invalid(torch.squeeze(input).detach().numpy()).flatten()
+    # Calculate correlation
+    pcc_result = np.min(
+        np.ma.corrcoef(
+            np.ma.masked_invalid(torch.squeeze(golden).detach().numpy()).flatten(),
+            np.ma.masked_invalid(torch.squeeze(input).detach().numpy()).flatten(),
+        )
+    )
 
-    # If all values are masked (all NaN/Inf), return 0.0 (no correlation)
-    if golden_np.count() == 0 or input_np.count() == 0:
-        return 0.0
+    if isinstance(pcc_result, np.ma.core.MaskedConstant):
+        return 1.0
 
-    # Need at least 2 valid pairs to compute correlation
-    # Count valid pairs (where both arrays have valid values at the same index)
-    valid_mask = ~(golden_np.mask | input_np.mask)
-    if valid_mask.sum() < 2:
-        return 0.0
-
-    # Calculate correlation matrix
-    # np.ma.corrcoef returns a 2x2 matrix: [[1.0, corr], [corr, 1.0]]
-    # where corr is the correlation coefficient between the two arrays
-    corr_matrix = np.ma.corrcoef(golden_np, input_np)
-
-    # Extract the correlation coefficient from the off-diagonal element [0,1]
-    if isinstance(corr_matrix, np.ma.core.MaskedArray):
-        # Check if the entire matrix is masked
-        if corr_matrix.mask.all():
-            return 0.0
-        # Get the off-diagonal element [0,1] which is the correlation coefficient
-        pcc_result = corr_matrix[0, 1]
-        # Handle masked constant (correlation cannot be computed, e.g., constant values)
-        if isinstance(pcc_result, np.ma.core.MaskedConstant):
-            return 0.0
-        # Convert to float and handle NaN (correlation undefined, e.g., one array is constant)
-        pcc_float = float(pcc_result)
-        if np.isnan(pcc_float):
-            return 0.0
-        return pcc_float
-    else:
-        # If not a masked array, extract [0,1] element
-        pcc_float = float(corr_matrix[0, 1])
-        # Handle NaN (correlation undefined)
-        if np.isnan(pcc_float):
-            return 0.0
-        return pcc_float
+    return pcc_result
 
 
 def get_tolerance(output_data_format):
