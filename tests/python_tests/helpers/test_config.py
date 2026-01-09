@@ -312,13 +312,26 @@ class TestConfig:
         self.templates = templates
         self.runtimes = runtimes
         self.variant_stimuli = variant_stimuli
-        self.boot_mode = boot_mode
+
         self.profiler_build = profiler_build
         self.L1_to_L1_iterations = L1_to_L1_iterations
         self.unpack_to_dest = unpack_to_dest
         self.disable_format_inference = disable_format_inference
         self.dest_acc = dest_acc
 
+        boot_mode = (
+            CHIP_DEFAULT_BOOT_MODES[TestConfig.CHIP_ARCH]
+            if boot_mode == BootMode.DEFAULT
+            else boot_mode
+        )
+
+        if (
+            TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR
+            and boot_mode != BootMode.TRISC
+        ):
+            raise ValueError("Quasar only supports TRISC boot mode")
+
+        self.boot_mode = boot_mode
         self.process_runtime_args()
 
         if (
@@ -854,24 +867,7 @@ class TestConfig:
     BRISC_ELF_LOADED: ClassVar[bool] = False
     PROFILER_BRISC_ELF_LOADED: ClassVar[bool] = False
 
-    def run_elf_files(self, location="0,0") -> list:
-        boot_mode = (
-            CHIP_DEFAULT_BOOT_MODES[TestConfig.CHIP_ARCH]
-            if self.boot_mode == BootMode.DEFAULT
-            else self.boot_mode
-        )
-
-        if (
-            TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR
-            and boot_mode != BootMode.TRISC
-        ):
-            raise ValueError("Quasar only supports TRISC boot mode")
-
-        reset_mailboxes(location)
-
-        # Perform soft reset
-        set_tensix_soft_reset(1, location=location)
-
+    def load_variant_elfs(self, location="0,0") -> list[str]:
         VARIANT__ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
         )
@@ -906,37 +902,49 @@ class TestConfig:
                     ),
                 )
 
-        # Reset the profiler barrier
+        if self.boot_mode == BootMode.BRISC:
+            # Use correct shared ELF directory and loading flag based on profiler build
+            is_profiler = self.profiler_build == ProfilerBuild.Yes
+            if is_profiler:
+                if not TestConfig.PROFILER_BRISC_ELF_LOADED:
+                    TestConfig.PROFILER_BRISC_ELF_LOADED = True
+                    load_elf(
+                        elf_file=str(
+                            (
+                                TestConfig.PROFILER_SHARED_ELF_DIR / "brisc.elf"
+                            ).absolute()
+                        ),
+                        location=location,
+                        risc_name="brisc",
+                    )
+            else:
+                if not TestConfig.BRISC_ELF_LOADED:
+                    TestConfig.BRISC_ELF_LOADED = True
+                    load_elf(
+                        elf_file=str(
+                            (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
+                        ),
+                        location=location,
+                        risc_name="brisc",
+                    )
+
+        return elfs
+
+    def run_elf_files(self, location="0,0") -> list:
+        reset_mailboxes(location)
+
+        # Perform soft reset
+        set_tensix_soft_reset(1, location=location)
+
+        elfs = self.load_variant_elfs(location)
+
+        # Reset the profiler barrier TODO is this even needed? @sstanisicTT
         write_words_to_device(
             location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
         )
 
-        match boot_mode:
+        match self.boot_mode:
             case BootMode.BRISC:
-                # Use correct shared ELF directory and loading flag based on profiler build
-                is_profiler = self.profiler_build == ProfilerBuild.Yes
-                if is_profiler:
-                    if not TestConfig.PROFILER_BRISC_ELF_LOADED:
-                        TestConfig.PROFILER_BRISC_ELF_LOADED = True
-                        load_elf(
-                            elf_file=str(
-                                (
-                                    TestConfig.PROFILER_SHARED_ELF_DIR / "brisc.elf"
-                                ).absolute()
-                            ),
-                            location=location,
-                            risc_name="brisc",
-                        )
-                else:
-                    if not TestConfig.BRISC_ELF_LOADED:
-                        TestConfig.BRISC_ELF_LOADED = True
-                        load_elf(
-                            elf_file=str(
-                                (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
-                            ),
-                            location=location,
-                            risc_name="brisc",
-                        )
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
             case BootMode.TRISC:
                 set_tensix_soft_reset(
