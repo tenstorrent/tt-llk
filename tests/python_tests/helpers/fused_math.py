@@ -229,7 +229,7 @@ class Sfpu:
     def __init__(
         self,
         operation: str,
-        approx_mode: ApproximationMode = ApproximationMode.No,
+        approx_mode: ApproximationMode = ApproximationMode.Precise,
         iterations: int = 32,
     ):
         self.operation = operation
@@ -255,7 +255,7 @@ class UnarySfpu(Sfpu):
     def __init__(
         self,
         operation: MathOperation,
-        approx_mode: ApproximationMode = ApproximationMode.No,
+        approx_mode: ApproximationMode = ApproximationMode.Precise,
         iterations: int = 32,
     ):
         if not operation in MathOperation.get_sfpu_unary_operations():
@@ -316,7 +316,7 @@ class BinarySfpu(Sfpu):
     def __init__(
         self,
         operation: MathOperation,
-        approx_mode: ApproximationMode = ApproximationMode.No,
+        approx_mode: ApproximationMode = ApproximationMode.High,
         iterations: int = 32,
         dst_index_in0: int = 0,
         dst_index_in1: int = 1,
@@ -392,7 +392,7 @@ class SfpuWhere(Sfpu):
 
     def __init__(
         self,
-        approx_mode: ApproximationMode = ApproximationMode.No,
+        approx_mode: ApproximationMode = ApproximationMode.Precise,
         iterations: int = 32,
         dst_index_in0: int = 0,
         dst_index_in1: int = 1,
