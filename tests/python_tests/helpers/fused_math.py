@@ -468,11 +468,16 @@ class BinarySfpu(Sfpu):
         src2 = self.dst_index_in1
         dst = self.dst_index_out
 
+        if self.operation == MathOperation.SfpuAddTopRow:
+            format = "0"
+        else:
+            format = f"math_format{stage}"
+
         code = (
             f"    // Operation {stage}: Binary {self.operation.cpp_enum_value} SFPU\n"
             f"    _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();\n"
             f"    _llk_math_eltwise_binary_sfpu_start_<dest_sync{stage}>(0);\n"
-            f"    test_utils::call_binary_sfpu_operation<{approx_mode}, {op}, {iterations}, math_format{stage}>({src1}, {src2}, {dst});\n"
+            f"    test_utils::call_binary_sfpu_operation<{approx_mode}, {op}, {iterations}, {format}>({src1}, {src2}, {dst});\n"
             f"    _llk_math_eltwise_binary_sfpu_done_();\n"
         )
 

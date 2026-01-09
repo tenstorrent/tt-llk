@@ -55,8 +55,20 @@ operations:
     output_format: "Float16_b"
     unpacker: "ReduceUnpacker"
     math:
-      fpu: "ReduceScalar"
-      reduce_pool: "Min"
+      fpu: "ReduceColumn"
+      reduce_pool: "Max"
+      sfpu:
+        - type: "UnarySfpu"
+          operation: "Neg"
+          approximation_mode: "No"
+          iterations: 128
+        - type: "BinarySfpu"
+          operation: "SfpuElwadd"
+          approximation_mode: "No"
+          iterations: 32
+          src1_dest_tile_index: 0
+          src2_dest_tile_index: 1
+          dst_dest_tile_index: 2
     packer: "Packer"
     dest_acc: "Yes"
     math_fidelity: "HiFi4"
