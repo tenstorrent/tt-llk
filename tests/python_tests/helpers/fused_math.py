@@ -320,20 +320,6 @@ class DatacopyFpu(Fpu):
 
 
 class Sfpu:
-    operation: MathOperation
-    approx_mode: ApproximationMode
-    iterations: int = 32
-
-    def __init__(
-        self,
-        operation: str,
-        approx_mode: ApproximationMode = ApproximationMode.No,
-        iterations: int = 32,
-    ):
-        self.operation = operation
-        self.approx_mode = approx_mode
-        self.iterations = iterations
-
     def exec(self, operation_config: "FusedOperation") -> str:
         return ""
 
@@ -346,7 +332,7 @@ class Sfpu:
         return []
 
     def __str__(self) -> str:
-        return f"{self.__name__}({self.operation})"
+        return f"{self.__name__}"
 
 
 class UnarySfpu(Sfpu):
@@ -360,7 +346,9 @@ class UnarySfpu(Sfpu):
             raise ValueError(
                 f"Operation {operation} is not a valid SFPU unary operation."
             )
-        super().__init__(operation, approx_mode, iterations)
+        self.iterations = iterations
+        self.approx_mode = approx_mode
+        self.operation = operation
 
     def get_headers(self) -> List[str]:
         return [
@@ -424,7 +412,9 @@ class BinarySfpu(Sfpu):
             raise ValueError(
                 f"Operation {operation} is not a valid SFPU binary operation."
             )
-        super().__init__(operation, approx_mode, iterations)
+        self.operation = operation
+        self.approx_mode = approx_mode
+        self.iterations = iterations
         self.dst_index_in0 = dst_index_in0
         self.dst_index_in1 = dst_index_in1
         self.dst_index_out = dst_index_out
@@ -487,12 +477,72 @@ class BinarySfpu(Sfpu):
         return f"BinarySfpu({self.operation})"
 
 
-class SfpuWhere(Sfpu):
-    dst_index_in0: int = 0
-    dst_index_in1: int = 1
-    dst_index_in2: int = 2
-    dst_index_out: int = 0
+class ReduceSfpu(Sfpu):
+    def __init__(
+        self,
+        operation: MathOperation,
+        pool_type: ReducePool,
+    ):
+        if operation not in (
+            MathOperation.ReduceRow,
+            MathOperation.ReduceColumn,
+            MathOperation.ReduceScalar,
+        ):
+            raise ValueError(
+                f"Operation {operation} is not a valid SFPU reduce operation."
+            )
+        self.pool_type = pool_type
+        self.operation = operation
 
+    def get_headers(self) -> List[str]:
+        return [
+            "ckernel_defs.h",
+            "ckernel_sfpu.h",
+            "llk_math_common.h",
+            "llk_math_eltwise_unary_sfpu.h",
+        ]
+
+    def golden(
+        self, tensor: torch.Tensor, operation_config: "FusedOperation"
+    ) -> torch.Tensor:
+        golden_tensor = get_golden_generator(UnarySFPUGolden)(
+            MathOperation.ReduceColumn,
+            tensor.reshape(operation_config.output.dimensions),
+            operation_config.output.data_format,
+            operation_config.dest_acc,
+            operation_config.src_a.data_format,
+            operation_config.output.dimensions,
+            reduce_pool=self.pool_type,
+        )
+        return golden_tensor
+
+    def exec(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        tile_cnt = operation_config.output.tile_count
+
+        pool_type_cpp = f"ckernel::PoolType::{self.pool_type.value}"
+        reduce_dim_cpp = f"ckernel::ReduceDim::{self.operation.cpp_enum_value}"
+        data_format = f"DataFormat::{operation_config.math_format.name}"
+
+        code = (
+            f"    // Operation {stage}: SFPU Reduce({self.operation.cpp_enum_value}, {self.pool_type.name})\n"
+            f"    _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();\n"
+            f"    ckernel::sfpu::_init_reduce_<{pool_type_cpp}, {data_format}>();\n"
+            f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
+            f"    {{\n"
+            f"        _llk_math_eltwise_unary_sfpu_start_<dest_sync{stage}>(i);\n"
+            f"        ckernel::sfpu::_calculate_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {data_format}>();\n"
+            f"    }}\n"
+            f"    _llk_math_eltwise_unary_sfpu_done_();\n"
+        )
+
+        return code
+
+    def __str__(self) -> str:
+        return f"ReduceSfpu({self.operation}, {self.pool_type})"
+
+
+class SfpuWhere(Sfpu):
     def __init__(
         self,
         approx_mode: ApproximationMode = ApproximationMode.No,
@@ -502,7 +552,9 @@ class SfpuWhere(Sfpu):
         dst_index_in2: int = 2,
         dst_index_out: int = 0,
     ):
-        super().__init__("where", approx_mode, iterations)
+        self.operation = MathOperation.SfpuWhere
+        self.approx_mode = approx_mode
+        self.iterations = iterations
         self.dst_index_in0 = dst_index_in0
         self.dst_index_in1 = dst_index_in1
         self.dst_index_in2 = dst_index_in2
