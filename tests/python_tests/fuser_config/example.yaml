@@ -56,7 +56,7 @@ operations:
     unpacker: "ReduceUnpacker"
     math:
       fpu: "ReduceScalar"
-      reduce_pool: "Sum"
+      reduce_pool: "Min"
     packer: "Packer"
     dest_acc: "Yes"
     math_fidelity: "HiFi4"
