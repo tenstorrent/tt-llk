@@ -231,13 +231,15 @@ class ReduceFpu(Fpu):
             f"        _llk_math_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false, false>(\n"
             f"            i, false, {num_faces});\n"
             f"    }}\n"
-            f"    _llk_math_reduce_uninit_({unp_a_src_format});\n"
         )
+
+        if operation_config.architecture == ChipArchitecture.WORMHOLE:
+            code += f"    _llk_math_reduce_uninit_({unp_a_src_format});\n"
 
         return code
 
     def __str__(self) -> str:
-        return f"ReduceFpu({self.operation}, pool={self.pool})"
+        return f"ReduceFpu({self.operation}, {self.pool})"
 
 
 class DatacopyFpu(Fpu):
