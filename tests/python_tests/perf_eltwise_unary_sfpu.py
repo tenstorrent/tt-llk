@@ -43,8 +43,8 @@ from helpers.test_variant_parameters import (
         ]
     ),
     approx_mode=[
-        ApproximationMode.Yes,
-        ApproximationMode.No,
+        ApproximationMode.High,
+        ApproximationMode.Precise,
     ],
     mathop=[
         MathOperation.Reciprocal,
