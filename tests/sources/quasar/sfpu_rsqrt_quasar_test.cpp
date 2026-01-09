@@ -17,7 +17,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
     const uint buf_desc_id          = 0;
     const uint num_tiles_per_unpack = params->TILE_CNT;
 
-    // Setup data valid scheme
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
     buffer_descriptor_u bd_val = {0};
@@ -66,6 +65,8 @@ const bool is_int_fpu_en = true;
 const bool is_int_fpu_en = false;
 #endif
 
+#include "cfg_defines.h"
+#include "cmath_common.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_eltwise_unary_sfpu_common.h"
@@ -78,39 +79,49 @@ using namespace ckernel::sfpu;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const int iterations = params->num_faces * params->TEST_FACE_R_DIM / ckernel::math::SFP_ROWS;
-
+    // Setup dvalid for both FPU and SFPU (both run in MATH kernel)
     set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
+    set_up_dest_dvalid_per_thread<dest_dvalid_client::SFPU>({dest_dvalid_client::FPU, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
 
     DataFormat src_format = static_cast<DataFormat>(formats.math);
     _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en>(src_format, src_format);
 
-    // Initialize SFPU first
-    _llk_math_eltwise_unary_sfpu_init_();
-
     // Initialize datacopy
-    _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(
-        params->num_faces * params->TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
+    const uint num_rows = params->num_faces * params->TEST_FACE_R_DIM;
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(num_rows, 1);
 
+    const int num_sfpu_iterations = params->TEST_FACE_R_DIM / ckernel::math::SFP_ROWS;
+
+    // First loop: datacopy all tiles
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        // Datacopy for this tile
-        _llk_math_eltwise_unary_datacopy_(params->num_faces * params->TEST_FACE_R_DIM /*num_rows_per_tile*/, params->DST_INDEX + i);
-        wait_mop_idle();
-        // SFPU for this tile
-        _llk_math_eltwise_unary_sfpu_start_(params->DST_INDEX + i);
-        _calculate_rsqrt_<APPROX_MODE>(iterations);
-        wait_sfpu_idle();
-        _llk_math_eltwise_unary_sfpu_done_();
+        _llk_math_eltwise_unary_datacopy_(num_rows, i);
     }
+
     _llk_math_set_dvalid_<p_cleardvalid::FPU>();
+
+    // Initialize SFPU once
+    _llk_math_eltwise_unary_sfpu_init_();
+
+    // Second loop: apply SFPU rsqrt to all tiles
+    for (int i = 0; i < params->TILE_CNT; ++i)
+    {
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_rsqrt_<APPROX_MODE>, i, num_sfpu_iterations);
+    }
+
     _llk_math_set_dvalid_<p_cleardvalid::SFPU>();
+
+    // Wait for all operations to complete
+    wait_sfpu_idle();
+    wait_fpu_idle();
+    wait_mop_idle();
 }
 
 #endif
 
 #ifdef LLK_TRISC_PACK
 
+#include "cfg_defines.h"
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 #include "params.h"
@@ -120,6 +131,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     uint32_t const buf_desc_id    = 8;
     const uint num_tiles_per_pack = params->TILE_CNT;
 
+    // Setup dvalid for PACK
     set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
 
     buffer_descriptor_u bd_val = {0};
