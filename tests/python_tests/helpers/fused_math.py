@@ -227,7 +227,6 @@ class ReduceFpu(Fpu):
             f"            i, false, {num_faces}\n"
             f"        );\n"
             f"    }}\n"
-            f"    _llk_math_reduce_uninit_({unp_a_src_format});\n"
         )
 
         if operation_config.architecture == ChipArchitecture.WORMHOLE:
