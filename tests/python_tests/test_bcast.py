@@ -165,13 +165,12 @@ def filter_params_with_constraints(all_params):
         if broadcast_type != BroadcastType.None_ and acc_to_dest:
             continue
 
-        if (
+        if dest_acc == DestAccumulation.No and (
             formats.input_format == DataFormat.Float32
             or formats.input_format == DataFormat.Int32
             or formats.input_format == DataFormat.UInt32
         ):
-            if dest_acc == DestAccumulation.No:
-                continue
+            continue
 
         valid_params.append(params)
 
