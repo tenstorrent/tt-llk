@@ -129,7 +129,7 @@ REDUCE_OPERATION_MAP: Dict[str, MathOperation] = {
 }
 
 APPROXIMATION_MODE_MAP: Dict[str, ApproximationMode] = {
-    "High": ApproximationMode.High,
+    "Fast": ApproximationMode.Fast,
     "Precise": ApproximationMode.Precise,
 }
 

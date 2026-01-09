@@ -302,7 +302,7 @@ class UnarySfpu(Sfpu):
             f"    // Operation {stage}: Unary {self.operation.cpp_enum_value} SFPU\n"
             f"    _llk_math_eltwise_unary_sfpu_init_<SfpuType::{self.operation.cpp_enum_value}>();\n"
             f"    _llk_math_eltwise_unary_sfpu_start_<dest_sync{stage}>(0);\n"
-            f"    test_utils::call_sfpu_operation<{self.approx_mode.value}, {dest_acc}, {self.iterations}>({op}, math_format{stage});\n"
+            f"    test_utils::call_sfpu_operation<ApproximationMode::{self.approx_mode.value}, {dest_acc}, {self.iterations}>({op}, math_format{stage});\n"
             f"    _llk_math_eltwise_unary_sfpu_done_();\n"
         )
 
@@ -316,7 +316,7 @@ class BinarySfpu(Sfpu):
     def __init__(
         self,
         operation: MathOperation,
-        approx_mode: ApproximationMode = ApproximationMode.High,
+        approx_mode: ApproximationMode = ApproximationMode.Fast,
         iterations: int = 32,
         dst_index_in0: int = 0,
         dst_index_in1: int = 1,
@@ -374,7 +374,7 @@ class BinarySfpu(Sfpu):
             f"    // Operation {stage}: Binary {self.operation.cpp_enum_value} SFPU\n"
             f"    _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();\n"
             f"    _llk_math_eltwise_binary_sfpu_start_<dest_sync{stage}>(0);\n"
-            f"    test_utils::call_binary_sfpu_operation<{approx_mode}, {op}, {iterations}, math_format{stage}>({src1}, {src2}, {dst});\n"
+            f"    test_utils::call_binary_sfpu_operation<ApproximationMode::{approx_mode}, {op}, {iterations}, math_format{stage}>({src1}, {src2}, {dst});\n"
             f"    _llk_math_eltwise_binary_sfpu_done_();\n"
         )
 
@@ -429,7 +429,7 @@ class SfpuWhere(Sfpu):
         code = (
             f"    // Operation {stage}: Binary {self.operation.cpp_enum_value} SFPU\n"
             f"    _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();\n"
-            f"    ckernel::sfpu::_init_where_<{self.approx_mode.value}>();\n"
+            f"    ckernel::sfpu::_init_where_<ApproximationMode::{self.approx_mode.value}>();\n"
             f"    _llk_math_eltwise_ternary_sfpu_start_<dest_sync{stage}>(0);\n"
             f"    ckernel::sfpu::_calculate_where_<false, math_format{stage}, {self.iterations}>({src1}, {src2}, {src3}, {dst});\n"
             f"    _llk_math_eltwise_ternary_sfpu_done_();\n"
