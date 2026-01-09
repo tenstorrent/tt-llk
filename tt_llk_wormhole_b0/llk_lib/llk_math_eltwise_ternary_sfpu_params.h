@@ -13,7 +13,11 @@ inline void _llk_math_eltwise_ternary_sfpu_params_(
     Callable&& sfpu_func, uint dst_index_in0, uint dst_index_in1, uint dst_index_in2, uint dst_index_out, int vector_mode = (int)VectorMode::RC, Args&&... args)
 {
     _llk_math_eltwise_ternary_sfpu_start_<DST_SYNC_MODE>(0); // Reuse same sync primitive
-
+    constexpr uint DESTREG_MAX_INDEX = (DST_SYNC_MODE == DstSync::SyncFull) ? 16 : 8;
+    LLK_ASSERT(dst_index_in0 < DESTREG_MAX_INDEX, "dst_index_in0 out of range");
+    LLK_ASSERT(dst_index_in1 < DESTREG_MAX_INDEX, "dst_index_in1 out of range");
+    LLK_ASSERT(dst_index_in2 < DESTREG_MAX_INDEX, "dst_index_in2 out of range");
+    LLK_ASSERT(dst_index_out < DESTREG_MAX_INDEX, "dst_index_out out of range");
     if (vector_mode == (int)VectorMode::R)
     {
         // Row vector - Face0 + Face1
