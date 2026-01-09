@@ -252,7 +252,7 @@ class Haloize(Enum):
 
 
 class ApproximationMode(Enum):
-    High = "High"
+    Fast = "Fast"
     Precise = "Precise"
 
     @property

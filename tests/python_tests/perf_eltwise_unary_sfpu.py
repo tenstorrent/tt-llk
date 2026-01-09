@@ -42,7 +42,7 @@ from helpers.test_variant_parameters import (
         ]
     ),
     approx_mode=[
-        ApproximationMode.High,
+        ApproximationMode.Fast,
         ApproximationMode.Precise,
     ],
     mathop=[
