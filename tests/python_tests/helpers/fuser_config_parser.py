@@ -146,7 +146,7 @@ REDUCE_POOL_MAP: Dict[str, ReducePool] = {
 }
 
 APPROXIMATION_MODE_MAP: Dict[str, ApproximationMode] = {
-    "High": ApproximationMode.High,
+    "Fast": ApproximationMode.Fast,
     "Precise": ApproximationMode.Precise,
 }
 
