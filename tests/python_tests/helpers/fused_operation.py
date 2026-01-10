@@ -160,7 +160,7 @@ class FusedOperation:
         if (
             self.architecture == ChipArchitecture.BLACKHOLE
             and self.unpacker is UnpackerTilizeA
-            and formats.input_format != DataFormat.Bfp8_b
+            and formats.input_format not in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]
         ):
             self.bh_tilize = Tilize.Yes
         else:

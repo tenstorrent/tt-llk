@@ -164,6 +164,13 @@ def infer_pack_in(
     ):
         return DataFormat.Bfp8
 
+    if (
+        input_format == DataFormat.Float16
+        and output_format == DataFormat.Bfp4_b
+        and is_fp32_dest_acc_en == DestAccumulation.No
+    ):
+        return DataFormat.Bfp4
+
     # 8-bit exponent -> Float16 without float32 datums in dest reg requires Float32 on Wormhole
     elif is_format_combination_outlier(
         input_format, output_format, is_fp32_dest_acc_en

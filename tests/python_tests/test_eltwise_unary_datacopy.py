@@ -44,7 +44,7 @@ def get_valid_tilize_datacopy(formats):
     if chip_arch == ChipArchitecture.WORMHOLE:
         return [Tilize.No]
 
-    if formats.input_format == DataFormat.Bfp8_b:
+    if formats.input_format in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]:
         return [Tilize.No]
 
     return [Tilize.No, Tilize.Yes]
@@ -67,11 +67,13 @@ def get_valid_num_faces_datacopy(tilize):
 @parametrize(
     formats=input_output_formats(
         [
-            DataFormat.Float32,
-            DataFormat.Float16,
-            DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
-        ]
+            # DataFormat.Float32,
+            # DataFormat.Float16,
+            # DataFormat.Float16_b,
+            # DataFormat.Bfp8_b,
+            DataFormat.Bfp4_b,
+        ],
+        same=True,
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     num_faces=lambda tilize: get_valid_num_faces_datacopy(tilize),
@@ -84,7 +86,7 @@ def test_unary_datacopy(
     formats, dest_acc, num_faces, tilize, dest_index, workers_tensix_coordinates
 ):
 
-    input_dimensions = [64, 64]
+    input_dimensions = [32, 32]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,

@@ -37,7 +37,7 @@ def generate_random_face(
     negative_values=False,
 ):
     size = 256
-    if stimuli_format != DataFormat.Bfp8_b:
+    if stimuli_format not in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]:
         if stimuli_format.is_integer():
             max_value = 127 if stimuli_format == DataFormat.Int8 else 255
             min_value = -(max_value + 1) if negative_values else 0
@@ -179,12 +179,12 @@ def generate_stimuli(
 
     dtype_A = (
         format_dict[stimuli_format_A]
-        if stimuli_format_A != DataFormat.Bfp8_b
+        if stimuli_format_A not in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]
         else torch.bfloat16
     )
     dtype_B = (
         format_dict[stimuli_format_B]
-        if stimuli_format_B != DataFormat.Bfp8_b
+        if stimuli_format_B not in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]
         else torch.bfloat16
     )
 

@@ -11,6 +11,7 @@ from ttexalens.tt_exalens_lib import (
 from .format_config import DataFormat
 from .llk_params import format_tile_sizes
 from .pack import (
+    pack_bfp4_b,
     pack_bfp8_b,
     pack_bfp16,
     pack_fp16,
@@ -129,6 +130,7 @@ class StimuliConfig:
             DataFormat.Float16_b: pack_bfp16,
             DataFormat.Float32: pack_fp32,
             DataFormat.Bfp8_b: pack_bfp8_b,
+            DataFormat.Bfp4_b: pack_bfp4_b,
             DataFormat.Int32: pack_int32,
             DataFormat.UInt32: pack_uint32,
             DataFormat.UInt16: pack_uint16,
@@ -152,7 +154,7 @@ class StimuliConfig:
 
         pack_function_lambda = lambda buffer_tile: (
             pack_function(buffer_tile, num_faces=num_faces)
-            if pack_function == pack_bfp8_b
+            if pack_function in [pack_bfp8_b, pack_bfp4_b]
             else pack_function(buffer_tile)
         )
 
@@ -224,6 +226,7 @@ class StimuliConfig:
         read_data = read_from_device(
             location, self.buf_res_addr, num_bytes=read_bytes_cnt
         )
+
         res_from_L1 = unpack_res_tiles(
             read_data,
             self.stimuli_res_format,
@@ -232,4 +235,5 @@ class StimuliConfig:
             self.num_faces,
             self.face_r_dim,
         )
+
         return res_from_L1

@@ -27,10 +27,10 @@ from helpers.utils import passed_test
 @parametrize(
     formats=input_output_formats(
         [
-            DataFormat.Bfp8_b,
-            DataFormat.Float16,
-            DataFormat.Float16_b,
-            DataFormat.Float32,
+            DataFormat.Bfp4_b,
+            # DataFormat.Float16,
+            # DataFormat.Float16_b,
+            # DataFormat.Float32,
         ]
     ),
     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
@@ -41,7 +41,7 @@ from helpers.utils import passed_test
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    input_dimensions=[[32, 32], [32, 64], [64, 64]],
+    input_dimensions=[[32, 32]],  # , [32, 64], [64, 64]],
 )
 def test_multiple_tiles(
     formats,

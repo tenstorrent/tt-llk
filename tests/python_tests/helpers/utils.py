@@ -66,6 +66,9 @@ def calculate_read_byte_count(format: FormatConfig, array_size: int, sfpu=False)
     total_bytes = array_size * format.output_format.size
     if format.output_format == DataFormat.Bfp8_b:
         total_bytes += total_bytes // 16
+    elif format.output_format == DataFormat.Bfp4_b:
+        # BFP4_b: 2 values per byte (4 bits each) + 1 exponent per 16 values
+        total_bytes = (array_size // 2) + (array_size // 16)
     return total_bytes
 
 
@@ -155,7 +158,7 @@ def get_tolerance(output_data_format):
     ]:
         atol = 0.05
         rtol = 0.05
-    elif output_data_format == DataFormat.Bfp8_b:
+    elif output_data_format in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]:
         atol = 0.1
         rtol = 0.2
     else:
@@ -185,6 +188,7 @@ def passed_test(
             DataFormat.Int8: Tolerance(atol=0, rtol=0),
             DataFormat.UInt8: Tolerance(atol=0, rtol=0),
             DataFormat.Bfp8_b: Tolerance(atol=0.1, rtol=0.2),
+            DataFormat.Bfp4_b: Tolerance(atol=0.1, rtol=0.2),
         }
 
         try:
@@ -242,6 +246,9 @@ def passed_test(
                     print(tile_str, file=sys.stderr)
 
                     tile_str = f"Row\t === Golden tile Tile {tile_no+1} ===\n"
+                    golden_tile = golden_tensor[
+                        tile_no * 1024 : (tile_no + 1) * 1024
+                    ].view(tile_shape)
 
                     for row in range(32):
                         row_str = ""
@@ -249,7 +256,7 @@ def passed_test(
                             row_str += (
                                 "\033[41m" if error_tile[row, col] else "\033[42m"
                             )
-                            row_str += f"{golden_tensor[row, col]:7.2f}\033[0m"
+                            row_str += f"{golden_tile[row, col]:7.2f}\033[0m"
 
                             if col == 15:
                                 row_str += " "
@@ -279,8 +286,8 @@ def passed_test(
     # Once we iterate L1-L1 more than once the loss in precision is accumulated because the result from the first run is transferred as input to the next run
     # We don't have a robust accuracy model to determine exact precision loss from each run and accumulate as such per test, so we use a heuristic
     #   - This reduction in precision occurs primarily when copying results from the first L1-to-L1 stage, and is further compounded when truncating
-    #     values with less precision (Bfp8_b) and drops below 99% in that case
-    if output_data_format == DataFormat.Bfp8_b:
+    #     values with less precision (Bfp8_b, Bfp4_b) and drops below 99% in that case
+    if output_data_format in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]:
         target_pcc = pow(0.99, L1_to_L1_iterations)
     return is_within_tolerance and (pcc > target_pcc)
 

@@ -62,14 +62,14 @@ class Operand:
 
         dtype = (
             format_dict[self.data_format]
-            if self.data_format != DataFormat.Bfp8_b
+            if self.data_format not in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]
             else torch.bfloat16
         )
         raw_data = torch.tensor(faces_data[: height * width], dtype=dtype).view(
             height, width
         )
 
-        if self.data_format != DataFormat.Bfp8_b:
+        if self.data_format not in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]:
             tilized_data = tilize_block(
                 raw_data, dimensions=self.dimensions, stimuli_format=self.data_format
             )
@@ -83,7 +83,7 @@ class Operand:
     def set_data(self, raw_data: torch.Tensor):
         self._raw_data = raw_data
 
-        if self.data_format != DataFormat.Bfp8_b:
+        if self.data_format not in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]:
             tilized_data = tilize_block(
                 raw_data, dimensions=self.dimensions, stimuli_format=self.data_format
             )
