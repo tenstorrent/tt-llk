@@ -54,6 +54,7 @@ DATA_FORMAT_MAP: Dict[str, DataFormat] = {
     "Float16": DataFormat.Float16,
     "Float32": DataFormat.Float32,
     "Bfp8_b": DataFormat.Bfp8_b,
+    "Bfp4_b": DataFormat.Bfp4_b,
 }
 
 MATH_FIDELITY_MAP: Dict[str, MathFidelity] = {

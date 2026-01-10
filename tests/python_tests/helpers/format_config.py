@@ -59,6 +59,8 @@ class DataFormat(Enum):
     Float16_b = DataFormatInfo("Float16_b", 2)
     Bfp8 = DataFormatInfo("Bfp8", 1)
     Bfp8_b = DataFormatInfo("Bfp8_b", 1)
+    Bfp4 = DataFormatInfo("Bfp4", 1)
+    Bfp4_b = DataFormatInfo("Bfp4_b", 1)
     Float32 = DataFormatInfo("Float32", 4)
     Int32 = DataFormatInfo("Int32", 4)
     Tf32 = DataFormatInfo("Tf32", 3)
@@ -97,6 +99,7 @@ class DataFormat(Enum):
         return self in {
             DataFormat.Float16_b,
             DataFormat.Bfp8_b,
+            DataFormat.Bfp4_b,
             DataFormat.Tf32,
             DataFormat.Float32,
         }
@@ -106,6 +109,12 @@ class DataFormat(Enum):
         num_exponents = 0
         if self in {DataFormat.Bfp8, DataFormat.Bfp8_b}:
             num_exponents = num_datums // 16
+            return (self.size * num_datums) + num_exponents
+        elif self in {DataFormat.Bfp4, DataFormat.Bfp4_b}:
+            # BFP4: 2 values per byte (4 bits each) + 1 exponent per 16 values
+            # 16 blocks × 8 bytes per block = 128 mantissa bytes per face
+            num_exponents = num_datums // 16
+            return (num_datums // 2) + num_exponents
         elif self.is_mx_format():
             # MX formats: 1 scale (E8M0, 8 bits) per 32 elements
             num_exponents = num_datums // 32
@@ -346,6 +355,7 @@ def is_dest_acc_needed(format: InputOutputFormat) -> bool:
     We must notify the user that this has happened and change the test output to reflect this.
     """
     return (
-        format.input_format in [DataFormat.Bfp8_b, DataFormat.Float16_b]
+        format.input_format
+        in [DataFormat.Bfp8_b, DataFormat.Bfp4_b, DataFormat.Float16_b]
         and format.output_format == DataFormat.Float16
     )

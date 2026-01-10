@@ -56,6 +56,22 @@ def check_bfp8_b(operand: list) -> list:
     return operand
 
 
+def check_bfp4_b(operand: list) -> list:
+    """Check if datum is BFP4_B there is a +/- inf then zero out entire row of 16 elements because they inherit the same exponent and therefore get zeroed out in tensix."""
+    # BFP4 has the same 16-element block structure as BFP8, just with fewer mantissa bits
+    not_finite = [math.inf, -math.inf]
+    for i, x in enumerate(operand):
+        if x in not_finite or math.isnan(x):
+            # Zero out the entire row of 16 elements
+            for col in range(16):
+                row = i // 16
+                index = row * 16 + col
+                if not (operand[index] in not_finite or math.isnan(operand[index])):
+                    operand[index] = 0.0
+
+    return operand
+
+
 def convert_nan_to_inf(operand: list) -> list:
     return [math.inf if math.isnan(x) else x for x in operand]
 
@@ -79,7 +95,12 @@ def reassemble_float_after_fidelity(data_format, sgn1, sgn2, exp1, exp2, mant1, 
     exponent1 = exp1.to(torch.int16)
     exponent2 = exp2.to(torch.int16)
 
-    if data_format in [DataFormat.Float16_b, DataFormat.Bfp8_b, DataFormat.Float32]:
+    if data_format in [
+        DataFormat.Float16_b,
+        DataFormat.Bfp8_b,
+        DataFormat.Bfp4_b,
+        DataFormat.Float32,
+    ]:
         exponent1 = exponent1 - 127
         exponent2 = exponent2 - 127
     elif data_format == DataFormat.Float16:
@@ -241,6 +262,7 @@ class SrcFormatModel:
         """Returns tuple (matrix_sign, matrix_exponent, matrix_mantissa)"""
         CONVERSION_MAP = {
             DataFormat.Bfp8_b: SrcFormatModel._bfp8b_to_tf32,
+            DataFormat.Bfp4_b: SrcFormatModel._bfp4b_to_tf32,
             DataFormat.Float16_b: SrcFormatModel._fp16b_to_tf32,
             DataFormat.Float16: SrcFormatModel._fp16_to_tf32,
             DataFormat.Float32: SrcFormatModel._fp32_to_tf32,
@@ -261,6 +283,14 @@ class SrcFormatModel:
         tensor: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """PyTorch doesn't natively support bfp8, so it's implemented as bfloat16 in test infra"""
+
+        return SrcFormatModel._fp16b_to_tf32(tensor)
+
+    @staticmethod
+    def _bfp4b_to_tf32(
+        tensor: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """PyTorch doesn't natively support bfp4, so it's implemented as bfloat16 in test infra"""
 
         return SrcFormatModel._fp16b_to_tf32(tensor)
 
@@ -1360,6 +1390,8 @@ class UnarySFPUGolden:
 
         if self.data_format == DataFormat.Bfp8_b:
             check_bfp8_b(result)
+        elif self.data_format == DataFormat.Bfp4_b:
+            check_bfp4_b(result)
 
         match (dst_format, data_format):
             # in the following cases, nans are preserved
@@ -1381,6 +1413,8 @@ class UnarySFPUGolden:
                 case DataFormat.Float32:
                     result = convert_inf_to_value(result, 131008.0)
                 case DataFormat.Bfp8_b:
+                    result = convert_inf_to_value(result, 130048.0)
+                case DataFormat.Bfp4_b:
                     result = convert_inf_to_value(result, 130048.0)
 
         return torch.tensor(result, dtype=format_dict[data_format])
@@ -1715,7 +1749,7 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
                 dst_idx,
             )
 
-        if not skip_tilize and data_format != DataFormat.Bfp8_b:
+        if not skip_tilize and data_format not in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]:
             result = tilize_block(tensor.flatten(), dimensions, data_format).flatten()
         else:
             result = tensor.flatten().clone()
@@ -1764,7 +1798,7 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
 
             result[dst_row_start : dst_row_start + elements_per_row] = result_row
 
-        if not skip_tilize and data_format != DataFormat.Bfp8_b:
+        if not skip_tilize and data_format not in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]:
             result = untilize_block(result, data_format, dimensions)
 
         return result

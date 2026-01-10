@@ -24,7 +24,7 @@ def get_valid_dest_accumulation_modes(formats):
     """
 
     if (
-        formats.input in [DataFormat.Bfp8_b, DataFormat.Float16_b]
+        formats.input in [DataFormat.Bfp8_b, DataFormat.Bfp4_b, DataFormat.Float16_b]
         and formats.output == DataFormat.Float16
     ):
         return [DestAccumulation.Yes]
@@ -51,7 +51,12 @@ def get_valid_math_fidelities(format, operation, PERF_RUN: bool = False):
         return [MathFidelity.LoFi]
 
     # HiFi2 will multiply BFP8 and BFP8_b in full precision, skip HiFi3 and HiFi4
-    if PERF_RUN and format.input in [DataFormat.Bfp8_b, DataFormat.Bfp8]:
+    if PERF_RUN and format.input in [
+        DataFormat.Bfp8_b,
+        DataFormat.Bfp8,
+        DataFormat.Bfp4_b,
+        DataFormat.Bfp4,
+    ]:
         return [MathFidelity.LoFi, MathFidelity.HiFi2]
 
     # todo: once support for any of these is added, add them here

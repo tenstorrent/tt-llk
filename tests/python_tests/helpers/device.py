@@ -31,6 +31,7 @@ from ttexalens.tt_exalens_lib import (
 from .fused_operation import FusedOperation
 from .llk_params import DataFormat, Mailbox, format_dict
 from .pack import (
+    pack_bfp4_b,
     pack_bfp8_b,
     pack_bfp16,
     pack_fp16,
@@ -339,6 +340,7 @@ def write_pipeline_operands_to_l1(
             DataFormat.Float16_b: pack_bfp16,
             DataFormat.Float32: pack_fp32,
             DataFormat.Bfp8_b: pack_bfp8_b,
+            DataFormat.Bfp4_b: pack_bfp4_b,
             DataFormat.Int32: pack_int32,
             DataFormat.UInt32: pack_uint32,
             DataFormat.UInt16: pack_uint16,
@@ -357,7 +359,7 @@ def write_pipeline_operands_to_l1(
             start_idx = TILE_ELEMENTS * i
             tile_data = buffer[start_idx : start_idx + TILE_ELEMENTS]
 
-            if pack_function == pack_bfp8_b:
+            if pack_function in [pack_bfp8_b, pack_bfp4_b]:
                 packed_data = pack_function(tile_data, num_faces=4)
             else:
                 packed_data = pack_function(tile_data)
@@ -407,9 +409,22 @@ def collect_pipeline_results(
         read_bytes_cnt = (
             output_operand.data_format.num_bytes_per_tile(TILE_ELEMENTS) * tile_cnt
         )
+
+        # Debug: Print read info for BFP4
+        if output_format == DataFormat.Bfp4_b:
+            print(f"[DEBUG] Reading BFP4_b output:")
+            print(
+                f"  Reading {read_bytes_cnt} bytes from address 0x{output_operand.l1_address:x}"
+            )
+
         read_data = read_from_device(
             location, output_operand.l1_address, num_bytes=read_bytes_cnt
         )
+
+        # Debug: Print read data for BFP4
+        if output_format == DataFormat.Bfp4_b:
+            print(f"  Read data length: {len(read_data)} bytes")
+            print(f"  Read data first 16 bytes: {list(read_data[:16])}")
 
         res_from_L1 = unpack_res_tiles(
             read_data,
@@ -420,10 +435,17 @@ def collect_pipeline_results(
             face_r_dim=operation.face_r_dim,
         )
 
+        # Debug: Print unpacked data for BFP4
+        if output_format == DataFormat.Bfp4_b:
+            print(f"  Unpacked first 16 values: {res_from_L1[:16]}")
+
         torch_format = format_dict[output_format]
         tilized_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-        if output_format != DataFormat.Bfp8_b and output_dimensions is not None:
+        if (
+            output_format not in [DataFormat.Bfp8_b, DataFormat.Bfp4_b]
+            and output_dimensions is not None
+        ):
             raw_tensor = untilize_block(
                 tilized_tensor,
                 stimuli_format=output_format,
