@@ -194,7 +194,9 @@ class APPROX_MODE(TemplateParameter):
     approx_mode: ApproximationMode = ApproximationMode.Precise
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr auto APPROX_MODE = ApproximationMode::{self.approx_mode.value};"
+        return (
+            f"constexpr auto APPROX_MODE = ApproximationMode::{self.approx_mode.value};"
+        )
 
 
 @dataclass
