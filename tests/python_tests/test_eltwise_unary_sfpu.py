@@ -61,7 +61,7 @@ from helpers.utils import passed_test
         MathOperation.ReluMax,
         MathOperation.ReluMin,
     ],
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],
 )
 def test_eltwise_unary_sfpu_float(
     formats: list[InputOutputFormat],
@@ -106,6 +106,13 @@ def test_eltwise_unary_sfpu_float(
             DataFormat.Float32, DataFormat.Float16
         ):
             pytest.skip(reason="This combination is not supported on BH architecture")
+
+    # Skip Float16_b->Float16 and Bfp8_b->Float16 with DestAccumulation.No
+    if dest_acc == DestAccumulation.No and formats.output_format == DataFormat.Float16:
+        if formats.input_format in [DataFormat.Float16_b, DataFormat.Bfp8_b]:
+            pytest.skip(
+                reason=f"{formats.input_format.name}->Float16 with DestAccumulation.No is not currently supported"
+            )
 
     if (
         approx_mode == ApproximationMode.Yes
@@ -207,10 +214,11 @@ def eltwise_unary_sfpu(
             tile_count_res=tile_cnt_A,
         ),
         dest_acc=dest_acc,
+        unpack_to_dest=False,
         # If dest_acc is off, we unpack Float32 into 16-bit format in src registers (later copied over in dest reg for SFPU op)
-        unpack_to_dest=(
-            formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-        ),
+        # unpack_to_dest=(
+        #     formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
+        # ),
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)

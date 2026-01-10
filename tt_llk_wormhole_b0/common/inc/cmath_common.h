@@ -149,12 +149,13 @@ inline void math_unpack_to_dest_tile_ready()
     t6_semaphore_get<p_stall::MATH | p_stall::WAIT_SFPU>(semaphore::UNPACK_TO_DEST);
 }
 
-template <DstSync Dst, bool is_fp32_dest_acc_en, DstTileShape tile_shape, UnpackDestination unpack_destination>
+template <DstSync Dst, bool is_fp32_dest_acc_en, DstTileShape dst_tile_shape, UnpackDestination unpack_destination>
 inline void set_dst_write_addr(uint32_t tile_index)
 {
     static_assert(
-        tile_shape == DstTileShape::Tile32x32 || tile_shape == DstTileShape::Tile32x16 || tile_shape == DstTileShape::Tile16x16, "Invalid tile shape");
-    uint dst_index                 = tile_index << DstTileSizeLog2[tile_shape];
+        dst_tile_shape == DstTileShape::Tile32x32 || dst_tile_shape == DstTileShape::Tile32x16 || dst_tile_shape == DstTileShape::Tile16x16,
+        "Invalid tile shape");
+    uint dst_index                 = tile_index << DstTileSizeLog2[dst_tile_shape];
     constexpr uint dest_size_limit = is_fp32_dest_acc_en ? ((Dst == DstSync::SyncHalf) ? BIT32_DEST_REGISTER_HALF_SIZE : DEST_REGISTER_HALF_SIZE)
                                                          : ((Dst == DstSync::SyncHalf) ? DEST_REGISTER_HALF_SIZE : DEST_REGISTER_FULL_SIZE);
     LLK_ASSERT(dst_index < dest_size_limit, "dst_index out of range");
