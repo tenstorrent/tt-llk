@@ -190,7 +190,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (uint32_t i = 0; i < params->TILE_CNT; ++i)
                 {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(dst + (i % 8) * 0x1000)); // TODO SS<-LP use PERF_ADDRESS here
+                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(
+                        i % MAX_TILES_DEST, L1_ADDRESS(dst + (i % 8) * 0x1000)); // TODO SS<-LP use PERF_ADDRESS here
                 }
             }
             PROFILER_SYNC();

@@ -358,7 +358,7 @@ inline void _llk_pack_fast_tilize_uninit_(
     _llk_pack_init_<false, false>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
-template <DstSync DstSync = DstSync::SyncFull, bool is_fp32_dest_acc_en = false, DstTileShape DstTileShape = DstTileShape::Tile32x32>
+template <DstSync DstSync = DstSync::SyncFull, bool is_fp32_dest_acc_en = false, DstTileShape dst_tile_shape = DstTileShape::Tile16x16>
 inline void _llk_pack_fast_tilize_block_(
     const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t unit_dim, const std::uint32_t num_units)
 {
@@ -372,7 +372,7 @@ inline void _llk_pack_fast_tilize_block_(
     // move to the start tile index, instead of using the standard W counter whose stride is a single tile
     // use the Z counter whose stride is a single face as tiles are split into halves of the active dest bank
     // so only move 2 faces per tile_index
-    _llk_pack_set_tile_index_<DstSync, is_fp32_dest_acc_en, DstTileShape, p_setadc::SET_Z>(tile_index << 1);
+    _llk_pack_set_tile_index_<DstSync, is_fp32_dest_acc_en, dst_tile_shape, p_setadc::SET_Z>(tile_index << 1);
 
     for (uint i = 0; i < num_units; i++)
     {
