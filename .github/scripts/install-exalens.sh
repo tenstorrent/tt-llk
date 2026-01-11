@@ -11,5 +11,5 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/versions.sh"
 
 wget -O "${EXALENS_WHEEL}" "${EXALENS_URL}" || exit 1
-pip install --extra-index-url https://test.pypi.org/simple/ --no-cache-dir "${EXALENS_WHEEL}"
+pip install -q --extra-index-url https://test.pypi.org/simple/ --no-cache-dir "${EXALENS_WHEEL}"
 rm "${EXALENS_WHEEL}"

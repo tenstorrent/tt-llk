@@ -11,5 +11,5 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/versions.sh"
 
 wget -O "${TT_SMI_WHEEL}" "${TT_SMI_URL}" || exit 1
-pip install --no-cache-dir "${TT_SMI_WHEEL}"
+pip install -q --no-cache-dir "${TT_SMI_WHEEL}"
 rm "${TT_SMI_WHEEL}"
