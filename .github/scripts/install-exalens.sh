@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/versions.sh"
 
 # Install tt-umd first from test.pypi.org
-pip install -q --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ tt-umd==${TT_UMD_VERSION}
+pip install -q --no-cache-dir --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ tt-umd==${TT_UMD_VERSION}
 
 wget -q -O "${EXALENS_WHEEL}" "${EXALENS_URL}" || exit 1
 pip install -q --no-cache-dir "${EXALENS_WHEEL}"
