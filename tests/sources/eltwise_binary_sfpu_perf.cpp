@@ -277,7 +277,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
                     for (int block_tile = 0; block_tile < block_tiles; block_tile++)
                     {
-                        _llk_pack_<DST_SYNC, is_fp32_dest_acc_en>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_tile));
+                        _llk_pack_<DST_SYNC, is_fp32_dest_acc_en, /* untilize */ false, dst_tile_shape>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_tile));
                     }
                 }
             }
@@ -293,7 +293,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     _llk_packer_wait_for_math_done_();
                     for (int block_tile = 0; block_tile < block_tiles; block_tile++)
                     {
-                        _llk_pack_<DST_SYNC, is_fp32_dest_acc_en>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_tile));
+                        _llk_pack_<DST_SYNC, is_fp32_dest_acc_en, /* untilize */ false, dst_tile_shape>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_tile));
                     }
                     _llk_pack_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
                 }

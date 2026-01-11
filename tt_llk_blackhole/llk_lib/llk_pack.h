@@ -525,11 +525,10 @@ inline void _llk_pack_init_(
     TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
 }
 
-template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
+template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false, DstTileShape dst_tile_shape = DstTileShape::Tile32x32>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
-    // TODO: Validate tile_index range
-    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
+    _llk_pack_set_tile_index_<Dst, is_fp32_dest_acc_en, dst_tile_shape>(tile_index);
 
     program_packer_destination(address);
 

@@ -175,7 +175,10 @@ template <
     bool diagonal                = false,
     bool narrow_row              = false,
     std::uint32_t row_num_datums = TILE_C_DIM,
-    uint32_t tile_dst_ct_offset  = 0>
+    uint32_t tile_dst_ct_offset  = 0,
+    DstSync Dst                  = DstSync::SyncFull,
+    bool is_fp32_dest_acc_en     = false,
+    DstTileShape dst_tile_shape  = DstTileShape::Tile32x32>
 inline void _llk_pack_untilize_(
     const std::uint32_t address,
     const std::uint32_t pack_dst_format,
@@ -198,7 +201,7 @@ inline void _llk_pack_untilize_(
 
         for (std::uint32_t row = 0; row < num_rows; row++)
         {
-            TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_dst_ct_offset + tile_dst_rt_offset); // Clear tile counter
+            _llk_pack_set_tile_index_<Dst, is_fp32_dest_acc_en, dst_tile_shape>(tile_dst_ct_offset + tile_dst_rt_offset);
             ckernel::ckernel_template::run();
             TTI_ADDRCRXY(p_setadc::PAC, 0, 0, 1, 0, 0b0010); // Read new row in the tile
             if constexpr (block_ct_dim != full_ct_dim)

@@ -138,11 +138,11 @@ inline void _llk_pack_rows_init_(const std::uint32_t num_rows)
  * 3. Executes the MOP template
  * 4. Reset Z counters after pack operation
  */
+template <DstSync Dst = DstSync::SyncFull, bool is_fp32_dest_acc_en = false, DstTileShape dst_tile_shape = DstTileShape::Tile32x32>
 inline void _llk_pack_rows_(const std::uint32_t tile_index, const std::uint32_t address)
 {
-    // TODO: Validate tile_index range
     // Set the tile index in dest to read from
-    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
+    _llk_pack_set_tile_index_<Dst, is_fp32_dest_acc_en, dst_tile_shape>(tile_index);
 
     ckernel::packer::program_packer_destination(address);
 

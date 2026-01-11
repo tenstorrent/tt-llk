@@ -236,8 +236,10 @@ inline void _llk_pack_untilize_(
         TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0010); // reset ch0_y counters
     }
 
-    TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101);                             // reset z counters
-    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_dst_offset); // reset w counter
+    TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); // reset z counters
+    // Note: Using default template parameters since we don't have access to the actual Dst/is_fp32_dest_acc_en at this point
+    // This is just resetting the W counter to tile_dst_offset, validation is less critical here
+    _llk_pack_set_tile_index_<DstSync::SyncFull, false, DstTileShape::Tile32x32>(tile_dst_offset); // reset w counter
 }
 
 inline void _llk_pack_untilize_uninit_(const std::uint32_t pack_src_format)

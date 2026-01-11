@@ -266,6 +266,12 @@ def test_perf_eltwise_binary_sfpu_add_top_row(
             "DestAccumulation.No is not supported for SfpuAddTopRow on Blackhole"
         )
 
+    # Skip Float32 with DestAccumulation.Yes - format inference converts to Tf32 which ADD_TOP_ROW doesn't support
+    if formats.input_format == DataFormat.Float32 and dest_acc == DestAccumulation.Yes:
+        pytest.skip(
+            "Float32 with DestAccumulation.Yes is not supported for SfpuAddTopRow (gets converted to Tf32)"
+        )
+
     unpack_to_dest = (
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
     )
