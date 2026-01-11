@@ -6,11 +6,11 @@
 set -e
 
 REPO=tenstorrent/tt-llk
-BASE_IMAGE_NAME=ghcr.io/$REPO/tt-llk-base-ubuntu-22-04
-CI_IMAGE_NAME=ghcr.io/$REPO/tt-llk-ci-ubuntu-22-04
-BASE_IRD_IMAGE_NAME=ghcr.io/$REPO/tt-llk-base-ird-ubuntu-22-04
-IRD_IMAGE_NAME=ghcr.io/$REPO/tt-llk-ird-ubuntu-22-04
-SLIM_IRD_IMAGE_NAME=ghcr.io/$REPO/tt-llk-slim-ird-ubuntu-22-04
+BASE_IMAGE_NAME=ghcr.io/$REPO/tt-llk-base-ubuntu-24-04
+CI_IMAGE_NAME=ghcr.io/$REPO/tt-llk-ci-ubuntu-24-04
+BASE_IRD_IMAGE_NAME=ghcr.io/$REPO/tt-llk-base-ird-ubuntu-24-04
+IRD_IMAGE_NAME=ghcr.io/$REPO/tt-llk-ird-ubuntu-24-04
+SLIM_IRD_IMAGE_NAME=ghcr.io/$REPO/tt-llk-slim-ird-ubuntu-24-04
 
 # Compute the hash of the Dockerfile
 DOCKER_TAG=$(./.github/scripts/get-docker-tag.sh)
