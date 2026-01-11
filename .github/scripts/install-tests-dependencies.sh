@@ -5,5 +5,5 @@
 
 set -e
 
-pip install -q --upgrade pip
-pip install -q --no-cache-dir -r /tmp/requirements_tests.txt
+python3 -m pip install -q --break-system-packages --upgrade pip
+python3 -m pip install -q --break-system-packages --no-cache-dir -r /tmp/requirements_tests.txt
