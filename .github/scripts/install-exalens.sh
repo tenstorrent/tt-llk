@@ -10,6 +10,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=.github/scripts/versions.sh
 source "${SCRIPT_DIR}/versions.sh"
 
-wget -O "${EXALENS_WHEEL}" "${EXALENS_URL}" || exit 1
+wget -q -O "${EXALENS_WHEEL}" "${EXALENS_URL}" || exit 1
 pip install -q --extra-index-url https://test.pypi.org/simple/ --no-cache-dir "${EXALENS_WHEEL}"
 rm "${EXALENS_WHEEL}"
