@@ -40,23 +40,17 @@ constexpr T POLYVAL7(T coef6, T coef5, T coef4, T coef3, T coef2, T coef1, T coe
 struct PolynomialEvaluator
 {
 private:
-    // Helper to apply Horner's method with fold expressions
-    // Process coefficients in reverse order: c_n, c_(n-1), ..., c_1, c_0
-    template <typename U, typename... Coefficients, std::size_t... Is>
-    sfpi_inline static constexpr auto eval_impl(U x, std::index_sequence<Is...>, Coefficients... coeffs)
+    // Recursive helper that processes coefficients from highest to lowest without temp arrays
+    template <typename U, typename Coefficient0>
+    sfpi_inline static constexpr auto eval_impl(U, Coefficient0 coeff0)
     {
-        // Store coefficients in an array for reverse indexing
-        U coeff_array[]         = {static_cast<U>(coeffs)...};
-        constexpr std::size_t N = sizeof...(Coefficients);
+        return static_cast<U>(coeff0);
+    }
 
-        // Start with highest degree coefficient
-        U acc = coeff_array[N - 1];
-
-        // Fold expression: process remaining coefficients in reverse order
-        // For each coefficient from N-2 down to 0: acc = acc * x + coeff[i]
-        ((acc = acc * x + coeff_array[N - 2 - Is]), ...);
-
-        return acc;
+    template <typename U, typename Coefficient0, typename Coefficient1, typename... Rest>
+    sfpi_inline static constexpr auto eval_impl(U x, Coefficient0 coeff0, Coefficient1 coeff1, Rest... rest)
+    {
+        return eval_impl(x, coeff1, rest...) * x + static_cast<U>(coeff0);
     }
 
 public:
@@ -82,8 +76,7 @@ public:
     template <typename U, typename Coefficient0, typename... Rest>
     sfpi_inline static constexpr auto eval(U x, Coefficient0 coeff0, Rest... rest)
     {
-        constexpr std::size_t N = sizeof...(Rest) + 1;
-        return eval_impl(x, std::make_index_sequence<N - 1> {}, coeff0, rest...);
+        return eval_impl(x, coeff0, rest...);
     }
 };
 
