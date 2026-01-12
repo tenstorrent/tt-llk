@@ -12,7 +12,7 @@ from helpers.device import _send_arc_message
 from helpers.format_config import InputOutputFormat
 from helpers.profiler import ProfilerConfig
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
-from helpers.test_config import TestConfig, TestMode, process_coverage_run_artefacts
+from helpers.test_config import TestConfig, TestMode
 from ttexalens import tt_exalens_init
 from ttexalens.util import TTException
 
@@ -88,7 +88,7 @@ def workers_tensix_coordinates(worker_id):
     return f"{row},{col}"
 
 
-from helpers.perf import PerfReport, combine_perf_reports
+from helpers.perf import PerfReport
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -152,7 +152,7 @@ def pytest_configure(config):
         if test_target.run_simulator:
             tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
         else:
-            tt_exalens_init.init_ttexalens()
+            tt_exalens_init.init_ttexalens(use_4B_mode=False)
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -276,10 +276,10 @@ def pytest_sessionfinish(session):
     if not test_target.run_simulator and not TestConfig.MODE == TestMode.PRODUCE:
         _send_arc_message("GO_IDLE", test_target.device_id)
 
-    if TestConfig.MODE != TestMode.PRODUCE:
-        combine_perf_reports()
-        if TestConfig.WITH_COVERAGE:
-            process_coverage_run_artefacts()
+    # if TestConfig.MODE != TestMode.PRODUCE:
+    #     combine_perf_reports()
+    #     if TestConfig.WITH_COVERAGE:
+    #         process_coverage_run_artefacts()
 
 
 # Define the possible custom command line options

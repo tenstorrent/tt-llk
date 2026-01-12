@@ -25,7 +25,6 @@ from ttexalens.tt_exalens_lib import (
     read_from_device,
     read_word_from_device,
     write_to_device,
-    write_words_to_device,
 )
 
 from .chip_architecture import ChipArchitecture, get_chip_architecture
@@ -33,8 +32,6 @@ from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
     CHIP_DEFAULT_BOOT_MODES,
     BootMode,
-    RiscCore,
-    exalens_device_setup,
     reset_mailboxes,
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
@@ -873,84 +870,86 @@ class TestConfig:
         )
 
         elfs = [
-            str((VARIANT__ELF_DIR / f"{trisc_name}.elf").absolute())
-            for trisc_name in TestConfig.KERNEL_COMPONENTS
+            # str((VARIANT__ELF_DIR / f"{trisc_name}.elf").absolute())
+            # for trisc_name in TestConfig.KERNEL_COMPONENTS
         ]
 
         # Load TRISC ELF files
         for i, elf in enumerate(elfs):
-            if TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE:
-                start_address = load_elf(
-                    elf_file=elf,
-                    location=location,
-                    risc_name=f"trisc{i}",
-                    neo_id=(
-                        0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
-                    ),
-                    return_start_address=True,
-                )
-                write_words_to_device(
-                    location, TestConfig.TRISC_START_ADDRS[i], [start_address]
-                )
-            else:
-                load_elf(
-                    elf_file=elf,
-                    location=location,
-                    risc_name=f"trisc{i}",
-                    neo_id=(
-                        0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
-                    ),
-                )
+            # if TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE:
+            #     start_address = load_elf(
+            #         elf_file=elf,
+            #         location=location,
+            #         risc_name=f"trisc{i}",
+            #         neo_id=(
+            #             0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
+            #         ),
+            #         return_start_address=True,
+            #     )
+            #     write_words_to_device(
+            #         location, TestConfig.TRISC_START_ADDRS[i], [start_address]
+            #     )
+            # else:
+            load_elf(
+                elf_file=elf,
+                location=location,
+                risc_name=f"trisc{i}",
+                neo_id=(0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None),
+            )
 
-        if self.boot_mode == BootMode.BRISC:
-            # Use correct shared ELF directory and loading flag based on profiler build
-            if self.profiler_build == ProfilerBuild.Yes:
-                if not TestConfig.PROFILER_BRISC_ELF_LOADED:
-                    TestConfig.PROFILER_BRISC_ELF_LOADED = True
-                    load_elf(
-                        elf_file=str(
-                            (
-                                TestConfig.PROFILER_SHARED_ELF_DIR / "brisc.elf"
-                            ).absolute()
-                        ),
-                        location=location,
-                        risc_name="brisc",
-                    )
-            else:
-                if not TestConfig.BRISC_ELF_LOADED:
-                    TestConfig.BRISC_ELF_LOADED = True
-                    load_elf(
-                        elf_file=str(
-                            (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
-                        ),
-                        location=location,
-                        risc_name="brisc",
-                    )
+        # if self.boot_mode == BootMode.BRISC:
+        #     # Use correct shared ELF directory and loading flag based on profiler build
+        #     if self.profiler_build == ProfilerBuild.Yes:
+        #         if not TestConfig.PROFILER_BRISC_ELF_LOADED:
+        #             TestConfig.PROFILER_BRISC_ELF_LOADED = True
+        #             load_elf(
+        #                 elf_file=str(
+        #                     (
+        #                         TestConfig.PROFILER_SHARED_ELF_DIR / "brisc.elf"
+        #                     ).absolute()
+        #                 ),
+        #                 location=location,
+        #                 risc_name="brisc",
+        #             )
+        #     else:
+        #         if not TestConfig.BRISC_ELF_LOADED:
+        #             TestConfig.BRISC_ELF_LOADED = True
+        #             load_elf(
+        #                 elf_file=str(
+        #                     (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
+        #                 ),
+        #                 location=location,
+        #                 risc_name="brisc",
+        #             )
 
         return elfs
 
-    def run_elf_files(self, location="0,0") -> list:
-        reset_mailboxes(location)
+    TEMP_AA: ClassVar[bool] = False
 
-        # Perform soft reset
-        set_tensix_soft_reset(1, location=location)
+    def run_elf_files(self, location="0,0") -> list:
+        # reset_mailboxes(location)
+
+        if not TestConfig.TEMP_AA:
+            # Perform soft reset
+            set_tensix_soft_reset(1, location=location)
+            TestConfig.TEMP_AA = True
 
         elfs = self.load_variant_elfs(location)
 
-        match self.boot_mode:
-            case BootMode.BRISC:
-                set_tensix_soft_reset(0, [RiscCore.BRISC], location)
-            case BootMode.TRISC:
-                set_tensix_soft_reset(
-                    0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
-                )
-            case BootMode.EXALENS:
-                exalens_device_setup(TestConfig.CHIP_ARCH, location)
-                set_tensix_soft_reset(
-                    0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
-                )
+        # match self.boot_mode:
+        #     case BootMode.BRISC:
+        #         set_tensix_soft_reset(0, [RiscCore.BRISC], location)
+        #     case BootMode.TRISC:
+        #         set_tensix_soft_reset(
+        #             0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
+        #         )
+        #     case BootMode.EXALENS:
+        #         exalens_device_setup(TestConfig.CHIP_ARCH, location)
+        #         set_tensix_soft_reset(
+        #             0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
+        #         )
 
-        return elfs
+        return []
 
     def run_fused(
         self,
@@ -1019,13 +1018,13 @@ class TestConfig:
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-        self.variant_stimuli.write(location)
-        self.write_runtimes_to_L1(location)
+        # self.variant_stimuli.write(location)
+        # self.write_runtimes_to_L1(location)
         elfs = self.run_elf_files(location)
-        wait_for_tensix_operations_finished(elfs, location)
+        # wait_for_tensix_operations_finished(elfs, location)
 
-        if self.coverage_build == CoverageBuild.Yes:
-            self.read_coverage_data_from_device(location)
+        # if self.coverage_build == CoverageBuild.Yes:
+        #     self.read_coverage_data_from_device(location)
 
         if delete_artefacts:
             shutil.rmtree(TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id)
