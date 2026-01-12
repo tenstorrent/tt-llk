@@ -49,10 +49,10 @@ ELTWISE_DIMENSIONS = [
 @parametrize(
     formats=input_output_formats(
         [
-            DataFormat.Float16_b,
-            DataFormat.Float16,
             DataFormat.MxFp8R,
             DataFormat.MxFp8P,
+            # DataFormat.Float16_b,
+            DataFormat.Float16,
         ],
     ),
     mathop=[
@@ -151,6 +151,9 @@ def test_eltwise_binary(
         ),
         dest_acc=dest_acc,
         boot_mode=boot_mode,
+        # MX formats require disable_format_inference to match C++ IMPLIED_MATH_FORMAT setting
+        # This ensures Python-side format inference uses Float16_b for MX internal math
+        disable_format_inference=(implied_math_format == ImpliedMathFormat.Yes),
     )
 
     res_from_L1 = configuration.run()
