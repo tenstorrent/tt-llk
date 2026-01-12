@@ -70,7 +70,7 @@ def get_tile_params(tile_dimensions):
     dest_acc=[DestAccumulation.No],
     math_fidelity=[MathFidelity.LoFi],
     transpose_srca=[Transpose.No],
-    input_dimensions=[[32, 32], [64, 64]],
+    input_dimensions=[[32, 32], [64, 64], [128, 128]],
     tile_dimensions=[[32, 32]],  # More dimensions coming soon....
 )
 def test_eltwise_binary(
@@ -96,9 +96,9 @@ def test_eltwise_binary(
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
-        # sequential_A=True,
-        # const_face=True,
-        # const_value_B=2
+        sequential_A=True,
+        const_face=True,
+        const_value_B=2,
     )
 
     MAX_TILES_IN_BLOCK = (
