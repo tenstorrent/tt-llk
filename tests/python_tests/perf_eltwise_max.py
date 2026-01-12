@@ -26,7 +26,7 @@ from helpers.test_variant_parameters import (
     NUM_FACES,
     TILE_COUNT,
     UNPACK_TRANS_FACES,
-    UNPACK_TRANS_WITHING_FACE,
+    UNPACK_TRANS_WITHIN_FACE,
 )
 
 
@@ -121,7 +121,7 @@ def test_perf_sfpu_eltwise_max(
             LOOP_FACTOR(loop_factor),
             NUM_FACES(num_faces=4),
             UNPACK_TRANS_FACES(Transpose.No),
-            UNPACK_TRANS_WITHING_FACE(Transpose.No),
+            UNPACK_TRANS_WITHIN_FACE(Transpose.No),
         ],
         variant_stimuli=StimuliConfig(
             src_A_combined,
