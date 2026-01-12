@@ -230,15 +230,16 @@ enum class BinaryOp : uint8_t
 
 // DataFormat enum for copy_dest_values template parameter, values
 // Correspond to InstrModLoadStore enum used in SFPLOAD/SFPSTORE instructions
-enum class CopyDataFormat : uint8_t {
-    Float16 = 2,    // InstrModLoadStore::FP16B
-    Float16_b = 2,  // InstrModLoadStore::FP16B
-    Float32 = 3,    // InstrModLoadStore::FP32
-    Int8 = 5,       // InstrModLoadStore::INT8
-    UInt8 = 5,      // InstrModLoadStore::INT8
-    UInt16 = 6,     // InstrModLoadStore::LO16
-    Int32 = 4,      // InstrModLoadStore::INT32
-    UInt32 = 4,     // InstrModLoadStore::INT32
+enum class CopyDataFormat : uint8_t
+{
+    Float16   = 2, // InstrModLoadStore::FP16B
+    Float16_b = 2, // InstrModLoadStore::FP16B
+    Float32   = 3, // InstrModLoadStore::FP32
+    Int8      = 5, // InstrModLoadStore::INT8
+    UInt8     = 5, // InstrModLoadStore::INT8
+    UInt16    = 6, // InstrModLoadStore::LO16
+    Int32     = 4, // InstrModLoadStore::INT32
+    UInt32    = 4, // InstrModLoadStore::INT32
 };
 
 } // namespace ckernel
