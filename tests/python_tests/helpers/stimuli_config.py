@@ -32,7 +32,6 @@ class StimuliConfig:
 
     # === STATIC VARIABLES ===
     STIMULI_L1_ADDRESS = 0x65000
-    TILE_ELEMENTS = 1024
 
     def __init__(
         self,
@@ -70,21 +69,16 @@ class StimuliConfig:
         self.tile_dimensions = tile_dimensions
         self.sfpu = sfpu
 
-        # Stimuli addresses calculation
-        self.tile_size_A_bytes = self.stimuli_A_format.num_bytes_per_tile(
-            StimuliConfig.TILE_ELEMENTS
-        )
-        self.tile_size_B_bytes = self.stimuli_B_format.num_bytes_per_tile(
-            StimuliConfig.TILE_ELEMENTS
-        )
+        # Stimuli addresses calculation - ALWAYS use full tile sizes for address spacing
+        # Hardware expects full tile alignment regardless of num_faces
+        self.tile_size_A_bytes = format_tile_sizes[self.stimuli_A_format]
+        self.tile_size_B_bytes = format_tile_sizes[self.stimuli_B_format]
 
         self.buf_a_addr = StimuliConfig.STIMULI_L1_ADDRESS
         self.buf_b_addr = self.buf_a_addr + self.tile_size_A_bytes * self.tile_count_A
 
         if self.buffer_C is not None:
-            self.tile_size_C_bytes = self.stimuli_C_format.num_bytes_per_tile(
-                StimuliConfig.TILE_ELEMENTS
-            )
+            self.tile_size_C_bytes = format_tile_sizes[self.stimuli_C_format]
             self.buf_c_addr = (
                 self.buf_b_addr + self.tile_size_B_bytes * self.tile_count_B
             )
@@ -149,10 +143,16 @@ class StimuliConfig:
         base_address: int,
         tile_size: int,
         num_faces: int,
+        face_r_dim: int,
         location: str = "0,0",
     ):
         addresses = []
         packed_data_list = []
+
+        # Elements to pack per tile (may be partial for num_faces < 4)
+        tile_elements = num_faces * face_r_dim * 16
+        # Stride through buffer in full tiles (1024 elements) regardless of num_faces
+        FULL_TILE_ELEMENTS = 1024
 
         pack_function_lambda = lambda buffer_tile: (
             pack_function(buffer_tile, num_faces=num_faces)
@@ -161,8 +161,8 @@ class StimuliConfig:
         )
 
         for ind in range(tile_count):
-            start_idx = StimuliConfig.TILE_ELEMENTS * ind
-            tile_data = buffer[start_idx : start_idx + StimuliConfig.TILE_ELEMENTS]
+            start_idx = FULL_TILE_ELEMENTS * ind
+            tile_data = buffer[start_idx : start_idx + tile_elements]
             packed_data = pack_function_lambda(tile_data)
             addresses.append(base_address + ind * tile_size)
             packed_data_list.append(packed_data)
@@ -187,6 +187,7 @@ class StimuliConfig:
             self.buf_a_addr,
             self.tile_size_A_bytes,
             self.num_faces,
+            self.face_r_dim,
             location,
         )
         StimuliConfig.write_matrix(
@@ -196,6 +197,7 @@ class StimuliConfig:
             self.buf_b_addr,
             self.tile_size_B_bytes,
             self.num_faces,
+            self.face_r_dim,
             location,
         )
 
@@ -212,17 +214,15 @@ class StimuliConfig:
                 self.buf_c_addr,
                 self.tile_size_C_bytes,
                 self.num_faces,
+                self.face_r_dim,
                 location,
             )
 
     def collect_results(self, location="0,0"):
         # Always read full tiles - hardware still outputs full tile data
         # but with variable face dimensions, only part of it is valid
-
-        tile_elements = self.tile_dimensions[0] * self.tile_dimensions[1]
         read_bytes_cnt = (
-            self.stimuli_res_format.num_bytes_per_tile(tile_elements)
-            * self.tile_count_res
+            format_tile_sizes[self.stimuli_res_format] * self.tile_count_res
         )
 
         read_data = read_from_device(
