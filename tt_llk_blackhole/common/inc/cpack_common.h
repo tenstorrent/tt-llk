@@ -163,7 +163,7 @@ inline void packer_addr_counter_init()
 }
 
 template <bool untilize = false, bool tilize = false>
-inline void set_packer_strides(const uint pack_src_format, [[maybe_unused]] const uint pack_dst_format, const uint tile_c_dim)
+inline void set_packer_strides(const uint pack_src_format, const uint tile_c_dim)
 {
     uint x_stride = (uint)(pack_src_format & 0x3) == static_cast<DataFormatType>(DataFormat::Float32)   ? 4
                     : (uint)(pack_src_format & 0x3) == static_cast<DataFormatType>(DataFormat::Float16) ? 2
@@ -386,7 +386,7 @@ inline void reconfig_packer_data_format(
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_output_src_format);
 
     // Set packer strides
-    set_packer_strides(pack_output_src_format, pack_output_dst_format, tile_c_dim);
+    set_packer_strides(pack_output_src_format, tile_c_dim);
 }
 
 template <bool is_fp32_dest_acc_en, bool untilize = false, bool tilize = false>
@@ -408,7 +408,7 @@ inline void configure_pack(
 
     const uint pack_output_src_format = (uint)pack_src_format & 0xF;
 
-    set_packer_strides<untilize, tilize>(pack_src_format, pack_dst_format, tile_c_dim);
+    set_packer_strides<untilize, tilize>(pack_src_format, tile_c_dim);
 
     t6_mutex_acquire(mutex::REG_RMW);
 
@@ -575,12 +575,6 @@ inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
         THCON_SEC0_REG1_Pack_L1_Acc_ADDR32,
         THCON_SEC0_REG1_Pack_L1_Acc_SHAMT,
         THCON_SEC0_REG1_Disable_pack_zero_flags_MASK | THCON_SEC0_REG1_Pack_L1_Acc_MASK>(pack_l1_acc_disable_pack_zero_flag);
-}
-
-// Write tile header to l1
-inline void write_tile_header()
-{
-    TTI_STOREIND(1, 0, p_ind::LD_16B, LO_16(0), p_ind::INC_NONE, p_gpr_pack::TILE_HEADER, p_gpr_pack::OUTPUT_ADDR);
 }
 
 // READERS FOR CONFIG STRUCTS

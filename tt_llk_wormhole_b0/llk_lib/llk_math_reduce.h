@@ -35,7 +35,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     if constexpr (dim == ReduceDim::REDUCE_ROW)
     {
         // Transpose for each face in src A done at unpacker, and pool
@@ -322,7 +322,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     }
     else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
     {
-        for (int tile = 0; tile < 3; tile++)
+        for (uint face_num = 0; face_num < (num_faces - 1); face_num++)
         {
             // Wait and pool
             if constexpr (type == PoolType::MAX)
@@ -445,10 +445,8 @@ inline void reduce_configure_mop()
 }
 
 template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
-inline void _llk_math_reduce_init_([[maybe_unused]] const std::uint32_t within_face_16x16_transpose = 0)
-{ // within_face_16x16_transpose used for unpack, ignored by math
-    LLK_ASSERT(within_face_16x16_transpose == 0, "within_face_16x16_transpose: this parameter is unused");
-
+inline void _llk_math_reduce_init_()
+{
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
@@ -468,4 +466,9 @@ inline void _llk_math_reduce_init_([[maybe_unused]] const std::uint32_t within_f
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+inline void _llk_math_reduce_uninit_(const std::uint32_t srca_data_format = (uint)DataFormat::Float16)
+{
+    cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(srca_data_format);
 }

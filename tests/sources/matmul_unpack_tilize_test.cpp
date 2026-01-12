@@ -26,11 +26,19 @@ constexpr uint32_t buffer_B_tilized = 0x1f000;
 #include "llk_unpack_tilize.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     const std::uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
     int run                          = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
-    _llk_unpack_tilize_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats_array[run].unpack_src, formats_array[run].unpack_dst, FACE_R_DIM, 0, 4);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats_array[run].unpack_src,
+        formats_array[run].unpack_src,
+        formats_array[run].unpack_dst,
+        formats_array[run].unpack_dst,
+        FACE_R_DIM,
+        FACE_R_DIM,
+        4 /* num_faces */,
+        4 /* num_faces */);
 
     _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
     _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats_array[run].unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
@@ -65,7 +73,7 @@ void run_kernel()
 
 using namespace ckernel;
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     const bool is_int_fpu_en                = false;
     const std::uint32_t operand_A_dst_index = 1;
@@ -76,14 +84,13 @@ void run_kernel()
 
 #ifdef ARCH_BLACKHOLE
     const bool TILIZE = true;
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(
-        0, 0, 4, formats_array[run].math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(4, formats_array[run].math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(0, 0, 4, formats_array[run].math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats_array[run].math);
 #endif
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats_array[run].math, formats_array[run].math);
+    _llk_math_hw_configure_(formats_array[run].math, formats_array[run].math);
 
     // copy tilized inputs to dest indexes 0 and 1
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
@@ -101,9 +108,9 @@ void run_kernel()
     _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en, false>(
         formats_array[run].math); // have to reconfigure math kernel data formats_array if they change in this run
     _llk_math_reconfig_data_format_srcb_<is_fp32_dest_acc_en, false>(formats_array[run].math);
-    _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>();
+    _llk_math_matmul_init_<MATH_FIDELITY>();
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_matmul_<MATH_FIDELITY, DstTileFaceLayout::RowMajor>(0);
+    _llk_math_matmul_<MATH_FIDELITY>(0);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -115,7 +122,7 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;
@@ -126,12 +133,12 @@ void run_kernel()
 #ifdef ARCH_BLACKHOLE
     const bool TILIZE = true;
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false, TILIZE>(formats_array[run].pack_dst);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_init_<UNTILIZE, false, TILIZE>(formats_array[run].pack_dst);
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, DstTileFaceLayout::RowMajor, false>(formats_array[run].pack_dst);
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor, UNTILIZE>();
+    _llk_pack_init_<UNTILIZE, false>(formats_array[run].pack_dst);
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>();
 #endif
 
     _llk_packer_wait_for_math_done_();
@@ -153,7 +160,7 @@ void run_kernel()
         tile_size); // need to reconfigure data formats_array for next pack, also calls set_packer_strides to readjust strides after pack tilizing
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false, false>(formats_array[run].pack_dst);
+    _llk_pack_init_<false, false, false>(formats_array[run].pack_dst);
 #endif
 
     _llk_packer_wait_for_math_done_();

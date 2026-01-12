@@ -21,16 +21,17 @@ uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
 
-    for (int i = 0; i < TILE_CNT; ++i)
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            L1_ADDRESS(buffer_A[i]), 0, formats.unpack_src, formats.unpack_dst);
+            L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }
 }
 
@@ -43,132 +44,25 @@ void run_kernel()
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_eltwise_unary_sfpu.h"
 #include "params.h"
+#include "sfpu_operations.h"
 
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
 const int iterations = 32;
 
-namespace
-{
-void call_sfpu_operation(SfpuType operation, uint32_t math_format)
-{
-    switch (operation)
-    {
-        case SfpuType::abs:
-            ckernel::sfpu::_calculate_abs_<APPROX_MODE, iterations>(iterations);
-            break;
-        case SfpuType::atanh:
-            ckernel::sfpu::_init_atanh_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_atanh_<APPROX_MODE, is_fp32_dest_acc_en, iterations>();
-            break;
-        case SfpuType::asinh:
-            ckernel::sfpu::_init_inverse_hyperbolic_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_asinh_<APPROX_MODE, iterations>();
-            break;
-        case SfpuType::acosh:
-            ckernel::sfpu::_init_inverse_hyperbolic_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_acosh_<APPROX_MODE, iterations>();
-            break;
-        case SfpuType::cosine:
-            ckernel::sfpu::_calculate_cosine_<APPROX_MODE, iterations>(iterations);
-            break;
-        case SfpuType::log:
-            ckernel::sfpu::_init_log_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_log_<APPROX_MODE, false, iterations>(iterations, 0);
-            break;
-        case SfpuType::reciprocal:
-            ckernel::sfpu::_init_reciprocal_<APPROX_MODE, is_fp32_dest_acc_en>();
-            ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, iterations, is_fp32_dest_acc_en>(iterations);
-            break;
-        case SfpuType::rsqrt:
-            ckernel::sfpu::_init_rsqrt_<APPROX_MODE, false>();
-            ckernel::sfpu::_calculate_rsqrt_<APPROX_MODE, iterations, is_fp32_dest_acc_en, false, false>(iterations);
-            break;
-        case SfpuType::sine:
-            ckernel::sfpu::_calculate_sine_<APPROX_MODE, iterations>(iterations);
-            break;
-        case SfpuType::sqrt:
-            ckernel::sfpu::_init_sqrt_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, iterations, is_fp32_dest_acc_en, false, false>(iterations);
-            break;
-        case SfpuType::square:
-            ckernel::sfpu::_calculate_square_<APPROX_MODE, iterations>(iterations);
-            break;
-        case SfpuType::celu:
-            ckernel::sfpu::_calculate_activation_<APPROX_MODE, ActivationType::Celu, iterations>(10, 1 / 10);
-            break;
-        case SfpuType::silu:
-            ckernel::sfpu::_calculate_silu_<APPROX_MODE, iterations>();
-            break;
-        case SfpuType::gelu:
-            ckernel::sfpu::_init_gelu_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_gelu_<APPROX_MODE, iterations>();
-            break;
-        case SfpuType::neg:
-            if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
-            {
-                ckernel::sfpu::_calculate_negative_int_<APPROX_MODE, iterations>();
-            }
-            else
-            {
-                ckernel::sfpu::_calculate_negative_<APPROX_MODE, iterations>();
-            }
-            break;
-        case SfpuType::fill:
-            if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
-            {
-                ckernel::sfpu::_calculate_fill_int_<APPROX_MODE, iterations>(5);
-            }
-            else
-            {
-                ckernel::sfpu::_calculate_fill_<APPROX_MODE, iterations>(5.0f);
-            }
-            break;
-        case SfpuType::elu:
-            ckernel::sfpu::_init_elu_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_elu_<APPROX_MODE, iterations>(1);
-            break;
-        case SfpuType::exponential:
-            ckernel::sfpu::_init_exponential_<APPROX_MODE, false /*fast_mode*/, 0x3F800000 /* exp_base_scale_factor */>();
-            ckernel::sfpu::_calculate_exponential_<APPROX_MODE, false /* scale_en */, iterations, false /* fast_approx */, false /* skip_positive_check */>(
-                p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
-            break;
-        case SfpuType::exp2:
-            ckernel::sfpu::_init_exp2_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_exp2_<APPROX_MODE, iterations>();
-            break;
-        case SfpuType::hardsigmoid:
-            ckernel::sfpu::_init_hardsigmoid_<APPROX_MODE>();
-            ckernel::sfpu::_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, iterations>();
-            break;
-        case SfpuType::threshold:
-            ckernel::sfpu::_calculate_threshold_<APPROX_MODE, iterations>(5.0f, 10.0f);
-            break;
-        case SfpuType::relu_max:
-            ckernel::sfpu::_relu_max_<sfpi::vFloat, APPROX_MODE, iterations>(5.0f);
-            break;
-        case SfpuType::relu_min:
-            ckernel::sfpu::_relu_min_<sfpi::vFloat, APPROX_MODE, iterations>(5.0f);
-            break;
-        default:
-            return;
-    }
-}
-} // namespace
-
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(0, 0, 4, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(4, formats.math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(0, 0, 4, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(4, formats.math);
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+    _llk_math_hw_configure_(formats.math, formats.math);
 
-    for (int i = 0; i < TILE_CNT; ++i)
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
@@ -179,7 +73,7 @@ void run_kernel()
         _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
         // calling sfpu function from ckernel
         // this part is where parametrization of operation takes part
-        call_sfpu_operation(SFPU_UNARY_OPERATION, formats.math);
+        test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations>(SFPU_UNARY_OPERATION, formats.math);
 
         _llk_math_eltwise_unary_sfpu_done_();
     }
@@ -195,7 +89,7 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -203,16 +97,16 @@ void run_kernel()
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #endif
 
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+    _llk_pack_init_<false, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < TILE_CNT; ++i)
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }

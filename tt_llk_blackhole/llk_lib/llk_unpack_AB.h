@@ -81,35 +81,11 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
     }
 }
 
-template <bool is_fp32_dest_acc_en, StochRndType stoch_rnd_mode = StochRndType::None>
-inline void _llk_unpack_AB_hw_configure_(
-    const std::uint32_t unpA_src_format,
-    const std::uint32_t unpB_src_format,
-    const std::uint32_t unpA_dst_format,
-    const std::uint32_t unpB_dst_format,
-    const std::uint32_t face_r_dim                  = FACE_R_DIM,
-    const std::uint32_t within_face_16x16_transpose = 0,
-    const std::uint32_t num_faces                   = 4)
-{
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    constexpr bool is_row_pool  = false;
-    constexpr bool stoch_rnd_en = (stoch_rnd_mode == StochRndType::All);
-    constexpr bool fpu_srnd_en  = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Fpu);
-    constexpr bool pack_srnd_en = stoch_rnd_en || (stoch_rnd_mode == StochRndType::Pack);
-    configure_unpack_AB<is_fp32_dest_acc_en, is_row_pool, fpu_srnd_en, pack_srnd_en>(
-        unpA_src_format, unpB_src_format, unpA_dst_format, unpB_dst_format, face_r_dim, face_r_dim, within_face_16x16_transpose, num_faces, num_faces);
-}
-
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_init_(
-    const std::uint32_t face_r_dim                   = FACE_R_DIM,
-    const std::uint32_t num_faces                    = 4,
-    const bool narrow_tile                           = false,
-    const std::uint32_t transpose                    = 0,
-    [[maybe_unused]] const std::uint32_t acc_to_dest = 0)
+    const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, const bool narrow_tile = false, const std::uint32_t transpose = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    LLK_ASSERT(acc_to_dest == 0, "acc_to_dest: this parameter is unused");
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose); // transpose within the face
 
     constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;
@@ -119,9 +95,8 @@ inline void _llk_unpack_AB_init_(
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t address_b, [[maybe_unused]] const bool transpose_of_faces = 0)
+inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t address_b)
 {
-    LLK_ASSERT(!transpose_of_faces, "transpose_of_faces: this parameter is unused");
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
 
     // Program srcA and srcB base addresses

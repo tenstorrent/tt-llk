@@ -29,29 +29,29 @@ static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 #include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams* params)
 {
     {
         ZONE_SCOPED("INIT")
 
-        _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None, unpack_to_dest>(
-            formats.unpack_src, formats.unpack_dst, FACE_R_DIM, false, TILE_NUM_FACES);
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            UNPACK_TRANSPOSE_FACES, false, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_src, formats.unpack_dst);
+            params->UNPACK_TRANSPOSE_FACES, false, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_src, formats.unpack_dst);
+        _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+            formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, TILE_NUM_FACES, TILE_NUM_FACES);
         PROFILER_SYNC();
     }
 
     {
         ZONE_SCOPED("TILE_LOOP")
 
-        for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
+        for (uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
         {
-            uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
+            uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
             for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
             {
                 _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-                    PERF_ADDRESS(PERF_INPUT_A, block_start + block_tile), false, formats.unpack_src, formats.unpack_dst);
+                    PERF_ADDRESS(PERF_INPUT_A, block_start + block_tile), formats.unpack_src, formats.unpack_dst);
             }
 
             for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
@@ -71,31 +71,29 @@ void run_kernel()
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_transpose_dest.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams* params)
 {
     {
         ZONE_SCOPED("INIT")
 
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        _llk_math_hw_configure_<>(formats.math, formats.math);
+        _llk_math_hw_configure_(formats.math, formats.math);
         PROFILER_SYNC();
     }
 
     {
         ZONE_SCOPED("TILE_LOOP")
 
-        for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
+        for (uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
         {
-            uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
+            uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
             _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
 #ifdef ARCH_BLACKHOLE
-            _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(
-                false, false, TILE_NUM_FACES, formats.math);
+            _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(TILE_NUM_FACES, formats.math);
 #else
-            _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
-                false, false, TILE_NUM_FACES, formats.math);
+            _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(TILE_NUM_FACES, formats.math);
 #endif
             for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
             {
@@ -127,21 +125,21 @@ void run_kernel()
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams* params)
 {
     {
         ZONE_SCOPED("INIT")
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
-        _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+        _llk_pack_init_<false, false>(formats.pack_dst);
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         PROFILER_SYNC();
     }
     {
         ZONE_SCOPED("TILE_LOOP")
 
-        for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
+        for (uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
         {
-            uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
+            uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
             _llk_packer_wait_for_math_done_();
             for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)

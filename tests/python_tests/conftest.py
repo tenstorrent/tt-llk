@@ -1,21 +1,20 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-import datetime
 import logging
 import os
+import sys
 from pathlib import Path
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.device import reset_mailboxes
+from helpers.device import _send_arc_message
 from helpers.format_config import InputOutputFormat
+from helpers.profiler import ProfilerConfig
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
+from helpers.test_config import TestConfig, TestMode, process_coverage_run_artefacts
 from ttexalens import tt_exalens_init
-from ttexalens.tt_exalens_lib import arc_msg
-
-# imports for pytest fixtures
-from helpers.perf import perf_report  # noqa: F401  # isort:skip
+from ttexalens.util import TTException
 
 
 def init_llk_home():
@@ -24,22 +23,20 @@ def init_llk_home():
     os.environ["LLK_HOME"] = str(Path(__file__).resolve().parents[2])
 
 
+# Default LLK_HOME environment variable
+init_llk_home()
+
+
 def check_hardware_headers():
     """Check if hardware-specific headers have been downloaded for the current architecture."""
 
-    # Get the chip architecture
-    chip_arch = get_chip_architecture()
-    arch_name = chip_arch.value.lower()  # Convert enum to string
-
-    # Get the project root (LLK_HOME)
-    llk_home = Path(os.environ.get("LLK_HOME"))
-    header_dir = llk_home / "tests" / "hw_specific" / arch_name / "inc"
+    arch_name = TestConfig.ARCH.value
+    header_dir = TestConfig.LLK_ROOT / "tests" / "hw_specific" / arch_name / "inc"
 
     required_headers = [
         "cfg_defines.h",
         "dev_mem_map.h",
         "tensix.h",
-        "tensix_dev_map.h",
         "tensix_types.h",
     ]
     required_headers_quasar = [
@@ -52,7 +49,7 @@ def check_hardware_headers():
     ]
 
     # Quasar has a somewhat different set of headers
-    if chip_arch == ChipArchitecture.QUASAR:
+    if TestConfig.ARCH == ChipArchitecture.QUASAR:
         required_headers = required_headers_quasar
 
     # Check if header directory exists
@@ -60,7 +57,7 @@ def check_hardware_headers():
         pytest.exit(
             f"ERROR: Hardware-specific header directory not found: {header_dir}\n\n"
             f"SOLUTION: Run the setup script to download required headers:\n"
-            f"  cd {llk_home}/tests\n"
+            f"  cd {TestConfig.LLK_ROOT}/tests\n"
             f"  ./setup_testing_env.sh\n",
             returncode=1,
         )
@@ -77,25 +74,71 @@ def check_hardware_headers():
             + "\n".join(f"  {header}" for header in missing_headers)
             + "\n\n"
             f"SOLUTION: Run the setup script to download missing headers:\n"
-            f"  cd {llk_home}/tests\n"
+            f"  cd {TestConfig.LLK_ROOT}/tests\n"
             f"  ./setup_testing_env.sh\n",
             returncode=1,
         )
 
-    print(f"✓ Hardware-specific headers for {arch_name} are present")
+
+@pytest.fixture()
+def workers_tensix_coordinates(worker_id):
+    if worker_id == "master":
+        return "0,0"
+    row, col = divmod(int(worker_id[2:]), 8)
+    return f"{row},{col}"
 
 
-@pytest.fixture(autouse=True)
-def reset_mailboxes_fixture():
-    reset_mailboxes()
-    yield
+from helpers.perf import PerfReport, combine_perf_reports
+
+
+@pytest.fixture(scope="module", autouse=True)
+def perf_report(request, worker_id):
+
+    test_module = request.path.stem
+
+    temp_report = PerfReport()
+
+    try:
+        yield temp_report
+    except Exception as e:
+        print("Perf: Unexpected error, Saving report anyway", e)
+
+    if TestConfig.MODE == TestMode.PRODUCE:
+        return
+
+    if ProfilerConfig.TEST_COUNTER == 0:
+        return
+
+    temp_report.dump_csv(f"{test_module}.{worker_id}.csv")
+    temp_report.post_process()
+    temp_report.dump_csv(f"{test_module}.{worker_id}.post.csv")
+
+
+@pytest.fixture
+def regenerate_cpp(request):
+    return not request.config.getoption("--skip-codegen")
 
 
 def pytest_configure(config):
+    compile_producer = config.getoption("--compile-producer", default=False)
+    compile_consumer = config.getoption("--compile-consumer", default=False)
+    TestConfig.setup_mode(compile_consumer, compile_producer)
+
+    with_coverage = config.getoption("--coverage", default=False)
+    detailed_artefacts = config.getoption("--detailed-artefacts", default=False)
+    TestConfig.setup_build(
+        Path(os.environ["LLK_HOME"]), with_coverage, detailed_artefacts
+    )
+
+    # Create directories from all processes - lock in create_directories handles race
+    TestConfig.create_build_directories()
+
     log_file = "pytest_errors.log"
-    # Clear the log file if it exists
-    if os.path.exists(log_file):
-        os.remove(log_file)
+    if not hasattr(config, "workerinput"):
+        check_hardware_headers()
+        if os.path.exists(log_file):
+            os.remove(log_file)
+
     logging.basicConfig(
         filename=log_file,
         level=logging.ERROR,
@@ -105,16 +148,22 @@ def pytest_configure(config):
     initialize_test_target_from_pytest(config)
     test_target = TestTargetConfig()
 
-    if test_target.run_simulator:
-        tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
-    else:
-        tt_exalens_init.init_ttexalens()
+    if TestConfig.MODE != TestMode.PRODUCE:
+        if test_target.run_simulator:
+            tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
+        else:
+            tt_exalens_init.init_ttexalens()
 
 
-def pytest_runtest_logreport(report):
-    # Capture errors when tests fail
-    if report.failed:
-        logging.error(f"Test {report.nodeid} failed: {report.longrepr}\n")
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    """Suppress the short test summary info section."""
+
+    # Override the method that writes the short test summary
+    def no_summary(*args, **kwargs):
+        pass
+
+    terminalreporter.short_test_summary = no_summary
+    terminalreporter.showfspath = False
 
 
 def _stringify_params(params):
@@ -136,60 +185,101 @@ def _stringify_params(params):
     return f"[{' | '.join(parts)}]"
 
 
-def pytest_runtest_logreport(report):
-    if report.when != "call":
-        return
-
-    callspec = getattr(report.item, "callspec", None)
-    if callspec is None:
-        return
-
-    print(f"\nParameters: {_stringify_params(callspec.params)}")
-
-
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     # Execute all other hooks to obtain the report object
     outcome = yield
     report = outcome.get_result()
 
-    # Attach the item to the report so it's available in logreport
-    report.item = item
+    if hasattr(item, "callspec") and item.callspec:
+        report.test_params = _stringify_params(item.callspec.params)
+    else:
+        report.test_params = None
+
+    if report.skipped and report.when == "call":
+        skip_reason = (
+            str(report.longrepr[2])
+            if hasattr(report.longrepr, "__getitem__") and len(report.longrepr) > 2
+            else str(report.longrepr)
+        )
+
+        if TestConfig.SKIP_JUST_FOR_COMPILE_MARKER in skip_reason:
+            report.outcome = "passed"
+
+    if report.failed and report.when == "call":
+        if hasattr(report, "longrepr") and report.longrepr:
+            if hasattr(call, "excinfo") and call.excinfo:
+                exc_type = call.excinfo.type
+
+                test_file_and_func = report.nodeid.split("[")[0]
+
+                stack_trace = []
+                current_working_directory = Path.cwd()
+                for entry in call.excinfo.traceback:
+                    path_str = str(entry.path)
+                    # Skip pytest and pluggy internal frames
+                    if "_pytest" in path_str or "pluggy" in path_str:
+                        continue
+
+                    try:
+                        file_path = entry.path.relative_to(current_working_directory)
+                    except (ValueError, AttributeError):
+                        file_path = entry.path
+                    line_number = entry.lineno + 1
+
+                    stack_trace.append(f"  {file_path}:{line_number}")
+
+                stack_trace_str = "\n".join(stack_trace) if stack_trace else ""
+
+                if exc_type == AssertionError:
+                    # Handle assertion failures
+                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
+                    error_message = (
+                        f"⨯ {test_file_and_func}{report.test_params} {exc_msg}"
+                    )
+                    report.longrepr = error_message
+                elif exc_type == TTException:
+                    # Handle Our custom TTExceptions
+                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
+                    error_message = (
+                        f"⨯ {test_file_and_func}{report.test_params}\n"
+                        f"TTException: {exc_msg}\n"
+                        f"Call trace:\n{stack_trace_str}"
+                    )
+                    report.longrepr = error_message
+                elif exc_type == RuntimeError:
+                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
+                    error_message = (
+                        f"⨯ {test_file_and_func}{report.test_params} RuntimeError\n"
+                        f"{exc_msg}\n"
+                        f"Python Call trace:\n{stack_trace_str}"
+                    )
+                    report.longrepr = error_message
+
     return report
 
 
 def pytest_sessionstart(session):
-    # Default LLK_HOME environment variable
-    init_llk_home()
-
-    # Check if hardware-specific headers are present
-    check_hardware_headers()
+    if hasattr(session.config, "workerinput"):
+        return
 
     test_target = TestTargetConfig()
-    if not test_target.run_simulator:
-        # Send ARC message for GO BUSY signal. This should increase device clock speed.
+    if not test_target.run_simulator and not TestConfig.MODE == TestMode.PRODUCE:
         _send_arc_message("GO_BUSY", test_target.device_id)
 
 
-def pytest_sessionfinish(session, exitstatus):
+def pytest_sessionfinish(session):
+    if hasattr(session.config, "workerinput"):
+        return
+
     test_target = TestTargetConfig()
-    if not test_target.run_simulator:
-        # Send ARC message for GO IDLE signal. This should decrease device clock speed.
+    if not test_target.run_simulator and not TestConfig.MODE == TestMode.PRODUCE:
         _send_arc_message("GO_IDLE", test_target.device_id)
 
-
-def _send_arc_message(message_type: str, device_id: int):
-    """Helper to send ARC messages with better abstraction."""
-    ARC_COMMON_PREFIX = 0xAA00
-    message_codes = {"GO_BUSY": 0x52, "GO_IDLE": 0x54}
-
-    arc_msg(
-        device_id=device_id,
-        msg_code=ARC_COMMON_PREFIX | message_codes[message_type],
-        wait_for_done=True,
-        args=[0, 0],
-        timeout=datetime.timedelta(seconds=10),
-    )
+    if TestConfig.MODE != TestMode.PRODUCE:
+        combine_perf_reports()
+        if TestConfig.WITH_COVERAGE:
+            process_coverage_run_artefacts()
 
 
 # Define the possible custom command line options
@@ -203,6 +293,37 @@ def pytest_addoption(parser):
         type=int,
         default=5555,
         help="Integer number of the server port.",
+    )
+
+    parser.addoption(
+        "--coverage",
+        action="store_true",
+        help="Enables coverage *.info file generation for every test variant run",
+    )
+
+    parser.addoption(
+        "--compile-producer",
+        action="store_true",
+        help="Only compile *.elf(s) for every test variant selected and store them on path specified",
+    )
+
+    parser.addoption(
+        "--compile-consumer",
+        action="store_true",
+        help="Consume pre-compiled *.elf(s) for every test variant selected, from pre-specified path, and execute specified variants",
+    )
+
+    parser.addoption(
+        "--detailed-artefacts",
+        action="store_true",
+        help="Insert few more compilation flags to produce binary artefacts suitable for debugging",
+    )
+
+    parser.addoption(
+        "--skip-codegen",
+        action="store_true",
+        default=False,
+        help="Skip C++ code generation for fused tests and use existing files",
     )
 
 
@@ -224,4 +345,9 @@ skip_for_blackhole = pytest.mark.skipif(
 skip_for_quasar = pytest.mark.skipif(
     get_chip_architecture() == ChipArchitecture.QUASAR,
     reason="Test is not supported on Quasar architecture",
+)
+
+skip_for_coverage = pytest.mark.skipif(
+    "--coverage" in sys.argv or any("coverage" in arg for arg in sys.argv),
+    reason="Coverage shouldn't be ran with this test",
 )

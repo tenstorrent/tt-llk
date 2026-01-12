@@ -4,15 +4,11 @@
 
 #include <cstdint>
 
-// Globals
-uint32_t unp_cfg_context        = 0;
-uint32_t pack_sync_tile_dst_ptr = 0;
-
 #ifdef LLK_TRISC_UNPACK
 
 #include "profiler.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     // measure length of zones of different sizes
 
@@ -44,7 +40,7 @@ void run_kernel()
 
 #ifdef LLK_TRISC_MATH
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     // Only unpack kernel is measuring profiler overhead
 }
@@ -53,7 +49,7 @@ void run_kernel()
 
 #ifdef LLK_TRISC_PACK
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     // Only unpack kernel is measuring profiler overhead
 }

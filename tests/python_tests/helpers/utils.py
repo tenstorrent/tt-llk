@@ -1,11 +1,15 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import os
 import subprocess
+import sys
 from collections import namedtuple
+from pathlib import Path
 
 import numpy as np
 import torch
+from filelock import FileLock
 
 from .format_config import DataFormat, FormatConfig
 from .llk_params import format_dict
@@ -40,17 +44,21 @@ def print_faces(operand1):
     print("\n" * 3)
 
 
-def run_shell_command(command: str, cwd: str | None = None):
+def run_shell_command(
+    command: str, cwd: str | None = None, stdin_data: str | bytes = None, text=True
+):
     result = subprocess.run(
         command,
         cwd=cwd,
         shell=True,
-        text=True,
+        text=text,
+        input=stdin_data,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
     )
+
     if result.returncode != 0:
-        raise RuntimeError(f"Build failed: {command}\n{result.stderr}")
+        raise RuntimeError(f"Command:\n{command}\n\nCommand's stderr:\n{result.stderr}")
     return result
 
 
@@ -143,6 +151,8 @@ def passed_test(
     res_tensor,
     output_data_format: DataFormat = DataFormat.Float16_b,
     L1_to_L1_iterations: int = 1,
+    print_erros: bool = True,
+    print_pcc: bool = False,
 ):
     Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
 
@@ -179,16 +189,76 @@ def passed_test(
     is_valid = is_close | is_nan
     is_within_tolerance = torch.all(is_valid)
 
-    if not is_within_tolerance:
-        # Find all indices where values differ
-        diff_indices = torch.where(~is_valid)[0]
-        print(f"Found {len(diff_indices)} differences:")
-        for idx in diff_indices:
+    if print_erros:
+        try:
+            if not is_within_tolerance:
+                diff_indices = torch.where(~is_valid)[0]
+                num_tiles = (res_tensor.size()[0]) // 1024
+                tile_shape = (32, 32)
+
+                for tile_no in range(num_tiles):
+
+                    tile_str = f"Row\t === Tile {tile_no+1} ===\n"
+                    res_tile = res_tensor[tile_no * 1024 : (tile_no + 1) * 1024].view(
+                        tile_shape
+                    )
+                    # golden_tile = golden_tensor[tile_no*1024:(tile_no+1)*1024].view(tile_shape)
+                    error_tile = ~is_valid[tile_no * 1024 : (tile_no + 1) * 1024].view(
+                        tile_shape
+                    )
+
+                    for row in range(32):
+                        row_str = ""
+                        for col in range(32):
+                            row_str += (
+                                "\033[41m" if error_tile[row, col] else "\033[42m"
+                            )
+                            row_str += f"{res_tile[row, col]:7.2f}\033[0m"
+
+                            if col == 15:
+                                row_str += " "
+
+                        tile_str += f"{(row+1):02d}. {row_str}\n"
+
+                        if row == 15:
+                            tile_str += "\n"
+
+                    print(tile_str, file=sys.stderr)
+
+                    tile_str = f"Row\t === Golden tile Tile {tile_no+1} ===\n"
+
+                    for row in range(32):
+                        row_str = ""
+                        for col in range(32):
+                            row_str += (
+                                "\033[41m" if error_tile[row, col] else "\033[42m"
+                            )
+                            row_str += f"{golden_tensor[row, col]:7.2f}\033[0m"
+
+                            if col == 15:
+                                row_str += " "
+
+                        tile_str += f"{(row+1):02d}. {row_str}\n"
+
+                        if row == 15:
+                            tile_str += "\n"
+
+                    print(tile_str, file=sys.stderr)
+
+        except RuntimeError:
             print(
-                f"Failed at index {idx} with result={res_tensor[idx]}, golden={golden_tensor[idx]}"
+                f"Could not reshape to 32x32 matrix, showing linear indices: {res_tensor.size()[0]}"
             )
+            for idx in diff_indices[:10]:
+                print(
+                    f"Failed at index {idx} with result={res_tensor[idx]}, golden={golden_tensor[idx]}"
+                )
 
     pcc = calculate_pcc(res_tensor, golden_tensor)
+
+    if print_pcc:
+        print("PCC:", pcc)
+
     target_pcc = 0.99
     # Once we iterate L1-L1 more than once the loss in precision is accumulated because the result from the first run is transferred as input to the next run
     # We don't have a robust accuracy model to determine exact precision loss from each run and accumulate as such per test, so we use a heuristic
@@ -196,5 +266,18 @@ def passed_test(
     #     values with less precision (Bfp8_b) and drops below 99% in that case
     if output_data_format == DataFormat.Bfp8_b:
         target_pcc = pow(0.99, L1_to_L1_iterations)
-    print("PCC:", pcc)
     return is_within_tolerance and (pcc > target_pcc)
+
+
+def create_directories(dirs: list[Path]):
+    """Create directories with file lock to handle race conditions in parallel execution."""
+
+    # If all directories exist, skip locking entirely
+    if all(dir.exists() for dir in dirs):
+        return
+
+    # Acquire lock and create using os.makedirs (more robust than pathlib.mkdir)
+    lock = FileLock("/tmp/tt-llk-build.lock")
+    with lock:
+        for dir in dirs:
+            os.makedirs(dir, exist_ok=True)

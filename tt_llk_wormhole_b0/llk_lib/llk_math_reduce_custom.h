@@ -207,6 +207,11 @@ inline void _llk_math_reduce_block_max_row_init_()
     _llk_math_reduce_block_max_row_mop_config_<block_ct_dim, is_fp32_dest_acc_en>();
 }
 
+inline void _llk_math_reduce_block_max_row_uninit_()
+{
+    // No state to restore - all states are transient or default
+}
+
 /**
  * Performs block-based reduce_max_row operation across multiple tiles in the width dimension.
  *
@@ -225,7 +230,7 @@ inline void _llk_math_reduce_block_max_row_init_()
 template <uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
 inline void _llk_math_reduce_block_max_row_(const uint dst_index)
 {
-    math::set_dst_write_addr<DstTileLayout::Default, DstTileShape::Tile32x32>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
     if constexpr (is_fp32_dest_acc_en)
     {

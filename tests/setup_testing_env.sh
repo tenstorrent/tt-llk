@@ -47,23 +47,25 @@ download_headers() {
     fi
 
     echo "Downloading headers for ${chip_arch}..."
-    mkdir -p "$header_dir"
+    mkdir -p "$header_dir/internal"
 
-    local base_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/tt-1xx/${chip_arch}"
-    local headers=("cfg_defines.h" "dev_mem_map.h" "tensix.h" "tensix_dev_map.h" "tensix_types.h")
+    local base_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/internal/tt-1xx/${chip_arch}"
+    local headers=("cfg_defines.h" "dev_mem_map.h" "tensix.h" "tensix_types.h")
+
+    local risc_attribs_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/internal/risc_attribs.h"
 
     local specific_url=""
     if [[ "$chip_arch" == "wormhole" ]]; then
-        specific_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/tt-1xx/${chip_arch}/wormhole_b0_defines"
+        specific_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/internal/tt-1xx/${chip_arch}/wormhole_b0_defines"
     fi
 
     for header in "${headers[@]}"; do
         local download_url="${base_url}/${header}"
-        if ! wget -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$download_url" > /dev/null; then
+        if ! wget -q -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$download_url" > /dev/null; then
             if [[ -n "$specific_url" ]]; then
                 local fallback_url="${specific_url}/${header}"
                 echo "Could not find ${header} at ${download_url}, trying ${fallback_url}..."
-                if ! wget -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$fallback_url" > /dev/null; then
+                if ! wget -q -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$fallback_url" > /dev/null; then
                     echo "ERROR: Failed to download ${header} from both primary and fallback URLs." >&2
                     exit 1
                 fi
@@ -73,6 +75,12 @@ download_headers() {
             fi
         fi
     done
+
+    local download_url="${risc_attribs_url}"
+    if ! wget -q -O "${header_dir}/internal/risc_attribs.h" --waitretry=5 --retry-connrefused "$download_url" > /dev/null; then
+        echo "ERROR: Failed to download risc_attribs.h from ${download_url}" >&2
+        exit 1
+    fi
 
     touch "$stamp_file"
     echo "Headers for ${chip_arch} downloaded successfully."
@@ -158,7 +166,7 @@ main() {
     # Download SFPI
     echo "SFPI not present or out of date. Fetching version ${sfpi_version}..."
     local TEMP_DIR=$(mktemp -d)
-    if ! wget -P $TEMP_DIR --waitretry=5 --retry-connrefused "$sfpi_url/$sfpi_filename" ; then
+    if ! wget -q -P $TEMP_DIR --waitretry=5 --retry-connrefused "$sfpi_url/$sfpi_filename" ; then
         echo "ERROR: Failed to download $sfpi_url/$sfpi_filename" >&2
         exit 1
     fi

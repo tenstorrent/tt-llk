@@ -256,7 +256,8 @@ inline void configure_unpack_AB(
 
     uint32_t fp32_dest_acc_en  = (is_fp32_dest_acc_en) ? (1) : (0);
     uint32_t int8_math_enabled = ((uint)(unpA_dst_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(unpB_dst_format & 0xF) == (uint)DataFormat::Int8) ||
-                                 ((uint)unpA_dst_format == (uint)DataFormat::Int32) || ((uint)unpB_dst_format == (uint)DataFormat::Int32);
+                                 ((uint)unpA_dst_format == (uint)DataFormat::Int32) || ((uint)unpB_dst_format == (uint)DataFormat::Int32) ||
+                                 ((uint)unpA_dst_format == (uint)DataFormat::UInt32) || ((uint)unpB_dst_format == (uint)DataFormat::UInt32);
 
     constexpr uint alu_format_mask = ALU_FORMAT_SPEC_REG0_SrcAUnsigned_MASK | ALU_FORMAT_SPEC_REG0_SrcBUnsigned_MASK;
 
@@ -285,12 +286,10 @@ inline void configure_unpack_AB(
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, alu_mask>(alu_payload.val);
 
-    uint32_t src_zeroflags_disable = ((uint)unpA_dst_format == (uint)DataFormat::UInt16) || ((uint)unpB_dst_format == (uint)DataFormat::UInt16);
-    if constexpr (disable_src_zero_flag)
-    {
-        src_zeroflags_disable = true;
-    }
-    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(src_zeroflags_disable);
+    // TODO NC: Find out why we need to disable src zero flags for uint16 dst format #960
+    bool disable_src_zero_flag_val = disable_src_zero_flag || (static_cast<uint>(unpA_dst_format) == static_cast<uint>(DataFormat::UInt16)) ||
+                                     (static_cast<uint>(unpB_dst_format) == static_cast<uint>(DataFormat::UInt16));
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(disable_src_zero_flag_val ? 1 : 0);
 
     t6_mutex_release(mutex::REG_RMW);
 
@@ -383,7 +382,8 @@ inline void configure_unpack_AB(
     // Workaround for HW bug (fp32 dest and movd2a/b is used with srcA/B configured with 5-bit exponent)
     if (is_fp32_dest_acc_en && (exp_width == 0)) {
         reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1<<11); // Set debug feature disable bit 11
-                                                               // workaround for bug tenstorrent/budabackend#1372
+                                                               // workaround for bug tenstor
+                                                               // rent/budabackend#1372
     }
     */
     // Workaround for HW bug (int32 dest and movd2a/b is used with srcA/B configured as int8)
