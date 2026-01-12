@@ -183,6 +183,8 @@ inline void _llk_unpack_untilize_uninit_(const std::uint32_t face_r_dim, const s
 {
     if constexpr (include_setup_calls)
     {
+        // Stalling WRCFG done by CFG until UNPACK finished
+        TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK);
         // Restore from saved GPRs
         TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, p_cfg::WRCFG_32b, UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32);
         TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
@@ -190,6 +192,8 @@ inline void _llk_unpack_untilize_uninit_(const std::uint32_t face_r_dim, const s
     }
     else
     {
+        // Stalling SETADCXX done by THCON until UNPACK finished
+        TTI_STALLWAIT(p_stall::STALL_THCON, p_stall::UNPACK);
         TT_SETADCXX(p_setadc::UNP_A, face_r_dim * FACE_C_DIM - 1, 0x0);
         // Revisit default stride value in tt-llk#1015
         cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32, UNP0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT, UNP0_ADDR_CTRL_XY_REG_1_Ystride_MASK>(y_stride);

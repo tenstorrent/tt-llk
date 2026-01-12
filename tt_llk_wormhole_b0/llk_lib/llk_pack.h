@@ -180,6 +180,8 @@ inline void _llk_pack_init_(
 
 inline void _llk_pack_uninit_(const std::uint32_t face_r_dim)
 {
+    // Stall SETADCXX done by THCON until PACK finished
+    TTI_STALLWAIT(p_stallwait::STALL_THCON, p_stallwait::PACK);
     TT_SETADCXX(p_setadc::PAC, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
 
