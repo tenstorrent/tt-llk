@@ -904,8 +904,7 @@ class TestConfig:
 
         if self.boot_mode == BootMode.BRISC:
             # Use correct shared ELF directory and loading flag based on profiler build
-            is_profiler = self.profiler_build == ProfilerBuild.Yes
-            if is_profiler:
+            if self.profiler_build == ProfilerBuild.Yes:
                 if not TestConfig.PROFILER_BRISC_ELF_LOADED:
                     TestConfig.PROFILER_BRISC_ELF_LOADED = True
                     load_elf(
@@ -937,11 +936,6 @@ class TestConfig:
         set_tensix_soft_reset(1, location=location)
 
         elfs = self.load_variant_elfs(location)
-
-        # Reset the profiler barrier TODO is this even needed? @sstanisicTT
-        write_words_to_device(
-            location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
-        )
 
         match self.boot_mode:
             case BootMode.BRISC:
