@@ -93,7 +93,7 @@ def sfpu_eltwise_max(formats, dest_acc, input_dimensions, workers_tensix_coordin
             formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
-            tile_count_res=tile_cnt_A,
+            tile_count_res=output_tile_cnt,
         ),
         dest_acc=dest_acc,
         unpack_to_dest=formats.input_format.is_32_bit(),
