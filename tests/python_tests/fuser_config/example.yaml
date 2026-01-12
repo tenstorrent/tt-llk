@@ -12,10 +12,10 @@ operations:
       sfpu:
         - type: "ReduceSfpu"
           operation: "ReduceColumn"
-          reduce_pool: "Max"
+          reduce_pool: "Average"
     packer: "Packer"
     dest_acc: "Yes"
-    math_fidelity: "LoFi"
+    math_fidelity: "HiFi4"
     unpack_transpose_within_face: "Yes"
     unpack_transpose_faces: "No"
 
