@@ -292,5 +292,7 @@ template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_A_uninit_(const std::uint32_t face_r_dim)
 {
     constexpr std::uint32_t UNP_SEL = (BType == BroadcastType::NONE) ? p_setadc::UNP_A : p_setadc::UNP_B;
+    // Stalling SETADCXX done by THCON until UNPACK finished
+    TTI_STALLWAIT(p_stall::STALL_THCON, (UNP_SEL == p_setadc::UNP_A) ? p_stall::UNPACK0 : p_stall::UNPACK1);
     TT_SETADCXX(UNP_SEL, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
