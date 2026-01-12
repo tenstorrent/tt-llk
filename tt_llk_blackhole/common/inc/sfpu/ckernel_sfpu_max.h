@@ -14,6 +14,17 @@ namespace sfpu
 
 constexpr int REPLAY_INTRUCTIONS = 6;
 
+inline void eltwise_max_configure_addr_mod()
+{
+    // ADDR_MOD_7: No increment for initial load
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 0},
+    }
+        .set(ADDR_MOD_7);
+}
+
 inline void _calculate_max_init_()
 {
     // Size of each tile in Dest is 64 rows
@@ -49,6 +60,38 @@ inline void _calculate_max_(int iterations)
     {
         lltt::replay(0, REPLAY_INTRUCTIONS);
     }
+}
+
+/*************************************************************************************
+SDPA specific implementation - just do max on rows 0
+*************************************************************************************/
+
+inline void _calculate_max_row_0_()
+{
+    eltwise_max_configure_addr_mod();
+
+    // Face 0 Row 0 only
+    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 0);  // Tile A, F0R0 even cols
+    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 64); // Tile B, F0R0 even cols
+    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);  // Max operation
+    TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 0); // Store MAX to F0R0 even cols
+
+    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 2);  // Tile A, F0R0 odd cols
+    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 66); // Tile B, F0R0 odd cols
+    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);  // Max operation
+    TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 2); // Store MAX to F0R0 odd cols
+
+    // // Face 1 Row 0 only
+
+    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 16);  // Tile A, F1R0 even cols
+    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 80);  // Tile B, F1R0 even cols
+    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);   // Max operation
+    TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 16); // Store MAX to F0R0 even cols
+
+    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 18);  // Tile A, F1R0 odd cols
+    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 82);  // Tile B, F1R0 odd cols
+    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);   // Max operation
+    TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 18); // Store MAX to F1R0 odd cols
 }
 
 } // namespace sfpu

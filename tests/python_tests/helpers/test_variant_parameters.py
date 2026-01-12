@@ -21,6 +21,7 @@ from .llk_params import (
     ImpliedMathFormat,
     MathFidelity,
     MathOperation,
+    MaxMode,
     NarrowTile,
     PerfRunType,
     ReducePool,
@@ -270,6 +271,16 @@ class REDUCE_POOL_TYPE(TemplateParameter):
 
     def covert_to_cpp(self) -> str:
         return f"constexpr auto POOL_TYPE = ckernel::PoolType::{self.reduce_pool_type.value};"
+
+
+@dataclass
+class MAX_MODE(TemplateParameter):
+    """Mode for max operation: FullTile or Row0 only."""
+
+    max_mode: MaxMode = MaxMode.FullTile
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr auto MAX_MODE = MaxMode::{self.max_mode.name};"
 
 
 @dataclass

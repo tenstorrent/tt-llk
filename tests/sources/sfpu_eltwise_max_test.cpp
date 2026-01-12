@@ -8,6 +8,13 @@
 #include "ckernel.h"
 #include "llk_defs.h"
 
+// Max operation mode enum
+enum class MaxMode
+{
+    FullTile,
+    Row0
+};
+
 // Globals
 uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
@@ -77,13 +84,23 @@ void run_kernel(const volatile struct RuntimeParams *params)
     }
 
     _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
-    _calculate_max_init_();
+    if constexpr (MAX_MODE == MaxMode::FullTile)
+    {
+        _calculate_max_init_();
+    }
 
     // Process each pair: max(dest[i*2], dest[i*2+1]) -> dest[i*2]
     for (int i = 0; i < num_pairs; i++)
     {
         _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(i * 2);
-        _calculate_max_<false, 32>(32);
+        if constexpr (MAX_MODE == MaxMode::FullTile)
+        {
+            _calculate_max_<false, 32>(32);
+        }
+        else
+        {
+            _calculate_max_row_0_();
+        }
         _llk_math_eltwise_binary_sfpu_done_();
     }
 

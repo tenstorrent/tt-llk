@@ -257,6 +257,13 @@ class StableSort(Enum):
     No = "false"
 
 
+class MaxMode(Enum):
+    """Mode for max operation: full tile or first row only."""
+
+    FullTile = "FullTile"
+    Row0 = "Row0"
+
+
 class Mailbox(Enum):
     Unpacker = 0x19FFC
     Math = 0x19FF8
