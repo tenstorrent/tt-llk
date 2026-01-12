@@ -202,13 +202,23 @@ def generate_stimuli(
 
     for _ in range(faces_to_generate * tile_cnt_A):
         face_a = generate_random_face(
-            stimuli_format_A, const_value_A, const_face, sfpu, negative_values
+            stimuli_format=stimuli_format_A,
+            const_value=const_value_A,
+            const_face=const_face,
+            sfpu=sfpu,
+            face_r_dim=face_r_dim,
+            negative_values=negative_values,
         )
         srcA.extend(face_a.tolist())
 
     for _ in range(faces_to_generate * tile_cnt_B):
         face_b = generate_random_face(
-            stimuli_format_B, const_value_B, const_face, sfpu, negative_values
+            stimuli_format=stimuli_format_B,
+            const_value=const_value_B,
+            const_face=const_face,
+            sfpu=sfpu,
+            face_r_dim=face_r_dim,
+            negative_values=negative_values,
         )
         srcB.extend(face_b.tolist())
 
