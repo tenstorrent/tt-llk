@@ -24,17 +24,17 @@ inline void _calculate_max_init_()
 
     lltt::record<lltt::NoExec>(0, REPLAY_INTRUCTIONS);
     // Load values from first destination register location into LREG0
-    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset0);
+    TTI_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset0);
 
     // Load values from second destination register location into LREG1
-    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset1);
+    TTI_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset1);
 
     // Perform element-wise max comparison using ALL_ROWS_MAX mode
     TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
     TTI_SFPNOP;
 
     // Store maximum results from LREG0 back to destination register
-    TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_3, values_tile_offset_out);
+    TTI_SFPSTORE(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset_out);
 
     // Increment destination register for next iteration
     // sfpi::dst_reg++;
