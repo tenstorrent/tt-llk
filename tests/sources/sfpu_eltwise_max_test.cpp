@@ -77,6 +77,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     }
 
     _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
+    _calculate_max_init_();
 
     // Process each pair: max(dest[i*2], dest[i*2+1]) -> dest[i*2]
     for (int i = 0; i < num_pairs; i++)
