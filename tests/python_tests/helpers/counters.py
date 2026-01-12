@@ -186,7 +186,6 @@ def configure_perf_counters(
 
     # Encode counter configurations
     config_words = []
-    print(f"\n[DEBUG {thread}] Configuring {len(counters)} counters:")
     for idx, counter in enumerate(counters):
         bank_name = counter["bank"]
         counter_id = counter["counter_id"]
@@ -205,18 +204,12 @@ def configure_perf_counters(
             | bank_id
         )
         config_words.append(config_word)
-        print(
-            f"  [{idx}] {bank_name}:{counter_id} (bank_id={bank_id}, mode_bit={mode_bit}, mux={mux_ctrl_bit4}) -> 0x{config_word:08x}"
-        )
 
     # Pad to 66 words
     while len(config_words) < 66:
         config_words.append(0)
 
-    print(f"[DEBUG {thread}] Memory layout:")
-    print(f"  CONFIG addr: 0x{config_addr:08x}")
-    print(f"  DATA addr:   0x{data_addr:08x}")
-    print(f"  Writing {len(config_words)} config words")
+    # Write configuration and clear previous data
 
     # Clear data region (132 words) to prevent garbage from previous runs
     zero_data = [0] * 132
@@ -224,7 +217,7 @@ def configure_perf_counters(
 
     # Write configuration to L1
     write_words_to_device(location=location, addr=config_addr, data=config_words)
-    print(f"[DEBUG {thread}] Configuration written to L1\n")
+    # Configuration written
 
 
 def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict]:
@@ -246,21 +239,14 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
         location=location, addr=config_addr, word_count=66
     )
 
-    print(f"\n[DEBUG {thread}] Reading counters from L1:")
-    print(f"  CONFIG addr: 0x{config_addr:08x}")
-    print(f"  DATA addr:   0x{data_addr:08x}")
+    # Reading counters from L1
 
     if not metadata:
-        print(f"[DEBUG {thread}] No metadata read!")
         return []
 
     # Count valid configs (check bit 31)
     valid_count = sum(1 for m in metadata if (m & 0x80000000) != 0)
-    print(f"[DEBUG {thread}] Metadata slots:")
-    for i, m in enumerate(metadata):
-        if m != 0:
-            print(f"  Slot {i}: 0x{m:08x} valid={bool(m & 0x80000000)}")
-    print(f"[DEBUG {thread}] Valid counter count: {valid_count}")
+    # Count valid configs (check bit 31)
 
     if valid_count == 0:
         return []
@@ -275,7 +261,6 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
 
     results = []
     data_idx = 0
-    print(f"[DEBUG {thread}] Processing counter results:")
     for i in range(66):
         config_word = metadata[i]
         if (config_word & 0x80000000) == 0:  # Check valid bit
@@ -304,9 +289,6 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
         # Extract results using data_idx
         cycles = data[data_idx * 2]
         count = data[data_idx * 2 + 1]
-        print(
-            f"  [{i}] {bank_name}:{counter_name} data_idx={data_idx} cycles={cycles} count={count}"
-        )
         data_idx += 1
 
         results.append(
@@ -368,15 +350,20 @@ def print_perf_counters(results: List[Dict], thread: str = None) -> None:
                 f"  [DIAG] Reference cycles vary in {bank_name}: {', '.join(str(c) for c in cycles_list)}"
             )
 
+        # Helper to label mode semantics per bank/event
+        def _mode_label(res: Dict) -> str:
+            mode = res.get("mode", "")
+            return mode.lower() if mode else ""
+
         # Print shared cycles once, then per-counter count and rate
         print(f"  Shared cycles: {shared_cycles}")
         for result in by_bank[bank_name]:
             name = result["counter_name"]
             count = result["count"]
-            mode = result["mode"]
             rate = (count / shared_cycles) if shared_cycles else 0.0
+            mode_desc = _mode_label(result)
             print(
-                f"  {name:30s} | Count: {count:12d} | Rate: {rate:8.3f} | Mode: {mode}"
+                f"  {name:30s} | Count: {count:12d} | Rate: {rate:8.3f} | Mode: {mode_desc}"
             )
 
     print("=" * 80)

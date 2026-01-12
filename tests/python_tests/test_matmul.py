@@ -232,7 +232,7 @@ def test_matmul(
         counter("TDMA_PACK", "PACK_BUSY_11"),
     ]
 
-    # Configure counters for each thread
+    # Configure counters for each thread (REQUESTS)
     configure_perf_counters(
         all_counters,
         location=workers_tensix_coordinates,
@@ -252,23 +252,77 @@ def test_matmul(
         mode="REQUESTS",
     )
 
-    # Run the test - counters configured from Python
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    # Run the test - REQUESTS counters configured from Python
+    res_from_L1_req = configuration.run(workers_tensix_coordinates)
 
     # Read and print the counter results
     from helpers.counters import print_perf_counters, read_perf_counters
+    from helpers.metrics import HWParams, summarize_kernel_metrics_dual
 
+    results_by_thread_req = {}
     for thread in ["UNPACK", "MATH", "PACK"]:
         results = read_perf_counters(thread=thread)
         if results:
             print_perf_counters(results, thread=thread)
+            results_by_thread_req[thread] = results
 
-    assert len(res_from_L1) == len(
+    # Configure counters for each thread (GRANTS)
+    configure_perf_counters(
+        all_counters,
+        location=workers_tensix_coordinates,
+        thread="UNPACK",
+        mode="GRANTS",
+    )
+    configure_perf_counters(
+        all_counters,
+        location=workers_tensix_coordinates,
+        thread="MATH",
+        mode="GRANTS",
+    )
+    configure_perf_counters(
+        all_counters,
+        location=workers_tensix_coordinates,
+        thread="PACK",
+        mode="GRANTS",
+    )
+
+    # Run the test again - GRANTS counters configured
+    res_from_L1_gr = configuration.run(workers_tensix_coordinates)
+
+    results_by_thread_gr = {}
+    for thread in ["UNPACK", "MATH", "PACK"]:
+        results = read_perf_counters(thread=thread)
+        if results:
+            print_perf_counters(results, thread=thread)
+            results_by_thread_gr[thread] = results
+
+    # Dual-mode metrics summary
+    if results_by_thread_req or results_by_thread_gr:
+        hw = HWParams(
+            noc_word_bytes=0,  # set platform flit/word size in bytes for bytes/sec
+            unpack_max_bytes_per_cycle=0.0,  # set if theoretical peak is known
+            pack_max_bytes_per_cycle=0.0,  # set if theoretical peak is known
+        )
+        summary_dual = summarize_kernel_metrics_dual(
+            results_by_thread_req, results_by_thread_gr, hw
+        )
+        print("\nDerived Metrics Summary (REQUESTS vs GRANTS)")
+        print("=" * 80)
+        print(summary_dual)
+        print("=" * 80)
+
+    assert len(res_from_L1_req) == len(
         golden_tensor
     ), "Result tensor and golder tensor are not of the same length"
-
-    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
-
+    res_tensor_req = torch.tensor(res_from_L1_req, dtype=torch_format)
     assert passed_test(
-        golden_tensor, res_tensor, formats.output_format
-    ), "Assert against golden failed"
+        golden_tensor, res_tensor_req, formats.output_format
+    ), "Assert against golden failed (REQUESTS)"
+
+    assert len(res_from_L1_gr) == len(
+        golden_tensor
+    ), "Result tensor and golder tensor are not of the same length"
+    res_tensor_gr = torch.tensor(res_from_L1_gr, dtype=torch_format)
+    assert passed_test(
+        golden_tensor, res_tensor_gr, formats.output_format
+    ), "Assert against golden failed (GRANTS)"
