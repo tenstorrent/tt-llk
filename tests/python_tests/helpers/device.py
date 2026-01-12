@@ -11,12 +11,11 @@ from typing import List
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.hardware_controller import HardwareController
-from ttexalens.context import Context
-from ttexalens.coordinate import OnChipCoordinate
-from ttexalens.debug_tensix import TensixDebug
-from ttexalens.hardware.risc_debug import CallstackEntry
-from ttexalens.tt_exalens_lib import (
+from ttexalens import (
+    Context,
+    OnChipCoordinate,
     ParsedElfFile,
+    TensixDebug,
     TTException,
     arc_msg,
     callstack,
@@ -28,6 +27,7 @@ from ttexalens.tt_exalens_lib import (
     write_to_device,
     write_words_to_device,
 )
+from ttexalens.hardware.risc_debug import CallstackEntry
 
 from .fused_operation import FusedOperation
 from .llk_params import DataFormat, Mailbox, format_dict
