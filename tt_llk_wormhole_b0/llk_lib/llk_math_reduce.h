@@ -470,5 +470,7 @@ inline void _llk_math_reduce_init_()
 
 inline void _llk_math_reduce_uninit_(const std::uint32_t srca_data_format)
 {
+    // Stall cfg_reg_rmw_tensix done by CFG until MATH/SFPU done
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH | p_stall::WAIT_SFPU);
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(srca_data_format);
 }
