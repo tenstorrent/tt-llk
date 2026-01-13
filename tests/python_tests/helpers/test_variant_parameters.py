@@ -119,7 +119,7 @@ def _generate_operation_constants(mathop: MathOperation) -> list[str]:
 
     if mathop in SFPU_UNARY_OPERATIONS:
         constants.append(
-            f"constexpr auto SFPU_UNARY_OPERATION = ckernel::SfpuType::{mathop.cpp_enum_value};"
+            f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{mathop.cpp_enum_value};"
         )
     elif mathop in SFPU_BINARY_OPERATIONS:
         constants.append(
@@ -165,7 +165,7 @@ class MATH_OP(TemplateParameter):
             temp_header.extend(
                 [
                     "\n// Additional SFPU unary operation",
-                    f"constexpr auto SFPU_UNARY_OPERATION = ckernel::SfpuType::{self.unary_extra.cpp_enum_value};",
+                    f"constexpr auto SFPU_UNARY_OPERATION = SfpuType::{self.unary_extra.cpp_enum_value};",
                 ]
             )
 

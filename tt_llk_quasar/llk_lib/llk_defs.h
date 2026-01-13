@@ -83,3 +83,6 @@ enum class StochRndType : uint8_t
 };
 
 } // namespace ckernel
+
+// Make SfpuType available in global namespace for compatibility with test infrastructure
+using SfpuType = ckernel::SfpuType;
