@@ -313,7 +313,7 @@ def test_matmul(
 
     assert len(res_from_L1_req) == len(
         golden_tensor
-    ), "Result tensor and golder tensor are not of the same length"
+    ), "Result tensor and golden tensor are not of the same length"
     res_tensor_req = torch.tensor(res_from_L1_req, dtype=torch_format)
     assert passed_test(
         golden_tensor, res_tensor_req, formats.output_format
@@ -321,7 +321,7 @@ def test_matmul(
 
     assert len(res_from_L1_gr) == len(
         golden_tensor
-    ), "Result tensor and golder tensor are not of the same length"
+    ), "Result tensor and golden tensor are not of the same length"
     res_tensor_gr = torch.tensor(res_from_L1_gr, dtype=torch_format)
     assert passed_test(
         golden_tensor, res_tensor_gr, formats.output_format
