@@ -282,9 +282,9 @@ private:
 public:
     PerfCounters() : counter_count(0), mode(CounterMode::GRANTS)
     {
-        for (uint32_t i = 0; i < 30; i++)
+        for (uint32_t i = 0; i < 66; i++)
         {
-            // Initialize with a default mode_bit aligned to current mode (GRANTS by default)
+            // Initialize with safe defaults for all slots
             counters[i] = {CounterBank::INSTRN_THREAD, 0, 0, static_cast<uint32_t>(mode)};
         }
     }
