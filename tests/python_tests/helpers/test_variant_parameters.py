@@ -162,18 +162,10 @@ class MATH_OP(TemplateParameter):
         if self.unary_extra and (
             self.mathop is None or self.mathop not in SFPU_UNARY_OPERATIONS
         ):
-            from .chip_architecture import ChipArchitecture, get_chip_architecture
-
-            # For Quasar, use ckernel::SfpuType to avoid ambiguity with ::SfpuType from llk_sfpu_types.h
-            sfpu_type = (
-                "ckernel::SfpuType"
-                if get_chip_architecture() == ChipArchitecture.QUASAR
-                else "SfpuType"
-            )
             temp_header.extend(
                 [
                     "\n// Additional SFPU unary operation",
-                    f"constexpr auto SFPU_UNARY_OPERATION = {sfpu_type}::{self.unary_extra.cpp_enum_value};",
+                    f"constexpr auto SFPU_UNARY_OPERATION = ckernel::SfpuType::{self.unary_extra.cpp_enum_value};",
                 ]
             )
 
