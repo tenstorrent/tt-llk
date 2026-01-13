@@ -364,9 +364,9 @@ def summarize_kernel_metrics_dual(
         # Approximate RISC score from stalls minus issue
         avg_stall_rate = avg([float(m["risc"]["stall_rate"]) for m in gr_metrics])
         avg_issue_rate = avg([float(m["risc"]["instr_issue_rate"]) for m in gr_metrics])
-        kernel_risc_score = max(avg_stall_rate, avg_issue_rate * 0.0) - (
-            avg_issue_rate * 0.5
-        )
+        # RISC bound approximation: stalls penalized by instruction issue rate
+        # Aligns with per-thread heuristic (stall minus fraction of issue)
+        kernel_risc_score = avg_stall_rate - (avg_issue_rate * 0.5)
         kernel_bound = sorted(
             [
                 ("math-bound", kernel_math_score),
