@@ -236,7 +236,9 @@ inline void _llk_unpack_A_uninit_(const std::uint32_t face_r_dim)
     constexpr std::uint32_t UNP_SEL = (BType == BroadcastType::NONE) ? p_setadc::UNP_A : p_setadc::UNP_B;
     // TODO NC: Issue tt-llk#1036 will make this transient
     TT_SETADCXX(UNP_SEL, face_r_dim * FACE_C_DIM - 1, 0x0);
-    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
+    // TODO NC: Issue tt-metal#33830 will fix this properly
+    // Due to race condition, we need temporary workaround
+    // reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
 }
 
 template <
