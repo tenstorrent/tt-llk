@@ -261,7 +261,7 @@ def test_matmul(
 
     results_by_thread_req = {}
     for thread in ["UNPACK", "MATH", "PACK"]:
-        results = read_perf_counters(thread=thread)
+        results = read_perf_counters(location=workers_tensix_coordinates, thread=thread)
         if results:
             print_perf_counters(results, thread=thread)
             results_by_thread_req[thread] = results
@@ -291,7 +291,7 @@ def test_matmul(
 
     results_by_thread_gr = {}
     for thread in ["UNPACK", "MATH", "PACK"]:
-        results = read_perf_counters(thread=thread)
+        results = read_perf_counters(location=workers_tensix_coordinates, thread=thread)
         if results:
             print_perf_counters(results, thread=thread)
             results_by_thread_gr[thread] = results
