@@ -34,9 +34,8 @@ from helpers.test_variant_parameters import (
 )
 from helpers.utils import passed_test
 
-# Quasar hardware constraints for eltwise operations
-TILE_DIM = 32  # Standard tile dimension (32x32)
-MAX_TILES_16_BIT_DEST = 8  # Max tiles with 16-bit dest (Float16/Float16_b)
+TILE_DIM = 32
+MAX_TILES_16_BIT_DEST = 8
 
 ELTWISE_DIMENSIONS = [
     ([mt_dim * TILE_DIM, nt_dim * TILE_DIM], DestAccumulation.No)
@@ -145,7 +144,6 @@ def test_eltwise_binary(
             num_faces=num_faces,
         ),
         # Determine unpack_to_dest based on format and accumulation mode
-        # This follows the same logic as pack_test
         unpack_to_dest=(
             formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
         ),
