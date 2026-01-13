@@ -65,6 +65,9 @@ enum class CounterBank : uint32_t
     TDMA_PACK     = 4,
 };
 
+// Number of counter banks represented by CounterBank enum
+inline constexpr uint32_t COUNTER_BANK_COUNT = 5;
+
 inline constexpr uint32_t get_counter_base_addr(CounterBank bank)
 {
     switch (bank)
@@ -388,7 +391,7 @@ public:
         }
 
         // Avoid repeated resets/starts per bank
-        bool bank_started[5] = {false, false, false, false, false};
+        bool bank_started[COUNTER_BANK_COUNT] = {false, false, false, false, false};
         for (uint32_t i = 0; i < counter_idx; i++)
         {
             const auto& config = counters[i];
@@ -444,7 +447,7 @@ public:
 #endif
 
         // Stop all banks once via 0->1 transition on stop bit
-        bool bank_stopped[5] = {false, false, false, false, false};
+        bool bank_stopped[COUNTER_BANK_COUNT] = {false, false, false, false, false};
         for (uint32_t i = 0; i < counter_count; i++)
         {
             const auto& config = counters[i];
