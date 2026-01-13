@@ -281,7 +281,8 @@ public:
     {
         for (uint32_t i = 0; i < 30; i++)
         {
-            counters[i] = {CounterBank::INSTRN_THREAD, 0, 0};
+            // Initialize with a default mode_bit aligned to current mode (GRANTS by default)
+            counters[i] = {CounterBank::INSTRN_THREAD, 0, 0, static_cast<uint32_t>(mode)};
         }
     }
 
@@ -299,7 +300,8 @@ public:
             return; // Max 10 counters
         }
 
-        counters[counter_count++] = {bank, counter_id, mux_ctrl_bit4};
+        // Initialize mode_bit to current mode (0=REQUESTS, 1=GRANTS)
+        counters[counter_count++] = {bank, counter_id, mux_ctrl_bit4, static_cast<uint32_t>(mode)};
     }
 
     /**
@@ -308,6 +310,11 @@ public:
     void set_mode(CounterMode m)
     {
         mode = m;
+        // Keep existing counter configs in sync with the selected mode
+        for (uint32_t i = 0; i < counter_count; i++)
+        {
+            counters[i].mode_bit = static_cast<uint32_t>(mode);
+        }
     }
 
     /**
