@@ -111,8 +111,6 @@ def counter(bank: str, counter_name: str, mux_ctrl_bit4: int = 0) -> Dict:
             f"Unknown bank: {bank}. Valid banks: {list(bank_name_to_id.keys())}"
         )
 
-    bank_id = bank_name_to_id[bank]
-
     # Find counter ID by name
     if bank not in COUNTER_NAMES:
         raise ValueError(f"No counter definitions for bank: {bank}")
