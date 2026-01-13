@@ -11,7 +11,7 @@ from helpers.matmul_sweep import (
     generate_tile_dims,
 )
 from helpers.param_config import input_output_formats, parametrize
-from helpers.profiler import ProfilerConfig
+from helpers.perf import PerfConfig
 from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
     CRK_TILE_DIMM,
@@ -93,7 +93,7 @@ def test_perf_matmul(perf_report, combos, math_fidelity):
 
     variant_tile_count = dims.rt_dim * dims.ct_dim * dims.kt_dim
 
-    configuration = ProfilerConfig(
+    configuration = PerfConfig(
         "sources/matmul_perf.cpp",
         formats,
         run_types,

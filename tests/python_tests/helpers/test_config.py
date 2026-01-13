@@ -94,6 +94,7 @@ class TestConfig:
     SHARED_ELF_DIR: ClassVar[str]
     COVERAGE_INFO_DIR: ClassVar[str]
     SYNC_DIR: ClassVar[Path]
+    PERF_DATA_DIR: ClassVar[Path]
 
     # Sources directories
     LLK_ROOT: ClassVar[Path]
@@ -141,6 +142,12 @@ class TestConfig:
     RUNTIME_ADDRESS: ClassVar[int] = 0x64000
     TRISC_PROFILER_BARRIER_ADDRESS: ClassVar[int] = 0x16AFF4
     TRISC_START_ADDRS: ClassVar[list[int]] = [0x16DFF0, 0x16DFF4, 0x16DFF8]
+    THREAD_PERFORMANCE_DATA_BUFFER_LENGTH = 0x400
+    THREAD_PERFORMANCE_DATA_BUFFER = [
+        0x16B000,  # Unpack
+        0x16C000,  # Math
+        0x16D000,  # Pack
+    ]
 
     @staticmethod
     def setup_arch():
@@ -206,6 +213,7 @@ class TestConfig:
         TestConfig.COVERAGE_INFO_DIR = TestConfig.ARTEFACTS_DIR / "coverage_info"
         TestConfig.PROFILER_META = TestConfig.ARTEFACTS_DIR / "profiler_meta"
         TestConfig.SYNC_DIR = TestConfig.ARTEFACTS_DIR / "sync_primitives"
+        TestConfig.PERF_DATA_DIR = TestConfig.ARTEFACTS_DIR / "temp_perf_data"
 
     @staticmethod
     def create_build_directories():
@@ -398,6 +406,19 @@ class TestConfig:
             for field_name, value in self.__dict__.items()
             if field_name not in NON_COMPILATION_ARGUMENTS
         ]
+
+        # To account for subtle changes in addresses that are result of stimuli dimensions change
+        temp_str.extend(
+            [
+                str(self.variant_stimuli.buf_a_addr),
+                str(self.variant_stimuli.buf_b_addr),
+                str(
+                    self.variant_stimuli.buf_c_addr
+                    if hasattr(self.variant_stimuli, "buf_c_addr")
+                    else ""
+                ),
+            ]
+        )
         self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
     def resolve_compile_options(self) -> tuple[str, str, str]:
@@ -1067,7 +1088,7 @@ def process_coverage_run_artefacts() -> bool:
                 )
                 run_shell_command(command, TestConfig.TESTS_WORKING_DIR)
 
-    worker_num = 25
+    worker_num = 20
 
     print(f"Processing code coverage data")
     with ThreadPoolExecutor(max_workers=worker_num) as executor:
@@ -1089,11 +1110,19 @@ def process_coverage_run_artefacts() -> bool:
         f"Generated {len(info_files)} coverage .info files from streams in {end - start:.2f}s, unifying"
     )
 
+    # Reduce worker count to avoid workers having no files to process
+    if len(info_files) < 2 * worker_num:
+        worker_num = 1
+
     start = time.time()
 
     for i in range(worker_num):
         merged_path = TestConfig.ARTEFACTS_DIR / f"merged_coverage_{i}.info"
-        shutil.copyfile(str(info_files[0]), merged_path)
+        try:
+            shutil.copyfile(str(info_files[0]), merged_path)
+        except IndexError:
+            print("No worker files to be merged, exiting")
+            return
         info_files.pop(0)
 
     def combine_files(index, info_files):

@@ -10,7 +10,7 @@ import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import _send_arc_message
 from helpers.format_config import InputOutputFormat
-from helpers.profiler import ProfilerConfig
+from helpers.perf import PerfConfig, PerfReport, combine_perf_reports
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 from helpers.test_config import TestConfig, TestMode, process_coverage_run_artefacts
 from ttexalens import tt_exalens_init
@@ -88,32 +88,6 @@ def workers_tensix_coordinates(worker_id):
     return f"{row},{col}"
 
 
-from helpers.perf import PerfReport, combine_perf_reports
-
-
-@pytest.fixture(scope="module", autouse=True)
-def perf_report(request, worker_id):
-
-    test_module = request.path.stem
-
-    temp_report = PerfReport()
-
-    try:
-        yield temp_report
-    except Exception as e:
-        print("Perf: Unexpected error, Saving report anyway", e)
-
-    if TestConfig.MODE == TestMode.PRODUCE:
-        return
-
-    if ProfilerConfig.TEST_COUNTER == 0:
-        return
-
-    temp_report.dump_csv(f"{test_module}.{worker_id}.csv")
-    temp_report.post_process()
-    temp_report.dump_csv(f"{test_module}.{worker_id}.post.csv")
-
-
 @pytest.fixture
 def regenerate_cpp(request):
     return not request.config.getoption("--skip-codegen")
@@ -164,7 +138,8 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     def no_summary(*args, **kwargs):
         pass
 
-    terminalreporter.short_test_summary = no_summary
+    if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
+        terminalreporter.short_test_summary = no_summary
     terminalreporter.showfspath = False
 
 
@@ -268,6 +243,29 @@ def pytest_sessionstart(session):
     test_target = TestTargetConfig()
     if not test_target.run_simulator and not TestConfig.MODE == TestMode.PRODUCE:
         _send_arc_message("GO_BUSY", test_target.device_id)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def perf_report(request, worker_id):
+
+    test_module = request.path.stem
+
+    temp_report = PerfReport()
+
+    try:
+        yield temp_report
+    except Exception as e:
+        print("Perf: Unexpected error, Saving report anyway", e)
+
+    if TestConfig.MODE == TestMode.PRODUCE:
+        return
+
+    if PerfConfig.TEST_COUNTER == 0:
+        return
+
+    temp_report.dump_csv(f"{test_module}.{worker_id}.csv")
+    temp_report.post_process()
+    temp_report.dump_csv(f"{test_module}.{worker_id}.post.csv")
 
 
 def pytest_sessionfinish(session):
