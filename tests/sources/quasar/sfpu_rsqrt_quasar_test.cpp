@@ -13,7 +13,6 @@
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    tdma_descriptor_t td_val;
     const uint buf_desc_id          = 0;
     const uint num_tiles_per_unpack = params->TILE_CNT;
 
@@ -37,6 +36,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     bd_val.f.y_dim       = params->TEST_FACE_R_DIM;
     bd_val.f.z_dim       = params->num_faces;
 
+    tdma_descriptor_t td_val;
     td_val.buf_desc        = bd_val;
     td_val.buf_desc_id     = buf_desc_id;
     td_val.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
@@ -135,14 +135,13 @@ void run_kernel(const volatile struct RuntimeParams *params)
     set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
 
     buffer_descriptor_u bd_val = {0};
+    bd_val.f.l1_addr_16B       = buffer_Res[0] / 16;
+    bd_val.f.format            = static_cast<uint8_t>(formats.pack_dst);
+    bd_val.f.x_dim             = params->TEST_FACE_C_DIM;
+    bd_val.f.y_dim             = params->TEST_FACE_R_DIM;
+    bd_val.f.z_dim             = params->num_faces;
+
     tdma_descriptor_t tdma_desc;
-
-    bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
-    bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
-    bd_val.f.x_dim       = params->TEST_FACE_C_DIM;
-    bd_val.f.y_dim       = params->TEST_FACE_R_DIM;
-    bd_val.f.z_dim       = params->num_faces;
-
     tdma_desc.buf_desc        = bd_val;
     tdma_desc.buf_desc_id     = buf_desc_id;
     tdma_desc.reg_data_format = static_cast<uint8_t>(formats.pack_src);

@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "ckernel_ops.h"
 #include "ckernel_trisc_common.h"
 #include "cmath_common.h"
 
@@ -14,7 +15,7 @@ namespace sfpu
 template <bool APPROXIMATION_MODE>
 inline void _calculate_rsqrt_sfp_rows_()
 {
-    TTI_SFPLOAD(p_sfpu::LREG0, p_sfpu::sfpmem::DEFAULT, ADDR_MOD_7, 0, 0); // load from dest into lreg[0], uses ADDR_MOD_7 (set to all zeroes)
+    TTI_SFPLOAD(p_sfpu::LREG0, p_sfpu::sfpmem::DEFAULT, ADDR_MOD_7, 0, 0); // load from dest into lreg[0]
 
     // First compute sqrt(x) into LREG1
     if constexpr (APPROXIMATION_MODE)
@@ -26,7 +27,7 @@ inline void _calculate_rsqrt_sfp_rows_()
     }
 
     // Store from lreg[2] into dest register
-    TTI_SFPSTORE(p_sfpu::LREG2, 0, ADDR_MOD_7, 0, 0);
+    TTI_SFPSTORE(p_sfpu::LREG2, p_sfpu::sfpmem::DEFAULT, ADDR_MOD_7, 0, 0);
 }
 
 template <bool APPROXIMATION_MODE>

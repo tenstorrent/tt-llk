@@ -3,9 +3,8 @@
 
 import pytest
 import torch
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
-from helpers.golden_generators import get_golden_generator
+from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
     ApproximationMode,
     DataCopyType,
@@ -37,12 +36,11 @@ from helpers.utils import passed_test
 
 @pytest.mark.quasar
 @parametrize(
-    test_name="sfpu_rsqrt_quasar_test",
     formats=input_output_formats(
         [
+            DataFormat.Float32,
             DataFormat.Float16,
             DataFormat.Float16_b,
-            DataFormat.Float32,
         ],
     ),
     approx_mode=[ApproximationMode.Yes],
@@ -51,7 +49,7 @@ from helpers.utils import passed_test
     input_dimensions=[[32, 32], [64, 64]],
 )
 def test_sfpu_rsqrt_quasar(
-    test_name, formats, approx_mode, dest_acc, implied_math_format, input_dimensions
+    formats, approx_mode, dest_acc, implied_math_format, input_dimensions
 ):
     """
     Test reciprocal square root (rsqrt) operation on Quasar architecture.
@@ -59,10 +57,6 @@ def test_sfpu_rsqrt_quasar(
     Uses PyTorch's rsqrt as the golden reference and generates input stimuli
     in the range (0.1, 2.0] to test rsqrt behavior.
     """
-    chip_arch = get_chip_architecture()
-    if chip_arch != ChipArchitecture.QUASAR:
-        pytest.skip(f"This test is Quasar-specific, but running on {chip_arch}")
-
     # Skip invalid format combinations for Quasar
     if (
         formats.input_format != DataFormat.Float32
@@ -92,7 +86,7 @@ def test_sfpu_rsqrt_quasar(
         sfpu=True,
     )
 
-    # Generate random values in valid range for sqrt
+    # Override src_A with random values in valid range for rsqrt [0.1, 2.0]
     torch_format = format_dict[formats.input_format]
     src_A = (
         torch.rand(input_dimensions[0] * input_dimensions[1], dtype=torch_format) * 1.9
@@ -100,8 +94,6 @@ def test_sfpu_rsqrt_quasar(
     )
 
     num_faces = 4
-
-    from helpers.golden_generators import UnarySFPUGolden
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
@@ -142,14 +134,18 @@ def test_sfpu_rsqrt_quasar(
             tile_count_res=tile_cnt_A,
             num_faces=num_faces,
         ),
-        unpack_to_dest=False,
+        unpack_to_dest=False,  # (
+        #    formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+        # ),
         dest_acc=dest_acc,
     )
 
     res_from_L1 = configuration.run()
 
     # Verify results match golden
-    assert len(res_from_L1) == len(golden_tensor)
+    assert len(res_from_L1) == len(
+        golden_tensor
+    ), "Result tensor and golden tensor are not of the same length"
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
