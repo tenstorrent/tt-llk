@@ -418,25 +418,22 @@ class ReduceUnpacker(Unpacker):
     def unpack(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         tile_cnt = operation_config.output.tile_count
-        # num_faces = operation_config.num_faces
         face_r_dim = operation_config.face_r_dim
 
         if isinstance(operation_config.math.fpu, ReduceFpu):
-            reduce_dim = operation_config.math.fpu._reduce_dim_enum()
+            reduce_dim = operation_config.math.fpu.reduce_dim()
         else:
             raise ValueError("Reduce unpacker only supports reduce fpu")
 
         within_face_16x16_transpose = 1 if reduce_dim == "ReduceDim::REDUCE_ROW" else 0
 
         code = (
-            # f"    _llk_unpack_reduce_init_<{pool_type}, {reduce_dim}>({within_face_16x16_transpose}, {num_faces});\n"
             f"    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>({within_face_16x16_transpose});\n"
             f"    constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;\n"
             f"    config_unpacker_x_end<UNP_SEL>({face_r_dim});\n"
             f"    _llk_unpack_AB_mop_config_<BroadcastType::NONE>(false, 4 , false);\n"
             f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
             f"    {{\n"
-            # f"        _llk_unpack_reduce_<{pool_type}, {reduce_dim}>(L1_ADDRESS(buffer_A{stage}[i]));\n"
             f"        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A{stage}[i]), L1_ADDRESS(buffer_B{stage}[i]));\n"
             f"    }}\n\n"
         )
