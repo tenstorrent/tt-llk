@@ -98,7 +98,7 @@ class Packer:
             raise ValueError("Unsupported architecture for packer")
 
         if isinstance(operation_config.math.fpu, ReduceFpu):
-            reduce_dim = operation_config.math.fpu._reduce_dim_enum()
+            reduce_dim = operation_config.math.fpu.reduce_dim()
             code += f"    _llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
 
         code += (

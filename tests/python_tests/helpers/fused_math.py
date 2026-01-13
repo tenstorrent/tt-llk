@@ -159,17 +159,10 @@ class ReduceFpu(Fpu):
             "llk_math_reduce.h",
         ]
 
-    def _reduce_dim_enum(self) -> str:
-        if self.operation == MathOperation.ReduceColumn:
-            return "ReduceDim::REDUCE_COL"
-        elif self.operation == MathOperation.ReduceRow:
-            return "ReduceDim::REDUCE_ROW"
-        elif self.operation == MathOperation.ReduceScalar:
-            return "ReduceDim::REDUCE_SCALAR"
-        else:
-            raise ValueError(f"Unsupported reduce operation: {self.operation}")
+    def reduce_dim(self) -> str:
+        return f"ReduceDim::{self.operation.cpp_enum_value}"
 
-    def _reduce_dim_golden(self) -> ReduceDimension:
+    def reduce_dim_golden(self) -> ReduceDimension:
         if self.operation == MathOperation.ReduceColumn:
             return ReduceDimension.Column
         elif self.operation == MathOperation.ReduceRow:
@@ -190,7 +183,7 @@ class ReduceFpu(Fpu):
         dimensions = operation_config.output.dimensions
         num_faces = operation_config.num_faces
 
-        reduce_dim = self._reduce_dim_golden()
+        reduce_dim = self.reduce_dim_golden()
         pool_type = self.pool
 
         tensor_a = tilize_block(
@@ -218,7 +211,7 @@ class ReduceFpu(Fpu):
         num_faces = operation_config.num_faces
 
         pool_type_cpp = f"PoolType::{self.pool.value}"
-        reduce_dim_cpp = self._reduce_dim_enum()
+        reduce_dim_cpp = self.reduce_dim()
 
         unp_a_src_format = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{operation_config.src_a.data_format})"
 
