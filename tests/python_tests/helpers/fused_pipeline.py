@@ -21,7 +21,6 @@ from helpers.fused_operation import FusedOperation
 from helpers.fused_packer import Packer
 from helpers.fused_unpacker import (
     MatmulUnpacker,
-    ReduceUnpacker,
     Unpacker,
     UnpackerA,
     UnpackerAB,
@@ -42,7 +41,6 @@ UNPACKER_MAP: Dict[str, Type[Unpacker]] = {
     "UnpackerAB": UnpackerAB,
     "UnpackerTilizeA": UnpackerTilizeA,
     "MatmulUnpacker": MatmulUnpacker,
-    "ReduceUnpacker": ReduceUnpacker,
 }
 
 PACKER_MAP: Dict[str, Type[Packer]] = {
