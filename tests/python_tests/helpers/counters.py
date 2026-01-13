@@ -246,7 +246,6 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
 
     # Count valid configs (check bit 31)
     valid_count = sum(1 for m in metadata if (m & 0x80000000) != 0)
-    # Count valid configs (check bit 31)
 
     if valid_count == 0:
         return []
