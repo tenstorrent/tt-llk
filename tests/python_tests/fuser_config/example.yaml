@@ -53,7 +53,7 @@ operations:
     src_b_const_value: 1.0
     input_format: "Float16_b"
     output_format: "Float16_b"
-    unpacker: "ReduceUnpacker"
+    unpacker: "UnpackerAB"
     math:
       fpu: "ReduceColumn"
       reduce_pool: "Max"

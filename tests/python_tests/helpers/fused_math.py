@@ -222,7 +222,8 @@ class ReduceFpu(Fpu):
             f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
             f"    {{\n"
             f"        _llk_math_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false, false>(\n"
-            f"            i, false, {num_faces});\n"
+            f"            i, false, {num_faces}\n"
+            f"        );\n"
             f"    }}\n"
         )
 
