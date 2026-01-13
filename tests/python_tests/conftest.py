@@ -164,7 +164,8 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     def no_summary(*args, **kwargs):
         pass
 
-    terminalreporter.short_test_summary = no_summary
+    if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
+        terminalreporter.short_test_summary = no_summary
     terminalreporter.showfspath = False
 
 

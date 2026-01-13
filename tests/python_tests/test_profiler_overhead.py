@@ -27,7 +27,7 @@ def test_profiler_overhead(workers_tensix_coordinates):
     # therefore it can't levarege default producer-consumer separation of compile and execute phases.
     # In order to avoid compiling the test elf twice we run it in only one of two phases - the consumer/execute phase,
     # where everything is done.
-    if TestConfig.MODE == TestMode.PRODUCE:
+    if TestConfig.MODE == TestMode.PRODUCE or TestConfig.WITH_COVERAGE:
         pytest.skip()
 
     configuration = ProfilerConfig("sources/profiler_overhead_test.cpp")

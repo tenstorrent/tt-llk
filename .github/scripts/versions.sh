@@ -7,10 +7,7 @@
 # This file should be sourced by installation scripts
 
 # tt-exalens configuration
-export EXALENS_VERSION="0.2.0-py3-none-any"
-export EXALENS_TAG="v${EXALENS_VERSION%%-*}"
-export EXALENS_WHEEL="tt_exalens-${EXALENS_VERSION}.whl"
-export EXALENS_URL="https://github.com/tenstorrent/tt-exalens/releases/download/${EXALENS_TAG}/${EXALENS_WHEEL}"
+export EXALENS_VERSION="0.2.2"
 
 # tt-smi configuration
 export TT_SMI_VERSION="3.0.38"
