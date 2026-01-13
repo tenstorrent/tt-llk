@@ -266,8 +266,7 @@ private:
 
             // Encode: [valid(31), mux_ctrl_bit4(17), mode(16), counter_id(8-15), bank(0-7)]
             uint32_t metadata = (1u << 31) | // Valid bit to distinguish from empty slots
-                                (config.mux_ctrl_bit4 << 17) | (static_cast<uint32_t>(mode) << 16) | (config.counter_id << 8) |
-                                static_cast<uint32_t>(config.bank);
+                                (config.mux_ctrl_bit4 << 17) | ((config.mode_bit & 0x1u) << 16) | (config.counter_id << 8) | static_cast<uint32_t>(config.bank);
 
             config_mem[i] = metadata;
         }
