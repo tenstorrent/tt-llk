@@ -47,6 +47,7 @@ class Operand:
         tile_count = (height // 32) * (width // 32)
 
         faces_needed = tile_count * 4
+        faces_data = []
 
         for _ in range(faces_needed):
             face = generate_random_face(
@@ -57,29 +58,16 @@ class Operand:
                 face_r_dim=16,
                 negative_values=False,
             )
-            raw_data = torch.full((height, width), const_value, dtype=dtype)
-        else:
-            faces_data = []
+            faces_data.extend(face.tolist())
 
-            for _ in range(faces_needed):
-                face = generate_random_face(
-                    stimuli_format=self.data_format,
-                    const_value=1,
-                    const_face=False,
-                    sfpu=self.sfpu,
-                    face_r_dim=16,
-                    negative_values=False,
-                )
-                faces_data.extend(face.tolist())
-
-            dtype = (
-                format_dict[self.data_format]
-                if self.data_format != DataFormat.Bfp8_b
-                else torch.bfloat16
-            )
-            raw_data = torch.tensor(faces_data[: height * width], dtype=dtype).view(
-                height, width
-            )
+        dtype = (
+            format_dict[self.data_format]
+            if self.data_format != DataFormat.Bfp8_b
+            else torch.bfloat16
+        )
+        raw_data = torch.tensor(faces_data[: height * width], dtype=dtype).view(
+            height, width
+        )
 
         if self.data_format != DataFormat.Bfp8_b:
             tilized_data = tilize_block(
@@ -264,12 +252,6 @@ class OperandRegistry:
 
         if src_b not in self.operands:
             self.add_input(src_b, dimensions=src_b_dims, data_format=input_format)
-
-        if src_a_const_value is not None:
-            self.operands[src_a].generate_data(const_value=src_a_const_value)
-
-        if src_b_const_value is not None:
-            self.operands[src_b].generate_data(const_value=src_b_const_value)
 
         if src_a_tensor is not None:
             self.operands[src_a].set_data(src_a_tensor)
