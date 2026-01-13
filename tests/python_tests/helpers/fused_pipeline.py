@@ -14,7 +14,6 @@ from helpers.fused_math import (
     Math,
     MatmulFpu,
     ReduceFpu,
-    ReduceSfpu,
     UnarySfpu,
 )
 from helpers.fused_operand import OperandRegistry
@@ -206,11 +205,6 @@ def parse_math_operation(
                         dst_dest_tile_index,
                     )
                 )
-            elif sfpu_type == "ReduceSfpu":
-                operation = REDUCE_OPERATION_MAP[sfpu_config["operation"]]
-                reduce_pool = REDUCE_POOL_MAP[sfpu_config["reduce_pool"]]
-
-                sfpu_ops.append(ReduceSfpu(operation, reduce_pool))
             else:
                 raise ValueError(f"Unsupported SFPU type: {sfpu_type}")
 

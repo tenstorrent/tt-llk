@@ -1,25 +1,5 @@
 operations:
-  - src_a: "input_B"
-    src_b: "input_A"
-    output: "reduce_sfpu_output"
-    src_a_dims: [64, 64]
-    src_b_dims: [64, 64]
-    input_format: "Float16_b"
-    output_format: "Float16_b"
-    unpacker: "UnpackerA"
-    math:
-      fpu: "Datacopy"
-      sfpu:
-        - type: "ReduceSfpu"
-          operation: "ReduceColumn"
-          reduce_pool: "Average"
-    packer: "Packer"
-    dest_acc: "Yes"
-    math_fidelity: "HiFi4"
-    unpack_transpose_within_face: "Yes"
-    unpack_transpose_faces: "No"
-
-  - src_a: "reduce_sfpu_output"
+  - src_a: "input_A"
     src_b: "input_B"
     output: "datacopy_output"
     src_a_dims: [64, 64]

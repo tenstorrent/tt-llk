@@ -1143,7 +1143,7 @@ class UnarySFPUGolden:
 
         # Special handling for SumColumns which needs to process the entire tensor
         if operation == MathOperation.ReduceColumn:
-            return self.ops[operation](operand1, reduce_pool, dimensions)
+            return self.ops[operation](operand1, reduce_pool)
 
         # determine the data format for dst
         if self.dest_acc == DestAccumulation.Yes:
@@ -1368,71 +1368,25 @@ class UnarySFPUGolden:
         )
         return torch.max(input_tensor, torch.tensor(threshold)).item()
 
-    def _reduce_columns(self, x, reduce_pool: ReducePool, dimensions: tuple[int, int]):
+    def _reduce_columns(self, x, reduce_pool: ReducePool):
         """Reduce columns across tiles, computing sum, average, or max."""
-        rows, cols = dimensions
-        num_blocks = rows // 32
-
-        x_reshaped = x.contiguous().view(num_blocks, 32, cols)
-        reduced = x_reshaped.clone()
-
-        g0 = x_reshaped[:, 0::4, :]
-        g1 = x_reshaped[:, 1::4, :]
-        g2 = x_reshaped[:, 2::4, :]
-        g3 = x_reshaped[:, 3::4, :]
-
-        if reduce_pool == ReducePool.Sum:
-            s3 = torch.sum(g3, dim=1)
-            s2 = s3 + torch.sum(g2, dim=1)
-            s1 = s2 + torch.sum(g1, dim=1)
-            s0 = torch.sum(x_reshaped, dim=1)
-
-            reduced[:, 3, :] = s3
-            reduced[:, 2, :] = s2
-            reduced[:, 1, :] = s1
-            reduced[:, 0, :] = s0
-
-        elif reduce_pool == ReducePool.Average:
-            sum3 = torch.sum(g3, dim=1)
-            sum2 = sum3 + torch.sum(g2, dim=1)
-            sum1 = sum2 + torch.sum(g1, dim=1)
-            sum0 = torch.sum(x_reshaped, dim=1)
-
-            reduced[:, 3, :] = sum3 / 32
-            reduced[:, 2, :] = sum2 / 32
-            reduced[:, 1, :] = sum1 / 32
-            reduced[:, 0, :] = sum0 / 32
-
-        elif reduce_pool == ReducePool.Max:
-            m3 = torch.max(g3, dim=1).values
-            m2 = torch.max(g2, dim=1).values
-            m1 = torch.max(g1, dim=1).values
-            m0 = torch.max(g0, dim=1).values
-
-            reduced[:, 3, :] = m3
-            reduced[:, 2, :] = m2
-            reduced[:, 1, :] = m1
-
-            m = torch.stack([m0, m1, m2, m3], dim=0)
-            reduced[:, 0, :] = torch.max(m, dim=0).values
-
+        # Reduce columns within this tensor
+        # Take max along the height (dim=0) for each column
+        if reduce_pool == ReducePool.Max:
+            reduced_tile = torch.max(x, dim=0).values
         elif reduce_pool == ReducePool.Min:
-            n3 = torch.min(g3, dim=1).values
-            n2 = torch.min(g2, dim=1).values
-            n1 = torch.min(g1, dim=1).values
-            n0 = torch.min(g0, dim=1).values
-
-            reduced[:, 3, :] = n2
-            reduced[:, 2, :] = n1
-            reduced[:, 1, :] = n0
-
-            n = torch.stack([n0, n1, n2, n3], dim=0)
-            reduced[:, 0, :] = torch.min(n, dim=0).values
-
+            reduced_tile = torch.min(x, dim=0).values
+        elif reduce_pool == ReducePool.Sum:
+            reduced_tile = torch.sum(x, dim=0)
+        elif reduce_pool == ReducePool.Average:
+            reduced_tile = torch.sum(x, dim=0) / x.shape[0]
         else:
             raise ValueError(f"Unsupported reduce pool type: {reduce_pool}")
 
-        return reduced.reshape(dimensions)
+        # Construct golden tensor: first row is column max, others are zero
+        reduced_tile_tensor = torch.zeros_like(x)
+        reduced_tile_tensor[0, :] = reduced_tile
+        return reduced_tile_tensor
 
 
 @register_golden
@@ -1741,8 +1695,6 @@ class ReduceGolden:
     def _apply_pooling(self, tensor, pool_type, dim):
         if pool_type == ReducePool.Max:
             return torch.max(tensor, dim=dim).values
-        elif pool_type == ReducePool.Min:
-            return torch.min(tensor, dim=dim).values
         elif pool_type == ReducePool.Average:
             return torch.mean(tensor, dim=dim)
         elif pool_type == ReducePool.Sum:
