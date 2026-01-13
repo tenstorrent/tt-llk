@@ -298,9 +298,9 @@ public:
      */
     void add(CounterBank bank, uint32_t counter_id, uint32_t mux_ctrl_bit4 = 0)
     {
-        if (counter_count >= 30)
+        if (counter_count >= 66)
         {
-            return; // Max 10 counters
+            return; // Max 66 counters
         }
 
         // Initialize mode_bit to current mode (0=REQUESTS, 1=GRANTS)
