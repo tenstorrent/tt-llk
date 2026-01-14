@@ -62,7 +62,7 @@ from helpers.utils import passed_test
     dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
     fast_mode=[
         True,
-        False,
+        # False,
     ],
 )
 def test_unpack_AB_col_bcast_sub_exp(

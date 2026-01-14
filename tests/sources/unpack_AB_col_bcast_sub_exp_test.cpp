@@ -4,18 +4,20 @@
 
 /**
  * Test for unpackAB with column broadcast, subtraction, and fast-approximate exponential.
+ * Modified: Packing moved from TRISC2 to TRISC1 after SFPU completion.
  *
  * Pipeline:
  * 1. Unpack srcA (regular unpack) - TRISC0/Unpacker
  * 2. Unpack srcB with column broadcast - TRISC0/Unpacker
  * 3. FPU subtraction: dest = srcA - broadcast_column(srcB) - TRISC1/Math
- * 4. SFPU fast-approx exponential on dest - TRISC2/Packer (optimization: SFPU on packer thread)
- * 5. Pack result to L1 - TRISC2/Packer
+ * 4. SFPU fast-approx exponential on dest - TRISC2/Packer
+ * 5. Pack result to L1 - TRISC1/Math (moved from TRISC2)
  *
  * Thread synchronization:
  * - Math thread signals done via _llk_math_dest_section_done_
  * - Packer waits for math via _llk_packer_wait_for_math_done_
- * - Packer then runs SFPU exponential and packs the result
+ * - Packer runs SFPU exponential and signals math when done
+ * - Math thread waits for SFPU completion then packs result
  *
  * Configuration:
  * - Format: Float16_b input and output
@@ -40,6 +42,17 @@
 uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
+
+// NEW: Synchronization functions for SFPU-to-MATH signaling
+inline void signal_sfpu_done_()
+{
+    ckernel::semaphore_post(ckernel::semaphore::UNPACK_MATH_DONE);
+}
+
+inline void wait_for_sfpu_done_()
+{
+    ckernel::semaphore_get(ckernel::semaphore::UNPACK_MATH_DONE);
+}
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -71,6 +84,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary.h"
+#include "llk_pack.h"        // NEW: Added pack headers
+#include "llk_pack_common.h" // NEW: Added pack headers
 #include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams *params)
@@ -90,32 +105,13 @@ void run_kernel(const volatile struct RuntimeParams *params)
             4 /* num_faces */, i /* dst_index */, false /* clear_fp32_dst_acc */);
     }
 
-    // Signal to packer that math (subtraction) is done
-    // Packer will then run SFPU exponential on the result
+    // Signal to packer (TRISC2) that math (subtraction) is done
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-}
 
-#endif
+    // NEW: Wait for SFPU to complete on TRISC2
+    wait_for_sfpu_done_();
 
-// Include SFPU headers outside of conditional for packer thread access
-#include "llk_math_eltwise_unary_sfpu.h"
-
-#ifdef LLK_TRISC_PACK
-
-#include "ckernel_sfpu.h"
-#include "llk_pack.h"
-#include "llk_pack_common.h"
-#include "params.h"
-#include "sfpu_operations.h"
-
-using namespace ckernel;
-using namespace ckernel::sfpu;
-
-// Number of SFPU iterations - 32 iterations processes one full tile
-const int iterations = 32;
-
-void run_kernel(const volatile struct RuntimeParams *params)
-{
+    // NEW: Configure and run packing (moved from TRISC2)
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #else
@@ -130,52 +126,71 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
 #endif
 
-    // Wait for math (subtraction) to complete
-    _llk_packer_wait_for_math_done_();
-
-    {
-        // SFPU CODE ON PACKER
-
-        // Now perform SFPU fast-approx exponential on the subtraction result in dest
-        // SFPU runs on packer thread (TRISC2) after math thread signals done
-        _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
-
-        for (int i = 0; i < params->TILE_CNT; ++i)
-        {
-            _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
-
-            // Call SFPU exponential with:
-            // - APPROX_MODE = true (approximation enabled)
-            // - is_fp32_dest_acc_en = false (no dest accumulation, 16-bit mode)
-            // - iterations = 32 (process full tile)
-            // - FAST_MODE = template parameter (enable/disable Schraudolph fast approximation algorithm)
-
-            if constexpr (FAST_MODE)
-            {
-                for (int j = 0; j < 4; j++)
-                {
-                    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
-                    TTI_INCRWC(0, 4, 0, 0);
-                    TTI_INCRWC(0, 4, 0, 0);
-                    TTI_INCRWC(0, 4, 0, 0);
-                    TTI_INCRWC(0, 4, 0, 0);
-                }
-            }
-            else
-            {
-                test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
-            }
-
-            _llk_math_eltwise_unary_sfpu_done_();
-        }
-    }
-
     // Pack the result after SFPU exponential
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+}
+
+#endif
+
+// Include SFPU headers outside of conditional for packer thread access
+#include "llk_math_eltwise_unary_sfpu.h"
+
+#ifdef LLK_TRISC_PACK
+
+#include "ckernel_sfpu.h"
+#include "llk_pack_common.h"
+#include "params.h"
+#include "sfpu_operations.h"
+
+using namespace ckernel;
+using namespace ckernel::sfpu;
+
+// Number of SFPU iterations - 32 iterations processes one full tile
+const int iterations = 32;
+
+void run_kernel(const volatile struct RuntimeParams *params)
+{
+    // Wait for math (subtraction) to complete
+    _llk_packer_wait_for_math_done_();
+
+    // SFPU CODE ON PACKER (only SFPU, no packing)
+    _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
+
+    for (int i = 0; i < params->TILE_CNT; ++i)
+    {
+        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
+
+        // Call SFPU exponential with:
+        // - APPROX_MODE = true (approximation enabled)
+        // - is_fp32_dest_acc_en = false (no dest accumulation, 16-bit mode)
+        // - iterations = 32 (process full tile)
+        // - FAST_MODE = template parameter (enable/disable Schraudolph fast approximation algorithm)
+
+        if constexpr (FAST_MODE)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
+                TTI_INCRWC(0, 4, 0, 0);
+                TTI_INCRWC(0, 4, 0, 0);
+                TTI_INCRWC(0, 4, 0, 0);
+                TTI_INCRWC(0, 4, 0, 0);
+            }
+        }
+        else
+        {
+            test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
+        }
+
+        _llk_math_eltwise_unary_sfpu_done_();
+    }
+
+    // NEW: Signal to math thread that SFPU is done
+    signal_sfpu_done_();
 }
 
 #endif
