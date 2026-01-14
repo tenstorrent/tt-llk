@@ -71,10 +71,10 @@ inline void _llk_pack_configure_addrmod_()
 
 template <bool untilize = false, bool zero_output = false, bool tilize = false>
 inline void _llk_pack_mop_config_(
-    [[maybe_unused]] const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim           = FACE_R_DIM,
-    const std::uint32_t tile_c_dim           = TILE_C_DIM,
-    const std::uint32_t num_faces            = 4,
+    [[maybe_unused]] const uint32_t pack_dst_format,
+    const uint32_t face_r_dim                = FACE_R_DIM,
+    const uint32_t tile_c_dim                = TILE_C_DIM,
+    const uint32_t num_faces                 = 4,
     [[maybe_unused]] const bool partial_face = false,
     [[maybe_unused]] const bool narrow_tile  = false)
 {
@@ -82,14 +82,14 @@ inline void _llk_pack_mop_config_(
     LLK_ASSERT(!partial_face, "partial_face: this parameter is unused");
     LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
 
-    constexpr uint MEGAROW          = 1;
-    constexpr uint ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
+    constexpr uint32_t MEGAROW          = 1;
+    constexpr uint32_t ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
 
     if constexpr (untilize && !tilize)
     {
-        const uint PACK_INTF_SEL  = (tile_c_dim < TILE_C_DIM) ? p_pacr::SINGLE_INTF_ACTIVE : p_pacr::TWO_INTFS_ACTIVE;
-        const uint MOP_INNER_LOOP = face_r_dim;
-        const uint MOP_OUTER_LOOP = (tile_c_dim < TILE_C_DIM) ? num_faces : (num_faces >> 1);
+        const uint32_t PACK_INTF_SEL  = (tile_c_dim < TILE_C_DIM) ? p_pacr::SINGLE_INTF_ACTIVE : p_pacr::TWO_INTFS_ACTIVE;
+        const uint32_t MOP_INNER_LOOP = face_r_dim;
+        const uint32_t MOP_OUTER_LOOP = (tile_c_dim < TILE_C_DIM) ? num_faces : (num_faces >> 1);
 
         ckernel::ckernel_template tmp(
             MOP_OUTER_LOOP,
@@ -138,13 +138,13 @@ inline void _llk_pack_mop_config_(
     }
     else if constexpr (tilize && !untilize)
     {
-        const uint PACK_INTF_SEL_0 = 0b0101;
-        const uint PACK_INTF_SEL_1 = 0b1010;
-        const uint MOP_INNER_LOOP  = 1;
-        const uint MOP_OUTER_LOOP  = 2;
+        const uint32_t PACK_INTF_SEL_0 = 0b0101;
+        const uint32_t PACK_INTF_SEL_1 = 0b1010;
+        const uint32_t MOP_INNER_LOOP  = 1;
+        const uint32_t MOP_OUTER_LOOP  = 2;
 
         // Last row of half-tile (16 rows) is different between halves, so can't be replayed.
-        const uint replay_buf_len = 15;
+        const uint32_t replay_buf_len = 15;
 
         // This replay buffer finishes 2 faces
         load_replay_buf(
@@ -395,10 +395,10 @@ inline void _llk_pack_mop_config_(
     }
     else
     {
-        const uint PACK_INTF_SEL = face_r_dim == 1 ? p_pacr::SINGLE_INTF_ACTIVE : (face_r_dim == 2 ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::ALL_INTF_ACTIVE);
+        const uint32_t PACK_INTF_SEL = face_r_dim == 1 ? p_pacr::SINGLE_INTF_ACTIVE : (face_r_dim == 2 ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::ALL_INTF_ACTIVE);
 
-        const uint MOP_INNER_LOOP = (face_r_dim < 4) ? 1 : face_r_dim >> 2;
-        const uint MOP_OUTER_LOOP = num_faces;
+        const uint32_t MOP_INNER_LOOP = (face_r_dim < 4) ? 1 : face_r_dim >> 2;
+        const uint32_t MOP_OUTER_LOOP = num_faces;
 
         ckernel::ckernel_template tmp(
             MOP_OUTER_LOOP,
@@ -457,14 +457,14 @@ inline void _llk_pack_mop_config_(
 
 template <bool is_fp32_dest_acc_en, bool is_tile_dim_reconfig_en = false>
 inline void _llk_pack_reconfig_data_format_(
-    const std::uint32_t pack_src_format,
-    const std::uint32_t pack_dst_format,
-    const std::uint32_t tile_size,
-    const std::uint32_t face_r_dim = FACE_R_DIM,
-    const std::uint32_t tile_c_dim = TILE_C_DIM,
-    const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false)
+    const uint32_t pack_src_format,
+    const uint32_t pack_dst_format,
+    const uint32_t tile_size,
+    const uint32_t face_r_dim = FACE_R_DIM,
+    const uint32_t tile_c_dim = TILE_C_DIM,
+    const uint32_t num_faces  = 4,
+    const bool partial_face   = false,
+    const bool narrow_tile    = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, tile_size, face_r_dim, tile_c_dim, num_faces, partial_face);
@@ -477,15 +477,15 @@ inline void _llk_pack_reconfig_data_format_(
 
 template <bool is_fp32_dest_acc_en, bool untilize = false, bool tilize = false>
 inline void _llk_pack_hw_configure_(
-    const std::uint32_t pack_src_format,
-    const std::uint32_t pack_dst_format,
-    const std::uint32_t tile_size,
-    const std::uint32_t face_r_dim  = FACE_R_DIM,
-    const std::uint32_t tile_c_dim  = TILE_C_DIM,
-    const std::uint32_t num_faces   = 4,
-    const bool partial_face         = false,
-    const bool narrow_tile          = false,
-    const std::uint32_t relu_config = 0)
+    const uint32_t pack_src_format,
+    const uint32_t pack_dst_format,
+    const uint32_t tile_size,
+    const uint32_t face_r_dim  = FACE_R_DIM,
+    const uint32_t tile_c_dim  = TILE_C_DIM,
+    const uint32_t num_faces   = 4,
+    const bool partial_face    = false,
+    const bool narrow_tile     = false,
+    const uint32_t relu_config = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     configure_pack<is_fp32_dest_acc_en, untilize, tilize>(
@@ -495,12 +495,12 @@ inline void _llk_pack_hw_configure_(
 // TODO NC: Clean up as the part of tt-metal#34587
 template <bool untilize = false, bool zero_output = false, bool tilize = false>
 inline void _llk_pack_init_(
-    const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim = FACE_R_DIM,
-    const std::uint32_t tile_c_dim = TILE_C_DIM,
-    const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false,
-    const bool narrow_tile         = false)
+    const uint32_t pack_dst_format,
+    const uint32_t face_r_dim = FACE_R_DIM,
+    const uint32_t tile_c_dim = TILE_C_DIM,
+    const uint32_t num_faces  = 4,
+    const bool partial_face   = false,
+    const bool narrow_tile    = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     _llk_pack_configure_addrmod_<untilize, tilize>();
@@ -510,11 +510,11 @@ inline void _llk_pack_init_(
 // TODO NC: Clean up as the part of tt-metal#34587
 template <bool untilize = false, bool zero_output = false, bool tilize = false>
 inline void _llk_pack_init_(
-    const std::uint32_t pack_src_format,
-    const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim,
-    const std::uint32_t tile_c_dim,
-    const std::uint32_t num_faces,
+    const uint32_t pack_src_format,
+    const uint32_t pack_dst_format,
+    const uint32_t face_r_dim,
+    const uint32_t tile_c_dim,
+    const uint32_t num_faces,
     const bool partial_face = false,
     const bool narrow_tile  = false)
 {
@@ -531,7 +531,7 @@ inline void _llk_pack_uninit_()
 }
 
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
-inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
+inline void _llk_pack_(const uint32_t tile_index, const uint32_t address)
 {
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 

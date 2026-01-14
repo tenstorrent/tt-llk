@@ -29,7 +29,7 @@ template <
     MathFidelity math_fidelity,
     bool is_int_fpu_en             = false,
     bool enforce_fp32_accumulation = false>
-inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
+inline void _llk_math_reduce_(const uint32_t dst_index, bool narrow_tile = false, const uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     constexpr bool high_fidelity = is_high_fidelity(math_fidelity);
@@ -120,7 +120,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
             /*
             if constexpr (is_fp32_dest_acc_en) {
-                if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
+                if (0 == (((uint32_t)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
                     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
                     TTI_SFPLOAD(0, 0, 3, 0);
                     TTI_SFP_STOCH_RND(0,0,0,0,0,8);
@@ -245,7 +245,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                 TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
                 /*
                 if constexpr (is_fp32_dest_acc_en) {
-                    if (0 == (((uint)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
+                    if (0 == (((uint32_t)unpack_dst_format[0]>>2)&0x1)) { // fp32 to fp16_a conversion
                         TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
                         TTI_SFPLOAD(0, 0, 3, 0);
                         TTI_SFP_STOCH_RND(0,0,0,0,0,8);
@@ -275,8 +275,8 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     }
     else if constexpr (dim == ReduceDim::REDUCE_COL)
     {
-        const uint num_row_tiles = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
-        for (uint row_tile = 0; row_tile < num_row_tiles; row_tile++)
+        const uint32_t num_row_tiles = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
+        for (uint32_t row_tile = 0; row_tile < num_row_tiles; row_tile++)
         {
             // Just pool
             if constexpr (type == PoolType::MAX)
@@ -321,7 +321,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     }
     else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
     {
-        for (uint face_num = 0; face_num < (num_faces - 1); face_num++)
+        for (uint32_t face_num = 0; face_num < (num_faces - 1); face_num++)
         {
             // Wait and pool
             if constexpr (type == PoolType::MAX)
@@ -466,7 +466,7 @@ inline void _llk_math_reduce_init_()
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-inline void _llk_math_reduce_uninit_(const std::uint32_t srca_data_format)
+inline void _llk_math_reduce_uninit_(const uint32_t srca_data_format)
 {
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(srca_data_format);
 }

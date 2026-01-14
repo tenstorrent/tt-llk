@@ -596,7 +596,7 @@ class TestConfig:
             header_content.extend(
                 [
                     "// Format data for multiple L1-to-L1 iterations",
-                    f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {self.L1_to_L1_iterations};",
+                    f"constexpr uint32_t L1_to_L1_ITERATIONS = {self.L1_to_L1_iterations};",
                     "#define FUSED_MULTIPLE_RUNS true",
                 ]
             )
@@ -675,7 +675,7 @@ class TestConfig:
             '#include "tensix_types.h"',
             "",
             "// Basic configuration",
-            "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
+            "constexpr uint32_t TILE_SIZE_CNT = 0x1000;",
         ]
 
         if self.variant_stimuli:
@@ -719,9 +719,9 @@ class TestConfig:
 
         header_content.extend(
             [
-                f"constexpr std::uint32_t TILE_SIZE_PACK = {pack_size};",
-                f"constexpr std::uint32_t TILE_SIZE_UNPACK_A = {unpack_size_a};",
-                f"constexpr std::uint32_t TILE_SIZE_UNPACK_B = {unpack_size_b};",
+                f"constexpr uint32_t TILE_SIZE_PACK = {pack_size};",
+                f"constexpr uint32_t TILE_SIZE_UNPACK_A = {unpack_size_a};",
+                f"constexpr uint32_t TILE_SIZE_UNPACK_B = {unpack_size_b};",
             ]
         )
 

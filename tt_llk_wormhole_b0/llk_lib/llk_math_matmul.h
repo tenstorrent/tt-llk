@@ -23,11 +23,11 @@ using namespace ckernel;
 template <MathFidelity math_fidelity, int THROTTLE_LEVEL>
 inline void matmul_configure_addrmod(
     const bool transpose,
-    const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
-    const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
-    const bool partial_face            = false)
+    const uint32_t in0_tile_r_dim = TILE_R_DIM,
+    const uint32_t in0_tile_c_dim = TILE_C_DIM,
+    const uint32_t in1_tile_r_dim = TILE_R_DIM,
+    const uint32_t in1_tile_c_dim = TILE_C_DIM,
+    const bool partial_face       = false)
 {
     constexpr int fidelity_increment = is_high_fidelity(math_fidelity) ? 1 : 0;
 
@@ -298,13 +298,13 @@ inline void matmul_configure_addrmod(
 
 template <MathFidelity math_fidelity>
 inline void matmul_configure_mop(
-    const std::uint32_t ct_dim,
-    const std::uint32_t rt_dim,
-    const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
-    const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
-    const bool partial_face            = false)
+    const uint32_t ct_dim,
+    const uint32_t rt_dim,
+    const uint32_t in0_tile_r_dim = TILE_R_DIM,
+    const uint32_t in0_tile_c_dim = TILE_C_DIM,
+    const uint32_t in1_tile_r_dim = TILE_R_DIM,
+    const uint32_t in1_tile_c_dim = TILE_C_DIM,
+    const bool partial_face       = false)
 {
     // in0 - loaded to SrcB
     // in1 - loaded to SrcA
@@ -316,15 +316,15 @@ inline void matmul_configure_mop(
 
     constexpr bool high_fidelity = is_high_fidelity(math_fidelity);
 
-    const bool reuse_a        = ct_dim >= rt_dim;
-    const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
+    const bool reuse_a   = ct_dim >= rt_dim;
+    const uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
 
     const bool is_in0_16x32 = (in0_tile_r_dim <= FACE_R_DIM) && (in0_tile_c_dim > FACE_C_DIM);
     const bool is_in1_32x16 = (in1_tile_r_dim > FACE_R_DIM) && (in1_tile_c_dim <= FACE_C_DIM);
     const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
     const bool is_in1_16x32 = (in1_tile_r_dim <= FACE_R_DIM) && (in1_tile_c_dim > FACE_C_DIM);
 
-    const std::uint32_t replay_buf_len =
+    const uint32_t replay_buf_len =
         (is_in0_16x32 && is_in1_32x16) ? 4 : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : 16);
 
     lltt::record(ckernel::math::replay_buf_offset, replay_buf_len);
@@ -429,7 +429,7 @@ inline void matmul_configure_mop(
     }
 
     // TODO: can we commonize this?
-    constexpr uint inner_loops = high_fidelity ? to_underlying(math_fidelity) : 1;
+    constexpr uint32_t inner_loops = high_fidelity ? to_underlying(math_fidelity) : 1;
     ckernel_template tmp(1 /* outer loop */, inner_loops, lltt::replay_insn(ckernel::math::replay_buf_offset, replay_buf_len));
 
     if constexpr (high_fidelity)
@@ -454,7 +454,7 @@ inline void matmul_configure_mop(
 }
 
 template <int THROTTLE_LEVEL, bool high_fidelity>
-void run_throttled_sequence(const std::uint32_t t_dim, const bool reuse_a)
+void run_throttled_sequence(const uint32_t t_dim, const bool reuse_a)
 {
     if constexpr (THROTTLE_LEVEL == 1)
     {
@@ -591,13 +591,13 @@ void run_throttled_sequence(const std::uint32_t t_dim, const bool reuse_a)
  */
 template <MathFidelity math_fidelity, int THROTTLE_LEVEL>
 inline void matmul_configure_mop_throttled(
-    const std::uint32_t ct_dim,
-    const std::uint32_t rt_dim,
-    const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
-    const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
-    const bool partial_face            = false)
+    const uint32_t ct_dim,
+    const uint32_t rt_dim,
+    const uint32_t in0_tile_r_dim = TILE_R_DIM,
+    const uint32_t in0_tile_c_dim = TILE_C_DIM,
+    const uint32_t in1_tile_r_dim = TILE_R_DIM,
+    const uint32_t in1_tile_c_dim = TILE_C_DIM,
+    const bool partial_face       = false)
 {
     // in0 - loaded to SrcB
     // in1 - loaded to SrcA
@@ -612,18 +612,18 @@ inline void matmul_configure_mop_throttled(
         (in0_tile_r_dim == TILE_R_DIM) && (in0_tile_c_dim == TILE_C_DIM) && (in1_tile_r_dim == TILE_R_DIM) && (in1_tile_c_dim == TILE_C_DIM) && !partial_face,
         "MM throttling only enabled for full 32x32 tile size");
 
-    const bool reuse_a        = ct_dim >= rt_dim;
-    const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
+    const bool reuse_a   = ct_dim >= rt_dim;
+    const uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
 
     const bool is_in0_16x32 = (in0_tile_r_dim <= FACE_R_DIM) && (in0_tile_c_dim > FACE_C_DIM);
     const bool is_in1_32x16 = (in1_tile_r_dim > FACE_R_DIM) && (in1_tile_c_dim <= FACE_C_DIM);
     const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
     const bool is_in1_16x32 = (in1_tile_r_dim <= FACE_R_DIM) && (in1_tile_c_dim > FACE_C_DIM);
 
-    constexpr std::uint32_t replay_buff_len_throttle = (THROTTLE_LEVEL > 3) ? (16) : ((THROTTLE_LEVEL > 1) ? (3 + THROTTLE_LEVEL * 4) : 10);
-    const std::uint32_t replay_buf_len =
-        (is_in0_16x32 && is_in1_32x16) ? 4
-                                       : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : replay_buff_len_throttle);
+    constexpr uint32_t replay_buff_len_throttle = (THROTTLE_LEVEL > 3) ? (16) : ((THROTTLE_LEVEL > 1) ? (3 + THROTTLE_LEVEL * 4) : 10);
+    const uint32_t replay_buf_len               = (is_in0_16x32 && is_in1_32x16)
+                                                      ? 4
+                                                      : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : replay_buff_len_throttle);
 
     lltt::record(ckernel::math::replay_buf_offset, replay_buf_len);
     if (!is_in1_32x16 && !is_in1_16x32 && !is_in0_32x16 && !is_in0_16x32)
@@ -631,14 +631,14 @@ inline void matmul_configure_mop_throttled(
         run_throttled_sequence<THROTTLE_LEVEL, high_fidelity>(t_dim, reuse_a);
     }
 
-    constexpr uint outer_loops        = (THROTTLE_LEVEL > 3) ? 2 : (high_fidelity ? to_underlying(math_fidelity) : 1);
-    const uint inner_loops            = (!is_in1_16x32) ? 2 : 1;
-    constexpr uint loop_instruction_0 = (THROTTLE_LEVEL == 5)   ? lltt::replay_insn(ckernel::math::replay_buf_offset + 1, 8)
-                                        : (THROTTLE_LEVEL == 4) ? lltt::replay_insn(ckernel::math::replay_buf_offset + 2, 6)
-                                                                : lltt::replay_insn(ckernel::math::replay_buf_offset, replay_buff_len_throttle);
-    constexpr uint loop_instruction_1 = (THROTTLE_LEVEL == 5)   ? lltt::replay_insn(ckernel::math::replay_buf_offset + 9, 4)
-                                        : (THROTTLE_LEVEL == 4) ? lltt::replay_insn(ckernel::math::replay_buf_offset + 8, 4)
-                                                                : TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
+    constexpr uint32_t outer_loops        = (THROTTLE_LEVEL > 3) ? 2 : (high_fidelity ? to_underlying(math_fidelity) : 1);
+    const uint32_t inner_loops            = (!is_in1_16x32) ? 2 : 1;
+    constexpr uint32_t loop_instruction_0 = (THROTTLE_LEVEL == 5)   ? lltt::replay_insn(ckernel::math::replay_buf_offset + 1, 8)
+                                            : (THROTTLE_LEVEL == 4) ? lltt::replay_insn(ckernel::math::replay_buf_offset + 2, 6)
+                                                                    : lltt::replay_insn(ckernel::math::replay_buf_offset, replay_buff_len_throttle);
+    constexpr uint32_t loop_instruction_1 = (THROTTLE_LEVEL == 5)   ? lltt::replay_insn(ckernel::math::replay_buf_offset + 9, 4)
+                                            : (THROTTLE_LEVEL == 4) ? lltt::replay_insn(ckernel::math::replay_buf_offset + 8, 4)
+                                                                    : TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
     ckernel_template tmp(outer_loops, inner_loops, loop_instruction_0, loop_instruction_1);
 
     if constexpr (THROTTLE_LEVEL == 5)
@@ -677,18 +677,18 @@ inline void matmul_configure_mop_throttled(
 
 template <MathFidelity math_fidelity, int THROTTLE_LEVEL = 0>
 inline void _llk_math_matmul_init_(
-    const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
-    const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
-    const bool partial_face            = false,
-    const std::uint32_t transpose      = 0,
-    const std::uint32_t ct_dim         = 1,
-    const std::uint32_t rt_dim         = 1)
+    const uint32_t in0_tile_r_dim = TILE_R_DIM,
+    const uint32_t in0_tile_c_dim = TILE_C_DIM,
+    const uint32_t in1_tile_r_dim = TILE_R_DIM,
+    const uint32_t in1_tile_c_dim = TILE_C_DIM,
+    const bool partial_face       = false,
+    const uint32_t transpose      = 0,
+    const uint32_t ct_dim         = 1,
+    const uint32_t rt_dim         = 1)
 {
     matmul_configure_addrmod<math_fidelity, THROTTLE_LEVEL>(transpose, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
-    const bool reuse_a        = ct_dim >= rt_dim;
-    const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
+    const bool reuse_a   = ct_dim >= rt_dim;
+    const uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
     if (t_dim > 1)
     {
         if (reuse_a)
@@ -724,16 +724,16 @@ inline void _llk_math_matmul_uninit_()
 }
 
 template <MathFidelity math_fidelity, int THROTTLE_LEVEL = 0>
-inline void _llk_math_matmul_(uint dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
+inline void _llk_math_matmul_(uint32_t dst_index, const uint32_t ct_dim = 1, const uint32_t rt_dim = 1)
 {
     const bool reuse_a           = ct_dim >= rt_dim;
-    const std::uint32_t t_dim    = reuse_a ? rt_dim : ct_dim;
-    const std::uint32_t rut_dim  = reuse_a ? ct_dim : rt_dim; // reuse-dim
+    const uint32_t t_dim         = reuse_a ? rt_dim : ct_dim;
+    const uint32_t rut_dim       = reuse_a ? ct_dim : rt_dim; // reuse-dim
     constexpr bool high_fidelity = is_high_fidelity(math_fidelity);
 
-    for (uint t = 0; t < t_dim; t++)
+    for (uint32_t t = 0; t < t_dim; t++)
     {
-        for (uint rut = 0; rut < rut_dim; rut++)
+        for (uint32_t rut = 0; rut < rut_dim; rut++)
         {
             math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index + (reuse_a ? ct_dim * t + rut : t + rut * ct_dim));
 
@@ -741,7 +741,7 @@ inline void _llk_math_matmul_(uint dst_index, const std::uint32_t ct_dim = 1, co
             {
                 if constexpr (THROTTLE_LEVEL > 3 && high_fidelity)
                 {
-                    for (uint phase = 0; phase < to_underlying(math_fidelity); phase++)
+                    for (uint32_t phase = 0; phase < to_underlying(math_fidelity); phase++)
                     {
                         ckernel_template::run();
                     }
@@ -776,7 +776,7 @@ inline void _llk_math_matmul_(uint dst_index, const std::uint32_t ct_dim = 1, co
             {
                 if constexpr (THROTTLE_LEVEL > 3 && high_fidelity)
                 {
-                    for (uint phase = 0; phase < to_underlying(math_fidelity); phase++)
+                    for (uint32_t phase = 0; phase < to_underlying(math_fidelity); phase++)
                     {
                         ckernel_template::run();
                     }
@@ -821,7 +821,7 @@ inline void _llk_math_matmul_(uint dst_index, const std::uint32_t ct_dim = 1, co
                         dst_index + (reuse_a ? ct_dim * (t + 1) + rut : t + 1 + rut * ct_dim));
                     if constexpr (THROTTLE_LEVEL > 3 && high_fidelity)
                     {
-                        for (uint phase = 0; phase < to_underlying(math_fidelity); phase++)
+                        for (uint32_t phase = 0; phase < to_underlying(math_fidelity); phase++)
                         {
                             ckernel_template::run();
                         }

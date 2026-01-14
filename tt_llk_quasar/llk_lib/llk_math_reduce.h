@@ -43,11 +43,11 @@ inline void _llk_math_reduce_col_mop_config_(const TileShape& tile_shape)
     // So Face 0 reduce, dest counter += 16, Face 1 reduce, dest counter reset to 0
     // then Face 2 reduce (which includes Face 0 reduce result in dest), dest counter += 16, Face 3 reduce(which includes Face 1 reduce result in dest at index
     // 16)
-    const uint32_t MOP_OUTER_LOOP      = 1;
-    const uint32_t MOP_INNER_LOOP      = (tile_shape.num_faces >= 2) ? (tile_shape.num_faces >> 1) : tile_shape.num_faces;
-    constexpr uint NUM_FIDELITY_PHASES = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 0 : to_underlying(MATH_FIDELITY_TYPE) - 1;
-    constexpr bool RUN_FID_LOOPS       = (MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi && (POOL_TYPE == PoolType::AVG || POOL_TYPE == PoolType::SUM));
-    const uint replay_buf_len          = 2 + (2 * NUM_FIDELITY_PHASES);
+    const uint32_t MOP_OUTER_LOOP          = 1;
+    const uint32_t MOP_INNER_LOOP          = (tile_shape.num_faces >= 2) ? (tile_shape.num_faces >> 1) : tile_shape.num_faces;
+    constexpr uint32_t NUM_FIDELITY_PHASES = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 0 : to_underlying(MATH_FIDELITY_TYPE) - 1;
+    constexpr bool RUN_FID_LOOPS           = (MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi && (POOL_TYPE == PoolType::AVG || POOL_TYPE == PoolType::SUM));
+    const uint32_t replay_buf_len          = 2 + (2 * NUM_FIDELITY_PHASES);
 
     load_replay_buf(
         0,
@@ -59,7 +59,7 @@ inline void _llk_math_reduce_col_mop_config_(const TileShape& tile_shape)
         {
             if constexpr (RUN_FID_LOOPS)
             {
-                for (uint fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
+                for (uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
                 {
                     tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0x0>();
                 }
@@ -68,7 +68,7 @@ inline void _llk_math_reduce_col_mop_config_(const TileShape& tile_shape)
 
             if constexpr (RUN_FID_LOOPS)
             {
-                for (uint fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
+                for (uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
                 {
                     tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0x0>();
                 }
@@ -99,12 +99,12 @@ inline void _llk_math_reduce_col_mop_config_(const TileShape& tile_shape)
 template <PoolType POOL_TYPE, ckernel::MathFidelity MATH_FIDELITY_TYPE>
 inline void _llk_math_reduce_row_mop_config_(const TileShape& tile_shape)
 {
-    constexpr bool RUN_FID_LOOPS       = (MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi && (POOL_TYPE == PoolType::AVG || POOL_TYPE == PoolType::SUM));
-    constexpr uint NUM_FIDELITY_PHASES = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 0 : to_underlying(MATH_FIDELITY_TYPE) - 1;
-    constexpr uint32_t MOP_OUTER_LOOP  = 1;
-    constexpr uint32_t MOP_INNER_LOOP  = 1;
+    constexpr bool RUN_FID_LOOPS           = (MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi && (POOL_TYPE == PoolType::AVG || POOL_TYPE == PoolType::SUM));
+    constexpr uint32_t NUM_FIDELITY_PHASES = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 0 : to_underlying(MATH_FIDELITY_TYPE) - 1;
+    constexpr uint32_t MOP_OUTER_LOOP      = 1;
+    constexpr uint32_t MOP_INNER_LOOP      = 1;
     // Replay buf max len is 32, NUM_FIDELITY_PHASES will be larger than 3, hypothetical limit of 19 + 12 = 31
-    constexpr uint replay_buf_len = 19 + (4 * NUM_FIDELITY_PHASES);
+    constexpr uint32_t replay_buf_len = 19 + (4 * NUM_FIDELITY_PHASES);
 
     load_replay_buf(
         0,
@@ -117,7 +117,7 @@ inline void _llk_math_reduce_row_mop_config_(const TileShape& tile_shape)
             // Each face is transposed in the unpacker, and then faces 0 & 1 are pooled together
             if constexpr (RUN_FID_LOOPS)
             {
-                for (uint fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
+                for (uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
                 {
                     tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0>();
                 }
@@ -126,7 +126,7 @@ inline void _llk_math_reduce_row_mop_config_(const TileShape& tile_shape)
 
             if constexpr (RUN_FID_LOOPS)
             {
-                for (uint fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
+                for (uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
                 {
                     tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0>();
                 }
@@ -158,7 +158,7 @@ inline void _llk_math_reduce_row_mop_config_(const TileShape& tile_shape)
             // Each face is transposed in the unpacker, and then faces 0 & 1 are pooled together
             if constexpr (RUN_FID_LOOPS)
             {
-                for (uint fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
+                for (uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
                 {
                     tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0>();
                 }
@@ -167,7 +167,7 @@ inline void _llk_math_reduce_row_mop_config_(const TileShape& tile_shape)
 
             if constexpr (RUN_FID_LOOPS)
             {
-                for (uint fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
+                for (uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
                 {
                     tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0>();
                 }
@@ -214,11 +214,11 @@ inline void _llk_math_reduce_row_mop_config_(const TileShape& tile_shape)
 template <PoolType POOL_TYPE, ckernel::MathFidelity MATH_FIDELITY_TYPE>
 inline void _llk_math_reduce_scalar_mop_config_(const TileShape& tile_shape)
 {
-    constexpr uint32_t MOP_OUTER_LOOP  = 1;
-    constexpr uint32_t MOP_INNER_LOOP  = 1;
-    constexpr uint NUM_FIDELITY_PHASES = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 0 : to_underlying(MATH_FIDELITY_TYPE) - 1;
-    const uint replay_buf_len          = 6 + tile_shape.num_faces - 1 + ((tile_shape.num_faces - 1) * NUM_FIDELITY_PHASES) + (2 * NUM_FIDELITY_PHASES);
-    constexpr bool RUN_FID_LOOPS       = (MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi && (POOL_TYPE == PoolType::AVG || POOL_TYPE == PoolType::SUM));
+    constexpr uint32_t MOP_OUTER_LOOP      = 1;
+    constexpr uint32_t MOP_INNER_LOOP      = 1;
+    constexpr uint32_t NUM_FIDELITY_PHASES = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 0 : to_underlying(MATH_FIDELITY_TYPE) - 1;
+    const uint32_t replay_buf_len          = 6 + tile_shape.num_faces - 1 + ((tile_shape.num_faces - 1) * NUM_FIDELITY_PHASES) + (2 * NUM_FIDELITY_PHASES);
+    constexpr bool RUN_FID_LOOPS           = (MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi && (POOL_TYPE == PoolType::AVG || POOL_TYPE == PoolType::SUM));
 
     load_replay_buf(
         0,
@@ -234,11 +234,11 @@ inline void _llk_math_reduce_scalar_mop_config_(const TileShape& tile_shape)
 
             // Pool all faces together (default 4 faces), this will generate 1x16 row of result at dst index scratch_dst_addr
             // No src/dest counters are incremented
-            for (uint face = 0; face < tile_shape.num_faces - 1; face++)
+            for (uint32_t face = 0; face < tile_shape.num_faces - 1; face++)
             {
                 if constexpr (RUN_FID_LOOPS)
                 {
-                    for (uint fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
+                    for (uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
                     {
                         tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, scratch_dst_addr>();
                     }
@@ -248,7 +248,7 @@ inline void _llk_math_reduce_scalar_mop_config_(const TileShape& tile_shape)
 
             if constexpr (RUN_FID_LOOPS)
             {
-                for (uint fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
+                for (uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
                 {
                     tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, scratch_dst_addr>();
                 }
@@ -269,7 +269,7 @@ inline void _llk_math_reduce_scalar_mop_config_(const TileShape& tile_shape)
 
             if constexpr (RUN_FID_LOOPS)
             {
-                for (uint fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
+                for (uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
                 {
                     // Do final pool of the transposed rows to generate a single pool datum
                     tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0>();

@@ -130,7 +130,7 @@ inline void _perf_unpack_matmul_mock(uint32_t loop_factor, uint32_t rt_dim, uint
             uint32_t reuse_iter = 0;
             while (reuse_iter < reuse_loop)
             {
-                const uint32_t reuse_burst = std::min((uint32_t)2, reuse_loop - reuse_iter);
+                const uint32_t reuse_burst = std::min(static_cast<uint32_t>(2), reuse_loop - reuse_iter);
 
                 for (uint32_t i = 0; i < reuse_burst; i++)
                 {
@@ -199,7 +199,7 @@ inline void _perf_math_matmul_mock(uint32_t loop_factor, uint32_t rt_dim, uint32
             uint32_t reuse_iter = 0;
             while (reuse_iter < reuse_loop)
             {
-                const uint32_t reuse_burst = std::min((uint32_t)2, reuse_loop - reuse_iter);
+                const uint32_t reuse_burst = std::min(static_cast<uint32_t>(2), reuse_loop - reuse_iter);
 
                 for (uint32_t i = 0; i < reload_loop; i++)
                 {

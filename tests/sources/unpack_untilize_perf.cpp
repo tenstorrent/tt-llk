@@ -36,7 +36,7 @@ static_assert(FULL_CT_DIM % BLOCK_CT_DIM == 0, "FULL_CT_DIM must be divisible by
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    constexpr std::uint32_t TILE_SIZE = 2048 / 16; // size of tile in 16B words
+    constexpr uint32_t TILE_SIZE = 2048 / 16; // size of tile in 16B words
 
     {
         ZONE_SCOPED("INIT")

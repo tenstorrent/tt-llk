@@ -69,7 +69,7 @@ inline void _llk_math_eltwise_unary_datacopy_mop_config_(
  * @tparam DATA_COPY_TYPE sets which src register to datacopy from values = <A2D, B2D>
  */
 template <DataCopyType DATA_COPY_TYPE>
-inline void _llk_math_eltwise_unary_datacopy_addrmod_(const uint num_rows_per_move_instrn)
+inline void _llk_math_eltwise_unary_datacopy_addrmod_(const uint32_t num_rows_per_move_instrn)
 {
     constexpr uint8_t use_srca  = (DATA_COPY_TYPE == DataCopyType::A2D);
     constexpr uint8_t use_srcb  = (DATA_COPY_TYPE == DataCopyType::B2D);
@@ -108,11 +108,11 @@ inline void _llk_math_eltwise_unary_datacopy_addrmod_(const uint num_rows_per_mo
  * If unpacker is unpacking 4 faces (16x16 each), with 4 dvalids -> set this value to 4
  */
 template <DataCopyType DATA_COPY_TYPE, bool IS_32b_DEST_EN>
-inline void _llk_math_eltwise_unary_datacopy_init_(const uint num_rows_per_matrix, const uint num_matrices)
+inline void _llk_math_eltwise_unary_datacopy_init_(const uint32_t num_rows_per_matrix, const uint32_t num_matrices)
 {
     // MOVA2D/MOVB2D can move 1, 4 or 8 rows, need to check which
     // For Float32 or Integer dest, ELWADD will be used for rebiasing, can only move MATH_ROWS
-    const uint num_rows_per_move_instrn = [num_rows_per_matrix]() -> const uint
+    const uint32_t num_rows_per_move_instrn = [num_rows_per_matrix]() -> const uint32_t
     {
         if constexpr (IS_32b_DEST_EN)
         {
@@ -120,7 +120,7 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const uint num_rows_per_matri
         }
         else
         {
-            for (uint mr : MOVE_MATH_ROWS)
+            for (uint32_t mr : MOVE_MATH_ROWS)
             {
                 if (_divisible_by_pow_two_(num_rows_per_matrix, mr))
                 {

@@ -18,12 +18,12 @@ using namespace ckernel;
 using namespace ckernel::unpacker;
 
 template <PoolType type, ReduceDim dim>
-inline void _llk_unpack_reduce_mop_config_(const std::uint32_t num_faces)
+inline void _llk_unpack_reduce_mop_config_(const uint32_t num_faces)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    static constexpr uint unpack_srca     = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint unpack_zerosrca = TT_OP_UNPACR_NOP(p_unpacr_nop::UNP0, p_unpacr_nop::UNP_ZEROSRC);
-    static constexpr uint unpack_srcb     = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint32_t unpack_srca     = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr uint32_t unpack_zerosrca = TT_OP_UNPACR_NOP(p_unpacr_nop::UNP0, p_unpacr_nop::UNP_ZEROSRC);
+    static constexpr uint32_t unpack_srcb     = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
     const uint32_t outerloop     = num_faces;
     constexpr uint32_t innerloop = 1;
@@ -33,7 +33,7 @@ inline void _llk_unpack_reduce_mop_config_(const std::uint32_t num_faces)
 }
 
 template <PoolType type, ReduceDim dim>
-inline void _llk_unpack_reduce_init_(const std::uint32_t within_face_16x16_transpose = 0, const std::uint32_t num_faces = 4)
+inline void _llk_unpack_reduce_init_(const uint32_t within_face_16x16_transpose = 0, const uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // REDUCE_ROW requires transpose itself; additionally, within_face_16x16_transpose flag could require transpose;
@@ -47,13 +47,13 @@ inline void _llk_unpack_reduce_init_(const std::uint32_t within_face_16x16_trans
 }
 
 template <PoolType type, ReduceDim dim>
-inline void _llk_unpack_reduce_(const std::uint32_t address)
+inline void _llk_unpack_reduce_(const uint32_t address)
 {
     // Clear z/w start counters
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 
     // Program srcA and srcB base addresses
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // Wait for free context
     wait_for_next_context(2);

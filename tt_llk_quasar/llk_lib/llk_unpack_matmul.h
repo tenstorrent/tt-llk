@@ -24,15 +24,14 @@ using namespace ckernel;
  * @param rt_dim: number of tiles in the row dimension for input0 of matrix multiply
  * @param kt_dim: number of tiles in the common dimension between input0 & input1 of matrix multiply
  */
-inline void _llk_unpack_matmul_mop_config_(
-    std::uint32_t buf_desc_id_0, std::uint32_t buf_desc_id_1, std::uint8_t ct_dim, std::uint8_t rt_dim, std::uint32_t kt_dim)
+inline void _llk_unpack_matmul_mop_config_(uint32_t buf_desc_id_0, uint32_t buf_desc_id_1, std::uint8_t ct_dim, std::uint8_t rt_dim, uint32_t kt_dim)
 {
     const bool reuse_a                = ct_dim >= rt_dim;
     constexpr uint32_t MOP_OUTER_LOOP = 1;
     const uint32_t MOP_INNER_LOOP     = reuse_a ? ct_dim : rt_dim;
-    uint unpack_instrn;
-    // static uint inc_l1_instrn;
-    uint unpack_reuse_instrn;
+    uint32_t unpack_instrn;
+    // static uint32_t inc_l1_instrn;
+    uint32_t unpack_reuse_instrn;
 
     if (reuse_a)
     {
@@ -71,7 +70,7 @@ inline void _llk_unpack_matmul_mop_config_(
  * @param kt_dim: number of tiles in the common dimension between input0 & input1 of matrix multiply
  */
 template <bool TRANSPOSE_EN>
-inline void _llk_unpack_matmul_init_(std::uint32_t buf_desc_id_0, std::uint32_t buf_desc_id_1, std::uint8_t ct_dim, std::uint8_t rt_dim, std::uint32_t kt_dim)
+inline void _llk_unpack_matmul_init_(uint32_t buf_desc_id_0, uint32_t buf_desc_id_1, std::uint8_t ct_dim, std::uint8_t rt_dim, uint32_t kt_dim)
 {
     static_assert((TRANSPOSE_EN == false), "TODO: Transpose srcA not available yet");
     cfg_rmw(THCON_UNPACKER0_REG0_TRANSPOSE_RMW, TRANSPOSE_EN);
@@ -98,19 +97,19 @@ inline void _llk_unpack_matmul_init_(std::uint32_t buf_desc_id_0, std::uint32_t 
  * start_l1_tile_idx_1 -> UNPACKER0 -> SRCA
  */
 inline void _llk_unpack_matmul_(
-    std::uint8_t ct_dim, std::uint8_t rt_dim, std::uint32_t kt_dim, const std::uint32_t start_l1_tile_idx_0, const std::uint32_t start_l1_tile_idx_1)
+    std::uint8_t ct_dim, std::uint8_t rt_dim, uint32_t kt_dim, const uint32_t start_l1_tile_idx_0, const uint32_t start_l1_tile_idx_1)
 {
     // Reset Dest counters for Unpacker to 0
     TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, p_unpacr::UNP_A, 0);
     TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, p_unpacr::UNP_B, 0);
 
-    const bool reuse_a        = ct_dim >= rt_dim;
-    const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
+    const bool reuse_a   = ct_dim >= rt_dim;
+    const uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
 
-    for (std::uint32_t t = 0; t < t_dim; t++)
+    for (uint32_t t = 0; t < t_dim; t++)
     {
-        std::uint32_t tile_idx_0 = start_l1_tile_idx_0 + (reuse_a ? (t * kt_dim) : 0);
-        std::uint32_t tile_idx_1 = start_l1_tile_idx_1 + (reuse_a ? (0) : (t));
+        uint32_t tile_idx_0 = start_l1_tile_idx_0 + (reuse_a ? (t * kt_dim) : 0);
+        uint32_t tile_idx_1 = start_l1_tile_idx_1 + (reuse_a ? (0) : (t));
 
         // Set Source counter to L1 base + offset
         TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, p_unpacr::UNP_B, tile_idx_0);

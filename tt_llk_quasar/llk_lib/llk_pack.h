@@ -27,7 +27,7 @@ inline void _llk_pack_mop_config_(const uint8_t buf_desc_id, const uint32_t num_
     const uint32_t MOP_INNER_LOOP = num_tiles;
 
     // RT: Use defines to remove these constexpr, and replace with a single TT_OP_PACR_FACE_INC
-    uint pack_instrn;
+    uint32_t pack_instrn;
     if constexpr (PACK_SEL == p_pacr::PACK0)
     {
         pack_instrn = TT_OP_PACR0_TILE_INC(1 /*Dest Tile Idx*/, 1 /*Src Tile Idx*/, buf_desc_id, 0);
@@ -69,7 +69,7 @@ inline void _llk_pack_init_(const uint8_t buf_desc_id, const uint32_t num_tiles)
  */
 template <uint8_t PACK_SEL>
 inline void _llk_pack_(
-    const uint start_math_dest_tile_idx, const uint start_l1_tile_idx
+    const uint32_t start_math_dest_tile_idx, const uint32_t start_l1_tile_idx
 
 )
 {

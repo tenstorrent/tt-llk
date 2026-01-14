@@ -24,14 +24,14 @@ enum class BinaryBitwiseOp : uint8_t
 };
 
 template <bool APPROXIMATION_MODE, BinaryBitwiseOp BITWISE_OP, InstrModLoadStore INSTRUCTION_MODE = INT32, int ITERATIONS = 8>
-inline void _calculate_sfpu_binary_bitwise_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
+inline void _calculate_sfpu_binary_bitwise_(const uint32_t dst_index_in0, const uint32_t dst_index_in1, const uint32_t dst_index_out)
 {
     constexpr auto instruction_mode = to_underlying(INSTRUCTION_MODE);
     // SFPU microcode
     for (int d = 0; d < ITERATIONS; d++)
     {
         // size of each tile in Dest is 64 rows
-        constexpr uint dst_tile_size = 64;
+        constexpr uint32_t dst_tile_size = 64;
 
         TT_SFPLOAD(0, instruction_mode, ADDR_MOD_7, dst_index_in0 * dst_tile_size);
         TT_SFPLOAD(1, instruction_mode, ADDR_MOD_7, dst_index_in1 * dst_tile_size);

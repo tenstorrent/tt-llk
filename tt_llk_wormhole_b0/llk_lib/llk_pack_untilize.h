@@ -53,20 +53,15 @@ inline void _llk_pack_untilize_configure_addrmod_()
         .set(ADDR_MOD_3);
 }
 
-template <
-    std::uint32_t block_ct_dim,
-    std::uint32_t full_ct_dim    = block_ct_dim,
-    bool diagonal                = false,
-    bool narrow_row              = false,
-    std::uint32_t row_num_datums = TILE_C_DIM>
-inline void _llk_pack_untilize_mop_config_(const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
+template <uint32_t block_ct_dim, uint32_t full_ct_dim = block_ct_dim, bool diagonal = false, bool narrow_row = false, uint32_t row_num_datums = TILE_C_DIM>
+inline void _llk_pack_untilize_mop_config_(const uint32_t face_r_dim = FACE_R_DIM, const uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    const uint PACKCNT              = diagonal ? (num_faces > 2 ? num_faces / 2 : num_faces) : ((face_r_dim < FACE_R_DIM) ? 1 : num_faces);
-    constexpr uint MEGAROW          = 1;
-    constexpr uint ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
-    constexpr uint MOP_INNER_LOOP   = narrow_row ? (TILE_R_DIM / 4) : (diagonal ? FACE_R_DIM - 1 : 1);
-    constexpr uint MOP_OUTER_LOOP   = narrow_row ? 1 : block_ct_dim;
+    const uint32_t PACKCNT              = diagonal ? (num_faces > 2 ? num_faces / 2 : num_faces) : ((face_r_dim < FACE_R_DIM) ? 1 : num_faces);
+    constexpr uint32_t MEGAROW          = 1;
+    constexpr uint32_t ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
+    constexpr uint32_t MOP_INNER_LOOP   = narrow_row ? (TILE_R_DIM / 4) : (diagonal ? FACE_R_DIM - 1 : 1);
+    constexpr uint32_t MOP_OUTER_LOOP   = narrow_row ? 1 : block_ct_dim;
 
     if constexpr (diagonal)
     {
@@ -109,7 +104,7 @@ inline void _llk_pack_untilize_mop_config_(const std::uint32_t face_r_dim = FACE
 
         if (block_ct_dim != full_ct_dim)
         {
-            const std::uint32_t replay_buf_len = 10;
+            const uint32_t replay_buf_len = 10;
             lltt::record(ckernel::packer::replay_buf_offset, replay_buf_len);
             TTI_PACR(ADDR_MOD_3, 0, 0xf, 0, 0, 1, 1); // close block
             // update l1 address
@@ -126,14 +121,9 @@ inline void _llk_pack_untilize_mop_config_(const std::uint32_t face_r_dim = FACE
     }
 }
 
-template <
-    std::uint32_t block_ct_dim,
-    std::uint32_t full_ct_dim    = block_ct_dim,
-    bool diagonal                = false,
-    bool narrow_row              = false,
-    std::uint32_t row_num_datums = TILE_C_DIM>
+template <uint32_t block_ct_dim, uint32_t full_ct_dim = block_ct_dim, bool diagonal = false, bool narrow_row = false, uint32_t row_num_datums = TILE_C_DIM>
 inline void _llk_pack_untilize_init_(
-    const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, const bool include_setup_calls = false)
+    const uint32_t pack_dst_format, const uint32_t face_r_dim = FACE_R_DIM, const uint32_t num_faces = 4, const bool include_setup_calls = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     _llk_pack_untilize_configure_addrmod_<diagonal, narrow_row>();
@@ -142,7 +132,7 @@ inline void _llk_pack_untilize_init_(
 
     if (block_ct_dim != full_ct_dim)
     {
-        const std::uint32_t output_addr_offset = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * ((num_faces > 1) ? num_faces / 2 : 1) * FACE_C_DIM);
+        const uint32_t output_addr_offset = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * ((num_faces > 1) ? num_faces / 2 : 1) * FACE_C_DIM);
         TT_SETDMAREG(0, LOWER_HALFWORD(output_addr_offset / 16), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET)); // store 16B aligned row offset address
     }
 
@@ -164,24 +154,24 @@ inline void _llk_pack_untilize_init_(
     }
 }
 
-inline void _llk_pack_untilize_uninit_(const std::uint32_t face_r_dim)
+inline void _llk_pack_untilize_uninit_(const uint32_t face_r_dim)
 {
     TT_SETADCXX(p_setadc::PAC, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
 
 template <
-    std::uint32_t block_ct_dim,
-    std::uint32_t full_ct_dim    = block_ct_dim,
-    bool diagonal                = false,
-    bool narrow_row              = false,
-    std::uint32_t row_num_datums = TILE_C_DIM,
-    uint32_t tile_dst_ct_offset  = 0>
+    uint32_t block_ct_dim,
+    uint32_t full_ct_dim        = block_ct_dim,
+    bool diagonal               = false,
+    bool narrow_row             = false,
+    uint32_t row_num_datums     = TILE_C_DIM,
+    uint32_t tile_dst_ct_offset = 0>
 inline void _llk_pack_untilize_(
-    const std::uint32_t address,
-    const std::uint32_t pack_dst_format,
-    const std::uint32_t face_r_dim                 = FACE_R_DIM,
-    [[maybe_unused]] const std::uint32_t num_faces = 4,
-    const std::uint32_t tile_dst_rt_offset         = 0)
+    const uint32_t address,
+    const uint32_t pack_dst_format,
+    const uint32_t face_r_dim                 = FACE_R_DIM,
+    [[maybe_unused]] const uint32_t num_faces = 4,
+    const uint32_t tile_dst_rt_offset         = 0)
 {
     static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
     LLK_ASSERT(num_faces == 4, "num_faces: this parameter is unused");
@@ -194,9 +184,9 @@ inline void _llk_pack_untilize_(
     }
     else
     {
-        const std::uint32_t num_rows = (face_r_dim < FACE_R_DIM) ? face_r_dim : TILE_R_DIM / 4;
+        const uint32_t num_rows = (face_r_dim < FACE_R_DIM) ? face_r_dim : TILE_R_DIM / 4;
 
-        for (std::uint32_t row = 0; row < num_rows; row++)
+        for (uint32_t row = 0; row < num_rows; row++)
         {
             TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_dst_ct_offset + tile_dst_rt_offset); // Clear tile counter
             ckernel::ckernel_template::run();

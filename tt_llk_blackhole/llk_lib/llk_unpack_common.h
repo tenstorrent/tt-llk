@@ -33,16 +33,16 @@ static inline __attribute__((always_inline)) uint32_t store_then_load(volatile u
 // llk_unpack_hw_configure as the part of #966
 template <bool is_fp32_dest_acc_en, bool disable_src_zero_flag = false>
 inline void _llk_unpack_hw_configure_(
-    const std::uint32_t unpA_src_format,
-    const std::uint32_t unpB_src_format,
-    const std::uint32_t unpA_dst_format,
-    const std::uint32_t unpB_dst_format,
-    const std::uint32_t unpA_face_r_dim,
-    const std::uint32_t unpB_face_r_dim,
-    const std::uint32_t unpA_num_faces,
-    const std::uint32_t unpB_num_faces,
-    const std::uint32_t unpA_tile_size = 0,
-    const std::uint32_t unpB_tile_size = 0)
+    const uint32_t unpA_src_format,
+    const uint32_t unpB_src_format,
+    const uint32_t unpA_dst_format,
+    const uint32_t unpB_dst_format,
+    const uint32_t unpA_face_r_dim,
+    const uint32_t unpB_face_r_dim,
+    const uint32_t unpA_num_faces,
+    const uint32_t unpB_num_faces,
+    const uint32_t unpA_tile_size = 0,
+    const uint32_t unpB_tile_size = 0)
 {
     LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
@@ -56,10 +56,10 @@ inline void _llk_unpack_hw_configure_(
 template <StochRndType stoch_rnd_mode>
 inline void _llk_unpack_configure_stoch_rnd_()
 {
-    constexpr uint alu_stoch_rnd_mask = ALU_ROUNDING_MODE_Fpu_srnd_en_MASK | ALU_ROUNDING_MODE_Gasket_srnd_en_MASK | ALU_ROUNDING_MODE_Packer_srnd_en_MASK;
-    constexpr bool fpu_srnd_en        = (stoch_rnd_mode == StochRndType::All) || (stoch_rnd_mode == StochRndType::Fpu);
-    constexpr bool pack_srnd_en       = (stoch_rnd_mode == StochRndType::All) || (stoch_rnd_mode == StochRndType::Pack);
-    alu_config_u alu_payload          = {.val = 0};
+    constexpr uint32_t alu_stoch_rnd_mask = ALU_ROUNDING_MODE_Fpu_srnd_en_MASK | ALU_ROUNDING_MODE_Gasket_srnd_en_MASK | ALU_ROUNDING_MODE_Packer_srnd_en_MASK;
+    constexpr bool fpu_srnd_en            = (stoch_rnd_mode == StochRndType::All) || (stoch_rnd_mode == StochRndType::Fpu);
+    constexpr bool pack_srnd_en           = (stoch_rnd_mode == StochRndType::All) || (stoch_rnd_mode == StochRndType::Pack);
+    alu_config_u alu_payload              = {.val = 0};
     alu_payload.f.ALU_ROUNDING_MODE_Fpu_srnd_en    = fpu_srnd_en;
     alu_payload.f.ALU_ROUNDING_MODE_Gasket_srnd_en = pack_srnd_en;
     alu_payload.f.ALU_ROUNDING_MODE_Packer_srnd_en = pack_srnd_en;
@@ -68,8 +68,7 @@ inline void _llk_unpack_configure_stoch_rnd_()
 
 // TODO NC: Clean up as the part of tt-metal#34499
 template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
-inline void _llk_unpack_reconfig_data_format_srca_impl_(
-    const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
+inline void _llk_unpack_reconfig_data_format_srca_impl_(const uint32_t unpack_src_format, const uint32_t unpack_dst_format, const uint32_t tile_size)
 {
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK0);
     if constexpr (to_from_int8)
@@ -84,8 +83,7 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
 
 // TODO NC: Clean up as the part of tt-metal#34499
 template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
-inline void _llk_unpack_reconfig_data_format_srcb_impl_(
-    const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
+inline void _llk_unpack_reconfig_data_format_srcb_impl_(const uint32_t unpack_src_format, const uint32_t unpack_dst_format, const uint32_t tile_size)
 {
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
     if constexpr (to_from_int8)

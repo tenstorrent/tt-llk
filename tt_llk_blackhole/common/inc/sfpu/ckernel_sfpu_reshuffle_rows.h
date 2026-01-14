@@ -35,13 +35,13 @@ namespace sfpu
  *
  * @param idx_addr L1 address of the mask tile containing destination row mappings (uint8_t[32])
  */
-inline void _calculate_reshuffle_rows_(const uint idx_addr)
+inline void _calculate_reshuffle_rows_(const uint32_t idx_addr)
 {
-    constexpr uint output_tile_offset = 64;
+    constexpr uint32_t output_tile_offset = 64;
 
     // clr DEST tile 1
     // TODO (Radomir): Add optional clear that is more optimal using tile copy
-    // for (uint row=0; row < 32; row+=4) {
+    // for (uint32_t row=0; row < 32; row+=4) {
     //     TT_SFPSTORE(p_sfpu::LCONST_0, 0, ADDR_MOD_7, output_tile_offset + row);
     //     TT_SFPSTORE(p_sfpu::LCONST_0, 0, ADDR_MOD_7, output_tile_offset + row + 2);
     //     TT_SFPSTORE(p_sfpu::LCONST_0, 0, ADDR_MOD_7, output_tile_offset + row + 32);
@@ -54,10 +54,10 @@ inline void _calculate_reshuffle_rows_(const uint idx_addr)
     // TODO: Add dynamic assert for idx_ptr being within L1 memory bounds
     // using hardware memory map constants: MEM_L1_BASE and MEM_L1_SIZE
 
-    static constexpr uint input_lreg[4]  = {p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LREG2, p_sfpu::LREG3};
-    static constexpr uint output_lreg[4] = {p_sfpu::LREG4, p_sfpu::LREG5, p_sfpu::LREG6, p_sfpu::LREG7};
+    static constexpr uint32_t input_lreg[4]  = {p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LREG2, p_sfpu::LREG3};
+    static constexpr uint32_t output_lreg[4] = {p_sfpu::LREG4, p_sfpu::LREG5, p_sfpu::LREG6, p_sfpu::LREG7};
 
-    for (uint row = 0; row < 32; row++)
+    for (uint32_t row = 0; row < 32; row++)
     {
         // Calculate base address for 4-row groups within tile faces
         // SFPU loads 4 consecutive rows at once, targeting even/odd columns with +2 offset
@@ -69,17 +69,17 @@ inline void _calculate_reshuffle_rows_(const uint idx_addr)
         // Row 12-15 → addr 12 (12 + 0 = 12) Faces 0/1, group 3
         // Row 16-19 → addr 32 (16 + 16 = 32) Faces 2/3, group 0
         // Row 20-23 → addr 36 (20 + 16 = 36) Faces 2/3, group 1
-        uint input_row_addr = (row & ~0x3) + (row & 0x10);
-        uint input_row_lreg = input_lreg[row % 4];
+        uint32_t input_row_addr = (row & ~0x3) + (row & 0x10);
+        uint32_t input_row_lreg = input_lreg[row % 4];
 
-        uint dst_row = static_cast<uint>(idx_ptr[row]);
+        uint32_t dst_row = static_cast<uint32_t>(idx_ptr[row]);
         // Skip if dst_row is 255, i.e. mask is invalid and we don't want to process the current row
         if (dst_row >= 32)
         {
             continue;
         }
-        uint output_row_addr = (dst_row & ~0x3) + (dst_row & 0x10);
-        uint output_row_lreg = output_lreg[dst_row % 4];
+        uint32_t output_row_addr = (dst_row & ~0x3) + (dst_row & 0x10);
+        uint32_t output_row_lreg = output_lreg[dst_row % 4];
 
         // load in the input row and output row
         TT_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, input_row_addr);                            // Face 0/2, even columns
