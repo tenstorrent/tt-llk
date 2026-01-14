@@ -256,8 +256,7 @@ inline void configure_unpack_AB(
 
     uint32_t fp32_dest_acc_en  = (is_fp32_dest_acc_en) ? (1) : (0);
     uint32_t int8_math_enabled = ((uint)(unpA_dst_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(unpB_dst_format & 0xF) == (uint)DataFormat::Int8) ||
-                                 ((uint)unpA_dst_format == (uint)DataFormat::Int32) || ((uint)unpB_dst_format == (uint)DataFormat::Int32) ||
-                                 ((uint)unpA_dst_format == (uint)DataFormat::UInt32) || ((uint)unpB_dst_format == (uint)DataFormat::UInt32);
+                                 ((uint)unpA_dst_format == (uint)DataFormat::Int32) || ((uint)unpB_dst_format == (uint)DataFormat::Int32);
 
     constexpr uint alu_format_mask = ALU_FORMAT_SPEC_REG0_SrcAUnsigned_MASK | ALU_FORMAT_SPEC_REG0_SrcBUnsigned_MASK;
 
@@ -274,12 +273,15 @@ inline void configure_unpack_AB(
     // NOTE: This assumes these config fields are adjacent and in same register!!
     static_assert(ALU_ACC_CTRL_Fp32_enabled_ADDR32 == ALU_FORMAT_SPEC_REG0_SrcA_ADDR32);
     static_assert(ALU_ACC_CTRL_Fp32_enabled_ADDR32 == ALU_ACC_CTRL_SFPU_Fp32_enabled_ADDR32);
+    constexpr uint alu_dest_format_mask          = ALU_ACC_CTRL_SFPU_Fp32_enabled_MASK | ALU_ACC_CTRL_Fp32_enabled_MASK;
+    alu_payload.f.ALU_ACC_CTRL_Fp32_enabled      = fp32_dest_acc_en;
+    alu_payload.f.ALU_ACC_CTRL_SFPU_Fp32_enabled = fp32_dest_acc_en;
     constexpr uint alu_stoch_rnd_mask = ALU_ROUNDING_MODE_Fpu_srnd_en_MASK | ALU_ROUNDING_MODE_Gasket_srnd_en_MASK | ALU_ROUNDING_MODE_Packer_srnd_en_MASK;
     alu_payload.f.ALU_ROUNDING_MODE_Fpu_srnd_en    = fpu_srnd_en;
     alu_payload.f.ALU_ROUNDING_MODE_Gasket_srnd_en = pack_srnd_en;
     alu_payload.f.ALU_ROUNDING_MODE_Packer_srnd_en = pack_srnd_en;
 
-    constexpr uint alu_mask = alu_format_mask | alu_stoch_rnd_mask;
+    constexpr uint alu_mask = alu_format_mask | alu_dest_format_mask | alu_stoch_rnd_mask;
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, alu_mask>(alu_payload.val);
 
@@ -374,21 +376,6 @@ inline void configure_unpack_AB(
     // final address is calculated as: Dest_cntx0/1_address + address_counter_ch1
     // used for face by face unpacking of entire tile into srcA
     cfg[UNP0_ADD_DEST_ADDR_CNTR_add_dest_addr_cntr_ADDR32] = 0x1 << UNP0_ADD_DEST_ADDR_CNTR_add_dest_addr_cntr_SHAMT;
-
-    /*
-    // Workaround for HW bug (fp32 dest and movd2a/b is used with srcA/B configured with 5-bit exponent)
-    if (is_fp32_dest_acc_en && (exp_width == 0)) {
-        reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1<<11); // Set debug feature disable bit 11
-                                                               // workaround for bug tenstor
-                                                               // rent/budabackend#1372
-    }
-    */
-    // Workaround for HW bug (int32 dest and movd2a/b is used with srcA/B configured as int8)
-    if (int8_math_enabled || (fp32_dest_acc_en && ((uint)unpA_dst_format == (uint)DataFormat::UInt16)))
-    {
-        reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1 << 11); // Set debug feature disable bit 11
-                                                                 // workaround for bug tenstorrent/budabackend#1948
-    }
 
     // Clear context ID
     reset_config_context();
