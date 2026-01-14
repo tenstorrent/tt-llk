@@ -15,6 +15,9 @@
  * Configuration:
  * - Format: Float16_b input and output
  * - Approximation mode: Yes (fast approximation)
+ * - Fast mode: Parameterized (FAST_MODE template param)
+ *   - false: Standard approximation algorithm
+ *   - true: Schraudolph fast approximation algorithm
  * - Dest accumulation: No
  * - Tile count: 1 (single 32x32 tile = 1024 elements)
  * - Both inputs are tilized before being written to L1 (required for broadcast)
@@ -98,9 +101,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
         // - APPROX_MODE = true (approximation enabled)
         // - is_fp32_dest_acc_en = false (no dest accumulation, 16-bit mode)
         // - iterations = 32 (process full tile)
-        // - FAST_MODE = true (enable Schraudolph fast approximation algorithm)
+        // - FAST_MODE = template parameter (enable/disable Schraudolph fast approximation algorithm)
 
-        test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, true>(SFPU_UNARY_OPERATION, formats.math);
+        test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
 
         _llk_math_eltwise_unary_sfpu_done_();
     }

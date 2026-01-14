@@ -17,7 +17,6 @@ from .llk_params import (
     DataCopyType,
     DestSync,
     EltwiseBinaryReuseDestType,
-    FastMode,
     ImpliedMathFormat,
     MathFidelity,
     MathOperation,
@@ -197,19 +196,19 @@ class APPROX_MODE(TemplateParameter):
 
 
 @dataclass
+class FAST_MODE(TemplateParameter):
+    fast_mode: bool = False
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr bool FAST_MODE = {str(self.fast_mode).lower()};"
+
+
+@dataclass
 class ITERATIONS(TemplateParameter):
     iterations: int = 8
 
     def covert_to_cpp(self) -> str:
         return f"constexpr int ITERATIONS = {self.iterations};"
-
-
-@dataclass
-class FAST_MODE(TemplateParameter):
-    fast_mode: FastMode = FastMode.No
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr bool FAST_MODE = {str(self.fast_mode.value).lower()};"
 
 
 @dataclass

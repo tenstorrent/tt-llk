@@ -41,6 +41,7 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     APPROX_MODE,
     BROADCAST_TYPE,
+    FAST_MODE,
     INPUT_DIMENSIONS,
     MATH_FIDELITY,
     MATH_OP,
@@ -59,10 +60,14 @@ from helpers.utils import passed_test
         ]
     ),
     dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
+    fast_mode=[
+        True
+    ],  # False],  # Test both standard and Schraudolph fast approximation
 )
 def test_unpack_AB_col_bcast_sub_exp(
     formats: InputOutputFormat,
     dest_acc: DestAccumulation,
+    fast_mode: bool,
     workers_tensix_coordinates: str,
 ):
     """
@@ -72,8 +77,12 @@ def test_unpack_AB_col_bcast_sub_exp(
     1. Unpack srcA (regular)
     2. Unpack srcB with column broadcast
     3. FPU sub: dest = srcA - broadcast_col(srcB)
-    4. SFPU fast-approx exp on dest
+    4. SFPU fast-approx exp on dest (with optional Schraudolph algorithm)
     5. Pack result to L1
+
+    Parameters:
+    - fast_mode: When True, uses Schraudolph fast approximation algorithm
+                 When False, uses standard approximation mode
     """
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
@@ -134,6 +143,9 @@ def test_unpack_AB_col_bcast_sub_exp(
             BROADCAST_TYPE(BroadcastType.Column),
             MATH_FIDELITY(MathFidelity.LoFi),
             APPROX_MODE(ApproximationMode.Yes),  # Fast approximation mode
+            FAST_MODE(
+                fast_mode
+            ),  # Enable/disable Schraudolph fast approximation algorithm
             MATH_OP(mathop=MathOperation.Elwsub, unary_extra=MathOperation.Exp),
         ],
         runtimes=[TILE_COUNT(tile_cnt_A)],
