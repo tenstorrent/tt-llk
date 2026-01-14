@@ -33,7 +33,7 @@ from helpers.test_config import ProfilerBuild, run_test
     ],  # [[32, 32], [32, 64], [64, 32], [64, 64], [128, 32], [32, 128]],
     approx_mode=[ApproximationMode.Yes],
     mathop=[MathOperation.Exp],
-    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.Yes],  # , DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_float(
     test_name, approx_mode, formats, mathop, dest_acc, input_dimensions
@@ -127,8 +127,6 @@ def eltwise_unary_sfpu(
     #    ]
     # ):
     if True:
-        config_idx = 0
-        exp_config = (4, 2)
 
         # Update configuration header.
         # with open("tt_llk_wormhole_b0/common/inc/sfpu/exp_config_params.h", "w") as f:
@@ -178,33 +176,29 @@ def eltwise_unary_sfpu(
         N = 5
         print("")
         print("INPUT_SIZE:", size)
-        print("INPUT_1: ", src_A_np[0:N])
-        print("OUTPUT_1:", res_tensor_np[0:N])
-        print("GOLDEN_1:", golden_tensor_np[0:N])
+        print("INPUT: ", src_A_np[0:N])
+        print("OUTPUT:", res_tensor_np[0:N])
+        print("GOLDEN:", golden_tensor_np[0:N])
         print("")
-        print("INPUT_2: ", src_A_np[size - N : size])
-        print("OUTPUT_2:", res_tensor_np[size - N : size])
-        print("GOLDEN_2:", golden_tensor_np[size - N : size])
+        print("INPUT: ", src_A_np[size - N : size])
+        print("OUTPUT:", res_tensor_np[size - N : size])
+        print("GOLDEN:", golden_tensor_np[size - N : size])
 
-        for i in range(256):
-            print(
-                i,
-                src_A_np[i],
-                golden_tensor_np[i],
-                res_tensor_np[i],
-                np.max(np.abs(res_tensor_np[i] - golden_tensor_np[i])),
-            )
+        # for i in range(256):
+        #    print(
+        #        i,
+        #        src_A_np[i],
+        #        golden_tensor_np[i],
+        #        res_tensor_np[i],
+        #        np.max(np.abs(res_tensor_np[i] - golden_tensor_np[i])),
+        #    )
 
         print(
             "MAXABSDIFF:",
-            np.max(np.abs(res_tensor_np[0:size] - golden_tensor_np[0:size])),
-        )
-        print(
-            "MAXABSDIFF_256:",
             np.max(np.abs(res_tensor_np[0:256] - golden_tensor_np[0:256])),
         )
         print(
-            "MAXRELDIFF_256:",
+            "MAXRELDIFF:",
             np.max(
                 np.abs(
                     (res_tensor_np[0:256] - golden_tensor_np[0:256])
@@ -213,7 +207,7 @@ def eltwise_unary_sfpu(
             ),
         )
         print(
-            "MEANERRSQ_256:",
+            "MEANERRSQ:",
             np.mean((res_tensor_np[0:256] - golden_tensor_np[0:256]) ** 2),
         )
 
