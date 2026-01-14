@@ -188,9 +188,6 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]):
 
 
 def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
-    if get_chip_architecture() == ChipArchitecture.QUASAR:
-        return
-
     trisc_cores = [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2]
     assertion_hits = []
 
