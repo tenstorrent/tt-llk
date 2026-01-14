@@ -47,7 +47,7 @@ from helpers.test_variant_parameters import (
     MATH_OP,
     TILE_COUNT,
 )
-from helpers.tilize_untilize import tilize
+from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
 
@@ -64,11 +64,17 @@ from helpers.utils import passed_test
         True,
         # False,
     ],
+    input_dimensions=[
+        # [32, 32],
+        [32, 64],
+        # Add more shapes here if needed (e.g., [16, 32], [64, 32], ...)
+    ],
 )
 def test_unpack_AB_col_bcast_sub_exp(
     formats: InputOutputFormat,
     dest_acc: DestAccumulation,
     fast_mode: bool,
+    input_dimensions: list[int],
     workers_tensix_coordinates: str,
 ):
     """
@@ -88,9 +94,6 @@ def test_unpack_AB_col_bcast_sub_exp(
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
 
-    # Single tile: 32x32 = 1024 elements
-    input_dimensions = [32, 32]
-
     # Generate input stimuli
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -106,8 +109,13 @@ def test_unpack_AB_col_bcast_sub_exp(
 
     # Tilize inputs before writing to L1 - broadcast expects tile layout in L1
     # Tilization is required for broadcast to work properly
-    src_A_tilized = tilize(src_A, stimuli_format=formats.input_format, num_faces=4)
-    src_B_tilized = tilize(src_B, stimuli_format=formats.input_format, num_faces=4)
+    # Use block tilization for any multiple-of-32 dimensions (works for 32x32 too)
+    src_A_tilized = tilize_block(
+        src_A, input_dimensions, stimuli_format=formats.input_format, num_faces=4
+    ).flatten()
+    src_B_tilized = tilize_block(
+        src_B, input_dimensions, stimuli_format=formats.input_format, num_faces=4
+    ).flatten()
 
     # --- Compute Golden (all operations on tilized data) ---
     # Step 1: Apply column broadcast to tilized srcB

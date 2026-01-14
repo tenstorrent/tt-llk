@@ -157,11 +157,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // Wait for math (subtraction) to complete
     _llk_packer_wait_for_math_done_();
 
-    // SFPU CODE ON PACKER (only SFPU, no packing)
-    _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
-
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
+        // Init per tile so dst base/state is reset for each dest bank
+        _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
         _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
 
         // Call SFPU exponential with:
@@ -183,7 +182,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
         }
         else
         {
-            test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
+            // Non-fast path auto-increments dst via sfpi::dst_reg++; run per face
+            for (int j = 0; j < 4; j++)
+            {
+                test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
+            }
         }
 
         _llk_math_eltwise_unary_sfpu_done_();
