@@ -38,15 +38,14 @@ template <
     DstSync Dst,
     bool is_fp32_dest_acc_en,
     int NUM_FIDELITY_PHASES                      = 0,
-    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE,
-    DstTileShape dst_tile_shape                  = DstTileShape::Tile32x32>
-inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, const uint dst_index, const bool clear_fp32_dst_acc)
+    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
+inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_index, const bool clear_fp32_dst_acc)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     constexpr bool high_fidelity     = (NUM_FIDELITY_PHASES > 0);
     constexpr uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
 
-    math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, dst_tile_shape, UnpackDestination::SrcRegs>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
     if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB))
     {
@@ -518,10 +517,9 @@ inline void _llk_math_eltwise_binary_init_(uint32_t srca_reuse_count = 4)
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-template <DstSync Dst, bool is_fp32_dest_acc_en = false, DstTileShape dst_tile_shape = DstTileShape::Tile32x32>
 inline void _llk_math_eltwise_binary_(uint32_t dst_index)
 {
-    math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, dst_tile_shape, UnpackDestination::SrcRegs>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB);
 

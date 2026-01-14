@@ -28,16 +28,14 @@ template <
     bool is_fp32_dest_acc_en,
     int MATH_FIDELITY_DESC         = 0,
     bool is_int_fpu_en             = false,
-    bool enforce_fp32_accumulation = false,
-    DstSync Dst                    = DstSync::SyncFull,
-    DstTileShape dst_tile_shape    = DstTileShape::Tile32x32>
+    bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
-    math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, dst_tile_shape, UnpackDestination::SrcRegs>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     if constexpr (dim == ReduceDim::REDUCE_ROW)
     {
         // Transpose for each face in src A done at unpacker, and pool

@@ -16,13 +16,10 @@
 
 // Globals
 // Globals
-uint32_t unp_cfg_context                              = 0;
-uint32_t pack_sync_tile_dst_ptr                       = 0;
-uint32_t math_sync_tile_dst_index                     = 0;
-static constexpr ckernel::DstSync DST_SYNC            = ckernel::DstSync::SyncHalf;
-static constexpr ckernel::DstTileShape dst_tile_shape = ckernel::DstTileShape::Tile32x32;
-// Use half of dest register because of DST_SYNC = SyncHalf:
-static constexpr int MAX_TILES_DEST = is_fp32_dest_acc_en ? (BIT32_DEST_REGISTER_HALF_SIZE / 64) : (DEST_REGISTER_HALF_SIZE / 64);
+uint32_t unp_cfg_context                   = 0;
+uint32_t pack_sync_tile_dst_ptr            = 0;
+uint32_t math_sync_tile_dst_index          = 0;
+static constexpr ckernel::DstSync DST_SYNC = ckernel::DstSync::SyncHalf;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -31,6 +28,9 @@ static constexpr int MAX_TILES_DEST = is_fp32_dest_acc_en ? (BIT32_DEST_REGISTER
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const int MAX_TILES_DEST =
+        is_fp32_dest_acc_en ? (BIT32_DEST_REGISTER_HALF_SIZE / (params->num_faces * FACE_R_DIM)) : (DEST_REGISTER_HALF_SIZE / (params->num_faces * FACE_R_DIM));
+
     {
         ZONE_SCOPED("INIT")
 
@@ -82,6 +82,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const int MAX_TILES_DEST =
+        is_fp32_dest_acc_en ? (BIT32_DEST_REGISTER_HALF_SIZE / (params->num_faces * FACE_R_DIM)) : (DEST_REGISTER_HALF_SIZE / (params->num_faces * FACE_R_DIM));
+
     {
         ZONE_SCOPED("INIT")
 
@@ -248,6 +251,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const int MAX_TILES_DEST =
+        is_fp32_dest_acc_en ? (BIT32_DEST_REGISTER_HALF_SIZE / (params->num_faces * FACE_R_DIM)) : (DEST_REGISTER_HALF_SIZE / (params->num_faces * FACE_R_DIM));
+
     {
         ZONE_SCOPED("INIT")
 

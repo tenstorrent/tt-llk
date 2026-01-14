@@ -183,10 +183,10 @@ inline void _llk_pack_uninit_(const std::uint32_t face_r_dim = FACE_R_DIM)
     TT_SETADCXX(p_setadc::PAC, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
 
-template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false, DstTileShape dst_tile_shape = DstTileShape::Tile32x32>
+template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
-    _llk_pack_set_tile_index_<Dst, is_fp32_dest_acc_en, dst_tile_shape>(tile_index);
+    set_dst_write_addr(tile_index);
 
     program_packer_destination(address);
 
@@ -358,7 +358,6 @@ inline void _llk_pack_fast_tilize_uninit_(
     _llk_pack_init_<false, false>(pack_dst_format, face_r_dim, num_faces, partial_face, narrow_tile);
 }
 
-template <DstSync DstSync = DstSync::SyncFull, bool is_fp32_dest_acc_en = false, DstTileShape dst_tile_shape = DstTileShape::Tile16x16>
 inline void _llk_pack_fast_tilize_block_(
     const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t unit_dim, const std::uint32_t num_units)
 {
@@ -372,7 +371,7 @@ inline void _llk_pack_fast_tilize_block_(
     // move to the start tile index, instead of using the standard W counter whose stride is a single tile
     // use the Z counter whose stride is a single face as tiles are split into halves of the active dest bank
     // so only move 2 faces per tile_index
-    _llk_pack_set_tile_index_<DstSync, is_fp32_dest_acc_en, dst_tile_shape, p_setadc::SET_Z>(tile_index << 1);
+    set_dst_write_addr(tile_index << 1);
 
     for (uint i = 0; i < num_units; i++)
     {

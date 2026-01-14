@@ -117,11 +117,10 @@ inline void _llk_pack_rows_init_(const std::uint32_t num_rows)
  *
  * @note This function is typically called in a loop for each tile to be packed
  */
-template <DstSync Dst = DstSync::SyncFull, bool is_fp32_dest_acc_en = false, DstTileShape dst_tile_shape = DstTileShape::Tile32x32>
 inline void _llk_pack_rows_(const std::uint32_t tile_index, const std::uint32_t address)
 {
     // Set the tile index in dest to read from
-    _llk_pack_set_tile_index_<Dst, is_fp32_dest_acc_en, dst_tile_shape>(tile_index);
+    set_dst_write_addr(tile_index);
 
     ckernel::packer::program_packer_destination(address);
 

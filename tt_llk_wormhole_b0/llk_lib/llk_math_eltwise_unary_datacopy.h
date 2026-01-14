@@ -19,19 +19,13 @@ using namespace ckernel;
 // local function declarations
 inline void eltwise_unary_configure_addrmod(const uint dst_format);
 
-template <
-    DataCopyType type,
-    DstSync Dst,
-    bool is_fp32_dest_acc_en,
-    BroadcastType src_b_bcast_type = BroadcastType::NONE,
-    bool unpack_to_dest            = false,
-    DstTileShape dst_tile_shape    = DstTileShape::Tile32x32>
+template <DataCopyType type, DstSync Dst, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
 inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format)
 {
     if (unpack_to_dest && is_32bit_input(src_format, dst_format))
     {
         math_unpack_to_dest_math_ready();
-        math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, dst_tile_shape, UnpackDestination::DestReg>(dst_index);
+        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(dst_index);
         math::math_unpack_to_dest_tile_ready();
 
         if constexpr (src_b_bcast_type == BroadcastType::ROW)
@@ -153,7 +147,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
     }
     else
     {
-        math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, dst_tile_shape, UnpackDestination::SrcRegs>(dst_index);
+        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
         if constexpr (type == A2D)
         {
@@ -509,13 +503,12 @@ inline void _llk_math_fast_tilize_uninit_(const std::uint32_t unpack_dst_format)
     }
 }
 
-template <DstSync Dst = DstSync::SyncFull, bool is_fp32_dest_acc_en = false>
 inline void _llk_math_fast_tilize_block_(
     const std::uint32_t dst_index, const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim, const std::uint32_t num_units)
 {
     // split dest and write the top faces in the first half and the bottom faces in the second half (or more precisely quarter, since dest sync half)
     // make life easier by lying to set_dst_write_addr that tile shape is 32x16 so correct stride is obtained for dst_index
-    math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, DstTileShape::Tile32x16, UnpackDestination::SrcRegs>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x16, UnpackDestination::SrcRegs>(dst_index);
 
     for (uint i = 0; i < num_units; i++)
     {
@@ -589,7 +582,7 @@ inline void _llk_math_fast_tilize_block_(
             // offset to the bottom is the number of tiles that fit into the dest bank
             // since half size faces are specified, this gets into the correct position in the second half
             uint32_t bottom_face_offset = top_face_offset + (unpack_dst_format == (uint)DataFormat::Tf32 ? 4 : 8);
-            math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, DstTileShape::Tile32x16, UnpackDestination::SrcRegs>(bottom_face_offset);
+            math::set_dst_write_addr<DstTileShape::Tile32x16, UnpackDestination::SrcRegs>(bottom_face_offset);
             // srcA has the top 8 rows of the bottom faces (6 of them), copy them
             // inside mop:
             // for (uint j = 0; j < 6; j++)

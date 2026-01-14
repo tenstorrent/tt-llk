@@ -45,10 +45,10 @@ inline void eltwise_binary_sfpu_configure_addrmod()
 
 inline void eltwise_binary_sfpu_configure_mop();
 
-template <DstSync Dst, bool is_fp32_dest_acc_en = false, DstTileShape dst_tile_shape = DstTileShape::Tile32x32>
+template <DstSync Dst>
 inline void _llk_math_eltwise_binary_sfpu_start_(const uint dst_index)
 {
-    math::set_dst_write_addr<Dst, is_fp32_dest_acc_en, dst_tile_shape, UnpackDestination::SrcRegs>(dst_index);
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
 }
 

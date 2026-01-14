@@ -159,7 +159,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
                     if (remaining_tiles > 2 * dest_size)
                     {
-                        _llk_math_fast_tilize_block_<DstSync::SyncHalf>(0, formats.math, unit_dim, num_units);
+                        _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units);
                         packed_tiles += dest_size;
                         remaining_tiles -= dest_size;
                     }
@@ -167,7 +167,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
                     {
                         uint32_t even_remainder = remaining_tiles / 2 + ((remaining_tiles / 2) % 2);
                         num_units               = even_remainder / unit_dim;
-                        _llk_math_fast_tilize_block_<DstSync::SyncHalf>(0, formats.math, unit_dim, num_units);
+                        _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units);
                         packed_tiles += even_remainder;
                         remaining_tiles -= even_remainder;
                     }
@@ -176,17 +176,17 @@ void run_kernel(const volatile struct RuntimeParams *params)
                         if (remaining_tiles % 2 == 0 || unit_dim == 1)
                         {
                             num_units = remaining_tiles / unit_dim;
-                            _llk_math_fast_tilize_block_<DstSync::SyncHalf>(0, formats.math, unit_dim, num_units);
+                            _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units);
                         }
                         else if (remaining_tiles == 3)
                         {
-                            _llk_math_fast_tilize_block_<DstSync::SyncHalf>(0, formats.math, 3, 1);
+                            _llk_math_fast_tilize_block_(0, formats.math, 3, 1);
                         }
                         else
                         {
                             num_units = (remaining_tiles - 3) / unit_dim;
-                            _llk_math_fast_tilize_block_<DstSync::SyncHalf>(0, formats.math, unit_dim, num_units);
-                            _llk_math_fast_tilize_block_<DstSync::SyncHalf>(remaining_tiles - 3, formats.math, 3, 1);
+                            _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units);
+                            _llk_math_fast_tilize_block_(remaining_tiles - 3, formats.math, 3, 1);
                         }
                         packed_tiles += remaining_tiles;
                         remaining_tiles = 0;
@@ -240,7 +240,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
                     uint32_t tile_index = write_offset + packed_tiles;
                     if (remaining_tiles > 2 * dest_size)
                     {
-                        _llk_pack_fast_tilize_block_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units);
+                        _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units);
                         packed_tiles += dest_size;
                         remaining_tiles -= dest_size;
                     }
@@ -248,7 +248,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
                     {
                         uint32_t even_remainder = remaining_tiles / 2 + ((remaining_tiles / 2) % 2);
                         num_units               = even_remainder / unit_dim;
-                        _llk_pack_fast_tilize_block_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units);
+                        _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units);
                         packed_tiles += even_remainder;
                         remaining_tiles -= even_remainder;
                     }
@@ -257,18 +257,17 @@ void run_kernel(const volatile struct RuntimeParams *params)
                         if (remaining_tiles % 2 == 0 || unit_dim == 1)
                         {
                             num_units = remaining_tiles / unit_dim;
-                            _llk_pack_fast_tilize_block_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units);
+                            _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units);
                         }
                         else if (remaining_tiles == 3)
                         {
-                            _llk_pack_fast_tilize_block_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Res[tile_index]), 3, 1);
+                            _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_index]), 3, 1);
                         }
                         else
                         {
                             num_units = (remaining_tiles - 3) / unit_dim;
-                            _llk_pack_fast_tilize_block_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units);
-                            _llk_pack_fast_tilize_block_<DstSync::SyncHalf, is_fp32_dest_acc_en>(
-                                remaining_tiles - 3, L1_ADDRESS(buffer_Res[tile_index + remaining_tiles - 3]), 3, 1);
+                            _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units);
+                            _llk_pack_fast_tilize_block_(remaining_tiles - 3, L1_ADDRESS(buffer_Res[tile_index + remaining_tiles - 3]), 3, 1);
                         }
                         packed_tiles += remaining_tiles;
                         remaining_tiles = 0;

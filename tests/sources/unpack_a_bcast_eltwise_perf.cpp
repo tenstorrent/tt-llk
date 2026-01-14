@@ -86,7 +86,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             _llk_math_wait_for_dest_available_<dest_sync>();
             for (uint32_t i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
             {
-                _llk_math_eltwise_binary_<dest_sync>(i * params->SRCA_REUSE_COUNT /* dst_index */);
+                _llk_math_eltwise_binary_(i * params->SRCA_REUSE_COUNT /* dst_index */);
             }
         }
         else
@@ -94,7 +94,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             _llk_math_wait_for_dest_available_<dest_sync>();
             for (uint32_t i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
             {
-                _llk_math_eltwise_binary_<dest_sync>(i * params->SRCA_REUSE_COUNT /* dst_index */);
+                _llk_math_eltwise_binary_(i * params->SRCA_REUSE_COUNT /* dst_index */);
             }
         }
         PROFILER_SYNC();

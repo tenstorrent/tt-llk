@@ -107,7 +107,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
                 for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                 {
-                    _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, IS_INT_FPU, ENFORCE_FP32_ACC, DstSync::SyncHalf>(block_tile);
+                    _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, IS_INT_FPU, ENFORCE_FP32_ACC>(block_tile);
                 }
             }
         }
@@ -120,7 +120,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
                 for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                 {
-                    _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, IS_INT_FPU, ENFORCE_FP32_ACC, DstSync::SyncHalf>(block_tile);
+                    _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, IS_INT_FPU, ENFORCE_FP32_ACC>(block_tile);
                 }
                 _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }

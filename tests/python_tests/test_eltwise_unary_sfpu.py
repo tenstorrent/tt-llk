@@ -61,7 +61,7 @@ from helpers.utils import passed_test
         MathOperation.ReluMax,
         MathOperation.ReluMin,
     ],
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_float(
     formats: list[InputOutputFormat],
@@ -214,11 +214,10 @@ def eltwise_unary_sfpu(
             tile_count_res=tile_cnt_A,
         ),
         dest_acc=dest_acc,
-        unpack_to_dest=False,
         # If dest_acc is off, we unpack Float32 into 16-bit format in src registers (later copied over in dest reg for SFPU op)
-        # unpack_to_dest=(
-        #     formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
-        # ),
+        unpack_to_dest=(
+            formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
+        ),
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)

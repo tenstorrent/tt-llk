@@ -143,25 +143,9 @@ inline void _llk_pack_release_tile_()
     }
 }
 
-template <DstSync Dst, bool is_fp32_dest_acc_en, DstTileShape dst_tile_shape, uint dimension = p_setadc::SET_W>
-inline void _llk_pack_set_tile_index_(const std::uint32_t tile_index)
+inline void set_dst_write_addr(const std::uint32_t tile_index)
 {
-    static_assert(
-        dst_tile_shape == DstTileShape::Tile32x32 || dst_tile_shape == DstTileShape::Tile32x16 || dst_tile_shape == DstTileShape::Tile16x16,
-        "Invalid tile shape");
-
-    constexpr uint DstTileSizeLog2[3] = {
-        6, // 32x32 tile shape
-        5, // 32x16, 16x32 tile shape
-        4  // 16x16 tile shape
-    };
-
-    uint dst_index                 = tile_index << DstTileSizeLog2[dst_tile_shape];
-    constexpr uint dest_size_limit = is_fp32_dest_acc_en ? ((Dst == DstSync::SyncHalf) ? BIT32_DEST_REGISTER_HALF_SIZE : DEST_REGISTER_HALF_SIZE)
-                                                         : ((Dst == DstSync::SyncHalf) ? DEST_REGISTER_HALF_SIZE : DEST_REGISTER_FULL_SIZE);
-    LLK_ASSERT(dst_index < dest_size_limit, "dst_index out of range");
-
-    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, dimension, tile_index);
+    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 }
 
 inline void _llk_pack_debug_dump_(std::uint8_t *data, std::uint32_t byte_size)

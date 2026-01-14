@@ -76,7 +76,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_(formats_array[run].math, formats_array[run].math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_matmul_<MATH_FIDELITY, DstSync::SyncHalf>(0);
+    _llk_math_matmul_<MATH_FIDELITY>(0);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
     // Start of second math kernel to perform matmul on now tilized input data

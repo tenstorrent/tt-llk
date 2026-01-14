@@ -105,9 +105,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
             for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
             {
 #ifdef ARCH_BLACKHOLE
-                _llk_math_transpose_dest_<is_fp32_dest_acc_en, MATH_TRANSPOSE_FACES, is_fp32_dest_acc_en, DstSync::SyncHalf>(block_tile);
+                _llk_math_transpose_dest_<is_fp32_dest_acc_en, MATH_TRANSPOSE_FACES, is_fp32_dest_acc_en>(block_tile);
 #else
-                _llk_math_transpose_dest_<MATH_TRANSPOSE_FACES, is_fp32_dest_acc_en, DstSync::SyncHalf>(block_tile);
+                _llk_math_transpose_dest_<MATH_TRANSPOSE_FACES, is_fp32_dest_acc_en>(block_tile);
 #endif
             }
 

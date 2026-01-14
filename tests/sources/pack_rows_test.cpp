@@ -85,7 +85,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_pack_rows_<DstSync::SyncHalf, is_fp32_dest_acc_en>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_rows_(i, L1_ADDRESS(buffer_Res[i]));
     }
     _llk_pack_rows_uninit_();
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

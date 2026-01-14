@@ -78,7 +78,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #ifdef ADD_TOP_ROW
     _llk_math_eltwise_binary_sfpu_init_<SfpuType::add_top_row>();
-    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0);
+    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
     ckernel::sfpu::_init_add_top_row_();
 
     for (int i = 1; i < params->TILE_CNT; ++i)

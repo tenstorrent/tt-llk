@@ -67,7 +67,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (uint32_t j = 0; j < params->KT_DIM; j++)
     {
-        _llk_math_matmul_<MATH_FIDELITY, 0 /* THROTTLE_LEVEL */, DstSync::SyncHalf>(0, params->CT_DIM, params->RT_DIM);
+        _llk_math_matmul_<MATH_FIDELITY>(0, params->CT_DIM, params->RT_DIM);
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
