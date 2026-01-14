@@ -232,7 +232,7 @@ class TestConfig:
     def setup_compilation_options(
         with_coverage: bool = False, detailed_artefacts: bool = False
     ):
-        TestConfig.OPTIONS_ALL = f"-O3 -std=c++17 -ffast-math"
+        TestConfig.OPTIONS_ALL = f"-g -O3 -std=c++17 -ffast-math"
         TestConfig.WITH_COVERAGE = with_coverage
 
         if detailed_artefacts:
