@@ -67,6 +67,8 @@ enum class CounterBank : uint32_t
 
 // Number of counter banks represented by CounterBank enum
 inline constexpr uint32_t COUNTER_BANK_COUNT = 5;
+// Number of counter slots supported per thread (config words and data pairs)
+inline constexpr uint32_t COUNTER_SLOT_COUNT = 66;
 
 inline constexpr uint32_t get_counter_base_addr(CounterBank bank)
 {
@@ -229,7 +231,7 @@ private:
         uint32_t mode_bit;      // 0 = REQUESTS, 1 = GRANTS
     };
 
-    CounterConfig counters[66];
+    CounterConfig counters[COUNTER_SLOT_COUNT];
     uint32_t counter_count;
     CounterMode mode;
 
@@ -257,7 +259,7 @@ private:
         }
 
         // Clear remaining slots
-        for (uint32_t i = counter_count; i < 66; i++)
+        for (uint32_t i = counter_count; i < COUNTER_SLOT_COUNT; i++)
         {
             config_mem[i] = 0;
         }
@@ -266,7 +268,7 @@ private:
 public:
     PerfCounters() : counter_count(0), mode(CounterMode::GRANTS)
     {
-        for (uint32_t i = 0; i < 66; i++)
+        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
         {
             // Initialize with safe defaults for all slots
             counters[i] = {CounterBank::INSTRN_THREAD, 0, 0, static_cast<uint32_t>(mode)};
@@ -282,7 +284,7 @@ public:
      */
     void add(CounterBank bank, uint32_t counter_id, uint32_t mux_ctrl_bit4 = 0)
     {
-        if (counter_count >= 66)
+        if (counter_count >= COUNTER_SLOT_COUNT)
         {
             return; // Max 66 counters
         }
@@ -329,7 +331,7 @@ public:
 
         // Count how many valid counters are configured (check bit 31)
         uint32_t active_count = 0;
-        for (uint32_t i = 0; i < 66; i++)
+        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
         {
             if ((config_mem[i] & 0x80000000) != 0)
             {
@@ -353,7 +355,7 @@ public:
 
         // First decode configs and store locally
         uint32_t counter_idx = 0; // Separate index for storing configs
-        for (uint32_t i = 0; i < 66 && counter_idx < 66; i++)
+        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT && counter_idx < COUNTER_SLOT_COUNT; i++)
         {
             uint32_t metadata = config_mem[i];
 
@@ -414,7 +416,7 @@ public:
      */
     CounterResult* stop()
     {
-        static CounterResult results[66];
+        static CounterResult results[COUNTER_SLOT_COUNT];
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
