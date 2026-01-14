@@ -1134,6 +1134,7 @@ class UnarySFPUGolden:
         dimensions: tuple[int, int],
         iterations: int = None,
         dest_idx: int = 0,
+        fill_const_value: float = 5,
         reduce_pool: Optional[ReducePool] = None,
     ):
         self.data_format = data_format
@@ -1176,7 +1177,11 @@ class UnarySFPUGolden:
         result = tilize_block(result, dimensions, input_format).flatten()
 
         op_res = [
-            self.ops[operation](x)
+            (
+                self.ops[operation](x, fill_const_value)
+                if operation == MathOperation.Fill
+                else self.ops[operation](x)
+            )
             for x in result.tolist()[1024 * dest_idx : 32 * iterations]
         ]
 
@@ -1332,13 +1337,13 @@ class UnarySFPUGolden:
         )
         return torch.nn.functional.gelu(input_tensor).item()
 
-    def _fill(self, x):
+    def _fill(self, x, const_value=5):
         input_tensor = (
             x
             if isinstance(x, torch.Tensor)
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
-        return input_tensor.fill_(5).item()
+        return input_tensor.fill_(const_value).item()
 
     def _hardsigmoid(self, x):
         input_tensor = (

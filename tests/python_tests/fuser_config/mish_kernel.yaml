@@ -19,8 +19,9 @@ operations:
         - type: "UnarySfpu"
           operation: "Fill"
           approximation_mode: "No"
-          dst_dest_tile_index: 1
+          dst_dest_tile_index: 0
           iterations: 32
+          fill_const_value: 69.69
     packer: "Packer"
     dest_acc: "No"
     math_fidelity: "HiFi4"
