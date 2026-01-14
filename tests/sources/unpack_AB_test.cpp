@@ -32,7 +32,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         params->TEST_FACE_R_DIM,
         params->num_faces,
         params->num_faces);
-    //_llk_unpack_configure_stoch_rnd_<STOCHASTIC_RND>();
+    _llk_unpack_configure_stoch_rnd_<STOCHASTIC_RND>();
 
     _llk_unpack_AB_init_<BROADCAST_TYPE>(params->TEST_FACE_R_DIM, params->num_faces, false, params->UNPACK_TRANSPOSE_FACES);
     for (int i = 0; i < params->TILE_CNT; i++)
@@ -59,7 +59,6 @@ using namespace ckernel;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    // Test configuration constants
     constexpr DstSync sync_mode = DstSync::SyncHalf;
 
     _llk_math_pack_sync_init_<sync_mode, is_fp32_dest_acc_en>();
@@ -84,7 +83,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    // Test configuration constants
     constexpr DstSync sync_mode = DstSync::SyncHalf;
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
