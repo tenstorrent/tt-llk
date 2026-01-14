@@ -308,6 +308,9 @@ public:
 
         // Initialize mode to current selected mode
         counters[counter_count++] = {bank, counter_id, mux_ctrl_bit4, mode};
+
+        // Write updated metadata to L1 immediately
+        write_metadata();
     }
 
     /**
@@ -332,11 +335,8 @@ public:
         // Read configuration from L1 (may have been set by Python or C++)
         volatile uint32_t* config_mem = get_config_mem();
 
-        // If counters were added via C++ add(), write metadata to L1
-        if (counter_count > 0)
-        {
-            write_metadata();
-        }
+        // Metadata is written during add(); if Python configured metadata,
+        // we will read it directly from L1 below.
 
         // Count how many valid counters are configured (check bit 31)
         uint32_t active_count = 0;
