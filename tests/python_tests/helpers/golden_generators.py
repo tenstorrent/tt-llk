@@ -186,35 +186,42 @@ def quantize_mx_tensor_chunked(
     if tensor_size == 0:
         return tensor
 
-    quantized_chunks = []
+    # Pre-allocate output tensor for better performance
+    quantized = torch.zeros_like(tensor)
     idx = 0
+
+    # Chunk size lookup: (min_size, chunk_size, num_faces)
+    chunk_configs = [(1024, 1024, 4), (512, 512, 2), (256, 256, 1)]
 
     while idx < tensor_size:
         remaining = tensor_size - idx
 
-        # Use largest valid chunk size: 1024 (4 faces), 512 (2 faces), or 256 (1 face)
-        if remaining >= 1024:
-            chunk_size, chunk_num_faces = 1024, 4
-        elif remaining >= 512:
-            chunk_size, chunk_num_faces = 512, 2
+        # Select chunk configuration based on remaining elements
+        for min_size, chunk_size, num_faces in chunk_configs:
+            if remaining >= min_size:
+                break
         else:
-            chunk_size, chunk_num_faces = 256, 1
+            # Handle case where remaining < 256
+            chunk_size, num_faces = 256, 1
 
         actual_chunk_size = min(chunk_size, remaining)
         chunk = tensor[idx : idx + actual_chunk_size]
-        if len(chunk) < chunk_size:
+
+        # Pad only if necessary
+        if actual_chunk_size < chunk_size:
             padding = torch.zeros(
-                chunk_size - len(chunk), dtype=chunk.dtype, device=chunk.device
+                chunk_size - actual_chunk_size, dtype=chunk.dtype, device=chunk.device
             )
             chunk = torch.cat([chunk, padding])
 
-        quantized_chunk = quantize_mx_stimuli(
-            chunk, data_format, num_faces=chunk_num_faces
-        )
-        quantized_chunks.append(quantized_chunk[:actual_chunk_size])
+        # Quantize chunk
+        quantized_chunk = quantize_mx_stimuli(chunk, data_format, num_faces=num_faces)
+
+        # Write directly to output tensor (avoid list append + concat)
+        quantized[idx : idx + actual_chunk_size] = quantized_chunk[:actual_chunk_size]
         idx += actual_chunk_size
 
-    return torch.cat(quantized_chunks) if quantized_chunks else tensor
+    return quantized
 
 
 class SrcFormatModel:
