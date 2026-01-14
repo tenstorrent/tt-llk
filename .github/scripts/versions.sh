@@ -7,7 +7,7 @@
 # This file should be sourced by installation scripts
 
 # tt-exalens configuration
-export EXALENS_VERSION="0.2.1"
+export EXALENS_VERSION="0.2.2"
 
 # tt-smi configuration
 export TT_SMI_VERSION="3.0.38"
