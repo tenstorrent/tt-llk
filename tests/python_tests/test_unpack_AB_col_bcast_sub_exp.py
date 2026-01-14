@@ -61,8 +61,9 @@ from helpers.utils import passed_test
     ),
     dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
     fast_mode=[
-        True
-    ],  # False],  # Test both standard and Schraudolph fast approximation
+        True,
+        False,
+    ],
 )
 def test_unpack_AB_col_bcast_sub_exp(
     formats: InputOutputFormat,

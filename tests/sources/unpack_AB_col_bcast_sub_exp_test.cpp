@@ -103,7 +103,21 @@ void run_kernel(const volatile struct RuntimeParams *params)
         // - iterations = 32 (process full tile)
         // - FAST_MODE = template parameter (enable/disable Schraudolph fast approximation algorithm)
 
-        test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
+        if constexpr (FAST_MODE)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
+                TTI_INCRWC(0, 4, 0, 0);
+                TTI_INCRWC(0, 4, 0, 0);
+                TTI_INCRWC(0, 4, 0, 0);
+                TTI_INCRWC(0, 4, 0, 0);
+            }
+        }
+        else
+        {
+            test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
+        }
 
         _llk_math_eltwise_unary_sfpu_done_();
     }
