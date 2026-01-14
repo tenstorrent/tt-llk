@@ -43,11 +43,11 @@ int main()
 #endif
 
 #if defined(LLK_TRISC_UNPACK)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FFC);
+    volatile uint32_t* const mailbox = reinterpret_cast<volatile uint32_t*>(0x19FFC);
 #elif defined(LLK_TRISC_MATH)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF8);
+    volatile uint32_t* const mailbox = reinterpret_cast<volatile uint32_t*>(0x19FF8);
 #elif defined(LLK_TRISC_PACK)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
+    volatile uint32_t* const mailbox = reinterpret_cast<volatile uint32_t*>(0x19FF4);
 #endif
 
     std::fill(ckernel::regfile, ckernel::regfile + 64, 0);

@@ -30,7 +30,7 @@ inline void _llk_unpack_unary_operand_mop_config_(const uint32_t buf_desc_id, co
     constexpr uint32_t MOP_INNER_LOOP = 1;
 
     // RT: Use defines to remove these constexpr, and replace with a single TT_OP_UNPACR_FACE_INC
-    uint unpack_tile_instrn;
+    uint32_t unpack_tile_instrn;
     if constexpr (UNP_SEL == p_unpacr::UNP_A)
     {
         unpack_tile_instrn = TT_OP_UNPACR0_TILE_INC(0, 1 /*Src Tile Idx*/, buf_desc_id, 1 /*Set Dvalid*/);
@@ -76,7 +76,7 @@ inline void _llk_unpack_unary_operand_transpose_mop_config_(const uint32_t buf_d
     const uint32_t MOP_OUTER_LOOP = num_tiles;
     const uint32_t MOP_INNER_LOOP = 1;
 
-    constexpr uint replay_buf_len = NUM_FACES;
+    constexpr uint32_t replay_buf_len = NUM_FACES;
 
     load_replay_buf<0, replay_buf_len>(
         [buf_desc_id]
@@ -157,7 +157,7 @@ inline void _llk_unpack_unary_operand_init_(const uint32_t buf_desc_id, const ui
  * @param l1_tile_idx: Index into the L1 buffer for a tile
  */
 template <uint32_t UNP_SEL>
-inline void _llk_unpack_unary_operand_(const uint l1_tile_idx)
+inline void _llk_unpack_unary_operand_(const uint32_t l1_tile_idx)
 {
     // RT: for the best performance, setting counters should be placed in a REPLAY buffer
     // in the mop_config, but for back compatibility with APIs, the counter functions must

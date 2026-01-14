@@ -82,18 +82,18 @@ enum SortDir : bool
     ArgMin = true,
 };
 
-constexpr std::uint32_t FACE_HEIGHT = 16;
-constexpr std::uint32_t FACE_WIDTH  = 16;
-constexpr std::uint32_t TILE_HEIGHT = 32;
-constexpr std::uint32_t TILE_WIDTH  = 32;
+constexpr uint32_t FACE_HEIGHT = 16;
+constexpr uint32_t FACE_WIDTH  = 16;
+constexpr uint32_t TILE_HEIGHT = 32;
+constexpr uint32_t TILE_WIDTH  = 32;
 
-constexpr std::uint32_t FACE_R_DIM = FACE_HEIGHT;
-constexpr std::uint32_t FACE_C_DIM = FACE_WIDTH;
+constexpr uint32_t FACE_R_DIM = FACE_HEIGHT;
+constexpr uint32_t FACE_C_DIM = FACE_WIDTH;
 
-constexpr std::uint32_t TILE_R_DIM = TILE_HEIGHT;
-constexpr std::uint32_t TILE_C_DIM = TILE_WIDTH;
+constexpr uint32_t TILE_R_DIM = TILE_HEIGHT;
+constexpr uint32_t TILE_C_DIM = TILE_WIDTH;
 
-constexpr std::uint32_t TILE_NUM_FACES = ((TILE_R_DIM * TILE_C_DIM) / (FACE_R_DIM * FACE_C_DIM));
+constexpr uint32_t TILE_NUM_FACES = ((TILE_R_DIM * TILE_C_DIM) / (FACE_R_DIM * FACE_C_DIM));
 
 constexpr uint32_t DEST_NUM_TILES_FP16      = (DEST_REGISTER_FULL_SIZE * DEST_FACE_WIDTH) / (TILE_HEIGHT * TILE_HEIGHT);
 constexpr uint32_t DEST_NUM_TILES_FP16_HALF = DEST_NUM_TILES_FP16 / 2;
@@ -103,7 +103,7 @@ static_assert((DEST_NUM_TILES_FP16 & (DEST_NUM_TILES_FP16 - 1)) == 0);
 #define LO_16(REG) (2 * (REG))
 #define HI_16(REG) (2 * (REG) + 1)
 
-constexpr static std::uint32_t GET_L1_HEADERLESS_TILE_SIZE(uint format)
+constexpr static uint32_t GET_L1_HEADERLESS_TILE_SIZE(uint32_t format)
 {
     switch (format & 0xF)
     {
@@ -131,7 +131,7 @@ constexpr static std::uint32_t GET_L1_HEADERLESS_TILE_SIZE(uint format)
     };
 }
 
-constexpr static bool IS_BFP_FORMAT(uint format)
+constexpr static bool IS_BFP_FORMAT(uint32_t format)
 {
     switch (format & 0xF)
     {
@@ -147,7 +147,7 @@ constexpr static bool IS_BFP_FORMAT(uint format)
     };
 }
 
-constexpr static bool IS_BFP_A_FORMAT(uint format)
+constexpr static bool IS_BFP_A_FORMAT(uint32_t format)
 {
     switch (format & 0xF)
     {
@@ -160,7 +160,7 @@ constexpr static bool IS_BFP_A_FORMAT(uint format)
     };
 }
 
-constexpr static bool IS_A_FORMAT(uint format)
+constexpr static bool IS_A_FORMAT(uint32_t format)
 {
     switch (format & 0xF)
     {
@@ -175,7 +175,7 @@ constexpr static bool IS_A_FORMAT(uint format)
     };
 }
 
-constexpr static std::uint32_t SCALE_DATUM_SIZE(uint format, uint datum_count)
+constexpr static uint32_t SCALE_DATUM_SIZE(uint32_t format, uint32_t datum_count)
 {
     switch (static_cast<DataFormat>(format & 0xF))
     {

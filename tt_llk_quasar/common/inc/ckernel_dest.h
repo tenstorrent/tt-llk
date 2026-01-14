@@ -33,7 +33,7 @@ namespace ckernel
 {
 
 template <int t>
-inline void set_dest_fmt(uint fmt)
+inline void set_dest_fmt(uint32_t fmt)
 {
     // FWLOG1("Setting RISC-dest access format to %d", fmt);
     static_assert(t >= 0 and t < 3, "Thread must be 0, 1, or 2");
@@ -54,7 +54,7 @@ inline void set_dest_fmt(uint fmt)
     tensix_sync();
 }
 
-inline void set_dest_fmt(uint fmt, int t)
+inline void set_dest_fmt(uint32_t fmt, int t)
 {
     // FWLOG1("Setting RISC-dest access format to %d", fmt);
     if (t == 0)

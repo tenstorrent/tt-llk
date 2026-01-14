@@ -18,7 +18,7 @@
 void run_kernel(const volatile struct RuntimeParams*)
 {
     tdma_descriptor_t td_val;
-    const uint buf_desc_id = 0;
+    const uint32_t buf_desc_id = 0;
 
     // Setup data valid scheme
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
@@ -66,8 +66,8 @@ void run_kernel(const volatile struct RuntimeParams*)
     // x_stride = x_stride_internal = col dim of a tile in L1 in units of 16 datums (1 face);
     // y_stride = y_stride_external + x_stride_internal
     // In this case x = 0 because the entire tile row fits into Dest
-    uint y_stride_external = FULL_CT_DIM * R_DIM_FACES * TEST_FACE_R_DIM;
-    for (uint y = 0; y < BLOCK_RT_DIM; y++)
+    uint32_t y_stride_external = FULL_CT_DIM * R_DIM_FACES * TEST_FACE_R_DIM;
+    for (uint32_t y = 0; y < BLOCK_RT_DIM; y++)
     {
         _llk_unpack_tilize_<UNPACKER_ENGINE_SEL>(y * y_stride_external /*  + 0 * x_stride  */);
     }
@@ -114,8 +114,8 @@ void run_kernel(const volatile struct RuntimeParams*)
 
 void run_kernel(const volatile struct RuntimeParams*)
 {
-    uint32_t const buf_desc_id    = 8;
-    const uint num_tiles_per_pack = TILE_CNT;
+    uint32_t const buf_desc_id        = 8;
+    const uint32_t num_tiles_per_pack = TILE_CNT;
 
     set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 

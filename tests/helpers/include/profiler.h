@@ -18,7 +18,7 @@
 template <size_t N>
 constexpr std::uint16_t hashString16(const char (&s)[N])
 {
-    std::uint32_t hash32 = UINT32_C(2166136261);
+    uint32_t hash32 = UINT32_C(2166136261);
     for (std::size_t i = 0; i < N - 1; ++i)
     {
         std::uint8_t c = static_cast<std::uint8_t>(s[i]);
@@ -135,7 +135,7 @@ __attribute__((always_inline)) inline void write_entry(EntryType type, uint16_t 
     uint32_t timestamp_high = static_cast<uint32_t>(timestamp >> 32);
 
     uint32_t type_numeric = static_cast<uint32_t>(type);
-    uint32_t meta         = (type_numeric << ENTRY_TYPE_SHAMT) | ((uint32_t)id16 << ENTRY_ID_SHAMT);
+    uint32_t meta         = (type_numeric << ENTRY_TYPE_SHAMT) | (static_cast<uint32_t>(id16) << ENTRY_ID_SHAMT);
 
     buffer[TRISC_ID][write_idx++] = meta | (timestamp_high & ~ENTRY_META_MASK);
     buffer[TRISC_ID][write_idx++] = static_cast<uint32_t>(timestamp);

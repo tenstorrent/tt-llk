@@ -17,9 +17,9 @@
 void run_kernel(const volatile struct RuntimeParams *params)
 {
     tdma_descriptor_t td_val_A, td_val_B;
-    const uint buf_desc_id_a        = 0;
-    const uint buf_desc_id_b        = 1;
-    const uint num_tiles_per_unpack = params->TILE_CNT;
+    const uint32_t buf_desc_id_a        = 0;
+    const uint32_t buf_desc_id_b        = 1;
+    const uint32_t num_tiles_per_unpack = params->TILE_CNT;
 
     // Setup data valid scheme
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
@@ -92,8 +92,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    uint32_t const buf_desc_id    = 8;
-    const uint num_tiles_per_pack = params->TILE_CNT;
+    uint32_t const buf_desc_id        = 8;
+    const uint32_t num_tiles_per_pack = params->TILE_CNT;
 
     set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 

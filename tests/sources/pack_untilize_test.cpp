@@ -14,7 +14,7 @@ uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
-constexpr static std::uint32_t format_size_in_bytes(uint data_format)
+constexpr static uint32_t format_size_in_bytes(uint32_t data_format)
 {
     switch (static_cast<DataFormat>(data_format & 0xF))
     {

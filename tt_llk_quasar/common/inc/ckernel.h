@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <cstdint>
+
 // Compiler hint that a branch is unlikely to be taken
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
 #define tt_l1_ptr           __attribute__((rvtt_l1_ptr))
@@ -38,26 +40,29 @@ constexpr uint8_t UNPACK_TO_DEST_PACK_SEMAPHORE          = 7;
 
 constexpr uint32_t KERNEL_COMPLETE = 0x1;
 
-volatile uint *const reg_base        = (volatile uint *)0xFFB10000;
-volatile uint *const pc_buf_base     = (volatile uint *)PC_BUF_BASE;
-volatile uint *const regfile         = (volatile uint *)REGFILE_BASE;
-volatile uint *const instrn_buffer   = (volatile uint *)INSTRN_BUF_BASE;
-volatile uint *const mailbox_base[4] = {
-    (volatile uint *)TENSIX_MAILBOX0_BASE, (volatile uint *)TENSIX_MAILBOX1_BASE, (volatile uint *)TENSIX_MAILBOX2_BASE, (volatile uint *)TENSIX_MAILBOX3_BASE};
-volatile uint *const replay_mmap = (uint32_t volatile *)(INSTRN_BUF_BASE + (1 << 10));
+volatile uint32_t *const reg_base        = (volatile uint32_t *)0xFFB10000;
+volatile uint32_t *const pc_buf_base     = (volatile uint32_t *)PC_BUF_BASE;
+volatile uint32_t *const regfile         = (volatile uint32_t *)REGFILE_BASE;
+volatile uint32_t *const instrn_buffer   = (volatile uint32_t *)INSTRN_BUF_BASE;
+volatile uint32_t *const mailbox_base[4] = {
+    (volatile uint32_t *)TENSIX_MAILBOX0_BASE,
+    (volatile uint32_t *)TENSIX_MAILBOX1_BASE,
+    (volatile uint32_t *)TENSIX_MAILBOX2_BASE,
+    (volatile uint32_t *)TENSIX_MAILBOX3_BASE};
+volatile uint32_t *const replay_mmap = (uint32_t volatile *)(INSTRN_BUF_BASE + (1 << 10));
 
-inline void mmio_register_write(register_space_e space, uint addr, uint data)
+inline void mmio_register_write(register_space_e space, uint32_t addr, uint32_t data)
 {
-    const uint regaddr = (space << 6) | (addr & 0x3F);
+    const uint32_t regaddr = (space << 6) | (addr & 0x3F);
     // FWLOG2("Regaddr: 0x%x, data: 0x%x", regaddr, data);
     reg_base[regaddr] = data;
 }
 
-inline void sync_regfile_write(const uint index)
+inline void sync_regfile_write(const uint32_t index)
 {
-    volatile uint foo     = 0xdeadbeef;
-    volatile uint *fooptr = &foo;
-    *fooptr               = regfile[index];
+    volatile uint32_t foo     = 0xdeadbeef;
+    volatile uint32_t *fooptr = &foo;
+    *fooptr                   = regfile[index];
 }
 
 inline uint8_t semaphore_read(const uint8_t index)
@@ -79,16 +84,16 @@ inline void semaphore_get(const uint8_t index)
 // tenstorrent/tensix#976
 // now handled by the compiler)
 // workaround is needed only for GS
-inline uint reg_read(uint32_t addr)
+inline uint32_t reg_read(uint32_t addr)
 {
-    volatile uint tt_reg_ptr *p_reg = reinterpret_cast<volatile uint tt_reg_ptr *>(addr);
+    volatile uint32_t tt_reg_ptr *p_reg = reinterpret_cast<volatile uint32_t tt_reg_ptr *>(addr);
     return p_reg[0];
 }
 
 inline void reg_write(uint32_t addr, uint32_t data)
 {
-    volatile uint tt_reg_ptr *p_reg = reinterpret_cast<volatile uint tt_reg_ptr *>(addr);
-    p_reg[0]                        = data;
+    volatile uint32_t tt_reg_ptr *p_reg = reinterpret_cast<volatile uint32_t tt_reg_ptr *>(addr);
+    p_reg[0]                            = data;
 }
 
 //
@@ -110,12 +115,12 @@ inline void reg_write(uint32_t addr, uint32_t data)
 //
 //// Flip math dest register offset to 0 or 0x80, depending on the iteration,
 //// flip-flopping between two halves
-// inline void select_math_dest_registers(const uint iteration, const uint32_t dest_offset=DEST_MAX_ADDR_HALF_16B)
+// inline void select_math_dest_registers(const uint32_t iteration, const uint32_t dest_offset=DEST_MAX_ADDR_HALF_16B)
 //{
 //	TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, (iteration%2 != dest_offset_id) ? dest_offset : 0x0);
 // }
 // inline uint32_t get_dest_offset(){
-//	volatile uint * cfg_regs       = reinterpret_cast<volatile uint *>(TENSIX_CFG_BASE);
+//	volatile uint32_t * cfg_regs       = reinterpret_cast<volatile uint32_t *>(TENSIX_CFG_BASE);
 //	const uint32_t cfg_addr0 = (cfg_state_id == 0) ? ALU_ROUNDING_MODE_Fpu_srnd_en_ADDR32 : (CFG_STATE_SIZE * 4) + ALU_ROUNDING_MODE_Fpu_srnd_en_ADDR32;
 //     const uint32_t cfg_addr1 = (cfg_state_id == 0) ? THCON_UNPACKER0_REG0_OUT_DATA_FORMAT_ADDR32 : (CFG_STATE_SIZE * 4) +
 //     THCON_UNPACKER0_REG0_OUT_DATA_FORMAT_ADDR32;
@@ -137,8 +142,8 @@ inline void reg_write(uint32_t addr, uint32_t data)
 
 inline void tensix_sync()
 {
-    volatile uint foo     = 0xdeadbeef;
-    volatile uint *fooptr = &foo;
+    volatile uint32_t foo     = 0xdeadbeef;
+    volatile uint32_t *fooptr = &foo;
     // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
     pc_buf_base[1] = foo;
 
@@ -148,8 +153,8 @@ inline void tensix_sync()
 
 inline void mop_sync()
 {
-    volatile uint foo     = 0xdeadbeef;
-    volatile uint *fooptr = &foo;
+    volatile uint32_t foo     = 0xdeadbeef;
+    volatile uint32_t *fooptr = &foo;
     // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
     pc_buf_base[2] = foo;
 
@@ -274,16 +279,16 @@ inline bool mailbox_not_empty(const uint8_t thread)
 // example, a TRISC access to an unpacker 1 register and an UNPACR
 // instruction that targets unpacker 0).
 //
-constexpr static uint TRACK_GLOBAL_CFG             = 1 << 0;
-constexpr static uint EN_SUBDIVIDED_CFG_FOR_UNPACR = 1 << 1;
-constexpr static uint TRACK_GPR                    = 1 << 2;
-constexpr static uint TRACK_TDMA                   = 1 << 3;
-constexpr static uint TRACK_TENSIX_INSTRUCTIONS    = 1 << 4;
-constexpr static uint TRACK_ALL                    = 0x1F;
+constexpr static uint32_t TRACK_GLOBAL_CFG             = 1 << 0;
+constexpr static uint32_t EN_SUBDIVIDED_CFG_FOR_UNPACR = 1 << 1;
+constexpr static uint32_t TRACK_GPR                    = 1 << 2;
+constexpr static uint32_t TRACK_TDMA                   = 1 << 3;
+constexpr static uint32_t TRACK_TENSIX_INSTRUCTIONS    = 1 << 4;
+constexpr static uint32_t TRACK_ALL                    = 0x1F;
 
 // HACK: I inverted this signal in RTL, should probably clean this up at some point
-template <uint bitmask>
-inline void set_ttsync_enables(uint thread_id = 0xdeadface)
+template <uint32_t bitmask>
+inline void set_ttsync_enables(uint32_t thread_id = 0xdeadface)
 {
     static_assert((bitmask & ~TRACK_ALL) == 0, "The given bitmask targets bits outside the allowable range");
     auto t6dbg = RISCV_DEBUG_REGS;
@@ -345,7 +350,7 @@ __attribute__((always_inline)) inline void enable_gathering()
 // returns void, and issues the instructions you want to load into the
 // replay buffer. start, len, and exec_while_loading have the same meaning
 // as they do for the REPLAY instruction, as descired in assembly.yaml.
-template <uint start, uint len, bool exec_while_loading = false, uint set_mutex = 0, uint last = 0, typename F>
+template <uint32_t start, uint32_t len, bool exec_while_loading = false, uint32_t set_mutex = 0, uint32_t last = 0, typename F>
 __attribute__((always_inline)) inline void load_replay_buf(F fn)
 {
     if (len > 0)
@@ -365,7 +370,7 @@ __attribute__((always_inline)) inline void load_replay_buf(F fn)
 // Same as above, but used if start/len/exec_while_loading are not known
 // at compile time.
 template <typename F>
-__attribute__((always_inline)) inline void load_replay_buf(uint start, uint len, bool exec_while_loading, uint set_mutex, uint last, F fn)
+__attribute__((always_inline)) inline void load_replay_buf(uint32_t start, uint32_t len, bool exec_while_loading, uint32_t set_mutex, uint32_t last, F fn)
 {
     disable_gathering();
 

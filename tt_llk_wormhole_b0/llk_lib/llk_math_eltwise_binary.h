@@ -129,7 +129,7 @@ template <
     bool is_fp32_dest_acc_en,
     MathFidelity math_fidelity,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_index, const bool clear_fp32_dst_acc)
+inline void _llk_math_eltwise_binary_(const uint32_t num_faces, uint32_t dst_index, const bool clear_fp32_dst_acc)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     constexpr bool high_fidelity     = is_high_fidelity(math_fidelity);
@@ -144,7 +144,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
             // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice for full tile size
             constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
 #pragma GCC unroll 0
-            for (std::uint32_t n = 0; n < outerloop; n++)
+            for (uint32_t n = 0; n < outerloop; n++)
             {
                 eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
                 ckernel_template::run();
@@ -153,7 +153,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
             if (num_faces == 4)
             {
 #pragma GCC unroll 0
-                for (std::uint32_t n = 0; n < outerloop; n++)
+                for (uint32_t n = 0; n < outerloop; n++)
                 {
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
                     ckernel_template::run();
@@ -165,7 +165,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
         {
             const uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? num_faces : 1;
 #pragma GCC unroll 0
-            for (std::uint32_t n = 0; n < outerloop; n++)
+            for (uint32_t n = 0; n < outerloop; n++)
             {
                 eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
                 ckernel_template::run();
@@ -212,7 +212,7 @@ template <
     BroadcastType bcast_type,
     MathFidelity math_fidelity,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, const std::uint32_t num_faces = 4)
+inline void eltwise_binary_configure_mop(const uint32_t acc_to_dest = 0, const uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     constexpr bool high_fidelity = is_high_fidelity(math_fidelity);
@@ -267,7 +267,7 @@ template <
     BroadcastType src_b_bcast_type,
     MathFidelity math_fidelity,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, const std::uint32_t acc_to_dest)
+inline void _llk_math_eltwise_binary_init_(const uint32_t num_faces, const uint32_t acc_to_dest)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(
@@ -299,7 +299,7 @@ inline void _llk_math_eltwise_binary_uninit_()
  since toggling of dvalid signal is different in both cases.
 
  *************************************************************************/
-inline void eltwise_binary_configure_mop(uint srca_reuse_count = 4)
+inline void eltwise_binary_configure_mop(uint32_t srca_reuse_count = 4)
 {
     /*
 

@@ -18,7 +18,7 @@ template <typename T>
 constexpr bool is_supported_relu_type_v = std::is_same_v<T, float> || std::is_same_v<T, uint32_t>;
 
 template <bool APPROXIMATION_MODE>
-inline void _calculate_lrelu_(const int iterations, uint slope)
+inline void _calculate_lrelu_(const int iterations, uint32_t slope)
 {
     TT_SFPLOADI(p_sfpu::LREG2, 10, slope & 0xFFFF);
     TT_SFPLOADI(p_sfpu::LREG2, 8, slope >> 16);

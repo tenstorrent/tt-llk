@@ -21,8 +21,8 @@ inline void _llk_unpack_binary_operands_mop_config_(const uint32_t buf_desc_id_0
     constexpr uint32_t MOP_OUTER_LOOP = 1;
     const uint32_t MOP_INNER_LOOP     = num_tiles;
 
-    uint unpack_instrn0 = TT_OP_UNPACR0_TILE_INC(0, 1 /*Src Tile Idx*/, buf_desc_id_0, 1 /*Set Dvalid*/);
-    uint unpack_instrn1 = TT_OP_UNPACR1_TILE_INC(0, 1 /*Src Tile Idx*/, buf_desc_id_1, 1 /*Set Dvalid*/);
+    uint32_t unpack_instrn0 = TT_OP_UNPACR0_TILE_INC(0, 1 /*Src Tile Idx*/, buf_desc_id_0, 1 /*Set Dvalid*/);
+    uint32_t unpack_instrn1 = TT_OP_UNPACR1_TILE_INC(0, 1 /*Src Tile Idx*/, buf_desc_id_1, 1 /*Set Dvalid*/);
 
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, unpack_instrn0, unpack_instrn1);
 
@@ -49,7 +49,7 @@ inline void _llk_unpack_binary_operands_init_(const uint32_t buf_desc_id_0, cons
  * start_l1_tile_idx_0 -> UNPACKER0 -> SRCA
  * start_l1_tile_idx_1 -> UNPACKER1 -> SRCB
  */
-inline void _llk_unpack_binary_operands_(const uint start_l1_tile_idx_0, const uint start_l1_tile_idx_1)
+inline void _llk_unpack_binary_operands_(const uint32_t start_l1_tile_idx_0, const uint32_t start_l1_tile_idx_1)
 {
     // RT: for the best performance, setting counters should be placed in a REPLAY buffer
     // in the mop_config, but for back compatibility with APIs, the counter functions must

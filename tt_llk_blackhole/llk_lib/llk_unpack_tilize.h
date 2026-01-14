@@ -21,11 +21,11 @@ using namespace ckernel::unpacker;
 inline void _llk_unpack_tilize_mop_config_([[maybe_unused]] const bool narrow_tile = false, const bool unpack_to_dest = false)
 {
     LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
-    static constexpr uint unpack_srca =
+    static constexpr uint32_t unpack_srca =
         TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint unpack_srca_to_dest =
+    static constexpr uint32_t unpack_srca_to_dest =
         TT_OP_UNPACR(0, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint unpack_srcb_set_dvalid = TT_OP_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
+    static constexpr uint32_t unpack_srcb_set_dvalid = TT_OP_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
 
     const uint32_t outerloop = 1;
     const uint32_t innerloop = 1;
@@ -41,15 +41,15 @@ inline void _llk_unpack_tilize_mop_config_([[maybe_unused]] const bool narrow_ti
 }
 
 inline void _llk_unpack_tilize_init_(
-    const std::uint32_t unpack_src_format = 0,
-    const std::uint32_t unpack_dst_format = 0,
-    const std::uint32_t ct_dim            = 0,
-    const std::uint32_t face_r_dim        = FACE_R_DIM,
-    const bool narrow_tile                = false)
+    const uint32_t unpack_src_format = 0,
+    const uint32_t unpack_dst_format = 0,
+    const uint32_t ct_dim            = 0,
+    const uint32_t face_r_dim        = FACE_R_DIM,
+    const bool narrow_tile           = false)
 {
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
-    const std::uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
+    const uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
 
     // In case of 32-bit integer numbers, we have to unpack into dest register
     const bool unpack_to_dest = (unpack_src_format == to_underlying(DataFormat::UInt32)) || (unpack_src_format == to_underlying(DataFormat::Int32));
@@ -72,8 +72,8 @@ inline void _llk_unpack_tilize_init_(
     // 16)
 
     // below is the configuration for 64-row unpack for srca
-    const uint Tile_x_dim = 1024;
-    const uint Tile_z_dim = 1;
+    const uint32_t Tile_x_dim = 1024;
+    const uint32_t Tile_z_dim = 1;
     cfg_reg_rmw_tensix<THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32, 0, 0xffffffff>(Tile_x_dim | (Tile_x_dim << 16));
     // Force x-dim to 1024
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32, 0, 0xffff0000>(0 | (Tile_x_dim << 16));
@@ -87,27 +87,27 @@ inline void _llk_unpack_tilize_init_(
 }
 
 inline void _llk_unpack_tilize_(
-    const std::uint32_t base_address,
-    const std::uint32_t tile_index,
-    std::uint32_t unpack_src_format                 = 0,
-    [[maybe_unused]] std::uint32_t block_ct_dim     = 0,
-    [[maybe_unused]] const std::uint32_t face_r_dim = FACE_R_DIM,
-    [[maybe_unused]] const std::uint32_t num_faces  = 4,
-    const bool narrow_tile                          = false)
+    const uint32_t base_address,
+    const uint32_t tile_index,
+    uint32_t unpack_src_format                 = 0,
+    [[maybe_unused]] uint32_t block_ct_dim     = 0,
+    [[maybe_unused]] const uint32_t face_r_dim = FACE_R_DIM,
+    [[maybe_unused]] const uint32_t num_faces  = 4,
+    const bool narrow_tile                     = false)
 {
     LLK_ASSERT(block_ct_dim == 0, "block_ct_dim: this parameter is unused");
     LLK_ASSERT(face_r_dim == FACE_R_DIM, "face_r_dim: this parameter is unused");
     LLK_ASSERT(num_faces == 4, "num_faces: this parameter is unused");
-    volatile uint tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile uint32_t tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // In case of 32-bit integer numbers, we have to unpack into dest register
     const bool unpack_to_dest = (unpack_src_format == to_underlying(DataFormat::UInt32)) || (unpack_src_format == to_underlying(DataFormat::Int32));
 
-    std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
+    uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
 
     // Program srcA and srcB base addresses
     // FIXME MT: This should be revisited for narrow tiles
-    // std::uint32_t num_loops = narrow_tile ? 2 : num_faces/2;
+    // uint32_t num_loops = narrow_tile ? 2 : num_faces/2;
 
     std::uint32_t address = base_address + top_face_offset_address;
     LLK_ASSERT(is_valid_L1_address(address), "L1 base_address must be in valid L1 memory region");
@@ -156,7 +156,7 @@ inline void _llk_unpack_tilize_(
     switch_config_context(unp_cfg_context);
 }
 
-inline void _llk_unpack_tilize_uninit_(const std::uint32_t unpack_dst_format, const std::uint32_t num_faces, const std::uint32_t face_r_dim)
+inline void _llk_unpack_tilize_uninit_(const uint32_t unpack_dst_format, const uint32_t num_faces, const uint32_t face_r_dim)
 {
     TTI_STALLWAIT(p_stall::STALL_THCON, p_stall::UNPACK);
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
@@ -166,7 +166,7 @@ inline void _llk_unpack_tilize_uninit_(const std::uint32_t unpack_dst_format, co
     TT_SETADCXX(p_setadc::UNP_B, face_r_dim * FACE_C_DIM - 1, 0x0);
 
     // Revert Z dim value back to default.
-    const uint Tile_z_dim = num_faces;
+    const uint32_t Tile_z_dim = num_faces;
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 16, 0xffff0000>(Tile_z_dim);
 
     unpack_config_u config = {0};
@@ -188,12 +188,12 @@ inline void _llk_unpack_tilize_uninit_(const std::uint32_t unpack_dst_format, co
  *************************************************************************/
 
 // TODO: add support for all the template parameters
-template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false>
-inline void _llk_unpack_tilizeA_B_mop_config_(const bool narrow_tile = false, const std::uint32_t num_faces = 4)
+template <bool neginf_srcA = false, uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false>
+inline void _llk_unpack_tilizeA_B_mop_config_(const bool narrow_tile = false, const uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    const std::uint32_t replay_buf_run_len  = 6;
-    const std::uint32_t replay_buf_half_len = replay_buf_run_len >> 1;
+    const uint32_t replay_buf_run_len  = 6;
+    const uint32_t replay_buf_half_len = replay_buf_run_len >> 1;
 
     // Lambda function to set up replay buffer
     load_replay_buf(
@@ -230,19 +230,19 @@ inline void _llk_unpack_tilizeA_B_mop_config_(const bool narrow_tile = false, co
     tmp.program();
 }
 
-template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false>
+template <bool neginf_srcA = false, uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false>
 inline void _llk_unpack_tilizeA_B_init_(
-    const std::uint32_t unpack_src_format,
-    const std::uint32_t unpack_dst_format,
+    const uint32_t unpack_src_format,
+    const uint32_t unpack_dst_format,
     const bool narrow_tile,
-    const std::uint32_t ct_dim,
-    const std::uint32_t num_faces       = 4,
-    const std::uint32_t unpA_face_r_dim = FACE_R_DIM,
-    const std::uint32_t unpB_face_r_dim = FACE_R_DIM)
+    const uint32_t ct_dim,
+    const uint32_t num_faces       = 4,
+    const uint32_t unpA_face_r_dim = FACE_R_DIM,
+    const uint32_t unpB_face_r_dim = FACE_R_DIM)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // Sets the block_c_dim for unpack to use to increment the L1 address
-    const std::uint32_t c_dim_size = SCALE_DATUM_SIZE(unpack_src_format, ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM)) >> 4;
+    const uint32_t c_dim_size = SCALE_DATUM_SIZE(unpack_src_format, ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM)) >> 4;
 
     // This sets the scratch register that CFGSHIFTMASK instruction uses to increment the L1 address
     TT_SETDMAREG(0, LOWER_HALFWORD(c_dim_size), 0, LO_16(p_gpr_unpack::TMP0));
@@ -256,38 +256,38 @@ inline void _llk_unpack_tilizeA_B_init_(
     config_unpacker_x_end<p_setadc::UNP_B>(unpB_face_r_dim);
 
     // Set Y stride for SrcA to be one 1x16 row of datums
-    uint unpA_ch1_y_stride = SCALE_DATUM_SIZE(unpack_dst_format, FACE_C_DIM);
+    uint32_t unpA_ch1_y_stride = SCALE_DATUM_SIZE(unpack_dst_format, FACE_C_DIM);
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(unpA_ch1_y_stride);
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
     _llk_unpack_tilizeA_B_mop_config_<neginf_srcA, reload_srcB, zero_srcA, zero_srcA_reduce>(narrow_tile, num_faces);
 }
 
-template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false>
+template <bool neginf_srcA = false, uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false>
 inline void _llk_unpack_tilizeA_B_(
-    std::uint32_t unpA_src_format,
-    std::uint32_t face_r_dim,
-    std::uint32_t narrow_tile,
-    std::uint32_t base_address_a,
-    std::uint32_t address_b,
-    std::uint32_t tile_index_a,
-    std::uint32_t tile_index_b,
-    std::uint32_t block_ct_dim,
-    std::uint32_t num_faces = 4)
+    uint32_t unpA_src_format,
+    uint32_t face_r_dim,
+    uint32_t narrow_tile,
+    uint32_t base_address_a,
+    uint32_t address_b,
+    uint32_t tile_index_a,
+    uint32_t tile_index_b,
+    uint32_t block_ct_dim,
+    uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    const std::uint32_t offset_address_a = SCALE_DATUM_SIZE(unpA_src_format, tile_index_a) << 1;
-    const std::uint32_t address_a        = base_address_a + offset_address_a;
+    const uint32_t offset_address_a = SCALE_DATUM_SIZE(unpA_src_format, tile_index_a) << 1;
+    const uint32_t address_a        = base_address_a + offset_address_a;
 
-    const std::uint32_t block_c_dim = block_ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM) * face_r_dim;
-    const bool run_r_dim_loop       = (face_r_dim > 1);
+    const uint32_t block_c_dim = block_ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM) * face_r_dim;
+    const bool run_r_dim_loop  = (face_r_dim > 1);
 
-    volatile uint tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile uint32_t tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // Clear z/w start counters for SrcA/B
     TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, 0b1111);
 
-    for (std::uint32_t n = 0; n < num_faces; n++)
+    for (uint32_t n = 0; n < num_faces; n++)
     {
         /*
         Face 0: address = base_address
@@ -295,7 +295,7 @@ inline void _llk_unpack_tilizeA_B_(
         Face 2: address = base_address + block_ct_dim * TILE_C_DIM * face_r_dim (address for the bottom 2 faces of tiles)
         Face 3: address = base_address + block_ct_dim * TILE_C_DIM * face_r_dim + 1x16 row of datums
         */
-        std::uint32_t address_face_a = (n % 2 == 0) ? address_a : (address_a + (SCALE_DATUM_SIZE(unpA_src_format, FACE_C_DIM) >> 4));
+        uint32_t address_face_a = (n % 2 == 0) ? address_a : (address_a + (SCALE_DATUM_SIZE(unpA_src_format, FACE_C_DIM) >> 4));
         address_face_a += (n >= 2) ? ((SCALE_DATUM_SIZE(unpA_src_format, block_c_dim)) >> 4) : 0;
 
         // Wait for free context
@@ -343,7 +343,7 @@ inline void _llk_unpack_tilizeA_B_(
     }
 }
 
-inline void _llk_unpack_tilizeA_B_uninit_(const std::uint32_t unpack_dst_format, const std::uint32_t face_r_dim)
+inline void _llk_unpack_tilizeA_B_uninit_(const uint32_t unpack_dst_format, const uint32_t face_r_dim)
 {
     // Revert X dim value to default.
     TTI_STALLWAIT(p_stall::STALL_THCON, p_stall::UNPACK);

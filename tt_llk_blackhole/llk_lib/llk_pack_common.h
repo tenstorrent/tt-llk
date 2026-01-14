@@ -24,7 +24,7 @@ inline void _llk_packer_wait_for_math_done_()
 }
 
 // Tell math that it can write again
-template <uint WaitRes = p_stall::NONE>
+template <uint32_t WaitRes = p_stall::NONE>
 inline void _llk_packer_set_math_semaphore_()
 {
     t6_semaphore_get<WaitRes>(semaphore::MATH_PACK); // Indicate that packer is done and header is written into L1
@@ -59,8 +59,7 @@ inline void _llk_pack_dest_section_done_()
 }
 
 template <DstSync Dst>
-inline void _llk_init_packer_dest_offset_registers_(
-    [[maybe_unused]] const std::uint32_t face_r_dim = FACE_R_DIM, [[maybe_unused]] const bool narrow_tile = false)
+inline void _llk_init_packer_dest_offset_registers_([[maybe_unused]] const uint32_t face_r_dim = FACE_R_DIM, [[maybe_unused]] const bool narrow_tile = false)
 {
     LLK_ASSERT(face_r_dim == FACE_R_DIM, "face_r_dim: this parameter is unused");
     LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
@@ -75,7 +74,7 @@ inline void _llk_init_packer_dest_offset_registers_(
 }
 
 template <DstSync Dst, bool is_fp32_dest_acc_en>
-inline void _llk_pack_dest_init_(const std::uint32_t face_r_dim = FACE_R_DIM, const bool narrow_tile = false)
+inline void _llk_pack_dest_init_(const uint32_t face_r_dim = FACE_R_DIM, const bool narrow_tile = false)
 {
     tensix_sync();
     reset_dest_offset_id();
@@ -85,7 +84,7 @@ inline void _llk_pack_dest_init_(const std::uint32_t face_r_dim = FACE_R_DIM, co
 }
 
 template <bool mail2math = true, bool mail2pack = true>
-inline void _llk_pack_get_tile_(std::uint32_t tile_index, std::uint32_t *p_tile)
+inline void _llk_pack_get_tile_(uint32_t tile_index, uint32_t *p_tile)
 {
     if constexpr (mail2pack)
     {
@@ -106,7 +105,7 @@ inline void _llk_pack_release_tile_()
     }
 }
 
-inline void _llk_pack_debug_dump_(std::uint8_t *data, std::uint32_t byte_size)
+inline void _llk_pack_debug_dump_(std::uint8_t *data, uint32_t byte_size)
 {
     debug_dump(data, byte_size);
 }
@@ -116,7 +115,7 @@ inline void _llk_pack_debug_dump_seek_(std::uint8_t offset)
     debug_dump_seek(offset);
 }
 
-TT_ALWAYS_INLINE void _llk_pack_relu_config_(const std::uint32_t config)
+TT_ALWAYS_INLINE void _llk_pack_relu_config_(const uint32_t config)
 {
     ReluType mode = (config & 0xf) == 0 ? ReluType::NO_RELU : ((config & 0xf) == 3 ? ReluType::MAX_THRESHOLD_RELU : ReluType::MIN_THRESHOLD_RELU);
     uint32_t val  = ((config >> 16) << STACC_RELU_ReluThreshold_SHAMT) | (to_underlying(mode) << STACC_RELU_ApplyRelu_SHAMT);
@@ -128,7 +127,7 @@ TT_ALWAYS_INLINE void _llk_pack_relu_config_(const std::uint32_t config)
     TTI_NOP;
 }
 
-inline void _llk_pack_reconfig_l1_acc_(const std::uint32_t enable)
+inline void _llk_pack_reconfig_l1_acc_(const uint32_t enable)
 {
     reconfigure_packer_l1_acc(enable);
 }

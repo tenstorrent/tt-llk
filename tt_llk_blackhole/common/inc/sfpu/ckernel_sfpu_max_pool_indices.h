@@ -33,14 +33,14 @@ template <
     int ITERATIONS             = 8,
     ckernel::DataLayout layout = ckernel::DataLayout::TILE,
     bool accumulate            = false>
-inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const uint indices_tile_idx, const uint chunk)
+inline void _calculate_max_pool_with_indices_(const uint32_t values_tile_idx, const uint32_t indices_tile_idx, const uint32_t chunk)
 {
     // size of each tile in Dest is 64 rows
-    constexpr uint dst_tile_size   = 64;
-    const uint values_tile_offset  = values_tile_idx * dst_tile_size;
-    const uint indices_tile_offset = indices_tile_idx * dst_tile_size;
+    constexpr uint32_t dst_tile_size   = 64;
+    const uint32_t values_tile_offset  = values_tile_idx * dst_tile_size;
+    const uint32_t indices_tile_offset = indices_tile_idx * dst_tile_size;
     // each face is 16 rows
-    constexpr uint face_offset        = 16;
+    constexpr uint32_t face_offset    = 16;
     constexpr uint8_t instr_mod_index = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
     if constexpr (layout == ckernel::DataLayout::ROW_MAJOR)
@@ -66,7 +66,7 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
         // Face 0 Row 8
         // Face 1 Row 8
 
-        auto process_columns = [values_tile_offset, indices_tile_offset](const uint col_offset) __attribute__((always_inline))
+        auto process_columns = [values_tile_offset, indices_tile_offset](const uint32_t col_offset) __attribute__((always_inline))
         {
             // data
             TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 0 + col_offset);
@@ -182,18 +182,18 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
  * it must be called with layout=DataLayout::ROW_MAJOR.
  */
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool accumulate = false>
-inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx, const uint indices_tile_idx, const uint chunk)
+inline void _calculate_max_pool_with_indices_generic_(const uint32_t values_tile_idx, const uint32_t indices_tile_idx, const uint32_t chunk)
 {
     // size of each tile in Dest is 64 rows
-    constexpr uint dst_tile_size         = 64;
-    const uint values_tile_offset        = values_tile_idx * dst_tile_size;
-    const uint indices_tile_offset       = indices_tile_idx * dst_tile_size;
-    const uint values_accum_tile_offset  = (values_tile_idx + 1) * dst_tile_size;
-    const uint indices_accum_tile_offset = (indices_tile_idx + 1) * dst_tile_size;
+    constexpr uint32_t dst_tile_size         = 64;
+    const uint32_t values_tile_offset        = values_tile_idx * dst_tile_size;
+    const uint32_t indices_tile_offset       = indices_tile_idx * dst_tile_size;
+    const uint32_t values_accum_tile_offset  = (values_tile_idx + 1) * dst_tile_size;
+    const uint32_t indices_accum_tile_offset = (indices_tile_idx + 1) * dst_tile_size;
     // each face is 16 rows
-    constexpr uint eight_row_offset   = 16;
-    constexpr uint sixteen_row_offset = 32;
-    constexpr uint8_t instr_mod_index = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
+    constexpr uint32_t eight_row_offset   = 16;
+    constexpr uint32_t sixteen_row_offset = 32;
+    constexpr uint8_t instr_mod_index     = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
     // ROW MAJOR DATA VERSION OF MPWI
     // DATA IS EXPECTED TO BE IN THE FOLLOWING ORDER IN DEST:
@@ -208,7 +208,7 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
     // Face 1 Row 31
 
     // Reduces 8 rows to max in LREG0/LREG4, optionally stores result.
-    auto reduce_8_rows = [instr_mod_index](const uint val_base, const uint idx_base, const bool store_result) __attribute__((always_inline))
+    auto reduce_8_rows = [instr_mod_index](const uint32_t val_base, const uint32_t idx_base, const bool store_result) __attribute__((always_inline))
     {
         // data - precomputed base address eliminates repeated arithmetic
         TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, val_base + 0);  // Row 0 and 1

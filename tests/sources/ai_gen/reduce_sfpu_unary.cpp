@@ -31,8 +31,8 @@ uint32_t math_sync_tile_dst_index = 0;
 // -----------------------------------------------------------------------------
 // Helper constexpr driven by build defines coming from params.h
 // -----------------------------------------------------------------------------
-constexpr std::uint32_t within_face_16x16_transpose = (REDUCE_DIM == ckernel::ReduceDim::REDUCE_ROW) ? 1 : 0;
-constexpr bool row_pool                             = (REDUCE_DIM == ckernel::ReduceDim::REDUCE_ROW);
+constexpr uint32_t within_face_16x16_transpose = (REDUCE_DIM == ckernel::ReduceDim::REDUCE_ROW) ? 1 : 0;
+constexpr bool row_pool                        = (REDUCE_DIM == ckernel::ReduceDim::REDUCE_ROW);
 
 // -----------------------------------------------------------------------------
 // UNPACK THREAD (TRISC_UNPACK)

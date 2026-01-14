@@ -7,5 +7,5 @@
 
 namespace ckernel::pack
 {
-constexpr static uint TRISC_ID = 2;
+constexpr static uint32_t TRISC_ID = 2;
 }
