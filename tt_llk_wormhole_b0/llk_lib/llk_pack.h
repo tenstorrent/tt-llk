@@ -371,7 +371,7 @@ inline void _llk_pack_fast_tilize_block_(
     // move to the start tile index, instead of using the standard W counter whose stride is a single tile
     // use the Z counter whose stride is a single face as tiles are split into halves of the active dest bank
     // so only move 2 faces per tile_index
-    set_dst_write_addr(tile_index << 1);
+    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_Z, tile_index << 1);
 
     for (uint i = 0; i < num_units; i++)
     {

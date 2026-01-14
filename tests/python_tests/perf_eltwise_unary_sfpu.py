@@ -48,6 +48,7 @@ from helpers.test_variant_parameters import (
     ],
     mathop=[
         MathOperation.Reciprocal,
+        MathOperation.Rsqrt,
         MathOperation.Sqrt,
         MathOperation.Silu,
         MathOperation.Gelu,

@@ -24,12 +24,13 @@ inline void _llk_math_eltwise_unary_datacopy_(
     const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format, const std::uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    // For 32bit data, each half of DEST can take 16 tiles. Since dest offset is returned as if 16bit data are used, we need to
+    // adjust it to offset in faces for 32bit data.
+    std::uint32_t dest_base_offset_in_faces = get_dest_buffer_base() >> 5;
+    std::uint32_t dst_index_in_faces        = dst_index << 2; // Each tile has 4 faces;
 
     if (unpack_to_dest && is_32bit_input(src_format, dst_format))
     {
-        // For 32bit data, each half of DEST can take 16 tiles. Since dest offset is returned as if 16bit data are used, we need to
-        // adjust it to offset in faces for 32bit data.
-        const std::uint32_t dest_base_offset_in_faces = get_dest_buffer_base_32b();
         math_unpack_to_dest_math_ready();
         math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(dst_index);
         math::math_unpack_to_dest_tile_ready();
@@ -49,7 +50,7 @@ inline void _llk_math_eltwise_unary_datacopy_(
                 static_cast<int>(dst_format == (uint)DataFormat::Float32),
                 1 /*clear zero flags*/,
                 ADDR_MOD_3,
-                dest_base_offset_in_faces + get_dest_index_in_faces(dst_index, i));
+                dest_base_offset_in_faces + dst_index_in_faces + i);
         }
 
         if constexpr (src_b_bcast_type == BroadcastType::ROW)

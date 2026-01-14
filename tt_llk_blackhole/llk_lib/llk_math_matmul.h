@@ -618,8 +618,8 @@ inline void _llk_math_matmul_init_(
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0, bool is_fp32_dest_acc_en = false>
-inline void _llk_math_matmul_(const uint dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
+template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0>
+inline void _llk_math_matmul_(uint dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
 {
     const bool reuse_a                = ct_dim >= rt_dim;
     const std::uint32_t t_dim         = reuse_a ? rt_dim : ct_dim;
