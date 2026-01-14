@@ -231,7 +231,7 @@ private:
         CounterMode mode;       // REQUESTS or GRANTS
     };
 
-    CounterConfig counters[COUNTER_SLOT_COUNT] = {};
+    CounterConfig counters[COUNTER_SLOT_COUNT];
     uint32_t counter_count;
     CounterMode mode;
 
