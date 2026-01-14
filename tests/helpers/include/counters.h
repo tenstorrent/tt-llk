@@ -228,7 +228,7 @@ private:
         CounterBank bank;
         uint32_t counter_id;
         uint32_t mux_ctrl_bit4; // Only used for L1 counters
-        uint32_t mode_bit;      // 0 = REQUESTS, 1 = GRANTS
+        CounterMode mode;       // REQUESTS or GRANTS
     };
 
     CounterConfig counters[COUNTER_SLOT_COUNT] = {};
@@ -274,7 +274,8 @@ private:
 
             // Encode: [valid(31), mux_ctrl_bit4(17), mode(16), counter_id(8-15), bank(0-7)]
             uint32_t metadata = (1u << 31) | // Valid bit to distinguish from empty slots
-                                (config.mux_ctrl_bit4 << 17) | ((config.mode_bit & 0x1u) << 16) | (config.counter_id << 8) | static_cast<uint32_t>(config.bank);
+                                (config.mux_ctrl_bit4 << 17) | ((static_cast<uint32_t>(config.mode) & 0x1u) << 16) | (config.counter_id << 8) |
+                                static_cast<uint32_t>(config.bank);
 
             config_mem[i] = metadata;
         }
@@ -305,8 +306,8 @@ public:
             return; // Max 66 counters
         }
 
-        // Initialize mode_bit to current mode (0=REQUESTS, 1=GRANTS)
-        counters[counter_count++] = {bank, counter_id, mux_ctrl_bit4, static_cast<uint32_t>(mode)};
+        // Initialize mode to current selected mode
+        counters[counter_count++] = {bank, counter_id, mux_ctrl_bit4, mode};
     }
 
     /**
@@ -318,7 +319,7 @@ public:
         // Keep existing counter configs in sync with the selected mode
         for (uint32_t i = 0; i < counter_count; i++)
         {
-            counters[i].mode_bit = static_cast<uint32_t>(mode);
+            counters[i].mode = mode;
         }
     }
 
@@ -380,7 +381,7 @@ public:
             counters[counter_idx].bank          = static_cast<CounterBank>(bank_id);
             counters[counter_idx].counter_id    = counter_id_val;
             counters[counter_idx].mux_ctrl_bit4 = mux_ctrl_val;
-            counters[counter_idx].mode_bit      = mode_bit;
+            counters[counter_idx].mode          = mode_bit ? CounterMode::GRANTS : CounterMode::REQUESTS;
             counter_idx++;
         }
 
@@ -465,7 +466,7 @@ public:
             uint32_t counter_reg_addr = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
 
             // Select the desired counter and req/grant output in mode register
-            dbg_regs[counter_reg_addr + 1] = (config.counter_id << 8) | ((config.mode_bit & 0x1u) << 16);
+            dbg_regs[counter_reg_addr + 1] = (config.counter_id << 8) | ((static_cast<uint32_t>(config.mode) & 0x1u) << 16);
 
             // Allow selection/mux to settle: perform a dummy read sequence
             uint32_t output_low_addr       = (get_counter_output_low_addr(config.bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
