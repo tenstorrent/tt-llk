@@ -12,6 +12,7 @@
 #include "ckernel_sfpu_rounding_ops.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
+#include "sfpu/ckernel_sfpu_polyval.h"
 
 namespace ckernel::sfpu
 {
@@ -433,41 +434,31 @@ void calculate_exponential_no_swap()
     }
 }
 
-template <bool USE_ARECIP_INSTR, int NUM_TERMS, uint32_t SCALE>
-void calculate_exponential_more_terms_init()
+template <uint32_t SCALE>
+void calculate_exponential_polynomial_init()
 {
-    constexpr float M_LN2 = -0.69314718055994530942f; // -ln(2)
-
-    // L11 is used by LCONST_neg1 in the floor function.
-    // L14 is used by SWAP LoadMacro.
-
     constexpr float scale_fp32 = __builtin_bit_cast(float, SCALE);
-    TTI_SFPLOADI(0, 0xA, lo16(1.f / scale_fp32));
-    TTI_SFPLOADI(0, 0x8, hi16(1.f / scale_fp32));
+    TTI_SFPLOADI(0, 0xA, lo16(scale_fp32));
+    TTI_SFPLOADI(0, 0x8, hi16(scale_fp32));
+    TTI_SFPCONFIG(0, 11, 0);
+
+    constexpr float LN2_RECIP = 1.44269504088896340736f; // 1/ln(2)
+    TTI_SFPLOADI(0, 0xA, lo16(LN2_RECIP));
+    TTI_SFPLOADI(0, 0x8, hi16(LN2_RECIP));
     TTI_SFPCONFIG(0, 12, 0);
 
-    // -ln(2) for computing r = x - k*ln2.
+    constexpr float M_LN2 = -0.69314718055994530942f; // -ln(2)
     TTI_SFPLOADI(0, 0xA, lo16(M_LN2));
     TTI_SFPLOADI(0, 0x8, hi16(M_LN2));
     TTI_SFPCONFIG(0, 13, 0);
 
-    if constexpr (!USE_ARECIP_INSTR)
-    {
-        LLK_ASSERT(NUM_TERMS >= 1 && NUM_TERMS <= 3, "Only 1, 2, or 3 terms is supported");
-
-        float c0 = (NUM_TERMS == 1)   ? 1.1233623192692236032135985743012506909535502780929f
-                   : (NUM_TERMS == 2) ? 0.99753586992155448808365863701299141006547850119893f
-                                      : 0.9987744242042385423631271908377461652500045536011f;
-        TTI_SFPLOADI(0, 0xA, lo16(c0));
-        TTI_SFPLOADI(0, 0x8, hi16(c0));
-        TTI_SFPCONFIG(0, 11, 0); // L11 also used by the floor function.
-    }
+    // L14 is used by SWAP LoadMacro.
 
     init_clamp_loadmacro<SCALE>();
 }
 
-template <bool USE_ARECIP_INSTR, bool SCALE_EN, int ITERATIONS, int NUM_TERMS>
-void calculate_exponential_more_terms(const uint16_t /*exp_base_scale_factor*/)
+template <bool SCALE_EN, int ITERATIONS, bool USE_SFPARECIP_INSTR, int POLY_DEGREE, bool is_fp32_dest_acc_en = false>
+void calculate_exponential_polynomial()
 {
     // Clamp values < -88.5 to 0.
     run_clamp_loadmacro();
@@ -479,103 +470,170 @@ void calculate_exponential_more_terms(const uint16_t /*exp_base_scale_factor*/)
     }
         .set(ADDR_MOD_7);
 
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-
-    constexpr float LN2_RECIP = 1.44269504088896340736f; // 1/ln(2)
-
-    if constexpr (USE_ARECIP_INSTR)
+    if (!USE_SFPARECIP_INSTR)
     {
-        TTI_SFPLOADI(p_sfpu::LREG5, 0xA, lo16(LN2_RECIP));
-        TTI_SFPLOADI(p_sfpu::LREG5, 0x8, hi16(LN2_RECIP));
-    }
-    else
-    {
-        LLK_ASSERT(NUM_TERMS >= 1 && NUM_TERMS <= 3, "Only 1, 2, or 3 terms is supported");
+        // LLK_ASSERT(
+        //     POLY_DEGREE >= 1 && POLY_DEGREE <= 4,
+        //     "Only degree 1-4 polynomials are supported in calculate_exponential_polynomial");
 
-        TTI_SFPLOADI(p_sfpu::LREG3, 0xA, lo16(LN2_RECIP));
-        TTI_SFPLOADI(p_sfpu::LREG3, 0x8, hi16(LN2_RECIP));
+        // Evaluate polynomial f(x) = c0 + c1 * x + c2 * x^2 + ... using Horner's method.
+        constexpr float c0 = (POLY_DEGREE == 1)   ? 1.03022936050163882354355235184958220293399209290987f
+                             : (POLY_DEGREE == 2) ? 0.999848792924395313327307061545061386175496934006f
+                             : (POLY_DEGREE == 3) ? 0.99992449655091231753798502608929170703152709521188f
+                                                  : 1.0000001510806179002040134468008959160576106495165f;
+        constexpr float c1 = (POLY_DEGREE == 1)   ? 1.0201394465967894800285756834161653337107187804001f
+                             : (POLY_DEGREE == 2) ? 1.01508760098521056684783640695492761469306929535975f
+                             : (POLY_DEGREE == 3) ? 0.99993960415029750534472970577402987498389428593233f
+                                                  : 0.99996228117047652035114096488703457970402030983204f;
+        constexpr float c2 = (POLY_DEGREE == 2)   ? 0.50628367056745568861842335616023694454759126020461f
+                             : (POLY_DEGREE == 3) ? 0.50502329058055065591138054839814880512001604099324f
+                                                  : 0.49998365704615426417337683145647067790385638465486f;
+        constexpr float c3 = (POLY_DEGREE == 3) ? 0.16817330195731531429790827442800245470170482723302f : 0.16792157982882225102649214918047336097544632172075f;
+        constexpr float c4 = 4.1959439860014343843000081999668024587178974865521e-2;
 
-        float c1 = (NUM_TERMS == 1)   ? 1.0820212806667225532377520284909768979269800054308f
-                   : (NUM_TERMS == 2) ? 1.06124048373286974827555447405224249606107006990166f
-                                      : 0.99901998795742600963202540686824558627408454106245f;
-        float c2 = (NUM_TERMS == 1)   ? 0
-                   : (NUM_TERMS == 2) ? 0.52547100916184135258988956948179959663957303082728f
-                                      : 0.52031779522223959306148327026770360633893731713813f;
-        float c3 = (NUM_TERMS == 1) ? 0 : (NUM_TERMS == 2) ? 0 : 0.17275631602849673535810267286740793455047549878205f;
-        switch (NUM_TERMS)
+        switch (POLY_DEGREE)
         {
+            case 4:
+                TTI_SFPLOADI(p_sfpu::LREG3, 0xA, lo16(c4));
+                TTI_SFPLOADI(p_sfpu::LREG3, 0x8, hi16(c4));
+                [[fallthrough]];
             case 3:
-                TTI_SFPLOADI(p_sfpu::LREG5, 0xA, lo16(c3));
-                TTI_SFPLOADI(p_sfpu::LREG5, 0x8, hi16(c3));
+                TTI_SFPLOADI(p_sfpu::LREG4, 0xA, lo16(c3));
+                TTI_SFPLOADI(p_sfpu::LREG4, 0x8, hi16(c3));
+                [[fallthrough]];
             case 2:
-                TTI_SFPLOADI(p_sfpu::LREG6, 0xA, lo16(c2));
-                TTI_SFPLOADI(p_sfpu::LREG6, 0x8, hi16(c2));
+                TTI_SFPLOADI(p_sfpu::LREG5, 0xA, lo16(c2));
+                TTI_SFPLOADI(p_sfpu::LREG5, 0x8, hi16(c2));
+                [[fallthrough]];
             case 1:
-                TTI_SFPLOADI(p_sfpu::LREG7, 0xA, lo16(c1));
-                TTI_SFPLOADI(p_sfpu::LREG7, 0x8, hi16(c1));
+                TTI_SFPLOADI(p_sfpu::LREG6, 0xA, lo16(c1));
+                TTI_SFPLOADI(p_sfpu::LREG6, 0x8, hi16(c1));
+                TTI_SFPLOADI(p_sfpu::LREG7, 0xA, lo16(c0));
+                TTI_SFPLOADI(p_sfpu::LREG7, 0x8, hi16(c0));
             default:
                 break;
         }
+        /*
+        //5 terms:
+        const float c3 = 8.3811120368908673959339195900127839538519629000654e-3;
+        const float c2 = 4.1917526483434559750922758581994875600336745271087e-2;
+        const float c1 = 0.16666325644573364069318773635224282529310825964159f;
+        const float c0 = 0.49998869147300729557177677533001615514220055429137f;
+
+        //6 terms:
+        const float c3 = 1.39560559261058387686527662065357327964769317045968e-3;
+        const float c2 = 8.3751285790191430788124198113189877595083687353735e-3;
+        const float c1 = 4.1666083594767575831754779426290409042519857811552e-2;
+        const float c0 = 0.16666415481911354892324775990291629376771406081787f;
+        TTI_SFPLOADI(p_sfpu::LREG4, 0xA, lo16(c3)); TTI_SFPLOADI(p_sfpu::LREG4, 0x8, hi16(c3));
+        TTI_SFPLOADI(p_sfpu::LREG5, 0xA, lo16(c2)); TTI_SFPLOADI(p_sfpu::LREG5, 0x8, hi16(c2));
+        TTI_SFPLOADI(p_sfpu::LREG6, 0xA, lo16(c1)); TTI_SFPLOADI(p_sfpu::LREG6, 0x8, hi16(c1));
+        TTI_SFPLOADI(p_sfpu::LREG7, 0xA, lo16(c0)); TTI_SFPLOADI(p_sfpu::LREG7, 0x8, hi16(c0));
+        */
     }
 
     for (int d = 0; d < ITERATIONS; d++)
     {
         // Load the input.
-        TTI_SFPLOAD(p_sfpu::LREG4, 0, ADDR_MOD_7, 0);
+        TTI_SFPLOAD(p_sfpu::LREG2, 0, ADDR_MOD_7, 0);
 
         if constexpr (SCALE_EN)
         {
-            TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG12, p_sfpu::LCONST_0, p_sfpu::LREG4, 0);
+            TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG11, p_sfpu::LCONST_0, p_sfpu::LREG2, 0);
         }
 
-        if constexpr (USE_ARECIP_INSTR)
-        {
-            // Multiply by 1/ln(2).
-            TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG5, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
+        // Multiply by 1/ln(2) and round.
+        TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG12, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG0, p_sfpu::LREG1, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+        TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG1, 0);
 
-            // Compute exp(x - k*ln2).
-            _floor_body_(); // L1=floor(L0).
-            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG13, p_sfpu::LREG4, p_sfpu::LREG0, 0);
+        if constexpr (USE_SFPARECIP_INSTR)
+        {
+            // Calculate floor(x) by setting v=v-1 if v>u.
+            TTI_SFPGT(0, p_sfpu::LREG0, p_sfpu::LREG1, 1);                                   // SFPGT_MOD1_SET_CC
+            TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG1, 2); // SFPMAD_MOD1_NEGATE_VC
+            TTI_SFPENCC(0, 0, 0, 0);
+
+            // Calculate exp(x - k*ln2).
+            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG13, p_sfpu::LREG2, p_sfpu::LREG0, 0);
             TTI_SFPARECIP(0, p_sfpu::LREG0, p_sfpu::LREG0, 2);
         }
         else
         {
-            // Multiply by 1/ln(2).
-            TTI_SFPMAD(p_sfpu::LREG4, p_sfpu::LREG3, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
+            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG13, p_sfpu::LREG2, p_sfpu::LREG0, 0);
 
-            // Compute r = x - k*ln2.
-            TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG0, p_sfpu::LREG1, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
-            TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG1, 0);
-            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG13, p_sfpu::LREG4, p_sfpu::LREG0, 0);
-
-            // Compute polynomial.
-            if constexpr (NUM_TERMS == 1)
+            // Calculate polynomial.
+            if constexpr (POLY_DEGREE == 1)
             {
-                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG7, p_sfpu::LREG11, p_sfpu::LREG0, 0);
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG6, p_sfpu::LREG7, p_sfpu::LREG0, 0);
             }
-            else if constexpr (NUM_TERMS == 2)
+            else if constexpr (POLY_DEGREE == 2)
             {
-                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG6, p_sfpu::LREG7, p_sfpu::LREG2, 0);
-                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG11, p_sfpu::LREG0, 0);
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG5, p_sfpu::LREG6, p_sfpu::LREG2, 0);
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG7, p_sfpu::LREG0, 0);
+            }
+            else if constexpr (POLY_DEGREE == 3)
+            {
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG4, p_sfpu::LREG5, p_sfpu::LREG2, 0);
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG6, p_sfpu::LREG2, 0);
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG7, p_sfpu::LREG0, 0);
+            }
+            else if constexpr (POLY_DEGREE == 4)
+            {
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG3, p_sfpu::LREG4, p_sfpu::LREG2, 0);
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG5, p_sfpu::LREG2, 0);
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG6, p_sfpu::LREG2, 0);
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG7, p_sfpu::LREG0, 0);
             }
             else
             {
-                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG5, p_sfpu::LREG6, p_sfpu::LREG2, 0);
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG4, p_sfpu::LREG5, p_sfpu::LREG2, 0);
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG6, p_sfpu::LREG2, 0);
                 TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG7, p_sfpu::LREG2, 0);
-                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG11, p_sfpu::LREG0, 0);
+
+                // 5 terms:
+                // const float c4 = 1.00000007548957109351275744555045580712919335489355f;
+                // const float c5 = 1.0000000647031412990341296971382259267890769603643f;
+                // 6 terms:
+                // const float c4 = 0.50000001684129479810980744894557527882280190098746f;
+                // const float c5 = 1.0000000377260445432265951695164850245007780191432f;
+                // const float c6 = 0.9999999999190669924854999775558527862300766615563f;
+
+                // Additional terms.
+                TTI_SFPLOADI(p_sfpu::LREG3, 0xA, lo16(c4));
+                TTI_SFPLOADI(p_sfpu::LREG3, 0x8, hi16(c4));
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpu::LREG2, 0);
+
+                TTI_SFPLOADI(p_sfpu::LREG3, 0xA, lo16(c5));
+                TTI_SFPLOADI(p_sfpu::LREG3, 0x8, hi16(c5));
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpu::LREG2, 0);
+
+                TTI_SFPLOADI(p_sfpu::LREG3, 0xA, lo16(c6));
+                TTI_SFPLOADI(p_sfpu::LREG3, 0x8, hi16(c6));
+                TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpu::LREG0, 0);
             }
         }
 
-        // Set the new exponent.
-        TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, 1); // 0=debias, 1=no debias.
-        TTI_SFPCAST(p_sfpu::LREG2, p_sfpu::LREG2, 0);
-        TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG1, p_sfpu::LREG2, p_sfpu::LREG2, 0);
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
-        TTI_SFPSETEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, 0);
+        // Multiply by 2^k.
+        TT_SFPADDI(0x42fe, p_sfpu::LREG1, 0); // Add 127.
+        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG1, p_sfpu::LREG2, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+        TTI_SFPSETEXP(0, p_sfpu::LCONST_0, p_sfpu::LREG2, 0);
+        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LCONST_0, p_sfpu::LREG2, 0);
+        // TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, 1); // 0=debias, 1=no debias.
+        // TTI_SFPCAST(p_sfpu::LREG2, p_sfpu::LREG2, 0);
+        // TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG1, p_sfpu::LREG2, p_sfpu::LREG2, 0);
+        // TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
+        // TTI_SFPSETEXP(0, p_sfpu::LREG0, p_sfpu::LREG2, 0);
 
         // Store the result.
+        if constexpr (!is_fp32_dest_acc_en)
+        {
+            // LRegs work on float32 data. If DST is bfloat16 then SFPSTORE will truncate it
+            // so convert to bfloat16 using round-to-nearest-even.
+            TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPSTOCHRND_MOD1_FP32_TO_FP16B);
+        }
         TTI_SFPSTORE(p_sfpu::LREG2, 0, ADDR_MOD_7, 0);
-        TTI_INCRWC(0, 2, 0, 0);
+        sfpi::dst_reg++;
     }
 }
 
@@ -694,7 +752,17 @@ void calculate_exponential_no_swap_relu()
     }
 }
 
-sfpi_inline sfpi::vInt _float_to_int32_exp21f_(sfpi::vFloat val)
+/*
+ * Convert an float value to a 32-bit integer value (specialized function for exp21f and exp61f)
+
+ * exp21f and exp61f rely on a float -> int conversion to compute the exponent of the integer part of the input.
+ * Two functions are available: _float_to_int32_ and _float_to_int32_positive_, which use branch to handle special cases
+ * With exp21f/exp61f function, some of these cases never happen (e.g. negative exponent, overflow)
+ * This allow for a branch free (and much smaller algorithm) to compute integer value
+ *
+ * The constraint on `val` is: 0 <= val < 128.0f
+ */
+sfpi_inline sfpi::vInt _float_to_int32_for_exp21f_(sfpi::vFloat val)
 {
     sfpi::vInt exp   = exexp(val);
     sfpi::vInt man   = exman8(val); // get mantissa with implicit bit (man in [1; 2])
@@ -703,10 +771,22 @@ sfpi_inline sfpi::vInt _float_to_int32_exp21f_(sfpi::vFloat val)
     return man;
 }
 
+/*
+ * This function implements the exponential function using a polynomial approximation algorithm
+ * based on "Simple Multiple Precision Algorithms for Exponential Functions [Tips & Tricks]"
+ * by Moroz et al. 2022 (https://doi.org/10.1109/MSP.2022.3157460).
+ * More specifically, it is the implementation of the `exp_21f` algorithm described in Section 5
+ *
+ * @param val The input value (sfpi::vFloat vector), can be any floating point number
+ *
+ * @return sfpi::vFloat Result of exp(val)
+ *
+ * @see Moroz et al. 2022 - "Simple Multiple Precision Algorithms for Exponential Functions"
+ *      ( https://doi.org/10.1109/MSP.2022.3157460 )
+ */
 template <bool is_fp32_dest_acc_en = false>
 sfpi_inline sfpi::vFloat _sfpu_exp_21f_(sfpi::vFloat val)
 {
-    sfpi::vFloat y = sfpi::vConst0;
     // Intermediary values can overflow if abs(val) is above 88.5f, which leads to output increasing again instead
     // of staying at 0 (or becoming finite on large inputs). This overflow happens when `| log2(e) * val | > 127.0f`,
     // which correspond to `|val| > 88.5f`
@@ -726,29 +806,29 @@ sfpi_inline sfpi::vFloat _sfpu_exp_21f_(sfpi::vFloat val)
     // Fundamentally, this computes exp(x) = 2**(x / ln2) = 2**(x_i) * 2**(x_f) where
     // - z_i = trunc(x / ln2) (integer part)
     // - z_f = x/ln2 - trunc(x/ln2) (fractional part)
-    sfpi::vInt z                = _float_to_int32_exp21f_(val * sfpi::vFloat(0x00b8aa3b) + sfpi::vFloat(0x3f800000));
+    sfpi::vInt z                = _float_to_int32_for_exp21f_(val * sfpi::vFloat(0x00b8aa3b) + sfpi::vFloat(0x3f800000));
     sfpi::vInt exponential_part = exexp_nodebias(sfpi::reinterpret<sfpi::vFloat>(z)); // Extract exponent ( = 2**(integer part of val/ln2))
     sfpi::vInt fractional_part  = sfpi::exman9(sfpi::reinterpret<sfpi::vFloat>(z));   // Extract mantissa ( = leftover part, in [0; 1])
 
     // To refine approximation of 2**(x_f), we use an approximation of 2**x on [0; 1]
     // This uses a 2nd degree polynomial adjustment of the fractional part
-    constexpr float POLY_D1 = 0.40196114e-7f;
-    constexpr int POLY_D2   = 0xf94ee7;
-    constexpr int POLY_D3   = 0x560e;
+    constexpr float POLY_D1             = 0.40196114e-7f;
+    constexpr int POLY_D2               = 0xf94ee7;
+    constexpr int POLY_D3               = 0x560e;
+    constexpr float POLY_D1_MUL_POLY_D2 = POLY_D1 * static_cast<float>(POLY_D2);
 
     // Compute polynomial through Horner's method
-    sfpi::vFloat d1 = sfpi::vFloat(POLY_D1);
-    sfpi::vFloat d2 = sfpi::int32_to_float(sfpi::vInt(POLY_D2) + fractional_part, 0);
-    sfpi::vFloat d3 = sfpi::int32_to_float(sfpi::vInt(POLY_D3) + fractional_part, 0);
-    d2              = d1 * d2;
+    // Unrolled d1(d2 + f)(d3 + f) to (d1*d2 + d1*f)(d3 + f) to use MAD
+    sfpi::vFloat p1 = sfpi::vFloat(POLY_D1) * sfpi::int32_to_float(fractional_part, 0) + sfpi::vFloat(POLY_D1_MUL_POLY_D2);
+    sfpi::vFloat p2 = sfpi::int32_to_float(sfpi::vInt(POLY_D3) + fractional_part, 0);
 
     // Compute 2**(adjusted fractional part) through float -> int conversion
-    fractional_part = _float_to_int32_exp21f_(d2 * d3);
+    fractional_part = _float_to_int32_for_exp21f_(p1 * p2);
 
     // Recombined exponent and mantissa: this is equivalent to 2**(x_i) * 2**(x_f)
     exponential_part = sfpi::reinterpret<sfpi::vInt>(sfpi::setexp(sfpi::reinterpret<sfpi::vFloat>(fractional_part), exponential_part)); // restore exponent
 
-    y = sfpi::reinterpret<sfpi::vFloat>(exponential_part);
+    sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(exponential_part);
 
     if constexpr (!is_fp32_dest_acc_en)
     {
@@ -762,6 +842,39 @@ sfpi_inline sfpi::vFloat _sfpu_exp_21f_(sfpi::vFloat val)
     return y;
 }
 
+sfpi_inline sfpi::vFloat _sfpu_exp_61f_(sfpi::vFloat val)
+{
+    sfpi::vFloat y = sfpi::vConst0;
+    v_if (val > -87.3f)
+    {
+        // The paper relies on the following formula (c.f. Section 2 and 3 of paper):
+        // z = (bias + x * factor * N_m; where:
+        // factor = 0x00b8aa3b (computed through log(e))
+        // bias = 0x3f800000
+        sfpi::vInt z   = _float_to_int32_for_exp21f_(val * sfpi::vFloat(0x00b8aa3b) + sfpi::vFloat(0x3f800000));
+        sfpi::vInt zii = sfpi::exexp(sfpi::reinterpret<sfpi::vFloat>(z));  // Extract exponent
+        sfpi::vInt zif = sfpi::exman9(sfpi::reinterpret<sfpi::vFloat>(z)); // Extract mantissa
+
+        // Normalize mantissa field into a fractional value in [0,1)
+        sfpi::vFloat frac = sfpi::int32_to_float(zif, 0) * sfpi::vFloat(1.1920929e-7f);
+
+        // Evaluate degree-6 polynomial coefficients using Horner’s rule
+        // Note: Unlike exp_21f, in exp_61f all polynomial coefficients are floating-point values.
+        // In exp_21f, the paper mixes integer and float constants to perform bit-level manipulation of the exponent and
+        // mantissa fields (using bit manipulation techniques - BMT) for exactness. In exp_61f, all coefficients are
+        // floating-point values derived from the Chebyshev polynomial approach, making the implementation simpler and
+        // purely mathematical without integer-based operations.
+        sfpi::vFloat poly = POLYVAL7<sfpi::vFloat>(0.0002170391f, 0.001243946f, 0.0096788315f, 0.055483369f, 0.24022982f, 0.69314699f, 1.0000000018f, frac);
+
+        // Restore exponent
+        zii = sfpi::reinterpret<sfpi::vInt>(sfpi::setexp(poly, 127U + zii));
+        y   = sfpi::reinterpret<sfpi::vFloat>(zii);
+    }
+    v_endif;
+
+    return y;
+}
+
 template <bool is_fp32_dest_acc_en>
 sfpi_inline sfpi::vFloat _sfpu_exp_improved_(sfpi::vFloat val);
 
@@ -769,7 +882,8 @@ sfpi_inline sfpi::vFloat _sfpu_exp_improved_(sfpi::vFloat val);
 template <>
 sfpi_inline sfpi::vFloat _sfpu_exp_improved_<false>(sfpi::vFloat val)
 {
-    return _sfpu_exp_21f_<false>(val);
+    // return _sfpu_exp_21f_<false>(val);
+    return _sfpu_exp_61f_(val);
 }
 
 // is_fp32_dest_acc_en == true
@@ -792,7 +906,7 @@ sfpi_inline void _execute_exponential_replay_buffer_()
 }*/
 
 #define EXPONENTIAL_TESTING_MODE 3
-#define EXP_CONFIG_NUM_TERMS     3
+#define EXP_CONFIG_NUM_TERMS     4
 #define EXP_CONFIG_NUM_SCALE     3
 #define EXP_USE_BH_INSTR         0
 
@@ -809,12 +923,12 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         calculate_exponential_no_swap<ITERATIONS>();
         return;
 #elif EXPONENTIAL_TESTING_MODE == 3
-        calculate_exponential_more_terms<EXP_USE_BH_INSTR, SCALE_EN, ITERATIONS, EXP_CONFIG_NUM_TERMS>(exp_base_scale_factor);
+        calculate_exponential_polynomial<SCALE_EN, ITERATIONS, EXP_USE_BH_INSTR, EXP_CONFIG_NUM_TERMS, true>();
         return;
 #elif EXPONENTIAL_TESTING_MODE == 4
         calculate_exponential_no_swap_relu<ITERATIONS, EXP_CONFIG_NUM_TERMS, EXP_CONFIG_NUM_SCALE>();
         return;
-#elif EXPONENTIAL_TESTING_MODE == 5
+#elif EXPONENTIAL_TESTING_MODE == 5 || EXPONENTIAL_TESTING_MODE == 6
         /* template args:
          *   bool APPROXIMATION_MODE,
          *   bool FAST_APPROX,
@@ -831,8 +945,12 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
             {
                 val = val * sfpi::s2vFloat16b(exp_base_scale_factor);
             }
-            sfpi::vFloat result = _sfpu_exp_improved_<false>(val);
-            sfpi::dst_reg[0]    = result;
+#if EXPONENTIAL_TESTING_MODE == 5
+            sfpi::vFloat result = _sfpu_exp_21f_<false>(val);
+#else
+            sfpi::vFloat result = _sfpu_exp_61f_(val);
+#endif
+            sfpi::dst_reg[0] = result;
             sfpi::dst_reg++;
         }
         return;
@@ -896,7 +1014,7 @@ inline void _init_exponential_()
         calculate_exponential_no_swap_init<scale>();
         return;
 #elif EXPONENTIAL_TESTING_MODE == 3
-        calculate_exponential_more_terms_init<EXP_USE_BH_INSTR, EXP_CONFIG_NUM_TERMS, scale>();
+        calculate_exponential_polynomial_init<scale>();
         return;
 #elif EXPONENTIAL_TESTING_MODE == 4
         calculate_exponential_no_swap_relu_init<EXP_CONFIG_NUM_TERMS, EXP_CONFIG_NUM_SCALE>();

@@ -33,7 +33,7 @@ from helpers.test_config import ProfilerBuild, run_test
     ],  # [[32, 32], [32, 64], [64, 32], [64, 64], [128, 32], [32, 128]],
     approx_mode=[ApproximationMode.Yes],
     mathop=[MathOperation.Exp],
-    dest_acc=[DestAccumulation.Yes],  # , DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_float(
     test_name, approx_mode, formats, mathop, dest_acc, input_dimensions
@@ -72,8 +72,8 @@ def eltwise_unary_sfpu(
         formats.input_format, formats.input_format, input_dimensions=input_dimensions
     )
 
-    min_val = 0
-    max_val = 1
+    min_val, max_val = -5, 5
+    # min_val, max_val = 0, 1
     size = 256  # src_A.shape[0]
     for i in range(size):
         src_A[i] = min_val + (max_val - min_val) * i / (size - 1.0)
@@ -185,6 +185,16 @@ def eltwise_unary_sfpu(
         print("INPUT_2: ", src_A_np[size - N : size])
         print("OUTPUT_2:", res_tensor_np[size - N : size])
         print("GOLDEN_2:", golden_tensor_np[size - N : size])
+
+        for i in range(256):
+            print(
+                i,
+                src_A_np[i],
+                golden_tensor_np[i],
+                res_tensor_np[i],
+                np.max(np.abs(res_tensor_np[i] - golden_tensor_np[i])),
+            )
+
         print(
             "MAXABSDIFF:",
             np.max(np.abs(res_tensor_np[0:size] - golden_tensor_np[0:size])),
@@ -202,14 +212,10 @@ def eltwise_unary_sfpu(
                 )
             ),
         )
-        # for i in range(256):
-        #    print(
-        #        i,
-        #        src_A_np[i],
-        #        golden_tensor_np[i],
-        #        res_tensor_np[i],
-        #        np.max(np.abs(res_tensor_np[i] - golden_tensor_np[i])),
-        #    )
+        print(
+            "MEANERRSQ_256:",
+            np.mean((res_tensor_np[0:256] - golden_tensor_np[0:256]) ** 2),
+        )
 
         # Write results to file.
         # with open(

@@ -7,7 +7,6 @@
 #include <limits>
 
 #include "ckernel_sfpu_recip.h"
-#include "exp_config_params.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
@@ -210,68 +209,48 @@ void calculate_exponential_no_swap()
     {
         // Load y.
         TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
-        TTI_SFPLOAD(p_sfpu::LREG1, 0, ADDR_MOD_7, 2);
 
         // Multiply y by 1/ln(2), round to nearest and convert to int16.
         TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG11, p_sfpu::LCONST_0, p_sfpu::LREG4, 0);
-        TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG11, p_sfpu::LCONST_0, p_sfpu::LREG5, 0);
         TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG4, p_sfpu::LREG2, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG5, p_sfpu::LREG3, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
 
         // Convert back to FP32 and compute r = y - k*ln2.
         TTI_SFPCAST(p_sfpu::LREG2, p_sfpu::LREG2, 0x0);
-        TTI_SFPCAST(p_sfpu::LREG3, p_sfpu::LREG3, 0x0);
         TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG12, p_sfpu::LREG0, p_sfpu::LREG0, 0);
-        TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG12, p_sfpu::LREG1, p_sfpu::LREG1, 0);
 
         // Compute i = A * r + (B-C).
         TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG13, p_sfpu::LREG14, p_sfpu::LREG0, 0);
-        TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG13, p_sfpu::LREG14, p_sfpu::LREG1, 0);
 
         // Convert to int and left shift by 15 bits.
         TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG0, p_sfpu::LREG0, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG1, p_sfpu::LREG1, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
         TTI_SFPSHFT(15, p_sfpu::LREG0, p_sfpu::LREG0, 0x1);
-        TTI_SFPSHFT(15, p_sfpu::LREG1, p_sfpu::LREG1, 0x1);
 
         // Extract exponent and add k.
         TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG4, 1); // 0=debias, values ~0 1=no debias, values ~127
-        TTI_SFPEXEXP(0, p_sfpu::LREG1, p_sfpu::LREG5, 1); // 0=debias, values ~0 1=no debias, values ~127
 
         // Cast to float to add signed values.
         TTI_SFPCAST(p_sfpu::LREG4, p_sfpu::LREG4, 0x0);
-        TTI_SFPCAST(p_sfpu::LREG5, p_sfpu::LREG5, 0x0);
         TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG4, p_sfpu::LREG4, 0);
-        TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG5, p_sfpu::LREG5, 0);
 
         // Clamp negative values to 0 using ReLU(x) = 0.5*(x + abs(x)).
         TT_SFPSETSGN(0, p_sfpu::LREG4, p_sfpu::LREG2, 0x1);
-        TT_SFPSETSGN(0, p_sfpu::LREG5, p_sfpu::LREG3, 0x1);
         TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG4, p_sfpu::LREG4, 0);
-        TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG5, p_sfpu::LREG5, 0);
         TTI_SFPMAD(p_sfpu::LREG7, p_sfpu::LREG4, p_sfpu::LCONST_0, p_sfpu::LREG4, 0);
-        TTI_SFPMAD(p_sfpu::LREG7, p_sfpu::LREG5, p_sfpu::LCONST_0, p_sfpu::LREG5, 0);
 
         // Cast to int16.
         TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG4, p_sfpu::LREG4, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG5, p_sfpu::LREG5, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
 
         // Clamp negative values to 0.
         // TTI_SFPSETCC(0, p_sfpu::LREG4, 0, 0);
         // TTI_SFPLOADI(p_sfpu::LREG4, 2, 0);
         // TTI_SFPENCC(2, 0, 0, 8);  // Re-enable all lanes. Mod1=8 (RI), Imm2=2 (bit1=1): sets all LaneFlags=true
-        // TTI_SFPSETCC(0, p_sfpu::LREG5, 0, 0);
-        // TTI_SFPLOADI(p_sfpu::LREG5, 2, 0);
-        // TTI_SFPENCC(2, 0, 0, 8);
 
         // Set the new exponent.
         TTI_SFPSETEXP(0, p_sfpu::LREG0, p_sfpu::LREG4, 0x0);
-        TTI_SFPSETEXP(0, p_sfpu::LREG1, p_sfpu::LREG5, 0x0);
 
         // Store the result.
         TTI_SFPSTORE(p_sfpu::LREG4, 0, ADDR_MOD_7, 0);
-        TTI_SFPSTORE(p_sfpu::LREG5, 0, ADDR_MOD_7, 2);
-        TTI_INCRWC(0, 4, 0, 0);
+        TTI_INCRWC(0, 2, 0, 0);
     }
 }
 
@@ -320,59 +299,42 @@ void calculate_exponential_more_terms()
     {
         // Load y.
         TTI_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_7, 0);
-        TTI_SFPLOAD(p_sfpu::LREG1, 0, ADDR_MOD_7, 2);
 
         // Multiply y by 1/ln(2), round to nearest and convert to int16.
         TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG11, p_sfpu::LCONST_0, p_sfpu::LREG2, 0);
-        TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG11, p_sfpu::LCONST_0, p_sfpu::LREG3, 0);
         TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG3, p_sfpu::LREG3, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
 
         // Convert back to FP32 and compute r = y - k*ln2.
         TTI_SFPCAST(p_sfpu::LREG2, p_sfpu::LREG2, 0x0);
-        TTI_SFPCAST(p_sfpu::LREG3, p_sfpu::LREG3, 0x0);
         TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG12, p_sfpu::LREG0, p_sfpu::LREG0, 0);
-        TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG12, p_sfpu::LREG1, p_sfpu::LREG1, 0);
 
         // Compute Taylor series.
         if constexpr (NUM_TERMS == 1)
         {
             TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LCONST_1, p_sfpu::LREG0, 0);
-            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LCONST_1, p_sfpu::LREG1, 0);
         }
         else if constexpr (NUM_TERMS == 2)
         {
             TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LCONST_1, p_sfpu::LREG4, 0);
-            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LCONST_1, p_sfpu::LREG5, 0);
             TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG4, p_sfpu::LCONST_1, p_sfpu::LREG0, 0);
-            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG1, 0);
         }
         else if constexpr (NUM_TERMS == 3)
         {
             TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG7, p_sfpu::LREG14, p_sfpu::LREG4, 0);
-            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG7, p_sfpu::LREG14, p_sfpu::LREG5, 0);
             TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG4, p_sfpu::LCONST_1, p_sfpu::LREG4, 0);
-            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG5, 0);
             TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG4, p_sfpu::LCONST_1, p_sfpu::LREG0, 0);
-            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG5, p_sfpu::LCONST_1, p_sfpu::LREG1, 0);
         }
 
         // Set the new exponent.
         TTI_SFPEXEXP(0, p_sfpu::LREG0, p_sfpu::LREG4, 1); // 0=debias, values ~0 1=no debias, values ~127
-        TTI_SFPEXEXP(0, p_sfpu::LREG1, p_sfpu::LREG5, 1); // 0=debias, values ~0 1=no debias, values ~127
         TTI_SFPCAST(p_sfpu::LREG4, p_sfpu::LREG4, 0x0);
-        TTI_SFPCAST(p_sfpu::LREG5, p_sfpu::LREG5, 0x0);
         TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG2, p_sfpu::LREG4, p_sfpu::LREG4, 0);
-        TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG3, p_sfpu::LREG5, p_sfpu::LREG5, 0);
         TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG4, p_sfpu::LREG4, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG5, p_sfpu::LREG5, sfpi::SFPSTOCHRND_MOD1_FP32_TO_INT16);
         TTI_SFPSETEXP(0, p_sfpu::LREG0, p_sfpu::LREG4, 0x0);
-        TTI_SFPSETEXP(0, p_sfpu::LREG1, p_sfpu::LREG5, 0x0);
 
         // Store the result.
         TTI_SFPSTORE(p_sfpu::LREG4, 0, ADDR_MOD_7, 0);
-        TTI_SFPSTORE(p_sfpu::LREG5, 0, ADDR_MOD_7, 2);
-        TTI_INCRWC(0, 4, 0, 0);
+        TTI_INCRWC(0, 2, 0, 0);
     }
 }
 
@@ -459,42 +421,30 @@ void calculate_exponential_no_swap_relu()
     {
         // Load input.
         TTI_SFPLOAD(p_sfpu::LREG0, 1, ADDR_MOD_7, 0);
-        TTI_SFPLOAD(p_sfpu::LREG1, 1, ADDR_MOD_7, 2);
-
         TTI_SFPMAD(p_sfpu::LREG12, p_sfpu::LREG0, p_sfpu::LREG11, p_sfpu::LREG2, 0);
-        TTI_SFPMAD(p_sfpu::LREG12, p_sfpu::LREG1, p_sfpu::LREG11, p_sfpu::LREG3, 0);
 
         if constexpr (NUM_TERMS >= 4)
         {
             TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG2, 0);
-            TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG3, 0);
             TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LREG13, p_sfpu::LREG2, 0);
-            TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG1, p_sfpu::LREG13, p_sfpu::LREG3, 0);
         }
         if constexpr (NUM_TERMS >= 6)
         {
             TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LREG7, p_sfpu::LREG2, 0);
-            TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG1, p_sfpu::LREG7, p_sfpu::LREG3, 0);
             TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG0, p_sfpu::LREG6, p_sfpu::LREG2, 0);
-            TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG1, p_sfpu::LREG6, p_sfpu::LREG3, 0);
         }
 
         TT_SFPABS(0, p_sfpu::LREG2, p_sfpu::LREG0, 1);
-        TT_SFPABS(0, p_sfpu::LREG3, p_sfpu::LREG1, 1);
-
         TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LREG0, 0);
-        TTI_SFPMAD(p_sfpu::LCONST_1, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpu::LREG1, 0);
 
         for (unsigned int i = 0; i < NUM_SCALE; i++)
         {
             TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG0, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
-            TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG1, p_sfpu::LCONST_0, p_sfpu::LREG1, 0);
         }
 
         // Store the result.
         TTI_SFPSTORE(p_sfpu::LREG0, 1, ADDR_MOD_7, 0);
-        TTI_SFPSTORE(p_sfpu::LREG1, 1, ADDR_MOD_7, 2);
-        TTI_INCRWC(0, 4, 0, 0);
+        TTI_INCRWC(0, 2, 0, 0);
     }
 }
 
