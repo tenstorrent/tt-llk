@@ -235,17 +235,38 @@ private:
     uint32_t counter_count;
     CounterMode mode;
 
-    void write_metadata()
+    // Helpers to get per-thread config/data memory addresses
+    static inline volatile uint32_t* get_config_mem()
     {
 #if defined(LLK_TRISC_UNPACK)
-        volatile uint32_t* config_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_UNPACK_CONFIG_ADDR);
+        constexpr uint32_t addr = PERF_COUNTER_UNPACK_CONFIG_ADDR;
 #elif defined(LLK_TRISC_MATH)
-        volatile uint32_t* config_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_MATH_CONFIG_ADDR);
+        constexpr uint32_t addr = PERF_COUNTER_MATH_CONFIG_ADDR;
 #elif defined(LLK_TRISC_PACK)
-        volatile uint32_t* config_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_PACK_CONFIG_ADDR);
+        constexpr uint32_t addr = PERF_COUNTER_PACK_CONFIG_ADDR;
 #else
-        volatile uint32_t* config_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_MATH_CONFIG_ADDR);
+        constexpr uint32_t addr = PERF_COUNTER_MATH_CONFIG_ADDR;
 #endif
+        return reinterpret_cast<volatile uint32_t*>(addr);
+    }
+
+    static inline volatile uint32_t* get_data_mem()
+    {
+#if defined(LLK_TRISC_UNPACK)
+        constexpr uint32_t addr = PERF_COUNTER_UNPACK_DATA_ADDR;
+#elif defined(LLK_TRISC_MATH)
+        constexpr uint32_t addr = PERF_COUNTER_MATH_DATA_ADDR;
+#elif defined(LLK_TRISC_PACK)
+        constexpr uint32_t addr = PERF_COUNTER_PACK_DATA_ADDR;
+#else
+        constexpr uint32_t addr = PERF_COUNTER_MATH_DATA_ADDR;
+#endif
+        return reinterpret_cast<volatile uint32_t*>(addr);
+    }
+
+    void write_metadata()
+    {
+        volatile uint32_t* config_mem = get_config_mem();
 
         for (uint32_t i = 0; i < counter_count; i++)
         {
@@ -313,15 +334,7 @@ public:
     void start()
     {
         // Read configuration from L1 (may have been set by Python or C++)
-#if defined(LLK_TRISC_UNPACK)
-        volatile uint32_t* config_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_UNPACK_CONFIG_ADDR);
-#elif defined(LLK_TRISC_MATH)
-        volatile uint32_t* config_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_MATH_CONFIG_ADDR);
-#elif defined(LLK_TRISC_PACK)
-        volatile uint32_t* config_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_PACK_CONFIG_ADDR);
-#else
-        volatile uint32_t* config_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_MATH_CONFIG_ADDR);
-#endif
+        volatile uint32_t* config_mem = get_config_mem();
 
         // If counters were added via C++ add(), write metadata to L1
         if (counter_count > 0)
@@ -422,15 +435,7 @@ public:
 #pragma GCC diagnostic ignored "-Warray-bounds"
         volatile uint32_t* dbg_regs = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
 
-#if defined(LLK_TRISC_UNPACK)
-        volatile uint32_t* data_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_UNPACK_DATA_ADDR);
-#elif defined(LLK_TRISC_MATH)
-        volatile uint32_t* data_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_MATH_DATA_ADDR);
-#elif defined(LLK_TRISC_PACK)
-        volatile uint32_t* data_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_PACK_DATA_ADDR);
-#else
-        volatile uint32_t* data_mem = reinterpret_cast<volatile uint32_t*>(PERF_COUNTER_MATH_DATA_ADDR);
-#endif
+        volatile uint32_t* data_mem = get_data_mem();
 
         // Stop all banks once via 0->1 transition on stop bit
         bool bank_stopped[COUNTER_BANK_COUNT] = {false, false, false, false, false};
