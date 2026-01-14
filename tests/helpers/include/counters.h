@@ -231,7 +231,7 @@ private:
         uint32_t mode_bit;      // 0 = REQUESTS, 1 = GRANTS
     };
 
-    CounterConfig counters[COUNTER_SLOT_COUNT];
+    CounterConfig counters[COUNTER_SLOT_COUNT] = {};
     uint32_t counter_count;
     CounterMode mode;
 
@@ -289,11 +289,6 @@ private:
 public:
     PerfCounters() : counter_count(0), mode(CounterMode::GRANTS)
     {
-        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
-        {
-            // Initialize with safe defaults for all slots
-            counters[i] = {CounterBank::INSTRN_THREAD, 0, 0, static_cast<uint32_t>(mode)};
-        }
     }
 
     /**
