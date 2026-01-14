@@ -58,10 +58,6 @@ operations:
       fpu: "ReduceColumn"
       reduce_pool: "Max"
       sfpu:
-        - type: "UnarySfpu"
-          operation: "Neg"
-          approximation_mode: "No"
-          iterations: 128
         - type: "BinarySfpu"
           operation: "SfpuElwadd"
           approximation_mode: "No"
