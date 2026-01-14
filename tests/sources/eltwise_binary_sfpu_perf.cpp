@@ -16,10 +16,10 @@
 
 // Globals
 // Globals
-uint32_t unp_cfg_context            = 0;
-uint32_t pack_sync_tile_dst_ptr     = 0;
-uint32_t math_sync_tile_dst_index   = 0;
-static constexpr int MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
+uint32_t unp_cfg_context                   = 0;
+uint32_t pack_sync_tile_dst_ptr            = 0;
+uint32_t math_sync_tile_dst_index          = 0;
+static constexpr ckernel::DstSync DST_SYNC = ckernel::DstSync::SyncHalf;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -28,6 +28,9 @@ static constexpr int MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const int MAX_TILES_DEST =
+        is_fp32_dest_acc_en ? (BIT32_DEST_REGISTER_HALF_SIZE / (params->num_faces * FACE_R_DIM)) : (DEST_REGISTER_HALF_SIZE / (params->num_faces * FACE_R_DIM));
+
     {
         ZONE_SCOPED("INIT")
 
@@ -79,11 +82,14 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const int MAX_TILES_DEST =
+        is_fp32_dest_acc_en ? (BIT32_DEST_REGISTER_HALF_SIZE / (params->num_faces * FACE_R_DIM)) : (DEST_REGISTER_HALF_SIZE / (params->num_faces * FACE_R_DIM));
+
     {
         ZONE_SCOPED("INIT")
 
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(params->num_faces, formats.math);
-        _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+        _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_(formats.math, formats.math);
 
         _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
@@ -98,12 +104,15 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
                 {
-                    for (int i = 0; i < params->TILE_CNT; ++i)
+                    for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                     {
-                        // Only perform synchronization with unpacker, it does not copy
-                        // the data when unpack_to_dest is true - as data is already in dest.
-                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                            i, formats.math, formats.math);
+                        int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+
+                        for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                        {
+                            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DST_SYNC, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                                block_tile, formats.math, formats.math);
+                        }
                     }
                 }
             }
@@ -128,11 +137,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
                         for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                         {
-                            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                                block_start + block_tile, formats.math, formats.math);
+                            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DST_SYNC, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                                block_tile, formats.math, formats.math);
                         }
 
-                        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                        _llk_math_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
                     }
                 }
             }
@@ -152,8 +161,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
                                 /* iterations*/ params->num_faces);
                         }
 
-                        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-                        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                        _llk_math_wait_for_dest_available_<DST_SYNC>();
+                        _llk_math_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
                     }
                 }
             }
@@ -170,14 +179,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
                         for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                         {
-                            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                                block_start + block_tile, formats.math, formats.math);
+                            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DST_SYNC, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                                block_tile, formats.math, formats.math);
                         }
                     }
 
-                    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
-
-                    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, ITERATIONS>(block_start, formats.math);
+                    _llk_math_eltwise_binary_sfpu_start_<DST_SYNC>(/* dst_index */ 0);
+                    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, ITERATIONS, formats.math>();
 
                     _llk_math_eltwise_binary_sfpu_done_();
                 }
@@ -191,22 +199,21 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 {
                     int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
-                    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+                    _llk_math_wait_for_dest_available_<DST_SYNC>();
 
                     // Copy from srcA to dest
                     for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
-                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                            block_start + block_tile, formats.math, formats.math);
+                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DST_SYNC, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                            block_tile, formats.math, formats.math);
+
+                        // Start SFPU binary operation
+                        _llk_math_eltwise_binary_sfpu_start_<DST_SYNC>(/* dst_index */ block_tile);
+                        test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, ITERATIONS, formats.math>();
+                        _llk_math_eltwise_binary_sfpu_done_();
                     }
 
-                    // Start SFPU binary operation
-                    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
-
-                    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, ITERATIONS>(block_start, formats.math);
-
-                    _llk_math_eltwise_binary_sfpu_done_();
-                    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                    _llk_math_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
                 }
             }
         }
@@ -223,6 +230,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const int MAX_TILES_DEST =
+        is_fp32_dest_acc_en ? (BIT32_DEST_REGISTER_HALF_SIZE / (params->num_faces * FACE_R_DIM)) : (DEST_REGISTER_HALF_SIZE / (params->num_faces * FACE_R_DIM));
+
     {
         ZONE_SCOPED("INIT")
 
@@ -235,7 +245,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, params->num_faces);
 #endif
         // Initialize destination for packing
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+        _llk_pack_dest_init_<DST_SYNC, is_fp32_dest_acc_en>();
 
         PROFILER_SYNC();
     }
@@ -252,7 +262,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
                     for (int block_tile = 0; block_tile < block_tiles; block_tile++)
                     {
-                        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
+                        _llk_pack_<DST_SYNC, is_fp32_dest_acc_en, /* untilize */ false>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_tile));
                     }
                 }
             }
@@ -268,9 +278,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     _llk_packer_wait_for_math_done_();
                     for (int block_tile = 0; block_tile < block_tiles; block_tile++)
                     {
-                        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
+                        _llk_pack_<DST_SYNC, is_fp32_dest_acc_en, /* untilize */ false>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_tile));
                     }
-                    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                    _llk_pack_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
                 }
             }
         }

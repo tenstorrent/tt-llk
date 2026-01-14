@@ -21,6 +21,7 @@ static int32_t topk_replay_init = 0;
 
 inline void set_dst_write_addr(uint32_t addr)
 {
+    LLK_ASSERT(addr < DEST_REGISTER_HALF_SIZE, "Address overflow in set_dst_write_addr");
     uint dst_index = addr + get_dest_buffer_base();
     TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, dst_index);
 }

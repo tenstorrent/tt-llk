@@ -152,6 +152,9 @@ inline void math_unpack_to_dest_tile_ready()
 template <DstTileShape tile_shape, UnpackDestination unpack_destination>
 inline void set_dst_write_addr(uint32_t tile_index)
 {
+    static_assert(
+        tile_shape == DstTileShape::Tile32x32 || tile_shape == DstTileShape::Tile32x16 || tile_shape == DstTileShape::Tile16x16, "Invalid tile shape");
+
     uint dst_index = tile_index << DstTileSizeLog2[tile_shape];
     dst_index      = dst_index + get_dest_buffer_base();
     if constexpr (unpack_destination == UnpackDestination::DestReg)
