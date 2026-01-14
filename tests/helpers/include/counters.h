@@ -56,7 +56,8 @@ namespace llk_perf
 #define PERF_COUNTER_PACK_DATA_ADDR     0x2FF08 // 132 words: PACK results
 
 // Configuration word format: [mode_bit(16), counter_sel(8-15), bank_id(0-7)]
-enum class CounterBank : uint32_t
+// Use compact underlying type to reduce memory footprint
+enum class CounterBank : uint8_t
 {
     INSTRN_THREAD = 0,
     FPU           = 1,
@@ -112,7 +113,8 @@ inline constexpr uint32_t get_counter_output_high_addr(CounterBank bank)
     return idx < COUNTER_BANK_COUNT ? high_addrs[idx] : 0u;
 }
 
-enum class CounterMode : uint32_t
+// Compact underlying type for mode as well
+enum class CounterMode : uint8_t
 {
     REQUESTS = 0,
     GRANTS   = 1,
@@ -225,10 +227,10 @@ class PerfCounters
 private:
     struct CounterConfig
     {
-        CounterBank bank;
-        uint32_t counter_id;
-        uint32_t mux_ctrl_bit4; // Only used for L1 counters
-        CounterMode mode;       // REQUESTS or GRANTS
+        CounterBank bank;   // 1 byte
+        uint8_t counter_id; // 1 byte
+        uint8_t l1_mux;     // 1 byte (Only used for L1 counters)
+        CounterMode mode;   // 1 byte (REQUESTS or GRANTS)
     };
 
     CounterConfig counters[COUNTER_SLOT_COUNT];
@@ -274,8 +276,8 @@ private:
 
             // Encode: [valid(31), mux_ctrl_bit4(17), mode(16), counter_id(8-15), bank(0-7)]
             uint32_t metadata = (1u << 31) | // Valid bit to distinguish from empty slots
-                                (config.mux_ctrl_bit4 << 17) | ((static_cast<uint32_t>(config.mode) & 0x1u) << 16) | (config.counter_id << 8) |
-                                static_cast<uint32_t>(config.bank);
+                                (static_cast<uint32_t>(config.l1_mux) << 17) | ((static_cast<uint32_t>(config.mode) & 0x1u) << 16) |
+                                (static_cast<uint32_t>(config.counter_id) << 8) | static_cast<uint32_t>(config.bank);
 
             config_mem[i] = metadata;
         }
@@ -299,7 +301,7 @@ public:
      * @param counter_id Counter ID within the bank (0-28 for INSTRN_THREAD, etc.)
      * @param mux_ctrl_bit4 Only for L1 counters: selects counter set (0 or 1)
      */
-    void add(CounterBank bank, uint32_t counter_id, uint32_t mux_ctrl_bit4 = 0)
+    void add(CounterBank bank, uint8_t counter_id, uint8_t l1_mux = 0)
     {
         if (counter_count >= COUNTER_SLOT_COUNT)
         {
@@ -307,7 +309,7 @@ public:
         }
 
         // Initialize mode to current selected mode
-        counters[counter_count++] = {bank, counter_id, mux_ctrl_bit4, mode};
+        counters[counter_count++] = {bank, counter_id, l1_mux, mode};
     }
 
     /**
@@ -388,10 +390,10 @@ public:
             uint8_t mode_bit       = (metadata >> 16) & 0x1;
             uint8_t mux_ctrl_val   = (metadata >> 17) & 0x1;
 
-            counters[counter_idx].bank          = static_cast<CounterBank>(bank_id);
-            counters[counter_idx].counter_id    = counter_id_val;
-            counters[counter_idx].mux_ctrl_bit4 = mux_ctrl_val;
-            counters[counter_idx].mode          = mode_bit ? CounterMode::GRANTS : CounterMode::REQUESTS;
+            counters[counter_idx].bank       = static_cast<CounterBank>(bank_id);
+            counters[counter_idx].counter_id = counter_id_val;
+            counters[counter_idx].l1_mux     = mux_ctrl_val;
+            counters[counter_idx].mode       = mode_bit ? CounterMode::GRANTS : CounterMode::REQUESTS;
             counter_idx++;
         }
 
@@ -406,7 +408,7 @@ public:
             {
                 uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
                 uint32_t cur            = dbg_regs[mux_ctrl_addr];
-                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((config.mux_ctrl_bit4 & 0x1u) << 4);
+                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((static_cast<uint32_t>(config.l1_mux) & 0x1u) << 4);
             }
 
             uint32_t bank_index       = static_cast<uint32_t>(config.bank);
@@ -469,14 +471,14 @@ public:
             {
                 uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
                 uint32_t cur            = dbg_regs[mux_ctrl_addr];
-                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((config.mux_ctrl_bit4 & 0x1u) << 4);
+                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((static_cast<uint32_t>(config.l1_mux) & 0x1u) << 4);
             }
 
             uint32_t counter_base     = get_counter_base_addr(config.bank);
             uint32_t counter_reg_addr = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
 
             // Select the desired counter and req/grant output in mode register
-            dbg_regs[counter_reg_addr + 1] = (config.counter_id << 8) | ((static_cast<uint32_t>(config.mode) & 0x1u) << 16);
+            dbg_regs[counter_reg_addr + 1] = (static_cast<uint32_t>(config.counter_id) << 8) | ((static_cast<uint32_t>(config.mode) & 0x1u) << 16);
 
             // Allow selection/mux to settle: perform a dummy read sequence
             uint32_t output_low_addr       = (get_counter_output_low_addr(config.bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
