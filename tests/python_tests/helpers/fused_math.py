@@ -337,6 +337,7 @@ class UnarySfpu(Sfpu):
         operation: MathOperation,
         approx_mode: ApproximationMode = ApproximationMode.No,
         iterations: int = 32,
+        dest_idx: int = 0,
     ):
         if not operation in MathOperation.get_sfpu_unary_operations():
             raise ValueError(
@@ -345,6 +346,7 @@ class UnarySfpu(Sfpu):
         self.iterations = iterations
         self.approx_mode = approx_mode
         self.operation = operation
+        self.dest_idx = dest_idx
 
     def get_headers(self) -> List[str]:
         return [
@@ -373,6 +375,7 @@ class UnarySfpu(Sfpu):
             format_input,
             dimensions,
             self.iterations,
+            self.dest_idx,
         )
 
     def exec(self, operation_config: "FusedOperation") -> str:
@@ -383,7 +386,7 @@ class UnarySfpu(Sfpu):
         code = (
             f"    // Operation {stage}: Unary {self.operation.cpp_enum_value} SFPU\n"
             f"    _llk_math_eltwise_unary_sfpu_init_<SfpuType::{self.operation.cpp_enum_value}>();\n"
-            f"    _llk_math_eltwise_unary_sfpu_start_<dest_sync{stage}>(0);\n"
+            f"    _llk_math_eltwise_unary_sfpu_start_<dest_sync{stage}>({self.dest_idx});\n"
             f"    test_utils::call_sfpu_operation<{self.approx_mode.value}, {dest_acc}, {self.iterations}>({op}, math_format{stage});\n"
             f"    _llk_math_eltwise_unary_sfpu_done_();\n"
         )

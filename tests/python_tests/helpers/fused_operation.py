@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from dataclasses import dataclass
-from typing import Type
+from typing import Tuple, Type
 
 import torch
 
@@ -65,6 +65,7 @@ class FusedOperation:
     dest_sync: DestSync = DestSync.Half
     dst_index: int = 0
     srca_reuse_count: int = 4
+    output_pack_dims: Tuple[int, int] = None
 
     def __post_init__(self):
         self.architecture = get_chip_architecture()
@@ -156,6 +157,21 @@ class FusedOperation:
         self.rt_dim = input_A_dimensions[0] // num_rows
         self.ct_dim = input_B_dimensions[1] // num_cols
         self.kt_dim = input_A_dimensions[1] // num_cols
+
+        if self.output_pack_dims == None:
+            self.output_pack_dims = self.output.dimensions
+
+        self.output_tiles_h = (
+            min(self.output_pack_dims[0], self.output.dimensions[0]) // 32
+        )
+        self.output_tiles_w = (
+            min(self.output_pack_dims[1], self.output.dimensions[1]) // 32
+        )
+
+        self.dest_tiles_h = self.output.dimensions[0] // 32
+        self.dest_tiles_w = self.output.dimensions[1] // 32
+
+        self.output_pack_tile_cnt = self.output_tiles_h * self.output_tiles_w
 
         if (
             self.architecture == ChipArchitecture.BLACKHOLE

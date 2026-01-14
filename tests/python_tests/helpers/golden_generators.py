@@ -1133,6 +1133,7 @@ class UnarySFPUGolden:
         input_format,
         dimensions: tuple[int, int],
         iterations: int = None,
+        dest_idx: int = 0,
         reduce_pool: Optional[ReducePool] = None,
     ):
         self.data_format = data_format
@@ -1174,9 +1175,12 @@ class UnarySFPUGolden:
 
         result = tilize_block(result, dimensions, input_format).flatten()
 
-        op_res = [self.ops[operation](x) for x in result.tolist()[0 : 32 * iterations]]
+        op_res = [
+            self.ops[operation](x)
+            for x in result.tolist()[1024 * dest_idx : 32 * iterations]
+        ]
 
-        result[0 : 32 * iterations] = torch.tensor(
+        result[1024 * dest_idx : 32 * iterations] = torch.tensor(
             op_res, dtype=format_dict[dst_format]
         )
 

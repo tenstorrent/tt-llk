@@ -26,7 +26,11 @@ class Packer:
         tensor: torch.Tensor,
         operation_config: "FusedOperation",
     ) -> torch.Tensor:
-        return tensor
+        tensor = tensor.reshape(operation_config.output.dimensions)
+        return tensor[
+            : operation_config.output_pack_dims[0],
+            : operation_config.output_pack_dims[1],
+        ]
 
     def hw_configure(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
@@ -103,9 +107,14 @@ class Packer:
 
         code += (
             f"    _llk_packer_wait_for_math_done_();\n"
-            f"    for (int i = 0; i < {tile_cnt}; i++)\n"
+            f"    for (int tr = 0; tr < {operation_config.output_tiles_h}; tr++)\n"
             f"    {{\n"
-            f"        _llk_pack_<DstSync::SyncHalf, {dest_acc_value}, false>(i, L1_ADDRESS(buffer_Res{stage}[i]));\n"
+            f"        for (int tc = 0; tc < {operation_config.output_tiles_w}; tc++)\n"
+            f"        {{\n"
+            f"            uint32_t dest_idx = tr * {operation_config.dest_tiles_w} + tc;\n"
+            f"            uint32_t l1_idx = tr * {operation_config.output_tiles_w} + tc;\n"
+            f"            _llk_pack_<DstSync::SyncHalf, {dest_acc_value}, false>(dest_idx, L1_ADDRESS(buffer_Res{stage}[l1_idx]));\n"
+            f"        }}\n"
             f"    }}\n"
             f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc_value}>();\n"
         )

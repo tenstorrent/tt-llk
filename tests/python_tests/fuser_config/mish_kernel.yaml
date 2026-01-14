@@ -1,0 +1,26 @@
+operations:
+  - src_a: "X"
+    src_b: "input_B"
+    output: "tanh_softplus"
+    src_a_dims: [32, 64]
+    src_b_dims: [32, 64]
+    output_pack_dims: [32, 32]
+    input_format: "Float16_b"
+    output_format: "Float16_b"
+    unpacker: "UnpackerA"
+    math:
+      fpu: "Datacopy"
+      sfpu:
+        - type: "UnarySfpu"
+          operation: "Exp"
+          approximation_mode: "No"
+          dst_dest_tile_index: 0
+          iterations: 32
+        - type: "UnarySfpu"
+          operation: "Fill"
+          approximation_mode: "No"
+          dst_dest_tile_index: 1
+          iterations: 32
+    packer: "Packer"
+    dest_acc: "No"
+    math_fidelity: "HiFi4"
