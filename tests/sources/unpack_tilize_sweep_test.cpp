@@ -38,8 +38,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     uint32_t read_offset = 0;
 
-    const std::uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
-    const std::uint32_t num_faces    = is_blackhole ? 4 : params->num_faces;
+    const uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
+    const uint32_t num_faces    = is_blackhole ? 4 : params->num_faces;
 
     // Main tilize loop - handle different tile configurations
     for (uint32_t row = 0; row < BLOCK_RT_DIM; ++row)
@@ -109,8 +109,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const bool UNTILIZE             = false;
-    const std::uint32_t DATUM_COUNT = 16 * 16 * params->num_faces;
+    const bool UNTILIZE        = false;
+    const uint32_t DATUM_COUNT = 16 * 16 * params->num_faces;
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, DATUM_COUNT, FACE_R_DIM, TILE_C_DIM, params->num_faces);

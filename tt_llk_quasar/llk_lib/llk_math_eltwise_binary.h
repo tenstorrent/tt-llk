@@ -10,7 +10,7 @@ using namespace ckernel::trisc;
 using namespace ckernel::math;
 
 template <EltwiseBinaryType ELTWISE_BINARY_TYPE, uint8_t CLR_SRC, uint8_t EN_DST_ACCUM, uint8_t SRCB_BROADCAST_TYPE, uint8_t ADDR_MOD>
-constexpr uint eltwise_binary_func()
+constexpr uint32_t eltwise_binary_func()
 {
     if constexpr (ELTWISE_BINARY_TYPE == EltwiseBinaryType::ELWADD)
     {
@@ -30,7 +30,7 @@ constexpr uint eltwise_binary_func()
 // Direct Indexing Method
 //----------------------
 template <EltwiseBinaryType ELTWISE_BINARY_TYPE>
-inline uint eltwise_di_binary_func(
+inline uint32_t eltwise_di_binary_func(
     uint8_t CLR_SRC, uint8_t EN_DST_ACCUM, uint8_t SRCB_BROADCAST_TYPE, uint8_t SRCB_ADDR, uint8_t SRCA_ADDR, uint8_t ADDR_MOD, uint8_t DST_ADDR)
 {
     uint8_t INSTR_MOD = ((SRCB_BROADCAST_TYPE << 0) | (EN_DST_ACCUM << 2));
@@ -66,16 +66,16 @@ inline void _llk_math_eltwise_binary_mop_config_(const TileShape& tile_shape)
     const uint32_t EN_DST_ACC_EN = math_fidelity_enable;
 
     constexpr uint8_t addrmod_fid = math_fidelity_enable ? ADDR_MOD_2 : ADDR_MOD_0;
-    constexpr static uint eltwise_binary_op =
+    constexpr static uint32_t eltwise_binary_op =
         eltwise_binary_func<ELTWISE_BINARY_TYPE, p_elwise::CLR_NONE, EN_DST_ACC_EN, p_elwise::SRCB_NO_BCAST, addrmod_fid>();
-    constexpr static uint eltwise_binary_op_clr_valid =
+    constexpr static uint32_t eltwise_binary_op_clr_valid =
         eltwise_binary_func<ELTWISE_BINARY_TYPE, p_setrwc::CLR_AB, EN_DST_ACC_EN, p_elwise::SRCB_NO_BCAST, ADDR_MOD_1>();
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, eltwise_binary_op);
     temp.set_last_outer_loop_instr(eltwise_binary_op_clr_valid);
 
     if (math_fidelity_enable)
     {
-        constexpr static uint eltwise_binary_op_clr_fidelity =
+        constexpr static uint32_t eltwise_binary_op_clr_fidelity =
             eltwise_binary_func<ELTWISE_BINARY_TYPE, p_elwise::CLR_NONE, EN_DST_ACC_EN, p_elwise::SRCB_NO_BCAST, ADDR_MOD_0>();
         temp.set_last_inner_loop_instr(eltwise_binary_op_clr_fidelity); // clear math fidelity
     }

@@ -28,8 +28,8 @@ constexpr static uint32_t TILE_C_DIM = 32;
 constexpr static uint32_t NUM_FACES = 4;
 
 // Number of rows that can fit into Dest
-static constexpr std::uint32_t DEST_REGISTER_FULL_SIZE = 64 * FACE_R_DIM;
-static constexpr std::uint32_t DEST_REGISTER_HALF_SIZE = DEST_REGISTER_FULL_SIZE >> 1;
+static constexpr uint32_t DEST_REGISTER_FULL_SIZE = 64 * FACE_R_DIM;
+static constexpr uint32_t DEST_REGISTER_HALF_SIZE = DEST_REGISTER_FULL_SIZE >> 1;
 
 // Points to the config space
 uint32_t volatile* const cfg = (uint32_t volatile*)TENSIX_CFG_BASE;
@@ -40,14 +40,14 @@ constexpr uint32_t NUM_WORDS_TILE_CNT = 8;
 
 typedef struct
 {
-    std::uint32_t reserved0                    : 32;
-    std::uint32_t reset                        : 32;
-    std::uint32_t posted                       : 32;
-    std::uint32_t acked                        : 32;
-    std::uint32_t buf_capacity                 : 32;
-    std::uint32_t reserved1                    : 32;
-    std::uint32_t tiles_avail_interrupt_thresh : 32;
-    std::uint32_t space_avail_interrupt_thresh : 32;
+    uint32_t reserved0                    : 32;
+    uint32_t reset                        : 32;
+    uint32_t posted                       : 32;
+    uint32_t acked                        : 32;
+    uint32_t buf_capacity                 : 32;
+    uint32_t reserved1                    : 32;
+    uint32_t tiles_avail_interrupt_thresh : 32;
+    uint32_t space_avail_interrupt_thresh : 32;
 } tile_counter_t;
 
 static_assert(sizeof(tile_counter_t) == NUM_WORDS_TILE_CNT * sizeof(uint32_t), "tile_counter_t must be 96b!");
@@ -80,9 +80,9 @@ inline bool _divisible_by_pow_two_(const uint32_t value, const uint32_t power_of
  * @param buf_desc_id: Buffer descriptor id into the buffer descriptor table
  * @param buf_desc: Contains L1 buffer descriptor information
  */
-inline void _configure_buf_desc_table_(const uint buf_desc_id, const buffer_descriptor_u& buf_desc)
+inline void _configure_buf_desc_table_(const uint32_t buf_desc_id, const buffer_descriptor_u& buf_desc)
 {
-    for (uint i = 0; i < BD_NUM_WORDS; i++)
+    for (uint32_t i = 0; i < BD_NUM_WORDS; i++)
     {
         bd_table[buf_desc_id].words[i] = buf_desc.words[i];
     }
@@ -145,7 +145,7 @@ inline uint32_t _get_dest_buffer_base_()
     return (dest_bank_id) ? DEST_REGISTER_HALF_SIZE : 0x0;
 }
 
-constexpr static std::uint32_t SCALE_DATUM_SIZE(uint format, uint datum_count)
+constexpr static uint32_t SCALE_DATUM_SIZE(uint32_t format, uint32_t datum_count)
 {
     switch (format & 0xF)
     {
@@ -199,7 +199,7 @@ struct semaphore
 
 // Tensix thread semaphore post optionally stalled
 // Can stall on up to 3 resources at a time
-template <uint WaitRes0 = p_stall::NOTHING, uint WaitRes1 = p_stall::NOTHING, uint WaitRes2 = p_stall::NOTHING>
+template <uint32_t WaitRes0 = p_stall::NOTHING, uint32_t WaitRes1 = p_stall::NOTHING, uint32_t WaitRes2 = p_stall::NOTHING>
 inline void t6_semaphore_post(const uint8_t index)
 {
     if constexpr (WaitRes0 != p_stall::NOTHING)
@@ -212,7 +212,7 @@ inline void t6_semaphore_post(const uint8_t index)
 
 // Tensix thread semaphore get optionally stalled
 // Can stall on up to 3 resources at a time
-template <uint WaitRes0 = p_stall::NOTHING, uint WaitRes1 = p_stall::NOTHING, uint WaitRes2 = p_stall::NOTHING>
+template <uint32_t WaitRes0 = p_stall::NOTHING, uint32_t WaitRes1 = p_stall::NOTHING, uint32_t WaitRes2 = p_stall::NOTHING>
 inline void t6_semaphore_get(const uint8_t index)
 {
     if constexpr (WaitRes0 != p_stall::NOTHING)

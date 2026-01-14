@@ -156,7 +156,7 @@ inline void dbg_thread_unhalt()
 inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr, uint32_t *rd_data)
 {
     // Dest offset is added to row_addr to dump currently used half of the dest accumulator (SyncHalf dest mode)
-    std::uint32_t dest_offset = 0;
+    uint32_t dest_offset = 0;
     if (array_id == dbg_array_id::DEST)
     {
         dest_offset = (dest_offset_id == 1) ? DEST_REGISTER_HALF_SIZE : 0;
@@ -237,11 +237,11 @@ inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr, 
     }
 
     // Get actual row address and array id used in hw
-    std::uint32_t hw_row_addr = (array_id == dbg_array_id::SRCA) ? 0 : ((array_id == dbg_array_id::DEST) ? dest_offset + row_addr : row_addr & 0x1);
+    uint32_t hw_row_addr = (array_id == dbg_array_id::SRCA) ? 0 : ((array_id == dbg_array_id::DEST) ? dest_offset + row_addr : row_addr & 0x1);
 
-    std::uint32_t hw_array_id = (array_id == dbg_array_id::SRCA) ? dbg_array_id::DEST : array_id;
+    uint32_t hw_array_id = (array_id == dbg_array_id::SRCA) ? dbg_array_id::DEST : array_id;
 
-    std::uint32_t hw_bank_id = 0;
+    uint32_t hw_bank_id = 0;
 
     bool sel_datums_15_8 = hw_array_id != dbg_array_id::DEST;
 
@@ -280,7 +280,7 @@ inline void dbg_get_array_row(const uint32_t array_id, const uint32_t row_addr, 
     }
 }
 
-inline std::uint32_t dbg_read_cfgreg(const uint32_t cfgreg_id, const uint32_t addr)
+inline uint32_t dbg_read_cfgreg(const uint32_t cfgreg_id, const uint32_t addr)
 {
     uint32_t hw_base_addr = 0;
 

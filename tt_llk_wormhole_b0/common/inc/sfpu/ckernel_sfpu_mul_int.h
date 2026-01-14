@@ -14,7 +14,7 @@ namespace sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
+inline void _mul_int_(const uint32_t dst_index_in0, const uint32_t dst_index_in1, const uint32_t dst_index_out)
 {
     int offset0    = (dst_index_in0 * 32) << 1;
     int offset1    = (dst_index_in1 * 32) << 1;

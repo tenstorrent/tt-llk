@@ -30,8 +30,8 @@ inline void _llk_pack_matmul_mop_config_(
     const uint32_t MOP_INNER_LOOP = subblock_c_dim;
 
     // RT: Use defines to remove these constexpr, and replace with a single TT_OP_PACR_FACE_INC
-    uint pack_instrn = TT_OP_PACR0_TILE_INC(1 /*Dst (l1) tile idx*/, 1 /*Src tile Idx*/, buf_desc_id, 0);
-    uint incr_l1_ptr = TT_OP_INC_DST_TILE_FACE_ROW_IDX(
+    uint32_t pack_instrn = TT_OP_PACR0_TILE_INC(1 /*Dst (l1) tile idx*/, 1 /*Src tile Idx*/, buf_desc_id, 0);
+    uint32_t incr_l1_ptr = TT_OP_INC_DST_TILE_FACE_ROW_IDX(
         p_set_inc_sel::TILE_SEL, p_pacr::PACK0, subblock_c_dim * num_subblocks_c_dim - subblock_c_dim); // cycle pipelined by PACR0_TILE_INC taking >=8 cycles
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pack_instrn);
     temp.set_end_op(incr_l1_ptr);
@@ -67,7 +67,7 @@ inline void _llk_pack_matmul_init_(const uint32_t buf_desc_id, const uint32_t su
  */
 template <uint8_t PACK_SEL>
 inline void _llk_pack_matmul_(
-    const uint start_math_dest_tile_idx, const uint start_l1_tile_idx
+    const uint32_t start_math_dest_tile_idx, const uint32_t start_l1_tile_idx
 
 )
 {

@@ -154,7 +154,7 @@ inline void _llk_math_dest_section_done_()
     if constexpr (DST == DstSync::SyncHalf)
     {
         _update_dest_bank_id_();
-        uint base_addr = _get_dest_buffer_base_();
+        uint32_t base_addr = _get_dest_buffer_base_();
         TTI_STALLWAIT(p_stall::STALL_CFG, 0, p_stall::MATH, p_stall::WAIT_SFPU);
         _set_dest_section_base_<TRISC_ID>(base_addr);
     }

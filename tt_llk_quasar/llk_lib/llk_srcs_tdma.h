@@ -41,7 +41,7 @@ inline void _llk_pack_srcs_config_()
  */
 template <uint8_t INSTRN_COUNT>
 inline void _llk_unpack_srcs_(
-    const uint8_t buf_desc_id, const uint start_l1_tile_idx
+    const uint8_t buf_desc_id, const uint32_t start_l1_tile_idx
 
 )
 {
@@ -66,7 +66,7 @@ inline void _llk_unpack_srcs_(
  */
 template <uint8_t INSTRN_COUNT>
 inline void _llk_pack_srcs_(
-    const uint8_t buf_desc_id, const uint start_l1_tile_idx
+    const uint8_t buf_desc_id, const uint32_t start_l1_tile_idx
 
 )
 {

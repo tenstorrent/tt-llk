@@ -21,8 +21,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
     tdma_descriptor_t td_val;
-    const uint buf_desc_id          = 0;
-    const uint num_tiles_per_unpack = TILE_CNT;
+    const uint32_t buf_desc_id          = 0;
+    const uint32_t num_tiles_per_unpack = TILE_CNT;
 
     buffer_descriptor_u bd_val = {0};
 
@@ -66,9 +66,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en>(src_format, src_format);
 
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(num_faces * TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
-    for (uint block_rt = 0; block_rt < BLOCK_RT_DIM; block_rt++)
+    for (uint32_t block_rt = 0; block_rt < BLOCK_RT_DIM; block_rt++)
     {
-        for (uint block_ct = 0; block_ct < BLOCK_CT_DIM; block_ct++)
+        for (uint32_t block_ct = 0; block_ct < BLOCK_CT_DIM; block_ct++)
         {
             _llk_math_eltwise_unary_datacopy_(num_faces * TEST_FACE_R_DIM /*num_rows_per_tile*/, block_ct);
         }
@@ -118,8 +118,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // x_stride = x_stride_internal = col dim of a tile in L1 in units of 16 datums (1 face);
     // y_stride = y_stride_external + x_stride_internal
     // In this case x = 0 because the entire tile row fits into Dest
-    uint y_stride_external = FULL_CT_DIM * R_DIM_FACES * TEST_FACE_R_DIM;
-    for (uint y = 0; y < BLOCK_RT_DIM; y++)
+    uint32_t y_stride_external = FULL_CT_DIM * R_DIM_FACES * TEST_FACE_R_DIM;
+    for (uint32_t y = 0; y < BLOCK_RT_DIM; y++)
     {
         _llk_pack_untilize_(0, y * y_stride_external /*  + 0 * x_stride  */);
         _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();

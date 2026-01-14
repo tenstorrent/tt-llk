@@ -28,7 +28,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     uint32_t read_offset = 0;
 
-    const std::uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
+    const uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
 
     for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
     {

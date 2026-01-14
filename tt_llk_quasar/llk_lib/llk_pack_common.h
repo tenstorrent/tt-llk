@@ -50,8 +50,8 @@ inline void _llk_pack_dest_dvalid_section_done_()
 {
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::NOTHING, p_stall::WAIT_SFPU, p_stall::PACK);
 
-    constexpr uint ZEROACC_CLR_MODE = (DST == DstSync::SyncHalf) ? p_zeroacc::CLR_HALF : p_zeroacc::CLR_ALL;
-    const uint dest_id              = (DST == DstSync::SyncHalf) ? dest_bank_id : 0;
+    constexpr uint32_t ZEROACC_CLR_MODE = (DST == DstSync::SyncHalf) ? p_zeroacc::CLR_HALF : p_zeroacc::CLR_ALL;
+    const uint32_t dest_id              = (DST == DstSync::SyncHalf) ? dest_bank_id : 0;
     TT_ZEROACC(ZEROACC_CLR_MODE, IS_FP32_MATH_DEST_EN, 0, ADDR_MOD_0, dest_id);
     TTI_CLEARDVALID(0, 0, 0, 0, p_cleardvalid::PACK, 0);
 
@@ -171,7 +171,7 @@ inline void _llk_packer_wait_for_math_done_()
 }
 
 // Tell math that it can write again
-template <uint WaitRes = p_stall::NOTHING>
+template <uint32_t WaitRes = p_stall::NOTHING>
 inline void _llk_packer_set_math_semaphore_()
 {
     t6_semaphore_get<WaitRes>(semaphore::MATH_PACK); // Indicate that packer is done and header is written into L1

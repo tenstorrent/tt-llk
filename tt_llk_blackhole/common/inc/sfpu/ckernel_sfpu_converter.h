@@ -12,11 +12,11 @@ namespace ckernel::sfpu
 class Converter
 {
 public:
-    static float as_float(std::uint32_t value)
+    static float as_float(uint32_t value)
     {
         union
         {
-            std::uint32_t u;
+            uint32_t u;
             float f;
         } converter {value};
 

@@ -25,7 +25,7 @@ inline void _calculate_fill_(const float value)
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_fill_int_(const uint value)
+inline void _calculate_fill_int_(const uint32_t value)
 {
     // SFPU microcode
     _sfpu_load_imm32_(p_sfpu::LREG1, value);

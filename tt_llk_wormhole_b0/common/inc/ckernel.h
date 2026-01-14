@@ -44,17 +44,17 @@
 namespace ckernel
 {
 
-constexpr uint PACK_FLUSH_COUNTERS = // counters flush
+constexpr uint32_t PACK_FLUSH_COUNTERS = // counters flush
     (1 << PACK_COUNTERS_SEC2_pack_per_xy_plane_SHAMT) | (1 << PACK_COUNTERS_SEC2_pack_reads_per_xy_plane_SHAMT) |
     (1 << PACK_COUNTERS_SEC2_pack_xys_per_tile_SHAMT);
 
-constexpr uint RESET_VAL          = 0;
-constexpr uint KERNEL_IN_PROGRESS = 15;
-constexpr uint KERNEL_COMPLETE    = 1;
+constexpr uint32_t RESET_VAL          = 0;
+constexpr uint32_t KERNEL_IN_PROGRESS = 15;
+constexpr uint32_t KERNEL_COMPLETE    = 1;
 
-extern volatile uint tt_reg_ptr *reg_base;
-extern volatile uint tt_reg_ptr *pc_buf_base;
-extern volatile uint tt_reg_ptr *regfile;
+extern volatile uint32_t tt_reg_ptr *reg_base;
+extern volatile uint32_t tt_reg_ptr *pc_buf_base;
+extern volatile uint32_t tt_reg_ptr *regfile;
 } // namespace ckernel
 
 extern volatile uint32_t __instrn_buffer[];
@@ -62,7 +62,7 @@ extern volatile uint32_t __instrn_buffer[];
 namespace ckernel
 {
 constexpr inline volatile uint32_t(tt_reg_ptr &instrn_buffer)[] = __instrn_buffer;
-extern volatile uint tt_reg_ptr *mailbox_base[4];
+extern volatile uint32_t tt_reg_ptr *mailbox_base[4];
 
 extern uint32_t cfg_state_id;
 extern uint32_t dest_offset_id;
@@ -80,8 +80,8 @@ namespace internal
 
 inline void tensix_sync()
 {
-    volatile uint foo     = 0;
-    volatile uint *fooptr = &foo;
+    volatile uint32_t foo     = 0;
+    volatile uint32_t *fooptr = &foo;
     // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
     pc_buf_base[1] = foo;
 
@@ -91,8 +91,8 @@ inline void tensix_sync()
 
 inline void mop_sync()
 {
-    volatile uint foo     = 0;
-    volatile uint *fooptr = &foo;
+    volatile uint32_t foo     = 0;
+    volatile uint32_t *fooptr = &foo;
     // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
     pc_buf_base[2] = foo;
 
@@ -100,7 +100,7 @@ inline void mop_sync()
     *fooptr = pc_buf_base[2];
 }
 
-inline void sync_regfile_write(const uint index);
+inline void sync_regfile_write(const uint32_t index);
 
 // Field value overflow check
 template <typename T>
@@ -110,10 +110,10 @@ static constexpr bool is_valid(const T val, const uint8_t wid)
     return (val & mask) == val;
 }
 
-inline void mmio_register_write(register_space_e space, uint addr, uint data)
+inline void mmio_register_write(register_space_e space, uint32_t addr, uint32_t data)
 {
-    const uint regaddr = (space << 6) | (addr & 0x3F);
-    reg_base[regaddr]  = data;
+    const uint32_t regaddr = (space << 6) | (addr & 0x3F);
+    reg_base[regaddr]      = data;
 }
 
 inline uint8_t semaphore_read(const uint8_t index)
@@ -132,7 +132,7 @@ inline void semaphore_get(const uint8_t index)
 }
 
 // Tensix thread semaphore post optionally stalled
-template <uint WaitRes = p_stall::NONE>
+template <uint32_t WaitRes = p_stall::NONE>
 inline void t6_semaphore_post(const uint8_t index)
 {
     if constexpr (WaitRes != p_stall::NONE)
@@ -144,7 +144,7 @@ inline void t6_semaphore_post(const uint8_t index)
 }
 
 // Tensix thread semaphore get optionally stalled
-template <uint WaitRes = p_stall::NONE>
+template <uint32_t WaitRes = p_stall::NONE>
 inline void t6_semaphore_get(const uint8_t index)
 {
     if constexpr (WaitRes != p_stall::NONE)
@@ -155,13 +155,13 @@ inline void t6_semaphore_get(const uint8_t index)
     TTI_SEMGET(semaphore::t6_sem(index));
 }
 
-template <uint WaitRes>
+template <uint32_t WaitRes>
 inline void t6_semaphore_wait_on_max(const uint8_t index)
 {
     TTI_SEMWAIT(WaitRes, semaphore::t6_sem(index), p_stall::STALL_ON_MAX);
 }
 
-template <uint WaitRes>
+template <uint32_t WaitRes>
 inline void t6_semaphore_wait_on_zero(const uint8_t index)
 {
     TTI_SEMWAIT(WaitRes, semaphore::t6_sem(index), p_stall::STALL_ON_ZERO);
@@ -184,44 +184,44 @@ inline void t6_mutex_release(const uint8_t index)
 }
 
 // Return address of the current state ID register
-inline uint cfg_addr(uint cfg_addr32)
+inline uint32_t cfg_addr(uint32_t cfg_addr32)
 {
     return (cfg_state_id == 0) ? cfg_addr32 : (CFG_STATE_SIZE * 4) + cfg_addr32;
 }
 
-inline void cfg_write(uint cfg_addr32, uint data)
+inline void cfg_write(uint32_t cfg_addr32, uint32_t data)
 {
     // Declared here instead of globally to prevent direct access, which might ignore current state ID
-    volatile uint tt_reg_ptr *cfg_regs = reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE);
-    cfg_regs[cfg_addr(cfg_addr32)]     = data;
+    volatile uint32_t tt_reg_ptr *cfg_regs = reinterpret_cast<volatile uint32_t tt_reg_ptr *>(TENSIX_CFG_BASE);
+    cfg_regs[cfg_addr(cfg_addr32)]         = data;
 }
 
-inline uint cfg_read(uint cfg_addr32)
+inline uint32_t cfg_read(uint32_t cfg_addr32)
 {
     // Declared here instead of globally to prevent direct access, which might ignore current state ID
-    volatile uint *cfg_regs = reinterpret_cast<volatile uint *>(TENSIX_CFG_BASE);
+    volatile uint32_t *cfg_regs = reinterpret_cast<volatile uint32_t *>(TENSIX_CFG_BASE);
     return cfg_regs[cfg_addr(cfg_addr32)];
 }
 
 // Return pointer to CFG with the right base address for the current state
-inline volatile uint *tt_reg_ptr get_cfg_pointer()
+inline volatile uint32_t *tt_reg_ptr get_cfg_pointer()
 {
     if (cfg_state_id == 0)
     {
-        return reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE);
+        return reinterpret_cast<volatile uint32_t tt_reg_ptr *>(TENSIX_CFG_BASE);
     }
 
-    return reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE + CFG_STATE_SIZE * 16);
+    return reinterpret_cast<volatile uint32_t tt_reg_ptr *>(TENSIX_CFG_BASE + CFG_STATE_SIZE * 16);
 }
 
-inline volatile uint short *tt_reg_ptr get_cfg16_pointer()
+inline volatile uint32_t short *tt_reg_ptr get_cfg16_pointer()
 {
     if (cfg_state_id == 0)
     {
-        return reinterpret_cast<volatile uint short tt_reg_ptr *>(TENSIX_CFG_BASE);
+        return reinterpret_cast<volatile uint32_t short tt_reg_ptr *>(TENSIX_CFG_BASE);
     }
 
-    return reinterpret_cast<volatile uint short tt_reg_ptr *>(TENSIX_CFG_BASE + CFG_STATE_SIZE * 16);
+    return reinterpret_cast<volatile uint32_t short tt_reg_ptr *>(TENSIX_CFG_BASE + CFG_STATE_SIZE * 16);
 }
 
 inline void flip_cfg_state_id()
@@ -263,24 +263,24 @@ inline void mop_run(const uint8_t type, const uint8_t count)
 // tenstorrent/tensix#976
 // now handled by the compiler)
 // workaround is needed only for GS
-inline uint reg_read(uint32_t addr)
+inline uint32_t reg_read(uint32_t addr)
 {
-    volatile uint tt_reg_ptr *p_reg = reinterpret_cast<volatile uint tt_reg_ptr *>(addr);
+    volatile uint32_t tt_reg_ptr *p_reg = reinterpret_cast<volatile uint32_t tt_reg_ptr *>(addr);
     return p_reg[0];
 }
 
 inline void reg_write(uint32_t addr, uint32_t data)
 {
-    volatile uint tt_reg_ptr *p_reg = reinterpret_cast<volatile uint tt_reg_ptr *>(addr);
-    p_reg[0]                        = data;
+    volatile uint32_t tt_reg_ptr *p_reg = reinterpret_cast<volatile uint32_t tt_reg_ptr *>(addr);
+    p_reg[0]                            = data;
 }
 
 inline void wait(uint32_t cycles)
 {
-    volatile uint tt_reg_ptr *clock_lo = reinterpret_cast<volatile uint tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_L);
-    volatile uint tt_reg_ptr *clock_hi = reinterpret_cast<volatile uint tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_H);
-    uint64_t wall_clock_timestamp      = clock_lo[0] | ((uint64_t)clock_hi[0] << 32);
-    uint64_t wall_clock                = 0;
+    volatile uint32_t tt_reg_ptr *clock_lo = reinterpret_cast<volatile uint32_t tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_L);
+    volatile uint32_t tt_reg_ptr *clock_hi = reinterpret_cast<volatile uint32_t tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_H);
+    uint64_t wall_clock_timestamp          = clock_lo[0] | ((uint64_t)clock_hi[0] << 32);
+    uint64_t wall_clock                    = 0;
     do
     {
         wall_clock = clock_lo[0] | ((uint64_t)clock_hi[0] << 32);
@@ -305,11 +305,11 @@ inline void zerosrc()
     TTI_ZEROSRC(0, 0, 1, 3); // Zero all srcA&B banks
 }
 
-inline void sync_regfile_write(const uint index)
+inline void sync_regfile_write(const uint32_t index)
 {
-    volatile uint foo     = 0x0;
-    volatile uint *fooptr = &foo;
-    *fooptr               = regfile[index];
+    volatile uint32_t foo     = 0x0;
+    volatile uint32_t *fooptr = &foo;
+    *fooptr                   = regfile[index];
 }
 
 inline void cfg_rmw(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask, uint32_t val)
@@ -321,8 +321,8 @@ inline void cfg_rmw(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask, 
     const uint32_t addr = (cfg_state_id == 0) ? cfg_addr32 : (CFG_STATE_SIZE * 4) + cfg_addr32;
 
     // Declared here instead of globally to prevent direct access, which might ignore current state ID
-    volatile uint tt_reg_ptr *cfg_regs = reinterpret_cast<volatile uint tt_reg_ptr *>(TENSIX_CFG_BASE);
-    uint32_t cfg_data                  = cfg_regs[addr];
+    volatile uint32_t tt_reg_ptr *cfg_regs = reinterpret_cast<volatile uint32_t tt_reg_ptr *>(TENSIX_CFG_BASE);
+    uint32_t cfg_data                      = cfg_regs[addr];
 
     // Shift and mask wrdata to properly align within 32-bit DWORD
     wrdata <<= cfg_shamt;
@@ -344,7 +344,7 @@ inline void cfg_rmw_gpr(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_ma
     cfg_rmw(cfg_addr32, cfg_shamt, cfg_mask, wrdata);
 }
 
-template <uint CfgAddr32, uint Shamt, uint Mask>
+template <uint32_t CfgAddr32, uint32_t Shamt, uint32_t Mask>
 inline void cfg_reg_rmw_tensix(uint32_t val)
 {
     uint32_t wrdata = val << Shamt;
@@ -399,7 +399,7 @@ inline bool mailbox_not_empty(const uint8_t thread)
 }
 
 template <class T>
-inline std::uint32_t memory_cast(T *object_ptr)
+inline uint32_t memory_cast(T *object_ptr)
 {
     return reinterpret_cast<uint32_t>(object_ptr);
 }
@@ -448,11 +448,11 @@ inline void record_kernel_runtime(uint64_t kernel_runtime)
 void debug_dump(const uint8_t *data, uint32_t byte_size);
 void debug_dump_seek(uint8_t offset);
 
-inline void init_prng_seed(const uint seed)
+inline void init_prng_seed(const uint32_t seed)
 {
     // The seed for PRNG should at least be initialized during chip boot-up time.
-    volatile uint tt_reg_ptr *cfg  = get_cfg_pointer();
-    cfg[PRNG_SEED_Seed_Val_ADDR32] = seed;
+    volatile uint32_t tt_reg_ptr *cfg = get_cfg_pointer();
+    cfg[PRNG_SEED_Seed_Val_ADDR32]    = seed;
 
     // TODO: ckernel::wait does not work properly. Use ckernel::wait when fixed.
     for (int i = 0; i < 600; i++)

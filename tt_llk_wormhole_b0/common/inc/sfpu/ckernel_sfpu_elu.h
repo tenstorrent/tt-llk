@@ -13,7 +13,7 @@ namespace ckernel::sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _calculate_elu_(uint slope)
+inline void _calculate_elu_(uint32_t slope)
 {
     const bool SCALE_EN                  = false; // Elu does not use scale.
     const bool SKIP_POSITIVE_CHECK       = false; // Elu does not skip positive check.

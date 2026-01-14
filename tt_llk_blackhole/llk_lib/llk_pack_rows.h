@@ -44,11 +44,11 @@ The MOP uses a single outer loop with num_rows inner iterations:
  * - Each inner iteration packs one row (16 datums) using ADDR_MOD_0 (Y += 1)
  * - The last outer loop iteration uses ADDR_MOD_1 with Last=1 to reset Y to 0 after num_rows rows
  */
-inline void _llk_pack_rows_mop_config_(const std::uint32_t num_rows)
+inline void _llk_pack_rows_mop_config_(const uint32_t num_rows)
 {
-    constexpr std::uint32_t ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
-    constexpr std::uint32_t MOP_OUTER_LOOP   = 1;
-    const std::uint32_t MOP_INNER_LOOP       = num_rows;
+    constexpr uint32_t ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
+    constexpr uint32_t MOP_OUTER_LOOP   = 1;
+    const uint32_t MOP_INNER_LOOP       = num_rows;
 
     ckernel::ckernel_template tmp(
         MOP_OUTER_LOOP,
@@ -103,15 +103,15 @@ inline void _llk_pack_rows_mop_config_(const std::uint32_t num_rows)
  *    - X counter: Controls how many datums to pack per row
  *    - Z/W counters: Reset to zero
  */
-inline void _llk_pack_rows_init_(const std::uint32_t num_rows)
+inline void _llk_pack_rows_init_(const uint32_t num_rows)
 {
     // In row-major layout, each row is FACE_C_DIM (16) datums.
     // A full tile has TILE_R_DIM * TILE_C_DIM / FACE_C_DIM = 32 * 32 / 16 = 64 rows.
-    constexpr std::uint32_t MAX_ROWS = (TILE_R_DIM * TILE_C_DIM) / FACE_C_DIM;
+    constexpr uint32_t MAX_ROWS = (TILE_R_DIM * TILE_C_DIM) / FACE_C_DIM;
     LLK_ASSERT(num_rows >= 1 && num_rows <= MAX_ROWS, "num_rows must be between 1 and 64");
 
-    constexpr std::uint32_t row_num_datums      = FACE_C_DIM;
-    constexpr std::uint32_t y_pos_counter_limit = 1;
+    constexpr uint32_t row_num_datums      = FACE_C_DIM;
+    constexpr uint32_t y_pos_counter_limit = 1;
 
     _llk_pack_rows_configure_addrmod_();
     _llk_pack_rows_mop_config_(num_rows);
@@ -139,7 +139,7 @@ inline void _llk_pack_rows_init_(const std::uint32_t num_rows)
  * 3. Executes the MOP template
  * 4. Reset Z counters after pack operation
  */
-inline void _llk_pack_rows_(const std::uint32_t tile_index, const std::uint32_t address)
+inline void _llk_pack_rows_(const uint32_t tile_index, const uint32_t address)
 {
     // Set the tile index in dest to read from
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);

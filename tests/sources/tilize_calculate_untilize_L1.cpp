@@ -29,8 +29,8 @@ constexpr uint32_t buffer_B_tilized = 0x17000;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const std::uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
-    int run                          = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
+    const uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
+    int run                     = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats_array[run].unpack_src,
         formats_array[run].unpack_src,
@@ -93,11 +93,11 @@ using namespace ckernel;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const bool is_int_fpu_en                = false;
-    const std::uint32_t operand_A_dst_index = 1;
-    const std::uint32_t operand_B_dst_index = 2;
-    const std::uint32_t res_dst_index       = 0;
-    int run                                 = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
+    const bool is_int_fpu_en           = false;
+    const uint32_t operand_A_dst_index = 1;
+    const uint32_t operand_B_dst_index = 2;
+    const uint32_t res_dst_index       = 0;
+    int run                            = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
 
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
@@ -139,11 +139,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const std::uint32_t operand_A_dst_index = 1;
-    const std::uint32_t operand_B_dst_index = 2;
-    const std::uint32_t res_dst_index       = 0;
-    const bool UNTILIZE                     = false;
-    int run                                 = 0;
+    const uint32_t operand_A_dst_index = 1;
+    const uint32_t operand_B_dst_index = 2;
+    const uint32_t res_dst_index       = 0;
+    const bool UNTILIZE                = false;
+    int run                            = 0;
 
 #ifdef ARCH_BLACKHOLE
     const bool TILIZE = true;

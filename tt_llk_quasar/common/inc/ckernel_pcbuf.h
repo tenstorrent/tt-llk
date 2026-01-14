@@ -7,19 +7,19 @@
 namespace ckernel
 {
 
-inline uint get_pc_buf_cmd(uint ckernel_id, uint command_addr)
+inline uint32_t get_pc_buf_cmd(uint32_t ckernel_id, uint32_t command_addr)
 {
     // Ckernel fast launch cmd has MSB set
     return ckernel_id | ((command_addr & 0x7FFFF) << 12) | (1 << 31);
 }
 
-inline uint get_pc_buf_cmd(uint ckernel_id, uint iterations, uint number_of_extra_params)
+inline uint32_t get_pc_buf_cmd(uint32_t ckernel_id, uint32_t iterations, uint32_t number_of_extra_params)
 {
     // Ckernel ID can be a max of 12 bits.
     return ckernel_id | ((iterations & 0xFFFF) << 16) | ((number_of_extra_params & 0xF) << 12);
 }
 
-inline void decode_pc_buf_cmd(uint cmd, uint &ckernel_id, uint &iterations, uint &number_of_extra_params)
+inline void decode_pc_buf_cmd(uint32_t cmd, uint32_t &ckernel_id, uint32_t &iterations, uint32_t &number_of_extra_params)
 {
     // Ckernel ID can be a max of 12 bits.
     ckernel_id             = cmd & 0xFFF;
