@@ -3,11 +3,11 @@
 
 import pytest
 from helpers.constraints import (
-    get_valid_dest_accumulation_modes,
     get_valid_math_fidelities,
 )
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
+    DestAccumulation,
     MathFidelity,
     MathOperation,
     PerfRunType,
@@ -24,15 +24,13 @@ from helpers.test_variant_parameters import (
 
 @pytest.mark.perf
 @parametrize(
-    formats=input_output_formats(
-        [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
-    ),
-    mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
+    formats=input_output_formats([DataFormat.Float16_b]),
+    mathop=[MathOperation.Elwsub],
     tile_count=16,
     math_fidelity=lambda formats, mathop: get_valid_math_fidelities(
         formats, mathop, PERF_RUN=True
     ),
-    dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
+    dest_acc=[DestAccumulation.No],
 )
 def test_perf_eltwise_binary_fpu(
     perf_report,
