@@ -70,59 +70,44 @@ inline constexpr uint32_t COUNTER_BANK_COUNT = 5;
 
 inline constexpr uint32_t get_counter_base_addr(CounterBank bank)
 {
-    switch (bank)
-    {
-        case CounterBank::INSTRN_THREAD:
-            return RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0;
-        case CounterBank::FPU:
-            return RISCV_DEBUG_REG_PERF_CNT_FPU0;
-        case CounterBank::TDMA_UNPACK:
-            return RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0;
-        case CounterBank::L1:
-            return RISCV_DEBUG_REG_PERF_CNT_L1_0;
-        case CounterBank::TDMA_PACK:
-            return RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0;
-        default:
-            return 0;
-    }
+    constexpr uint32_t base_addrs[COUNTER_BANK_COUNT] = {
+        RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, // INSTRN_THREAD
+        RISCV_DEBUG_REG_PERF_CNT_FPU0,           // FPU
+        RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0,   // TDMA_UNPACK
+        RISCV_DEBUG_REG_PERF_CNT_L1_0,           // L1
+        RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0,     // TDMA_PACK
+    };
+
+    const uint32_t idx = static_cast<uint32_t>(bank);
+    return idx < COUNTER_BANK_COUNT ? base_addrs[idx] : 0u;
 }
 
 inline constexpr uint32_t get_counter_output_low_addr(CounterBank bank)
 {
-    switch (bank)
-    {
-        case CounterBank::INSTRN_THREAD:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD;
-        case CounterBank::FPU:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU;
-        case CounterBank::TDMA_UNPACK:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK;
-        case CounterBank::L1:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_DBG_L1;
-        case CounterBank::TDMA_PACK:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_PACK;
-        default:
-            return 0;
-    }
+    constexpr uint32_t low_addrs[COUNTER_BANK_COUNT] = {
+        RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD, // INSTRN_THREAD
+        RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU,           // FPU
+        RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK,   // TDMA_UNPACK
+        RISCV_DEBUG_REG_PERF_CNT_OUT_L_DBG_L1,        // L1
+        RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_PACK,     // TDMA_PACK
+    };
+
+    const uint32_t idx = static_cast<uint32_t>(bank);
+    return idx < COUNTER_BANK_COUNT ? low_addrs[idx] : 0u;
 }
 
 inline constexpr uint32_t get_counter_output_high_addr(CounterBank bank)
 {
-    switch (bank)
-    {
-        case CounterBank::INSTRN_THREAD:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD;
-        case CounterBank::FPU:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU;
-        case CounterBank::TDMA_UNPACK:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK;
-        case CounterBank::L1:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_DBG_L1;
-        case CounterBank::TDMA_PACK:
-            return RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK;
-        default:
-            return 0;
-    }
+    constexpr uint32_t high_addrs[COUNTER_BANK_COUNT] = {
+        RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD, // INSTRN_THREAD
+        RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU,           // FPU
+        RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK,   // TDMA_UNPACK
+        RISCV_DEBUG_REG_PERF_CNT_OUT_H_DBG_L1,        // L1
+        RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK,     // TDMA_PACK
+    };
+
+    const uint32_t idx = static_cast<uint32_t>(bank);
+    return idx < COUNTER_BANK_COUNT ? high_addrs[idx] : 0u;
 }
 
 enum class CounterMode : uint32_t
