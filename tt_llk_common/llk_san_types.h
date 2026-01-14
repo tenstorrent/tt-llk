@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "ckernel.h"
 #include "llk_defs.h"
 
 namespace llk_san
@@ -198,17 +199,6 @@ static inline bool _panic_condition(const state_t<T>& lhs, const state_t<U>& rhs
     return lhs.get_underlying() != rhs.get_underlying();
 }
 
-enum class operation_t : uint8_t
-{
-    UnpackA,
-    UnpackABMatmul,
-    UnpackUntilize,
-    EltwiseUnaryDatacopy,
-    Matmul,
-    Pack,
-    PackUntilize
-};
-
 // TODO: refactor below
 
 enum class llk_san_cfg_t
@@ -231,7 +221,7 @@ enum class llk_san_operand_t
     Dst
 };
 
-// Unpacker state
+// UNPACK operand state
 struct unpack_src_state_t
 {
     state_t<uint32_t> input_format;
@@ -240,7 +230,7 @@ struct unpack_src_state_t
     state_t<uint32_t> num_faces;
 };
 
-struct unpack_state_t
+struct unpack_operand_state_t
 {
     unpack_src_state_t src_a;
     unpack_src_state_t src_b;
@@ -248,21 +238,21 @@ struct unpack_state_t
     bool is_configured = false;
 };
 
-// Math state
+// MATH operand state
 struct math_src_state_t
 {
     state_t<uint32_t> input_format;
 };
 
-struct math_state_t
+struct math_operand_state_t
 {
     math_src_state_t src_a;
     math_src_state_t src_b;
     bool is_configured = false;
 };
 
-// Pack state
-struct pack_state_t
+// PACK operand state
+struct pack_operand_state_t
 {
     state_t<uint32_t> input_format;
     state_t<uint32_t> output_format;
@@ -277,9 +267,20 @@ struct pack_state_t
 
 struct operand_state_t
 {
-    unpack_state_t unpack;
-    math_state_t math;
-    pack_state_t pack;
+    unpack_operand_state_t unpack;
+    math_operand_state_t math;
+    pack_operand_state_t pack;
+};
+
+enum class operation_t : uint8_t
+{
+    UnpackA,
+    UnpackABMatmul,
+    UnpackUntilize,
+    EltwiseUnaryDatacopy,
+    Matmul,
+    Pack,
+    PackUntilize
 };
 
 struct operation_state_t
@@ -287,7 +288,16 @@ struct operation_state_t
     static constexpr size_t BUFFER_SIZE = 96;
 
     operation_t operation;
-    char __attribute__((aligned(alignof(max_align_t)))) buffer[BUFFER_SIZE];
+
+    // aligned to max alignment so that content of buffer
+    // is accessible through T* irrespective of the alignment of T
+    alignas(alignof(max_align_t)) char buffer[BUFFER_SIZE];
 };
 
-}; // namespace llk_san
+struct sanitizer_state_t
+{
+    operand_state_t operand;
+    operation_state_t operation[MAX_THREADS];
+};
+
+} // namespace llk_san

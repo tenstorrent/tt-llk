@@ -54,7 +54,7 @@ namespace llk_san
 // State set + no hw config within kernel check
 template <bool reconfig>
 static inline void unpack_hw_configure_impl(
-    unpack_state_t& state,
+    unpack_operand_state_t& state,
     state_t<bool> dst_acc_en,
     state_t<uint32_t> src_fmt_A,
     state_t<uint32_t> src_fmt_B,
@@ -88,7 +88,7 @@ static inline void unpack_hw_configure_impl(
 
 // State set + no hw config within kernel check
 template <bool reconfig = false>
-static inline void math_hw_configure_impl(math_state_t& state, state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
+static inline void math_hw_configure_impl(math_operand_state_t& state, state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
 {
     LLK_PANIC(!reconfig && state.is_configured, "panic: llk_san: user tried to configure math twice");
     LLK_PANIC(reconfig && !state.is_configured, "panic: llk_san: user tried to reconfigure math before configuring it");
@@ -101,7 +101,7 @@ static inline void math_hw_configure_impl(math_state_t& state, state_t<uint32_t>
 // State set + no hw config within kernel check
 template <bool reconfig>
 static inline void pack_hw_configure_impl(
-    pack_state_t& state,
+    pack_operand_state_t& state,
     state_t<bool> dest_acc_en,
     state_t<uint32_t> src_fmt,
     state_t<uint32_t> dst_fmt,
@@ -128,7 +128,7 @@ static inline void pack_hw_configure_impl(
 // Goes in LLK_LIB in Init, Execute and Uninit
 // No state set, just check that non x arguments match the stored ones
 static inline void unpack_operand_check_impl(
-    unpack_state_t& state,
+    unpack_operand_state_t& state,
     state_t<bool> dest_acc_en,
     state_t<uint32_t> src_fmt_A,
     state_t<uint32_t> src_fmt_B,
@@ -154,7 +154,7 @@ static inline void unpack_operand_check_impl(
 }
 
 // No state set, just check that non x arguments match the stored ones
-static inline void math_operand_check_impl(math_state_t& state, state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
+static inline void math_operand_check_impl(math_operand_state_t& state, state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
 {
     LLK_PANIC(!state.is_configured, "panic: llk_san: executing init/execute/uninit before hwconfigure");
     LLK_SAN_ASSERT(state.src_a.input_format, math_fmt_A, "panic: llk_san: math_fmt_A doesn't match state.src_a.input_format");
@@ -163,7 +163,7 @@ static inline void math_operand_check_impl(math_state_t& state, state_t<uint32_t
 
 // No state set, just check that non x arguments match the stored ones
 static inline void pack_operand_check_impl(
-    pack_state_t& state,
+    pack_operand_state_t& state,
     state_t<bool> dest_acc_en,
     state_t<uint32_t> src_fmt,
     state_t<uint32_t> dst_fmt,
