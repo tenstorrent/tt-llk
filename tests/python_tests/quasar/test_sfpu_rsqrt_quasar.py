@@ -55,7 +55,7 @@ def test_sfpu_rsqrt_quasar(
     Test reciprocal square root (rsqrt) operation on Quasar architecture.
 
     Uses PyTorch's rsqrt as the golden reference and generates input stimuli
-    in the range (0.1, 2.0] to test rsqrt behavior.
+    in the range [0.1, 10] to test rsqrt behavior.
     """
     # Skip invalid format combinations for Quasar
     if (
@@ -77,7 +77,7 @@ def test_sfpu_rsqrt_quasar(
             "Float32 to Float16 conversion with dest_acc=No produces incorrect results"
         )
 
-    # Generate stimuli with random values in range [0.1, 2.0] for Approximation Mode
+    # Generate stimuli with random values in range [0.1, 10] for Approximation Mode
     src_A, tile_cnt_A, src_B, _ = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
@@ -86,10 +86,10 @@ def test_sfpu_rsqrt_quasar(
         sfpu=True,
     )
 
-    # Override src_A with random values in valid range for rsqrt [0.1, 2.0]
+    # Override src_A with random values in valid range for rsqrt [0.1, 10]
     torch_format = format_dict[formats.input_format]
     src_A = (
-        torch.rand(input_dimensions[0] * input_dimensions[1], dtype=torch_format) * 1.9
+        torch.rand(input_dimensions[0] * input_dimensions[1], dtype=torch_format) * 9.9
         + 0.1
     )
 
