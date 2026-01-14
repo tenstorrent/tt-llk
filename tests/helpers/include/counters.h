@@ -124,10 +124,10 @@ struct CounterResult
     uint32_t counter_id;
 };
 
-namespace CounterId
+namespace counter_id
 {
 
-namespace InstrnThread
+namespace instrn_thread
 {
 constexpr uint32_t INST_CFG               = 0;
 constexpr uint32_t INST_SYNC              = 1;
@@ -158,15 +158,15 @@ constexpr uint32_t STALL_SEM_MAX          = 25;
 constexpr uint32_t STALL_MOVE             = 26;
 constexpr uint32_t STALL_TRISC_REG_ACCESS = 27;
 constexpr uint32_t STALL_SFPU             = 28;
-} // namespace InstrnThread
+} // namespace instrn_thread
 
-namespace Fpu
+namespace fpu
 {
 constexpr uint32_t FPU_OP_VALID  = 0;
 constexpr uint32_t SFPU_OP_VALID = 1;
-} // namespace Fpu
+} // namespace fpu
 
-namespace TdmaUnpack
+namespace tdma_unpack
 {
 constexpr uint32_t MATH_INSTR_SRC_READY = 0;
 constexpr uint32_t MATH_NOT_D2A_STALL   = 1;
@@ -179,9 +179,9 @@ constexpr uint32_t UNPACK_BUSY_0        = 7;
 constexpr uint32_t UNPACK_BUSY_1        = 8;
 constexpr uint32_t UNPACK_BUSY_2        = 9;
 constexpr uint32_t UNPACK_BUSY_3        = 10;
-} // namespace TdmaUnpack
+} // namespace tdma_unpack
 
-namespace L1
+namespace l1
 {
 // mux_ctrl_bit4 = 0
 constexpr uint32_t NOC_RING0_INCOMING_1 = 0;
@@ -202,9 +202,9 @@ constexpr uint32_t TDMA_BUNDLE_1_ARB    = 4;
 constexpr uint32_t TDMA_BUNDLE_0_ARB    = 5;
 constexpr uint32_t TDMA_EXT_UNPACK_9_10 = 6;
 constexpr uint32_t TDMA_PACKER_2_WR     = 7;
-} // namespace L1
+} // namespace l1
 
-namespace TdmaPack
+namespace tdma_pack
 {
 constexpr uint32_t DSTAC_RDEN_RAW_0    = 0;
 constexpr uint32_t DSTAC_RDEN_RAW_1    = 1;
@@ -214,9 +214,9 @@ constexpr uint32_t PACK_NOT_DEST_STALL = 4;
 constexpr uint32_t PACK_NOT_SB_STALL   = 5;
 constexpr uint32_t PACK_BUSY_10        = 6;
 constexpr uint32_t PACK_BUSY_11        = 7;
-} // namespace TdmaPack
+} // namespace tdma_pack
 
-} // namespace CounterId
+} // namespace counter_id
 
 class PerfCounters
 {
