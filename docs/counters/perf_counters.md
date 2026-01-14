@@ -65,6 +65,7 @@ This section describes, end-to-end, how we configure, measure, read, and present
   - Encodes the requested set of counters into per-thread L1 config buffers (up to 66 slots) and clears corresponding L1 data buffers.
   - After the kernel run, reads metadata + data from L1, decodes each result (bank/event/mode/mux), and prints or feeds into metrics.
 - C++ kernel (`tests/helpers/include/counters.h` and `tests/sources/*.cpp`):
+  - If the kernel selects counters itself, call `add()`/`set_mode()` then `configure()` to write metadata into L1 before `start()`.
   - `PerfCounters.start()` reads the thread’s L1 config, programs Tensix debug registers (mode, `counter_sel`, req/grant, and L1 mux), and issues start pulses.
   - `PerfCounters.stop()` stops counting, scans configured slots, sets read-out selection (`counter_sel` + req/grant + L1 mux), reads `OUT_L/OUT_H`, and writes `(cycles,count)` pairs back to the thread’s L1 data buffer in slot order.
 
@@ -128,20 +129,28 @@ Types:
 - `llk_perf::CounterMode`: `{REQUESTS, GRANTS}`
 - `llk_perf::CounterResult`: `{cycles, count, bank, counter_id}`
 
+Constants:
+- `llk_perf::COUNTER_BANK_COUNT`: number of banks (5).
+- `llk_perf::COUNTER_SLOT_COUNT`: max counters per thread (66).
+
+Event IDs (C++):
+- `llk_perf::counter_id::<bank>` namespaces with snake_case names, e.g. `counter_id::fpu::FPU_OP_VALID`, `counter_id::l1::NOC_RING0_INCOMING_1`.
+
 Class: `llk_perf::PerfCounters`
 - `add(CounterBank bank, uint32_t counter_id, uint32_t mux_ctrl_bit4 = 0)`: Add a counter. Only L1 uses `mux_ctrl_bit4`.
+- `configure()`: Write the current in-memory selection (from `add()`) into the thread’s L1 config buffer.
 - `set_mode(CounterMode m)`: Select `REQUESTS` or `GRANTS`.
-- `start()`: Reads configuration from L1 (written by Python/C++), counts how many valid slots, applies mode/mux, and starts the counters.
+- `start()`: Reads configuration from L1 (written by Python or via `configure()`), counts how many valid slots, applies mode/mux, and starts the counters.
 - `stop() -> CounterResult*`: Stops counters and returns results (cycles and counts) for each configured slot.
 - `get_count() const -> uint32_t`: Returns number of active counters (slots).
 
 Notes:
-- If configuration was written by Python into the L1 buffers, you can skip `add()` and just call `start()`/`stop()`.
+- If configuration was written by Python into the L1 buffers, you can skip `add()`/`configure()` and just call `start()`/`stop()`.
 - `start()`/`stop()` act on entire groups per bank semantics.
 
 For end-to-end mechanics (register programming, readout, and L1 write-back), see “How Everything Works”.
 
-Example (kernel side, simplified):
+Example A (kernel side, Python-provided configuration):
 ```cpp
 #include "counters.h"
 
@@ -152,6 +161,28 @@ void run_kernel(const volatile RuntimeParams* params) {
     counters.stop();
 }
 ```
+
+Example B (kernel side, kernel-provided configuration):
+```cpp
+#include "counters.h"
+
+using namespace llk_perf;
+
+void run_kernel(const volatile RuntimeParams* params) {
+  PerfCounters counters;
+  counters.set_mode(CounterMode::GRANTS);
+  counters.add(CounterBank::FPU, counter_id::fpu::FPU_OP_VALID);
+  counters.add(CounterBank::L1, counter_id::l1::NOC_RING0_OUTGOING_0, /*mux_ctrl_bit4=*/0);
+  counters.configure(); // writes metadata to L1
+
+  counters.start();
+  // ... your kernel work ...
+  counters.stop(); // writes (cycles,count) pairs to L1 data
+}
+```
+
+Migration note:
+- If older code relied on `add()` or `start()` implicitly writing metadata, call `configure()` after your `add()` calls. `start()` now expects configuration to already be present in L1 (from Python or `configure()`).
 
 ### Python API (`tests/python_tests/helpers/counters.py`)
 Functions:

@@ -308,8 +308,18 @@ public:
 
         // Initialize mode to current selected mode
         counters[counter_count++] = {bank, counter_id, mux_ctrl_bit4, mode};
+    }
 
-        // Write updated metadata to L1 immediately
+    /**
+     * Write the current in-memory counter configuration to L1
+     * Call this after one or more add() calls to program hardware selection.
+     */
+    void configure()
+    {
+        if (counter_count == 0)
+        {
+            return;
+        }
         write_metadata();
     }
 
