@@ -5,5 +5,5 @@
 
 set -e
 
-pip install --upgrade pip
-pip install --no-cache-dir -r /tmp/requirements_tests.txt
+pip install --upgrade --break-system-packages pip
+pip install --no-cache-dir --break-system-packages -r /tmp/requirements_tests.txt
