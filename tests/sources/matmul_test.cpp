@@ -25,9 +25,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    // Counters configured from Python - just start/stop them
-    llk_perf::PerfCounters counters;
-    llk_perf::ScopedPerfCounters scoped {counters};
+    llk_perf::ScopedPerfCounters scoped;
 
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src,
@@ -67,9 +65,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    // Counters configured from Python - just start/stop them
-    llk_perf::PerfCounters counters;
-    llk_perf::ScopedPerfCounters scoped {counters};
+    llk_perf::ScopedPerfCounters scoped;
 
     _llk_math_matmul_init_<MATH_FIDELITY>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, params->CT_DIM, params->RT_DIM);
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -92,9 +88,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    // Counters configured from Python - just start/stop them
-    llk_perf::PerfCounters counters;
-    llk_perf::ScopedPerfCounters scoped {counters};
+    llk_perf::ScopedPerfCounters scoped;
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, TILE_SIZE_PACK);

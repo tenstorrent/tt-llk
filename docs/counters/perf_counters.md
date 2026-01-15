@@ -146,10 +146,11 @@ Class: `llk_perf::PerfCounters`
 - `empty() const -> bool`: Whether any counters are configured.
 
 RAII wrapper:
-- `llk_perf::ScopedPerfCounters`: Starts counters on construction and stops on destruction.
-  - `explicit ScopedPerfCounters(PerfCounters&)`: Calls `start()`.
+- `llk_perf::ScopedPerfCounters`: Owns a `PerfCounters`, starts on construction, stops on destruction.
+  - `ScopedPerfCounters()`: Constructs an internal `PerfCounters` and calls `start()`.
   - `~ScopedPerfCounters()`: Calls `stop()` unless already manually stopped.
   - `stop() -> std::array<CounterResult, COUNTER_SLOT_COUNT>`: Manually stop once and get results; subsequent destruction does not stop again.
+  - `counters() -> PerfCounters&`: Access the underlying counters if you need to `add()`/`configure()` in-kernel.
   - Non-copyable and non-movable.
 
 Example (RAII):
@@ -158,8 +159,7 @@ Example (RAII):
 using namespace llk_perf;
 
 void run_kernel(const volatile RuntimeParams* params) {
-  PerfCounters counters;
-  ScopedPerfCounters scoped{counters};
+  ScopedPerfCounters scoped;
   // ... your kernel work ...
   // Optional: auto results = scoped.stop(); // if you need immediate access
   // Otherwise results are written to L1 in destructor

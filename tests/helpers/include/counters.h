@@ -526,15 +526,16 @@ public:
     }
 };
 
-// RAII helper to automatically start on construction and stop on destruction.
+// RAII helper with ownership: starts on construction and stops on destruction.
 class ScopedPerfCounters
 {
 private:
-    PerfCounters& counters_;
+    PerfCounters counters_;
     bool stopped_ = false;
 
 public:
-    explicit ScopedPerfCounters(PerfCounters& counters) : counters_(counters)
+    // Default constructor: own a PerfCounters and start immediately
+    ScopedPerfCounters()
     {
         counters_.start();
     }
@@ -547,6 +548,12 @@ public:
         }
     }
 
+    // Access the underlying counters (e.g., to add/configure when kernel drives config)
+    PerfCounters& counters()
+    {
+        return counters_;
+    }
+
     // Manually stop once and return results; destructor will not stop again
     std::array<CounterResult, COUNTER_SLOT_COUNT> stop()
     {
@@ -554,7 +561,7 @@ public:
         return counters_.stop();
     }
 
-    // Non-copyable, non-movable
+    // Non-copyable, non-movable to avoid lifetime confusion
     ScopedPerfCounters(const ScopedPerfCounters&)            = delete;
     ScopedPerfCounters& operator=(const ScopedPerfCounters&) = delete;
     ScopedPerfCounters(ScopedPerfCounters&&)                 = delete;
