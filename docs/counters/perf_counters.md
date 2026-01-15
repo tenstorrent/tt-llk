@@ -141,7 +141,7 @@ Class: `llk_perf::PerfCounters`
 - `add(CounterBank bank, uint8_t counter_id, uint8_t l1_mux = 0) -> bool`: Add a counter (returns false if capacity reached). Only L1 uses `l1_mux` (maps to mux bit 4).
 - `configure()`: Write the current in-memory selection (from `add()`) into the thread’s L1 config buffer; encodes the current global mode bit into metadata.
 - `start()`: Reads configuration from L1 (written by Python or via `configure()`), adopts mode from metadata if present, counts how many valid slots, applies mux, and starts the counters.
-- `stop() -> CounterResult*`: Stops counters and returns results (cycles and counts) for each configured slot.
+- `stop() -> std::array<CounterResult, COUNTER_SLOT_COUNT>`: Stops counters and returns a fixed-size array of results. Only the first `size()` entries are populated; use `size()` to know how many are valid.
 - `size() const -> uint32_t`: Number of active counters.
 - `empty() const -> bool`: Whether any counters are configured.
 - `get_count() const -> uint32_t`: Alias for `size()`.

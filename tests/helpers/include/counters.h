@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 
 #include "ckernel.h"
@@ -446,9 +447,9 @@ public:
      *
      * @return Array of counter results (cycles, count for each counter)
      */
-    CounterResult* stop()
+    std::array<CounterResult, COUNTER_SLOT_COUNT> stop()
     {
-        static CounterResult results[COUNTER_SLOT_COUNT];
+        std::array<CounterResult, COUNTER_SLOT_COUNT> results;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
