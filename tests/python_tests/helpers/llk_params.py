@@ -62,6 +62,7 @@ class MathOperation(Enum):
     Atanh = OpSpec("atanh", MathOpType.SFPU_UNARY)
     Asinh = OpSpec("asinh", MathOpType.SFPU_UNARY)
     Acosh = OpSpec("acosh", MathOpType.SFPU_UNARY)
+    Tanh = OpSpec("tanh", MathOpType.SFPU_UNARY)
     Celu = OpSpec("celu", MathOpType.SFPU_UNARY)
     Cos = OpSpec("cosine", MathOpType.SFPU_UNARY)
     Elu = OpSpec("elu", MathOpType.SFPU_UNARY)

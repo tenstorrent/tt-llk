@@ -40,6 +40,9 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0, float fil
             _init_inverse_hyperbolic_<APPROX_MODE>();
             _calculate_asinh_<APPROX_MODE, ITERATIONS>();
             break;
+        case SfpuType::tanh:
+            _calculate_tanh_<APPROX_MODE>(ITERATIONS);
+            break;
         case SfpuType::atanh:
             _init_atanh_<APPROX_MODE>();
             _calculate_atanh_<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>();

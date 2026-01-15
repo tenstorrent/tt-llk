@@ -105,6 +105,7 @@ SFPU_UNARY_OPERATION_MAP: Dict[str, MathOperation] = {
     "Sin": MathOperation.Sin,
     "Sqrt": MathOperation.Sqrt,
     "Square": MathOperation.Square,
+    "Tanh": MathOperation.Tanh,
     "Threshold": MathOperation.Threshold,
 }
 
