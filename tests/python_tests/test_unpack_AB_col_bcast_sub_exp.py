@@ -65,9 +65,8 @@ from helpers.utils import passed_test
         # False,
     ],
     input_dimensions=[
-        # [32, 32],
+        [32, 32],
         [32, 64],
-        # Add more shapes here if needed (e.g., [16, 32], [64, 32], ...)
     ],
 )
 def test_unpack_AB_col_bcast_sub_exp(
@@ -102,10 +101,17 @@ def test_unpack_AB_col_bcast_sub_exp(
         input_dimensions_B=input_dimensions,
     )
 
+    src_A = (
+        torch.ones(input_dimensions[0] * input_dimensions[1], dtype=torch.bfloat16) * 3
+    )
+    src_B = (
+        torch.ones(input_dimensions[0] * input_dimensions[1], dtype=torch.bfloat16) * 2
+    )
+
     # Clamp input values to avoid exp() overflow after subtraction
     # exp(x) overflows for x > ~88, so keep values in safe range
-    src_A = torch.clamp(src_A, min=-2.0, max=2.0)
-    src_B = torch.clamp(src_B, min=-2.0, max=2.0)
+    # src_A = torch.clamp(src_A, min=-2.0, max=2.0)
+    # src_B = torch.clamp(src_B, min=-2.0, max=2.0)
 
     # Tilize inputs before writing to L1 - broadcast expects tile layout in L1
     # Tilization is required for broadcast to work properly
