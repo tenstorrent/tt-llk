@@ -40,9 +40,6 @@ check_python_version() {
 
 # --- Main Script ---
 
-# Set up trap for cleanup on exit
-trap EXIT
-
 # Parse arguments
 REUSE=false
 CLEAN=false
