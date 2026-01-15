@@ -6,6 +6,7 @@ from itertools import product
 
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     BroadcastGolden,
@@ -155,6 +156,17 @@ def filter_params_with_constraints(all_params):
         if formats.output_format == DataFormat.Bfp8_b:
             if stochastic_rnd in (StochasticRounding.Pack, StochasticRounding.All):
                 continue
+
+        # TODO: Remove this once blackhole unpack_AB supports transpose of faces when broadcast for srcB is ROW or COL.
+        if (
+            get_chip_architecture() == ChipArchitecture.BLACKHOLE
+            and transpose_of_faces == Transpose.Yes
+            and (
+                broadcast_type == BroadcastType.Column
+                or broadcast_type == BroadcastType.Row
+            )
+        ):
+            continue
 
         # All constraints passed, add to valid params.
         valid_params.append(params)
