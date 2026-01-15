@@ -254,7 +254,7 @@ def passed_test(
                     )
 
                     lines = format_tile(result_tile, error_tile, tile_no)
-                    if lines == []:
+                    if not lines:
                         continue
 
                     formatted_error.extend(lines)

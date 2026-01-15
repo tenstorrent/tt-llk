@@ -1102,7 +1102,7 @@ def process_coverage_run_artefacts() -> bool:
         f"Generated {len(info_files)} coverage .info files from streams in {end - start:.2f}s, unifying"
     )
 
-    # Reduce worker count to avoid works having no files to process
+    # Reduce worker count to avoid workers having no files to process
     if len(info_files) < 2 * worker_num:
         worker_num = 1
 

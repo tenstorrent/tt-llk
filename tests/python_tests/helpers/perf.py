@@ -208,8 +208,6 @@ def combine_perf_reports():
             else:
                 regular_files.append(rep_file)
 
-        print(regular_files, post_files)
-
         if regular_files:
             dfs_regular = []
             for file in sorted(regular_files):
