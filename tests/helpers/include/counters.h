@@ -234,7 +234,7 @@ private:
     };
 
     CounterConfig counters[COUNTER_SLOT_COUNT];
-    uint32_t counter_count;
+    uint32_t num_counters {0};
     CounterMode mode;
 
     // Helpers to get per-thread config/data memory addresses
@@ -270,7 +270,7 @@ private:
     {
         volatile uint32_t* config_mem = get_config_mem();
 
-        for (uint32_t i = 0; i < counter_count; i++)
+        for (uint32_t i = 0; i < num_counters; i++)
         {
             const auto& config = counters[i];
 
@@ -283,14 +283,14 @@ private:
         }
 
         // Clear remaining slots
-        for (uint32_t i = counter_count; i < COUNTER_SLOT_COUNT; i++)
+        for (uint32_t i = num_counters; i < COUNTER_SLOT_COUNT; i++)
         {
             config_mem[i] = 0;
         }
     }
 
 public:
-    PerfCounters() : counter_count(0), mode(CounterMode::GRANTS)
+    PerfCounters() : num_counters(0), mode(CounterMode::GRANTS)
     {
     }
 
@@ -303,13 +303,13 @@ public:
      */
     void add(CounterBank bank, uint8_t counter_id, uint8_t l1_mux = 0)
     {
-        if (counter_count >= COUNTER_SLOT_COUNT)
+        if (num_counters >= COUNTER_SLOT_COUNT)
         {
             return; // Max 66 counters
         }
 
         // Initialize mode to current selected mode
-        counters[counter_count++] = {bank, counter_id, l1_mux, mode};
+        counters[num_counters++] = {bank, counter_id, l1_mux, mode};
     }
 
     /**
@@ -318,7 +318,7 @@ public:
      */
     void configure()
     {
-        if (counter_count == 0)
+        if (num_counters == 0)
         {
             return;
         }
@@ -332,7 +332,7 @@ public:
     {
         mode = m;
         // Keep existing counter configs in sync with the selected mode
-        for (uint32_t i = 0; i < counter_count; i++)
+        for (uint32_t i = 0; i < num_counters; i++)
         {
             counters[i].mode = mode;
         }
@@ -363,12 +363,12 @@ public:
         // If no counters configured, update counter_count and return
         if (active_count == 0)
         {
-            counter_count = 0;
+            num_counters = 0;
             return;
         }
 
         // Update counter_count to match what's in L1
-        counter_count = active_count;
+        num_counters = active_count;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
@@ -447,7 +447,7 @@ public:
 
         // Stop all banks once via 0->1 transition on stop bit
         bool bank_stopped[COUNTER_BANK_COUNT] = {false, false, false, false, false};
-        for (uint32_t i = 0; i < counter_count; i++)
+        for (uint32_t i = 0; i < num_counters; i++)
         {
             const auto& config = counters[i];
             uint32_t bank_idx  = static_cast<uint32_t>(config.bank);
@@ -462,7 +462,7 @@ public:
         }
 
         // Now scan each configured counter: select via mode register and read outputs
-        for (uint32_t i = 0; i < counter_count; i++)
+        for (uint32_t i = 0; i < num_counters; i++)
         {
             const auto& config = counters[i];
 
@@ -503,9 +503,19 @@ public:
         return results;
     }
 
+    uint32_t size() const
+    {
+        return num_counters;
+    }
+
+    bool empty() const
+    {
+        return num_counters == 0;
+    }
+
     uint32_t get_count() const
     {
-        return counter_count;
+        return size();
     }
 };
 
