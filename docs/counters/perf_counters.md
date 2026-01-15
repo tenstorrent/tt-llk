@@ -146,6 +146,27 @@ Class: `llk_perf::PerfCounters`
 - `empty() const -> bool`: Whether any counters are configured.
 - `get_count() const -> uint32_t`: Alias for `size()`.
 
+RAII wrapper:
+- `llk_perf::ScopedPerfCounters`: Starts counters on construction and stops on destruction.
+  - `explicit ScopedPerfCounters(PerfCounters&)`: Calls `start()`.
+  - `~ScopedPerfCounters()`: Calls `stop()` unless already manually stopped.
+  - `stop() -> std::array<CounterResult, COUNTER_SLOT_COUNT>`: Manually stop once and get results; subsequent destruction does not stop again.
+  - Non-copyable and non-movable.
+
+Example (RAII):
+```cpp
+#include "counters.h"
+using namespace llk_perf;
+
+void run_kernel(const volatile RuntimeParams* params) {
+  PerfCounters counters;
+  ScopedPerfCounters scoped{counters};
+  // ... your kernel work ...
+  // Optional: auto results = scoped.stop(); // if you need immediate access
+  // Otherwise results are written to L1 in destructor
+}
+```
+
 Mode handling:
 - Global mode is adopted from the first valid L1 metadata entry during `start()`. If no metadata is present, the default is `GRANTS`.
 - `configure()` encodes the current global mode into metadata; the class defaults to `GRANTS`. There is no per-counter mode.

@@ -531,4 +531,39 @@ public:
     }
 };
 
+// RAII helper to automatically start on construction and stop on destruction.
+class ScopedPerfCounters
+{
+private:
+    PerfCounters& counters_;
+    bool stopped_ = false;
+
+public:
+    explicit ScopedPerfCounters(PerfCounters& counters) : counters_(counters)
+    {
+        counters_.start();
+    }
+
+    ~ScopedPerfCounters()
+    {
+        if (!stopped_)
+        {
+            counters_.stop();
+        }
+    }
+
+    // Manually stop once and return results; destructor will not stop again
+    std::array<CounterResult, COUNTER_SLOT_COUNT> stop()
+    {
+        stopped_ = true;
+        return counters_.stop();
+    }
+
+    // Non-copyable, non-movable
+    ScopedPerfCounters(const ScopedPerfCounters&)            = delete;
+    ScopedPerfCounters& operator=(const ScopedPerfCounters&) = delete;
+    ScopedPerfCounters(ScopedPerfCounters&&)                 = delete;
+    ScopedPerfCounters& operator=(ScopedPerfCounters&&)      = delete;
+};
+
 } // namespace llk_perf
