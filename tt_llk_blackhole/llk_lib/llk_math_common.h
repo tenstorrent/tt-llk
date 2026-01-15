@@ -39,7 +39,11 @@ inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const 
     uint32_t fp32_dest_acc_en = is_fp32_dest_acc_en ? 1 : 0;
     cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(fp32_dest_acc_en);
     cfg_reg_rmw_tensix<ALU_ACC_CTRL_SFPU_Fp32_enabled_RMW>(fp32_dest_acc_en);
-    _llk_math_dbg_feature_disable_();
+    // Workaround for HW bug (int32 dest and movd2a/b is used with srcA/B configured as int8)
+    if (int8_math_enabled)
+    {
+        _llk_math_dbg_feature_disable_();
+    }
 }
 
 inline void _llk_math_reconfig_remap_(const bool remap_enable)
