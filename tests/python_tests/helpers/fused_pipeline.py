@@ -181,7 +181,7 @@ def parse_math_operation(
                 )
                 iterations = sfpu_config.get("iterations", 32)
                 dest_idx = sfpu_config.get("dst_dest_tile_index", 0)
-                fill_const_value = sfpu_config.get("fill_const_value", 1)
+                fill_const_value = sfpu_config.get("fill_const_value", 1.0)
 
                 sfpu_ops.append(
                     UnarySfpu(

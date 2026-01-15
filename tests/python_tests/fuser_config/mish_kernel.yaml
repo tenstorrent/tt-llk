@@ -2,8 +2,8 @@ operations:
   - src_a: "X"
     src_b: "input_B"
     output: "tanh_softplus"
-    src_a_dims: [32, 64]
-    src_b_dims: [32, 64]
+    src_a_dims: [32, 256]
+    src_b_dims: [32, 256]
     output_pack_dims: [32, 32]
     input_format: "Float16_b"
     output_format: "Float16_b"
@@ -11,17 +11,125 @@ operations:
     math:
       fpu: "Datacopy"
       sfpu:
-        - type: "UnarySfpu"
-          operation: "Exp"
-          approximation_mode: "No"
-          dst_dest_tile_index: 0
-          iterations: 32
+        # 1) Initial state:
+        #    tile0 = x  (input from FPU Datacopy phase)
+        #    All other tiles are free.
+
+        # 2) tile1 = 1.0
+        # Create constant 1.0, used as a multiplicative identity for both the softplus and tanh parts.
         - type: "UnarySfpu"
           operation: "Fill"
           approximation_mode: "No"
-          dst_dest_tile_index: 0
+          dst_dest_tile_index: 1
           iterations: 32
-          fill_const_value: 69.69
+          fill_const_value: 1.0
+
+        # 3) tile4 = x
+        # Copy x from tile0 into tile4 while keeping tile0 intact. Use multiplication by 1.0: tile4 = tile0 * tile1 = x * 1.
+        - type: "BinarySfpu"
+          operation: "SfpuElwmul"
+          approximation_mode: "No"
+          iterations: 32
+          src1_dest_tile_index: 0   # x
+          src2_dest_tile_index: 1   # 1.0
+          dst_dest_tile_index: 4    # tile4 = x
+
+        # 4) tile4 = exp(x)
+        - type: "UnarySfpu"
+          operation: "Exp"
+          approximation_mode: "No"
+          dst_dest_tile_index: 4
+          iterations: 32
+
+        # 5) tile4 = exp(x) + 1.0
+        - type: "BinarySfpu"
+          operation: "SfpuElwadd"
+          approximation_mode: "No"
+          iterations: 32
+          src1_dest_tile_index: 4   # exp(x)
+          src2_dest_tile_index: 1   # 1.0
+          dst_dest_tile_index: 4    # exp(x) + 1.0
+
+        # 6) tile4 = log(exp(x) + 1.0) = softplus(x) = y
+        - type: "UnarySfpu"
+          operation: "Log"
+          approximation_mode: "No"
+          dst_dest_tile_index: 4
+          iterations: 32
+
+        # At this point:
+        #   tile0 = x          (original input is preserved)
+        #   tile1 = 1.0
+        #   tile4 = y = softplus(x)
+
+        # 7) tile2 = -2.0
+        - type: "UnarySfpu"
+          operation: "Fill"
+          approximation_mode: "No"
+          dst_dest_tile_index: 2
+          iterations: 32
+          fill_const_value: -2.0
+
+        # 8) tile4 = y * (-2.0) = -2y
+        - type: "BinarySfpu"
+          operation: "SfpuElwmul"
+          approximation_mode: "No"
+          iterations: 32
+          src1_dest_tile_index: 4   # y
+          src2_dest_tile_index: 2   # -2.0
+          dst_dest_tile_index: 4    # -2y
+
+        # 9) tile4 = exp(-2y)
+        - type: "UnarySfpu"
+          operation: "Exp"
+          approximation_mode: "No"
+          dst_dest_tile_index: 4
+          iterations: 32
+
+        # 10) tile5 = 1.0 - exp(-2y)   (tanh numerator)
+        - type: "BinarySfpu"
+          operation: "SfpuElwsub"
+          approximation_mode: "No"
+          iterations: 32
+          src1_dest_tile_index: 1   # 1.0
+          src2_dest_tile_index: 4   # exp(-2y)
+          dst_dest_tile_index: 5    # 1 - exp(-2y)
+
+        # 11) tile6 = 1.0 + exp(-2y)   (tanh denominator)
+        - type: "BinarySfpu"
+          operation: "SfpuElwadd"
+          approximation_mode: "No"
+          iterations: 32
+          src1_dest_tile_index: 1   # 1.0
+          src2_dest_tile_index: 4   # exp(-2y)
+          dst_dest_tile_index: 6    # 1 + exp(-2y)
+
+        # 12) tile6 = 1 / (1 + exp(-2y))
+        - type: "UnarySfpu"
+          operation: "Reciprocal"
+          approximation_mode: "No"
+          dst_dest_tile_index: 6
+          iterations: 32
+
+        # 13) tile4 = tanh(y) = (1 - exp(-2y)) * (1 / (1 + exp(-2y)))
+        - type: "BinarySfpu"
+          operation: "SfpuElwmul"
+          approximation_mode: "No"
+          iterations: 32
+          src1_dest_tile_index: 5   # 1 - exp(-2y)
+          src2_dest_tile_index: 6   # 1 / (1 + exp(-2y))
+          dst_dest_tile_index: 4    # tanh(softplus(x)) in tile4
+
+        # 14) tile0 = x * tanh(softplus(x))
+        # Final result is written into tile0.
+        - type: "BinarySfpu"
+          operation: "SfpuElwmul"
+          approximation_mode: "No"
+          iterations: 32
+          src1_dest_tile_index: 0   # x
+          src2_dest_tile_index: 4   # tanh(softplus(x))
+          dst_dest_tile_index: 0    # mish(x) in tile0
+
     packer: "Packer"
     dest_acc: "No"
     math_fidelity: "HiFi4"

@@ -1182,10 +1182,12 @@ class UnarySFPUGolden:
                 if operation == MathOperation.Fill
                 else self.ops[operation](x)
             )
-            for x in result.tolist()[1024 * dest_idx : 32 * iterations]
+            for x in result.tolist()[
+                1024 * dest_idx : 1024 * dest_idx + 32 * iterations
+            ]
         ]
 
-        result[1024 * dest_idx : 32 * iterations] = torch.tensor(
+        result[1024 * dest_idx : 1024 * dest_idx + 32 * iterations] = torch.tensor(
             op_res, dtype=format_dict[dst_format]
         )
 
