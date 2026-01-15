@@ -1116,6 +1116,7 @@ class UnarySFPUGolden:
             MathOperation.Exp: self._exp,
             MathOperation.Exp2: self._exp2,
             MathOperation.Hardsigmoid: self._hardsigmoid,
+            MathOperation.Tanh: self._tanh,
             MathOperation.Threshold: self._threshold,
             MathOperation.ReluMax: self._relu_max,
             MathOperation.ReluMin: self._relu_min,
@@ -1245,6 +1246,15 @@ class UnarySFPUGolden:
         if x == 1.0:
             return self.handle_infinite_numbers(math.inf)
         return math.atanh(x)
+
+    def _tanh(self, x):
+        if math.isnan(x):
+            return math.nan
+        if x == -math.inf:
+            return -1.0
+        if x == math.inf:
+            return 1.0
+        return math.tanh(x)
 
     def _asinh(self, x):
         return math.asinh(x)
