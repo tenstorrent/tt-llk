@@ -524,11 +524,6 @@ public:
     {
         return num_counters == 0;
     }
-
-    uint32_t get_count() const
-    {
-        return size();
-    }
 };
 
 // RAII helper to automatically start on construction and stop on destruction.

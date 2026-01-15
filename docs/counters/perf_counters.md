@@ -144,7 +144,6 @@ Class: `llk_perf::PerfCounters`
 - `stop() -> std::array<CounterResult, COUNTER_SLOT_COUNT>`: Stops counters and returns a fixed-size array of results. Only the first `size()` entries are populated; use `size()` to know how many are valid.
 - `size() const -> uint32_t`: Number of active counters.
 - `empty() const -> bool`: Whether any counters are configured.
-- `get_count() const -> uint32_t`: Alias for `size()`.
 
 RAII wrapper:
 - `llk_perf::ScopedPerfCounters`: Starts counters on construction and stops on destruction.
@@ -316,7 +315,7 @@ See `tests/python_tests/test_matmul.py` for a complete flow:
 ### Unit testing the interface (C++)
 - Minimal kernels (as in `tests/sources/matmul_test.cpp`) that:
   - Call `PerfCounters.start()` before work and `PerfCounters.stop()` after.
-  - Ensure `get_count()` matches the number of valid L1 slots.
+  - Ensure `size()` matches the number of valid L1 slots.
   - Optionally, compare `CounterResult` arrays against expected sizes and monotonicity (non-negative counts).
 
 ### Unit testing the metrics
