@@ -26,7 +26,7 @@ inline void _llk_math_dbg_feature_enable_()
                                                        // workaround for bug tenstorrent/budabackend#1372
 }
 
-template <bool is_fp32_dest_acc_en>
+template <bool is_fp32_dest_acc_en = false>
 inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)
 {
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH | p_stall::WAIT_SFPU);
@@ -40,8 +40,14 @@ inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const 
     uint32_t fp32_dest_acc_en = is_fp32_dest_acc_en ? 1 : 0;
     cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(fp32_dest_acc_en);
     cfg_reg_rmw_tensix<ALU_ACC_CTRL_SFPU_Fp32_enabled_RMW>(fp32_dest_acc_en);
-    // Workaround for HW bug (int32 dest and movd2a/b is used with srcA/B configured as int8)
-    if (int8_math_enabled)
+
+    // Workaround for HW bugs:
+    // budabackend#1948: int32 dest and movd2a/b with int8 srcA/B
+    // budabackend#1948: fp32 dest and movd2a/b with UInt16 srcA/B
+    bool uint16_with_fp32_dest =
+        is_fp32_dest_acc_en && (((uint)srca_data_format == (uint)DataFormat::UInt16) || ((uint)srcb_data_format == (uint)DataFormat::UInt16));
+
+    if (int8_math_enabled || uint16_with_fp32_dest)
     {
         _llk_math_dbg_feature_disable_();
     }
