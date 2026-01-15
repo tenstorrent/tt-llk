@@ -401,6 +401,16 @@ public:
 
         // Avoid repeated resets/starts per bank
         bool bank_started[COUNTER_BANK_COUNT] = {false, false, false, false, false};
+
+        // Compute mask of banks present in the configuration
+        uint32_t present_mask = 0;
+        for (uint32_t i = 0; i < counter_idx; i++)
+        {
+            present_mask |= 1u << static_cast<uint32_t>(counters[i].bank);
+        }
+
+        // Track which banks have been started and break early once all present banks are started
+        uint32_t started_mask = 0;
         for (uint32_t i = 0; i < counter_idx; i++)
         {
             const auto& config = counters[i];
@@ -427,6 +437,13 @@ public:
                 dbg_regs[counter_reg_addr + 2] = 0;
                 dbg_regs[counter_reg_addr + 2] = 1;
                 bank_started[bank_index]       = true;
+                started_mask |= 1u << bank_index;
+
+                // If all present banks have been started, exit early
+                if (started_mask == present_mask)
+                {
+                    break;
+                }
             }
         }
 #pragma GCC diagnostic pop
