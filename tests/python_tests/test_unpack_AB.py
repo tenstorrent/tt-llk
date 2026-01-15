@@ -218,7 +218,6 @@ def create_simple_ids(all_params):
 param_ids = create_simple_ids(all_params)
 
 
-@pytest.mark.skip(reason="Skip unpack_AB to see if it affects unpack_A test.")
 @pytest.mark.parametrize(
     "testname, formats, broadcast_type, disable_src_zero, dest_acc, "
     "stochastic_rnd, transpose_of_faces, "
