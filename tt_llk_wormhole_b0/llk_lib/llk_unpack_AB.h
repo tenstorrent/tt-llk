@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_memory_checks.h"
 #include "lltt.h"
 
 using namespace ckernel;
@@ -115,6 +116,8 @@ inline void _llk_unpack_AB_uninit_(const std::uint32_t face_r_dim)
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t address_b)
 {
+    LLK_ASSERT(is_valid_L1_address(address_a), "L1 address_a must be in valid L1 memory region");
+    LLK_ASSERT(is_valid_L1_address(address_b), "L1 address_b must be in valid L1 memory region");
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
 
     // Program srcA and srcB base addresses
@@ -255,6 +258,8 @@ inline void _llk_unpack_bcastA_B_uninit_(const std::uint32_t y_stride, const std
 
 inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint32_t address_b, uint32_t srca_reuse_count = 4)
 {
+    LLK_ASSERT(is_valid_L1_address(address_a), "L1 address_a must be in valid L1 memory region");
+    LLK_ASSERT(is_valid_L1_address(address_b), "L1 address_b must be in valid L1 memory region");
     TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW)); // reset counters
     TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y));  // Clear Y counter on src side
 

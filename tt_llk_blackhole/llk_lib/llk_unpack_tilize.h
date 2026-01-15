@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_memory_checks.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -95,6 +96,7 @@ inline void _llk_unpack_tilize_(
     [[maybe_unused]] const std::uint32_t num_faces  = 4,
     const bool narrow_tile                          = false)
 {
+    LLK_ASSERT(is_valid_L1_address(base_address), "L1 base_address must be in valid L1 memory region");
     LLK_ASSERT(block_ct_dim == 0, "block_ct_dim: this parameter is unused");
     LLK_ASSERT(face_r_dim == FACE_R_DIM, "face_r_dim: this parameter is unused");
     LLK_ASSERT(num_faces == 4, "num_faces: this parameter is unused");
@@ -275,6 +277,8 @@ inline void _llk_unpack_tilizeA_B_(
     std::uint32_t block_ct_dim,
     std::uint32_t num_faces = 4)
 {
+    LLK_ASSERT(is_valid_L1_address(base_address_a), "L1 base_address_a must be in valid L1 memory region");
+    LLK_ASSERT(is_valid_L1_address(address_b), "L1 address_b must be in valid L1 memory region");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     const std::uint32_t offset_address_a = SCALE_DATUM_SIZE(unpA_src_format, tile_index_a) << 1;
     const std::uint32_t address_a        = base_address_a + offset_address_a;

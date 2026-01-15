@@ -12,6 +12,8 @@
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
 #include "cunpack_common.h"
+#include "llk_assert.h"
+#include "llk_memory_checks.h"
 #include "llk_unpack_common.h"
 
 using namespace ckernel;
@@ -104,6 +106,8 @@ inline void _llk_unpack_AB_reduce_block_max_row_init_()
  */
 inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, const std::uint32_t address_b)
 {
+    LLK_ASSERT(is_valid_L1_address(address_a), "L1 address_a must be in valid L1 memory region");
+    LLK_ASSERT(is_valid_L1_address(address_b), "L1 address_b must be in valid L1 memory region");
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
 
     // Program srcA and srcB base addresses

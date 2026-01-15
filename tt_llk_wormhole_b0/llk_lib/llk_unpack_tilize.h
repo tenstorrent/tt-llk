@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_memory_checks.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -187,6 +188,7 @@ inline void _llk_unpack_tilize_(
     const std::uint32_t num_faces   = 4,
     const bool narrow_tile          = false)
 {
+    LLK_ASSERT(is_valid_L1_address(base_address), "L1 base_address must be in valid L1 memory region");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // In case of 32-bit integer numbers, we have to unpack into dest register
     const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
@@ -323,6 +325,8 @@ inline void _llk_unpack_tilizeA_B_(
     std::uint32_t block_ct_dim,
     std::uint32_t num_faces = 4)
 {
+    LLK_ASSERT(is_valid_L1_address(base_address_a), "L1 base_address_a must be in valid L1 memory region");
+    LLK_ASSERT(is_valid_L1_address(address_b), "L1 address_b must be in valid L1 memory region");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpA_src_format, tile_index_a) << (narrow_tile ? 0 : 1);
 
@@ -566,6 +570,7 @@ inline void _llk_unpack_fast_tilize_block_(
     const std::uint32_t num_units,
     const std::uint32_t full_dim)
 {
+    LLK_ASSERT(is_valid_L1_address(base_address), "L1 base_address must be in valid L1 memory region");
     volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
 
     uint32_t address = base_address + (SCALE_DATUM_SIZE(unpack_src_format, tile_index * TILE_C_DIM) >> 4); // move by tile width in 16B words

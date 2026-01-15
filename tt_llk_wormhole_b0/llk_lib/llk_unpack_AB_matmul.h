@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_memory_checks.h"
 #include "lltt.h"
 #include "sfpi.h"
 
@@ -224,6 +225,8 @@ inline void _llk_unpack_AB_matmul_(
     const std::uint32_t rt_dim   = 1,
     const std::uint32_t kt_dim   = 1)
 {
+    LLK_ASSERT(is_valid_L1_address(base_address_a), "L1 base_address_a must be in valid L1 memory region");
+    LLK_ASSERT(is_valid_L1_address(base_address_b), "L1 base_address_b must be in valid L1 memory region");
     // In0/InA -> srcB (supports partial face)
     // In1/InB -> srcA
 

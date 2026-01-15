@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_memory_checks.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -124,6 +125,7 @@ inline void _llk_unpack_untilize_uninit_(const std::uint32_t unpack_dst_format, 
 template <bool first_pass = true>
 inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const std::uint32_t block_tile_cols)
 {
+    LLK_ASSERT(is_valid_L1_address(base_address), "L1 base_address must be in valid L1 memory region");
     std::uint32_t rem_blocks_in_row = block_tile_cols;
 
     // Program srcA and srcB base addresses
