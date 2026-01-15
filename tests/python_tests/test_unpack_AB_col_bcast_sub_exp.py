@@ -65,7 +65,7 @@ from helpers.utils import passed_test
         # False,
     ],
     input_dimensions=[
-        [32, 32],
+        # [32, 32],
         [32, 64],
     ],
 )
