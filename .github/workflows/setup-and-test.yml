@@ -101,7 +101,7 @@ jobs:
           fi
 
           echo "Compiling artefacts"
-          pytest $COVERAGE_FLAG --compile-producer -n 10 \
+          pytest $COVERAGE_FLAG --compile-producer -n 12 \
                 -m "${{ inputs.pytest_markers }}" \
                 ${{ inputs.random_order && '--random-order-bucket=global' || '' }} \
                 --splits $SPLITS --group ${{ matrix.test_group }} \
