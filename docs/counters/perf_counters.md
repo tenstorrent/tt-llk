@@ -267,16 +267,16 @@ For the full configuration, readback, and display flow across threads, see “Ho
 Implemented in `tests/python_tests/helpers/metrics.py`.
 
 Core helpers:
-- Rate: $\text{rate} = \frac{\text{count}}{\text{cycles}}$.
+- Rate: `rate = count / cycles`.
 - Aggregations sum relevant event counts by bank and name.
 
 Per-thread metrics (selected):
-- Compute utilization: $\frac{\text{FPU\_OP\_VALID} + \text{SFPU\_OP\_VALID}}{\text{cycles\_fpu}}$.
-- Unpack utilization: $\frac{\sum_{i=0}^{3} \text{UNPACK\_BUSY\_i}}{\max(1, 4 \cdot \text{cycles\_unpack})}$.
-- Pack utilization: $\frac{\text{PACK\_BUSY\_10} + \text{PACK\_BUSY\_11}}{\max(1, 2 \cdot \text{cycles\_pack})}$.
-- NoC transactions per cycle: $\frac{\text{noc\_in} + \text{noc\_out}}{\text{cycles\_l1}}$ from both L1 mux slices.
-- NoC bytes per cycle: $\text{txn\_per\_cycle} \times \text{noc\_word\_bytes}$ if provided.
-- L1 congestion index: $\frac{\text{arb\_pulses}}{\max(1, \text{arb\_pulses} + \text{no\_arb\_pulses})}$.
+- Compute utilization: `(FPU_OP_VALID + SFPU_OP_VALID) / cycles_fpu`.
+- Unpack utilization: `(UNPACK_BUSY_0 + UNPACK_BUSY_1 + UNPACK_BUSY_2 + UNPACK_BUSY_3) / max(1, 4 * cycles_unpack)`.
+- Pack utilization: `(PACK_BUSY_10 + PACK_BUSY_11) / max(1, 2 * cycles_pack)`.
+- NoC transactions per cycle: `(noc_in + noc_out) / cycles_l1` from both L1 mux slices.
+- NoC bytes per cycle: `noc_bytes_per_cycle = txn_per_cycle * noc_word_bytes` if provided.
+- L1 congestion index: `arb_pulses / max(1, arb_pulses + no_arb_pulses)`.
 - RISC stall and instruction issue rates: per `INSTRN_THREAD` counters.
 
 Bound classification (heuristic):
@@ -284,7 +284,7 @@ Bound classification (heuristic):
 - Top score among `{math-bound, unpack-bound, pack-bound, risc-bound}` identifies likely bottleneck.
 
 Acceptance ratios (REQUESTS vs GRANTS):
-- Where meaningful (TDMA busy, NIU ring transactions), compute $\text{acceptance} = \frac{\text{GRANTS}}{\max(1, \text{REQUESTS})}$ to estimate delivery vs pressure.
+- Where meaningful (TDMA busy, NIU ring transactions), compute `acceptance = GRANTS / max(1, REQUESTS)` to estimate delivery vs pressure.
 - Arbitration and stall counters are not used for acceptance.
 
 Kernel-level dual summary:
@@ -345,11 +345,11 @@ pytest -q tests/python_tests/test_matmul.py::test_matmul
 - `requests` vs `grants`: use `grants` for utilization “truth” and `requests` for “pressure”; compute acceptance where appropriate.
 - L1 mux control: `PERF_CNT_MUX_CTRL` bit 4 selects between slices; ensure your counter selections match the intended mux.
 - Derived formulas:
-  - Rate: $\text{count}/\text{cycles}$
-  - Unpack util: $\sum \text{busy}/(4\cdot \text{cycles})$
-  - Pack util: $\sum \text{busy}/(2\cdot \text{cycles})$
-  - L1 congestion: $\text{arb}/(\text{arb}+\text{no\_arb})$
-  - Acceptance: $\text{GRANTS}/\text{REQUESTS}$ (TDMA, NIU only)
+  - Rate: `count / cycles`
+  - Unpack util: `(UNPACK_BUSY_0 + UNPACK_BUSY_1 + UNPACK_BUSY_2 + UNPACK_BUSY_3) / (4 * cycles_unpack)`
+  - Pack util: `(PACK_BUSY_10 + PACK_BUSY_11) / (2 * cycles_pack)`
+  - L1 congestion: `arb_pulses / (arb_pulses + no_arb_pulses)`
+  - Acceptance: `GRANTS / REQUESTS` (TDMA, NIU only)
 
 ## Examples
 - Python configuration and reading: `tests/python_tests/test_matmul.py`
