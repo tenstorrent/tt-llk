@@ -299,17 +299,19 @@ public:
      *
      * @param bank Counter bank (INSTRN_THREAD, FPU, TDMA_UNPACK, L1, TDMA_PACK)
      * @param counter_id Counter ID within the bank (0-28 for INSTRN_THREAD, etc.)
-     * @param mux_ctrl_bit4 Only for L1 counters: selects counter set (0 or 1)
+     * @param l1_mux Only for L1 counters: selects counter set (0 or 1)
+     * @return true if the counter was added; false if capacity reached
      */
-    void add(CounterBank bank, uint8_t counter_id, uint8_t l1_mux = 0)
+    [[nodiscard]] bool add(CounterBank bank, uint8_t counter_id, uint8_t l1_mux = 0)
     {
         if (num_counters >= COUNTER_SLOT_COUNT)
         {
-            return; // Max 66 counters
+            return false; // Max 66 counters
         }
 
         // Initialize mode to current selected mode
         counters[num_counters++] = {bank, counter_id, l1_mux, mode};
+        return true;
     }
 
     /**
