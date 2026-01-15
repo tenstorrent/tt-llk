@@ -178,7 +178,7 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-xlarge-stable
-      test_splits: 8
+      test_splits: 2
       pytest_markers: "quasar"
 
   perf-tests:
