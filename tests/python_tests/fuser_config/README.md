@@ -109,7 +109,7 @@ The data format for the output operand. Options are the same as `input_format`.
 #### `src_a_const_value` (float, optional)
 A constant value used to initialize the src_a operand. When specified, no random tensor is generated for src_a and the operand is fully initialized with this constant value. This field should not be set when src_a refers to the output of a previous operation.
 
-#### `src_a_const_value` (float, optional)
+#### `src_b_const_value` (float, optional)
 A constant value used to initialize the src_b operand. Follows the same rules as `src_a`.
 
 **Important:** When using the ReduceFpu operation, `src_b_const_value` must be set to 1.0.
