@@ -41,9 +41,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
     }
 
 #ifdef ARCH_BLACKHOLE
-    _llk_unpack_AB_uninit_(params->TEST_FACE_R_DIM);
-#else
     _llk_unpack_AB_uninit_(params->TEST_FACE_R_DIM, params->TEST_FACE_R_DIM);
+#else
+    _llk_unpack_AB_uninit_(params->TEST_FACE_R_DIM);
 #endif
 }
 
