@@ -178,7 +178,7 @@ inline void _llk_pack_init_(
     }
 }
 
-inline void _llk_pack_uninit_(const std::uint32_t face_r_dim = FACE_R_DIM)
+inline void _llk_pack_uninit_(const std::uint32_t face_r_dim)
 {
     TT_SETADCXX(p_setadc::PAC, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
@@ -339,6 +339,7 @@ inline void _llk_pack_fast_tilize_uninit_(
     const bool partial_face        = false,
     const bool narrow_tile         = false)
 {
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // restore PCK_DEST_RD_CTRL_Read_32b_data to the original value
     cfg_reg_rmw_tensix<PCK_DEST_RD_CTRL_Read_32b_data_RMW>(is_fp32_dest_acc_en);
