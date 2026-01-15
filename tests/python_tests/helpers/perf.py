@@ -173,13 +173,13 @@ def get_unique_base_names(input_dir: Path):
     """
     # Use Path.glob() for more Pythonic code
     csv_files = list(input_dir.glob("*.gw*.csv")) + list(
-        input_dir.glob("*.master.*.csv")
+        input_dir.glob("*.master*.csv")
     )
 
     # Extract base names with regex that handles both patterns
     unique_bases = {
-        re.sub(r"\.(?:gw\d+|master\.\d+)(?:\.post)?\.csv$", "", f.name)
-        for f in csv_files
+        re.sub(r"\.(?:gw\d+|master)(?:\.post)?\.csv$", "", report_file.name)
+        for report_file in csv_files
     }
 
     return sorted(unique_bases)
@@ -199,10 +199,17 @@ def combine_perf_reports():
 
     for base_name in get_unique_base_names(input_dir):
         csv_files = glob.glob(os.path.join(input_dir, f"{base_name}.gw*.csv"))
-        csv_files += glob.glob(os.path.join(input_dir, f"{base_name}.master.*.csv"))
+        csv_files += glob.glob(os.path.join(input_dir, f"{base_name}.master*.csv"))
 
-        regular_files = [f for f in csv_files if not f.endswith(".post.csv")]
-        post_files = [f for f in csv_files if f.endswith(".post.csv")]
+        regular_files, post_files = [], []
+        for rep_file in csv_files:
+            if rep_file.endswith(".post.csv"):
+                post_files.append(rep_file)
+            else:
+                regular_files.append(rep_file)
+
+        print(regular_files, post_files)
+
         if regular_files:
             dfs_regular = []
             for file in sorted(regular_files):
