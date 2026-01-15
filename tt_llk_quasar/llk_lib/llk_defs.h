@@ -81,4 +81,11 @@ enum class StochRndType : uint8_t
     All  = 3,
 };
 
+enum class DstMode : uint8_t
+{
+    EnFp32       = 0,
+    EnInt32      = 1,
+    Default16bit = 2,
+};
+
 } // namespace ckernel
