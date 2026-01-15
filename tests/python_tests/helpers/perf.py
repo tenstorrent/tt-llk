@@ -202,11 +202,14 @@ def combine_perf_reports():
         csv_files += glob.glob(os.path.join(input_dir, f"{base_name}.master*.csv"))
 
         regular_files, post_files = [], []
-        for rep_file in csv_files:
-            if rep_file.endswith(".post.csv"):
-                post_files.append(rep_file)
+        regular_append = regular_files.append
+        post_append = post_files.append
+
+        for f in csv_files:
+            if f.endswith(".post.csv"):
+                post_append(f)
             else:
-                regular_files.append(rep_file)
+                regular_append(f)
 
         if regular_files:
             dfs_regular = []
