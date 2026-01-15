@@ -63,12 +63,12 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     _llk_math_pack_sync_init_<sync_mode, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_(formats.math, formats.math);
-    _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWADD, BROADCAST_TYPE>(params->num_faces, ACC_TO_DEST);
+    _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWADD, BROADCAST_TYPE>(params->num_faces, is_fp32_dest_acc_en);
 
     _llk_math_wait_for_dest_available_<sync_mode>();
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_math_eltwise_binary_<EltwiseBinaryType::ELWADD, BROADCAST_TYPE, sync_mode, ACC_TO_DEST>(params->num_faces, i, false);
+        _llk_math_eltwise_binary_<EltwiseBinaryType::ELWADD, BROADCAST_TYPE, sync_mode, is_fp32_dest_acc_en>(params->num_faces, i, false);
     }
     _llk_math_dest_section_done_<sync_mode, is_fp32_dest_acc_en>();
 }
