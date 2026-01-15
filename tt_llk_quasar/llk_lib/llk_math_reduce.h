@@ -348,7 +348,7 @@ inline void _llk_math_reduce_init_(const TileShape& tile_shape)
 
 /**
  * @brief Perform a reduce operation
- * @param tile_idx: Tile index into the destination register
+ * @param tile_idx: Tile index into the destination register.
  * If dest reg in float16 mode -> values = [0 - 8] in double buffering mode, values = [0 - 16] in full mode
  * If dest reg in float32 mode -> values = [0 - 4] in double buffering mode, values = [0 - 8] in full mode
  */
