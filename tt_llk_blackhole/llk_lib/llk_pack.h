@@ -12,6 +12,7 @@
 #include "ckernel_template.h"
 #include "llk_assert.h"
 #include "llk_defs.h"
+#include "llk_memory_checks.h"
 #include "llk_pack_common.h"
 
 using namespace ckernel;
@@ -533,6 +534,8 @@ inline void _llk_pack_uninit_()
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
+    LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
+
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
     program_packer_destination(address);

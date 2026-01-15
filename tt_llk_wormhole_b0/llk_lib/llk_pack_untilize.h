@@ -183,6 +183,7 @@ inline void _llk_pack_untilize_(
     [[maybe_unused]] const std::uint32_t num_faces = 4,
     const std::uint32_t tile_dst_rt_offset         = 0)
 {
+    LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
     static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
     LLK_ASSERT(num_faces == 4, "num_faces: this parameter is unused");
 

@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_memory_checks.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -49,6 +50,7 @@ inline void _llk_unpack_reduce_init_(const std::uint32_t within_face_16x16_trans
 template <PoolType type, ReduceDim dim>
 inline void _llk_unpack_reduce_(const std::uint32_t address)
 {
+    LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
     // Clear z/w start counters
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 

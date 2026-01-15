@@ -12,6 +12,7 @@
 #include "ckernel_template.h"
 #include "llk_assert.h"
 #include "llk_defs.h"
+#include "llk_memory_checks.h"
 #include "llk_pack_common.h"
 
 /**
@@ -140,6 +141,7 @@ inline void _llk_pack_rows_init_(const std::uint32_t num_rows)
  */
 inline void _llk_pack_rows_(const std::uint32_t tile_index, const std::uint32_t address)
 {
+    LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
     // Set the tile index in dest to read from
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
