@@ -230,7 +230,6 @@ private:
         CounterBank bank;   // 1 byte
         uint8_t counter_id; // 1 byte
         uint8_t l1_mux;     // 1 byte (Only used for L1 counters)
-        CounterMode mode;   // 1 byte (REQUESTS or GRANTS)
     };
 
     CounterConfig counters[COUNTER_SLOT_COUNT];
@@ -274,9 +273,9 @@ private:
         {
             const auto& config = counters[i];
 
-            // Encode: [valid(31), mux_ctrl_bit4(17), mode(16), counter_id(8-15), bank(0-7)]
+            // Encode: [valid(31), l1_mux(17), mode(16), counter_id(8-15), bank(0-7)]
             uint32_t metadata = (1u << 31) | // Valid bit to distinguish from empty slots
-                                (static_cast<uint32_t>(config.l1_mux) << 17) | ((static_cast<uint32_t>(config.mode) & 0x1u) << 16) |
+                                (static_cast<uint32_t>(config.l1_mux) << 17) | ((static_cast<uint32_t>(mode) & 0x1u) << 16) |
                                 (static_cast<uint32_t>(config.counter_id) << 8) | static_cast<uint32_t>(config.bank);
 
             config_mem[i] = metadata;
@@ -309,8 +308,7 @@ public:
             return false; // Max 66 counters
         }
 
-        // Initialize mode to current selected mode
-        counters[num_counters++] = {bank, counter_id, l1_mux, mode};
+        counters[num_counters++] = {bank, counter_id, l1_mux};
         return true;
     }
 
@@ -325,19 +323,6 @@ public:
             return;
         }
         write_metadata();
-    }
-
-    /**
-     * Set counter mode (GRANTS or REQUESTS)
-     */
-    void set_mode(CounterMode m)
-    {
-        mode = m;
-        // Keep existing counter configs in sync with the selected mode
-        for (uint32_t i = 0; i < num_counters; i++)
-        {
-            counters[i].mode = mode;
-        }
     }
 
     /**
@@ -377,7 +362,8 @@ public:
         volatile uint32_t* dbg_regs = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
 
         // First decode configs and store locally
-        uint32_t counter_idx = 0; // Separate index for storing configs
+        uint32_t counter_idx = 0;     // Separate index for storing configs
+        bool mode_adopted    = false; // If Python provided mode in metadata, adopt it globally
         for (uint32_t i = 0; i < COUNTER_SLOT_COUNT && counter_idx < COUNTER_SLOT_COUNT; i++)
         {
             uint32_t metadata = config_mem[i];
@@ -392,10 +378,16 @@ public:
             uint8_t mode_bit       = (metadata >> 16) & 0x1;
             uint8_t mux_ctrl_val   = (metadata >> 17) & 0x1;
 
+            // Adopt mode from metadata if externally configured (Python), overriding current global mode
+            if (!mode_adopted)
+            {
+                mode         = mode_bit ? CounterMode::GRANTS : CounterMode::REQUESTS;
+                mode_adopted = true;
+            }
+
             counters[counter_idx].bank       = static_cast<CounterBank>(bank_id);
             counters[counter_idx].counter_id = counter_id_val;
             counters[counter_idx].l1_mux     = mux_ctrl_val;
-            counters[counter_idx].mode       = mode_bit ? CounterMode::GRANTS : CounterMode::REQUESTS;
             counter_idx++;
         }
 
@@ -496,8 +488,8 @@ public:
             uint32_t counter_base     = get_counter_base_addr(config.bank);
             uint32_t counter_reg_addr = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
 
-            // Select the desired counter and req/grant output in mode register
-            dbg_regs[counter_reg_addr + 1] = (static_cast<uint32_t>(config.counter_id) << 8) | ((static_cast<uint32_t>(config.mode) & 0x1u) << 16);
+            // Select the desired counter and req/grant output in mode register (global mode)
+            dbg_regs[counter_reg_addr + 1] = (static_cast<uint32_t>(config.counter_id) << 8) | ((static_cast<uint32_t>(mode) & 0x1u) << 16);
 
             // Allow selection/mux to settle: perform a dummy read sequence
             uint32_t output_low_addr       = (get_counter_output_low_addr(config.bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;

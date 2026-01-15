@@ -65,8 +65,8 @@ This section describes, end-to-end, how we configure, measure, read, and present
   - Encodes the requested set of counters into per-thread L1 config buffers (up to 66 slots) and clears corresponding L1 data buffers.
   - After the kernel run, reads metadata + data from L1, decodes each result (bank/event/mode/mux), and prints or feeds into metrics.
 - C++ kernel (`tests/helpers/include/counters.h` and `tests/sources/*.cpp`):
-  - If the kernel selects counters itself, call `add()`/`set_mode()` then `configure()` to write metadata into L1 before `start()`.
-  - `PerfCounters.start()` reads the thread’s L1 config, programs Tensix debug registers (mode, `counter_sel`, req/grant, and L1 mux), and issues start pulses.
+  - If the kernel selects counters itself, call `add()` then `configure()` to write metadata into L1 before `start()`.
+  - `PerfCounters.start()` reads the thread’s L1 config, adopts the mode bit from L1 metadata if present (Python-driven), programs Tensix debug registers (`counter_sel`, req/grant selection via the adopted mode, and L1 mux), and issues start pulses.
   - `PerfCounters.stop()` stops counting, scans configured slots, sets read-out selection (`counter_sel` + req/grant + L1 mux), reads `OUT_L/OUT_H`, and writes `(cycles,count)` pairs back to the thread’s L1 data buffer in slot order.
 
 2) Buffers and encodings in L1 (per thread: UNPACK, MATH, PACK)
@@ -79,6 +79,7 @@ This section describes, end-to-end, how we configure, measure, read, and present
 - Program per-bank controls:
   - If a slot targets `L1`, set `PERF_CNT_MUX_CTRL` bit 4 to match that slot’s `mux_ctrl_bit4` before interacting with those IDs.
   - Setup `PERF_CNT_<BANK>1`’s low 8 mode bits as needed (typically 0 for continuous window). Note: `counter_sel` written during `start()` does not limit what is counting; it only affects read-out unless mode 1 (ref-period gated) is used.
+  - Mode (`REQUESTS`/`GRANTS`) is global and adopted from L1 metadata (bit 16) if present; otherwise it defaults to `GRANTS`.
 - Issue start: rising edge on `PERF_CNT_<BANK>2` bit 0 or use `PERF_CNT_ALL` for supported groups. Counting across all events in a group proceeds concurrently.
 
 4) Counting semantics (hardware)
@@ -137,12 +138,17 @@ Event IDs (C++):
 - `llk_perf::counter_id::<bank>` namespaces with snake_case names, e.g. `counter_id::fpu::FPU_OP_VALID`, `counter_id::l1::NOC_RING0_INCOMING_1`.
 
 Class: `llk_perf::PerfCounters`
-- `add(CounterBank bank, uint32_t counter_id, uint32_t mux_ctrl_bit4 = 0)`: Add a counter. Only L1 uses `mux_ctrl_bit4`.
-- `configure()`: Write the current in-memory selection (from `add()`) into the thread’s L1 config buffer.
-- `set_mode(CounterMode m)`: Select `REQUESTS` or `GRANTS`.
-- `start()`: Reads configuration from L1 (written by Python or via `configure()`), counts how many valid slots, applies mode/mux, and starts the counters.
+- `add(CounterBank bank, uint8_t counter_id, uint8_t l1_mux = 0) -> bool`: Add a counter (returns false if capacity reached). Only L1 uses `l1_mux` (maps to mux bit 4).
+- `configure()`: Write the current in-memory selection (from `add()`) into the thread’s L1 config buffer; encodes the current global mode bit into metadata.
+- `start()`: Reads configuration from L1 (written by Python or via `configure()`), adopts mode from metadata if present, counts how many valid slots, applies mux, and starts the counters.
 - `stop() -> CounterResult*`: Stops counters and returns results (cycles and counts) for each configured slot.
-- `get_count() const -> uint32_t`: Returns number of active counters (slots).
+- `size() const -> uint32_t`: Number of active counters.
+- `empty() const -> bool`: Whether any counters are configured.
+- `get_count() const -> uint32_t`: Alias for `size()`.
+
+Mode handling:
+- Global mode is adopted from the first valid L1 metadata entry during `start()`. If no metadata is present, the default is `GRANTS`.
+- `configure()` encodes the current global mode into metadata; the class defaults to `GRANTS`. There is no per-counter mode.
 
 Notes:
 - If configuration was written by Python into the L1 buffers, you can skip `add()`/`configure()` and just call `start()`/`stop()`.
@@ -169,11 +175,10 @@ Example B (kernel side, kernel-provided configuration):
 using namespace llk_perf;
 
 void run_kernel(const volatile RuntimeParams* params) {
-  PerfCounters counters;
-  counters.set_mode(CounterMode::GRANTS);
+  PerfCounters counters; // defaults to GRANTS mode
   counters.add(CounterBank::FPU, counter_id::fpu::FPU_OP_VALID);
-  counters.add(CounterBank::L1, counter_id::l1::NOC_RING0_OUTGOING_0, /*mux_ctrl_bit4=*/0);
-  counters.configure(); // writes metadata to L1
+  counters.add(CounterBank::L1, counter_id::l1::NOC_RING0_OUTGOING_0, /*l1_mux=*/0);
+  counters.configure(); // writes metadata (including mode) to L1
 
   counters.start();
   // ... your kernel work ...
@@ -183,6 +188,7 @@ void run_kernel(const volatile RuntimeParams* params) {
 
 Migration note:
 - If older code relied on `add()` or `start()` implicitly writing metadata, call `configure()` after your `add()` calls. `start()` now expects configuration to already be present in L1 (from Python or `configure()`).
+- `set_mode()` was removed. Mode is encoded in metadata and adopted from L1 during `start()`; the default is `GRANTS` when the kernel provides configuration.
 
 ### Python API (`tests/python_tests/helpers/counters.py`)
 Functions:
