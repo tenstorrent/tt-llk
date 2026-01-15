@@ -37,21 +37,15 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #ifdef LLK_TRISC_MATH
 
-#include "ckernel_sfpu.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
-#include "llk_math_eltwise_unary_sfpu.h"
+#include "llk_pack.h"
+#include "llk_pack_common.h"
 #include "params.h"
-#include "sfpu_operations.h"
-
-using namespace ckernel;
-using namespace ckernel::sfpu;
-
-const int iterations = 32;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    // Initialize datacopy (A2D = copy from srcA to dest)
+    // Initialize datacopy from srcA to dest
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(4, formats.math);
 #else
@@ -63,39 +57,19 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // Wait for dest to be available
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
-    // Step 1: Copy data from srcA to dest
+    // Copy data from srcA to dest
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
         0, formats.math, formats.math);
 
-    // Step 2: SFPU abs operation on dest
-    _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
-    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
-
-    // Call SFPU abs
-    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations>(SFPU_UNARY_OPERATION, formats.math);
-
-    _llk_math_eltwise_unary_sfpu_done_();
-
-    // Signal done to packer
+    // Signal packer that data is ready for SFPU
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-}
 
-#endif
-
-#ifdef LLK_TRISC_PACK
-
-#include "llk_pack.h"
-#include "llk_pack_common.h"
-#include "params.h"
-
-void run_kernel(const volatile struct RuntimeParams *params)
-{
+    // Initialize packer hardware (moved from packer thread)
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #endif
-
     _llk_pack_init_<false, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
@@ -104,12 +78,45 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
 #endif
 
-    // Wait for math to complete
-    _llk_packer_wait_for_math_done_();
+    // Wait for SFPU to complete in packer thread
+    TTI_SEMWAIT(p_stall::STALL_MATH, semaphore::t6_sem(semaphore::MATH_PACK), p_stall::STALL_ON_ZERO);
 
-    // Pack single tile
+    // Pack the result
     _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+}
+
+#endif
+
+#ifdef LLK_TRISC_PACK
+
+#include "ckernel_sfpu.h"
+#include "llk_math_eltwise_unary_sfpu.h"
+#include "llk_pack_common.h"
+#include "params.h"
+#include "sfpu_operations.h"
+
+using namespace ckernel;
+using namespace ckernel::sfpu;
+
+const int iterations = 32;
+
+void run_kernel(const volatile struct RuntimeParams *params)
+{
+    // Wait for math to complete datacopy
+    _llk_packer_wait_for_math_done_();
+
+    // SFPU operation in packer thread
+    _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
+    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
+
+    // Call SFPU operation
+    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations>(SFPU_UNARY_OPERATION, formats.math);
+
+    _llk_math_eltwise_unary_sfpu_done_();
+
+    // Signal math thread that SFPU is complete and it can pack
+    _llk_packer_set_math_semaphore_<p_stall::NONE>();
 }
 
 #endif
