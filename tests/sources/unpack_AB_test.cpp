@@ -39,6 +39,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     {
         _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
     }
+    _llk_unpack_AB_uninit_(params->TEST_FACE_R_DIM);
 }
 
 #endif
