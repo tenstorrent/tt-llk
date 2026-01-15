@@ -65,8 +65,10 @@ from helpers.utils import passed_test
         # False,
     ],
     input_dimensions=[
-        # [32, 32],
+        [32, 32],
         [32, 64],
+        # [64, 32],
+        # [64, 64],
     ],
 )
 def test_unpack_AB_col_bcast_sub_exp(

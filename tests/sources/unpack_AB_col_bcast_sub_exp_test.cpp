@@ -46,15 +46,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "ckernel_sfpu.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary.h"
-#include "llk_math_eltwise_unary_sfpu.h"
 #include "params.h"
-#include "sfpu_operations.h"
-
-using namespace ckernel;
-using namespace ckernel::sfpu;
-
-// Number of SFPU iterations - 32 iterations processes one full tile
-const int iterations = 32;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
@@ -71,8 +63,51 @@ void run_kernel(const volatile struct RuntimeParams *params)
         // Perform FPU subtraction: dest = srcA - broadcast_col(srcB)
         _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BROADCAST_TYPE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(
             4 /* num_faces */, i /* dst_index */, false /* clear_fp32_dst_acc */);
+    }
 
-        // Now perform SFPU fast-approx exponential on the subtraction result in dest
+    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+}
+
+#endif
+
+#include "llk_math_eltwise_unary_sfpu.h"
+
+#ifdef LLK_TRISC_PACK
+
+#include "ckernel_sfpu.h"
+#include "llk_pack.h"
+#include "llk_pack_common.h"
+#include "params.h"
+#include "sfpu_operations.h"
+
+using namespace ckernel;
+using namespace ckernel::sfpu;
+
+// Number of SFPU iterations - 32 iterations processes one full tile
+const int iterations = 32;
+
+void run_kernel(const volatile struct RuntimeParams *params)
+{
+#ifdef ARCH_BLACKHOLE
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+#else
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+#endif
+
+    _llk_pack_init_<false, false>(formats.pack_dst);
+
+#ifdef ARCH_BLACKHOLE
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+#else
+    _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
+#endif
+
+    _llk_packer_wait_for_math_done_();
+
+    // SFPU part - moved from trisc1 to trisc2
+    for (int i = 0; i < params->TILE_CNT; ++i)
+    {
+        // Initialize SFPU exponential operation
         _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
         _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
 
@@ -99,38 +134,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
         }
 
         _llk_math_eltwise_unary_sfpu_done_();
-    }
 
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-}
-
-#endif
-
-#ifdef LLK_TRISC_PACK
-
-#include "llk_pack.h"
-#include "llk_pack_common.h"
-#include "params.h"
-
-void run_kernel(const volatile struct RuntimeParams *params)
-{
-#ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-#else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-#endif
-
-    _llk_pack_init_<false, false>(formats.pack_dst);
-
-#ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-#else
-    _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
-#endif
-
-    _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params->TILE_CNT; ++i)
-    {
+        // Pack the result after SFPU completes
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
