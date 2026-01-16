@@ -58,6 +58,7 @@ jobs:
           name: test-durations-wormhole
           path: tests/python_tests/.test_durations
           retention-days: 90
+          include-hidden-files: true
 
   collect-blackhole-durations:
     name: "🕳️ Collect Blackhole test durations (all tests)"
@@ -100,6 +101,7 @@ jobs:
           name: test-durations-blackhole
           path: tests/python_tests/.test_durations
           retention-days: 90
+          include-hidden-files: true
 
   summary:
     name: "📊 Collection Summary"
