@@ -21,7 +21,7 @@ jobs:
     name: "🌀 Collect Wormhole test durations (all tests)"
     runs-on: tt-ubuntu-2204-xlarge-stable
     needs: build-images
-    timeout-minutes: 360
+    timeout-minutes: 540
     container:
       image: harbor.ci.tenstorrent.net/${{ needs.build-images.outputs.docker-image }}
     steps:
@@ -44,7 +44,7 @@ jobs:
           cd tests/python_tests/
 
           echo "Compiling all tests (regular, perf, nightly) to collect durations"
-          pytest -q --compile-producer -n 40 \
+          pytest -q --compile-producer -n 60 \
                 -m "not quasar" \
                 --store-durations \
                 --override-ini="addopts=-v" --tb=short --timeout=60 \
@@ -62,7 +62,7 @@ jobs:
     name: "🕳️ Collect Blackhole test durations (all tests)"
     runs-on: tt-ubuntu-2204-xlarge-stable
     needs: build-images
-    timeout-minutes: 360
+    timeout-minutes: 540
     container:
       image: harbor.ci.tenstorrent.net/${{ needs.build-images.outputs.docker-image }}
     steps:
@@ -85,7 +85,7 @@ jobs:
           cd tests/python_tests/
 
           echo "Compiling all tests (regular, perf, nightly) to collect durations"
-          pytest -q --compile-producer -n 40 \
+          pytest -q --compile-producer -n 60 \
                 -m "not quasar" \
                 --store-durations \
                 --override-ini="addopts=-v" --tb=short --timeout=60 \
