@@ -21,7 +21,7 @@ jobs:
     name: "🌀 Collect Wormhole test durations (all tests)"
     runs-on: tt-ubuntu-2204-xlarge-stable
     needs: build-images
-    timeout-minutes: 540
+    timeout-minutes: 360
     container:
       image: harbor.ci.tenstorrent.net/${{ needs.build-images.outputs.docker-image }}
     steps:
@@ -44,10 +44,11 @@ jobs:
           cd tests/python_tests/
 
           echo "Compiling all tests (regular, perf, nightly) to collect durations"
-          pytest -q --compile-producer -n 40 \
+          pytest --compile-producer -n 40 \
                 -m "not quasar" \
                 --store-durations \
-                --override-ini="addopts=-v" --tb=short --timeout=60 \
+                --no-debug-symbols \
+                --override-ini="addopts=-v" --timeout=60 \
                 --junitxml=pytest-duration-wormhole-all.xml .
 
       - name: Upload duration data
@@ -62,7 +63,7 @@ jobs:
     name: "🕳️ Collect Blackhole test durations (all tests)"
     runs-on: tt-ubuntu-2204-xlarge-stable
     needs: build-images
-    timeout-minutes: 540
+    timeout-minutes: 360
     container:
       image: harbor.ci.tenstorrent.net/${{ needs.build-images.outputs.docker-image }}
     steps:
@@ -85,10 +86,11 @@ jobs:
           cd tests/python_tests/
 
           echo "Compiling all tests (regular, perf, nightly) to collect durations"
-          pytest -q --compile-producer -n 40 \
+          pytest --compile-producer -n 40 \
                 -m "not quasar" \
                 --store-durations \
-                --override-ini="addopts=-v" --tb=short --timeout=60 \
+                --no-debug-symbols \
+                --override-ini="addopts=-v" --timeout=60 \
                 --junitxml=pytest-duration-blackhole-all.xml .
 
       - name: Upload duration data
