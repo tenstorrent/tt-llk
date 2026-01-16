@@ -53,7 +53,7 @@ def run_shell_command(
         shell=True,
         text=text,
         input=stdin_data,
-        stdout=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
 

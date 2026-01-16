@@ -11,11 +11,8 @@
 // Necessary for ckernel variables
 #include "ckernel_helper.h" // Only for WH/BH
 #endif
-#include "profiler.h"
-
-#if defined(LLK_TRISC_UNPACK) && defined(LLK_BOOT_MODE_TRISC)
 #include "boot.h"
-#endif
+#include "profiler.h"
 
 #ifdef LLK_PROFILER
 
@@ -31,24 +28,37 @@ uint32_t open_zone_cnt    = 0;
 #endif
 
 extern const volatile struct RuntimeParams __runtime_args_start[];
-extern void run_kernel(const volatile struct RuntimeParams* params);
+extern void run_unpack_kernel(const volatile struct RuntimeParams* params);
+extern void run_math_kernel(const volatile struct RuntimeParams* params);
+extern void run_pack_kernel(const volatile struct RuntimeParams* params);
 
-int main()
+void (*kernel_array[])(const volatile struct RuntimeParams* params) = {run_unpack_kernel, run_math_kernel, run_pack_kernel};
+
+enum KERNEL_THREAD
 {
-#if defined(LLK_TRISC_UNPACK) && defined(LLK_BOOT_MODE_TRISC)
-    device_setup();
+    UNPACK = 0,
+    MATH   = 1,
+    PACK   = 2,
+};
 
-    // Release the rest of the triscs
-    clear_trisc_soft_reset();
-#endif
+int main(int argc, char**)
+{
+    volatile std::uint32_t* mailbox = nullptr;
 
-#if defined(LLK_TRISC_UNPACK)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FFC);
-#elif defined(LLK_TRISC_MATH)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF8);
-#elif defined(LLK_TRISC_PACK)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
-#endif
+    switch (static_cast<KERNEL_THREAD>(argc))
+    {
+        case UNPACK:
+            device_setup();
+            clear_trisc_soft_reset();
+            mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FFC);
+            break;
+        case MATH:
+            mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF8);
+            break;
+        case PACK:
+            mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
+            break;
+    }
 
     std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
 #ifndef ARCH_QUASAR
@@ -63,7 +73,7 @@ int main()
 
     {
         ZONE_SCOPED("KERNEL")
-        run_kernel(__runtime_args_start);
+        kernel_array[static_cast<KERNEL_THREAD>(argc)](__runtime_args_start);
         ckernel::tensix_sync();
     }
 

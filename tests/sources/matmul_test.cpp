@@ -8,19 +8,20 @@
 
 #include "ckernel.h"
 #include "llk_defs.h"
+#include "llk_math_common.h"
+#include "llk_math_matmul.h"
+#include "llk_pack.h"
+#include "llk_pack_common.h"
+#include "llk_unpack_AB_matmul.h"
+#include "llk_unpack_common.h"
+#include "params.h"
 
 // Globals
 uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
 
-#ifdef LLK_TRISC_UNPACK
-
-#include "llk_unpack_AB_matmul.h"
-#include "llk_unpack_common.h"
-#include "params.h"
-
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_unpack_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src,
@@ -51,15 +52,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     }
 }
 
-#endif
-
-#ifdef LLK_TRISC_MATH
-
-#include "llk_math_common.h"
-#include "llk_math_matmul.h"
-#include "params.h"
-
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_math_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_math_matmul_init_<MATH_FIDELITY>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, params->CT_DIM, params->RT_DIM);
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -72,15 +65,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
-#endif
-
-#ifdef LLK_TRISC_PACK
-
-#include "llk_pack.h"
-#include "llk_pack_common.h"
-#include "params.h"
-
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_pack_kernel(const volatile struct RuntimeParams *params)
 {
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, TILE_SIZE_PACK);
@@ -98,5 +83,3 @@ void run_kernel(const volatile struct RuntimeParams *params)
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
-
-#endif

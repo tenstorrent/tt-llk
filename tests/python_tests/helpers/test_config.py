@@ -529,23 +529,10 @@ class TestConfig:
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
-            def build_kernel_part_main(name: str):
-                kernel_trisc_flag = ""
-                if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-                    kernel_trisc_flag = f"-DCOMPILE_FOR_TRISC={TestConfig.KERNEL_COMPONENTS.index(name)}"
-
-                run_shell_command(  # main_%.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {shared_obj_dir / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
-                    TestConfig.TESTS_WORKING_DIR,
-                )
-
-            with ThreadPoolExecutor(max_workers=3) as executor:
-                futures = [
-                    executor.submit(build_kernel_part_main, name)
-                    for name in TestConfig.KERNEL_COMPONENTS
-                ]
-                for fut in futures:
-                    fut.result()
+            run_shell_command(  # main_%.o
+                f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} -c -o {shared_obj_dir / f"kernel_main.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
+                TestConfig.TESTS_WORKING_DIR,
+            )
 
             if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
                 # brisc.elf : tmu-crt0.o brisc.o
@@ -802,27 +789,16 @@ class TestConfig:
                 SFPI_DEPS = "-lgcov"
                 COVERAGE_DEPS = shared_obj_dir / "coverage.o"
 
-            def build_kernel_part(name: str):
-                kernel_trisc_flag = ""
-                if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-                    kernel_trisc_flag = f"-DCOMPILE_FOR_TRISC={TestConfig.KERNEL_COMPONENTS.index(name)}"
-                run_shell_command(  # kernel_%.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {TestConfig.TESTS_WORKING_DIR / self.test_name}""",
-                    TestConfig.TESTS_WORKING_DIR,
-                )
-
-                run_shell_command(  # %.elf : main_%.o kernel_%.o [coverage.o] tmu-crt0.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {shared_obj_dir / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {shared_obj_dir / "tmu-crt0.o"} {SFPI_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"{name}.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
-                    TestConfig.TESTS_WORKING_DIR,
-                )
-
-            with ThreadPoolExecutor(max_workers=3) as executor:
-                futures = [
-                    executor.submit(build_kernel_part, name)
-                    for name in TestConfig.KERNEL_COMPONENTS
-                ]
-                for fut in futures:
-                    fut.result()
+            run_shell_command(  # %.elf : main_%.o kernel_%.o [coverage.o] tmu-crt0.o
+                " ".join(
+                    (
+                        f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {TestConfig.OPTIONS_LINK} -I{VARIANT_DIR}""",
+                        f"""{TestConfig.TESTS_WORKING_DIR / self.test_name} {shared_obj_dir / f"kernel_main.o"} {COVERAGE_DEPS} {shared_obj_dir / "tmu-crt0.o"} {SFPI_DEPS}""",
+                        f""" -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"unpack.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"main.elf"}""",
+                    )
+                ),
+                TestConfig.TESTS_WORKING_DIR,
+            )
 
             if self.profiler_build == ProfilerBuild.Yes:
                 # Extract profiler metadata
