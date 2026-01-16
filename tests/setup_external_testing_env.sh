@@ -96,10 +96,6 @@ if [[ "$REUSE" == false || ! -d "$VENV_DIR" ]]; then
     echo "Installing Python dependencies..."
     uv pip install -q --system --index-strategy unsafe-best-match --no-cache-dir -r requirements.txt
 
-    # Install tt-smi using the centralized script
-    echo "Installing tt-smi..."
-    "${SCRIPT_DIR}/../.github/scripts/install-smi.sh"
-
     # Download and extract SFPI release
     ./setup_testing_env.sh
 else
