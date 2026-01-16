@@ -471,7 +471,8 @@ inline void _llk_math_reduce_init_()
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-inline void _llk_math_reduce_uninit_()
+template <bool enforce_fp32_accumulation = false>
+inline void _llk_math_reduce_uninit_([[maybe_unused]] const std::uint32_t srca_data_format)
 {
-    // No state to restore - all states are transient or default
+    // Blackhole doesn't have bit 11 workaround - no state to restore
 }
