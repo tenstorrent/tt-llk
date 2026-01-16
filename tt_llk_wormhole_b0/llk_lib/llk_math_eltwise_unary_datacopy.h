@@ -327,7 +327,10 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
             else
             {
                 ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, broadcast_type, addr_mod, 0));
-                tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0));
+
+                // SETRWC triggers a bug in WH here after a certain sequence of tests
+                // https://github.com/tenstorrent/tt-metal/issues/21244
+                tmp.set_end_op(TT_OP_CLEARDVALID(p_setrwc::CLR_AB, 0x1));
                 tmp.program();
             }
         }
