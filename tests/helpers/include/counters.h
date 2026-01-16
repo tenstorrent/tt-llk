@@ -394,24 +394,48 @@ public:
         volatile uint32_t* dbg_regs = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
         volatile uint32_t* data_mem = get_data_mem();
 
-        bool bank_stopped[COUNTER_BANK_COUNT] = {false, false, false, false, false};
+        // Compute present banks mask for early exit
+        uint32_t present_mask = 0;
         for (uint32_t i = 0; i < num_counters; i++)
         {
-            const auto& config = counters[i];
-            uint32_t bank_ix   = static_cast<uint32_t>(config.bank);
-            uint32_t base      = get_counter_base_addr(config.bank);
-            uint32_t reg       = (base - RISCV_DEBUG_REGS_START_ADDR) / 4;
-            if (!bank_stopped[bank_ix])
+            present_mask |= 1u << static_cast<uint32_t>(counters[i].bank);
+        }
+
+        // Stop all banks once via 0->1 transition on stop bit
+        uint32_t stopped_mask = 0;
+        for (uint32_t i = 0; i < num_counters; i++)
+        {
+            uint32_t bank_idx = static_cast<uint32_t>(counters[i].bank);
+            uint32_t bank_bit = 1u << bank_idx;
+
+            if (stopped_mask & bank_bit)
             {
-                dbg_regs[reg + 2]     = 0;
-                dbg_regs[reg + 2]     = 2;
-                bank_stopped[bank_ix] = true;
+                continue;
+            }
+
+            uint32_t base     = get_counter_base_addr(counters[i].bank);
+            uint32_t reg_addr = (base - RISCV_DEBUG_REGS_START_ADDR) / 4;
+
+            dbg_regs[reg_addr + 2] = 0; // Clear
+            dbg_regs[reg_addr + 2] = 2; // Stop (bit1 0->1)
+
+            stopped_mask |= bank_bit;
+
+            if (stopped_mask == present_mask)
+            {
+                break;
             }
         }
 
+        // Pre-compute mode value once
+        uint32_t mode_value = (static_cast<uint32_t>(mode) & 0x1u) << 16;
+
+        // Now scan each configured counter: select via mode register and read outputs
         for (uint32_t i = 0; i < num_counters; i++)
         {
             const auto& config = counters[i];
+
+            // Configure L1 MUX if needed before reading
             if (config.bank == CounterBank::L1)
             {
                 uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
@@ -419,22 +443,25 @@ public:
                 dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((static_cast<uint32_t>(config.l1_mux) & 0x1u) << 4);
             }
 
-            uint32_t counter_base          = get_counter_base_addr(config.bank);
-            uint32_t counter_reg_addr      = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
-            dbg_regs[counter_reg_addr + 1] = (static_cast<uint32_t>(config.counter_id) << 8) | ((static_cast<uint32_t>(mode) & 0x1u) << 16);
+            uint32_t counter_base     = get_counter_base_addr(config.bank);
+            uint32_t counter_reg_addr = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
 
-            uint32_t out_l                 = (get_counter_output_low_addr(config.bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
-            uint32_t out_h                 = (get_counter_output_high_addr(config.bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
-            volatile uint32_t dummy_cycles = dbg_regs[out_l];
-            volatile uint32_t dummy_count  = dbg_regs[out_h];
-            (void)dummy_cycles;
-            (void)dummy_count;
+            // Select the desired counter and req/grant output in mode register
+            dbg_regs[counter_reg_addr + 1] = (static_cast<uint32_t>(config.counter_id) << 8) | mode_value;
 
-            results[i].cycles     = dbg_regs[out_l];
-            results[i].count      = dbg_regs[out_h];
+            // Allow selection/mux to settle: perform a dummy read sequence
+            uint32_t output_low_addr  = (get_counter_output_low_addr(config.bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            uint32_t output_high_addr = (get_counter_output_high_addr(config.bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            (void)dbg_regs[output_low_addr];
+            (void)dbg_regs[output_high_addr];
+
+            // Read outputs again for the actual value
+            results[i].cycles     = dbg_regs[output_low_addr];
+            results[i].count      = dbg_regs[output_high_addr];
             results[i].bank       = config.bank;
             results[i].counter_id = config.counter_id;
 
+            // Write to L1 memory for Python to read (2 words per counter: cycles, count)
             data_mem[i * 2]     = results[i].cycles;
             data_mem[i * 2 + 1] = results[i].count;
         }
