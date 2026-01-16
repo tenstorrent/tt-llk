@@ -33,7 +33,8 @@ def _postprocess_tile_loop(frame: pd.DataFrame) -> pd.DataFrame:
     # Ensure columns exist and default missing values only for masked rows
     for col in ["loop_factor", "tile_cnt"]:
         if col not in frame.columns:
-            frame[col] = 1
+            col_idx = frame.columns.get_loc("marker")
+            frame.insert(col_idx, col, 1)
         frame[col] = frame[col].fillna(1)
 
     # Compute divisor as Series aligned with masked rows

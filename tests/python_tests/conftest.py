@@ -14,7 +14,6 @@ from helpers.perf import PerfConfig, PerfReport, combine_perf_reports
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 from helpers.test_config import TestConfig, TestMode, process_coverage_run_artefacts
 from ttexalens import tt_exalens_init
-from ttexalens.util import TTException
 
 
 def init_llk_home():
@@ -215,19 +214,10 @@ def pytest_runtest_makereport(item, call):
                         f"⨯ {test_file_and_func}{report.test_params} {exc_msg}"
                     )
                     report.longrepr = error_message
-                elif exc_type == TTException:
-                    # Handle Our custom TTExceptions
+                else:
                     exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
                     error_message = (
-                        f"⨯ {test_file_and_func}{report.test_params}\n"
-                        f"TTException: {exc_msg}\n"
-                        f"Call trace:\n{stack_trace_str}"
-                    )
-                    report.longrepr = error_message
-                elif exc_type == RuntimeError:
-                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
-                    error_message = (
-                        f"⨯ {test_file_and_func}{report.test_params} RuntimeError\n"
+                        f"⨯ {test_file_and_func}{report.test_params} Error type: {exc_type.__name__}\n"
                         f"{exc_msg}\n"
                         f"Python Call trace:\n{stack_trace_str}"
                     )
