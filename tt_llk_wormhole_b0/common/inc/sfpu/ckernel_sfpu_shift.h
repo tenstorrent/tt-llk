@@ -15,7 +15,7 @@ namespace sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
-inline void _calculate_binary_left_shift_(const uint32_t dst_index_in0, const uint32_t dst_index_in1, const uint32_t dst_index_out)
+inline void _calculate_binary_left_shift_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 {
     static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
 
@@ -25,7 +25,7 @@ inline void _calculate_binary_left_shift_(const uint32_t dst_index_in0, const ui
     for (int d = 0; d < ITERATIONS; d++)
     {
         // size of each tile in Dest is 64 rows
-        constexpr uint32_t dst_tile_size = 64;
+        constexpr std::uint32_t dst_tile_size = 64;
         // load
         TT_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_3, dst_index_in0 * dst_tile_size);
         TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, ADDR_MOD_3, dst_index_in1 * dst_tile_size);
@@ -44,7 +44,7 @@ inline void _calculate_binary_left_shift_(const uint32_t dst_index_in0, const ui
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
-inline void _calculate_binary_right_shift_(const uint32_t dst_index_in0, const uint32_t dst_index_in1, const uint32_t dst_index_out)
+inline void _calculate_binary_right_shift_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 {
     static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
 
@@ -54,7 +54,7 @@ inline void _calculate_binary_right_shift_(const uint32_t dst_index_in0, const u
     for (int d = 0; d < ITERATIONS; d++)
     {
         // size of each tile in Dest is 64 rows
-        constexpr uint32_t dst_tile_size = 64;
+        constexpr std::uint32_t dst_tile_size = 64;
         // load
         TT_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_3, dst_index_in0 * dst_tile_size);
         TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, ADDR_MOD_3, dst_index_in1 * dst_tile_size);
@@ -82,7 +82,7 @@ inline void _calculate_binary_right_shift_(const uint32_t dst_index_in0, const u
 }
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
-inline void _calculate_logical_right_shift_(const uint32_t dst_index_in0, const uint32_t dst_index_in1, const uint32_t dst_index_out)
+inline void _calculate_logical_right_shift_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 {
     static_assert(is_valid_instruction_mode(INSTRUCTION_MODE), "INSTRUCTION_MODE must be one of: INT32_2S_COMP, INT32, LO16.");
 
@@ -92,7 +92,7 @@ inline void _calculate_logical_right_shift_(const uint32_t dst_index_in0, const 
     for (int d = 0; d < ITERATIONS; d++)
     {
         // size of each tile in Dest is 64 rows
-        constexpr uint32_t dst_tile_size = 64;
+        constexpr std::uint32_t dst_tile_size = 64;
         // load
         TT_SFPLOAD(p_sfpu::LREG0, sfpload_instr_mod, ADDR_MOD_3, dst_index_in0 * dst_tile_size);
         TT_SFPLOAD(p_sfpu::LREG1, sfpload_instr_mod, ADDR_MOD_3, dst_index_in1 * dst_tile_size);

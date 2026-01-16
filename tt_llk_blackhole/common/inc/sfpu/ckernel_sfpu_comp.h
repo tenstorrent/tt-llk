@@ -10,8 +10,8 @@
 
 namespace
 {
-constexpr uint32_t ONE  = 1;
-constexpr uint32_t ZERO = 0;
+constexpr std::uint32_t ONE  = 1;
+constexpr std::uint32_t ZERO = 0;
 } // namespace
 
 namespace ckernel
@@ -29,7 +29,7 @@ sfpi_inline void _calculate_comp_init_flag_(bool check, sfpi::vFloat& flag1, sfp
 }
 
 template <bool APPROXIMATION_MODE, bool invert_output, bool check_zero, bool second_check, bool is_less_than_equal_zero, int ITERATIONS>
-inline void _calculate_comp_(const int iterations, uint32_t exponent_size_8)
+inline void _calculate_comp_(const int iterations, std::uint32_t exponent_size_8)
 {
     // output_0 and output_1 hold the outputs use use when a zero or negative check is true/false.
     // False = 0.0 = kCONST_0 (5/8-bit exponent format)
@@ -105,10 +105,10 @@ inline void _calculate_comp_(const int iterations, uint32_t exponent_size_8)
 }
 
 template <SfpuType COMP_MODE>
-inline void apply_zero_comp(sfpi::vFloat& v, uint32_t exponent_size_8);
+inline void apply_zero_comp(sfpi::vFloat& v, std::uint32_t exponent_size_8);
 
 template <>
-inline void apply_zero_comp<SfpuType::equal_zero>(sfpi::vFloat& v, uint32_t exponent_size_8)
+inline void apply_zero_comp<SfpuType::equal_zero>(sfpi::vFloat& v, std::uint32_t exponent_size_8)
 {
     v_if (_sfpu_is_fp16_zero_(v, exponent_size_8))
     {
@@ -122,7 +122,7 @@ inline void apply_zero_comp<SfpuType::equal_zero>(sfpi::vFloat& v, uint32_t expo
 }
 
 template <>
-inline void apply_zero_comp<SfpuType::not_equal_zero>(sfpi::vFloat& v, uint32_t exponent_size_8)
+inline void apply_zero_comp<SfpuType::not_equal_zero>(sfpi::vFloat& v, std::uint32_t exponent_size_8)
 {
     v_if (_sfpu_is_fp16_zero_(v, exponent_size_8))
     {
@@ -136,7 +136,7 @@ inline void apply_zero_comp<SfpuType::not_equal_zero>(sfpi::vFloat& v, uint32_t 
 }
 
 template <>
-inline void apply_zero_comp<SfpuType::less_than_zero>(sfpi::vFloat& v, uint32_t /*unused*/)
+inline void apply_zero_comp<SfpuType::less_than_zero>(sfpi::vFloat& v, std::uint32_t /*unused*/)
 {
     v_if (v >= ZERO)
     {
@@ -150,7 +150,7 @@ inline void apply_zero_comp<SfpuType::less_than_zero>(sfpi::vFloat& v, uint32_t 
 }
 
 template <>
-inline void apply_zero_comp<SfpuType::greater_than_equal_zero>(sfpi::vFloat& v, uint32_t /*unused*/)
+inline void apply_zero_comp<SfpuType::greater_than_equal_zero>(sfpi::vFloat& v, std::uint32_t /*unused*/)
 {
     v_if (v >= ZERO)
     {
@@ -164,7 +164,7 @@ inline void apply_zero_comp<SfpuType::greater_than_equal_zero>(sfpi::vFloat& v, 
 }
 
 template <>
-inline void apply_zero_comp<SfpuType::greater_than_zero>(sfpi::vFloat& v, uint32_t /*unused*/)
+inline void apply_zero_comp<SfpuType::greater_than_zero>(sfpi::vFloat& v, std::uint32_t /*unused*/)
 {
     v_if (v > ZERO)
     {
@@ -178,7 +178,7 @@ inline void apply_zero_comp<SfpuType::greater_than_zero>(sfpi::vFloat& v, uint32
 }
 
 template <>
-inline void apply_zero_comp<SfpuType::less_than_equal_zero>(sfpi::vFloat& v, uint32_t /*unused*/)
+inline void apply_zero_comp<SfpuType::less_than_equal_zero>(sfpi::vFloat& v, std::uint32_t /*unused*/)
 {
     v_if (v > ZERO)
     {
@@ -192,7 +192,7 @@ inline void apply_zero_comp<SfpuType::less_than_equal_zero>(sfpi::vFloat& v, uin
 }
 
 template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
-inline void _calculate_zero_comp_(uint32_t exponent_size_8)
+inline void _calculate_zero_comp_(std::uint32_t exponent_size_8)
 {
     for (int d = ZERO; d < ITERATIONS; d++)
     {
@@ -521,7 +521,7 @@ inline void apply_unary_float_comp<SfpuType::unary_le>(sfpi::vFloat v, sfpi::vFl
 }
 
 template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
-inline void _calculate_comp_unary_(uint32_t value)
+inline void _calculate_comp_unary_(std::uint32_t value)
 {
     const sfpi::vFloat s = value;
 

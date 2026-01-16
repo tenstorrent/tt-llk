@@ -55,8 +55,8 @@ enum vdatasz
     NUM_VDATA_SIZES
 };
 
-uint32_t constexpr vdatasz_encodings[NUM_VDATA_SIZES] = {0, 1, 2, 3};
-uint32_t constexpr vdatasz_asm_nums[NUM_VDATA_SIZES]  = {8, 16, 32, 64};
+std::uint32_t constexpr vdatasz_encodings[NUM_VDATA_SIZES] = {0, 1, 2, 3};
+std::uint32_t constexpr vdatasz_asm_nums[NUM_VDATA_SIZES]  = {8, 16, 32, 64};
 
 template <typename T>
 struct _type_to_datasz
@@ -70,7 +70,7 @@ struct _type_to_datasz<float>
 };
 
 template <>
-struct _type_to_datasz<uint32_t>
+struct _type_to_datasz<std::uint32_t>
 {
     static vdatasz const sz = E32;
 };
@@ -82,7 +82,7 @@ struct _type_to_datasz<int32_t>
 };
 
 template <>
-struct _type_to_datasz<uint16_t>
+struct _type_to_datasz<std::uint16_t>
 {
     static vdatasz const sz = E16;
 };
@@ -94,7 +94,7 @@ struct _type_to_datasz<int16_t>
 };
 
 template <>
-struct _type_to_datasz<uint8_t>
+struct _type_to_datasz<std::uint8_t>
 {
     static vdatasz const sz = E8;
 };
@@ -120,17 +120,17 @@ enum vregmult
     NUM_VREGMULTS
 };
 
-uint32_t constexpr vregmult_encodings[NUM_VREGMULTS] = {5, 6, 7, 0, 1, 2, 3};
-uint32_t constexpr vregmult_asm_nums[NUM_VREGMULTS]  = {8, 4, 2, 1, 2, 4, 8};
+std::uint32_t constexpr vregmult_encodings[NUM_VREGMULTS] = {5, 6, 7, 0, 1, 2, 3};
+std::uint32_t constexpr vregmult_asm_nums[NUM_VREGMULTS]  = {8, 4, 2, 1, 2, 4, 8};
 
 template <vdatasz SEW, vregmult LMUL = M1>
-inline uint32_t vsetvl(uint32_t appn_vec_len)
+inline std::uint32_t vsetvl(std::uint32_t appn_vec_len)
 {
-    uint32_t chunk_sz;
+    std::uint32_t chunk_sz;
     if (LMUL < M1)
     {
-        uint32_t constexpr e_val = vdatasz_asm_nums[SEW];
-        uint32_t constexpr m_val = vregmult_asm_nums[LMUL];
+        std::uint32_t constexpr e_val = vdatasz_asm_nums[SEW];
+        std::uint32_t constexpr m_val = vregmult_asm_nums[LMUL];
         (void)e_val; // Prevent unused variable error
         (void)m_val; // Prevent unused variable error
         asm volatile("vsetvli %[chunk_sz], %[avl], e%c[e_val], mf%c[m_val] \n"
@@ -139,8 +139,8 @@ inline uint32_t vsetvl(uint32_t appn_vec_len)
     }
     else
     {
-        uint32_t constexpr e_val = vdatasz_asm_nums[SEW];
-        uint32_t constexpr m_val = vregmult_asm_nums[LMUL];
+        std::uint32_t constexpr e_val = vdatasz_asm_nums[SEW];
+        std::uint32_t constexpr m_val = vregmult_asm_nums[LMUL];
         (void)e_val; // Prevent unused variable error
         (void)m_val; // Prevent unused variable error
         asm volatile("vsetvli %[chunk_sz], %[avl], e%c[e_val], m%c[m_val] \n"
@@ -151,8 +151,8 @@ inline uint32_t vsetvl(uint32_t appn_vec_len)
     return chunk_sz;
 }
 
-template <vdatasz SEW, vregmult LMUL, uint32_t appn_vec_len>
-inline uint32_t vsetvl()
+template <vdatasz SEW, vregmult LMUL, std::uint32_t appn_vec_len>
+inline std::uint32_t vsetvl()
 {
     if (appn_vec_len > 31)
     {
@@ -160,11 +160,11 @@ inline uint32_t vsetvl()
         return vsetvl<SEW, LMUL>(appn_vec_len);
     }
 
-    uint32_t chunk_sz;
+    std::uint32_t chunk_sz;
     if (LMUL < M1)
     {
-        uint32_t constexpr e_val = vdatasz_asm_nums[SEW];
-        uint32_t constexpr m_val = vregmult_asm_nums[LMUL];
+        std::uint32_t constexpr e_val = vdatasz_asm_nums[SEW];
+        std::uint32_t constexpr m_val = vregmult_asm_nums[LMUL];
         (void)e_val; // Prevent unused variable error
         (void)m_val; // Prevent unused variable error
         asm volatile("vsetivli %[chunk_sz], %[avl], e%c[e_val], mf%c[m_val] \n"
@@ -173,8 +173,8 @@ inline uint32_t vsetvl()
     }
     else
     {
-        uint32_t constexpr e_val = vdatasz_asm_nums[SEW];
-        uint32_t constexpr m_val = vregmult_asm_nums[LMUL];
+        std::uint32_t constexpr e_val = vdatasz_asm_nums[SEW];
+        std::uint32_t constexpr m_val = vregmult_asm_nums[LMUL];
         (void)e_val; // Prevent unused variable error
         (void)m_val; // Prevent unused variable error
         asm volatile("vsetivli %[chunk_sz], %[avl], e%c[e_val], m%c[m_val] \n"
@@ -188,7 +188,7 @@ inline uint32_t vsetvl()
 template <vreg vec_reg_no, typename T, vdatasz data_size = type_to_datasz(T)>
 inline void vector_load(T const *addr)
 {
-    uint32_t constexpr e_val = vdatasz_asm_nums[data_size];
+    std::uint32_t constexpr e_val = vdatasz_asm_nums[data_size];
     asm volatile("vle%c[e_val].v v%c[vec_reg_no], (%[addr]) \n" : : [e_val] "i"(e_val), [vec_reg_no] "i"(vec_reg_no), [addr] "r"(addr));
 }
 
@@ -196,14 +196,14 @@ inline void vector_load(T const *addr)
 template <vdatasz data_size, vreg vec_reg_no, typename T>
 inline void vector_load(T const *addr)
 {
-    uint32_t constexpr e_val = vdatasz_asm_nums[data_size];
+    std::uint32_t constexpr e_val = vdatasz_asm_nums[data_size];
     asm volatile("vle%c[e_val].v v%c[vec_reg_no], (%[addr]) \n" : : [e_val] "i"(e_val), [vec_reg_no] "i"(vec_reg_no), [addr] "r"(addr));
 }
 
 template <vreg vec_reg_no, typename T, vdatasz data_size = type_to_datasz(T)>
 inline void vector_store(T *addr)
 {
-    uint32_t constexpr e_val = vdatasz_asm_nums[data_size];
+    std::uint32_t constexpr e_val = vdatasz_asm_nums[data_size];
     asm volatile("vse%c[e_val].v v%c[vec_reg_no], (%[addr]) \n" : : [e_val] "i"(e_val), [vec_reg_no] "i"(vec_reg_no), [addr] "r"(addr));
 }
 
@@ -211,7 +211,7 @@ inline void vector_store(T *addr)
 template <vdatasz data_size, vreg vec_reg_no, typename T>
 inline void vector_store(T *addr)
 {
-    uint32_t constexpr e_val = vdatasz_asm_nums[data_size];
+    std::uint32_t constexpr e_val = vdatasz_asm_nums[data_size];
     asm volatile("vse%c[e_val].v v%c[vec_reg_no], (%[addr]) \n" : : [e_val] "i"(e_val), [vec_reg_no] "i"(vec_reg_no), [addr] "r"(addr));
 }
 
@@ -228,9 +228,9 @@ inline void vector_slide_down(int shift_amt)
 }
 
 template <vreg vec_reg_no>
-inline uint32_t vector_pop_front()
+inline std::uint32_t vector_pop_front()
 {
-    uint32_t val;
+    std::uint32_t val;
     asm volatile("vmv.x.s %[val], v%c[src]\n" : [val] "=r"(val) : [src] "i"(vec_reg_no));
 
     return val;

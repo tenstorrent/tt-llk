@@ -47,13 +47,13 @@ inline void _llk_pack_rows_configure_addrmod_()
  * - Last inner loop instruction uses ADDR_MOD_1 to reset Y counter
  * - Outer loop runs once (no tile repetition within this operation)
  */
-inline void _llk_pack_rows_mop_config_(const uint32_t num_rows)
+inline void _llk_pack_rows_mop_config_(const std::uint32_t num_rows)
 {
-    constexpr uint32_t PACKCNT          = 1; // Use only packer 0
-    constexpr uint32_t MEGAROW          = 0; // Not using megarow mode
-    constexpr uint32_t ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
-    constexpr uint32_t MOP_OUTER_LOOP   = 1;
-    const uint32_t MOP_INNER_LOOP       = num_rows;
+    constexpr std::uint32_t PACKCNT          = 1; // Use only packer 0
+    constexpr std::uint32_t MEGAROW          = 0; // Not using megarow mode
+    constexpr std::uint32_t ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
+    constexpr std::uint32_t MOP_OUTER_LOOP   = 1;
+    const std::uint32_t MOP_INNER_LOOP       = num_rows;
 
     ckernel::ckernel_template tmp(MOP_OUTER_LOOP, MOP_INNER_LOOP, TT_OP_PACR(ADDR_MOD_0, ZERO_OUTPUT_FLAG, PACK_SEL(PACKCNT), 0, MEGAROW, 0, 0));
 
@@ -77,16 +77,16 @@ inline void _llk_pack_rows_mop_config_(const uint32_t num_rows)
  *    - X counter: Controls how many datums to pack per row
  *    - Z/W counters: Reset to zero for proper tile indexing
  */
-inline void _llk_pack_rows_init_(const uint32_t num_rows)
+inline void _llk_pack_rows_init_(const std::uint32_t num_rows)
 {
     // In row-major layout, each row is FACE_C_DIM (16) datums.
     // A full tile has TILE_R_DIM * TILE_C_DIM / FACE_C_DIM = 32 * 32 / 16 = 64 rows.
-    constexpr uint32_t MAX_ROWS = (TILE_R_DIM * TILE_C_DIM) / FACE_C_DIM;
+    constexpr std::uint32_t MAX_ROWS = (TILE_R_DIM * TILE_C_DIM) / FACE_C_DIM;
     LLK_ASSERT(num_rows >= 1 && num_rows <= MAX_ROWS, "num_rows must be between 1 and 64");
 
     // Number of datums per row in row-major layout (16 datums = 1 row of 16 elements)
-    constexpr uint32_t row_num_datums      = 16;
-    constexpr uint32_t y_pos_counter_limit = 1;
+    constexpr std::uint32_t row_num_datums      = 16;
+    constexpr std::uint32_t y_pos_counter_limit = 1;
     _llk_pack_rows_configure_addrmod_();
     _llk_pack_rows_mop_config_(num_rows);
 
@@ -117,7 +117,7 @@ inline void _llk_pack_rows_init_(const uint32_t num_rows)
  *
  * @note This function is typically called in a loop for each tile to be packed
  */
-inline void _llk_pack_rows_(const uint32_t tile_index, const uint32_t address)
+inline void _llk_pack_rows_(const std::uint32_t tile_index, const std::uint32_t address)
 {
     // Set the tile index in dest to read from
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);

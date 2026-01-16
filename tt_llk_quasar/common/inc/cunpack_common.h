@@ -8,6 +8,6 @@
 namespace ckernel::unpack
 {
 // Number of rows for Unpack functions
-constexpr static uint32_t UNPACR_STRIDE_MAX_ROWS = 8;
-constexpr static uint32_t TRISC_ID               = 0;
+constexpr static std::uint32_t UNPACR_STRIDE_MAX_ROWS = 8;
+constexpr static std::uint32_t TRISC_ID               = 0;
 } // namespace ckernel::unpack

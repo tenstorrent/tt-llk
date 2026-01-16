@@ -106,7 +106,7 @@ class MatmulFpu(Fpu):
         ct_dim = operation.ct_dim
         rt_dim = operation.rt_dim
         kt_dim = operation.kt_dim
-        math_fidelity = operation.math_fidelity.value
+        math_fidelity = operation.math_fidelity.cpp_enum_value
         return (
             f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
             f"    {{\n"
@@ -724,7 +724,7 @@ class Math:
 
         code = (
             f"    // Operation {stage}: Math Setup\n"
-            f"    const uint32_t math_format{stage} = ckernel::to_underlying({format});\n"
+            f"    const std::uint32_t math_format{stage} = ckernel::to_underlying({format});\n"
             f"    const DstSync dest_sync{stage} = DstSync::Sync{operation.dest_sync.name};\n"
         )
 

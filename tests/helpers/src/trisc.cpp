@@ -21,10 +21,10 @@
 
 namespace llk_profiler
 {
-barrier_ptr_t barrier_ptr = reinterpret_cast<barrier_ptr_t>(BARRIER_START);
-buffer_ptr_t buffer       = reinterpret_cast<buffer_ptr_t>(BUFFERS_START);
-uint32_t write_idx        = 0;
-uint32_t open_zone_cnt    = 0;
+barrier_ptr_t barrier_ptr   = reinterpret_cast<barrier_ptr_t>(BARRIER_START);
+buffer_ptr_t buffer         = reinterpret_cast<buffer_ptr_t>(BUFFERS_START);
+std::uint32_t write_idx     = 0;
+std::uint32_t open_zone_cnt = 0;
 
 } // namespace llk_profiler
 
@@ -43,11 +43,11 @@ int main()
 #endif
 
 #if defined(LLK_TRISC_UNPACK)
-    volatile uint32_t* const mailbox = reinterpret_cast<volatile uint32_t*>(0x19FFC);
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FFC);
 #elif defined(LLK_TRISC_MATH)
-    volatile uint32_t* const mailbox = reinterpret_cast<volatile uint32_t*>(0x19FF8);
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF8);
 #elif defined(LLK_TRISC_PACK)
-    volatile uint32_t* const mailbox = reinterpret_cast<volatile uint32_t*>(0x19FF4);
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
 #endif
 
     std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
