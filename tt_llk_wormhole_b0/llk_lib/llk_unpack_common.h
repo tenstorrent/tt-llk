@@ -11,8 +11,7 @@
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
 #include "cunpack_common.h"
-#include "llk_assert.h"
-#include "llk_memory_checks.h"
+#include "llk_unpack_common.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
