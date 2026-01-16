@@ -33,6 +33,9 @@ class StimuliConfig:
     # === STATIC VARIABLES ===
     STIMULI_L1_ADDRESS = 0x65000
 
+    # Full tile elements (always 1024 for a 32x32 tile)
+    TILE_ELEMENTS = 1024
+
     def __init__(
         self,
         buffer_A,
@@ -50,6 +53,7 @@ class StimuliConfig:
         face_r_dim: int = 16,
         tile_dimensions: list[int] = [32, 32],
         sfpu=False,
+        write_full_tiles: bool = False,
     ):
 
         # Fields init
@@ -68,6 +72,7 @@ class StimuliConfig:
         self.face_r_dim = face_r_dim
         self.tile_dimensions = tile_dimensions
         self.sfpu = sfpu
+        self.write_full_tiles = write_full_tiles
 
         # Stimuli addresses calculation - ALWAYS use full tile sizes for address spacing
         # Hardware expects full tile alignment regardless of num_faces
@@ -145,14 +150,21 @@ class StimuliConfig:
         num_faces: int,
         face_r_dim: int,
         location: str = "0,0",
+        write_full_tiles: bool = False,
     ):
         addresses = []
         packed_data_list = []
 
-        # Elements to pack per tile (may be partial for num_faces < 4)
-        tile_elements = num_faces * face_r_dim * 16
-        # Stride through buffer in full tiles (1024 elements) regardless of num_faces
-        FULL_TILE_ELEMENTS = 1024
+        # Full tile size (1024 elements for 32x32 tiles)
+        FULL_TILE_ELEMENTS = StimuliConfig.TILE_ELEMENTS
+
+        # Elements to pack per tile:
+        # - For tilize tests (write_full_tiles=True): write all 1024 elements
+        # - For other tests: write only the faces we care about
+        if write_full_tiles:
+            tile_elements = FULL_TILE_ELEMENTS
+        else:
+            tile_elements = num_faces * face_r_dim * 16
 
         pack_function_lambda = lambda buffer_tile: (
             pack_function(buffer_tile, num_faces=num_faces)
@@ -189,6 +201,7 @@ class StimuliConfig:
             self.num_faces,
             self.face_r_dim,
             location,
+            self.write_full_tiles,
         )
         StimuliConfig.write_matrix(
             self.buffer_B,
@@ -199,6 +212,7 @@ class StimuliConfig:
             self.num_faces,
             self.face_r_dim,
             location,
+            self.write_full_tiles,
         )
 
         if self.buffer_C is not None:
@@ -216,6 +230,7 @@ class StimuliConfig:
                 self.num_faces,
                 self.face_r_dim,
                 location,
+                self.write_full_tiles,
             )
 
     def collect_results(self, location="0,0"):
