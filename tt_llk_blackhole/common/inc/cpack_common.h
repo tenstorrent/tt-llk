@@ -13,6 +13,7 @@
 #include "ckernel_globals.h"
 #include "llk_assert.h"
 #include "llk_defs.h"
+#include "llk_memory_checks.h"
 
 namespace ckernel::packer
 {
