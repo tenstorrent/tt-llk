@@ -71,7 +71,6 @@ def test_eltwise_unary_sfpu_float(
     dest_acc: DestAccumulation,
     workers_tensix_coordinates: str,
 ):
-    print(mathop)
     if TestConfig.WITH_COVERAGE and mathop in [
         MathOperation.Acosh,
         MathOperation.Log,
@@ -99,16 +98,6 @@ def test_eltwise_unary_sfpu_float(
         pytest.skip(
             reason="Compilation error when this mathop gets compiled with coverage"
         )
-
-    if (
-        mathop == MathOperation.Tanh
-        and (
-            formats.input_format == DataFormat.Bfp8_b
-            or formats.output_format == DataFormat.Bfp8_b
-        )
-        and approx_mode == ApproximationMode.Yes
-    ):
-        pytest.skip(reason="Tanh operation is not supported for bf8_b format.")
 
     if (
         dest_acc == DestAccumulation.No
@@ -236,8 +225,6 @@ def eltwise_unary_sfpu(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    print(golden_tensor[:1024].view(32, 32))
-
     assert passed_test(
-        golden_tensor, res_tensor, formats.output_format, print_pcc=True
+        golden_tensor, res_tensor, formats.output_format
     ), "Assert against golden failed"
