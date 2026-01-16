@@ -44,10 +44,10 @@ jobs:
           cd tests/python_tests/
 
           echo "Compiling all tests (regular, perf, nightly) to collect durations"
-          pytest --compile-producer -n 40 \
+          pytest -q --compile-producer -n 40 \
                 -m "not quasar" \
                 --store-durations \
-                --override-ini="addopts=-v" --timeout=60 \
+                --override-ini="addopts=-v" --tb=short --timeout=60 \
                 --junitxml=pytest-duration-wormhole-all.xml .
 
       - name: Upload duration data
@@ -85,10 +85,10 @@ jobs:
           cd tests/python_tests/
 
           echo "Compiling all tests (regular, perf, nightly) to collect durations"
-          pytest --compile-producer -n 40 \
+          pytest -q --compile-producer -n 40 \
                 -m "not quasar" \
                 --store-durations \
-                --override-ini="addopts=-v" --timeout=60 \
+                --override-ini="addopts=-v" --tb=short --timeout=60 \
                 --junitxml=pytest-duration-blackhole-all.xml .
 
       - name: Upload duration data
