@@ -57,6 +57,7 @@ from helpers.utils import passed_test
         MathOperation.Exp,
         MathOperation.Exp2,
         MathOperation.Hardsigmoid,
+        MathOperation.Tanh,
         MathOperation.Threshold,
         MathOperation.ReluMax,
         MathOperation.ReluMin,
@@ -118,6 +119,9 @@ def test_eltwise_unary_sfpu_float(
         pytest.skip(
             reason="Exp-related operations are not supported for bf8_b format in approximation mode."
         )
+
+    if mathop == MathOperation.Tanh and formats.input_format == DataFormat.Bfp8_b:
+        pytest.skip(reason="Tanh operation is not supported for bf8_b format.")
 
     eltwise_unary_sfpu(
         "sources/eltwise_unary_sfpu_test.cpp",
