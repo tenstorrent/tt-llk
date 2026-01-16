@@ -535,8 +535,17 @@ class TestConfig:
                 )
 
             def build_kernel_part_main(name: str):
+
+                thread_id = {
+                    "unpack": 0,
+                    "math": 1,
+                    "pack": 2,
+                }
+
+                thread_id_define = f"-DCOMPILE_FOR_TRISC={thread_id[name]}"
+
                 run_shell_command(  # main_%.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {shared_obj_dir / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {thread_id_define} -DLLK_TRISC_{name.upper()} -c -o {shared_obj_dir / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
@@ -808,8 +817,17 @@ class TestConfig:
                 COVERAGE_DEPS = shared_obj_dir / "coverage.o"
 
             def build_kernel_part(name: str):
+
+                thread_id = {
+                    "unpack": 0,
+                    "math": 1,
+                    "pack": 2,
+                }
+
+                thread_id_define = f"-DCOMPILE_FOR_TRISC={thread_id[name]}"
+
                 run_shell_command(  # kernel_%.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {TestConfig.TESTS_WORKING_DIR / self.test_name}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {thread_id_define} -DLLK_TRISC_{name.upper()} -c -o {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {TestConfig.TESTS_WORKING_DIR / self.test_name}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 

@@ -33,8 +33,7 @@ uint32_t open_zone_cnt    = 0;
 
 namespace llk_san
 {
-operand_state_t operand_state;
-operation_state_t operation_state;
+sanitizer_state_t* sanitizer = nullptr;
 } // namespace llk_san
 
 extern const volatile struct RuntimeParams __runtime_args_start[];
@@ -67,6 +66,8 @@ int main()
     llk_profiler::reset();
     llk_profiler::sync_threads();
 #endif
+
+    llk_san::sanitizer = new (reinterpret_cast<void*>(0x80000)) llk_san::sanitizer_state_t;
 
     {
         ZONE_SCOPED("KERNEL")
