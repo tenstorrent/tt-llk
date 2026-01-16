@@ -27,7 +27,12 @@ ELEMENTS_PER_FACE = 256  # 16x16 = 256 elements per face
 FACES_PER_TILE = 4
 ELEMENTS_PER_TILE = 1024  # 4 faces × 256 elements
 TILE_SIZE = 32
+TILE_DIM = 32
 TILE_DIMENSIONS = (32, 32)  # Tile dimensions as tuple
+
+# Destination register capacity (in tiles)
+MAX_TILES_16_BIT_DEST = 8
+MAX_TILES_32_BIT_DEST = 4
 
 golden_registry = {}
 
@@ -189,7 +194,7 @@ def quantize_mx_tensor_chunked(
     # Pre-allocate output tensor for better performance
     quantized = torch.zeros_like(tensor)
     idx = 0
-
+    # FACE_R_DIM support is not implemented yet, so we only support 4 faces for now.
     # Chunk size lookup: (min_size, chunk_size, num_faces)
     chunk_configs = [(1024, 1024, 4), (512, 512, 2), (256, 256, 1)]
 

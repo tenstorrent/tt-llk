@@ -5,6 +5,8 @@ import pytest
 import torch
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
+    MAX_TILES_16_BIT_DEST,
+    TILE_DIM,
     EltwiseBinaryGolden,
     get_golden_generator,
 )
@@ -33,9 +35,6 @@ from helpers.test_variant_parameters import (
     TILE_COUNT,
 )
 from helpers.utils import passed_test
-
-TILE_DIM = 32
-MAX_TILES_16_BIT_DEST = 8
 
 ELTWISE_DIMENSIONS = [
     ([mt_dim * TILE_DIM, nt_dim * TILE_DIM], DestAccumulation.No)
