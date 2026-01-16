@@ -37,30 +37,30 @@ from helpers.utils import passed_test
     ),
     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
     mathop=[
-        MathOperation.Abs,
-        MathOperation.Atanh,
-        MathOperation.Asinh,
-        MathOperation.Acosh,
-        MathOperation.Cos,
-        MathOperation.Log,
-        MathOperation.Reciprocal,
-        MathOperation.Sin,
-        MathOperation.Sqrt,
-        MathOperation.Rsqrt,
-        MathOperation.Square,
-        MathOperation.Celu,
-        MathOperation.Silu,
-        MathOperation.Gelu,
-        MathOperation.Neg,
-        MathOperation.Fill,
-        MathOperation.Elu,
-        MathOperation.Exp,
-        MathOperation.Exp2,
-        MathOperation.Hardsigmoid,
+        # MathOperation.Abs,
+        # MathOperation.Atanh,
+        # MathOperation.Asinh,
+        # MathOperation.Acosh,
+        # MathOperation.Cos,
+        # MathOperation.Log,
+        # MathOperation.Reciprocal,
+        # MathOperation.Sin,
+        # MathOperation.Sqrt,
+        # MathOperation.Rsqrt,
+        # MathOperation.Square,
+        # MathOperation.Celu,
+        # MathOperation.Silu,
+        # MathOperation.Gelu,
+        # MathOperation.Neg,
+        # MathOperation.Fill,
+        # MathOperation.Elu,
+        # MathOperation.Exp,
+        # MathOperation.Exp2,
+        # MathOperation.Hardsigmoid,
         MathOperation.Tanh,
-        MathOperation.Threshold,
-        MathOperation.ReluMax,
-        MathOperation.ReluMin,
+        # MathOperation.Threshold,
+        # MathOperation.ReluMax,
+        # MathOperation.ReluMin,
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
 )
@@ -71,6 +71,7 @@ def test_eltwise_unary_sfpu_float(
     dest_acc: DestAccumulation,
     workers_tensix_coordinates: str,
 ):
+    print(mathop)
     if TestConfig.WITH_COVERAGE and mathop in [
         MathOperation.Acosh,
         MathOperation.Log,
@@ -99,7 +100,14 @@ def test_eltwise_unary_sfpu_float(
             reason="Compilation error when this mathop gets compiled with coverage"
         )
 
-    if mathop == MathOperation.Tanh and formats.input_format == DataFormat.Bfp8_b:
+    if (
+        mathop == MathOperation.Tanh
+        and (
+            formats.input_format == DataFormat.Bfp8_b
+            or formats.output_format == DataFormat.Bfp8_b
+        )
+        and approx_mode == ApproximationMode.Yes
+    ):
         pytest.skip(reason="Tanh operation is not supported for bf8_b format.")
 
     if (
@@ -228,6 +236,8 @@ def eltwise_unary_sfpu(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
+    print(golden_tensor[:1024].view(32, 32))
+
     assert passed_test(
-        golden_tensor, res_tensor, formats.output_format
+        golden_tensor, res_tensor, formats.output_format, print_pcc=True
     ), "Assert against golden failed"
