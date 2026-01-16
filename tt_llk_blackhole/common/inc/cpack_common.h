@@ -503,15 +503,17 @@ inline void program_packer_destination(uint32_t addr)
        packer to finish or say put a stallwait at this point.
        We just need to make sure we wait before issuing the WRCFG.
     */
-    uint32_t new_l1_addr = (1 << 31) | addr;
-    TT_SETDMAREG(0, LOWER_HALFWORD(addr), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
-    TT_SETDMAREG(0, UPPER_HALFWORD(new_l1_addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
+    // uint32_t new_l1_addr = (1 << 31) | addr;
+    // TT_SETDMAREG(0, LOWER_HALFWORD(addr), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
+    // TT_SETDMAREG(0, UPPER_HALFWORD(new_l1_addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
 
-    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON | p_stall::PACK);
-    TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+    // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON | p_stall::PACK);
+    // TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
 
-    TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
-    TTI_DMANOP; // One NOP should be enough for WRCFG due to SETDMAREG above.
+    // TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
+    // TTI_DMANOP; // One NOP should be enough for WRCFG due to SETDMAREG above.
+    bool has_header = 0;
+    ckernel::cfg_write(THCON_SEC0_REG1_L1_Dest_addr_ADDR32, addr / 16 - (has_header ? 0 : 1));
 }
 
 // RT: If multiple contexts are used, for issue #https://github.com/tenstorrent/tt-llk-bh/issues/20

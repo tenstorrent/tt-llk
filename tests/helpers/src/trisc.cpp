@@ -62,6 +62,7 @@ int main()
     llk_profiler::reset();
     llk_profiler::sync_threads();
 #endif
+    ckernel::set_ttsync_enables<ckernel::TRACK_ALL>();
 
     {
         ZONE_SCOPED("KERNEL")

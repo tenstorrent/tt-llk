@@ -18,7 +18,7 @@ from helpers.perf import PerfRunType, perf_benchmark, update_report
             # DataFormat.Bfp8_b, # sstanisic FIXME: add Bfp8_b support
         ]
     ),
-    full_rt_dim=[1],
+    full_rt_dim=[1, 2, 4, 8],
     full_ct_dim=[1, 2, 3, 4, 5, 6, 7, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096],
 )
 def test_perf_unpack_untilize(
