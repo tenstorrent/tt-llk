@@ -85,5 +85,4 @@ def test_perf_col_tile_sdpa(
         perf_report,
         run_count=10,
         location=workers_tensix_coordinates,
-        delete_artefacts=False,
     )
