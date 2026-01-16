@@ -160,13 +160,16 @@ class FusedOperation:
 
         if self.output_pack_dims == None:
             self.output_pack_dims = self.output.dimensions
+        else:
+            self.output_pack_dims[0] = min(
+                self.output_pack_dims[0], self.output.dimensions[0]
+            )
+            self.output_pack_dims[1] = min(
+                self.output_pack_dims[1], self.output.dimensions[1]
+            )
 
-        self.output_tiles_h = (
-            min(self.output_pack_dims[0], self.output.dimensions[0]) // 32
-        )
-        self.output_tiles_w = (
-            min(self.output_pack_dims[1], self.output.dimensions[1]) // 32
-        )
+        self.output_tiles_h = self.output_pack_dims[0] // 32
+        self.output_tiles_w = self.output_pack_dims[1] // 32
 
         self.dest_tiles_h = self.output.dimensions[0] // 32
         self.dest_tiles_w = self.output.dimensions[1] // 32
