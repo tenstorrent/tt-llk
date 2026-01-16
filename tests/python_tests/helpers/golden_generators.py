@@ -1247,6 +1247,16 @@ class UnarySFPUGolden:
             return self.handle_infinite_numbers(math.inf)
         return math.atanh(x)
 
+    # def _tanh(self, x):
+    #     sign = 1.0 if x >= 0 else -1.0
+    #     ax = abs(x)
+    #
+    #     if ax <= 1.0: y = 0.90625 * ax
+    #     elif ax <= 2.0: y = 0.09375 * ax + 0.8125
+    #     else: y = 1.0
+    #
+    #     return sign * y
+
     def _tanh(self, x):
         if math.isnan(x):
             return math.nan
