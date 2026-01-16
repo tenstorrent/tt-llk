@@ -53,7 +53,6 @@ inline void _llk_unpack_reduce_init_(const std::uint32_t within_face_16x16_trans
 template <PoolType type, ReduceDim dim>
 inline void _llk_unpack_reduce_(const std::uint32_t address)
 {
-    LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
     // Clear z/w start counters
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 
@@ -63,15 +62,8 @@ inline void _llk_unpack_reduce_(const std::uint32_t address)
     // Wait for free context
     wait_for_next_context(2);
 
-    // Get tile address
-    if (0 == unp_cfg_context)
-    {
-        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
-    }
-    else
-    {
-        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
-    }
+    // Validate and configure address
+    _llk_unpack_configure_single_address_(address, cfg);
 
     // Trisc::SEMPOST for context acquire
     semaphore_post(semaphore::UNPACK_SYNC);

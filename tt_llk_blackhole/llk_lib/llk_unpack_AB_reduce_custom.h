@@ -111,8 +111,6 @@ inline void _llk_unpack_AB_reduce_block_max_row_init_()
  */
 inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, const std::uint32_t address_b)
 {
-    LLK_ASSERT(is_valid_L1_address(address_a), "L1 address_a must be in valid L1 memory region");
-    LLK_ASSERT(is_valid_L1_address(address_b), "L1 address_b must be in valid L1 memory region");
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
 
     // Program srcA and srcB base addresses
@@ -121,17 +119,8 @@ inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, 
     // Wait for free context
     wait_for_next_context(2);
 
-    // Get tile address
-    if (0 == unp_cfg_context)
-    {
-        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
-        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
-    }
-    else
-    {
-        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
-        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
-    }
+    // Validate and configure addresses
+    _llk_unpack_configure_addresses_(address_a, address_b, cfg);
 
     // Trisc::SEMPOST for context acquire
     semaphore_post(semaphore::UNPACK_SYNC);

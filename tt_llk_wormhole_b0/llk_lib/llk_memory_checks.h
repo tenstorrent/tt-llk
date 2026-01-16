@@ -6,72 +6,101 @@
 
 #include <cstdint>
 
-namespace ckernel
-{
-
-// Memory layout constants based on memory.wormhole.ld
-// L1 Layout:
-// BRISC_CODE:              0x0     - 0x4000  (16KB)
-// BRISC_LOADER_INIT_MEM:   0x4000  - 0x5000  (4KB)
-// TRISC0_CODE:             0x5000  - 0x9000  (16KB)
-// TRISC0_LOADER_INIT_MEM:  0x9000  - 0x9800  (2KB)
-// TRISC1_CODE:             0x9800  - 0xD800  (16KB)
-// TRISC1_LOADER_INIT_MEM:  0xD800  - 0xE000  (2KB)
-// TRISC2_CODE:             0xE000  - 0x12000 (16KB)
-// TRISC2_LOADER_INIT_MEM:  0x12000 - 0x12800 (2KB)
-// Firmware End:            0x12800 (75KB)
-// RUNTIME_ARGS:            0x64000 - 0x64400 (1KB)
-// L1 End:                  0x16E000 (1464KB total L1)
-
-constexpr std::uint32_t L1_FIRMWARE_END     = 0x12800;
-constexpr std::uint32_t L1_REGION1_START    = L1_FIRMWARE_END;
-constexpr std::uint32_t L1_REGION1_END      = 0x64000;
-constexpr std::uint32_t L1_RUNTIME_ARGS_END = 0x64400;
-constexpr std::uint32_t L1_REGION2_START    = L1_RUNTIME_ARGS_END;
-constexpr std::uint32_t L1_REGION2_END      = 0x16E000;
-
-} // namespace ckernel
+#include "core_config.h"
+#include "dev_mem_map.h"
 
 /**
  * @brief Transform L1 address to the format used by LLK functions
  *
- * @param buffer_address The physical L1 address
- * @return Transformed address (divided by 16 and decremented)
+ * LLK (Low-Level Kernel) uses a transformed address format where addresses are
+ * divided by 16 (shifted right by 4 bits) and then decremented by 1.
+ * This transformation is required for all L1 buffer addresses used in LLK operations.
+ *
+ * @param buffer_address The physical L1 address (byte-aligned)
+ * @return Transformed address for LLK use: (address / 16) - 1
  */
-inline static std::uint32_t L1_ADDRESS(std::uint32_t buffer_address)
+constexpr inline std::uint32_t L1_ADDRESS(std::uint32_t buffer_address)
 {
-    return (buffer_address / 16) - 1;
+    return (buffer_address >> 4) - 1;
 }
 
-/**
- * @brief Check if an address is in L1 Region 1 (Firmware End → Runtime Args)
- *
- * @param address The L1 address to check
- * @return true if address is in Region 1 (0x12800 - 0x64000)
- */
-inline static bool is_in_region1(const std::uint32_t address)
+namespace ckernel
 {
-    return (address >= L1_ADDRESS(ckernel::L1_REGION1_START) && address < L1_ADDRESS(ckernel::L1_RUNTIME_ARGS_END));
-}
+
+// L1 Memory Layout for Tile Data Verification
+// ============================================
+//
+// This file defines the valid memory regions in L1 where tile data can be safely stored.
+// The layout is based on dev_mem_map.h hardware definitions and excludes all reserved
+// system memory areas.
+//
+// Memory Region Breakdown (from dev_mem_map.h):
+// ----------------------------------------------
+// 0x0     - 0x79F0   (30.48 KB): RESERVED - System firmware, mailboxes, counters, routing
+//                                 tables, fabric metadata, and packet header pools
+//                                 Calculated as: MEM_MAP_END = MEM_PACKET_HEADER_POOL_BASE
+//                                                            + MEM_PACKET_HEADER_POOL_SIZE
+//
+// 0x79F0  - 0x16E000 (1433.52 KB): AVAILABLE - Valid memory for tile data buffers
+//                                   This is the primary usable L1 region for computation
+//
+// Total L1: 1464 KB (MEM_L1_SIZE)
+//
+// Exact Value Calculations (all from dev_mem_map.h chain):
+// ---------------------------------------------------------
+// MEM_MAP_END calculation chain:
+//   MEM_MAILBOX_BASE (16) + MEM_MAILBOX_SIZE (12768) = MEM_MAILBOX_END (12784)
+//   → MEM_ZEROS_BASE = ((12784 + 31) & ~31) = 12800
+//   → MEM_LLK_DEBUG_BASE = 12800 + 512 = 13312
+//   → MEM_BRISC_FIRMWARE_BASE = 13312 + 1024 = 14336
+//   → MEM_NCRISC_FIRMWARE_BASE = 14336 + 6144 = 20480
+//   → MEM_TRISC0_FIRMWARE_BASE = 20480 + 2048 = 22528
+//   → MEM_TRISC1_FIRMWARE_BASE = 22528 + 1536 = 24064
+//   → MEM_TRISC2_FIRMWARE_BASE = 24064 + 1536 = 25600
+//   → MEM_NOC_COUNTER_BASE = 25600 + 1536 = 27136 (0x6A00)
+//   → MEM_FABRIC_COUNTER_BASE = 27136 + 80 = 27216 (0x6A50)
+//   → MEM_TENSIX_ROUTING_TABLE_BASE = 27216 + 32 = 27248 (0x6A70)
+//   → MEM_TENSIX_FABRIC_CONNECTIONS_BASE = 27248 + 484 + 768 + 1024 + 12 = 29536 (0x7360)
+//   → MEM_PACKET_HEADER_POOL_BASE = 29536 + 656 = 30192 (0x75F0)
+//   → MEM_MAP_END = 30192 + 1024 = 31216 (0x79F0)
+
+// Start of available memory region for tile data (LLK transformed address)
+// Immediately after all reserved system memory (firmware, mailboxes, counters, routing tables)
+// Physical Boundary: 0x79F0 (31,216 bytes = 30.48 KB)
+// Transformed Value: L1_ADDRESS(MEM_MAP_END) = (0x79F0 / 16) - 1
+// Derived from: MEM_MAP_END from dev_mem_map.h
+constexpr std::uint32_t L1_REGION_START = L1_ADDRESS(MEM_MAP_END);
+
+// End of L1 memory (LLK transformed address) - total available L1 size
+// This is the absolute upper bound for any L1 address
+// Physical Boundary: 0x16E000 (1,499,136 bytes = 1464 KB)
+// Transformed Value: L1_ADDRESS(MEM_L1_SIZE) = (0x16E000 / 16) - 1
+// Defined by: MEM_L1_SIZE (1464 * 1024) from dev_mem_map.h
+constexpr std::uint32_t L1_REGION_END = L1_ADDRESS(MEM_L1_SIZE);
+
+} // namespace ckernel
 
 /**
- * @brief Check if an address is in L1 Region 2 (Runtime Args → L1 End)
+ * @brief Check if an LLK-transformed address is valid for tile data
  *
- * @param address The L1 address to check
- * @return true if address is in Region 2 (0x64400 - 0x16E000)
- */
-inline static bool is_in_region2(const std::uint32_t address)
-{
-    return (address >= L1_ADDRESS(ckernel::L1_REGION2_START) && address < L1_ADDRESS(ckernel::L1_REGION2_END));
-}
-
-/**
- * @brief Check if an address is a valid L1 address in Region 1 or Region 2
+ * Validates that the transformed address falls within the usable L1 memory region:
+ * - Start (transformed): L1_ADDRESS(0x79F0) = L1_ADDRESS(MEM_MAP_END)
+ * - End (transformed):   L1_ADDRESS(0x16E000) = L1_ADDRESS(MEM_L1_SIZE)
+ * - Physical Range: 0x79F0 - 0x16E000 (1,433,520 bytes ≈ 1,399.5 KB)
  *
- * @param address The L1 address to validate
- * @return true if address is in Region 1 or Region 2
+ * This single contiguous region is available for all tile data and computational buffers.
+ * The reserved area (0x0 - 0x79F0 ≈ 30.48 KB) contains system firmware, mailboxes, counters,
+ * routing tables, fabric metadata, and packet header pools.
+ *
+ * IMPORTANT: This function takes and compares LLK TRANSFORMED addresses.
+ * If you have a physical address, transform it first using L1_ADDRESS():
+ *   transformed_addr = L1_ADDRESS(physical_addr) = (physical_addr / 16) - 1
+ * Or pass this function the result from L1_ADDRESS() calls.
+ *
+ * @param address The LLK-transformed L1 address to validate
+ * @return true if address is within valid tile data region [L1_REGION_START, L1_REGION_END)
  */
 inline static bool is_valid_L1_address(const std::uint32_t address)
 {
-    return is_in_region1(address) || is_in_region2(address);
+    return (address >= ckernel::L1_REGION_START && address < ckernel::L1_REGION_END);
 }
