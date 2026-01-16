@@ -48,7 +48,7 @@ jobs:
                 -m "not quasar" \
                 --store-durations \
                 --no-debug-symbols \
-                --override-ini="addopts=-v -tb=short" --timeout=60 \
+                --override-ini="addopts=-v --tb=short" --timeout=60 \
                 --junitxml=pytest-duration-wormhole-all.xml .
 
       - name: Upload duration data
@@ -90,7 +90,7 @@ jobs:
                 -m "not quasar" \
                 --store-durations \
                 --no-debug-symbols \
-                --override-ini="addopts=-v -tb=short" --timeout=60 \
+                --override-ini="addopts=-v --tb=short" --timeout=60 \
                 --junitxml=pytest-duration-blackhole-all.xml .
 
       - name: Upload duration data
