@@ -38,8 +38,8 @@ from helpers.utils import passed_test
 @parametrize(
     formats=input_output_formats(
         [
-            DataFormat.Float32,
             DataFormat.Float16,
+            DataFormat.Float32,
             DataFormat.Float16_b,
         ],
     ),
@@ -134,9 +134,9 @@ def test_sfpu_rsqrt_quasar(
             tile_count_res=tile_cnt_A,
             num_faces=num_faces,
         ),
-        unpack_to_dest=False,  # (
-        #    formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-        # ),
+        unpack_to_dest=(
+            formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+        ),
         dest_acc=dest_acc,
     )
 
