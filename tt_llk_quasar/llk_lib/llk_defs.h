@@ -7,27 +7,27 @@
 namespace ckernel
 {
 
-enum class ReduceDim : uint8_t
+enum class ReduceDim : std::uint8_t
 {
     REDUCE_ROW,
     REDUCE_COL,
     REDUCE_SCALAR,
 };
 
-enum class PoolType : uint8_t
+enum class PoolType : std::uint8_t
 {
     SUM,
     AVG,
     MAX,
 };
 
-enum class DataCopyType : uint8_t
+enum class DataCopyType : std::uint8_t
 {
     A2D,
     B2D,
 };
 
-enum class EltwiseBinaryType : uint8_t
+enum class EltwiseBinaryType : std::uint8_t
 {
     ELWMUL,
     ELWADD,
@@ -35,7 +35,7 @@ enum class EltwiseBinaryType : uint8_t
 };
 
 // Broadcasts only occur on SrcB
-enum class BroadcastType : uint8_t
+enum class BroadcastType : std::uint8_t
 {
     NONE,
     COL,
@@ -43,7 +43,7 @@ enum class BroadcastType : uint8_t
     SCALAR,
 };
 
-enum class SfpuType : uint32_t
+enum class SfpuType : std::uint32_t
 {
     tanh,
     gelu,
@@ -59,13 +59,13 @@ enum class SfpuType : uint32_t
     add
 };
 
-enum class DstSync : uint8_t
+enum class DstSync : std::uint8_t
 {
     SyncHalf,
     SyncFull,
 };
 
-enum class MathFidelity : uint8_t
+enum class MathFidelity : std::uint8_t
 {
     LoFi  = 0,
     HiFi2 = 2,
@@ -73,7 +73,7 @@ enum class MathFidelity : uint8_t
     HiFi4 = 4
 };
 
-enum class StochRndType : uint8_t
+enum class StochRndType : std::uint8_t
 {
     None = 0,
     Fpu  = 1,

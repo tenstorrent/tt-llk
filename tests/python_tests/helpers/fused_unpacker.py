@@ -80,10 +80,10 @@ class Unpacker:
             f"    // Operation {stage}: {self.__class__.__name__}\n"
             f"    UNUSED const Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});\n"
             f"    UNUSED const Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});\n"
-            f"    UNUSED const uint32_t unpack_a_src_format{stage} = ckernel::to_underlying(DataFormat::{unpack_a_src.name});\n"
-            f"    UNUSED const uint32_t unpack_a_dst_format{stage} = ckernel::to_underlying(DataFormat::{unpack_a_dst.name});\n"
-            f"    UNUSED const uint32_t unpack_b_src_format{stage} = ckernel::to_underlying(DataFormat::{unpack_b_src.name});\n"
-            f"    UNUSED const uint32_t unpack_b_dst_format{stage} = ckernel::to_underlying(DataFormat::{unpack_b_dst.name});\n"
+            f"    UNUSED const std::uint32_t unpack_a_src_format{stage} = ckernel::to_underlying(DataFormat::{unpack_a_src.name});\n"
+            f"    UNUSED const std::uint32_t unpack_a_dst_format{stage} = ckernel::to_underlying(DataFormat::{unpack_a_dst.name});\n"
+            f"    UNUSED const std::uint32_t unpack_b_src_format{stage} = ckernel::to_underlying(DataFormat::{unpack_b_src.name});\n"
+            f"    UNUSED const std::uint32_t unpack_b_dst_format{stage} = ckernel::to_underlying(DataFormat::{unpack_b_dst.name});\n"
         )
 
         code += self.hw_configure(operation_config)
@@ -161,7 +161,7 @@ class MatmulUnpacker(Unpacker):
 
         code = (
             f"    _llk_unpack_AB_matmul_init_<>({transpose_faces}, {ct_dim}, {rt_dim}, {kt_dim}, {face_r_dim}, {face_r_dim});\n"
-            f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
+            f"    for (std::uint32_t j = 0; j < {kt_dim}; j++)\n"
             f"    {{\n"
             f"        _llk_unpack_AB_matmul_<>(\n"
             f"            L1_ADDRESS(buffer_A{stage}[0]), L1_ADDRESS(buffer_B{stage}[0]),\n"
@@ -380,9 +380,9 @@ class UnpackerTilizeA(Unpacker):
         # Blackhole
         if operation_config.architecture == ChipArchitecture.BLACKHOLE:
             code += (
-                f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
+                f"    for (std::uint32_t i = 0; i < {block_rt_dim}; i++)\n"
                 f"    {{\n"
-                f"        for (uint32_t j = 0; j < {block_ct_dim}; j++)\n"
+                f"        for (std::uint32_t j = 0; j < {block_ct_dim}; j++)\n"
                 f"        {{\n"
                 f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage});\n"
                 f"        }}\n"
@@ -392,9 +392,9 @@ class UnpackerTilizeA(Unpacker):
         # Wormhole
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
             code += (
-                f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
+                f"    for (std::uint32_t i = 0; i < {block_rt_dim}; i++)\n"
                 f"    {{\n"
-                f"        for (uint32_t j = 0; j < {block_ct_dim}; j++)\n"
+                f"        for (std::uint32_t j = 0; j < {block_ct_dim}; j++)\n"
                 f"        {{\n"
                 f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
                 f"        }}\n"

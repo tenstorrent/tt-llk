@@ -17,15 +17,16 @@
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
-template <uint32_t kernel_broadcast_a = 0, uint32_t kernel_broadcast_b = 0>
-inline void _llk_unpack_AB_matmul_mop_config_(const uint32_t ct_dim, const uint32_t rt_dim, const bool unpA_partial_face, const bool unpB_partial_face)
+template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
+inline void _llk_unpack_AB_matmul_mop_config_(
+    const std::uint32_t ct_dim, const std::uint32_t rt_dim, const bool unpA_partial_face, const bool unpB_partial_face)
 {
     // in0/inA - loaded to SrcB
     // in1/inB - loaded to SrcA
 
-    const bool reuse_a                 = ct_dim >= rt_dim;
-    const uint32_t replay_buf_prog_len = (reuse_a && unpA_partial_face) ? 18 : ((!reuse_a && unpB_partial_face) ? 18 : 12);
-    const uint32_t replay_buf_run_len  = replay_buf_prog_len / 2;
+    const bool reuse_a                      = ct_dim >= rt_dim;
+    const std::uint32_t replay_buf_prog_len = (reuse_a && unpA_partial_face) ? 18 : ((!reuse_a && unpB_partial_face) ? 18 : 12);
+    const std::uint32_t replay_buf_run_len  = replay_buf_prog_len / 2;
 
     if (reuse_a)
     {
@@ -182,18 +183,18 @@ inline void _llk_unpack_AB_matmul_mop_config_(const uint32_t ct_dim, const uint3
     tmp.program();
 }
 
-template <uint32_t kernel_broadcast_a = 0, uint32_t kernel_broadcast_b = 0>
+template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
 __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
-    const uint32_t transpose       = 0,
-    const uint32_t ct_dim          = 1,
-    const uint32_t rt_dim          = 1,
-    const uint32_t kt_dim          = 1,
-    const uint32_t unpA_face_r_dim = FACE_R_DIM,
-    const uint32_t unpB_face_r_dim = FACE_R_DIM,
-    const uint32_t unpA_num_faces  = 4,
-    const uint32_t unpB_num_faces  = 4,
-    const bool unpA_partial_face   = false,
-    const bool unpB_partial_face   = false)
+    const std::uint32_t transpose       = 0,
+    const std::uint32_t ct_dim          = 1,
+    const std::uint32_t rt_dim          = 1,
+    const std::uint32_t kt_dim          = 1,
+    const std::uint32_t unpA_face_r_dim = FACE_R_DIM,
+    const std::uint32_t unpB_face_r_dim = FACE_R_DIM,
+    const std::uint32_t unpA_num_faces  = 4,
+    const std::uint32_t unpB_num_faces  = 4,
+    const bool unpA_partial_face        = false,
+    const bool unpB_partial_face        = false)
 {
     LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
@@ -213,7 +214,7 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     }
     else
     {
-        const uint32_t unpA_x_end = unpA_num_faces * unpA_face_r_dim * FACE_C_DIM - 1;
+        const std::uint32_t unpA_x_end = unpA_num_faces * unpA_face_r_dim * FACE_C_DIM - 1;
         TT_SETADCXX(p_setadc::UNP_A, unpA_x_end, 0x0);
     }
 
@@ -227,7 +228,7 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     {
         // Do full tile unpacking. No need to program face dim
         // as address counter pointing to the face is not incremented
-        const uint32_t unpB_x_end = unpB_num_faces * unpB_face_r_dim * FACE_C_DIM - 1;
+        const std::uint32_t unpB_x_end = unpB_num_faces * unpB_face_r_dim * FACE_C_DIM - 1;
         TT_SETADCXX(p_setadc::UNP_B, unpB_x_end, 0x0);
     }
 
@@ -236,44 +237,44 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
     _llk_unpack_AB_matmul_mop_config_<kernel_broadcast_a, kernel_broadcast_b>(ct_dim, rt_dim, unpA_partial_face, unpB_partial_face);
 }
 
-inline void _llk_unpack_AB_matmul_uninit_(const uint32_t unpA_face_r_dim, const uint32_t unpB_face_r_dim)
+inline void _llk_unpack_AB_matmul_uninit_(const std::uint32_t unpA_face_r_dim, const std::uint32_t unpB_face_r_dim)
 {
     // TODO NC: Issue tt-llk#1036 will make this transient
     TT_SETADCXX(p_setadc::UNP_A, unpA_face_r_dim * FACE_C_DIM - 1, 0x0);
     TT_SETADCXX(p_setadc::UNP_B, unpB_face_r_dim * FACE_C_DIM - 1, 0x0);
 }
 
-template <uint32_t kernel_broadcast_a = 0, uint32_t kernel_broadcast_b = 0>
+template <std::uint32_t kernel_broadcast_a = 0, std::uint32_t kernel_broadcast_b = 0>
 inline void _llk_unpack_AB_matmul_(
-    const uint32_t base_address_a,
-    const uint32_t base_address_b,
-    const uint32_t tile_index_a,
-    const uint32_t tile_index_b,
-    const uint32_t tile_size_a,
-    const uint32_t tile_size_b,
+    const std::uint32_t base_address_a,
+    const std::uint32_t base_address_b,
+    const std::uint32_t tile_index_a,
+    const std::uint32_t tile_index_b,
+    const std::uint32_t tile_size_a,
+    const std::uint32_t tile_size_b,
     const bool unpA_partial_face = false,
     const bool unpB_partial_face = false,
-    uint32_t ct_dim              = 1,
-    const uint32_t rt_dim        = 1,
-    const uint32_t kt_dim        = 1)
+    std::uint32_t ct_dim         = 1,
+    const std::uint32_t rt_dim   = 1,
+    const std::uint32_t kt_dim   = 1)
 {
     // In0/InA -> srcB (supports partial face)
     // In1/InB -> srcA
 
-    volatile uint32_t *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_t *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
-    const bool reuse_a   = ct_dim >= rt_dim;
-    const uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
+    const bool reuse_a        = ct_dim >= rt_dim;
+    const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
 
     if (!reuse_a)
     {
         TTI_MULDMAREG(0, p_gpr_unpack::TMP_LO, p_gpr_unpack::TILE_SIZE_B, p_gpr_unpack::KT_DIM);
     }
 
-    for (uint32_t t = 0; t < t_dim; t++)
+    for (std::uint32_t t = 0; t < t_dim; t++)
     {
-        uint32_t offset_address_a = tile_size_a * (tile_index_a + (reuse_a ? (t * kt_dim) : (0)));
-        uint32_t offset_address_b = tile_size_b * (tile_index_b + (reuse_a ? (0) : (t)));
+        std::uint32_t offset_address_a = tile_size_a * (tile_index_a + (reuse_a ? (t * kt_dim) : (0)));
+        std::uint32_t offset_address_b = tile_size_b * (tile_index_b + (reuse_a ? (0) : (t)));
         if constexpr (kernel_broadcast_a > 0)
         {
             offset_address_a = tile_size_a * ((tile_index_a + (reuse_a ? ((t * kt_dim)) : (0))) % kernel_broadcast_a);
@@ -283,8 +284,8 @@ inline void _llk_unpack_AB_matmul_(
             offset_address_b = tile_size_b * ((tile_index_b + (reuse_a ? (0) : (t))) % kernel_broadcast_b);
         }
 
-        uint32_t address_a = base_address_a + offset_address_a;
-        uint32_t address_b = base_address_b + offset_address_b;
+        std::uint32_t address_a = base_address_a + offset_address_a;
+        std::uint32_t address_b = base_address_b + offset_address_b;
 
         // Wait for free context
         wait_for_next_context(2);

@@ -14,7 +14,7 @@
 #include "data_format_inference.h"
 #include "tensix_types.h"
 
-inline uint32_t L1_ADDRESS(uint32_t buffer_address)
+inline std::uint32_t L1_ADDRESS(std::uint32_t buffer_address)
 {
 #ifdef ARCH_QUASAR
     return buffer_address / 16;
@@ -44,9 +44,9 @@ constexpr FormatConfig formats = FormatConfig(UNPACK_A_IN, UNPACK_A_OUT, MATH_FO
 
 // Tile count validation - applies to all kernel variants (UNPACK, MATH, PACK)
 #if defined(RT_DIM) && defined(CT_DIM)
-constexpr uint32_t tile_count          = RT_DIM * CT_DIM;
-constexpr uint32_t max_tiles_fp32_dest = 4; // 32-bit dest accumulation limit
-constexpr uint32_t max_tiles_fp16_dest = 8; // 16-bit dest accumulation limit
+constexpr std::uint32_t tile_count          = RT_DIM * CT_DIM;
+constexpr std::uint32_t max_tiles_fp32_dest = 4; // 32-bit dest accumulation limit
+constexpr std::uint32_t max_tiles_fp16_dest = 8; // 16-bit dest accumulation limit
 
 static_assert(tile_count > 0, "Matrix dimensions invalid: RT_DIM and CT_DIM must be positive");
 

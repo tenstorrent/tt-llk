@@ -82,7 +82,7 @@ class MatmulFpu(Fpu):
             f"        TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, {transpose}, {ct_dim}, {rt_dim}\n"
             f"    );\n"
             f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
-            f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
+            f"    for (std::uint32_t j = 0; j < {kt_dim}; j++)\n"
             f"    {{\n"
             f"        _llk_math_matmul_<{math_fidelity}>(0, {ct_dim}, {rt_dim});\n"
             f"    }}\n"
@@ -573,7 +573,7 @@ class Math:
         format = f"DataFormat::{operation_config.math_format.name}"
         code = (
             f"    // Operation {stage}: Math Setup\n"
-            f"    const uint32_t math_format{stage} = ckernel::to_underlying({format});\n"
+            f"    const std::uint32_t math_format{stage} = ckernel::to_underlying({format});\n"
             f"    const DstSync dest_sync{stage} = DstSync::Sync{operation_config.dest_sync.name};\n"
         )
         code += self.hw_configure(operation_config)

@@ -17,10 +17,10 @@
 using namespace ckernel;
 
 // local function declarations
-inline void eltwise_unary_configure_addrmod(const uint32_t dst_format);
+inline void eltwise_unary_configure_addrmod(const std::uint32_t dst_format);
 
 template <DataCopyType type, DstSync Dst, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
-inline void _llk_math_eltwise_unary_datacopy_(const uint32_t dst_index, const uint32_t src_format, const uint32_t dst_format)
+inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format)
 {
     if (unpack_to_dest && is_32bit_input(src_format, dst_format))
     {
@@ -174,7 +174,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const uint32_t dst_index, const ui
 }
 
 template <DataCopyType type, BroadcastType bcast_type = BroadcastType::NONE>
-inline void eltwise_unary_configure_addrmod(const uint32_t dst_format)
+inline void eltwise_unary_configure_addrmod(const std::uint32_t dst_format)
 {
     // Use srcA for data movement
     if constexpr (type == A2D)
@@ -256,15 +256,15 @@ inline void eltwise_unary_configure_addrmod(const uint32_t dst_format)
 }
 
 template <DataCopyType type, bool is_fp32_dest_acc_en, BroadcastType bcast_type = BroadcastType::NONE, bool is_int_fpu_en = false>
-inline void eltwise_unary_configure_mop(uint32_t rows_per_inst, uint32_t total_rows, const uint32_t num_faces, const uint32_t dst_format)
+inline void eltwise_unary_configure_mop(std::uint32_t rows_per_inst, std::uint32_t total_rows, const std::uint32_t num_faces, const std::uint32_t dst_format)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // always move 32x32 tile, packed as 16x16x4
 
     if constexpr (type == A2D)
     {
-        uint32_t innerloop = (rows_per_inst == p_mova2d::MOV_1_ROW) ? total_rows : (total_rows >> 3);
-        uint32_t outerloop = num_faces;
+        std::uint32_t innerloop = (rows_per_inst == p_mova2d::MOV_1_ROW) ? total_rows : (total_rows >> 3);
+        std::uint32_t outerloop = num_faces;
 
         if (((is_fp32_dest_acc_en || is_int_fpu_en) && !(dst_format == to_underlying(DataFormat::UInt16))) || (dst_format == to_underlying(DataFormat::UInt8)))
         {
@@ -282,10 +282,10 @@ inline void eltwise_unary_configure_mop(uint32_t rows_per_inst, uint32_t total_r
     }
     else if constexpr (type == B2D)
     {
-        uint32_t addr_mod   = (rows_per_inst == p_movb2d::MOV_1_ROW) ? ADDR_MOD_0 : ADDR_MOD_2;
-        uint32_t innerloop  = (rows_per_inst == p_movb2d::MOV_1_ROW) ? total_rows : (total_rows >> 2);
-        uint32_t outerloop  = 4;
-        auto broadcast_type = p_movb2d::MOV_1_ROW; // No broadcast;
+        std::uint32_t addr_mod  = (rows_per_inst == p_movb2d::MOV_1_ROW) ? ADDR_MOD_0 : ADDR_MOD_2;
+        std::uint32_t innerloop = (rows_per_inst == p_movb2d::MOV_1_ROW) ? total_rows : (total_rows >> 2);
+        std::uint32_t outerloop = 4;
+        auto broadcast_type     = p_movb2d::MOV_1_ROW; // No broadcast;
 
         if constexpr (bcast_type == BroadcastType::COL)
         {
@@ -363,7 +363,7 @@ inline void eltwise_unary_configure_mop(uint32_t rows_per_inst, uint32_t total_r
 }
 
 template <DataCopyType type, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool is_int_fpu_en = false>
-inline void _llk_math_eltwise_unary_datacopy_init_(const uint32_t num_faces = 4, const uint32_t dst_format = 255)
+inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces = 4, const std::uint32_t dst_format = 255)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     eltwise_unary_configure_addrmod<type, src_b_bcast_type>(dst_format);
@@ -404,7 +404,7 @@ inline void _llk_math_eltwise_unary_datacopy_uninit_()
  * so nothing except fast tilize should be using that dest bank
  *************************************************************************/
 
-inline void _llk_math_fast_tilize_addrmod_config_(const uint32_t unpack_dst_format, const uint32_t unit_dim)
+inline void _llk_math_fast_tilize_addrmod_config_(const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim)
 {
     // standard addrmod that follows MOVB2D
     addr_mod_t {
@@ -422,13 +422,13 @@ inline void _llk_math_fast_tilize_addrmod_config_(const uint32_t unpack_dst_form
 
     // next two addrmods are mostly used for jumping to and from the offset for the bottom faces
     // offset for the bottom faces is always half the number of rows in the dest bank (512 / 2 for 16bit and 256 / 2 for 32bit since DstSync is always Half)
-    uint32_t bottom_face_offset = (unpack_dst_format == to_underlying(DataFormat::Tf32) ? 256 : 512) / 2;
+    std::uint32_t bottom_face_offset = (unpack_dst_format == to_underlying(DataFormat::Tf32) ? 256 : 512) / 2;
     // unit_dim 1 copies 2 faces before jumping so at the moment of the jump dest RWC is
     // 2*16 (two faces) -  8 (number of rows moved by current instruction)
     // unit_dim 2 copies 4 faces before jumping so at the moment of the jump dest RWC is
     // 4*16 (four faces) - 8 (number of rows moved by current instruction)
-    uint8_t unit_dim_1_forward_jump = bottom_face_offset - (1 * (TILE_NUM_FACES / 2) * FACE_R_DIM - 8);
-    uint8_t unit_dim_2_forward_jump = bottom_face_offset - (2 * (TILE_NUM_FACES / 2) * FACE_R_DIM - 8);
+    std::uint8_t unit_dim_1_forward_jump = bottom_face_offset - (1 * (TILE_NUM_FACES / 2) * FACE_R_DIM - 8);
+    std::uint8_t unit_dim_2_forward_jump = bottom_face_offset - (2 * (TILE_NUM_FACES / 2) * FACE_R_DIM - 8);
 
     // jumping back to the offset for the next tile is logically -bottom_face_offset if dest RWC is at the correct offset for the bottom faces of the next tile
     // only catch is the need to compensate for the current instruction, for unit_dim 1 that is MOVA2D while for unit_dim 2 and 3 that is MOVB2D
@@ -465,7 +465,7 @@ inline void _llk_math_fast_tilize_mop_config_()
     tmp.program();
 }
 
-inline void _llk_math_fast_tilize_init_(const uint32_t unpack_dst_format, const uint32_t unit_dim)
+inline void _llk_math_fast_tilize_init_(const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim)
 {
     // even though MOVA2D and MOVB2D are supposed to ignore ALU_ACC_CTRL_Fp32_enabled some parts still rely on it (not sure why)
     // it would be easier if they just fully respected ALU_ACC_CTRL_Fp32_enabled but it's a hardware quirk
@@ -490,7 +490,7 @@ inline void _llk_math_fast_tilize_init_(const uint32_t unpack_dst_format, const 
 }
 
 template <bool is_fp32_dest_acc_en>
-inline void _llk_math_fast_tilize_uninit_(const uint32_t unpack_dst_format)
+inline void _llk_math_fast_tilize_uninit_(const std::uint32_t unpack_dst_format)
 {
     // if ALU_ACC_CTRL_Fp32_enabled was previously cleared, restore it
     // still not sure why this CFG_STATE_ID_StateID manipulation is needed
@@ -504,19 +504,20 @@ inline void _llk_math_fast_tilize_uninit_(const uint32_t unpack_dst_format)
     }
 }
 
-inline void _llk_math_fast_tilize_block_(const uint32_t dst_index, const uint32_t unpack_dst_format, const uint32_t unit_dim, const uint32_t num_units)
+inline void _llk_math_fast_tilize_block_(
+    const std::uint32_t dst_index, const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim, const std::uint32_t num_units)
 {
     // split dest and write the top faces in the first half and the bottom faces in the second half (or more precisely quarter, since dest sync half)
     // make life easier by lying to set_dst_write_addr that tile shape is 32x16 so correct stride is obtained for dst_index
     math::set_dst_write_addr<DstTileShape::Tile32x16, UnpackDestination::SrcRegs>(dst_index);
 
-    for (uint32_t i = 0; i < num_units; i++)
+    for (std::uint32_t i = 0; i < num_units; i++)
     {
         if (unit_dim == 1)
         {
             // srcA has the full tile, copy the top faces first
             // inside mop:
-            // for (uint32_t j = 0; j < 3; j++)
+            // for (std::uint32_t j = 0; j < 3; j++)
             // {
             //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
             // }
@@ -525,7 +526,7 @@ inline void _llk_math_fast_tilize_block_(const uint32_t dst_index, const uint32_
             TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_3, p_mova2d::MOV_8_ROWS, 0);
             // copy the bottom faces
             // inside mop:
-            // for (uint32_t j = 0; j < 3; j++)
+            // for (std::uint32_t j = 0; j < 3; j++)
             // {
             //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
             // }
@@ -539,7 +540,7 @@ inline void _llk_math_fast_tilize_block_(const uint32_t dst_index, const uint32_
         {
             // srcA has the top faces (4 of them), copy them
             // inside mop:
-            // for (uint32_t j = 0; j < 7; j++)
+            // for (std::uint32_t j = 0; j < 7; j++)
             // {
             //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
             // }
@@ -548,7 +549,7 @@ inline void _llk_math_fast_tilize_block_(const uint32_t dst_index, const uint32_
             TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_3, p_mova2d::MOV_8_ROWS, 0);
             // srcB has the bottom faces (4 of them), copy them
             // inside mop:
-            // for (uint32_t j = 0; j < 15; j++)
+            // for (std::uint32_t j = 0; j < 15; j++)
             // {
             //     TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
             // }
@@ -562,14 +563,14 @@ inline void _llk_math_fast_tilize_block_(const uint32_t dst_index, const uint32_
         {
             // srcA has the top 8 rows of the top faces (6 of them), copy them
             // inside mop:
-            // for (uint32_t j = 0; j < 6; j++)
+            // for (std::uint32_t j = 0; j < 6; j++)
             // {
             //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
             // }
             TTI_MOP(p_mop::MASK_LOOP, 6 - 1, 0x0);
             // srcB has the bottom 8 rows of the top faces (6 of them), copy them
             // inside mop:
-            // for (uint32_t j = 0; j < 12; j++)
+            // for (std::uint32_t j = 0; j < 12; j++)
             // {
             //     TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
             // }
@@ -578,21 +579,21 @@ inline void _llk_math_fast_tilize_block_(const uint32_t dst_index, const uint32_
             // also clear dest RWC since we use dest offset for forward jump here
             TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
             // don't have enough address mods to have unit_dim 3 forward jump so dest offset is used here
-            uint32_t top_face_offset = dst_index + i * 3; // copy 3 tiles per iteration
+            std::uint32_t top_face_offset = dst_index + i * 3; // copy 3 tiles per iteration
             // offset to the bottom is the number of tiles that fit into the dest bank
             // since half size faces are specified, this gets into the correct position in the second half
-            uint32_t bottom_face_offset = top_face_offset + (unpack_dst_format == to_underlying(DataFormat::Tf32) ? 4 : 8);
+            std::uint32_t bottom_face_offset = top_face_offset + (unpack_dst_format == to_underlying(DataFormat::Tf32) ? 4 : 8);
             math::set_dst_write_addr<DstTileShape::Tile32x16, UnpackDestination::SrcRegs>(bottom_face_offset);
             // srcA has the top 8 rows of the bottom faces (6 of them), copy them
             // inside mop:
-            // for (uint32_t j = 0; j < 6; j++)
+            // for (std::uint32_t j = 0; j < 6; j++)
             // {
             //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
             // }
             TTI_MOP(p_mop::MASK_LOOP, 6 - 1, 0x0);
             // srcB has the bottom 8 rows of the bottom faces (6 of them), copy them
             // inside mop:
-            // for (uint32_t j = 0; j < 11; j++)
+            // for (std::uint32_t j = 0; j < 11; j++)
             // {
             //     TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
             // }

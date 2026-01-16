@@ -25,7 +25,7 @@ using namespace ckernel::sfpu;
  * @param math_format Optional math format for operations that need format-specific behavior
  */
 template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false>
-void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
+void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0)
 {
     switch (operation)
     {
@@ -152,8 +152,8 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
     }
 }
 
-template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, uint32_t MATH_FORMAT = 0>
-void call_binary_sfpu_operation(const uint32_t dst_index_in0 = 0, const uint32_t dst_index_in1 = 1, const uint32_t dst_index_out = 0)
+template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, std::uint32_t MATH_FORMAT = 0>
+void call_binary_sfpu_operation(const std::uint32_t dst_index_in0 = 0, const std::uint32_t dst_index_in1 = 1, const std::uint32_t dst_index_out = 0)
 {
     switch (BINOP)
     {

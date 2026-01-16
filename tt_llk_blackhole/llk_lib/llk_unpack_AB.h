@@ -18,17 +18,17 @@ using namespace ckernel;
 using namespace ckernel::unpacker;
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, const uint32_t num_faces = 4, const bool narrow_tile = false)
+inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, const std::uint32_t num_faces = 4, const bool narrow_tile = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    static constexpr uint32_t unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint32_t unpack_srcb = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr std::uint32_t unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr std::uint32_t unpack_srcb = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
     if constexpr (BType == BroadcastType::COL)
     {
-        static constexpr uint32_t unpack_srcb_set_z = TT_OP_SETADCZW(0b010, 0, 0, 0, 2, 0b0001);
-        const uint32_t outerloop                    = num_faces < 4 ? 1 : 2;
-        const uint32_t innerloop                    = num_faces < 2 ? 1 : 2;
+        static constexpr std::uint32_t unpack_srcb_set_z = TT_OP_SETADCZW(0b010, 0, 0, 0, 2, 0b0001);
+        const std::uint32_t outerloop                    = num_faces < 4 ? 1 : 2;
+        const std::uint32_t innerloop                    = num_faces < 2 ? 1 : 2;
         ckernel_template tmp(outerloop, innerloop, unpack_srca);
         tmp.set_start_op(unpack_srcb);
         if (narrow_tile)
@@ -43,18 +43,18 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
     }
     else if constexpr (BType == BroadcastType::ROW)
     {
-        static constexpr uint32_t unpack_srcb_clear_z  = TT_OP_SETADCZW(0b010, 0, 0, 0, 0, 0b0001);
-        static constexpr uint32_t unpack_srcb_no_z_inc = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        const uint32_t outerloop                       = num_faces < 4 ? 1 : 2;
-        const uint32_t innerloop                       = num_faces < 2 ? 1 : 2;
+        static constexpr std::uint32_t unpack_srcb_clear_z  = TT_OP_SETADCZW(0b010, 0, 0, 0, 0, 0b0001);
+        static constexpr std::uint32_t unpack_srcb_no_z_inc = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        const std::uint32_t outerloop                       = num_faces < 4 ? 1 : 2;
+        const std::uint32_t innerloop                       = num_faces < 2 ? 1 : 2;
         ckernel_template tmp(outerloop, innerloop, narrow_tile ? unpack_srcb_no_z_inc : unpack_srcb, unpack_srca);
         tmp.set_end_op(unpack_srcb_clear_z);
         tmp.program();
     }
     else if constexpr (BType == BroadcastType::SCALAR)
     {
-        const uint32_t outerloop = 1;
-        const uint32_t innerloop = num_faces;
+        const std::uint32_t outerloop = 1;
+        const std::uint32_t innerloop = num_faces;
         ckernel_template tmp(outerloop, innerloop, unpack_srca);
         tmp.set_start_op(unpack_srcb);
         tmp.program();
@@ -63,18 +63,18 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
     {
         if (transpose_of_faces)
         {
-            static constexpr uint32_t srca_set_z         = TT_OP_SETADCZW(0b001, 0, 0, 0, 1, 0b0001);                                         // set z to 1
-            static constexpr uint32_t unpack_srca_skip_z = TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // inc z by 2
-            const uint32_t outerloop                     = num_faces < 4 ? 1 : 2;
-            const uint32_t innerloop                     = num_faces < 2 ? 1 : 2;
+            static constexpr std::uint32_t srca_set_z         = TT_OP_SETADCZW(0b001, 0, 0, 0, 1, 0b0001);                                         // set z to 1
+            static constexpr std::uint32_t unpack_srca_skip_z = TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // inc z by 2
+            const std::uint32_t outerloop                     = num_faces < 4 ? 1 : 2;
+            const std::uint32_t innerloop                     = num_faces < 2 ? 1 : 2;
             ckernel_template tmp(outerloop, innerloop, num_faces < 4 ? unpack_srca : unpack_srca_skip_z, unpack_srcb);
             tmp.set_end_op(srca_set_z);
             tmp.program();
         }
         else
         {
-            constexpr uint32_t outerloop = 1;
-            const uint32_t innerloop     = num_faces;
+            constexpr std::uint32_t outerloop = 1;
+            const std::uint32_t innerloop     = num_faces;
             ckernel_template tmp(outerloop, innerloop, unpack_srca, unpack_srcb);
             tmp.program();
         }
@@ -83,18 +83,18 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
 
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_init_(
-    const uint32_t face_r_dim = FACE_R_DIM, const uint32_t num_faces = 4, const bool narrow_tile = false, const uint32_t transpose = 0)
+    const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, const bool narrow_tile = false, const std::uint32_t transpose = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose); // transpose within the face
 
-    constexpr uint32_t UNP_SEL = p_setadc::UNP_AB;
+    constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;
     config_unpacker_x_end<UNP_SEL>(face_r_dim);
 
     _llk_unpack_AB_mop_config_<BType>(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
 }
 
-inline void _llk_unpack_AB_uninit_(const uint32_t unpA_face_r_dim, const uint32_t unpB_face_r_dim)
+inline void _llk_unpack_AB_uninit_(const std::uint32_t unpA_face_r_dim, const std::uint32_t unpB_face_r_dim)
 {
     // TODO NC: Issue tt-llk#1036 will make this transient
     TT_SETADCXX(p_setadc::UNP_A, unpA_face_r_dim * FACE_C_DIM - 1, 0x0);
@@ -102,12 +102,12 @@ inline void _llk_unpack_AB_uninit_(const uint32_t unpA_face_r_dim, const uint32_
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_(const uint32_t address_a, const uint32_t address_b)
+inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t address_b)
 {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
 
     // Program srcA and srcB base addresses
-    volatile uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // Wait for free context
     wait_for_next_context(2);

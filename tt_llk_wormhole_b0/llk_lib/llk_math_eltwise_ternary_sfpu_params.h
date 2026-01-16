@@ -12,10 +12,10 @@
 template <bool APPROXIMATE, typename Callable, typename... Args>
 inline void _llk_math_eltwise_ternary_sfpu_params_(
     Callable&& sfpu_func,
-    uint32_t dst_index_in0,
-    uint32_t dst_index_in1,
-    uint32_t dst_index_in2,
-    uint32_t dst_index_out,
+    std::uint32_t dst_index_in0,
+    std::uint32_t dst_index_in1,
+    std::uint32_t dst_index_in2,
+    std::uint32_t dst_index_out,
     int vector_mode = to_underlying(VectorMode::RC),
     Args&&... args)
 {

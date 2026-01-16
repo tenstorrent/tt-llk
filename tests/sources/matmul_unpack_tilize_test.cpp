@@ -10,14 +10,14 @@
 #include "llk_defs.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
-uint32_t tile_size                = 128;
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t tile_size                = 128;
 
 // Remove later
-constexpr uint32_t buffer_A_tilized = 0x1e000;
-constexpr uint32_t buffer_B_tilized = 0x1f000;
+constexpr std::uint32_t buffer_A_tilized = 0x1e000;
+constexpr std::uint32_t buffer_B_tilized = 0x1f000;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -28,8 +28,8 @@ constexpr uint32_t buffer_B_tilized = 0x1f000;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
-    int run                     = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
+    const std::uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
+    int run                          = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats_array[run].unpack_src,
         formats_array[run].unpack_src,
@@ -79,9 +79,9 @@ using namespace ckernel;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const bool is_int_fpu_en           = false;
-    const uint32_t operand_A_dst_index = 1;
-    const uint32_t operand_B_dst_index = 2;
+    const bool is_int_fpu_en                = false;
+    const std::uint32_t operand_A_dst_index = 1;
+    const std::uint32_t operand_B_dst_index = 2;
 
     // copy srca to dest
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
@@ -128,10 +128,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const uint32_t operand_A_dst_index = 1;
-    const uint32_t operand_B_dst_index = 2;
-    const uint32_t res_dst_index       = 0;
-    const bool UNTILIZE                = false;
+    const std::uint32_t operand_A_dst_index = 1;
+    const std::uint32_t operand_B_dst_index = 2;
+    const std::uint32_t res_dst_index       = 0;
+    const bool UNTILIZE                     = false;
 
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
 #ifdef ARCH_BLACKHOLE

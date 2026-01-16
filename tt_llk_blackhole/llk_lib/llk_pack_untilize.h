@@ -32,24 +32,24 @@ inline void _llk_pack_untilize_configure_addrmod_()
 block_ct_dim represents the number of input tiles in a block.
 full_ct_dim represents the total number of input tiles.
 */
-template <uint32_t block_ct_dim, uint32_t full_ct_dim = block_ct_dim, bool diagonal = false>
+template <std::uint32_t block_ct_dim, std::uint32_t full_ct_dim = block_ct_dim, bool diagonal = false>
 inline void _llk_pack_untilize_mop_config_(
-    const uint32_t face_r_dim                = FACE_R_DIM,
-    const uint32_t num_faces                 = 4,
-    bool narrow_row                          = false,
-    [[maybe_unused]] uint32_t row_num_datums = TILE_C_DIM,
-    const uint32_t tile_dst_offset           = 0)
+    const std::uint32_t face_r_dim                = FACE_R_DIM,
+    const std::uint32_t num_faces                 = 4,
+    bool narrow_row                               = false,
+    [[maybe_unused]] std::uint32_t row_num_datums = TILE_C_DIM,
+    const std::uint32_t tile_dst_offset           = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     /*
     Outer loop iterates over the rows in the block, while the inner loop iterates
     over each tile in the block.
     */
-    constexpr uint32_t MOP_INNER_LOOP = block_ct_dim;
-    const uint32_t MOP_OUTER_LOOP     = face_r_dim;
+    constexpr std::uint32_t MOP_INNER_LOOP = block_ct_dim;
+    const std::uint32_t MOP_OUTER_LOOP     = face_r_dim;
 
     // For narrow row, the faces are stored in the first column of the tile, therefore requiring only one packer interface.
-    const uint32_t PACK_INTF_SEL = (narrow_row) ? p_pacr::SINGLE_INTF_ACTIVE : ((num_faces > 1) ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::SINGLE_INTF_ACTIVE);
+    const std::uint32_t PACK_INTF_SEL = (narrow_row) ? p_pacr::SINGLE_INTF_ACTIVE : ((num_faces > 1) ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::SINGLE_INTF_ACTIVE);
     /*
     When using DST_STRIDED_MODE, each packer interface has a stride of 16*block_size,
     where block_size is set to be the size of a row within face.
@@ -89,7 +89,7 @@ inline void _llk_pack_untilize_mop_config_(
     */
     tmp.set_start_op(TT_OP_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, (15 + tile_dst_offset) & 0xF));
 
-    const uint32_t replay_buf_len = 4;
+    const std::uint32_t replay_buf_len = 4;
     load_replay_buf(
         ckernel::packer::replay_buf_offset,
         replay_buf_len,
@@ -110,7 +110,7 @@ inline void _llk_pack_untilize_mop_config_(
     This will allow the L1 address to be updated for the next row.
     Revisit after #22820 to convert last_loop_op to constexpr.
     */
-    uint32_t last_loop_op = TT_OP_PACR(
+    std::uint32_t last_loop_op = TT_OP_PACR(
         p_pacr::CFG_CTXT_0,
         p_pacr::NO_ROW_PAD_ZERO,
         p_pacr::DST_ACCESS_STRIDED_MODE,
@@ -131,11 +131,16 @@ inline void _llk_pack_untilize_mop_config_(
     tmp.program();
 }
 
-static uint32_t tile_dst_offset_state = 0;
+static std::uint32_t tile_dst_offset_state = 0;
 
-template <uint32_t block_ct_dim, uint32_t full_ct_dim = block_ct_dim, bool diagonal = false, bool narrow_row = false, uint32_t row_num_datums = TILE_C_DIM>
+template <
+    std::uint32_t block_ct_dim,
+    std::uint32_t full_ct_dim    = block_ct_dim,
+    bool diagonal                = false,
+    bool narrow_row              = false,
+    std::uint32_t row_num_datums = TILE_C_DIM>
 inline void _llk_pack_untilize_init_(
-    const uint32_t pack_src_format, const uint32_t pack_dst_format, const uint32_t face_r_dim = FACE_R_DIM, const uint32_t num_faces = 4)
+    const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
     static_assert(!diagonal, "Diagonal not supported");
     static_assert(block_ct_dim <= 8, "block_ct_dim must be less than or equal to 8");
@@ -154,14 +159,14 @@ inline void _llk_pack_untilize_init_(
     tile_dst_offset_state = 0;
 
     // Set CH0 Zstride = 2x16x16 faces, .z_src = {.incr = 1} jumps 2 faces
-    uint32_t x_stride       = (pack_src_format & 0x3) == to_underlying(DataFormat::Float32)   ? 4
-                              : (pack_src_format & 0x3) == to_underlying(DataFormat::Float16) ? 2
-                                                                                              : 1;
-    uint32_t y_stride       = FACE_C_DIM * x_stride;
-    const uint32_t z_stride = 2 * face_r_dim * y_stride;
+    std::uint32_t x_stride       = (pack_src_format & 0x3) == to_underlying(DataFormat::Float32)   ? 4
+                                   : (pack_src_format & 0x3) == to_underlying(DataFormat::Float16) ? 2
+                                                                                                   : 1;
+    std::uint32_t y_stride       = FACE_C_DIM * x_stride;
+    const std::uint32_t z_stride = 2 * face_r_dim * y_stride;
     cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(z_stride);
 
-    uint32_t output_addr_offset;
+    std::uint32_t output_addr_offset;
     if constexpr (narrow_row)
     {
         output_addr_offset = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * row_num_datums);
@@ -187,18 +192,18 @@ inline void _llk_pack_untilize_init_(
 }
 
 template <
-    uint32_t block_ct_dim,
-    uint32_t full_ct_dim        = block_ct_dim,
-    bool diagonal               = false,
-    bool narrow_row             = false,
-    uint32_t row_num_datums     = TILE_C_DIM,
-    uint32_t tile_dst_ct_offset = 0>
+    std::uint32_t block_ct_dim,
+    std::uint32_t full_ct_dim        = block_ct_dim,
+    bool diagonal                    = false,
+    bool narrow_row                  = false,
+    std::uint32_t row_num_datums     = TILE_C_DIM,
+    std::uint32_t tile_dst_ct_offset = 0>
 inline void _llk_pack_untilize_(
-    const uint32_t address,
-    [[maybe_unused]] const uint32_t pack_dst_format,
-    const uint32_t face_r_dim                          = FACE_R_DIM,
-    const uint32_t num_faces                           = 4,
-    [[maybe_unused]] const uint32_t tile_dst_rt_offset = 0)
+    const std::uint32_t address,
+    [[maybe_unused]] const std::uint32_t pack_dst_format,
+    const std::uint32_t face_r_dim                          = FACE_R_DIM,
+    const std::uint32_t num_faces                           = 4,
+    [[maybe_unused]] const std::uint32_t tile_dst_rt_offset = 0)
 {
     static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
@@ -210,12 +215,12 @@ inline void _llk_pack_untilize_(
     */
     // program_packer_untilized_destination<block_ct_dim, full_ct_dim, diagonal>(address, pack_dst_format);
     program_packer_destination(address);
-    const uint32_t num_faces_per_rdim_tile = (num_faces > 2) ? 2 : 1;
+    const std::uint32_t num_faces_per_rdim_tile = (num_faces > 2) ? 2 : 1;
 
     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0011); // reset ch0 zw counters
     TT_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0011); // reset ch0 xy counters
 
-    const uint32_t tile_dst_offset = tile_dst_ct_offset + tile_dst_rt_offset;
+    const std::uint32_t tile_dst_offset = tile_dst_ct_offset + tile_dst_rt_offset;
     // Needs to be revisited for perf impact with https://github.com/tenstorrent/tt-llk/issues/632
     // If starting_tile_dst_offset is non-zero, reconfigure the template with the correct offset
     if (tile_dst_offset != tile_dst_offset_state)
@@ -225,7 +230,7 @@ inline void _llk_pack_untilize_(
     }
 
     // Iterate over top, then over bottom faces in the block (if num_faces > 2)
-    for (uint32_t face = 0; face < num_faces_per_rdim_tile; face++)
+    for (std::uint32_t face = 0; face < num_faces_per_rdim_tile; face++)
     {
         ckernel::ckernel_template::run();
 
@@ -237,9 +242,9 @@ inline void _llk_pack_untilize_(
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_dst_offset); // reset w counter
 }
 
-inline void _llk_pack_untilize_uninit_(const uint32_t pack_src_format)
+inline void _llk_pack_untilize_uninit_(const std::uint32_t pack_src_format)
 {
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
-    const uint32_t z_stride = SCALE_DATUM_SIZE(pack_src_format, FACE_R_DIM * FACE_C_DIM);
+    const std::uint32_t z_stride = SCALE_DATUM_SIZE(pack_src_format, FACE_R_DIM * FACE_C_DIM);
     cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(z_stride);
 }

@@ -153,11 +153,11 @@ class FusedKernelGenerator:
             f'#include "tensix_types.h"\n'
             f'#include "operand.h"\n'
             f"\n"
-            f"uint32_t unp_cfg_context          = 0;\n"
-            f"uint32_t pack_sync_tile_dst_ptr   = 0;\n"
-            f"uint32_t math_sync_tile_dst_index = 0;\n"
+            f"std::uint32_t unp_cfg_context          = 0;\n"
+            f"std::uint32_t pack_sync_tile_dst_ptr   = 0;\n"
+            f"std::uint32_t math_sync_tile_dst_index = 0;\n"
             f"\n"
-            f"inline uint32_t L1_ADDRESS(uint32_t buffer_address)\n"
+            f"inline std::uint32_t L1_ADDRESS(std::uint32_t buffer_address)\n"
             f"{{\n"
             f"#ifdef ARCH_QUASAR\n"
             f"    return buffer_address / 16;\n"

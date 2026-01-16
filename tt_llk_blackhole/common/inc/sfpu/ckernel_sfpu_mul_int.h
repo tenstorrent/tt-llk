@@ -14,13 +14,13 @@ namespace sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _mul_int_(const uint32_t dst_index_in0, const uint32_t dst_index_in1, const uint32_t dst_index_out)
+inline void _mul_int_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
         // size of each tile in Dest is 64 rows
-        constexpr uint32_t dst_tile_size = 64;
+        constexpr std::uint32_t dst_tile_size = 64;
         // operand A - uint16
         TT_SFPLOAD(p_sfpu::LREG0, LO16, ADDR_MOD_7, dst_index_in0 * dst_tile_size);
         // operand B - uint16
