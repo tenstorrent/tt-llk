@@ -24,16 +24,17 @@ jobs:
     timeout-minutes: 360
     container:
       image: harbor.ci.tenstorrent.net/${{ needs.build-images.outputs.docker-image }}
-      options: "--rm --device /dev/tenstorrent --ulimit nofile=4096:4096"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Install SFPI
         shell: bash
         run: |
           cd tests
-          ./setup_testing_env.sh
+          CHIP_ARCH=wormhole ./setup_testing_env.sh
           cd ..
 
       - name: Compile all tests and collect durations
@@ -64,16 +65,17 @@ jobs:
     timeout-minutes: 360
     container:
       image: harbor.ci.tenstorrent.net/${{ needs.build-images.outputs.docker-image }}
-      options: "--rm --device /dev/tenstorrent --ulimit nofile=4096:4096"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Install SFPI
         shell: bash
         run: |
           cd tests
-          ./setup_testing_env.sh
+          CHIP_ARCH=blackhole ./setup_testing_env.sh
           cd ..
 
       - name: Compile all tests and collect durations
@@ -128,4 +130,3 @@ jobs:
           slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
           slack_channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
           status: ${{ needs.summary.result }}
-
