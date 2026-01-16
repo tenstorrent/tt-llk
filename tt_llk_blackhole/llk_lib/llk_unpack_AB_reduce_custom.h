@@ -67,7 +67,7 @@ inline void _llk_unpack_AB_reduce_block_max_row_init_()
     if constexpr (is_fp32_dest_acc_en)
     {
         // Set necessary config regs for MOVB2D hi16/lo16 to work
-        _llk_unpack_dbg_feature_disable_();
+        // _llk_unpack_dbg_feature_disable_();
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1);
     }
     // REDUCE_ROW requires transpose itself; additionally, within_face_16x16_transpose flag could require transpose;
