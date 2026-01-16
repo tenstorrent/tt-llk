@@ -150,10 +150,10 @@ RAII wrapper:
   - `ScopedPerfCounters()`: Constructs an internal `PerfCounters` and calls `start()`.
   - `~ScopedPerfCounters()`: Calls `stop()` unless already manually stopped.
   - `stop() -> std::array<CounterResult, COUNTER_SLOT_COUNT>`: Manually stop once and get results; subsequent destruction does not stop again.
-  - `counters() -> PerfCounters&`: Access the underlying counters if you need to `add()`/`configure()` in-kernel.
+  - `counters() -> PerfCounters&`: Access the underlying counters (for inspection or advanced use). Note: `ScopedPerfCounters` starts immediately; if you need to call `add()`/`configure()` before `start()`, use `PerfCounters` directly instead of the RAII wrapper.
   - Non-copyable and non-movable.
 
-Example (RAII):
+Example (RAII; pre-configured by Python):
 ```cpp
 #include "counters.h"
 using namespace llk_perf;
@@ -188,7 +188,7 @@ void run_kernel(const volatile RuntimeParams* params) {
 }
 ```
 
-Example B (kernel side, kernel-provided configuration):
+Example B (kernel side, kernel-provided configuration; do not use RAII here):
 ```cpp
 #include "counters.h"
 
@@ -205,10 +205,6 @@ void run_kernel(const volatile RuntimeParams* params) {
   counters.stop(); // writes (cycles,count) pairs to L1 data
 }
 ```
-
-Migration note:
-- If older code relied on `add()` or `start()` implicitly writing metadata, call `configure()` after your `add()` calls. `start()` now expects configuration to already be present in L1 (from Python or `configure()`).
-- `set_mode()` was removed. Mode is encoded in metadata and adopted from L1 during `start()`; the default is `GRANTS` when the kernel provides configuration.
 
 ### Python API (`tests/python_tests/helpers/counters.py`)
 Functions:
