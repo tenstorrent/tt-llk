@@ -57,6 +57,7 @@ from helpers.utils import passed_test
         MathOperation.Exp,
         MathOperation.Exp2,
         MathOperation.Hardsigmoid,
+        MathOperation.Tanh,
         MathOperation.Threshold,
         MathOperation.ReluMax,
         MathOperation.ReluMin,
@@ -97,6 +98,9 @@ def test_eltwise_unary_sfpu_float(
         pytest.skip(
             reason="Compilation error when this mathop gets compiled with coverage"
         )
+
+    if mathop == MathOperation.Tanh and formats.input_format == DataFormat.Bfp8_b:
+        pytest.skip(reason="Tanh operation is not supported for bf8_b format.")
 
     if (
         dest_acc == DestAccumulation.No

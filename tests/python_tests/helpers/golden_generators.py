@@ -1116,6 +1116,7 @@ class UnarySFPUGolden:
             MathOperation.Exp: self._exp,
             MathOperation.Exp2: self._exp2,
             MathOperation.Hardsigmoid: self._hardsigmoid,
+            MathOperation.Tanh: self._tanh,
             MathOperation.Threshold: self._threshold,
             MathOperation.ReluMax: self._relu_max,
             MathOperation.ReluMin: self._relu_min,
@@ -1225,6 +1226,25 @@ class UnarySFPUGolden:
     # Operation methods
     def _abs(self, x):
         return abs(x)
+
+    # def _tanh(self, x):
+    #     sign = 1.0 if x >= 0 else -1.0
+    #     ax = abs(x)
+    #
+    #     if ax <= 1.0: y = 0.90625 * ax
+    #     elif ax <= 2.0: y = 0.09375 * ax + 0.8125
+    #     else: y = 1.0
+    #
+    #     return sign * y
+
+    def _tanh(self, x):
+        if math.isnan(x):
+            return math.nan
+        if x == -math.inf:
+            return -1.0
+        if x == math.inf:
+            return 1.0
+        return math.tanh(x)
 
     def _atanh(self, x):
         if x < -1.0 or x > 1.0:
