@@ -279,7 +279,8 @@ inline void configure_unpack_AB(
     // NOTE: This assumes these config fields are adjacent and in same register!!
     static_assert(ALU_ACC_CTRL_Fp32_enabled_ADDR32 == ALU_FORMAT_SPEC_REG0_SrcA_ADDR32);
     static_assert(ALU_ACC_CTRL_Fp32_enabled_ADDR32 == ALU_ACC_CTRL_SFPU_Fp32_enabled_ADDR32);
-    constexpr std::uint32_t alu_stoch_rnd_mask = ALU_ROUNDING_MODE_Fpu_srnd_en_MASK | ALU_ROUNDING_MODE_Gasket_srnd_en_MASK | ALU_ROUNDING_MODE_Packer_srnd_en_MASK;
+    constexpr std::uint32_t alu_stoch_rnd_mask =
+        ALU_ROUNDING_MODE_Fpu_srnd_en_MASK | ALU_ROUNDING_MODE_Gasket_srnd_en_MASK | ALU_ROUNDING_MODE_Packer_srnd_en_MASK;
     alu_payload.f.ALU_ROUNDING_MODE_Fpu_srnd_en    = fpu_srnd_en;
     alu_payload.f.ALU_ROUNDING_MODE_Gasket_srnd_en = pack_srnd_en;
     alu_payload.f.ALU_ROUNDING_MODE_Packer_srnd_en = pack_srnd_en;
