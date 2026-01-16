@@ -14,9 +14,9 @@ inline int32_t amomin(int32_t volatile *ptr, int32_t const against)
     return old_val;
 }
 
-inline uint32_t amominu(uint32_t volatile *ptr, uint32_t const against)
+inline std::uint32_t amominu(std::uint32_t volatile *ptr, std::uint32_t const against)
 {
-    uint32_t old_val;
+    std::uint32_t old_val;
     asm volatile("amominu.w %[ret], %[against_val], (%[addr_val])\n" : [ret] "=r"(old_val) : [against_val] "r"(against), [addr_val] "r"(ptr));
 
     return old_val;
@@ -30,9 +30,9 @@ inline int32_t amomax(int32_t volatile *ptr, int32_t const against)
     return old_val;
 }
 
-inline uint32_t amomaxu(uint32_t volatile *ptr, uint32_t const against)
+inline std::uint32_t amomaxu(std::uint32_t volatile *ptr, std::uint32_t const against)
 {
-    uint32_t old_val;
+    std::uint32_t old_val;
     asm volatile("amomaxu.w %[ret], %[against_val], (%[addr_val])\n" : [ret] "=r"(old_val) : [against_val] "r"(against), [addr_val] "r"(ptr));
 
     return old_val;
@@ -43,7 +43,7 @@ inline std::atomic<T> *mk_atomic_ptr(T *ptr)
 {
     // C++ is very persnickety... only way to get around a compile error
     // was to invite satan into our living room and use reinterpret_cast
-    std::atomic<T> *p_ato = reinterpret_cast<std::atomic<uint32_t> *>(ptr);
+    std::atomic<T> *p_ato = reinterpret_cast<std::atomic<std::uint32_t> *>(ptr);
     return p_ato;
 }
 
@@ -99,9 +99,9 @@ struct mutex {
         LOCKED
     };
 
-    uint32_t val = AVAIL;
+    std::uint32_t val = AVAIL;
 
-    std::atomic<uint32_t>* operator&() {
+    std::atomic<std::uint32_t>* operator&() {
         return reinterpret_cast<std::atomic<int32_t> *>(&val);
     }
 };

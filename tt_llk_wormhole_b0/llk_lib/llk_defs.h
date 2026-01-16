@@ -111,7 +111,7 @@ enum ReluType
     MAX_THRESHOLD_RELU,
 };
 
-enum class MathFidelity : uint8_t
+enum class MathFidelity : std::uint8_t
 {
     LoFi  = 0,
     HiFi2 = 2,

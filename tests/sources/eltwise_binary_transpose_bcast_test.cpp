@@ -11,9 +11,9 @@
 #include "llk_defs.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -37,7 +37,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         params->UNPACK_TRANSPOSE_FACES); // Enable face rearrangement for srcA
 
     // Unpack tiles: srcA will be transposed, srcB will be column broadcasted
-    for (uint32_t i = 0; i < params->TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
     }
@@ -63,7 +63,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_wait_for_dest_available_<dest_sync>();
 
     // Perform element-wise subtraction: result = transposed(srcA) - column_broadcast(srcB)
-    for (uint32_t i = 0; i < params->TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_math_eltwise_binary_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE, dest_sync, is_fp32_dest_acc_en, MATH_FIDELITY>(
             4 /* num_faces */, i /* dst_index */, false /* clear_fp32_dst_acc */);
@@ -97,7 +97,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (uint32_t i = 0; i < params->TILE_CNT; i++)
+    for (std::uint32_t i = 0; i < params->TILE_CNT; i++)
     {
         _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(i, L1_ADDRESS(buffer_Res[i]));
     }

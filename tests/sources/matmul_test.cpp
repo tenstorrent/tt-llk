@@ -11,9 +11,9 @@
 #include "llk_memory_checks.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -35,7 +35,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         TILE_SIZE_UNPACK_A,
         TILE_SIZE_UNPACK_B);
     _llk_unpack_AB_matmul_init_<>(0, params->CT_DIM, params->RT_DIM, params->KT_DIM, FACE_R_DIM, FACE_R_DIM, 4, 4, false, false);
-    for (uint32_t j = 0; j < params->KT_DIM; j++)
+    for (std::uint32_t j = 0; j < params->KT_DIM; j++)
     {
         _llk_unpack_AB_matmul_<>(
             L1_ADDRESS(buffer_A[0]),
@@ -66,7 +66,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (uint32_t j = 0; j < params->KT_DIM; j++)
+    for (std::uint32_t j = 0; j < params->KT_DIM; j++)
     {
         _llk_math_matmul_<MATH_FIDELITY>(0, params->CT_DIM, params->RT_DIM);
     }
@@ -93,7 +93,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>();
 #endif
     _llk_packer_wait_for_math_done_();
-    for (uint32_t i = 0; i < params->TILE_CNT; i++)
+    for (std::uint32_t i = 0; i < params->TILE_CNT; i++)
     {
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }

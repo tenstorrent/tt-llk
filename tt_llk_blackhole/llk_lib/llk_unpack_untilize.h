@@ -20,7 +20,7 @@ using namespace ckernel::unpacker;
 
 inline void _llk_unpack_untilize_mop_config_()
 {
-    constexpr uint32_t replay_buf_len = 6;
+    constexpr std::uint32_t replay_buf_len = 6;
     load_replay_buf(
         0,
         replay_buf_len,
@@ -37,8 +37,9 @@ inline void _llk_unpack_untilize_mop_config_()
             TTI_ADDRCRZW(0b001, 0, 0, 0, 0, 0b0001 /*CH0_Z*/);
         });
 
-    static constexpr uint32_t load_offset_addr_cntx0 = TT_OP_WRCFG(p_gpr_unpack::TILE_OFFSET, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_address_ADDR32);
-    static constexpr uint32_t load_offset_addr_cntx1 = TT_OP_WRCFG(p_gpr_unpack::TILE_OFFSET, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_cntx1_address_ADDR32);
+    static constexpr std::uint32_t load_offset_addr_cntx0 = TT_OP_WRCFG(p_gpr_unpack::TILE_OFFSET, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_address_ADDR32);
+    static constexpr std::uint32_t load_offset_addr_cntx1 =
+        TT_OP_WRCFG(p_gpr_unpack::TILE_OFFSET, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_cntx1_address_ADDR32);
 
     ckernel_unpack_template tmp = ckernel_unpack_template(
         true,  // src B
@@ -53,7 +54,7 @@ inline void _llk_unpack_untilize_mop_config_()
     tmp.program();
 }
 
-inline void _llk_unpack_untilize_init_(const uint32_t unpack_dst_format, const uint32_t tile_size, const uint32_t face_r_dim = FACE_R_DIM)
+inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, const std::uint32_t tile_size, const std::uint32_t face_r_dim = FACE_R_DIM)
 {
     // Always include setup calls first for safety (as recommended by maintainer)
     // Disable transpose when unused
@@ -97,7 +98,7 @@ inline void _llk_unpack_untilize_init_(const uint32_t unpack_dst_format, const u
     _llk_unpack_untilize_mop_config_();
 }
 
-inline void _llk_unpack_untilize_uninit_(const uint32_t unpack_dst_format, const uint32_t face_r_dim)
+inline void _llk_unpack_untilize_uninit_(const std::uint32_t unpack_dst_format, const std::uint32_t face_r_dim)
 {
     const DataFormat dst_format           = static_cast<DataFormat>(unpack_dst_format & 0x3);
     const std::uint32_t unpA_ch1_x_stride = dst_format == DataFormat::Float32 ? 4 : dst_format == DataFormat::Float16 ? 2 : 1;
@@ -123,12 +124,12 @@ inline void _llk_unpack_untilize_uninit_(const uint32_t unpack_dst_format, const
 }
 
 template <bool first_pass = true>
-inline void _llk_unpack_untilize_pass_(const uint32_t base_address, const uint32_t block_tile_cols)
+inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const std::uint32_t block_tile_cols)
 {
-    uint32_t rem_blocks_in_row = block_tile_cols;
+    std::uint32_t rem_blocks_in_row = block_tile_cols;
 
     // Program srcA and srcB base addresses
-    volatile uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b0010); // Clear l1 addr y cnt
     if constexpr (first_pass)
@@ -154,8 +155,8 @@ inline void _llk_unpack_untilize_pass_(const uint32_t base_address, const uint32
     // Stall unpacker until pending CFG writes from Trisc have completed
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
-    uint32_t face_2xr_cnt = 0;
-    for (uint32_t r = 0; r < FACE_HEIGHT; r++)
+    std::uint32_t face_2xr_cnt = 0;
+    for (std::uint32_t r = 0; r < FACE_HEIGHT; r++)
     {
         rem_blocks_in_row = block_tile_cols; // reset remaining blocks in row
 

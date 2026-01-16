@@ -32,7 +32,7 @@ inline void _llk_push_tiles_(const std::int32_t cb_id, const std::int32_t num_ti
     TT_PUSH_TILES(PACK_SEL, num_tiles, cb_id);
 
     // Update the CB buffer information
-    uint32_t num_words = num_tiles * get_local_cb_interface(cb_id).fifo_page_size;
+    std::uint32_t num_words = num_tiles * get_local_cb_interface(cb_id).fifo_page_size;
 
     get_local_cb_interface(cb_id).tiles_received += num_tiles;
     get_local_cb_interface(cb_id).fifo_wr_ptr += num_words;

@@ -33,15 +33,16 @@ template <
     int ITERATIONS             = 8,
     ckernel::DataLayout layout = ckernel::DataLayout::TILE,
     bool accumulate            = false>
-inline void _calculate_max_pool_with_indices_(const uint32_t values_tile_idx, const uint32_t indices_tile_idx, const uint32_t chunk)
+inline void _calculate_max_pool_with_indices_(
+    const std::uint32_t values_tile_idx, const std::uint32_t indices_tile_idx, const std::uint32_t chunk)
 {
     // size of each tile in Dest is 64 rows
-    constexpr uint32_t dst_tile_size   = 64;
-    const uint32_t values_tile_offset  = values_tile_idx * dst_tile_size;
-    const uint32_t indices_tile_offset = indices_tile_idx * dst_tile_size;
+    constexpr std::uint32_t dst_tile_size   = 64;
+    const std::uint32_t values_tile_offset  = values_tile_idx * dst_tile_size;
+    const std::uint32_t indices_tile_offset = indices_tile_idx * dst_tile_size;
     // each face is 16 rows
-    constexpr uint32_t face_offset    = 16;
-    constexpr uint8_t instr_mod_index = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
+    constexpr std::uint32_t face_offset    = 16;
+    constexpr std::uint8_t instr_mod_index = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
     if constexpr (layout == ckernel::DataLayout::ROW_MAJOR)
     {
@@ -66,7 +67,7 @@ inline void _calculate_max_pool_with_indices_(const uint32_t values_tile_idx, co
         // Face 0 Row 8
         // Face 1 Row 8
 
-        auto process_columns = [values_tile_offset, indices_tile_offset](const uint32_t col_offset) __attribute__((always_inline))
+        auto process_columns = [values_tile_offset, indices_tile_offset](const std::uint32_t col_offset) __attribute__((always_inline))
         {
             // data
             TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 0 + col_offset);
@@ -182,18 +183,19 @@ inline void _calculate_max_pool_with_indices_(const uint32_t values_tile_idx, co
  * it must be called with layout=DataLayout::ROW_MAJOR.
  */
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool accumulate = false>
-inline void _calculate_max_pool_with_indices_generic_(const uint32_t values_tile_idx, const uint32_t indices_tile_idx, const uint32_t chunk)
+inline void _calculate_max_pool_with_indices_generic_(
+    const std::uint32_t values_tile_idx, const std::uint32_t indices_tile_idx, const std::uint32_t chunk)
 {
     // size of each tile in Dest is 64 rows
-    constexpr uint32_t dst_tile_size         = 64;
-    const uint32_t values_tile_offset        = values_tile_idx * dst_tile_size;
-    const uint32_t indices_tile_offset       = indices_tile_idx * dst_tile_size;
+    constexpr std::uint32_t dst_tile_size         = 64;
+    const std::uint32_t values_tile_offset        = values_tile_idx * dst_tile_size;
+    const std::uint32_t indices_tile_offset       = indices_tile_idx * dst_tile_size;
     const uint32_t values_accum_tile_offset  = (values_tile_idx + 1) * dst_tile_size;
     const uint32_t indices_accum_tile_offset = (indices_tile_idx + 1) * dst_tile_size;
     // each face is 16 rows
-    constexpr uint32_t eight_row_offset   = 16;
-    constexpr uint32_t sixteen_row_offset = 32;
-    constexpr uint8_t instr_mod_index     = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
+    constexpr std::uint32_t eight_row_offset   = 16;
+    constexpr std::uint32_t sixteen_row_offset = 32;
+    constexpr std::uint8_t instr_mod_index     = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
     // ROW MAJOR DATA VERSION OF MPWI
     // DATA IS EXPECTED TO BE IN THE FOLLOWING ORDER IN DEST:
