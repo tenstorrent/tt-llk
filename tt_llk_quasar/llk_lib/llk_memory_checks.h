@@ -6,8 +6,8 @@
 
 #include <cstdint>
 
-#include "core_config.h"
-#include "dev_mem_map.h"
+// #include "core_config.h"
+// #include "dev_mem_map.h"
 
 /**
  * @brief Transform L1 address to the format used by LLK functions
@@ -78,14 +78,14 @@ namespace ckernel
 // Physical Boundary: 0x803B0 (526,816 bytes = 512.92 KB)
 // Transformed Value: L1_ADDRESS(MEM_MAP_END) = (0x803B0 / 16) - 1
 // Derived from: MEM_MAP_END from dev_mem_map.h
-constexpr std::uint32_t L1_REGION_START = L1_ADDRESS(MEM_MAP_END);
+// constexpr std::uint32_t L1_REGION_START = L1_ADDRESS(MEM_MAP_END);
 
 // End of L1 memory (LLK transformed address) - total available L1 size
 // This is the absolute upper bound for any L1 address
 // Physical Boundary: 0x400000 (4,194,304 bytes = 4 MB)
 // Transformed Value: L1_ADDRESS(MEM_L1_SIZE) = (0x400000 / 16) - 1
 // Defined by: MEM_L1_SIZE (4 * 1024 * 1024) from dev_mem_map.h
-constexpr std::uint32_t L1_REGION_END = L1_ADDRESS(MEM_L1_SIZE);
+// constexpr std::uint32_t L1_REGION_END = L1_ADDRESS(MEM_L1_SIZE);
 
 } // namespace ckernel
 
@@ -120,7 +120,7 @@ constexpr std::uint32_t L1_REGION_END = L1_ADDRESS(MEM_L1_SIZE);
  * @param address The LLK-transformed L1 address to validate
  * @return true if address is within valid tile data region [L1_REGION_START, L1_REGION_END)
  */
-inline static bool is_valid_L1_address(const std::uint32_t address)
-{
-    return (address >= ckernel::L1_REGION_START && address < ckernel::L1_REGION_END);
-}
+// inline static bool is_valid_L1_address(const std::uint32_t address)
+// {
+//     return (address >= ckernel::L1_REGION_START && address < ckernel::L1_REGION_END);
+// }
