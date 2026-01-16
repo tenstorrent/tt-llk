@@ -44,7 +44,7 @@ jobs:
           cd tests/python_tests/
 
           echo "Compiling all tests (regular, perf, nightly) to collect durations"
-          pytest -q --compile-producer -n 60 \
+          pytest -q --compile-producer -n 40 \
                 -m "not quasar" \
                 --store-durations \
                 --override-ini="addopts=-v" --tb=short --timeout=60 \
@@ -85,7 +85,7 @@ jobs:
           cd tests/python_tests/
 
           echo "Compiling all tests (regular, perf, nightly) to collect durations"
-          pytest -q --compile-producer -n 60 \
+          pytest -q --compile-producer -n 40 \
                 -m "not quasar" \
                 --store-durations \
                 --override-ini="addopts=-v" --tb=short --timeout=60 \
