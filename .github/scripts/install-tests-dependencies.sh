@@ -5,5 +5,6 @@
 
 set -e
 
-wget -qO- https://astral.sh/uv/install.sh | sh
+pip install -q --upgrade pip
+pip install -q --no-cache-dir uv
 uv pip install -q --system --index-strategy unsafe-best-match --no-cache-dir -r /tmp/requirements_tests.txt

@@ -88,8 +88,9 @@ if [[ "$REUSE" == false || ! -d "$VENV_DIR" ]]; then
     source "$VENV_DIR/bin/activate"
 
     # Upgrade pip
-    echo "Installing uv..."
-    wget -qO- https://astral.sh/uv/install.sh | sh
+    echo "Upgrading pip..."
+    pip install --upgrade pip
+    pip install uv
 
     # Install all Python dependencies
     echo "Installing Python dependencies..."

@@ -102,7 +102,7 @@ setup_precommit() {
     # Install pre-commit if not available
     if ! command -v pre-commit >/dev/null 2>&1; then
         echo "Installing pre-commit..."
-        uv pip install --system pre-commit
+        pip install pre-commit
     fi
 
     # Install hooks
