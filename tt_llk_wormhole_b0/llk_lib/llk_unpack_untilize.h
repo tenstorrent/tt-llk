@@ -176,8 +176,20 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
 
 inline void _llk_unpack_untilize_uninit_()
 {
+    // Check that unpacker is done (all contexts freed up) before starting hw configuration
+    wait_for_idle();
+
+    // Reset address counters
+    unpacker_addr_counter_init();
+
+    // Wait for cfg to be free to edit
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK);
+
     // Restore from saved GPRs
     TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, p_cfg::WRCFG_32b, UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32);
     TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
     TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
+
+    TTI_NOP;
+    TTI_NOP;
 }
