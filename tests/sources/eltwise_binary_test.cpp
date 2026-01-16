@@ -65,7 +65,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     // Initialize math for element-wise subtraction
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_(formats.math, formats.math);
+    _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE>(num_faces, 0);
 
     // Perform element-wise subtraction
