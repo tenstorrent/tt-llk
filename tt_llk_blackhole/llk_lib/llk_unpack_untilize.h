@@ -125,7 +125,6 @@ inline void _llk_unpack_untilize_uninit_(const std::uint32_t unpack_dst_format, 
 template <bool first_pass = true>
 inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const std::uint32_t block_tile_cols)
 {
-    LLK_ASSERT(is_valid_L1_address(base_address), "L1 base_address must be in valid L1 memory region");
     std::uint32_t rem_blocks_in_row = block_tile_cols;
 
     // Program srcA and srcB base addresses
@@ -146,15 +145,8 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
     // Wait for free context
     wait_for_next_context(2);
 
-    // Get tile address
-    if (0 == unp_cfg_context)
-    {
-        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = base_address;
-    }
-    else
-    {
-        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = base_address;
-    }
+    // Validate and configure address
+    _llk_unpack_configure_single_address_(base_address, cfg);
 
     // Trisc::SEMPOST for context acquire
     semaphore_post(semaphore::UNPACK_SYNC);

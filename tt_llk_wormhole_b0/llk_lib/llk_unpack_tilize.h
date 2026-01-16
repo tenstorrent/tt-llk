@@ -93,15 +93,8 @@ inline void unpack_tilize_impl(
         // Wait for free context
         wait_for_next_context(2);
 
-        // Get tile address
-        if (0 == unp_cfg_context)
-        {
-            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
-        }
-        else
-        {
-            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
-        }
+        // Validate and configure address
+        _llk_unpack_configure_single_address_(address, cfg);
 
         // Trisc::SEMPOST for context acquire
         semaphore_post(semaphore::UNPACK_SYNC);
@@ -141,6 +134,7 @@ inline void unpack_tilize_to_dest_impl(
     // Clear z/w start counters
     TTI_SETADCZW(0b001, 0, 0, 0, 0, 0b1111);
 
+    LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
     // Get tile address
     cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
 
@@ -161,6 +155,7 @@ inline void unpack_tilize_to_dest_impl(
 
         // Increment address to point to bottom faces in L1
         address += bot_face_offset_address;
+        LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
 
         // Get tile address
         TT_SETDMAREG(0, LOWER_HALFWORD(address), 0, LO_16(p_gpr_unpack::TMP0));
@@ -188,7 +183,6 @@ inline void _llk_unpack_tilize_(
     const std::uint32_t num_faces   = 4,
     const bool narrow_tile          = false)
 {
-    LLK_ASSERT(is_valid_L1_address(base_address), "L1 base_address must be in valid L1 memory region");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // In case of 32-bit integer numbers, we have to unpack into dest register
     const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
@@ -325,8 +319,6 @@ inline void _llk_unpack_tilizeA_B_(
     std::uint32_t block_ct_dim,
     std::uint32_t num_faces = 4)
 {
-    LLK_ASSERT(is_valid_L1_address(base_address_a), "L1 base_address_a must be in valid L1 memory region");
-    LLK_ASSERT(is_valid_L1_address(address_b), "L1 address_b must be in valid L1 memory region");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpA_src_format, tile_index_a) << (narrow_tile ? 0 : 1);
 
@@ -371,17 +363,8 @@ inline void _llk_unpack_tilizeA_B_(
         // Wait for free context
         wait_for_next_context(2);
 
-        // Get tile address
-        if (0 == unp_cfg_context)
-        {
-            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
-            cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
-        }
-        else
-        {
-            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
-            cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
-        }
+        // Validate and configure addresses
+        _llk_unpack_configure_addresses_(address_a, address_b, cfg);
 
         // Trisc::SEMPOST for context acquire
         semaphore_post(semaphore::UNPACK_SYNC);
@@ -570,7 +553,6 @@ inline void _llk_unpack_fast_tilize_block_(
     const std::uint32_t num_units,
     const std::uint32_t full_dim)
 {
-    LLK_ASSERT(is_valid_L1_address(base_address), "L1 base_address must be in valid L1 memory region");
     volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
 
     uint32_t address = base_address + (SCALE_DATUM_SIZE(unpack_src_format, tile_index * TILE_C_DIM) >> 4); // move by tile width in 16B words
@@ -604,16 +586,8 @@ inline void _llk_unpack_fast_tilize_block_(
 
     wait_for_next_context(2);
 
-    if (0 == unp_cfg_context)
-    {
-        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
-        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = unpB_address;
-    }
-    else
-    {
-        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
-        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = unpB_address;
-    }
+    // Validate and configure addresses
+    _llk_unpack_configure_addresses_(address, unpB_address, cfg);
 
     semaphore_post(semaphore::UNPACK_SYNC);
 

@@ -14,6 +14,7 @@
 #include "cunpack_common.h"
 #include "llk_assert.h"
 #include "llk_memory_checks.h"
+
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
@@ -258,8 +259,6 @@ inline void _llk_unpack_AB_matmul_(
     const std::uint32_t rt_dim   = 1,
     const std::uint32_t kt_dim   = 1)
 {
-    LLK_ASSERT(is_valid_L1_address(base_address_a), "L1 base_address_a must be in valid L1 memory region");
-    LLK_ASSERT(is_valid_L1_address(base_address_b), "L1 base_address_b must be in valid L1 memory region");
     // In0/InA -> srcB (supports partial face)
     // In1/InB -> srcA
 
@@ -292,17 +291,8 @@ inline void _llk_unpack_AB_matmul_(
         // Wait for free context
         wait_for_next_context(2);
 
-        // Program unpacker 1 base address
-        if (0 == unp_cfg_context)
-        {
-            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_b;
-            cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_a;
-        }
-        else
-        {
-            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_b;
-            cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_a;
-        }
+        // Validate and configure addresses (note: address_b goes to SEC0, address_a to SEC1 for matmul)
+        _llk_unpack_configure_addresses_(address_b, address_a, cfg);
 
         semaphore_post(semaphore::UNPACK_SYNC); // Trisc::SEMPOST for context acquire
 
