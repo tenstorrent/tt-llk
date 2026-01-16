@@ -215,8 +215,6 @@ class ReduceFpu(Fpu):
 
         unp_a_src_format = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{operation_config.src_a.data_format})"
 
-        unp_a_src_format = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{operation_config.src_a.data_format})"
-
         code = (
             f"    // Operation {stage}: Reduce {self.operation.cpp_enum_value} FPU\n"
             f"    _llk_math_reduce_init_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false>();\n"
@@ -568,7 +566,7 @@ class Math:
         stage = operation_config.stage_id
         dest_acc = operation_config.dest_acc.value
         if stage == 0:
-            code = f"    _llk_math_hw_configure_(math_format{stage}, math_format{stage});\n"
+            code = f"    _llk_math_hw_configure_<{dest_acc}>(math_format{stage}, math_format{stage});\n"
         else:
             code = f"    _llk_math_reconfig_data_format_<{dest_acc}, false>(math_format{stage}, math_format{stage});\n"
 
