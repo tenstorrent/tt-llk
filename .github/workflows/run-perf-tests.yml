@@ -1,136 +1,119 @@
-name: 📊 Collect Test Durations
+name: 🚀 Run Performance Tests
 
 on:
-  schedule:
-    # Run every Sunday at 2AM UTC to collect fresh duration data
-    - cron: '0 2 * * 0'
   workflow_dispatch:
+  workflow_call:
+  pull_request:
+    types: [labeled, synchronize]
 
 permissions:
   checks: write
   contents: read
   packages: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_protected && github.run_id ||
+    github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  detect-changes:
+    name: "🔍 Detect changes"
+    runs-on: ubuntu-latest
+    if: |
+      contains(fromJSON('["workflow_dispatch","workflow_call","schedule"]'), github.event_name) ||
+      (github.event_name == 'pull_request' &&
+       contains(github.event.pull_request.labels.*.name, 'performance-tests'))
+    outputs:
+      wormhole: ${{ steps.set.outputs.wormhole }}
+      blackhole: ${{ steps.set.outputs.blackhole }}
+      performance: ${{ steps.set.outputs.performance }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 200
+
+      - name: Detect which directories changed
+        uses: dorny/paths-filter@v3
+        id: filter
+        if: github.event_name != 'schedule'
+        with:
+          filters: |
+              wormhole:
+                - 'tt_llk_wormhole_b0/**'
+              blackhole:
+                - 'tt_llk_blackhole/**'
+              performance:
+                - '**/*perf**'
+                - '**/*profiler**'
+
+      - name: Resolve test triggers (nightly vs changes)
+        id: set
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "wormhole=true" >> $GITHUB_OUTPUT
+            echo "blackhole=true" >> $GITHUB_OUTPUT
+            echo "performance=true" >> $GITHUB_OUTPUT
+          else
+            echo "wormhole=${{ steps.filter.outputs.wormhole }}" >> $GITHUB_OUTPUT
+            echo "blackhole=${{ steps.filter.outputs.blackhole }}" >> $GITHUB_OUTPUT
+            echo "performance=${{ steps.filter.outputs.performance }}" >> $GITHUB_OUTPUT
+          fi
+
   build-images:
     name: "🐳️ Docker setup"
     uses: ./.github/workflows/build-images.yml
+    needs: detect-changes
     secrets: inherit
 
-  collect-wormhole-durations:
-    name: "🌀 Collect Wormhole test durations (all tests)"
-    runs-on: tt-ubuntu-2204-xlarge-stable
-    needs: build-images
-    timeout-minutes: 360
-    container:
-      image: harbor.ci.tenstorrent.net/${{ needs.build-images.outputs.docker-image }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+  setup-and-test-wormhole:
+    name: "🌀 Performance tests (Wormhole)"
+    uses: ./.github/workflows/setup-and-test.yml
+    needs: [build-images, detect-changes]
+    if: ${{ needs.detect-changes.outputs.wormhole == 'true' ||
+            needs.detect-changes.outputs.performance == 'true' ||
+            github.event_name == 'workflow_dispatch' ||
+            github.event_name == 'workflow_call' }}
+    with:
+      docker_image: ${{ needs.build-images.outputs.docker-image }}
+      runs_on: tt-ubuntu-2204-n150-stable
+      test_splits: 5
+      pytest_markers: "perf"
+      timeout_minutes: 240
 
-      - name: Install SFPI
-        shell: bash
-        run: |
-          cd tests
-          CHIP_ARCH=wormhole ./setup_testing_env.sh
-          cd ..
+  setup-and-test-blackhole:
+    name: "🕳️ Performance tests (Blackhole)"
+    uses: ./.github/workflows/setup-and-test.yml
+    needs: [build-images, detect-changes]
+    if: ${{ needs.detect-changes.outputs.blackhole == 'true' ||
+            needs.detect-changes.outputs.performance == 'true' ||
+            github.event_name == 'workflow_dispatch' ||
+            github.event_name == 'workflow_call' }}
+    with:
+      docker_image: ${{ needs.build-images.outputs.docker-image }}
+      runs_on: tt-ubuntu-2204-p150b-stable
+      test_splits: 5
+      pytest_markers: "perf"
+      timeout_minutes: 240
 
-      - name: Compile all tests and collect durations
-        shell: bash
-        run: |
-          export CHIP_ARCH=wormhole
-          cd tests/python_tests/
-
-          echo "Compiling all tests (regular, perf, nightly) to collect durations"
-          pytest -q --compile-producer -n 40 \
-                -m "not quasar" \
-                --store-durations \
-                --no-debug-symbols \
-                --override-ini="addopts=-v --tb=short" --timeout=60 \
-                --junitxml=pytest-duration-wormhole-all.xml .
-
-      - name: Upload duration data
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-durations-wormhole
-          path: tests/python_tests/.test_durations
-          retention-days: 90
-          include-hidden-files: true
-
-  collect-blackhole-durations:
-    name: "🕳️ Collect Blackhole test durations (all tests)"
-    runs-on: tt-ubuntu-2204-xlarge-stable
-    needs: build-images
-    timeout-minutes: 360
-    container:
-      image: harbor.ci.tenstorrent.net/${{ needs.build-images.outputs.docker-image }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Install SFPI
-        shell: bash
-        run: |
-          cd tests
-          CHIP_ARCH=blackhole ./setup_testing_env.sh
-          cd ..
-
-      - name: Compile all tests and collect durations
-        shell: bash
-        run: |
-          export CHIP_ARCH=blackhole
-          cd tests/python_tests/
-
-          echo "Compiling all tests (regular, perf, nightly) to collect durations"
-          pytest -q --compile-producer -n 40 \
-                -m "not quasar" \
-                --store-durations \
-                --no-debug-symbols \
-                --override-ini="addopts=-v --tb=short" --timeout=60 \
-                --junitxml=pytest-duration-blackhole-all.xml .
-
-      - name: Upload duration data
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-durations-blackhole
-          path: tests/python_tests/.test_durations
-          retention-days: 90
-          include-hidden-files: true
-
-  summary:
-    name: "📊 Collection Summary"
-    if: always()
+  check-all-green:
+    name: "✅ Check all green"
+    if: |
+      always() && (
+      contains(fromJSON('["workflow_dispatch","workflow_call","schedule"]'), github.event_name) ||
+      (github.event_name == 'pull_request' &&
+       contains(github.event.pull_request.labels.*.name, 'performance-tests'))
+      )
     needs:
-      - collect-wormhole-durations
-      - collect-blackhole-durations
+      - build-images
+      - setup-and-test-wormhole
+      - setup-and-test-blackhole
     runs-on: ubuntu-latest
     steps:
-      - name: Check collection results
+      - name: Check if the required jobs succeeded or failed
         uses: re-actors/alls-green@release/v1
         with:
           jobs: ${{ toJSON(needs) }}
-          allowed-skips: collect-wormhole-durations, collect-blackhole-durations
-
-  report-status:
-    name: "🔔 Report status"
-    runs-on: ubuntu-latest
-    if: always()
-    needs: summary
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-      - name: Report status
-        uses: ./.github/actions/report-failure
-        with:
-          test_name: "Test Duration Collection"
-          slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
-          slack_channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
-          status: ${{ needs.summary.result }}
+          allowed-skips: setup-and-test-wormhole, setup-and-test-blackhole
