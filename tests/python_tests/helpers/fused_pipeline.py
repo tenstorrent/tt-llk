@@ -138,8 +138,8 @@ REDUCE_POOL_MAP: Dict[str, ReducePool] = {
 }
 
 APPROXIMATION_MODE_MAP: Dict[str, ApproximationMode] = {
-    "Yes": ApproximationMode.Yes,
-    "No": ApproximationMode.No,
+    "Fast": ApproximationMode.Fast,
+    "Precise": ApproximationMode.Precise,
 }
 
 
@@ -177,7 +177,8 @@ def parse_math_operation(
             if sfpu_type == "UnarySfpu":
                 operation = SFPU_UNARY_OPERATION_MAP[sfpu_config["operation"]]
                 approx_mode = APPROXIMATION_MODE_MAP.get(
-                    sfpu_config.get("approximation_mode", "No"), ApproximationMode.No
+                    sfpu_config.get("approximation_mode", "Precise"),
+                    ApproximationMode.Precise,
                 )
                 iterations = sfpu_config.get("iterations", 32)
 
@@ -186,7 +187,8 @@ def parse_math_operation(
             elif sfpu_type == "BinarySfpu":
                 operation = SFPU_BINARY_OPERATION_MAP[sfpu_config["operation"]]
                 approx_mode = APPROXIMATION_MODE_MAP.get(
-                    sfpu_config.get("approximation_mode", "No"), ApproximationMode.No
+                    sfpu_config.get("approximation_mode", "Precise"),
+                    ApproximationMode.Precise,
                 )
                 iterations = sfpu_config.get("iterations", 32)
                 src1_dest_tile_index = sfpu_config.get("src1_dest_tile_index", 0)
