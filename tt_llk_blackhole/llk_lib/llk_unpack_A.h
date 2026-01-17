@@ -130,6 +130,10 @@ inline void _llk_unpack_A_mop_config_(
         constexpr uint32_t outerloop = 1;
         constexpr uint32_t innerloop = 1;
         ckernel_template tmp(outerloop, innerloop, unpack_srcb_inc_z_0);
+        if (!(unpack_dst_format == (uint)DataFormat::UInt16))
+        {
+            tmp.set_start_op(unpack_srca_set_dvalid);
+        }
         tmp.program();
     }
     else

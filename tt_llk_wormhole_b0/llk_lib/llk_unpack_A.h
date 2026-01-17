@@ -125,7 +125,11 @@ inline void _llk_unpack_A_mop_config_(
         constexpr uint32_t innerloop = 1;
         ckernel_template tmp(outerloop, innerloop, unpack_srcb_inc_z_0);
         // ELWADD used in datacopy due to WH broadcast bug, use zerosrca regardless of acc_to_dest
-        tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
+        // Skip set_start_op for UInt16 to avoid unpacker hang
+        if (!(unpack_dst_format == (uint)DataFormat::UInt16))
+        {
+            tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
+        }
         tmp.program();
     }
     else
