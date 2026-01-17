@@ -131,7 +131,7 @@ constexpr static std::uint32_t GET_L1_HEADERLESS_TILE_SIZE(std::uint32_t format)
             return ((256 >> 4) + (64 >> 4));
         case (to_underlying(DataFormat::Int8)):
         case (to_underlying(DataFormat::Lf8)):
-        case (to_underlying(DataFormat::Fp8_e4m3):
+        case (to_underlying(DataFormat::Fp8_e4m3)):
             return (1024 >> 4);
         default:
             return ((1024 >> 4) + (64 >> 4));
