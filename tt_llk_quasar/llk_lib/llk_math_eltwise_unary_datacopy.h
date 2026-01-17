@@ -24,17 +24,17 @@ using namespace ckernel::math;
  */
 template <DataCopyType DATA_COPY_TYPE, bool IS_32b_DEST_EN>
 inline void _llk_math_eltwise_unary_datacopy_mop_config_(
-    const uint32_t num_rows_inner_loop, const uint32_t num_dvalids_outer_loop, const uint32_t num_rows_per_move_instrn)
+    const std::uint32_t num_rows_inner_loop, const std::uint32_t num_dvalids_outer_loop, const std::uint32_t num_rows_per_move_instrn)
 {
     // Divide number of rows by how many rows are output per fpu instruction
-    const uint32_t MOP_INNER_LOOP = num_rows_inner_loop >> math_rows_log2(num_rows_per_move_instrn);
-    const uint32_t mov_rows_instn = (num_rows_per_move_instrn == 8)
-                                        ? p_mov_src_to_dest::MOV_8_ROWS
-                                        : ((num_rows_per_move_instrn == 4) ? p_mov_src_to_dest::MOV_4_ROWS : p_mov_src_to_dest::MOV_1_ROW);
+    const std::uint32_t MOP_INNER_LOOP = num_rows_inner_loop >> math_rows_log2(num_rows_per_move_instrn);
+    const std::uint32_t mov_rows_instn = (num_rows_per_move_instrn == 8)
+                                             ? p_mov_src_to_dest::MOV_8_ROWS
+                                             : ((num_rows_per_move_instrn == 4) ? p_mov_src_to_dest::MOV_4_ROWS : p_mov_src_to_dest::MOV_1_ROW);
 
-    const uint32_t MOP_OUTER_LOOP = num_dvalids_outer_loop;
+    const std::uint32_t MOP_OUTER_LOOP = num_dvalids_outer_loop;
 
-    const auto datacopy_func = [mov_rows_instn](uint8_t addr_mod)
+    const auto datacopy_func = [mov_rows_instn](std::uint8_t addr_mod)
     {
         if constexpr (IS_32b_DEST_EN)
         {
@@ -52,9 +52,9 @@ inline void _llk_math_eltwise_unary_datacopy_mop_config_(
 
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, datacopy_func(ADDR_MOD_0));
 
-    constexpr uint32_t CLR_SRC_VLD = IS_32b_DEST_EN                        ? p_cleardvalid::CLR_SRCAB_VLD
-                                     : DATA_COPY_TYPE == DataCopyType::A2D ? p_cleardvalid::CLR_SRCA_VLD
-                                                                           : p_cleardvalid::CLR_SRCB_VLD;
+    constexpr std::uint32_t CLR_SRC_VLD = IS_32b_DEST_EN                        ? p_cleardvalid::CLR_SRCAB_VLD
+                                          : DATA_COPY_TYPE == DataCopyType::A2D ? p_cleardvalid::CLR_SRCA_VLD
+                                                                                : p_cleardvalid::CLR_SRCB_VLD;
 
     // clear srcA and srcB dvalid
     temp.set_end_op(TT_OP_CLEARDVALID(CLR_SRC_VLD, 0, 0, 0, 0, 0));
@@ -69,13 +69,13 @@ inline void _llk_math_eltwise_unary_datacopy_mop_config_(
  * @tparam DATA_COPY_TYPE sets which src register to datacopy from values = <A2D, B2D>
  */
 template <DataCopyType DATA_COPY_TYPE>
-inline void _llk_math_eltwise_unary_datacopy_addrmod_(const uint num_rows_per_move_instrn)
+inline void _llk_math_eltwise_unary_datacopy_addrmod_(const std::uint32_t num_rows_per_move_instrn)
 {
-    constexpr uint8_t use_srca  = (DATA_COPY_TYPE == DataCopyType::A2D);
-    constexpr uint8_t use_srcb  = (DATA_COPY_TYPE == DataCopyType::B2D);
-    const uint8_t num_rows_srca = use_srca ? num_rows_per_move_instrn : 0;
-    const uint8_t num_rows_srcb = use_srcb ? num_rows_per_move_instrn : 0;
-    const uint8_t num_rows_dest = num_rows_per_move_instrn;
+    constexpr std::uint8_t use_srca  = (DATA_COPY_TYPE == DataCopyType::A2D);
+    constexpr std::uint8_t use_srcb  = (DATA_COPY_TYPE == DataCopyType::B2D);
+    const std::uint8_t num_rows_srca = use_srca ? num_rows_per_move_instrn : 0;
+    const std::uint8_t num_rows_srcb = use_srcb ? num_rows_per_move_instrn : 0;
+    const std::uint8_t num_rows_dest = num_rows_per_move_instrn;
 
     // Increment rows for src register that is used, inc dest rows
     addr_mod_t {
@@ -108,11 +108,11 @@ inline void _llk_math_eltwise_unary_datacopy_addrmod_(const uint num_rows_per_mo
  * If unpacker is unpacking 4 faces (16x16 each), with 4 dvalids -> set this value to 4
  */
 template <DataCopyType DATA_COPY_TYPE, bool IS_32b_DEST_EN>
-inline void _llk_math_eltwise_unary_datacopy_init_(const uint num_rows_per_matrix, const uint num_matrices)
+inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_rows_per_matrix, const std::uint32_t num_matrices)
 {
     // MOVA2D/MOVB2D can move 1, 4 or 8 rows, need to check which
     // For Float32 or Integer dest, ELWADD will be used for rebiasing, can only move MATH_ROWS
-    const uint num_rows_per_move_instrn = [num_rows_per_matrix]() -> const uint
+    const std::uint32_t num_rows_per_move_instrn = [num_rows_per_matrix]() -> const std::uint32_t
     {
         if constexpr (IS_32b_DEST_EN)
         {
@@ -120,7 +120,7 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const uint num_rows_per_matri
         }
         else
         {
-            for (uint mr : MOVE_MATH_ROWS)
+            for (std::uint32_t mr : MOVE_MATH_ROWS)
             {
                 if (_divisible_by_pow_two_(num_rows_per_matrix, mr))
                 {
@@ -144,7 +144,7 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const uint num_rows_per_matri
  * If dest reg in float16 mode -> values = [0 - 8] in double buffering mode, values = [0 - 16] in full mode
  * If dest reg in float32 mode -> values = [0 - 4] in double buffering mode, values = [0 - 8] in full mode
  */
-inline void _llk_math_eltwise_unary_datacopy_(const uint32_t num_rows_per_tile, const uint32_t tile_idx)
+inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t num_rows_per_tile, const std::uint32_t tile_idx)
 {
     _set_dst_write_addr_by_rows_(num_rows_per_tile, tile_idx);
 

@@ -29,9 +29,9 @@ enum register_space_e
 //  narrow_tile = 0;
 struct TileShape
 {
-    uint32_t num_faces;
-    uint32_t face_r_dim;
-    uint32_t face_c_dim;
+    std::uint32_t num_faces;
+    std::uint32_t face_r_dim;
+    std::uint32_t face_c_dim;
     bool narrow_tile;
 };
 

@@ -19,7 +19,7 @@ using namespace ckernel::unpacker;
 
 inline void _llk_unpack_untilize_mop_config_()
 {
-    constexpr uint replay_buf_len = 6;
+    constexpr std::uint32_t replay_buf_len = 6;
     load_replay_buf(
         0,
         replay_buf_len,
@@ -36,8 +36,9 @@ inline void _llk_unpack_untilize_mop_config_()
             TTI_ADDRCRZW(0b001, 0, 0, 0, 0, 0b0001 /*CH0_Z*/);
         });
 
-    static constexpr uint load_offset_addr_cntx0 = TT_OP_WRCFG(p_gpr_unpack::TILE_OFFSET, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_address_ADDR32);
-    static constexpr uint load_offset_addr_cntx1 = TT_OP_WRCFG(p_gpr_unpack::TILE_OFFSET, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_cntx1_address_ADDR32);
+    static constexpr std::uint32_t load_offset_addr_cntx0 = TT_OP_WRCFG(p_gpr_unpack::TILE_OFFSET, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_address_ADDR32);
+    static constexpr std::uint32_t load_offset_addr_cntx1 =
+        TT_OP_WRCFG(p_gpr_unpack::TILE_OFFSET, p_cfg::WRCFG_32b, THCON_SEC0_REG7_Offset_cntx1_address_ADDR32);
 
     ckernel_unpack_template tmp = ckernel_unpack_template(
         true,  // src B
@@ -67,8 +68,8 @@ inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, co
               THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1); // Save descriptor 1
 
     // Core untilize initialization logic
-    const std::uint32_t unpA_ch1_x_stride = (unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float32   ? 4
-                                            : (unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float16 ? 2
+    const std::uint32_t unpA_ch1_x_stride = (unpack_dst_format & 0x3) == to_underlying(DataFormat::Float32)   ? 4
+                                            : (unpack_dst_format & 0x3) == to_underlying(DataFormat::Float16) ? 2
                                                                                                               : 1;
     const std::uint32_t unpA_ch1_y_stride = FACE_R_DIM * unpA_ch1_x_stride;
 
@@ -99,9 +100,9 @@ inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, co
 
 inline void _llk_unpack_untilize_uninit_(const std::uint32_t unpack_dst_format, const std::uint32_t face_r_dim)
 {
-    std::uint32_t unpA_ch1_x_stride = (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
-                                      : (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
-                                                                                                     : 1;
+    std::uint32_t unpA_ch1_x_stride = (unpack_dst_format & 0x3) == to_underlying(DataFormat::Float32)   ? 4
+                                      : (unpack_dst_format & 0x3) == to_underlying(DataFormat::Float16) ? 2
+                                                                                                        : 1;
     std::uint32_t unpA_ch1_y_stride = FACE_C_DIM * face_r_dim * unpA_ch1_x_stride;
 
     // Check that unpacker is done (all contexts freed up) before starting hw configuration
@@ -127,7 +128,7 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
     std::uint32_t rem_blocks_in_row = block_tile_cols;
 
     // Program srcA and srcB base addresses
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b0010); // Clear l1 addr y cnt
     if constexpr (first_pass)

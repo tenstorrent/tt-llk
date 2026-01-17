@@ -14,7 +14,7 @@ namespace sfpu
 {
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
-inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
+inline void _mul_int_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
@@ -28,7 +28,7 @@ inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const 
         // using TTI_SFP_STOCH_RND.
         // Finally, the result will be lo + ((hi0 + hi1) << 8).
 
-        constexpr uint dst_tile_size = 64;
+        constexpr std::uint32_t dst_tile_size = 64;
 
         // a0
         TT_SFPLOAD(p_sfpu::LREG0, LO16, ADDR_MOD_3, dst_index_in0 * dst_tile_size);

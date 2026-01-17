@@ -21,7 +21,7 @@ using namespace ckernel::unpacker;
 
 inline void _llk_unpack_untilize_mop_config_()
 {
-    constexpr uint replay_buf_len = 5;
+    constexpr std::uint32_t replay_buf_len = 5;
     lltt::record(0, replay_buf_len);
 
     TTI_DMANOP; // REG2FLOP that sets offset in previous loop needs additional cycle to complete
@@ -30,9 +30,9 @@ inline void _llk_unpack_untilize_mop_config_()
     TTI_ADDDMAREG(0, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_OFFSET, p_gpr_unpack::TILE_SIZE);
     TTI_ADDRCRZW(0b001, 0, 0, 0, 0, 0b0001);
 
-    static constexpr uint load_offset_addr_cntx0 =
+    static constexpr std::uint32_t load_offset_addr_cntx0 =
         TT_OP_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG7_Offset_address_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::TILE_OFFSET);
-    static constexpr uint load_offset_addr_cntx1 =
+    static constexpr std::uint32_t load_offset_addr_cntx1 =
         TT_OP_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG7_Offset_cntx1_address_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::TILE_OFFSET);
 
     ckernel_unpack_template tmp = ckernel_unpack_template(
@@ -64,8 +64,8 @@ inline void _llk_unpack_untilize_init_(
         TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1); // Save descriptor 1
     }
 
-    const std::uint32_t unpA_ch1_x_stride = (unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float32   ? 4
-                                            : (unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float16 ? 2
+    const std::uint32_t unpA_ch1_x_stride = (unpack_dst_format & 0x3) == to_underlying(DataFormat::Float32)   ? 4
+                                            : (unpack_dst_format & 0x3) == to_underlying(DataFormat::Float16) ? 2
                                                                                                               : 1;
     const std::uint32_t unpA_ch1_y_stride = FACE_R_DIM * unpA_ch1_x_stride;
 
@@ -93,7 +93,7 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
     std::uint32_t rem_blocks_in_row = block_tile_cols;
 
     // Program srcA and srcB base addresses
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     TTI_SETADCXY(0b001, 0, 0, 0, 0, 0b0010); // Clear l1 addr y cnt
     if constexpr (first_pass)

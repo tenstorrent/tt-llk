@@ -25,7 +25,7 @@ using namespace ckernel::sfpu;
  * @param math_format Optional math format for operations that need format-specific behavior
  */
 template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false>
-void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
+void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0)
 {
     switch (operation)
     {
@@ -64,7 +64,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
                 p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
             break;
         case SfpuType::fill:
-            if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
+            if (math_format == ckernel::to_underlying(DataFormat::Int32))
             {
                 _calculate_fill_int_<APPROX_MODE, ITERATIONS>(5);
             }
@@ -87,7 +87,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             break;
         case SfpuType::neg:
         case SfpuType::negative:
-            if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
+            if (math_format == ckernel::to_underlying(DataFormat::Int32))
             {
                 _calculate_negative_int_<APPROX_MODE, ITERATIONS>();
             }
@@ -152,8 +152,8 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
     }
 }
 
-template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, uint32_t MATH_FORMAT = 0>
-void call_binary_sfpu_operation(const uint dst_index_in0 = 0, const uint dst_index_in1 = 1, const uint dst_index_out = 0)
+template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, std::uint32_t MATH_FORMAT = 0>
+void call_binary_sfpu_operation(const std::uint32_t dst_index_in0 = 0, const std::uint32_t dst_index_in1 = 1, const std::uint32_t dst_index_out = 0)
 {
     switch (BINOP)
     {

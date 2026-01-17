@@ -37,13 +37,13 @@ template <
     BroadcastType src_b_bcast_type,
     DstSync Dst,
     bool is_fp32_dest_acc_en,
-    int NUM_FIDELITY_PHASES                      = 0,
+    MathFidelity math_fidelity,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_index, const bool clear_fp32_dst_acc)
+inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, std::uint32_t dst_index, const bool clear_fp32_dst_acc)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    constexpr bool high_fidelity     = (NUM_FIDELITY_PHASES > 0);
-    constexpr uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
+    constexpr bool high_fidelity          = is_high_fidelity(math_fidelity);
+    constexpr std::uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
 
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
@@ -52,7 +52,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
         if constexpr (src_b_bcast_type == BroadcastType::COL)
         {
             // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice for full tile size
-            constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
+            constexpr std::uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
 #pragma GCC unroll 0
             for (std::uint32_t n = 0; n < outerloop; n++)
             {
@@ -73,7 +73,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
         }
         else
         {
-            const uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? num_faces : 1;
+            const std::uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? num_faces : 1;
 #pragma GCC unroll 0
             for (std::uint32_t n = 0; n < outerloop; n++)
             {
@@ -92,7 +92,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
         if constexpr (src_b_bcast_type == BroadcastType::COL)
         {
             // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice for full tile size
-            constexpr uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
+            constexpr std::uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
             if constexpr (high_fidelity)
             {
 #pragma GCC unroll 0
@@ -194,7 +194,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
         else
         {
             // Row and no broadcasted behaves similarly
-            const uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? num_faces : 1;
+            const std::uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? num_faces : 1;
             if constexpr (high_fidelity)
             {
 #pragma GCC unroll 0
@@ -250,9 +250,11 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
     math::clear_dst_reg_addr();
 }
 
-template <EltwiseBinaryType eltwise_binary_type, BroadcastType bcast_type, std::uint32_t FIDELITY_INCREMENT>
+template <EltwiseBinaryType eltwise_binary_type, BroadcastType bcast_type, MathFidelity math_fidelity>
 inline void eltwise_binary_configure_addrmod()
 {
+    constexpr int fidelity_increment = is_high_fidelity(math_fidelity) ? 1 : 0;
+
     // Use srcA for data movement
     if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB) || (eltwise_binary_type == ELWMUL))
     {
@@ -282,7 +284,7 @@ inline void eltwise_binary_configure_addrmod()
             .set(ADDR_MOD_1);
 
         addr_mod_t {
-            .srca = {.incr = 0, .clr = 1}, .srcb = {.incr = 0, .clr = 1}, .dest = {.incr = 0, .clr = 0, .cr = 1}, .fidelity = {.incr = FIDELITY_INCREMENT}}
+            .srca = {.incr = 0, .clr = 1}, .srcb = {.incr = 0, .clr = 1}, .dest = {.incr = 0, .clr = 0, .cr = 1}, .fidelity = {.incr = fidelity_increment}}
             .set(ADDR_MOD_2);
 
         addr_mod_t {
@@ -297,16 +299,16 @@ inline void eltwise_binary_configure_addrmod()
 template <
     EltwiseBinaryType eltwise_binary_type,
     BroadcastType bcast_type,
-    int NUM_FIDELITY_PHASES                      = 0,
+    MathFidelity math_fidelity,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, const std::uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    constexpr bool high_fidelity = (NUM_FIDELITY_PHASES > 0);
-    const uint addr_mod          = ADDR_MOD_0;
-    constexpr uint innerloop     = 16 >> 3; // 8 rows per eltwise op at a time.
-    uint outerloop               = num_faces;
-    auto broadcast_type          = p_elwise::SRCB_NO_BCAST;
+    constexpr bool high_fidelity      = is_high_fidelity(math_fidelity);
+    const std::uint32_t addr_mod      = ADDR_MOD_0;
+    constexpr std::uint32_t innerloop = 16 >> 3; // 8 rows per eltwise op at a time.
+    std::uint32_t outerloop           = num_faces;
+    auto broadcast_type               = p_elwise::SRCB_NO_BCAST;
     if constexpr (bcast_type == BroadcastType::COL)
     {
         // The mop only runs for 2 outer loops and mop is called twice for col broadcast
@@ -344,7 +346,8 @@ inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, co
         }
         else if constexpr (eltwise_binary_type == ELWMUL)
         {
-            ckernel_template tmp(high_fidelity ? NUM_FIDELITY_PHASES : outerloop, innerloop, TT_OP_ELWMUL(0, 0, broadcast_type, addr_mod, 0));
+            outerloop = high_fidelity ? to_underlying(math_fidelity) : outerloop;
+            ckernel_template tmp(outerloop, innerloop, TT_OP_ELWMUL(0, 0, broadcast_type, addr_mod, 0));
             if constexpr (high_fidelity)
             {
                 tmp.set_last_inner_loop_instr(TT_OP_ELWMUL(0, 0, broadcast_type, ADDR_MOD_2, 0)); // Incr fidelity last inst of inner loop
@@ -373,7 +376,8 @@ inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, co
         }
         else if constexpr (eltwise_binary_type == ELWMUL)
         {
-            ckernel_template tmp(high_fidelity ? NUM_FIDELITY_PHASES : outerloop, innerloop, TT_OP_ELWMUL(0, 0, broadcast_type, addr_mod, 0));
+            outerloop = high_fidelity ? to_underlying(math_fidelity) : outerloop;
+            ckernel_template tmp(outerloop, innerloop, TT_OP_ELWMUL(0, 0, broadcast_type, addr_mod, 0));
             if constexpr (high_fidelity)
             {
                 tmp.set_last_inner_loop_instr(TT_OP_ELWMUL(0, 0, broadcast_type, ADDR_MOD_2, 0)); // Incr fidelity last inst of inner loop
@@ -391,19 +395,17 @@ inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, co
 template <
     EltwiseBinaryType eltwise_binary_type,
     BroadcastType src_b_bcast_type,
-    int MATH_FIDELITY_DESC                       = 0,
+    MathFidelity math_fidelity,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, const std::uint32_t acc_to_dest)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    constexpr int MATH_FIDELITY_PHASES    = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    constexpr int MATH_FIDELITY_INCREMENT = get_math_fidelity_increment(MATH_FIDELITY_DESC);
 
-    eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_INCREMENT>();
+    eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, math_fidelity>();
 
     if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB) || (eltwise_binary_type == ELWMUL))
     {
-        eltwise_binary_configure_mop<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_PHASES, binary_reuse_dest>(acc_to_dest, num_faces);
+        eltwise_binary_configure_mop<eltwise_binary_type, src_b_bcast_type, math_fidelity, binary_reuse_dest>(acc_to_dest, num_faces);
     }
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
@@ -424,7 +426,7 @@ inline void _llk_math_eltwise_binary_uninit_()
  since toggling of dvalid signal is different in both cases.
 
  *************************************************************************/
-inline void eltwise_binary_configure_mop(uint srca_reuse_count = 4)
+inline void eltwise_binary_configure_mop(std::uint32_t srca_reuse_count = 4)
 {
     /*
 
@@ -434,8 +436,8 @@ inline void eltwise_binary_configure_mop(uint srca_reuse_count = 4)
 
     */
 
-    uint32_t innerloop           = srca_reuse_count;
-    constexpr uint32_t outerloop = 1;
+    std::uint32_t innerloop           = srca_reuse_count;
+    constexpr std::uint32_t outerloop = 1;
 
     ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, 10, 0, 0));
     tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB)); // Clearing src A dvalid
@@ -459,21 +461,21 @@ inline void eltwise_binary_configure_addrmod()
         .set(ADDR_MOD_1);
 }
 
-template <EltwiseBinaryType eltwise_binary_type, int NUM_FIDELITY_PHASES = 0>
-inline void _llk_math_eltwise_binary_init_(uint32_t srca_reuse_count = 4)
+template <EltwiseBinaryType eltwise_binary_type, MathFidelity math_fidelity>
+inline void _llk_math_eltwise_binary_init_(std::uint32_t srca_reuse_count = 4)
 {
     eltwise_binary_configure_addrmod();
 
     /*
         Loading of instructions into replay buffer. First 4 operate on F0 and F1,
-        and second 4 operate on F2 and F3. Each pair of instructions operates on 8 rows
+        and second 4 operate on F2 and F3. Each pair of istructions operates on 8 rows
         of the tile. The last instruction clears B dvalid which means unpacker
         will load following B tile while still keeping same A tile in srcA.
         After F0 and F1 A counter is cleared which allows it to reuse
         boradcasted data.
     */
 
-    auto eltwise_op = [](uint8_t addr_mod)
+    auto eltwise_op = [](std::uint8_t addr_mod)
     {
         if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWSUB)
         {
@@ -517,7 +519,7 @@ inline void _llk_math_eltwise_binary_init_(uint32_t srca_reuse_count = 4)
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-inline void _llk_math_eltwise_binary_(uint32_t dst_index)
+inline void _llk_math_eltwise_binary_(std::uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 

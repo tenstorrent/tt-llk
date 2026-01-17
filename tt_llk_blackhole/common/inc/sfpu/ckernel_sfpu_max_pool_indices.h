@@ -27,15 +27,16 @@ namespace sfpu
  * @param tile_idx Unused param, needed to conform with format in _llk_math_eltwise_binary_sfpu_params_.
  */
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS = 8, ckernel::DataLayout layout = ckernel::DataLayout::TILE>
-inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
+inline void _calculate_max_pool_with_indices_(
+    const std::uint32_t values_tile_idx, const std::uint32_t indices_tile_idx, const std::uint32_t tile_idx /* unused */)
 {
     // size of each tile in Dest is 64 rows
-    constexpr uint dst_tile_size   = 64;
-    const uint values_tile_offset  = values_tile_idx * dst_tile_size;
-    const uint indices_tile_offset = indices_tile_idx * dst_tile_size;
+    constexpr std::uint32_t dst_tile_size   = 64;
+    const std::uint32_t values_tile_offset  = values_tile_idx * dst_tile_size;
+    const std::uint32_t indices_tile_offset = indices_tile_idx * dst_tile_size;
     // each face is 16 rows
-    constexpr uint face_offset        = 16;
-    constexpr uint8_t instr_mod_index = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
+    constexpr std::uint32_t face_offset    = 16;
+    constexpr std::uint8_t instr_mod_index = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
     if constexpr (layout == ckernel::DataLayout::ROW_MAJOR)
     {
@@ -60,7 +61,7 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
         // Face 0 Row 8
         // Face 1 Row 8
 
-        auto process_columns = [values_tile_offset, indices_tile_offset](const uint col_offset) __attribute__((always_inline))
+        auto process_columns = [values_tile_offset, indices_tile_offset](const std::uint32_t col_offset) __attribute__((always_inline))
         {
             // data
             TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + 0 + col_offset);
@@ -174,16 +175,17 @@ inline void _calculate_max_pool_with_indices_(const uint values_tile_idx, const 
  * it must be called with layout=DataLayout::ROW_MAJOR.
  */
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS>
-inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx, const uint indices_tile_idx, const uint tile_idx /* unused */)
+inline void _calculate_max_pool_with_indices_generic_(
+    const std::uint32_t values_tile_idx, const std::uint32_t indices_tile_idx, const std::uint32_t tile_idx /* unused */)
 {
     // size of each tile in Dest is 64 rows
-    constexpr uint dst_tile_size   = 64;
-    const uint values_tile_offset  = values_tile_idx * dst_tile_size;
-    const uint indices_tile_offset = indices_tile_idx * dst_tile_size;
+    constexpr std::uint32_t dst_tile_size   = 64;
+    const std::uint32_t values_tile_offset  = values_tile_idx * dst_tile_size;
+    const std::uint32_t indices_tile_offset = indices_tile_idx * dst_tile_size;
     // each face is 16 rows
-    constexpr uint eight_row_offset   = 16;
-    constexpr uint sixteen_row_offset = 32;
-    constexpr uint8_t instr_mod_index = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
+    constexpr std::uint32_t eight_row_offset   = 16;
+    constexpr std::uint32_t sixteen_row_offset = 32;
+    constexpr std::uint8_t instr_mod_index     = is_fp32_dest_acc_en ? InstrModLoadStore::INT32 : InstrModLoadStore::LO16;
 
     // ROW MAJOR DATA VERSION OF MPWI
     // DATA IS EXPECTED TO BE IN THE FOLLOWING ORDER IN DEST:
@@ -197,11 +199,11 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
     // Face 0 Row 31
     // Face 1 Row 31
 
-    auto process_16_rows = [values_tile_offset, indices_tile_offset, eight_row_offset, instr_mod_index](const uint base_offset, const uint col_offset)
-                               __attribute__((always_inline))
+    auto process_16_rows = [values_tile_offset, indices_tile_offset, eight_row_offset, instr_mod_index](
+                               const std::uint32_t base_offset, const std::uint32_t col_offset) __attribute__((always_inline))
     {
         // Nested lambda to handle load, sort, and store for a face
-        auto load_sort_store = [values_tile_offset, indices_tile_offset, base_offset, col_offset, instr_mod_index](const uint eight_row_offset_val)
+        auto load_sort_store = [values_tile_offset, indices_tile_offset, base_offset, col_offset, instr_mod_index](const std::uint32_t eight_row_offset_val)
                                    __attribute__((always_inline))
         {
             // data
@@ -285,7 +287,8 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
     process_16_rows(sixteen_row_offset, odd_column_offset);
 
     // Final swap
-    auto final_swap = [values_tile_offset, indices_tile_offset, sixteen_row_offset, instr_mod_index](const uint col_offset) __attribute__((always_inline))
+    auto final_swap = [values_tile_offset, indices_tile_offset, sixteen_row_offset, instr_mod_index](const std::uint32_t col_offset)
+                          __attribute__((always_inline))
     {
         TT_SFPLOAD(p_sfpu::LREG0, InstrModLoadStore::DEFAULT, ADDR_MOD_7, values_tile_offset + col_offset); // Max(R0-15) for F0,1
         TT_SFPLOAD(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, indices_tile_offset + col_offset);

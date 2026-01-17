@@ -10,9 +10,9 @@
 #include "llk_defs.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -36,16 +36,16 @@ void run_kernel(const volatile struct RuntimeParams *params)
         params->NARROW_TILE // narrow_tile disabled for now
     );
 
-    uint32_t read_offset = 0;
+    std::uint32_t read_offset = 0;
 
     const std::uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
     const std::uint32_t num_faces    = is_blackhole ? 4 : params->num_faces;
 
     // Main tilize loop - handle different tile configurations
-    for (uint32_t row = 0; row < BLOCK_RT_DIM; ++row)
+    for (std::uint32_t row = 0; row < BLOCK_RT_DIM; ++row)
     {
-        uint32_t tile_row_addr = L1_ADDRESS(buffer_A[read_offset]);
-        for (uint32_t col = 0; col < BLOCK_CT_DIM; ++col)
+        std::uint32_t tile_row_addr = L1_ADDRESS(buffer_A[read_offset]);
+        for (std::uint32_t col = 0; col < BLOCK_CT_DIM; ++col)
         {
             _llk_unpack_tilize_(
                 tile_row_addr,
@@ -86,7 +86,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params->TILE_CNT; ++i)
     {
 #ifdef ARCH_BLACKHOLE
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
@@ -123,7 +123,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(buffer_Res[i]));
     }
