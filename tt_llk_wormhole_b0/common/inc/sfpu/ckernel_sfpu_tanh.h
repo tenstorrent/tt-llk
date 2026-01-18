@@ -119,38 +119,26 @@ inline void _calculate_tanh_()
 {
     if constexpr (APPROXIMATION_MODE)
     {
+        sfpi::vUInt l0 = sfpi::l_reg[sfpi::LRegs::LReg0];
+        sfpi::vUInt l1 = sfpi::l_reg[sfpi::LRegs::LReg1];
+        sfpi::vUInt l2 = sfpi::l_reg[sfpi::LRegs::LReg2];
+        sfpi::vUInt l4 = sfpi::l_reg[sfpi::LRegs::LReg4];
+        sfpi::vUInt l5 = sfpi::l_reg[sfpi::LRegs::LReg5];
+        sfpi::vUInt l6 = sfpi::l_reg[sfpi::LRegs::LReg6];
 #pragma GCC unroll 8
         for (int d = 0; d < ITERATIONS; d++)
         {
-            sfpi::vFloat x  = sfpi::dst_reg[0];
-            sfpi::vFloat ax = sfpi::abs(x);
+            sfpi::vFloat x = sfpi::dst_reg[0];
 
-            v_if (ax <= 1.0f)
-            {
-                sfpi::vFloat x2 = x * x;
-                sfpi::vFloat x4 = x2 * x2;
+            sfpi::vFloat two_x = 2.0f * x;
+            sfpi::vFloat sig2x = lut2(two_x, l0, l1, l2, l4, l5, l6, 0);
 
-                sfpi::vFloat a = sfpi::vFloat(-1.0f / 3.0f);
-                sfpi::vFloat b = sfpi::vFloat(2.0f / 15.0f);
+            sfpi::vFloat y = 2.0f * sig2x;
 
-                sfpi::vFloat p = sfpi::vConst1 + a * x2 + b * x4;
-                sfpi::vFloat y = x * p;
+            // sfpi::vFloat one = sfpi::vConst1;
+            // sfpi::vec_min_max(y, one);
 
-                sfpi::dst_reg[0] = y;
-            }
-            v_elseif (ax <= 3.0f)
-            {
-                sfpi::vFloat y   = _sfpu_tanh_fp32_accurate_<false>(x); // reuse accurate tanh
-                sfpi::dst_reg[0] = y;
-            }
-            v_else
-            {
-                sfpi::vFloat one = sfpi::vConst1;
-                sfpi::vFloat y   = sfpi::setsgn(one, x);
-                sfpi::dst_reg[0] = y;
-            }
-            v_endif;
-
+            sfpi::dst_reg[0] = y;
             sfpi::dst_reg++;
         }
     }
@@ -185,6 +173,34 @@ inline void _tanh_init_()
 {
     if constexpr (APPROXIMATION_MODE)
     {
+        // imm0 = 0x3DFF;
+        // imm1 = 0x21D8;
+        // imm2 = 0xFF10;
+        // TTI_SFPLOADI(0, 2, imm0);
+        // TTI_SFPLOADI(1, 2, imm1);
+        // TTI_SFPLOADI(2, 2, imm2);
+        // Using a 6 piece LUT to calculate and model tanh directly
+        // x <= 0.5 --> 0.2452x + (-0.0004997)
+        // x <= 1.0 --> 0.2173x + 0.0152
+        // x <= 1.5 --> 0.1731x + 0.05988
+        // x <= 2.0 --> 0.1262x + 0.1298
+        // x <= 4.0 --> 0.0485x + 0.2998
+        // x >  4.0 --> 0.4998
+
+        // imm0[15:0] = A0=0.2452 = 0x33D9 -- imm0[31:16] = A1=0.2173 = 0x32F4
+        _sfpu_load_imm32_(0, 0x32F433D9);
+        // imm4[15:0] = B0= -0.0004997  = 0x9018 -- imm4[31:16] = B1= 0.0152 = 0x23c8
+        _sfpu_load_imm32_(4, 0x23C89018);
+
+        // imm1[15:0] = A2=0.1731 = 0x318a -- imm1[31:16] = A3=0.1262 = 0x300a
+        _sfpu_load_imm32_(1, 0x300A318A);
+        // imm5[15:0] = B2=0.05988 = 0x2BAA -- imm5[31:16] = B3=0.1298 = 0x3027
+        _sfpu_load_imm32_(5, 0x30272BAA);
+
+        // imm2[15:0] = A4=0.0485 = 0x2A35 -- imm2[31:16] = A5=0.0 = 0x7C00
+        _sfpu_load_imm32_(2, 0x7C002A35);
+        // imm6[15:0] = B4=0.2998 = 0x34CC -- imm6[31:16] = B5=0.4998 = 0x37ff
+        _sfpu_load_imm32_(6, 0x37ff34CC);
     }
     else
     {
