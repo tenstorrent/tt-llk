@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from ttexalens.tt_exalens_lib import read_words_from_device, write_words_to_device
 
@@ -14,6 +14,14 @@ PERF_COUNTER_MATH_CONFIG_ADDR = 0x2FAE8  # 66 words: MATH metadata
 PERF_COUNTER_MATH_DATA_ADDR = 0x2FBF0  # 132 words: MATH results
 PERF_COUNTER_PACK_CONFIG_ADDR = 0x2FE00  # 66 words: PACK metadata
 PERF_COUNTER_PACK_DATA_ADDR = 0x2FF08  # 132 words: PACK results
+
+COUNTER_SLOT_COUNT = 66  # Max counters per thread
+
+_THREAD_ADDRESSES = {
+    "UNPACK": (PERF_COUNTER_UNPACK_CONFIG_ADDR, PERF_COUNTER_UNPACK_DATA_ADDR),
+    "MATH": (PERF_COUNTER_MATH_CONFIG_ADDR, PERF_COUNTER_MATH_DATA_ADDR),
+    "PACK": (PERF_COUNTER_PACK_CONFIG_ADDR, PERF_COUNTER_PACK_DATA_ADDR),
+}
 
 COUNTER_BANK_NAMES = {
     0: "INSTRN_THREAD",
@@ -116,6 +124,14 @@ _COUNTER_NAME_TO_ID = {
 }
 
 
+def _get_thread_addresses(thread: str) -> Tuple[int, int]:
+    """Get config and data addresses for a thread."""
+    addresses = _THREAD_ADDRESSES.get(thread.upper())
+    if addresses is None:
+        raise ValueError(f"Unknown thread: {thread}. Must be UNPACK, MATH, or PACK")
+    return addresses
+
+
 def counter(bank: str, counter_name: str, l1_mux: int = 0) -> Dict:
     if bank not in _BANK_NAME_TO_ID:
         raise ValueError(
@@ -155,22 +171,11 @@ def configure_perf_counters(
     thread: str = "MATH",
     mode: str = "GRANTS",
 ) -> None:
-    thread = thread.upper()
-    if thread == "UNPACK":
-        config_addr = PERF_COUNTER_UNPACK_CONFIG_ADDR
-        data_addr = PERF_COUNTER_UNPACK_DATA_ADDR
-    elif thread == "MATH":
-        config_addr = PERF_COUNTER_MATH_CONFIG_ADDR
-        data_addr = PERF_COUNTER_MATH_DATA_ADDR
-    elif thread == "PACK":
-        config_addr = PERF_COUNTER_PACK_CONFIG_ADDR
-        data_addr = PERF_COUNTER_PACK_DATA_ADDR
-    else:
-        raise ValueError(f"Unknown thread: {thread}. Must be UNPACK, MATH, or PACK")
+    config_addr, data_addr = _get_thread_addresses(thread)
 
-    if len(counters) > 66:
+    if len(counters) > COUNTER_SLOT_COUNT:
         raise ValueError(
-            f"Cannot configure more than 66 counters per thread. Got {len(counters)}."
+            f"Cannot configure more than {COUNTER_SLOT_COUNT} counters per thread. Got {len(counters)}."
         )
 
     # Use module-level reverse lookup for bank names
@@ -200,8 +205,8 @@ def configure_perf_counters(
         )
         config_words.append(config_word)
 
-    # Pad to 66 words
-    while len(config_words) < 66:
+    # Pad to COUNTER_SLOT_COUNT words
+    while len(config_words) < COUNTER_SLOT_COUNT:
         config_words.append(0)
 
     # Write configuration and clear previous data
@@ -216,22 +221,11 @@ def configure_perf_counters(
 
 
 def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict]:
-    thread = thread.upper()
-    if thread == "UNPACK":
-        config_addr = PERF_COUNTER_UNPACK_CONFIG_ADDR
-        data_addr = PERF_COUNTER_UNPACK_DATA_ADDR
-    elif thread == "MATH":
-        config_addr = PERF_COUNTER_MATH_CONFIG_ADDR
-        data_addr = PERF_COUNTER_MATH_DATA_ADDR
-    elif thread == "PACK":
-        config_addr = PERF_COUNTER_PACK_CONFIG_ADDR
-        data_addr = PERF_COUNTER_PACK_DATA_ADDR
-    else:
-        raise ValueError(f"Unknown thread: {thread}. Must be UNPACK, MATH, or PACK")
+    config_addr, data_addr = _get_thread_addresses(thread)
 
-    # Read metadata (66 words)
+    # Read metadata
     metadata = read_words_from_device(
-        location=location, addr=config_addr, word_count=66
+        location=location, addr=config_addr, word_count=COUNTER_SLOT_COUNT
     )
 
     # Reading counters from L1
@@ -255,7 +249,7 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
 
     results = []
     data_idx = 0
-    for i in range(66):
+    for i in range(COUNTER_SLOT_COUNT):
         config_word = metadata[i]
         if (config_word & 0x80000000) == 0:  # Check valid bit
             continue  # Unused slot
