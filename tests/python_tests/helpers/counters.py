@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+from collections import defaultdict
 from typing import Dict, List, Tuple
 
 from ttexalens.tt_exalens_lib import read_words_from_device, write_words_to_device
@@ -307,12 +308,9 @@ def print_perf_counters(results: List[Dict], thread: str = None) -> None:
     print("=" * 80)
 
     # Group by bank
-    by_bank = {}
+    by_bank = defaultdict(list)
     for result in results:
-        bank = result["bank"]
-        if bank not in by_bank:
-            by_bank[bank] = []
-        by_bank[bank].append(result)
+        by_bank[result["bank"]].append(result)
 
     # Print by bank
     for bank_name in sorted(by_bank.keys()):
