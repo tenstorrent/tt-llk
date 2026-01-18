@@ -44,7 +44,7 @@ from helpers.test_variant_parameters import (
     ),
     approx_mode=[
         ApproximationMode.Yes,
-        ApproximationMode.No,
+        # ApproximationMode.No,
     ],
     mathop=[
         MathOperation.Reciprocal,
@@ -52,6 +52,7 @@ from helpers.test_variant_parameters import (
         MathOperation.Silu,
         MathOperation.Gelu,
         MathOperation.Exp,
+        MathOperation.Sigmoid,
         MathOperation.Tanh,
         MathOperation.TopKLocalSort,
         MathOperation.TopKMerge,

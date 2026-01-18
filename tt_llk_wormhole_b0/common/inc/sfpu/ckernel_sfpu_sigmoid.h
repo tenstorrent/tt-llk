@@ -118,7 +118,7 @@ inline void _calculate_sigmoid_()
 }
 
 template <bool APPROXIMATION_MODE>
-inline void _sigmoid_init_()
+inline void _init_sigmoid_()
 {
     if constexpr (!APPROXIMATION_MODE)
     {

@@ -169,7 +169,7 @@ inline void _calculate_tanh_()
 }
 
 template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en>
-inline void _tanh_init_()
+inline void _init_tanh_()
 {
     if constexpr (APPROXIMATION_MODE)
     {
@@ -206,7 +206,7 @@ inline void _tanh_init_()
     {
         if constexpr (is_fp32_dest_acc_en)
         {
-            _sigmoid_init_<false>();
+            _init_sigmoid_<false>();
         }
         else
         {
