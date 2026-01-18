@@ -178,8 +178,6 @@ def configure_perf_counters(
             f"Cannot configure more than {COUNTER_SLOT_COUNT} counters per thread. Got {len(counters)}."
         )
 
-    # Use module-level reverse lookup for bank names
-
     # Bit16: 0 = REQUESTS, 1 = GRANTS
     mode_bit = 1 if mode.upper() == "GRANTS" else 0
 
