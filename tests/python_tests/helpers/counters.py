@@ -206,8 +206,8 @@ def configure_perf_counters(
         config_words.append(config_word)
 
     # Pad to COUNTER_SLOT_COUNT words
-    while len(config_words) < COUNTER_SLOT_COUNT:
-        config_words.append(0)
+    if len(config_words) < COUNTER_SLOT_COUNT:
+        config_words.extend([0] * (COUNTER_SLOT_COUNT - len(config_words)))
 
     # Write configuration and clear previous data
 
