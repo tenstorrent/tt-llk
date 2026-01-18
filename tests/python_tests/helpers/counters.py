@@ -106,6 +106,15 @@ COUNTER_NAMES = {
     },
 }
 
+# Reverse lookups for O(1) counter name -> id resolution (computed once at module load)
+_L1_NAME_TO_ID = {(name, mux): cid for (cid, mux), name in COUNTER_NAMES["L1"].items()}
+
+_COUNTER_NAME_TO_ID = {
+    bank: {name: cid for cid, name in counters.items()}
+    for bank, counters in COUNTER_NAMES.items()
+    if bank != "L1"
+}
+
 
 def counter(bank: str, counter_name: str, l1_mux: int = 0) -> Dict:
     if bank not in _BANK_NAME_TO_ID:
@@ -113,40 +122,26 @@ def counter(bank: str, counter_name: str, l1_mux: int = 0) -> Dict:
             f"Unknown bank: {bank}. Valid banks: {list(_BANK_NAME_TO_ID.keys())}"
         )
 
-    # Find counter ID by name
-    if bank not in COUNTER_NAMES:
-        raise ValueError(f"No counter definitions for bank: {bank}")
-
-    counter_map = COUNTER_NAMES[bank]
-
-    # For L1 counters, search with (counter_id, l1_mux) tuple
     if bank == "L1":
-        # Reverse lookup: name -> (counter_id, l1_mux)
-        counter_id = None
-        for (cid, mux), name in counter_map.items():
-            if name == counter_name and mux == l1_mux:
-                counter_id = cid
-                break
+        lookup_key = (counter_name, l1_mux)
+        counter_id = _L1_NAME_TO_ID.get(lookup_key)
 
         if counter_id is None:
-            available = [
-                f"{name} (mux={mux})" for (_, mux), name in counter_map.items()
-            ]
+            available = [f"{name} (mux={mux})" for (name, mux) in _L1_NAME_TO_ID.keys()]
             raise ValueError(
                 f"Unknown L1 counter: {counter_name} with l1_mux={l1_mux}. Available: {available}"
             )
 
-        return {"bank": bank, "counter_id": counter_id, "mux_ctrl_bit4": l1_mux}
+        return {"bank": bank, "counter_id": counter_id, "l1_mux": l1_mux}
     else:
-        # For non-L1 counters, reverse lookup by name
-        counter_id = None
-        for cid, name in counter_map.items():
-            if name == counter_name:
-                counter_id = cid
-                break
+        # Use O(1) lookup instead of linear search
+        if bank not in _COUNTER_NAME_TO_ID:
+            raise ValueError(f"No counter definitions for bank: {bank}")
+
+        counter_id = _COUNTER_NAME_TO_ID[bank].get(counter_name)
 
         if counter_id is None:
-            available = list(counter_map.values())
+            available = list(_COUNTER_NAME_TO_ID[bank].keys())
             raise ValueError(
                 f"Unknown counter: {counter_name} in bank {bank}. Available: {available}"
             )
@@ -188,16 +183,17 @@ def configure_perf_counters(
     for idx, counter in enumerate(counters):
         bank_name = counter["bank"]
         counter_id = counter["counter_id"]
-        mux_ctrl_bit4 = counter.get("mux_ctrl_bit4", 0)
+        # Support both 'l1_mux' (new) and 'mux_ctrl_bit4' (legacy) keys
+        l1_mux = counter.get("l1_mux", counter.get("mux_ctrl_bit4", 0))
 
         bank_id = _BANK_NAME_TO_ID.get(bank_name)
         if bank_id is None:
             raise ValueError(f"Unknown bank: {bank_name}")
 
-        # Encode: [valid(31), mux_ctrl_bit4(17), mode(16), counter_id(8-15), bank(0-7)]
+        # Encode: [valid(31), l1_mux(17), mode(16), counter_id(8-15), bank(0-7)]
         config_word = (
             (1 << 31)  # Valid bit to distinguish from empty slots
-            | (mux_ctrl_bit4 << 17)
+            | (l1_mux << 17)
             | (mode_bit << 16)
             | (counter_id << 8)
             | bank_id
