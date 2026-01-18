@@ -286,7 +286,7 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
                 "cycles": cycles,
                 "count": count,
                 "mode": mode,
-                "mux_ctrl_bit4": mux_ctrl_bit4 if bank_name == "L1" else None,
+                "l1_mux": mux_ctrl_bit4 if bank_name == "L1" else None,
             }
         )
 
