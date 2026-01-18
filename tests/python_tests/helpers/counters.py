@@ -16,6 +16,7 @@ PERF_COUNTER_PACK_CONFIG_ADDR = 0x2FE00  # 66 words: PACK metadata
 PERF_COUNTER_PACK_DATA_ADDR = 0x2FF08  # 132 words: PACK results
 
 COUNTER_SLOT_COUNT = 66  # Max counters per thread
+COUNTER_DATA_WORD_COUNT = COUNTER_SLOT_COUNT * 2  # 2 words per counter (cycles + count)
 
 _THREAD_ADDRESSES = {
     "UNPACK": (PERF_COUNTER_UNPACK_CONFIG_ADDR, PERF_COUNTER_UNPACK_DATA_ADDR),
@@ -209,8 +210,8 @@ def configure_perf_counters(
 
     # Write configuration and clear previous data
 
-    # Clear data region (132 words) to prevent garbage from previous runs
-    zero_data = [0] * 132
+    # Clear data region to prevent garbage from previous runs
+    zero_data = [0] * COUNTER_DATA_WORD_COUNT
     write_words_to_device(location=location, addr=data_addr, data=zero_data)
 
     # Write configuration to L1
