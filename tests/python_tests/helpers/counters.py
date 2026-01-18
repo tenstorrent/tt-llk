@@ -23,6 +23,9 @@ COUNTER_BANK_NAMES = {
     4: "TDMA_PACK",
 }
 
+# Reverse lookup: bank name -> bank id (computed once at module load)
+_BANK_NAME_TO_ID = {v: k for k, v in COUNTER_BANK_NAMES.items()}
+
 COUNTER_NAMES = {
     "INSTRN_THREAD": {
         0: "INST_CFG",
@@ -104,11 +107,10 @@ COUNTER_NAMES = {
 }
 
 
-def counter(bank: str, counter_name: str, mux_ctrl_bit4: int = 0) -> Dict:
-    bank_name_to_id = {v: k for k, v in COUNTER_BANK_NAMES.items()}
-    if bank not in bank_name_to_id:
+def counter(bank: str, counter_name: str, l1_mux: int = 0) -> Dict:
+    if bank not in _BANK_NAME_TO_ID:
         raise ValueError(
-            f"Unknown bank: {bank}. Valid banks: {list(bank_name_to_id.keys())}"
+            f"Unknown bank: {bank}. Valid banks: {list(_BANK_NAME_TO_ID.keys())}"
         )
 
     # Find counter ID by name
@@ -117,12 +119,12 @@ def counter(bank: str, counter_name: str, mux_ctrl_bit4: int = 0) -> Dict:
 
     counter_map = COUNTER_NAMES[bank]
 
-    # For L1 counters, search with (counter_id, mux_ctrl_bit4) tuple
+    # For L1 counters, search with (counter_id, l1_mux) tuple
     if bank == "L1":
-        # Reverse lookup: name -> (counter_id, mux_ctrl_bit4)
+        # Reverse lookup: name -> (counter_id, l1_mux)
         counter_id = None
         for (cid, mux), name in counter_map.items():
-            if name == counter_name and mux == mux_ctrl_bit4:
+            if name == counter_name and mux == l1_mux:
                 counter_id = cid
                 break
 
@@ -131,10 +133,10 @@ def counter(bank: str, counter_name: str, mux_ctrl_bit4: int = 0) -> Dict:
                 f"{name} (mux={mux})" for (_, mux), name in counter_map.items()
             ]
             raise ValueError(
-                f"Unknown L1 counter: {counter_name} with mux_ctrl_bit4={mux_ctrl_bit4}. Available: {available}"
+                f"Unknown L1 counter: {counter_name} with l1_mux={l1_mux}. Available: {available}"
             )
 
-        return {"bank": bank, "counter_id": counter_id, "mux_ctrl_bit4": mux_ctrl_bit4}
+        return {"bank": bank, "counter_id": counter_id, "mux_ctrl_bit4": l1_mux}
     else:
         # For non-L1 counters, reverse lookup by name
         counter_id = None
@@ -176,8 +178,7 @@ def configure_perf_counters(
             f"Cannot configure more than 66 counters per thread. Got {len(counters)}."
         )
 
-    # Reverse lookup for bank names
-    bank_name_to_id = {v: k for k, v in COUNTER_BANK_NAMES.items()}
+    # Use module-level reverse lookup for bank names
 
     # Bit16: 0 = REQUESTS, 1 = GRANTS
     mode_bit = 1 if mode.upper() == "GRANTS" else 0
@@ -189,7 +190,7 @@ def configure_perf_counters(
         counter_id = counter["counter_id"]
         mux_ctrl_bit4 = counter.get("mux_ctrl_bit4", 0)
 
-        bank_id = bank_name_to_id.get(bank_name)
+        bank_id = _BANK_NAME_TO_ID.get(bank_name)
         if bank_id is None:
             raise ValueError(f"Unknown bank: {bank_name}")
 
