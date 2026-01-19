@@ -238,7 +238,7 @@ constexpr std::array<size_t, N + 1> _args_offsetof(const std::array<uint8_t, N>&
 // Goes in LLK_LIB in Init
 // Store operation type and push arguments to state stack
 template <operation_t op, typename... Ts>
-static inline void operation_save_impl(operation_state_t& state, const Ts... args)
+static inline void operation_init_impl(operation_state_t& state, const Ts... args)
 {
     state.operation = op;
 
