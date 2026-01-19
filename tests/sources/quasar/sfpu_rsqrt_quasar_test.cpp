@@ -20,6 +20,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     if (unpack_to_dest)
     {
+        // UNPACK must include itself in the chain when writing directly to DEST
         set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
         _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, false /*is_int_fpu_en*/>();
     }
@@ -87,6 +88,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // Setup dvalid for MATH kernel
     if (unpack_to_dest)
     {
+        // Chain must match UNPACK's chain: {UNPACK, SFPU, PACK}
         set_up_dest_dvalid_per_thread<dest_dvalid_client::SFPU>({dest_dvalid_client::UNPACK, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
     }
     else
@@ -102,11 +104,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     if (!unpack_to_dest)
     {
-        // Initialize datacopy
         const uint num_rows = params->num_faces * params->TEST_FACE_R_DIM;
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(num_rows, 1);
 
-        // First loop: datacopy all tiles (skip if unpack writes directly to dest)
+        // Datacopy all tiles from SRC to DEST
         for (int i = 0; i < params->TILE_CNT; ++i)
         {
             _llk_math_eltwise_unary_datacopy_(num_rows, i);
@@ -115,10 +116,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
         _llk_math_set_dvalid_<p_cleardvalid::FPU>();
     }
 
-    // Initialize SFPU once
     _llk_math_eltwise_unary_sfpu_init_();
 
-    // Second loop: apply SFPU rsqrt to all tiles
+    // Apply SFPU rsqrt to all tiles
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_rsqrt_<APPROX_MODE>, i, num_sfpu_iterations);

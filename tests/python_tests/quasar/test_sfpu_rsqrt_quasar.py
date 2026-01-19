@@ -67,14 +67,14 @@ def test_sfpu_rsqrt_quasar(
             "Quasar packer does not support non-Float32 to Float32 conversion when dest_acc=No"
         )
 
-    # Skip Float32 input to Float16 output with dest_acc=No - datacopy produces garbage
+    # For Quasar SFPU, input Float32 must be with dest_acc=Yes
     if (
         formats.input_format == DataFormat.Float32
         and formats.output_format == DataFormat.Float16
         and dest_acc == DestAccumulation.No
     ):
         pytest.skip(
-            "Float32 to Float16 conversion with dest_acc=No produces incorrect results"
+            "Quasar SFPU with Float32 input and Float16 output requires dest_acc=Yes"
         )
 
     # Generate stimuli with random values in range [0.1, 10] for Approximation Mode
