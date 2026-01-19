@@ -131,7 +131,9 @@ def pytest_configure(config):
                 port=test_target.simulator_port, use_4B_mode=False
             )
         else:
-            tt_exalens_init.init_ttexalens(use_4B_mode=False)
+            context = tt_exalens_init.init_ttexalens(use_4B_mode=False)
+            context.dma_read_threshold = 2400000
+            context.dma_write_threshold = 2400000
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
