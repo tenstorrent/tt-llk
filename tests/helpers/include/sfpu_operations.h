@@ -85,6 +85,10 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             _init_log_<APPROX_MODE>();
             _calculate_log_<APPROX_MODE, false, ITERATIONS>(ITERATIONS, 0);
             break;
+        case SfpuType::log1p:
+            _init_log1p_<APPROX_MODE, FAST_MODE, is_fp32_dest_acc_en>();
+            _calculate_log1p_<APPROX_MODE, FAST_MODE, is_fp32_dest_acc_en, ITERATIONS>();
+            break;
         case SfpuType::neg:
         case SfpuType::negative:
             if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))

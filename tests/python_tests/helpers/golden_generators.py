@@ -1248,6 +1248,7 @@ class UnarySFPUGolden:
             MathOperation.Acosh: self._acosh,
             MathOperation.Cos: self._cos,
             MathOperation.Log: self._log,
+            MathOperation.Log1p: self._log1p,
             MathOperation.Reciprocal: self._reciprocal,
             MathOperation.Rsqrt: self._rsqrt,
             MathOperation.Sin: self._sin,
@@ -1393,6 +1394,12 @@ class UnarySFPUGolden:
         return math.cos(x)
 
     def _log(self, x):
+        if x == 0.0:
+            return self.handle_infinite_numbers(-math.inf)
+        return math.log(x)
+
+    def _log1p(self, x):
+        x = x + 1
         if x == 0.0:
             return self.handle_infinite_numbers(-math.inf)
         return math.log(x)
