@@ -278,16 +278,18 @@ class INPUT_DIMENSIONS(TemplateParameter):
     srcB: Tuple[int, int]
     block_ct_dim: Optional[int] = None
     block_rt_dim: Optional[int] = None
+    num_rows: int = 32
+    num_cols: int = 32
 
     def covert_to_cpp(self) -> str:
-        num_rows, num_cols = 32, 32
-        validate_tile_dimensions(self.srcA[0], num_rows)
-        validate_tile_dimensions(self.srcA[1], num_cols)
-        validate_tile_dimensions(self.srcB[0], num_rows)
-        validate_tile_dimensions(self.srcB[1], num_cols)
 
-        full_ct_dim = self.srcB[1] // num_cols
-        full_rt_dim = self.srcA[0] // num_rows
+        validate_tile_dimensions(self.srcA[0], self.num_rows)
+        validate_tile_dimensions(self.srcA[1], self.num_cols)
+        validate_tile_dimensions(self.srcB[0], self.num_rows)
+        validate_tile_dimensions(self.srcB[1], self.num_cols)
+
+        full_ct_dim = self.srcB[1] // self.num_cols
+        full_rt_dim = self.srcA[0] // self.num_rows
 
         block_ct_dim = full_ct_dim if self.block_ct_dim is None else self.block_ct_dim
         block_rt_dim = full_rt_dim if self.block_rt_dim is None else self.block_rt_dim
