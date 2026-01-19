@@ -17,9 +17,9 @@
 #include "params.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
+thread_local uint32_t unp_cfg_context          = 0;
+thread_local uint32_t pack_sync_tile_dst_ptr   = 0;
+thread_local uint32_t math_sync_tile_dst_index = 0;
 
 void run_unpack_kernel(const volatile struct RuntimeParams *params)
 {

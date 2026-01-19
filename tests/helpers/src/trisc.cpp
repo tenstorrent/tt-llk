@@ -32,6 +32,8 @@ extern void run_unpack_kernel(const volatile struct RuntimeParams* params);
 extern void run_math_kernel(const volatile struct RuntimeParams* params);
 extern void run_pack_kernel(const volatile struct RuntimeParams* params);
 
+thread_local uint32_t TRISC_ID;
+
 void (*kernel_array[])(const volatile struct RuntimeParams* params) = {run_unpack_kernel, run_math_kernel, run_pack_kernel};
 
 enum KERNEL_THREAD
@@ -41,11 +43,11 @@ enum KERNEL_THREAD
     PACK   = 2,
 };
 
-int main(int argc, char**)
+int main(void)
 {
     volatile std::uint32_t* mailbox = nullptr;
 
-    switch (static_cast<KERNEL_THREAD>(argc))
+    switch (static_cast<KERNEL_THREAD>(TRISC_ID))
     {
         case UNPACK:
             device_setup();
@@ -73,7 +75,7 @@ int main(int argc, char**)
 
     {
         ZONE_SCOPED("KERNEL")
-        kernel_array[static_cast<KERNEL_THREAD>(argc)](__runtime_args_start);
+        kernel_array[static_cast<KERNEL_THREAD>(TRISC_ID)](__runtime_args_start);
         ckernel::tensix_sync();
     }
 

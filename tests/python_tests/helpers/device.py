@@ -187,7 +187,7 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]):
         print(f"{' '*25}| at {file_path}:{entry.line}:{entry.column}")
 
 
-def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
+def handle_if_assert_hit(elf_path: str, core_loc="0,0", device_id=0):
     trisc_cores = [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2]
     assertion_hits = []
 
@@ -196,7 +196,7 @@ def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
         if is_assert_hit(risc_name, core_loc=core_loc, device_id=device_id):
             _print_callstack(
                 risc_name,
-                callstack(core_loc, elfs, risc_name=risc_name, device_id=device_id),
+                callstack(core_loc, elf_path, risc_name=risc_name, device_id=device_id),
             )
             assertion_hits.append(risc_name)
 
@@ -208,7 +208,9 @@ def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
         )
 
 
-def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=5, max_backoff=5):
+def wait_for_tensix_operations_finished(
+    elf_path, core_loc="0,0", timeout=5, max_backoff=5
+):
     """
     Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
 
@@ -244,7 +246,7 @@ def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=5, max_bac
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
     handle_if_assert_hit(
-        elfs,
+        elf_path,
         core_loc=core_loc,
     )
 

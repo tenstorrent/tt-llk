@@ -853,7 +853,7 @@ class TestConfig:
     BRISC_ELF_LOADED: ClassVar[bool] = False
     PROFILER_BRISC_ELF_LOADED: ClassVar[bool] = False
 
-    def run_elf_files(self, location="0,0") -> list:
+    def run_elf_files(self, location="0,0") -> str:
         boot_mode = (
             CHIP_DEFAULT_BOOT_MODES[TestConfig.CHIP_ARCH]
             if self.boot_mode == BootMode.DEFAULT
@@ -875,39 +875,29 @@ class TestConfig:
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
         )
 
-        elfs = [
-            str((VARIANT__ELF_DIR / f"{trisc_name}.elf").absolute())
-            for trisc_name in TestConfig.KERNEL_COMPONENTS
-        ]
+        elf_path = str((VARIANT__ELF_DIR / "main.elf").absolute())
 
-        # Load TRISC ELF files
-        for i, elf in enumerate(elfs):
-            if TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE:
-                start_address = load_elf(
-                    elf_file=elf,
-                    location=location,
-                    risc_name=f"trisc{i}",
-                    neo_id=(
-                        0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
-                    ),
-                    return_start_address=True,
-                    verify_write=False,
-                )
-                write_words_to_device(
-                    location, TestConfig.TRISC_START_ADDRS[i], [start_address]
-                )
-            else:
-                load_elf(
-                    elf_file=elf,
-                    location=location,
-                    risc_name=f"trisc{i}",
-                    neo_id=(
-                        0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
-                    ),
-                    verify_write=False,
-                )
+        if TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE:
+            start_address = load_elf(
+                elf_file=elf_path,
+                location=location,
+                risc_name="trisc0",
+                neo_id=(0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None),
+                return_start_address=True,
+                verify_write=False,
+            )
+            write_words_to_device(
+                location, TestConfig.TRISC_START_ADDRS[i], [start_address]
+            )
+        else:
+            load_elf(
+                elf_file=elf_path,
+                location=location,
+                risc_name="trisc0",
+                neo_id=(0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None),
+                verify_write=False,
+            )
 
-        # Reset the profiler barrier
         write_words_to_device(
             location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
         )
@@ -951,7 +941,7 @@ class TestConfig:
                     0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
                 )
 
-        return elfs
+        return elf_path
 
     def run_fused(
         self,
@@ -1020,8 +1010,8 @@ class TestConfig:
 
         self.variant_stimuli.write(location)
         self.write_runtimes_to_L1(location)
-        elfs = self.run_elf_files(location)
-        wait_for_tensix_operations_finished(elfs, location)
+        elf_path = self.run_elf_files(location)
+        wait_for_tensix_operations_finished(elf_path, location)
 
         if self.coverage_build == CoverageBuild.Yes:
             self.read_coverage_data_from_device(location)
