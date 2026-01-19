@@ -129,7 +129,7 @@ class TestConfig:
     KERNEL_COMPONENTS: ClassVar[list[str]] = ["unpack", "math", "pack"]
 
     # === Runtime static variables, for keeping context of multiple test runs
-    CURRENT_CONFIG: ClassVar[str] = "uninitialised"
+    CURRENT_LOADED_CONFIG: ClassVar[str] = "uninitialised"
     MODE: ClassVar[TestMode] = TestMode.DEFAULT
     SKIP_JUST_FOR_COMPILE_MARKER: ClassVar[str] = "SKIPPED_JUST_FOR_COMPILE"
     _BUILD_DIRS_CREATED: ClassVar[bool] = False
@@ -898,16 +898,15 @@ class TestConfig:
         # Perform soft reset
         set_tensix_soft_reset(1, location=location)
 
-        VARIANT__ELF_DIR = (
+        VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
         )
 
         elfs = [
-            str((VARIANT__ELF_DIR / f"{trisc_name}.elf").absolute())
+            str((VARIANT_ELF_DIR / f"{trisc_name}.elf").absolute())
             for trisc_name in TestConfig.KERNEL_COMPONENTS
         ]
 
-        # Load TRISC ELF files
         for i, elf in enumerate(elfs):
             if TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE:
                 start_address = load_elf(
@@ -918,7 +917,6 @@ class TestConfig:
                         0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
                     ),
                     return_start_address=True,
-                    verify_write=False,
                 )
                 write_words_to_device(
                     location, TestConfig.TRISC_START_ADDRS[i], [start_address]
@@ -931,7 +929,6 @@ class TestConfig:
                     neo_id=(
                         0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
                     ),
-                    verify_write=False,
                 )
 
         # Reset the profiler barrier
