@@ -67,16 +67,6 @@ def test_sfpu_rsqrt_quasar(
             "Quasar packer does not support non-Float32 to Float32 conversion when dest_acc=No"
         )
 
-    # Skip Float16_b to Float32 with dest_acc=No (16-bit dest register)
-    if (
-        formats.input_format == DataFormat.Float16_b
-        and formats.output_format == DataFormat.Float32
-        and dest_acc == DestAccumulation.No
-    ):
-        pytest.skip(
-            "Quasar packer does not support Float16_b to Float32 conversion when the dest register is in 16-bit mode"
-        )
-
     # For Quasar SFPU, input Float32 must be with dest_acc=Yes
     if (
         formats.input_format == DataFormat.Float32
