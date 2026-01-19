@@ -5,6 +5,8 @@
 // TODO: Plumb MATH_FIDELITY
 #pragma once
 
+#include <cstdint>
+
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary.h"
 using namespace ckernel;

@@ -6,6 +6,7 @@
 // Disabled until we can update GCC with RISC-V vector extension
 #define HAVE_RISCV_VECTOR 1
 
+#include <cstdint>
 #ifdef HAVE_RISCV_VECTOR
 
 // First-class enum types to get smarter template type deduction
@@ -76,7 +77,7 @@ struct _type_to_datasz<std::uint32_t>
 };
 
 template <>
-struct _type_to_datasz<int32_t>
+struct _type_to_datasz<std::int32_t>
 {
     static vdatasz const sz = E32;
 };
@@ -88,7 +89,7 @@ struct _type_to_datasz<std::uint16_t>
 };
 
 template <>
-struct _type_to_datasz<int16_t>
+struct _type_to_datasz<std::int16_t>
 {
     static vdatasz const sz = E16;
 };
@@ -100,7 +101,7 @@ struct _type_to_datasz<std::uint8_t>
 };
 
 template <>
-struct _type_to_datasz<int8_t>
+struct _type_to_datasz<std::int8_t>
 {
     static vdatasz const sz = E8;
 };
@@ -252,17 +253,17 @@ inline void vector_iota()
                      : [dst] "i"(dest_vec_reg_no), [src1] "i"(src1_vec_reg_no), [src2] "i"(src2_vec_reg_no));                                       \
     }                                                                                                                                               \
     template <vreg dest_vec_reg_no, vreg src1_vec_reg_no>                                                                                           \
-    inline void vector_##op(int32_t val)                                                                                                            \
+    inline void vector_##op(std::int32_t val)                                                                                                       \
     {                                                                                                                                               \
         asm volatile("v" #op ".vx v%c[dst], v%c[src1], %[val] \n" : : [dst] "i"(dest_vec_reg_no), [src1] "i"(src1_vec_reg_no), [val] "r"(val));     \
     }                                                                                                                                               \
-    template <vreg dest_vec_reg_no, vreg src1_vec_reg_no, int32_t imm>                                                                              \
+    template <vreg dest_vec_reg_no, vreg src1_vec_reg_no, std::int32_t imm>                                                                         \
     inline void vector_##op()                                                                                                                       \
     {                                                                                                                                               \
         if (imm < -16 || imm > 15)                                                                                                                  \
         {                                                                                                                                           \
             /*Immediate too big; just use the register version*/                                                                                    \
-            vector_##op<dest_vec_reg_no, src1_vec_reg_no>(static_cast<int32_t>(imm));                                                               \
+            vector_##op<dest_vec_reg_no, src1_vec_reg_no>(static_cast<std::int32_t>(imm));                                                          \
         }                                                                                                                                           \
         else                                                                                                                                        \
         {                                                                                                                                           \

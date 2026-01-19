@@ -130,7 +130,7 @@ inline void _llk_unpack_set_srcb_dummy_valid_()
  * @param address_b Address for unpacker B (THCON_SEC1)
  * @param cfg Pointer to configuration registers
  */
-inline void _llk_unpack_configure_addresses_(const std::uint32_t address_a, const std::uint32_t address_b, volatile uint tt_reg_ptr *cfg)
+inline void _llk_unpack_configure_addresses_(const std::uint32_t address_a, const std::uint32_t address_b, volatile std::uint32_t tt_reg_ptr *cfg)
 {
     LLK_ASSERT(is_valid_L1_address(address_a), "L1 address_a must be in valid L1 memory region");
     LLK_ASSERT(is_valid_L1_address(address_b), "L1 address_b must be in valid L1 memory region");
@@ -157,7 +157,7 @@ inline void _llk_unpack_configure_addresses_(const std::uint32_t address_a, cons
  * @param address Address for unpacker A (THCON_SEC0)
  * @param cfg Pointer to configuration registers
  */
-inline void _llk_unpack_configure_single_address_(const std::uint32_t address, volatile uint tt_reg_ptr *cfg)
+inline void _llk_unpack_configure_single_address_(const std::uint32_t address, volatile std::uint32_t tt_reg_ptr *cfg)
 {
     LLK_ASSERT(is_valid_L1_address(address), "L1 base_address must be in valid L1 memory region");
 

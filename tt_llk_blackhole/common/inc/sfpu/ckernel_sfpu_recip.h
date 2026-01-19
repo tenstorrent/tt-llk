@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel_sfpu_rsqrt_compat.h"
 #include "lltt.h"
 #include "sfpi.h"

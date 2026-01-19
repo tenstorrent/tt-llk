@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel_sfpu_is_fp16_zero.h"
 #include "sfpi.h"
 

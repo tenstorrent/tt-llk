@@ -148,6 +148,8 @@ behave like the Bias counter.
 
 */
 
+#include <cstdint>
+
 #include "tensix.h"
 
 namespace ckernel

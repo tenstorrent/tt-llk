@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel_addrmod.h"
 #include "sfpi.h"
 

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <type_traits>
 
 // Include auto-generated build configuration

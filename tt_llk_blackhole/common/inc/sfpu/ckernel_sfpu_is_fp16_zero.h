@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "sfpi.h"
 
 namespace ckernel

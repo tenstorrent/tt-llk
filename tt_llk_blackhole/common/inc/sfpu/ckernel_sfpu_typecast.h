@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <limits>
 
 #include "ckernel_addrmod.h"
@@ -773,18 +774,18 @@ inline void _init_typecast_uint32_to_uint16_()
 
     // Macro 0
     {
-        constexpr uint simple_bits = 0x80 | 0x00 | (0 << 3) | (4 + 0);
-        constexpr uint mad_bits    = 0;
+        constexpr std::uint32_t simple_bits = 0x80 | 0x00 | (0 << 3) | (4 + 0);
+        constexpr std::uint32_t mad_bits    = 0;
 
         TTI_SFPCONFIG((mad_bits << 8) | simple_bits, 4 + 0, 1);
     }
 
     // Macro 1
     {
-        constexpr uint simple_bits = 0x80 | 0x00 | (0 << 3) | (4 + 1);
-        constexpr uint mad_bits    = 0;
-        constexpr uint round_bits  = 0;
-        constexpr uint store_bits  = 0x00 | 0x00 | (1 << 3) | 3;
+        constexpr std::uint32_t simple_bits = 0x80 | 0x00 | (0 << 3) | (4 + 1);
+        constexpr std::uint32_t mad_bits    = 0;
+        constexpr std::uint32_t round_bits  = 0;
+        constexpr std::uint32_t store_bits  = 0x00 | 0x00 | (1 << 3) | 3;
 
         TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
         TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
@@ -810,10 +811,10 @@ inline void _init_typecast_int32_to_uint16_()
 
     // Macro 0
     {
-        constexpr uint simple_bits = 0x80 | 0x00 | (1 << 3) | (4 + 0);
-        constexpr uint mad_bits    = 0;
-        constexpr uint round_bits  = 0x00 | 0x40 | (3 << 3) | (4 + 1);
-        constexpr uint store_bits  = 0x00 | 0x40 | (4 << 3) | 3;
+        constexpr std::uint32_t simple_bits = 0x80 | 0x00 | (1 << 3) | (4 + 0);
+        constexpr std::uint32_t mad_bits    = 0;
+        constexpr std::uint32_t round_bits  = 0x00 | 0x40 | (3 << 3) | (4 + 1);
+        constexpr std::uint32_t store_bits  = 0x00 | 0x40 | (4 << 3) | 3;
 
         TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
         TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);

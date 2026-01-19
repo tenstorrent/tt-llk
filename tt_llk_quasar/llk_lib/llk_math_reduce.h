@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "llk_math_common.h"
 using namespace ckernel;
 using namespace ckernel::trisc;
@@ -293,8 +295,8 @@ inline void _llk_math_reduce_scalar_mop_config_(const TileShape& tile_shape)
 template <ReduceDim REDUCE_DIM, ckernel::MathFidelity MATH_FIDELITY_TYPE>
 inline void _llk_math_reduce_addrmod_()
 {
-    constexpr bool high_fidelity     = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
-    constexpr int fidelity_increment = high_fidelity ? 1 : 0;
+    constexpr bool high_fidelity               = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
+    constexpr std::uint32_t fidelity_increment = high_fidelity ? 1 : 0;
 
     addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = ((REDUCE_DIM == ReduceDim::REDUCE_COL) ? 16 : 0)}, .fidelity = {.incr = 0, .clr = 1}}
         .set(ADDR_MOD_0);

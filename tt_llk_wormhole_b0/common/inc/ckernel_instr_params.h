@@ -5,6 +5,8 @@
 #pragma once
 
 // MT: This should be dissolved and moved to the appropriate place
+#include <cstdint>
+
 #include "tensix.h"
 
 // Hand-coded parameter encoding for various common instructions

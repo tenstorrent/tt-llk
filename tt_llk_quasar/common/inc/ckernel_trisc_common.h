@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <cstdint>
+
 #include "cfg_defines.h"
 #include "ckernel.h"
 #include "ckernel_addrmod.h"

@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "tensix.h" //RISCV_DEBUG macros
 
 enum class rvdbg_cmd : std::uint32_t

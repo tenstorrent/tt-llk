@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel_trisc_common.h"
 #include "llk_pack_common.h"
 

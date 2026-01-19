@@ -4,6 +4,7 @@
 
 #pragma once
 #include <algorithm>
+#include <cstdint>
 #include <utility>
 
 #include "llk_math_eltwise_ternary_sfpu.h"

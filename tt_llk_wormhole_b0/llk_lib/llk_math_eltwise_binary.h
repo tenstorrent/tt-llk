@@ -19,7 +19,7 @@ using namespace ckernel;
 template <EltwiseBinaryType eltwise_binary_type, BroadcastType bcast_type, std::uint32_t FIDELITY_INCREMENT>
 inline void eltwise_binary_configure_addrmod()
 {
-    constexpr uint32_t srcb_incr = (bcast_type == BroadcastType::NONE || bcast_type == BroadcastType::COL) ? 8 : 0;
+    constexpr std::uint32_t srcb_incr = (bcast_type == BroadcastType::NONE || bcast_type == BroadcastType::COL) ? 8 : 0;
     addr_mod_t {
         .srca = {.incr = 8},
         .srcb = {.incr = srcb_incr},
@@ -44,7 +44,7 @@ inline void eltwise_binary_configure_addrmod()
 
 // Helper template to select the appropriate eltwise binary operation
 template <EltwiseBinaryType eltwise_binary_type>
-inline auto eltwise_binary_func(uint8_t clr_src, uint8_t acc_to_dest, uint8_t broadcast_type, uint8_t addr_mod)
+inline auto eltwise_binary_func(std::uint8_t clr_src, std::uint8_t acc_to_dest, std::uint8_t broadcast_type, std::uint8_t addr_mod)
 {
     if constexpr (eltwise_binary_type == ELWADD)
     {
@@ -76,12 +76,12 @@ inline void eltwise_binary_reuse_dest_as_src()
 // Helper to run the eltwise binary loop with optional dest reuse and face clearing
 template <bool is_fp32_dest_acc_en, EltwiseBinaryReuseDestType binary_reuse_dest>
 inline void eltwise_binary_reuse_dest_helper_func(
-    const uint32_t loop_count,
-    const uint32_t face_offset, // 0 for faces 0&1, 2 for faces 2&3
+    const std::uint32_t loop_count,
+    const std::uint32_t face_offset, // 0 for faces 0&1, 2 for faces 2&3
     const bool clear_fp32_dst_acc,
-    const uint dst_index)
+    const std::uint32_t dst_index)
 {
-    constexpr uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
+    constexpr std::uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
 
 #pragma GCC unroll 0
     for (std::uint32_t n = 0; n < loop_count; n++)
@@ -95,7 +95,7 @@ inline void eltwise_binary_reuse_dest_helper_func(
             // fp32 zeroacc can only clear 8x16 datums at a time, need to call twice per 16x16 face
             if (is_fp32_dest_acc_en && clear_fp32_dst_acc)
             {
-                const uint32_t face_offset_fp32 = face_offset * 2;
+                const std::uint32_t face_offset_fp32 = face_offset * 2;
                 TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (face_offset_fp32 + n * 2));         // Clear lower half
                 TT_ZEROACC(ZERO_ACC_MODE, ADDR_MOD_1, base_address + (face_offset_fp32 + ((n * 2) + 1))); // Clear upper half
             }
@@ -182,7 +182,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, std::uint32
         if constexpr (src_b_bcast_type == BroadcastType::COL)
         {
             // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice for full tile size
-            constexpr uint32_t outerloop = (high_fidelity) ? 2 : ((binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1);
+            constexpr std::uint32_t outerloop = (high_fidelity) ? 2 : ((binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1);
             eltwise_binary_reuse_dest_helper_func<is_fp32_dest_acc_en, binary_reuse_dest>(outerloop, 0 /*face_base_offset*/, clear_fp32_dst_acc, dst_index);
             TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
 
@@ -195,7 +195,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, std::uint32
         else
         {
             // Row and no broadcasted behaves similarly
-            const uint32_t outerloop = (high_fidelity) ? num_faces : ((binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? num_faces : 1);
+            const std::uint32_t outerloop = (high_fidelity) ? num_faces : ((binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? num_faces : 1);
             eltwise_binary_reuse_dest_helper_func<is_fp32_dest_acc_en, binary_reuse_dest>(outerloop, 0 /*face_base_offset*/, clear_fp32_dst_acc, dst_index);
 
             if constexpr (src_b_bcast_type == BroadcastType::SCALAR)
@@ -215,12 +215,12 @@ template <
 inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, const std::uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    constexpr bool high_fidelity = is_high_fidelity(math_fidelity);
-    const uint addr_mod          = ADDR_MOD_0;
-    constexpr uint innerloop     = 16 >> 3; // 8 rows per eltwise op at a time.
+    constexpr bool high_fidelity      = is_high_fidelity(math_fidelity);
+    const std::uint32_t addr_mod      = ADDR_MOD_0;
+    constexpr std::uint32_t innerloop = 16 >> 3; // 8 rows per eltwise op at a time.
 
     // Consolidated outerloop calculation: binary_reuse_dest has highest priority, then COL, then default
-    const uint outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 1 : (bcast_type == BroadcastType::COL) ? 2 : num_faces;
+    const std::uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 1 : (bcast_type == BroadcastType::COL) ? 2 : num_faces;
 
     constexpr auto broadcast_type = (bcast_type == BroadcastType::COL)      ? p_elwise::SRCB_BCAST_COL
                                     : (bcast_type == BroadcastType::ROW)    ? p_elwise::SRCB_BCAST_ROW
@@ -274,7 +274,9 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, const 
         (eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB) || (eltwise_binary_type == ELWMUL),
         "eltwise_binary_type must be ELWADD, ELWSUB, or ELWMUL");
 
-    eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, math_fidelity>();
+    constexpr std::uint32_t math_fidelity_increment = 1;
+
+    eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, math_fidelity_increment>();
     eltwise_binary_configure_mop<eltwise_binary_type, src_b_bcast_type, math_fidelity, binary_reuse_dest>(acc_to_dest, num_faces);
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
@@ -341,7 +343,7 @@ inline void _llk_math_eltwise_binary_init_(std::uint32_t srca_reuse_count = 4)
 
     /*
         Loading of instructions into replay buffer. First 4 operate on F0 and F1,
-        and second 4 operate on F2 and F3. Each pair of istructions operates on 8 rows
+        and second 4 operate on F2 and F3. Each pair of instructions operates on 8 rows
         of the tile. The last instruction clears B dvalid which means unpacker
         will load following B tile while still keeping same A tile in srcA.
         After F0 and F1 A counter is cleared which allows it to reuse

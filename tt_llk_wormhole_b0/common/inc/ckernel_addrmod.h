@@ -5,6 +5,8 @@
 #pragma once
 
 // MT: This should be dissolved and moved to the appropriate place
+#include <cstdint>
+
 #include "cfg_defines.h"
 #include "ckernel_ops.h"
 
@@ -43,7 +45,7 @@ struct addr_mod_t
     // CLR, CR, INCR(8 bits)
     struct addr_mod_dest_t
     {
-        int16_t incr         = 0;
+        std::int16_t incr    = 0;
         std::uint8_t clr     = 0;
         std::uint8_t cr      = 0;
         std::uint8_t c_to_cr = 0;

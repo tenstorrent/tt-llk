@@ -431,8 +431,8 @@ inline void _llk_math_fast_tilize_addrmod_config_(const std::uint32_t unpack_dst
 
     // jumping back to the offset for the next tile is logically -bottom_face_offset if dest RWC is at the correct offset for the bottom faces of the next tile
     // only catch is the need to compensate for the current instruction, for unit_dim 1 that is MOVA2D while for unit_dim 2 and 3 that is MOVB2D
-    int16_t unit_dim_1_backward_jump = -bottom_face_offset + 8;
-    int16_t unit_dim_2_backward_jump = -bottom_face_offset + 4;
+    std::int16_t unit_dim_1_backward_jump = -bottom_face_offset + 8;
+    std::int16_t unit_dim_2_backward_jump = -bottom_face_offset + 4;
 
     // this follows MOVA2D in src and jumps to the offset for the bottom faces (for unit_dim 1 and 2, for unit_dim 3 that is handled the other way)
     addr_mod_t {

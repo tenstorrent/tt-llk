@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "tensix_types.h"
 
 namespace ckernel

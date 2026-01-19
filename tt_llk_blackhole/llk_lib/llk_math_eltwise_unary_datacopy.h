@@ -392,7 +392,7 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
     // Workaround for HW bug (budabackend#1948): tilize with UInt32/Int32 needs debug feature bit 11 disabled
     if constexpr (tilize)
     {
-        if ((dst_format == static_cast<uint>(DataFormat::UInt32)) || (dst_format == static_cast<uint>(DataFormat::Int32)))
+        if ((dst_format == static_cast<std::uint32_t>(DataFormat::UInt32)) || (dst_format == static_cast<std::uint32_t>(DataFormat::Int32)))
         {
             _llk_math_dbg_feature_disable_();
         }

@@ -5,10 +5,11 @@
 #pragma once
 
 #include <atomic>
+#include <cstdint>
 
-inline int32_t amomin(int32_t volatile *ptr, int32_t const against)
+inline std::int32_t amomin(std::int32_t volatile *ptr, std::int32_t const against)
 {
-    int32_t old_val;
+    std::int32_t old_val;
     asm volatile("amomin.w %[ret], %[against_val], (%[addr_val])\n" : [ret] "=r"(old_val) : [against_val] "r"(against), [addr_val] "r"(ptr));
 
     return old_val;
@@ -22,9 +23,9 @@ inline std::uint32_t amominu(std::uint32_t volatile *ptr, std::uint32_t const ag
     return old_val;
 }
 
-inline int32_t amomax(int32_t volatile *ptr, int32_t const against)
+inline std::int32_t amomax(std::int32_t volatile *ptr, std::int32_t const against)
 {
-    int32_t old_val;
+    std::int32_t old_val;
     asm volatile("amomax.w %[ret], %[against_val], (%[addr_val])\n" : [ret] "=r"(old_val) : [against_val] "r"(against), [addr_val] "r"(ptr));
 
     return old_val;
@@ -73,20 +74,20 @@ inline T store_release(std::atomic<T> *p_ato, T val)
 #if 0
 //I started working on this to amuse myself while my tests were running.
 //None of this is tested
-typedef std::atomic<int32_t>* semaphore;
+typedef std::atomic<std::int32_t>* semaphore;
 
-semaphore create_semaphore_at(int32_t *l1_addr) {
-    semaphore ret = reinterpret_cast<std::atomic<int32_t> *>(l1_addr);
-    store_release(ret, int32_t(0));
+semaphore create_semaphore_at(std::int32_t *l1_addr) {
+    semaphore ret = reinterpret_cast<std::atomic<std::int32_t> *>(l1_addr);
+    store_release(ret, std::int32_t(0));
     return ret;
 }
 
 inline void semaphore_inc(semaphore s) {
-    std::atomic_fetch_add(s, int32_t(1));
+    std::atomic_fetch_add(s, std::int32_t(1));
 }
 
 inline void semaphore_dec(semaphore s) {
-    std::atomic_fetch_add(s, int32_t(-1));
+    std::atomic_fetch_add(s, std::int32_t(-1));
 }
 
 void spinlock_on_nonzero_semaphore(semaphore s) {
@@ -102,7 +103,7 @@ struct mutex {
     std::uint32_t val = AVAIL;
 
     std::atomic<std::uint32_t>* operator&() {
-        return reinterpret_cast<std::atomic<int32_t> *>(&val);
+        return reinterpret_cast<std::atomic<std::int32_t> *>(&val);
     }
 };
 

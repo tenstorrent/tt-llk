@@ -4,6 +4,8 @@
 #pragma once
 
 // Hand-coded parameter encoding for various common instructions
+#include <cstdint>
+
 namespace ckernel
 {
 
