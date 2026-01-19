@@ -320,11 +320,48 @@ void operation_check_impl(operation_state_t& state, const Ts... args)
 
 // Goes in LLK_LIB in Uninit
 // Check operation type and clear must uninit flag
-// sstanisic todo: implement uninit_impl
-// template <llk_san_op op>
-// static inline void uninit_impl()
-// {
-//     LLK_ASSERT(false, "not implemented");
-// }
+template <operation_t op>
+void operation_uninit_impl(operation_state_t& state)
+{
+    LLK_PANIC(!state.expect_uninit, "llk_san: fault: operation was not expected to be uninitialized");
+
+    state.expect_uninit = false;
+}
+
+template <fsm_state_t next>
+void fsm_advance_impl(fsm_state_t& current, const operation_state_t& operation)
+{
+    LLK_PANIC(current == fsm_state_t::INITIAL && next != fsm_state_t::CONFIGURED, "llk_san: panic: expected first operation to be configure");
+
+    LLK_PANIC(current == fsm_state_t::CONFIGURED && next != fsm_state_t::INITIALIZED, "llk_san: panic: expected init after configure");
+
+    LLK_PANIC(current == fsm_state_t::INITIALIZED && next != fsm_state_t::EXECUTED, "llk_san: panic: expected execute after init");
+
+    LLK_PANIC(
+        current == fsm_state_t::EXECUTED && operation.expect_uninit && (next != fsm_state_t::UNINITIALIZED && next != fsm_state_t::EXECUTED),
+        "llk_san: panic: expected execute or uninit after execute");
+
+    // shouldn't be possible to trigger, sanity check
+    LLK_PANIC(
+        current == fsm_state_t::EXECUTED && !operation.expect_uninit && next == fsm_state_t::UNINITIALIZED,
+        "llk_san: fault: unexpected uninit after execute that doesn't require uninit");
+
+    LLK_PANIC(
+        current == fsm_state_t::EXECUTED && !operation.expect_uninit &&
+            (next != fsm_state_t::EXECUTED && next != fsm_state_t::INITIALIZED && next != fsm_state_t::RECONFIGURED),
+        "llk_san: panic: expected execute, init or reconfig operation after execute");
+
+    LLK_PANIC(
+        current == fsm_state_t::EXECUTED && !operation.expect_uninit &&
+            (next != fsm_state_t::EXECUTED && next != fsm_state_t::INITIALIZED && next != fsm_state_t::RECONFIGURED),
+        "llk_san: panic: expected execute, init or reconfig operation after execute");
+
+    LLK_PANIC(
+        current == fsm_state_t::UNINITIALIZED && (next != fsm_state_t::INITIALIZED && next != fsm_state_t::RECONFIGURED),
+        "llk_san: panic: expected init or reconfigure after uninit");
+
+    // valid transition -> commit
+    current = next;
+}
 
 } // namespace llk_san

@@ -287,17 +287,33 @@ struct operation_state_t
 {
     static constexpr size_t BUFFER_SIZE = 96;
 
-    operation_t operation;
-
     // aligned to max alignment so that content of buffer
     // is accessible through T* irrespective of the alignment of T
     alignas(alignof(max_align_t)) char buffer[BUFFER_SIZE];
+
+    operation_t operation;
+
+    // enabled by operation_init if the operation must be uninitializer
+    // disabled by operation_uninit
+    bool expect_uninit;
+};
+
+enum class fsm_state_t : uint32_t
+{
+    INITIAL,
+    CONFIGURED,
+    INITIALIZED,
+    EXECUTED,
+    UNINITIALIZED,
+    RECONFIGURED
 };
 
 struct sanitizer_state_t
 {
+    // used to validate operation order
+    fsm_state_t fsm[MAX_THREADS] = {fsm_state_t::INITIAL, fsm_state_t::INITIAL, fsm_state_t::INITIAL};
     operand_state_t operand;
-    operation_state_t operation[MAX_THREADS];
+    operation_state_t operation[MAX_THREADS] = {};
 };
 
 } // namespace llk_san

@@ -64,6 +64,15 @@ static inline void unpack_operand_configure(
     state_t<uint32_t> num_faces_A,
     state_t<uint32_t> num_faces_B)
 {
+    if constexpr (!reconfig)
+    {
+        fsm_advance_impl<fsm_state_t::CONFIGURED>(sanitizer->fsm[COMPILE_FOR_TRISC], sanitizer->operation[COMPILE_FOR_TRISC]);
+    }
+    else
+    {
+        fsm_advance_impl<fsm_state_t::RECONFIGURED>(sanitizer->fsm[COMPILE_FOR_TRISC], sanitizer->operation[COMPILE_FOR_TRISC]);
+    }
+
     unpack_operand_configure_impl<reconfig>(
         sanitizer->operand.unpack, dst_acc_en, src_fmt_A, src_fmt_B, dst_fmt_A, dst_fmt_B, face_height_A, face_height_B, num_faces_A, num_faces_B);
 }
@@ -72,6 +81,15 @@ static inline void unpack_operand_configure(
 template <bool reconfig = false>
 static inline void math_operand_configure(state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
 {
+    if constexpr (!reconfig)
+    {
+        fsm_advance_impl<fsm_state_t::CONFIGURED>(sanitizer->fsm[COMPILE_FOR_TRISC], sanitizer->operation[COMPILE_FOR_TRISC]);
+    }
+    else
+    {
+        fsm_advance_impl<fsm_state_t::RECONFIGURED>(sanitizer->fsm[COMPILE_FOR_TRISC], sanitizer->operation[COMPILE_FOR_TRISC]);
+    }
+
     math_operand_configure_impl<reconfig>(sanitizer->operand.math, math_fmt_A, math_fmt_B);
 }
 
@@ -87,6 +105,15 @@ static inline void pack_operand_configure(
     state_t<bool> partial_face,
     state_t<bool> narrow_tile)
 {
+    if constexpr (!reconfig)
+    {
+        fsm_advance_impl<fsm_state_t::CONFIGURED>(sanitizer->fsm[COMPILE_FOR_TRISC], sanitizer->operation[COMPILE_FOR_TRISC]);
+    }
+    else
+    {
+        fsm_advance_impl<fsm_state_t::RECONFIGURED>(sanitizer->fsm[COMPILE_FOR_TRISC], sanitizer->operation[COMPILE_FOR_TRISC]);
+    }
+
     pack_operand_configure_impl<reconfig>(
         sanitizer->operand.pack, dest_acc_en, src_fmt, dst_fmt, face_height, tile_width, num_faces, partial_face, narrow_tile);
 }
@@ -133,32 +160,27 @@ static inline void pack_operand_check(
 template <operation_t op, typename... Ts>
 static inline void operation_init(Ts... args)
 {
+    fsm_advance_impl<fsm_state_t::INITIALIZED>(sanitizer->fsm[COMPILE_FOR_TRISC], sanitizer->operation[COMPILE_FOR_TRISC]);
+
     operation_init_impl<op, Ts...>(sanitizer->operation[COMPILE_FOR_TRISC], args...);
 }
-
-// Set must uninit flag for operation
-// sstanisic todo: implement must_uninit_impl
-// template <llk_san_op op>
-// static inline void llk_san_must_uninit()
-// {
-//     must_uninit_impl<op>(unpack_state, op);
-// }
 
 // Goes in LLK_LIB in Execute
 // Check operation type and arguments against stored ones
 template <operation_t op, typename... Ts>
 static inline void operation_check(Ts... args)
 {
+    fsm_advance_impl<fsm_state_t::EXECUTED>(sanitizer->fsm[COMPILE_FOR_TRISC], sanitizer->operation[COMPILE_FOR_TRISC]);
     operation_check_impl<op, Ts...>(sanitizer->operation[COMPILE_FOR_TRISC], args...);
 }
 
 // Goes in LLK_LIB in Uninit
 // Check operation type and clear must uninit flag
-// sstanisic todo: implement uninit_impl
-// template <llk_san_op op>
-// static inline void llk_san_uninit()
-// {
-//     llk_san_uninit_impl<op>(llk_san_state, op);
-// }
+template <operation_t op>
+void operation_uninit()
+{
+    fsm_advance_impl<fsm_state_t::UNINITIALIZED>(sanitizer->fsm[COMPILE_FOR_TRISC], sanitizer->operation[COMPILE_FOR_TRISC]);
+    operation_uninit_impl<op>(sanitizer->operation[COMPILE_FOR_TRISC]);
+}
 
-}; // namespace llk_san
+} // namespace llk_san
