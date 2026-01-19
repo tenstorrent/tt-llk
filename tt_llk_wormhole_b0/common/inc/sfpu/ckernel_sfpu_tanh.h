@@ -173,13 +173,7 @@ inline void _init_tanh_()
 {
     if constexpr (APPROXIMATION_MODE)
     {
-        // imm0 = 0x3DFF;
-        // imm1 = 0x21D8;
-        // imm2 = 0xFF10;
-        // TTI_SFPLOADI(0, 2, imm0);
-        // TTI_SFPLOADI(1, 2, imm1);
-        // TTI_SFPLOADI(2, 2, imm2);
-        // Using a 6 piece LUT to calculate and model tanh directly
+        // Using a 6 piece LUT to calculate and model tanh
         // x <= 0.5 --> 0.2452x + (-0.0004997)
         // x <= 1.0 --> 0.2173x + 0.0152
         // x <= 1.5 --> 0.1731x + 0.05988
