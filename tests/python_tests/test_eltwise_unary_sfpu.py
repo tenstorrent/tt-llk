@@ -92,6 +92,12 @@ def test_eltwise_unary_sfpu_float(
             reason="When these SPFU ops get compiled with coverage, `#pragma GCC unroll X` marked loops get compiled to invalid assembly"
         )
 
+    if mathop == MathOperation.ReluMin and formats.input_format in [
+        DataFormat.Bfp8_b,
+        DataFormat.Float16_b,
+    ]:
+        pytest.skip(reason="https://github.com/tenstorrent/tt-llk/issues/1120")
+
     if TestConfig.WITH_COVERAGE and mathop == MathOperation.Gelu:
         # Issue link: https://github.com/tenstorrent/tt-llk/issues/883
         pytest.skip(
