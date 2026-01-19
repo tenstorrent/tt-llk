@@ -319,3 +319,114 @@ inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint
     // Switch unpacker config context
     switch_config_context(unp_cfg_context);
 }
+
+/*
+
+NEW SDPA FEATURE
+
+*/
+
+inline void sdpa_optimization_mop_config_()
+{
+    // Setup address modifiers for unpacker instructions
+    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00;
+    constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
+
+    /*
+        Modified configuration:
+        - srcA unpacks full tile (not broadcast)
+        - srcB unpacks Face0 row0 16 times starting at face1 index
+    */
+
+    ckernel_unpack_template tmp = ckernel_unpack_template(
+        true,                                                                                          // unpackB
+        true,                                                                                          // unpackHalo
+        TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // A0_instr - unpack full srcA tile
+        TT_OP_NOP,                                                                                     // A1_instr
+        TT_OP_NOP,                                                                                     // A2_instr
+        TT_OP_REPLAY(0, 16, 0, 0),                                                                     // A3_instr - replay Face0 row0 16 times
+        TT_OP_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1), // skipA_instr
+
+        TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4), // B_instr
+        TT_OP_INCADCZW(p_setadc::UNP_B, 0, 0, 0, 4)  // skipB_instr
+    );
+
+    tmp.program();
+}
+
+inline void sdpa_optimization_init_()
+{
+    // Setup for srcA - unpack full tile
+    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(32);
+    TTI_SETADCXX(p_setadc::UNP_A, TILE_R_DIM * TILE_C_DIM - 1, 0); // Unpack whole tile on srcA
+
+    // Setup for srcB - prepare for row broadcasting
+    TTI_SETADCXX(p_setadc::UNP_B, FACE_R_DIM - 1, 0); // Unpack one row on srcB
+
+    // Setup address modifiers
+    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00;
+
+    /*
+        Fill replay buffer with Face0 row0 unpack instruction repeated 16 times
+        This will be used to broadcast Face0 row0 to face1 starting at index 16
+    */
+
+    lltt::record<lltt::NoExec>(0, 16);
+    // ************************************
+    // Repeat Face0 row0 unpack 16 times for broadcasting to face1
+    for (int i = 0; i < 16; i++)
+    {
+        TTI_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    }
+    // ************************************
+
+    sdpa_optimization_mop_config_();
+}
+
+inline void sdpa_optimization_(const std::uint32_t address_a, const std::uint32_t address_b, uint32_t srca_reuse_count = 4)
+{
+    TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW)); // reset counters
+    TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y));  // Clear Y counter on src side
+
+    // Program srcA and srcB base addresses
+    volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
+
+    // Wait for free context
+    wait_for_next_context(2);
+
+    // Get tile address
+    if (0 == unp_cfg_context)
+    {
+        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
+    }
+    else
+    {
+        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
+        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
+    }
+
+    // Trisc::SEMPOST for context acquire
+    semaphore_post(semaphore::UNPACK_SYNC);
+
+    // Stall unpacker until pending CFG writes from Trisc have completed
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+    /*
+        Modified execution:
+        - First iteration: unpack full srcA tile, then broadcast Face0 row0 to face1 in srcB
+        - Subsequent iterations: only process srcB tiles with Z counter increment
+    */
+
+    uint32_t unpack_mask = 0xFFFE;
+
+    ckernel_unpack_template::run(srca_reuse_count, unpack_mask);
+
+    TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y)); // Clear all counters
+
+    // T6::SEMGET for context release
+    t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+    // Switch unpacker config context
+    switch_config_context(unp_cfg_context);
+}
