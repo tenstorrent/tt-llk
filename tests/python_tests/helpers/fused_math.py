@@ -148,7 +148,7 @@ class EltwiseFpu(Fpu):
 
     def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
-        math_fidelity = operation.math_fidelity.cpp_enum_value 
+        math_fidelity = operation.math_fidelity.cpp_enum_value
         op = self.operation.cpp_enum_value
         num_faces = operation.num_faces
 

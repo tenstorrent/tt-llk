@@ -4,6 +4,8 @@
 #pragma once // Cosmetic change to test CODEOWNERS2
 
 // Functions for encoding and decoding PC buffer writes
+#include <cstdint>
+
 namespace ckernel
 {
 

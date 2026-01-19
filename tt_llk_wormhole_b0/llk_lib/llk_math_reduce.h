@@ -398,8 +398,8 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = 
 template <PoolType type, MathFidelity math_fidelity>
 inline void reduce_configure_addrmod()
 {
-    constexpr bool high_fidelity     = is_high_fidelity(math_fidelity);
-    constexpr int fidelity_increment = high_fidelity ? 1 : 0;
+    constexpr bool high_fidelity               = is_high_fidelity(math_fidelity);
+    constexpr std::uint32_t fidelity_increment = high_fidelity ? 1 : 0;
 
     addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0, .clr = 1}}.set(ADDR_MOD_0);
 

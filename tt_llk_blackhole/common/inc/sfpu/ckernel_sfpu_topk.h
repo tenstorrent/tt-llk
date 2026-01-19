@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel.h"
 #include "ckernel_addrmod.h"
 #include "ckernel_instr_params.h"
@@ -17,7 +19,7 @@ namespace ckernel
 namespace sfpu
 {
 
-static int32_t topk_replay_init = 0;
+static std::int32_t topk_replay_init = 0;
 
 inline void set_dst_write_addr(std::uint32_t addr)
 {
@@ -366,17 +368,17 @@ inline void bitonic_topk_step_N<false>(bool dir)
 
 inline void bitonic_topk_inc_x8_dest(std::uint32_t inc, bool cr)
 {
-    uint inc_grp8 = inc >> 3;
+    std::uint32_t inc_grp8 = inc >> 3;
     if (cr)
     {
-        for (uint i = 0; i < inc_grp8; i++)
+        for (std::uint32_t i = 0; i < inc_grp8; i++)
         {
             TTI_INCRWC(0b100, 8, 0, 0);
         }
     }
     else
     {
-        for (uint i = 0; i < inc_grp8; i++)
+        for (std::uint32_t i = 0; i < inc_grp8; i++)
         {
             TTI_INCRWC(0, 8, 0, 0);
         }
@@ -385,17 +387,17 @@ inline void bitonic_topk_inc_x8_dest(std::uint32_t inc, bool cr)
 
 inline void bitonic_topk_inc_x4_dest(std::uint32_t inc, bool cr)
 {
-    uint inc_grp4 = inc >> 2;
+    std::uint32_t inc_grp4 = inc >> 2;
     if (cr)
     {
-        for (uint i = 0; i < inc_grp4; i++)
+        for (std::uint32_t i = 0; i < inc_grp4; i++)
         {
             TTI_INCRWC(0b100, 4, 0, 0);
         }
     }
     else
     {
-        for (uint i = 0; i < inc_grp4; i++)
+        for (std::uint32_t i = 0; i < inc_grp4; i++)
         {
             TTI_INCRWC(0, 4, 0, 0);
         }

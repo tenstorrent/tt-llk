@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "llk_unpack_common.h"
 using namespace ckernel;
 

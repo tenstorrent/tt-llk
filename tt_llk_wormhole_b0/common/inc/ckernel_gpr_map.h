@@ -5,6 +5,8 @@
 #pragma once
 
 // Hand-coded parameter encoding for various GPR mappings
+#include <cstdint>
+
 namespace ckernel
 {
 

@@ -7,6 +7,8 @@
 #ifndef CKERNEL_DEST_H
 #define CKERNEL_DEST_H 1
 
+#include <cstdint>
+
 #include "cfg_defines.h"
 #include "ckernel.h"
 #include "ckernel_vector.h"
@@ -569,11 +571,11 @@ struct meta_from_dest_type
     }
 
 mk_dest_meta_type(std::uint32_t, DataFormat::Int32, true);
-mk_dest_meta_type(int32_t, DataFormat::Int32, false);
+mk_dest_meta_type(std::int32_t, DataFormat::Int32, false);
 mk_dest_meta_type(std::uint16_t, DataFormat::Int16, false);
-mk_dest_meta_type(int16_t, DataFormat::Int16, false);
+mk_dest_meta_type(std::int16_t, DataFormat::Int16, false);
 mk_dest_meta_type(std::uint8_t, DataFormat::Int8, false);
-mk_dest_meta_type(int8_t, DataFormat::Int8, false);
+mk_dest_meta_type(std::int8_t, DataFormat::Int8, false);
 mk_dest_meta_type(float, DataFormat::Float32, true);
 mk_dest_meta_type(fp16a, DataFormat::Float16, false);
 mk_dest_meta_type(fp16b, DataFormat::Float16_b, false);

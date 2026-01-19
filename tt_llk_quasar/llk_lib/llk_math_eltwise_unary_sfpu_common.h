@@ -3,6 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
+#include <cstdint>
+
 #include "cmath_common.h"
 #include "llk_defs.h"
 using namespace ckernel::math;

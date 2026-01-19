@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "llk_math_common.h"
 using namespace ckernel;
 using namespace ckernel::trisc;

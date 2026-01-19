@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "llk_math_common.h"
 using namespace ckernel;
 using namespace ckernel::trisc;
@@ -191,8 +193,8 @@ inline void _llk_math_eltwise_binary_addrmod_()
 template <ckernel::MathFidelity MATH_FIDELITY_TYPE>
 inline void _llk_math_eltwise_di_binary_addrmod_()
 {
-    constexpr bool math_fidelity_enable = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
-    constexpr int fidelity_increment    = math_fidelity_enable ? 1 : 0;
+    constexpr bool math_fidelity_enable        = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
+    constexpr std::uint32_t fidelity_increment = math_fidelity_enable ? 1 : 0;
     addr_mod_t {
         .srca     = {.incr = 0, .clr = 0, .cr = 0},
         .srcb     = {.incr = 0, .clr = 0, .cr = 0},

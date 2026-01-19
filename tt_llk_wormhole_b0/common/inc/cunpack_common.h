@@ -254,7 +254,7 @@ inline void configure_unpack_AB(
 
     alu_config_u alu_payload = {.val = 0};
 
-    constexpr uint32_t alu_format_mask = ALU_FORMAT_SPEC_REG0_SrcAUnsigned_MASK | ALU_FORMAT_SPEC_REG0_SrcBUnsigned_MASK;
+    constexpr std::uint32_t alu_format_mask = ALU_FORMAT_SPEC_REG0_SrcAUnsigned_MASK | ALU_FORMAT_SPEC_REG0_SrcBUnsigned_MASK;
 
     if (unpA_src_format == to_underlying(DataFormat::UInt8))
     {

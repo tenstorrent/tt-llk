@@ -12,7 +12,7 @@ extern "C"
 {
 #include <gcov.h>
 
-    typedef int64_t gcov_type;
+    typedef std::int64_t gcov_type;
 
     // Symbols pointing to per-TU coverage data from -fprofile-info-section.
     extern const struct gcov_info* __gcov_info_start[];
