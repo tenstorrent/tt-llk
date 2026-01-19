@@ -46,6 +46,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     {
         _llk_unpack_A_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }
+    _llk_unpack_A_uninit_<BROADCAST_TYPE>(params->TEST_FACE_R_DIM);
 }
 
 #endif
@@ -71,20 +72,21 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     // copy srca to dest
     // Use B2D for all broadcasts except NONE (data in srcB), A2D for NONE (data in srcA)
-    constexpr DataCopyType copy_type = (BROADCAST_TYPE == BroadcastType::NONE) ? DataCopyType::A2D : DataCopyType::B2D;
+    constexpr DataCopyType copy_type = (BROADCAST_TYPE == BroadcastType::NONE || unpack_to_dest) ? DataCopyType::A2D : DataCopyType::B2D;
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<copy_type, is_fp32_dest_acc_en, BROADCAST_TYPE, false, is_int_fpu_en>(params->num_faces, formats.math);
 #else
     _llk_math_eltwise_unary_datacopy_init_<copy_type, is_fp32_dest_acc_en, BROADCAST_TYPE, is_int_fpu_en>(params->num_faces, formats.math);
 #endif
     _llk_math_pack_sync_init_<sync_mode, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_(formats.math, formats.math);
+    _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<sync_mode>();
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_math_eltwise_unary_datacopy_<copy_type, sync_mode, is_fp32_dest_acc_en, BROADCAST_TYPE, unpack_to_dest>(i, formats.math, formats.math);
     }
     _llk_math_dest_section_done_<sync_mode, is_fp32_dest_acc_en>();
+    _llk_math_eltwise_unary_datacopy_uninit_<BROADCAST_TYPE, unpack_to_dest>();
 }
 
 #endif

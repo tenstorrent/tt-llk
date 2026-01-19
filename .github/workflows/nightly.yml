@@ -35,6 +35,7 @@ jobs:
       random_order: false
       timeout_minutes: 360
       coverage: true
+      use_durations: true
 
   nightly-test-blackhole:
     name: "🕳️ Nightly Tests (Blackhole)"
@@ -49,6 +50,7 @@ jobs:
       random_order: false
       timeout_minutes: 360
       coverage: true
+      use_durations: true
 
   nightly-summary:
     name: "📊 Nightly Summary"
@@ -63,19 +65,20 @@ jobs:
         with:
           jobs: ${{ toJSON(needs) }}
 
-  report-failure:
-    name: "🔔 Report failure"
+  report-status:
+    name: "🔔 Report status"
     runs-on: ubuntu-latest
-    if: ${{ failure() }}
+    if: always()
     needs: nightly-summary
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - name: Report failure
+      - name: Report status
         uses: ./.github/actions/report-failure
         with:
           test_name: "Nightly Tests"
           slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
           slack_channel_id: ${{ secrets.SLACK_CHANNEL_ID }}
+          status: ${{ needs.nightly-summary.result }}
