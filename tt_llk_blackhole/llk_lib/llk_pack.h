@@ -469,7 +469,7 @@ inline void _llk_pack_reconfig_data_format_(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
-    llk_san::pack_hw_configure<true>(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+    llk_san::pack_operand_configure<true>(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
 
     reconfig_packer_data_format<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, tile_size, face_r_dim, tile_c_dim, num_faces, partial_face);
 
@@ -493,7 +493,7 @@ inline void _llk_pack_hw_configure_(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
-    llk_san::pack_hw_configure(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+    llk_san::pack_operand_configure(is_fp32_dest_acc_en, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
 
     configure_pack<is_fp32_dest_acc_en, untilize, tilize>(
         pack_src_format, pack_dst_format, tile_size, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, relu_config);
@@ -512,7 +512,7 @@ inline void _llk_pack_init_(
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
     llk_san::pack_operand_check(llk_san::IGNORE, llk_san::IGNORE, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
-    llk_san::operation_save<llk_san::operation_t::Pack>();
+    llk_san::operation_init<llk_san::operation_t::Pack>();
     // sstanisic todo: implement
     // llk_san_must_uninit<llk_san_op::Pack>(); // lololol uninit doesn't exist
     // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::CH0Strides, llk_san_cfg::CH1Strides, llk_san_cfg::AdcXX);
@@ -535,7 +535,7 @@ inline void _llk_pack_init_(
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
     llk_san::pack_operand_check(llk_san::IGNORE, pack_src_format, pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
-    llk_san::operation_save<llk_san::operation_t::Pack>();
+    llk_san::operation_init<llk_san::operation_t::Pack>();
     // sstanisic todo: implement
     // llk_san_must_uninit<llk_san_op::Pack>(); // lololol uninit doesn't exist
     // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::CH0Strides, llk_san_cfg::CH1Strides, llk_san_cfg::AdcXX);

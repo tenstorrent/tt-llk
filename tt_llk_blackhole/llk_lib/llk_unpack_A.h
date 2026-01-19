@@ -217,7 +217,7 @@ inline void _llk_unpack_A_init_(
         llk_san::unpack_operand_check(
             llk_san::IGNORE, llk_san::IGNORE, unpack_src_format, llk_san::IGNORE, unpack_dst_format, llk_san::IGNORE, face_r_dim, llk_san::IGNORE, num_faces);
     }
-    llk_san::operation_save<llk_san::operation_t::UnpackA>(BType, acc_to_dest, binary_reuse_dest, unpack_to_dest, unpack_src_format, unpack_dst_format);
+    llk_san::operation_init<llk_san::operation_t::UnpackA>(BType, acc_to_dest, binary_reuse_dest, unpack_to_dest, unpack_src_format, unpack_dst_format);
     // sstanisic todo: llk_san_extended_state_mask(llk_san_cfg::Transpose, llk_san_cfg::AdcXX, llk_san_cfg::Mop);
 
     // Set transpose register to prevent state pollution

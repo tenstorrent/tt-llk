@@ -57,7 +57,7 @@ inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, co
 {
     llk_san::unpack_operand_check(
         llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE, unpack_dst_format, llk_san::IGNORE, face_r_dim, llk_san::IGNORE, llk_san::IGNORE, llk_san::IGNORE);
-    llk_san::operation_save<llk_san::operation_t::UnpackUntilize>();
+    llk_san::operation_init<llk_san::operation_t::UnpackUntilize>();
     // sstanisic todo:: llk_san::must_uninit<llk_san_op::UnpackUntilize>(); // lololol uninit doesn't exist
     // llk_san_extended_state_mask(llk_san_cfg::Transpose, llk_san_cfg::AdcXX, llk_san_cfg::CH1Strides, llk_san_cfg::TileDesc, llk_san_cfg::Mop); // GPRS not
     // tracked here for now

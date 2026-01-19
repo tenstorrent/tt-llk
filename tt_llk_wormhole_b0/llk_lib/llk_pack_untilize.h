@@ -139,7 +139,7 @@ inline void _llk_pack_untilize_init_(
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
     llk_san::pack_operand_check(llk_san::IGNORE, llk_san::IGNORE, pack_dst_format, face_r_dim, llk_san::IGNORE, num_faces, llk_san::IGNORE, llk_san::IGNORE);
-    llk_san::operation_save<llk_san::operation_t::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, pack_dst_format, face_r_dim);
+    llk_san::operation_init<llk_san::operation_t::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums, pack_dst_format, face_r_dim);
 
     // sstanisic todo: implement
     // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::AdcXX); // GPRs are not tracked here for now

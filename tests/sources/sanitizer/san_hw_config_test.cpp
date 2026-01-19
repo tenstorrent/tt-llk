@@ -30,7 +30,7 @@ void run_kernel()
 
     // configure state
 
-    llk_san::unpack_hw_configure_impl<false>(
+    llk_san::unpack_operand_configure_impl<false>(
         unpack_state,
         true /* dst_acc_en */,
         1 /* src_fmt_A */,
@@ -65,7 +65,7 @@ void run_kernel()
 
     // reconfigure state
 
-    llk_san::unpack_hw_configure_impl<true>(
+    llk_san::unpack_operand_configure_impl<true>(
         unpack_state,
         false /* dst_acc_en */,
         llk_san::IGNORE /* src_fmt_A */,
@@ -99,7 +99,7 @@ void run_kernel()
     LLK_ASSERT(unpack_state.is_configured, "unpack_state must be configured");
 
     // scramble parts of the state
-    llk_san::unpack_hw_configure_impl<true>(
+    llk_san::unpack_operand_configure_impl<true>(
         unpack_state,
         llk_san::UNKNOWN /* dst_acc_en */,
         llk_san::IGNORE /* src_fmt_A */,
@@ -144,7 +144,7 @@ void run_kernel()
 
     // configure state
 
-    llk_san::math_hw_configure_impl<false>(
+    llk_san::math_operand_configure_impl<false>(
         math_state, 1 /* math_fmt_A */, 2 /* math_fmt_B */
     );
 
@@ -156,7 +156,7 @@ void run_kernel()
 
     // reconfigure state
 
-    llk_san::math_hw_configure_impl<true>(
+    llk_san::math_operand_configure_impl<true>(
         math_state, llk_san::IGNORE /* math_fmt_A */, 9 /* math_fmt_B */
     );
 
@@ -167,7 +167,7 @@ void run_kernel()
     LLK_ASSERT(math_state.is_configured, "math_state must be configured");
 
     // scramble parts of the state
-    llk_san::math_hw_configure_impl<true>(
+    llk_san::math_operand_configure_impl<true>(
         math_state, llk_san::UNKNOWN /* math_fmt_A */, llk_san::IGNORE /* math_fmt_B */
     );
 
@@ -198,7 +198,7 @@ void run_kernel()
 
     // configure state
 
-    llk_san::pack_hw_configure_impl<false>(
+    llk_san::pack_operand_configure_impl<false>(
         pack_state,
         true /* dest_acc_en */,
         1 /* src_fmt */,
@@ -230,7 +230,7 @@ void run_kernel()
 
     // reconfigure state
 
-    llk_san::pack_hw_configure_impl<true>(
+    llk_san::pack_operand_configure_impl<true>(
         pack_state,
         false /* dest_acc_en */,
         llk_san::IGNORE /* src_fmt */,
@@ -261,7 +261,7 @@ void run_kernel()
     LLK_ASSERT(pack_state.is_configured, "pack_state must be configured");
 
     // scramble parts of the state
-    llk_san::pack_hw_configure_impl<true>(
+    llk_san::pack_operand_configure_impl<true>(
         pack_state,
         llk_san::UNKNOWN /* dest_acc_en */,
         llk_san::IGNORE /* src_fmt */,

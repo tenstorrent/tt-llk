@@ -53,7 +53,7 @@ extern sanitizer_state_t* sanitizer;
 // Goes in LLK_LIB in HWConfigure and HWReconfig
 // State set + no hw config within kernel check
 template <bool reconfig = false>
-static inline void unpack_hw_configure(
+static inline void unpack_operand_configure(
     state_t<bool> dst_acc_en,
     state_t<uint32_t> src_fmt_A,
     state_t<uint32_t> src_fmt_B,
@@ -64,20 +64,20 @@ static inline void unpack_hw_configure(
     state_t<uint32_t> num_faces_A,
     state_t<uint32_t> num_faces_B)
 {
-    unpack_hw_configure_impl<reconfig>(
+    unpack_operand_configure_impl<reconfig>(
         sanitizer->operand.unpack, dst_acc_en, src_fmt_A, src_fmt_B, dst_fmt_A, dst_fmt_B, face_height_A, face_height_B, num_faces_A, num_faces_B);
 }
 
 // State set + no hw config within kernel check
 template <bool reconfig = false>
-static inline void math_hw_configure(state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
+static inline void math_operand_configure(state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
 {
-    math_hw_configure_impl<reconfig>(sanitizer->operand.math, math_fmt_A, math_fmt_B);
+    math_operand_configure_impl<reconfig>(sanitizer->operand.math, math_fmt_A, math_fmt_B);
 }
 
 // State set + no hw config within kernel check
 template <bool reconfig = false>
-static inline void pack_hw_configure(
+static inline void pack_operand_configure(
     state_t<bool> dest_acc_en,
     state_t<uint32_t> src_fmt,
     state_t<uint32_t> dst_fmt,
@@ -87,7 +87,8 @@ static inline void pack_hw_configure(
     state_t<bool> partial_face,
     state_t<bool> narrow_tile)
 {
-    pack_hw_configure_impl<reconfig>(sanitizer->operand.pack, dest_acc_en, src_fmt, dst_fmt, face_height, tile_width, num_faces, partial_face, narrow_tile);
+    pack_operand_configure_impl<reconfig>(
+        sanitizer->operand.pack, dest_acc_en, src_fmt, dst_fmt, face_height, tile_width, num_faces, partial_face, narrow_tile);
 }
 
 // Goes in LLK_LIB in Init, Execute and Uninit
@@ -130,9 +131,9 @@ static inline void pack_operand_check(
 // Goes in LLK_LIB in Init
 // Store operation type and save arguments
 template <operation_t op, typename... Ts>
-static inline void operation_save(Ts... args)
+static inline void operation_init(Ts... args)
 {
-    operation_save_impl<op, Ts...>(sanitizer->operation[COMPILE_FOR_TRISC], args...);
+    operation_init_impl<op, Ts...>(sanitizer->operation[COMPILE_FOR_TRISC], args...);
 }
 
 // Set must uninit flag for operation

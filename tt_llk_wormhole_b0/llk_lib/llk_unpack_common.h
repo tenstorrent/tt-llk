@@ -50,7 +50,7 @@ inline void _llk_unpack_hw_configure_(
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
 
     // sstanisic todo: add tile_size_a and tile_size_b to operand state?
-    llk_san::unpack_hw_configure(
+    llk_san::unpack_operand_configure(
         is_fp32_dest_acc_en,
         unpA_src_format,
         unpB_src_format,
@@ -86,7 +86,7 @@ template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srca_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
 {
-    llk_san::unpack_hw_configure<true>(
+    llk_san::unpack_operand_configure<true>(
         llk_san::IGNORE,
         unpack_src_format,
         llk_san::IGNORE,
@@ -113,7 +113,7 @@ template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
 {
-    llk_san::unpack_hw_configure<true>(
+    llk_san::unpack_operand_configure<true>(
         llk_san::IGNORE,
         llk_san::IGNORE,
         unpack_src_format,

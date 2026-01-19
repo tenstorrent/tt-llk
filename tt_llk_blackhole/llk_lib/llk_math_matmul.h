@@ -604,7 +604,7 @@ inline void _llk_math_matmul_init_(
     const std::uint32_t ct_dim         = 1,
     const std::uint32_t rt_dim         = 1)
 {
-    llk_san::operation_save<llk_san::operation_t::Matmul>(MATH_FIDELITY_DESC, THROTTLE_LEVEL, ct_dim, rt_dim);
+    llk_san::operation_init<llk_san::operation_t::Matmul>(MATH_FIDELITY_DESC, THROTTLE_LEVEL, ct_dim, rt_dim);
     // sstanisic todo: implement
     // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop); // Counters are not tracked here for now
 
