@@ -121,15 +121,15 @@ def is_relu_threshold_tolerance_issue(
         ]
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
-    num_faces=[1, 2, 4],
-    face_r_dim=lambda num_faces: (
-        [1, 2, 4, 8, 16] if num_faces == 2 else [16]
-    ),  # Vary face_r_dim only for num_faces=2, that's the current limitation.
+    face_r_dim=[1, 2, 4, 8, 16],
+    num_faces=lambda face_r_dim: (
+        [1, 2, 4] if face_r_dim == 16 else [2]
+    ),  # Current limitation.
     input_dimensions=lambda face_r_dim: (
         [[face_r_dim, 32]]
         if face_r_dim < 16
         else [[32, 32], [64, 64], [32, 64], [64, 32]]
-    ),  # For partial faces, use single tile with face_r_dim < 16
+    ),  # For partial faces, use single tile with face_r_dim < 16.
     relu_type=[
         PackerReluType.NoRelu,
         PackerReluType.ZeroRelu,
