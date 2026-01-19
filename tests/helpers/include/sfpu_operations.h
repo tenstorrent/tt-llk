@@ -105,6 +105,10 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             _init_rsqrt_<APPROX_MODE>();
             _calculate_rsqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, FAST_MODE>(ITERATIONS);
             break;
+        case SfpuType::sigmoid:
+            _init_sigmoid_<APPROX_MODE>();
+            _calculate_sigmoid_<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>();
+            break;
         case SfpuType::silu:
             _calculate_silu_<APPROX_MODE, ITERATIONS>();
             break;
@@ -119,8 +123,8 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             _calculate_square_<APPROX_MODE, ITERATIONS>();
             break;
         case SfpuType::tanh:
-            _init_tanh_<APPROX_MODE>();
-            _calculate_tanh_<APPROX_MODE, ITERATIONS>(ITERATIONS);
+            _init_tanh_<APPROX_MODE, is_fp32_dest_acc_en>();
+            _calculate_tanh_<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>();
             break;
         case SfpuType::threshold:
             _calculate_threshold_<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);
