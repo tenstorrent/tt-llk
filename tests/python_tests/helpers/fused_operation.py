@@ -175,7 +175,6 @@ class FusedOperation:
         self.dest_tiles_w = self.output.dimensions[1] // 32
 
         self.output_pack_tile_cnt = self.output_tiles_h * self.output_tiles_w
-        print(self.output_pack_dims, self.output.dimensions)
 
         self.output.pack_dims = self.output_pack_dims
 

@@ -31,7 +31,6 @@ class Packer:
             : operation_config.output_pack_dims[0],
             : operation_config.output_pack_dims[1],
         ]
-        return tensor
 
     def hw_configure(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
