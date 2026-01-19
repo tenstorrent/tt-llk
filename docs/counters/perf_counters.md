@@ -241,7 +241,7 @@ all_counters = [
     counter("FPU", "FPU_OP_VALID"),
     counter("FPU", "SFPU_OP_VALID"),
     counter("TDMA_UNPACK", "UNPACK_BUSY_0"),
-    counter("L1", "NOC_RING0_INCOMING_1", mux_ctrl_bit4=0),
+    counter("L1", "NOC_RING0_INCOMING_1", l1_mux=0),
     # ... add more as needed ...
 ]
 
