@@ -209,15 +209,10 @@ def configure_perf_counters(
     if len(config_words) < COUNTER_SLOT_COUNT:
         config_words.extend([0] * (COUNTER_SLOT_COUNT - len(config_words)))
 
-    # Write configuration and clear previous data
-
-    # Clear data region to prevent garbage from previous runs
+    # Coalesce into a single write: config_words (66) + zero_data (132) = 198 words
     zero_data = [0] * COUNTER_DATA_WORD_COUNT
-    write_words_to_device(location=location, addr=data_addr, data=zero_data)
-
-    # Write configuration to L1
-    write_words_to_device(location=location, addr=config_addr, data=config_words)
-    # Configuration written
+    combined_data = config_words + zero_data
+    write_words_to_device(location=location, addr=config_addr, data=combined_data)
 
 
 def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict]:
