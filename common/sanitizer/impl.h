@@ -53,7 +53,7 @@ namespace llk_san
 // Goes in LLK_LIB in HWConfigure and HWReconfig
 // State set + no hw config within kernel check
 template <bool reconfig>
-static inline void unpack_hw_configure_impl(
+static inline void unpack_operand_configure_impl(
     unpack_operand_state_t& state,
     state_t<bool> dst_acc_en,
     state_t<uint32_t> src_fmt_A,
@@ -88,7 +88,7 @@ static inline void unpack_hw_configure_impl(
 
 // State set + no hw config within kernel check
 template <bool reconfig = false>
-static inline void math_hw_configure_impl(math_operand_state_t& state, state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
+static inline void math_operand_configure_impl(math_operand_state_t& state, state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
 {
     LLK_PANIC(!reconfig && state.is_configured, "panic: llk_san: user tried to configure math twice");
     LLK_PANIC(reconfig && !state.is_configured, "panic: llk_san: user tried to reconfigure math before configuring it");
@@ -100,7 +100,7 @@ static inline void math_hw_configure_impl(math_operand_state_t& state, state_t<u
 
 // State set + no hw config within kernel check
 template <bool reconfig>
-static inline void pack_hw_configure_impl(
+static inline void pack_operand_configure_impl(
     pack_operand_state_t& state,
     state_t<bool> dest_acc_en,
     state_t<uint32_t> src_fmt,

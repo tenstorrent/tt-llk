@@ -694,7 +694,7 @@ inline void _llk_math_matmul_init_(
     // in1=32x16 NOT supported with transpose (no addr_mod handling)
     LLK_ASSERT(
         !(transpose && (in1_tile_r_dim == TILE_R_DIM) && (in1_tile_c_dim == FACE_C_DIM)), "in1=32x16 not supported with transpose (no addr_mod handling)");
-    llk_san::operation_save<llk_san::operation_t::Matmul>(math_fidelity, THROTTLE_LEVEL, ct_dim, rt_dim);
+    llk_san::operation_init<llk_san::operation_t::Matmul>(math_fidelity, THROTTLE_LEVEL, ct_dim, rt_dim);
 
     // sstanisic todo: implement
     // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::DvalidDisable, llk_san_cfg::Mop); // Counters are not tracked here for now
