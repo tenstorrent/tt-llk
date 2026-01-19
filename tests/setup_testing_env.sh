@@ -51,6 +51,10 @@ download_headers() {
 
     local base_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/internal/tt-1xx/${chip_arch}"
     local headers=( "core_config.h" "cfg_defines.h" "dev_mem_map.h" "tensix.h" "tensix_types.h")
+    if [[ "$chip_arch" == "quasar" ]]; then
+        base_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/internal/tt-2xx/quasar"
+        headers=( "core_config.h" "dev_mem_map.h" )
+    fi
 
     local risc_attribs_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/internal/risc_attribs.h"
 
@@ -84,34 +88,6 @@ download_headers() {
 
     touch "$stamp_file"
     echo "Headers for ${chip_arch} downloaded successfully."
-}
-
-# Function to download headers for Quasar architecture (tt-2xx)
-download_headers_quasar() {
-    local header_dir="${SCRIPT_DIR}/hw_specific/quasar/inc"
-    local stamp_file="${header_dir}/.headers_downloaded"
-
-    if [[ -f "$stamp_file" ]]; then
-        echo "Headers for quasar already downloaded."
-        return
-    fi
-
-    echo "Downloading headers for quasar..."
-    mkdir -p "$header_dir/internal"
-
-    local base_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/internal/tt-2xx/quasar"
-    local headers=( "core_config.h" "dev_mem_map.h" )
-
-    for header in "${headers[@]}"; do
-        local download_url="${base_url}/${header}"
-        if ! wget -q -O "${header_dir}/${header}" --waitretry=5 --retry-connrefused "$download_url" > /dev/null; then
-            echo "ERROR: Failed to download ${header} from ${download_url}" >&2
-            exit 1
-        fi
-    done
-
-    touch "$stamp_file"
-    echo "Headers for quasar downloaded successfully."
 }
 
 # Function to setup pre-commit hooks
@@ -167,11 +143,7 @@ main() {
     fi
 
     # Download headers
-    if [[ "$chip_arch" == "quasar" ]]; then
-        download_headers_quasar
-    else
-        download_headers "$chip_arch"
-    fi
+    download_headers "$chip_arch"
 
     # Setup pre-commit hooks
     setup_precommit
