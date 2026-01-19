@@ -14,7 +14,7 @@ operations:
           operation: "Fill"
           approximation_mode: "No"
           iterations: 32
-          dest_idx: 2
+          dst_dest_tile_index: 2
           fill_const_value: 1.0
     packer: "Packer"
     dest_acc: "Yes"

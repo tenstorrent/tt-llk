@@ -205,7 +205,7 @@ The `approximation_mode` controls the precision/speed tradeoff. Set it to `"Yes"
 
 The `iterations` field determines how many datums to process. Each iteration processes 32 datums (one row of a face), meaning 32 iterations process one full tile (1024 elements). The number of iterations must be calculated based on your input dimensions. For example, a 64×64 matrix contains 4 tiles (4096 elements), requiring 128 iterations to process all data. The value must be at least 1 and cannot exceed the total number of elements divided by 32, where total elements equals `src_a_dims[0] * src_a_dims[1]`.
 
-The `dest_idx` specifies the starting tile index within the dest register where the operation begins (default: 0). See **Understanding Tile Indices** for details on tile indexing.
+The `dst_dest_tile_index` specifies the starting tile index within the dest register where the operation begins (default: 0). See **Understanding Tile Indices** for details on tile indexing.
 
 The `fill_const_value` sets the constant value that each element will be set to when using the `Fill` operation (default: 1.0).
 
