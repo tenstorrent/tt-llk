@@ -783,6 +783,10 @@ class TestConfig:
                 else TestConfig.SHARED_OBJ_DIR
             )
 
+            kernel_trisc_flag = ""
+            if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
+                kernel_trisc_flag = "-DCOMPILE_FOR_TRISC="
+
             SFPI_DEPS = ""
             COVERAGE_DEPS = ""
             if self.coverage_build == CoverageBuild.Yes:
@@ -792,7 +796,7 @@ class TestConfig:
             run_shell_command(  # %.elf : main_%.o kernel_%.o [coverage.o] tmu-crt0.o
                 " ".join(
                     (
-                        f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {TestConfig.OPTIONS_LINK} -I{VARIANT_DIR}""",
+                        f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} {TestConfig.OPTIONS_LINK} -I{VARIANT_DIR} -DCOMPILE_FOR_TRISC""",
                         f"""{TestConfig.TESTS_WORKING_DIR / self.test_name} {shared_obj_dir / f"kernel_main.o"} {COVERAGE_DEPS} {shared_obj_dir / "tmu-crt0.o"} {SFPI_DEPS}""",
                         f""" -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"unpack.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"main.elf"}""",
                     )
