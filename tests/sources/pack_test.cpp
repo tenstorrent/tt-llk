@@ -23,9 +23,16 @@ uint32_t math_sync_tile_dst_index = 0;
 void run_kernel(const volatile struct RuntimeParams* params)
 {
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, params->num_faces, params->num_faces);
+        formats.unpack_src,
+        formats.unpack_src,
+        formats.unpack_dst,
+        formats.unpack_dst,
+        params->TEST_FACE_R_DIM,
+        params->TEST_FACE_R_DIM,
+        params->num_faces,
+        params->num_faces);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-        0, 0, FACE_R_DIM, params->num_faces, formats.unpack_src, formats.unpack_dst);
+        0, 0, params->TEST_FACE_R_DIM, params->num_faces, formats.unpack_src, formats.unpack_dst);
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
@@ -83,14 +90,29 @@ void run_kernel(const volatile struct RuntimeParams* params)
 void run_kernel(const volatile struct RuntimeParams* params)
 {
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, tilize_en>(
-        formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, params->num_faces, false, false, params->RELU_CONFIG);
-    _llk_pack_init_<false, false, tilize_en>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
+        formats.pack_src,
+        formats.pack_dst,
+        params->TEST_FACE_R_DIM * params->TEST_FACE_C_DIM * 4,
+        params->TEST_FACE_R_DIM,
+        TILE_C_DIM,
+        params->num_faces,
+        false,
+        false,
+        params->RELU_CONFIG);
+    _llk_pack_init_<false, false, false>(formats.pack_dst, params->TEST_FACE_R_DIM, TILE_C_DIM, params->num_faces);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(
-        formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, params->num_faces, false, false, params->RELU_CONFIG);
-    _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, params->num_faces);
+        formats.pack_src,
+        formats.pack_dst,
+        params->TEST_FACE_R_DIM * params->TEST_FACE_C_DIM * 4,
+        params->TEST_FACE_R_DIM,
+        params->num_faces,
+        false,
+        false,
+        params->RELU_CONFIG);
+    _llk_pack_init_<false, false>(formats.pack_dst, params->TEST_FACE_R_DIM, params->num_faces);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, false>();
 #endif
     _llk_packer_wait_for_math_done_();

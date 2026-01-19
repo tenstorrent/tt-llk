@@ -1054,7 +1054,10 @@ class PackGolden:
 
         height, width = input_dimensions[0], input_dimensions[1]
 
-        tile_cnt = (height // 32) * (width // 32)
+        tile_width = 32
+        tile_height = 32 if face_r_dim == 16 else face_r_dim
+
+        tile_cnt = (height // tile_height) * (width // tile_width)
         tile_size = height * width // tile_cnt
 
         # Calculate elements based on variable face dimensions

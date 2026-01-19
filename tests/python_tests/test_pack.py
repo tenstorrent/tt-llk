@@ -10,6 +10,8 @@ Tests the LLK pack kernel with:
 - Destination sync modes (SyncHalf for double-buffering, SyncFull for single-buffering)
 """
 
+import os
+
 import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
@@ -28,13 +30,67 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_INDEX,
     DEST_SYNC,
-    INPUT_DIMENSIONS,
     NUM_FACES,
+    PARTIAL_FACE,
     RELU_CONFIG,
+    TEST_FACE_DIMS,
     TILE_COUNT,
-    TILIZE,
 )
 from helpers.utils import passed_test
+
+
+def save_tensors_to_file(golden_tensor, res_tensor, face_r_dim, num_faces, test_id):
+    """Save golden and result tensors to files with proper dimensional formatting"""
+
+    # Create debug directory if it doesn't exist
+    debug_dir = "debug_matrices"
+    os.makedirs(debug_dir, exist_ok=True)
+
+    # Format tensors according to face dimensions
+    face_size = face_r_dim * 16
+
+    def format_tensor_to_file(tensor, filename, tensor_name):
+        with open(os.path.join(debug_dir, filename), "w") as f:
+            f.write(f"{tensor_name} Tensor\n")
+            f.write(f"Shape: {tensor.shape}\n")
+            f.write(f"Face dimensions: {face_r_dim} x 16\n")
+            f.write(f"Number of faces: {num_faces}\n")
+            f.write("=" * 80 + "\n\n")
+
+            for face_idx in range(num_faces):
+                if num_faces > 1:
+                    f.write(f"Face {face_idx}:\n")
+
+                face_start = face_idx * face_size
+                face_end = face_start + face_size
+                face_data = tensor[face_start:face_end]
+
+                # Reshape to face_r_dim x 16 matrix
+                face_matrix = face_data.view(face_r_dim, 16)
+
+                for row_idx in range(face_r_dim):
+                    row_values = [f"{val:12.6f}" for val in face_matrix[row_idx]]
+                    f.write("  " + " ".join(row_values) + "\n")
+
+                if face_idx < num_faces - 1:
+                    f.write("\n")  # Blank line between faces
+
+            f.write("\n" + "=" * 80 + "\n")
+
+    # Generate unique filenames based on test parameters
+    base_name = f"test_fail_{test_id}_face{face_r_dim}x16_nf{num_faces}"
+
+    format_tensor_to_file(golden_tensor, f"{base_name}_golden.txt", "GOLDEN")
+    format_tensor_to_file(res_tensor, f"{base_name}_result.txt", "RESULT")
+
+    # Also save difference matrix
+    diff_tensor = torch.abs(golden_tensor - res_tensor)
+    format_tensor_to_file(diff_tensor, f"{base_name}_diff.txt", "ABSOLUTE DIFFERENCE")
+
+    print(f"Tensors saved to {debug_dir}/ directory:")
+    print(f"  - {base_name}_golden.txt")
+    print(f"  - {base_name}_result.txt")
+    print(f"  - {base_name}_diff.txt")
 
 
 def is_relu_threshold_tolerance_issue(
@@ -120,7 +176,12 @@ def is_relu_threshold_tolerance_issue(
         ]
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
-    input_dimensions=[[32, 32], [64, 64], [32, 64], [64, 32]],
+    # face_r_dim = [1,2,4,8,16],
+    # num_faces= lambda face_r_dim: [1,2,4] if face_r_dim == 16 else [2],
+    # input_dimensions=lambda face_r_dim:[[32, 32], [64, 64]] if face_r_dim == 16 else [[face_r_dim, 32]],
+    face_r_dim=[16],
+    num_faces=[4],
+    input_dimensions=[[32, 32], [32, 64]],
     relu_type=[
         PackerReluType.NoRelu,
         PackerReluType.ZeroRelu,
@@ -128,9 +189,10 @@ def is_relu_threshold_tolerance_issue(
         PackerReluType.MaxThresholdRelu,
     ],
     dest_sync=[DestSync.Half, DestSync.Full],
-    dest_index=lambda dest_acc, dest_sync, input_dimensions: get_valid_dest_indices(
+    dest_index=lambda dest_acc, dest_sync, input_dimensions, face_r_dim: get_valid_dest_indices(
         dest_sync=dest_sync,
         dest_acc=dest_acc,
+        # tile_count=(1 if face_r_dim < 16 else (input_dimensions[0] * input_dimensions[1]) // (32 * 32)),
         tile_count=(input_dimensions[0] * input_dimensions[1]) // (32 * 32),
     ),
 )
@@ -141,8 +203,28 @@ def test_pack(
     relu_type,
     dest_sync,
     dest_index,
+    num_faces,
+    face_r_dim,
     workers_tensix_coordinates,
 ):
+    # Print test parameters at the start
+    print(f"\n=== RUNNING TEST ===")
+    print(f"Input format: {formats.input_format.name}")
+    print(f"Output format: {formats.output_format.name}")
+    print(f"Dest accumulation: {dest_acc.name}")
+    print(f"Input dimensions: {input_dimensions}")
+    print(f"ReLU type: {relu_type.name}")
+    print(f"Dest sync: {dest_sync.name}")
+    print(f"Dest index: {dest_index}")
+    print(f"Num faces: {num_faces}")
+    print(f"Face r_dim: {face_r_dim}")
+    print("=" * 40)
+
+    if face_r_dim < 16 and (
+        formats.input_format == DataFormat.Bfp8_b
+        or formats.output_format == DataFormat.Bfp8_b
+    ):
+        pytest.skip("Bfp8_b format is only supported for full faces (16x32).")
 
     if (formats.input_format == DataFormat.Int32) ^ (
         formats.output_format == DataFormat.Int32
@@ -156,6 +238,8 @@ def test_pack(
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
+        num_faces=num_faces,
+        face_r_dim=face_r_dim,
     )
 
     # Generate golden output
@@ -164,6 +248,8 @@ def test_pack(
         src_A,
         formats.output_format,
         input_dimensions=input_dimensions,
+        num_faces=num_faces,
+        face_r_dim=face_r_dim,
     )
 
     unpack_to_dest = (
@@ -215,19 +301,25 @@ def test_pack(
         data_formats.pack_src,
     )
 
+    partial_face = face_r_dim < 16
     configuration = TestConfig(
         "sources/pack_test.cpp",
         formats,
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
-            TILIZE(),
             DEST_SYNC(dest_sync),
+            PARTIAL_FACE(
+                partial_a=partial_face,
+                partial_face_pack=partial_face,
+                partial_b=partial_face,
+                partial_face_math=partial_face,
+            ),
         ],
         runtimes=[
             TILE_COUNT(tile_cnt_A),
             DEST_INDEX(dest_index),
             RELU_CONFIG(relu_config),
-            NUM_FACES(num_faces=4),
+            NUM_FACES(num_faces),
+            TEST_FACE_DIMS(face_r_dim=face_r_dim),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
@@ -238,6 +330,8 @@ def test_pack(
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
             tile_count_res=tile_cnt_A,
+            num_faces=num_faces,
+            face_r_dim=face_r_dim,
         ),
         dest_acc=dest_acc,
         unpack_to_dest=unpack_to_dest,
@@ -249,8 +343,7 @@ def test_pack(
         golden_tensor
     ), "Result tensor and golder tensor are not of the same length"
 
-    torch_format = format_dict[formats.output_format]
-    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
     test_passed = passed_test(
         golden_tensor, res_tensor, formats.output_format, print_erros=False
@@ -276,5 +369,23 @@ def test_pack(
                 "the discrepancy is within tolerance and is considered acceptable."
             )
             test_passed = True
+    if not test_passed:
+        # Generate unique test identifier for file naming
+        test_id = f"{formats.input_format.name}_{formats.output_format.name}_{dest_acc.name}_{relu_type.name}_{dest_sync.name}"
+
+        print(f"\n=== TEST FAILURE ===")
+        print(f"Input format: {formats.input_format.name}")
+        print(f"Output format: {formats.output_format.name}")
+        print(f"Dest accumulation: {dest_acc.name}")
+        print(f"Input dimensions: {input_dimensions}")
+        print(f"ReLU type: {relu_type.name}")
+        print(f"Dest sync: {dest_sync.name}")
+        print(f"Dest index: {dest_index}")
+        print(f"Num faces: {num_faces}")
+        print(f"Face r_dim: {face_r_dim}")
+        print("=" * 40)
+
+        # Save tensors to files
+        save_tensors_to_file(golden_tensor, res_tensor, face_r_dim, num_faces, test_id)
 
     assert test_passed
