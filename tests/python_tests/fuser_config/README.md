@@ -207,7 +207,7 @@ The `iterations` field determines how many datums to process. Each iteration pro
 
 The `dest_idx` specifies the starting tile index within the dest register where the operation begins (default: 0). See **Understanding Tile Indices** for details on tile indexing.
 
-The `fill_const_value` sets the const value that will be used by the fill operation
+The `fill_const_value` sets the constant value that each element will be set to when using the `Fill` operation (default: 1.0).
 
 **BinarySfpu Configuration:**
 ```yaml
