@@ -158,7 +158,7 @@ class FusedOperation:
         self.ct_dim = input_B_dimensions[1] // num_cols
         self.kt_dim = input_A_dimensions[1] // num_cols
 
-        if self.output_pack_dims == None:
+        if self.output_pack_dims is None:
             self.output_pack_dims = self.output.dimensions
         else:
             self.output_pack_dims[0] = min(
