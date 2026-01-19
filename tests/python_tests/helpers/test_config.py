@@ -230,9 +230,12 @@ class TestConfig:
 
     @staticmethod
     def setup_compilation_options(
-        with_coverage: bool = False, detailed_artefacts: bool = False
+        with_coverage: bool = False,
+        detailed_artefacts: bool = False,
+        no_debug_symbols: bool = False,
     ):
-        TestConfig.OPTIONS_ALL = f"-g -O3 -std=c++17 -ffast-math"
+        debug_flag = "" if no_debug_symbols else "-g "
+        TestConfig.OPTIONS_ALL = f"{debug_flag}-O3 -std=c++17 -ffast-math"
         TestConfig.WITH_COVERAGE = with_coverage
 
         if detailed_artefacts:
@@ -257,10 +260,13 @@ class TestConfig:
         sources_path: Path,
         with_coverage: bool = False,
         detailed_artefacts: bool = False,
+        no_debug_symbols: bool = False,
     ):
         TestConfig.setup_arch()
         TestConfig.setup_paths(sources_path)
-        TestConfig.setup_compilation_options(with_coverage, detailed_artefacts)
+        TestConfig.setup_compilation_options(
+            with_coverage, detailed_artefacts, no_debug_symbols
+        )
 
     @staticmethod
     def setup_mode(compile_consumer: bool = False, compile_producer: bool = False):
@@ -892,6 +898,7 @@ class TestConfig:
                         0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
                     ),
                     return_start_address=True,
+                    verify_write=False,
                 )
                 write_words_to_device(
                     location, TestConfig.TRISC_START_ADDRS[i], [start_address]
@@ -904,6 +911,7 @@ class TestConfig:
                     neo_id=(
                         0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
                     ),
+                    verify_write=False,
                 )
 
         # Reset the profiler barrier
@@ -926,6 +934,7 @@ class TestConfig:
                             ),
                             location=location,
                             risc_name="brisc",
+                            verify_write=False,
                         )
                 else:
                     if not TestConfig.BRISC_ELF_LOADED:
@@ -936,6 +945,7 @@ class TestConfig:
                             ),
                             location=location,
                             risc_name="brisc",
+                            verify_write=False,
                         )
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
             case BootMode.TRISC:

@@ -126,8 +126,12 @@ def pytest_configure(config):
 
     with_coverage = config.getoption("--coverage", default=False)
     detailed_artefacts = config.getoption("--detailed-artefacts", default=False)
+    no_debug_symbols = config.getoption("--no-debug-symbols", default=False)
     TestConfig.setup_build(
-        Path(os.environ["LLK_HOME"]), with_coverage, detailed_artefacts
+        Path(os.environ["LLK_HOME"]),
+        with_coverage,
+        detailed_artefacts,
+        no_debug_symbols,
     )
 
     # Create directories from all processes - lock in create_directories handles race
@@ -150,9 +154,11 @@ def pytest_configure(config):
 
     if TestConfig.MODE != TestMode.PRODUCE:
         if test_target.run_simulator:
-            tt_exalens_init.init_ttexalens_remote(port=test_target.simulator_port)
+            tt_exalens_init.init_ttexalens_remote(
+                port=test_target.simulator_port, use_4B_mode=False
+            )
         else:
-            tt_exalens_init.init_ttexalens()
+            tt_exalens_init.init_ttexalens(use_4B_mode=False)
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -324,6 +330,13 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
         help="Skip C++ code generation for fused tests and use existing files",
+    )
+
+    parser.addoption(
+        "--no-debug-symbols",
+        action="store_true",
+        default=False,
+        help="Compile without debug symbols (-g flag) to save disk space",
     )
 
 

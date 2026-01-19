@@ -5,7 +5,7 @@ SHELL ["/bin/bash", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update -qq && apt-get install -qq -y --no-install-recommends \
     clangd \
     fzf \
     lcov \
@@ -29,9 +29,3 @@ COPY tests/requirements.txt /tmp/requirements_tests.txt
 
 # Install pytest dependencies
 RUN ./home/install-tests-dependencies.sh
-
-# Install tt-exalens
-RUN ./home/install-exalens.sh
-
-# Install tt-smi
-RUN ./home/install-smi.sh
