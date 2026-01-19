@@ -1,9 +1,11 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+from typing import List
+
 import pytest
 import torch
-from helpers.format_config import DataFormat
+from helpers.format_config import DataFormat, FormatConfig
 from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
     ApproximationMode,
@@ -34,22 +36,71 @@ from helpers.test_variant_parameters import (
 from helpers.utils import passed_test
 
 
+def generate_sfpu_rsqrt_combinations(
+    formats_list: List[FormatConfig],
+):
+    """
+    Generate SFPU rsqrt test combinations.
+
+    Args: Input-output format pairs
+
+    Returns: List of (format, dest_acc, implied_math_format, input_dimensions) tuples
+    """
+    combinations = []
+
+    for fmt in formats_list:
+        in_fmt = fmt.input_format
+
+        dest_acc_modes = (
+            (DestAccumulation.Yes,)
+            if in_fmt.is_32_bit()
+            else (DestAccumulation.No, DestAccumulation.Yes)
+        )
+        for dest_acc in dest_acc_modes:
+            # Skip invalid format combinations for Quasar
+            if (
+                in_fmt != DataFormat.Float32
+                and fmt.output_format == DataFormat.Float32
+                and dest_acc == DestAccumulation.No
+            ):
+                # Quasar packer does not support non-Float32 to Float32 conversion when dest_acc=No
+                continue
+
+            # For Quasar SFPU, input Float32 must be with dest_acc=Yes
+            if (
+                in_fmt == DataFormat.Float32
+                and fmt.output_format == DataFormat.Float16
+                and dest_acc == DestAccumulation.No
+            ):
+                # Quasar SFPU with Float32 input and Float16 output requires dest_acc=Yes
+                continue
+
+            for implied_math_format in [ImpliedMathFormat.No, ImpliedMathFormat.Yes]:
+                for input_dimensions in [[32, 32], [64, 64]]:
+                    combinations.append(
+                        (fmt, dest_acc, implied_math_format, input_dimensions)
+                    )
+
+    return combinations
+
+
+SFPU_RSQRT_FORMATS = input_output_formats(
+    [
+        DataFormat.Float16,
+        DataFormat.Float32,
+        DataFormat.Float16_b,
+    ]
+)
+
+
 @pytest.mark.quasar
 @parametrize(
-    formats=input_output_formats(
-        [
-            DataFormat.Float16,
-            DataFormat.Float32,
-            DataFormat.Float16_b,
-        ],
+    formats_dest_acc_implied_math_input_dims=generate_sfpu_rsqrt_combinations(
+        SFPU_RSQRT_FORMATS
     ),
-    approx_mode=[ApproximationMode.Yes],
-    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
-    implied_math_format=[ImpliedMathFormat.No, ImpliedMathFormat.Yes],
-    input_dimensions=[[32, 32], [64, 64]],
 )
 def test_sfpu_rsqrt_quasar(
-    formats, approx_mode, dest_acc, implied_math_format, input_dimensions
+    formats_dest_acc_implied_math_input_dims, approx_mode=ApproximationMode.Yes
 ):
     """
     Test reciprocal square root (rsqrt) operation on Quasar architecture.
@@ -57,25 +108,9 @@ def test_sfpu_rsqrt_quasar(
     Uses PyTorch's rsqrt as the golden reference and generates input stimuli
     in the range [0.1, 10] to test rsqrt behavior.
     """
-    # Skip invalid format combinations for Quasar
-    if (
-        formats.input_format != DataFormat.Float32
-        and formats.output_format == DataFormat.Float32
-        and dest_acc == DestAccumulation.No
-    ):
-        pytest.skip(
-            "Quasar packer does not support non-Float32 to Float32 conversion when dest_acc=No"
-        )
-
-    # For Quasar SFPU, input Float32 must be with dest_acc=Yes
-    if (
-        formats.input_format == DataFormat.Float32
-        and formats.output_format == DataFormat.Float16
-        and dest_acc == DestAccumulation.No
-    ):
-        pytest.skip(
-            "Quasar SFPU with Float32 input and Float16 output requires dest_acc=Yes"
-        )
+    (formats, dest_acc, implied_math_format, input_dimensions) = (
+        formats_dest_acc_implied_math_input_dims[0]
+    )
 
     # Generate stimuli with random values in range [0.1, 10] for Approximation Mode
     src_A, tile_cnt_A, src_B, _ = generate_stimuli(
