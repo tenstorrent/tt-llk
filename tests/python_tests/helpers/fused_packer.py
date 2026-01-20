@@ -10,6 +10,7 @@ from .chip_architecture import ChipArchitecture
 
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
+    from .fuser_config import GlobalConfig
 
 from .fused_math import ReduceFpu
 
@@ -25,6 +26,7 @@ class Packer:
         self,
         tensor: torch.Tensor,
         operation_config: "FusedOperation",
+        config: "GlobalConfig",
     ) -> torch.Tensor:
         tensor = tensor.reshape(operation_config.output.dimensions)
         return tensor[
@@ -32,7 +34,7 @@ class Packer:
             : operation_config.output_pack_dims[1],
         ]
 
-    def exec(self, operation_config: "FusedOperation") -> str:
+    def exec(self, operation_config: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation_config.stage_id
         buffer_Res_tile_size = operation_config.buffer_Res_tile_size
         pack_src = operation_config.pack_in
@@ -45,18 +47,20 @@ class Packer:
             f"    const uint32_t pack_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name});\n"
         )
 
-        code += self.hw_configure(operation_config)
-        code += self.init(operation_config)
-        code += self.pack(operation_config)
-        code += self.uninit(operation_config)
-        code += self.sync(operation_config)
+        code += self.hw_configure(operation_config, config)
+        code += self.init(operation_config, config)
+        code += self.pack(operation_config, config)
+        code += self.uninit(operation_config, config)
+        code += self.sync(operation_config, config)
 
         return code
 
-    def hw_configure(self, operation_config: "FusedOperation") -> str:
+    def hw_configure(
+        self, operation_config: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
         stage = operation_config.stage_id
         bh_tilize = "true" if operation_config.bh_tilize.value else "false"
-        dest_acc = operation_config.dest_acc.value
+        dest_acc = config.dest_acc.value
         pack_size = operation_config.tile_size_pack
 
         if stage == 0:
@@ -81,10 +85,9 @@ class Packer:
 
         return code
 
-    def init(self, operation_config: "FusedOperation") -> str:
+    def init(self, operation_config: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation_config.stage_id
-        dest_acc = operation_config.dest_acc
-        dest_acc_value = dest_acc.value
+        dest_acc = config.dest_acc.value
         bh_tilize = "true" if operation_config.bh_tilize.value else "false"
         face_r_dim = operation_config.face_r_dim
         num_faces = operation_config.num_faces
@@ -94,14 +97,14 @@ class Packer:
                 f"    _llk_pack_init_<false, false, {bh_tilize}>(\n"
                 f"        pack_dst_format{stage}, pack_dst_format{stage}, {face_r_dim}, TILE_C_DIM, {num_faces}, false, false"
                 f"    );\n"
-                f"    _llk_pack_dest_init_<{dest_sync}, {dest_acc_value}>();\n"
+                f"    _llk_pack_dest_init_<{dest_sync}, {dest_acc}>();\n"
             )
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
             code = (
                 f"    _llk_pack_init_<false, false>(\n"
                 f"        pack_dst_format{stage}\n"
                 f"    );\n"
-                f"    _llk_pack_dest_init_<{dest_sync}, {dest_acc_value}, false>();\n"
+                f"    _llk_pack_dest_init_<{dest_sync}, {dest_acc}, false>();\n"
             )
         else:
             raise ValueError("Unsupported architecture for packer")
@@ -112,11 +115,10 @@ class Packer:
 
         return code
 
-    def pack(self, operation_config: "FusedOperation") -> str:
+    def pack(self, operation_config: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation_config.stage_id
         tile_cnt = operation_config.output.tile_count
-        dest_acc = operation_config.dest_acc
-        dest_acc_value = dest_acc.value
+        dest_acc = config.dest_acc.value
 
         return (
             f"    _llk_packer_wait_for_math_done_();\n"
@@ -126,13 +128,13 @@ class Packer:
             f"        {{\n"
             f"            uint32_t dest_idx = tr * {operation_config.dest_tiles_w} + tc;\n"
             f"            uint32_t l1_idx = tr * {operation_config.output_tiles_w} + tc;\n"
-            f"            _llk_pack_<DstSync::SyncHalf, {dest_acc_value}, false>(dest_idx, L1_ADDRESS(buffer_Res{stage}[l1_idx]));\n"
+            f"            _llk_pack_<DstSync::SyncHalf, {dest_acc}, false>(dest_idx, L1_ADDRESS(buffer_Res{stage}[l1_idx]));\n"
             f"        }}\n"
             f"    }}\n"
-            f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc_value}>();\n"
+            f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();\n"
         )
 
-    def uninit(self, operation_config: "FusedOperation") -> str:
+    def uninit(self, operation_config: "FusedOperation", config: "GlobalConfig") -> str:
         code = ""
 
         if isinstance(operation_config.math.fpu, ReduceFpu):
@@ -140,7 +142,7 @@ class Packer:
 
         return code
 
-    def sync(self, operation_config: "FusedOperation") -> str:
+    def sync(self, operation_config: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation_config.stage_id
         num_stages = operation_config.num_stages
         code = ""

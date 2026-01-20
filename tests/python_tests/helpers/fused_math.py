@@ -18,6 +18,7 @@ from .golden_generators import (  # TilizeGolden,
 
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
+    from .fuser_config import GlobalConfig
 
 from .chip_architecture import ChipArchitecture
 from .llk_params import ApproximationMode, MathOperation, ReduceDimension, ReducePool
@@ -25,23 +26,25 @@ from .tilize_untilize import tilize_block, untilize_block
 
 
 class Fpu:
-    def init(self, operation_config: "FusedOperation") -> str:
+    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
-    def calculate(self, operation_config: "FusedOperation") -> str:
+    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
-    def uninit(self, operation_config) -> str:
+    def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
-    def exec(self, operation_config: "FusedOperation") -> str:
+    def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         code = ""
-        code += self.init(operation_config)
-        code += self.calculate(operation_config)
-        code += self.uninit(operation_config)
+        code += self.init(operation, config)
+        code += self.calculate(operation, config)
+        code += self.uninit(operation, config)
         return code
 
-    def golden(self, operation_config: "FusedOperation") -> torch.Tensor:
+    def golden(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> torch.Tensor:
         return torch.Tensor()
 
     def get_headers(self) -> List[str]:
@@ -62,12 +65,13 @@ class MatmulFpu(Fpu):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
-        operation_config: "FusedOperation",
+        operation: "FusedOperation",
+        config: "GlobalConfig",
     ) -> torch.Tensor:
-        src_a = operation_config.src_a
-        src_b = operation_config.src_b
-        output_format = operation_config.output.data_format
-        math_fidelity = operation_config.math_fidelity
+        src_a = operation.src_a
+        src_b = operation.src_b
+        output_format = operation.output.data_format
+        math_fidelity = operation.math_fidelity
 
         generate_golden = get_golden_generator(MatmulGolden)
         golden = generate_golden(
@@ -81,12 +85,12 @@ class MatmulFpu(Fpu):
         )
         return golden
 
-    def init(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        math_fidelity = operation_config.math_fidelity.value
-        ct_dim = operation_config.ct_dim
-        rt_dim = operation_config.rt_dim
-        transpose = "true" if operation_config.unpack_transpose_faces.value else "false"
+    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
+        math_fidelity = operation.math_fidelity.value
+        ct_dim = operation.ct_dim
+        rt_dim = operation.rt_dim
+        transpose = "true" if operation.unpack_transpose_faces.value else "false"
 
         return (
             f"    // Operation {stage}: Matmul FPU\n"
@@ -95,12 +99,12 @@ class MatmulFpu(Fpu):
             f"    );\n"
         )
 
-    def calculate(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        ct_dim = operation_config.ct_dim
-        rt_dim = operation_config.rt_dim
-        kt_dim = operation_config.kt_dim
-        math_fidelity = operation_config.math_fidelity.value
+    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
+        ct_dim = operation.ct_dim
+        rt_dim = operation.rt_dim
+        kt_dim = operation.kt_dim
+        math_fidelity = operation.math_fidelity.value
         return (
             f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
             f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
@@ -128,10 +132,11 @@ class EltwiseFpu(Fpu):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
-        operation_config: "FusedOperation",
+        operation: "FusedOperation",
+        config: "GlobalConfig",
     ) -> torch.Tensor:
-        output_format = operation_config.output.data_format
-        math_fidelity = operation_config.math_fidelity
+        output_format = operation.output.data_format
+        math_fidelity = operation.math_fidelity
 
         generate_golden = get_golden_generator(EltwiseBinaryGolden)
         golden_tensor = generate_golden(
@@ -140,24 +145,24 @@ class EltwiseFpu(Fpu):
 
         return golden_tensor
 
-    def init(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        math_fidelity = operation_config.math_fidelity.value
+    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
+        math_fidelity = operation.math_fidelity.value
         op = self.operation.cpp_enum_value
-        num_faces = operation_config.num_faces
+        num_faces = operation.num_faces
 
         return (
             f"    // Operation {stage}: Eltwise {op} FPU\n"
             f"    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{op}, BroadcastType::NONE, {math_fidelity}>({num_faces}, 0);\n"
         )
 
-    def calculate(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        math_fidelity = operation_config.math_fidelity.value
-        dest_acc = operation_config.dest_acc.value
-        tile_cnt = operation_config.output.tile_count
+    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
+        math_fidelity = operation.math_fidelity.value
+        dest_acc = config.dest_acc.value
+        tile_cnt = operation.output.tile_count
         op = self.operation.cpp_enum_value
-        num_faces = operation_config.num_faces
+        num_faces = operation.num_faces
 
         return (
             f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
@@ -202,12 +207,13 @@ class ReduceFpu(Fpu):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
-        operation_config: "FusedOperation",
+        operation: "FusedOperation",
+        config: "GlobalConfig",
     ) -> torch.Tensor:
-        output_format = operation_config.output.data_format
-        tile_cnt = operation_config.output.tile_count
-        dimensions = operation_config.output.dimensions
-        num_faces = operation_config.num_faces
+        output_format = operation.output.data_format
+        tile_cnt = operation.output.tile_count
+        dimensions = operation.output.dimensions
+        num_faces = operation.num_faces
 
         reduce_dim = self.reduce_dim_golden()
         pool_type = self.pool
@@ -229,10 +235,10 @@ class ReduceFpu(Fpu):
 
         return golden_tensor.flatten()
 
-    def init(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        math_fidelity = operation_config.math_fidelity.value
-        dest_acc = operation_config.dest_acc.value
+    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
+        math_fidelity = operation.math_fidelity.value
+        dest_acc = config.dest_acc.value
         pool_type_cpp = f"PoolType::{self.pool.value}"
         reduce_dim_cpp = self.reduce_dim()
 
@@ -241,12 +247,12 @@ class ReduceFpu(Fpu):
             f"    _llk_math_reduce_init_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false>();\n"
         )
 
-    def calculate(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        math_fidelity = operation_config.math_fidelity.value
-        dest_acc = operation_config.dest_acc.value
-        tile_cnt = operation_config.output.tile_count
-        num_faces = operation_config.num_faces
+    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
+        math_fidelity = operation.math_fidelity.value
+        dest_acc = config.dest_acc.value
+        tile_cnt = operation.output.tile_count
+        num_faces = operation.num_faces
         pool_type_cpp = f"PoolType::{self.pool.value}"
         reduce_dim_cpp = self.reduce_dim()
 
@@ -260,10 +266,10 @@ class ReduceFpu(Fpu):
             f"    }}\n"
         )
 
-    def uninit(self, operation_config: "FusedOperation") -> str:
-        unp_a_src_format = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{operation_config.src_a.data_format})"
+    def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        unp_a_src_format = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{operation.src_a.data_format})"
 
-        if operation_config.architecture == ChipArchitecture.WORMHOLE:
+        if operation.architecture == ChipArchitecture.WORMHOLE:
             return f"    _llk_math_reduce_uninit_({unp_a_src_format});\n"
 
         return ""
@@ -283,36 +289,37 @@ class DatacopyFpu(Fpu):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
-        operation_config: "FusedOperation",
+        operation: "FusedOperation",
+        config: "GlobalConfig",
     ) -> torch.Tensor:
         golden_generator = get_golden_generator(DataCopyGolden)
         golden_tensor = golden_generator(
             tensor_a,
-            operation_config.output.data_format,
-            num_faces=operation_config.num_faces,
-            input_dimensions=operation_config.src_a.dimensions,
-            face_r_dim=operation_config.face_r_dim,
+            operation.output.data_format,
+            num_faces=operation.num_faces,
+            input_dimensions=operation.src_a.dimensions,
+            face_r_dim=operation.face_r_dim,
         )
 
         return golden_tensor
 
-    def init(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        dest_acc = operation_config.dest_acc.value
-        tilize_en = "true" if operation_config.bh_tilize.value else "false"
+    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
+        dest_acc = config.dest_acc.value
+        tilize_en = "true" if operation.bh_tilize.value else "false"
         broadcast_type = "BroadcastType::NONE"
-        data_copy_type = f"DataCopyType::{operation_config.data_copy_type.name}"
-        num_faces = operation_config.num_faces
+        data_copy_type = f"DataCopyType::{operation.data_copy_type.name}"
+        num_faces = operation.num_faces
         is_int_fpu_en = dest_acc
 
         code = f"    // Operation {stage}: Datacopy FPU\n"
-        if operation_config.architecture == ChipArchitecture.BLACKHOLE:
+        if operation.architecture == ChipArchitecture.BLACKHOLE:
             code += (
                 f"    _llk_math_eltwise_unary_datacopy_init_<{data_copy_type}, {dest_acc}, {broadcast_type}, {tilize_en}, {is_int_fpu_en}>(\n"
                 f"        {num_faces}, math_format{stage}\n"
                 f"    );\n"
             )
-        elif operation_config.architecture == ChipArchitecture.WORMHOLE:
+        elif operation.architecture == ChipArchitecture.WORMHOLE:
             code += (
                 f"    _llk_math_eltwise_unary_datacopy_init_<{data_copy_type}, {dest_acc}, {broadcast_type}, {is_int_fpu_en}>(\n"
                 f"        {num_faces}, math_format{stage}\n"
@@ -323,15 +330,15 @@ class DatacopyFpu(Fpu):
 
         return code
 
-    def calculate(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        dest_acc = operation_config.dest_acc.value
-        tile_cnt = operation_config.output.tile_count
+    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
+        dest_acc = config.dest_acc.value
+        tile_cnt = operation.output.tile_count
         broadcast_type = "BroadcastType::NONE"
-        unpack_to_dest = "true" if operation_config.unpack_to_dest else "false"
-        data_copy_type = f"DataCopyType::{operation_config.data_copy_type.name}"
-        num_faces = operation_config.num_faces
-        dst_index = operation_config.dst_index
+        unpack_to_dest = "true" if operation.unpack_to_dest else "false"
+        data_copy_type = f"DataCopyType::{operation.data_copy_type.name}"
+        num_faces = operation.num_faces
+        dst_index = operation.dst_index
 
         code = (
             f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
@@ -339,12 +346,12 @@ class DatacopyFpu(Fpu):
             f"    {{\n"
         )
 
-        if operation_config.architecture == ChipArchitecture.BLACKHOLE:
+        if operation.architecture == ChipArchitecture.BLACKHOLE:
             code += (
                 f"        _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {broadcast_type}, {unpack_to_dest}>(\n"
                 f"            {dst_index} + i, math_format{stage}, math_format{stage}, {num_faces});\n"
             )
-        elif operation_config.architecture == ChipArchitecture.WORMHOLE:
+        elif operation.architecture == ChipArchitecture.WORMHOLE:
             code += (
                 f"        _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {broadcast_type}, {unpack_to_dest}>(\n"
                 f"            {dst_index} + i, math_format{stage}, math_format{stage});\n"
@@ -358,24 +365,27 @@ class DatacopyFpu(Fpu):
 
 
 class Sfpu:
-    def init(self, operation_config: "FusedOperation") -> str:
+    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
-    def calculate(self, operation_config: "FusedOperation") -> str:
+    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
-    def uninit(self, operation_config: "FusedOperation") -> str:
+    def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
-    def exec(self, operation_config: "FusedOperation") -> str:
+    def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         code = ""
-        code += self.init(operation_config)
-        code += self.calculate(operation_config)
-        code += self.uninit(operation_config)
+        code += self.init(operation, config)
+        code += self.calculate(operation, config)
+        code += self.uninit(operation, config)
         return code
 
     def golden(
-        self, tensor: torch.Tensor, operation_config: "FusedOperation"
+        self,
+        tensor: torch.Tensor,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
     ) -> torch.Tensor:
         return tensor
 
@@ -415,12 +425,15 @@ class UnarySfpu(Sfpu):
         ]
 
     def golden(
-        self, tensor: torch.Tensor, operation_config: "FusedOperation"
+        self,
+        tensor: torch.Tensor,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
     ) -> torch.Tensor:
-        format_input = operation_config.src_a.data_format
-        format_output = operation_config.output.data_format
-        dest_acc = operation_config.dest_acc
-        dimensions = operation_config.output.dimensions
+        format_input = operation.src_a.data_format
+        format_output = operation.output.data_format
+        dest_acc = config.dest_acc
+        dimensions = operation.output.dimensions
 
         generate_sfpu_golden = get_golden_generator(UnarySFPUGolden)
 
@@ -436,17 +449,17 @@ class UnarySfpu(Sfpu):
             self.fill_const_value,
         )
 
-    def init(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
+    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
 
         return (
             f"    // Operation {stage}: Unary {self.operation.cpp_enum_value} SFPU\n"
             f"    _llk_math_eltwise_unary_sfpu_init_<SfpuType::{self.operation.cpp_enum_value}>();\n"
         )
 
-    def calculate(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        dest_acc = operation_config.dest_acc.value
+    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
+        dest_acc = config.dest_acc.value
         op = f"SfpuType::{self.operation.cpp_enum_value}"
 
         return (
@@ -491,10 +504,13 @@ class BinarySfpu(Sfpu):
         ]
 
     def golden(
-        self, tensor: torch.Tensor, operation_config: "FusedOperation"
+        self,
+        tensor: torch.Tensor,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
     ) -> torch.Tensor:
-        math_format = operation_config.output.data_format
-        dimensions = operation_config.output.dimensions
+        math_format = operation.output.data_format
+        dimensions = operation.output.dimensions
 
         generate_binary_golden = get_golden_generator(BinarySFPUGolden)
         golden_tensor = generate_binary_golden(
@@ -510,16 +526,16 @@ class BinarySfpu(Sfpu):
 
         return golden_tensor
 
-    def init(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
+    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
 
         return (
             f"    // Operation {stage}: Binary {self.operation.cpp_enum_value} SFPU\n"
             f"    _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();\n"
         )
 
-    def calculate(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
+    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
         op = f"ckernel::BinaryOp::{self.operation.cpp_enum_value}"
         approx_mode = self.approx_mode.value
         iterations = self.iterations
@@ -570,18 +586,21 @@ class SfpuWhere(Sfpu):
         ]
 
     def golden(
-        self, tensor: torch.Tensor, operation_config: "FusedOperation"
+        self,
+        tensor: torch.Tensor,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
     ) -> torch.Tensor:
         return tensor
 
-    def init(self, operation_config: "FusedOperation") -> str:
+    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
-    def calculate(self, operation_config: "FusedOperation") -> str:
+    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
-    def exec(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
+    def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
         src1 = self.dst_index_in0
         src2 = self.dst_index_in1
         src3 = self.dst_index_in2
@@ -624,18 +643,19 @@ class Math:
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
-        operation_config: "FusedOperation",
+        operation: "FusedOperation",
+        config: "GlobalConfig",
     ) -> torch.Tensor:
-        result = self.fpu.golden(tensor_a, tensor_b, operation_config)
+        result = self.fpu.golden(tensor_a, tensor_b, operation, config)
 
         for sfpu in self.sfpu:
-            result = sfpu.golden(result, operation_config)
+            result = sfpu.golden(result, operation, config)
 
         return result
 
-    def hw_configure(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        dest_acc = operation_config.dest_acc.value
+    def hw_configure(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
+        dest_acc = config.dest_acc.value
         if stage == 0:
             code = f"    _llk_math_hw_configure_<{dest_acc}>(math_format{stage}, math_format{stage});\n"
         else:
@@ -645,21 +665,21 @@ class Math:
 
         return code
 
-    def exec(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        format = f"DataFormat::{operation_config.math_format.name}"
+    def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
+        format = f"DataFormat::{operation.math_format.name}"
         code = (
             f"    // Operation {stage}: Math Setup\n"
             f"    const uint32_t math_format{stage} = static_cast<std::underlying_type_t<DataFormat>>({format});\n"
-            f"    const DstSync dest_sync{stage} = DstSync::Sync{operation_config.dest_sync.name};\n"
+            f"    const DstSync dest_sync{stage} = DstSync::Sync{operation.dest_sync.name};\n"
         )
-        code += self.hw_configure(operation_config)
-        code += self.fpu.exec(operation_config)
+        code += self.hw_configure(operation, config)
+        code += self.fpu.exec(operation, config)
 
         for sfpu in self.sfpu:
-            code += f"\n" f"{sfpu.exec(operation_config)}"
+            code += f"\n" f"{sfpu.exec(operation, config)}"
 
-        dest_acc = operation_config.dest_acc.value
+        dest_acc = config.dest_acc.value
         code += (
             f"\n"
             f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"

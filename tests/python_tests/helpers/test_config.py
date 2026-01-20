@@ -41,7 +41,6 @@ from .device import (
     wait_for_tensix_operations_finished,
 )
 from .format_config import DataFormat, FormatConfig
-from .fused_generator import FusedKernelGenerator
 from .fused_operation import FusedOperation
 from .llk_params import (
     DestAccumulation,
@@ -1007,10 +1006,6 @@ class TestConfig:
         regenerate_cpp: bool = True,
         location="0,0",
     ):
-        # Generate fused kernel code
-        compiler = FusedKernelGenerator(pipeline)
-        compiler.write_kernel(self.test_name, regenerate_cpp)
-
         # Build and run
         self.generate_variant_hash()
 

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from pathlib import Path
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, Type
 
 import yaml
 from helpers.format_config import DataFormat
@@ -34,6 +34,7 @@ from helpers.llk_params import (
     Transpose,
 )
 
+from .fuser_config import FuserConfig, GlobalConfig
 from .llk_params import DestAccumulation, MathFidelity
 
 UNPACKER_MAP: Dict[str, Type[Unpacker]] = {
@@ -266,8 +267,8 @@ def parse_operation(
 
     kwargs = {}
 
-    if "dest_acc" in op_config:
-        kwargs["dest_acc"] = DEST_ACCUMULATION_MAP[op_config["dest_acc"]]
+    # if "dest_acc" in op_config:
+    #     kwargs["dest_acc"] = DEST_ACCUMULATION_MAP[op_config["dest_acc"]]
     if "math_fidelity" in op_config:
         kwargs["math_fidelity"] = MATH_FIDELITY_MAP[op_config["math_fidelity"]]
     if "dest_sync" in op_config:
@@ -292,13 +293,15 @@ def parse_operation(
     )
 
 
-def create_fuse_pipeline(yaml_path: str) -> List[FusedOperation]:
+def create_fuse_pipeline(yaml_path: str) -> FuserConfig:
     yaml_file = Path(yaml_path)
     if not yaml_file.exists():
         raise FileNotFoundError(f"YAML file does not exist: {yaml_path}")
 
     with open(yaml_file, "r") as f:
         config = yaml.safe_load(f)
+
+    dest_acc = DEST_ACCUMULATION_MAP[config.get("dest_acc", "No")]
 
     operands = OperandRegistry()
 
@@ -307,4 +310,11 @@ def create_fuse_pipeline(yaml_path: str) -> List[FusedOperation]:
         operation = parse_operation(op_config, operands)
         pipeline.append(operation)
 
-    return pipeline
+    fuser_config = FuserConfig(
+        pipeline=pipeline,
+        global_config=GlobalConfig(
+            dest_acc=dest_acc,
+        ),
+    )
+
+    return fuser_config
