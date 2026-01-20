@@ -68,7 +68,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     constexpr DstSync sync_mode = DstSync::SyncHalf;
 
     _llk_math_pack_sync_init_<sync_mode, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_(formats.math, formats.math);
+    _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWADD, BROADCAST_TYPE>(params->num_faces, is_fp32_dest_acc_en);
 
     _llk_math_wait_for_dest_available_<sync_mode>();
