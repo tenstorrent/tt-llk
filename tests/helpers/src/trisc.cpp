@@ -32,9 +32,9 @@ extern void run_unpack_kernel(const volatile struct RuntimeParams* params);
 extern void run_math_kernel(const volatile struct RuntimeParams* params);
 extern void run_pack_kernel(const volatile struct RuntimeParams* params);
 
-thread_local uint32_t TRISC_ID;
-
 void (*kernel_array[])(const volatile struct RuntimeParams* params) = {run_unpack_kernel, run_math_kernel, run_pack_kernel};
+
+thread_local uint32_t thread_id;
 
 enum KERNEL_THREAD
 {
@@ -43,23 +43,16 @@ enum KERNEL_THREAD
     PACK   = 2,
 };
 
-int main(void)
-{
-    volatile std::uint32_t* mailbox = nullptr;
+uint32_t MAILBOX_ADDRESES[] = {0x19FFC, 0x19FF8, 0x19FF4};
 
-    switch (static_cast<KERNEL_THREAD>(TRISC_ID))
+int main(int argc, char**)
+{
+    thread_id = argc;
+
+    if (thread_id == UNPACK)
     {
-        case UNPACK:
-            device_setup();
-            clear_trisc_soft_reset();
-            mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FFC);
-            break;
-        case MATH:
-            mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF8);
-            break;
-        case PACK:
-            mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
-            break;
+        device_setup();
+        clear_trisc_soft_reset();
     }
 
     std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
@@ -75,9 +68,10 @@ int main(void)
 
     {
         ZONE_SCOPED("KERNEL")
-        kernel_array[static_cast<KERNEL_THREAD>(TRISC_ID)](__runtime_args_start);
+        kernel_array[static_cast<KERNEL_THREAD>(thread_id)](__runtime_args_start);
         ckernel::tensix_sync();
     }
 
-    *mailbox = ckernel::KERNEL_COMPLETE; // 0x1
+    volatile std::uint32_t* mailbox = reinterpret_cast<volatile std::uint32_t*>(MAILBOX_ADDRESES[thread_id]);
+    *mailbox                        = ckernel::KERNEL_COMPLETE; // 0x1
 }

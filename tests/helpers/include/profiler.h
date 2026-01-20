@@ -63,21 +63,14 @@ enum class EntryType : uint32_t
     ZONE_END       = 0b1011
 };
 
-// Initialize id of the core executing the kernel
-#if defined(LLK_TRISC_UNPACK)
-constexpr uint32_t TRISC_ID = 0;
-#elif defined(LLK_TRISC_MATH)
-constexpr uint32_t TRISC_ID = 1;
-#elif defined(LLK_TRISC_PACK)
-constexpr uint32_t TRISC_ID = 2;
-#else
-#error "Profiler can only be used on TRISC cores"
-#endif
+extern thread_local thread_id;
+// Start symbol from linker script
+extern const uint32_t __perf_buffer_start[];
 
 constexpr uint32_t BUFFER_LENGTH = 0x400; // 1024 entries per core
 constexpr uint32_t NUM_CORES     = 3;     // TRISC cores: unpack, math, pack
-constexpr uint32_t BUFFERS_END   = 0x16E000;
-constexpr uint32_t BUFFERS_START = BUFFERS_END - (NUM_CORES * BUFFER_LENGTH * sizeof(uint32_t));
+constexpr uint32_t BUFFERS_START = __perf_buffer_start;
+constexpr uint32_t BUFFERS_END   = BUFFERS_START + (NUM_CORES * BUFFER_LENGTH * sizeof(uint32_t));
 
 constexpr uint32_t BARRIER_END   = BUFFERS_START;
 constexpr uint32_t BARRIER_START = BARRIER_END - (NUM_CORES * sizeof(uint32_t));
@@ -95,11 +88,11 @@ __attribute__((always_inline)) inline void sync_threads()
     auto& barrier = *barrier_ptr;
 
     // wait for all the threads to set the barrier
-    barrier[TRISC_ID] = 1;
+    barrier[thread_id] = 1;
     asm volatile("fence" ::: "memory");
     for (uint32_t i = 0; i < NUM_CORES; ++i)
     {
-        if (i == TRISC_ID)
+        if (i == thread_id)
         {
             continue;
         }
@@ -117,7 +110,7 @@ __attribute__((always_inline)) inline void reset()
     write_idx     = 0;
     open_zone_cnt = 0;
 
-    memset(buffer[TRISC_ID], 0, BUFFER_LENGTH * sizeof(buffer[TRISC_ID][0]));
+    memset(buffer[thread_id], 0, BUFFER_LENGTH * sizeof(buffer[thread_id][0]));
 }
 
 __attribute__((always_inline)) inline bool is_buffer_full()
@@ -137,14 +130,14 @@ __attribute__((always_inline)) inline void write_entry(EntryType type, uint16_t 
     uint32_t type_numeric = static_cast<uint32_t>(type);
     uint32_t meta         = (type_numeric << ENTRY_TYPE_SHAMT) | ((uint32_t)id16 << ENTRY_ID_SHAMT);
 
-    buffer[TRISC_ID][write_idx++] = meta | (timestamp_high & ~ENTRY_META_MASK);
-    buffer[TRISC_ID][write_idx++] = static_cast<uint32_t>(timestamp);
+    buffer[thread_id][write_idx++] = meta | (timestamp_high & ~ENTRY_META_MASK);
+    buffer[thread_id][write_idx++] = static_cast<uint32_t>(timestamp);
 }
 
 __attribute__((always_inline)) inline void write_data(uint64_t data)
 {
-    buffer[TRISC_ID][write_idx++] = static_cast<uint32_t>(data >> 32);
-    buffer[TRISC_ID][write_idx++] = static_cast<uint32_t>(data);
+    buffer[thread_id][write_idx++] = static_cast<uint32_t>(data >> 32);
+    buffer[thread_id][write_idx++] = static_cast<uint32_t>(data);
 }
 
 template <uint16_t id16>

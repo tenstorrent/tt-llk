@@ -60,8 +60,8 @@ class BootMode(Enum):
 
 
 CHIP_DEFAULT_BOOT_MODES = {
-    ChipArchitecture.WORMHOLE: BootMode.BRISC,
-    ChipArchitecture.BLACKHOLE: BootMode.BRISC,
+    ChipArchitecture.WORMHOLE: BootMode.TRISC,
+    ChipArchitecture.BLACKHOLE: BootMode.TRISC,
     ChipArchitecture.QUASAR: BootMode.TRISC,
 }
 

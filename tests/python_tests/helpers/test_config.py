@@ -141,7 +141,6 @@ class TestConfig:
     # === Addresses ===
     RUNTIME_ADDRESS: ClassVar[int] = 0x64000
     TRISC_PROFILER_BARRIER_ADDRESS: ClassVar[int] = 0x16AFF4
-    TRISC_START_ADDRS: ClassVar[list[int]] = [0x16DFF0, 0x16DFF4, 0x16DFF8]
     THREAD_PERFORMANCE_DATA_BUFFER_LENGTH = 0x400
     THREAD_PERFORMANCE_DATA_BUFFER = [
         0x16B000,  # Unpack
@@ -798,7 +797,7 @@ class TestConfig:
                     (
                         f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} {TestConfig.OPTIONS_LINK} -I{VARIANT_DIR} -DCOMPILE_FOR_TRISC""",
                         f"""{TestConfig.TESTS_WORKING_DIR / self.test_name} {shared_obj_dir / f"kernel_main.o"} {COVERAGE_DEPS} {shared_obj_dir / "tmu-crt0.o"} {SFPI_DEPS}""",
-                        f""" -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"unpack.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"main.elf"}""",
+                        f""" -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"unpack.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_DIR / f"main.elf"}""",
                     )
                 ),
                 TestConfig.TESTS_WORKING_DIR,
@@ -871,66 +870,23 @@ class TestConfig:
         # Perform soft reset
         set_tensix_soft_reset(1, location=location)
 
-        VARIANT__ELF_DIR = (
-            TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
+        VARIANT_ELF_PATH = (
+            TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "main.elf"
         )
 
-        elf_path = str((VARIANT__ELF_DIR / "main.elf").absolute())
-
-        if TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE:
-            start_address = load_elf(
-                elf_file=elf_path,
-                location=location,
-                risc_name="trisc0",
-                neo_id=(0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None),
-                return_start_address=True,
-                verify_write=False,
-            )
-            write_words_to_device(
-                location, TestConfig.TRISC_START_ADDRS[i], [start_address]
-            )
-        else:
-            load_elf(
-                elf_file=elf_path,
-                location=location,
-                risc_name="trisc0",
-                neo_id=(0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None),
-                verify_write=False,
-            )
+        load_elf(
+            elf_file=str(VARIANT_ELF_PATH),
+            location=location,
+            risc_name="trisc0",
+            neo_id=(0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None),
+            verify_write=False,
+        )
 
         write_words_to_device(
             location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
         )
 
         match boot_mode:
-            case BootMode.BRISC:
-                # Use correct shared ELF directory and loading flag based on profiler build
-                is_profiler = self.profiler_build == ProfilerBuild.Yes
-                if is_profiler:
-                    if not TestConfig.PROFILER_BRISC_ELF_LOADED:
-                        TestConfig.PROFILER_BRISC_ELF_LOADED = True
-                        load_elf(
-                            elf_file=str(
-                                (
-                                    TestConfig.PROFILER_SHARED_ELF_DIR / "brisc.elf"
-                                ).absolute()
-                            ),
-                            location=location,
-                            risc_name="brisc",
-                            verify_write=False,
-                        )
-                else:
-                    if not TestConfig.BRISC_ELF_LOADED:
-                        TestConfig.BRISC_ELF_LOADED = True
-                        load_elf(
-                            elf_file=str(
-                                (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
-                            ),
-                            location=location,
-                            risc_name="brisc",
-                            verify_write=False,
-                        )
-                set_tensix_soft_reset(0, [RiscCore.BRISC], location)
             case BootMode.TRISC:
                 set_tensix_soft_reset(
                     0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
@@ -941,7 +897,7 @@ class TestConfig:
                     0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
                 )
 
-        return elf_path
+        return VARIANT_ELF_PATH
 
     def run_fused(
         self,
