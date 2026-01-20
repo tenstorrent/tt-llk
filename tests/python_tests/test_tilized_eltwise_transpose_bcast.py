@@ -28,7 +28,7 @@ from helpers.test_variant_parameters import (
     NUM_FACES,
     TILE_COUNT,
 )
-from helpers.tilize_untilize import tilize, tilize_block
+from helpers.tilize_untilize import tilize, tilize_block, untilize_block
 from helpers.utils import passed_test
 
 
@@ -173,6 +173,10 @@ def test_tilized_eltwise_transpose_bcast(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
+    print("UNTILIZED RES:")
+    print(
+        untilize_block(res_tensor, formats.output_format, input_dimensions).view(32, 32)
+    )
     # Compare in tilized format
     assert passed_test(
         golden_tensor, res_tensor, formats.output_format
