@@ -20,7 +20,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     if (unpack_to_dest)
     {
-        // UNPACK must include itself in the chain when writing directly to DEST
+        // Unpacking to DEST directly
         set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
         _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, false /*is_int_fpu_en*/>();
     }
@@ -31,7 +31,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     buffer_descriptor_u bd_val = {0};
 
-    bd_val.f.l1_addr_16B = buffer_A[0] / 16;
+    bd_val.f.l1_addr_16B = L1_ADDRESS(buffer_A[0]);
     bd_val.f.format      = static_cast<uint8_t>(formats.unpack_src);
     bd_val.f.x_dim       = params->TEST_FACE_C_DIM;
     bd_val.f.y_dim       = params->TEST_FACE_R_DIM;
@@ -65,11 +65,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #ifdef LLK_TRISC_MATH
 
-#ifdef FORMAT_INT32
-const bool is_int_fpu_en = true;
-#else
 const bool is_int_fpu_en = false;
-#endif
 
 #include "cfg_defines.h"
 #include "cmath_common.h"
