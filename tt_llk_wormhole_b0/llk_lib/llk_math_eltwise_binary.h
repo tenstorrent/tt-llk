@@ -417,15 +417,15 @@ NEW SDPA FEATURE
 
 */
 
-inline void sdpa_optimization_new_configure_mop(uint srca_reuse_count = 4)
-{
-    uint32_t innerloop           = srca_reuse_count;
-    constexpr uint32_t outerloop = 1;
+// inline void sdpa_optimization_new_configure_mop(uint srca_reuse_count = 4)
+// {
+//     uint32_t innerloop           = srca_reuse_count;
+//     constexpr uint32_t outerloop = 1;
 
-    ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, 8, 0, 0));
-    tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB));
-    tmp.program();
-}
+//     ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, 8, 0, 0));
+//     tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB));
+//     tmp.program();
+// }
 
 inline void sdpa_optimization_new_configure_addrmod()
 {
@@ -450,27 +450,27 @@ inline void sdpa_optimization_new_init_(uint32_t srca_reuse_count = 4)
 {
     sdpa_optimization_new_configure_addrmod();
 
-    // Setup replay buffer with 8 subtraction operations
-    lltt::record<lltt::NoExec>(0, 8);
+    // // Setup replay buffer with 8 subtraction operations
+    // lltt::record<lltt::NoExec>(0, 8);
 
-    // F0,F1 with srcB on F1 (4 operations)
-    for (int i = 0; i < 4; i++)
-    {
-        TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    }
+    // // F0,F1 with srcB on F1 (4 operations)
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+    // }
 
-    // Jump srcB from F1 to F3, srcA continues to F2
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B);
+    // // Jump srcB from F1 to F3, srcA continues to F2
+    // TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B);
 
-    // F2,F3 with srcB on F3 (4 operations)
-    for (int i = 0; i < 4; i++)
-    {
-        TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    }
+    // // F2,F3 with srcB on F3 (4 operations)
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+    // }
 
-    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB);
+    // TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB);
 
-    sdpa_optimization_new_configure_mop(srca_reuse_count);
+    // sdpa_optimization_new_configure_mop(srca_reuse_count);
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
@@ -481,10 +481,37 @@ inline void sdpa_optimization_new_(uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB);
+    // Transpose bank 0 srcB (face1) so row-broadcast becomes column-broadcast
+    TTI_TRNSPSRCB;
 
-    // Run the MOP
-    ckernel_template::run();
+    // Bank 0: Face 0 and Face 1 operations (srcA F0/F1 - srcB F1 transposed column)
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB);
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F0 row 0
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F0 row 1
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F0 row 2
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F0 row 3
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F1 row 0
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F1 row 1
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F1 row 2
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F1 row 3
+
+    // Switch to bank 1 by setting and clearing dvalid on srcB
+    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_B);
+
+    // Transpose bank 1 srcB (face3) so row-broadcast becomes column-broadcast
+    TTI_TRNSPSRCB;
+
+    // Bank 1: Face 2 and Face 3 operations (srcA F2/F3 - srcB F3 transposed column)
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F2 row 0
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F2 row 1
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F2 row 2
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F2 row 3
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F3 row 0
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F3 row 1
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F3 row 2
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F3 row 3
+
+    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
 
     math::clear_dst_reg_addr();
 }
