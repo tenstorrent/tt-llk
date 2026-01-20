@@ -13,7 +13,7 @@ namespace llk_san
 {
 
 // per thread state
-extern sanitizer_state_t* sanitizer;
+extern sanitizer_state_t* const sanitizer;
 
 // Goes in ComputeAPI
 // State set only
