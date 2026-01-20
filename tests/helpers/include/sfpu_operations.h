@@ -113,7 +113,8 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
             _calculate_rsqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, FAST_MODE>(ITERATIONS);
             break;
         case SfpuType::silu:
-            _calculate_silu_<APPROX_MODE, ITERATIONS>();
+            _init_silu_<APPROX_MODE>();
+            _calculate_silu_<is_fp32_dest_acc_en, ITERATIONS>();
             break;
         case SfpuType::sine:
             _calculate_sine_<APPROX_MODE, ITERATIONS>(ITERATIONS);

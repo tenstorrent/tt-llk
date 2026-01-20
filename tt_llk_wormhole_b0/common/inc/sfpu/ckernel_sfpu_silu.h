@@ -4,43 +4,77 @@
 
 #pragma once
 
-#include "ckernel_sfpu_polyval.h"
+#include "ckernel_sfpu_recip.h"
 #include "sfpi.h"
 
 namespace ckernel::sfpu
 {
 
-inline sfpi::vFloat _sigmoid_piecewise_linear_positive_(sfpi::vFloat val)
+template <bool is_fp32_acc_to_dest_mode = true>
+sfpi_inline sfpi::vFloat _sfpu_sigmoid_(sfpi::vFloat x)
 {
-    sfpi::vFloat result = 1.0f;
-    v_if (val <= 1.0f)
+    // Compute sigmoid as:
+    // sigmoid(x) = 1 / (1 + exp(-x))
+
+    sfpi::vFloat exp_neg_x;
+    // If fp32 then use higher accuracy exp function
+    // Otherwise, use exp_21f (~1 ULP on bfloat16)
+    if constexpr (is_fp32_acc_to_dest_mode)
     {
-        result = 0.2415f * val + 0.5f; // linear appx as y = 0.2415f + 0.5
+        exp_neg_x = _sfpu_exp_improved_<true>(-x);
     }
-    v_elseif (val < 7.7f)
+    else
     {
-        result = POLYVAL5<sfpi::vFloat>(-3.82558889e-04f, 9.22008486e-03f, -8.34694910e-02f, 3.39967832e-01f, 4.66254244e-01f, val);
+        exp_neg_x = _sfpu_exp_21f_<true>(-x);
     }
-    v_endif;
+
+    sfpi::vFloat denominator = sfpi::vConst1 + exp_neg_x;
+
+    sfpi::vFloat result;
+    if constexpr (is_fp32_acc_to_dest_mode)
+    {
+        result = _sfpu_reciprocal_<2>(denominator);
+    }
+    else
+    {
+        result = _sfpu_reciprocal_<1>(denominator);
+    }
+
     return result;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <bool is_fp32_dest_acc_en, int ITERATIONS>
 inline void _calculate_silu_()
 {
-    // SFPU microcode
+#pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        sfpi::vFloat val    = sfpi::dst_reg[0];
-        sfpi::vFloat result = sfpi::abs(val);
-        result              = _sigmoid_piecewise_linear_positive_(result);
-        v_if (val < 0.0f)
+        sfpi::vFloat x = sfpi::dst_reg[0];
+
+        // silu(x) = x * sigmoid(x)
+        sfpi::vFloat result = x * _sfpu_sigmoid_<is_fp32_dest_acc_en>(x);
+
+        // Round to bfloat16 if not in fp32 accumulation mode
+        if constexpr (!is_fp32_dest_acc_en)
         {
-            result = 1.0f - result;
+            result = sfpi::reinterpret<sfpi::vFloat>(sfpi::float_to_fp16b(result, 0));
         }
-        v_endif;
-        sfpi::dst_reg[0] = val * result;
+
+        sfpi::dst_reg[0] = result;
         sfpi::dst_reg++;
+    }
+}
+
+template <bool APPROXIMATION_MODE>
+inline void _init_silu_()
+{
+    if constexpr (!APPROXIMATION_MODE)
+    {
+        _init_sfpu_reciprocal_<false>();
+    }
+    else
+    {
+        _init_sfpu_reciprocal_<true>();
     }
 }
 
