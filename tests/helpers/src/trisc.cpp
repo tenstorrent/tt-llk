@@ -31,8 +31,7 @@ std::uint32_t open_zone_cnt = 0;
 
 namespace llk_san
 {
-operand_state_t operand_state;
-operation_state_t operation_state;
+extern sanitizer_state_t* const sanitizer = reinterpret_cast<sanitizer_state_t*>(0x80000);
 } // namespace llk_san
 
 // Mailbox addresses
@@ -93,6 +92,9 @@ int main(void)
     llk_profiler::reset();
     llk_profiler::sync_threads();
 #endif
+
+    new (llk_san::sanitizer) llk_san::sanitizer_state_t;
+
 
     {
         ZONE_SCOPED("KERNEL")
