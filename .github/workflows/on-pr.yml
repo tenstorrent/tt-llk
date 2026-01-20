@@ -152,7 +152,7 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-n150-stable
-      test_splits: 2
+      test_splits: 4
       pytest_markers: "not perf and not nightly and not quasar"
       use_durations: true
 
