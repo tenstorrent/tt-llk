@@ -69,10 +69,11 @@ class FuserConfig:
 
         write_pipeline_operands_to_l1(self.pipeline)
 
-        code_generator = FusedKernelGenerator(self)
-        code_generator.write_kernel(self.global_config.test_name, self.regenerate_cpp)
+        cpp_path = FUSED_TESTS_DIR / f"{self.global_config.test_name}.cpp"
 
-        cpp_path = FUSED_TESTS_DIR / f"{self.test_name}.cpp"
+        code_generator = FusedKernelGenerator(self)
+        code_generator.write_kernel(cpp_path, self.regenerate_cpp)
+
         test_config = TestConfig(
             test_name=cpp_path,
             formats=FormatConfig(

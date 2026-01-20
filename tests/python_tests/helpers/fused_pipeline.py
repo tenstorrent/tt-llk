@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import os
 from pathlib import Path
 from typing import Any, Dict, Type
 
@@ -36,6 +37,10 @@ from helpers.llk_params import (
 
 from .fuser_config import FuserConfig, GlobalConfig
 from .llk_params import DestAccumulation, MathFidelity
+
+FUSER_CONFIG_DIR = (
+    Path(os.environ.get("LLK_HOME")) / "tests" / "python_tests" / "fuser_config"
+)
 
 UNPACKER_MAP: Dict[str, Type[Unpacker]] = {
     "UnpackerA": UnpackerA,
@@ -267,8 +272,6 @@ def parse_operation(
 
     kwargs = {}
 
-    # if "dest_acc" in op_config:
-    #     kwargs["dest_acc"] = DEST_ACCUMULATION_MAP[op_config["dest_acc"]]
     if "math_fidelity" in op_config:
         kwargs["math_fidelity"] = MATH_FIDELITY_MAP[op_config["math_fidelity"]]
     if "dest_sync" in op_config:
@@ -293,7 +296,8 @@ def parse_operation(
     )
 
 
-def create_fuse_pipeline(yaml_path: str) -> FuserConfig:
+def create_fuse_pipeline(test_name: str) -> FuserConfig:
+    yaml_path = FUSER_CONFIG_DIR / f"{test_name}.yaml"
     yaml_file = Path(yaml_path)
     if not yaml_file.exists():
         raise FileNotFoundError(f"YAML file does not exist: {yaml_path}")
@@ -312,9 +316,7 @@ def create_fuse_pipeline(yaml_path: str) -> FuserConfig:
 
     fuser_config = FuserConfig(
         pipeline=pipeline,
-        global_config=GlobalConfig(
-            dest_acc=dest_acc,
-        ),
+        global_config=GlobalConfig(dest_acc=dest_acc, test_name=test_name),
     )
 
     return fuser_config
