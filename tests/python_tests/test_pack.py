@@ -28,7 +28,6 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_INDEX,
     DEST_SYNC,
-    INPUT_DIMENSIONS,
     NUM_FACES,
     RELU_CONFIG,
     TEST_FACE_DIMS,
@@ -246,12 +245,6 @@ def test_pack(
         "sources/pack_test.cpp",
         formats,
         templates=[
-            INPUT_DIMENSIONS(
-                srcA=input_dimensions,
-                srcB=input_dimensions,
-                num_rows=face_r_dim if face_r_dim < 16 else input_dimensions[0],
-                num_cols=32,
-            ),
             TILIZE(),
             DEST_SYNC(dest_sync),
         ],
