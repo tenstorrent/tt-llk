@@ -15,6 +15,7 @@ import pytest
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     ApproximationMode,
+    BlockMode,
     DestAccumulation,
     FastMode,
     MathOperation,
@@ -42,6 +43,10 @@ NUM_FACES = 4
     approx_mode=[
         ApproximationMode.Yes,
         ApproximationMode.No,
+    ],
+    block_mode=[
+        BlockMode.Yes,
+        BlockMode.No,
     ],
     mathop=[
         # MathOperation.Abs,
@@ -103,6 +108,7 @@ def test_perf_eltwise_unary_sfpu(
     formats,
     mathop,
     approx_mode,
+    block_mode,
     dest_acc,
     loop_factor,
     iterations,
@@ -183,6 +189,7 @@ def test_perf_eltwise_unary_sfpu(
         "input_B_dimensions": input_dimensions,
         "mathop": mathop,
         "approx_mode": approx_mode,
+        "block_mode": block_mode,
         "unpack_to_dest": unpack_to_dest,
         "num_faces": faces_to_generate,
         "face_r_dim": face_r_dim,

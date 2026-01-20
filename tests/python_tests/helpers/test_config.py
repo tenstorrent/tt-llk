@@ -20,6 +20,7 @@ from .llk_params import (
     SFPU_BINARY_OPERATIONS,
     SFPU_UNARY_OPERATIONS,
     ApproximationMode,
+    BlockMode,
     DataCopyType,
     DestAccumulation,
     DestSync,
@@ -256,6 +257,9 @@ def generate_build_header(test_config):
     )
     header_content.append(
         f"constexpr bool APPROX_MODE = {test_config.get('approx_mode', ApproximationMode.No).value};"
+    )
+    header_content.append(
+        f"constexpr bool BLOCK_MODE = {test_config.get('block_mode', BlockMode.No).value};"
     )
 
     # Tiny tile flag, used to handle dimension

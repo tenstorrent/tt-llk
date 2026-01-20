@@ -195,6 +195,11 @@ class ApproximationMode(Enum):
     No = "false"
 
 
+class BlockMode(Enum):
+    Yes = "true"
+    No = "false"
+
+
 class FastMode(Enum):
     Yes = "true"
     No = "false"

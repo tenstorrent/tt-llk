@@ -16,6 +16,7 @@ from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     ApproximationMode,
+    BlockMode,
     DestAccumulation,
     MathOperation,
 )
@@ -41,6 +42,10 @@ NUM_FACES = 4
     approx_mode=[
         ApproximationMode.Yes,
         ApproximationMode.No,
+    ],
+    block_mode=[
+        BlockMode.Yes,
+        BlockMode.No,
     ],
     mathop=[
         MathOperation.SfpuElwadd,
@@ -74,6 +79,7 @@ def test_perf_eltwise_binary_sfpu_float(
     formats,
     mathop,
     approx_mode,
+    block_mode,
     dest_acc,
     loop_factor,
     iterations,
@@ -98,6 +104,7 @@ def test_perf_eltwise_binary_sfpu_float(
         "input_B_dimensions": input_dimensions,
         "mathop": mathop,
         "approx_mode": approx_mode,
+        "block_mode": block_mode,
         "unpack_to_dest": unpack_to_dest,
         "num_faces": faces_to_generate,
         "face_r_dim": face_r_dim,
@@ -121,6 +128,10 @@ def test_perf_eltwise_binary_sfpu_float(
     approx_mode=[
         ApproximationMode.Yes,
         ApproximationMode.No,
+    ],
+    block_mode=[
+        BlockMode.Yes,
+        BlockMode.No,
     ],
     mathop=[
         MathOperation.SfpuElwRightShift,
@@ -151,6 +162,7 @@ def test_perf_eltwise_binary_sfpu_int(
     formats,
     mathop,
     approx_mode,
+    block_mode,
     dest_acc,
     loop_factor,
     iterations,
@@ -175,6 +187,7 @@ def test_perf_eltwise_binary_sfpu_int(
         "input_B_dimensions": input_dimensions,
         "mathop": mathop,
         "approx_mode": approx_mode,
+        "block_mode": block_mode,
         "unpack_to_dest": unpack_to_dest,
         "num_faces": faces_to_generate,
         "face_r_dim": face_r_dim,
@@ -201,6 +214,10 @@ def test_perf_eltwise_binary_sfpu_int(
     approx_mode=[
         ApproximationMode.Yes,
         ApproximationMode.No,
+    ],
+    block_mode=[
+        BlockMode.Yes,
+        BlockMode.No,
     ],
     mathop=[
         MathOperation.SfpuAddTopRow,
@@ -229,6 +246,7 @@ def test_perf_eltwise_binary_sfpu_add_top_row(
     formats,
     mathop,
     approx_mode,
+    block_mode,
     dest_acc,
     loop_factor,
     iterations,
@@ -261,6 +279,7 @@ def test_perf_eltwise_binary_sfpu_add_top_row(
         "input_B_dimensions": input_dimensions,
         "mathop": mathop,
         "approx_mode": approx_mode,
+        "block_mode": block_mode,
         "unpack_to_dest": unpack_to_dest,
         "num_faces": faces_to_generate,
         "face_r_dim": face_r_dim,

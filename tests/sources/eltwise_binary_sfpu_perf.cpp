@@ -18,7 +18,7 @@
 uint32_t unp_cfg_context                 = 0;
 uint32_t pack_sync_tile_dst_ptr          = 0;
 uint32_t math_sync_tile_dst_index        = 0;
-static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
+static constexpr uint32_t MAX_TILES_DEST = BLOCK_MODE ? (is_fp32_dest_acc_en ? 4 : 8) : 1;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -53,7 +53,7 @@ void run_kernel()
                     /* iterations*/ NUM_FACES * TILE_CNT * LOOP_FACTOR);
             }
         }
-        else if constexpr (PERF_RUN_TYPE != PerfRunType::PACK_ISOLATE)
+        else if constexpr (PERF_RUN_TYPE != PerfRunType::PACK_ISOLATE) // L1_TO_L1 or L1_CONGESTION or UNPACK_ISOLATE
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
@@ -166,26 +166,24 @@ void run_kernel()
             {
                 for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    if constexpr (!unpack_to_dest)
-                    {
-                        uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
+                    uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
 
-                        for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    {
+                        if constexpr (!unpack_to_dest)
                         {
                             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                                block_start + block_tile, formats.math, formats.math);
+                                block_tile, formats.math, formats.math);
                         }
+
+                        _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_tile);
+                        test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, iterations>(block_start, formats.math);
+                        _llk_math_eltwise_binary_sfpu_done_();
                     }
-
-                    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
-
-                    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, iterations>(block_start, formats.math);
-
-                    _llk_math_eltwise_binary_sfpu_done_();
                 }
             }
         }
-        else if constexpr (PERF_RUN_TYPE != PerfRunType::PACK_ISOLATE)
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_TO_L1)
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
@@ -199,15 +197,14 @@ void run_kernel()
                     for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
                         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                            block_start + block_tile, formats.math, formats.math);
+                            block_tile, formats.math, formats.math);
+
+                        // Start SFPU binary operation
+                        _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_tile);
+                        test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, iterations>(block_tile, formats.math);
+                        _llk_math_eltwise_binary_sfpu_done_();
                     }
 
-                    // Start SFPU binary operation
-                    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
-
-                    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, iterations>(block_start, formats.math);
-
-                    _llk_math_eltwise_binary_sfpu_done_();
                     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
                 }
             }
