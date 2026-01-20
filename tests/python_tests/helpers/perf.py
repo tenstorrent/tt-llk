@@ -12,6 +12,7 @@ from typing import Any, ClassVar
 
 import pandas as pd
 import pytest
+from ttexalens.tt_exalens_lib import write_to_device
 
 from .device import BootMode, wait_for_tensix_operations_finished
 from .format_config import FormatConfig
@@ -354,6 +355,7 @@ class PerfConfig(TestConfig):
             self.generate_variant_hash()
             variant_raw_data = []
             for _ in range(run_count):
+                write_to_device(location, 0x64FF0, [0, 0, 0, 0, 0, 0, 0])
                 self.write_runtimes_to_L1(location)
                 elfs = self.run_elf_files(location)
                 wait_for_tensix_operations_finished(elfs, location)

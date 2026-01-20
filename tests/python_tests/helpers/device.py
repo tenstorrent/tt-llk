@@ -3,6 +3,7 @@
 
 import datetime
 import os
+import sys
 import time
 from enum import Enum, IntEnum
 from pathlib import Path
@@ -124,6 +125,7 @@ def set_tensix_soft_reset(
         soft_reset |= get_soft_reset_mask(cores)
     else:
         soft_reset &= ~get_soft_reset_mask(cores)
+
     get_register_store(location, device_id).write_register(
         "RISCV_DEBUG_REG_SOFT_RESET_0", soft_reset
     )
@@ -166,7 +168,27 @@ def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
         risc_name, neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None
     )
 
-    return risc_debug.is_ebreak_hit()
+    is_it = True
+
+    try:
+        is_it = risc_debug.is_ebreak_hit()
+    except:
+        soft_reset = get_register_store(core_loc, device_id).read_register(
+            "RISCV_DEBUG_REG_SOFT_RESET_0"
+        )
+
+        brisc_debug_pc = block.get_risc_debug("BRISC").get_pc()
+
+        crumbs = read_from_device(core_loc, 0x64FF0, 0, 8)
+        before = int.from_bytes(crumbs[0:4], byteorder="little")
+        after = int.from_bytes(crumbs[4:8], byteorder="little")
+        print(
+            f"{core_loc} Host-read reset register {hex(soft_reset)} | brisc pc: {hex(brisc_debug_pc)} | before {hex(before)} after {hex(after)}",
+            file=sys.stderr,
+        )
+        raise Exception("WTF handler")
+
+    return is_it
 
 
 def _print_callstack(risc_name: str, callstack: list[CallstackEntry]):

@@ -35,6 +35,7 @@ from .device import (
     BootMode,
     RiscCore,
     exalens_device_setup,
+    get_register_store,
     reset_mailboxes,
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
@@ -897,6 +898,16 @@ class TestConfig:
 
         # Perform soft reset
         set_tensix_soft_reset(1, location=location)
+        soft_reset_value = (
+            get_register_store(location, 0).read_register(
+                "RISCV_DEBUG_REG_SOFT_RESET_0"
+            )
+            >> 11
+        )
+        if not soft_reset_value & 0xF == 0xF:
+            raise Exception(
+                f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
+            )
 
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
@@ -937,6 +948,17 @@ class TestConfig:
         write_words_to_device(
             location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
         )
+
+        soft_reset_value = (
+            get_register_store(location, 0).read_register(
+                "RISCV_DEBUG_REG_SOFT_RESET_0"
+            )
+            >> 11
+        )
+        if not soft_reset_value & 0xF == 0xF:
+            raise Exception(
+                f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
+            )
 
         match boot_mode:
             case BootMode.BRISC:
@@ -1044,6 +1066,7 @@ class TestConfig:
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
+        write_to_device(location, 0x64FF0, [0, 0, 0, 0, 0, 0, 0])
         self.variant_stimuli.write(location)
         self.write_runtimes_to_L1(location)
         elfs = self.run_elf_files(location)
