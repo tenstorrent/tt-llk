@@ -57,6 +57,9 @@ class Unpacker:
             )
         return code
 
+    def init(self, operation_config: "FusedOperation") -> str:
+        return ""
+
     def unpack(self, operation_config: "FusedOperation") -> str:
         return ""
 
@@ -87,6 +90,7 @@ class Unpacker:
         )
 
         code += self.hw_configure(operation_config)
+        code += self.init(operation_config)
         code += self.unpack(operation_config)
         code += self.uninit(operation_config)
 
@@ -139,14 +143,12 @@ class MatmulUnpacker(Unpacker):
 
         return tensor_a, tensor_b
 
-    def unpack(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
+    def init(self, operation_config: "FusedOperation") -> str:
         face_r_dim = operation_config.face_r_dim
         ct_dim = operation_config.ct_dim
         rt_dim = operation_config.rt_dim
         kt_dim = operation_config.kt_dim
-        unpack_tile_size_a = operation_config.tile_size_unpack_a
-        unpack_tile_size_b = operation_config.tile_size_unpack_b
+
         transpose_faces = (
             "true" if operation_config.unpack_transpose_faces.value else "false"
         )
@@ -159,8 +161,17 @@ class MatmulUnpacker(Unpacker):
                 "MatmulUnpacker does not support different values for transpose_faces and transpose_within_face"
             )
 
+        return f"    _llk_unpack_AB_matmul_init_<>({transpose_faces}, {ct_dim}, {rt_dim}, {kt_dim}, {face_r_dim}, {face_r_dim});\n"
+
+    def unpack(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        ct_dim = operation_config.ct_dim
+        rt_dim = operation_config.rt_dim
+        kt_dim = operation_config.kt_dim
+        unpack_tile_size_a = operation_config.tile_size_unpack_a
+        unpack_tile_size_b = operation_config.tile_size_unpack_b
+
         code = (
-            f"    _llk_unpack_AB_matmul_init_<>({transpose_faces}, {ct_dim}, {rt_dim}, {kt_dim}, {face_r_dim}, {face_r_dim});\n"
             f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
             f"    {{\n"
             f"        _llk_unpack_AB_matmul_<>(\n"
@@ -212,12 +223,11 @@ class UnpackerAB(Unpacker):
 
         return tensor_a.flatten(), tensor_b.flatten()
 
-    def unpack(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
+    def init(self, operation_config: "FusedOperation") -> str:
         face_r_dim = operation_config.face_r_dim
         num_faces = operation_config.num_faces
-        tile_cnt = operation_config.output.tile_count
         broadcast_type = "BroadcastType::NONE"
+
         transpose_faces = (
             "true" if operation_config.unpack_transpose_faces.value else "false"
         )
@@ -235,24 +245,26 @@ class UnpackerAB(Unpacker):
             within_face_16x16_transpose = (
                 1 if reduce_dim == "ReduceDim::REDUCE_ROW" else 0
             )
-            code = (
+            return (
                 f"    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>({within_face_16x16_transpose});\n"
                 f"    constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;\n"
                 f"    config_unpacker_x_end<UNP_SEL>({face_r_dim});\n"
                 f"    _llk_unpack_AB_mop_config_<BroadcastType::NONE>(false, 4, false);\n"
             )
         else:
-            code = f"    _llk_unpack_AB_init_<{broadcast_type}>({face_r_dim}, {num_faces}, false, {transpose_faces});\n"
+            return f"    _llk_unpack_AB_init_<{broadcast_type}>({face_r_dim}, {num_faces}, false, {transpose_faces});\n"
 
-        code += (
+    def unpack(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        tile_cnt = operation_config.output.tile_count
+
+        return (
             f"    for (int i = 0; i < {tile_cnt}; i++)\n"
             f"    {{\n"
             f"        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A{stage}[i]), L1_ADDRESS(buffer_B{stage}[i]));\n"
             f"    }}\n"
             f"\n"
         )
-
-        return code
 
 
 class UnpackerA(Unpacker):
@@ -293,9 +305,8 @@ class UnpackerA(Unpacker):
 
         return tensor_a.flatten(), tensor_b.flatten()
 
-    def unpack(self, operation_config: "FusedOperation") -> str:
+    def init(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
-        tile_cnt = operation_config.output.tile_count
         unpack_to_dest = "true" if operation_config.unpack_to_dest else "false"
         broadcast_type = "BroadcastType::NONE"
         eltwise_reuse_type = "NONE"
@@ -307,11 +318,19 @@ class UnpackerA(Unpacker):
         transpose_within_face = (
             "true" if operation_config.unpack_transpose_within_face.value else "false"
         )
-
-        code = (
+        return (
             f"    _llk_unpack_A_init_<{broadcast_type}, false, EltwiseBinaryReuseDestType::{eltwise_reuse_type}, {unpack_to_dest}>(\n"
             f"        {transpose_faces}, {transpose_within_face}, {face_r_dim}, {num_faces}, unpack_a_src_format{stage}, unpack_a_dst_format{stage}\n"
             f"    );\n"
+        )
+
+    def unpack(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        tile_cnt = operation_config.output.tile_count
+        unpack_to_dest = "true" if operation_config.unpack_to_dest else "false"
+        broadcast_type = "BroadcastType::NONE"
+
+        code = (
             f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
             f"    {{\n"
             f"        _llk_unpack_A_<{broadcast_type}, false, EltwiseBinaryReuseDestType::NONE, {unpack_to_dest}>(\n"
@@ -345,6 +364,52 @@ class UnpackerTilizeA(Unpacker):
 
         return tilized_a, tensor_b
 
+    def init(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        face_r_dim = operation_config.face_r_dim
+        block_ct_dim = operation_config.block_ct_dim
+        transpose_faces = operation_config.unpack_transpose_faces.value
+        transpose_within_face = operation_config.unpack_transpose_within_face.value
+
+        if transpose_faces or transpose_within_face:
+            raise ValueError("UnpackerTilizeA does not support transpose")
+
+        return f"    _llk_unpack_tilize_init_(unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, false);\n"
+
+    def unpack(self, operation_config: "FusedOperation") -> str:
+        stage = operation_config.stage_id
+        face_r_dim = operation_config.face_r_dim
+        num_faces = operation_config.num_faces
+        block_rt_dim = operation_config.block_rt_dim
+        block_ct_dim = operation_config.block_ct_dim
+
+        # Blackhole
+        if operation_config.architecture == ChipArchitecture.BLACKHOLE:
+            return (
+                f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
+                f"    {{\n"
+                f"        for (uint32_t j = 0; j < {block_ct_dim}; j++)\n"
+                f"        {{\n"
+                f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage});\n"
+                f"        }}\n"
+                f"    }}\n"
+            )
+
+        # Wormhole
+        elif operation_config.architecture == ChipArchitecture.WORMHOLE:
+            return (
+                f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
+                f"    {{\n"
+                f"        for (uint32_t j = 0; j < {block_ct_dim}; j++)\n"
+                f"        {{\n"
+                f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
+                f"        }}\n"
+                f"    }}\n"
+            )
+
+        else:
+            raise ValueError("Architecture is not supported")
+
     def uninit(self, operation_config: "FusedOperation") -> str:
         stage = operation_config.stage_id
         face_r_dim = operation_config.face_r_dim
@@ -357,49 +422,6 @@ class UnpackerTilizeA(Unpacker):
         # Wormhole
         elif operation_config.architecture == ChipArchitecture.WORMHOLE:
             code = f"    _llk_unpack_tilize_uninit_(unpack_a_dst_format{stage}, {face_r_dim});\n\n"
-
-        else:
-            raise ValueError("Architecture is not supported")
-
-        return code
-
-    def unpack(self, operation_config: "FusedOperation") -> str:
-        stage = operation_config.stage_id
-        face_r_dim = operation_config.face_r_dim
-        num_faces = operation_config.num_faces
-        block_rt_dim = operation_config.block_rt_dim
-        block_ct_dim = operation_config.block_ct_dim
-        transpose_faces = operation_config.unpack_transpose_faces.value
-        transpose_within_face = operation_config.unpack_transpose_within_face.value
-
-        if transpose_faces or transpose_within_face:
-            raise ValueError("UnpackerTilizeA does not support transpose")
-
-        code = f"    _llk_unpack_tilize_init_(unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, false);\n"
-
-        # Blackhole
-        if operation_config.architecture == ChipArchitecture.BLACKHOLE:
-            code += (
-                f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
-                f"    {{\n"
-                f"        for (uint32_t j = 0; j < {block_ct_dim}; j++)\n"
-                f"        {{\n"
-                f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage});\n"
-                f"        }}\n"
-                f"    }}\n"
-            )
-
-        # Wormhole
-        elif operation_config.architecture == ChipArchitecture.WORMHOLE:
-            code += (
-                f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
-                f"    {{\n"
-                f"        for (uint32_t j = 0; j < {block_ct_dim}; j++)\n"
-                f"        {{\n"
-                f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
-                f"        }}\n"
-                f"    }}\n"
-            )
 
         else:
             raise ValueError("Architecture is not supported")
