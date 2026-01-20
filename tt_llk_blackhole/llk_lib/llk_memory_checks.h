@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+// SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -12,9 +12,17 @@
 /**
  * @brief Transform L1 address to the format used by LLK functions
  *
- * LLK (Low-Level Kernel) uses a transformed address format where addresses are
- * divided by 16 (shifted right by 4 bits) and then decremented by 1.
- * This transformation is required for all L1 buffer addresses used in LLK operations.
+ * This transformation consists of two parts:
+ *
+ * 1. Division by 16 (shift right by 4 bits):
+ *    Hardware L1 address fields use 16-byte granularity, not byte addresses.
+ *    The hardware expects addresses in units of 16-byte blocks, so we convert
+ *    byte addresses to 16-byte-aligned addresses by dividing by 16.
+ *
+ * 2. Decrement by 1 (on Tensix architectures like Wormhole/Blackhole):
+ *    Tensix L1 address fields use an off-by-one convention: you program (addr_16B - 1),
+ *    and the hardware internally increments the value before using it. This hardware
+ *    quirk requires the subtraction of 1 in the address transformation.
  *
  * @param buffer_address The physical L1 address (byte-aligned)
  * @return Transformed address for LLK use: (address / 16) - 1
