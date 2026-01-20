@@ -20,16 +20,42 @@ constexpr bool row_pool                             = (REDUCE_DIM == ckernel::Re
 
 #ifdef LLK_TRISC_UNPACK
 
+#include "llk_unpack_AB.h"
 #include "llk_unpack_AB_reduce.h"
 #include "llk_unpack_common.h"
 #include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    // _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+    //     formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
+
+    // // For reduce, if reduce dimension is row, we need to transpose within the face
+    // // Transpose of faces should always be false
+    // // Calling _llk_unpack_AB_init_ performs both transpose within the face and transpose of faces, because it uses the same argument for both
+    // // The following four lines are equivalent to calling _llk_unpack_AB_init_, but separates the two types of transpose
+    // cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose);
+    // constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;
+    // config_unpacker_x_end<UNP_SEL>(FACE_R_DIM);
+    // _llk_unpack_AB_mop_config_<BroadcastType::NONE>(false /* transpose_of_faces */, 4 /* num_faces */, false /* narrow_tile */);
+    // for (int i = 0; i < params->INPUT_TILE_CNT; i++)
+    // {
+    //     _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
+    // }
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
-    _llk_unpack_AB_reduce_init_<POOL_TYPE, REDUCE_DIM>(FACE_R_DIM, 4 /* num_faces */);
-    _llk_unpack_AB_reduce_<POOL_TYPE, REDUCE_DIM>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]));
+        formats.unpack_src,
+        formats.unpack_src,
+        formats.unpack_dst,
+        formats.unpack_dst,
+        params->TEST_FACE_R_DIM,
+        params->TEST_FACE_R_DIM,
+        params->num_faces /* num_faces */,
+        params->num_faces /* num_faces */);
+    _llk_unpack_AB_reduce_init_<POOL_TYPE, REDUCE_DIM>(params->TEST_FACE_R_DIM, params->num_faces /* num_faces */);
+    for (int i = 0; i < params->INPUT_TILE_CNT; i++)
+    {
+        _llk_unpack_AB_reduce_<POOL_TYPE, REDUCE_DIM>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
+    }
 }
 
 #endif
@@ -46,10 +72,14 @@ void run_kernel(const volatile struct RuntimeParams *params)
     const bool is_int_fpu_en             = false;
     const bool enforce_fp32_accumulation = false;
     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
-    _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, enforce_fp32_accumulation>();
-    _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, is_int_fpu_en, enforce_fp32_accumulation>(0);
+
+    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+    for (int i = 0; i < params->INPUT_TILE_CNT; i++)
+    {
+        _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, is_int_fpu_en, enforce_fp32_accumulation>(i);
+    }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -80,7 +110,14 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
+    for (int i = 0; i < params->OUTPUT_TILE_CNT; i++)
+    {
+        if (i == 0)
+        {
+            asm volatile("ebreak");
+        }
+        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+    }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
     _llk_pack_reduce_mask_clear_();

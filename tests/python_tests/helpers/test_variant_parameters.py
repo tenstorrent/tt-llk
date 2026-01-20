@@ -379,6 +379,28 @@ class TILE_COUNT(RuntimeParameter):
 
 
 @dataclass
+class INPUT_TILE_COUNT(RuntimeParameter):
+    tile_cnt: int = 0
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int INPUT_TILE_CNT = {self.tile_cnt};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return f"int INPUT_TILE_CNT;", "i"
+
+
+@dataclass
+class OUTPUT_TILE_COUNT(RuntimeParameter):
+    tile_cnt: int = 0
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int OUTPUT_TILE_CNT = {self.tile_cnt};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return f"int OUTPUT_TILE_CNT;", "i"
+
+
+@dataclass
 class SRCA_REUSE_COUNT(RuntimeParameter):
     srca_reuse_count: int = 0
 

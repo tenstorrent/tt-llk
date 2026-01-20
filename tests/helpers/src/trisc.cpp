@@ -6,6 +6,7 @@
 #include <cstdint>
 
 #include "ckernel.h"
+#include "ckernel_addrmod.h"
 #ifndef ARCH_QUASAR
 #include "ckernel_globals.h" // Only for WH/BH
 // Necessary for ckernel variables
@@ -60,6 +61,11 @@ int main()
     llk_profiler::reset();
     llk_profiler::sync_threads();
 #endif
+
+    // #if defined(LLK_TRISC_MATH)
+    //     ckernel::addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0}}.set(4);
+    //     TTI_ZEROACC(0x3, 0, 0, 4, 0);
+    // #endif
 
     {
         ZONE_SCOPED("KERNEL")

@@ -29,8 +29,8 @@ using namespace ckernel::unpacker;
 /**
  * @brief Configures the unpacker MOP for reduction operations. Handles both tiny tiles (face_r_dim < 16) and standard tiles.
  *
- * @tparam POOL_TYPE The type of pooling operation (MAX, SUM, AVG)
- * @tparam REDUCE_DIM The dimension along which to reduce (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR)
+ * @tparam pool_type The type of pooling operation (MAX, SUM, AVG)
+ * @tparam reduce_dim The dimension along which to reduce (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR)
  *
  * @param face_r_dim The number of rows per face (default: FACE_R_DIM)
  * @param num_faces The number of faces to process (must be 1, 2, or 4; default: 4)
@@ -38,7 +38,7 @@ using namespace ckernel::unpacker;
  * @note For tiny tiles (face_r_dim < 16), padding is applied to prevent incorrect outputs
  * @note For REDUCE_SCALAR operations, SrcA is cleared before unpacking because SrcA is clobbered in the Math kernel.
  */
-template <PoolType POOL_TYPE, ReduceDim REDUCE_DIM>
+template <PoolType pool_type, ReduceDim reduce_dim>
 inline void _llk_unpack_AB_reduce_mop_config_(const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
@@ -48,8 +48,9 @@ inline void _llk_unpack_AB_reduce_mop_config_(const std::uint32_t face_r_dim = F
     static constexpr uint unpack_srcb = TT_OP_UNPACR(Srcs::SrcB, 0b01, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
     // Data valid for clear instructions is set to 0 since the MATH kernel should not process this data.
+    // pool_type == PoolType::MAX sets the clear value to neginf if the pool-type is MAX and 0 if the pool-type is AVG/SUM
     static constexpr uint clear_pool_dep_srca =
-        TT_OP_UNPACR_NOP(Srcs::SrcA, 0, 0, 0, 0, 1, 0 /* dvalid */, POOL_TYPE == PoolType::MAX /* 0 or neginf */, p_unpacr_nop::CLR_SRC);
+        TT_OP_UNPACR_NOP(Srcs::SrcA, 0, 0, 0, 0, 1, 0 /* dvalid */, pool_type == PoolType::MAX /* 0 or neginf */, p_unpacr_nop::CLR_SRC);
     static constexpr uint clear_zero_srca = TT_OP_UNPACR_NOP(Srcs::SrcA, 0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr_nop::CLR_SRC_0, p_unpacr_nop::CLR_SRC);
 
     // MOP constants
@@ -57,19 +58,19 @@ inline void _llk_unpack_AB_reduce_mop_config_(const std::uint32_t face_r_dim = F
     const uint32_t innerloop     = num_faces;
 
     // Padding should only be done when using tiny tiles otherwise the entire face overwrites the data read in Math
-    if (face_r_dim < 16) // Using tiny faces
+    if (face_r_dim < FACE_R_DIM) // Using tiny faces
     {
         // Fill SrcA with pool-type dependent padding value for tiny tiles before unpacking a face
         ckernel_template tmp(outerloop, innerloop, clear_pool_dep_srca, unpack_srca);
         tmp.set_start_op(unpack_srcb);
         tmp.program();
     }
-    else // Using standard faces (face_r_dim >= 16)
+    else // Using standard faces (face_r_dim >= FACE_R_DIM)
     {
-        if (REDUCE_DIM == ReduceDim::REDUCE_SCALAR)
+        if constexpr (reduce_dim == ReduceDim::REDUCE_SCALAR)
         {
             // For scalar reduction, clear SrcA to zero before unpacking. SrcA is clobbered in Math kernel.
-            ckernel_template tmp(outerloop, innerloop, clear_zero_srca, unpack_srca);
+            ckernel_template tmp(outerloop, innerloop, unpack_srcb, unpack_srca);
             tmp.set_start_op(unpack_srcb);
             tmp.program();
         }
@@ -92,23 +93,23 @@ inline void _llk_unpack_AB_reduce_mop_config_(const std::uint32_t face_r_dim = F
  * - Configuring unpacker X dimension endpoints
  * - Calling the MOP configuration routine
  *
- * @tparam POOL_TYPE The type of pooling operation (MAX, SUM, AVG)
- * @tparam REDUCE_DIM The dimension along which to reduce (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR)
+ * @tparam pool_type The type of pooling operation (MAX, SUM, AVG)
+ * @tparam reduce_dim The dimension along which to reduce (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR)
  *
  * @param face_r_dim The number of rows per face (default: FACE_R_DIM)
  * @param num_faces The number of faces to process (must be 1, 2, or 4; default: 4)
  *
  * @note For REDUCE_ROW operations, the face is transposed using haloize mode
- * @note Unpacker 0 (SrcA) reads face_r_dim*16 datums
- * @note Unpacker 1 (SrcB) reads one row (16 datums)
+ * @note Unpacker 0 (SrcA) reads face_r_dim*FACE_R_DIM datums
+ * @note Unpacker 1 (SrcB) reads one row (FACE_R_DIM datums)
  */
-template <PoolType POOL_TYPE, ReduceDim REDUCE_DIM>
+template <PoolType pool_type, ReduceDim reduce_dim>
 inline void _llk_unpack_AB_reduce_init_(const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
     // Enable transpose (haloize mode) if reducing along rows
-    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(REDUCE_DIM == ReduceDim::REDUCE_ROW);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(reduce_dim == ReduceDim::REDUCE_ROW);
 
     // Sets up Unpacker 0 to read face_r_dim*16 datums into SrcA register
     config_unpacker_x_end<p_setadc::UNP_A>(face_r_dim);
@@ -117,7 +118,7 @@ inline void _llk_unpack_AB_reduce_init_(const std::uint32_t face_r_dim = FACE_R_
     config_unpacker_x_end<p_setadc::UNP_B>(1);
 
     // Configure unpack MOP
-    _llk_unpack_AB_reduce_mop_config_<POOL_TYPE, REDUCE_DIM>(face_r_dim, num_faces);
+    _llk_unpack_AB_reduce_mop_config_<pool_type, reduce_dim>(face_r_dim, num_faces);
 }
 
 /**
@@ -130,8 +131,8 @@ inline void _llk_unpack_AB_reduce_init_(const std::uint32_t face_r_dim = FACE_R_
  * 4. Running the configured MOP
  * 5. Switching unpacker configuration context
  *
- * @tparam POOL_TYPE The type of pooling operation (MAX, SUM, AVG)
- * @tparam REDUCE_DIM The dimension along which to reduce (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR)
+ * @tparam pool_type The type of pooling operation (MAX, SUM, AVG)
+ * @tparam reduce_dim The dimension along which to reduce (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR)
  *
  * @param address_a Base address for source A data in L1 memory
  * @param address_b Base address for source B data in L1 memory
@@ -139,7 +140,7 @@ inline void _llk_unpack_AB_reduce_init_(const std::uint32_t face_r_dim = FACE_R_
  * @note This function manages dual-context switching for pipelined execution
  * @note Semaphores ensure proper synchronization between Trisc and unpacker
  */
-template <PoolType POOL_TYPE, ReduceDim REDUCE_DIM>
+template <PoolType pool_type, ReduceDim reduce_dim>
 inline void _llk_unpack_AB_reduce_(const std::uint32_t address_a, const std::uint32_t address_b)
 {
     // Reset address counters for both unpackers
