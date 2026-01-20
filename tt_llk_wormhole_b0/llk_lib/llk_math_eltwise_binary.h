@@ -429,89 +429,83 @@ NEW SDPA FEATURE
 
 inline void sdpa_optimization_new_configure_addrmod()
 {
-    // ADDR_MOD_0: srcA moves normally, srcB stays on same face
+    // ADDR_MOD_0: Both srcA and srcB increment normally through data
     addr_mod_t {
         .srca = {.incr = 8},
-        .srcb = {.incr = 0}, // srcB stays on same face
+        .srcb = {.incr = 8},
         .dest = {.incr = 8},
     }
         .set(ADDR_MOD_0);
-
-    // ADDR_MOD_1: srcA moves to next face, srcB jumps to F3
-    addr_mod_t {
-        .srca = {.incr = 8},
-        .srcb = {.incr = 32}, // Jump from F1 to F3
-        .dest = {.incr = 8},
-    }
-        .set(ADDR_MOD_1);
 }
 
-inline void sdpa_optimization_new_init_(uint32_t srca_reuse_count = 4)
+inline void sdpa_optimization_new_init_()
 {
     sdpa_optimization_new_configure_addrmod();
-
-    // // Setup replay buffer with 8 subtraction operations
-    // lltt::record<lltt::NoExec>(0, 8);
-
-    // // F0,F1 with srcB on F1 (4 operations)
-    // for (int i = 0; i < 4; i++)
-    // {
-    //     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    // }
-
-    // // Jump srcB from F1 to F3, srcA continues to F2
-    // TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B);
-
-    // // F2,F3 with srcB on F3 (4 operations)
-    // for (int i = 0; i < 4; i++)
-    // {
-    //     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    // }
-
-    // TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB);
-
-    // sdpa_optimization_new_configure_mop(srca_reuse_count);
-
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
-
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
 inline void sdpa_optimization_new_(uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
-
-    // Transpose bank 0 srcB (face1) so row-broadcast becomes column-broadcast
-    TTI_TRNSPSRCB;
-
-    // Bank 0: Face 0 and Face 1 operations (srcA F0/F1 - srcB F1 transposed column)
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB);
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F0 row 0
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F0 row 1
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F0 row 2
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F0 row 3
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F1 row 0
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F1 row 1
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F1 row 2
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F1 row 3
 
-    // Switch to bank 1 by setting and clearing dvalid on srcB
-    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_B);
+    // Move srcB data from rows[0:15] to rows[16:31] for transpose
+    // TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
 
-    // Transpose bank 1 srcB (face3) so row-broadcast becomes column-broadcast
-    TTI_TRNSPSRCB;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_TRNSPSRCB; // Now operates on rows[16:31]
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
 
-    // Bank 1: Face 2 and Face 3 operations (srcA F2/F3 - srcB F3 transposed column)
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F2 row 0
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F2 row 1
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F2 row 2
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F2 row 3
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F3 row 0
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F3 row 1
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F3 row 2
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0); // F3 row 3
+    // Move transposed result back to destination
+    // TTI_MOVB2D(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_4_ROWS, 0);
+    // TTI_MOVB2D(0, p_movd2b::SRC_ROW16_OFFSET + 4, ADDR_MOD_0, p_movd2b::MOV_4_ROWS, 4);
+    // TTI_MOVB2D(0, p_movd2b::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movd2b::MOV_4_ROWS, 8);
+    // TTI_MOVB2D(0, p_movd2b::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movd2b::MOV_4_ROWS, 12);
+
+    // Rest of your math operations
+    TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
+    TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
+    TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
+    TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
+
+    // TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A);
+
+    TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
+    TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
+    TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
+    TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
 
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
-
     math::clear_dst_reg_addr();
 }

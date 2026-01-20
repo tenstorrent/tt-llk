@@ -66,10 +66,10 @@ def test_tilized_eltwise_transpose_bcast(
         input_dimensions_B=input_dimensions,
     )
 
-    src_A = torch.ones(1024) * 3
-    src_B = torch.ones(1024) * 5
-    src_B[0:16] = 3
-    src_B[16:32] = 4
+    src_A = torch.ones(1024) * 0
+    src_B = torch.ones(1024) * 0
+    src_B[0:16] = torch.arange(16)
+    src_B[16:32] = torch.arange(16) + 16
 
     print("src_A:")
     print(src_A.view(32, 32))
