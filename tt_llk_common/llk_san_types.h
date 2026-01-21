@@ -283,6 +283,23 @@ enum class operation_t : uint8_t
     PackUntilize
 };
 
+// START: get this working before we require uninits for everything
+
+template <operation_t op>
+struct operation_must_uninit_t : std::false_type
+{
+};
+
+template <>
+struct operation_must_uninit_t<operation_t::PackUntilize> : std::true_type
+{
+};
+
+template <operation_t op>
+inline constexpr bool operation_must_uninit = operation_must_uninit_t<op>::value;
+
+// END: temp fix for uninits
+
 struct operation_state_t
 {
     static constexpr size_t BUFFER_SIZE = 96;
@@ -311,9 +328,9 @@ enum class fsm_state_t : uint32_t
 struct sanitizer_state_t
 {
     // used to validate operation order
-    fsm_state_t fsm[MAX_THREADS] = {fsm_state_t::INITIAL, fsm_state_t::INITIAL, fsm_state_t::INITIAL};
     operand_state_t operand;
     operation_state_t operation[MAX_THREADS] = {};
+    fsm_state_t fsm[MAX_THREADS]             = {fsm_state_t::INITIAL, fsm_state_t::INITIAL, fsm_state_t::INITIAL};
 };
 
 } // namespace llk_san
