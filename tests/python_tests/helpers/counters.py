@@ -86,7 +86,7 @@ COUNTER_NAMES = {
         10: "UNPACK_BUSY_3",
     },
     "L1": {
-        # Format: (counter_id, mux_ctrl_bit4) -> name
+        # Format: (counter_id, l1_mux) -> name
         (0, 0): "NOC_RING0_INCOMING_1",
         (1, 0): "NOC_RING0_INCOMING_0",
         (2, 0): "NOC_RING0_OUTGOING_1",
@@ -188,8 +188,7 @@ def configure_perf_counters(
     for idx, counter in enumerate(counters):
         bank_name = counter["bank"]
         counter_id = counter["counter_id"]
-        # Support both 'l1_mux' (new) and 'mux_ctrl_bit4' (legacy) keys
-        l1_mux = counter.get("l1_mux", counter.get("mux_ctrl_bit4", 0))
+        l1_mux = counter.get("l1_mux", 0)
 
         bank_id = _BANK_NAME_TO_ID.get(bank_name)
         if bank_id is None:
@@ -249,11 +248,11 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
         if (config_word & 0x80000000) == 0:  # Check valid bit
             continue  # Unused slot
 
-        # Decode metadata: [mux_ctrl_bit4(17), mode(16), counter_id(8-15), bank(0-7)]
+        # Decode metadata: [l1_mux(17), mode(16), counter_id(8-15), bank(0-7)]
         bank_id = config_word & 0xFF
         counter_id = (config_word >> 8) & 0xFF
         mode_bit = (config_word >> 16) & 0x1
-        mux_ctrl_bit4 = (config_word >> 17) & 0x1
+        l1_mux = (config_word >> 17) & 0x1
 
         bank_name = COUNTER_BANK_NAMES.get(bank_id, f"UNKNOWN_{bank_id}")
         # Hardware doc: bit16 = 1 -> GRANTS, 0 -> REQUESTS
@@ -262,7 +261,7 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
         # Get counter name
         if bank_name == "L1":
             counter_name = COUNTER_NAMES["L1"].get(
-                (counter_id, mux_ctrl_bit4), f"L1_UNKNOWN_{counter_id}_{mux_ctrl_bit4}"
+                (counter_id, l1_mux), f"L1_UNKNOWN_{counter_id}_{l1_mux}"
             )
         else:
             counter_name = COUNTER_NAMES.get(bank_name, {}).get(
@@ -282,7 +281,7 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
                 "cycles": cycles,
                 "count": count,
                 "mode": mode,
-                "l1_mux": mux_ctrl_bit4 if bank_name == "L1" else None,
+                "l1_mux": l1_mux if bank_name == "L1" else None,
             }
         )
 

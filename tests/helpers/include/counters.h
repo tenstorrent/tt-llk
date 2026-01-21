@@ -188,7 +188,7 @@ constexpr uint32_t UNPACK_BUSY_3        = 10;
 
 namespace l1
 {
-// mux_ctrl_bit4 = 0
+// l1_mux = 0
 constexpr uint32_t NOC_RING0_INCOMING_1 = 0;
 constexpr uint32_t NOC_RING0_INCOMING_0 = 1;
 constexpr uint32_t NOC_RING0_OUTGOING_1 = 2;
@@ -198,7 +198,7 @@ constexpr uint32_t L1_ARB_TDMA_BUNDLE_0 = 5;
 constexpr uint32_t L1_ARB_UNPACKER      = 6;
 constexpr uint32_t L1_NO_ARB_UNPACKER   = 7;
 
-// mux_ctrl_bit4 = 1 (same IDs, different mux setting)
+// l1_mux = 1 (same IDs, different mux setting)
 constexpr uint32_t NOC_RING1_INCOMING_1 = 0;
 constexpr uint32_t NOC_RING1_INCOMING_0 = 1;
 constexpr uint32_t NOC_RING1_OUTGOING_1 = 2;
