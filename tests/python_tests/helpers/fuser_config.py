@@ -9,6 +9,7 @@ from helpers.device import (
     collect_pipeline_results,
     write_pipeline_operands_to_l1,
 )
+from ttexalens.tt_exalens_lib import read_words_from_device
 
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
@@ -16,7 +17,9 @@ from .device import wait_for_tensix_operations_finished
 from .format_config import DataFormat, FormatConfig
 from .fused_operation import FusedOperation
 from .llk_params import DestAccumulation, PerfRunType
-from .test_config import BootMode, ProfilerBuild, TestConfig
+from .perf import PerfReport
+from .profiler import ProfilerConfig, ProfilerData
+from .test_config import BootMode, ProfilerBuild, TestConfig, TestMode
 
 
 @dataclass
@@ -67,13 +70,13 @@ class FuserConfig:
             operation.stage_id = i
             operation.num_stages = num_stages
 
-    def run(self, location="0,0"):
+    def run(self, worker_id="master", location="0,0", run_count=2):
         from .fused_generator import FUSED_TESTS_DIR, FusedKernelGenerator
+        from .fused_golden import FusedGolden
 
         write_pipeline_operands_to_l1(self.pipeline)
 
         cpp_path = FUSED_TESTS_DIR / f"{self.global_config.test_name}.cpp"
-
         code_generator = FusedKernelGenerator(self)
         code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
 
@@ -102,7 +105,42 @@ class FuserConfig:
 
         test_config.generate_variant_hash()
         test_config.build_elfs()
-        elfs = test_config.run_elf_files(location)
-        wait_for_tensix_operations_finished(elfs, location)
 
-        collect_pipeline_results(self.pipeline)
+        if self.global_config.perf_run_type is not None:
+            perf_report = PerfReport()
+            runs = []
+
+            for _ in range(run_count):
+                elfs = test_config.run_elf_files(location)
+                wait_for_tensix_operations_finished(elfs, location)
+
+                meta = ProfilerConfig._get_meta(
+                    test_config.test_name, test_config.variant_id
+                )
+                buffer_data = [
+                    read_words_from_device(
+                        addr=addr,
+                        word_count=ProfilerConfig.BUFFER_LENGTH,
+                        location=location,
+                    )
+                    for addr in ProfilerConfig.THREAD_BUFFER
+                ]
+                runs.append(ProfilerConfig._parse_buffers(buffer_data, meta))
+
+            get_stats = ProfilerConfig.STATS_FUNCTION[self.global_config.perf_run_type]
+            results = get_stats(ProfilerData.concat(runs))
+            results["test_name"] = self.global_config.test_name
+            results["loop_factor"] = self.global_config.loop_factor
+            perf_report.append(results)
+
+            if TestConfig.MODE != TestMode.PRODUCE:
+                csv_prefix = f"{self.global_config.test_name}_fused_test"
+                perf_report.dump_csv(f"{csv_prefix}.{worker_id}.csv")
+                perf_report.post_process()
+                perf_report.dump_csv(f"{csv_prefix}.{worker_id}.post.csv")
+        else:
+            elfs = test_config.run_elf_files(location)
+            wait_for_tensix_operations_finished(elfs, location)
+            collect_pipeline_results(self.pipeline)
+            golden = FusedGolden()
+            assert golden.check_pipeline(self)

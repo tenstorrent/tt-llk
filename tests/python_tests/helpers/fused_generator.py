@@ -32,6 +32,11 @@ class UnpackKernelGenerator:
             [op.unpack(self.config.global_config) for op in self.config.pipeline]
         )
 
+        zone_start = ""
+        zone_end = ""
+        if self.config.global_config.perf_run_type is not None:
+            zone_start = '    ZONE_SCOPED("UNPACK_LOOP")\n'
+
         code = (
             f"\n"
             f"#ifdef LLK_TRISC_UNPACK\n"
@@ -40,7 +45,9 @@ class UnpackKernelGenerator:
             f"\n"
             f"void run_kernel(const volatile struct RuntimeParams* params)\n"
             f"{{\n"
+            f"{zone_start}"
             f"{unpack_calls}"
+            f"{zone_end}"
             f"}}\n"
             f"\n"
             f"#endif\n"
@@ -68,6 +75,11 @@ class MathKernelGenerator:
             [op.do_math(self.config.global_config) for op in self.config.pipeline]
         )
 
+        zone_start = ""
+        zone_end = ""
+        if self.config.global_config.perf_run_type is not None:
+            zone_start = '    ZONE_SCOPED("MATH_LOOP")\n'
+
         code = (
             f"\n"
             f"#ifdef LLK_TRISC_MATH\n"
@@ -76,7 +88,9 @@ class MathKernelGenerator:
             f"\n"
             f"void run_kernel(const volatile struct RuntimeParams* params)\n"
             f"{{\n"
+            f"{zone_start}"
             f"{math_calls}"
+            f"{zone_end}"
             f"}}\n"
             f"\n"
             f"#endif\n"
@@ -105,6 +119,11 @@ class PackKernelGenerator:
             [op.pack(self.config.global_config) for op in self.config.pipeline]
         )
 
+        zone_start = ""
+        zone_end = ""
+        if self.config.global_config.perf_run_type is not None:
+            zone_start = '    ZONE_SCOPED("PACK_LOOP")\n'
+
         code = (
             f"\n"
             f"#ifdef LLK_TRISC_PACK\n"
@@ -113,7 +132,9 @@ class PackKernelGenerator:
             f"\n"
             f"void run_kernel(const volatile struct RuntimeParams* params)\n"
             f"{{\n"
+            f"{zone_start}"
             f"{pack_calls}"
+            f"{zone_end}"
             f"}}\n"
             f"\n"
             f"#endif\n"
@@ -142,6 +163,10 @@ class FusedKernelGenerator:
 
         kernels = self.generate_all()
 
+        profiler_include = ""
+        if self.config.global_config.perf_run_type is not None:
+            profiler_include = '#include "profiler.h"\n'
+
         combined = (
             f"#define FUSED_TEST\n"
             f'#include "ckernel.h"\n'
@@ -151,6 +176,7 @@ class FusedKernelGenerator:
             f'#include "ckernel_sfpu.h"\n'
             f'#include "tensix_types.h"\n'
             f'#include "operand.h"\n'
+            f"{profiler_include}"
             f"\n"
             f"uint32_t unp_cfg_context          = 0;\n"
             f"uint32_t pack_sync_tile_dst_ptr   = 0;\n"
