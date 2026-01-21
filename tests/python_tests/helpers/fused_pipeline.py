@@ -31,7 +31,6 @@ from helpers.llk_params import (
     ApproximationMode,
     DestSync,
     MathOperation,
-    PerfRunType,
     ReducePool,
     Transpose,
 )
@@ -147,15 +146,6 @@ REDUCE_POOL_MAP: Dict[str, ReducePool] = {
 APPROXIMATION_MODE_MAP: Dict[str, ApproximationMode] = {
     "Yes": ApproximationMode.Yes,
     "No": ApproximationMode.No,
-}
-
-PERF_RUN_TYPE_MAP: Dict[str, PerfRunType] = {
-    "None": None,
-    "L1_TO_L1": PerfRunType.L1_TO_L1,
-    "UNPACK_ISOLATE": PerfRunType.UNPACK_ISOLATE,
-    "MATH_ISOLATE": PerfRunType.MATH_ISOLATE,
-    "PACK_ISOLATE": PerfRunType.PACK_ISOLATE,
-    "L1_CONGESTION": PerfRunType.L1_CONGESTION,
 }
 
 
@@ -316,7 +306,7 @@ def create_fuse_pipeline(test_name: str) -> FuserConfig:
         config = yaml.safe_load(f)
 
     dest_acc = DEST_ACCUMULATION_MAP[config.get("dest_acc", "No")]
-    perf_run_type = PERF_RUN_TYPE_MAP.get(config.get("perf_run_type", "None"), None)
+    profiler_enabled = config.get("profiler_enabled", False)
     loop_factor = config.get("loop_factor", 16)
 
     operands = OperandRegistry()
@@ -331,7 +321,7 @@ def create_fuse_pipeline(test_name: str) -> FuserConfig:
         global_config=GlobalConfig(
             dest_acc=dest_acc,
             test_name=test_name,
-            perf_run_type=perf_run_type,
+            profiler_enabled=profiler_enabled,
             loop_factor=loop_factor,
         ),
     )

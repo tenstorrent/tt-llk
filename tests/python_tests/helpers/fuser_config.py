@@ -5,6 +5,7 @@
 from dataclasses import dataclass
 from typing import List
 
+import pandas as pd
 from helpers.device import (
     collect_pipeline_results,
     write_pipeline_operands_to_l1,
@@ -28,7 +29,7 @@ class GlobalConfig:
     architecture: ChipArchitecture = None
     dest_acc: DestAccumulation = DestAccumulation.No
     regenerate_cpp: bool = False
-    perf_run_type: PerfRunType = None
+    profiler_enabled: bool = False
     loop_factor: int = 16
 
 
@@ -80,12 +81,6 @@ class FuserConfig:
         code_generator = FusedKernelGenerator(self)
         code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
 
-        profiler_build = (
-            ProfilerBuild.Yes
-            if self.global_config.perf_run_type is not None
-            else ProfilerBuild.No
-        )
-
         test_config = TestConfig(
             test_name=cpp_path,
             formats=FormatConfig(
@@ -99,36 +94,57 @@ class FuserConfig:
             runtimes=set(),
             variant_stimuli=None,
             boot_mode=BootMode.DEFAULT,
-            profiler_build=profiler_build,
+            profiler_build=(
+                ProfilerBuild.Yes
+                if self.global_config.profiler_enabled
+                else ProfilerBuild.No
+            ),
             skip_build_header=True,
         )
 
         test_config.generate_variant_hash()
         test_config.build_elfs()
 
-        if self.global_config.perf_run_type is not None:
+        if self.global_config.profiler_enabled:
+            run_types = [
+                PerfRunType.L1_TO_L1,
+                PerfRunType.UNPACK_ISOLATE,
+                PerfRunType.MATH_ISOLATE,
+                PerfRunType.PACK_ISOLATE,
+                PerfRunType.L1_CONGESTION,
+            ]
+
             perf_report = PerfReport()
-            runs = []
+            all_results = []
 
-            for _ in range(run_count):
-                elfs = test_config.run_elf_files(location)
-                wait_for_tensix_operations_finished(elfs, location)
+            for run_type in run_types:
+                runs = []
+                for _ in range(run_count):
+                    elfs = test_config.run_elf_files(location)
+                    wait_for_tensix_operations_finished(elfs, location)
 
-                meta = ProfilerConfig._get_meta(
-                    test_config.test_name, test_config.variant_id
-                )
-                buffer_data = [
-                    read_words_from_device(
-                        addr=addr,
-                        word_count=ProfilerConfig.BUFFER_LENGTH,
-                        location=location,
+                    meta = ProfilerConfig._get_meta(
+                        test_config.test_name, test_config.variant_id
                     )
-                    for addr in ProfilerConfig.THREAD_BUFFER
-                ]
-                runs.append(ProfilerConfig._parse_buffers(buffer_data, meta))
+                    buffer_data = [
+                        read_words_from_device(
+                            addr=addr,
+                            word_count=ProfilerConfig.BUFFER_LENGTH,
+                            location=location,
+                        )
+                        for addr in ProfilerConfig.THREAD_BUFFER
+                    ]
+                    runs.append(ProfilerConfig._parse_buffers(buffer_data, meta))
 
-            get_stats = ProfilerConfig.STATS_FUNCTION[self.global_config.perf_run_type]
-            results = get_stats(ProfilerData.concat(runs))
+                get_stats = ProfilerConfig.STATS_FUNCTION[run_type]
+                all_results.append(get_stats(ProfilerData.concat(runs)))
+
+            results = (
+                pd.concat(all_results, ignore_index=True)
+                .groupby("marker")
+                .first()
+                .reset_index()
+            )
             results["test_name"] = self.global_config.test_name
             results["loop_factor"] = self.global_config.loop_factor
             perf_report.append(results)

@@ -34,7 +34,7 @@ class UnpackKernelGenerator:
 
         zone_start = ""
         zone_end = ""
-        if self.config.global_config.perf_run_type is not None:
+        if self.config.global_config.profiler_enabled:
             zone_start = '    ZONE_SCOPED("UNPACK_LOOP")\n'
 
         code = (
@@ -77,7 +77,7 @@ class MathKernelGenerator:
 
         zone_start = ""
         zone_end = ""
-        if self.config.global_config.perf_run_type is not None:
+        if self.config.global_config.profiler_enabled:
             zone_start = '    ZONE_SCOPED("MATH_LOOP")\n'
 
         code = (
@@ -121,7 +121,7 @@ class PackKernelGenerator:
 
         zone_start = ""
         zone_end = ""
-        if self.config.global_config.perf_run_type is not None:
+        if self.config.global_config.profiler_enabled:
             zone_start = '    ZONE_SCOPED("PACK_LOOP")\n'
 
         code = (
@@ -164,7 +164,7 @@ class FusedKernelGenerator:
         kernels = self.generate_all()
 
         profiler_include = ""
-        if self.config.global_config.perf_run_type is not None:
+        if self.config.global_config.profiler_enabled:
             profiler_include = '#include "profiler.h"\n'
 
         combined = (
