@@ -271,9 +271,8 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
     // Final swap: combine first 16 rows with second 16 rows.
     // OPTIMIZATION: After process_16_rows(sixteen_row_offset, col), Max(R16-31) is already in LREG0/LREG4.
     // We only need to load Max(R0-15) into LREG1/LREG5, saving 2 loads per column.
-    auto final_swap =
-        [values_tile_offset, indices_tile_offset, values_accum_tile_offset, indices_accum_tile_offset, instr_mod_index, chunk](
-            const uint col_offset) __attribute__((always_inline))
+    auto final_swap = [values_tile_offset, indices_tile_offset, values_accum_tile_offset, indices_accum_tile_offset, instr_mod_index, chunk](
+                          const uint col_offset) __attribute__((always_inline))
     {
         // Precompute addresses
         const uint val_first = values_tile_offset + col_offset;
@@ -293,7 +292,7 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
             { // for all but the first chunk we need to load the previous result from DST 1 and 3 and do a max with the current result in DST 0 and 2
                 TT_SFPLOAD(p_sfpu::LREG1, InstrModLoadStore::DEFAULT, ADDR_MOD_7, val_accum); // previous accumulated value
                 TT_SFPLOAD(p_sfpu::LREG5, instr_mod_index, ADDR_MOD_7, idx_accum);            // previous accumulated index
-                TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX); // LREG0 contains max of current and previous value
+                TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);        // LREG0 contains max of current and previous value
             }
             // for each chunk we store the running result to DST 1 and 3
             TT_SFPSTORE(p_sfpu::LREG4, instr_mod_index, ADDR_MOD_7, idx_accum);
@@ -313,14 +312,14 @@ inline void _calculate_max_pool_with_indices_generic_(const uint values_tile_idx
     constexpr int odd_column_offset  = 2;
 
     // Even columns: process rows 0-15, then 16-31, then final swap
-    process_16_rows(0, even_column_offset, true);                      // Store Max(R0-15) for final_swap to load
-    process_16_rows(sixteen_row_offset, even_column_offset, false);    // Keep Max(R16-31) in LREG0/LREG4
-    final_swap(even_column_offset);                                    // Uses LREG0/LREG4 directly
+    process_16_rows(0, even_column_offset, true);                   // Store Max(R0-15) for final_swap to load
+    process_16_rows(sixteen_row_offset, even_column_offset, false); // Keep Max(R16-31) in LREG0/LREG4
+    final_swap(even_column_offset);                                 // Uses LREG0/LREG4 directly
 
     // Odd columns: process rows 0-15, then 16-31, then final swap
-    process_16_rows(0, odd_column_offset, true);                       // Store Max(R0-15) for final_swap to load
-    process_16_rows(sixteen_row_offset, odd_column_offset, false);     // Keep Max(R16-31) in LREG0/LREG4
-    final_swap(odd_column_offset);                                     // Uses LREG0/LREG4 directly
+    process_16_rows(0, odd_column_offset, true);                   // Store Max(R0-15) for final_swap to load
+    process_16_rows(sixteen_row_offset, odd_column_offset, false); // Keep Max(R16-31) in LREG0/LREG4
+    final_swap(odd_column_offset);                                 // Uses LREG0/LREG4 directly
 }
 
 template <ckernel::DataLayout layout = ckernel::DataLayout::TILE>
