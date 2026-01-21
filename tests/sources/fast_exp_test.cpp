@@ -87,7 +87,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     {
         // ZONE_SCOPED("INIT")
-        ckernel::sfpu::exp_init<true, true>();
+        // ckernel::sfpu::exp_init<true, true>();
         // PROFILER_SYNC();
     }
     {
@@ -99,11 +99,12 @@ void run_kernel(const volatile struct RuntimeParams *params)
                 i, formats.math, formats.math);
 
             // calculation of sfpu operation on dest
-            // _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
+            _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
             _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
 
             // for (int j = 0; j < 256; j++)
-            ckernel::sfpu::calculate_exponential<true, true, false, iterations, false>(p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor*/);
+            // ckernel::sfpu::calculate_exponential<true, true, false, iterations, false>(p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor*/);
+            test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations>(SFPU_UNARY_OPERATION, formats.math);
 
             _llk_math_eltwise_unary_sfpu_done_();
         }
