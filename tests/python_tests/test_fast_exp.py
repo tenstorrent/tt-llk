@@ -1,13 +1,14 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+
 import pytest
 import torch
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from helpers.chip_architecture import ChipArchitecture
 
 # from helpers.profiler import ProfilerConfig
 from helpers.format_config import DataFormat, InputOutputFormat
-from helpers.golden_generators import UntilizeGolden, get_golden_generator
+from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
@@ -42,11 +43,8 @@ def test_eltwise_unary_sfpu_float(
     dest_acc: DestAccumulation,
     workers_tensix_coordinates: str,
 ):
-    input_dimensions = [32, 32]
 
-    arch = get_chip_architecture()
-
-    if dest_acc == DestAccumulation.No and arch == ChipArchitecture.BLACKHOLE:
+    if dest_acc == DestAccumulation.No and TestConfig.CHIP_ARCH == ChipArchitecture.BLACKHOLE:
         if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(
             DataFormat.Float32, DataFormat.Float16
         ):
@@ -65,6 +63,7 @@ def test_eltwise_unary_sfpu_float(
         )
 
     torch.manual_seed(0)
+    input_dimensions = [32, 32]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -79,13 +78,14 @@ def test_eltwise_unary_sfpu_float(
     for i in range(size):
         src_A[i] = min_val + (max_val - min_val) * i / (size - 1.0)
 
-    generate_golden = get_golden_generator(UntilizeGolden)
+    generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
-        src_A, formats.output_format, dimensions=input_dimensions
-    )
-
-    unpack_to_dest = (
-        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+        mathop,
+        src_A,
+        formats.output_format,
+        dest_acc,
+        formats.input_format,
+        input_dimensions,
     )
 
     # configuration = ProfilerConfig(
@@ -94,10 +94,10 @@ def test_eltwise_unary_sfpu_float(
         formats,
         templates=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+            APPROX_MODE(approx_mode),
+            MATH_OP(mathop=mathop),
         ],
-        runtimes=[
-            TILE_COUNT(tile_cnt_A),
-        ],
+        runtimes=[TILE_COUNT(tile_cnt_A)],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
@@ -109,7 +109,10 @@ def test_eltwise_unary_sfpu_float(
             tile_count_res=tile_cnt_A,
         ),
         dest_acc=dest_acc,
-        unpack_to_dest=unpack_to_dest,
+        # If dest_acc is off, we unpack Float32 into 16-bit format in src registers (later copied over in dest reg for SFPU op)
+        unpack_to_dest=(
+            formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+        ),
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
@@ -123,7 +126,8 @@ def test_eltwise_unary_sfpu_float(
         golden_tensor
     ), "Result tensor and golder tensor are not of the same length"
 
-    res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
+    torch_format = format_dict[formats.output_format]
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     src_A_np = src_A.double().numpy()
     res_tensor_np = res_tensor.double().numpy()
