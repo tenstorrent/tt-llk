@@ -215,7 +215,7 @@ inline void _calculate_reciprocal_internal_(const int iterations)
 {
     if constexpr (APPROXIMATION_MODE)
     {
-        if (is_fp32_dest_acc_en)
+        if constexpr (is_fp32_dest_acc_en)
         {
             _calculate_reciprocal_fast_8b_3c_(iterations);
         }
