@@ -402,6 +402,66 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     }
 }
 
+template <
+    PoolType type,
+    ReduceDim dim,
+    bool is_fp32_dest_acc_en,
+    int MATH_FIDELITY_DESC         = 0,
+    bool is_int_fpu_en             = false,
+    bool enforce_fp32_accumulation = false,
+    bool clear_dvalid              = true>
+inline void _llk_math_reduce_scalar_fused_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
+{
+    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
+    constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
+
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
+
+    if constexpr (dim == ReduceDim::REDUCE_SCALAR)
+    {
+        for (uint face_num = 0; face_num < num_faces; face_num++)
+        {
+            if constexpr (HIGH_FIDELITY)
+            {
+                for (int i = 0; i < MATH_FIDELITY_PHASES - 1; i++)
+                {
+                    TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 0);
+                }
+            }
+            TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0); // TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
+        }
+
+        // Need row in dest as column in src A
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
+        // copy over from dest to B and do transpose
+        // use rows 16 - 31 in src B as scratch
+        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+        TTI_GATESRCRST(0b1, 0b1); // todo: see if it can be removed
+        TTI_TRNSPSRCB;
+        // gate math instructions until src B has been updated
+        TTI_GATESRCRST(0b1, 0b1);
+        // copy over all 16 rows from B to A
+        TTI_MOVB2A(p_movb2a::SRCA_ZERO_OFFSET + 0, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, p_movb2a::SRCB_ROW16_OFFSET + 0);
+        TTI_MOVB2A(p_movb2a::SRCA_ZERO_OFFSET + 4, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, p_movb2a::SRCB_ROW16_OFFSET + 4);
+        TTI_MOVB2A(p_movb2a::SRCA_ZERO_OFFSET + 8, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, p_movb2a::SRCB_ROW16_OFFSET + 8);
+        TTI_MOVB2A(p_movb2a::SRCA_ZERO_OFFSET + 12, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, p_movb2a::SRCB_ROW16_OFFSET + 12);
+        // gate math instructions until src A has been updated by MOV instructions
+        TTI_GATESRCRST(0b1, 0b1);
+        // zero out scratch in dest
+        TTI_ZEROACC(p_zeroacc::CLR_SPECIFIC, 0, 0, ADDR_MOD_0, 0);
+
+        if constexpr (HIGH_FIDELITY)
+        {
+            for (int i = 0; i < MATH_FIDELITY_PHASES - 1; i++)
+            {
+                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 0);
+            }
+        }
+        TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+    }
+}
+
 template <PoolType type, int MATH_FIDELITY_DESC>
 inline void reduce_configure_addrmod()
 {
@@ -411,12 +471,7 @@ inline void reduce_configure_addrmod()
 
     addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0, .clr = 1}}.set(ADDR_MOD_0);
 
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 1},
-        .dest = {.incr = 1},
-    }
-        .set(ADDR_MOD_1);
+    addr_mod_t {.srca = {.incr = 16}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.clr = 1}}.set(ADDR_MOD_1);
 
     addr_mod_t {
         .srca = {.incr = 0},
@@ -474,4 +529,11 @@ inline void _llk_math_reduce_init_()
 inline void _llk_math_reduce_uninit_()
 {
     // No state to restore - all states are transient or default
+}
+
+// Clear data valid flags after for loop - used in fused operations
+inline void _llk_math_reduce_clear_dvalid_after_for_loop_()
+{
+    TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
 }
