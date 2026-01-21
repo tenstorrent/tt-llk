@@ -15,7 +15,7 @@ def _sum_counts(
         if r.get("bank") != bank:
             continue
         if r.get("counter_name") in names:
-            if mux is None or r.get("mux_ctrl_bit4") == mux:
+            if mux is None or r.get("l1_mux") == mux:
                 total += int(r.get("count", 0))
     return total
 
