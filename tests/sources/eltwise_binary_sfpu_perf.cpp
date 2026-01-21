@@ -16,12 +16,12 @@
 
 // Globals
 // Globals
-uint32_t unp_cfg_context                      = 0;
-uint32_t pack_sync_tile_dst_ptr               = 0;
-uint32_t math_sync_tile_dst_index             = 0;
-static constexpr int MAX_TILES_DEST           = is_fp32_dest_acc_en ? 4 : 8;
-static constexpr DstSync DST_SYNC_MODE        = DST_SYNC_MODE;
-static constexpr BroadcastType BROADCAST_TYPE = BroadcastType::NONE;
+uint32_t unp_cfg_context                               = 0;
+uint32_t pack_sync_tile_dst_ptr                        = 0;
+uint32_t math_sync_tile_dst_index                      = 0;
+static constexpr int MAX_TILES_DEST                    = is_fp32_dest_acc_en ? 4 : 8;
+static constexpr ckernel::DstSync DST_SYNC_MODE        = ckernel::DstSync::SyncHalf;
+static constexpr ckernel::BroadcastType BROADCAST_TYPE = ckernel::BroadcastType::NONE;
 
 #ifdef LLK_TRISC_UNPACK
 
