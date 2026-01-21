@@ -100,12 +100,6 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_B)); // update gpr which holds tile size B
 }
 
-inline void _llk_unpack_dbg_feature_disable_()
-{
-    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1 << 11); // Set debug feature disable bit 11
-                                                             // workaround for bug tenstorrent/budabackend#1372
-}
-
 inline void _llk_enable_int8_fpu_math_()
 {
     enable_int8_fpu_math();

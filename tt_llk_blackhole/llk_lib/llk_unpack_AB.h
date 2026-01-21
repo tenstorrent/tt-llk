@@ -107,7 +107,6 @@ inline void _llk_unpack_AB_reduce_init_(
     if constexpr (enforce_fp32_accumulation)
     {
         // Set necessary config regs for MOVB2D hi16/lo16 to work
-        // _llk_unpack_dbg_feature_disable_();
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1);
     }
 
