@@ -19,7 +19,7 @@ uint32_t unp_cfg_context                 = 0;
 uint32_t pack_sync_tile_dst_ptr          = 0;
 uint32_t math_sync_tile_dst_index        = 0;
 static constexpr uint32_t MAX_TILES_DEST = BLOCK_MODE ? (is_fp32_dest_acc_en ? 4 : 8) : 1;
-
+static_assert(TILE_CNT % MAX_TILES_DEST == 0, "TILE_COUNT must be multiple of MAX_TILES_DEST");
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
@@ -124,9 +124,9 @@ void run_kernel()
                 {
                     for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
                     {
-                        uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
+                        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
-                        for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                        for (uint32_t block_tile = 0; block_tile < MAX_TILES_DEST; ++block_tile)
                         {
                             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                                 block_start + block_tile, formats.math, formats.math);
@@ -136,24 +136,19 @@ void run_kernel()
                     }
                 }
             }
-            else
+            else // !unpack_to_dest
             {
                 for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
                 {
                     for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
                     {
-                        uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
-
-                        for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
-                        {
-                            _perf_math_loop_clear_valid<
-                                /* src A */ true,
-                                /* src B */ true>(
-                                /* iterations*/ NUM_FACES);
-                        }
-
-                        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-                        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                        //_llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+                        _perf_math_loop_clear_valid<
+                            /* src A */ true,
+                            /* src B */ true>(
+                            /* iterations*/ NUM_FACES * MAX_TILES_DEST);
+                        // Copy to dest
+                        //_llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
                     }
                 }
             }
@@ -164,21 +159,19 @@ void run_kernel()
             {
                 for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
-
-                    for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    if constexpr (!unpack_to_dest)
                     {
-                        if constexpr (!unpack_to_dest)
+                        for (uint32_t block_tile = 0; block_tile < MAX_TILES_DEST; ++block_tile)
                         {
                             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                                 block_tile, formats.math, formats.math);
                         }
-
-                        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_tile);
-                        test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS, FAST_MODE, STABLE_SORT>(
-                            SFPU_UNARY_OPERATION, formats.math);
-                        _llk_math_eltwise_unary_sfpu_done_();
                     }
+
+                    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ 0);
+                    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS * MAX_TILES_DEST, FAST_MODE, STABLE_SORT>(
+                        SFPU_UNARY_OPERATION, formats.math);
+                    _llk_math_eltwise_unary_sfpu_done_();
                 }
             }
         }
@@ -188,23 +181,20 @@ void run_kernel()
             {
                 for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
-
                     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
                     // Copy from srcA to dest
-                    for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (uint32_t block_tile = 0; block_tile < MAX_TILES_DEST; ++block_tile)
                     {
                         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                             block_tile, formats.math, formats.math);
-
-                        // Start SFPU operation
-                        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_tile);
-                        test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS, FAST_MODE, STABLE_SORT>(
-                            SFPU_UNARY_OPERATION, formats.math);
-
-                        _llk_math_eltwise_unary_sfpu_done_();
                     }
+
+                    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ 0);
+                    // Start SFPU operation
+                    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS * MAX_TILES_DEST, FAST_MODE, STABLE_SORT>(
+                        SFPU_UNARY_OPERATION, formats.math);
+                    _llk_math_eltwise_unary_sfpu_done_();
 
                     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
                 }
@@ -239,15 +229,13 @@ void run_kernel()
     {
         ZONE_SCOPED("TILE_LOOP")
 
-        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
+        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
                 for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
-
-                    for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (uint32_t block_tile = 0; block_tile < MAX_TILES_DEST; ++block_tile)
                     {
                         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, /* untilize */ false>(
                             block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
@@ -255,16 +243,14 @@ void run_kernel()
                 }
             }
         }
-        else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_TO_L1 || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_TO_L1)
         {
             for (uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
                 for (uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    uint32_t block_tiles = std::min(TILE_CNT - block_start, MAX_TILES_DEST);
-
                     _llk_packer_wait_for_math_done_();
-                    for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (uint32_t block_tile = 0; block_tile < MAX_TILES_DEST; ++block_tile)
                     {
                         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, /* untilize */ false>(
                             block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));

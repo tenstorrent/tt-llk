@@ -176,7 +176,7 @@ void run_kernel()
                                 block_tile, formats.math, formats.math);
                         }
 
-                        _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_tile);
+                        _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ 0);
                         test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, iterations>(block_start, formats.math);
                         _llk_math_eltwise_binary_sfpu_done_();
                     }

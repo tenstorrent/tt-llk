@@ -161,6 +161,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0)
     }
 }
 
+// TODO: Create issue and sync with owner
 template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, bool is_fp32_dest_acc_en = false, uint32_t MATH_FORMAT = 0>
 void call_binary_sfpu_operation(const uint dst_index_in0 = 0, const uint dst_index_in1 = 1, const uint dst_index_out = 0)
 {
