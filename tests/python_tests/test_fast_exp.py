@@ -20,7 +20,9 @@ from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
+    APPROX_MODE,
     INPUT_DIMENSIONS,
+    MATH_OP,
     TILE_COUNT,
 )
 
@@ -44,7 +46,10 @@ def test_eltwise_unary_sfpu_float(
     workers_tensix_coordinates: str,
 ):
 
-    if dest_acc == DestAccumulation.No and TestConfig.CHIP_ARCH == ChipArchitecture.BLACKHOLE:
+    if (
+        dest_acc == DestAccumulation.No
+        and TestConfig.CHIP_ARCH == ChipArchitecture.BLACKHOLE
+    ):
         if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(
             DataFormat.Float32, DataFormat.Float16
         ):
