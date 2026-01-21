@@ -8,7 +8,6 @@ import torch
 from helpers.format_config import DataFormat, FormatConfig
 from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
-    ApproximationMode,
     DataCopyType,
     DestAccumulation,
     ImpliedMathFormat,
@@ -21,7 +20,6 @@ from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
-    APPROX_MODE,
     DATA_COPY_TYPE,
     DEST_INDEX,
     DEST_SYNC,
@@ -120,33 +118,36 @@ SFPU_RSQRT_FORMATS = input_output_formats(
         SFPU_RSQRT_FORMATS
     ),
 )
-def test_sfpu_rsqrt_quasar(
-    formats_dest_acc_implied_math_input_dims, approx_mode=ApproximationMode.Yes
-):
+def test_sfpu_rsqrt_quasar(formats_dest_acc_implied_math_input_dims):
     """
     Test reciprocal square root (rsqrt) operation on Quasar architecture.
 
     Uses PyTorch's rsqrt as the golden reference and generates input stimuli
-    in the range [0.1, 10] to test rsqrt behavior.
+    covering the full representable range
     """
     (formats, dest_acc, implied_math_format, input_dimensions) = (
         formats_dest_acc_implied_math_input_dims[0]
     )
 
-    # Generate stimuli with random values in range [0.1, 10] for Approximation Mode
     src_A, tile_cnt_A, src_B, _ = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
-        sfpu=True,
+        sfpu=False,
     )
 
-    # Override src_A with random values in valid range for rsqrt [0.1, 10]
+    # Scale to full representable range using log-uniform distribution
     torch_format = format_dict[formats.input_format]
-    src_A = (
-        torch.rand(input_dimensions[0] * input_dimensions[1], dtype=torch_format) * 9.9
-        + 0.1
+    finfo = torch.finfo(torch_format)
+    min_val = max(1e-6, finfo.tiny * 100)
+    max_val = finfo.max
+
+    # Transform uniform [0,1) to log-uniform [min_val, max_val]
+    log_min = torch.log(torch.tensor(min_val, dtype=torch.float32))
+    log_max = torch.log(torch.tensor(float(max_val), dtype=torch.float32))
+    src_A = torch.exp(log_min + src_A.to(torch.float32) * (log_max - log_min)).to(
+        torch_format
     )
 
     num_faces = 4
@@ -167,7 +168,6 @@ def test_sfpu_rsqrt_quasar(
         templates=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=MathOperation.Rsqrt),
-            APPROX_MODE(approx_mode),
             IMPLIED_MATH_FORMAT(implied_math_format),
             DATA_COPY_TYPE(DataCopyType.A2D),
             UNPACKER_ENGINE_SEL(UnpackerEngine.UnpA),
