@@ -327,33 +327,39 @@ def summarize_kernel_metrics_dual(
     hw = _get_platform_bandwidth()
     lines: List[str] = []
     # Aggregate metrics (use GRANTS for truth, REQUESTS for pressure where meaningful)
-    gr_metrics: List[Dict[str, object]] = []
-    req_metrics: List[Dict[str, object]] = []
+    grants_metrics: List[Dict[str, object]] = []
+    requests_metrics: List[Dict[str, object]] = []
     for thread in sorted(
         set(
             list(results_by_thread_requests.keys())
             + list(results_by_thread_grants.keys())
         )
     ):
-        req = results_by_thread_requests.get(thread, [])
-        gr = results_by_thread_grants.get(thread, [])
-        m_req = compute_thread_metrics(req) if req else None
-        m_gr = compute_thread_metrics(gr) if gr else None
-        if m_gr:
-            gr_metrics.append(m_gr)
-        if m_req:
-            req_metrics.append(m_req)
+        requests_data = results_by_thread_requests.get(thread, [])
+        grants_data = results_by_thread_grants.get(thread, [])
+        metrics_requests = (
+            compute_thread_metrics(requests_data) if requests_data else None
+        )
+        metrics_grants = compute_thread_metrics(grants_data) if grants_data else None
+        if metrics_grants:
+            grants_metrics.append(metrics_grants)
+        if metrics_requests:
+            requests_metrics.append(metrics_requests)
 
     # Kernel-level overview (averaged across threads)
-    if gr_metrics:
+    if grants_metrics:
         avg = lambda xs: (sum(xs) / len(xs)) if xs else 0.0
-        avg_compute_util = avg([float(m["compute"]["utilization"]) for m in gr_metrics])
-        avg_fpu_rate = avg([float(m["compute"]["fpu_rate"]) for m in gr_metrics])
-        avg_sfpu_rate = avg([float(m["compute"]["sfpu_rate"]) for m in gr_metrics])
-        avg_unpack_util = avg([float(m["unpack"]["utilization"]) for m in gr_metrics])
-        avg_pack_util = avg([float(m["pack"]["utilization"]) for m in gr_metrics])
-        avg_l1_cong = avg([float(m["l1"]["congestion_index"]) for m in gr_metrics])
-        avg_noc_txn = avg([float(m["l1"]["noc_txn_per_cycle"]) for m in gr_metrics])
+        avg_compute_util = avg(
+            [float(m["compute"]["utilization"]) for m in grants_metrics]
+        )
+        avg_fpu_rate = avg([float(m["compute"]["fpu_rate"]) for m in grants_metrics])
+        avg_sfpu_rate = avg([float(m["compute"]["sfpu_rate"]) for m in grants_metrics])
+        avg_unpack_util = avg(
+            [float(m["unpack"]["utilization"]) for m in grants_metrics]
+        )
+        avg_pack_util = avg([float(m["pack"]["utilization"]) for m in grants_metrics])
+        avg_l1_cong = avg([float(m["l1"]["congestion_index"]) for m in grants_metrics])
+        avg_noc_txn = avg([float(m["l1"]["noc_txn_per_cycle"]) for m in grants_metrics])
 
         # Whole-kernel bound (compute vs data movement)
         kernel_compute_score = avg_compute_util
@@ -371,8 +377,10 @@ def summarize_kernel_metrics_dual(
         kernel_unpack_score = avg_unpack_util
         kernel_pack_score = avg_pack_util
         # Approximate RISC score from stalls minus issue
-        avg_stall_rate = avg([float(m["risc"]["stall_rate"]) for m in gr_metrics])
-        avg_issue_rate = avg([float(m["risc"]["instr_issue_rate"]) for m in gr_metrics])
+        avg_stall_rate = avg([float(m["risc"]["stall_rate"]) for m in grants_metrics])
+        avg_issue_rate = avg(
+            [float(m["risc"]["instr_issue_rate"]) for m in grants_metrics]
+        )
         # RISC bound approximation: stalls penalized by instruction issue rate
         # Aligns with per-thread heuristic (stall minus fraction of issue)
         kernel_risc_score = avg_stall_rate - (avg_issue_rate * 0.5)
@@ -448,10 +456,12 @@ def summarize_kernel_metrics_dual(
         )
         lines.append(f"Index ≈ {avg_l1_cong:.3f}.")
         # Summarize pulses across threads (sum not average for counts)
-        sum_gr = lambda fn: sum([fn(m) for m in gr_metrics])
-        sum_req = lambda fn: sum([fn(m) for m in req_metrics]) if req_metrics else 0.0
-        total_arb = sum_gr(lambda m: float(m["l1"]["arb_pulses"]))
-        total_no_arb = sum_gr(lambda m: float(m["l1"]["no_arb_pulses"]))
+        sum_grants = lambda fn: sum([fn(m) for m in grants_metrics])
+        sum_requests = lambda fn: (
+            sum([fn(m) for m in requests_metrics]) if requests_metrics else 0.0
+        )
+        total_arb = sum_grants(lambda m: float(m["l1"]["arb_pulses"]))
+        total_no_arb = sum_grants(lambda m: float(m["l1"]["no_arb_pulses"]))
         lines.append(
             f"Arbitration pulses: {int(total_arb)}; No-arb pulses: {int(total_no_arb)}."
         )
@@ -481,7 +491,9 @@ def summarize_kernel_metrics_dual(
             _format_bw("Packer BW", avg_pack_util, hw["pack_max_bytes_per_cycle"])
         )
         # NoC BW
-        avg_noc_bpc = avg([float(m["l1"]["noc_bytes_per_cycle"]) for m in gr_metrics])
+        avg_noc_bpc = avg(
+            [float(m["l1"]["noc_bytes_per_cycle"]) for m in grants_metrics]
+        )
         lines.append(f"NoC BW ≈ {avg_noc_bpc:.2f} B/cyc (txn/cyc {avg_noc_txn:.2f}).")
         lines.append("")
 
@@ -498,22 +510,30 @@ def summarize_kernel_metrics_dual(
         lines.append("")
 
         # 6) Acceptance (Requests → Grants) for meaningful counters
-        # Only TDMA (unpack/pack busy) and NIU (ring in/out) have actionable REQ vs GR semantics.
-        total_noc_gr = sum_gr(
+        # Only TDMA (unpack/pack busy) and NIU (ring in/out) have actionable REQUESTS vs GRANTS semantics.
+        total_noc_grants = sum_grants(
             lambda m: float(m["l1"]["noc_in_counts"] + m["l1"]["noc_out_counts"])
         )
-        total_noc_req = sum_req(
+        total_noc_requests = sum_requests(
             lambda m: float(m["l1"]["noc_in_counts"] + m["l1"]["noc_out_counts"])
         )
-        noc_acceptance = (total_noc_gr / total_noc_req) if total_noc_req else 1.0
-        total_unpack_gr = sum_gr(lambda m: float(m["unpack"]["busy_counts"]))
-        total_unpack_req = sum_req(lambda m: float(m["unpack"]["busy_counts"]))
+        noc_acceptance = (
+            (total_noc_grants / total_noc_requests) if total_noc_requests else 1.0
+        )
+        total_unpack_grants = sum_grants(lambda m: float(m["unpack"]["busy_counts"]))
+        total_unpack_requests = sum_requests(
+            lambda m: float(m["unpack"]["busy_counts"])
+        )
         unpack_acceptance = (
-            (total_unpack_gr / total_unpack_req) if total_unpack_req else 1.0
+            (total_unpack_grants / total_unpack_requests)
+            if total_unpack_requests
+            else 1.0
         )
-        total_pack_gr = sum_gr(lambda m: float(m["pack"]["busy_counts"]))
-        total_pack_req = sum_req(lambda m: float(m["pack"]["busy_counts"]))
-        pack_acceptance = (total_pack_gr / total_pack_req) if total_pack_req else 1.0
+        total_pack_grants = sum_grants(lambda m: float(m["pack"]["busy_counts"]))
+        total_pack_requests = sum_requests(lambda m: float(m["pack"]["busy_counts"]))
+        pack_acceptance = (
+            (total_pack_grants / total_pack_requests) if total_pack_requests else 1.0
+        )
 
         lines.append("6) Acceptance (Requests → Grants)")
         lines.append(
@@ -530,7 +550,7 @@ def summarize_kernel_metrics_dual(
             "Meaning: Values < 1.0 indicate backpressure or rejection; ≈1.0 means requests are being served."
         )
         lines.append(
-            "Note: Arbitration pulses and stall counters are mode-independent; use GRANTS for truth and ignore REQ for those."
+            "Note: Arbitration pulses and stall counters are mode-independent; use GRANTS for truth and ignore REQUESTS for those."
         )
         lines.append("")
 
