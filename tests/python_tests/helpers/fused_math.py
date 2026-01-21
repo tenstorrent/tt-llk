@@ -35,34 +35,6 @@ class Fpu:
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
-    def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        code = ""
-        # if config.profiler_enabled:
-        #     code += "    {\n"
-        #     code += "        ZONE_SCOPED(\"INIT\")\n"
-        code += self.init(operation, config)
-        if config.profiler_enabled:
-            code += "        PROFILER_SYNC();\n"
-            code += "    }\n"
-
-        if config.profiler_enabled:
-            code += "    {\n"
-            code += '        ZONE_SCOPED("TILE_LOOP")\n'
-        code += self.calculate(operation, config)
-        if config.profiler_enabled:
-            code += "        PROFILER_SYNC();\n"
-            code += "    }\n"
-
-        if config.profiler_enabled:
-            code += "    {\n"
-            code += '        ZONE_SCOPED("INIT")\n'
-        code += self.uninit(operation, config)
-        if config.profiler_enabled:
-            code += "        PROFILER_SYNC();\n"
-            code += "    }\n"
-
-        return code
-
     def golden(
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> torch.Tensor:
@@ -395,25 +367,6 @@ class Sfpu:
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
-    def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        code = ""
-        if config.profiler_enabled:
-            code += "    {\n"
-            code += '        ZONE_SCOPED("INIT")\n'
-        code += self.init(operation, config)
-        if config.profiler_enabled:
-            code += "        PROFILER_SYNC();\n"
-            code += "    }\n"
-
-        if config.profiler_enabled:
-            code += "    {\n"
-            code += '        ZONE_SCOPED("TILE_LOOP")\n'
-        code += self.calculate(operation, config)
-        if config.profiler_enabled:
-            code += "        PROFILER_SYNC();\n"
-            code += "    }\n"
-        return code
-
     def golden(
         self,
         tensor: torch.Tensor,
@@ -710,14 +663,52 @@ class Math:
             code += "    {\n"
             code += '        ZONE_SCOPED("INIT")\n'
         code += self.hw_configure(operation, config)
-        # if config.profiler_enabled:
-        #     code += "        PROFILER_SYNC();\n"
-        #     code += "    }\n"
+        code += self.fpu.init(operation, config)
+        if config.profiler_enabled:
+            code += "        PROFILER_SYNC();\n"
+            code += "    }\n"
 
-        code += self.fpu.exec(operation, config)
+        if config.profiler_enabled:
+            code += "    {\n"
+            code += '        ZONE_SCOPED("TILE_LOOP")\n'
+        code += self.fpu.calculate(operation, config)
+        if config.profiler_enabled:
+            code += "        PROFILER_SYNC();\n"
+            code += "    }\n"
+
+        if config.profiler_enabled:
+            code += "    {\n"
+            code += '        ZONE_SCOPED("INIT")\n'
+        code += self.fpu.uninit(operation, config)
+        if config.profiler_enabled:
+            code += "        PROFILER_SYNC();\n"
+            code += "    }\n"
 
         for sfpu in self.sfpu:
-            code += f"\n" f"{sfpu.exec(operation, config)}"
+            code += "\n"
+            if config.profiler_enabled:
+                code += "    {\n"
+                code += '        ZONE_SCOPED("INIT")\n'
+            code += sfpu.init(operation, config)
+            if config.profiler_enabled:
+                code += "        PROFILER_SYNC();\n"
+                code += "    }\n"
+
+            if config.profiler_enabled:
+                code += "    {\n"
+                code += '        ZONE_SCOPED("TILE_LOOP")\n'
+            code += sfpu.calculate(operation, config)
+            if config.profiler_enabled:
+                code += "        PROFILER_SYNC();\n"
+                code += "    }\n"
+
+            if config.profiler_enabled:
+                code += "    {\n"
+                code += '        ZONE_SCOPED("INIT")\n'
+            code += sfpu.uninit(operation, config)
+            if config.profiler_enabled:
+                code += "        PROFILER_SYNC();\n"
+                code += "    }\n"
 
         dest_acc = config.dest_acc.value
         code += (

@@ -136,6 +136,7 @@ class Packer:
     def pack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
+        dest_sync = f"DstSync::Sync{operation.dest_sync.name}"
 
         return (
             f"    _llk_packer_wait_for_math_done_();\n"
@@ -145,7 +146,7 @@ class Packer:
             f"        {{\n"
             f"            uint32_t dest_idx = tr * {operation.dest_tiles_w} + tc;\n"
             f"            uint32_t l1_idx = tr * {operation.output_tiles_w} + tc;\n"
-            f"            _llk_pack_<DstSync::SyncHalf, {dest_acc}, false>(dest_idx, L1_ADDRESS(buffer_Res{stage}[l1_idx]));\n"
+            f"            _llk_pack_<{dest_sync}, {dest_acc}, false>(dest_idx, L1_ADDRESS(buffer_Res{stage}[l1_idx]));\n"
             f"        }}\n"
             f"    }}\n"
             f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();\n"
