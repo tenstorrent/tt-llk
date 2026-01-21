@@ -280,36 +280,6 @@ def compute_thread_metrics(results: List[CounterResult]) -> Dict[str, object]:
     }
 
 
-def summarize_kernel_metrics(results_by_thread: Dict[str, List[CounterResult]]) -> str:
-    hw = _get_platform_bandwidth()
-    lines: List[str] = []
-    for thread, results in results_by_thread.items():
-        m = compute_thread_metrics(results)
-        lines.append(f"== {thread} ==")
-        lines.append(
-            f"cycles(instrn/fpu/unpack/pack/l1) = {m['cycles']['instrn']}/{m['cycles']['fpu']}/{m['cycles']['unpack']}/{m['cycles']['pack']}/{m['cycles']['l1']}"
-        )
-        lines.append(
-            f"compute util={m['compute']['utilization']:.3f} fpu={m['compute']['fpu_rate']:.3f} sfpu={m['compute']['sfpu_rate']:.3f}"
-        )
-        lines.append(
-            f"unpack util={m['unpack']['utilization']:.3f} pack util={m['pack']['utilization']:.3f} L1 cong={m['l1']['congestion_index']:.3f}"
-        )
-        lines.append(
-            f"NoC bytes/cycle ≈ {m['l1']['noc_bytes_per_cycle']:.2f} (txn/cycle {m['l1']['noc_txn_per_cycle']:.2f})"
-        )
-        lines.append(
-            f"Unpacker est BW={m['unpack']['est_bw_bytes_per_cycle']:.2f} B/cyc, Packer est BW={m['pack']['est_bw_bytes_per_cycle']:.2f} B/cyc"
-        )
-        lines.append(
-            f"RISC stalls={m['risc']['stall_rate']:.3f} instr_issue={m['risc']['instr_issue_rate']:.3f}"
-        )
-        top_bound = m["bound_classification"][0]
-        lines.append(f"Likely bound: {top_bound[0]} (score {top_bound[1]:.3f})")
-        lines.append("")
-    return "\n".join(lines)
-
-
 def summarize_kernel_metrics_dual(
     results_by_thread_requests: Dict[str, List[CounterResult]],
     results_by_thread_grants: Dict[str, List[CounterResult]],

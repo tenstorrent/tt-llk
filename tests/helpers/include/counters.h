@@ -264,46 +264,9 @@ private:
         return reinterpret_cast<volatile uint32_t*>(addr);
     }
 
-    void write_metadata()
-    {
-        volatile uint32_t* config_mem = get_config_mem();
-
-        for (uint32_t i = 0; i < num_counters; i++)
-        {
-            const auto& config = counters[i];
-            uint32_t metadata  = (1u << 31) | (static_cast<uint32_t>(config.l1_mux) << 17) | ((static_cast<uint32_t>(mode) & 0x1u) << 16) |
-                                (static_cast<uint32_t>(config.counter_id) << 8) | static_cast<uint32_t>(config.bank);
-            config_mem[i] = metadata;
-        }
-
-        for (uint32_t i = num_counters; i < COUNTER_SLOT_COUNT; i++)
-        {
-            config_mem[i] = 0;
-        }
-    }
-
 public:
     PerfCounters() : num_counters(0), mode(CounterMode::GRANTS)
     {
-    }
-
-    [[nodiscard]] bool add(CounterBank bank, uint8_t counter_id, uint8_t l1_mux = 0)
-    {
-        if (num_counters >= COUNTER_SLOT_COUNT)
-        {
-            return false;
-        }
-        counters[num_counters++] = {bank, counter_id, l1_mux};
-        return true;
-    }
-
-    void configure()
-    {
-        if (num_counters == 0)
-        {
-            return;
-        }
-        write_metadata();
     }
 
     void start()
@@ -469,19 +432,10 @@ public:
 
         return results;
     }
-
-    uint32_t size() const
-    {
-        return num_counters;
-    }
-
-    bool empty() const
-    {
-        return num_counters == 0;
-    }
 };
 
-// RAII helper with ownership: starts on construction and stops on destruction.
+// RAII helper: reads config from L1, starts counters on construction, stops on destruction.
+// Configuration is done externally via Python before running the kernel.
 class ScopedPerfCounters
 {
 private:
@@ -489,7 +443,6 @@ private:
     bool stopped_ = false;
 
 public:
-    // Default constructor: own a PerfCounters and start immediately
     ScopedPerfCounters()
     {
         counters_.start();
@@ -503,20 +456,14 @@ public:
         }
     }
 
-    // Access the underlying counters (e.g., to add/configure when kernel drives config)
-    PerfCounters& counters()
-    {
-        return counters_;
-    }
-
-    // Manually stop once and return results; destructor will not stop again
+    // Manually stop and return results; destructor will not stop again
     std::array<CounterResult, COUNTER_SLOT_COUNT> stop()
     {
         stopped_ = true;
         return counters_.stop();
     }
 
-    // Non-copyable, non-movable to avoid lifetime confusion
+    // Non-copyable, non-movable
     ScopedPerfCounters(const ScopedPerfCounters&)            = delete;
     ScopedPerfCounters& operator=(const ScopedPerfCounters&) = delete;
     ScopedPerfCounters(ScopedPerfCounters&&)                 = delete;

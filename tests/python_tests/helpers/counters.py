@@ -126,6 +126,59 @@ _COUNTER_NAME_TO_ID = {
 }
 
 
+def _build_all_counters() -> List[Dict]:
+    """Build the complete list of all 66 performance counters across all banks."""
+    counters = []
+
+    # INSTRN_THREAD bank (29 counters)
+    for name in COUNTER_NAMES["INSTRN_THREAD"].values():
+        counters.append(
+            {
+                "bank": "INSTRN_THREAD",
+                "counter_id": _COUNTER_NAME_TO_ID["INSTRN_THREAD"][name],
+            }
+        )
+
+    # FPU bank (2 counters)
+    for name in COUNTER_NAMES["FPU"].values():
+        counters.append({"bank": "FPU", "counter_id": _COUNTER_NAME_TO_ID["FPU"][name]})
+
+    # TDMA_UNPACK bank (11 counters)
+    for name in COUNTER_NAMES["TDMA_UNPACK"].values():
+        counters.append(
+            {
+                "bank": "TDMA_UNPACK",
+                "counter_id": _COUNTER_NAME_TO_ID["TDMA_UNPACK"][name],
+            }
+        )
+
+    # TDMA_PACK bank (8 counters)
+    for name in COUNTER_NAMES["TDMA_PACK"].values():
+        counters.append(
+            {"bank": "TDMA_PACK", "counter_id": _COUNTER_NAME_TO_ID["TDMA_PACK"][name]}
+        )
+
+    # L1 bank with l1_mux=0 (8 counters)
+    for (counter_id, l1_mux), name in COUNTER_NAMES["L1"].items():
+        if l1_mux == 0:
+            counters.append({"bank": "L1", "counter_id": counter_id, "l1_mux": 0})
+
+    # L1 bank with l1_mux=1 (8 counters)
+    for (counter_id, l1_mux), name in COUNTER_NAMES["L1"].items():
+        if l1_mux == 1:
+            counters.append({"bank": "L1", "counter_id": counter_id, "l1_mux": 1})
+
+    # Total: 29 + 2 + 11 + 8 + 8 + 8 = 66 counters
+    return counters
+
+
+# Pre-built list of all 66 counters (computed once at module load)
+ALL_COUNTERS = _build_all_counters()
+
+# All threads that support performance counters
+ALL_THREADS = ["UNPACK", "MATH", "PACK"]
+
+
 def _get_thread_addresses(thread: str) -> Tuple[int, int]:
     """Get config and data addresses for a thread."""
     addresses = _THREAD_ADDRESSES.get(thread.upper())
@@ -134,45 +187,13 @@ def _get_thread_addresses(thread: str) -> Tuple[int, int]:
     return addresses
 
 
-def counter(bank: str, counter_name: str, l1_mux: int = 0) -> Dict:
-    if bank not in _BANK_NAME_TO_ID:
-        raise ValueError(
-            f"Unknown bank: {bank}. Valid banks: {list(_BANK_NAME_TO_ID.keys())}"
-        )
-
-    if bank == "L1":
-        lookup_key = (counter_name, l1_mux)
-        counter_id = _L1_NAME_TO_ID.get(lookup_key)
-
-        if counter_id is None:
-            available = [f"{name} (mux={mux})" for (name, mux) in _L1_NAME_TO_ID.keys()]
-            raise ValueError(
-                f"Unknown L1 counter: {counter_name} with l1_mux={l1_mux}. Available: {available}"
-            )
-
-        return {"bank": bank, "counter_id": counter_id, "l1_mux": l1_mux}
-    else:
-        # Use O(1) lookup instead of linear search
-        if bank not in _COUNTER_NAME_TO_ID:
-            raise ValueError(f"No counter definitions for bank: {bank}")
-
-        counter_id = _COUNTER_NAME_TO_ID[bank].get(counter_name)
-
-        if counter_id is None:
-            available = list(_COUNTER_NAME_TO_ID[bank].keys())
-            raise ValueError(
-                f"Unknown counter: {counter_name} in bank {bank}. Available: {available}"
-            )
-
-        return {"bank": bank, "counter_id": counter_id}
-
-
-def configure_perf_counters(
+def _configure_perf_counters(
     counters: List[Dict],
-    location: str = "0,0",
-    thread: str = "MATH",
-    mode: str = "GRANTS",
+    location: str,
+    thread: str,
+    mode: str,
 ) -> None:
+    """Internal: Configure performance counters for a single thread."""
     config_addr, data_addr = _get_thread_addresses(thread)
 
     if len(counters) > COUNTER_SLOT_COUNT:
@@ -185,7 +206,7 @@ def configure_perf_counters(
 
     # Encode counter configurations
     config_words = []
-    for idx, counter in enumerate(counters):
+    for counter in counters:
         bank_name = counter["bank"]
         counter_id = counter["counter_id"]
         l1_mux = counter.get("l1_mux", 0)
@@ -214,7 +235,7 @@ def configure_perf_counters(
     write_words_to_device(location=location, addr=config_addr, data=combined_data)
 
 
-def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict]:
+def _read_perf_counters(location: str, thread: str) -> List[Dict]:
     config_addr, data_addr = _get_thread_addresses(thread)
 
     # Read metadata
@@ -288,7 +309,7 @@ def read_perf_counters(location: str = "0,0", thread: str = "MATH") -> List[Dict
     return results
 
 
-def print_perf_counters(results: List[Dict], thread: str = None) -> None:
+def _print_perf_counters(results: List[Dict], thread: str = None) -> None:
     if not results:
         print("No performance counters configured")
         return
@@ -346,3 +367,44 @@ def print_perf_counters(results: List[Dict], thread: str = None) -> None:
             )
 
     print("=" * 80)
+
+
+def configure_all_counters(location: str = "0,0", mode: str = "GRANTS") -> None:
+    """
+    Configure all 66 performance counters on all threads (UNPACK, MATH, PACK).
+
+    This is a convenience function that sets up complete counter coverage
+    for performance analysis. The counters measure various hardware events
+    across instruction threads, FPU, TDMA (unpack/pack), and L1/NoC.
+
+    Args:
+        location: Tensix core coordinates (e.g., "0,0").
+        mode: Counter mode - "GRANTS" for actual work done, "REQUESTS" for attempted work.
+    """
+    for thread in ALL_THREADS:
+        _configure_perf_counters(
+            ALL_COUNTERS, location=location, thread=thread, mode=mode
+        )
+
+
+def read_all_counters(
+    location: str = "0,0", verbose: bool = False
+) -> Dict[str, List[Dict]]:
+    """
+    Read performance counter results from all threads.
+
+    Args:
+        location: Tensix core coordinates (e.g., "0,0").
+        verbose: If True, print counter results for each thread.
+
+    Returns:
+        Dictionary mapping thread name to list of counter results.
+    """
+    results_by_thread = {}
+    for thread in ALL_THREADS:
+        results = _read_perf_counters(location=location, thread=thread)
+        if results:
+            if verbose:
+                _print_perf_counters(results, thread=thread)
+            results_by_thread[thread] = results
+    return results_by_thread
