@@ -9,14 +9,12 @@
 
 #include "ckernel.h"
 #include "llk_defs.h"
-#include "profiler.h"
+//#include "profiler.h"
 
 // Globals
 uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
-
-#define DST_SYNC_MODE SyncFull
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -24,13 +22,14 @@ uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
-    _llk_unpack_A_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(formats.unpack_src, formats.unpack_dst, FACE_R_DIM, 0, 4);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
 
-    for (int i = 0; i < TILE_CNT; ++i)
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
@@ -45,11 +44,13 @@ void run_kernel()
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_eltwise_unary_sfpu.h"
-#include "llk_math_eltwise_unary_sfpu_params.h"
 #include "params.h"
+#include "sfpu_operations.h"
 
 using namespace ckernel;
 using namespace ckernel::sfpu;
+
+const int iterations = 8;
 
 namespace ckernel
 {
@@ -70,7 +71,7 @@ void exp_init()
 } // namespace sfpu
 } // namespace ckernel
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
@@ -79,38 +80,33 @@ void run_kernel()
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(4, formats.math);
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+    _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
     {
-        ZONE_SCOPED("INIT")
-        ckernel::sfpu::exp_init<true, true>();
-        PROFILER_SYNC();
+    //ZONE_SCOPED("INIT")
+    ckernel::sfpu::exp_init<true, true>();
+    //PROFILER_SYNC();
     }
     {
-        ZONE_SCOPED("TILE_LOOP")
-        for (int i = 0; i < TILE_CNT; ++i)
-        {
-            _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                i, formats.math, formats.math);
+    //ZONE_SCOPED("TILE_LOOP")
+    for (int i = 0; i < params->TILE_CNT; ++i)
+    {
+        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+            i, formats.math, formats.math);
 
-            // calculation of sfpu operation on dest
-            // _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
+        // calculation of sfpu operation on dest
+        // _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
+        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
 
-            // _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
-            // // calling sfpu function from ckernel
-            // // this part is where parametrization of operation takes part
-            // call_sfpu_operation(SFPU_UNARY_OPERATION, formats.math);
+        // for (int j = 0; j < 256; j++)
+        ckernel::sfpu::calculate_exponential<true, true, false, iterations, false>, i, VectorMode::RC_custom, p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor*/);
 
-            // for (int j = 0; j < 256; j++)
-            _llk_math_eltwise_unary_sfpu_params_<true>(
-                ckernel::sfpu::calculate_exponential<true, true, false, 8, false>, i, VectorMode::RC_custom, p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor*/);
+        _llk_math_eltwise_unary_sfpu_done_();
+    }
 
-            // _llk_math_eltwise_unary_sfpu_done_();
-        }
-
-        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        PROFILER_SYNC();
+    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    //PROFILER_SYNC();
     }
 }
 
@@ -122,7 +118,7 @@ void run_kernel()
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel()
+void run_kernel(const volatile struct RuntimeParams *params)
 {
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -130,16 +126,16 @@ void run_kernel()
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #endif
 
-    _llk_pack_init_<false, false, DstTileFaceLayout::RowMajor, false>(formats.pack_dst);
+    _llk_pack_init_<false, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileFaceLayout::RowMajor>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncHalf, false, DstTileFaceLayout::RowMajor, false>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < TILE_CNT; ++i)
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
