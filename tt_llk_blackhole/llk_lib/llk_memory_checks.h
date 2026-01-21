@@ -42,64 +42,55 @@ namespace ckernel
 // The layout is based on dev_mem_map.h hardware definitions and excludes all reserved
 // system memory areas.
 //
-// BLACKHOLE: Larger L1 size (1536 KB) and additional features (6-directional fabric)
-// compared to Wormhole (1464 KB with 4-directional fabric)
-//
 // Memory Region Breakdown (from dev_mem_map.h):
 // -----------------------------------------------
-// 0x0      - 0x8740   (33.81 KB): RESERVED - System firmware, mailboxes, counters, routing
-//                                   tables, fabric metadata, and packet header pools
-//                                   Calculated as: MEM_MAP_END
+// MEM_L1_BASE - MEM_MAP_END: RESERVED - System firmware, mailboxes, counters, routing
+//                                       tables, fabric metadata, and packet header pools
 //
-// 0x8740  - 0x180000  (1502.19 KB): AVAILABLE - Valid memory for tile data buffers
-//                                     This is the primary usable L1 region for computation
+// MEM_MAP_END - (MEM_L1_BASE + MEM_L1_SIZE): AVAILABLE - Valid memory for tile data buffers
+//                                                        This is the primary usable L1 region for computation
 //
-// Total L1: 1536 KB (MEM_L1_SIZE)
-//
-// Exact Value Calculations (all from dev_mem_map.h chain):
+// MEM_MAP_END calculation chain (all from dev_mem_map.h):
 // ---------------------------------------------------------
-// MEM_MAP_END calculation chain:
-//   MEM_L1_INLINE_BASE (32) [new in Blackhole]
-//   MEM_MAILBOX_BASE (96) + MEM_MAILBOX_SIZE (12768) = MEM_MAILBOX_END (12864)
-//   → MEM_ZEROS_BASE = ((12864 + 31) & ~31) = 12896
-//   → MEM_LLK_DEBUG_BASE = 12896 + 512 = 13408
-//   → MEM_BRISC_FIRMWARE_BASE = 13408 + 1024 = 14432
-//   → MEM_NCRISC_FIRMWARE_BASE = 14432 + 7168 (7K) = 21600
-//   → MEM_TRISC0_FIRMWARE_BASE = 21600 + 1536 = 23136
-//   → MEM_TRISC1_FIRMWARE_BASE = 23136 + 1536 = 24672
-//   → MEM_TRISC2_FIRMWARE_BASE = 24672 + 1536 = 26208
-//   → MEM_NOC_COUNTER_BASE = 26208 + 1536 = 27744 (0x6C40)
-//   → MEM_FABRIC_COUNTER_BASE = 27744 + 80 = 27824 (0x6C90)
-//   → MEM_FABRIC_CONNECTION_LOCK_BASE = 27824 + 32 = 27856 (0x6CB0) [new in BH]
-//   → MEM_TENSIX_ROUTING_TABLE_BASE = 27856 + 144 = 28000 (0x6D40)
-//   → MEM_TENSIX_FABRIC_CONNECTIONS_BASE = 28000 + 484 + 1024 + 1024 + 12 = 30544 (0x7730)
-//   → MEM_PACKET_HEADER_POOL_BASE = 30544 + 656 = 31200 (0x79C0)
-//   → MEM_MAP_END = 31200 + 3456 = 34656 (0x8740)
+//   MEM_L1_INLINE_BASE [new in Blackhole]
+//   MEM_MAILBOX_BASE + MEM_MAILBOX_SIZE = MEM_MAILBOX_END
+//   → MEM_ZEROS_BASE = ((MEM_MAILBOX_END + alignment) & ~alignment)
+//   → MEM_LLK_DEBUG_BASE = MEM_ZEROS_BASE + MEM_ZEROS_SIZE
+//   → MEM_BRISC_FIRMWARE_BASE = MEM_LLK_DEBUG_BASE + MEM_LLK_DEBUG_SIZE
+//   → MEM_NCRISC_FIRMWARE_BASE = MEM_BRISC_FIRMWARE_BASE + MEM_BRISC_FIRMWARE_SIZE
+//   → MEM_TRISC0_FIRMWARE_BASE = MEM_NCRISC_FIRMWARE_BASE + MEM_NCRISC_FIRMWARE_SIZE
+//   → MEM_TRISC1_FIRMWARE_BASE = MEM_TRISC0_FIRMWARE_BASE + MEM_TRISC0_FIRMWARE_SIZE
+//   → MEM_TRISC2_FIRMWARE_BASE = MEM_TRISC1_FIRMWARE_BASE + MEM_TRISC1_FIRMWARE_SIZE
+//   → MEM_NOC_COUNTER_BASE = MEM_TRISC2_FIRMWARE_BASE + MEM_TRISC2_FIRMWARE_SIZE
+//   → MEM_FABRIC_COUNTER_BASE = MEM_NOC_COUNTER_BASE + MEM_NOC_COUNTER_SIZE
+//   → MEM_FABRIC_CONNECTION_LOCK_BASE = MEM_FABRIC_COUNTER_BASE + MEM_FABRIC_COUNTER_SIZE [new in BH]
+//   → MEM_TENSIX_ROUTING_TABLE_BASE = MEM_FABRIC_CONNECTION_LOCK_BASE + MEM_FABRIC_CONNECTION_LOCK_SIZE
+//   → MEM_TENSIX_FABRIC_CONNECTIONS_BASE = MEM_TENSIX_ROUTING_TABLE_BASE + (routing tables sizes)
+//   → MEM_PACKET_HEADER_POOL_BASE = MEM_TENSIX_FABRIC_CONNECTIONS_BASE + (fabric connection sizes)
+//   → MEM_MAP_END = MEM_PACKET_HEADER_POOL_BASE + MEM_PACKET_HEADER_POOL_SIZE
 
 // Start of available memory region for tile data (LLK transformed address)
 // Immediately after all reserved system memory (firmware, mailboxes, counters, routing tables, fabric metadata)
-// Physical Boundary: 0x8740 (34,624 bytes = 33.81 KB)
-// Transformed Value: L1_ADDRESS(MEM_MAP_END) = (0x8740 / 16) - 1
-// Derived from: MEM_MAP_END from dev_mem_map.h
+// Physical Boundary: MEM_MAP_END
+// Transformed Value: L1_ADDRESS(MEM_MAP_END) = (MEM_MAP_END / 16) - 1
 constexpr std::uint32_t L1_REGION_START = L1_ADDRESS(MEM_MAP_END);
 
 // End of L1 memory (LLK transformed address) - total available L1 size
 // This is the absolute upper bound for any L1 address
-// Physical Boundary: 0x180000 (1,572,864 bytes = 1536 KB)
-// Transformed Value: L1_ADDRESS(MEM_L1_SIZE) = (0x180000 / 16) - 1
-// Defined by: MEM_L1_SIZE (1536 * 1024) from dev_mem_map.h
-constexpr std::uint32_t L1_REGION_END = L1_ADDRESS(MEM_L1_SIZE);
+// Physical Boundary: MEM_L1_BASE + MEM_L1_SIZE
+// Transformed Value: L1_ADDRESS(MEM_L1_BASE + MEM_L1_SIZE) = ((MEM_L1_BASE + MEM_L1_SIZE) / 16) - 1
+constexpr std::uint32_t L1_REGION_END = L1_ADDRESS(MEM_L1_BASE + MEM_L1_SIZE);
 
 /**
  * @brief Check if an LLK-transformed address is valid for tile data
  *
  * Validates that the transformed address falls within the usable L1 memory region:
- * - Start (transformed): L1_ADDRESS(0x8740) = L1_ADDRESS(MEM_MAP_END)
- * - End (transformed):   L1_ADDRESS(0x180000) = L1_ADDRESS(MEM_L1_SIZE)
- * - Physical Range: 0x8740 - 0x180000 (1,538,240 bytes ≈ 1,502.2 KB)
+ * - Start (transformed): L1_ADDRESS(MEM_MAP_END)
+ * - End (transformed):   L1_ADDRESS(MEM_L1_BASE + MEM_L1_SIZE)
+ * - Physical Range: MEM_MAP_END to (MEM_L1_BASE + MEM_L1_SIZE)
  *
  * This single contiguous region is available for all tile data and computational buffers.
- * The reserved area (0x0 - 0x8740 ≈ 33.81 KB) contains system firmware, mailboxes, counters,
+ * The reserved area (MEM_L1_BASE to MEM_MAP_END) contains system firmware, mailboxes, counters,
  * routing tables, fabric metadata, fabric connection locks, and packet header pools.
  *
  * IMPORTANT: This function takes and compares LLK TRANSFORMED addresses.

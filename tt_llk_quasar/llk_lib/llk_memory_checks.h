@@ -42,53 +42,51 @@ namespace ckernel
 //
 // Memory Region Breakdown (from dev_mem_map.h):
 // -----------------------------------------------
-// 0x0        - 0x803B0   (512.92 KB): RESERVED - System firmware (mailbox, debug, DM/TRISC FW),
+// MEM_L1_BASE - MEM_MAP_END: RESERVED - System firmware (mailbox, debug, DM/TRISC FW),
 //                                       global storage (8 DM cores + 4 TRISC cores),
-//                                       local storage (8 DM cores), DM kernel code (8 × 48KB),
+//                                       local storage (8 DM cores), DM kernel code,
 //                                       NoC/Fabric counters, routing tables, and packet header pools
 //                                       Calculated as: MEM_MAP_END
 //
-// 0x803B0  - 0x400000  (3583.08 KB = 3.50 MB): AVAILABLE - Valid memory for tile data buffers
+// MEM_MAP_END - (MEM_L1_BASE + MEM_L1_SIZE): AVAILABLE - Valid memory for tile data buffers
 //                                                This is the primary usable L1 region for computation
 //
-// Total L1: 4 MB (MEM_L1_SIZE)
+// Total L1: MEM_L1_SIZE
 //
 // Exact Value Calculations (all from dev_mem_map.h chain):
 // ---------------------------------------------------------
 // MEM_MAP_END calculation chain (Quasar specific with 8 DM cores):
-//   MEM_MAILBOX_BASE (16) + MEM_MAILBOX_SIZE (30272) = MEM_MAILBOX_END (30288)
-//   → MEM_ZEROS_BASE = ((30288 + 31) & ~31) = 30304
-//   → MEM_LLK_DEBUG_BASE = 30304 + 512 = 30816
-//   → MEM_DM_FIRMWARE_BASE = 30816 + 1024 = 31840
+//   MEM_MAILBOX_BASE + MEM_MAILBOX_SIZE = MEM_MAILBOX_END
+//   → MEM_ZEROS_BASE = ((MEM_MAILBOX_END + alignment) & ~alignment)
+//   → MEM_LLK_DEBUG_BASE = MEM_ZEROS_BASE + MEM_ZEROS_SIZE
+//   → MEM_DM_FIRMWARE_BASE = MEM_LLK_DEBUG_BASE + MEM_LLK_DEBUG_SIZE
 //   → [8 DM firmware slots, then 4 TRISC firmware slots]
-//   → MEM_TRISC3_FIRMWARE_BASE + SIZE = 50272 (0xC460)
-//   → MEM_DM_GLOBAL_BASE = 50272 (8 × 1KB DM global) → 58464
-//   → MEM_TRISC_GLOBAL_BASE = 58464 (4 × 1KB TRISC global) → 60544
-//   → MEM_DM_LOCAL_BASE = 60544 (8 × 8KB DM local) → 125024
-//   → MEM_TRISC_LOCAL_BASE = 125024 (skipped in calc, uses DM_LOCAL_BASE reference)
-//   → MEM_DM_KERNEL_BASE = 125024 (8 × 48KB DM kernel) = 520224 (0x7E860)
-//   → MEM_NOC_COUNTER_BASE = 520224 + 80 = 520304 (0x7E8B0)
-//   → MEM_FABRIC_COUNTER_BASE = 520304 + 112 = 520416 (0x7E920) [8 DMs: 3×8×4+16 bytes]
-//   → MEM_FABRIC_CONNECTION_LOCK_BASE = 520416 + 144 = 520560 (0x7E9B0)
-//   → MEM_TENSIX_ROUTING_TABLE_BASE = 520560 + 484 + 1024 + 1024 + 12 = 522704 (0x7F3A0)
-//   → MEM_TENSIX_FABRIC_CONNECTIONS_BASE = 522704 + 656 = 523360 (0x7F630)
-//   → MEM_PACKET_HEADER_POOL_BASE = 523360 + 3456 = 526816 (0x803B0)
-//   → MEM_MAP_END = 526816
+//   → MEM_TRISC3_FIRMWARE_BASE + MEM_TRISC3_FIRMWARE_SIZE
+//   → MEM_DM_GLOBAL_BASE (8 DM cores global storage)
+//   → MEM_TRISC_GLOBAL_BASE (4 TRISC cores global storage)
+//   → MEM_DM_LOCAL_BASE (8 DM cores local storage)
+//   → MEM_TRISC_LOCAL_BASE
+//   → MEM_DM_KERNEL_BASE (8 DM kernel code sections)
+//   → MEM_NOC_COUNTER_BASE
+//   → MEM_FABRIC_COUNTER_BASE (scaled for 8 DMs)
+//   → MEM_FABRIC_CONNECTION_LOCK_BASE
+//   → MEM_TENSIX_ROUTING_TABLE_BASE
+//   → MEM_TENSIX_FABRIC_CONNECTIONS_BASE
+//   → MEM_PACKET_HEADER_POOL_BASE
+//   → MEM_MAP_END = MEM_PACKET_HEADER_POOL_BASE + MEM_PACKET_HEADER_POOL_SIZE
 
 // Start of available memory region for tile data (LLK transformed address)
 // Immediately after all reserved system memory (firmware, DM kernel code, global/local storage,
 // counters, routing tables, fabric metadata)
-// Physical Boundary: 0x803B0 (526,816 bytes = 512.92 KB)
-// Transformed Value: L1_ADDRESS(MEM_MAP_END) = (0x803B0 / 16) - 1
-// Derived from: MEM_MAP_END from dev_mem_map.h
+// Physical Boundary: MEM_MAP_END
+// Transformed Value: L1_ADDRESS(MEM_MAP_END) = MEM_MAP_END / 16
 constexpr std::uint32_t L1_REGION_START = L1_ADDRESS(MEM_MAP_END);
 
 // End of L1 memory (LLK transformed address) - total available L1 size
 // This is the absolute upper bound for any L1 address
-// Physical Boundary: 0x400000 (4,194,304 bytes = 4 MB)
-// Transformed Value: L1_ADDRESS(MEM_L1_SIZE) = (0x400000 / 16) - 1
-// Defined by: MEM_L1_SIZE (4 * 1024 * 1024) from dev_mem_map.h
-constexpr std::uint32_t L1_REGION_END = L1_ADDRESS(MEM_L1_SIZE);
+// Physical Boundary: MEM_L1_BASE + MEM_L1_SIZE
+// Transformed Value: L1_ADDRESS(MEM_L1_BASE + MEM_L1_SIZE) = (MEM_L1_BASE + MEM_L1_SIZE) / 16
+constexpr std::uint32_t L1_REGION_END = L1_ADDRESS(MEM_L1_BASE + MEM_L1_SIZE);
 
 } // namespace ckernel
 
@@ -96,28 +94,28 @@ constexpr std::uint32_t L1_REGION_END = L1_ADDRESS(MEM_L1_SIZE);
  * @brief Check if an LLK-transformed address is valid for tile data
  *
  * Validates that the transformed address falls within the usable L1 memory region:
- * - Start (transformed): L1_ADDRESS(0x803B0) = L1_ADDRESS(MEM_MAP_END)
- * - End (transformed):   L1_ADDRESS(0x400000) = L1_ADDRESS(MEM_L1_SIZE)
- * - Physical Range: 0x803B0 - 0x400000 (3,669,072 bytes ≈ 3,583.1 KB = 3.50 MB)
+ * - Start (transformed): L1_ADDRESS(MEM_MAP_END)
+ * - End (transformed):   L1_ADDRESS(MEM_L1_BASE + MEM_L1_SIZE)
+ * - Physical Range: MEM_MAP_END to (MEM_L1_BASE + MEM_L1_SIZE)
  *
  * This single contiguous region is available for all tile data and computational buffers.
- * The reserved area (0x0 - 0x803B0 ≈ 512.92 KB) contains system firmware, DM kernel code,
- * global/local storage for 8 DM cores and 4 TRISC cores, NoC counters, fabric counters,
+ * The reserved area (MEM_L1_BASE to MEM_MAP_END) contains system firmware, DM kernel code,
+ * global/local storage for DM cores and TRISC cores, NoC counters, fabric counters,
  * routing tables, fabric metadata, and packet header pools.
  *
  * QUASAR SPECIFICS:
- * - Significantly larger L1 (4 MB vs 1.5 MB in Blackhole): +2.5 MB available
+ * - Significantly larger L1 memory compared to previous architectures
  * - 8 DM cores instead of TRISC-only: Expanded compute architecture
- * - 4 TRISC cores (vs 4 in previous, but shared with DM architecture)
- * - Much larger firmware footprint (1 DM @ 12KB + 4 TRISC @ 1.5KB each)
- * - Larger mailbox (30.3 KB vs 12.8 KB): Support for expanded fabric
- * - 8 DM global storage (8 KB) + per-DM local storage (64 KB total)
- * - Large DM kernel allocation (8 × 48 KB = 384 KB for DM code)
- * - Fabric counter scaled for 8 DMs (3 × 8 × 4 + 16 bytes)
+ * - 4 TRISC cores (shared with DM architecture)
+ * - Much larger firmware footprint (DM + TRISC firmware)
+ * - Larger mailbox: Support for expanded fabric
+ * - DM global storage + per-DM local storage
+ * - Large DM kernel allocation for DM code
+ * - Fabric counter scaled for multiple DMs
  *
  * IMPORTANT: This function takes and compares LLK TRANSFORMED addresses.
  * If you have a physical address, transform it first using L1_ADDRESS():
- *   transformed_addr = L1_ADDRESS(physical_addr) = (physical_addr / 16) - 1
+ *   transformed_addr = L1_ADDRESS(physical_addr) = physical_addr / 16
  * Or pass this function the result from L1_ADDRESS() calls.
  *
  * @param address The LLK-transformed L1 address to validate
