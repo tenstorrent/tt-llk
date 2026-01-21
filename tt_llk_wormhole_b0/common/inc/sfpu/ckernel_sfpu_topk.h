@@ -319,7 +319,7 @@ inline void bitonic_topk_step_N(bool dir);
 template <>
 inline void bitonic_topk_step_N<true>(bool dir)
 {
-    // Step N - interleaved to hide SFPSWAP 2-cycle latency
+    // Step N
     if (dir == (bool)SortDir::ArgMax)
     {
         TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
