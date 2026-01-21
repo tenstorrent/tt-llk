@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from .fuser_config import GlobalConfig
 
 from .fused_math import ReduceFpu
+from .llk_params import PerfRunType
 
 
 class Packer:
@@ -20,6 +21,7 @@ class Packer:
         return [
             "llk_pack.h",
             "llk_pack_common.h",
+            "perf.h",
         ]
 
     def golden(
@@ -34,12 +36,72 @@ class Packer:
             : operation.output_pack_dims[1],
         ]
 
+    def pack_with_perf(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        if (
+            config.perf_run_type == PerfRunType.UNPACK_ISOLATE
+            or config.perf_run_type == PerfRunType.MATH_ISOLATE
+        ):
+            code = self.uninit(operation, config)
+            code += ""
+            return code
+        elif (
+            config.perf_run_type == PerfRunType.PACK_ISOLATE
+            or config.perf_run_type == PerfRunType.L1_CONGESTION
+        ):
+            return self.pack(operation, config)
+        else:
+            code = "    _llk_packer_wait_for_math_done_();\n"
+            code += self.pack(operation, config)
+            return code
+
+    def exec_perf(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        dest_acc = config.dest_acc.value
+
+        code = "{\n"
+        code += '    ZONE_SCOPED("INIT")\n'
+        code += self.hw_configure(operation, config)
+        code += self.init(operation, config)
+        code += "    PROFILER_SYNC();\n"
+        code += "}\n"
+
+        code += "{\n"
+        code += '    ZONE_SCOPED("TILE_LOOP")\n'
+        code += self.pack_with_perf(operation, config)
+
+        if (
+            config.perf_run_type != PerfRunType.UNPACK_ISOLATE
+            and config.perf_run_type != PerfRunType.MATH_ISOLATE
+        ):
+            code += (
+                f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();\n"
+            )
+        code += self.unpacker_sync(operation, config)
+
+        code += "    PROFILER_SYNC();\n"
+        code += "}\n"
+
+        if (
+            config.perf_run_type != PerfRunType.UNPACK_ISOLATE
+            and config.perf_run_type != PerfRunType.MATH_ISOLATE
+        ):
+            code += "{\n"
+            code += '    ZONE_SCOPED("INIT")\n'
+            code += self.uninit(operation, config)
+            code += "    PROFILER_SYNC();\n"
+            code += "}\n"
+
+        return code
+
     def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
         buffer_Res_tile_size = operation.buffer_Res_tile_size
         pack_src = operation.pack_in
         pack_dst = operation.pack_out
         result_buffer_address = operation.output.l1_address
+        dest_acc = config.dest_acc.value
+
         code = (
             f"    // Operation {stage}: Packer\n"
             f"    const Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});\n"
@@ -48,30 +110,17 @@ class Packer:
         )
 
         if config.profiler_enabled:
-            code += "{\n"
-            code += '    ZONE_SCOPED("INIT")\n'
-        code += self.hw_configure(operation, config)
-        code += self.init(operation, config)
-        if config.profiler_enabled:
-            code += "    PROFILER_SYNC();\n"
-            code += "}\n"
-
-        if config.profiler_enabled:
-            code += "{\n"
-            code += '    ZONE_SCOPED("TILE_LOOP")\n'
-        code += self.pack(operation, config)
-        code += self.unpacker_sync(operation, config)
-        if config.profiler_enabled:
-            code += "    PROFILER_SYNC();\n"
-            code += "}\n"
-
-        if config.profiler_enabled:
-            code += "{\n"
-            code += '    ZONE_SCOPED("INIT")\n'
-        code += self.uninit(operation, config)
-        if config.profiler_enabled:
-            code += "    PROFILER_SYNC();\n"
-            code += "}\n"
+            code += self.exec_perf(operation, config)
+        else:
+            code += self.hw_configure(operation, config)
+            code += self.init(operation, config)
+            code += "    _llk_packer_wait_for_math_done_();\n"
+            code += self.pack(operation, config)
+            code += (
+                f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();\n"
+            )
+            code += self.unpacker_sync(operation, config)
+            code += self.uninit(operation, config)
 
         return code
 
@@ -113,7 +162,7 @@ class Packer:
         if operation.architecture == ChipArchitecture.BLACKHOLE:
             code = (
                 f"    _llk_pack_init_<false, false, {bh_tilize}>(\n"
-                f"        pack_dst_format{stage}, pack_dst_format{stage}, {face_r_dim}, TILE_C_DIM, {num_faces}, false, false"
+                f"        pack_dst_format{stage}, pack_dst_format{stage}, {face_r_dim}, TILE_C_DIM, {num_faces}, false, false\n"
                 f"    );\n"
                 f"    _llk_pack_dest_init_<{dest_sync}, {dest_acc}>();\n"
             )
@@ -139,7 +188,6 @@ class Packer:
         dest_sync = f"DstSync::Sync{operation.dest_sync.name}"
 
         return (
-            f"    _llk_packer_wait_for_math_done_();\n"
             f"    for (int tr = 0; tr < {operation.output_tiles_h}; tr++)\n"
             f"    {{\n"
             f"        for (int tc = 0; tc < {operation.output_tiles_w}; tc++)\n"
@@ -149,7 +197,6 @@ class Packer:
             f"            _llk_pack_<{dest_sync}, {dest_acc}, false>(dest_idx, L1_ADDRESS(buffer_Res{stage}[l1_idx]));\n"
             f"        }}\n"
             f"    }}\n"
-            f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();\n"
         )
 
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:

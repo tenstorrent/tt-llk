@@ -30,6 +30,7 @@ class GlobalConfig:
     dest_acc: DestAccumulation = DestAccumulation.No
     regenerate_cpp: bool = False
     profiler_enabled: bool = False
+    perf_run_type: PerfRunType = None
     loop_factor: int = 16
 
 
@@ -78,8 +79,6 @@ class FuserConfig:
         write_pipeline_operands_to_l1(self.pipeline)
 
         cpp_path = FUSED_TESTS_DIR / f"{self.global_config.test_name}.cpp"
-        code_generator = FusedKernelGenerator(self)
-        code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
 
         test_config = TestConfig(
             test_name=cpp_path,
@@ -102,9 +101,6 @@ class FuserConfig:
             skip_build_header=True,
         )
 
-        test_config.generate_variant_hash()
-        test_config.build_elfs()
-
         if self.global_config.profiler_enabled:
             run_types = [
                 PerfRunType.L1_TO_L1,
@@ -119,6 +115,13 @@ class FuserConfig:
 
             for run_type in run_types:
                 runs = []
+                self.global_config.perf_run_type = run_type
+                code_generator = FusedKernelGenerator(self)
+                code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
+
+                test_config.generate_variant_hash()
+                test_config.build_elfs()
+
                 for _ in range(run_count):
                     elfs = test_config.run_elf_files(location)
                     wait_for_tensix_operations_finished(elfs, location)
@@ -155,6 +158,12 @@ class FuserConfig:
                 perf_report.post_process()
                 perf_report.dump_csv(f"{csv_prefix}.{worker_id}.post.csv")
         else:
+            code_generator = FusedKernelGenerator(self)
+            code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
+
+            test_config.generate_variant_hash()
+            test_config.build_elfs()
+
             elfs = test_config.run_elf_files(location)
             wait_for_tensix_operations_finished(elfs, location)
             collect_pipeline_results(self.pipeline)

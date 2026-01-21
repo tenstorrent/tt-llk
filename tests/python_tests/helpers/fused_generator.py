@@ -144,7 +144,8 @@ class FusedKernelGenerator:
 
         profiler_include = ""
         if self.config.global_config.profiler_enabled:
-            profiler_include = '#include "profiler.h"\n'
+            profiler_include += '#include "profiler.h"\n'
+            profiler_include += '#include "perf.h"\n'
 
         combined = (
             f"#define FUSED_TEST\n"

@@ -21,7 +21,13 @@ if TYPE_CHECKING:
     from .fuser_config import GlobalConfig
 
 from .chip_architecture import ChipArchitecture
-from .llk_params import ApproximationMode, MathOperation, ReduceDimension, ReducePool
+from .llk_params import (
+    ApproximationMode,
+    MathOperation,
+    PerfRunType,
+    ReduceDimension,
+    ReducePool,
+)
 from .tilize_untilize import tilize_block, untilize_block
 
 
@@ -93,13 +99,11 @@ class MatmulFpu(Fpu):
         )
 
     def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        stage = operation.stage_id
         ct_dim = operation.ct_dim
         rt_dim = operation.rt_dim
         kt_dim = operation.kt_dim
         math_fidelity = operation.math_fidelity.value
         return (
-            f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
             f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
             f"    {{\n"
             f"        _llk_math_matmul_<{math_fidelity}>(0, {ct_dim}, {rt_dim});\n"
@@ -158,7 +162,6 @@ class EltwiseFpu(Fpu):
         num_faces = operation.num_faces
 
         return (
-            f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
             f"    for (int i = 0; i < {tile_cnt}; i++)\n"
             f"    {{\n"
             f"        _llk_math_eltwise_binary_<{op}, BroadcastType::NONE, dest_sync{stage},\n"
@@ -241,7 +244,6 @@ class ReduceFpu(Fpu):
         )
 
     def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        stage = operation.stage_id
         math_fidelity = operation.math_fidelity.value
         dest_acc = config.dest_acc.value
         tile_cnt = operation.output.tile_count
@@ -250,7 +252,6 @@ class ReduceFpu(Fpu):
         reduce_dim_cpp = self.reduce_dim()
 
         return (
-            f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
             f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
             f"    {{\n"
             f"        _llk_math_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false, false>(\n"
@@ -333,11 +334,7 @@ class DatacopyFpu(Fpu):
         num_faces = operation.num_faces
         dst_index = operation.dst_index
 
-        code = (
-            f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
-            f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
-            f"    {{\n"
-        )
+        code = f"    for (int i = 0; i < {tile_cnt}; ++i)\n" f"    {{\n"
 
         if operation.architecture == ChipArchitecture.BLACKHOLE:
             code += (
@@ -651,69 +648,98 @@ class Math:
 
         return code
 
+    def perf_clear_valid(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        from .fused_unpacker import MatmulUnpacker, UnpackerTilizeA
+
+        if operation.unpacker is UnpackerTilizeA:
+            valid_cnt = operation.output.tile_count
+            return f"    _perf_math_loop_clear_valid<true, true>({valid_cnt});\n"
+        elif operation.unpacker is MatmulUnpacker:
+            loop_factor = 1
+            rt_dim = operation.rt_dim
+            kt_dim = operation.kt_dim
+            ct_dim = operation.ct_dim
+            return f"    _perf_math_matmul_mock({loop_factor}, {rt_dim}, {kt_dim}, {ct_dim});"
+        else:
+            valid_cnt = operation.output.tile_count * operation.num_faces
+            return f"    _perf_math_loop_clear_valid<true, true>({valid_cnt});\n"
+
+    def calculate_with_perf(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        stage = operation.stage_id
+        dest_acc = config.dest_acc.value
+
+        if config.perf_run_type == PerfRunType.PACK_ISOLATE:
+            return ""
+        elif (
+            config.perf_run_type == PerfRunType.UNPACK_ISOLATE
+            or config.perf_run_type == PerfRunType.L1_CONGESTION
+        ):
+            return self.perf_clear_valid(operation, config)
+        elif config.perf_run_type == PerfRunType.MATH_ISOLATE:
+            code = self.fpu.calculate(operation, config)
+            for sfpu in self.sfpu:
+                code += sfpu.calculate(operation, config)
+            return code
+        else:
+            code = f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
+            code += self.fpu.calculate(operation, config)
+            for sfpu in self.sfpu:
+                code += sfpu.calculate(operation, config)
+            code += (
+                f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
+            )
+            return code
+
+    def exec_perf(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        code = ""
+        code += "{\n"
+        code += '    ZONE_SCOPED("INIT")\n'
+        code += self.hw_configure(operation, config)
+        code += self.fpu.init(operation, config)
+        code += "    PROFILER_SYNC();\n"
+        code += "}\n"
+
+        code += "{\n"
+        code += '    ZONE_SCOPED("TILE_LOOP")\n'
+        code += self.calculate_with_perf(operation, config)
+        code += "    PROFILER_SYNC();\n"
+        code += "}\n"
+
+        return code
+
     def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
         format = f"DataFormat::{operation.math_format.name}"
+        dest_acc = config.dest_acc.value
+
         code = (
             f"    // Operation {stage}: Math Setup\n"
             f"    const uint32_t math_format{stage} = static_cast<std::underlying_type_t<DataFormat>>({format});\n"
             f"    const DstSync dest_sync{stage} = DstSync::Sync{operation.dest_sync.name};\n"
         )
-        if config.profiler_enabled:
-            code += "    {\n"
-            code += '        ZONE_SCOPED("INIT")\n'
-        code += self.hw_configure(operation, config)
-        code += self.fpu.init(operation, config)
-        if config.profiler_enabled:
-            code += "        PROFILER_SYNC();\n"
-            code += "    }\n"
 
         if config.profiler_enabled:
-            code += "    {\n"
-            code += '        ZONE_SCOPED("TILE_LOOP")\n'
-        code += self.fpu.calculate(operation, config)
-        if config.profiler_enabled:
-            code += "        PROFILER_SYNC();\n"
-            code += "    }\n"
+            code += self.exec_perf(operation, config)
 
-        if config.profiler_enabled:
-            code += "    {\n"
-            code += '        ZONE_SCOPED("INIT")\n'
-        code += self.fpu.uninit(operation, config)
-        if config.profiler_enabled:
-            code += "        PROFILER_SYNC();\n"
-            code += "    }\n"
+        else:
+            code += self.hw_configure(operation, config)
+            code += self.fpu.init(operation, config)
+            code += f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
+            code += self.fpu.calculate(operation, config)
+            code += self.fpu.uninit(operation, config)
 
-        for sfpu in self.sfpu:
-            code += "\n"
-            if config.profiler_enabled:
-                code += "    {\n"
-                code += '        ZONE_SCOPED("INIT")\n'
-            code += sfpu.init(operation, config)
-            if config.profiler_enabled:
-                code += "        PROFILER_SYNC();\n"
-                code += "    }\n"
+            for sfpu in self.sfpu:
+                code += "\n"
+                code += sfpu.init(operation, config)
+                code += sfpu.calculate(operation, config)
+                code += sfpu.uninit(operation, config)
 
-            if config.profiler_enabled:
-                code += "    {\n"
-                code += '        ZONE_SCOPED("TILE_LOOP")\n'
-            code += sfpu.calculate(operation, config)
-            if config.profiler_enabled:
-                code += "        PROFILER_SYNC();\n"
-                code += "    }\n"
+            code += (
+                f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
+            )
 
-            if config.profiler_enabled:
-                code += "    {\n"
-                code += '        ZONE_SCOPED("INIT")\n'
-            code += sfpu.uninit(operation, config)
-            if config.profiler_enabled:
-                code += "        PROFILER_SYNC();\n"
-                code += "    }\n"
-
-        dest_acc = config.dest_acc.value
-        code += (
-            f"\n"
-            f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
-            f"\n"
-        )
         return code

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 from .chip_architecture import ChipArchitecture
 from .fused_math import ReduceFpu
 from .golden_generators import TransposeGolden, get_golden_generator
-from .llk_params import Transpose
+from .llk_params import PerfRunType, Transpose
 from .tilize_untilize import tilize_block
 
 
@@ -64,8 +64,54 @@ class Unpacker:
     def unpack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
+    def perf_set_valid(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        tile_cnt = operation.output.tile_count
+        num_faces = operation.num_faces
+        return (
+            f"    _perf_unpack_loop_set_valid<true, true>({tile_cnt} * {num_faces});\n"
+        )
+
+    def unpack_with_perf(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        print(config.perf_run_type)
+        if config.perf_run_type == PerfRunType.PACK_ISOLATE:
+            return ""
+        elif config.perf_run_type == PerfRunType.MATH_ISOLATE:
+            return self.perf_set_valid(operation, config)
+        else:
+            return self.unpack(operation, config)
+
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
+
+    def exec_perf(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        """Generate unpacker exec code with profiler zones"""
+        code = "{\n"
+        code += '    ZONE_SCOPED("INIT")\n'
+        code += self.hw_configure(operation, config)
+        code += self.init(operation, config)
+        code += "    PROFILER_SYNC();\n"
+        code += "}\n"
+
+        code += "{\n"
+        code += '    ZONE_SCOPED("TILE_LOOP")\n'
+
+        code += self.packer_sync(operation)
+
+        code += self.unpack_with_perf(operation, config)
+        code += "    PROFILER_SYNC();\n"
+        code += "}\n"
+
+        code += "{\n"
+        code += '    ZONE_SCOPED("INIT")\n'
+        code += self.uninit(operation, config)
+        code += "    PROFILER_SYNC();\n"
+        code += "}\n"
+
+        return code
 
     def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
@@ -89,35 +135,18 @@ class Unpacker:
         )
 
         if config.profiler_enabled:
-            code += "{\n"
-            code += '    ZONE_SCOPED("INIT")\n'
-        code += self.hw_configure(operation, config)
-        code += self.init(operation, config)
-        if config.profiler_enabled:
-            code += "    PROFILER_SYNC();\n"
-            code += "}\n"
-
-        if config.profiler_enabled:
-            code += "{\n"
-            code += '    ZONE_SCOPED("TILE_LOOP")\n'
-        code += self.packer_sync(operation)
-        code += self.unpack(operation, config)
-        if config.profiler_enabled:
-            code += "    PROFILER_SYNC();\n"
-            code += "}\n"
-
-        if config.profiler_enabled:
-            code += "{\n"
-            code += '    ZONE_SCOPED("INIT")\n'
-        code += self.uninit(operation, config)
-        if config.profiler_enabled:
-            code += "    PROFILER_SYNC();\n"
-            code += "}\n"
+            code += self.exec_perf(operation, config)
+        else:
+            code += self.hw_configure(operation, config)
+            code += self.init(operation, config)
+            code += self.packer_sync(operation)
+            code += self.unpack_with_perf(operation, config)
+            code += self.uninit(operation, config)
 
         return code
 
     def get_headers(self) -> List[str]:
-        return []
+        return ["perf.h"]
 
     def golden(
         self,
@@ -135,6 +164,15 @@ class MatmulUnpacker(Unpacker):
             "llk_unpack_AB_matmul.h",
             "llk_unpack_common.h",
         ]
+
+    def perf_set_valid(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        loop_factor = 1
+        rt_dim = operation.rt_dim
+        kt_dim = operation.kt_dim
+        ct_dim = operation.ct_dim
+        return f"    _perf_unpack_matmul_mock({loop_factor}, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def golden(
         self,
@@ -366,6 +404,12 @@ class UnpackerTilizeA(Unpacker):
             "llk_unpack_common.h",
             "llk_unpack_tilize.h",
         ]
+
+    def perf_set_valid(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        tile_cnt = operation.output.tile_count
+        return f"    _perf_unpack_loop_set_valid<true, true>({tile_cnt});\n"
 
     def golden(
         self,
