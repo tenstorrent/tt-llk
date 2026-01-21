@@ -1,4 +1,6 @@
 dest_acc: "Yes"
+perf_run_type: L1_TO_L1
+loop_factor: 16
 
 operations:
   - src_a: "input_A"

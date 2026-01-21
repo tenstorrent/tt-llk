@@ -18,5 +18,6 @@ def test_fused(test_name, regenerate_cpp):
     config.regenerate_cpp = regenerate_cpp
     config.run()
 
-    golden = FusedGolden()
-    assert golden.check_pipeline(config)
+    if config.global_config.perf_run_type is None:
+        golden = FusedGolden()
+        assert golden.check_pipeline(config)

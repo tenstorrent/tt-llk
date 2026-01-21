@@ -14,7 +14,7 @@ from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .format_config import DataFormat, FormatConfig
 from .fused_operation import FusedOperation
-from .llk_params import DestAccumulation
+from .llk_params import DestAccumulation, PerfRunType
 
 
 @dataclass
@@ -23,6 +23,8 @@ class GlobalConfig:
     architecture: ChipArchitecture = None
     dest_acc: DestAccumulation = DestAccumulation.No
     regenerate_cpp: bool = False
+    perf_run_type: PerfRunType = None
+    loop_factor: int = 16
 
 
 @dataclass

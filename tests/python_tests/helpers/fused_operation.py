@@ -36,7 +36,6 @@ class FusedOperation:
     stage_id: int = 0
     num_stages: int = 1
     math_fidelity: MathFidelity = MathFidelity.HiFi4
-    loop_factor: int = 1
     unpack_to_dest: bool = False
     implied_math_format: ImpliedMathFormat = ImpliedMathFormat.No
     unpacker_engine_sel: UnpackerEngine = UnpackerEngine.UnpA
