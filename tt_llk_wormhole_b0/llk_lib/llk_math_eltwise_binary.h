@@ -429,13 +429,19 @@ NEW SDPA FEATURE
 
 inline void sdpa_optimization_new_configure_addrmod()
 {
-    // ADDR_MOD_0: srcA and dest increment, but srcB stays at same position (for row broadcast with transpose)
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_0);
+
     addr_mod_t {
         .srca = {.incr = 8},
         .srcb = {.incr = 0},
         .dest = {.incr = 8},
     }
-        .set(ADDR_MOD_0);
+        .set(ADDR_MOD_1);
 }
 
 inline void sdpa_optimization_new_init_()
@@ -451,28 +457,53 @@ inline void sdpa_optimization_new_(uint32_t dst_index)
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB);
 
     // Transpose srcB to achieve column broadcast effect
+    // TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
     TTI_TRNSPSRCB;
-
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    // TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP;
     // Element-wise subtraction operations (srcA - transposed_srcB)
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB);
+    TTI_INCRWC(0, 0, 4, 0);
+    TTI_INCRWC(0, 0, 4, 0);
+    TTI_INCRWC(0, 0, 4, 0);
+    TTI_INCRWC(0, 0, 4, 0);
 
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B);
+    TTI_INCRWC(0, 0, 4, 0);
+    TTI_INCRWC(0, 0, 4, 0);
+    TTI_INCRWC(0, 0, 4, 0);
+    TTI_INCRWC(0, 0, 4, 0);
+
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-
-    // TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
-    // TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
-    // TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
-    // TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
-
-    // TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
-    // TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
-    // TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
-    // TTI_ELWADD(0, 0, 0, ADDR_MOD_0, 0);
 
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
     math::clear_dst_reg_addr();
