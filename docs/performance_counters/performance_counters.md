@@ -298,7 +298,45 @@ print_perf_counters(results, thread="MATH")
 
 Location: `tests/python_tests/helpers/metrics.py`
 
-The metrics module computes higher-level performance indicators from raw counter data.
+The metrics module computes higher-level performance indicators from raw counter data. Platform-specific bandwidth parameters are automatically detected based on the connected chip architecture.
+
+### Usage
+
+The metrics functions automatically detect the chip architecture and apply appropriate bandwidth parameters:
+
+```python
+from helpers.metrics import summarize_kernel_metrics_dual
+
+# Platform is auto-detected - no configuration needed
+summary = summarize_kernel_metrics_dual(req_results, gr_results)
+print(summary)
+```
+
+### Platform Bandwidth Parameters
+
+The module internally maintains bandwidth parameters for each supported architecture:
+
+| Platform | NoC Word (bytes) | Unpacker Peak (B/cyc) | Packer Peak (B/cyc) | Notes |
+|----------|------------------|----------------------|---------------------|-------|
+| Wormhole B0 | 32 | 80.0 | 80.0 | 256-bit NoC flit; 80 B/cyc from tt-metal perf model |
+| Blackhole | 256 | 120.0 | 120.0 | 2048-bit NoC flit; wider bus enables higher bandwidth |
+| Quasar | 32 | 80.0 | 80.0 | Placeholder values |
+
+These values are used to convert raw utilization ratios into estimated bytes/cycle throughput.
+
+### Output Interpretation
+
+The metrics output shows both utilization and estimated bandwidth:
+
+| Metric | Example Output |
+|--------|----------------|
+| Unpacker | `util=0.228 → est ~18.21 B/cyc` |
+| Packer | `util=0.382 → est ~30.57 B/cyc` |
+| NoC | `45.43 B/cyc (txn/cyc 1.42)` |
+
+- **util** = fraction of cycles the component was busy (0.0–1.0)
+- **est B/cyc** = `util × peak_bytes_per_cycle` = estimated actual throughput
+- Values below peak indicate headroom; values near peak indicate saturation
 
 ### Core Metrics
 

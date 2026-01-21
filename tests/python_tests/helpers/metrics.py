@@ -1,14 +1,49 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Dict, List, Optional
+from typing import Dict, List
+
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 
 # Results schema is identical to helpers.counters.read_perf_counters output
 CounterResult = Dict[str, object]
 
+# Platform-specific bandwidth parameters for metrics calculations.
+# These values are used to convert utilization ratios into estimated bytes/cycle.
+#
+# Keys:
+#   noc_word_bytes: Size of one NoC flit in bytes (Wormhole: 32, Blackhole: 256)
+#   unpack_max_bytes_per_cycle: Theoretical peak unpacker bandwidth (B/cyc)
+#   pack_max_bytes_per_cycle: Theoretical peak packer bandwidth (B/cyc)
+_PLATFORM_BANDWIDTH = {
+    ChipArchitecture.WORMHOLE: {
+        "noc_word_bytes": 32,  # 256 bits per flit
+        "unpack_max_bytes_per_cycle": 80.0,  # ~80 B/cyc (from tt-metal perf model)
+        "pack_max_bytes_per_cycle": 80.0,  # ~80 B/cyc
+    },
+    ChipArchitecture.BLACKHOLE: {
+        "noc_word_bytes": 256,  # 2048 bits per flit
+        "unpack_max_bytes_per_cycle": 120.0,  # Estimated, wider bus
+        "pack_max_bytes_per_cycle": 120.0,  # Estimated, wider bus
+    },
+    ChipArchitecture.QUASAR: {
+        "noc_word_bytes": 32,  # Placeholder, adjust when specs known
+        "unpack_max_bytes_per_cycle": 80.0,
+        "pack_max_bytes_per_cycle": 80.0,
+    },
+}
+
+
+def _get_platform_bandwidth() -> Dict[str, object]:
+    """Get bandwidth parameters for the current chip architecture."""
+    arch = get_chip_architecture()
+    if arch not in _PLATFORM_BANDWIDTH:
+        raise ValueError(f"No bandwidth config for architecture: {arch}")
+    return _PLATFORM_BANDWIDTH[arch]
+
 
 def _sum_counts(
-    results: List[CounterResult], bank: str, names: List[str], mux: Optional[int] = None
+    results: List[CounterResult], bank: str, names: List[str], mux: int = None
 ) -> int:
     total = 0
     for r in results:
@@ -31,19 +66,6 @@ def _rate(count: int, cycles: int) -> float:
     return (count / cycles) if cycles else 0.0
 
 
-class HWParams:
-    def __init__(
-        self,
-        noc_word_bytes: int = 0,
-        unpack_max_bytes_per_cycle: float = 0.0,
-        pack_max_bytes_per_cycle: float = 0.0,
-    ) -> None:
-        # If 0, bandwidths will be reported as transactions/cycle instead of bytes/s
-        self.noc_word_bytes = noc_word_bytes
-        self.unpack_max_bytes_per_cycle = unpack_max_bytes_per_cycle
-        self.pack_max_bytes_per_cycle = pack_max_bytes_per_cycle
-
-
 def _level_label(
     value: float, low: float, high: float, desc_low: str, desc_mid: str, desc_high: str
 ) -> str:
@@ -61,10 +83,8 @@ def _format_bw(label: str, util: float, peak_bpc: float) -> str:
     return f"{label}: util={util:.3f} (set peak bytes/cycle for BW)"
 
 
-def compute_thread_metrics(
-    results: List[CounterResult], hw: Optional[HWParams] = None
-) -> Dict[str, object]:
-    hw = hw or HWParams()
+def compute_thread_metrics(results: List[CounterResult]) -> Dict[str, object]:
+    hw = _get_platform_bandwidth()
 
     # Cycles per bank (shared per-bank window)
     cycles_instrn = _get_cycles(results, "INSTRN_THREAD")
@@ -154,9 +174,7 @@ def compute_thread_metrics(
         mux=None,
     )
     noc_txn_per_cycle = _rate(noc_in + noc_out, cycles_l1)
-    noc_bytes_per_cycle = (
-        noc_txn_per_cycle * hw.noc_word_bytes if hw.noc_word_bytes else 0.0
-    )
+    noc_bytes_per_cycle = noc_txn_per_cycle * hw["noc_word_bytes"]
 
     # L1 arbitration/congestion proxy
     l1_arb = _sum_counts(
@@ -174,15 +192,9 @@ def compute_thread_metrics(
     l1_no_arb = _sum_counts(results, "L1", ["L1_NO_ARB_UNPACKER"], mux=0)
     l1_congestion_index = l1_arb / max(1, l1_arb + l1_no_arb)
 
-    # Bandwidth estimates if theoretical maxima are provided
-    unpack_bw_bytes_per_cycle = (
-        unpack_util * hw.unpack_max_bytes_per_cycle
-        if hw.unpack_max_bytes_per_cycle
-        else 0.0
-    )
-    pack_bw_bytes_per_cycle = (
-        pack_util * hw.pack_max_bytes_per_cycle if hw.pack_max_bytes_per_cycle else 0.0
-    )
+    # Bandwidth estimates based on platform theoretical maxima
+    unpack_bw_bytes_per_cycle = unpack_util * hw["unpack_max_bytes_per_cycle"]
+    pack_bw_bytes_per_cycle = pack_util * hw["pack_max_bytes_per_cycle"]
 
     # Heuristic bound classification
     stall_rate = _rate(stalled, cycles_instrn)
@@ -268,13 +280,11 @@ def compute_thread_metrics(
     }
 
 
-def summarize_kernel_metrics(
-    results_by_thread: Dict[str, List[CounterResult]], hw: Optional[HWParams] = None
-) -> str:
-    hw = hw or HWParams()
+def summarize_kernel_metrics(results_by_thread: Dict[str, List[CounterResult]]) -> str:
+    hw = _get_platform_bandwidth()
     lines: List[str] = []
     for thread, results in results_by_thread.items():
-        m = compute_thread_metrics(results, hw)
+        m = compute_thread_metrics(results)
         lines.append(f"== {thread} ==")
         lines.append(
             f"cycles(instrn/fpu/unpack/pack/l1) = {m['cycles']['instrn']}/{m['cycles']['fpu']}/{m['cycles']['unpack']}/{m['cycles']['pack']}/{m['cycles']['l1']}"
@@ -285,18 +295,12 @@ def summarize_kernel_metrics(
         lines.append(
             f"unpack util={m['unpack']['utilization']:.3f} pack util={m['pack']['utilization']:.3f} L1 cong={m['l1']['congestion_index']:.3f}"
         )
-        if hw.noc_word_bytes:
-            lines.append(
-                f"NoC bytes/cycle ≈ {m['l1']['noc_bytes_per_cycle']:.2f} (txn/cycle {m['l1']['noc_txn_per_cycle']:.2f})"
-            )
-        else:
-            lines.append(
-                f"NoC txn/cycle ≈ {m['l1']['noc_txn_per_cycle']:.2f} (set noc_word_bytes to get bytes)"
-            )
-        if hw.unpack_max_bytes_per_cycle or hw.pack_max_bytes_per_cycle:
-            lines.append(
-                f"Unpacker est BW={m['unpack']['est_bw_bytes_per_cycle']:.2f} B/cyc, Packer est BW={m['pack']['est_bw_bytes_per_cycle']:.2f} B/cyc"
-            )
+        lines.append(
+            f"NoC bytes/cycle ≈ {m['l1']['noc_bytes_per_cycle']:.2f} (txn/cycle {m['l1']['noc_txn_per_cycle']:.2f})"
+        )
+        lines.append(
+            f"Unpacker est BW={m['unpack']['est_bw_bytes_per_cycle']:.2f} B/cyc, Packer est BW={m['pack']['est_bw_bytes_per_cycle']:.2f} B/cyc"
+        )
         lines.append(
             f"RISC stalls={m['risc']['stall_rate']:.3f} instr_issue={m['risc']['instr_issue_rate']:.3f}"
         )
@@ -309,13 +313,18 @@ def summarize_kernel_metrics(
 def summarize_kernel_metrics_dual(
     results_by_thread_requests: Dict[str, List[CounterResult]],
     results_by_thread_grants: Dict[str, List[CounterResult]],
-    hw: Optional[HWParams] = None,
 ) -> str:
     """
     Produce a side-by-side summary using both REQUESTS and GRANTS measurements.
     Useful for understanding attempted vs accepted operations and arbitration effects.
+
+    Platform bandwidth parameters are automatically detected from the connected chip.
+
+    Args:
+        results_by_thread_requests: Counter results from REQUESTS mode run.
+        results_by_thread_grants: Counter results from GRANTS mode run.
     """
-    hw = hw or HWParams()
+    hw = _get_platform_bandwidth()
     lines: List[str] = []
     # Aggregate metrics (use GRANTS for truth, REQUESTS for pressure where meaningful)
     gr_metrics: List[Dict[str, object]] = []
@@ -328,8 +337,8 @@ def summarize_kernel_metrics_dual(
     ):
         req = results_by_thread_requests.get(thread, [])
         gr = results_by_thread_grants.get(thread, [])
-        m_req = compute_thread_metrics(req, hw) if req else None
-        m_gr = compute_thread_metrics(gr, hw) if gr else None
+        m_req = compute_thread_metrics(req) if req else None
+        m_gr = compute_thread_metrics(gr) if gr else None
         if m_gr:
             gr_metrics.append(m_gr)
         if m_req:
@@ -460,41 +469,20 @@ def summarize_kernel_metrics_dual(
             "================================================================================"
         )
         # Unpacker BW
-        if hw.unpack_max_bytes_per_cycle:
-            lines.append(
-                _format_bw(
-                    "Unpacker BW", avg_unpack_util, hw.unpack_max_bytes_per_cycle
-                )
-            )
-        else:
-            lines.append(
-                f"Unpacker: util={avg_unpack_util:.3f} (set peak bytes/cycle to show BW)"
-            )
+        lines.append(
+            _format_bw("Unpacker BW", avg_unpack_util, hw["unpack_max_bytes_per_cycle"])
+        )
         # Math throughput (utilization; not byte bandwidth)
         lines.append(
             f"Math: util={avg_compute_util:.3f} (compute engine throughput; not bytes)"
         )
         # Packer BW
-        if hw.pack_max_bytes_per_cycle:
-            lines.append(
-                _format_bw("Packer BW", avg_pack_util, hw.pack_max_bytes_per_cycle)
-            )
-        else:
-            lines.append(
-                f"Packer: util={avg_pack_util:.3f} (set peak bytes/cycle to show BW)"
-            )
+        lines.append(
+            _format_bw("Packer BW", avg_pack_util, hw["pack_max_bytes_per_cycle"])
+        )
         # NoC BW
-        if hw.noc_word_bytes:
-            avg_noc_bpc = avg(
-                [float(m["l1"]["noc_bytes_per_cycle"]) for m in gr_metrics]
-            )
-            lines.append(
-                f"NoC BW ≈ {avg_noc_bpc:.2f} B/cyc (txn/cyc {avg_noc_txn:.2f})."
-            )
-        else:
-            lines.append(
-                f"NoC activity ≈ {avg_noc_txn:.2f} txn/cyc (set noc_word_bytes for bytes/cycle)."
-            )
+        avg_noc_bpc = avg([float(m["l1"]["noc_bytes_per_cycle"]) for m in gr_metrics])
+        lines.append(f"NoC BW ≈ {avg_noc_bpc:.2f} B/cyc (txn/cyc {avg_noc_txn:.2f}).")
         lines.append("")
 
         # 5) Instruction Rates (FPU / SFPU)
