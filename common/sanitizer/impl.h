@@ -256,7 +256,8 @@ constexpr size_t _operation_entry_size(
 template <operation_t op, typename... Ts>
 static inline void operation_init_impl(operation_state_t& state, const Ts... args)
 {
-    state.operation = op;
+    state.operation     = op;
+    state.expect_uninit = operation_must_uninit<op>;
 
     constexpr uint8_t args_count = _args_count<Ts...>();
 
