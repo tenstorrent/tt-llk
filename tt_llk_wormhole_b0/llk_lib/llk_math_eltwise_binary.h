@@ -475,17 +475,6 @@ inline void sdpa_optimization_new_(uint32_t dst_index)
     TTI_NOP;
     TTI_NOP;
     TTI_NOP;
-    // TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP;
-    // Element-wise subtraction operations (srcA - transposed_srcB)
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    // TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
 
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB);
     TTI_INCRWC(0, 0, 4, 0);
@@ -505,6 +494,50 @@ inline void sdpa_optimization_new_(uint32_t dst_index)
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
 
+    // BOTTOM FACES F2 AND F3
+
+    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_B);
+    // TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_B);
+
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_TRNSPSRCB;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+    TTI_NOP;
+
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B);
+    TTI_INCRWC(0, 0, 4, 0);
+    TTI_INCRWC(0, 0, 4, 0);
+    TTI_INCRWC(0, 0, 4, 0);
+    TTI_INCRWC(0, 0, 4, 0);
+
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B);
+    TTI_INCRWC(0, 0, 4, 0);
+    TTI_INCRWC(0, 0, 4, 0);
+    TTI_INCRWC(0, 0, 4, 0);
+    TTI_INCRWC(0, 0, 4, 0);
+
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
+
+    // TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_B);
+
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
+
     math::clear_dst_reg_addr();
 }
