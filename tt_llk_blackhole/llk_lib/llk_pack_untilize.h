@@ -158,7 +158,6 @@ inline void _llk_pack_untilize_init_(
     llk_san::pack_operand_check(llk_san::IGNORE, pack_src_format, pack_dst_format, face_r_dim, llk_san::IGNORE, num_faces, llk_san::IGNORE, llk_san::IGNORE);
     llk_san::operation_init<llk_san::operation_t::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums);
     // sstanisic todo: implement
-    // llk_san_must_uninit<llk_san_op::PackUntilize>();
     // llk_san_extended_state_mask(llk_san_cfg::Addrmod, llk_san_cfg::Mop, llk_san_cfg::CH0Strides, llk_san_cfg::AdcXX); // GPRs are not tracked here for now
 
     _llk_pack_untilize_configure_addrmod_<diagonal>();
@@ -216,7 +215,6 @@ inline void _llk_pack_untilize_(
 
     llk_san::pack_operand_check(llk_san::IGNORE, llk_san::IGNORE, pack_dst_format, face_r_dim, llk_san::IGNORE, num_faces, llk_san::IGNORE, llk_san::IGNORE);
     llk_san::operation_check<llk_san::operation_t::PackUntilize>(block_ct_dim, full_ct_dim, narrow_row, row_num_datums);
-    // sstanisic todo: llk_san::must_uninit<llk_san::operation_t::PackUntilize>();
 
     /*
     full_ct_dim represents the number of input tiles.
