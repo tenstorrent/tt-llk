@@ -32,11 +32,6 @@ class UnpackKernelGenerator:
             [op.unpack(self.config.global_config) for op in self.config.pipeline]
         )
 
-        zone_start = ""
-        zone_end = ""
-        if self.config.global_config.profiler_enabled:
-            zone_start = '    ZONE_SCOPED("UNPACK_LOOP")\n'
-
         code = (
             f"\n"
             f"#ifdef LLK_TRISC_UNPACK\n"
@@ -45,9 +40,7 @@ class UnpackKernelGenerator:
             f"\n"
             f"void run_kernel(const volatile struct RuntimeParams* params)\n"
             f"{{\n"
-            f"{zone_start}"
             f"{unpack_calls}"
-            f"{zone_end}"
             f"}}\n"
             f"\n"
             f"#endif\n"
@@ -75,11 +68,6 @@ class MathKernelGenerator:
             [op.do_math(self.config.global_config) for op in self.config.pipeline]
         )
 
-        zone_start = ""
-        zone_end = ""
-        if self.config.global_config.profiler_enabled:
-            zone_start = '    ZONE_SCOPED("MATH_LOOP")\n'
-
         code = (
             f"\n"
             f"#ifdef LLK_TRISC_MATH\n"
@@ -88,9 +76,7 @@ class MathKernelGenerator:
             f"\n"
             f"void run_kernel(const volatile struct RuntimeParams* params)\n"
             f"{{\n"
-            f"{zone_start}"
             f"{math_calls}"
-            f"{zone_end}"
             f"}}\n"
             f"\n"
             f"#endif\n"
@@ -119,11 +105,6 @@ class PackKernelGenerator:
             [op.pack(self.config.global_config) for op in self.config.pipeline]
         )
 
-        zone_start = ""
-        zone_end = ""
-        if self.config.global_config.profiler_enabled:
-            zone_start = '    ZONE_SCOPED("PACK_LOOP")\n'
-
         code = (
             f"\n"
             f"#ifdef LLK_TRISC_PACK\n"
@@ -132,9 +113,7 @@ class PackKernelGenerator:
             f"\n"
             f"void run_kernel(const volatile struct RuntimeParams* params)\n"
             f"{{\n"
-            f"{zone_start}"
             f"{pack_calls}"
-            f"{zone_end}"
             f"}}\n"
             f"\n"
             f"#endif\n"

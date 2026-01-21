@@ -47,11 +47,31 @@ class Packer:
             f"    const uint32_t pack_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name});\n"
         )
 
+        if config.profiler_enabled:
+            code += "{\n"
+            code += '    ZONE_SCOPED("INIT")\n'
         code += self.hw_configure(operation, config)
         code += self.init(operation, config)
+        if config.profiler_enabled:
+            code += "    PROFILER_SYNC();\n"
+            code += "}\n"
+
+        if config.profiler_enabled:
+            code += "{\n"
+            code += '    ZONE_SCOPED("TILE_LOOP")\n'
         code += self.pack(operation, config)
+        code += self.unpacker_sync(operation, config)
+        if config.profiler_enabled:
+            code += "    PROFILER_SYNC();\n"
+            code += "}\n"
+
+        if config.profiler_enabled:
+            code += "{\n"
+            code += '    ZONE_SCOPED("INIT")\n'
         code += self.uninit(operation, config)
-        code += self.sync(operation, config)
+        if config.profiler_enabled:
+            code += "    PROFILER_SYNC();\n"
+            code += "}\n"
 
         return code
 
@@ -139,7 +159,7 @@ class Packer:
 
         return code
 
-    def sync(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def unpacker_sync(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
         num_stages = operation.num_stages
         code = ""

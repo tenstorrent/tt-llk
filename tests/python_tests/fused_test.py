@@ -12,5 +12,5 @@ test_names = [f.stem for f in yaml_files]
 @pytest.mark.parametrize("test_name", test_names, ids=test_names)
 def test_fused(test_name, regenerate_cpp, worker_id, workers_tensix_coordinates):
     config = create_fuse_pipeline(test_name)
-    config.regenerate_cpp = regenerate_cpp
+    config.global_config.regenerate_cpp = regenerate_cpp
     config.run(worker_id=worker_id, location=workers_tensix_coordinates)

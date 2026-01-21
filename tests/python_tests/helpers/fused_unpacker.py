@@ -18,7 +18,7 @@ from .tilize_untilize import tilize_block
 
 
 class Unpacker:
-    def sync(self, operation: "FusedOperation") -> str:
+    def packer_sync(self, operation: "FusedOperation") -> str:
         stage = operation.stage_id
 
         code = ""
@@ -78,9 +78,7 @@ class Unpacker:
         unpack_b_src = operation.unpack_a_in
         unpack_b_dst = operation.unpack_a_out
 
-        code = self.sync(operation)
-
-        code += (
+        code = (
             f"    // Operation {stage}: {self.__class__.__name__}\n"
             f"    UNUSED const Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});\n"
             f"    UNUSED const Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});\n"
@@ -90,10 +88,31 @@ class Unpacker:
             f"    UNUSED const uint32_t unpack_b_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_b_dst.name});\n"
         )
 
+        if config.profiler_enabled:
+            code += "{\n"
+            code += '    ZONE_SCOPED("INIT")\n'
         code += self.hw_configure(operation, config)
         code += self.init(operation, config)
+        if config.profiler_enabled:
+            code += "    PROFILER_SYNC();\n"
+            code += "}\n"
+
+        if config.profiler_enabled:
+            code += "{\n"
+            code += '    ZONE_SCOPED("TILE_LOOP")\n'
+        code += self.packer_sync(operation)
         code += self.unpack(operation, config)
+        if config.profiler_enabled:
+            code += "    PROFILER_SYNC();\n"
+            code += "}\n"
+
+        if config.profiler_enabled:
+            code += "{\n"
+            code += '    ZONE_SCOPED("INIT")\n'
         code += self.uninit(operation, config)
+        if config.profiler_enabled:
+            code += "    PROFILER_SYNC();\n"
+            code += "}\n"
 
         return code
 

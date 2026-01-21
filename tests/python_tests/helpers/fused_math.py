@@ -37,9 +37,30 @@ class Fpu:
 
     def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         code = ""
+        # if config.profiler_enabled:
+        #     code += "    {\n"
+        #     code += "        ZONE_SCOPED(\"INIT\")\n"
         code += self.init(operation, config)
+        if config.profiler_enabled:
+            code += "        PROFILER_SYNC();\n"
+            code += "    }\n"
+
+        if config.profiler_enabled:
+            code += "    {\n"
+            code += '        ZONE_SCOPED("TILE_LOOP")\n'
         code += self.calculate(operation, config)
+        if config.profiler_enabled:
+            code += "        PROFILER_SYNC();\n"
+            code += "    }\n"
+
+        if config.profiler_enabled:
+            code += "    {\n"
+            code += '        ZONE_SCOPED("INIT")\n'
         code += self.uninit(operation, config)
+        if config.profiler_enabled:
+            code += "        PROFILER_SYNC();\n"
+            code += "    }\n"
+
         return code
 
     def golden(
@@ -376,9 +397,21 @@ class Sfpu:
 
     def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         code = ""
+        if config.profiler_enabled:
+            code += "    {\n"
+            code += '        ZONE_SCOPED("INIT")\n'
         code += self.init(operation, config)
+        if config.profiler_enabled:
+            code += "        PROFILER_SYNC();\n"
+            code += "    }\n"
+
+        if config.profiler_enabled:
+            code += "    {\n"
+            code += '        ZONE_SCOPED("TILE_LOOP")\n'
         code += self.calculate(operation, config)
-        code += self.uninit(operation, config)
+        if config.profiler_enabled:
+            code += "        PROFILER_SYNC();\n"
+            code += "    }\n"
         return code
 
     def golden(
@@ -673,7 +706,14 @@ class Math:
             f"    const uint32_t math_format{stage} = static_cast<std::underlying_type_t<DataFormat>>({format});\n"
             f"    const DstSync dest_sync{stage} = DstSync::Sync{operation.dest_sync.name};\n"
         )
+        if config.profiler_enabled:
+            code += "    {\n"
+            code += '        ZONE_SCOPED("INIT")\n'
         code += self.hw_configure(operation, config)
+        # if config.profiler_enabled:
+        #     code += "        PROFILER_SYNC();\n"
+        #     code += "    }\n"
+
         code += self.fpu.exec(operation, config)
 
         for sfpu in self.sfpu:
