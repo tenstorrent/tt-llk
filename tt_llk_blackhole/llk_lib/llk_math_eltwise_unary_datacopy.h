@@ -31,12 +31,6 @@ inline void _llk_math_eltwise_unary_datacopy_(
 
     if (unpack_to_dest && is_32bit_input(src_format, dst_format))
     {
-        // Workaround for HW bug (budabackend#1372): broadcast with unpack_to_dest and 32-bit inputs needs debug feature bit 11 disabled
-        if constexpr (src_b_bcast_type != BroadcastType::NONE)
-        {
-            _llk_math_dbg_feature_disable_();
-        }
-
         math_unpack_to_dest_math_ready();
         math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(dst_index);
         math::math_unpack_to_dest_tile_ready();
@@ -417,6 +411,7 @@ inline void _llk_math_eltwise_unary_datacopy_uninit_()
     // clear debug feature disable
     if constexpr (src_b_bcast_type != BroadcastType::NONE && unpack_to_dest)
     {
-        _llk_math_dbg_feature_enable_();
+        tensix_sync();
+        reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
     }
 }

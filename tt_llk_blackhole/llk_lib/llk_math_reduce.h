@@ -465,8 +465,6 @@ inline void _llk_math_reduce_init_()
     if constexpr (enforce_fp32_accumulation)
     {
         static_assert(is_fp32_dest_acc_en, "FP32 Dest must be enabled for FP32 accumulation");
-        // Set bit 11 (workaround for budabackend#1372)
-        _llk_math_dbg_feature_disable_();
     }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
