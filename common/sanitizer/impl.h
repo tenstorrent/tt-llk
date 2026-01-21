@@ -235,6 +235,22 @@ constexpr std::array<size_t, N + 1> _args_offsetof(const std::array<uint8_t, N>&
     return args_offset;
 }
 
+template <uint8_t N>
+constexpr size_t _operation_entry_size(
+    const std::array<uint8_t, N>& args_sizeof, const std::array<uint8_t, N>& args_alignof, const std::array<size_t, N + 1>& args_offsetof)
+{
+    if constexpr (N == 0)
+    {
+        return sizeof(N);
+    }
+
+    constexpr size_t max_align = alignof(max_align_t);
+    constexpr size_t metadata  = sizeof(N) + N * sizeof(args_sizeof[0]) + N * sizeof(args_alignof[0]);
+    constexpr size_t padding   = (max_align - metadata % max_align) % max_align;
+
+    return metadata + padding + args_offsetof[N];
+}
+
 // Goes in LLK_LIB in Init
 // Store operation type and push arguments to state stack
 template <operation_t op, typename... Ts>
@@ -248,9 +264,9 @@ static inline void operation_init_impl(operation_state_t& state, const Ts... arg
     constexpr std::array<uint8_t, args_count> args_alignof     = _args_alignof<Ts...>();
     constexpr std::array<size_t, args_count + 1> args_offsetof = _args_offsetof(args_sizeof, args_alignof);
 
-    constexpr size_t entry_size = sizeof(args_count) + args_count * sizeof(args_sizeof[0]) + args_count * sizeof(args_alignof[0]) + args_offsetof[args_count];
+    constexpr size_t entry_size = _operation_entry_size<args_count>(args_sizeof, args_alignof, args_offsetof);
 
-    static_assert(entry_size <= operation_state_t::BUFFER_SIZE, "llk_san: operation entry will overflow the buffer");
+    static_assert(entry_size <= operation_state_t::BUFFER_SIZE, "llk_san: fault: operation entry will overflow the buffer");
 
     // | ARG_COUNT | SIZEOF(args[0]) ... | ALIGNOF(args[1]) ... | args[0] PADDING ... |
 
@@ -289,7 +305,7 @@ void operation_check_impl(operation_state_t& state, const Ts... args)
     constexpr std::array<uint8_t, args_count> args_alignof     = _args_alignof<Ts...>();
     constexpr std::array<size_t, args_count + 1> args_offsetof = _args_offsetof(args_sizeof, args_alignof);
 
-    constexpr size_t entry_size = sizeof(args_count) + args_count * sizeof(args_sizeof[0]) + args_count * sizeof(args_alignof[0]) + args_offsetof[args_count];
+    constexpr size_t entry_size = _operation_entry_size<args_count>(args_sizeof, args_alignof, args_offsetof);
 
     static_assert(entry_size <= operation_state_t::BUFFER_SIZE, "llk_san: fault: operation entry will overflow the buffer");
 
