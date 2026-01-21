@@ -230,9 +230,12 @@ class TestConfig:
 
     @staticmethod
     def setup_compilation_options(
-        with_coverage: bool = False, detailed_artefacts: bool = False
+        with_coverage: bool = False,
+        detailed_artefacts: bool = False,
+        no_debug_symbols: bool = False,
     ):
-        TestConfig.OPTIONS_ALL = f"-g -O3 -std=c++17 -ffast-math"
+        debug_flag = "" if no_debug_symbols else "-g "
+        TestConfig.OPTIONS_ALL = f"{debug_flag}-O3 -std=c++17 -ffast-math"
         TestConfig.WITH_COVERAGE = with_coverage
 
         if detailed_artefacts:
@@ -257,10 +260,13 @@ class TestConfig:
         sources_path: Path,
         with_coverage: bool = False,
         detailed_artefacts: bool = False,
+        no_debug_symbols: bool = False,
     ):
         TestConfig.setup_arch()
         TestConfig.setup_paths(sources_path)
-        TestConfig.setup_compilation_options(with_coverage, detailed_artefacts)
+        TestConfig.setup_compilation_options(
+            with_coverage, detailed_artefacts, no_debug_symbols
+        )
 
     @staticmethod
     def setup_mode(compile_consumer: bool = False, compile_producer: bool = False):
@@ -398,6 +404,20 @@ class TestConfig:
             for field_name, value in self.__dict__.items()
             if field_name not in NON_COMPILATION_ARGUMENTS
         ]
+
+        # Include stimuli address-related fields in hash since they affect compiled code
+        # The buffer addresses are compiled into the binary as constexpr values
+        if self.variant_stimuli is not None:
+            stimuli_hash_fields = [
+                str(self.variant_stimuli.tile_count_A),
+                str(self.variant_stimuli.tile_count_B),
+                str(self.variant_stimuli.tile_count_res),
+                str(self.variant_stimuli.buf_a_addr),
+                str(self.variant_stimuli.buf_b_addr),
+                str(self.variant_stimuli.buf_res_addr),
+            ]
+            temp_str.extend(stimuli_hash_fields)
+
         self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
     def resolve_compile_options(self) -> tuple[str, str, str]:
