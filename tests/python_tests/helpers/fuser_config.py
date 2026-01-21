@@ -12,9 +12,11 @@ from helpers.device import (
 
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
+from .device import wait_for_tensix_operations_finished
 from .format_config import DataFormat, FormatConfig
 from .fused_operation import FusedOperation
 from .llk_params import DestAccumulation, PerfRunType
+from .test_config import BootMode, ProfilerBuild, TestConfig
 
 
 @dataclass
@@ -65,16 +67,21 @@ class FuserConfig:
             operation.stage_id = i
             operation.num_stages = num_stages
 
-    def run(self):
+    def run(self, location="0,0"):
         from .fused_generator import FUSED_TESTS_DIR, FusedKernelGenerator
-        from .test_config import BootMode, ProfilerBuild, TestConfig
 
         write_pipeline_operands_to_l1(self.pipeline)
 
         cpp_path = FUSED_TESTS_DIR / f"{self.global_config.test_name}.cpp"
 
         code_generator = FusedKernelGenerator(self)
-        code_generator.write_kernel(cpp_path, self.regenerate_cpp)
+        code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
+
+        profiler_build = (
+            ProfilerBuild.Yes
+            if self.global_config.perf_run_type is not None
+            else ProfilerBuild.No
+        )
 
         test_config = TestConfig(
             test_name=cpp_path,
@@ -89,9 +96,13 @@ class FuserConfig:
             runtimes=set(),
             variant_stimuli=None,
             boot_mode=BootMode.DEFAULT,
-            profiler_build=ProfilerBuild.No,
+            profiler_build=profiler_build,
+            skip_build_header=True,
         )
 
-        test_config.run_fused(self)
+        test_config.generate_variant_hash()
+        test_config.build_elfs()
+        elfs = test_config.run_elf_files(location)
+        wait_for_tensix_operations_finished(elfs, location)
 
         collect_pipeline_results(self.pipeline)
