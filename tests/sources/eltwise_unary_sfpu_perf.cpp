@@ -53,7 +53,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     /* iterations*/ params->num_faces * params->TILE_CNT * params->LOOP_FACTOR);
             }
         }
-        else if constexpr (PERF_RUN_TYPE != PerfRunType::PACK_ISOLATE)
+        else if constexpr (PERF_RUN_TYPE != PerfRunType::PACK_ISOLATE) // UNPACK_ISOLATE, L1_TO_L1, L1_CONGESTION
         {
             for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
@@ -102,7 +102,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                         // Only perform synchronization with unpacker, it does not copy
                         // the data when unpack_to_dest is true - as data is already in dest.
                         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                            i, formats.math, formats.math);
+                            i % MAX_TILES_DEST, formats.math, formats.math);
                     }
                 }
             }
@@ -127,7 +127,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                         for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                         {
                             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                                block_start + block_tile, formats.math, formats.math);
+                                block_tile, formats.math, formats.math);
                         }
 
                         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -162,24 +162,25 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    if constexpr (!unpack_to_dest)
-                    {
-                        int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
-                        for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    {
+                        if constexpr (!unpack_to_dest)
                         {
                             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                                block_start + block_tile, formats.math, formats.math);
+                                block_tile, formats.math, formats.math);
                         }
-                    }
 
-                    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
-                    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS, FAST_MODE, STABLE_SORT>(SFPU_UNARY_OPERATION, formats.math);
-                    _llk_math_eltwise_unary_sfpu_done_();
+                        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_tile);
+                        test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS, FAST_MODE, STABLE_SORT>(
+                            SFPU_UNARY_OPERATION, formats.math);
+                        _llk_math_eltwise_unary_sfpu_done_();
+                    }
                 }
             }
         }
-        else if constexpr (PERF_RUN_TYPE != PerfRunType::PACK_ISOLATE)
+        else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_TO_L1)
         {
             for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
@@ -193,15 +194,15 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
                         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                            block_start + block_tile, formats.math, formats.math);
+                            block_tile, formats.math, formats.math);
+
+                        // Start SFPU operation
+                        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_tile);
+                        test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS, FAST_MODE, STABLE_SORT>(
+                            SFPU_UNARY_OPERATION, formats.math);
+                        _llk_math_eltwise_unary_sfpu_done_();
                     }
 
-                    // Start SFPU operation
-                    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
-
-                    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS, FAST_MODE, STABLE_SORT>(SFPU_UNARY_OPERATION, formats.math);
-
-                    _llk_math_eltwise_unary_sfpu_done_();
                     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
                 }
             }
