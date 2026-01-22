@@ -479,6 +479,14 @@ inline void _llk_math_fast_tilize_mop_config_()
 
 inline void _llk_math_fast_tilize_init_(const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim)
 {
+    // Workaround for HW bug (budabackend#1372): A2D operations with 32-bit data need bit 11 disabled
+    const uint output_df = unpack_dst_format & 0xF;
+    const bool is_32bit  = (output_df == static_cast<uint>(DataFormat::Int32)) || (output_df == static_cast<uint>(DataFormat::Float32));
+    if (is_32bit)
+    {
+        _llk_math_dbg_feature_disable_();
+    }
+
     // even though MOVA2D and MOVB2D are supposed to ignore ALU_ACC_CTRL_Fp32_enabled some parts still rely on it (not sure why)
     // it would be easier if they just fully respected ALU_ACC_CTRL_Fp32_enabled but it's a hardware quirk
     // so in non Tf32 cases, clear it to fully ignore FP32 dest mode
@@ -513,6 +521,14 @@ inline void _llk_math_fast_tilize_uninit_(const std::uint32_t unpack_dst_format)
         TT_SETC16(CFG_STATE_ID_StateID_ADDR32, 0);
         TTI_NOP;
         TTI_NOP;
+    }
+
+    // Clear bit 11 if it was set for 32-bit A2D operations (workaround for budabackend#1372)
+    const uint output_df = unpack_dst_format & 0xF;
+    const bool is_32bit  = (output_df == static_cast<uint>(DataFormat::Int32)) || (output_df == static_cast<uint>(DataFormat::Float32));
+    if (is_32bit)
+    {
+        _llk_math_dbg_feature_enable_();
     }
 }
 
