@@ -497,7 +497,6 @@ inline void sdpa_optimization_new_(uint32_t dst_index)
     // BOTTOM FACES F2 AND F3
 
     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_B);
-    // TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_B);
 
     TTI_NOP;
     TTI_NOP;
