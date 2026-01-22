@@ -449,9 +449,76 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod()
         .set(ADDR_MOD_2);
 }
 
+inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop()
+{
+    constexpr uint32_t REPLAY_BUFFER_SIZE = 12;
+
+    uint32_t innerloop           = 1;
+    constexpr uint32_t outerloop = 1;
+
+    ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, REPLAY_BUFFER_SIZE, 0, 0));
+    tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB)); // Clearing src A dvalid
+    tmp.program();
+}
+
+template <EltwiseBinaryType eltwise_binary_type>
 inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
 {
+    constexpr uint32_t REPLAY_BUFFER_SIZE = 12;
+
     _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod();
+
+    auto eltwise_op = [](uint8_t addr_mod)
+    {
+        if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWSUB)
+        {
+            TTI_ELWSUB(0, 0, 0, addr_mod, 0);
+        }
+        else if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWADD)
+        {
+            TTI_ELWADD(0, 0, 0, addr_mod, 0);
+        }
+        else if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWMUL)
+        {
+            TTI_ELWMUL(0, 0, 0, addr_mod, 0);
+        }
+    };
+
+    // ********************************************************
+    //  Setup replay buffer
+    lltt::record<lltt::NoExec>(0, REPLAY_BUFFER_SIZE);
+
+    TTI_TRNSPSRCB; // rows -> cols
+    /*
+    Dummy SFPLOAD with no effect to move srcB counter to be 16 since transpose is done on rows 16 - 31.
+    Main thing is ADDR_MOD_2 that has srcB increment of 16
+    */
+    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
+
+    eltwise_op(ADDR_MOD_0);
+    eltwise_op(ADDR_MOD_1);
+
+    eltwise_op(ADDR_MOD_0);
+    eltwise_op(ADDR_MOD_1);
+
+    // BOTTOM FACES F2 AND F3
+
+    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0); // clear dvalid on srcB and reset srcB counters
+
+    TTI_TRNSPSRCB; // rows -> cols
+
+    eltwise_op(ADDR_MOD_0);
+    eltwise_op(ADDR_MOD_1);
+
+    eltwise_op(ADDR_MOD_0);
+    eltwise_op(ADDR_MOD_1);
+
+    // TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB); // clear both src dvalids
+
+    // ********************************************************
+
+    _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop();
+
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
@@ -461,32 +528,8 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_(uint32_t dst_index)
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB); // clear all counters
 
-    TTI_TRNSPSRCB; // rows -> cols
-    /*
-    Dummy SFPLOAD with no effect to move srcB counter to be 16 since transpose is done on rows 16 - 31.
-    Main thing is ADDR_MOD_2 that has srcB increment of 16
-    */
-    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
-
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0);
-
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0);
-
-    // BOTTOM FACES F2 AND F3
-
-    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0); // clear dvalid on srcB and reset srcB counters
-
-    TTI_TRNSPSRCB; // rows -> cols
-
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0);
-
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
-    TTI_ELWSUB(0, 0, 0, ADDR_MOD_1, 0);
-
-    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB); // clear both src dvalids
+    // run the MOP
+    ckernel_template::run();
 
     math::clear_dst_reg_addr();
 }
