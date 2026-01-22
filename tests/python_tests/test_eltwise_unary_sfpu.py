@@ -23,9 +23,9 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     APPROX_MODE,
     FAST_MODE,
-    INPUT_DIMENSIONS,
     MATH_OP,
     TILE_COUNT,
+    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -115,10 +115,12 @@ def test_eltwise_unary_sfpu_float(
         MathOperation.Acosh,
         MathOperation.Log,
         MathOperation.Reciprocal,
+        MathOperation.Log1p,
         MathOperation.Sin,
         MathOperation.Sqrt,
         MathOperation.Rsqrt,
         MathOperation.Square,
+        MathOperation.Tanh,
         MathOperation.Celu,
         MathOperation.Silu,
         MathOperation.Neg,
@@ -243,12 +245,14 @@ def eltwise_unary_sfpu(
         test_name,
         formats,
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             APPROX_MODE(approx_mode),
             FAST_MODE(fast_mode),
             MATH_OP(mathop=mathop),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            generate_input_dim(input_dimensions, input_dimensions),
+            TILE_COUNT(tile_cnt_A),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
@@ -264,6 +268,7 @@ def eltwise_unary_sfpu(
         unpack_to_dest=(
             formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
         ),
+        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)

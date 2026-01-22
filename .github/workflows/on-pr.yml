@@ -152,7 +152,7 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-n150-stable
-      test_splits: 2
+      test_splits: 1
       pytest_markers: "not perf and not nightly and not quasar"
       use_durations: true
 
@@ -167,7 +167,7 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: tt-ubuntu-2204-p150b-stable
-      test_splits: 2
+      test_splits: 1
       pytest_markers: "not perf and not nightly and not quasar"
       use_durations: true
 
@@ -187,7 +187,8 @@ jobs:
     name: "⚡ Performance tests (${{ matrix.target }})"
     uses: ./.github/workflows/setup-and-test.yml
     needs: [build-images, detect-changes]
-    if: false
+    if: ${{ github.event_name != 'push' &&
+            needs.detect-changes.outputs.performance == 'true'}}
     strategy:
       fail-fast: false
       matrix:
@@ -199,10 +200,10 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: ${{ matrix.runs_on }}
-      test_splits: 5
+      test_splits: 2
       pytest_markers: "perf"
       timeout_minutes: 240
-      use_durations: true
+      use_durations: false
 
   check-all-green:
     name: "✅ Check all green"

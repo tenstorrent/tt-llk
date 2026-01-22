@@ -27,7 +27,6 @@ from helpers.test_config import BootMode, TestConfig
 from helpers.test_variant_parameters import (
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
-    INPUT_DIMENSIONS,
     MATH_FIDELITY,
     MATH_OP,
     NUM_FACES,
@@ -121,7 +120,6 @@ def test_eltwise_binary(
         formats,
         templates=[
             MATH_FIDELITY(math_fidelity),
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
             IMPLIED_MATH_FORMAT(implied_math_format),
             DEST_SYNC(),
@@ -151,6 +149,7 @@ def test_eltwise_binary(
         # MX formats require disable_format_inference to match C++ IMPLIED_MATH_FORMAT setting
         # This ensures Python-side format inference uses Float16_b for MX internal math
         disable_format_inference=(implied_math_format == ImpliedMathFormat.Yes),
+        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()

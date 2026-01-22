@@ -67,15 +67,10 @@ inline void clear_trisc_soft_reset()
     constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
 #endif
 
-    volatile uint32_t* reset_before = reinterpret_cast<uint32_t*>(0x64FF0);
-    volatile uint32_t* reset_after  = reinterpret_cast<uint32_t*>(0x64FF4);
+    uint32_t soft_reset      = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+    uint32_t temp_soft_reset = soft_reset & ~TRISC_SOFT_RESET_MASK;
 
-    uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
-    *reset_before       = soft_reset;
-
-    soft_reset &= ~TRISC_SOFT_RESET_MASK;
-    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
-
-    soft_reset   = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
-    *reset_after = soft_reset;
+    asm volatile("fence");
+    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, temp_soft_reset);
+    asm volatile("fence");
 }

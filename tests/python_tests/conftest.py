@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.device import _send_arc_message
+from helpers.device import LLKAssertException, _send_arc_message
 from helpers.format_config import InputOutputFormat
 from helpers.perf import PerfConfig, PerfReport, combine_perf_reports
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
@@ -214,7 +214,16 @@ def pytest_runtest_makereport(item, call):
 
                 stack_trace_str = "\n".join(stack_trace) if stack_trace else ""
 
-                if exc_type == AssertionError:
+                if exc_type == LLKAssertException:
+                    # Pretty print
+                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
+                    error_message = f"LLK ASSERT HIT {test_file_and_func}{report.test_params} {exc_msg}"
+                    report.longrepr = error_message
+                elif exc_type == TimeoutError:
+                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
+                    error_message = f"TENSIX TIMED OUT {test_file_and_func}{report.test_params} {exc_msg}"
+                    report.longrepr = error_message
+                elif exc_type == AssertionError:
                     # Handle assertion failures
                     exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
                     error_message = (
@@ -235,6 +244,12 @@ def pytest_runtest_makereport(item, call):
 
 def pytest_sessionstart(session):
     if hasattr(session.config, "workerinput"):
+        if session.config.getoption("--worker-file-dump", default=False):
+            worker_id = session.config.workerinput["workerid"]
+            out_fd = open(TestConfig.ARTEFACTS_DIR / f"out_dump_{worker_id}.log", "w")
+            err_fd = open(TestConfig.ARTEFACTS_DIR / f"err_dump_{worker_id}.log", "w")
+            sys.stdout = out_fd
+            sys.stderr = err_fd
         return
 
     test_target = TestTargetConfig()
@@ -260,9 +275,18 @@ def perf_report(request, worker_id):
     if PerfConfig.TEST_COUNTER == 0:
         return
 
-    temp_report.dump_csv(f"{test_module}.{worker_id}.csv")
+    raw_path = TestConfig.PERF_DATA_DIR / f"{test_module}.{worker_id}.csv"
+    post_path = TestConfig.PERF_DATA_DIR / f"{test_module}.{worker_id}.post.csv"
+
+    if raw_path.exists():
+        raw_path.unlink()
+
+    if post_path.exists():
+        post_path.unlink()
+
+    temp_report.dump_csv(raw_path)
     temp_report.post_process()
-    temp_report.dump_csv(f"{test_module}.{worker_id}.post.csv")
+    temp_report.dump_csv(post_path)
 
 
 def pytest_sessionfinish(session):
@@ -328,6 +352,13 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
         help="Compile without debug symbols (-g flag) to save disk space",
+    )
+
+    parser.addoption(
+        "--worker-file-dump",
+        action="store_true",
+        default=False,
+        help="Redirect worker stdout/stderr to (out/err)_dump_(worker_id).log in TestConfig.ARTEFACTS_DIR",
     )
 
 

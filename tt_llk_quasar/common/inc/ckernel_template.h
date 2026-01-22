@@ -37,26 +37,26 @@ class ckernel_template
     // This means that in this case, last_inner_loop_instr will be replaced by the last_outer_loop_instr
 
 public:
-    ckernel_template(uint outer_loop_len, uint inner_loop_len, uint loop_op);
-    ckernel_template(uint outer_loop_len, uint inner_loop_len, uint loop_op0, uint loop_op1);
-    void set_end_ops(uint end_op0, uint end_op1);
-    void set_end_op(uint end_op0);
-    void set_start_op(uint start_op0);
-    void set_last_inner_loop_instr(uint op);
-    void set_last_outer_loop_instr(uint op);
-    void set_outer_loop_len(uint len);
-    void set_inner_loop_len(uint len);
-    void set_loop_instr(uint loop_op0, uint loop_op1);
+    inline ckernel_template(uint outer_loop_len, uint inner_loop_len, uint loop_op);
+    inline ckernel_template(uint outer_loop_len, uint inner_loop_len, uint loop_op0, uint loop_op1);
+    inline void set_end_ops(uint end_op0, uint end_op1);
+    inline void set_end_op(uint end_op0);
+    inline void set_start_op(uint start_op0);
+    inline void set_last_inner_loop_instr(uint op);
+    inline void set_last_outer_loop_instr(uint op);
+    inline void set_outer_loop_len(uint len);
+    inline void set_inner_loop_len(uint len);
+    inline void set_loop_instr(uint loop_op0, uint loop_op1);
 
-    void program(volatile uint *instrn_buffer);                    // just programs the registers
-    void program_bank0_sw_cntl(volatile uint *instrn_buffer);      // programs BANK0 in software control mode
-    void program_bank1_sw_cntl(volatile uint *instrn_buffer);      // programs BANK1 in software control mode
-    static void run(volatile uint *instrn_buffer);                 // runs - assumes that registers were already programmed
-    static void run_and_finish(volatile uint *instrn_buffer);      // runs and switches mop_config bank - assumes that registers were already programmed
-    static void run_bank0_sw_cntl(volatile uint *instrn_buffer);   // run bank 0 in SW control mode
-    static void run_bank1_sw_cntl(volatile uint *instrn_buffer);   // run bank 1 in SW control mode
-    void program_and_run(volatile uint *instrn_buffer);            // calls program, then run
-    void program_and_run_and_finish(volatile uint *instrn_buffer); // calls program, then runs and switches the mop_config bank
+    inline void program(volatile uint *instrn_buffer);                    // just programs the registers
+    inline void program_bank0_sw_cntl(volatile uint *instrn_buffer);      // programs BANK0 in software control mode
+    inline void program_bank1_sw_cntl(volatile uint *instrn_buffer);      // programs BANK1 in software control mode
+    static void run(volatile uint *instrn_buffer);                        // runs - assumes that registers were already programmed
+    static void run_and_finish(volatile uint *instrn_buffer);             // runs and switches mop_config bank - assumes that registers were already programmed
+    static void run_bank0_sw_cntl(volatile uint *instrn_buffer);          // run bank 0 in SW control mode
+    static void run_bank1_sw_cntl(volatile uint *instrn_buffer);          // run bank 1 in SW control mode
+    inline void program_and_run(volatile uint *instrn_buffer);            // calls program, then run
+    inline void program_and_run_and_finish(volatile uint *instrn_buffer); // calls program, then runs and switches the mop_config bank
 };
 
 #if 0
@@ -293,81 +293,81 @@ ckernel_template::ckernel_template(uint outer_loop_len, uint inner_loop_len, uin
     // FWASSERT("MOP OUTER LOOP LENGTH should be non-zero", (m_outer_loop_len > 0));
 }
 
-void ckernel_template::set_outer_loop_len(uint len)
+inline void ckernel_template::set_outer_loop_len(uint len)
 {
     m_outer_loop_len = len;
 }
 
-void ckernel_template::set_inner_loop_len(uint len)
+inline void ckernel_template::set_inner_loop_len(uint len)
 {
     m_inner_loop_len = len;
 }
 
-void ckernel_template::set_loop_instr(uint loop_op0, uint loop_op1)
+inline void ckernel_template::set_loop_instr(uint loop_op0, uint loop_op1)
 {
     m_loop_op0 = loop_op0;
     m_loop_op1 = loop_op1;
 }
 
-void ckernel_template::set_end_ops(uint end_op0, uint end_op1)
+inline void ckernel_template::set_end_ops(uint end_op0, uint end_op1)
 {
     m_end_op0 = end_op0;
     m_end_op1 = end_op1;
 }
 
-void ckernel_template::set_end_op(uint end_op0)
+inline void ckernel_template::set_end_op(uint end_op0)
 {
     set_end_ops(end_op0, TT_OP_NOP);
 }
 
-void ckernel_template::set_start_op(uint start_op0)
+inline void ckernel_template::set_start_op(uint start_op0)
 {
     m_start_op0 = start_op0;
 }
 
-void ckernel_template::set_last_inner_loop_instr(uint op)
+inline void ckernel_template::set_last_inner_loop_instr(uint op)
 {
     m_loop1_last_instr = op;
 }
 
-void ckernel_template::set_last_outer_loop_instr(uint op)
+inline void ckernel_template::set_last_outer_loop_instr(uint op)
 {
     m_loop0_last_instr = op;
 }
 
-void ckernel_template::program_and_run(volatile uint *instrn_buffer)
+inline void ckernel_template::program_and_run(volatile uint *instrn_buffer)
 {
     program(instrn_buffer);
     run(instrn_buffer);
 }
 
-void ckernel_template::program_and_run_and_finish(volatile uint *instrn_buffer)
+inline void ckernel_template::program_and_run_and_finish(volatile uint *instrn_buffer)
 {
     program(instrn_buffer);
     run_and_finish(instrn_buffer);
 }
 
-void ckernel_template::run([[maybe_unused]] volatile uint *instrn_buffer)
+inline void ckernel_template::run([[maybe_unused]] volatile uint *instrn_buffer)
 {
     TTI_MOP(1, 0, 0, 0); // run the double-loop template
 }
 
-void ckernel_template::run_bank0_sw_cntl([[maybe_unused]] volatile uint *instrn_buffer)
+inline void ckernel_template::run_bank0_sw_cntl([[maybe_unused]] volatile uint *instrn_buffer)
 {
     TTI_MOP(1, 0, 0, 0); // run the double-loop template
 }
 
-void ckernel_template::run_and_finish([[maybe_unused]] volatile uint *instrn_buffer)
+inline void ckernel_template::run_and_finish([[maybe_unused]] volatile uint *instrn_buffer)
 {
     TTI_MOP(1, 1, 0, 0); // run the double-loop template
 }
 
-void ckernel_template::run_bank1_sw_cntl([[maybe_unused]] volatile uint *instrn_buffer)
+inline void ckernel_template::run_bank1_sw_cntl([[maybe_unused]] volatile uint *instrn_buffer)
 {
     TTI_MOP(1, 1, 0, 0); // run the double-loop template
 }
 
-void ckernel_template::program([[maybe_unused]] volatile uint *instrn_buffer)
+inline void ckernel_template::program([[maybe_unused]] volatile uint *instrn_buffer)
 {
     volatile mop_config_regs_t *mop_cfg = reinterpret_cast<volatile mop_config_regs_t *>(MOP_CFG_BASE);
 
@@ -387,7 +387,7 @@ void ckernel_template::program([[maybe_unused]] volatile uint *instrn_buffer)
     mop_cfg->MOP_CONFIG              = 1;
 }
 
-void ckernel_template::program_bank0_sw_cntl([[maybe_unused]] volatile uint *instrn_buffer)
+inline void ckernel_template::program_bank0_sw_cntl([[maybe_unused]] volatile uint *instrn_buffer)
 {
     volatile mop_config_regs_t *mop_cfg = reinterpret_cast<volatile mop_config_regs_t *>(MOP_CFG_BASE);
 
@@ -426,20 +426,20 @@ void ckernel_template::program_bank1_sw_cntl([[maybe_unused]] volatile uint *ins
 }
 
 #if 0
-void ckernel_unpack_template::program_and_run(volatile uint *instrn_buffer, const uint8_t count, const uint32_t zmask)
+inline void ckernel_unpack_template::program_and_run(volatile uint *instrn_buffer, const uint8_t count, const uint32_t zmask)
 {
   program(instrn_buffer);
   run(instrn_buffer, count, zmask);
 }
 
-void ckernel_unpack_template::run(volatile uint *instrn_buffer, const uint8_t count, const uint32_t zmask)
+inline void ckernel_unpack_template::run(volatile uint *instrn_buffer, const uint8_t count, const uint32_t zmask)
 {
   // FWASSERT("Unpack template only supports loops up to 128", count <= 128);
   TT_MOP_CFG(zmask >> 16);                // Set the top 16 bits of zmask - we could skip this for count <= 16
   TT_MOP(0, count-1, zmask & 0xFFFF);     // Run the template
 }
 
-void ckernel_unpack_template::program(volatile uint *instrn_buffer) const
+inline void ckernel_unpack_template::program(volatile uint *instrn_buffer) const
 {
   volatile uint *mop_cfg = reinterpret_cast<volatile uint *>(TENSIX_MOP_CFG_BASE);
 

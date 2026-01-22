@@ -266,10 +266,16 @@ class StableSort(Enum):
     No = "false"
 
 
-class Mailbox(Enum):
-    Unpacker = 0x19FFC
-    Math = 0x19FF8
-    Packer = 0x19FF4
+class MailboxDebug(Enum):
+    Unpacker = 0x60FFC
+    Math = 0x60FF8
+    Packer = 0x60FF4
+
+
+class MailboxNonDebug(Enum):
+    Unpacker = 0x1FFFC
+    Math = 0x1FFF8
+    Packer = 0x1FFF4
 
 
 format_tile_sizes = {

@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 
 #include "ckernel.h"
 #ifndef ARCH_QUASAR
@@ -11,6 +12,7 @@
 // Necessary for ckernel variables
 #include "ckernel_helper.h" // Only for WH/BH
 #endif
+#include "params.h"
 #include "profiler.h"
 
 #if defined(LLK_TRISC_UNPACK) && defined(LLK_BOOT_MODE_TRISC)
@@ -31,24 +33,47 @@ uint32_t open_zone_cnt    = 0;
 #endif
 
 extern const volatile struct RuntimeParams __runtime_args_start[];
-extern void run_kernel(const volatile struct RuntimeParams* params);
+extern void run_kernel(const struct RuntimeParams& params);
+
+void copy_runtimes_from_L1(struct RuntimeParams* temp_args)
+{
+    struct RuntimeParams* src = (struct RuntimeParams*)__runtime_args_start;
+    asm volatile("" : "=m"(*src));
+    memcpy(temp_args, src, sizeof(struct RuntimeParams));
+}
 
 int main()
 {
 #if defined(LLK_TRISC_UNPACK) && defined(LLK_BOOT_MODE_TRISC)
     device_setup();
-
     // Release the rest of the triscs
     clear_trisc_soft_reset();
 #endif
 
-#if defined(LLK_TRISC_UNPACK)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FFC);
-#elif defined(LLK_TRISC_MATH)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF8);
-#elif defined(LLK_TRISC_PACK)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
+#if defined(COVERAGE)
+    constexpr std::uint32_t mailboxes_start = 0x60FF4;
+#else
+    constexpr std::uint32_t mailboxes_start = 0x1FFF4;
 #endif
+
+#if defined(LLK_TRISC_UNPACK)
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(mailboxes_start + 2 * sizeof(std::uint32_t));
+#elif defined(LLK_TRISC_MATH)
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(mailboxes_start + sizeof(std::uint32_t));
+#elif defined(LLK_TRISC_PACK)
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(mailboxes_start);
+#endif
+
+    asm volatile("fence");
+    *mailbox = ckernel::KERNEL_START_RUNTIME_LOADING;
+    asm volatile("fence");
+
+    struct RuntimeParams temp_args;
+    copy_runtimes_from_L1(&temp_args);
+
+    asm volatile("fence");
+    *mailbox = ckernel::KERNEL_LOADED_RUNTIMES;
+    asm volatile("fence");
 
     std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
 #ifndef ARCH_QUASAR
@@ -61,11 +86,19 @@ int main()
     llk_profiler::sync_threads();
 #endif
 
+    asm volatile("fence");
+    *mailbox = ckernel::KERNEL_STARTED_MAIN;
+    asm volatile("fence");
+
     {
         ZONE_SCOPED("KERNEL")
-        run_kernel(__runtime_args_start);
+        run_kernel(temp_args);
         ckernel::tensix_sync();
     }
 
-    *mailbox = ckernel::KERNEL_COMPLETE; // 0x1
+    asm volatile("fence");
+    *mailbox = ckernel::KERNEL_FINNISHED_MAIN;
+    asm volatile("fence");
+    *mailbox = ckernel::KERNEL_COMPLETE;
+    asm volatile("fence");
 }

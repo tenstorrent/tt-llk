@@ -50,9 +50,12 @@ constexpr uint PACK_FLUSH_COUNTERS = // counters flush
     (1 << PACK_COUNTERS_SEC2_pack_per_xy_plane_SHAMT) | (1 << PACK_COUNTERS_SEC2_pack_reads_per_xy_plane_SHAMT) |
     (1 << PACK_COUNTERS_SEC2_pack_xys_per_tile_SHAMT);
 
-constexpr uint RESET_VAL          = 0;
-constexpr uint KERNEL_IN_PROGRESS = 15;
-constexpr uint KERNEL_COMPLETE    = 1;
+constexpr uint RESET_VAL                    = 0xA3;
+constexpr uint KERNEL_START_RUNTIME_LOADING = 0x1;
+constexpr uint KERNEL_LOADED_RUNTIMES       = 0x2;
+constexpr uint KERNEL_STARTED_MAIN          = 0x3;
+constexpr uint KERNEL_FINNISHED_MAIN        = 0x4;
+constexpr uint KERNEL_COMPLETE              = 0xF;
 
 extern volatile uint tt_reg_ptr *reg_base;
 extern volatile uint tt_reg_ptr *pc_buf_base;

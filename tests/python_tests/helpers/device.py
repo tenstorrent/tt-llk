@@ -3,7 +3,6 @@
 
 import datetime
 import os
-import sys
 import time
 from enum import Enum, IntEnum
 from pathlib import Path
@@ -11,7 +10,6 @@ from typing import List
 
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.hardware_controller import HardwareController
 from ttexalens.context import Context
 from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.debug_tensix import TensixDebug
@@ -31,7 +29,7 @@ from ttexalens.tt_exalens_lib import (
 )
 
 from .fused_operation import FusedOperation
-from .llk_params import DataFormat, Mailbox, format_dict
+from .llk_params import DataFormat, MailboxNonDebug, format_dict
 from .pack import (
     pack_bfp8_b,
     pack_bfp16,
@@ -47,8 +45,19 @@ from .target_config import TestTargetConfig
 from .tilize_untilize import untilize_block
 from .unpack import unpack_res_tiles
 
+Mailbox = MailboxNonDebug
+
+
+class LLKAssertException(Exception):
+    pass
+
+
+class TriscInReset(Exception):
+    pass
+
+
 # Constant - indicates the TRISC kernel run status
-KERNEL_COMPLETE = 1  # Kernel completed its run
+KERNEL_COMPLETE = 0xF  # Kernel completed its run
 
 
 class BootMode(Enum):
@@ -118,17 +127,26 @@ def get_soft_reset_mask(cores: list[RiscCore]):
 def set_tensix_soft_reset(
     value, cores: list[RiscCore] = ALL_CORES, location="0,0", device_id=0
 ):
-    soft_reset = get_register_store(location, device_id).read_register(
-        "RISCV_DEBUG_REG_SOFT_RESET_0"
-    )
+
     if value:
+        soft_reset = 0xFFFFFFFF
         soft_reset |= get_soft_reset_mask(cores)
     else:
+        soft_reset = 0x0
         soft_reset &= ~get_soft_reset_mask(cores)
 
     get_register_store(location, device_id).write_register(
         "RISCV_DEBUG_REG_SOFT_RESET_0", soft_reset
     )
+
+
+def assert_if_all_in_reset(location: str = "0,0", place: str = ""):
+    soft_reset = get_register_store(location, 0).read_register(
+        "RISCV_DEBUG_REG_SOFT_RESET_0"
+    )
+
+    if (soft_reset & get_soft_reset_mask(ALL_CORES)) != get_soft_reset_mask(ALL_CORES):
+        raise Exception(f"Not all cores are in reset! {place}")
 
 
 def exalens_device_setup(chip_arch, location="0,0", device_id=0):
@@ -158,7 +176,6 @@ def exalens_device_setup(chip_arch, location="0,0", device_id=0):
 
 def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
     # check if the core is stuck on an EBREAK instruction
-
     CHIP_ARCH = get_chip_architecture()
     context = check_context()
     device = context.devices[device_id]
@@ -168,70 +185,54 @@ def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
         risc_name, neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None
     )
 
-    is_it = True
-
+    is_it = False
     try:
         is_it = risc_debug.is_ebreak_hit()
-    except:
-        soft_reset = get_register_store(core_loc, device_id).read_register(
-            "RISCV_DEBUG_REG_SOFT_RESET_0"
-        )
-
-        brisc_debug_pc = block.get_risc_debug("BRISC").get_pc()
-
-        crumbs = read_from_device(core_loc, 0x64FF0, 0, 8)
-        before = int.from_bytes(crumbs[0:4], byteorder="little")
-        after = int.from_bytes(crumbs[4:8], byteorder="little")
-        print(
-            f"{core_loc} Host-read reset register {hex(soft_reset)} | brisc pc: {hex(brisc_debug_pc)} | before {hex(before)} after {hex(after)}",
-            file=sys.stderr,
-        )
-        raise Exception("WTF handler")
+    except ValueError:
+        # Pretty wrap WTF error to be passed upwards for further handling
+        raise TriscInReset("While asserting if ebreak was hit")
 
     return is_it
 
 
-def _print_callstack(risc_name: str, callstack: list[CallstackEntry]):
-    print(f"====== ASSERT HIT ON RISC CORE {risc_name.upper()} =======")
+def _print_callstack(risc_name: str, callstack: list[CallstackEntry]) -> str:
+    temp_str = f"\n====== {risc_name.upper()} STACK TRACE =======\n"
 
     LLK_HOME = Path(os.environ.get("LLK_HOME"))
     TESTS_DIR = LLK_HOME / "tests"
 
     for idx, entry in enumerate(callstack):
         # Format PC hex like Rust does
-
         pc = f"0x{entry.pc:016x}" if entry.pc is not None else "0x????????????????"
         file_path = (TESTS_DIR / Path(entry.file)).resolve()
-
         # first line: idx, pc, function
-        print(f"{idx:>4}: {pc} - {entry.function_name}")
-
+        temp_str += f"{idx:>4}: {pc} - {entry.function_name}\n"
         # second line: file, line, column
-        print(f"{' '*25}| at {file_path}:{entry.line}:{entry.column}")
+        temp_str += f"{' '*25}| at {file_path}:{entry.line}:{entry.column}\n"
+
+    return temp_str
 
 
 def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
     trisc_cores = [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2]
     assertion_hits = []
-
+    temp_stack_traces = ""
     for core in trisc_cores:
         risc_name = str(core)
         if is_assert_hit(risc_name, core_loc=core_loc, device_id=device_id):
-            _print_callstack(
+            temp_stack_traces += _print_callstack(
                 risc_name,
                 callstack(core_loc, elfs, risc_name=risc_name, device_id=device_id),
             )
             assertion_hits.append(risc_name)
 
-    HardwareController().reset_card()
-
     if assertion_hits:
-        raise AssertionError(
-            f"Assert was hit on device on cores: {', '.join(assertion_hits)}"
-        )
+        raise LLKAssertException(temp_stack_traces)
 
 
-def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=5, max_backoff=5):
+def wait_for_tensix_operations_finished(
+    elfs, core_loc="0,0", timeout=1, max_backoff=0.1
+):
     """
     Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
 
@@ -247,8 +248,10 @@ def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=5, max_bac
     test_target = TestTargetConfig()
     timeout = 600 if test_target.run_simulator else timeout
 
+    time.sleep(0.01)
+
     start_time = time.time()
-    backoff = 0.001  # Initial backoff time in seconds
+    backoff = 0.005  # Initial backoff time in seconds
 
     completed = set()
     end_time = start_time + timeout
@@ -277,11 +280,17 @@ def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=5, max_bac
     )
 
 
+def dump_mailboxes(location: str = "0,0") -> bytes:
+    """Reset all core mailboxes before each test."""
+    target_addr = min(Mailbox.Packer.value, Mailbox.Math.value, Mailbox.Unpacker.value)
+    return read_from_device(location=location, addr=target_addr, num_bytes=12)
+
+
 def reset_mailboxes(location: str = "0,0"):
     """Reset all core mailboxes before each test."""
-    reset_value = 0  # Constant - indicates the TRISC kernel run status
-    for mailbox in [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]:
-        write_words_to_device(location=location, addr=mailbox.value, data=reset_value)
+    reset_value = 0xA3  # Constant - indicates the TRISC kernel run status
+    target_addr = min(Mailbox.Packer.value, Mailbox.Math.value, Mailbox.Unpacker.value)
+    write_words_to_device(location=location, addr=target_addr, data=3 * [reset_value])
 
 
 def pull_coverage_stream_from_tensix(

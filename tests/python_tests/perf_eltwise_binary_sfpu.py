@@ -18,7 +18,6 @@ from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import calculate_tile_and_face_counts
 from helpers.test_variant_parameters import (
     APPROX_MODE,
-    INPUT_DIMENSIONS,
     ITERATIONS,
     LOOP_FACTOR,
     MATH_OP,
@@ -26,6 +25,7 @@ from helpers.test_variant_parameters import (
     TILE_COUNT,
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
+    generate_input_dim,
 )
 
 
@@ -96,12 +96,12 @@ def test_perf_eltwise_binary_sfpu_float(
             PerfRunType.L1_CONGESTION,
         ],
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
             APPROX_MODE(approx_mode),
             ITERATIONS(iterations),
         ],
         runtimes=[
+            generate_input_dim(input_dimensions, input_dimensions),
             TILE_COUNT(tile_count),
             LOOP_FACTOR(loop_factor),
             NUM_FACES(num_faces=faces_to_generate),
@@ -186,12 +186,12 @@ def test_perf_eltwise_binary_sfpu_int(
             PerfRunType.L1_CONGESTION,
         ],
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
             APPROX_MODE(approx_mode),
             ITERATIONS(iterations),
         ],
         runtimes=[
+            generate_input_dim(input_dimensions, input_dimensions),
             TILE_COUNT(tile_count),
             LOOP_FACTOR(loop_factor),
             NUM_FACES(num_faces=faces_to_generate),
@@ -285,12 +285,12 @@ def test_perf_eltwise_binary_sfpu_add_top_row(
             PerfRunType.L1_CONGESTION,
         ],
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
             APPROX_MODE(approx_mode),
             ITERATIONS(iterations),
         ],
         runtimes=[
+            generate_input_dim(input_dimensions, input_dimensions),
             TILE_COUNT(tile_count),
             LOOP_FACTOR(loop_factor),
             NUM_FACES(num_faces=faces_to_generate),

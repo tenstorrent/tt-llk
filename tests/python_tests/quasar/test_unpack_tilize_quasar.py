@@ -29,11 +29,11 @@ from helpers.test_variant_parameters import (
     DATA_COPY_TYPE,
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
-    INPUT_DIMENSIONS,
     NUM_FACES,
     TEST_FACE_DIMS,
     TILE_COUNT,
     UNPACKER_ENGINE_SEL,
+    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -125,7 +125,7 @@ def test_unpack_tilize_quasar(
         "sources/quasar/unpack_tilize_quasar_test.cpp",
         formats,
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+            generate_input_dim(input_dimensions, input_dimensions),
             IMPLIED_MATH_FORMAT(ImpliedMathFormat.Yes),
             UNPACKER_ENGINE_SEL(unpacker_sel),
             DATA_COPY_TYPE(
@@ -157,6 +157,7 @@ def test_unpack_tilize_quasar(
         ),
         dest_acc=dest_acc,
         boot_mode=boot_mode,
+        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()
