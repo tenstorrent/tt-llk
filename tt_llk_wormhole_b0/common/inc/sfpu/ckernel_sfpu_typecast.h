@@ -817,6 +817,19 @@ inline void _init_typecast_uint32_to_uint16_()
         constexpr uint round_bits  = 0;
         constexpr uint store_bits  = 0x00 | 0x40 | (1 << 3) | 3;
 
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
+        TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
+        TTI_SFPCONFIG(0, 4 + 2, 0);
+    }
+
+    // Misc: {
+    //   StoreMod0: LO16,
+    //   UsesLoadMod0ForStore: {0,0,0},
+    //   UnitDelayKind: {1,1,1}, (WaitForElapsedInstructions=1)
+    // }
+    TTI_SFPCONFIG(0x700 | InstrModLoadStore::LO16, 8, 1);
+}
+
 template <bool APPROXIMATION_MODE>
 inline void _init_typecast_int32_to_uint16_()
 {
