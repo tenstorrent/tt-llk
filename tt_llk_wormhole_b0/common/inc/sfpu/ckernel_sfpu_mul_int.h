@@ -16,15 +16,14 @@ namespace sfpu
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
 {
-
-    int offset0 = (dst_index_in0 * 32) << 1;
-    int offset1 = (dst_index_in1 * 32) << 1;
+    int offset0    = (dst_index_in0 * 32) << 1;
+    int offset1    = (dst_index_in1 * 32) << 1;
     int offset_out = (dst_index_out * 32) << 1;
 
-    constexpr int a0 = p_sfpu::LREG0;
-    constexpr int b0 = p_sfpu::LREG1;
-    constexpr int a1 = p_sfpu::LREG2;
-    constexpr int b1 = p_sfpu::LREG3;
+    constexpr int a0  = p_sfpu::LREG0;
+    constexpr int b0  = p_sfpu::LREG1;
+    constexpr int a1  = p_sfpu::LREG2;
+    constexpr int b1  = p_sfpu::LREG3;
     constexpr int out = p_sfpu::LREG4;
     constexpr int tmp = p_sfpu::LREG5;
 
@@ -102,7 +101,7 @@ inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const 
 template <bool APPROXIMATION_MODE>
 inline void _init_mul_int_()
 {
-    sfpi::vConstIntPrgm0 = 0xff;        // LREG12
+    sfpi::vConstIntPrgm0   = 0xff;      // LREG12
     sfpi::vConstFloatPrgm1 = 8388608.0; // LREG13
 
     constexpr int tmp = p_sfpu::LREG5;
