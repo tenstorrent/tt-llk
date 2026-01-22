@@ -37,18 +37,20 @@ int main()
 {
 #if defined(LLK_TRISC_UNPACK) && defined(LLK_BOOT_MODE_TRISC)
     device_setup();
-
     // Release the rest of the triscs
     clear_trisc_soft_reset();
 #endif
 
 #if defined(LLK_TRISC_UNPACK)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FFC);
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x1FFF4);
 #elif defined(LLK_TRISC_MATH)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF8);
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x1FFF8);
 #elif defined(LLK_TRISC_PACK)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x1FFFC);
+    ;
 #endif
+
+    ckernel::store_blocking(mailbox, 0x01);
 
     std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
 #ifndef ARCH_QUASAR
@@ -61,11 +63,15 @@ int main()
     llk_profiler::sync_threads();
 #endif
 
+    ckernel::store_blocking(mailbox, 0x02);
+
     {
         ZONE_SCOPED("KERNEL")
         run_kernel(__runtime_args_start);
         ckernel::tensix_sync();
     }
 
-    *mailbox = ckernel::KERNEL_COMPLETE; // 0x1
+    ckernel::store_blocking(mailbox, 0x03);
+
+    ckernel::store_blocking(mailbox, 0xFF);
 }

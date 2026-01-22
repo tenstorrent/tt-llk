@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "ckernel.h"
 #include "ckernel_common_ops.h"
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
@@ -58,10 +59,6 @@ constexpr std::uint32_t PACK_FLUSH_COUNTERS = // counters flush
     (1 << PACK_COUNTERS_SEC2_pack_per_xy_plane_SHAMT) | (1 << PACK_COUNTERS_SEC2_pack_reads_per_xy_plane_SHAMT) |
     (1 << PACK_COUNTERS_SEC2_pack_xys_per_tile_SHAMT);
 
-constexpr std::uint32_t RESET_VAL          = 0;
-constexpr std::uint32_t KERNEL_IN_PROGRESS = 15;
-constexpr std::uint32_t KERNEL_COMPLETE    = 1;
-
 extern volatile std::uint32_t tt_reg_ptr *reg_base;
 extern volatile std::uint32_t tt_reg_ptr *pc_buf_base;
 extern volatile std::uint32_t tt_reg_ptr *regfile;
@@ -88,26 +85,80 @@ namespace internal
 {
 }
 
+/**
+ * @brief Issues a load transaction that will block the core until the transaction is completed
+ * @param ptr address to read from
+ * @return value read from the address
+ */
+inline std::uint32_t load_blocking(volatile std::uint32_t *ptr)
+{
+    std::uint32_t val;
+
+    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/BabyRISCV/MemoryOrdering.md
+
+    // important note: FENCE on Wormhole is a NOP
+    //
+    // this code provides a full barrier for a load transaction by doing the following:
+    // - memory clobber
+    //     - prevent reordering of transactions that occur before the barrier after the barrier by the COMPILER
+    // - issue a LOAD transaction to the address
+    //     - actual load that was requested
+    // - issue an instruction that requires the data from the LOAD transaction
+    //     - block the pipeline until the LOAD transaction completes
+    // - memory clobber
+    //     - prevent reordering of transactions that occur after the barrier before the barrier by the COMPILER
+
+    asm volatile(
+        "fence\n\t"
+        "lw %[val], (%[ptr])\n\t"
+        "and x0, x0, %[val]"
+        : [val] "=r"(val)
+        : [ptr] "r"(ptr));
+
+    asm volatile("" : ::"memory");
+
+    return val;
+}
+
+/**
+ * @brief Issues a store transaction that will block the core until the transaction is completed
+ * @param ptr address to write to
+ * @param val value that will be written to the address
+ */
+inline void store_blocking(volatile std::uint32_t *ptr, std::uint32_t val)
+{
+    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/BabyRISCV/MemoryOrdering.md
+
+    // important note: FENCE on Wormhole is a NOP
+    //
+    // this code provides a full barrier for a store transaction by doing the following:
+    // - issue a STORE transaction to the address
+    //     - actual store that was requested
+    // - issue a LOAD transaction to the address
+    //     - must complete after the STORE transaction
+    // - issue an instruction that requires the data from the LOAD transaction
+    //     - block the pipeline until the LOAD transaction completes, ensuring that the STORE is complete
+    // - memory clobber
+    //     - prevent reordering of transactions that occur after the barrier before the barrier by the COMPILER
+
+    asm volatile(
+        "sw %[val], (%[ptr])\n\t"
+        "lw %[val], (%[ptr])\n\t"
+        "and x0, x0, %[val]"
+        : [val] "+r"(val)
+        : [ptr] "r"(ptr));
+
+    asm volatile("" : ::"memory");
+}
+
 inline void tensix_sync()
 {
-    volatile std::uint32_t foo     = 0;
-    volatile std::uint32_t *fooptr = &foo;
-    // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
-    pc_buf_base[1] = foo;
-
-    // Now read -- this read will block until we're idle
-    *fooptr = pc_buf_base[1];
+    store_blocking(&pc_buf_base[1], 0);
 }
 
 inline void mop_sync()
 {
-    volatile std::uint32_t foo     = 0;
-    volatile std::uint32_t *fooptr = &foo;
-    // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
-    pc_buf_base[2] = foo;
-
-    // Now read -- this read will block until mops are done
-    *fooptr = pc_buf_base[2];
+    store_blocking(&pc_buf_base[2], 0);
 }
 
 inline void sync_regfile_write(const std::uint32_t index);
