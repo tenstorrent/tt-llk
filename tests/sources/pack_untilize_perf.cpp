@@ -116,7 +116,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     for (uint32_t block_tile = 0; block_tile < BLOCK_CT_DIM; block_tile++)
                     {
                         math_unpack_to_dest_math_ready();
-                        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(i % MAX_TILES_DEST);
+                        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(block_tile);
                         math::math_unpack_to_dest_tile_ready();
                     }
                 }
