@@ -39,6 +39,8 @@ class Packer:
     def pack_with_perf(
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
+        dest_acc = config.dest_acc.value
+
         if (
             config.perf_run_type == PerfRunType.UNPACK_ISOLATE
             or config.perf_run_type == PerfRunType.MATH_ISOLATE
@@ -54,11 +56,12 @@ class Packer:
         else:
             code = "    _llk_packer_wait_for_math_done_();\n"
             code += self.pack(operation, config)
+            code += (
+                f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();\n"
+            )
             return code
 
     def exec_perf(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        dest_acc = config.dest_acc.value
-
         code = "{\n"
         code += '    ZONE_SCOPED("INIT")\n'
         code += self.hw_configure(operation, config)
@@ -68,15 +71,11 @@ class Packer:
 
         code += "{\n"
         code += '    ZONE_SCOPED("TILE_LOOP")\n'
+        code += f"    for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
+        code += "    {\n"
         code += self.pack_with_perf(operation, config)
+        code += "    }\n"
 
-        if (
-            config.perf_run_type != PerfRunType.UNPACK_ISOLATE
-            and config.perf_run_type != PerfRunType.MATH_ISOLATE
-        ):
-            code += (
-                f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();\n"
-            )
         code += self.unpacker_sync(operation, config)
 
         code += "    PROFILER_SYNC();\n"

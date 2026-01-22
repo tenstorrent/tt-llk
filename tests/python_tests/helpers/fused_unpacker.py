@@ -100,8 +100,10 @@ class Unpacker:
         code += '    ZONE_SCOPED("TILE_LOOP")\n'
 
         code += self.packer_sync(operation)
-
+        code += f"    for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
+        code += "    {\n"
         code += self.unpack_with_perf(operation, config)
+        code += "    }\n"
         code += "    PROFILER_SYNC();\n"
         code += "}\n"
 
@@ -168,11 +170,10 @@ class MatmulUnpacker(Unpacker):
     def perf_set_valid(
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
-        loop_factor = 1
         rt_dim = operation.rt_dim
         kt_dim = operation.kt_dim
         ct_dim = operation.ct_dim
-        return f"    _perf_unpack_matmul_mock({loop_factor}, {rt_dim}, {kt_dim}, {ct_dim});\n"
+        return f"    _perf_unpack_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def golden(
         self,

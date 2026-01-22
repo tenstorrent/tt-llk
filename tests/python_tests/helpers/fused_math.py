@@ -657,11 +657,10 @@ class Math:
             valid_cnt = operation.output.tile_count
             return f"    _perf_math_loop_clear_valid<true, true>({valid_cnt});\n"
         elif operation.unpacker is MatmulUnpacker:
-            loop_factor = 1
             rt_dim = operation.rt_dim
             kt_dim = operation.kt_dim
             ct_dim = operation.ct_dim
-            return f"    _perf_math_matmul_mock({loop_factor}, {rt_dim}, {kt_dim}, {ct_dim});"
+            return f"    _perf_math_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});"
         else:
             valid_cnt = operation.output.tile_count * operation.num_faces
             return f"    _perf_math_loop_clear_valid<true, true>({valid_cnt});\n"
@@ -705,7 +704,10 @@ class Math:
 
         code += "{\n"
         code += '    ZONE_SCOPED("TILE_LOOP")\n'
+        code += f"    for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
+        code += "    {\n"
         code += self.calculate_with_perf(operation, config)
+        code += "    }\n"
         code += "    PROFILER_SYNC();\n"
         code += "}\n"
 
