@@ -6,7 +6,6 @@ from helpers.format_config import DataFormat
 from helpers.llk_params import PerfRunType, Transpose
 from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import PerfConfig
-from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
     TILE_COUNT,
     UNPACK_TRANS_FACES,
@@ -56,16 +55,6 @@ def test_perf_unpack_transpose(
             UNPACK_TRANS_FACES(unpack_transpose_faces),
             UNPACK_TRANS_WITHIN_FACE(unpack_transpose_within_face),
         ],
-        variant_stimuli=StimuliConfig(
-            None,
-            formats.input_format,
-            None,
-            formats.input_format,
-            formats.output_format,
-            tile_count_A=tile_count,
-            tile_count_B=tile_count,
-            tile_count_res=tile_count,
-        ),
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)

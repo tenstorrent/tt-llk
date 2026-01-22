@@ -20,16 +20,16 @@ std::uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_tilize.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
     // Configure unpack for tilize operation (row-major input -> tiled format)
     // This handles both A and B inputs which need to be tilized before binary ops
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
-    _llk_unpack_tilize_init_(formats.unpack_src, formats.unpack_dst, BLOCK_CT_DIM, FACE_R_DIM, false);
+    _llk_unpack_tilize_init_(formats.unpack_src, formats.unpack_dst, params.BLOCK_CT_DIM, FACE_R_DIM, false);
 
     // Unpack and tilize single tile A (stored in src A register - index 0)
-    _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats.unpack_src, formats.unpack_dst, BLOCK_CT_DIM, FACE_R_DIM, 4, false);
+    _llk_unpack_tilize_(L1_ADDRESS(params.buffer_A[0]), 0, formats.unpack_src, params.BLOCK_CT_DIM, FACE_R_DIM, 4, false);
 }
 
 #endif
@@ -46,7 +46,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
     // Initialize datacopy operation (copy src A to dest)
 #ifdef ARCH_BLACKHOLE
@@ -86,7 +86,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
     // Configure packer hardware for standard pack (no untilize)
     const bool UNTILIZE = false;
@@ -104,7 +104,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     // Pack the single result tile from destination register to output buffer
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DST_SYNC, is_fp32_dest_acc_en, UNTILIZE>(0, L1_ADDRESS(buffer_Res[0]));
+    _llk_pack_<DST_SYNC, is_fp32_dest_acc_en, UNTILIZE>(0, L1_ADDRESS(params.buffer_Res[0]));
     _llk_pack_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
 }
 

@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 
 #include "ckernel.h"
 #ifndef ARCH_QUASAR
@@ -11,6 +12,7 @@
 // Necessary for ckernel variables
 #include "ckernel_helper.h" // Only for WH/BH
 #endif
+#include "params.h"
 #include "profiler.h"
 
 #if defined(LLK_TRISC_UNPACK) && defined(LLK_BOOT_MODE_TRISC)
@@ -31,7 +33,14 @@ std::uint32_t open_zone_cnt = 0;
 #endif
 
 extern const volatile struct RuntimeParams __runtime_args_start[];
-extern void run_kernel(const volatile struct RuntimeParams* params);
+extern void run_kernel(const struct RuntimeParams& params);
+
+void copy_runtimes_from_L1(struct RuntimeParams* temp_args)
+{
+    struct RuntimeParams* src = (struct RuntimeParams*)__runtime_args_start;
+    asm volatile("" : "=m"(*src));
+    memcpy(temp_args, src, sizeof(struct RuntimeParams));
+}
 
 int main()
 {
@@ -42,12 +51,15 @@ int main()
     clear_trisc_soft_reset();
 #endif
 
+    struct RuntimeParams temp_args;
+    copy_runtimes_from_L1(&temp_args);
+
 #if defined(LLK_TRISC_UNPACK)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FFC);
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x1FFFC);
 #elif defined(LLK_TRISC_MATH)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF8);
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x1FFF8);
 #elif defined(LLK_TRISC_PACK)
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x19FF4);
+    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x1FFF4);
 #endif
 
     std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
@@ -63,7 +75,7 @@ int main()
 
     {
         ZONE_SCOPED("KERNEL")
-        run_kernel(__runtime_args_start);
+        run_kernel(temp_args);
         ckernel::tensix_sync();
     }
 

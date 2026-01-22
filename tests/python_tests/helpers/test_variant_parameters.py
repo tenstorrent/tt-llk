@@ -5,7 +5,6 @@
 from abc import ABC, abstractmethod
 from ctypes import c_uint32
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 from .llk_params import (
     FPU_BINARY_OPERATIONS,
@@ -186,7 +185,7 @@ class MATH_FIDELITY(TemplateParameter):
     math_fidelity: MathFidelity
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr ckernel::MathFidelity MATH_FIDELITY = {self.math_fidelity.cpp_enum_value};"
+        return f"constexpr std::uint32_t MATH_FIDELITY = {self.math_fidelity.value};"
 
 
 @dataclass
@@ -211,14 +210,6 @@ class FAST_MODE(TemplateParameter):
 
     def covert_to_cpp(self) -> str:
         return f"constexpr bool FAST_MODE = {str(self.fast_mode.value).lower()};"
-
-
-@dataclass
-class CLAMP_NEGATIVE(TemplateParameter):
-    clamp_negative: bool = True
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr bool CLAMP_NEGATIVE = {str(self.clamp_negative).lower()};"
 
 
 @dataclass
@@ -260,7 +251,7 @@ class UNPACKER_ENGINE_SEL(TemplateParameter):
     unpacker_engine_sel: UnpackerEngine = UnpackerEngine.UnpA
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr std::uint32_t UNPACKER_ENGINE_SEL = p_unpacr::{self.unpacker_engine_sel.value};"
+        return f"constexpr uint UNPACKER_ENGINE_SEL = ckernel::p_unpacr::{self.unpacker_engine_sel.value};"
 
 
 @dataclass
@@ -282,35 +273,6 @@ class REDUCE_POOL_TYPE(TemplateParameter):
 
 
 @dataclass
-class INPUT_DIMENSIONS(TemplateParameter):
-    srcA: Tuple[int, int]
-    srcB: Tuple[int, int]
-    block_ct_dim: Optional[int] = None
-    block_rt_dim: Optional[int] = None
-
-    def covert_to_cpp(self) -> str:
-        num_rows, num_cols = 32, 32
-        validate_tile_dimensions(self.srcA[0], num_rows)
-        validate_tile_dimensions(self.srcA[1], num_cols)
-        validate_tile_dimensions(self.srcB[0], num_rows)
-        validate_tile_dimensions(self.srcB[1], num_cols)
-
-        full_ct_dim = self.srcB[1] // num_cols
-        full_rt_dim = self.srcA[0] // num_rows
-
-        block_ct_dim = full_ct_dim if self.block_ct_dim is None else self.block_ct_dim
-        block_rt_dim = full_rt_dim if self.block_rt_dim is None else self.block_rt_dim
-
-        lines: list[str] = [
-            f"constexpr std::uint32_t FULL_RT_DIM = {full_rt_dim};",
-            f"constexpr std::uint32_t FULL_CT_DIM = {full_ct_dim};",
-            f"constexpr std::uint32_t BLOCK_CT_DIM = {block_ct_dim};",  # RT + TP
-            f"constexpr std::uint32_t BLOCK_RT_DIM = {block_rt_dim};",  # RT + TP
-        ]
-        return "\n".join(lines)
-
-
-@dataclass
 class ADD_TOP_ROW(TemplateParameter):
     add_top_row: bool
 
@@ -319,6 +281,53 @@ class ADD_TOP_ROW(TemplateParameter):
 
 
 # === RUNTIME PARAMETER IMPLEMENTATIONS ===
+
+
+def generate_input_dim(
+    srcA: tuple[int],
+    srcB: tuple[int],
+    block_ct_dim: int = None,
+    block_rt_dim: int = None,
+):
+    num_rows, num_cols = 32, 32
+    validate_tile_dimensions(srcA[0], num_rows)
+    validate_tile_dimensions(srcA[1], num_cols)
+    validate_tile_dimensions(srcB[0], num_rows)
+    validate_tile_dimensions(srcB[1], num_cols)
+
+    full_ct_dim = srcB[1] // num_cols
+    full_rt_dim = srcA[0] // num_rows
+
+    block_ct_dim = full_ct_dim if block_ct_dim is None else block_ct_dim
+    block_rt_dim = full_rt_dim if block_rt_dim is None else block_rt_dim
+
+    return INPUT_DIMENSIONS(full_rt_dim, full_ct_dim, block_ct_dim, block_rt_dim)
+
+
+@dataclass
+class INPUT_DIMENSIONS(RuntimeParameter):
+    full_rt_dim: int = 0
+    full_ct_dim: int = 0
+    block_ct_dim: int = 0
+    block_rt_dim: int = 0
+
+    def covert_to_cpp(self) -> str:
+        lines: list[str] = [
+            f"constexpr uint32_t FULL_RT_DIM = {self.full_rt_dim};",
+            f"constexpr uint32_t FULL_CT_DIM = {self.full_ct_dim};",
+            f"constexpr uint32_t BLOCK_CT_DIM = {self.block_ct_dim};",
+            f"constexpr uint32_t BLOCK_RT_DIM = {self.block_rt_dim};",
+        ]
+        return "\n".join(lines)
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        lines: list[str] = [
+            f"uint32_t FULL_RT_DIM;",
+            f"uint32_t FULL_CT_DIM;",
+            f"uint32_t BLOCK_CT_DIM;",
+            f"uint32_t BLOCK_RT_DIM;",
+        ]
+        return "\n".join(lines), "IIII"
 
 
 @dataclass
@@ -457,18 +466,18 @@ class CRK_TILE_DIMM(RuntimeParameter):
 
     def covert_to_cpp(self) -> str:
         lines: list[str] = [
-            f"constexpr std::uint32_t RT_DIM = {self.r_dimm};",
-            f"constexpr std::uint32_t CT_DIM = {self.c_dimm};",
-            f"constexpr std::uint32_t KT_DIM = {self.k_dimm};",
+            f"constexpr uint32_t RT_DIM = {self.r_dimm};",
+            f"constexpr uint32_t CT_DIM = {self.c_dimm};",
+            f"constexpr uint32_t KT_DIM = {self.k_dimm};",
         ]
 
         return "\n".join(lines)
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         lines: list[str] = [
-            "std::uint32_t CT_DIM;",
-            "std::uint32_t RT_DIM;",
-            "std::uint32_t KT_DIM;",
+            "uint32_t CT_DIM;",
+            "uint32_t RT_DIM;",
+            "uint32_t KT_DIM;",
         ]
         return "\n".join(lines), "III"
 
@@ -584,7 +593,7 @@ class NUM_ROWS_TO_PACK(RuntimeParameter):
     num_rows_to_pack: int = 0
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr std::uint32_t NUM_ROWS_TO_PACK = {self.num_rows_to_pack};"
+        return f"constexpr uint32_t NUM_ROWS_TO_PACK = {self.num_rows_to_pack};"
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "std::uint32_t NUM_ROWS_TO_PACK;", "I"
+        return "uint32_t NUM_ROWS_TO_PACK;", "I"

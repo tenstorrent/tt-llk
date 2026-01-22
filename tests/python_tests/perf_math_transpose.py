@@ -13,7 +13,6 @@ from helpers.param_config import (
     parametrize,
 )
 from helpers.perf import PerfConfig
-from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
     MATH_TRANSPOSE_FACES,
     TILE_COUNT,
@@ -63,16 +62,6 @@ def test_perf_math_transpose(
             TILE_COUNT(tile_count),
             UNPACK_TRANS_FACES(unpack_transpose_faces),
         ],
-        variant_stimuli=StimuliConfig(
-            None,
-            formats.input_format,
-            None,
-            formats.input_format,
-            formats.output_format,
-            tile_count_A=tile_count,
-            tile_count_B=tile_count,
-            tile_count_res=tile_count,
-        ),
         unpack_to_dest=formats.input_format.is_32_bit(),
         dest_acc=(
             DestAccumulation.Yes

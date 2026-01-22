@@ -34,16 +34,14 @@ from .device import (
     CHIP_DEFAULT_BOOT_MODES,
     BootMode,
     RiscCore,
+    commit_brisc_command,
     exalens_device_setup,
-    reset_mailboxes,
+    make_sure_core_in_reset,
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
 )
 from .format_config import DataFormat, FormatConfig
-from .llk_params import (
-    DestAccumulation,
-    L1Accumulation,
-)
+from .llk_params import BriscCmd, DestAccumulation, L1Accumulation, Mailbox
 from .stimuli_config import StimuliConfig
 from .test_variant_parameters import RuntimeParameter, TemplateParameter
 
@@ -84,6 +82,7 @@ class TestConfig:
     ARCH_LLK_ROOT: ClassVar[str]
     ARCH: ClassVar[str]
     CHIP_ARCH: ClassVar[ChipArchitecture]
+    DATA_FORMAT_ENUM_VALUES: ClassVar[dict]
 
     # Artefact directories
     DEFAULT_ARTEFACTS_PATH: ClassVar[Path] = Path("/tmp/tt-llk-build/")
@@ -159,12 +158,38 @@ class TestConfig:
                 TestConfig.ARCH_DEFINE = "-DARCH_WORMHOLE"
                 TestConfig.ARCH_LLK_ROOT = "tt_llk_wormhole_b0"
                 TestConfig.ARCH = ChipArchitecture.WORMHOLE
+                TestConfig.DATA_FORMAT_ENUM_VALUES = {
+                    DataFormat.Float32: 0,
+                    DataFormat.Float16: 1,
+                    DataFormat.Bfp8: 2,
+                    DataFormat.Tf32: 4,
+                    DataFormat.Float16_b: 5,
+                    DataFormat.Bfp8_b: 6,
+                    DataFormat.Int32: 8,
+                    DataFormat.UInt16: 9,
+                    DataFormat.Int8: 14,
+                    DataFormat.UInt32: 24,
+                    DataFormat.UInt8: 30,
+                }
             case ChipArchitecture.BLACKHOLE:
                 TestConfig.ARCH_NON_COMPUTE = "-mcpu=tt-bh"
                 TestConfig.ARCH_COMPUTE = "-mcpu=tt-bh-tensix"
                 TestConfig.ARCH_DEFINE = "-DARCH_BLACKHOLE"
                 TestConfig.ARCH_LLK_ROOT = "tt_llk_blackhole"
                 TestConfig.ARCH = ChipArchitecture.BLACKHOLE
+                TestConfig.DATA_FORMAT_ENUM_VALUES = {
+                    DataFormat.Float32: 0,
+                    DataFormat.Float16: 1,
+                    DataFormat.Bfp8: 2,
+                    DataFormat.Tf32: 4,
+                    DataFormat.Float16_b: 5,
+                    DataFormat.Bfp8_b: 6,
+                    DataFormat.Int32: 8,
+                    DataFormat.UInt16: 9,
+                    DataFormat.Int8: 14,
+                    DataFormat.UInt32: 24,
+                    DataFormat.UInt8: 30,
+                }
             case ChipArchitecture.QUASAR:
                 # until there is official support for quasar in SFPI fallback to BH
                 TestConfig.ARCH_NON_COMPUTE = "-mcpu=tt-bh"
@@ -172,6 +197,18 @@ class TestConfig:
                 TestConfig.ARCH_DEFINE = "-DARCH_QUASAR"
                 TestConfig.ARCH_LLK_ROOT = "tt_llk_quasar"
                 TestConfig.ARCH = ChipArchitecture.QUASAR
+                TestConfig.DATA_FORMAT_ENUM_VALUES = {
+                    DataFormat.Float32: 0,
+                    DataFormat.Tf32: 4,
+                    DataFormat.Float16: 1,
+                    DataFormat.Float16_b: 5,
+                    DataFormat.MxFp8R: 18,
+                    DataFormat.MxFp8P: 20,
+                    DataFormat.Int32: 8,
+                    DataFormat.Int8: 14,
+                    DataFormat.UInt8: 17,
+                    DataFormat.UInt16: 130,
+                }
             case _:
                 raise ValueError(
                     "Must provide CHIP_ARCH environment variable (wormhole / blackhole / quasar)"
@@ -232,6 +269,7 @@ class TestConfig:
                 TestConfig.PROFILER_SHARED_OBJ_DIR,
                 TestConfig.PROFILER_SHARED_ELF_DIR,
                 TestConfig.COVERAGE_INFO_DIR,
+                TestConfig.PERF_DATA_DIR,
             ]
         )
         TestConfig._BUILD_DIRS_CREATED = True
@@ -279,7 +317,11 @@ class TestConfig:
         )
 
     @staticmethod
-    def setup_mode(compile_consumer: bool = False, compile_producer: bool = False):
+    def setup_mode(
+        compile_consumer: bool = False,
+        compile_producer: bool = False,
+        non_default_build_dir=None,
+    ):
 
         if compile_consumer and compile_producer:
             raise ValueError(
@@ -313,6 +355,7 @@ class TestConfig:
         unpack_to_dest: bool = False,
         disable_format_inference: bool = False,
         dest_acc: DestAccumulation = DestAccumulation.No,
+        compile_time_formats: bool = False,
         l1_acc: L1Accumulation = L1Accumulation.No,
         skip_build_header: bool = False,
     ):
@@ -333,13 +376,38 @@ class TestConfig:
         self.boot_mode = boot_mode
         self.profiler_build = profiler_build
         self.L1_to_L1_iterations = L1_to_L1_iterations
-        self.unpack_to_dest = unpack_to_dest
+        self.compile_time_formats = compile_time_formats
         self.disable_format_inference = disable_format_inference
+
+        if formats is not None:
+            if (
+                is_format_combination_outlier(
+                    self.formats.input_format, self.formats.output_format, dest_acc
+                )
+                and TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR
+            ):
+                dest_acc = DestAccumulation.Yes
+
+            self.formats_config = data_formats(
+                input_format=formats.input_format,
+                output_format=formats.output_format,
+                is_fp32_dest_acc_en=dest_acc,
+                num_iterations=self.L1_to_L1_iterations,
+                unpacking_to_dest=unpack_to_dest,
+                chip_arch=TestConfig.CHIP_ARCH,
+                disable_format_inference=self.disable_format_inference,
+            )
+        else:
+            self.formats_config = None
+
+        self.unpack_to_dest = unpack_to_dest
         self.dest_acc = dest_acc
         self.l1_acc = l1_acc
         self.skip_build_header = skip_build_header
 
-        self.process_runtime_args()
+        # We need to call this here because this function generates serialisation format need for writing RTs to L1,
+        # Which is needed by execution part of test infra
+        self.generate_runtime_args_struct()
 
         if (
             self.coverage_build == CoverageBuild.Yes
@@ -349,15 +417,47 @@ class TestConfig:
                 "You can't build profiler and coverage build at the same time, profiling tests will fail."
             )
 
-    def process_runtime_args(self):
-
+    def generate_runtime_args_struct(self):
         # Generate runtime parameter struct
         lines = [
-            "// Struct that has a runtme parameter layout",
+            "// Struct containing runtime parameter layout",
             "struct RuntimeParams {",
+            "uint32_t TILE_SIZE_PACK;",
+            "uint32_t TILE_SIZE_UNPACK_A;",
+            "uint32_t TILE_SIZE_UNPACK_B;",
         ]
 
-        self.runtime_format = "@"
+        self.runtime_format = "@III"  # tile size types for formatter
+
+        if not self.compile_time_formats and self.formats:
+            lines = [
+                "struct FormatConfig{",
+                "uint32_t unpack_src;",
+                "uint32_t unpack_dst;",
+                "uint32_t math;",
+                "uint32_t pack_src;",
+                "uint32_t pack_dst;",
+                "};",
+            ] + lines
+            if self.L1_to_L1_iterations == 1:
+                lines.append("struct FormatConfig formats;")
+                self.runtime_format += "IIIII"  # 5 uint32_ts constituting format struct
+            else:
+                lines.append(
+                    f"struct FormatConfig formats[{self.L1_to_L1_iterations}];"
+                )
+                self.runtime_format += (
+                    self.L1_to_L1_iterations * "IIIII"
+                )  # L1_to_L1_iterations times format struct
+
+        if self.variant_stimuli:
+            if TestConfig.WITH_COVERAGE:
+                self.variant_stimuli.coverage_addresses = True
+            stimuli_fields, stimuli_pack_format = (
+                self.variant_stimuli.generate_runtime_struct_fields()
+            )
+            lines.extend(stimuli_fields)
+            self.runtime_format += stimuli_pack_format
 
         for parameter in self.runtimes:
             field_str, param_field_types = parameter.convert_to_struct_fields()
@@ -366,13 +466,152 @@ class TestConfig:
 
         lines.append("};")
 
-        self.runtime_params_struct = lines
+        self.runtime_arguments_struct = lines
+
+    def generate_compile_time_formats(self):
+
+        header_content = [
+            "struct FormatConfig{",
+            "const uint32_t unpack_src;",
+            "const uint32_t unpack_dst;",
+            "const uint32_t math;",
+            "const uint32_t pack_src;",
+            "const uint32_t pack_dst;",
+            "constexpr FormatConfig(uint32_t unpack_src_, uint32_t unpack_dst_, uint32_t math_, uint32_t pack_src_, uint32_t pack_dst_) : unpack_src(unpack_src_), unpack_dst(unpack_dst_), math(math_), pack_src(pack_src_), pack_dst(pack_dst_) {}",
+            "};",
+        ]
+        if self.L1_to_L1_iterations > 1:
+            # Generate format data as arrays that params.h can use to construct FormatConfig objects
+            header_content.extend(
+                [
+                    "// Format data for multiple L1-to-L1 iterations",
+                    f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {self.L1_to_L1_iterations};",
+                    "#define FUSED_MULTIPLE_RUNS true",
+                ]
+            )
+
+            # Create array of format configurations for multiple L1-to-L1 iterations
+            unpack_a_in_values = [
+                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_A_src.name})"
+                for fmt in self.formats_config
+            ]
+            unpack_a_out_values = [
+                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_A_dst.name})"
+                for fmt in self.formats_config
+            ]
+            math_values = [
+                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.math.name})"
+                for fmt in self.formats_config
+            ]
+            pack_in_values = [
+                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.pack_src.name})"
+                for fmt in self.formats_config
+            ]
+            pack_out_values = [
+                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.pack_dst.name})"
+                for fmt in self.formats_config
+            ]
+
+            header_content.extend(
+                [
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_IN_LIST = {{{', '.join(unpack_a_in_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_OUT_LIST = {{{', '.join(unpack_a_out_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> MATH_FORMAT_LIST = {{{', '.join(math_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_IN_LIST = {{{', '.join(pack_in_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_OUT_LIST = {{{', '.join(pack_out_values)}}};",
+                ]
+            )
+
+            header_content.extend(
+                [
+                    "constexpr std::array<FormatConfig, L1_to_L1_ITERATIONS> formats_array = {",
+                    "{FormatConfig(UNPACK_A_IN_LIST[0], UNPACK_A_OUT_LIST[0], MATH_FORMAT_LIST[0], PACK_IN_LIST[0], PACK_OUT_LIST[0]),",
+                    "FormatConfig(UNPACK_A_IN_LIST[1], UNPACK_A_OUT_LIST[1], MATH_FORMAT_LIST[1], PACK_IN_LIST[1], PACK_OUT_LIST[1])}",
+                    "};",
+                ]
+            )
+
+        else:
+            # Single iteration - use simple format inference
+            # Generate format data as individual constants for single iteration
+            formats_config = self.formats_config[0]
+            header_content.extend(
+                [
+                    "// Format data for single L1-to-L1 iteration",
+                    f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_src.name});",
+                    f"constexpr auto UNPACK_A_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_dst.name});",
+                    f"constexpr auto MATH_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.math.name});",
+                    f"constexpr auto PACK_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_src.name});",
+                    f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_dst.name});",
+                    "constexpr FormatConfig formats = FormatConfig(UNPACK_A_IN, UNPACK_A_OUT, MATH_FORMAT, PACK_IN, PACK_OUT);",
+                ]
+            )
+
+        header_content.append("")
+
+        return header_content
 
     def write_runtimes_to_L1(self, location: str = "0,0"):
-        if len(self.runtimes) == 0:
-            return
+        TILE_SIZES = {
+            DataFormat.Bfp8_b: 68,
+            DataFormat.Float32: 256,
+        }
 
-        argument_data = []
+        if self.formats is None:
+            pack_size, unpack_size_a, unpack_size_b = 128, 128, 128
+        else:
+            pack_size = TILE_SIZES.get(self.formats.output_format, 128)
+            unpack_size_a = TILE_SIZES.get(self.formats.input_format, 128)
+            unpack_size_b = TILE_SIZES.get(self.formats.input_format, 128)
+
+        if len(self.runtimes) > 0:
+            itd_param = next(
+                (param for param in self.runtimes if isinstance(param, IN_TILE_DIMS)),
+                None,
+            )
+            faces_param = next(
+                (param for param in self.runtimes if isinstance(param, NUM_FACES)), None
+            )
+            if itd_param and faces_param:
+                temp_num_faces_A = (
+                    faces_param.num_faces_A
+                    if faces_param.num_faces_A
+                    else faces_param.num_faces
+                )
+                if itd_param.in0_r_dim <= 16:
+                    pack_size = (pack_size // faces_param.num_faces) * (
+                        itd_param.in0_r_dim // self.variant_stimuli.face_r_dim
+                    )
+                    unpack_size_a = (unpack_size_a // temp_num_faces_A) * (
+                        itd_param.in0_r_dim // self.variant_stimuli.face_r_dim
+                    )
+
+        argument_data = [
+            pack_size,  # uint32_t TILE_SIZE_PACK;
+            unpack_size_a,  # uint32_t TILE_SIZE_UNPACK_A;
+            unpack_size_b,  # uint32_t TILE_SIZE_UNPACK_B;
+        ]
+
+        if not self.compile_time_formats and self.formats_config:
+            if self.L1_to_L1_iterations == 1:
+                self.formats_config = self.formats_config[0:1]
+
+            for formats_config in self.formats_config:
+                argument_data.extend(
+                    [
+                        TestConfig.DATA_FORMAT_ENUM_VALUES[formats_config.unpack_A_src],
+                        TestConfig.DATA_FORMAT_ENUM_VALUES[formats_config.unpack_A_dst],
+                        TestConfig.DATA_FORMAT_ENUM_VALUES[formats_config.math],
+                        TestConfig.DATA_FORMAT_ENUM_VALUES[formats_config.pack_src],
+                        TestConfig.DATA_FORMAT_ENUM_VALUES[formats_config.pack_dst],
+                    ]
+                )
+
+        if self.variant_stimuli:
+            argument_data.extend(
+                self.variant_stimuli.generate_runtime_operands_values(self.formats)
+            )
+
         for param in self.runtimes:
             argument_data.extend(
                 [
@@ -397,6 +636,21 @@ class TestConfig:
                     location, TestConfig.RUNTIME_ADDRESS_NON_COVERAGE, serialised_data
                 )
 
+        read_runtime_data = []
+        if TestConfig.WITH_COVERAGE:
+            read_runtime_data = read_from_device(
+                location, TestConfig.RUNTIME_ADDRESS_COVERAGE, 0, len(serialised_data)
+            )
+        else:
+            read_runtime_data = read_from_device(
+                location,
+                TestConfig.RUNTIME_ADDRESS_NON_COVERAGE,
+                0,
+                len(serialised_data),
+            )
+
+        assert read_runtime_data == serialised_data
+
     def collect_hash(self):
         lock_file = Path("/tmp/tt-llk-build-print.lock")
         lock_file.touch(exist_ok=True)
@@ -418,6 +672,8 @@ class TestConfig:
             "runtime_params_struct",
             "runtime_format",
             "runtimes",
+            "" if self.compile_time_formats else "formats",
+            "formats_config",
         ]
 
         temp_str = [
@@ -425,19 +681,6 @@ class TestConfig:
             for field_name, value in self.__dict__.items()
             if field_name not in NON_COMPILATION_ARGUMENTS
         ]
-
-        # Include stimuli address-related fields in hash since they affect compiled code
-        # The buffer addresses are compiled into the binary as constexpr values
-        if self.variant_stimuli is not None:
-            stimuli_hash_fields = [
-                str(self.variant_stimuli.tile_count_A),
-                str(self.variant_stimuli.tile_count_B),
-                str(self.variant_stimuli.tile_count_res),
-                str(self.variant_stimuli.buf_a_addr),
-                str(self.variant_stimuli.buf_b_addr),
-                str(self.variant_stimuli.buf_res_addr),
-            ]
-            temp_str.extend(stimuli_hash_fields)
 
         self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
@@ -549,24 +792,6 @@ class TestConfig:
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
-            def build_kernel_part_main(name: str):
-                kernel_trisc_flag = ""
-                if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-                    kernel_trisc_flag = f"-DCOMPILE_FOR_TRISC={TestConfig.KERNEL_COMPONENTS.index(name)}"
-
-                run_shell_command(  # main_%.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {shared_obj_dir / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
-                    TestConfig.TESTS_WORKING_DIR,
-                )
-
-            with ThreadPoolExecutor(max_workers=3) as executor:
-                futures = [
-                    executor.submit(build_kernel_part_main, name)
-                    for name in TestConfig.KERNEL_COMPONENTS
-                ]
-                for fut in futures:
-                    fut.result()
-
             if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
                 # brisc.elf : tmu-crt0.o brisc.o
                 run_shell_command(
@@ -580,125 +805,6 @@ class TestConfig:
                 TestConfig.PROFILER_SHARED_ARTEFACTS_AVAILABLE = True
             else:
                 TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
-
-    def infer_data_formats(self) -> list[str]:
-        header_content: list[str] = [
-            "// Data formats inferred by Python inference model"
-        ]
-
-        dest_acc = self.dest_acc
-        l1_acc = self.l1_acc
-
-        if self.formats is None:
-            header_content.extend(
-                [
-                    f"constexpr bool is_fp32_dest_acc_en = {dest_acc.value};",
-                    f"constexpr bool l1_acc_en = {l1_acc.value};",
-                    f"constexpr bool unpack_to_dest = {str(self.unpack_to_dest).lower()};",
-                    "",
-                ]
-            )
-
-            return header_content
-
-        # Check if this is an outlier format combination that requires dest_acc to be enabled
-        # Automatically enable dest_acc for outlier combinations
-        if (
-            is_format_combination_outlier(
-                self.formats.input_format, self.formats.output_format, self.dest_acc
-            )
-            and TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR
-        ):
-            dest_acc = DestAccumulation.Yes
-
-        # Dest accumulation
-        header_content.append(f"constexpr bool is_fp32_dest_acc_en = {dest_acc.value};")
-
-        # L1 accumulation
-        header_content.append(f"constexpr bool l1_acc_en = {l1_acc.value};")
-
-        # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
-        # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
-        # L1_to_L1_iterations is the number of times we perform llk operations from L1 input tensor to L1 output tensor
-        # If L1_to_L1_ITERATIONS is 1, we take input tensor from L1 -> unpack -> math -> pack -> L1
-        # If L1_to_L1_ITERATIONS is greater than 1, we perform multiple iterations of unpack -> math -> pack, by taking results tensor in L1 to be input tensor of next iteration
-
-        formats_config = data_formats(
-            input_format=self.formats.input_format,
-            output_format=self.formats.output_format,
-            is_fp32_dest_acc_en=dest_acc,
-            num_iterations=self.L1_to_L1_iterations,
-            unpacking_to_dest=self.unpack_to_dest,
-            chip_arch=TestConfig.CHIP_ARCH,
-            disable_format_inference=self.disable_format_inference,
-        )
-
-        header_content.append(
-            f"constexpr bool unpack_to_dest = {str(self.unpack_to_dest).lower()};"
-        )
-
-        # Check if we need to generate multiple format configurations
-
-        if self.L1_to_L1_iterations > 1:
-            # Generate format data as arrays that params.h can use to construct FormatConfig objects
-            header_content.extend(
-                [
-                    "// Format data for multiple L1-to-L1 iterations",
-                    f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {self.L1_to_L1_iterations};",
-                    "#define FUSED_MULTIPLE_RUNS true",
-                ]
-            )
-
-            # Create array of format configurations for multiple L1-to-L1 iterations
-            unpack_a_in_values = [
-                f"ckernel::to_underlying(DataFormat::{fmt.unpack_A_src.name})"
-                for fmt in formats_config
-            ]
-            unpack_a_out_values = [
-                f"ckernel::to_underlying(DataFormat::{fmt.unpack_A_dst.name})"
-                for fmt in formats_config
-            ]
-            math_values = [
-                f"ckernel::to_underlying(DataFormat::{fmt.math.name})"
-                for fmt in formats_config
-            ]
-            pack_in_values = [
-                f"ckernel::to_underlying(DataFormat::{fmt.pack_src.name})"
-                for fmt in formats_config
-            ]
-            pack_out_values = [
-                f"ckernel::to_underlying(DataFormat::{fmt.pack_dst.name})"
-                for fmt in formats_config
-            ]
-
-            header_content.extend(
-                [
-                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_IN_LIST = {{{', '.join(unpack_a_in_values)}}};",
-                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_OUT_LIST = {{{', '.join(unpack_a_out_values)}}};",
-                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> MATH_FORMAT_LIST = {{{', '.join(math_values)}}};",
-                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_IN_LIST = {{{', '.join(pack_in_values)}}};",
-                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_OUT_LIST = {{{', '.join(pack_out_values)}}};",
-                ]
-            )
-
-        else:
-            # Single iteration - use simple format inference
-            # Generate format data as individual constants for single iteration
-            formats_config = formats_config[0]
-            header_content.extend(
-                [
-                    "// Format data for single L1-to-L1 iteration",
-                    f"constexpr auto UNPACK_A_IN = ckernel::to_underlying(DataFormat::{formats_config.unpack_A_src.name});",
-                    f"constexpr auto UNPACK_A_OUT = ckernel::to_underlying(DataFormat::{formats_config.unpack_A_dst.name});",
-                    f"constexpr auto MATH_FORMAT = ckernel::to_underlying(DataFormat::{formats_config.math.name});",
-                    f"constexpr auto PACK_IN = ckernel::to_underlying(DataFormat::{formats_config.pack_src.name});",
-                    f"constexpr auto PACK_OUT = ckernel::to_underlying(DataFormat::{formats_config.pack_dst.name});",
-                ]
-            )
-
-        header_content.append("")
-
-        return header_content
 
     def generate_build_header(self) -> str:
         header_content: list[str] = [
@@ -722,62 +828,23 @@ class TestConfig:
             ),
             '#include "tensix_types.h"',
             "",
-            "// Basic configuration",
-            "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
         ]
 
-        if self.variant_stimuli:
-            header_content.extend(
-                self.variant_stimuli.generate_stimuli_header_addresses(self.formats)
-            )
+        header_content.extend(self.runtime_arguments_struct)
 
-        TILE_SIZES = {
-            DataFormat.Bfp8_b: 68,
-            DataFormat.Float32: 256,
-        }
-
-        if self.formats is None:
-            pack_size, unpack_size_a, unpack_size_b = 128, 128, 128
-        else:
-            pack_size = TILE_SIZES.get(self.formats.output_format, 128)
-            unpack_size_a = TILE_SIZES.get(self.formats.input_format, 128)
-            unpack_size_b = TILE_SIZES.get(self.formats.input_format, 128)
-
-        if len(self.runtimes) > 0:
-            itd_param = next(
-                (param for param in self.runtimes if isinstance(param, IN_TILE_DIMS)),
-                None,
-            )
-            faces_param = next(
-                (param for param in self.runtimes if isinstance(param, NUM_FACES)), None
-            )
-            if itd_param and faces_param:
-                temp_num_faces_A = (
-                    faces_param.num_faces_A
-                    if faces_param.num_faces_A
-                    else faces_param.num_faces
-                )
-                if itd_param.in0_r_dim <= 16:
-                    pack_size = (pack_size // faces_param.num_faces) * (
-                        itd_param.in0_r_dim // self.variant_stimuli.face_r_dim
-                    )
-                    unpack_size_a = (unpack_size_a // temp_num_faces_A) * (
-                        itd_param.in0_r_dim // self.variant_stimuli.face_r_dim
-                    )
-
-        header_content.extend(
-            [
-                f"constexpr std::uint32_t TILE_SIZE_PACK = {pack_size};",
-                f"constexpr std::uint32_t TILE_SIZE_UNPACK_A = {unpack_size_a};",
-                f"constexpr std::uint32_t TILE_SIZE_UNPACK_B = {unpack_size_b};",
-            ]
-        )
+        if self.formats and self.compile_time_formats:
+            header_content.extend(self.generate_compile_time_formats())
 
         for parameter in self.templates:
             header_content.append(parameter.covert_to_cpp())
 
-        header_content.extend(self.infer_data_formats())
-        header_content.extend(self.runtime_params_struct)
+        header_content.extend(
+            [
+                f"constexpr bool is_fp32_dest_acc_en = {self.dest_acc.value};",
+                f"constexpr bool unpack_to_dest = {str(self.unpack_to_dest).lower()};",
+                f"constexpr bool l1_acc_en = {self.l1_acc.value};",
+            ]
+        )
 
         return "\n".join(header_content)
 
@@ -841,8 +908,13 @@ class TestConfig:
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
+                run_shell_command(  # main_%.o
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {VARIANT_OBJ_DIR / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
+                    TestConfig.TESTS_WORKING_DIR,
+                )
+
                 run_shell_command(  # %.elf : main_%.o kernel_%.o [coverage.o] tmu-crt0.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {shared_obj_dir / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {shared_obj_dir / "tmu-crt0.o"} {SFPI_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"{name}.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {VARIANT_OBJ_DIR / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {shared_obj_dir / "tmu-crt0.o"} {SFPI_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"{name}.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
@@ -900,6 +972,25 @@ class TestConfig:
         ) as fd:
             fd.write(coverage_stream)
 
+    CURRENT_MEMBAR_VALUE: ClassVar[int] = 0
+
+    def run_membar(self, location: str = "0,0"):
+        write_words_to_device(
+            location, Mailbox.MemBar.value, TestConfig.CURRENT_MEMBAR_VALUE
+        )
+
+        end_time = time.time() + 0.01
+
+        while time.time() < end_time:
+            temp_value = read_word_from_device(location, Mailbox.MemBar.value)
+            if temp_value == TestConfig.CURRENT_MEMBAR_VALUE:
+                TestConfig.CURRENT_MEMBAR_VALUE = (
+                    TestConfig.CURRENT_MEMBAR_VALUE + 1
+                ) % 10
+                return
+
+        raise Exception("Membar timeout!")
+
     BRISC_ELF_LOADED: ClassVar[bool] = False
     PROFILER_BRISC_ELF_LOADED: ClassVar[bool] = False
 
@@ -916,20 +1007,38 @@ class TestConfig:
         ):
             raise ValueError("Quasar only supports TRISC boot mode")
 
-        reset_mailboxes(location)
+        if boot_mode == BootMode.BRISC:
+            is_profiler = self.profiler_build == ProfilerBuild.Yes
+            if is_profiler:
+                if not TestConfig.PROFILER_BRISC_ELF_LOADED:
+                    set_tensix_soft_reset(1, location=location)
+                    make_sure_core_in_reset(location, "Brisc init")
+                    TestConfig.PROFILER_BRISC_ELF_LOADED = True
+                    load_elf(
+                        elf_file=str(
+                            (
+                                TestConfig.PROFILER_SHARED_ELF_DIR / "brisc.elf"
+                            ).absolute()
+                        ),
+                        location=location,
+                        risc_name="brisc",
+                    )
+                    self.run_membar(location)
+                    set_tensix_soft_reset(0, [RiscCore.BRISC], location)
 
-        # Perform soft reset
-        set_tensix_soft_reset(1, location=location)
-        # soft_reset_value = (
-        #     get_register_store(location, 0).read_register(
-        #         "RISCV_DEBUG_REG_SOFT_RESET_0"
-        #     )
-        #     >> 11
-        # )
-        # if not soft_reset_value & 0xF == 0xF:
-        #     raise Exception(
-        #         f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
-        #     )
+            else:
+                if not TestConfig.BRISC_ELF_LOADED:
+                    set_tensix_soft_reset(1, location=location)
+                    make_sure_core_in_reset(location, "Brisc init", [RiscCore.BRISC])
+                    TestConfig.BRISC_ELF_LOADED = True
+                    load_elf(
+                        elf_file=str(
+                            (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
+                        ),
+                        location=location,
+                        risc_name="brisc",
+                    )
+                    set_tensix_soft_reset(0, [RiscCore.BRISC], location)
 
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
@@ -950,7 +1059,6 @@ class TestConfig:
                         0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
                     ),
                     return_start_address=True,
-                    verify_write=False,
                 )
                 write_words_to_device(
                     location, TestConfig.TRISC_START_ADDRS[i], [start_address]
@@ -963,54 +1071,13 @@ class TestConfig:
                     neo_id=(
                         0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
                     ),
-                    verify_write=False,
                 )
 
-        # Reset the profiler barrier
-        write_words_to_device(
-            location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
-        )
-
-        # soft_reset_value = (
-        #     get_register_store(location, 0).read_register(
-        #         "RISCV_DEBUG_REG_SOFT_RESET_0"
-        #     )
-        #     >> 11
-        # )
-        # if not soft_reset_value & 0xF == 0xF:
-        #     raise Exception(
-        #         f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
-        #     )
+            self.run_membar(location)
 
         match boot_mode:
             case BootMode.BRISC:
-                # Use correct shared ELF directory and loading flag based on profiler build
-                is_profiler = self.profiler_build == ProfilerBuild.Yes
-                if is_profiler:
-                    if not TestConfig.PROFILER_BRISC_ELF_LOADED:
-                        TestConfig.PROFILER_BRISC_ELF_LOADED = True
-                        load_elf(
-                            elf_file=str(
-                                (
-                                    TestConfig.PROFILER_SHARED_ELF_DIR / "brisc.elf"
-                                ).absolute()
-                            ),
-                            location=location,
-                            risc_name="brisc",
-                            verify_write=False,
-                        )
-                else:
-                    if not TestConfig.BRISC_ELF_LOADED:
-                        TestConfig.BRISC_ELF_LOADED = True
-                        load_elf(
-                            elf_file=str(
-                                (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
-                            ),
-                            location=location,
-                            risc_name="brisc",
-                            verify_write=False,
-                        )
-                set_tensix_soft_reset(0, [RiscCore.BRISC], location)
+                commit_brisc_command(location, BriscCmd.START_TRISCS)
             case BootMode.TRISC:
                 set_tensix_soft_reset(
                     0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
@@ -1031,8 +1098,10 @@ class TestConfig:
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-        self.variant_stimuli.write(location)
         self.write_runtimes_to_L1(location)
+        self.run_membar(location)
+        self.variant_stimuli.write(location)
+        self.run_membar(location)
         elfs = self.run_elf_files(location)
         wait_for_tensix_operations_finished(elfs, location)
 

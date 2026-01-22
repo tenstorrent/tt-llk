@@ -20,7 +20,7 @@ std::uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
     // Configure hardware for unpacking AB (two inputs for binary elementwise operation)
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -28,7 +28,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_unpack_AB_init_<>();
 
     // Unpack one tile from each input buffer
-    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]));
+    _llk_unpack_AB_<>(L1_ADDRESS(params.buffer_A[0]), L1_ADDRESS(params.buffer_B[0]));
 }
 
 #endif
@@ -45,7 +45,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
     // Initialize math operations
     _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();
@@ -78,7 +78,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
     // Configure packer hardware
 #ifdef ARCH_BLACKHOLE
@@ -97,7 +97,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     // Pack the result from destination register to output buffer
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DST_SYNC, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
+    _llk_pack_<DST_SYNC, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(params.buffer_Res[0]));
     _llk_pack_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
 }
 

@@ -13,9 +13,9 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     APPROX_MODE,
-    INPUT_DIMENSIONS,
     MATH_OP,
     TILE_COUNT,
+    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -117,12 +117,11 @@ def test_sfpu_binary_add_top_row(formats, dest_acc, mathop, workers_tensix_coord
     configuration = TestConfig(
         "sources/sfpu_binary_test.cpp",
         formats,
-        templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
-            MATH_OP(mathop=mathop),
-            APPROX_MODE(),
+        templates=[MATH_OP(mathop=mathop), APPROX_MODE()],
+        runtimes=[
+            TILE_COUNT(tile_cnt_A),
+            generate_input_dim(input_dimensions, input_dimensions),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
@@ -136,6 +135,7 @@ def test_sfpu_binary_add_top_row(formats, dest_acc, mathop, workers_tensix_coord
         dest_acc=dest_acc,
         unpack_to_dest=formats.input_format.is_32_bit(),
         disable_format_inference=True,
+        compile_time_formats=True,
     )
     res_from_L1 = configuration.run(workers_tensix_coordinates)
 
@@ -189,11 +189,13 @@ def sfpu_binary(formats, dest_acc, mathop, workers_tensix_coordinates):
         "sources/sfpu_binary_test.cpp",
         formats,
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
             APPROX_MODE(),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            generate_input_dim(input_dimensions, input_dimensions),
+            TILE_COUNT(tile_cnt_A),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
@@ -206,6 +208,7 @@ def sfpu_binary(formats, dest_acc, mathop, workers_tensix_coordinates):
         ),
         dest_acc=dest_acc,
         unpack_to_dest=formats.input_format.is_32_bit(),
+        compile_time_formats=True,
     )
     res_from_L1 = configuration.run(workers_tensix_coordinates)
 

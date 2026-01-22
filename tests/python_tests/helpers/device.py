@@ -24,12 +24,13 @@ from ttexalens.tt_exalens_lib import (
     parse_elf,
     read_from_device,
     read_word_from_device,
+    read_words_from_device,
     write_to_device,
     write_words_to_device,
 )
 
 from .fused_operation import FusedOperation
-from .llk_params import DataFormat, Mailbox, format_dict
+from .llk_params import BriscCmd, DataFormat, Mailbox, format_dict
 from .pack import (
     pack_bfp8_b,
     pack_bfp16,
@@ -134,15 +135,6 @@ def set_tensix_soft_reset(
     )
 
 
-def assert_if_all_in_reset(location: str = "0,0", place: str = ""):
-    soft_reset = get_register_store(location, 0).read_register(
-        "RISCV_DEBUG_REG_SOFT_RESET_0"
-    )
-
-    if (soft_reset & get_soft_reset_mask(ALL_CORES)) != get_soft_reset_mask(ALL_CORES):
-        raise Exception(f"Not all cores are in reset! {place}")
-
-
 def exalens_device_setup(chip_arch, location="0,0", device_id=0):
     context = check_context()
     device = context.devices[device_id]
@@ -225,8 +217,61 @@ def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
         raise LLKAssertException(temp_stack_traces)
 
 
+def make_sure_all_out_of_reset(location: str = "0,0", backoff=0.01):
+    full_mask = get_soft_reset_mask(ALL_CORES)
+    end_time = time.time() + backoff
+    while True:
+        soft_reset = get_register_store(location, 0).read_register(
+            "RISCV_DEBUG_REG_SOFT_RESET_0"
+        )
+
+        if soft_reset & full_mask == 0:
+            break
+
+        if time.time() > end_time:
+            raise Exception(
+                f"Triscs not started within {backoff}s! BRSIC ebreak: {is_assert_hit('BRISC', location)}. Reset reg: {hex(soft_reset)} "
+            )
+
+
+def make_sure_core_in_reset(
+    location: str = "0,0",
+    place: str = "",
+    cores: list[RiscCore] = ALL_CORES,
+    backoff=0.01,
+):
+    full_mask = get_soft_reset_mask(cores)
+    end_time = time.time() + backoff
+    while time.time() < end_time:
+        soft_reset = get_register_store(location, 0).read_register(
+            "RISCV_DEBUG_REG_SOFT_RESET_0"
+        )
+
+        if (soft_reset & full_mask) == get_soft_reset_mask(cores):
+            return
+
+    raise Exception(f"Not all in reset within {backoff}s at {place}")
+
+
+def commit_brisc_command(
+    location="0,0", command: BriscCmd = BriscCmd.IDLE_STATE, timeout=0.1
+):
+    write_words_to_device(location, Mailbox.BriscCommand.value, [command.value])
+
+    end_time = time.time() + timeout
+
+    while time.time() < end_time:
+        if read_words_from_device(location, Mailbox.BriscCommand.value, 0, 2) == [
+            0,
+            command.value,
+        ]:
+            return
+
+    raise TimeoutError("Polling brisc command timed out")
+
+
 def wait_for_tensix_operations_finished(
-    elfs, core_loc="0,0", timeout=2, max_backoff=0.1
+    elfs, location="0,0", timeout=2, max_backoff=0.1
 ):
     """
     Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
@@ -246,16 +291,17 @@ def wait_for_tensix_operations_finished(
     time.sleep(0.001)
 
     start_time = time.time()
-    backoff = 0.005  # Initial backoff time in seconds
+    backoff = 0.001  # Initial backoff time in seconds
 
     completed = set()
     end_time = start_time + timeout
     while time.time() < end_time:
         for mailbox in mailboxes - completed:
-            if read_word_from_device(core_loc, mailbox.value) == KERNEL_COMPLETE:
+            if read_word_from_device(location, mailbox.value) == KERNEL_COMPLETE:
                 completed.add(mailbox)
 
         if completed == mailboxes:
+            commit_brisc_command(location, BriscCmd.RESET_TRISCS)
             return
 
         # Disable any waiting if running on simulator
@@ -266,10 +312,17 @@ def wait_for_tensix_operations_finished(
 
     handle_if_assert_hit(
         elfs,
-        core_loc=core_loc,
+        core_loc=location,
     )
 
     trisc_hangs = [mailbox.name for mailbox in (mailboxes - completed)]
+
+    soft_reset = get_register_store(location, 0).read_register(
+        "RISCV_DEBUG_REG_SOFT_RESET_0"
+    )
+
+    print(hex(soft_reset))
+
     raise TimeoutError(
         f"Timeout reached: waited {timeout} seconds for {', '.join(trisc_hangs)}"
     )

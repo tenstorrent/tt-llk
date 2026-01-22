@@ -8,9 +8,9 @@ from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import PerfConfig
 from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
-    INPUT_DIMENSIONS,
     LOOP_FACTOR,
     TILE_COUNT,
+    generate_input_dim,
 )
 
 
@@ -67,8 +67,11 @@ def _perf_unpack_tilize(
             PerfRunType.PACK_ISOLATE,
             PerfRunType.L1_CONGESTION,
         ],
-        templates=[INPUT_DIMENSIONS(dimensions, dimensions)],
-        runtimes=[TILE_COUNT(tile_count), LOOP_FACTOR(4)],
+        runtimes=[
+            TILE_COUNT(tile_count),
+            LOOP_FACTOR(4),
+            generate_input_dim(dimensions, dimensions),
+        ],
         variant_stimuli=StimuliConfig(
             None,
             formats.input_format,
@@ -79,7 +82,7 @@ def _perf_unpack_tilize(
             tile_count_B=tile_count,
             tile_count_res=tile_count,
         ),
-        unpack_to_dest=formats.input_format == DataFormat.Int32,
+        unpack_to_dest=(formats.input_format == DataFormat.Int32),
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)

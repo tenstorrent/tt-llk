@@ -6,7 +6,6 @@ import glob
 import os
 import re
 from dataclasses import fields
-from functools import reduce
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, ClassVar
@@ -109,14 +108,12 @@ class PerfReport:
         self._masks = [pd.Series(), pd.Series(True, index=frame.index)]
 
     def dump_csv(self, filename: str):
-        if not TestConfig.PERF_DATA_DIR.exists():
-            TestConfig.PERF_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
         frame = pd.concat(self._frames, ignore_index=True)
         mask = pd.concat(self._masks, ignore_index=True)
 
         # apply masks
-        frame[mask].to_csv(TestConfig.PERF_DATA_DIR / filename, index=False)
+        frame[mask].to_csv(filename, index=False)
 
 
 def dump_scatter(testname: str, report: PerfReport):
@@ -280,6 +277,8 @@ class PerfConfig(TestConfig):
         unpack_to_dest=False,
         disable_format_inference=False,
         dest_acc=DestAccumulation.No,
+        compile_time_formats: bool = False,
+        skip_build_header: bool = False,
         l1_acc=L1Accumulation.No,
     ):
         super().__init__(
@@ -294,7 +293,9 @@ class PerfConfig(TestConfig):
             unpack_to_dest,
             disable_format_inference,
             dest_acc,
+            compile_time_formats,
             l1_acc,
+            skip_build_header,
         )
 
         self.passed_templates = templates
@@ -313,6 +314,8 @@ class PerfConfig(TestConfig):
         ]
 
     def generate_variant_hash(self):
+        # This function is the same as the one in test_config.py with the difference of added intermediate non compilation arguments
+
         NON_COMPILATION_ARGUMENTS = [
             "variant_stimuli",
             "run_configs",
@@ -320,10 +323,15 @@ class PerfConfig(TestConfig):
             "runtime_params_struct",
             "runtime_format",
             "runtimes",
+            "" if self.compile_time_formats else "formats",
+            "formats_config",
+            # These are Perf config specific flags that are used as intermediate values
+            # and don't influence any compilation per say
             "passed_templates",
             "passed_runtimes",
-            "current_run_type",
+            "run_configs",
         ]
+
         temp_str = [
             str(value)
             for field_name, value in self.__dict__.items()
@@ -337,7 +345,7 @@ class PerfConfig(TestConfig):
         """Return (name, value) pairs for dataclass fields, used as columns for the report."""
         return [(f.name, getattr(obj, f.name)) for f in fields(obj)]
 
-    def run(self, perf_report: PerfReport, run_count=2, location="0,0"):
+    def run(self, perf_report: PerfReport, run_count=5, location="0,0"):
         results = []
 
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
@@ -359,8 +367,9 @@ class PerfConfig(TestConfig):
             self.runtimes = runtimes
             self.generate_variant_hash()
             variant_raw_data = []
-            for run_index in range(run_count):
+            for _ in range(run_count):
                 self.write_runtimes_to_L1(location)
+                self.run_membar(location)
                 elfs = self.run_elf_files(location)
                 wait_for_tensix_operations_finished(elfs, location)
 
@@ -369,22 +378,13 @@ class PerfConfig(TestConfig):
                 )
                 # TODO You add additional data collections you want here
 
-                # Tag profiler data with run index for proper L1-to-L1 pairing
-                profiler_data.df["run_index"] = run_index
                 variant_raw_data.append(profiler_data)
 
             get_stats = Profiler.STATS_FUNCTION[run_type]
             results.append(get_stats(ProfilerData.concat(variant_raw_data)))
 
-        # Merge results with validation
-        # how="outer" keeps all markers (some may not appear in all run types)
-        # validate="1:1" catches duplicate markers within each run type
-        run_results = reduce(
-            lambda left, right: pd.merge(
-                left, right, on="marker", how="outer", validate="1:1"
-            ),
-            results,
-        )
+        results = pd.concat(results, ignore_index=True)
+        run_results = results.groupby("marker").first().reset_index()
 
         # Setting header fields that are always there
         names = ["formats.input", "formats.output"] if self.formats else []

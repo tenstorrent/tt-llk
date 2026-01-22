@@ -5,7 +5,6 @@
 #pragma once
 
 #include <array>
-#include <cstdint>
 
 #include "cfg_defines.h"
 #include "ckernel.h"
@@ -18,7 +17,7 @@ inline void device_setup()
     constexpr std::uint32_t TRISC_CONFIG_REGS[] = {TRISC_RESET_PC_SEC0_PC_ADDR32, TRISC_RESET_PC_SEC1_PC_ADDR32, TRISC_RESET_PC_SEC2_PC_ADDR32};
 
     volatile std::uint32_t* const trisc_start_addresses = reinterpret_cast<volatile std::uint32_t*>(TRISC_START_BASE);
-    volatile std::uint32_t tt_reg_ptr* cfg_regs         = reinterpret_cast<volatile std::uint32_t tt_reg_ptr*>(TENSIX_CFG_BASE);
+    volatile uint tt_reg_ptr* cfg_regs                  = reinterpret_cast<volatile uint tt_reg_ptr*>(TENSIX_CFG_BASE);
 
     for (unsigned int i = 0; i < std::size(TRISC_CONFIG_REGS); ++i)
     {
@@ -60,23 +59,44 @@ inline void device_setup()
 #endif
 }
 
+static uint32_t cfg_initial_state = 0;
+
 inline void clear_trisc_soft_reset()
 {
 #ifdef ARCH_QUASAR
-    constexpr std::uint32_t TRISC_SOFT_RESET_MASK = 0x3000;
+    constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x3000;
 #else
-    constexpr std::uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
+    constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
 #endif
 
-    volatile std::uint32_t* reset_before = reinterpret_cast<std::uint32_t*>(0x64FF0);
-    volatile std::uint32_t* reset_after  = reinterpret_cast<std::uint32_t*>(0x64FF4);
+    uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
 
-    std::uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
-    *reset_before            = soft_reset;
+    if (cfg_initial_state == 0)
+    {
+        cfg_initial_state = soft_reset;
+    }
 
     soft_reset &= ~TRISC_SOFT_RESET_MASK;
-    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
 
-    soft_reset   = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
-    *reset_after = soft_reset;
+    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
+}
+
+inline void set_triscs_soft_reset()
+{
+#ifdef ARCH_QUASAR
+    constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x3000;
+#else
+    constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
+#endif
+
+    uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+    soft_reset |= TRISC_SOFT_RESET_MASK;
+
+    uint32_t temp_reset_reg = 0;
+
+    do
+    {
+        ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
+        temp_reset_reg = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+    } while (temp_reset_reg != soft_reset);
 }

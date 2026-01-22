@@ -16,13 +16,13 @@
 #include "profiler.h"
 
 // Globals
-std::uint32_t unp_cfg_context          = 0;
-std::uint32_t pack_sync_tile_dst_ptr   = 0;
-std::uint32_t math_sync_tile_dst_index = 0;
+uint32_t unp_cfg_context          = 0;
+uint32_t pack_sync_tile_dst_ptr   = 0;
+uint32_t math_sync_tile_dst_index = 0;
 
 static_assert(PERF_RUN_TYPE != PerfRunType::MATH_ISOLATE, "Math isolation not supported for unpack_tilize");
 
-static constexpr std::uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
+static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -31,15 +31,16 @@ static constexpr std::uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 #include "llk_unpack_common.h"
 #include "llk_unpack_tilize.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    LLK_ASSERT(FULL_RT_DIM * FULL_CT_DIM == params->TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to params->TILE_CNT");
-    constexpr std::uint32_t src = 0x65000;
+    const struct FormatConfig& formats = params.formats;
+    LLK_ASSERT(params.FULL_RT_DIM * params.FULL_CT_DIM == params.TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to TILE_CNT");
+    constexpr uint32_t src = 0x65000;
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
-        _llk_unpack_tilize_init_(formats.unpack_src, formats.unpack_dst, BLOCK_CT_DIM, FACE_R_DIM, false);
+        _llk_unpack_tilize_init_(formats.unpack_src, formats.unpack_dst, params.BLOCK_CT_DIM, FACE_R_DIM, false);
         PROFILER_SYNC();
     }
 
@@ -50,12 +51,12 @@ void run_kernel(const volatile struct RuntimeParams* params)
             return;
         }
 
-        for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+        for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
         {
-            for (std::uint32_t i = 0; i < BLOCK_RT_DIM; i++)
+            for (uint32_t i = 0; i < params.BLOCK_RT_DIM; i++)
             {
-                const std::uint32_t tile_row_addr = L1_ADDRESS(src + (i % 8) * 0x1000); // TODO SS<-LP use PERF_ADDRESS here
-                for (std::uint32_t j = 0; j < BLOCK_CT_DIM; j++)
+                const uint32_t tile_row_addr = L1_ADDRESS(src + (i % 8) * 0x1000); // TODO SS<-LP use PERF_ADDRESS here
+                for (uint32_t j = 0; j < params.BLOCK_CT_DIM; j++)
                 {
                     _llk_unpack_tilize_(tile_row_addr, j, formats.unpack_src, formats.unpack_dst, 0, FACE_R_DIM, 4, false);
                 }
@@ -76,9 +77,10 @@ const bool TILIZE = true;
 
 using namespace ckernel;
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    const bool is_int_fpu_en = false;
+    const struct FormatConfig& formats = params.formats;
+    const bool is_int_fpu_en           = false;
 
     {
         ZONE_SCOPED("INIT")
@@ -107,28 +109,20 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef ARCH_BLACKHOLE
             // Due to the blackhole tilize bug mitigation
             // DVALID is set for each tile, instead of each face.
-            const std::uint32_t NUM_DVALIDS = params->TILE_CNT;
+            const uint32_t NUM_DVALIDS = params.TILE_CNT;
 #else
-            const std::uint32_t NUM_DVALIDS = params->TILE_CNT * TILE_NUM_FACES;
+            const uint32_t NUM_DVALIDS = params.TILE_CNT * TILE_NUM_FACES;
 #endif
             if constexpr (!unpack_to_dest)
             {
-                _perf_math_loop_clear_valid<true, true>(params->LOOP_FACTOR * NUM_DVALIDS);
+                _perf_math_loop_clear_valid<true, true>(params.LOOP_FACTOR * NUM_DVALIDS);
                 return;
             }
 
-            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+            for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
             {
-                for (std::uint32_t i = 0; i < params->TILE_CNT; i++)
+                for (uint32_t i = 0; i < params.TILE_CNT; i++)
                 {
-                    LLK_ASSERT(
-                        (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
-                        "Block tile index exceeds maximum destination tiles");
-
-                    // In this case, unpacker needs software synchronization from math - to acknowledge that destination register is
-                    // "consumed" and can be overwritten with new data.
-                    // Due to the fact that BROADCAST_TYPE is always NONE in the test and combination of unpack_to_dest and 32b data is always set,
-                    // this method will perform synchronization only and no actual data copy.
                     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                         i, formats.math, formats.math);
                 }
@@ -136,18 +130,15 @@ void run_kernel(const volatile struct RuntimeParams* params)
             return;
         }
 
-        for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+        for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
         {
-            std::uint32_t remaining_tiles = params->TILE_CNT;
+            uint32_t remaining_tiles = params.TILE_CNT;
             while (remaining_tiles > 0)
             {
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-                std::uint32_t num_tiles = std::min(remaining_tiles, MAX_TILES_DEST);
-                for (std::uint32_t i = 0; i < num_tiles; ++i)
+                uint32_t num_tiles = std::min(remaining_tiles, MAX_TILES_DEST);
+                for (uint32_t i = 0; i < num_tiles; ++i)
                 {
-                    LLK_ASSERT(
-                        (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
-                        "Block tile index exceeds maximum destination tiles");
                     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                         i, formats.math, formats.math);
                 }
@@ -168,10 +159,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    constexpr std::uint32_t dst = 0x70000;
-    const bool UNTILIZE         = false;
+    const struct FormatConfig& formats = params.formats;
+    constexpr uint32_t dst             = 0xA7000;
+    const bool UNTILIZE                = false;
 
     {
         ZONE_SCOPED("INIT")
@@ -197,35 +189,27 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+            for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
             {
-                for (std::uint32_t i = 0; i < params->TILE_CNT; ++i)
+                for (uint32_t i = 0; i < params.TILE_CNT; ++i)
                 {
-                    std::uint32_t tile_index = i % MAX_TILES_DEST;
-                    LLK_ASSERT(
-                        (tile_index < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
-                        "Block tile index exceeds maximum destination tiles");
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(tile_index, PERF_ADDRESS(PERF_OUTPUT, tile_index));
+                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(dst + (i % 8) * 0x1000)); // TODO SS<-LP use PERF_ADDRESS here
                 }
             }
             PROFILER_SYNC();
             return;
         }
 
-        for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+        for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
         {
-            std::uint32_t remaining_tiles = params->TILE_CNT;
+            uint32_t remaining_tiles = params.TILE_CNT;
             while (remaining_tiles > 0)
             {
-                std::uint32_t num_tiles = std::min(remaining_tiles, MAX_TILES_DEST);
+                uint32_t num_tiles = std::min(remaining_tiles, MAX_TILES_DEST);
                 _llk_packer_wait_for_math_done_();
-                for (std::uint32_t i = 0; i < num_tiles; ++i)
+                for (uint32_t i = 0; i < num_tiles; ++i)
                 {
-                    std::uint32_t tile_index = i % MAX_TILES_DEST;
-                    LLK_ASSERT(
-                        (tile_index < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
-                        "Block tile index exceeds maximum destination tiles");
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(tile_index, PERF_ADDRESS(PERF_OUTPUT, tile_index));
+                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(dst + (i % 8) * 0x1000)); // TODO SS<-LP use PERF_ADDRESS here
                 }
                 _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
                 remaining_tiles -= num_tiles;
