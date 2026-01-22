@@ -28,6 +28,7 @@ static constexpr int MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
         // Configure unpacker for Float16_b format
@@ -37,6 +38,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
@@ -77,7 +79,8 @@ using namespace ckernel::sfpu;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    constexpr uint32_t block_height = BLOCK_RT_DIM;
+    const volatile struct FormatConfig& formats = params->formats;
+    const uint32_t block_height                 = BLOCK_RT_DIM;
 
     {
         ZONE_SCOPED("INIT")
@@ -154,7 +157,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 
                     // Call the SFPU SDPA reduce function
-                    constexpr uint32_t block_height = BLOCK_RT_DIM;
+                    const uint32_t block_height = BLOCK_RT_DIM;
                     _calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
 
                     _llk_math_eltwise_unary_sfpu_done_();
@@ -175,6 +178,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
         // Configure packer hardware
@@ -194,6 +198,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)

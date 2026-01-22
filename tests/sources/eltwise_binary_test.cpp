@@ -23,13 +23,14 @@ uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const uint32_t face_r_dim    = params->TEST_FACE_R_DIM;
-    const uint32_t num_faces     = params->num_faces;
-    const uint32_t transpose     = params->UNPACK_TRANSPOSE_FACES;
-    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params->NUM_BLOCKS;
+    const volatile struct FormatConfig& formats = params->formats;
+    const uint32_t face_r_dim                   = params->TEST_FACE_R_DIM;
+    const uint32_t num_faces                    = params->num_faces;
+    const uint32_t transpose                    = params->UNPACK_TRANSPOSE_FACES;
+    const int num_tiles_in_block                = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks                        = params->NUM_BLOCKS;
 
     // Configure hardware for unpacking, no broadcast, no transpose
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -43,7 +44,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     for (int i = 0; i < num_tiles_in_block * num_blocks; ++i)
     {
-        _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
+        _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(params->buffer_A[i]), L1_ADDRESS(params->buffer_B[i]));
     }
 }
 
@@ -57,11 +58,12 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 using namespace ckernel;
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const uint32_t num_faces     = params->num_faces;
-    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params->NUM_BLOCKS;
+    const volatile struct FormatConfig& formats = params->formats;
+    const uint32_t num_faces                    = params->num_faces;
+    const int num_tiles_in_block                = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks                        = params->NUM_BLOCKS;
 
     // Initialize math for element-wise subtraction
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
@@ -89,8 +91,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     // Cache volatile values to ensure consistent reads
     const uint32_t face_r_dim    = params->TEST_FACE_R_DIM;
     const uint32_t num_faces     = params->num_faces;
@@ -119,7 +122,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         for (int tile = 0; tile < num_tiles_in_block; tile++)
         {
             int res_tile_idx = (block * num_tiles_in_block) + tile;
-            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(tile, L1_ADDRESS(buffer_Res[res_tile_idx]));
+            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(tile, L1_ADDRESS(params->buffer_Res[res_tile_idx]));
         }
         _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }

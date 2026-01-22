@@ -43,9 +43,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
         UNPACK_FMT = to_ufmt(DataFormat::UInt16);
     }
 
-    constexpr uint32_t buffer_condition = buffer_A[0];
-    constexpr uint32_t buffer_true      = buffer_B[0];
-    constexpr uint32_t buffer_false     = buffer_C[0];
+    const uint32_t buffer_condition = params->buffer_A[0];
+    const uint32_t buffer_true      = params->buffer_B[0];
+    const uint32_t buffer_false     = params->buffer_C[0];
 
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en, disable_src_zero_flag>(
         UNPACK_FMT, UNPACK_FMT, UNPACK_FMT, UNPACK_FMT, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
@@ -156,7 +156,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         PACK_FMT = to_ufmt(DataFormat::UInt16);
     }
 
-    constexpr uint32_t buffer_Dest = buffer_Res[0];
+    const uint32_t buffer_Dest = params->buffer_Res[0];
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(PACK_FMT, PACK_FMT, 16 * 16 * 4);

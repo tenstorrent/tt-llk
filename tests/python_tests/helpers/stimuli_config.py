@@ -31,7 +31,7 @@ from .unpack import (
 class StimuliConfig:
 
     # === STATIC VARIABLES ===
-    STIMULI_L1_ADDRESS = 0x65000
+    STIMULI_L1_ADDRESS = 0xA3000
 
     # Full tile elements (always 1024 for a 32x32 tile)
     TILE_ELEMENTS = 1024
@@ -95,7 +95,8 @@ class StimuliConfig:
                 self.buf_b_addr + self.tile_size_B_bytes * self.tile_count_B
             )
 
-    def generate_stimuli_header_addresses(self, formats) -> list[str]:
+    def generate_runtime_operands_values(self, formats) -> list:
+
         buf_a_format = format_tile_sizes[
             DataFormat.Float16_b if formats is None else formats.input_format
         ]
@@ -106,10 +107,13 @@ class StimuliConfig:
             DataFormat.Float16_b if formats is None else formats.output_format
         ]
 
-        lines: list[str] = [
-            f"constexpr Operand buffer_A({hex(self.buf_a_addr)}, {buf_a_format});",
-            f"constexpr Operand buffer_B({hex(self.buf_b_addr)}, {buf_b_format});",
-            f"constexpr Operand buffer_Res({hex(self.buf_res_addr)}, {buf_res_format});",
+        values = [
+            self.buf_a_addr,
+            buf_a_format,
+            self.buf_b_addr,
+            buf_b_format,
+            self.buf_res_addr,
+            buf_res_format,
         ]
 
         if self.buffer_C is not None:
@@ -117,11 +121,23 @@ class StimuliConfig:
                 DataFormat.Float16_b if formats is None else formats.input_format
             ]
 
-            lines.append(
-                f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {buf_c_format});"
-            )
+            values.extend([self.buf_c_addr, buf_c_format])
 
-        return lines
+        return values
+
+    def generate_runtime_struct_fields(self) -> tuple[list[str], str]:
+        lines: list[str] = [
+            "Operand buffer_A;",
+            "Operand buffer_B;",
+            "Operand buffer_Res;",
+        ]
+        pack_formats = "IIIIII"
+
+        if self.buffer_C is not None:
+            lines.append("Operand buffer_C;")
+            pack_formats += "II"
+
+        return lines, pack_formats
 
     @staticmethod
     def get_packer(data_format):

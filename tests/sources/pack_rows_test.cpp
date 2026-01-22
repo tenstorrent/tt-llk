@@ -18,8 +18,9 @@ uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /*num_faces*/, 4 /*num_faces*/);
     _llk_unpack_A_init_<BroadcastType::NONE, false /*acc_to_dest*/, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
@@ -27,7 +28,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
+            L1_ADDRESS(params->buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }
 }
 
@@ -41,9 +42,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 using namespace ckernel;
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const bool is_int_fpu_en = false;
+    const volatile struct FormatConfig& formats = params->formats;
+    const bool is_int_fpu_en                    = false;
 
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 #ifdef ARCH_BLACKHOLE
@@ -70,9 +72,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_pack_rows.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const bool UNTILIZE = false;
+    const volatile struct FormatConfig& formats = params->formats;
+    const bool UNTILIZE                         = false;
 
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, FACE_R_DIM * FACE_C_DIM * TILE_NUM_FACES);
 #ifdef ARCH_BLACKHOLE
@@ -85,7 +88,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_pack_rows_(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_rows_(i, L1_ADDRESS(params->buffer_Res[i]));
     }
     _llk_pack_rows_uninit_();
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

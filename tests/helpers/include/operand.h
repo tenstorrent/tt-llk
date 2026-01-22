@@ -13,7 +13,7 @@ public:
     {
     }
 
-    [[nodiscard]] constexpr uint32_t operator[](uint32_t index) const noexcept
+    [[nodiscard]] uint32_t operator[](uint32_t index) const volatile noexcept
     {
         return base_addr + index * tile_size;
     }

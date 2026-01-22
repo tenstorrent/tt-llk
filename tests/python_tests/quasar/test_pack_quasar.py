@@ -135,6 +135,7 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
         ),
         dest_acc=dest_acc,
         boot_mode=boot_mode,
+        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()

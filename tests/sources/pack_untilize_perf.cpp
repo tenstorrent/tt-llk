@@ -7,6 +7,7 @@
 #include <cstdio>
 
 #include "ckernel.h"
+#include "llk_assert.h"
 #include "llk_defs.h"
 #include "params.h"
 #include "perf.h"
@@ -27,9 +28,6 @@ static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 static_assert(BLOCK_CT_DIM <= MAX_TILES_DEST, "Block must fit in Dest register");
 static_assert(FULL_CT_DIM % BLOCK_CT_DIM == 0, "FULL_CT_DIM must be divisible by BLOCK_CT_DIM");
 
-// Test assumptions
-// static_assert(FULL_RT_DIM * FULL_CT_DIM == params->TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to params->TILE_CNT");
-
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
@@ -37,6 +35,10 @@ static_assert(FULL_CT_DIM % BLOCK_CT_DIM == 0, "FULL_CT_DIM must be divisible by
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    // Test assumptions
+    LLK_ASSERT(FULL_RT_DIM * FULL_CT_DIM == params->TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to TILE_CNT");
+
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
@@ -76,7 +78,8 @@ using namespace ckernel;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    constexpr bool is_int_fpu_en = false;
+    const volatile struct FormatConfig& formats = params->formats;
+    constexpr bool is_int_fpu_en                = false;
 
     {
         ZONE_SCOPED("INIT")
@@ -150,7 +153,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    constexpr bool UNTILIZE = true;
+    const volatile struct FormatConfig& formats = params->formats;
+    constexpr bool UNTILIZE                     = true;
 
     {
         ZONE_SCOPED("INIT")
