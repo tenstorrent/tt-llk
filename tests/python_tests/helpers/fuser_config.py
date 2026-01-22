@@ -20,7 +20,7 @@ from .fused_operation import FusedOperation
 from .llk_params import DestAccumulation, PerfRunType
 from .perf import PerfReport
 from .profiler import ProfilerConfig, ProfilerData
-from .test_config import BootMode, ProfilerBuild, TestConfig, TestMode
+from .test_config import BootMode, ProfilerBuild, TestConfig
 
 
 @dataclass
@@ -115,7 +115,6 @@ class FuserConfig:
 
             for run_type in run_types:
                 runs = []
-                print(run_type, ": loop_factor = ", self.global_config.loop_factor)
                 self.global_config.perf_run_type = run_type
                 code_generator = FusedKernelGenerator(self)
                 code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
@@ -152,12 +151,12 @@ class FuserConfig:
             results["test_name"] = self.global_config.test_name
             results["loop_factor"] = self.global_config.loop_factor
             perf_report.append(results)
+            print(results)
 
-            if TestConfig.MODE != TestMode.PRODUCE:
-                csv_prefix = f"{self.global_config.test_name}_fused_test"
-                perf_report.dump_csv(f"{csv_prefix}.{worker_id}.csv")
-                perf_report.post_process()
-                perf_report.dump_csv(f"{csv_prefix}.{worker_id}.post.csv")
+            csv_prefix = f"{self.global_config.test_name}_fused_test"
+            perf_report.dump_csv(f"{csv_prefix}.{worker_id}.csv")
+            perf_report.post_process()
+            perf_report.dump_csv(f"{csv_prefix}.{worker_id}.post.csv")
         else:
             code_generator = FusedKernelGenerator(self)
             code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)

@@ -64,6 +64,9 @@ class Unpacker:
     def unpack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
+    def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        return ""
+
     def perf_set_valid(
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
@@ -82,9 +85,6 @@ class Unpacker:
             return self.perf_set_valid(operation, config)
         else:
             return self.unpack(operation, config)
-
-    def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        return ""
 
     def exec_perf(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         code = "{\n"
