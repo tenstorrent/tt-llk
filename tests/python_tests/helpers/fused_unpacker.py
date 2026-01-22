@@ -446,7 +446,7 @@ class UnpackerTilizeA(Unpacker):
         block_ct_dim = operation.block_ct_dim
 
         # Blackhole
-        if operation.architecture == ChipArchitecture.BLACKHOLE:
+        if config.architecture == ChipArchitecture.BLACKHOLE:
             return (
                 f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
                 f"    {{\n"
@@ -458,7 +458,7 @@ class UnpackerTilizeA(Unpacker):
             )
 
         # Wormhole
-        elif operation.architecture == ChipArchitecture.WORMHOLE:
+        elif config.architecture == ChipArchitecture.WORMHOLE:
             return (
                 f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
                 f"    {{\n"
@@ -478,11 +478,11 @@ class UnpackerTilizeA(Unpacker):
         num_faces = operation.num_faces
 
         # Blackhole
-        if operation.architecture == ChipArchitecture.BLACKHOLE:
+        if config.architecture == ChipArchitecture.BLACKHOLE:
             code = f"    _llk_unpack_tilize_uninit_(unpack_a_dst_format{stage}, {num_faces}, {face_r_dim});\n"
 
         # Wormhole
-        elif operation.architecture == ChipArchitecture.WORMHOLE:
+        elif config.architecture == ChipArchitecture.WORMHOLE:
             code = f"    _llk_unpack_tilize_uninit_(unpack_a_dst_format{stage}, {face_r_dim});\n\n"
 
         else:

@@ -263,7 +263,7 @@ class ReduceFpu(Fpu):
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         unp_a_src_format = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{operation.src_a.data_format})"
 
-        if operation.architecture == ChipArchitecture.WORMHOLE:
+        if config.architecture == ChipArchitecture.WORMHOLE:
             return f"    _llk_math_reduce_uninit_({unp_a_src_format});\n"
 
         return ""
@@ -307,13 +307,13 @@ class DatacopyFpu(Fpu):
         is_int_fpu_en = dest_acc
 
         code = f"    // Operation {stage}: Datacopy FPU\n"
-        if operation.architecture == ChipArchitecture.BLACKHOLE:
+        if config.architecture == ChipArchitecture.BLACKHOLE:
             code += (
                 f"    _llk_math_eltwise_unary_datacopy_init_<{data_copy_type}, {dest_acc}, {broadcast_type}, {tilize_en}, {is_int_fpu_en}>(\n"
                 f"        {num_faces}, math_format{stage}\n"
                 f"    );\n"
             )
-        elif operation.architecture == ChipArchitecture.WORMHOLE:
+        elif config.architecture == ChipArchitecture.WORMHOLE:
             code += (
                 f"    _llk_math_eltwise_unary_datacopy_init_<{data_copy_type}, {dest_acc}, {broadcast_type}, {is_int_fpu_en}>(\n"
                 f"        {num_faces}, math_format{stage}\n"
@@ -336,12 +336,12 @@ class DatacopyFpu(Fpu):
 
         code = f"    for (int i = 0; i < {tile_cnt}; ++i)\n" f"    {{\n"
 
-        if operation.architecture == ChipArchitecture.BLACKHOLE:
+        if config.architecture == ChipArchitecture.BLACKHOLE:
             code += (
                 f"        _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {broadcast_type}, {unpack_to_dest}>(\n"
                 f"            {dst_index} + i, math_format{stage}, math_format{stage}, {num_faces});\n"
             )
-        elif operation.architecture == ChipArchitecture.WORMHOLE:
+        elif config.architecture == ChipArchitecture.WORMHOLE:
             code += (
                 f"        _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {broadcast_type}, {unpack_to_dest}>(\n"
                 f"            {dst_index} + i, math_format{stage}, math_format{stage});\n"

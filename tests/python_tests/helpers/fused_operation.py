@@ -16,12 +16,10 @@ from .fused_unpacker import Unpacker, UnpackerTilizeA
 from .llk_params import (
     DataCopyType,
     DestSync,
-    ImpliedMathFormat,
     MathFidelity,
     StochasticRounding,
     Tilize,
     Transpose,
-    UnpackerEngine,
     format_tile_sizes,
 )
 from .matmul_sweep import validate_tile_dimensions
@@ -37,8 +35,6 @@ class FusedOperation:
     num_stages: int = 1
     math_fidelity: MathFidelity = MathFidelity.HiFi4
     unpack_to_dest: bool = False
-    implied_math_format: ImpliedMathFormat = ImpliedMathFormat.No
-    unpacker_engine_sel: UnpackerEngine = UnpackerEngine.UnpA
     unpack_transpose_faces: Transpose = Transpose.No
     unpack_transpose_within_face: Transpose = Transpose.No
     math_transpose_faces: Transpose = Transpose.No
@@ -64,8 +60,6 @@ class FusedOperation:
     output_pack_dims: Tuple[int, int] = None
 
     def __post_init__(self):
-        self.architecture = get_chip_architecture()
-
         mapping = self.operand_mapping
         registry = mapping.operand_registry
 
@@ -81,10 +75,6 @@ class FusedOperation:
         formats = InputOutputFormat(
             input_format=src_a.data_format, output_format=output.data_format
         )
-
-        if get_chip_architecture() == ChipArchitecture.QUASAR:
-            self.implied_math_format = ImpliedMathFormat.No
-            self.unpacker_engine_sel = UnpackerEngine.UnpA
 
         TILE_SIZES = {
             DataFormat.Bfp8_b: 68,
@@ -154,7 +144,7 @@ class FusedOperation:
         self.output.pack_dims = self.output_pack_dims
 
         if (
-            self.architecture == ChipArchitecture.BLACKHOLE
+            get_chip_architecture() == ChipArchitecture.BLACKHOLE
             and self.unpacker is UnpackerTilizeA
             and formats.input_format != DataFormat.Bfp8_b
         ):

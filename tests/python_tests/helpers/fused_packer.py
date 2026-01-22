@@ -126,13 +126,13 @@ class Packer:
         pack_size = operation.tile_size_pack
 
         if stage == 0:
-            if operation.architecture == ChipArchitecture.BLACKHOLE:
+            if config.architecture == ChipArchitecture.BLACKHOLE:
                 code = (
                     f"    _llk_pack_hw_configure_<{dest_acc}, false, {bh_tilize}>(\n"
                     f"        pack_src_format{stage}, pack_dst_format{stage}, {pack_size}\n"
                     f"    );\n"
                 )
-            elif operation.architecture == ChipArchitecture.WORMHOLE:
+            elif config.architecture == ChipArchitecture.WORMHOLE:
                 code = (
                     f"    _llk_pack_hw_configure_<{dest_acc}, false>(\n"
                     f"        pack_src_format{stage}, pack_dst_format{stage}, {pack_size}\n"
@@ -154,14 +154,14 @@ class Packer:
         face_r_dim = operation.face_r_dim
         num_faces = operation.num_faces
         dest_sync = f"DstSync::Sync{operation.dest_sync.name}"
-        if operation.architecture == ChipArchitecture.BLACKHOLE:
+        if config.architecture == ChipArchitecture.BLACKHOLE:
             code = (
                 f"    _llk_pack_init_<false, false, {bh_tilize}>(\n"
                 f"        pack_dst_format{stage}, pack_dst_format{stage}, {face_r_dim}, TILE_C_DIM, {num_faces}, false, false\n"
                 f"    );\n"
                 f"    _llk_pack_dest_init_<{dest_sync}, {dest_acc}>();\n"
             )
-        elif operation.architecture == ChipArchitecture.WORMHOLE:
+        elif config.architecture == ChipArchitecture.WORMHOLE:
             code = (
                 f"    _llk_pack_init_<false, false>(\n"
                 f"        pack_dst_format{stage}\n"
