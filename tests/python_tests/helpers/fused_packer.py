@@ -81,15 +81,11 @@ class Packer:
         code += "    PROFILER_SYNC();\n"
         code += "}\n"
 
-        if (
-            config.perf_run_type != PerfRunType.UNPACK_ISOLATE
-            and config.perf_run_type != PerfRunType.MATH_ISOLATE
-        ):
-            code += "{\n"
-            code += '    ZONE_SCOPED("INIT")\n'
-            code += self.uninit(operation, config)
-            code += "    PROFILER_SYNC();\n"
-            code += "}\n"
+        code += "{\n"
+        code += '    ZONE_SCOPED("INIT")\n'
+        code += self.uninit(operation, config)
+        code += "    PROFILER_SYNC();\n"
+        code += "}\n"
 
         return code
 

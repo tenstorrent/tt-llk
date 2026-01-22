@@ -76,7 +76,6 @@ class Unpacker:
     def unpack_with_perf(
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
-        print(config.perf_run_type)
         if config.perf_run_type == PerfRunType.PACK_ISOLATE:
             return ""
         elif config.perf_run_type == PerfRunType.MATH_ISOLATE:
@@ -88,7 +87,6 @@ class Unpacker:
         return ""
 
     def exec_perf(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        """Generate unpacker exec code with profiler zones"""
         code = "{\n"
         code += '    ZONE_SCOPED("INIT")\n'
         code += self.hw_configure(operation, config)

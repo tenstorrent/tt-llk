@@ -115,6 +115,7 @@ class FuserConfig:
 
             for run_type in run_types:
                 runs = []
+                print(run_type, ": loop_factor = ", self.global_config.loop_factor)
                 self.global_config.perf_run_type = run_type
                 code_generator = FusedKernelGenerator(self)
                 code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
