@@ -99,6 +99,7 @@ def generate_sfpu_nonlinear_combinations(
                     for mathop in [
                         MathOperation.Exp,
                         MathOperation.Relu,
+                        MathOperation.Reciprocal,
                         MathOperation.Sqrt,
                         MathOperation.Tanh,
                     ]:
@@ -235,6 +236,26 @@ def prepare_inputs_for_operation(
                 src_A_float32 = src_A.to(torch.float32)
                 src_A_float32 = torch.clamp(src_A_float32, min_val, max_safe_input)
                 src_A = src_A_float32.to(torch_format)
+    elif mathop == MathOperation.Reciprocal:
+        # Scale to range avoiding zero to prevent division by zero
+        # Reciprocal: 1/x, so we need to avoid x = 0
+        finfo = torch.finfo(torch_format)
+        # Use a range that avoids very small values near zero
+        min_val = max(1e-6, finfo.tiny * 100)
+        max_val = finfo.max / 2  # Avoid very large values that might cause underflow
+        # Use log-uniform distribution to test across orders of magnitude
+        log_min = torch.log(torch.tensor(min_val, dtype=torch.float32))
+        log_max = torch.log(torch.tensor(float(max_val), dtype=torch.float32))
+        src_A_float32 = torch.exp(
+            log_min + src_A.to(torch.float32) * (log_max - log_min)
+        )
+        # Ensure no values are too close to zero
+        src_A_float32 = torch.where(
+            torch.abs(src_A_float32) < min_val,
+            torch.sign(src_A_float32) * min_val,
+            src_A_float32,
+        )
+        src_A = src_A_float32.to(torch_format)
     elif mathop == MathOperation.Tanh:
         # Scale to range [-10, 10] for tanh - covers meaningful range without saturation
         min_val = -10.0

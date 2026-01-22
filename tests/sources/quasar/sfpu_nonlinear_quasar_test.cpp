@@ -77,6 +77,7 @@ const bool is_int_fpu_en = false;
 
 // Include all necessary SFPU headers
 #include "sfpu/ckernel_sfpu_exp.h"
+#include "sfpu/ckernel_sfpu_recip.h"
 #include "sfpu/ckernel_sfpu_relu.h"
 #include "sfpu/ckernel_sfpu_sqrt.h"
 #include "sfpu/ckernel_sfpu_tanh.h"
@@ -105,6 +106,15 @@ struct sfpu_op_dispatcher<SfpuType::relu>
     static void call(int tile_idx, int num_sfpu_iterations)
     {
         _llk_math_eltwise_unary_sfpu_params_<false>(_calculate_relu_, tile_idx, num_sfpu_iterations);
+    }
+};
+
+template <>
+struct sfpu_op_dispatcher<SfpuType::reciprocal>
+{
+    static void call(int tile_idx, int num_sfpu_iterations)
+    {
+        _llk_math_eltwise_unary_sfpu_params_<false>(_calculate_reciprocal_<true>, tile_idx, num_sfpu_iterations);
     }
 };
 
@@ -138,6 +148,9 @@ inline void call_sfpu_operation_quasar(int tile_idx, int num_sfpu_iterations)
             break;
         case SfpuType::relu:
             sfpu_op_dispatcher<SfpuType::relu>::call(tile_idx, num_sfpu_iterations);
+            break;
+        case SfpuType::reciprocal:
+            sfpu_op_dispatcher<SfpuType::reciprocal>::call(tile_idx, num_sfpu_iterations);
             break;
         case SfpuType::sqrt:
             sfpu_op_dispatcher<SfpuType::sqrt>::call(tile_idx, num_sfpu_iterations);
