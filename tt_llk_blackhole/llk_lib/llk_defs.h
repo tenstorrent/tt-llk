@@ -9,7 +9,7 @@
 namespace ckernel
 {
 
-enum VectorMode
+enum class VectorMode : uint8_t
 {
     None      = 0,
     R         = 1,

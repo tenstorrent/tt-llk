@@ -10,11 +10,9 @@
 
 // Internal implementation - takes a nullary callable that wraps the actual sfpu invocation
 template <typename InvokeFunc>
-inline void _llk_math_eltwise_binary_sfpu_params_impl_(InvokeFunc&& invoke, int vector_mode)
+inline void _llk_math_eltwise_binary_sfpu_params_impl_(InvokeFunc&& invoke, VectorMode mode)
 {
     _llk_math_eltwise_binary_sfpu_start_<DST_SYNC_MODE>(0);
-
-    VectorMode mode = static_cast<VectorMode>(vector_mode);
 
     if (mode == VectorMode::R)
     {
@@ -67,14 +65,14 @@ inline void _llk_math_eltwise_binary_sfpu_params_impl_(InvokeFunc&& invoke, int 
 // Overload for callables that take (dst_index_in0, dst_index_in1, dst_index_out, args...)
 template <bool APPROXIMATE, typename Callable, typename... Args>
 inline void _llk_math_eltwise_binary_sfpu_params_(
-    Callable&& sfpu_func, uint dst_index_in0, uint dst_index_in1, uint dst_index_out, int vector_mode = static_cast<int>(VectorMode::RC), Args&&... args)
+    Callable&& sfpu_func, uint dst_index_in0, uint dst_index_in1, uint dst_index_out, VectorMode vector_mode = VectorMode::RC, Args&&... args)
 {
     _llk_math_eltwise_binary_sfpu_params_impl_([&]() { sfpu_func(dst_index_in0, dst_index_in1, dst_index_out, std::forward<Args>(args)...); }, vector_mode);
 }
 
 // Overload for callables that take (dst_index_in0, dst_index_in1, args...) - no dst_index_out
 template <bool APPROXIMATE, typename Callable, typename... Args>
-inline void _llk_math_eltwise_binary_sfpu_params_(Callable&& sfpu_func, uint dst_index_in0, uint dst_index_in1, int vector_mode, Args&&... args)
+inline void _llk_math_eltwise_binary_sfpu_params_(Callable&& sfpu_func, uint dst_index_in0, uint dst_index_in1, VectorMode vector_mode, Args&&... args)
 {
     _llk_math_eltwise_binary_sfpu_params_impl_([&]() { sfpu_func(dst_index_in0, dst_index_in1, std::forward<Args>(args)...); }, vector_mode);
 }
@@ -83,5 +81,5 @@ inline void _llk_math_eltwise_binary_sfpu_params_(Callable&& sfpu_func, uint dst
 template <bool APPROXIMATE, typename Callable>
 inline void _llk_math_eltwise_binary_sfpu_params_(Callable&& sfpu_func, uint dst_index_in0, uint dst_index_in1)
 {
-    _llk_math_eltwise_binary_sfpu_params_impl_([&]() { sfpu_func(dst_index_in0, dst_index_in1); }, static_cast<int>(VectorMode::RC));
+    _llk_math_eltwise_binary_sfpu_params_impl_([&]() { sfpu_func(dst_index_in0, dst_index_in1); }, VectorMode::RC);
 }
