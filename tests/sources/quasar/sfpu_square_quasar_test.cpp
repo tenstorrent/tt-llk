@@ -16,7 +16,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     const uint32_t UNPACKER_ENGINE_SEL = unpack_to_dest ? p_unpacr::UNP_DEST : p_unpacr::UNP_A;
     const uint buf_desc_id             = 0;
-    const uint num_tiles_per_unpack    = params->TILE_CNT;
+    const uint num_tiles               = params->TILE_CNT;
 
     if (unpack_to_dest)
     {
@@ -41,6 +41,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     td_val.buf_desc        = bd_val;
     td_val.buf_desc_id     = buf_desc_id;
     td_val.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
+    _configure_buf_desc_table_(td_val.buf_desc_id, td_val.buf_desc);
 
     if (is_fp32_dest_acc_en && !unpack_to_dest)
     {
@@ -52,7 +53,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         _llk_unpack_configure_unary_<UNPACKER_ENGINE_SEL>(td_val);
     }
 
-    _llk_unpack_unary_operand_init_<UNPACKER_ENGINE_SEL, false /*transpose*/, is_fp32_dest_acc_en>(buf_desc_id, num_tiles_per_unpack);
+    _llk_unpack_unary_operand_init_<UNPACKER_ENGINE_SEL, false /*transpose*/, is_fp32_dest_acc_en>(buf_desc_id, num_tiles);
     _llk_unpack_unary_operand_<UNPACKER_ENGINE_SEL>(0);
 
     if (unpack_to_dest)
@@ -163,6 +164,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     tdma_desc.buf_desc        = bd_val;
     tdma_desc.buf_desc_id     = buf_desc_id;
     tdma_desc.reg_data_format = static_cast<uint8_t>(formats.pack_src);
+    _configure_buf_desc_table_(tdma_desc.buf_desc_id, tdma_desc.buf_desc);
 
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
     _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, num_tiles_per_pack);

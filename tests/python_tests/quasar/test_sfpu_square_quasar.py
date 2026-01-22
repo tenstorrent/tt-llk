@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import math
 from typing import List
 
 import pytest
@@ -32,6 +33,85 @@ from helpers.test_variant_parameters import (
     UNPACKER_ENGINE_SEL,
 )
 from helpers.utils import passed_test
+
+
+def prepare_square_inputs(
+    src_A: torch.Tensor,
+    src_B: torch.Tensor,
+    input_format: DataFormat,
+    output_format: DataFormat,
+) -> torch.Tensor:
+    """
+    Prepare input tensor for square operation with safe value ranges.
+
+    Applies log-uniform distribution and clamps values to ensure:
+    - Input values fit in the input format
+    - Squared output values fit in the output format
+    - Good test coverage across orders of magnitude
+
+    Args:
+        src_A: Source tensor A (used for magnitude distribution)
+        src_B: Source tensor B (used for sign distribution)
+        input_format: Input data format
+        output_format: Output data format
+
+    Returns:
+        Prepared tensor with safe values for squaring
+    """
+    input_torch_format = format_dict[input_format]
+    output_torch_format = format_dict[output_format]
+    input_finfo = torch.finfo(input_torch_format)
+    output_finfo = torch.finfo(output_torch_format)
+
+    # For squaring, x² must fit in the OUTPUT format
+    max_safe_value = math.sqrt(output_finfo.max) * 0.9
+
+    # Special handling for bfloat16: it has wide range but limited precision
+    # Extreme values lose precision, so limit to reasonable bounds
+    if input_torch_format == torch.bfloat16:
+        # Limit to range where squaring maintains reasonable precision
+        max_safe_value = min(max_safe_value, 1e4)  # 10000² = 1e8 fits comfortably
+    else:
+        # For Float16, ensure input itself fits in input format
+        # Float16 max is ~65504, so sqrt(65504) ≈ 256 is the safe limit
+        max_safe_value = min(max_safe_value, math.sqrt(input_finfo.max) * 0.9)
+
+    min_magnitude = max(1e-6, input_finfo.tiny * 100)  # Avoid denormals
+
+    # Ensure src_A and src_B don't contain inf/nan before normalization
+    src_A_float = src_A.to(torch.float32)
+    src_B_float = src_B.to(torch.float32)
+
+    # Normalize src_A to [0, 1] range for log-uniform distribution
+    src_A_min = src_A_float.min()
+    src_A_max = src_A_float.max()
+    src_A_normalized = (
+        (src_A_float - src_A_min) / (src_A_max - src_A_min)
+        if src_A_max > src_A_min
+        else torch.zeros_like(src_A_float)
+    )
+
+    # Use log-uniform distribution for magnitudes to test across orders of magnitude
+    log_min = torch.log(torch.tensor(min_magnitude, dtype=torch.float32))
+    log_max = torch.log(torch.tensor(max_safe_value, dtype=torch.float32))
+    magnitudes = torch.exp(log_min + src_A_normalized * (log_max - log_min))
+
+    # Randomly assign signs to get both positive and negative values
+    src_B_min = src_B_float.min()
+    src_B_max = src_B_float.max()
+    src_B_normalized = (
+        (src_B_float - src_B_min) / (src_B_max - src_B_min)
+        if src_B_max > src_B_min
+        else torch.zeros_like(src_B_float)
+    )
+    signs = torch.where(src_B_normalized < 0.5, -1.0, 1.0)
+
+    # Apply signs and clamp to safe range BEFORE converting to input format
+    src_A_values = signs * magnitudes
+    src_A_values = torch.clamp(src_A_values, -max_safe_value, max_safe_value)
+    result = src_A_values.to(input_torch_format)
+
+    return result
 
 
 def _is_invalid_quasar_combination(
@@ -95,7 +175,7 @@ def generate_sfpu_square_combinations(
                 continue
 
             for implied_math_format in [ImpliedMathFormat.No, ImpliedMathFormat.Yes]:
-                for input_dimensions in [[32, 32], [64, 64]]:
+                for input_dimensions in [[32, 32], [64, 64], [32, 64]]:
                     combinations.append(
                         (fmt, dest_acc, implied_math_format, input_dimensions)
                     )
@@ -129,23 +209,21 @@ def test_sfpu_square_quasar(formats_dest_acc_implied_math_input_dims):
         formats_dest_acc_implied_math_input_dims[0]
     )
 
+    # Set seed for reproducibility
+    torch.manual_seed(42)
+
     src_A, tile_cnt_A, src_B, _ = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
-        sfpu=False,
+        sfpu=True,
     )
 
-    # Scale to full representable range using uniform distribution
-    torch_format = format_dict[formats.input_format]
-    finfo = torch.finfo(torch_format)
-    min_val = finfo.min
-    max_val = finfo.max
-
-    # Transform uniform [0,1) to uniform [min_val, max_val]
-    src_A = src_A.to(torch.float32) * (max_val - min_val) + min_val
-    src_A = src_A.to(torch_format)
+    # Prepare inputs with safe ranges for squaring operation
+    src_A = prepare_square_inputs(
+        src_A, src_B, formats.input_format, formats.output_format
+    )
 
     num_faces = 4
 
