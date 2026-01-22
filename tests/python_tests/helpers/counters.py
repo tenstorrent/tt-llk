@@ -413,6 +413,78 @@ def read_all_counters(
     return results_by_thread
 
 
+def print_all_counters(results_by_thread: Dict[str, List[Dict]]) -> None:
+    """
+    Print all counter results to console in a readable format.
+
+    Args:
+        results_by_thread: Dictionary mapping thread name to list of counter results
+                          (from read_all_counters).
+    """
+    if not results_by_thread:
+        print("No counter results to display.")
+        return
+
+    print("\n" + "=" * 100)
+    print("PERFORMANCE COUNTER RESULTS")
+    print("=" * 100)
+    print("NOTE: Each bank has one output register. Counters are read sequentially")
+    print("      after stopping. L1 mux0/mux1 cannot be measured simultaneously.")
+    print("=" * 100)
+
+    for thread in ALL_THREADS:
+        if thread not in results_by_thread:
+            continue
+
+        results = results_by_thread[thread]
+        mode = results[0].get("mode", "UNKNOWN") if results else "UNKNOWN"
+
+        print(f"\n{'─' * 100}")
+        print(f"  THREAD: {thread}   |   MODE: {mode}")
+        print(f"{'─' * 100}")
+
+        # Group by bank
+        by_bank = defaultdict(list)
+        for r in results:
+            by_bank[r["bank"]].append(r)
+
+        for bank in ["INSTRN_THREAD", "FPU", "TDMA_UNPACK", "L1", "TDMA_PACK"]:
+            if bank not in by_bank:
+                continue
+
+            bank_results = by_bank[bank]
+            cycles = bank_results[0]["cycles"] if bank_results else 0
+
+            print(f"\n  ┌─ {bank} (cycles: {cycles:,})")
+            print(f"  │ {'Counter Name':<40} {'Count':>15} {'Rate':>12}")
+            print(f"  │ {'─' * 40} {'─' * 15} {'─' * 12}")
+
+            # Check for L1 mux limitation warning
+            if bank == "L1":
+                mux_values = set(r.get("l1_mux") for r in bank_results)
+                if len(mux_values) > 1:
+                    print(
+                        f"  │ ⚠️  WARNING: L1 mux0 and mux1 cannot be measured simultaneously!"
+                    )
+                    print(
+                        f"  │     mux1 values may reflect mux0 hardware (same signal sources)"
+                    )
+                    print(f"  │ {'─' * 40} {'─' * 15} {'─' * 12}")
+
+            for r in bank_results:
+                name = r["counter_name"]
+                # Add mux info for L1 counters
+                if r.get("l1_mux") is not None:
+                    name = f"{name} (mux{r['l1_mux']})"
+                count = r["count"]
+                rate = (count / cycles) if cycles else 0.0
+                print(f"  │ {name:<40} {count:>15,} {rate:>12.4f}")
+
+            print(f"  └{'─' * 70}")
+
+    print("\n" + "=" * 100 + "\n")
+
+
 def counters_to_flat_row(
     results_by_thread: Dict[str, List[Dict]],
 ) -> Dict[str, object]:

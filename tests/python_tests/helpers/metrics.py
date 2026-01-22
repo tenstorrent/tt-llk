@@ -686,6 +686,146 @@ def compute_kernel_metrics(
     return metrics
 
 
+def print_kernel_metrics(
+    results_requests: Dict[str, List[CounterResult]],
+    results_grants: Dict[str, List[CounterResult]],
+) -> None:
+    """
+    Print computed kernel metrics to console in a readable format.
+
+    Args:
+        results_requests: Counter results from REQUESTS mode.
+        results_grants: Counter results from GRANTS mode.
+    """
+    metrics = compute_kernel_metrics(results_requests, results_grants)
+
+    if not metrics:
+        print("No metrics to display.")
+        return
+
+    print("\n" + "=" * 80)
+    print("KERNEL PERFORMANCE METRICS")
+    print("=" * 80)
+
+    # Bound classification
+    print(f"\n┌{'─' * 78}┐")
+    print(f"│ {'BOUND CLASSIFICATION':^76} │")
+    print(f"├{'─' * 78}┤")
+    kernel_bound = metrics.get("kernel_bound", "unknown")
+    dominant = metrics.get("dominant_bound", "unknown")
+    dominant_score = metrics.get("dominant_bound_score", 0)
+    print(f"│  Kernel Bound:    {kernel_bound:<56} │")
+    print(f"│  Dominant:        {dominant:<40} (score: {dominant_score:.3f})  │")
+    print(f"└{'─' * 78}┘")
+
+    # Utilization metrics
+    print(f"\n┌{'─' * 78}┐")
+    print(f"│ {'UTILIZATION METRICS':^76} │")
+    print(f"├{'─' * 78}┤")
+    print(f"│  {'Metric':<30} {'Value':>15} {'Description':<28} │")
+    print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
+    print(
+        f"│  {'Compute Utilization':<30} {metrics.get('compute_util', 0):>15.4f} {'FPU + SFPU activity':<28} │"
+    )
+    print(
+        f"│  {'FPU Rate':<30} {metrics.get('fpu_rate', 0):>15.4f} {'FPU ops per cycle':<28} │"
+    )
+    print(
+        f"│  {'SFPU Rate':<30} {metrics.get('sfpu_rate', 0):>15.4f} {'SFPU ops per cycle':<28} │"
+    )
+    print(
+        f"│  {'Unpack Utilization':<30} {metrics.get('unpack_util', 0):>15.4f} {'TDMA unpack activity':<28} │"
+    )
+    print(
+        f"│  {'Pack Utilization':<30} {metrics.get('pack_util', 0):>15.4f} {'TDMA pack activity':<28} │"
+    )
+    print(f"└{'─' * 78}┘")
+
+    # Bandwidth metrics
+    print(f"\n┌{'─' * 78}┐")
+    print(f"│ {'BANDWIDTH ESTIMATES':^76} │")
+    print(f"├{'─' * 78}┤")
+    print(f"│  {'Metric':<30} {'Value':>15} {'Unit':<28} │")
+    print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
+    print(
+        f"│  {'Unpack BW':<30} {metrics.get('unpack_bw_bytes_per_cycle', 0):>15.2f} {'bytes/cycle':<28} │"
+    )
+    print(
+        f"│  {'Pack BW':<30} {metrics.get('pack_bw_bytes_per_cycle', 0):>15.2f} {'bytes/cycle':<28} │"
+    )
+    print(
+        f"│  {'NoC BW':<30} {metrics.get('noc_bytes_per_cycle', 0):>15.2f} {'bytes/cycle':<28} │"
+    )
+    print(
+        f"│  {'NoC Transactions':<30} {metrics.get('noc_txn_per_cycle', 0):>15.4f} {'txn/cycle':<28} │"
+    )
+    print(f"└{'─' * 78}┘")
+
+    # L1/NoC metrics
+    print(f"\n┌{'─' * 78}┐")
+    print(f"│ {'L1/NOC METRICS':^76} │")
+    print(f"├{'─' * 78}┤")
+    print(f"│  {'Metric':<30} {'Value':>15} {'Description':<28} │")
+    print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
+    print(
+        f"│  {'L1 Congestion Index':<30} {metrics.get('l1_congestion_index', 0):>15.4f} {'Higher = more contention':<28} │"
+    )
+    print(f"└{'─' * 78}┘")
+
+    # RISC metrics
+    print(f"\n┌{'─' * 78}┐")
+    print(f"│ {'RISC THREAD METRICS':^76} │")
+    print(f"├{'─' * 78}┤")
+    print(f"│  {'Metric':<30} {'Value':>15} {'Description':<28} │")
+    print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
+    print(
+        f"│  {'RISC Stall Rate':<30} {metrics.get('risc_stall_rate', 0):>15.4f} {'Fraction of time stalled':<28} │"
+    )
+    print(
+        f"│  {'RISC Issue Rate':<30} {metrics.get('risc_issue_rate', 0):>15.4f} {'Instructions per cycle':<28} │"
+    )
+    print(f"└{'─' * 78}┘")
+
+    # Acceptance ratios
+    print(f"\n┌{'─' * 78}┐")
+    print(f"│ {'ACCEPTANCE RATIOS (REQUESTS → GRANTS)':^76} │")
+    print(f"├{'─' * 78}┤")
+    print(f"│  {'Metric':<30} {'Value':>15} {'Description':<28} │")
+    print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
+    print(
+        f"│  {'NoC Acceptance':<30} {metrics.get('noc_acceptance', 0):>15.4f} {'1.0 = no backpressure':<28} │"
+    )
+    print(
+        f"│  {'Unpack Acceptance':<30} {metrics.get('unpack_acceptance', 0):>15.4f} {'1.0 = no backpressure':<28} │"
+    )
+    print(
+        f"│  {'Pack Acceptance':<30} {metrics.get('pack_acceptance', 0):>15.4f} {'1.0 = no backpressure':<28} │"
+    )
+    print(f"└{'─' * 78}┘")
+
+    # Bound scores
+    print(f"\n┌{'─' * 78}┐")
+    print(f"│ {'BOUND SCORES':^76} │")
+    print(f"├{'─' * 78}┤")
+    print(f"│  {'Component':<30} {'Score':>15} {'Rank':<28} │")
+    print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
+    scores = [
+        ("Math", metrics.get("math_bound_score", 0)),
+        ("Unpack", metrics.get("unpack_bound_score", 0)),
+        ("Pack", metrics.get("pack_bound_score", 0)),
+        ("RISC", metrics.get("risc_bound_score", 0)),
+    ]
+    scores_sorted = sorted(scores, key=lambda x: x[1], reverse=True)
+    for i, (name, score) in enumerate(scores_sorted, 1):
+        rank_str = f"#{i}" + (" (dominant)" if i == 1 else "")
+        print(f"│  {name:<30} {score:>15.4f} {rank_str:<28} │")
+    print(f"└{'─' * 78}┘")
+
+    # Wall cycles
+    print(f"\n  Wall Cycles: {int(metrics.get('wall_cycles', 0)):,}")
+    print("\n" + "=" * 80 + "\n")
+
+
 def export_metrics_csv(
     results_requests: Dict[str, List[CounterResult]],
     results_grants: Dict[str, List[CounterResult]],
