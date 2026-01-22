@@ -421,9 +421,13 @@ inline void _calculate_typecast_uint32_to_uint16_()
         {
             TTI_SFPNOP;
         }
-        else
+        else if (d < ITERATIONS)
         {
             TTI_SFPLOADMACRO((macroIndex << 2) | (b & 3), InstrModLoadStore::INT32, ADDR_MOD_3, (-4 & 0x3ff) | (b >> 2));
+        }
+        else
+        {
+            TTI_SFPLOADMACRO((macroIndex << 2) | (b & 3), InstrModLoadStore::INT32, ADDR_MOD_2, (-2 & 0x3ff) | (b >> 2));
         }
     }
     TTI_SFPNOP;
