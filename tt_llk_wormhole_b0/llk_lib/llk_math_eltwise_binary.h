@@ -437,11 +437,11 @@ inline void sdpa_optimization_new_configure_addrmod()
         .set(ADDR_MOD_0);
 
     addr_mod_t {
-        .srca = {.incr = 8},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 8},
+        .srca = {.incr = 0},
+        .srcb = {.incr = 16},
+        .dest = {.incr = 0},
     }
-        .set(ADDR_MOD_1);
+        .set(ADDR_MOD_2);
 }
 
 inline void sdpa_optimization_new_init_()
@@ -454,89 +454,45 @@ inline void sdpa_optimization_new_init_()
 inline void sdpa_optimization_new_(uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB);
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB); // clear all counters
 
-    // Transpose srcB to achieve column broadcast effect
-    // TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP; TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_TRNSPSRCB;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
+    TTI_TRNSPSRCB; // rows -> cols
 
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB);
-    TTI_INCRWC(0, 0, 4, 0);
-    TTI_INCRWC(0, 0, 4, 0);
-    TTI_INCRWC(0, 0, 4, 0);
-    TTI_INCRWC(0, 0, 4, 0);
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB); // clear all counters
+    /*
+    Dummy SFPLOAD with no effect to move srcB counter to be 16 since transpose is done on rows 16 - 31.
+    Main thing is ADDR_MOD_2 that has srcB increment of 16
+    */
+    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
 
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
 
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B);
-    TTI_INCRWC(0, 0, 4, 0);
-    TTI_INCRWC(0, 0, 4, 0);
-    TTI_INCRWC(0, 0, 4, 0);
-    TTI_INCRWC(0, 0, 4, 0);
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B); // clear all counters
+    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
 
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
 
     // BOTTOM FACES F2 AND F3
 
-    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_B);
+    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_B); // clear dvalid on srcB and reset srcB counters
 
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_TRNSPSRCB;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
-    TTI_NOP;
+    TTI_TRNSPSRCB; // rows -> cols
 
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B);
-    TTI_INCRWC(0, 0, 4, 0);
-    TTI_INCRWC(0, 0, 4, 0);
-    TTI_INCRWC(0, 0, 4, 0);
-    TTI_INCRWC(0, 0, 4, 0);
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B); // clear srcB counters
+    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
 
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
 
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B);
-    TTI_INCRWC(0, 0, 4, 0);
-    TTI_INCRWC(0, 0, 4, 0);
-    TTI_INCRWC(0, 0, 4, 0);
-    TTI_INCRWC(0, 0, 4, 0);
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B); // clear srcB counters
+    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
 
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
     TTI_ELWSUB(0, 0, 0, ADDR_MOD_0, 0);
 
-    // TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_B);
-
-    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
+    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB); // clear both src dvalids
 
     math::clear_dst_reg_addr();
 }
