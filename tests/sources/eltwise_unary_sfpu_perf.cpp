@@ -9,6 +9,7 @@
 
 #include "ckernel.h"
 #include "ckernel_defs.h"
+#include "ckernel_ops.h"
 #include "llk_defs.h"
 #include "params.h"
 #include "perf.h"
@@ -105,10 +106,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 {
                     for (int i = 0; i < params->TILE_CNT; ++i)
                     {
-                        // Only perform synchronization with unpacker, it does not copy
-                        // the data when unpack_to_dest is true - as data is already in dest.
-                        _llk_math_eltwise_unary_datacopy_<data_copy_type, DST_SYNC_MODE, is_fp32_dest_acc_en, BROADCAST_TYPE, unpack_to_dest>(
-                            i % MAX_TILES_DEST, formats.math, formats.math);
+                        math_unpack_to_dest_math_ready();
+                        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(i % MAX_TILES_DEST);
+                        math::math_unpack_to_dest_tile_ready();
                     }
                 }
             }
@@ -132,8 +132,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
                         int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
                         for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                         {
-                            _llk_math_eltwise_unary_datacopy_<data_copy_type, DST_SYNC_MODE, is_fp32_dest_acc_en, BROADCAST_TYPE, unpack_to_dest>(
-                                block_tile, formats.math, formats.math);
+                            math_unpack_to_dest_math_ready();
+                            math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(block_tile);
+                            math::math_unpack_to_dest_tile_ready();
                         }
 
                         _llk_math_dest_section_done_<DST_SYNC_MODE, is_fp32_dest_acc_en>();
