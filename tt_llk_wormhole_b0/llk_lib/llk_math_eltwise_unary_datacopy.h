@@ -376,6 +376,19 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
         eltwise_unary_configure_mop<type, false, src_b_bcast_type>(p_movb2d::MOV_4_ROWS, 16, num_faces, dst_format);
     }
 
+    // Workaround for HW bug (budabackend#1372): unpack_to_dest (A2D) with broadcast OR 32-bit data needs bit 11 disabled
+    // When type == A2D, unpack_to_dest is implied
+    if constexpr (type == A2D)
+    {
+        // Set bit 11 if broadcast is used OR if 32-bit data format
+        const uint output_df = dst_format & 0xF;
+        const bool is_32bit  = (output_df == static_cast<uint>(DataFormat::Int32)) || (output_df == static_cast<uint>(DataFormat::Float32));
+        if (src_b_bcast_type != BroadcastType::NONE || is_32bit)
+        {
+            _llk_math_dbg_feature_disable_();
+        }
+    }
+
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
@@ -384,11 +397,11 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
 template <BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
 inline void _llk_math_eltwise_unary_datacopy_uninit_()
 {
-    // clear debug feature disable
-    if constexpr (src_b_bcast_type != BroadcastType::NONE && unpack_to_dest)
+    // Clear debug feature disable bit 11 (workaround for budabackend#1372)
+    // This is called when unpack_to_dest (A2D) was used - bit 11 may have been set for broadcast OR 32-bit data
+    if constexpr (unpack_to_dest)
     {
-        tensix_sync();
-        reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
+        _llk_math_dbg_feature_enable_();
     }
 }
 
