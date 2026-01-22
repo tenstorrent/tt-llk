@@ -3,7 +3,9 @@
 
 from typing import Dict, List
 
+import pandas as pd
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from helpers.test_config import TestConfig
 
 # Results schema is identical to helpers.counters.read_perf_counters output
 CounterResult = Dict[str, object]
@@ -12,22 +14,22 @@ CounterResult = Dict[str, object]
 # These values are used to convert utilization ratios into estimated bytes/cycle.
 #
 # Keys:
-#   noc_word_bytes: Size of one NoC flit in bytes (Wormhole: 32, Blackhole: 256)
-#   unpack_max_bytes_per_cycle: Theoretical peak unpacker bandwidth (B/cyc)
-#   pack_max_bytes_per_cycle: Theoretical peak packer bandwidth (B/cyc)
+#   noc_word_bytes: Size of one NoC flit in bytes
+#   unpack_max_bytes_per_cycle: Theoretical peak unpacker bandwidth
+#   pack_max_bytes_per_cycle: Theoretical peak packer bandwidth
 _PLATFORM_BANDWIDTH = {
     ChipArchitecture.WORMHOLE: {
-        "noc_word_bytes": 32,  # 256 bits per flit
-        "unpack_max_bytes_per_cycle": 80.0,  # ~80 B/cyc (from tt-metal perf model)
-        "pack_max_bytes_per_cycle": 80.0,  # ~80 B/cyc
+        "noc_word_bytes": 32,
+        "unpack_max_bytes_per_cycle": 80.0,
+        "pack_max_bytes_per_cycle": 80.0,
     },
     ChipArchitecture.BLACKHOLE: {
-        "noc_word_bytes": 256,  # 2048 bits per flit
-        "unpack_max_bytes_per_cycle": 120.0,  # Estimated, wider bus
-        "pack_max_bytes_per_cycle": 120.0,  # Estimated, wider bus
+        "noc_word_bytes": 256,
+        "unpack_max_bytes_per_cycle": 120.0,
+        "pack_max_bytes_per_cycle": 120.0,
     },
     ChipArchitecture.QUASAR: {
-        "noc_word_bytes": 32,  # Placeholder, adjust when specs known
+        "noc_word_bytes": 32,
         "unpack_max_bytes_per_cycle": 80.0,
         "pack_max_bytes_per_cycle": 80.0,
     },
@@ -527,3 +529,201 @@ def summarize_kernel_metrics_dual(
     # Summary now differentiates REQUESTS vs GRANTS where meaningful.
 
     return "\n".join(lines)
+
+
+def compute_kernel_metrics(
+    results_by_thread_requests: Dict[str, List[CounterResult]],
+    results_by_thread_grants: Dict[str, List[CounterResult]],
+) -> Dict[str, float]:
+    """
+    Compute kernel-level metrics from dual-mode counter results.
+
+    Returns a flat dictionary of metric name -> value pairs suitable for CSV export.
+
+    Args:
+        results_by_thread_requests: Counter results from REQUESTS mode run.
+        results_by_thread_grants: Counter results from GRANTS mode run.
+
+    Returns:
+        Dictionary of metric names to values.
+    """
+    hw = _get_platform_bandwidth()
+    metrics = {}
+
+    # Aggregate metrics from all threads
+    grants_metrics: List[Dict[str, object]] = []
+    requests_metrics: List[Dict[str, object]] = []
+
+    for thread in sorted(
+        set(
+            list(results_by_thread_requests.keys())
+            + list(results_by_thread_grants.keys())
+        )
+    ):
+        requests_data = results_by_thread_requests.get(thread, [])
+        grants_data = results_by_thread_grants.get(thread, [])
+        metrics_requests = (
+            compute_thread_metrics(requests_data) if requests_data else None
+        )
+        metrics_grants = compute_thread_metrics(grants_data) if grants_data else None
+        if metrics_grants:
+            grants_metrics.append(metrics_grants)
+        if metrics_requests:
+            requests_metrics.append(metrics_requests)
+
+    if not grants_metrics:
+        return metrics
+
+    avg = lambda xs: (sum(xs) / len(xs)) if xs else 0.0
+
+    # Core utilization metrics
+    metrics["compute_util"] = avg(
+        [float(m["compute"]["utilization"]) for m in grants_metrics]
+    )
+    metrics["fpu_rate"] = avg([float(m["compute"]["fpu_rate"]) for m in grants_metrics])
+    metrics["sfpu_rate"] = avg(
+        [float(m["compute"]["sfpu_rate"]) for m in grants_metrics]
+    )
+    metrics["unpack_util"] = avg(
+        [float(m["unpack"]["utilization"]) for m in grants_metrics]
+    )
+    metrics["pack_util"] = avg(
+        [float(m["pack"]["utilization"]) for m in grants_metrics]
+    )
+
+    # L1/NoC metrics
+    metrics["l1_congestion_index"] = avg(
+        [float(m["l1"]["congestion_index"]) for m in grants_metrics]
+    )
+    metrics["noc_txn_per_cycle"] = avg(
+        [float(m["l1"]["noc_txn_per_cycle"]) for m in grants_metrics]
+    )
+    metrics["noc_bytes_per_cycle"] = avg(
+        [float(m["l1"]["noc_bytes_per_cycle"]) for m in grants_metrics]
+    )
+
+    # RISC metrics
+    metrics["risc_stall_rate"] = avg(
+        [float(m["risc"]["stall_rate"]) for m in grants_metrics]
+    )
+    metrics["risc_issue_rate"] = avg(
+        [float(m["risc"]["instr_issue_rate"]) for m in grants_metrics]
+    )
+
+    # Bandwidth estimates
+    metrics["unpack_bw_bytes_per_cycle"] = (
+        metrics["unpack_util"] * hw["unpack_max_bytes_per_cycle"]
+    )
+    metrics["pack_bw_bytes_per_cycle"] = (
+        metrics["pack_util"] * hw["pack_max_bytes_per_cycle"]
+    )
+
+    # Bound classification scores
+    metrics["math_bound_score"] = metrics["compute_util"]
+    metrics["unpack_bound_score"] = metrics["unpack_util"]
+    metrics["pack_bound_score"] = metrics["pack_util"]
+    metrics["risc_bound_score"] = metrics["risc_stall_rate"] - (
+        metrics["risc_issue_rate"] * 0.5
+    )
+
+    # Compute vs data movement
+    kernel_compute_score = metrics["compute_util"]
+    kernel_data_score = (
+        (metrics["unpack_util"] + metrics["pack_util"]) / 2.0
+        + metrics["l1_congestion_index"]
+        + metrics["noc_txn_per_cycle"]
+    )
+    metrics["kernel_compute_score"] = kernel_compute_score
+    metrics["kernel_data_score"] = kernel_data_score
+    metrics["kernel_bound"] = (
+        "compute-bound"
+        if kernel_compute_score >= kernel_data_score
+        else "data-movement-bound"
+    )
+
+    # Dominant component
+    bound_scores = [
+        ("math-bound", metrics["math_bound_score"]),
+        ("unpack-bound", metrics["unpack_bound_score"]),
+        ("pack-bound", metrics["pack_bound_score"]),
+        ("risc-bound", metrics["risc_bound_score"]),
+    ]
+    dominant = max(bound_scores, key=lambda x: x[1])
+    metrics["dominant_bound"] = dominant[0]
+    metrics["dominant_bound_score"] = dominant[1]
+
+    # Acceptance ratios (REQUESTS vs GRANTS)
+    sum_grants = lambda fn: sum([fn(m) for m in grants_metrics])
+    sum_requests = lambda fn: (
+        sum([fn(m) for m in requests_metrics]) if requests_metrics else 0.0
+    )
+
+    total_noc_grants = sum_grants(
+        lambda m: float(m["l1"]["noc_in_counts"] + m["l1"]["noc_out_counts"])
+    )
+    total_noc_requests = sum_requests(
+        lambda m: float(m["l1"]["noc_in_counts"] + m["l1"]["noc_out_counts"])
+    )
+    metrics["noc_acceptance"] = (
+        (total_noc_grants / total_noc_requests) if total_noc_requests else 1.0
+    )
+
+    total_unpack_grants = sum_grants(lambda m: float(m["unpack"]["busy_counts"]))
+    total_unpack_requests = sum_requests(lambda m: float(m["unpack"]["busy_counts"]))
+    metrics["unpack_acceptance"] = (
+        (total_unpack_grants / total_unpack_requests) if total_unpack_requests else 1.0
+    )
+
+    total_pack_grants = sum_grants(lambda m: float(m["pack"]["busy_counts"]))
+    total_pack_requests = sum_requests(lambda m: float(m["pack"]["busy_counts"]))
+    metrics["pack_acceptance"] = (
+        (total_pack_grants / total_pack_requests) if total_pack_requests else 1.0
+    )
+
+    # Wall cycles (max across threads)
+    metrics["wall_cycles"] = max([float(m["wall_cycles"]) for m in grants_metrics])
+
+    return metrics
+
+
+def export_metrics_csv(
+    results_requests: Dict[str, List[CounterResult]],
+    results_grants: Dict[str, List[CounterResult]],
+    filename: str,
+    test_params: Dict[str, object] = None,
+    worker_id: str = "gw0",
+) -> None:
+    """
+    Export computed metrics to CSV file in perf_data directory.
+
+    Args:
+        results_requests: Counter results from REQUESTS mode.
+        results_grants: Counter results from GRANTS mode.
+        filename: Base filename (without extension), e.g., "test_matmul_metrics".
+        test_params: Optional dictionary of test parameters to include in each row.
+        worker_id: Worker ID for parallel test runs (e.g., "gw0", "master").
+    """
+    perf_dir = TestConfig.LLK_ROOT / "perf_data"
+    perf_dir.mkdir(parents=True, exist_ok=True)
+
+    # Compute kernel metrics
+    metrics = compute_kernel_metrics(results_requests, results_grants)
+
+    if not metrics:
+        return
+
+    # Add test parameters
+    if test_params:
+        metrics.update(test_params)
+
+    # Create single-row DataFrame
+    df = pd.DataFrame([metrics])
+
+    output_path = perf_dir / f"{filename}.{worker_id}.csv"
+
+    # Append to existing file or create new
+    if output_path.exists():
+        existing = pd.read_csv(output_path)
+        df = pd.concat([existing, df], ignore_index=True)
+
+    df.to_csv(output_path, index=False)

@@ -5,7 +5,10 @@
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
+import pandas as pd
 from ttexalens.tt_exalens_lib import read_words_from_device, write_words_to_device
+
+from .test_config import TestConfig
 
 # L1 Memory addresses - separate per TRISC thread
 # Support up to 66 counters: 66 config words + 132 data words per thread
@@ -408,3 +411,108 @@ def read_all_counters(
                 _print_perf_counters(results, thread=thread)
             results_by_thread[thread] = results
     return results_by_thread
+
+
+def counters_to_flat_row(
+    results_by_thread: Dict[str, List[Dict]],
+) -> Dict[str, object]:
+    """
+    Convert counter results to a flat dictionary (one row) suitable for CSV export.
+
+    Column naming: {thread}_{counter_name}_{mode}_count, {thread}_{counter_name}_{mode}_rate
+    Plus cycles columns: {thread}_{bank}_cycles
+
+    Args:
+        results_by_thread: Dictionary mapping thread name to list of counter results.
+
+    Returns:
+        Flat dictionary with all counter values as separate columns.
+    """
+    row = {}
+
+    for thread, results in results_by_thread.items():
+        # Get shared cycles per bank for rate calculation
+        cycles_by_bank = {}
+        for r in results:
+            bank = r["bank"]
+            if bank not in cycles_by_bank:
+                cycles_by_bank[bank] = r["cycles"]
+
+        # Add cycles columns per bank
+        for bank, cycles in cycles_by_bank.items():
+            row[f"{thread}_{bank}_cycles"] = cycles
+
+        # Add counter values
+        for r in results:
+            counter_name = r["counter_name"]
+            mode = r["mode"].lower()
+            cycles = cycles_by_bank.get(r["bank"], r["cycles"])
+            count = r["count"]
+            rate = (count / cycles) if cycles else 0.0
+
+            # For L1 counters, include mux in the name to distinguish
+            if r.get("l1_mux") is not None:
+                col_base = f"{thread}_{counter_name}_mux{r['l1_mux']}_{mode}"
+            else:
+                col_base = f"{thread}_{counter_name}_{mode}"
+
+            row[f"{col_base}_count"] = count
+            row[f"{col_base}_rate"] = rate
+
+    return row
+
+
+def export_counters_csv(
+    results_requests: Dict[str, List[Dict]],
+    results_grants: Dict[str, List[Dict]],
+    filename: str,
+    test_params: Dict[str, object] = None,
+    worker_id: str = "gw0",
+) -> None:
+    """
+    Export counter results to CSV file in perf_data directory.
+
+    Creates one row per test run with all counter values as columns.
+    Column format: {thread}_{counter_name}_{mode}_count, {thread}_{counter_name}_{mode}_rate
+
+    Args:
+        results_requests: Counter results from REQUESTS mode.
+        results_grants: Counter results from GRANTS mode.
+        filename: Base filename (without extension), e.g., "test_matmul_counters".
+        test_params: Optional dictionary of test parameters to include in each row.
+        worker_id: Worker ID for parallel test runs (e.g., "gw0", "master").
+    """
+    perf_dir = TestConfig.LLK_ROOT / "perf_data"
+    perf_dir.mkdir(parents=True, exist_ok=True)
+
+    # Build single row with all counters
+    row = {}
+
+    # Add test parameters first (so they appear at the beginning of columns)
+    if test_params:
+        row.update(test_params)
+
+    # Add REQUESTS mode counters
+    if results_requests:
+        req_row = counters_to_flat_row(results_requests)
+        row.update(req_row)
+
+    # Add GRANTS mode counters
+    if results_grants:
+        gr_row = counters_to_flat_row(results_grants)
+        row.update(gr_row)
+
+    if not row:
+        return
+
+    # Create single-row DataFrame
+    df = pd.DataFrame([row])
+
+    output_path = perf_dir / f"{filename}.{worker_id}.csv"
+
+    # Append to existing file or create new
+    if output_path.exists():
+        existing = pd.read_csv(output_path)
+        df = pd.concat([existing, df], ignore_index=True)
+
+    df.to_csv(output_path, index=False)
