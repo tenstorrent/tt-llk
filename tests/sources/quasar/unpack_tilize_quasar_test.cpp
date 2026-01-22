@@ -59,14 +59,14 @@ void run_kernel(const volatile struct RuntimeParams*)
     {
         _llk_unpack_configure_unary_<UNPACKER_ENGINE_SEL>(td_val);
     }
-    _llk_unpack_tilize_init_<UNPACKER_ENGINE_SEL, is_fp32_dest_acc_en, FULL_CT_DIM, BLOCK_CT_DIM, C_DIM_FACES>(buf_desc_id);
+    _llk_unpack_tilize_init_<UNPACKER_ENGINE_SEL, is_fp32_dest_acc_en, params->FULL_CT_DIM, params->BLOCK_CT_DIM, C_DIM_FACES>(buf_desc_id);
 
     // One _llk_unpack_tilize_ call unpacks one block ct_dim of tiles (one tile row)
     // The internal parts of the strides are applied inside of the _llk_ itself, the external parts are passed to the _llk_unpack_tilize_ call
     // x_stride = x_stride_internal = col dim of a tile in L1 in units of 16 datums (1 face);
     // y_stride = y_stride_external + x_stride_internal
     // In this case x = 0 because the entire tile row fits into Dest
-    uint y_stride_external = FULL_CT_DIM * R_DIM_FACES * TEST_FACE_R_DIM;
+    uint y_stride_external = params->FULL_CT_DIM * R_DIM_FACES * TEST_FACE_R_DIM;
     for (uint y = 0; y < BLOCK_RT_DIM; y++)
     {
         _llk_unpack_tilize_<UNPACKER_ENGINE_SEL>(y * y_stride_external /*  + 0 * x_stride  */);

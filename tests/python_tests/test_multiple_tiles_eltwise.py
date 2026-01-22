@@ -16,10 +16,10 @@ from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
-    INPUT_DIMENSIONS,
     MATH_FIDELITY,
     MATH_OP,
     TILE_COUNT,
+    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -72,10 +72,12 @@ def test_multiple_tiles(
         formats,
         templates=[
             MATH_FIDELITY(math_fidelity),
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            TILE_COUNT(tile_cnt_A),
+            generate_input_dim(input_dimensions, input_dimensions),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

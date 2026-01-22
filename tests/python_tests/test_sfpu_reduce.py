@@ -24,7 +24,6 @@ from helpers.stimuli_config import StimuliConfig
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     APPROX_MODE,
-    INPUT_DIMENSIONS,
     MATH_OP,
     TILE_COUNT,
 )
@@ -120,7 +119,6 @@ def test_sfpu_reduce(
         "sources/sfpu_reduce_test.cpp",
         formats,
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             APPROX_MODE(ApproximationMode.No),
             MATH_OP(mathop=mathop, pool_type=reduce_pool),
         ],
@@ -138,6 +136,7 @@ def test_sfpu_reduce(
         dest_acc=dest_acc,
         unpack_to_dest=True,
         disable_format_inference=True,
+        compile_time_formats=True,
     )
     res_from_L1 = configuration.run(workers_tensix_coordinates)
 

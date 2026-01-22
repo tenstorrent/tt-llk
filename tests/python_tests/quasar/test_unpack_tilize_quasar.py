@@ -157,6 +157,7 @@ def test_unpack_tilize_quasar(
         ),
         dest_acc=dest_acc,
         boot_mode=boot_mode,
+        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()
