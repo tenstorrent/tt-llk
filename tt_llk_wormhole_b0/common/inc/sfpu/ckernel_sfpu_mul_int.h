@@ -52,28 +52,23 @@ inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const 
         TTI_SFPAND(0, p_sfpu::LREG12, p_sfpu::LREG1, 0);
         TTI_SFPCAST(p_sfpu::LREG1, p_sfpu::LREG1, 0);
 
-        // hi0 = a0*b1
-        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG3, p_sfpu::LCONST_0, p_sfpu::LREG3, 0);
-        // lo = a0*b0
-        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LCONST_0, p_sfpu::LREG0, 0);
-        // hi1 = a1*b0
-        TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG1, p_sfpu::LCONST_0, p_sfpu::LREG2, 0);
+        // hi = a0*b1 + 2.0**23
+        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG3, 0);
+        // lo = a0*b0 + 2.0**23
+        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG0, 0);
+        // hi += a1*b0
+        TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpu::LREG3, 0);
 
-        // lo = rnd(lo)
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG0, p_sfpu::LREG0, 6);
+        // lo = mantissa_bits(lo)
+        TTI_SFPEXMAN(0, p_sfpu::LREG0, p_sfpu::LREG0, sfpi::SFPEXMAN_MOD1_PAD9);
+        // hi = mantissa_bits(hi)
+        TTI_SFPEXMAN(0, p_sfpu::LREG3, p_sfpu::LREG3, sfpi::SFPEXMAN_MOD1_PAD9);
 
-        // hi1 = rnd(hi1)
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG2, p_sfpu::LREG2, 6);
-        // hi0 = rnd(hi0)
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG3, p_sfpu::LREG3, 6);
-
-        // hi = hi0 + hi1
-        TTI_SFPIADD(0, p_sfpu::LREG3, p_sfpu::LREG2, sfpi::SFPIADD_MOD1_CC_NONE);
         // hi <<= 8
-        TTI_SFPSHFT(8, 0, p_sfpu::LREG2, 1);
+        TTI_SFPSHFT(8, 0, p_sfpu::LREG3, 1);
 
         // lo += hi
-        TTI_SFPIADD(0, p_sfpu::LREG2, p_sfpu::LREG0, sfpi::SFPIADD_MOD1_CC_NONE);
+        TTI_SFPIADD(0, p_sfpu::LREG3, p_sfpu::LREG0, sfpi::SFPIADD_MOD1_CC_NONE);
 
         TT_SFPSTORE(p_sfpu::LREG0, LO16, ADDR_MOD_3, dst_index_out * dst_tile_size);
 
@@ -84,8 +79,9 @@ inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const 
 template <bool APPROXIMATION_MODE>
 inline void _init_mul_int_()
 {
-    sfpi::vConstIntPrgm0 = 0xff; // LREG12
-    sfpi::vConstIntPrgm1 = -8;   // LREG13
+    sfpi::vConstIntPrgm0 = 0xff;        // LREG12
+    sfpi::vConstIntPrgm1 = -8;          // LREG13
+    sfpi::vConstFloatPrgm2 = 8388608.0; // LREG14
 }
 
 } // namespace sfpu
