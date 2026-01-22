@@ -7,6 +7,7 @@
 #include "ckernel_sfpu.h"
 #include "ckernel_sfpu_add_top_row.h"
 #include "ckernel_sfpu_binary.h"
+#include "llk_defs.h"
 #include "llk_sfpu_types.h"
 
 namespace test_utils
@@ -18,13 +19,13 @@ using namespace ckernel::sfpu;
  * Template function to call SFPU operations with parameterized iteration count
  * and optional math format for type-specific behavior.
  *
- * @tparam APPROX_MODE Whether to use approximation mode for the SFPU operation
+ * @tparam APPROX_MODE Approximation mode for the SFPU operation
  * @tparam is_fp32_dest_acc_en Whether the destination accumulator is in FP32 mode
  * @tparam ITERATIONS Number of SFPU iterations (typically 32 for full tile)
  * @param operation The SFPU operation type to execute
  * @param math_format Optional math format for operations that need format-specific behavior
  */
-template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false>
+template <ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false>
 void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0, float fill_const_value = 5.0f)
 {
     switch (operation)
@@ -152,7 +153,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0, float fil
     }
 }
 
-template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, uint32_t MATH_FORMAT = 0>
+template <ApproximationMode APPROX_MODE, BinaryOp BINOP, int ITERATIONS = 32, uint32_t MATH_FORMAT = 0>
 void call_binary_sfpu_operation(const uint dst_index_in0 = 0, const uint dst_index_in1 = 1, const uint dst_index_out = 0)
 {
     switch (BINOP)
@@ -164,17 +165,17 @@ void call_binary_sfpu_operation(const uint dst_index_in0 = 0, const uint dst_ind
         case BinaryOp::RSUB:
         case BinaryOp::XLOGY:
         case BinaryOp::POW:
-            _sfpu_binary_init_<APPROXIMATION_MODE, BINOP>();
-            _calculate_sfpu_binary_<APPROXIMATION_MODE, BINOP, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_out);
+            _sfpu_binary_init_<APPROX_MODE, BINOP>();
+            _calculate_sfpu_binary_<APPROX_MODE, BINOP, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_out);
             break;
         case BinaryOp::RSHFT:
-            _calculate_binary_right_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
+            _calculate_binary_right_shift_<APPROX_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
             break;
         case BinaryOp::LSHFT:
-            _calculate_binary_left_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
+            _calculate_binary_left_shift_<APPROX_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
             break;
         case BinaryOp::LOGICAL_RSHFT:
-            _calculate_logical_right_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
+            _calculate_logical_right_shift_<APPROX_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
             break;
         case BinaryOp::ADD_TOP_ROW:
             _init_add_top_row_();

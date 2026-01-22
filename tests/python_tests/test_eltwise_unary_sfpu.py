@@ -35,7 +35,7 @@ from helpers.utils import passed_test
             DataFormat.Bfp8_b,
         ]
     ),
-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+    approx_mode=[ApproximationMode.Precise, ApproximationMode.Fast],
     mathop=[
         MathOperation.Abs,
         MathOperation.Atanh,
@@ -111,7 +111,7 @@ def test_eltwise_unary_sfpu_float(
             pytest.skip(reason="This combination is not supported on BH architecture")
 
     if (
-        approx_mode == ApproximationMode.Yes
+        approx_mode == ApproximationMode.Fast
         and mathop in [MathOperation.Exp, MathOperation.Exp2, MathOperation.Elu]
         and (
             formats.input_format == DataFormat.Bfp8_b
@@ -134,7 +134,7 @@ def test_eltwise_unary_sfpu_float(
 
 @parametrize(
     formats=input_output_formats([DataFormat.Int32]),
-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+    approx_mode=[ApproximationMode.Precise, ApproximationMode.Fast],
     mathop=[
         MathOperation.Neg,
         MathOperation.Fill,
