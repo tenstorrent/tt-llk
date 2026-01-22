@@ -411,7 +411,7 @@ inline void _calculate_typecast_uint32_to_uint16_()
         int macroIndex = 1 + (d & 1);
         if (d < ITERATIONS)
         {
-            TT_SFPLOADMACRO((0 << 2) | (a & 3), InstrModLoadStore::LO16, ADDR_MOD_6, a >> 2);
+            TT_SFPLOADMACRO((0 << 2) | (a & 3), InstrModLoadStore::LO16, ADDR_MOD_2, a >> 2);
         }
         else
         {
@@ -423,7 +423,7 @@ inline void _calculate_typecast_uint32_to_uint16_()
         }
         else
         {
-            TTI_SFPLOADMACRO((macroIndex << 2) | (b & 3), InstrModLoadStore::INT32, ADDR_MOD_7, (-4 & 0x3ff) | (b >> 2));
+            TTI_SFPLOADMACRO((macroIndex << 2) | (b & 3), InstrModLoadStore::INT32, ADDR_MOD_3, (-4 & 0x3ff) | (b >> 2));
         }
     }
     TTI_SFPNOP;
@@ -450,7 +450,7 @@ inline void _calculate_typecast_int32_to_uint16_()
     for (int d = 0; d < ITERATIONS; d++)
     {
         int a = d & 1;
-        TT_SFPLOADMACRO((0 << 2) | (a & 3), InstrModLoadStore::INT32, ADDR_MOD_6, a >> 2);
+        TT_SFPLOADMACRO((0 << 2) | (a & 3), InstrModLoadStore::INT32, ADDR_MOD_2, a >> 2);
         TT_SFPCAST(a, a, 0);
         TTI_SFPNOP;
     }
