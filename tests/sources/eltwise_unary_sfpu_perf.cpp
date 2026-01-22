@@ -206,6 +206,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 }
             }
         }
+        // Clear bit 11 if it was set for A2D operations (workaround for budabackend#1372)
+        _llk_math_eltwise_unary_datacopy_uninit_<BroadcastType::NONE, unpack_to_dest>();
         PROFILER_SYNC();
     }
 }
