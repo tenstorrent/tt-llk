@@ -202,7 +202,7 @@ inline void _calculate_typecast_fp32_to_fp16b_()
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        int a = d & 1;
+        int a = d & 1; // alternate between p_sfpu::LREG0 and p_sfpu::LREG1
         TT_SFPLOADMACRO((0 << 2) | (a & 3), 0, ADDR_MOD_3, a >> 2);
         TTI_SFPLOADMACRO((1 << 2) | (b & 3), 0, ADDR_MOD_2, b >> 2);
         TT_SFPAND(0, p_sfpu::LREG12, a, 0);
@@ -445,11 +445,18 @@ inline void _calculate_typecast_int32_to_uint16_()
     // 0 | ...  | (must be idle)    |     |                  |         |
     // 1 | ...  |                   |     | [a] L16 = rnd(a) |         |
     // 2 | ...  |                   |     |                  | [a] L16 |
+    //
+    // Simple/Round sub-units can be used simultaneously if one has VD=16 and
+    // the other VD!=16.  The following steps clamp the input value to 0-65535:
+    //
+    // a = cast_fp32(a); this allows us to use SFPSTOCHRND later to convert to uint16, clamping to 65535.
+    // swap_minmax(0.0, a); since SFPSTOCHRND takes the absolute value before clamping, we use SFPSWAP to clamp negative values to 0.0.
+    // L16 = rnd(a); finally, we use SFPSTOCHRND to clamp large values to 65535, using VD=16.
 
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        int a = d & 1;
+        int a = d & 1; // alternate between p_sfpu::LREG0 and p_sfpu::LREG1
         TT_SFPLOADMACRO((0 << 2) | (a & 3), InstrModLoadStore::INT32, ADDR_MOD_2, a >> 2);
         TT_SFPCAST(a, a, 0);
         TTI_SFPNOP;
