@@ -47,9 +47,15 @@ inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const 
     bool uint16_with_fp32_dest =
         is_fp32_dest_acc_en && (((uint)srca_data_format == (uint)DataFormat::UInt16) || ((uint)srcb_data_format == (uint)DataFormat::UInt16));
 
+    // Always start from clean state, then set bit 11 only if needed
+    // This prevents state pollution between operations
     if (int8_math_enabled || uint16_with_fp32_dest)
     {
         _llk_math_dbg_feature_disable_();
+    }
+    else
+    {
+        _llk_math_dbg_feature_enable_();
     }
 }
 
