@@ -34,7 +34,7 @@ inline void _calculate_typecast_fp32_to_uint16_()
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        int v = d & 1;
+        int v = d & 1; // alternate between p_sfpu::LREG0 and p_sfpu::LREG1
         TT_SFPLOADMACRO((0 << 2) | (v & 3), InstrModLoadStore::DEFAULT, ADDR_MOD_6, v >> 2);
         TTI_SFPNOP;
     }
@@ -60,7 +60,7 @@ inline void _calculate_typecast_uint16_to_fp16b_()
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        int v = d & 1;
+        int v = d & 1; // alternate between p_sfpu::LREG0 and p_sfpu::LREG1
         TT_SFPLOADMACRO((0 << 2) | (v & 3), InstrModLoadStore::LO16, ADDR_MOD_6, v >> 2);
     }
     TTI_SFPNOP;
@@ -101,7 +101,7 @@ inline void _calculate_typecast_int32_to_fp16b_()
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        int v = 2 + (d & 1);
+        int v = 2 + (d & 1); // alternate between p_sfpu::LREG2 and p_sfpu::LREG3
         TT_SFPLOADMACRO((0 << 2) | (v & 3), InstrModLoadStore::INT32, ADDR_MOD_6, v >> 2);
         TT_SFPABS(0, v, t, 0);
         TTI_SFPSHFT2(t, p_sfpu::LREG12, p_sfpu::LREG7, 5); // SFPSHFT2_MOD1_SHFT_LREG
@@ -271,7 +271,7 @@ inline void _calculate_typecast_int32_to_fp32_()
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        int v = 2 + (d & 1);
+        int v = 2 + (d & 1); // alternate between p_sfpu::LREG2 and p_sfpu::LREG3
         TT_SFPLOADMACRO((0 << 2) | (v & 3), InstrModLoadStore::INT32, ADDR_MOD_6, v >> 2);
         TT_SFPABS(0, v, t, 0);
         TTI_SFPSHFT2(t, p_sfpu::LREG12, p_sfpu::LREG7, 5); // SFPSHFT2_MOD1_SHFT_LREG
@@ -313,7 +313,7 @@ inline void _calculate_typecast_uint32_to_fp16b_()
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
     {
-        int v = 2 + (d & 1);
+        int v = 2 + (d & 1); // alternate between p_sfpu::LREG2 and p_sfpu::LREG3
         TT_SFPLOADMACRO((0 << 2) | (v & 3), InstrModLoadStore::INT32, ADDR_MOD_6, v >> 2);
         TT_SFPSHFT2(v, p_sfpu::LREG12, p_sfpu::LREG7, 5); // SFPSHFT2_MOD1_SHFT_LREG
         TT_SFPSETSGN(0, v, v, 1);
