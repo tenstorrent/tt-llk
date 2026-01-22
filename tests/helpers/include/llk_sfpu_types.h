@@ -106,4 +106,5 @@ enum class SfpuType
     reduce,
     add_top_row,
     typecast,
+    mul_uint16,
 };
