@@ -468,6 +468,12 @@ inline void _llk_math_reduce_init_()
         // Set bit 11 for FP32 accumulation (workaround for budabackend#1372)
         _llk_math_dbg_feature_disable_();
     }
+    else
+    {
+        // Enforce contract: ALL reduce operations must ensure bit 11 is clear when NOT using FP32 accumulation
+        // This protects against state pollution from any previous operation
+        _llk_math_dbg_feature_enable_();
+    }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);

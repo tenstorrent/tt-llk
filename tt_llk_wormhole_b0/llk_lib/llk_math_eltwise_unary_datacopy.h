@@ -394,12 +394,13 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-template <BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
+template <BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false, bool tilize = false>
 inline void _llk_math_eltwise_unary_datacopy_uninit_()
 {
-    // Clear debug feature disable bit 11 (workaround for budabackend#1372)
-    // This is called when unpack_to_dest (A2D) was used - bit 11 may have been set for broadcast OR 32-bit data
-    if constexpr (unpack_to_dest)
+    // Enforce contract: Clear bit 11 if init may have set it
+    // Init sets bit 11 for: (1) tilize with Int32/UInt32, OR (2) A2D with broadcast/32-bit
+    // Unconditionally clear if either condition could have been true
+    if constexpr (unpack_to_dest || tilize)
     {
         _llk_math_dbg_feature_enable_();
     }

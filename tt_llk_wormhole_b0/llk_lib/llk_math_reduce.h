@@ -465,6 +465,12 @@ inline void _llk_math_reduce_init_()
         // This is needed because FP32 data from L1 that is unpacked to Src registers is reduced to Tf32
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>((uint)DataFormat::Float32);
     }
+    else
+    {
+        // Enforce contract: ALL reduce operations must ensure bit 11 is clear when NOT using FP32 accumulation
+        // This protects against state pollution from any previous operation
+        _llk_math_dbg_feature_enable_();
+    }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
