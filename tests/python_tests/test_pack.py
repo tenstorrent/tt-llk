@@ -28,11 +28,11 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_INDEX,
     DEST_SYNC,
-    INPUT_DIMENSIONS,
     NUM_FACES,
     RELU_CONFIG,
     TILE_COUNT,
     TILIZE,
+    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -219,11 +219,11 @@ def test_pack(
         "sources/pack_test.cpp",
         formats,
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             TILIZE(),
             DEST_SYNC(dest_sync),
         ],
         runtimes=[
+            generate_input_dim(input_dimensions, input_dimensions),
             TILE_COUNT(tile_cnt_A),
             DEST_INDEX(dest_index),
             RELU_CONFIG(relu_config),

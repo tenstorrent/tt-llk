@@ -27,6 +27,7 @@ static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -45,6 +46,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             /* transpose within face */ 0);
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
@@ -75,6 +77,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -82,6 +85,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(TILE_NUM_FACES, false);
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
@@ -133,6 +137,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
@@ -140,6 +145,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)

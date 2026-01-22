@@ -22,6 +22,7 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, params->num_faces, params->num_faces);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
@@ -29,7 +30,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
+            L1_ADDRESS(params->buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }
 }
 
@@ -51,6 +52,7 @@ using namespace ckernel;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(params->num_faces, formats.math);
@@ -82,6 +84,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, tilize_en>(
         formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, params->num_faces, false, false, params->RELU_CONFIG);
@@ -97,7 +100,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(params->DST_INDEX + i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(params->DST_INDEX + i, L1_ADDRESS(params->buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }

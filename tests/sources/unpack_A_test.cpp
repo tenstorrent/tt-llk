@@ -23,8 +23,9 @@ uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en, disable_src_zero_flag>(
         formats.unpack_src,
         formats.unpack_src,
@@ -44,7 +45,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         formats.unpack_dst);
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_unpack_A_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
+        _llk_unpack_A_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(L1_ADDRESS(params->buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }
     _llk_unpack_A_uninit_<BROADCAST_TYPE>(params->TEST_FACE_R_DIM);
 }
@@ -65,8 +66,9 @@ const bool is_int_fpu_en = false;
 
 using namespace ckernel;
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     // Test configuration constants
     constexpr DstSync sync_mode = DstSync::SyncHalf;
 
@@ -97,8 +99,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     // Test configuration constants
     constexpr DstSync sync_mode = DstSync::SyncHalf;
 #ifdef ARCH_BLACKHOLE
@@ -120,7 +123,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_pack_<sync_mode, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<sync_mode, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(params->buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<sync_mode, is_fp32_dest_acc_en>();
 }

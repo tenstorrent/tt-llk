@@ -153,6 +153,7 @@ def test_reduce_quasar(
             formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
         ),
         dest_acc=dest_acc,
+        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()

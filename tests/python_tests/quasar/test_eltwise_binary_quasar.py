@@ -151,6 +151,7 @@ def test_eltwise_binary(
         # MX formats require disable_format_inference to match C++ IMPLIED_MATH_FORMAT setting
         # This ensures Python-side format inference uses Float16_b for MX internal math
         disable_format_inference=(implied_math_format == ImpliedMathFormat.Yes),
+        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()

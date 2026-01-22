@@ -30,6 +30,7 @@ static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
 
@@ -60,6 +61,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -106,6 +108,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
 
@@ -114,6 +117,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)

@@ -194,6 +194,7 @@ def test_sfpu_rsqrt_quasar(formats_dest_acc_implied_math_input_dims):
             formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
         ),
         dest_acc=dest_acc,
+        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()

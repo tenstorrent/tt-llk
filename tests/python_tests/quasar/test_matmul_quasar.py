@@ -177,6 +177,7 @@ def test_matmul(
         unpack_to_dest=False,
         dest_acc=dest_acc,
         boot_mode=BootMode.TRISC,
+        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()

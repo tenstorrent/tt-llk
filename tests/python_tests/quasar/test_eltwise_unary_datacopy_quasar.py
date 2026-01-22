@@ -173,6 +173,7 @@ def test_eltwise_unary_datacopy_quasar(
         ),
         unpack_to_dest=False,
         dest_acc=dest_acc,
+        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()

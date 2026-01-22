@@ -29,23 +29,29 @@ constexpr uint32_t buffer_B_tilized = 0x17000;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const std::uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
-    int run                          = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
+    auto formats = params->formats;
+#ifdef ARCH_BLACKHOLE
+    const std::uint32_t block_ct_dim = 0;
+#else
+    const std::uint32_t block_ct_dim = params->BLOCK_CT_DIM;
+#endif
+
+    int run = 0; // first L1-to-L1 run, we access the first set of formats in our array
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats_array[run].unpack_src,
-        formats_array[run].unpack_src,
-        formats_array[run].unpack_dst,
-        formats_array[run].unpack_dst,
+        formats[run].unpack_src,
+        formats[run].unpack_src,
+        formats[run].unpack_dst,
+        formats[run].unpack_dst,
         FACE_R_DIM,
         FACE_R_DIM,
         4 /* num_faces */,
         4 /* num_faces */);
 
-    _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
-    _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats_array[run].unpack_src, formats_array[run].unpack_dst, block_ct_dim, FACE_R_DIM, 4, false);
+    _llk_unpack_tilize_init_(formats[run].unpack_src, formats[run].unpack_dst, 1, FACE_R_DIM, false);
+    _llk_unpack_tilize_(L1_ADDRESS(params->buffer_A[0]), 0, formats[run].unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
 
-    _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
-    _llk_unpack_tilize_(L1_ADDRESS(buffer_B[0]), 0, formats_array[run].unpack_src, formats_array[run].unpack_dst, block_ct_dim, FACE_R_DIM, 4, false);
+    _llk_unpack_tilize_init_(formats[run].unpack_src, formats[run].unpack_dst, 1, FACE_R_DIM, false);
+    _llk_unpack_tilize_(L1_ADDRESS(params->buffer_B[0]), 0, formats[run].unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
 
     /*
     In this test we fuse two LLK pipeline runs, one is to unpack untilized buffers/operands from L1 (39-45) and pack them in tilized format(130-145).
@@ -66,12 +72,12 @@ void run_kernel(const volatile struct RuntimeParams *params)
     t6_semaphore_get<>(semaphore::PACK_DONE); // It will acquire the semaphore t6_semaphore_get (decrementing the semaphore back to 0) signalling it has begun
                                               // processing data from L1
 
-    run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
+    run = 1; // second L1-to-L1 run, we access the second set of formats in our array
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats_array[run].unpack_src,
-        formats_array[run].unpack_src,
-        formats_array[run].unpack_dst,
-        formats_array[run].unpack_dst,
+        formats[run].unpack_src,
+        formats[run].unpack_src,
+        formats[run].unpack_dst,
+        formats[run].unpack_dst,
         FACE_R_DIM,
         FACE_R_DIM,
         4 /* num_faces */,
@@ -93,35 +99,36 @@ using namespace ckernel;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    auto formats                            = params->formats;
     const bool is_int_fpu_en                = false;
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;
     const std::uint32_t res_dst_index       = 0;
-    int run                                 = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
+    int run                                 = 0; // first L1-to-L1 run, we access the first set of formats in our array
 
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     const bool TILIZE = true;
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(4, formats_array[run].math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(4, formats[run].math);
 #else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats_array[run].math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats[run].math);
 #endif
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats_array[run].math, formats_array[run].math);
+    _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats[run].math, formats[run].math);
 
     // copy tilized inputs to dest indexes 0 and 1
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
-        operand_A_dst_index, formats_array[run].math, formats_array[run].math);
+        operand_A_dst_index, formats[run].math, formats[run].math);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
-        operand_B_dst_index, formats_array[run].math, formats_array[run].math);
+        operand_B_dst_index, formats[run].math, formats[run].math);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
-    run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
+    run = 1; // second L1-to-L1 run, we access the second set of formats in our array
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(
@@ -139,6 +146,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    auto formats                            = params->formats;
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;
     const std::uint32_t res_dst_index       = 0;
@@ -147,12 +155,12 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #ifdef ARCH_BLACKHOLE
     const bool TILIZE = true;
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, TILIZE>(formats_array[run].pack_dst);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats[run].pack_src, formats[run].pack_dst, 16 * 16 * 4);
+    _llk_pack_init_<UNTILIZE, false, TILIZE>(formats[run].pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false>(formats_array[run].pack_dst);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats[run].pack_src, formats[run].pack_dst, 16 * 16 * 4);
+    _llk_pack_init_<UNTILIZE, false>(formats[run].pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>();
 #endif
 
@@ -166,14 +174,14 @@ void run_kernel(const volatile struct RuntimeParams *params)
                                                                             // to L1 is fully is complete.
     t6_semaphore_post<>(semaphore::PACK_DONE); // The packer signals to the unpacker that it has finished writing to L1 by posting (incrementing) the semaphore.
                                                // Now unpacker's wait condition is satisfied, allowing it to begin processing data from L1.
-    run = 1;                                   // second L1-to-L1 run, we access the second set of formats_array in our array
+    run = 1;                                   // second L1-to-L1 run, we access the second set of formats in our array
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, !TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, !TILIZE>(formats_array[run].pack_dst);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, !TILIZE>(formats[run].pack_src, formats[run].pack_dst, 16 * 16 * 4);
+    _llk_pack_init_<UNTILIZE, false, !TILIZE>(formats[run].pack_dst);
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(res_dst_index, L1_ADDRESS(buffer_Res[0]));
+    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(res_dst_index, L1_ADDRESS(params->buffer_Res[0]));
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 

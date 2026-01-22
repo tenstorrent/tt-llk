@@ -27,6 +27,7 @@ static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -38,8 +39,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
             FACE_R_DIM,
             params->num_faces_A,
             params->num_faces_B,
-            TILE_SIZE_UNPACK_A,
-            TILE_SIZE_UNPACK_B);
+            params->TILE_SIZE_UNPACK_A,
+            params->TILE_SIZE_UNPACK_B);
         _llk_unpack_AB_matmul_init_<>(
             params->UNPACK_TRANSPOSE_FACES,
             params->CT_DIM,
@@ -53,6 +54,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             false);
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
@@ -70,12 +72,12 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 for (uint32_t j = 0; j < params->KT_DIM; j++)
                 {
                     _llk_unpack_AB_matmul_<>(
-                        L1_ADDRESS(buffer_A[0]),
-                        L1_ADDRESS(buffer_B[0]),
+                        L1_ADDRESS(params->buffer_A[0]),
+                        L1_ADDRESS(params->buffer_B[0]),
                         j,
                         j * params->CT_DIM,
-                        TILE_SIZE_UNPACK_A,
-                        TILE_SIZE_UNPACK_B,
+                        params->TILE_SIZE_UNPACK_A,
+                        params->TILE_SIZE_UNPACK_B,
                         /* partial face */ false,
                         /* partial face */ false,
                         params->CT_DIM,
@@ -97,6 +99,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
@@ -113,6 +116,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
@@ -160,6 +164,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_C_DIM * TILE_R_DIM);
@@ -169,6 +174,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE || PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)

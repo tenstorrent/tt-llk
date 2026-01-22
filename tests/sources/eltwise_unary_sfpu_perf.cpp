@@ -27,6 +27,7 @@ static constexpr int MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
 
@@ -37,6 +38,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             params->UNPACK_TRANSPOSE_FACES, params->UNPACK_TRANSPOSE_WITHIN_FACE, FACE_R_DIM, params->num_faces, formats.unpack_src, formats.unpack_dst);
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
 
@@ -78,6 +80,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
 
@@ -88,6 +91,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
 
@@ -219,6 +223,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
 
@@ -235,6 +240,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
 

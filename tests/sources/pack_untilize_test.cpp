@@ -40,6 +40,7 @@ constexpr static std::uint32_t format_size_in_bytes(uint data_format)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, params->num_faces, params->num_faces);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
@@ -55,7 +56,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 uint32_t tile_index_in_memory = rt * FULL_CT_DIM + block_num * BLOCK_CT_DIM + tile_index_within_block;
                 _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-                    L1_ADDRESS(buffer_A[tile_index_in_memory]), formats.unpack_src, formats.unpack_dst);
+                    L1_ADDRESS(params->buffer_A[tile_index_in_memory]), formats.unpack_src, formats.unpack_dst);
             }
         }
     }
@@ -72,7 +73,8 @@ using namespace ckernel;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const bool is_int_fpu_en = false;
+    const volatile struct FormatConfig& formats = params->formats;
+    const bool is_int_fpu_en                    = false;
 
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
@@ -115,13 +117,14 @@ constexpr uint32_t L1_ACCESS_ADDRESS_GRANULARITY = 16; // in bytes
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const bool UNTILIZE               = true;
-    const uint32_t NUM_DATUMS_IN_TILE = FACE_R_DIM * FACE_C_DIM * params->num_faces;
-    const uint32_t row_stride_16B     = (FULL_CT_DIM * NUM_DATUMS_IN_TILE * format_size_in_bytes(formats.pack_dst)) / L1_ACCESS_ADDRESS_GRANULARITY;
+    const volatile struct FormatConfig& formats = params->formats;
+    const bool UNTILIZE                         = true;
+    const uint32_t NUM_DATUMS_IN_TILE           = FACE_R_DIM * FACE_C_DIM * params->num_faces;
+    const uint32_t row_stride_16B               = (FULL_CT_DIM * NUM_DATUMS_IN_TILE * format_size_in_bytes(formats.pack_dst)) / L1_ACCESS_ADDRESS_GRANULARITY;
     const uint32_t block_stride_16B =
         (BLOCK_CT_DIM * ((params->num_faces > 2) ? params->num_faces / 2 : params->num_faces) * FACE_C_DIM * format_size_in_bytes(formats.pack_dst)) /
         L1_ACCESS_ADDRESS_GRANULARITY;
-    const uint32_t base_addr_16B = L1_ADDRESS(buffer_Res[0]);
+    const uint32_t base_addr_16B = L1_ADDRESS(params->buffer_Res[0]);
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, NUM_DATUMS_IN_TILE /* tile_size */);

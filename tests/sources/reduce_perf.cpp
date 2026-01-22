@@ -29,6 +29,7 @@ static constexpr bool IS_REDUCE_ROW = (REDUCE_DIM == ckernel::ReduceDim::REDUCE_
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -47,6 +48,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             /* transpose within face */ IS_REDUCE_ROW);
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
@@ -77,7 +79,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    constexpr uint32_t MATH_FIDELITY = 4;
+    const volatile struct FormatConfig& formats = params->formats;
+    constexpr uint32_t MATH_FIDELITY            = 4;
 
     // todo: INT32 reduce is not supported yet
     constexpr bool ENFORCE_FP32_ACC = false;
@@ -138,6 +141,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
@@ -150,6 +154,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         PROFILER_SYNC();
     }
+
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)

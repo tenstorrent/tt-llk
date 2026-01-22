@@ -35,7 +35,6 @@ from .device import (
     BootMode,
     RiscCore,
     exalens_device_setup,
-    get_register_store,
     reset_mailboxes,
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
@@ -85,6 +84,7 @@ class TestConfig:
     ARCH_LLK_ROOT: ClassVar[str]
     ARCH: ClassVar[str]
     CHIP_ARCH: ClassVar[ChipArchitecture]
+    DATA_FORMAT_ENUM_VALUES: ClassVar[dict]
 
     # Artefact directories
     DEFAULT_ARTEFACTS_PATH: ClassVar[Path] = Path("/tmp/tt-llk-build/")
@@ -139,7 +139,7 @@ class TestConfig:
     INFRA_TESTING: ClassVar[bool] = False
 
     # === Addresses ===
-    RUNTIME_ADDRESS: ClassVar[int] = 0x64000
+    RUNTIME_ADDRESS: ClassVar[int] = 0xA2000
     TRISC_PROFILER_BARRIER_ADDRESS: ClassVar[int] = 0x16AFF4
     TRISC_START_ADDRS: ClassVar[list[int]] = [0x16DFF0, 0x16DFF4, 0x16DFF8]
     THREAD_PERFORMANCE_DATA_BUFFER_LENGTH = 0x400
@@ -159,12 +159,38 @@ class TestConfig:
                 TestConfig.ARCH_DEFINE = "-DARCH_WORMHOLE"
                 TestConfig.ARCH_LLK_ROOT = "tt_llk_wormhole_b0"
                 TestConfig.ARCH = ChipArchitecture.WORMHOLE
+                TestConfig.DATA_FORMAT_ENUM_VALUES = {
+                    DataFormat.Float32: 0,
+                    DataFormat.Float16: 1,
+                    DataFormat.Bfp8: 2,
+                    DataFormat.Tf32: 4,
+                    DataFormat.Float16_b: 5,
+                    DataFormat.Bfp8_b: 6,
+                    DataFormat.Int32: 8,
+                    DataFormat.UInt16: 9,
+                    DataFormat.Int8: 14,
+                    DataFormat.UInt32: 24,
+                    DataFormat.UInt8: 30,
+                }
             case ChipArchitecture.BLACKHOLE:
                 TestConfig.ARCH_NON_COMPUTE = "-mcpu=tt-bh"
                 TestConfig.ARCH_COMPUTE = "-mcpu=tt-bh-tensix"
                 TestConfig.ARCH_DEFINE = "-DARCH_BLACKHOLE"
                 TestConfig.ARCH_LLK_ROOT = "tt_llk_blackhole"
                 TestConfig.ARCH = ChipArchitecture.BLACKHOLE
+                TestConfig.DATA_FORMAT_ENUM_VALUES = {
+                    DataFormat.Float32: 0,
+                    DataFormat.Float16: 1,
+                    DataFormat.Bfp8: 2,
+                    DataFormat.Tf32: 4,
+                    DataFormat.Float16_b: 5,
+                    DataFormat.Bfp8_b: 6,
+                    DataFormat.Int32: 8,
+                    DataFormat.UInt16: 9,
+                    DataFormat.Int8: 14,
+                    DataFormat.UInt32: 24,
+                    DataFormat.UInt8: 30,
+                }
             case ChipArchitecture.QUASAR:
                 # until there is official support for quasar in SFPI fallback to BH
                 TestConfig.ARCH_NON_COMPUTE = "-mcpu=tt-bh"
@@ -172,6 +198,18 @@ class TestConfig:
                 TestConfig.ARCH_DEFINE = "-DARCH_QUASAR"
                 TestConfig.ARCH_LLK_ROOT = "tt_llk_quasar"
                 TestConfig.ARCH = ChipArchitecture.QUASAR
+                TestConfig.DATA_FORMAT_ENUM_VALUES = {
+                    DataFormat.Float32: 0,
+                    DataFormat.Tf32: 4,
+                    DataFormat.Float16: 1,
+                    DataFormat.Float16_b: 5,
+                    DataFormat.MxFp8R: 18,
+                    DataFormat.MxFp8P: 20,
+                    DataFormat.Int32: 8,
+                    DataFormat.Int8: 14,
+                    DataFormat.UInt8: 17,
+                    DataFormat.UInt16: 130,
+                }
             case _:
                 raise ValueError(
                     "Must provide CHIP_ARCH environment variable (wormhole / blackhole / quasar)"
@@ -313,6 +351,7 @@ class TestConfig:
         unpack_to_dest: bool = False,
         disable_format_inference: bool = False,
         dest_acc: DestAccumulation = DestAccumulation.No,
+        compile_time_formats: bool = False,
         l1_acc: L1Accumulation = L1Accumulation.No,
         skip_build_header: bool = False,
     ):
@@ -333,13 +372,34 @@ class TestConfig:
         self.boot_mode = boot_mode
         self.profiler_build = profiler_build
         self.L1_to_L1_iterations = L1_to_L1_iterations
-        self.unpack_to_dest = unpack_to_dest
+        self.compile_time_formats = compile_time_formats
         self.disable_format_inference = disable_format_inference
+
+        if formats is not None:
+            if is_format_combination_outlier(
+                self.formats.input_format, self.formats.output_format, dest_acc
+            ):
+                dest_acc = DestAccumulation.Yes
+            self.formats_config = data_formats(
+                input_format=formats.input_format,
+                output_format=formats.output_format,
+                is_fp32_dest_acc_en=dest_acc,
+                num_iterations=self.L1_to_L1_iterations,
+                unpacking_to_dest=unpack_to_dest,
+                chip_arch=TestConfig.CHIP_ARCH,
+                disable_format_inference=self.disable_format_inference,
+            )
+        else:
+            self.formats_config = None
+
+        self.unpack_to_dest = unpack_to_dest
         self.dest_acc = dest_acc
         self.l1_acc = l1_acc
         self.skip_build_header = skip_build_header
 
-        self.process_runtime_args()
+        # We need to call this here because this function generates serialisation format need for writing RTs to L1,
+        # Which is needed by execution part of test infra
+        self.generate_runtime_args_struct()
 
         if (
             self.coverage_build == CoverageBuild.Yes
@@ -349,15 +409,45 @@ class TestConfig:
                 "You can't build profiler and coverage build at the same time, profiling tests will fail."
             )
 
-    def process_runtime_args(self):
-
+    def generate_runtime_args_struct(self):
         # Generate runtime parameter struct
         lines = [
-            "// Struct that has a runtme parameter layout",
+            "// Struct containing runtme parameter layout",
             "struct RuntimeParams {",
+            "uint32_t TILE_SIZE_PACK;",
+            "uint32_t TILE_SIZE_UNPACK_A;",
+            "uint32_t TILE_SIZE_UNPACK_B;",
         ]
 
-        self.runtime_format = "@"
+        self.runtime_format = "@III"  # tile size types for formatter
+
+        if not self.compile_time_formats:
+            lines = [
+                "struct FormatConfig{",
+                "uint32_t unpack_src;",
+                "uint32_t unpack_dst;",
+                "uint32_t math;",
+                "uint32_t pack_src;",
+                "uint32_t pack_dst;",
+                "};",
+            ] + lines
+            if self.L1_to_L1_iterations == 1:
+                lines.append("struct FormatConfig formats;")
+                self.runtime_format += "IIIII"  # 5 uint32_ts constituting format struct
+            else:
+                lines.append(
+                    f"struct FormatConfig formats[{self.L1_to_L1_iterations}];"
+                )
+                self.runtime_format += (
+                    self.L1_to_L1_iterations * "IIIII"
+                )  # L1_to_L1_iterations times format struct
+
+        if self.variant_stimuli:
+            stimuli_fields, stimuli_pack_format = (
+                self.variant_stimuli.generate_runtime_struct_fields()
+            )
+            lines.extend(stimuli_fields)
+            self.runtime_format += stimuli_pack_format
 
         for parameter in self.runtimes:
             field_str, param_field_types = parameter.convert_to_struct_fields()
@@ -366,13 +456,153 @@ class TestConfig:
 
         lines.append("};")
 
-        self.runtime_params_struct = lines
+        self.runtime_arguments_struct = lines
+
+    def generate_compile_time_formats(self):
+
+        header_content = [
+            "struct FormatConfig{",
+            "const uint32_t unpack_src;",
+            "const uint32_t unpack_dst;",
+            "const uint32_t math;",
+            "const uint32_t pack_src;",
+            "const uint32_t pack_dst;",
+            "constexpr FormatConfig(uint32_t unpack_src_, uint32_t unpack_dst_, uint32_t math_, uint32_t pack_src_, uint32_t pack_dst_) : unpack_src(unpack_src_), unpack_dst(unpack_dst_), math(math_), pack_src(pack_src_), pack_dst(pack_dst_) {}",
+            "};",
+        ]
+        if self.L1_to_L1_iterations > 1:
+            # Generate format data as arrays that params.h can use to construct FormatConfig objects
+            header_content.extend(
+                [
+                    "// Format data for multiple L1-to-L1 iterations",
+                    f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {self.L1_to_L1_iterations};",
+                    "#define FUSED_MULTIPLE_RUNS true",
+                ]
+            )
+
+            # Create array of format configurations for multiple L1-to-L1 iterations
+            unpack_a_in_values = [
+                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_A_src.name})"
+                for fmt in self.formats_config
+            ]
+            unpack_a_out_values = [
+                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_A_dst.name})"
+                for fmt in self.formats_config
+            ]
+            math_values = [
+                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.math.name})"
+                for fmt in self.formats_config
+            ]
+            pack_in_values = [
+                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.pack_src.name})"
+                for fmt in self.formats_config
+            ]
+            pack_out_values = [
+                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.pack_dst.name})"
+                for fmt in self.formats_config
+            ]
+
+            header_content.extend(
+                [
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_IN_LIST = {{{', '.join(unpack_a_in_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_OUT_LIST = {{{', '.join(unpack_a_out_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> MATH_FORMAT_LIST = {{{', '.join(math_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_IN_LIST = {{{', '.join(pack_in_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_OUT_LIST = {{{', '.join(pack_out_values)}}};",
+                ]
+            )
+
+            header_content.extend(
+                [
+                    "constexpr std::array<FormatConfig, L1_to_L1_ITERATIONS> formats_array = {",
+                    "{FormatConfig(UNPACK_A_IN_LIST[0], UNPACK_A_OUT_LIST[0], MATH_FORMAT_LIST[0], PACK_IN_LIST[0], PACK_OUT_LIST[0]),",
+                    "FormatConfig(UNPACK_A_IN_LIST[1], UNPACK_A_OUT_LIST[1], MATH_FORMAT_LIST[1], PACK_IN_LIST[1], PACK_OUT_LIST[1])}",
+                    "};",
+                ]
+            )
+
+        else:
+            # Single iteration - use simple format inference
+            # Generate format data as individual constants for single iteration
+            formats_config = self.formats_config[0]
+            header_content.extend(
+                [
+                    "// Format data for single L1-to-L1 iteration",
+                    f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_src.name});",
+                    f"constexpr auto UNPACK_A_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_dst.name});",
+                    f"constexpr auto MATH_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.math.name});",
+                    f"constexpr auto PACK_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_src.name});",
+                    f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_dst.name});",
+                    "constexpr FormatConfig formats = FormatConfig(UNPACK_A_IN, UNPACK_A_OUT, MATH_FORMAT, PACK_IN, PACK_OUT);",
+                ]
+            )
+
+        header_content.append("")
+
+        return header_content
 
     def write_runtimes_to_L1(self, location: str = "0,0"):
-        if len(self.runtimes) == 0:
-            return
+        TILE_SIZES = {
+            DataFormat.Bfp8_b: 68,
+            DataFormat.Float32: 256,
+        }
 
-        argument_data = []
+        if self.formats is None:
+            pack_size, unpack_size_a, unpack_size_b = 128, 128, 128
+        else:
+            pack_size = TILE_SIZES.get(self.formats.output_format, 128)
+            unpack_size_a = TILE_SIZES.get(self.formats.input_format, 128)
+            unpack_size_b = TILE_SIZES.get(self.formats.input_format, 128)
+
+        if len(self.runtimes) > 0:
+            itd_param = next(
+                (param for param in self.runtimes if isinstance(param, IN_TILE_DIMS)),
+                None,
+            )
+            faces_param = next(
+                (param for param in self.runtimes if isinstance(param, NUM_FACES)), None
+            )
+            if itd_param and faces_param:
+                temp_num_faces_A = (
+                    faces_param.num_faces_A
+                    if faces_param.num_faces_A
+                    else faces_param.num_faces
+                )
+                if itd_param.in0_r_dim <= 16:
+                    pack_size = (pack_size // faces_param.num_faces) * (
+                        itd_param.in0_r_dim // self.variant_stimuli.face_r_dim
+                    )
+                    unpack_size_a = (unpack_size_a // temp_num_faces_A) * (
+                        itd_param.in0_r_dim // self.variant_stimuli.face_r_dim
+                    )
+
+        argument_data = [
+            pack_size,  # uint32_t TILE_SIZE_PACK;
+            unpack_size_a,  # uint32_t TILE_SIZE_UNPACK_A;
+            unpack_size_b,  # uint32_t TILE_SIZE_UNPACK_B;
+        ]
+
+        if not self.compile_time_formats:
+            if self.L1_to_L1_iterations == 1:
+                self.formats_config = self.formats_config[0:1]
+
+            for formats_config in self.formats_config:
+                print(formats_config)
+                argument_data.extend(
+                    [
+                        TestConfig.DATA_FORMAT_ENUM_VALUES[formats_config.unpack_A_src],
+                        TestConfig.DATA_FORMAT_ENUM_VALUES[formats_config.unpack_A_dst],
+                        TestConfig.DATA_FORMAT_ENUM_VALUES[formats_config.math],
+                        TestConfig.DATA_FORMAT_ENUM_VALUES[formats_config.pack_src],
+                        TestConfig.DATA_FORMAT_ENUM_VALUES[formats_config.pack_dst],
+                    ]
+                )
+
+        if self.variant_stimuli:
+            argument_data.extend(
+                self.variant_stimuli.generate_runtime_operands_values(self.formats)
+            )
+
         for param in self.runtimes:
             argument_data.extend(
                 [
@@ -411,6 +641,8 @@ class TestConfig:
             "runtime_params_struct",
             "runtime_format",
             "runtimes",
+            "" if self.compile_time_formats else "formats",
+            "formats_config",
         ]
 
         temp_str = [
@@ -418,19 +650,6 @@ class TestConfig:
             for field_name, value in self.__dict__.items()
             if field_name not in NON_COMPILATION_ARGUMENTS
         ]
-
-        # Include stimuli address-related fields in hash since they affect compiled code
-        # The buffer addresses are compiled into the binary as constexpr values
-        if self.variant_stimuli is not None:
-            stimuli_hash_fields = [
-                str(self.variant_stimuli.tile_count_A),
-                str(self.variant_stimuli.tile_count_B),
-                str(self.variant_stimuli.tile_count_res),
-                str(self.variant_stimuli.buf_a_addr),
-                str(self.variant_stimuli.buf_b_addr),
-                str(self.variant_stimuli.buf_res_addr),
-            ]
-            temp_str.extend(stimuli_hash_fields)
 
         self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
@@ -574,122 +793,6 @@ class TestConfig:
             else:
                 TestConfig.SHARED_ARTEFACTS_AVAILABLE = True
 
-    def infer_data_formats(self) -> list[str]:
-        header_content: list[str] = [
-            "// Data formats inferred by Python inference model"
-        ]
-
-        dest_acc = self.dest_acc
-        l1_acc = self.l1_acc
-
-        if self.formats is None:
-            header_content.extend(
-                [
-                    f"constexpr bool is_fp32_dest_acc_en = {dest_acc.value};",
-                    f"constexpr bool l1_acc_en = {l1_acc.value};",
-                    f"constexpr bool unpack_to_dest = {str(self.unpack_to_dest).lower()};",
-                    "",
-                ]
-            )
-
-            return header_content
-
-        # Check if this is an outlier format combination that requires dest_acc to be enabled
-        # Automatically enable dest_acc for outlier combinations
-        if is_format_combination_outlier(
-            self.formats.input_format, self.formats.output_format, self.dest_acc
-        ):
-            dest_acc = DestAccumulation.Yes
-
-        # Dest accumulation
-        header_content.append(f"constexpr bool is_fp32_dest_acc_en = {dest_acc.value};")
-
-        # L1 accumulation
-        header_content.append(f"constexpr bool l1_acc_en = {l1_acc.value};")
-
-        # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
-        # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
-        # L1_to_L1_iterations is the number of times we perform llk operations from L1 input tensor to L1 output tensor
-        # If L1_to_L1_ITERATIONS is 1, we take input tensor from L1 -> unpack -> math -> pack -> L1
-        # If L1_to_L1_ITERATIONS is greater than 1, we perform multiple iterations of unpack -> math -> pack, by taking results tensor in L1 to be input tensor of next iteration
-
-        formats_config = data_formats(
-            input_format=self.formats.input_format,
-            output_format=self.formats.output_format,
-            is_fp32_dest_acc_en=dest_acc,
-            num_iterations=self.L1_to_L1_iterations,
-            unpacking_to_dest=self.unpack_to_dest,
-            chip_arch=TestConfig.CHIP_ARCH,
-            disable_format_inference=self.disable_format_inference,
-        )
-
-        header_content.append(
-            f"constexpr bool unpack_to_dest = {str(self.unpack_to_dest).lower()};"
-        )
-
-        # Check if we need to generate multiple format configurations
-
-        if self.L1_to_L1_iterations > 1:
-            # Generate format data as arrays that params.h can use to construct FormatConfig objects
-            header_content.extend(
-                [
-                    "// Format data for multiple L1-to-L1 iterations",
-                    f"constexpr std::uint32_t L1_to_L1_ITERATIONS = {self.L1_to_L1_iterations};",
-                    "#define FUSED_MULTIPLE_RUNS true",
-                ]
-            )
-
-            # Create array of format configurations for multiple L1-to-L1 iterations
-            unpack_a_in_values = [
-                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_A_src.name})"
-                for fmt in formats_config
-            ]
-            unpack_a_out_values = [
-                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_A_dst.name})"
-                for fmt in formats_config
-            ]
-            math_values = [
-                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.math.name})"
-                for fmt in formats_config
-            ]
-            pack_in_values = [
-                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.pack_src.name})"
-                for fmt in formats_config
-            ]
-            pack_out_values = [
-                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.pack_dst.name})"
-                for fmt in formats_config
-            ]
-
-            header_content.extend(
-                [
-                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_IN_LIST = {{{', '.join(unpack_a_in_values)}}};",
-                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_OUT_LIST = {{{', '.join(unpack_a_out_values)}}};",
-                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> MATH_FORMAT_LIST = {{{', '.join(math_values)}}};",
-                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_IN_LIST = {{{', '.join(pack_in_values)}}};",
-                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_OUT_LIST = {{{', '.join(pack_out_values)}}};",
-                ]
-            )
-
-        else:
-            # Single iteration - use simple format inference
-            # Generate format data as individual constants for single iteration
-            formats_config = formats_config[0]
-            header_content.extend(
-                [
-                    "// Format data for single L1-to-L1 iteration",
-                    f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_src.name});",
-                    f"constexpr auto UNPACK_A_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_dst.name});",
-                    f"constexpr auto MATH_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.math.name});",
-                    f"constexpr auto PACK_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_src.name});",
-                    f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_dst.name});",
-                ]
-            )
-
-        header_content.append("")
-
-        return header_content
-
     def generate_build_header(self) -> str:
         header_content: list[str] = [
             "// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC",
@@ -712,62 +815,23 @@ class TestConfig:
             ),
             '#include "tensix_types.h"',
             "",
-            "// Basic configuration",
-            "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
         ]
 
-        if self.variant_stimuli:
-            header_content.extend(
-                self.variant_stimuli.generate_stimuli_header_addresses(self.formats)
-            )
+        header_content.extend(self.runtime_arguments_struct)
 
-        TILE_SIZES = {
-            DataFormat.Bfp8_b: 68,
-            DataFormat.Float32: 256,
-        }
-
-        if self.formats is None:
-            pack_size, unpack_size_a, unpack_size_b = 128, 128, 128
-        else:
-            pack_size = TILE_SIZES.get(self.formats.output_format, 128)
-            unpack_size_a = TILE_SIZES.get(self.formats.input_format, 128)
-            unpack_size_b = TILE_SIZES.get(self.formats.input_format, 128)
-
-        if len(self.runtimes) > 0:
-            itd_param = next(
-                (param for param in self.runtimes if isinstance(param, IN_TILE_DIMS)),
-                None,
-            )
-            faces_param = next(
-                (param for param in self.runtimes if isinstance(param, NUM_FACES)), None
-            )
-            if itd_param and faces_param:
-                temp_num_faces_A = (
-                    faces_param.num_faces_A
-                    if faces_param.num_faces_A
-                    else faces_param.num_faces
-                )
-                if itd_param.in0_r_dim <= 16:
-                    pack_size = (pack_size // faces_param.num_faces) * (
-                        itd_param.in0_r_dim // self.variant_stimuli.face_r_dim
-                    )
-                    unpack_size_a = (unpack_size_a // temp_num_faces_A) * (
-                        itd_param.in0_r_dim // self.variant_stimuli.face_r_dim
-                    )
-
-        header_content.extend(
-            [
-                f"constexpr std::uint32_t TILE_SIZE_PACK = {pack_size};",
-                f"constexpr std::uint32_t TILE_SIZE_UNPACK_A = {unpack_size_a};",
-                f"constexpr std::uint32_t TILE_SIZE_UNPACK_B = {unpack_size_b};",
-            ]
-        )
+        if self.compile_time_formats:
+            header_content.extend(self.generate_compile_time_formats())
 
         for parameter in self.templates:
             header_content.append(parameter.covert_to_cpp())
 
-        header_content.extend(self.infer_data_formats())
-        header_content.extend(self.runtime_params_struct)
+        header_content.extend(
+            [
+                f"constexpr bool is_fp32_dest_acc_en = {self.dest_acc.value};",
+                f"constexpr bool unpack_to_dest = {str(self.unpack_to_dest).lower()};",
+                f"constexpr bool l1_acc_en = {self.l1_acc.value};",
+            ]
+        )
 
         return "\n".join(header_content)
 
@@ -775,6 +839,7 @@ class TestConfig:
 
         VARIANT_DIR = TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id
         if not self.skip_build_header:
+
             header_content = self.generate_build_header()
         done_marker = VARIANT_DIR / ".build_complete"
 
@@ -910,17 +975,6 @@ class TestConfig:
 
         # Perform soft reset
         set_tensix_soft_reset(1, location=location)
-        soft_reset_value = (
-            get_register_store(location, 0).read_register(
-                "RISCV_DEBUG_REG_SOFT_RESET_0"
-            )
-            >> 11
-        )
-        if not soft_reset_value & 0xF == 0xF:
-            raise Exception(
-                f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
-            )
-
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
         )
@@ -960,17 +1014,6 @@ class TestConfig:
         write_words_to_device(
             location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
         )
-
-        soft_reset_value = (
-            get_register_store(location, 0).read_register(
-                "RISCV_DEBUG_REG_SOFT_RESET_0"
-            )
-            >> 11
-        )
-        if not soft_reset_value & 0xF == 0xF:
-            raise Exception(
-                f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
-            )
 
         match boot_mode:
             case BootMode.BRISC:
@@ -1021,8 +1064,8 @@ class TestConfig:
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-        write_to_device(location, 0x64FF0, [0, 0, 0, 0, 0, 0, 0])
         self.variant_stimuli.write(location)
+
         self.write_runtimes_to_L1(location)
         elfs = self.run_elf_files(location)
         wait_for_tensix_operations_finished(elfs, location)

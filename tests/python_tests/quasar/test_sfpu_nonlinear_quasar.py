@@ -352,6 +352,7 @@ def test_sfpu_nonlinear_quasar(formats_dest_acc_implied_math_input_dims_mathop):
         ),
         unpack_to_dest=unpack_to_dest,
         dest_acc=dest_acc,
+        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()

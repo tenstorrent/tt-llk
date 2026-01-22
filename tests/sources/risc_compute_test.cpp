@@ -18,9 +18,9 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    int32_t* A = (int32_t*)buffer_A[0];
-    int32_t* B = (int32_t*)buffer_B[0];
-    int32_t* C = (int32_t*)buffer_Res[0];
+    int32_t* A = (int32_t*)params->buffer_A[0];
+    int32_t* B = (int32_t*)params->buffer_B[0];
+    int32_t* C = (int32_t*)params->buffer_Res[0];
 
     std::transform(A, A + 1024, B, C, std::plus<int32_t>());
 }
@@ -31,9 +31,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    int32_t* A = (int32_t*)buffer_A[1];
-    int32_t* B = (int32_t*)buffer_B[1];
-    int32_t* C = (int32_t*)buffer_Res[1];
+    int32_t* A = (int32_t*)params->buffer_A[1];
+    int32_t* B = (int32_t*)params->buffer_B[1];
+    int32_t* C = (int32_t*)params->buffer_Res[1];
 
     std::transform(A, A + 1024, B, C, std::plus<int32_t>());
 }
@@ -44,9 +44,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    int32_t* A = (int32_t*)buffer_A[2];
-    int32_t* B = (int32_t*)buffer_B[2];
-    int32_t* C = (int32_t*)buffer_Res[2];
+    int32_t* A = (int32_t*)params->buffer_A[2];
+    int32_t* B = (int32_t*)params->buffer_B[2];
+    int32_t* C = (int32_t*)params->buffer_Res[2];
 
     std::transform(A, A + 1024, B, C, std::plus<int32_t>());
 }
