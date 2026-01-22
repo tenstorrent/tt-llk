@@ -411,23 +411,21 @@ inline void _llk_math_eltwise_binary_(uint32_t dst_index)
     math::clear_dst_reg_addr();
 }
 
-/*
+/*************************************************************************
 
-NEW SDPA FEATURE
+SDPA OPTIMIZATION
+--------------------------------
+Request is to do fthe following:
+On math side of this operation we need to do the following:
+- Transpose srcB from rows to columns, that way we get effect of broadcasted column
+- Move srcB counte to index 16 since transpose is done on rows 16 - 31.
+- Subtract F0 and F1 in srcA and srcB
+- Change srcB bank
+- Repeat subtraction for F2 and F3
 
-*/
+*************************************************************************/
 
-// inline void sdpa_optimization_new_configure_mop(uint srca_reuse_count = 4)
-// {
-//     uint32_t innerloop           = srca_reuse_count;
-//     constexpr uint32_t outerloop = 1;
-
-//     ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, 8, 0, 0));
-//     tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB));
-//     tmp.program();
-// }
-
-inline void sdpa_optimization_new_configure_addrmod()
+inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod()
 {
     addr_mod_t {
         .srca = {.incr = 8},
@@ -444,14 +442,14 @@ inline void sdpa_optimization_new_configure_addrmod()
         .set(ADDR_MOD_2);
 }
 
-inline void sdpa_optimization_new_init_()
+inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
 {
-    sdpa_optimization_new_configure_addrmod();
+    _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod();
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-inline void sdpa_optimization_new_(uint32_t dst_index)
+inline void _llk_math_eltwise_binary_bcastB_row_as_col_(uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB); // clear all counters
