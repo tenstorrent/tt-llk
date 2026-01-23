@@ -391,26 +391,57 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
         eltwise_unary_configure_mop<type, false, src_b_bcast_type>(p_movb2d::MOV_4_ROWS, 16, num_faces, dst_format);
     }
 
-    // Workaround for HW bug (budabackend#1948): tilize with UInt32/Int32 needs debug feature bit 11 disabled
+    // Comprehensive workaround for HW bugs with MOVD2A/B operations:
+    // budabackend#1372: A2D with broadcast OR 32-bit data needs bit 11 disabled
+    // budabackend#1948: tilize with Int32/UInt32 needs bit 11 disabled
+    // budabackend#1948: int32 dest and movd2a/b with int8 srcA/B needs bit 11 disabled
+    // budabackend#1948: fp32 dest and movd2a/b with UInt16 srcA/B needs bit 11 disabled
+    //
+    // Check format conditions that require bit 11 to be disabled:
+    const uint format_base = dst_format & 0xF;
+    const bool is_int8     = (format_base == static_cast<uint>(DataFormat::Int8));
+    const bool is_int32    = (format_base == static_cast<uint>(DataFormat::Int32));
+    const bool is_uint32   = ((uint)dst_format == (uint)DataFormat::UInt32);
+    const bool is_float32  = (format_base == static_cast<uint>(DataFormat::Float32));
+    const bool is_uint16   = ((uint)dst_format == (uint)DataFormat::UInt16);
+
+    // Determine if bit 11 should be disabled based on operation type and format
+    bool needs_bit11_disabled = false;
+
     if constexpr (tilize)
     {
-        if ((dst_format == static_cast<uint>(DataFormat::UInt32)) || (dst_format == static_cast<uint>(DataFormat::Int32)))
-        {
-            _llk_math_dbg_feature_disable_();
-        }
+        // Tilize operations need bit 11 disabled for:
+        // 1. Int32 or UInt32 formats
+        // 2. Int8 format
+        // 3. UInt16 with FP32 dest accumulation
+        needs_bit11_disabled = is_int32 || is_uint32 || is_int8 || (is_fp32_dest_acc_en && is_uint16);
+    }
+    else if constexpr (type == A2D)
+    {
+        // A2D operations need bit 11 disabled for:
+        // 1. Broadcast operations (any format)
+        // 2. 32-bit formats (Int32 or Float32)
+        // 3. Int8 format
+        // 4. UInt16 with FP32 dest accumulation
+        needs_bit11_disabled = (src_b_bcast_type != BroadcastType::NONE) || is_int32 || is_float32 || is_int8 || (is_fp32_dest_acc_en && is_uint16);
+    }
+    else if constexpr (type == B2D)
+    {
+        // B2D operations need bit 11 disabled for:
+        // 1. Int8 format
+        // 2. Int32 format
+        // 3. UInt16 with FP32 dest accumulation
+        needs_bit11_disabled = is_int8 || is_int32 || (is_fp32_dest_acc_en && is_uint16);
     }
 
-    // Workaround for HW bug (budabackend#1372): unpack_to_dest (A2D) with broadcast OR 32-bit data needs bit 11 disabled
-    // When type == A2D, unpack_to_dest is implied
-    if constexpr (type == A2D)
+    if (needs_bit11_disabled)
     {
-        // Set bit 11 if broadcast is used OR if 32-bit data format
-        const uint output_df = dst_format & 0xF;
-        const bool is_32bit  = (output_df == static_cast<uint>(DataFormat::Int32)) || (output_df == static_cast<uint>(DataFormat::Float32));
-        if (src_b_bcast_type != BroadcastType::NONE || is_32bit)
-        {
-            _llk_math_dbg_feature_disable_();
-        }
+        _llk_math_dbg_feature_disable_();
+    }
+    else
+    {
+        // Explicitly clear bit 11 to prevent state pollution from previous operations
+        _llk_math_dbg_feature_enable_();
     }
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
@@ -421,11 +452,9 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
 template <BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false, bool tilize = false>
 inline void _llk_math_eltwise_unary_datacopy_uninit_()
 {
-    // Enforce contract: Clear bit 11 if init may have set it
-    // Init sets bit 11 for: (1) tilize with Int32/UInt32, OR (2) A2D with broadcast/32-bit
-    // Unconditionally clear if either condition could have been true
-    if constexpr (unpack_to_dest || tilize)
-    {
-        _llk_math_dbg_feature_enable_();
-    }
+    // Enforce contract: ALWAYS clear bit 11 to ensure clean state
+    // Init now comprehensively manages bit 11 for ALL datacopy operations
+    // (A2D, B2D, D2A, D2B, tilize) based on format conditions
+    // Unconditionally clear to prevent state pollution between operations
+    _llk_math_dbg_feature_enable_();
 }
