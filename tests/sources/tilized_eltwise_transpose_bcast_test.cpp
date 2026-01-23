@@ -28,14 +28,16 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
 
-    _llk_unpackA_bcastB_row_as_col_init_();
+    // Initialize unpacker with optional srcA transpose
+    // UNPACK_TRANSPOSE_FACES and UNPACK_TRANSPOSE_WITHIN_FACE control srcA transpose
+    _llk_unpackA_bcastB_row_as_col_init_<UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE>();
 
-    // Unpack tiles: srcA normal, srcB with row broadcast from selected row_index
+    // Unpack tiles: srcA (optionally transposed), srcB with row broadcast from selected row_index
     // row_index 0-15: broadcast from F0Rn/F1Rn (top half of tile)
     // row_index 16-31: broadcast from F2R(n-16)/F3R(n-16) (bottom half of tile)
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_unpackA_bcastB_row_as_col_(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]), params->ROW_INDEX);
+        _llk_unpackA_bcastB_row_as_col_<UNPACK_TRANSPOSE_FACES>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]), params->ROW_INDEX);
     }
 }
 
