@@ -1432,7 +1432,6 @@ class UnarySFPUGolden:
         return math.sin(x)
 
     def _relu(self, x):
-        # ReLU: max(0, x)
         return max(0.0, x)
 
     def _rsqrt(self, x):
@@ -1453,7 +1452,6 @@ class UnarySFPUGolden:
         return x * x
 
     def _tanh(self, x):
-        # Hyperbolic tangent
         return math.tanh(x)
 
     def _celu(self, x):
