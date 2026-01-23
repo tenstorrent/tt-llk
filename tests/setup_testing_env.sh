@@ -159,6 +159,9 @@ download_sfpu_files() {
         fi
     done
 
+    # Create noc_nonblocking_api.h stub for metal compatibility
+    echo "#pragma once" > "${sfpu_dir}/noc_nonblocking_api.h"
+
     touch "$stamp_file"
     echo "SFPU files for ${chip_arch} downloaded successfully (${total} files)."
 }

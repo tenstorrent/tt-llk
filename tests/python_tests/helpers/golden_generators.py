@@ -1258,6 +1258,7 @@ class UnarySFPUGolden:
             MathOperation.Silu: self._silu,
             MathOperation.Gelu: self._gelu,
             MathOperation.Neg: self._neg,
+            MathOperation.Tanh: self._tanh,
             MathOperation.Fill: self._fill,
             MathOperation.Elu: self._elu,
             MathOperation.Exp: self._exp,
@@ -1422,7 +1423,6 @@ class UnarySFPUGolden:
         return math.log(x)
 
     def _log1p(self, x):
-        # log(1 + x) - more accurate for small x
         if x == -1.0:
             return self.handle_infinite_numbers(-math.inf)
         return math.log1p(x)
@@ -1447,6 +1447,9 @@ class UnarySFPUGolden:
         if x < 0.0:
             return math.nan
         return math.sqrt(x)
+
+    def _tanh(self, x):
+        return math.tanh(x)
 
     def _square(self, x):
         if not math.isfinite(x * x):
