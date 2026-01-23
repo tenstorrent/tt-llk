@@ -214,9 +214,7 @@ inline void _llk_math_reduce_block_max_row_init_()
 
 inline void _llk_math_reduce_block_max_row_uninit_()
 {
-    // Clear bit 11 if it was set by init (when is_fp32_dest_acc_en==true)
-    // This matches the init/uninit pairing principle and prevents state pollution
-    _llk_math_dbg_feature_enable_();
+    // No state to restore - all states are transient or default
 }
 
 /**

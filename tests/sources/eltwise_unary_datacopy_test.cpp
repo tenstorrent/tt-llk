@@ -94,8 +94,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
             params->DST_INDEX + i, formats.math, formats.math);
 #endif
     }
-    // Clear bit 11 if it was set for A2D operations (workaround for budabackend#1372)
-    _llk_math_eltwise_unary_datacopy_uninit_<BroadcastType::NONE, unpack_to_dest>();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 

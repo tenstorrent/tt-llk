@@ -376,62 +376,20 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
         eltwise_unary_configure_mop<type, false, src_b_bcast_type>(p_movb2d::MOV_4_ROWS, 16, num_faces, dst_format);
     }
 
-    // Comprehensive workaround for HW bugs with MOVD2A/B operations:
-    // budabackend#1372: A2D with broadcast OR 32-bit data needs bit 11 disabled
-    // budabackend#1948: int32 dest and movd2a/b with int8 srcA/B needs bit 11 disabled
-    // budabackend#1948: fp32 dest and movd2a/b with UInt16 srcA/B needs bit 11 disabled
-    //
-    // Check format conditions that require bit 11 to be disabled:
-    const uint format_base = dst_format & 0xF;
-    const bool is_int8     = (format_base == static_cast<uint>(DataFormat::Int8));
-    const bool is_int32    = (format_base == static_cast<uint>(DataFormat::Int32));
-    const bool is_float32  = (format_base == static_cast<uint>(DataFormat::Float32));
-    const bool is_uint16   = ((uint)dst_format == (uint)DataFormat::UInt16);
-
-    // Determine if bit 11 should be disabled based on operation type and format
-    bool needs_bit11_disabled = false;
-
-    if constexpr (type == A2D)
-    {
-        // A2D operations need bit 11 disabled for:
-        // 1. Broadcast operations (any format)
-        // 2. 32-bit formats (Int32 or Float32)
-        // 3. Int8 format
-        // 4. UInt16 with FP32 dest accumulation
-        needs_bit11_disabled = (src_b_bcast_type != BroadcastType::NONE) || is_int32 || is_float32 || is_int8 || (is_fp32_dest_acc_en && is_uint16);
-    }
-    else if constexpr (type == B2D)
-    {
-        // B2D operations need bit 11 disabled for:
-        // 1. Int8 format
-        // 2. Int32 format
-        // 3. UInt16 with FP32 dest accumulation
-        needs_bit11_disabled = is_int8 || is_int32 || (is_fp32_dest_acc_en && is_uint16);
-    }
-
-    if (needs_bit11_disabled)
-    {
-        _llk_math_dbg_feature_disable_();
-    }
-    else
-    {
-        // Explicitly clear bit 11 to prevent state pollution from previous operations
-        _llk_math_dbg_feature_enable_();
-    }
-
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-template <BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false, bool tilize = false>
+template <BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
 inline void _llk_math_eltwise_unary_datacopy_uninit_()
 {
-    // Enforce contract: ALWAYS clear bit 11 to ensure clean state
-    // Init now comprehensively manages bit 11 for ALL datacopy operations
-    // (A2D, B2D, D2A, D2B, tilize) based on format conditions
-    // Unconditionally clear to prevent state pollution between operations
-    _llk_math_dbg_feature_enable_();
+    // clear debug feature disable
+    if constexpr (src_b_bcast_type != BroadcastType::NONE && unpack_to_dest)
+    {
+        tensix_sync();
+        reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
+    }
 }
 
 /*************************************************************************
@@ -508,29 +466,6 @@ inline void _llk_math_fast_tilize_mop_config_()
 
 inline void _llk_math_fast_tilize_init_(const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim)
 {
-    // Comprehensive workaround for HW bugs with MOVA2D/MOVB2D operations in fast tilize:
-    // budabackend#1372: A2D operations with 32-bit data need bit 11 disabled
-    // budabackend#1948: int32 dest and movd2a/b with int8 srcA/B needs bit 11 disabled
-    //
-    // Check format conditions that require bit 11 to be disabled:
-    const uint format_base = unpack_dst_format & 0xF;
-    const bool is_int8     = (format_base == static_cast<uint>(DataFormat::Int8));
-    const bool is_int32    = (format_base == static_cast<uint>(DataFormat::Int32));
-    const bool is_float32  = (format_base == static_cast<uint>(DataFormat::Float32));
-
-    // Fast tilize uses MOVA2D/MOVB2D and needs bit 11 disabled for these formats
-    const bool needs_bit11_disabled = is_int8 || is_int32 || is_float32;
-
-    if (needs_bit11_disabled)
-    {
-        _llk_math_dbg_feature_disable_();
-    }
-    else
-    {
-        // Explicitly clear bit 11 to prevent state pollution from previous operations
-        _llk_math_dbg_feature_enable_();
-    }
-
     // even though MOVA2D and MOVB2D are supposed to ignore ALU_ACC_CTRL_Fp32_enabled some parts still rely on it (not sure why)
     // it would be easier if they just fully respected ALU_ACC_CTRL_Fp32_enabled but it's a hardware quirk
     // so in non Tf32 cases, clear it to fully ignore FP32 dest mode
@@ -566,11 +501,6 @@ inline void _llk_math_fast_tilize_uninit_(const std::uint32_t unpack_dst_format)
         TTI_NOP;
         TTI_NOP;
     }
-
-    // Enforce contract: ALWAYS clear bit 11 to ensure clean state
-    // Init now comprehensively manages bit 11 for all format conditions
-    // Unconditionally clear to prevent state pollution between operations
-    _llk_math_dbg_feature_enable_();
 }
 
 inline void _llk_math_fast_tilize_block_(

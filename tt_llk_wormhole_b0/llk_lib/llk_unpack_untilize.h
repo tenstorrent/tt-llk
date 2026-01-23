@@ -185,4 +185,5 @@ inline void _llk_unpack_untilize_uninit_()
     TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_2, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
 
     TTI_NOP;
+    TTI_NOP;
 }

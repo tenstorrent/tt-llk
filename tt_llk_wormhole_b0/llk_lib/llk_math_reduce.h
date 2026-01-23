@@ -459,17 +459,9 @@ inline void _llk_math_reduce_init_()
     if constexpr (enforce_fp32_accumulation)
     {
         static_assert(is_fp32_dest_acc_en, "FP32 Dest must be enabled for FP32 accumulation");
-        // Set bit 11 for FP32 accumulation (workaround for budabackend#1372)
-        _llk_math_dbg_feature_disable_();
         // MOVB2D/D2B depends on SrcA ALU Format - Hi/Lo16 does not work with Tf32 (only on WH)
         // This is needed because FP32 data from L1 that is unpacked to Src registers is reduced to Tf32
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>((uint)DataFormat::Float32);
-    }
-    else
-    {
-        // Enforce contract: ALL reduce operations must ensure bit 11 is clear when NOT using FP32 accumulation
-        // This protects against state pollution from any previous operation
-        _llk_math_dbg_feature_enable_();
     }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
@@ -479,12 +471,11 @@ inline void _llk_math_reduce_init_()
 template <bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_uninit_(const std::uint32_t srca_data_format)
 {
-    // Bazooka approach: ALL reduce operations must clean up bit 11 in uninit, matching init behavior
-    // This ensures complete state isolation regardless of operation type or FP32 accumulation mode
-    _llk_math_dbg_feature_enable_();
-
     if constexpr (enforce_fp32_accumulation)
     {
+        // Clear bit 11 (restore from workaround for budabackend#1372)
+        // Uses helper from llk_math_common.h which includes tensix_sync()
+        _llk_math_dbg_feature_enable_();
         // Restore SrcA format (init changes it to Float32 for MOVB2D/D2B Hi/Lo16 workaround on WH)
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>(srca_data_format);
     }

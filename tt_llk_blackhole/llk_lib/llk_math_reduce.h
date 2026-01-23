@@ -465,14 +465,6 @@ inline void _llk_math_reduce_init_()
     if constexpr (enforce_fp32_accumulation)
     {
         static_assert(is_fp32_dest_acc_en, "FP32 Dest must be enabled for FP32 accumulation");
-        // Set bit 11 for FP32 accumulation (workaround for budabackend#1372)
-        _llk_math_dbg_feature_disable_();
-    }
-    else
-    {
-        // Enforce contract: ALL reduce operations must ensure bit 11 is clear when NOT using FP32 accumulation
-        // This protects against state pollution from any previous operation
-        _llk_math_dbg_feature_enable_();
     }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
@@ -482,8 +474,11 @@ inline void _llk_math_reduce_init_()
 template <bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_uninit_()
 {
-    // Bazooka approach: ALL reduce operations must clean up bit 11 in uninit, matching init behavior
-    // This ensures complete state isolation regardless of operation type or FP32 accumulation mode
-    _llk_math_dbg_feature_enable_();
-    // Note: BH doesn't need format restoration (init doesn't change it)
+    if constexpr (enforce_fp32_accumulation)
+    {
+        // Clear bit 11 (restore from workaround for budabackend#1372)
+        // Uses helper from llk_math_common.h which includes tensix_sync()
+        _llk_math_dbg_feature_enable_();
+        // Note: BH doesn't need format restoration (init doesn't change it)
+    }
 }

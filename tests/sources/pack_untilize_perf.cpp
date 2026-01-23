@@ -139,10 +139,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         PROFILER_SYNC();
     }
-
-    // CRITICAL: Clear bit 11 set by _llk_math_eltwise_unary_datacopy_init_<A2D>
-    // Prevents state pollution to subsequent tests
-    _llk_math_eltwise_unary_datacopy_uninit_<BroadcastType::NONE, true /*unpack_to_dest=A2D*/>();
 }
 
 #endif

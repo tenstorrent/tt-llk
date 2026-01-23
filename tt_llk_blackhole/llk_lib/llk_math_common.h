@@ -40,14 +40,16 @@ inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const 
     cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(fp32_dest_acc_en);
     cfg_reg_rmw_tensix<ALU_ACC_CTRL_SFPU_Fp32_enabled_RMW>(fp32_dest_acc_en);
 
-    // Note: bit 11 (RISCV_DEBUG_REG_DBG_FEATURE_DISABLE) is NOT managed by hw_configure.
-    // Operations that need bit 11 must use explicit init functions:
-    //   - llk_math_eltwise_unary_datacopy_init (for A2D/tilize operations)
-    //   - llk_math_reduce_init (for FP32 accumulation)
-    //   - llk_math_reduce_block_max_row_init (for block reductions)
-    //   - llk_math_fast_tilize_init (for fast tilize)
-    // These init functions set bit 11 conditionally and have matching uninit functions that clear it.
-    // This ensures proper state management and prevents pollution between operations.
+    // Workaround for HW bugs:
+    // budabackend#1948: int32 dest and movd2a/b with int8 srcA/B
+    // budabackend#1948: fp32 dest and movd2a/b with UInt16 srcA/B
+    bool uint16_with_fp32_dest =
+        is_fp32_dest_acc_en && (((uint)srca_data_format == (uint)DataFormat::UInt16) || ((uint)srcb_data_format == (uint)DataFormat::UInt16));
+
+    if (int8_math_enabled || uint16_with_fp32_dest)
+    {
+        _llk_math_dbg_feature_disable_();
+    }
 }
 
 inline void _llk_math_reconfig_remap_(const bool remap_enable)
