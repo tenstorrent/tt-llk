@@ -1,5 +1,6 @@
 ---
 alwaysApply: false
+description: Use when running tests
 ---
 
 # Running Tests
