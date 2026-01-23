@@ -50,7 +50,6 @@ inline void _llk_unpack_reduce_init_(
     TTI_WRCFG(p_gpr_unpack::L1_BUFFER_ADDR, p_cfg::WRCFG_32b, THCON_SEC1_REG3_Base_address_ADDR32);
     TTI_WRCFG(p_gpr_unpack::L1_BUFFER_ADDR, p_cfg::WRCFG_32b, THCON_SEC1_REG3_Base_cntx1_address_ADDR32);
     TTI_NOP;
-    TTI_NOP;
 
     // REDUCE_ROW requires transpose itself; additionally, within_face_16x16_transpose flag could require transpose;
     // if we have the flag set with REDUCE_ROW, we don't need to do anything
