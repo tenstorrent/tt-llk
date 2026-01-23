@@ -8,6 +8,7 @@
 #include "ckernel_sfpu_add_top_row.h"
 #include "ckernel_sfpu_binary.h"
 #include "llk_sfpu_types.h"
+#include "metal_sfpu/ckernel_sfpu_log1p.h"
 
 namespace test_utils
 {
@@ -84,6 +85,10 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0, float fil
         case SfpuType::log:
             _init_log_<APPROX_MODE>();
             _calculate_log_<APPROX_MODE, false, ITERATIONS>(ITERATIONS, 0);
+            break;
+        case SfpuType::log1p:
+            log1p_init<APPROX_MODE, FAST_MODE, is_fp32_dest_acc_en>();
+            calculate_log1p<APPROX_MODE, FAST_MODE, is_fp32_dest_acc_en, ITERATIONS>();
             break;
         case SfpuType::neg:
         case SfpuType::negative:

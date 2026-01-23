@@ -93,7 +93,7 @@ download_headers() {
 # Function to download SFPU files from tt-metal
 download_sfpu_files() {
     local chip_arch=$1
-    local sfpu_dir="${SCRIPT_DIR}/hw_specific/${chip_arch}/sfpu"
+    local sfpu_dir="${SCRIPT_DIR}/hw_specific/${chip_arch}/metal_sfpu"
     local stamp_file="${sfpu_dir}/.sfpu_downloaded"
 
     if [[ -f "$stamp_file" ]]; then

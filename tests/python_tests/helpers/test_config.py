@@ -258,6 +258,7 @@ class TestConfig:
             f"-I../{TestConfig.ARCH_LLK_ROOT}/common/inc",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/common/inc/sfpu",
             f"-I{TestConfig.HEADER_DIR}",
+            f"-Ihw_specific/{TestConfig.ARCH.value}",
             "-Ifirmware/riscv/common",
             "-Ihelpers/include",
         ]
