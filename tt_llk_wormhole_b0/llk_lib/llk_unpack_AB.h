@@ -424,6 +424,7 @@ inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
     constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1 = 0b00'00'00'01; // Increment CH0_Z only
+    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_1_CH0Y_0_CH0Z_1 = 0b00'01'00'01; // Increment CH1_Z only
 
     if constexpr (transpose_of_faces)
     {
@@ -436,19 +437,19 @@ inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const
         // 4th instruction sets dvalid to signal srcA is ready
 
         // Unpack srcA face 0 -> dest position 0
-        TTI_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 0 /* no dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001); // Z++ to next face
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_0_CH1Z_1_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 0 /* no dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        // TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001); // Z++ to next face
 
         // Unpack srcA face 2 -> dest position 1 (due to face transpose)
-        TTI_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 0 /* no dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001); // Z++ to next face
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_0_CH1Z_1_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 0 /* no dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        // TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001); // Z++ to next face
 
         // Unpack srcA face 1 -> dest position 2
-        TTI_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 0 /* no dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001); // Z++ to next face
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_0_CH1Z_1_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 0 /* no dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        // TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001); // Z++ to next face
 
         // Unpack srcA face 3 -> dest position 3, set dvalid (srcA complete)
-        TTI_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_0_CH1Z_1_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
         // Second: Unpack srcB with row broadcast
         // First half: broadcast to F0/F1 of srcB dest (32 unpacks)

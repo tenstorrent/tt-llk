@@ -513,7 +513,7 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
     eltwise_op(ADDR_MOD_0);
     eltwise_op(ADDR_MOD_1);
 
-    // TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB); // clear both src dvalids
+    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0); // clear both src dvalids
 
     // ********************************************************
 
