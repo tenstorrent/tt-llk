@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import pandas as pd
 from ttexalens.tt_exalens_lib import read_words_from_device, write_words_to_device
@@ -182,244 +182,134 @@ ALL_COUNTERS = _build_all_counters()
 ALL_THREADS = ["UNPACK", "MATH", "PACK"]
 
 
-def _get_thread_addresses(thread: str) -> Tuple[int, int]:
-    """Get config and data addresses for a thread."""
-    addresses = _THREAD_ADDRESSES.get(thread.upper())
-    if addresses is None:
-        raise ValueError(f"Unknown thread: {thread}. Must be UNPACK, MATH, or PACK")
-    return addresses
-
-
-def _configure_perf_counters(
-    counters: List[Dict],
-    location: str,
-    thread: str,
-    mode: str,
-) -> None:
-    """Internal: Configure performance counters for a single thread."""
-    config_addr, data_addr = _get_thread_addresses(thread)
-
-    if len(counters) > COUNTER_SLOT_COUNT:
-        raise ValueError(
-            f"Cannot configure more than {COUNTER_SLOT_COUNT} counters per thread. Got {len(counters)}."
-        )
-
-    # Bit16: 0 = REQUESTS, 1 = GRANTS
-    mode_bit = 1 if mode.upper() == "GRANTS" else 0
-
-    # Encode counter configurations
-    config_words = []
-    for counter in counters:
-        bank_name = counter["bank"]
-        counter_id = counter["counter_id"]
-        l1_mux = counter.get("l1_mux", 0)
-
-        bank_id = _BANK_NAME_TO_ID.get(bank_name)
-        if bank_id is None:
-            raise ValueError(f"Unknown bank: {bank_name}")
-
-        # Encode: [valid(31), l1_mux(17), mode(16), counter_id(8-15), bank(0-7)]
-        config_word = (
-            (1 << 31)  # Valid bit to distinguish from empty slots
-            | (l1_mux << 17)
-            | (mode_bit << 16)
-            | (counter_id << 8)
-            | bank_id
-        )
-        config_words.append(config_word)
-
-    # Pad to COUNTER_SLOT_COUNT words
-    if len(config_words) < COUNTER_SLOT_COUNT:
-        config_words.extend([0] * (COUNTER_SLOT_COUNT - len(config_words)))
-
-    # Coalesce into a single write: config_words (66) + zero_data (132) = 198 words
-    zero_data = [0] * COUNTER_DATA_WORD_COUNT
-    combined_data = config_words + zero_data
-    write_words_to_device(location=location, addr=config_addr, data=combined_data)
-
-
-def _read_perf_counters(location: str, thread: str) -> List[Dict]:
-    config_addr, data_addr = _get_thread_addresses(thread)
-
-    # Read metadata
-    metadata = read_words_from_device(
-        location=location, addr=config_addr, word_count=COUNTER_SLOT_COUNT
-    )
-
-    # Reading counters from L1
-
-    if not metadata:
-        return []
-
-    # Count valid configs (check bit 31)
-    valid_count = sum(1 for m in metadata if (m & 0x80000000) != 0)
-
-    if valid_count == 0:
-        return []
-
-    # Read ONLY data for valid counters (no UNKNOWN counters)
-    data = read_words_from_device(
-        location=location, addr=data_addr, word_count=valid_count * 2
-    )
-
-    if not data or len(data) < valid_count * 2:
-        return []
-
-    results = []
-    data_idx = 0
-    for i in range(COUNTER_SLOT_COUNT):
-        config_word = metadata[i]
-        if (config_word & 0x80000000) == 0:  # Check valid bit
-            continue  # Unused slot
-
-        # Decode metadata: [l1_mux(17), mode(16), counter_id(8-15), bank(0-7)]
-        bank_id = config_word & 0xFF
-        counter_id = (config_word >> 8) & 0xFF
-        mode_bit = (config_word >> 16) & 0x1
-        l1_mux = (config_word >> 17) & 0x1
-
-        bank_name = COUNTER_BANK_NAMES.get(bank_id, f"UNKNOWN_{bank_id}")
-        # Hardware doc: bit16 = 1 -> GRANTS, 0 -> REQUESTS
-        mode = "GRANTS" if mode_bit == 1 else "REQUESTS"
-
-        # Get counter name
-        if bank_name == "L1":
-            counter_name = COUNTER_NAMES["L1"].get(
-                (counter_id, l1_mux), f"L1_UNKNOWN_{counter_id}_{l1_mux}"
-            )
-        else:
-            counter_name = COUNTER_NAMES.get(bank_name, {}).get(
-                counter_id, f"{bank_name}_UNKNOWN_{counter_id}"
-            )
-
-        # Extract results using data_idx
-        cycles = data[data_idx * 2]
-        count = data[data_idx * 2 + 1]
-        data_idx += 1
-
-        results.append(
-            {
-                "bank": bank_name,
-                "counter_name": counter_name,
-                "counter_id": counter_id,
-                "cycles": cycles,
-                "count": count,
-                "mode": mode,
-                "l1_mux": l1_mux if bank_name == "L1" else None,
-            }
-        )
-
-    return results
-
-
-def _print_perf_counters(results: List[Dict], thread: str = None) -> None:
-    if not results:
-        print("No performance counters configured")
-        return
-
-    header = "Performance Counter Results"
-    if thread:
-        header += f" - {thread} Thread"
-
-    print("=" * 80)
-    print(header)
-    print("=" * 80)
-
-    # Group by bank
-    by_bank = defaultdict(list)
-    for result in results:
-        by_bank[result["bank"]].append(result)
-
-    # Print by bank
-    for bank_name in sorted(by_bank.keys()):
-        print(f"\n{bank_name}:")
-        print("-" * 80)
-        # Optional diagnostic: detect identical counts within a bank
-        counts = [r["count"] for r in by_bank[bank_name]]
-        cycles_list = [r["cycles"] for r in by_bank[bank_name]]
-        # The cycles register for a bank reflects the measurement window and is shared
-        # across selections; identical cycles are expected when scanning different events
-        shared_cycles = cycles_list[0] if cycles_list else 0
-        if len(counts) > 1 and len(set(counts)) == 1:
-            print(
-                f"  [DIAG] All counter counts identical in bank {bank_name}: {counts[0]}"
-            )
-        if len(cycles_list) > 1 and len(set(cycles_list)) == 1:
-            print(
-                f"  [DIAG] Shared reference cycles (bank window) in {bank_name}: {shared_cycles}"
-            )
-        else:
-            print(
-                f"  [DIAG] Reference cycles vary in {bank_name}: {', '.join(str(c) for c in cycles_list)}"
-            )
-
-        # Helper to label mode semantics per bank/event
-        def _mode_label(res: Dict) -> str:
-            mode = res.get("mode", "")
-            return mode.lower() if mode else ""
-
-        # Print shared cycles once, then per-counter count and rate
-        print(f"  Shared cycles: {shared_cycles}")
-        for result in by_bank[bank_name]:
-            name = result["counter_name"]
-            count = result["count"]
-            rate = (count / shared_cycles) if shared_cycles else 0.0
-            mode_desc = _mode_label(result)
-            print(
-                f"  {name:30s} | Count: {count:12d} | Rate: {rate:8.3f} | Mode: {mode_desc}"
-            )
-
-    print("=" * 80)
-
-
-def configure_all_counters(location: str = "0,0", mode: str = "GRANTS") -> None:
+def configure_counters(location: str = "0,0", mode: str = "GRANTS") -> None:
     """
     Configure all 66 performance counters on all threads (UNPACK, MATH, PACK).
-
-    This is a convenience function that sets up complete counter coverage
-    for performance analysis. The counters measure various hardware events
-    across instruction threads, FPU, TDMA (unpack/pack), and L1/NoC.
 
     Args:
         location: Tensix core coordinates (e.g., "0,0").
         mode: Counter mode - "GRANTS" for actual work done, "REQUESTS" for attempted work.
     """
-    for thread in ALL_THREADS:
-        _configure_perf_counters(
-            ALL_COUNTERS, location=location, thread=thread, mode=mode
+    mode_bit = 1 if mode.upper() == "GRANTS" else 0
+
+    # Encode counter configurations
+    config_words = []
+    for counter in ALL_COUNTERS:
+        bank_id = _BANK_NAME_TO_ID[counter["bank"]]
+        l1_mux = counter.get("l1_mux", 0)
+        config_word = (
+            (1 << 31)  # Valid bit
+            | (l1_mux << 17)
+            | (mode_bit << 16)
+            | (counter["counter_id"] << 8)
+            | bank_id
         )
+        config_words.append(config_word)
+
+    # Pad and combine with zero data
+    config_words.extend([0] * (COUNTER_SLOT_COUNT - len(config_words)))
+    combined_data = config_words + [0] * COUNTER_DATA_WORD_COUNT
+
+    # Write to all threads
+    for thread in ALL_THREADS:
+        config_addr, _ = _THREAD_ADDRESSES[thread]
+        write_words_to_device(location=location, addr=config_addr, data=combined_data)
 
 
-def read_all_counters(
-    location: str = "0,0", verbose: bool = False
-) -> Dict[str, List[Dict]]:
+def read_counters(location: str = "0,0") -> Dict[str, List[Dict]]:
     """
     Read performance counter results from all threads.
 
     Args:
         location: Tensix core coordinates (e.g., "0,0").
-        verbose: If True, print counter results for each thread.
 
     Returns:
         Dictionary mapping thread name to list of counter results.
     """
     results_by_thread = {}
+
     for thread in ALL_THREADS:
-        results = _read_perf_counters(location=location, thread=thread)
+        config_addr, data_addr = _THREAD_ADDRESSES[thread]
+
+        # Read metadata
+        metadata = read_words_from_device(
+            location=location, addr=config_addr, word_count=COUNTER_SLOT_COUNT
+        )
+
+        if not metadata:
+            continue
+
+        # Count valid configs (check bit 31)
+        valid_count = sum(1 for m in metadata if (m & 0x80000000) != 0)
+
+        if valid_count == 0:
+            continue
+
+        # Read ONLY data for valid counters (no UNKNOWN counters)
+        data = read_words_from_device(
+            location=location, addr=data_addr, word_count=valid_count * 2
+        )
+
+        if not data or len(data) < valid_count * 2:
+            continue
+
+        results = []
+        data_idx = 0
+        for i in range(COUNTER_SLOT_COUNT):
+            config_word = metadata[i]
+            if (config_word & 0x80000000) == 0:  # Check valid bit
+                continue  # Unused slot
+
+            # Decode metadata: [l1_mux(17), mode(16), counter_id(8-15), bank(0-7)]
+            bank_id = config_word & 0xFF
+            counter_id = (config_word >> 8) & 0xFF
+            mode_bit = (config_word >> 16) & 0x1
+            l1_mux = (config_word >> 17) & 0x1
+
+            bank_name = COUNTER_BANK_NAMES.get(bank_id, f"UNKNOWN_{bank_id}")
+            # Hardware doc: bit16 = 1 -> GRANTS, 0 -> REQUESTS
+            mode = "GRANTS" if mode_bit == 1 else "REQUESTS"
+
+            # Get counter name
+            if bank_name == "L1":
+                counter_name = COUNTER_NAMES["L1"].get(
+                    (counter_id, l1_mux), f"L1_UNKNOWN_{counter_id}_{l1_mux}"
+                )
+            else:
+                counter_name = COUNTER_NAMES.get(bank_name, {}).get(
+                    counter_id, f"{bank_name}_UNKNOWN_{counter_id}"
+                )
+
+            # Extract results using data_idx
+            cycles = data[data_idx * 2]
+            count = data[data_idx * 2 + 1]
+            data_idx += 1
+
+            results.append(
+                {
+                    "bank": bank_name,
+                    "counter_name": counter_name,
+                    "counter_id": counter_id,
+                    "cycles": cycles,
+                    "count": count,
+                    "mode": mode,
+                    "l1_mux": l1_mux if bank_name == "L1" else None,
+                }
+            )
+
         if results:
-            if verbose:
-                _print_perf_counters(results, thread=thread)
             results_by_thread[thread] = results
+
     return results_by_thread
 
 
-def print_all_counters(results_by_thread: Dict[str, List[Dict]]) -> None:
+def print_counters(results_by_thread: Dict[str, List[Dict]]) -> None:
     """
     Print all counter results to console in a readable format.
 
     Args:
         results_by_thread: Dictionary mapping thread name to list of counter results
-                          (from read_all_counters).
+                          (from read_counters).
     """
     if not results_by_thread:
         print("No counter results to display.")
@@ -459,18 +349,6 @@ def print_all_counters(results_by_thread: Dict[str, List[Dict]]) -> None:
             print(f"  │ {'Counter Name':<40} {'Count':>15} {'Rate':>12}")
             print(f"  │ {'─' * 40} {'─' * 15} {'─' * 12}")
 
-            # Check for L1 mux limitation warning
-            if bank == "L1":
-                mux_values = set(r.get("l1_mux") for r in bank_results)
-                if len(mux_values) > 1:
-                    print(
-                        f"  │ ⚠️  WARNING: L1 mux0 and mux1 cannot be measured simultaneously!"
-                    )
-                    print(
-                        f"  │     mux1 values may reflect mux0 hardware (same signal sources)"
-                    )
-                    print(f"  │ {'─' * 40} {'─' * 15} {'─' * 12}")
-
             for r in bank_results:
                 name = r["counter_name"]
                 # Add mux info for L1 counters
@@ -485,56 +363,7 @@ def print_all_counters(results_by_thread: Dict[str, List[Dict]]) -> None:
     print("\n" + "=" * 100 + "\n")
 
 
-def counters_to_flat_row(
-    results_by_thread: Dict[str, List[Dict]],
-) -> Dict[str, object]:
-    """
-    Convert counter results to a flat dictionary (one row) suitable for CSV export.
-
-    Column naming: {thread}_{counter_name}_{mode}_count, {thread}_{counter_name}_{mode}_rate
-    Plus cycles columns: {thread}_{bank}_cycles
-
-    Args:
-        results_by_thread: Dictionary mapping thread name to list of counter results.
-
-    Returns:
-        Flat dictionary with all counter values as separate columns.
-    """
-    row = {}
-
-    for thread, results in results_by_thread.items():
-        # Get shared cycles per bank for rate calculation
-        cycles_by_bank = {}
-        for r in results:
-            bank = r["bank"]
-            if bank not in cycles_by_bank:
-                cycles_by_bank[bank] = r["cycles"]
-
-        # Add cycles columns per bank
-        for bank, cycles in cycles_by_bank.items():
-            row[f"{thread}_{bank}_cycles"] = cycles
-
-        # Add counter values
-        for r in results:
-            counter_name = r["counter_name"]
-            mode = r["mode"].lower()
-            cycles = cycles_by_bank.get(r["bank"], r["cycles"])
-            count = r["count"]
-            rate = (count / cycles) if cycles else 0.0
-
-            # For L1 counters, include mux in the name to distinguish
-            if r.get("l1_mux") is not None:
-                col_base = f"{thread}_{counter_name}_mux{r['l1_mux']}_{mode}"
-            else:
-                col_base = f"{thread}_{counter_name}_{mode}"
-
-            row[f"{col_base}_count"] = count
-            row[f"{col_base}_rate"] = rate
-
-    return row
-
-
-def export_counters_csv(
+def export_counters(
     results_requests: Dict[str, List[Dict]],
     results_grants: Dict[str, List[Dict]],
     filename: str,
@@ -543,9 +372,6 @@ def export_counters_csv(
 ) -> None:
     """
     Export counter results to CSV file in perf_data directory.
-
-    Creates one row per test run with all counter values as columns.
-    Column format: {thread}_{counter_name}_{mode}_count, {thread}_{counter_name}_{mode}_rate
 
     Args:
         results_requests: Counter results from REQUESTS mode.
@@ -557,32 +383,42 @@ def export_counters_csv(
     perf_dir = TestConfig.LLK_ROOT / "perf_data"
     perf_dir.mkdir(parents=True, exist_ok=True)
 
-    # Build single row with all counters
     row = {}
-
-    # Add test parameters first (so they appear at the beginning of columns)
     if test_params:
         row.update(test_params)
 
-    # Add REQUESTS mode counters
-    if results_requests:
-        req_row = counters_to_flat_row(results_requests)
-        row.update(req_row)
+    # Flatten counter results into row columns
+    for results_by_thread in [results_requests, results_grants]:
+        if not results_by_thread:
+            continue
+        for thread, results in results_by_thread.items():
+            cycles_by_bank = {}
+            for r in results:
+                bank = r["bank"]
+                if bank not in cycles_by_bank:
+                    cycles_by_bank[bank] = r["cycles"]
+                    row[f"{thread}_{bank}_cycles"] = r["cycles"]
 
-    # Add GRANTS mode counters
-    if results_grants:
-        gr_row = counters_to_flat_row(results_grants)
-        row.update(gr_row)
+                counter_name = r["counter_name"]
+                mode = r["mode"].lower()
+                cycles = cycles_by_bank[bank]
+                count = r["count"]
+                rate = (count / cycles) if cycles else 0.0
+
+                if r.get("l1_mux") is not None:
+                    col_base = f"{thread}_{counter_name}_mux{r['l1_mux']}_{mode}"
+                else:
+                    col_base = f"{thread}_{counter_name}_{mode}"
+
+                row[f"{col_base}_count"] = count
+                row[f"{col_base}_rate"] = rate
 
     if not row:
         return
 
-    # Create single-row DataFrame
     df = pd.DataFrame([row])
-
     output_path = perf_dir / f"{filename}.{worker_id}.csv"
 
-    # Append to existing file or create new
     if output_path.exists():
         existing = pd.read_csv(output_path)
         df = pd.concat([existing, df], ignore_index=True)
