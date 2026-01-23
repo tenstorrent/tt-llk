@@ -42,7 +42,11 @@ class Fpu:
         return ""
 
     def golden(
-        self, operation: "FusedOperation", config: "GlobalConfig"
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
     ) -> torch.Tensor:
         return torch.Tensor()
 
@@ -660,7 +664,7 @@ class Math:
             rt_dim = operation.rt_dim
             kt_dim = operation.kt_dim
             ct_dim = operation.ct_dim
-            return f"    _perf_math_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});"
+            return f"    _perf_math_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
         else:
             valid_cnt = operation.output.tile_count * operation.num_faces
             return f"    _perf_math_loop_clear_valid<true, true>({valid_cnt});\n"
