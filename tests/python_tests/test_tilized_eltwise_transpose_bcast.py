@@ -88,9 +88,10 @@ def extract_row_from_tilized(tilized_tensor, row_index, data_format):
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
+            DataFormat.Float16,
         ]
     ),
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     math_fidelity=[MathFidelity.LoFi],
     input_dimensions=[[32, 32]],
     row_index=list(range(32)),  # Sweep from 0 to 31
@@ -121,22 +122,6 @@ def test_tilized_eltwise_transpose_bcast(
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
     )
-
-    # DEBUG: Use fixed stimuli for easier debugging:
-    # srcA: all zeros
-    # srcB: row N contains all (N+1) values, so row 0 = 1s, row 1 = 2s, ..., row 31 = 32s
-    # torch_format = format_dict[formats.input_format]
-    #
-    # src_A = torch.zeros(1024, dtype=torch_format)
-    #
-    # # Create srcB with row-based values (in untilized/row-major format)
-    # src_B = torch.zeros(1024, dtype=torch_format)
-    # for row in range(32):
-    #     row_start = row * 32  # 32 columns per row
-    #     src_B[row_start : row_start + 32] = row + 1  # Row 0 = 1, Row 1 = 2, ..., Row 31 = 32
-    #
-    # tile_cnt_A = 1
-    # tile_cnt_B = 1
 
     # Tilize both inputs for hardware (both will be tilized in L1)
     src_A_tilized = tilize_block(src_A, input_dimensions, formats.input_format)
