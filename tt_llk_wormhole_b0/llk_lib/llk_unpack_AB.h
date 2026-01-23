@@ -382,8 +382,7 @@ inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const
 
     constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1 = 0b00'00'00'01; // Increment CH0_Z only
 
-    // Unpack srcA full tile
-
+    // Bcast F0R0 over F0 in srcB and unpack full srcA tile
     lltt::replay(0, 17);
     lltt::replay(0, 15);
 
