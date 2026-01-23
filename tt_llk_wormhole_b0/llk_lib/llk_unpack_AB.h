@@ -331,31 +331,56 @@ sub_exp_bcast_col function.
 - This is achieved by unpacking to srcB like we are doing broadcast row. If we repeat that row across whole face and then transpose srcB from rows to columns,
 we get effect of broadcasted column.
 
+Template parameters:
+- transpose_of_faces: If true, srcA faces are reordered (f0,f1,f2,f3 -> f0,f2,f1,f3)
+- transpose_within_face: If true, 16x16 transposition is applied within each srcA face
+
 *************************************************************************/
 
+template <bool transpose_of_faces = false, bool transpose_within_face = false>
 inline void _llk_unpackA_bcastB_row_as_col_init_()
 {
-    // Setup for srcA - unpack full tile
-    TTI_SETADCXX(p_setadc::UNP_A, TILE_R_DIM * TILE_C_DIM - 1, 0); // Unpack whole tile on srcA
+    // Configure within-face transpose for srcA via hardware register
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose_within_face ? 1 : 0);
 
+    // Setup srcB strides for row broadcast
     cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_XY_REG_1_Ystride_RMW>(32);
     cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(16);
-
     cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_XY_REG_0_Ystride_RMW>(0);
     TTI_SETADCXX(p_setadc::UNP_B, FACE_R_DIM - 1, 0);
 
     constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00; // no increment
     constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
 
-    lltt::record<lltt::NoExec>(0, 17);
-    for (int i = 0; i < 16; i++)
+    if constexpr (transpose_of_faces)
     {
-        TTI_UNPACR(SrcB, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    }
+        // For face transpose: srcA X counter for one face (256 elements)
+        // srcA will be unpacked with 4 explicit UNPACR instructions in execute
+        TTI_SETADCXX(p_setadc::UNP_A, FACE_R_DIM * FACE_C_DIM - 1, 0);
 
-    TTI_UNPACR(SrcA, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        // Only record srcB broadcast instructions (no srcA in replay buffer)
+        lltt::record<lltt::NoExec>(0, 16);
+        for (int i = 0; i < 16; i++)
+        {
+            TTI_UNPACR(SrcB, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        }
+    }
+    else
+    {
+        // No face transpose: srcA X counter for full tile (1024 elements)
+        TTI_SETADCXX(p_setadc::UNP_A, TILE_R_DIM * TILE_C_DIM - 1, 0);
+
+        // Record srcB + srcA in replay buffer
+        lltt::record<lltt::NoExec>(0, 17);
+        for (int i = 0; i < 16; i++)
+        {
+            TTI_UNPACR(SrcB, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        }
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    }
 }
 
+template <bool transpose_of_faces = false>
 inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const std::uint32_t address_b, const std::uint32_t row_index = 0)
 {
     TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
@@ -400,22 +425,66 @@ inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const
 
     constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1 = 0b00'00'00'01; // Increment CH0_Z only
 
-    // Bcast selected row over F0 and F1 in srcB and unpack full srcA tile
-    lltt::replay(0, 17);
-    lltt::replay(0, 15);
+    if constexpr (transpose_of_faces)
+    {
+        // Full 32x32 tile transpose = face transpose + within-face transpose
+        // Face transpose uses address mode 0b10: f0,f1,f2,f3 -> f0,f2,f1,f3
+        // Within-face transpose set via THCON_SEC0_REG2_Haloize_mode_RMW in init
+        //
+        // First: Unpack srcA completely with 4 explicit UNPACR instructions (one per face)
+        // Z counter increments between each to move to next face
+        // 4th instruction sets dvalid to signal srcA is ready
 
-    TTI_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        // Unpack srcA face 0 -> dest position 0
+        TTI_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 0 /* no dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001); // Z++ to next face
 
-    // reset Y,Z,W counters on srcB side - channel 1
-    TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, SETADC_CH1(p_setadc::ZW));
-    TTI_SETADCXY(p_setadc::UNP_B, 0, 0, 0, 0, SETADC_CH1(p_setadc::Y));
+        // Unpack srcA face 2 -> dest position 1 (due to face transpose)
+        TTI_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 0 /* no dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001); // Z++ to next face
 
-    // Unpack from next face (F1Rn or F3Rn) to F2 and F3 in srcB (broadcast to 32 rows)
-    // The Z increment from previous UNPACR already moved address by one face (512 bytes)
-    lltt::replay(0, 16);
-    lltt::replay(0, 15);
+        // Unpack srcA face 1 -> dest position 2
+        TTI_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 0 /* no dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001); // Z++ to next face
 
-    TTI_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        // Unpack srcA face 3 -> dest position 3, set dvalid (srcA complete)
+        TTI_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+        // Second: Unpack srcB with row broadcast
+        // First half: broadcast to F0/F1 of srcB dest (32 unpacks)
+        lltt::replay(0, 16);
+        lltt::replay(0, 15);
+        TTI_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+        // Reset srcB Y,Z counters for second half
+        TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, SETADC_CH1(p_setadc::ZW));
+        TTI_SETADCXY(p_setadc::UNP_B, 0, 0, 0, 0, SETADC_CH1(p_setadc::Y));
+
+        // Second half: broadcast to F2/F3 of srcB dest (32 unpacks, dvalid on last)
+        lltt::replay(0, 16);
+        lltt::replay(0, 15);
+        TTI_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    }
+    else
+    {
+        // Without face transpose - original behavior
+        // Bcast selected row over F0 and F1 in srcB and unpack full srcA tile
+        lltt::replay(0, 17);
+        lltt::replay(0, 15);
+
+        TTI_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+        // reset Y,Z,W counters on srcB side - channel 1
+        TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, SETADC_CH1(p_setadc::ZW));
+        TTI_SETADCXY(p_setadc::UNP_B, 0, 0, 0, 0, SETADC_CH1(p_setadc::Y));
+
+        // Unpack from next face (F1Rn or F3Rn) to F2 and F3 in srcB (broadcast to 32 rows)
+        // The Z increment from previous UNPACR already moved address by one face (512 bytes)
+        lltt::replay(0, 16);
+        lltt::replay(0, 15);
+
+        TTI_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    }
 
     t6_semaphore_get(semaphore::UNPACK_SYNC);
     switch_config_context(unp_cfg_context);

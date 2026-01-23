@@ -451,7 +451,7 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod()
 
 inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop()
 {
-    constexpr uint32_t REPLAY_BUFFER_SIZE = 12;
+    constexpr uint32_t REPLAY_BUFFER_SIZE = 13;
 
     uint32_t innerloop           = 1;
     constexpr uint32_t outerloop = 1;
@@ -464,7 +464,7 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop()
 template <EltwiseBinaryType eltwise_binary_type>
 inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
 {
-    constexpr uint32_t REPLAY_BUFFER_SIZE = 12;
+    constexpr uint32_t REPLAY_BUFFER_SIZE = 13;
 
     _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod();
 

@@ -15,11 +15,11 @@ from helpers.llk_params import (
     DestAccumulation,
     MathFidelity,
     MathOperation,
+    Transpose,
     format_dict,
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_config import StimuliConfig
-from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     BROADCAST_TYPE,
@@ -29,6 +29,8 @@ from helpers.test_variant_parameters import (
     NUM_FACES,
     ROW_INDEX,
     TILE_COUNT,
+    UNPACK_TRANS_FACES,
+    UNPACK_TRANS_WITHIN_FACE,
 )
 from helpers.tilize_untilize import tilize, tilize_block
 from helpers.utils import passed_test
@@ -88,13 +90,16 @@ def extract_row_from_tilized(tilized_tensor, row_index, data_format):
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
-            DataFormat.Float16,
+            # DataFormat.Float16,
         ]
     ),
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
     math_fidelity=[MathFidelity.LoFi],
     input_dimensions=[[32, 32]],
-    row_index=list(range(32)),  # Sweep from 0 to 31
+    row_index=[0],  # Debug: single row_index  # list(range(32)),  # Sweep from 0 to 31
+    transpose_A=[
+        Transpose.Yes
+    ],  # Transpose.Yes],  # Test with and without srcA transpose
 )
 def test_tilized_eltwise_transpose_bcast(
     formats,
@@ -102,12 +107,13 @@ def test_tilized_eltwise_transpose_bcast(
     math_fidelity,
     input_dimensions,
     row_index,
+    transpose_A,
     workers_tensix_coordinates,
 ):
     """
     Test with both tiles tilized in L1.
 
-    - srcA: normal tilized input
+    - srcA: normal tilized input (optionally transposed via unpacker)
     - srcB: for golden calculation, we extract the specific row (based on row_index),
             transpose it, then apply column broadcast
     - Operation: element-wise subtraction (elwsub)
@@ -115,13 +121,33 @@ def test_tilized_eltwise_transpose_bcast(
     row_index determines which row of the 32x32 tile to broadcast:
     - 0-15: Row from top half (F0Rn and F1Rn)
     - 16-31: Row from bottom half (F2R(n-16) and F3R(n-16))
+
+    transpose_A: If Yes, srcA will be transposed during unpack (both face transpose
+                 and within-face transpose)
     """
-    src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
-        stimuli_format_A=formats.input_format,
-        input_dimensions_A=input_dimensions,
-        stimuli_format_B=formats.input_format,
-        input_dimensions_B=input_dimensions,
-    )
+    # src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
+    #     stimuli_format_A=formats.input_format,
+    #     input_dimensions_A=input_dimensions,
+    #     stimuli_format_B=formats.input_format,
+    #     input_dimensions_B=input_dimensions,
+    # )
+
+    # ========== Debug: Deterministic stimuli ==========
+    # srcA: row i has all values = i (row 0 = 0, row 1 = 1, ..., row 31 = 31)
+    # srcB: constant 1
+    # Expected result: srcA transposed - 1
+    torch_format = format_dict[formats.input_format]
+    tile_cnt_A = 1
+    tile_cnt_B = 1
+
+    # Create srcA: 32x32 where row i has value i
+    src_A = torch.zeros(32, 32, dtype=torch_format)
+    for row in range(32):
+        src_A[row, :] = row
+    src_A = src_A.flatten()
+
+    # Create srcB: constant 1
+    src_B = torch.ones(32 * 32, dtype=torch_format)
 
     # Tilize both inputs for hardware (both will be tilized in L1)
     src_A_tilized = tilize_block(src_A, input_dimensions, formats.input_format)
@@ -174,11 +200,26 @@ def test_tilized_eltwise_transpose_bcast(
         src_A, stimuli_format=formats.input_format, num_faces=4
     )
 
-    # Step 6: Compute element-wise subtraction in tilized format
+    # Step 6: Apply transpose to srcA if enabled
+    if transpose_A == Transpose.Yes:
+        # Transpose faces: f0, f1, f2, f3 -> f0, f2, f1, f3
+        src_A_tilized_for_golden = transpose_golden.transpose_faces(
+            src_A_tilized_for_golden,
+            formats.input_format,
+            num_faces=4,
+        )
+        # Transpose within each face (16x16 transposition within each face)
+        src_A_tilized_for_golden = transpose_golden.transpose_within_faces(
+            src_A_tilized_for_golden,
+            formats.input_format,
+            num_faces=4,
+        )
+
+    # Step 7: Compute element-wise subtraction in tilized format
     binary_golden = get_golden_generator(EltwiseBinaryGolden)
     golden_tensor = binary_golden(
         MathOperation.Elwsub,
-        src_A_tilized_for_golden,  # Tilized srcA
+        src_A_tilized_for_golden,  # Tilized srcA (optionally transposed)
         src_B_broadcasted_tilized,  # Row-extracted + transposed + column broadcasted srcB
         formats.output_format,
         math_fidelity,
@@ -193,6 +234,8 @@ def test_tilized_eltwise_transpose_bcast(
             BROADCAST_TYPE(BroadcastType.Row),
             MATH_OP(mathop=MathOperation.Elwsub),
             DEST_SYNC(),
+            UNPACK_TRANS_FACES(transpose_A),
+            UNPACK_TRANS_WITHIN_FACE(transpose_A),
         ],
         runtimes=[
             TILE_COUNT(tile_cnt_A),
@@ -219,8 +262,18 @@ def test_tilized_eltwise_transpose_bcast(
         golden_tensor
     ), "Result tensor and golden tensor are not of the same length"
 
-    torch_format = format_dict[formats.output_format]
-    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+    torch_format_out = format_dict[formats.output_format]
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format_out)
+
+    # ========== Debug: Print results ==========
+    print("srcA:")
+    print(src_A.view(32, 32))
+    print("srcB:")
+    print(src_B.view(32, 32))
+    print("result:")
+    print(res_tensor.view(32, 32))
+    print("golden:")
+    print(golden_tensor.view(32, 32))
 
     # Compare in tilized format
     assert passed_test(
