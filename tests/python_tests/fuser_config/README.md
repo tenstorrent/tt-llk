@@ -98,19 +98,8 @@ The available dest tile capacity depends on both `dest_acc` and the per-operatio
 ### `profiler_enabled` (boolean, optional)
 Enables performance profiling for the fused kernel. When set to `true`, the test framework measures and reports execution time and throughput metrics. When set to `false` or omitted (default), performance profiling is disabled and the test only validates correctness.
 
-**Example:**
-```yaml
-profiler_enabled: true
-```
-
 ### `loop_factor` (integer, optional)
 Specifies the number of times to repeat the operation sequence when performance profiling is enabled. This allows measuring sustained performance over multiple iterations. The value must be a positive integer. This setting is only used when `profiler_enabled` is `true`.
-
-**Example:**
-```yaml
-profiler_enabled: true
-loop_factor: 16  # Run the operation sequence 16 times
-```
 
 ---
 
