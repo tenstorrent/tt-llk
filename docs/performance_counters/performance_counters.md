@@ -243,12 +243,8 @@ Location: `tests/helpers/include/counters.h`
 
 | Method | Description |
 |--------|-------------|
-| `add(bank, counter_id, l1_mux=0)` | Add a counter to measure (returns false if capacity reached) |
-| `configure()` | Write configuration to L1 (for kernel-driven setup) |
-| `start()` | Read config from L1 and start all counters |
-| `stop()` | Stop counters, scan all slots, write results to L1 |
-| `size()` | Number of active counters |
-| `empty()` | Whether any counters are configured |
+| `start()` | Read config from L1 (written by Python) and start all counters |
+| `stop()` | Stop counters, scan all slots, write results to L1, return results array |
 
 **RAII wrapper: `llk_perf::ScopedPerfCounters`**
 
@@ -273,25 +269,31 @@ Location: `tests/python_tests/helpers/counters.py`
 
 | Function | Description |
 |----------|-------------|
-| `counter(bank, name, l1_mux=0)` | Create a counter specification |
-| `configure_perf_counters(counters, location, thread, mode)` | Write config to L1 |
-| `read_perf_counters(location, thread)` | Read results from L1 |
-| `print_perf_counters(results, thread)` | Display formatted results |
+| `configure_counters(location, mode)` | Configure all 66 counters on all threads (UNPACK, MATH, PACK) |
+| `read_counters(location)` | Read counter results from all threads |
+| `print_counters(results_by_thread)` | Display formatted results |
+| `export_counters(results_requests, results_grants, filename, test_params, worker_id)` | Export counter results to CSV |
 
 **Example:**
 ```python
-from helpers.counters import configure_perf_counters, read_perf_counters, counter
+from helpers.counters import configure_counters, read_counters, print_counters, export_counters
 
-counters = [
-    counter("FPU", "FPU_OP_VALID"),
-    counter("FPU", "SFPU_OP_VALID"),
-    counter("L1", "NOC_RING0_INCOMING_1", l1_mux=0),
-]
-
-configure_perf_counters(counters, location="0,0", thread="MATH", mode="GRANTS")
+# Configure all 66 counters in REQUESTS mode
+configure_counters(location="0,0", mode="REQUESTS")
 # ... run kernel ...
-results = read_perf_counters(location="0,0", thread="MATH")
-print_perf_counters(results, thread="MATH")
+results_requests = read_counters(location="0,0")
+
+# Configure all 66 counters in GRANTS mode
+configure_counters(location="0,0", mode="GRANTS")
+# ... run kernel again ...
+results_grants = read_counters(location="0,0")
+
+# Display results
+print_counters(results_requests)
+print_counters(results_grants)
+
+# Export to CSV
+export_counters(results_requests, results_grants, "my_test_counters")
 ```
 
 ## Derived Metrics
@@ -305,12 +307,22 @@ The metrics module computes higher-level performance indicators from raw counter
 The metrics functions automatically detect the chip architecture and apply appropriate bandwidth parameters:
 
 ```python
-from helpers.metrics import summarize_kernel_metrics_dual
+from helpers.metrics import print_metrics, export_metrics
 
 # Platform is auto-detected - no configuration needed
-summary = summarize_kernel_metrics_dual(req_results, gr_results)
-print(summary)
+# Print formatted metrics to console
+print_metrics(results_requests, results_grants)
+
+# Export metrics to CSV
+export_metrics(results_requests, results_grants, "my_test_metrics")
 ```
+
+**Functions:**
+
+| Function | Description |
+|----------|-------------|
+| `print_metrics(results_requests, results_grants)` | Print kernel metrics to console |
+| `export_metrics(results_requests, results_grants, filename, test_params, worker_id)` | Export kernel metrics to CSV |
 
 ### Platform Bandwidth Parameters
 
