@@ -7,11 +7,15 @@
 - Read the corresponding `.mdc` rule file for instructions, then EXECUTE the script
 - If you read a script file, you are violating this rule
 - ONLY READ CONTEXT SPECIFICS BASED ON GIVEN DESCRIPTION
+- ALWAYS FOLLOW THE RULES
 </critical-restriction>
 
 <context-specifics>
-    <rule description="Use only when there is a need for testing some parts of code that were affected after some kind of implementation">
+    <rule description="Use this when running the test">
         @run-test
+    </rule>
+    <rule description="Use this when asked for architecture or documentation related question (e.g., L1 size/latency, core topology, memory map, unit behavior, tensix related, instruction related...)">
+        @sage-of-the-codex
     </rule>
 </context-specifics>
 

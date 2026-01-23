@@ -1,0 +1,41 @@
+---
+alwaysApply: false
+description: Use for Tensix architecture or instruction details
+---
+
+## Documentation search guide
+
+Use this rule only for architecture or instruction details.
+
+### When to use the primary source
+1. You need details about how a specific instruction works.
+2. You need architecture-specific information about Tensix or related units.
+
+### Primary source
+Use the DeepWiki MCP for `tenstorrent/tt-isa-documentation`. You can either:
+- Pull a specific file for a detailed description.
+- Ask focused questions, for example:
+  - "How does [INSTRUCTION] work? What does each bit represent?"
+  - "How does [TENSIX COMPONENT] handle [SITUATION]?"
+  - "Find all related files for [USE CASE]."
+
+
+### When to use the secondary source
+- The question is about LLK parameters or actions.
+- You need to explain behavior using code references.
+
+### Secondary source
+- Use GREP to find related files; filter by architecture.
+- ONLY search folders under `tt_llk_[ARCHITECTURE]` and `tests`.
+- If the architecture is not provided, include all; otherwise, do not read unrelated architectures.
+
+#### How to handle files
+- For each file you read, identify the code path that implements the requested information.
+- Divide analysis into parts: Unpack, Math, Pack.
+- Explain how those parts relate to each other (Only if they relate).
+
+### Fallback source
+<IMPORTANT>Use this section only when all other options fail to find the answer.</IMPORTANT>
+If everything else does not answer the question, check TT-METAL documentation:
+- https://docs.tenstorrent.com/tt-metal/latest/tt-metalium/index.html
+- https://docs.tenstorrent.com/tt-metal/latest/tt-metalium/tt_metal/advanced_topics/index.html#hardware-implications-and-the-effects
