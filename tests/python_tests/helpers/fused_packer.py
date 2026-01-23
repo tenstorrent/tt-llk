@@ -45,9 +45,7 @@ class Packer:
             config.perf_run_type == PerfRunType.UNPACK_ISOLATE
             or config.perf_run_type == PerfRunType.MATH_ISOLATE
         ):
-            code = self.uninit(operation, config)
-            code += ""
-            return code
+            return ""
         elif (
             config.perf_run_type == PerfRunType.PACK_ISOLATE
             or config.perf_run_type == PerfRunType.L1_CONGESTION
