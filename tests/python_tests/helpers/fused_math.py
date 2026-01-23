@@ -388,7 +388,7 @@ class UnarySfpu(Sfpu):
         self,
         operation: MathOperation,
         approx_mode: ApproximationMode = ApproximationMode.No,
-        iterations: int = 32,
+        iterations: int = 8,
         dest_idx: int = 0,
         fill_const_value=5,
     ):
@@ -464,7 +464,7 @@ class BinarySfpu(Sfpu):
         self,
         operation: MathOperation,
         approx_mode: ApproximationMode = ApproximationMode.No,
-        iterations: int = 32,
+        iterations: int = 8,
         dst_index_in0: int = 0,
         dst_index_in1: int = 1,
         dst_index_out: int = 0,
@@ -549,7 +549,7 @@ class SfpuWhere(Sfpu):
     def __init__(
         self,
         approx_mode: ApproximationMode = ApproximationMode.No,
-        iterations: int = 32,
+        iterations: int = 8,
         dst_index_in0: int = 0,
         dst_index_in1: int = 1,
         dst_index_in2: int = 2,

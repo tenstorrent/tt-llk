@@ -185,7 +185,7 @@ def parse_math_operation(
                 approx_mode = APPROXIMATION_MODE_MAP.get(
                     sfpu_config.get("approximation_mode", "No"), ApproximationMode.No
                 )
-                iterations = sfpu_config.get("iterations", 32)
+                iterations = sfpu_config.get("iterations", 8)
                 dest_idx = sfpu_config.get("dst_dest_tile_index", 0)
                 fill_const_value = sfpu_config.get("fill_const_value", 1.0)
 
@@ -200,7 +200,7 @@ def parse_math_operation(
                 approx_mode = APPROXIMATION_MODE_MAP.get(
                     sfpu_config.get("approximation_mode", "No"), ApproximationMode.No
                 )
-                iterations = sfpu_config.get("iterations", 32)
+                iterations = sfpu_config.get("iterations", 8)
                 src1_dest_tile_index = sfpu_config.get("src1_dest_tile_index", 0)
                 src2_dest_tile_index = sfpu_config.get("src2_dest_tile_index", 0)
                 dst_dest_tile_index = sfpu_config.get("dst_dest_tile_index", 0)
