@@ -19,7 +19,7 @@ from .format_config import DataFormat, FormatConfig
 from .fused_operation import FusedOperation
 from .llk_params import DestAccumulation, PerfRunType
 from .perf import PerfReport
-from .profiler import ProfilerConfig, ProfilerData
+from .profiler import Profiler, ProfilerData
 from .test_config import BootMode, ProfilerBuild, TestConfig
 
 
@@ -126,20 +126,20 @@ class FuserConfig:
                     elfs = test_config.run_elf_files(location)
                     wait_for_tensix_operations_finished(elfs, location)
 
-                    meta = ProfilerConfig._get_meta(
+                    meta = Profiler._get_meta(
                         test_config.test_name, test_config.variant_id
                     )
                     buffer_data = [
                         read_words_from_device(
                             addr=addr,
-                            word_count=ProfilerConfig.BUFFER_LENGTH,
+                            word_count=TestConfig.THREAD_PERFORMANCE_DATA_BUFFER_LENGTH,
                             location=location,
                         )
-                        for addr in ProfilerConfig.THREAD_BUFFER
+                        for addr in TestConfig.THREAD_PERFORMANCE_DATA_BUFFER
                     ]
-                    runs.append(ProfilerConfig._parse_buffers(buffer_data, meta))
+                    runs.append(Profiler._parse_buffers(buffer_data, meta))
 
-                get_stats = ProfilerConfig.STATS_FUNCTION[run_type]
+                get_stats = Profiler.STATS_FUNCTION[run_type]
                 all_results.append(get_stats(ProfilerData.concat(runs)))
 
             results = (
