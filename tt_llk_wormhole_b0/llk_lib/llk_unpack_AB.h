@@ -356,10 +356,29 @@ inline void _llk_unpackA_bcastB_row_as_col_init_()
     TTI_UNPACR(SrcA, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 }
 
-inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const std::uint32_t address_b)
+inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const std::uint32_t address_b, const std::uint32_t row_index = 0)
 {
     TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
     TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::Y));
+
+    // Calculate address offset based on row_index
+    // row_index 0-15: broadcast from F0Rn/F1Rn (top half of tile)
+    // row_index 16-31: broadcast from F2R(n-16)/F3R(n-16) (bottom half of tile)
+    //
+    // In tilized Float16_b format (2 bytes per element):
+    // - Each face is 16x16 = 256 elements = 512 bytes
+    // - Each row within a face is 16 elements = 32 bytes
+    // - F0 starts at offset 0, F1 at 512, F2 at 1024, F3 at 1536
+    //
+    // IMPORTANT: L1 addresses use 16-byte granularity (address_b is already in 16-byte units)
+    // So we must convert byte offsets to 16-byte units by dividing by 16 (>> 4)
+    //
+    // For row_index < 16: offset = row_index * 32 bytes = row_index * 2 (in 16-byte units)
+    // For row_index >= 16: offset = 1024 + (row_index - 16) * 32 bytes = 64 + (row_index - 16) * 2 (in 16-byte units)
+    const std::uint32_t row_within_face    = row_index & 0xF;                       // row_index % 16
+    const std::uint32_t face_offset_16B    = (row_index >= 16) ? 64 : 0;            // 1024 bytes / 16 = 64
+    const std::uint32_t row_offset_16B     = face_offset_16B + row_within_face * 2; // 32 bytes / 16 = 2
+    const std::uint32_t address_b_adjusted = address_b + row_offset_16B;
 
     // Program srcA and srcB base addresses
     volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
@@ -368,12 +387,12 @@ inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const
     if (0 == unp_cfg_context)
     {
         cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
-        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
+        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b_adjusted;
     }
     else
     {
         cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
-        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
+        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b_adjusted;
     }
 
     t6_semaphore_post(semaphore::UNPACK_SYNC);
@@ -381,7 +400,7 @@ inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const
 
     constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1 = 0b00'00'00'01; // Increment CH0_Z only
 
-    // Bcast F0R0 over F0 in srcB and unpack full srcA tile
+    // Bcast selected row over F0 and F1 in srcB and unpack full srcA tile
     lltt::replay(0, 17);
     lltt::replay(0, 15);
 
@@ -391,7 +410,8 @@ inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const
     TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, SETADC_CH1(p_setadc::ZW));
     TTI_SETADCXY(p_setadc::UNP_B, 0, 0, 0, 0, SETADC_CH1(p_setadc::Y));
 
-    // Unpack F1R0 (row 16) from L1 to F2 and F3 in srcB (broadcast to 32 rows)
+    // Unpack from next face (F1Rn or F3Rn) to F2 and F3 in srcB (broadcast to 32 rows)
+    // The Z increment from previous UNPACR already moved address by one face (512 bytes)
     lltt::replay(0, 16);
     lltt::replay(0, 15);
 

@@ -25,17 +25,17 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // Configure hardware for unpacking
     // Both srcA and srcB are already tilized in L1
     // srcB will have column broadcast applied
-    // NOTE: Transpose on srcB is NOT applied here initially - test will fail
-    //       User will implement transpose on srcB later
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
 
     _llk_unpackA_bcastB_row_as_col_init_();
 
-    // Unpack tiles: srcA normal, srcB with column broadcast (needs transpose to pass)
+    // Unpack tiles: srcA normal, srcB with row broadcast from selected row_index
+    // row_index 0-15: broadcast from F0Rn/F1Rn (top half of tile)
+    // row_index 16-31: broadcast from F2R(n-16)/F3R(n-16) (bottom half of tile)
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_unpackA_bcastB_row_as_col_(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
+        _llk_unpackA_bcastB_row_as_col_(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]), params->ROW_INDEX);
     }
 }
 
