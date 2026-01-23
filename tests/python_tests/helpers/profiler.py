@@ -221,6 +221,42 @@ def _stats_l1_to_l1(data: ProfilerData) -> pd.Series:
     return _stats_timings(pd.concat(timings, ignore_index=True))
 
 
+def _stats_unpacker_to_math(data: ProfilerData) -> pd.Series:
+    groups = data.zones().raw().groupby(["marker"])
+
+    timings = []
+    for (marker,), group in groups:
+        unpack_start = group[
+            (group["thread"] == "unpack") & (group["type"] == "ZONE_START")
+        ].reset_index(drop=True)
+
+        math_end = group[
+            (group["thread"] == "math") & (group["type"] == "ZONE_END")
+        ].reset_index(drop=True)
+
+        if len(unpack_start) == 0 or len(math_end) == 0:
+            raise ValueError(
+                "Zone must be captured on both unpack and math for UNPACKER_TO_MATH to work properly"
+            )
+
+        if len(unpack_start) != len(math_end):
+            raise ValueError(
+                f"Unpack and math must be paired properly for UNPACKER_TO_MATH to work properly"
+            )
+
+        durations = math_end["timestamp"] - unpack_start["timestamp"]
+
+        marker_timings = pd.DataFrame(
+            {
+                "marker": marker,
+                "UNPACKER_TO_MATH": durations,
+            }
+        )
+        timings.append(marker_timings)
+
+    return _stats_timings(pd.concat(timings, ignore_index=True))
+
+
 def _stats_thread(stat: str, raw_thread: pd.DataFrame) -> pd.DataFrame:
     start_entries = raw_thread[(raw_thread["type"] == "ZONE_START")].reset_index(
         drop=True
@@ -293,7 +329,7 @@ class Profiler:
     # === Stats functions ===
     STATS_FUNCTION = {
         PerfRunType.L1_TO_L1: _stats_l1_to_l1,
-        PerfRunType.UNPACK_ISOLATE: _stats_unpack_isolate,
+        PerfRunType.UNPACK_ISOLATE: _stats_unpacker_to_math,
         PerfRunType.MATH_ISOLATE: _stats_math_isolate,
         PerfRunType.PACK_ISOLATE: _stats_pack_isolate,
         PerfRunType.L1_CONGESTION: _stats_l1_congestion,

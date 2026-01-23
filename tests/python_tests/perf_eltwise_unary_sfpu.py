@@ -49,6 +49,7 @@ from helpers.test_variant_parameters import (
     mathop=[
         MathOperation.Reciprocal,
         MathOperation.Sqrt,
+        MathOperation.Rsqrt,
         MathOperation.Silu,
         MathOperation.Gelu,
         MathOperation.Exp,
@@ -64,7 +65,6 @@ from helpers.test_variant_parameters import (
         16,
     ],  # Number of iterations to run the test in order to minimize profiler overhead in measurement
     iterations=[
-        8,
         32,
     ],  # Number of SFPU iterations
     fast_mode=[
@@ -92,30 +92,6 @@ def test_perf_eltwise_unary_sfpu(
     input_dimensions,
     workers_tensix_coordinates,
 ):
-    # Skip tests where template parameters are not used by the operation
-    # Operations that don't use is_fp32_dest_acc_en parameter
-    ops_without_dest_acc = {
-        MathOperation.Abs,
-        MathOperation.Acosh,
-        MathOperation.Asinh,
-        MathOperation.Celu,
-        MathOperation.Cos,
-        MathOperation.Elu,
-        MathOperation.Exp2,
-        MathOperation.Exp,
-        MathOperation.Fill,
-        MathOperation.Gelu,
-        MathOperation.Hardsigmoid,
-        MathOperation.Log,
-        MathOperation.Neg,
-        MathOperation.Silu,
-        MathOperation.Sin,
-        MathOperation.Square,
-        MathOperation.Threshold,
-        MathOperation.ReluMax,
-        MathOperation.ReluMin,
-    }
-
     # Operations that use FAST_MODE
     ops_with_fast_mode = {
         MathOperation.Exp,
@@ -129,10 +105,6 @@ def test_perf_eltwise_unary_sfpu(
         MathOperation.TopKMerge,
         MathOperation.TopKRebuild,
     }
-
-    # Skip if dest_acc varies but operation doesn't use it
-    if mathop in ops_without_dest_acc and dest_acc == DestAccumulation.Yes:
-        pytest.skip(f"{mathop} does not use dest_acc parameter - skipping Yes variant")
 
     # Skip if fast_mode varies but operation doesn't use it
     if mathop not in ops_with_fast_mode and fast_mode == FastMode.Yes:
@@ -161,9 +133,7 @@ def test_perf_eltwise_unary_sfpu(
         run_types=[
             PerfRunType.L1_TO_L1,
             PerfRunType.UNPACK_ISOLATE,
-            PerfRunType.MATH_ISOLATE,
             PerfRunType.PACK_ISOLATE,
-            PerfRunType.L1_CONGESTION,
         ],
         templates=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
