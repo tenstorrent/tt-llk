@@ -33,9 +33,7 @@ inline void _calculate_exp2_()
 template <bool APPROXIMATION_MODE>
 inline void _init_exp2_()
 {
-    const uint32_t EXP_BASE_SCALE_FACTOR = 0x3F800000;
-    const bool FAST_APPROX               = false; // Exp2 does not use fast approximation.
-    _init_exponential_<APPROXIMATION_MODE, FAST_APPROX, EXP_BASE_SCALE_FACTOR>();
+    _init_exponential_piecewise_<APPROXIMATION_MODE>();
 }
 
 } // namespace ckernel::sfpu
