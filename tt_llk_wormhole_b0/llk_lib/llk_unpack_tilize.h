@@ -408,7 +408,11 @@ inline void _llk_unpack_tilize_uninit_(const std::uint32_t unpack_dst_format, co
     TT_SETADCXX(p_setadc::UNP_A, face_r_dim * FACE_C_DIM - 1, 0x0);
     TT_SETADCXX(p_setadc::UNP_B, face_r_dim * FACE_C_DIM - 1, 0x0);
 
-    // Revert Z and Y dim value back to default.
+    // Revert Z and Y dim value back to default:
+    // THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1 - word 1 of the same-named register
+    // y-dim sits in lower 16 bits and is set to 1 by default
+    // z-dim sits in upper 16 bits and is set to unpA_num_faces which is 4 by default
+    // TODO NC: Make this configurable and restored to a default operand state under tt-llk#1161
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 16, 0xffff0000>(4);
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 0, 0x0000ffff>(1);
 
