@@ -129,7 +129,7 @@ def prepare_inputs_for_operation(
         src_A: Source tensor A
         mathop: Math operation to prepare inputs for
         input_format: Input data format
-
+        output_format: Output data format, used for operations where safe ranges depend on the destination format
     Returns:
         Prepared tensor with safe values for the operation
     """
@@ -284,7 +284,7 @@ SFPU_NONLINEAR_FORMATS = input_output_formats(
 )
 def test_sfpu_nonlinear_quasar(formats_dest_acc_implied_math_input_dims_mathop):
     """
-    Test nonlinear SFPU operations (exp, relu, sqrt, tanh) on Quasar architecture.
+    Test nonlinear SFPU operations (exp, relu, reciprocal, sqrt, tanh) on Quasar architecture.
 
     This test parameterizes over multiple operations to avoid code duplication.
     """
@@ -317,6 +317,9 @@ def test_sfpu_nonlinear_quasar(formats_dest_acc_implied_math_input_dims_mathop):
         input_dimensions,
     )
 
+    unpack_to_dest = (
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+    )
     configuration = TestConfig(
         "sources/quasar/sfpu_nonlinear_quasar_test.cpp",
         formats,
@@ -325,7 +328,9 @@ def test_sfpu_nonlinear_quasar(formats_dest_acc_implied_math_input_dims_mathop):
             MATH_OP(mathop=mathop),
             IMPLIED_MATH_FORMAT(implied_math_format),
             DATA_COPY_TYPE(DataCopyType.A2D),
-            UNPACKER_ENGINE_SEL(UnpackerEngine.UnpA),
+            UNPACKER_ENGINE_SEL(
+                UnpackerEngine.UnpDest if unpack_to_dest else UnpackerEngine.UnpA
+            ),
             DEST_SYNC(),
         ],
         runtimes=[
@@ -345,9 +350,7 @@ def test_sfpu_nonlinear_quasar(formats_dest_acc_implied_math_input_dims_mathop):
             tile_count_res=tile_cnt_A,
             num_faces=num_faces,
         ),
-        unpack_to_dest=(
-            formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-        ),
+        unpack_to_dest=unpack_to_dest,
         dest_acc=dest_acc,
     )
 
