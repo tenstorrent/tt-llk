@@ -62,6 +62,8 @@ inline void _llk_unpack_A_mop_config_(
     static constexpr uint unpack_srca_zerosrc_set_dvalid = lltt::replay_insn(0, 2);
     static constexpr uint unpack_srcb_unpack_srcb        = lltt::replay_insn(2, 2);
 
+    LLK_ASSERT((unpack_to_dest && is_32bit_input(unpack_src_format, unpack_dst_format)) || (!unpack_to_dest), "unpack_to_dest is only supported for 32bit.");
+
     if (unpack_to_dest && is_32bit_input(unpack_src_format, unpack_dst_format))
     {
         if (transpose_of_faces && num_faces == 4)
@@ -261,6 +263,10 @@ inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpa
             set_dst_write_addr(unp_cfg_context, unpack_dst_format);
             wait_for_dest_available();
         }
+        else
+        {
+            LLK_ASSERT(false, "unpack_to_dest is only supported for 32bit.");
+        }
     }
 
     // Trisc::SEMPOST for context acquire
@@ -275,11 +281,15 @@ inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpa
     // T6::SEMGET for context release
     t6_semaphore_get(semaphore::UNPACK_SYNC);
 
-    if (unpack_to_dest)
+    if constexpr (unpack_to_dest)
     {
         if (is_32bit_input(unpack_src_format, unpack_dst_format))
         {
             unpack_to_dest_tile_done(unp_cfg_context);
+        }
+        else
+        {
+            LLK_ASSERT(false, "unpack_to_dest is only supported for 32bit.");
         }
     }
 

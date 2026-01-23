@@ -43,7 +43,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            if (!unpack_to_dest)
+            if constexpr (!unpack_to_dest)
             {
                 // Set valid for source A always.
                 // Set valid for source B only if dest_acc is enabled.

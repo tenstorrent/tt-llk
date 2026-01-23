@@ -177,6 +177,7 @@ inline void _llk_math_eltwise_unary_datacopy_(
     }
     else
     {
+        LLK_ASSERT(!unpack_to_dest, "unpack_to_dest is only supported for 32bit.");
         math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
 
         if constexpr (type == A2D)
