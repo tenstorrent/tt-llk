@@ -377,7 +377,7 @@ inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const
         cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
     }
 
-    semaphore_post(semaphore::UNPACK_SYNC);
+    t6_semaphore_post(semaphore::UNPACK_SYNC);
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
     constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_1 = 0b00'00'00'01; // Increment CH0_Z only

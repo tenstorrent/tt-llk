@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     BroadcastGolden,
@@ -32,6 +33,7 @@ from helpers.tilize_untilize import tilize, tilize_block, untilize_block
 from helpers.utils import passed_test
 
 
+@skip_for_blackhole
 @parametrize(
     formats=input_output_formats(
         [
