@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from collections import defaultdict
 from typing import Dict, List
 
 import pandas as pd
@@ -216,7 +215,7 @@ def configure_counters(location: str = "0,0", mode: str = "GRANTS") -> None:
         write_words_to_device(location=location, addr=config_addr, data=combined_data)
 
 
-def read_counters(location: str = "0,0") -> Dict[str, List[Dict]]:
+def read_counters(location: str = "0,0") -> pd.DataFrame:
     """
     Read performance counter results from all threads.
 
@@ -224,9 +223,9 @@ def read_counters(location: str = "0,0") -> Dict[str, List[Dict]]:
         location: Tensix core coordinates (e.g., "0,0").
 
     Returns:
-        Dictionary mapping thread name to list of counter results.
+        DataFrame with columns: thread, bank, counter_name, counter_id, cycles, count, mode, l1_mux
     """
-    results_by_thread = {}
+    all_results = []
 
     for thread in ALL_THREADS:
         config_addr, data_addr = _THREAD_ADDRESSES[thread]
@@ -253,7 +252,6 @@ def read_counters(location: str = "0,0") -> Dict[str, List[Dict]]:
         if not data or len(data) < valid_count * 2:
             continue
 
-        results = []
         data_idx = 0
         for i in range(COUNTER_SLOT_COUNT):
             config_word = metadata[i]
@@ -285,8 +283,9 @@ def read_counters(location: str = "0,0") -> Dict[str, List[Dict]]:
             count = data[data_idx * 2 + 1]
             data_idx += 1
 
-            results.append(
+            all_results.append(
                 {
+                    "thread": thread,
                     "bank": bank_name,
                     "counter_name": counter_name,
                     "counter_id": counter_id,
@@ -297,21 +296,17 @@ def read_counters(location: str = "0,0") -> Dict[str, List[Dict]]:
                 }
             )
 
-        if results:
-            results_by_thread[thread] = results
-
-    return results_by_thread
+    return pd.DataFrame(all_results)
 
 
-def print_counters(results_by_thread: Dict[str, List[Dict]]) -> None:
+def print_counters(results: pd.DataFrame) -> None:
     """
     Print all counter results to console in a readable format.
 
     Args:
-        results_by_thread: Dictionary mapping thread name to list of counter results
-                          (from read_counters).
+        results: DataFrame with counter results (from read_counters).
     """
-    if not results_by_thread:
+    if results.empty:
         print("No counter results to display.")
         return
 
@@ -323,38 +318,33 @@ def print_counters(results_by_thread: Dict[str, List[Dict]]) -> None:
     print("=" * 100)
 
     for thread in ALL_THREADS:
-        if thread not in results_by_thread:
+        thread_df = results[results["thread"] == thread]
+        if thread_df.empty:
             continue
 
-        results = results_by_thread[thread]
-        mode = results[0].get("mode", "UNKNOWN") if results else "UNKNOWN"
+        mode = thread_df["mode"].iloc[0] if len(thread_df) > 0 else "UNKNOWN"
 
         print(f"\n{'─' * 100}")
         print(f"  THREAD: {thread}   |   MODE: {mode}")
         print(f"{'─' * 100}")
 
-        # Group by bank
-        by_bank = defaultdict(list)
-        for r in results:
-            by_bank[r["bank"]].append(r)
-
         for bank in ["INSTRN_THREAD", "FPU", "TDMA_UNPACK", "L1", "TDMA_PACK"]:
-            if bank not in by_bank:
+            bank_df = thread_df[thread_df["bank"] == bank]
+            if bank_df.empty:
                 continue
 
-            bank_results = by_bank[bank]
-            cycles = bank_results[0]["cycles"] if bank_results else 0
+            cycles = bank_df["cycles"].iloc[0] if len(bank_df) > 0 else 0
 
             print(f"\n  ┌─ {bank} (cycles: {cycles:,})")
             print(f"  │ {'Counter Name':<40} {'Count':>15} {'Rate':>12}")
             print(f"  │ {'─' * 40} {'─' * 15} {'─' * 12}")
 
-            for r in bank_results:
-                name = r["counter_name"]
+            for _, row in bank_df.iterrows():
+                name = row["counter_name"]
                 # Add mux info for L1 counters
-                if r.get("l1_mux") is not None:
-                    name = f"{name} (mux{r['l1_mux']})"
-                count = r["count"]
+                if pd.notna(row["l1_mux"]):
+                    name = f"{name} (mux{int(row['l1_mux'])})"
+                count = row["count"]
                 rate = (count / cycles) if cycles else 0.0
                 print(f"  │ {name:<40} {count:>15,} {rate:>12.4f}")
 
@@ -364,59 +354,33 @@ def print_counters(results_by_thread: Dict[str, List[Dict]]) -> None:
 
 
 def export_counters(
-    results_requests: Dict[str, List[Dict]],
-    results_grants: Dict[str, List[Dict]],
+    results: pd.DataFrame,
     filename: str,
-    test_params: Dict[str, object] = None,
+    test_params: dict = None,
     worker_id: str = "gw0",
 ) -> None:
     """
-    Export counter results to CSV file in perf_data directory.
+    Export counter DataFrame to CSV file in perf_data directory.
 
     Args:
-        results_requests: Counter results from REQUESTS mode.
-        results_grants: Counter results from GRANTS mode.
+        results: DataFrame with counter results (from read_counters).
         filename: Base filename (without extension), e.g., "test_matmul_counters".
-        test_params: Optional dictionary of test parameters to include in each row.
+        test_params: Optional dictionary of test parameters to add as columns.
         worker_id: Worker ID for parallel test runs (e.g., "gw0", "master").
     """
+    if results.empty:
+        return
+
     perf_dir = TestConfig.LLK_ROOT / "perf_data"
     perf_dir.mkdir(parents=True, exist_ok=True)
 
-    row = {}
+    df = results.copy()
+
+    # Add test params as columns
     if test_params:
-        row.update(test_params)
+        for key, value in test_params.items():
+            df[key] = value
 
-    # Flatten counter results into row columns
-    for results_by_thread in [results_requests, results_grants]:
-        if not results_by_thread:
-            continue
-        for thread, results in results_by_thread.items():
-            cycles_by_bank = {}
-            for r in results:
-                bank = r["bank"]
-                if bank not in cycles_by_bank:
-                    cycles_by_bank[bank] = r["cycles"]
-                    row[f"{thread}_{bank}_cycles"] = r["cycles"]
-
-                counter_name = r["counter_name"]
-                mode = r["mode"].lower()
-                cycles = cycles_by_bank[bank]
-                count = r["count"]
-                rate = (count / cycles) if cycles else 0.0
-
-                if r.get("l1_mux") is not None:
-                    col_base = f"{thread}_{counter_name}_mux{r['l1_mux']}_{mode}"
-                else:
-                    col_base = f"{thread}_{counter_name}_{mode}"
-
-                row[f"{col_base}_count"] = count
-                row[f"{col_base}_rate"] = rate
-
-    if not row:
-        return
-
-    df = pd.DataFrame([row])
     output_path = perf_dir / f"{filename}.{worker_id}.csv"
 
     if output_path.exists():

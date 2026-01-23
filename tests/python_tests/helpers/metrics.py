@@ -1,14 +1,9 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import Dict, List
-
 import pandas as pd
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.test_config import TestConfig
-
-# Results schema is identical to helpers.counters.read_perf_counters output
-CounterResult = Dict[str, object]
 
 # Platform-specific bandwidth parameters for metrics calculations.
 _PLATFORM_BANDWIDTH = {
@@ -30,7 +25,7 @@ _PLATFORM_BANDWIDTH = {
 }
 
 
-def _get_platform_bandwidth() -> Dict[str, object]:
+def _get_platform_bandwidth() -> dict:
     """Get bandwidth parameters for the current chip architecture."""
     arch = get_chip_architecture()
     if arch not in _PLATFORM_BANDWIDTH:
@@ -38,24 +33,20 @@ def _get_platform_bandwidth() -> Dict[str, object]:
     return _PLATFORM_BANDWIDTH[arch]
 
 
-def _sum_counts(
-    results: List[CounterResult], bank: str, names: List[str], mux: int = None
-) -> int:
-    total = 0
-    for r in results:
-        if r.get("bank") != bank:
-            continue
-        if r.get("counter_name") in names:
-            if mux is None or r.get("l1_mux") == mux:
-                total += int(r.get("count", 0))
-    return total
+def _sum_counts(df: pd.DataFrame, bank: str, names: list, mux: int = None) -> int:
+    """Sum counter counts for given bank and counter names."""
+    mask = (df["bank"] == bank) & (df["counter_name"].isin(names))
+    if mux is not None:
+        mask = mask & (df["l1_mux"] == mux)
+    return int(df.loc[mask, "count"].sum())
 
 
-def _get_cycles(results: List[CounterResult], bank: str) -> int:
-    for r in results:
-        if r.get("bank") == bank:
-            return int(r.get("cycles", 0))
-    return 0
+def _get_cycles(df: pd.DataFrame, bank: str) -> int:
+    """Get cycles for a specific bank."""
+    bank_df = df[df["bank"] == bank]
+    if bank_df.empty:
+        return 0
+    return int(bank_df["cycles"].iloc[0])
 
 
 def _rate(count: int, cycles: int) -> float | None:
@@ -63,22 +54,22 @@ def _rate(count: int, cycles: int) -> float | None:
     return (count / cycles) if cycles else None
 
 
-def _compute_thread_metrics(results: List[CounterResult]) -> Dict[str, object]:
+def _compute_thread_metrics(df: pd.DataFrame) -> dict:
     """Compute metrics for a single thread's counter data."""
     hw = _get_platform_bandwidth()
 
-    cycles_instrn = _get_cycles(results, "INSTRN_THREAD")
-    cycles_fpu = _get_cycles(results, "FPU")
-    cycles_unpack = _get_cycles(results, "TDMA_UNPACK")
-    cycles_pack = _get_cycles(results, "TDMA_PACK")
-    cycles_l1 = _get_cycles(results, "L1")
+    cycles_instrn = _get_cycles(df, "INSTRN_THREAD")
+    cycles_fpu = _get_cycles(df, "FPU")
+    cycles_unpack = _get_cycles(df, "TDMA_UNPACK")
+    cycles_pack = _get_cycles(df, "TDMA_PACK")
+    cycles_l1 = _get_cycles(df, "L1")
 
     wall_cycles = max(cycles_instrn, cycles_fpu, cycles_unpack, cycles_pack, cycles_l1)
 
     # Instruction issue and stalls
-    stalled = _sum_counts(results, "INSTRN_THREAD", ["STALLED"])
+    stalled = _sum_counts(df, "INSTRN_THREAD", ["STALLED"])
     instr_issue = _sum_counts(
-        results,
+        df,
         "INSTRN_THREAD",
         [
             "INST_CFG",
@@ -93,25 +84,25 @@ def _compute_thread_metrics(results: List[CounterResult]) -> Dict[str, object]:
     )
 
     # Compute engine utilization
-    fpu_valid = _sum_counts(results, "FPU", ["FPU_OP_VALID"])
-    sfpu_valid = _sum_counts(results, "FPU", ["SFPU_OP_VALID"])
+    fpu_valid = _sum_counts(df, "FPU", ["FPU_OP_VALID"])
+    sfpu_valid = _sum_counts(df, "FPU", ["SFPU_OP_VALID"])
     compute_util = _rate(fpu_valid + sfpu_valid, cycles_fpu)
     fpu_rate = _rate(fpu_valid, cycles_fpu)
     sfpu_rate = _rate(sfpu_valid, cycles_fpu)
 
     # Unpacker/Packer utilization
     unpack_busy = sum(
-        _sum_counts(results, "TDMA_UNPACK", [f"UNPACK_BUSY_{i}"]) for i in range(4)
+        _sum_counts(df, "TDMA_UNPACK", [f"UNPACK_BUSY_{i}"]) for i in range(4)
     )
-    pack_busy = _sum_counts(results, "TDMA_PACK", ["PACK_BUSY_10"]) + _sum_counts(
-        results, "TDMA_PACK", ["PACK_BUSY_11"]
+    pack_busy = _sum_counts(df, "TDMA_PACK", ["PACK_BUSY_10"]) + _sum_counts(
+        df, "TDMA_PACK", ["PACK_BUSY_11"]
     )
     unpack_util = _rate(unpack_busy, cycles_unpack * 4) if cycles_unpack else None
     pack_util = _rate(pack_busy, cycles_pack * 2) if cycles_pack else None
 
     # NoC activity
     noc_in = _sum_counts(
-        results,
+        df,
         "L1",
         [
             "NOC_RING0_INCOMING_1",
@@ -121,7 +112,7 @@ def _compute_thread_metrics(results: List[CounterResult]) -> Dict[str, object]:
         ],
     )
     noc_out = _sum_counts(
-        results,
+        df,
         "L1",
         [
             "NOC_RING0_OUTGOING_1",
@@ -139,7 +130,7 @@ def _compute_thread_metrics(results: List[CounterResult]) -> Dict[str, object]:
 
     # L1 arbitration/congestion
     l1_arb = _sum_counts(
-        results,
+        df,
         "L1",
         [
             "L1_ARB_TDMA_BUNDLE_1",
@@ -149,7 +140,7 @@ def _compute_thread_metrics(results: List[CounterResult]) -> Dict[str, object]:
             "TDMA_BUNDLE_0_ARB",
         ],
     )
-    l1_no_arb = _sum_counts(results, "L1", ["L1_NO_ARB_UNPACKER"], mux=0)
+    l1_no_arb = _sum_counts(df, "L1", ["L1_NO_ARB_UNPACKER"], mux=0)
     l1_total = l1_arb + l1_no_arb
     l1_congestion_index = (l1_arb / l1_total) if l1_total else None
 
@@ -200,22 +191,42 @@ def _compute_thread_metrics(results: List[CounterResult]) -> Dict[str, object]:
 
 
 def _aggregate_metrics(
-    results_requests: Dict[str, List[CounterResult]],
-    results_grants: Dict[str, List[CounterResult]],
-) -> Dict[str, float]:
+    results_requests: pd.DataFrame,
+    results_grants: pd.DataFrame,
+) -> dict:
     """Aggregate thread metrics into kernel-level metrics."""
     hw = _get_platform_bandwidth()
 
     grants_metrics = []
     requests_metrics = []
 
-    for thread in sorted(
-        set(list(results_requests.keys()) + list(results_grants.keys()))
-    ):
-        if results_grants.get(thread):
-            grants_metrics.append(_compute_thread_metrics(results_grants[thread]))
-        if results_requests.get(thread):
-            requests_metrics.append(_compute_thread_metrics(results_requests[thread]))
+    # Get unique threads from both DataFrames
+    threads_grants = (
+        set(results_grants["thread"].unique()) if not results_grants.empty else set()
+    )
+    threads_requests = (
+        set(results_requests["thread"].unique())
+        if not results_requests.empty
+        else set()
+    )
+    all_threads = sorted(threads_grants | threads_requests)
+
+    for thread in all_threads:
+        grants_df = (
+            results_grants[results_grants["thread"] == thread]
+            if not results_grants.empty
+            else pd.DataFrame()
+        )
+        requests_df = (
+            results_requests[results_requests["thread"] == thread]
+            if not results_requests.empty
+            else pd.DataFrame()
+        )
+
+        if not grants_df.empty:
+            grants_metrics.append(_compute_thread_metrics(grants_df))
+        if not requests_df.empty:
+            requests_metrics.append(_compute_thread_metrics(requests_df))
 
     if not grants_metrics:
         return {}
@@ -343,8 +354,8 @@ def _aggregate_metrics(
 
 
 def print_metrics(
-    results_requests: Dict[str, List[CounterResult]],
-    results_grants: Dict[str, List[CounterResult]],
+    results_requests: pd.DataFrame,
+    results_grants: pd.DataFrame,
 ) -> None:
     """Print kernel metrics to console."""
     metrics = _aggregate_metrics(results_requests, results_grants)
@@ -501,10 +512,10 @@ def print_metrics(
 
 
 def export_metrics(
-    results_requests: Dict[str, List[CounterResult]],
-    results_grants: Dict[str, List[CounterResult]],
+    results_requests: pd.DataFrame,
+    results_grants: pd.DataFrame,
     filename: str,
-    test_params: Dict[str, object] = None,
+    test_params: dict = None,
     worker_id: str = "gw0",
 ) -> None:
     """Export kernel metrics to CSV file."""
