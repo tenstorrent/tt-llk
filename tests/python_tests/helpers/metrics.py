@@ -58,8 +58,9 @@ def _get_cycles(results: List[CounterResult], bank: str) -> int:
     return 0
 
 
-def _rate(count: int, cycles: int) -> float:
-    return (count / cycles) if cycles else 0.0
+def _rate(count: int, cycles: int) -> float | None:
+    """Calculate rate as count/cycles, returning None if cycles is 0."""
+    return (count / cycles) if cycles else None
 
 
 def _compute_thread_metrics(results: List[CounterResult]) -> Dict[str, object]:
@@ -105,8 +106,8 @@ def _compute_thread_metrics(results: List[CounterResult]) -> Dict[str, object]:
     pack_busy = _sum_counts(results, "TDMA_PACK", ["PACK_BUSY_10"]) + _sum_counts(
         results, "TDMA_PACK", ["PACK_BUSY_11"]
     )
-    unpack_util = _rate(unpack_busy, max(1, cycles_unpack * 4))
-    pack_util = _rate(pack_busy, max(1, cycles_pack * 2))
+    unpack_util = _rate(unpack_busy, cycles_unpack * 4) if cycles_unpack else None
+    pack_util = _rate(pack_busy, cycles_pack * 2) if cycles_pack else None
 
     # NoC activity
     noc_in = _sum_counts(
@@ -130,7 +131,11 @@ def _compute_thread_metrics(results: List[CounterResult]) -> Dict[str, object]:
         ],
     )
     noc_txn_per_cycle = _rate(noc_in + noc_out, cycles_l1)
-    noc_bytes_per_cycle = noc_txn_per_cycle * hw["noc_word_bytes"]
+    noc_bytes_per_cycle = (
+        noc_txn_per_cycle * hw["noc_word_bytes"]
+        if noc_txn_per_cycle is not None
+        else None
+    )
 
     # L1 arbitration/congestion
     l1_arb = _sum_counts(
@@ -145,18 +150,29 @@ def _compute_thread_metrics(results: List[CounterResult]) -> Dict[str, object]:
         ],
     )
     l1_no_arb = _sum_counts(results, "L1", ["L1_NO_ARB_UNPACKER"], mux=0)
-    l1_congestion_index = l1_arb / max(1, l1_arb + l1_no_arb)
+    l1_total = l1_arb + l1_no_arb
+    l1_congestion_index = (l1_arb / l1_total) if l1_total else None
 
     # Bandwidth estimates
-    unpack_bw = unpack_util * hw["unpack_max_bytes_per_cycle"]
-    pack_bw = pack_util * hw["pack_max_bytes_per_cycle"]
+    unpack_bw = (
+        unpack_util * hw["unpack_max_bytes_per_cycle"]
+        if unpack_util is not None
+        else None
+    )
+    pack_bw = (
+        pack_util * hw["pack_max_bytes_per_cycle"] if pack_util is not None else None
+    )
 
     # Rates
     stall_rate = _rate(stalled, cycles_instrn)
     issue_rate = _rate(instr_issue, cycles_instrn)
 
-    # Bound scores
-    risc_bound_score = stall_rate - (issue_rate * 0.5)
+    # Bound scores (None if underlying metrics are None)
+    risc_bound_score = (
+        stall_rate - (issue_rate * 0.5)
+        if stall_rate is not None and issue_rate is not None
+        else None
+    )
 
     return {
         "wall_cycles": wall_cycles,
@@ -204,7 +220,10 @@ def _aggregate_metrics(
     if not grants_metrics:
         return {}
 
-    avg = lambda xs: (sum(xs) / len(xs)) if xs else 0.0
+    def avg(xs):
+        """Average of non-None values, or None if all are None."""
+        valid = [x for x in xs if x is not None]
+        return (sum(valid) / len(valid)) if valid else None
 
     metrics = {
         "compute_util": avg([m["compute_util"] for m in grants_metrics]),
@@ -220,70 +239,104 @@ def _aggregate_metrics(
         "wall_cycles": max([m["wall_cycles"] for m in grants_metrics]),
     }
 
-    # Bandwidth estimates
+    # Bandwidth estimates (None if utilization is None)
     metrics["unpack_bw_bytes_per_cycle"] = (
         metrics["unpack_util"] * hw["unpack_max_bytes_per_cycle"]
+        if metrics["unpack_util"] is not None
+        else None
     )
     metrics["pack_bw_bytes_per_cycle"] = (
         metrics["pack_util"] * hw["pack_max_bytes_per_cycle"]
+        if metrics["pack_util"] is not None
+        else None
     )
 
     # Bound scores
     metrics["math_bound_score"] = metrics["compute_util"]
     metrics["unpack_bound_score"] = metrics["unpack_util"]
     metrics["pack_bound_score"] = metrics["pack_util"]
-    metrics["risc_bound_score"] = metrics["risc_stall_rate"] - (
-        metrics["risc_issue_rate"] * 0.5
+    metrics["risc_bound_score"] = (
+        metrics["risc_stall_rate"] - (metrics["risc_issue_rate"] * 0.5)
+        if metrics["risc_stall_rate"] is not None
+        and metrics["risc_issue_rate"] is not None
+        else None
     )
 
-    # Kernel bound classification
+    # Kernel bound classification (only if we have the required metrics)
     kernel_compute_score = metrics["compute_util"]
-    kernel_data_score = (
-        (metrics["unpack_util"] + metrics["pack_util"]) / 2.0
-        + metrics["l1_congestion_index"]
-        + metrics["noc_txn_per_cycle"]
-    )
+    if (
+        metrics["unpack_util"] is not None
+        and metrics["pack_util"] is not None
+        and metrics["l1_congestion_index"] is not None
+        and metrics["noc_txn_per_cycle"] is not None
+    ):
+        kernel_data_score = (
+            (metrics["unpack_util"] + metrics["pack_util"]) / 2.0
+            + metrics["l1_congestion_index"]
+            + metrics["noc_txn_per_cycle"]
+        )
+    else:
+        kernel_data_score = None
+
     metrics["kernel_compute_score"] = kernel_compute_score
     metrics["kernel_data_score"] = kernel_data_score
-    metrics["kernel_bound"] = (
-        "compute-bound"
-        if kernel_compute_score >= kernel_data_score
-        else "data-movement-bound"
-    )
 
-    # Dominant component
+    if kernel_compute_score is not None and kernel_data_score is not None:
+        metrics["kernel_bound"] = (
+            "compute-bound"
+            if kernel_compute_score >= kernel_data_score
+            else "data-movement-bound"
+        )
+    else:
+        metrics["kernel_bound"] = None
+
+    # Dominant component (filter out None scores)
     bound_scores = [
         ("math-bound", metrics["math_bound_score"]),
         ("unpack-bound", metrics["unpack_bound_score"]),
         ("pack-bound", metrics["pack_bound_score"]),
         ("risc-bound", metrics["risc_bound_score"]),
     ]
-    dominant = max(bound_scores, key=lambda x: x[1])
-    metrics["dominant_bound"] = dominant[0]
-    metrics["dominant_bound_score"] = dominant[1]
+    valid_scores = [(name, score) for name, score in bound_scores if score is not None]
+    if valid_scores:
+        dominant = max(valid_scores, key=lambda x: x[1])
+        metrics["dominant_bound"] = dominant[0]
+        metrics["dominant_bound_score"] = dominant[1]
+    else:
+        metrics["dominant_bound"] = None
+        metrics["dominant_bound_score"] = None
 
-    # Acceptance ratios
-    sum_grants = lambda key: sum([m[key] for m in grants_metrics])
-    sum_requests = lambda key: (
-        sum([m[key] for m in requests_metrics]) if requests_metrics else 0.0
+    # Acceptance ratios (None if no requests data)
+    def sum_values(metrics_list, key):
+        """Sum values, treating None as 0."""
+        return sum(m[key] or 0 for m in metrics_list)
+
+    total_noc_grants = sum_values(grants_metrics, "noc_in") + sum_values(
+        grants_metrics, "noc_out"
     )
-
-    total_noc_grants = sum_grants("noc_in") + sum_grants("noc_out")
-    total_noc_requests = sum_requests("noc_in") + sum_requests("noc_out")
+    total_noc_requests = (
+        sum_values(requests_metrics, "noc_in") + sum_values(requests_metrics, "noc_out")
+        if requests_metrics
+        else 0
+    )
     metrics["noc_acceptance"] = (
-        (total_noc_grants / total_noc_requests) if total_noc_requests else 1.0
+        (total_noc_grants / total_noc_requests) if total_noc_requests else None
     )
 
-    total_unpack_grants = sum_grants("unpack_busy")
-    total_unpack_requests = sum_requests("unpack_busy")
+    total_unpack_grants = sum_values(grants_metrics, "unpack_busy")
+    total_unpack_requests = (
+        sum_values(requests_metrics, "unpack_busy") if requests_metrics else 0
+    )
     metrics["unpack_acceptance"] = (
-        (total_unpack_grants / total_unpack_requests) if total_unpack_requests else 1.0
+        (total_unpack_grants / total_unpack_requests) if total_unpack_requests else None
     )
 
-    total_pack_grants = sum_grants("pack_busy")
-    total_pack_requests = sum_requests("pack_busy")
+    total_pack_grants = sum_values(grants_metrics, "pack_busy")
+    total_pack_requests = (
+        sum_values(requests_metrics, "pack_busy") if requests_metrics else 0
+    )
     metrics["pack_acceptance"] = (
-        (total_pack_grants / total_pack_requests) if total_pack_requests else 1.0
+        (total_pack_grants / total_pack_requests) if total_pack_requests else None
     )
 
     return metrics
@@ -300,18 +353,37 @@ def print_metrics(
         print("No metrics to display.")
         return
 
+    def fmt(value, decimals=4):
+        """Format a value, returning 'N/A' for None."""
+        if value is None:
+            return "N/A"
+        return f"{value:.{decimals}f}"
+
+    def fmt_or_na(value, decimals=4, width=15):
+        """Format value right-aligned, or 'N/A' centered."""
+        if value is None:
+            return f"{'N/A':>{width}}"
+        return f"{value:>{width}.{decimals}f}"
+
     print("\n" + "=" * 80)
     print("KERNEL PERFORMANCE METRICS")
     print("=" * 80)
 
     # Bound classification
+    kernel_bound = metrics.get("kernel_bound") or "N/A"
+    dominant_bound = metrics.get("dominant_bound") or "N/A"
+    dominant_score = metrics.get("dominant_bound_score")
+    dominant_score_str = (
+        f"(score: {dominant_score:.3f})"
+        if dominant_score is not None
+        else "(score: N/A)"
+    )
+
     print(f"\n┌{'─' * 78}┐")
     print(f"│ {'BOUND CLASSIFICATION':^76} │")
     print(f"├{'─' * 78}┤")
-    print(f"│  Kernel Bound:    {metrics.get('kernel_bound', 'unknown'):<56} │")
-    print(
-        f"│  Dominant:        {metrics.get('dominant_bound', 'unknown'):<40} (score: {metrics.get('dominant_bound_score', 0):.3f})  │"
-    )
+    print(f"│  Kernel Bound:    {kernel_bound:<56} │")
+    print(f"│  Dominant:        {dominant_bound:<40} {dominant_score_str:<15} │")
     print(f"└{'─' * 78}┘")
 
     # Utilization metrics
@@ -321,19 +393,19 @@ def print_metrics(
     print(f"│  {'Metric':<30} {'Value':>15} {'Description':<28} │")
     print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
     print(
-        f"│  {'Compute Utilization':<30} {metrics.get('compute_util', 0):>15.4f} {'FPU + SFPU activity':<28} │"
+        f"│  {'Compute Utilization':<30} {fmt_or_na(metrics.get('compute_util'))} {'FPU + SFPU activity':<28} │"
     )
     print(
-        f"│  {'FPU Rate':<30} {metrics.get('fpu_rate', 0):>15.4f} {'FPU ops per cycle':<28} │"
+        f"│  {'FPU Rate':<30} {fmt_or_na(metrics.get('fpu_rate'))} {'FPU ops per cycle':<28} │"
     )
     print(
-        f"│  {'SFPU Rate':<30} {metrics.get('sfpu_rate', 0):>15.4f} {'SFPU ops per cycle':<28} │"
+        f"│  {'SFPU Rate':<30} {fmt_or_na(metrics.get('sfpu_rate'))} {'SFPU ops per cycle':<28} │"
     )
     print(
-        f"│  {'Unpack Utilization':<30} {metrics.get('unpack_util', 0):>15.4f} {'TDMA unpack activity':<28} │"
+        f"│  {'Unpack Utilization':<30} {fmt_or_na(metrics.get('unpack_util'))} {'TDMA unpack activity':<28} │"
     )
     print(
-        f"│  {'Pack Utilization':<30} {metrics.get('pack_util', 0):>15.4f} {'TDMA pack activity':<28} │"
+        f"│  {'Pack Utilization':<30} {fmt_or_na(metrics.get('pack_util'))} {'TDMA pack activity':<28} │"
     )
     print(f"└{'─' * 78}┘")
 
@@ -344,16 +416,16 @@ def print_metrics(
     print(f"│  {'Metric':<30} {'Value':>15} {'Unit':<28} │")
     print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
     print(
-        f"│  {'Unpack BW':<30} {metrics.get('unpack_bw_bytes_per_cycle', 0):>15.2f} {'bytes/cycle':<28} │"
+        f"│  {'Unpack BW':<30} {fmt_or_na(metrics.get('unpack_bw_bytes_per_cycle'), 2)} {'bytes/cycle':<28} │"
     )
     print(
-        f"│  {'Pack BW':<30} {metrics.get('pack_bw_bytes_per_cycle', 0):>15.2f} {'bytes/cycle':<28} │"
+        f"│  {'Pack BW':<30} {fmt_or_na(metrics.get('pack_bw_bytes_per_cycle'), 2)} {'bytes/cycle':<28} │"
     )
     print(
-        f"│  {'NoC BW':<30} {metrics.get('noc_bytes_per_cycle', 0):>15.2f} {'bytes/cycle':<28} │"
+        f"│  {'NoC BW':<30} {fmt_or_na(metrics.get('noc_bytes_per_cycle'), 2)} {'bytes/cycle':<28} │"
     )
     print(
-        f"│  {'NoC Transactions':<30} {metrics.get('noc_txn_per_cycle', 0):>15.4f} {'txn/cycle':<28} │"
+        f"│  {'NoC Transactions':<30} {fmt_or_na(metrics.get('noc_txn_per_cycle'))} {'txn/cycle':<28} │"
     )
     print(f"└{'─' * 78}┘")
 
@@ -364,7 +436,7 @@ def print_metrics(
     print(f"│  {'Metric':<30} {'Value':>15} {'Description':<28} │")
     print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
     print(
-        f"│  {'L1 Congestion Index':<30} {metrics.get('l1_congestion_index', 0):>15.4f} {'Higher = more contention':<28} │"
+        f"│  {'L1 Congestion Index':<30} {fmt_or_na(metrics.get('l1_congestion_index'))} {'Higher = more contention':<28} │"
     )
     print(f"└{'─' * 78}┘")
 
@@ -375,10 +447,10 @@ def print_metrics(
     print(f"│  {'Metric':<30} {'Value':>15} {'Description':<28} │")
     print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
     print(
-        f"│  {'RISC Stall Rate':<30} {metrics.get('risc_stall_rate', 0):>15.4f} {'Fraction of time stalled':<28} │"
+        f"│  {'RISC Stall Rate':<30} {fmt_or_na(metrics.get('risc_stall_rate'))} {'Fraction of time stalled':<28} │"
     )
     print(
-        f"│  {'RISC Issue Rate':<30} {metrics.get('risc_issue_rate', 0):>15.4f} {'Instructions per cycle':<28} │"
+        f"│  {'RISC Issue Rate':<30} {fmt_or_na(metrics.get('risc_issue_rate'))} {'Instructions per cycle':<28} │"
     )
     print(f"└{'─' * 78}┘")
 
@@ -389,13 +461,13 @@ def print_metrics(
     print(f"│  {'Metric':<30} {'Value':>15} {'Description':<28} │")
     print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
     print(
-        f"│  {'NoC Acceptance':<30} {metrics.get('noc_acceptance', 0):>15.4f} {'1.0 = no backpressure':<28} │"
+        f"│  {'NoC Acceptance':<30} {fmt_or_na(metrics.get('noc_acceptance'))} {'1.0 = no backpressure':<28} │"
     )
     print(
-        f"│  {'Unpack Acceptance':<30} {metrics.get('unpack_acceptance', 0):>15.4f} {'1.0 = no backpressure':<28} │"
+        f"│  {'Unpack Acceptance':<30} {fmt_or_na(metrics.get('unpack_acceptance'))} {'1.0 = no backpressure':<28} │"
     )
     print(
-        f"│  {'Pack Acceptance':<30} {metrics.get('pack_acceptance', 0):>15.4f} {'1.0 = no backpressure':<28} │"
+        f"│  {'Pack Acceptance':<30} {fmt_or_na(metrics.get('pack_acceptance'))} {'1.0 = no backpressure':<28} │"
     )
     print(f"└{'─' * 78}┘")
 
@@ -406,16 +478,22 @@ def print_metrics(
     print(f"│  {'Component':<30} {'Score':>15} {'Rank':<28} │")
     print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
     scores = [
-        ("Math", metrics.get("math_bound_score", 0)),
-        ("Unpack", metrics.get("unpack_bound_score", 0)),
-        ("Pack", metrics.get("pack_bound_score", 0)),
-        ("RISC", metrics.get("risc_bound_score", 0)),
+        ("Math", metrics.get("math_bound_score")),
+        ("Unpack", metrics.get("unpack_bound_score")),
+        ("Pack", metrics.get("pack_bound_score")),
+        ("RISC", metrics.get("risc_bound_score")),
     ]
-    for i, (name, score) in enumerate(
-        sorted(scores, key=lambda x: x[1], reverse=True), 1
-    ):
-        rank_str = f"#{i}" + (" (dominant)" if i == 1 else "")
-        print(f"│  {name:<30} {score:>15.4f} {rank_str:<28} │")
+    # Sort with None values at the end
+    valid_scores = [(n, s) for n, s in scores if s is not None]
+    na_scores = [(n, s) for n, s in scores if s is None]
+    sorted_scores = sorted(valid_scores, key=lambda x: x[1], reverse=True) + na_scores
+
+    for i, (name, score) in enumerate(sorted_scores, 1):
+        if score is not None:
+            rank_str = f"#{i}" + (" (dominant)" if i == 1 else "")
+            print(f"│  {name:<30} {score:>15.4f} {rank_str:<28} │")
+        else:
+            print(f"│  {name:<30} {'N/A':>15} {'':<28} │")
     print(f"└{'─' * 78}┘")
 
     print(f"\n  Wall Cycles: {int(metrics.get('wall_cycles', 0)):,}")

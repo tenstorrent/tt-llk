@@ -381,7 +381,7 @@ The classification with the highest score is reported as the likely bottleneck.
 For counters where requests/grants distinction is meaningful:
 
 ```
-acceptance_ratio = GRANTS / max(1, REQUESTS)
+acceptance_ratio = GRANTS / REQUESTS  (or N/A if REQUESTS = 0)
 ```
 
-This indicates delivery efficiency for TDMA transfers and NoC transactions.
+This indicates delivery efficiency for TDMA transfers and NoC transactions. A value of 1.0 means no backpressure; values below 1.0 indicate some requests were not granted. If no requests were made, the metric displays as N/A rather than an artificial value.
