@@ -296,7 +296,7 @@ def parse_operation(
     )
 
 
-def create_fuse_pipeline(test_name: str) -> FuserConfig:
+def load_fuser_config(test_name: str) -> FuserConfig:
     yaml_path = FUSER_CONFIG_DIR / f"{test_name}.yaml"
     yaml_file = Path(yaml_path)
     if not yaml_file.exists():
