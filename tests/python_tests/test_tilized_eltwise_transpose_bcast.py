@@ -29,7 +29,7 @@ from helpers.test_variant_parameters import (
     NUM_FACES,
     TILE_COUNT,
 )
-from helpers.tilize_untilize import tilize, tilize_block, untilize_block
+from helpers.tilize_untilize import tilize, tilize_block
 from helpers.utils import passed_test
 
 
@@ -72,11 +72,6 @@ def test_tilized_eltwise_transpose_bcast(
     # src_B = torch.ones(1024) * 0
     # src_B[0:16] = torch.arange(16)
     # src_B[16:32] = torch.arange(16) + 16
-
-    print("src_A:")
-    print(src_A.view(32, 32))
-    print("src_B:")
-    print(src_B.view(32, 32))
 
     # Tilize both inputs for hardware (both will be tilized in L1)
     src_A_tilized = tilize_block(src_A, input_dimensions, formats.input_format)
@@ -163,11 +158,6 @@ def test_tilized_eltwise_transpose_bcast(
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
 
-    print("res_from_L1:")
-    print(res_from_L1.view(32, 32))
-    print("golden_tensor:")
-    print(golden_tensor.view(32, 32))
-
     assert len(res_from_L1) == len(
         golden_tensor
     ), "Result tensor and golden tensor are not of the same length"
@@ -175,10 +165,6 @@ def test_tilized_eltwise_transpose_bcast(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    print("UNTILIZED RES:")
-    print(
-        untilize_block(res_tensor, formats.output_format, input_dimensions).view(32, 32)
-    )
     # Compare in tilized format
     assert passed_test(
         golden_tensor, res_tensor, formats.output_format
