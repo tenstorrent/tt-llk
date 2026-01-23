@@ -90,6 +90,79 @@ download_headers() {
     echo "Headers for ${chip_arch} downloaded successfully."
 }
 
+# Function to download SFPU files from tt-metal
+download_sfpu_files() {
+    local chip_arch=$1
+    local sfpu_dir="${SCRIPT_DIR}/hw_specific/${chip_arch}/sfpu"
+    local stamp_file="${sfpu_dir}/.sfpu_downloaded"
+
+    if [[ -f "$stamp_file" ]]; then
+        echo "SFPU files for ${chip_arch} already downloaded."
+        return
+    fi
+
+    echo "Downloading SFPU files for ${chip_arch}..."
+    mkdir -p "$sfpu_dir"
+
+    # Map chip architecture to the correct path in tt-metal repo
+    local ckernels_path=""
+    case "$chip_arch" in
+        wormhole)
+            ckernels_path="wormhole_b0"
+            ;;
+        blackhole)
+            ckernels_path="blackhole"
+            ;;
+        quasar)
+            echo "SFPU files not available for quasar architecture, skipping..."
+            touch "$stamp_file"
+            return
+            ;;
+        *)
+            echo "WARNING: Unknown architecture ${chip_arch}, skipping SFPU download..."
+            touch "$stamp_file"
+            return
+            ;;
+    esac
+
+    local api_url="https://api.github.com/repos/tenstorrent/tt-metal/contents/tt_metal/hw/ckernels/${ckernels_path}/metal/llk_api/llk_sfpu"
+    local base_raw_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/ckernels/${ckernels_path}/metal/llk_api/llk_sfpu"
+
+    # Use GitHub API to get list of files
+    echo "Fetching SFPU file list from GitHub API..."
+    local file_list
+    if ! file_list=$(wget -q -O - --waitretry=5 --retry-connrefused "$api_url" 2>/dev/null); then
+        echo "ERROR: Failed to fetch SFPU file list from ${api_url}" >&2
+        exit 1
+    fi
+
+    # Parse JSON to extract .h file names
+    local files=$(echo "$file_list" | grep -oP '"name":\s*"\K[^"]+\.h(?=")')
+
+    if [[ -z "$files" ]]; then
+        echo "ERROR: No SFPU header files found in the repository" >&2
+        exit 1
+    fi
+
+    local count=0
+    local total=$(echo "$files" | wc -l)
+    echo "Found ${total} SFPU header files to download..."
+
+    # Download each file
+    for file in $files; do
+        ((count++))
+        local download_url="${base_raw_url}/${file}"
+        echo "  [${count}/${total}] Downloading ${file}..."
+        if ! wget -q -O "${sfpu_dir}/${file}" --waitretry=5 --retry-connrefused "$download_url" > /dev/null; then
+            echo "ERROR: Failed to download ${file} from ${download_url}" >&2
+            exit 1
+        fi
+    done
+
+    touch "$stamp_file"
+    echo "SFPU files for ${chip_arch} downloaded successfully (${total} files)."
+}
+
 # Function to setup pre-commit hooks
 setup_precommit() {
     echo "Setting up pre-commit hooks..."
@@ -144,6 +217,9 @@ main() {
 
     # Download headers
     download_headers "$chip_arch"
+
+    # Download SFPU files
+    download_sfpu_files "$chip_arch"
 
     # Setup pre-commit hooks
     setup_precommit
