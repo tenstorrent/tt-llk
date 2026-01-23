@@ -225,16 +225,8 @@ constexpr uint32_t PACK_BUSY_11        = 7;
 class PerfCounters
 {
 private:
-    struct CounterConfig
-    {
-        CounterBank bank;   // 1 byte
-        uint8_t counter_id; // 1 byte
-        uint8_t l1_mux;     // 1 byte (Only used for L1 counters)
-    };
-
-    CounterConfig counters[COUNTER_SLOT_COUNT];
     uint32_t num_counters {0};
-    CounterMode mode;
+    CounterMode mode {CounterMode::GRANTS};
 
     static inline volatile uint32_t* get_config_mem()
     {
@@ -264,10 +256,17 @@ private:
         return reinterpret_cast<volatile uint32_t*>(addr);
     }
 
-public:
-    PerfCounters() : num_counters(0), mode(CounterMode::GRANTS)
+    // Helper to extract fields from config word
+    static inline void unpack_config(uint32_t metadata, uint8_t& bank_id, uint8_t& counter_id, uint8_t& mode_bit, uint8_t& l1_mux)
     {
+        bank_id    = metadata & 0xFF;
+        counter_id = (metadata >> 8) & 0xFF;
+        mode_bit   = (metadata >> 16) & 0x1;
+        l1_mux     = (metadata >> 17) & 0x1;
     }
+
+public:
+    PerfCounters() = default;
 
     void start()
     {
@@ -277,9 +276,9 @@ public:
 #pragma GCC diagnostic ignored "-Warray-bounds"
         volatile uint32_t* dbg_regs = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
 
-        uint32_t counter_idx  = 0;
+        // First pass: count valid configs, determine mode, and build bank present mask
         uint32_t present_mask = 0;
-        bool mode_adopted     = false;
+        num_counters          = 0;
 
         for (uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
         {
@@ -289,61 +288,61 @@ public:
                 continue;
             }
 
-            uint8_t bank_id        = metadata & 0xFF;
-            uint8_t counter_id_val = (metadata >> 8) & 0xFF;
-            uint8_t mode_bit       = (metadata >> 16) & 0x1;
-            uint8_t mux_ctrl_val   = (metadata >> 17) & 0x1;
+            uint8_t bank_id, counter_id, mode_bit, l1_mux;
+            unpack_config(metadata, bank_id, counter_id, mode_bit, l1_mux);
 
-            if (!mode_adopted)
+            if (num_counters == 0)
             {
-                mode         = mode_bit ? CounterMode::GRANTS : CounterMode::REQUESTS;
-                mode_adopted = true;
+                mode = mode_bit ? CounterMode::GRANTS : CounterMode::REQUESTS;
             }
 
-            counters[counter_idx].bank       = static_cast<CounterBank>(bank_id);
-            counters[counter_idx].counter_id = counter_id_val;
-            counters[counter_idx].l1_mux     = mux_ctrl_val;
-
             present_mask |= 1u << bank_id;
-            counter_idx++;
+            num_counters++;
         }
 
-        num_counters = counter_idx;
-        if (counter_idx == 0)
+        if (num_counters == 0)
         {
             return;
         }
 
+        // Second pass: start each bank once
         uint32_t started_mask = 0;
-        for (uint32_t i = 0; i < counter_idx; i++)
+        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT && started_mask != present_mask; i++)
         {
-            const auto& config = counters[i];
-            uint32_t bank_ix   = static_cast<uint32_t>(config.bank);
-            uint32_t bank_bit  = 1u << bank_ix;
+            uint32_t metadata = config_mem[i];
+            if ((metadata & 0x80000000u) == 0)
+            {
+                continue;
+            }
+
+            uint8_t bank_id, counter_id, mode_bit, l1_mux;
+            unpack_config(metadata, bank_id, counter_id, mode_bit, l1_mux);
+
+            uint32_t bank_bit = 1u << bank_id;
             if (started_mask & bank_bit)
             {
                 continue;
             }
 
-            if (config.bank == CounterBank::L1)
+            CounterBank bank = static_cast<CounterBank>(bank_id);
+
+            // Configure L1 MUX if needed
+            if (bank == CounterBank::L1)
             {
                 uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
                 uint32_t cur            = dbg_regs[mux_ctrl_addr];
-                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((static_cast<uint32_t>(config.l1_mux) & 0x1u) << 4);
+                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((l1_mux & 0x1u) << 4);
             }
 
-            uint32_t counter_base          = get_counter_base_addr(config.bank);
+            // Start the bank
+            uint32_t counter_base          = get_counter_base_addr(bank);
             uint32_t counter_reg_addr      = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
             dbg_regs[counter_reg_addr]     = 0xFFFFFFFF;
             dbg_regs[counter_reg_addr + 1] = 0;
             dbg_regs[counter_reg_addr + 2] = 0;
-            dbg_regs[counter_reg_addr + 2] = 1;
+            dbg_regs[counter_reg_addr + 2] = 1; // Start
 
             started_mask |= bank_bit;
-            if (started_mask == present_mask)
-            {
-                break;
-            }
         }
 #pragma GCC diagnostic pop
     }
@@ -351,82 +350,89 @@ public:
     std::array<CounterResult, COUNTER_SLOT_COUNT> stop()
     {
         std::array<CounterResult, COUNTER_SLOT_COUNT> results;
+        volatile uint32_t* config_mem = get_config_mem();
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
         volatile uint32_t* dbg_regs = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
         volatile uint32_t* data_mem = get_data_mem();
 
-        // Compute present banks mask for early exit
-        uint32_t present_mask = 0;
-        for (uint32_t i = 0; i < num_counters; i++)
-        {
-            present_mask |= 1u << static_cast<uint32_t>(counters[i].bank);
-        }
-
-        // Stop all banks once via 0->1 transition on stop bit
+        // First pass: stop all banks
         uint32_t stopped_mask = 0;
-        for (uint32_t i = 0; i < num_counters; i++)
+        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
         {
-            uint32_t bank_idx = static_cast<uint32_t>(counters[i].bank);
-            uint32_t bank_bit = 1u << bank_idx;
+            uint32_t metadata = config_mem[i];
+            if ((metadata & 0x80000000u) == 0)
+            {
+                continue;
+            }
+
+            uint8_t bank_id   = metadata & 0xFF;
+            uint32_t bank_bit = 1u << bank_id;
 
             if (stopped_mask & bank_bit)
             {
                 continue;
             }
 
-            uint32_t base     = get_counter_base_addr(counters[i].bank);
+            CounterBank bank  = static_cast<CounterBank>(bank_id);
+            uint32_t base     = get_counter_base_addr(bank);
             uint32_t reg_addr = (base - RISCV_DEBUG_REGS_START_ADDR) / 4;
 
             dbg_regs[reg_addr + 2] = 0; // Clear
             dbg_regs[reg_addr + 2] = 2; // Stop (bit1 0->1)
 
             stopped_mask |= bank_bit;
-
-            if (stopped_mask == present_mask)
-            {
-                break;
-            }
         }
 
-        // Pre-compute mode value once
+        // Second pass: read all counters
         uint32_t mode_value = (static_cast<uint32_t>(mode) & 0x1u) << 16;
+        uint32_t result_idx = 0;
 
-        // Now scan each configured counter: select via mode register and read outputs
-        for (uint32_t i = 0; i < num_counters; i++)
+        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
         {
-            const auto& config = counters[i];
+            uint32_t metadata = config_mem[i];
+            if ((metadata & 0x80000000u) == 0)
+            {
+                continue;
+            }
+
+            uint8_t bank_id, counter_id, mode_bit, l1_mux;
+            unpack_config(metadata, bank_id, counter_id, mode_bit, l1_mux);
+
+            CounterBank bank = static_cast<CounterBank>(bank_id);
 
             // Configure L1 MUX if needed before reading
-            if (config.bank == CounterBank::L1)
+            if (bank == CounterBank::L1)
             {
                 uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
                 uint32_t cur            = dbg_regs[mux_ctrl_addr];
-                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((static_cast<uint32_t>(config.l1_mux) & 0x1u) << 4);
+                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((l1_mux & 0x1u) << 4);
             }
 
-            uint32_t counter_base     = get_counter_base_addr(config.bank);
+            uint32_t counter_base     = get_counter_base_addr(bank);
             uint32_t counter_reg_addr = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
 
             // Select the desired counter and req/grant output in mode register
-            dbg_regs[counter_reg_addr + 1] = (static_cast<uint32_t>(config.counter_id) << 8) | mode_value;
+            dbg_regs[counter_reg_addr + 1] = (static_cast<uint32_t>(counter_id) << 8) | mode_value;
 
             // Allow selection/mux to settle: perform a dummy read sequence
-            uint32_t output_low_addr  = (get_counter_output_low_addr(config.bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
-            uint32_t output_high_addr = (get_counter_output_high_addr(config.bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            uint32_t output_low_addr  = (get_counter_output_low_addr(bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            uint32_t output_high_addr = (get_counter_output_high_addr(bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
             (void)dbg_regs[output_low_addr];
             (void)dbg_regs[output_high_addr];
 
             // Read outputs again for the actual value
-            results[i].cycles     = dbg_regs[output_low_addr];
-            results[i].count      = dbg_regs[output_high_addr];
-            results[i].bank       = config.bank;
-            results[i].counter_id = config.counter_id;
+            results[result_idx].cycles     = dbg_regs[output_low_addr];
+            results[result_idx].count      = dbg_regs[output_high_addr];
+            results[result_idx].bank       = bank;
+            results[result_idx].counter_id = counter_id;
 
             // Write to L1 memory for Python to read (2 words per counter: cycles, count)
-            data_mem[i * 2]     = results[i].cycles;
-            data_mem[i * 2 + 1] = results[i].count;
+            data_mem[result_idx * 2]     = results[result_idx].cycles;
+            data_mem[result_idx * 2 + 1] = results[result_idx].count;
+
+            result_idx++;
         }
 #pragma GCC diagnostic pop
 
