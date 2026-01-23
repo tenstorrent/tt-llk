@@ -380,14 +380,14 @@ inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const
     t6_semaphore_post(semaphore::UNPACK_SYNC);
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
-    constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_1 = 0b00'00'00'01; // Increment CH0_Z only
+    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1 = 0b00'00'00'01; // Increment CH0_Z only
 
     // Unpack srcA full tile
 
     lltt::replay(0, 17);
     lltt::replay(0, 15);
 
-    TTI_UNPACR(SrcB, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
     TTI_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, SETADC_CH1(p_setadc::ZW));
     TTI_SETADCXY(p_setadc::UNP_B, 0, 0, 0, 0, SETADC_CH1(p_setadc::Y));
@@ -396,7 +396,7 @@ inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const
     lltt::replay(0, 16);
     lltt::replay(0, 15);
 
-    TTI_UNPACR(SrcB, ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    TTI_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
     t6_semaphore_get(semaphore::UNPACK_SYNC);
     switch_config_context(unp_cfg_context);
