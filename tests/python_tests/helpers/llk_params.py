@@ -94,6 +94,7 @@ class MathOperation(Enum):
     SfpuElwadd = OpSpec("ADD", MathOpType.SFPU_BINARY)
     SfpuElwLeftShift = OpSpec("LSHFT", MathOpType.SFPU_BINARY)
     SfpuElwLogicalRightShift = OpSpec("LOGICAL_RSHFT", MathOpType.SFPU_BINARY)
+    SfpuElwmax = OpSpec("MAX", MathOpType.SFPU_BINARY)
     SfpuElwmul = OpSpec("MUL", MathOpType.SFPU_BINARY)
     SfpuElwRightShift = OpSpec("RSHFT", MathOpType.SFPU_BINARY)
     SfpuElwsub = OpSpec("SUB", MathOpType.SFPU_BINARY)
@@ -256,6 +257,13 @@ class FastMode(Enum):
 class StableSort(Enum):
     Yes = "true"
     No = "false"
+
+
+class MaxMode(Enum):
+    """Mode for max operation: full tile or first row only."""
+
+    FullTile = "FullTile"
+    Row0 = "Row0"
 
 
 class Mailbox(Enum):
