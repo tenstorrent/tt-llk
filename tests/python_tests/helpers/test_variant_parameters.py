@@ -312,10 +312,10 @@ class ADD_TOP_ROW(TemplateParameter):
 # Used in pack_untilize tests for narrow_row option.
 @dataclass
 class ROW_NUM_DATUMS(TemplateParameter):
-    row_size: int = 0
+    row_num_datums: int = 0
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr uint32_t ROW_NUM_DATUMS = {self.row_size};"
+        return f"constexpr uint32_t ROW_NUM_DATUMS = {self.row_num_datums};"
 
 
 # === RUNTIME PARAMETER IMPLEMENTATIONS ===

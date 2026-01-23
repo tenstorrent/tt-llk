@@ -129,11 +129,12 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, NUM_DATUMS_IN_TILE /* tile_size */);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_pack_untilize_init_<BLOCK_CT_DIM, FULL_CT_DIM, diagonal, narrow_row, ROW_NUM_DATUMS>(
-        formats.pack_src, formats.pack_dst, FACE_R_DIM, params->num_faces, narrow_row);
+        formats.pack_src, formats.pack_dst, FACE_R_DIM, params->num_faces);
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, NUM_DATUMS_IN_TILE /* tile_size */);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, UNTILIZE>();
-    _llk_pack_untilize_init_<BLOCK_CT_DIM, FULL_CT_DIM, diagonal, narrow_row, ROW_NUM_DATUMS>(formats.pack_dst, FACE_R_DIM, params->num_faces, narrow_row);
+    _llk_pack_untilize_init_<BLOCK_CT_DIM, FULL_CT_DIM, diagonal, narrow_row, ROW_NUM_DATUMS>(
+        formats.pack_dst, FACE_R_DIM, params->num_faces, narrow_row /* Used for narrow_row pre-setup calls. */);
 #endif
     const uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM;
     uint32_t pack_addr_16B            = 0;
@@ -144,7 +145,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             if (narrow_row)
             {
-                // In this case TILE_C_DIM is 32.
                 uint32_t num_of_processed_datums_per_tile =
                     ((params->num_faces == 1) ? params->num_faces : params->num_faces / 2) * FACE_C_DIM * ROW_NUM_DATUMS;
 
