@@ -26,18 +26,18 @@ inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const 
     // - | ---- | ------ | ------------------------ | ----- | ------- |
     // 0 | [a]  |        |                          |       |         |
     // 1 | [b]  |        |                          |       |         |
-    // 0 | ...  |        | [b] L16 = mul24_lo(a, b) |       |         |
+    // 0 | ...  |        | [a] L16 = mul24_lo(a, b) |       |         |
     // 1 | ...  |        |                          |       |         |
-    // 0 | ...  |        |                          |       | [a] L16 |
+    // 0 | ...  |        |                          |       | [b] L16 |
     //
     // Out-of-place case:
     //
     // t | Load | Simple | MAD                      | Round | Store   |
     // - | ---- | ------ | ------------------------ | ----- | ------- |
-    // 0 | [a]  |        |                          |       |         |
-    // 1 | [c]  |        |                          |       |         |
-    // 2 | [b]  |        |                          |       |         |
-    // 0 | ...  |        | [b] L16 = mul24_lo(a, b) |       |         |
+    // 0 | [b]  |        |                          |       |         |
+    // 1 | [a]  |        |                          |       |         |
+    // 2 | [c]  |        |                          |       |         |
+    // 0 | ...  |        | [a] L16 = mul24_lo(a, b) |       |         |
     // 1 | ...  |        |                          |       |         |
     // 2 | ...  |        |                          |       | [c] L16 |
 
@@ -53,8 +53,8 @@ inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const 
 #pragma GCC unroll 8
         for (int d = 0; d < ITERATIONS; d++)
         {
-            TT_SFPLOADMACRO((1 << 2) | (a & 3), LO16, ADDR_MOD_7, offset0 | (a >> 2));
-            TT_SFPLOADMACRO((0 << 2) | (b & 3), LO16, ADDR_MOD_6, offset1 | (b >> 2));
+            TT_SFPLOADMACRO((0 << 2) | (a & 3), LO16, ADDR_MOD_7, offset1 | (a >> 2));
+            TT_SFPLOADMACRO((1 << 2) | (b & 3), LO16, ADDR_MOD_6, offset0 | (b >> 2));
         }
     }
     else if (dst_index_out == dst_index_in1)
@@ -62,8 +62,8 @@ inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const 
 #pragma GCC unroll 8
         for (int d = 0; d < ITERATIONS; d++)
         {
-            TT_SFPLOADMACRO((1 << 2) | (a & 3), LO16, ADDR_MOD_7, offset1 | (a >> 2));
-            TT_SFPLOADMACRO((0 << 2) | (b & 3), LO16, ADDR_MOD_6, offset0 | (b >> 2));
+            TT_SFPLOADMACRO((0 << 2) | (a & 3), LO16, ADDR_MOD_7, offset0 | (a >> 2));
+            TT_SFPLOADMACRO((1 << 2) | (b & 3), LO16, ADDR_MOD_6, offset1 | (b >> 2));
         }
     }
     else
@@ -73,9 +73,9 @@ inline void _mul_int_(const uint dst_index_in0, const uint dst_index_in1, const 
 #pragma GCC unroll 8
         for (int d = 0; d < ITERATIONS; d++)
         {
-            TT_SFPLOAD(a, LO16, ADDR_MOD_7, offset0);
-            TT_SFPLOADMACRO((1 << 2) | (c & 3), LO16, ADDR_MOD_7, offset2 | (c >> 2));
-            TT_SFPLOADMACRO((0 << 2) | (b & 3), LO16, ADDR_MOD_6, offset1 | (b >> 2));
+            TT_SFPLOAD(b, LO16, ADDR_MOD_7, offset0);
+            TT_SFPLOADMACRO((1 << 2) | (a & 3), LO16, ADDR_MOD_7, offset1 | (c >> 2));
+            TT_SFPLOADMACRO((0 << 2) | (c & 3), LO16, ADDR_MOD_6, offset2 | (b >> 2));
         }
     }
     TTI_SFPNOP;
@@ -92,7 +92,7 @@ inline void _init_mul_int_()
     // Macro 0
     {
         constexpr uint simple_bits = 0;
-        constexpr uint mad_bits    = 0x80 | 0x40 | (0 << 3) | 4;
+        constexpr uint mad_bits    = 0x80 | 0x40 | (1 << 3) | 4;
 
         TTI_SFPCONFIG((mad_bits << 8) | simple_bits, 4 + 0, 1);
     }
@@ -102,7 +102,7 @@ inline void _init_mul_int_()
         constexpr uint simple_bits = 0;
         constexpr uint mad_bits    = 0;
         constexpr uint round_bits  = 0;
-        constexpr uint store_bits  = 0x00 | 0x40 | (3 << 3) | 3;
+        constexpr uint store_bits  = 0x00 | 0x40 | (2 << 3) | 3;
 
         TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
         TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
