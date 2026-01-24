@@ -371,7 +371,6 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
     {
         _llk_math_dbg_feature_disable_();
     }
-    _llk_math_dbg_feature_disable_();
 
     if constexpr (type == A2D && src_b_bcast_type == BroadcastType::NONE)
     {
