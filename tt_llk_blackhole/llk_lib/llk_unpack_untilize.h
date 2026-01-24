@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_unpack_common.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -67,9 +68,8 @@ inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, co
               THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1); // Save descriptor 1
 
     // Core untilize initialization logic
-    const std::uint32_t unpA_ch1_x_stride = (unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float32   ? 4
-                                            : (unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float16 ? 2
-                                                                                                              : 1;
+    const DataFormat dst_format           = static_cast<DataFormat>(unpack_dst_format & 0x3);
+    const std::uint32_t unpA_ch1_x_stride = dst_format == DataFormat::Float32 ? 4 : dst_format == DataFormat::Float16 ? 2 : 1;
     const std::uint32_t unpA_ch1_y_stride = FACE_R_DIM * unpA_ch1_x_stride;
 
     // Set address control for unpacker A
@@ -99,10 +99,9 @@ inline void _llk_unpack_untilize_init_(const std::uint32_t unpack_dst_format, co
 
 inline void _llk_unpack_untilize_uninit_(const std::uint32_t unpack_dst_format, const std::uint32_t face_r_dim)
 {
-    std::uint32_t unpA_ch1_x_stride = (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
-                                      : (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
-                                                                                                     : 1;
-    std::uint32_t unpA_ch1_y_stride = FACE_C_DIM * face_r_dim * unpA_ch1_x_stride;
+    const DataFormat dst_format           = static_cast<DataFormat>(unpack_dst_format & 0x3);
+    const std::uint32_t unpA_ch1_x_stride = dst_format == DataFormat::Float32 ? 4 : dst_format == DataFormat::Float16 ? 2 : 1;
+    const std::uint32_t unpA_ch1_y_stride = FACE_C_DIM * face_r_dim * unpA_ch1_x_stride;
 
     // Check that unpacker is done (all contexts freed up) before starting hw configuration
     wait_for_idle();
@@ -119,6 +118,8 @@ inline void _llk_unpack_untilize_uninit_(const std::uint32_t unpack_dst_format, 
     TTI_WRCFG(p_gpr_unpack::FACE_DIM_16x16, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 0, 0xFFFF>(1);
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_ADDR32, UNP0_ADDR_CTRL_XY_REG_0_Ystride_SHAMT, UNP0_ADDR_CTRL_XY_REG_1_Ystride_MASK>(unpA_ch1_y_stride);
+
+    TTI_NOP;
 }
 
 template <bool first_pass = true>
@@ -144,15 +145,8 @@ inline void _llk_unpack_untilize_pass_(const std::uint32_t base_address, const s
     // Wait for free context
     wait_for_next_context(2);
 
-    // Get tile address
-    if (0 == unp_cfg_context)
-    {
-        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = base_address;
-    }
-    else
-    {
-        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = base_address;
-    }
+    // Validate and configure address
+    _llk_unpack_configure_single_address_(base_address, cfg);
 
     // Trisc::SEMPOST for context acquire
     semaphore_post(semaphore::UNPACK_SYNC);

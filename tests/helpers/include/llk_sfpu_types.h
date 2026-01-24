@@ -4,6 +4,8 @@
 
 #pragma once
 
+// On Quasar, SfpuType is already defined via 'using SfpuType = ckernel::SfpuType' in llk_defs.h
+#ifndef ARCH_QUASAR
 enum class SfpuType
 {
     tanh,
@@ -108,3 +110,4 @@ enum class SfpuType
     typecast,
     mul_uint16,
 };
+#endif // ARCH_QUASAR
