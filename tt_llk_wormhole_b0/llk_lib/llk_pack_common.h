@@ -20,11 +20,11 @@ inline void _llk_pack_dbg_feature_disable_()
     reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1 << 11); // Set debug feature disable bit 11
 }
 
-inline void _llk_pack_dbg_feature_enable_()
-{
-    tensix_sync();
-    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0); // Clear debug feature disable bit 11
-}
+// inline void _llk_pack_dbg_feature_enable_()
+// {
+//     // tensix_sync();
+//     // reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0); // Clear debug feature disable bit 11
+// }
 
 // wait until math is done and has produced something to pack
 inline void _llk_packer_wait_for_math_done_()
@@ -273,10 +273,10 @@ inline void _llk_pack_reduce_mask_config_()
 template <bool enforce_fp32_accumulation = false>
 inline void _llk_pack_reduce_mask_clear_()
 {
-    if constexpr (enforce_fp32_accumulation)
-    {
-        _llk_pack_dbg_feature_enable_();
-    }
+    // if constexpr (enforce_fp32_accumulation)
+    // {
+    //     _llk_pack_dbg_feature_enable_();
+    // }
 
     // By default, all packers are set to use TILE_ROW_SET_MAPPING_0 and
     // mask is configured to pass through all the datums
