@@ -40,19 +40,14 @@ inline void _llk_math_eltwise_unary_datacopy_(
         // To mitigate that, we issue additional zero flag clear instruction immediately after unpack tile to dest is done.
         // RISC-to-dest event is not currently used.
 
-        const int clear_fp32 = static_cast<int>(dst_format == (uint)DataFormat::Float32);
+        const int clear_fp32          = static_cast<int>(dst_format == (uint)DataFormat::Float32);
         const uint32_t tiles_per_bank = clear_fp32 ? 4 : 8;
-        const uint32_t local_tile = dst_index & (tiles_per_bank - 1);
+        const uint32_t local_tile     = dst_index & (tiles_per_bank - 1);
 #pragma GCC unroll 0
         for (std::uint32_t i = 0; i < num_faces; i++)
         {
             // Clears zero flags in DEST for one face.
-            TT_ZEROACC(
-                p_zeroacc::CLR_16,
-                clear_fp32,
-                1 /*clear zero flags*/,
-                ADDR_MOD_3,
-                get_dest_index_in_faces(local_tile, i));
+            TT_ZEROACC(p_zeroacc::CLR_16, clear_fp32, 1 /*clear zero flags*/, ADDR_MOD_3, get_dest_index_in_faces(local_tile, i));
         }
 
         if constexpr (src_b_bcast_type == BroadcastType::ROW)
