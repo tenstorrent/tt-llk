@@ -17,6 +17,17 @@
 using namespace ckernel;
 using namespace ckernel::packer;
 
+inline void _llk_pack_dbg_feature_disable_()
+{
+    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1 << 11); // Set debug feature disable bit 11
+}
+
+inline void _llk_pack_dbg_feature_enable_()
+{
+    tensix_sync();
+    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0); // Clear debug feature disable bit 11
+}
+
 // wait until math is done and has produced something to pack
 inline void _llk_packer_wait_for_math_done_()
 {
@@ -133,9 +144,14 @@ inline void _llk_pack_reconfig_l1_acc_(const std::uint32_t enable)
     reconfigure_packer_l1_acc(enable);
 }
 
-template <bool untilize = false, ReduceDim dim>
+template <bool untilize = false, ReduceDim dim, bool enforce_fp32_accumulation = false>
 inline void _llk_pack_reduce_mask_config_()
 {
+    if constexpr (enforce_fp32_accumulation)
+    {
+        _llk_pack_dbg_feature_disable_();
+    }
+
     ckernel::packer::pck_edge_offset_u pack_edge_offset = {.val = 0};
 
     // We initialize PCK_EDGE_OFFSET_SEC0 mask to clear out all the datums in the row
@@ -217,8 +233,14 @@ inline void _llk_pack_reduce_mask_config_()
     TTI_NOP;
 }
 
+template <bool enforce_fp32_accumulation = false>
 inline void _llk_pack_reduce_mask_clear_()
 {
+    if constexpr (enforce_fp32_accumulation)
+    {
+        _llk_pack_dbg_feature_enable_();
+    }
+
     // By default, all packers are set to use TILE_ROW_SET_MAPPING_0 and
     // mask is configured to pass through all the datums
     pck_edge_offset_u pack_edge_offset = {.val = 0};
