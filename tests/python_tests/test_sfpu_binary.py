@@ -79,9 +79,10 @@ def test_sfpu_binary_float(formats, dest_acc, mathop, input_dimensions, workers_
         MathOperation.SfpuElwLogicalRightShift,
     ],
     dest_acc=[DestAccumulation.Yes],
+    input_dimensions=[[64, 32]],
 )
-def test_sfpu_binary_int(formats, dest_acc, mathop, workers_tensix_coordinates):
-    sfpu_binary(formats, dest_acc, mathop, workers_tensix_coordinates)
+def test_sfpu_binary_int(formats, dest_acc, mathop, input_dimensions, workers_tensix_coordinates):
+    sfpu_binary(formats, dest_acc, mathop, input_dimensions, workers_tensix_coordinates)
 
 
 @parametrize(
@@ -176,7 +177,7 @@ def sfpu_binary(formats, dest_acc, mathop, input_dimensions, workers_tensix_coor
         1,  # src2_idx: use tile 1
         0,  # dst_idx: write to tile 0
         32,  # num_iterations: 32 rows
-        input_dimensions,  # [64, 32] = 2 tiles
+        input_dimensions,
         (
             DataFormat.Float16_b
             if formats.input_format == DataFormat.Bfp8_b
