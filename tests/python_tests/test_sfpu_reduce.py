@@ -26,8 +26,11 @@ from helpers.test_variant_parameters import (
     APPROX_MODE,
     INPUT_DIMENSIONS,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
 
@@ -39,7 +42,7 @@ dimension_combinations = [
     for m in range(tile_dim, max_tiles * tile_dim + 1, tile_dim)
     for n in range(tile_dim, max_tiles * tile_dim + 1, tile_dim)
     if m * n <= max_tiles * tile_dim * tile_dim
-]
+] + [[64, 64], [128, 64], [64, 128]]
 
 
 def get_format_input_bounds(formats: InputOutputFormat) -> list[tuple[int, int]]:
@@ -96,6 +99,11 @@ def test_sfpu_reduce(
     )
     src_B = torch.zeros_like(src_A)
 
+    # Calculate block parameters for destination register banking
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt, formats.input_format
+    )
+
     # Max Reduction can do block and single tile reduction whereas Sum/Avg only do single tile reduction, convert Sum/Avg golden to do block reduction by retilizing input to src_A
     # Dimensions for Max reduction work column wise, for Sum/Avg processing tiles independently is same as column reduction on dst block dimension [32, num_tiles * 32] where num rows is 32 i.e RT_DIM=1 (same as a single tile)
     dst_dim = [32, tile_cnt * 32]
@@ -124,7 +132,11 @@ def test_sfpu_reduce(
             APPROX_MODE(ApproximationMode.No),
             MATH_OP(mathop=mathop, pool_type=reduce_pool),
         ],
-        runtimes=[TILE_COUNT(tile_cnt)],
+        runtimes=[
+            TILE_COUNT(tile_cnt),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
