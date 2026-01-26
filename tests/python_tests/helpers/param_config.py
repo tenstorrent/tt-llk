@@ -17,6 +17,12 @@ from .llk_params import DestAccumulation, DestSync
 
 checked_formats_and_dest_acc = {}
 
+# Maximum number of [32,32] tiles that can fit in dest register based on DestSync mode
+DEST_SYNC_TILE_LIMITS = {
+    DestSync.Half: 8,
+    DestSync.Full: 16,
+}
+
 
 def format_combination_sweep(
     formats: List[DataFormat],
@@ -398,12 +404,6 @@ def calculate_edgecase_dest_indices(
     """
 
     combinations = []
-
-    DEST_SYNC_TILE_LIMITS = {
-        DestSync.Half: 8,
-        DestSync.Full: 16,
-    }
-
     capacity_divisor = 2 if dest_acc else 1
 
     for dest_sync in dest_sync_modes:
@@ -426,11 +426,9 @@ def calculate_edgecase_dest_indices(
 
 
 def get_max_dst_index(dest_sync: DestSync, dest_acc: bool, result_tiles: int) -> int:
-    DEST_SYNC_TILE_LIMITS = {
-        DestSync.Half: 8 if not dest_acc else 4,
-        DestSync.Full: 16 if not dest_acc else 8,
-    }
-    return max(DEST_SYNC_TILE_LIMITS[dest_sync] - result_tiles, 0)
+    capacity_divisor = 2 if dest_acc else 1
+    max_tiles = DEST_SYNC_TILE_LIMITS[dest_sync] // capacity_divisor
+    return max(max_tiles - result_tiles, 0)
 
 
 def generate_unary_input_dimensions(dest_acc, dest_sync=DestSync.Half):
@@ -449,11 +447,6 @@ def generate_unary_input_dimensions(dest_acc, dest_sync=DestSync.Half):
     Returns:
         List of input dimensions
     """
-
-    DEST_SYNC_TILE_LIMITS = {
-        DestSync.Half: 8,
-        DestSync.Full: 16,
-    }
     capacity_divisor = 2 if dest_acc == DestAccumulation.Yes else 1
     max_tiles_in_dest = DEST_SYNC_TILE_LIMITS[dest_sync] // capacity_divisor
 
@@ -465,3 +458,61 @@ def generate_unary_input_dimensions(dest_acc, dest_sync=DestSync.Half):
         for row in range(1, max_tiles_in_dest + 1)
         for column in range(1, (max_tiles_in_dest // row) + 1)
     ]
+
+
+# Returns the maximum number of [32,32] tiles that can fit in dest register
+def get_max_tiles_num_in_dest(
+    dest_sync: DestSync,
+    dest_acc: bool,
+    formats: InputOutputFormat,
+    tile_dimensions: List[int] = [32, 32],
+) -> int:
+
+    # TODO: Once we start thoroughly testing tiles with non-default sizes, this function
+    #       will need to be updated to take tile size into account.
+    if tile_dimensions != [32, 32]:
+        raise NotImplementedError(
+            f"Non-default tile dimensions {tile_dimensions} are not yet supported. "
+            "Only [32, 32] tiles are currently implemented."
+        )
+
+    capacity_divisor = (
+        2
+        if (dest_acc == DestAccumulation.Yes or formats.output_format.is_32_bit())
+        else 1
+    )
+    return DEST_SYNC_TILE_LIMITS[dest_sync] // capacity_divisor
+
+
+# Returns the number of blocks in the input matrix.
+# A block is defined as a maximum matrix size that can fit in dest register.
+def get_num_blocks(
+    dest_sync: DestSync,
+    dest_acc: bool,
+    formats: InputOutputFormat,
+    input_dimensions: List[int],
+    tile_dimensions: List[int] = [32, 32],
+) -> int:
+
+    num_tiles_in_input = (input_dimensions[0] // tile_dimensions[0]) * (
+        input_dimensions[1] // tile_dimensions[1]
+    )
+    max_tiles_in_dest = get_max_tiles_num_in_dest(dest_sync, dest_acc, formats)
+
+    return (num_tiles_in_input + max_tiles_in_dest - 1) // max_tiles_in_dest
+
+
+def get_num_tiles_in_block(
+    dest_sync: DestSync,
+    dest_acc: bool,
+    formats: InputOutputFormat,
+    input_dimensions: List[int],
+    tile_dimensions: List[int] = [32, 32],
+) -> int:
+
+    num_tiles_in_input = (input_dimensions[0] // tile_dimensions[0]) * (
+        input_dimensions[1] // tile_dimensions[1]
+    )
+    max_tiles_in_dest = get_max_tiles_num_in_dest(dest_sync, dest_acc, formats)
+
+    return num_tiles_in_input % max_tiles_in_dest or max_tiles_in_dest
