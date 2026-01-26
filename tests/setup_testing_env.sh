@@ -126,9 +126,6 @@ download_sfpu_files() {
 		echo "ERROR: Failed to clone tt-metal repository" >&2
 	fi
 
-    # Create noc_nonblocking_api.h stub for metal compatibility
-    echo "#pragma once" > "${sfpu_dir}/noc_nonblocking_api.h"
-
     touch "$stamp_file"
 }
 
