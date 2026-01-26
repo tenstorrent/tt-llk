@@ -9,7 +9,7 @@ import torch
 
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .format_config import DataFormat
-from .fused_math import Math
+from .fused_math import Math, MatmulFpu
 from .fused_operand import Operand, OperandMapping
 from .fused_packer import Packer
 from .fused_unpacker import Unpacker, UnpackerTilizeA
@@ -58,6 +58,7 @@ class FusedOperation:
     dst_index: int = 0
     srca_reuse_count: int = 4
     output_pack_dims: Tuple[int, int] = None
+    batch_size: int = 0
 
     def __post_init__(self):
         mapping = self.operand_mapping
@@ -151,6 +152,15 @@ class FusedOperation:
             self.bh_tilize = Tilize.Yes
         else:
             self.bh_tilize = Tilize.No
+
+        if (
+            self.batch_size <= 0
+            or self.batch_size > self.output.tile_count
+            or isinstance(self.math.fpu, MatmulFpu)
+        ):
+            self.batch_size = self.output.tile_count
+
+        print(self.batch_size)
 
     @property
     def src_a(self) -> Operand:
