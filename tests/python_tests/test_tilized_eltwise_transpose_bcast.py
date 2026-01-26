@@ -93,13 +93,11 @@ def extract_row_from_tilized(tilized_tensor, row_index, data_format):
             # DataFormat.Float16,
         ]
     ),
-    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     math_fidelity=[MathFidelity.LoFi],
     input_dimensions=[[32, 32]],
-    row_index=[0],  # Debug: single row_index  # list(range(32)),  # Sweep from 0 to 31
-    transpose_A=[
-        Transpose.Yes
-    ],  # Transpose.Yes],  # Test with and without srcA transpose
+    row_index=list(range(32)),
+    transpose_A=[Transpose.No, Transpose.Yes],
 )
 def test_tilized_eltwise_transpose_bcast(
     formats,
@@ -264,16 +262,6 @@ def test_tilized_eltwise_transpose_bcast(
 
     torch_format_out = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format_out)
-
-    # ========== Debug: Print results ==========
-    print("srcA:")
-    print(src_A.view(32, 32))
-    print("srcB:")
-    print(src_B.view(32, 32))
-    print("result:")
-    print(res_tensor.view(32, 32))
-    print("golden:")
-    print(golden_tensor.view(32, 32))
 
     # Compare in tilized format
     assert passed_test(
