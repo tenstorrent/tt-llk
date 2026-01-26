@@ -20,14 +20,11 @@ inline void _llk_math_eltwise_ternary_sfpu_params_(
         for (int face = 0; face < 2; face++)
         {
             std::forward<Callable>(sfpu_func)(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out, std::forward<Args>(args)...);
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // repeat 2x
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_();
         }
         // Skip next 2 faces
-        for (int i = 0; i < 4; ++i)
-        {
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-        }
+        _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_();
+        _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_();
     }
     else if (vector_mode == (int)VectorMode::C)
     {
@@ -35,10 +32,8 @@ inline void _llk_math_eltwise_ternary_sfpu_params_(
         for (int face = 0; face < 2; face++)
         {
             std::forward<Callable>(sfpu_func)(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out, std::forward<Args>(args)...);
-            for (int i = 0; i < 4; ++i)
-            {
-                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-            }
+            _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_();
+            _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_();
         }
     }
     else if (vector_mode == (int)VectorMode::RC)
@@ -47,8 +42,7 @@ inline void _llk_math_eltwise_ternary_sfpu_params_(
         for (int face = 0; face < 4; face++)
         {
             std::forward<Callable>(sfpu_func)(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out, std::forward<Args>(args)...);
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_();
         }
     }
     else

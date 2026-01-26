@@ -152,6 +152,9 @@ inline void math_unpack_to_dest_tile_ready()
 template <DstTileShape tile_shape, UnpackDestination unpack_destination>
 inline void set_dst_write_addr(uint32_t tile_index)
 {
+    static_assert(
+        tile_shape == DstTileShape::Tile32x32 || tile_shape == DstTileShape::Tile32x16 || tile_shape == DstTileShape::Tile16x16, "Invalid tile shape");
+
     uint dst_index = tile_index << DstTileSizeLog2[tile_shape];
     dst_index      = dst_index + get_dest_buffer_base();
     if constexpr (unpack_destination == UnpackDestination::DestReg)
@@ -244,7 +247,32 @@ inline std::uint32_t get_dest_index_in_faces(const std::uint32_t dst_index, cons
     // dst_index << 2 gives a tile idex in faces, because there are 4 faces in a tile.
     // face_index should normally take values from {0, 1, 2, 3}, although if it's greater
     // than 3 faces from next tiles can be accessed.
+    LLK_ASSERT(face_index < 4, "face_index out of range");
     return (dst_index << 2) + face_index;
+}
+
+/**
+ * @brief Calculates the maximum number of destination tiles that can fit in the destination register.
+ *
+ * @tparam DST_SYNC_MODE   Destination synchronization mode (SyncHalf or SyncFull)
+ * @tparam DST_ACCUM_MODE Accumulation mode: true for 32-bit (FP32), false for 16-bit
+ * @tparam TILE_SHAPE      Tile shape enum value (e.g., 32x32, 16x16, etc.)
+ * @return constexpr int   Maximum number of destination tiles
+ *
+ * The calculation is based on the destination register size and the tile shape.
+ *
+ * Formula:
+ *   DEST_REGISTER_SIZE >> DstTileSizeLog2[static_cast<int>(TILE_SHAPE)]
+ *
+ * Where DEST_REGISTER_SIZE is selected based on DST_SYNC_MODE and DST_ACCUM_MODE.
+ */
+template <DstSync DST_SYNC_MODE, bool DST_ACCUM_MODE, DstTileShape TILE_SHAPE>
+constexpr int get_dest_max_tiles()
+{
+    constexpr int DEST_REGISTER_SIZE = DST_SYNC_MODE == DstSync::SyncHalf ? (DST_ACCUM_MODE ? BIT32_DEST_REGISTER_HALF_SIZE : DEST_REGISTER_HALF_SIZE)
+                                                                          : (DST_ACCUM_MODE ? BIT32_DEST_REGISTER_FULL_SIZE : DEST_REGISTER_FULL_SIZE);
+
+    return DEST_REGISTER_SIZE >> DstTileSizeLog2[static_cast<int>(TILE_SHAPE)];
 }
 
 } // namespace ckernel::math
