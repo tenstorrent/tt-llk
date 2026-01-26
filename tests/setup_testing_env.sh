@@ -114,14 +114,17 @@ download_sfpu_files() {
 
     echo "Downloading SFPU files for ${chip_arch}..."
 
-    git clone --depth 1 --filter=blob:none --sparse https://github.com/tenstorrent/tt-metal.git tt-metal-temp 2>/dev/null
-    cd tt-metal-temp
-    git sparse-checkout set tt_metal/hw/ckernels/${ckernels_path}/metal/llk_api/llk_sfpu 2>/dev/null
-    cd - > /dev/null
-    cp tt-metal-temp/tt_metal/hw/ckernels/${ckernels_path}/metal/llk_api/llk_sfpu/*.h "${sfpu_dir}/"
-
-    # Delete downloaded repo
-    rm -rf tt-metal-temp
+	if git clone --depth 1 --filter=blob:none --sparse https://github.com/tenstorrent/tt-metal.git tt-metal-temp 2>/dev/null; then
+		if git -C tt-metal-temp sparse-checkout set tt_metal/hw/ckernels/${ckernels_path}/metal/llk_api/llk_sfpu 2>/dev/null; then
+			cp tt-metal-temp/tt_metal/hw/ckernels/${ckernels_path}/metal/llk_api/llk_sfpu/*.h "${sfpu_dir}/" || \
+				echo "ERROR: Failed to copy SFPU headers" >&2
+		else
+			echo "ERROR: Failed to sparse-checkout SFPU headers" >&2
+		fi
+		rm -rf tt-metal-temp
+	else
+		echo "ERROR: Failed to clone tt-metal repository" >&2
+	fi
 
     # Create noc_nonblocking_api.h stub for metal compatibility
     echo "#pragma once" > "${sfpu_dir}/noc_nonblocking_api.h"
