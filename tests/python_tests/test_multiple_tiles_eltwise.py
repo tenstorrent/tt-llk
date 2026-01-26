@@ -19,8 +19,11 @@ from helpers.test_variant_parameters import (
     INPUT_DIMENSIONS,
     MATH_FIDELITY,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 
@@ -41,7 +44,7 @@ from helpers.utils import passed_test
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    input_dimensions=[[32, 32], [32, 64], [64, 64]],
+    input_dimensions=[[32, 32], [32, 64], [64, 64], [128, 64], [64, 128]],
 )
 def test_multiple_tiles(
     formats,
@@ -62,6 +65,10 @@ def test_multiple_tiles(
         input_dimensions_B=input_dimensions,
     )
 
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt_A, formats.input_format
+    )
+
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
     golden_tensor = generate_golden(
         mathop, src_A, src_B, formats.output_format, math_fidelity
@@ -75,7 +82,11 @@ def test_multiple_tiles(
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            TILE_COUNT(tile_cnt_A),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
