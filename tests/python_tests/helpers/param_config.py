@@ -460,13 +460,25 @@ def generate_unary_input_dimensions(dest_acc, dest_sync=DestSync.Half):
     ]
 
 
-# Returns the maximum number of [32,32] tiles that can fit in dest register
 def get_max_tiles_num_in_dest(
     dest_sync: DestSync,
-    dest_acc: bool,
+    dest_acc: DestAccumulation,
     formats: InputOutputFormat,
-    tile_dimensions: List[int] = [32, 32],
+    tile_dimensions: List[int] = None,
 ) -> int:
+    """
+    Compute the maximum number of tiles that fit into the destination register.
+    This helper computes how many tiles of the given size can be stored in the
+    destination register without exceeding the hardware capacity for a given
+    `dest_sync` mode and destination accumulation / output format configuration.
+    The effective capacity is reduced when either destination accumulation is
+    enabled or the output format is 32-bit. In those cases, each tile consumes
+    twice as much capacity, so the maximum tile count is divided by a capacity
+    divisor of 2 instead of 1.
+    """
+
+    if tile_dimensions is None:
+        tile_dimensions = [32, 32]
 
     # TODO: Once we start thoroughly testing tiles with non-default sizes, this function
     #       will need to be updated to take tile size into account.
@@ -478,7 +490,7 @@ def get_max_tiles_num_in_dest(
 
     capacity_divisor = (
         2
-        if (dest_acc == DestAccumulation.Yes or formats.output_format.is_32_bit())
+        if (dest_acc == DestAccumulation.Yes or formats.input_format.is_32_bit())
         else 1
     )
     return DEST_SYNC_TILE_LIMITS[dest_sync] // capacity_divisor
@@ -488,31 +500,62 @@ def get_max_tiles_num_in_dest(
 # A block is defined as a maximum matrix size that can fit in dest register.
 def get_num_blocks(
     dest_sync: DestSync,
-    dest_acc: bool,
+    dest_acc: DestAccumulation,
     formats: InputOutputFormat,
     input_dimensions: List[int],
-    tile_dimensions: List[int] = [32, 32],
+    tile_dimensions: List[int] = None,
 ) -> int:
+    """
+    Compute how many destination-register-sized blocks are needed to store an input matrix.
+    A *block* is the largest contiguous group of tiles that can fit into the destination
+    register for a given ``dest_sync`` mode, accumulation mode, and output format. The
+    function partitions the input matrix (expressed in tiles) into such blocks and returns
+    how many blocks are required.
+    """
+
+    if tile_dimensions is None:
+        tile_dimensions = [32, 32]
 
     num_tiles_in_input = (input_dimensions[0] // tile_dimensions[0]) * (
         input_dimensions[1] // tile_dimensions[1]
     )
-    max_tiles_in_dest = get_max_tiles_num_in_dest(dest_sync, dest_acc, formats)
+    max_tiles_in_dest = get_max_tiles_num_in_dest(
+        dest_sync, dest_acc, formats, tile_dimensions
+    )
 
     return (num_tiles_in_input + max_tiles_in_dest - 1) // max_tiles_in_dest
 
 
 def get_num_tiles_in_block(
     dest_sync: DestSync,
-    dest_acc: bool,
+    dest_acc: DestAccumulation,
     formats: InputOutputFormat,
     input_dimensions: List[int],
-    tile_dimensions: List[int] = [32, 32],
+    tile_dimensions: List[int] = None,
 ) -> int:
+    """
+    Return the number of tiles contained in a single logical block.
+    A *block* is the largest contiguous portion of the input matrix (expressed in
+    tiles) that can fit into the destination register given the current
+    synchronization and accumulation settings. Conceptually, the input matrix is
+    partitioned into ``get_num_blocks(...)`` such blocks.
+    """
+
+    if tile_dimensions is None:
+        tile_dimensions = [32, 32]
 
     num_tiles_in_input = (input_dimensions[0] // tile_dimensions[0]) * (
         input_dimensions[1] // tile_dimensions[1]
     )
-    max_tiles_in_dest = get_max_tiles_num_in_dest(dest_sync, dest_acc, formats)
+    max_tiles_in_dest = get_max_tiles_num_in_dest(
+        dest_sync, dest_acc, formats, tile_dimensions
+    )
 
-    return num_tiles_in_input % max_tiles_in_dest or max_tiles_in_dest
+    block_tiles = max_tiles_in_dest
+
+    # (num_tiles_in_input % max_tiles_in_dest or max_tiles_in_dest) wouldn't work here for certain cases.
+    # Example: 9 tiles can be split into blocks of 3, but above equation outputs 1.
+    while block_tiles > 1 and num_tiles_in_input % block_tiles != 0:
+        block_tiles -= 1
+
+    return block_tiles
