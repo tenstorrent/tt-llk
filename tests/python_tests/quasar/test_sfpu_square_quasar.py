@@ -237,6 +237,9 @@ def test_sfpu_square_quasar(formats_dest_acc_implied_math_input_dims):
         input_dimensions,
     )
 
+    unpack_to_dest = (
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+    )
     configuration = TestConfig(
         "sources/quasar/sfpu_square_quasar_test.cpp",
         formats,
@@ -245,7 +248,9 @@ def test_sfpu_square_quasar(formats_dest_acc_implied_math_input_dims):
             MATH_OP(mathop=MathOperation.Square),
             IMPLIED_MATH_FORMAT(implied_math_format),
             DATA_COPY_TYPE(DataCopyType.A2D),
-            UNPACKER_ENGINE_SEL(UnpackerEngine.UnpA),
+            UNPACKER_ENGINE_SEL(
+                UnpackerEngine.UnpDest if unpack_to_dest else UnpackerEngine.UnpA
+            ),
             DEST_SYNC(),
         ],
         runtimes=[

@@ -15,9 +15,8 @@
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const uint32_t UNPACKER_ENGINE_SEL = unpack_to_dest ? p_unpacr::UNP_DEST : p_unpacr::UNP_A;
-    const uint buf_desc_id             = 0;
-    const uint num_tiles               = params->TILE_CNT;
+    const uint buf_desc_id = 0;
+    const uint num_tiles   = params->TILE_CNT;
 
     if (unpack_to_dest)
     {
@@ -103,7 +102,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     if (!unpack_to_dest)
     {
         const uint num_rows = params->num_faces * params->TEST_FACE_R_DIM;
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(num_rows, 1);
+        _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(num_rows, 1);
 
         // Datacopy all tiles from SRC to DEST
         for (int i = 0; i < params->TILE_CNT; ++i)
