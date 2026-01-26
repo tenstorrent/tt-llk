@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.constraints import (
     get_valid_dest_accumulation_modes,
@@ -85,7 +86,13 @@ def get_valid_num_faces_datacopy(tilize):
     ),
 )
 def test_unary_datacopy(
-    formats, dest_acc, num_faces, tilize, input_dimensions, dest_index, workers_tensix_coordinates
+    formats,
+    dest_acc,
+    num_faces,
+    tilize,
+    input_dimensions,
+    dest_index,
+    workers_tensix_coordinates,
 ):
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
