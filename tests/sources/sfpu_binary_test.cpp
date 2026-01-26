@@ -71,7 +71,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // Note: argument passed to _llk_math_eltwise_binary_sfpu_start_ is dest index of first operand, and
     // argument passed of _calculate_sfpu_binary_ is dest index of the second operand
 
-    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
+    _llk_math_eltwise_binary_sfpu_start_(0);
     test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, 32, formats.math>(0, 1, 0);
 
     _llk_math_eltwise_binary_sfpu_done_();

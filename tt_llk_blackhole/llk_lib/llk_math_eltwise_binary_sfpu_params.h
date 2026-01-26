@@ -12,7 +12,7 @@ template <bool APPROXIMATE, typename Callable, typename... Args>
 inline void _llk_math_eltwise_binary_sfpu_params_(
     Callable&& sfpu_func, uint dst_index_in0, uint dst_index_in1, uint dst_index_out, int vector_mode = (int)VectorMode::RC, Args&&... args)
 {
-    _llk_math_eltwise_binary_sfpu_start_<DST_SYNC_MODE>(0);
+    _llk_math_eltwise_binary_sfpu_start_(0);
 
     VectorMode mode = static_cast<VectorMode>(vector_mode);
 

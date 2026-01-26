@@ -43,9 +43,6 @@ inline void eltwise_binary_sfpu_configure_addrmod()
     }
 }
 
-inline void eltwise_binary_sfpu_configure_mop();
-
-template <DstSync Dst>
 inline void _llk_math_eltwise_binary_sfpu_start_(const uint dst_index)
 {
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);

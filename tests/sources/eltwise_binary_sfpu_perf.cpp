@@ -175,7 +175,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                         }
                     }
 
-                    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
+                    _llk_math_eltwise_binary_sfpu_start_(/* dst_index */ block_start);
 
                     test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, ITERATIONS>(block_start, formats.math);
 
@@ -201,7 +201,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     }
 
                     // Start SFPU binary operation
-                    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
+                    _llk_math_eltwise_binary_sfpu_start_(/* dst_index */ block_start);
 
                     test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, ITERATIONS>(block_start, formats.math);
 

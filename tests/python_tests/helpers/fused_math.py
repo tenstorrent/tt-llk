@@ -536,7 +536,7 @@ class BinarySfpu(Sfpu):
             format = f"math_format{stage}"
 
         return (
-            f"    _llk_math_eltwise_binary_sfpu_start_<dest_sync{stage}>(0);\n"
+            f"    _llk_math_eltwise_binary_sfpu_start_(0);\n"
             f"    test_utils::call_binary_sfpu_operation<{approx_mode}, {op}, {iterations}, {format}>({src1}, {src2}, {dst});\n"
             f"    _llk_math_eltwise_binary_sfpu_done_();\n"
         )
@@ -597,7 +597,7 @@ class SfpuWhere(Sfpu):
             f"    // Operation {stage}: Binary {self.operation.cpp_enum_value} SFPU\n"
             f"    _llk_math_eltwise_ternary_sfpu_init_<SfpuType::where>();\n"
             f"    ckernel::sfpu::_init_where_<{self.approx_mode.value}>();\n"
-            f"    _llk_math_eltwise_ternary_sfpu_start_<dest_sync{stage}>(0);\n"
+            f"    _llk_math_eltwise_ternary_sfpu_start_(0);\n"
             f"    ckernel::sfpu::_calculate_where_<false, math_format{stage}, {self.iterations}>({src1}, {src2}, {src3}, {dst});\n"
             f"    _llk_math_eltwise_ternary_sfpu_done_();\n"
         )
