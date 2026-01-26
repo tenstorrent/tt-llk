@@ -449,9 +449,12 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod()
         .set(ADDR_MOD_2);
 }
 
+template <bool transpose_faces = false>
 inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop()
 {
-    constexpr uint32_t REPLAY_BUFFER_SIZE = 13;
+    // Without transpose: 13 instructions
+    // With transpose: 20 instructions (extra dest manipulations between faces)
+    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 20 : 13;
 
     uint32_t innerloop           = 1;
     constexpr uint32_t outerloop = 1;
@@ -461,10 +464,12 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop()
     tmp.program();
 }
 
-template <EltwiseBinaryType eltwise_binary_type>
+template <EltwiseBinaryType eltwise_binary_type, bool transpose_faces = false>
 inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
 {
-    constexpr uint32_t REPLAY_BUFFER_SIZE = 13;
+    // Without transpose: 13 instructions
+    // With transpose: 20 instructions (extra dest manipulations between faces)
+    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 20 : 13;
 
     _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod();
 
@@ -495,29 +500,81 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
     */
     TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
 
-    eltwise_op(ADDR_MOD_0);
-    eltwise_op(ADDR_MOD_1);
+    if constexpr (transpose_faces)
+    {
+        // ********************************************************
+        // TRANSPOSE FACES MODE: Write F0 to dest0, F1 to dest32, F2 to dest16, F3 to dest48
+        // srcA flows naturally: F0(0-15), F1(16-31), F2(32-47), F3(48-63)
+        // Only dest write locations are modified to achieve face transpose
+        // ********************************************************
 
-    eltwise_op(ADDR_MOD_0);
-    eltwise_op(ADDR_MOD_1);
+        // F0: write to dest 0-15 (face 0 position - normal)
+        eltwise_op(ADDR_MOD_0); // dest: 0 -> 8
+        eltwise_op(ADDR_MOD_1); // dest: 8 -> 16
 
-    // BOTTOM FACES F2 AND F3
+        // Jump dest from 16 to 32 for F1 to write at F2 position
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // dest: 16 -> 24
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // dest: 24 -> 32
 
-    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0); // clear dvalid on srcB and reset srcB counters
+        // F1: write to dest 32-47 (face 2 position - swapped)
+        eltwise_op(ADDR_MOD_0); // dest: 32 -> 40
+        eltwise_op(ADDR_MOD_1); // dest: 40 -> 48
 
-    TTI_TRNSPSRCB; // rows -> cols
+        // BOTTOM FACES F2 AND F3
+        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0); // clear dvalid on srcB and reset srcB counters
 
-    eltwise_op(ADDR_MOD_0);
-    eltwise_op(ADDR_MOD_1);
+        TTI_TRNSPSRCB; // rows -> cols
 
-    eltwise_op(ADDR_MOD_0);
-    eltwise_op(ADDR_MOD_1);
+        // Reset dest to 16 for F2 to write at F1 position
+        // After F1, dest is at 48. Reset to 0, then add 16.
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);              // dest: 48 -> 0
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // dest: 0 -> 8
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // dest: 8 -> 16
 
-    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0); // clear both src dvalids
+        // F2: write to dest 16-31 (face 1 position - swapped)
+        eltwise_op(ADDR_MOD_0); // dest: 16 -> 24
+        eltwise_op(ADDR_MOD_1); // dest: 24 -> 32
+
+        // Jump dest from 32 to 48 for F3
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // dest: 32 -> 40
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // dest: 40 -> 48
+
+        // F3: write to dest 48-63 (face 3 position - normal)
+        eltwise_op(ADDR_MOD_0); // dest: 48 -> 56
+        eltwise_op(ADDR_MOD_1); // dest: 56 -> 64
+
+        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0); // clear both src dvalids
+    }
+    else
+    {
+        // ********************************************************
+        // NORMAL MODE: Write faces in order F0, F1, F2, F3
+        // ********************************************************
+
+        eltwise_op(ADDR_MOD_0);
+        eltwise_op(ADDR_MOD_1);
+
+        eltwise_op(ADDR_MOD_0);
+        eltwise_op(ADDR_MOD_1);
+
+        // BOTTOM FACES F2 AND F3
+
+        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0); // clear dvalid on srcB and reset srcB counters
+
+        TTI_TRNSPSRCB; // rows -> cols
+
+        eltwise_op(ADDR_MOD_0);
+        eltwise_op(ADDR_MOD_1);
+
+        eltwise_op(ADDR_MOD_0);
+        eltwise_op(ADDR_MOD_1);
+
+        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0); // clear both src dvalids
+    }
 
     // ********************************************************
 
-    _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop();
+    _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop<transpose_faces>();
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
     math::reset_counters(p_setrwc::SET_ABD_F);
