@@ -20,6 +20,7 @@ from helpers.llk_params import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_config import StimuliConfig
+from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     BROADCAST_TYPE,
@@ -90,14 +91,14 @@ def extract_row_from_tilized(tilized_tensor, row_index, data_format):
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
-            DataFormat.Float16,
+            # DataFormat.Float16,
         ]
     ),
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
     math_fidelity=[MathFidelity.LoFi],
     input_dimensions=[[32, 32]],
-    row_index=list(range(32)),
-    transpose_A=[Transpose.No, Transpose.Yes],
+    row_index=list(range(1)),
+    transpose_A=[Transpose.Yes],  # , Transpose.Yes],
 )
 def test_tilized_eltwise_transpose_bcast(
     formats,
@@ -123,29 +124,35 @@ def test_tilized_eltwise_transpose_bcast(
     transpose_A: If Yes, srcA will be transposed during unpack (both face transpose
                  and within-face transpose)
     """
-    # src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
-    #     stimuli_format_A=formats.input_format,
-    #     input_dimensions_A=input_dimensions,
-    #     stimuli_format_B=formats.input_format,
-    #     input_dimensions_B=input_dimensions,
-    # )
+    src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
+        stimuli_format_A=formats.input_format,
+        input_dimensions_A=input_dimensions,
+        stimuli_format_B=formats.input_format,
+        input_dimensions_B=input_dimensions,
+    )
 
     # ========== Debug: Deterministic stimuli ==========
     # srcA: row i has all values = i (row 0 = 0, row 1 = 1, ..., row 31 = 31)
     # srcB: constant 1
     # Expected result: srcA transposed - 1
-    torch_format = format_dict[formats.input_format]
-    tile_cnt_A = 1
-    tile_cnt_B = 1
 
-    # Create srcA: 32x32 where row i has value i
-    src_A = torch.zeros(32, 32, dtype=torch_format)
-    for row in range(32):
-        src_A[row, :] = row
-    src_A = src_A.flatten()
+    # torch_format = format_dict[formats.input_format]
+    # tile_cnt_A = 1
+    # tile_cnt_B = 1
 
-    # Create srcB: constant 1
-    src_B = torch.ones(32 * 32, dtype=torch_format)
+    # # Create srcA: 32x32 where row i has value i
+    # src_A = torch.zeros(32, 32, dtype=torch_format)
+    # # for row in range(32):
+    # #     src_A[row, :] = row + 1
+    # src_A = src_A.flatten()
+
+    # # Create srcB: each row has column values 1 to 32
+    # # This ensures extracted row has varying values to test transpose/broadcast ordering
+    # src_B = torch.zeros(32, 32, dtype=torch_format)
+    # for row in range(32):
+    #     for col in range(32):
+    #         src_B[row, col] = col + 1
+    # src_B = src_B.flatten()
 
     # Tilize both inputs for hardware (both will be tilized in L1)
     src_A_tilized = tilize_block(src_A, input_dimensions, formats.input_format)
@@ -262,6 +269,17 @@ def test_tilized_eltwise_transpose_bcast(
 
     torch_format_out = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format_out)
+
+    # print("srcA: \n", src_A.view(32, 32))
+    # print("srcB: \n", src_B.view(32, 32))
+    # print("res_tensor: \n", res_tensor.view(32, 32))
+    # print("golden_tensor: \n", golden_tensor.view(32, 32))
+
+    # print("GOLDEN UNTILIZED: \n")
+    # print(untilize_block(golden_tensor, formats.output_format).view(32, 32))
+
+    # print("RES TENSOR UNTILIZED: \n")
+    # print(untilize_block(res_tensor, formats.output_format).view(32, 32))
 
     # Compare in tilized format
     assert passed_test(

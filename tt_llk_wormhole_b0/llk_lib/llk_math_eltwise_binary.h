@@ -461,7 +461,7 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop()
 {
     // Without transpose: 13 instructions
     // With transpose: 20 instructions (extra dest manipulations between faces)
-    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 17 : 13;
+    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 13 : 13;
 
     uint32_t innerloop           = 1;
     constexpr uint32_t outerloop = 1;
@@ -476,7 +476,7 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
 {
     // Without transpose: 13 instructions
     // With transpose: 20 instructions (extra dest manipulations between faces)
-    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 17 : 13;
+    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 13 : 13;
 
     _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod();
 
@@ -521,7 +521,7 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
 
         // Dummy SFPLOAD with no effect to move Dst counter by 16
         // Jump dest from 16 to 32 for F1 to write at F2 position
-        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+        // TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
 
         // F1: write to dest 32-47 (face 2 position - swapped)
         eltwise_op(ADDR_MOD_0); // dest: 32 -> 40
@@ -534,8 +534,8 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
 
         // Reset dest to 16 for F2 to write at F1 position
         // After F1, dest is at 48. Reset to 0, then add 16.
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D); // dest: 48 -> 0
-        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+        // TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D); // dest: 48 -> 0
+        // TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
 
         // F2: write to dest 16-31 (face 1 position - swapped)
         eltwise_op(ADDR_MOD_0); // dest: 16 -> 24
@@ -543,7 +543,7 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
 
         // Dummy SFPLOAD with no effect to move Dst counter by 16
         // Jump dest from 32 to 48 for F3
-        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+        // TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
 
         // F3: write to dest 48-63 (face 3 position - normal)
         eltwise_op(ADDR_MOD_0); // dest: 48 -> 56
