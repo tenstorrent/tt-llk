@@ -513,8 +513,8 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
         eltwise_op(ADDR_MOD_1); // dest: 8 -> 16
 
         // Jump dest from 16 to 32 for F1 to write at F2 position
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // dest: 16 -> 24
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // dest: 24 -> 32
+        TTI_INCRWC(0, 8, 0, 0);
+        TTI_INCRWC(0, 8, 0, 0);
 
         // F1: write to dest 32-47 (face 2 position - swapped)
         eltwise_op(ADDR_MOD_0); // dest: 32 -> 40
@@ -527,17 +527,17 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
 
         // Reset dest to 16 for F2 to write at F1 position
         // After F1, dest is at 48. Reset to 0, then add 16.
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);              // dest: 48 -> 0
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // dest: 0 -> 8
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // dest: 8 -> 16
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D); // dest: 48 -> 0
+        TTI_INCRWC(0, 8, 0, 0);
+        TTI_INCRWC(0, 8, 0, 0);
 
         // F2: write to dest 16-31 (face 1 position - swapped)
         eltwise_op(ADDR_MOD_0); // dest: 16 -> 24
         eltwise_op(ADDR_MOD_1); // dest: 24 -> 32
 
         // Jump dest from 32 to 48 for F3
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // dest: 32 -> 40
-        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // dest: 40 -> 48
+        TTI_INCRWC(0, 8, 0, 0);
+        TTI_INCRWC(0, 8, 0, 0);
 
         // F3: write to dest 48-63 (face 3 position - normal)
         eltwise_op(ADDR_MOD_0); // dest: 48 -> 56
