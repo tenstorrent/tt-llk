@@ -90,7 +90,7 @@ def extract_row_from_tilized(tilized_tensor, row_index, data_format):
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
-            # DataFormat.Float16,
+            DataFormat.Float16,
         ]
     ),
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
