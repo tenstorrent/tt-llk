@@ -54,7 +54,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
     const int num_blocks         = params->NUM_BLOCKS;
-    constexpr bool is32 = is_fp32_dest_acc_en;
+    constexpr bool is32          = is_fp32_dest_acc_en;
 
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(params->num_faces, formats.math);

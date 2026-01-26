@@ -53,7 +53,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
     const int num_blocks         = params->NUM_BLOCKS;
-    const bool is_int_fpu_en = false;
+    const bool is_int_fpu_en     = false;
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
