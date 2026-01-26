@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+
 from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
@@ -30,7 +31,6 @@ from helpers.test_variant_parameters import (
     NUM_BLOCKS,
     NUM_FACES,
     NUM_TILES_IN_BLOCK,
-    TILE_COUNT,
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
 )
