@@ -46,7 +46,7 @@ download_headers() {
     local headers=( "core_config.h" "cfg_defines.h" "dev_mem_map.h" "tensix.h" "tensix_types.h")
     if [[ "$chip_arch" == "quasar" ]]; then
         base_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/internal/tt-2xx/quasar"
-        headers=( "core_config.h" "cfg_defines.h" "dev_mem_map.h" "tensix.h" "tensix_types.h" )
+        headers=( "core_config.h" "dev_mem_map.h" )
     fi
 
     # Check stamp file AND verify headers exist
@@ -59,7 +59,7 @@ download_headers() {
             fi
         done
 
-        if [[ "$all_headers_present" == true ]] && [[ -f "${header_dir}/internal/risc_attribs.h" ]]; then
+        if [[ "$all_headers_present" == true ]]; then
             echo "Headers for ${chip_arch} already downloaded."
             return
         fi
