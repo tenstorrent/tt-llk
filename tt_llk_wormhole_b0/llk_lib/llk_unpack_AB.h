@@ -6,6 +6,7 @@
 
 #include <cstdint>
 
+#include "../../common/tensor_shape.h"
 #include "ckernel.h"
 #include "ckernel_defs.h"
 #include "ckernel_globals.h"
@@ -20,8 +21,10 @@ using namespace ckernel;
 using namespace ckernel::unpacker;
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, const std::uint32_t num_faces = 4, const bool narrow_tile = false)
+inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const ckernel::TensorShape tensor_shape)
 {
+    const std::uint32_t num_faces = tensor_shape.total_num_faces();
+    const bool narrow_tile        = (tensor_shape.num_faces_c_dim == 1);
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
     if (transpose_of_faces)
@@ -96,9 +99,10 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_init_(
-    const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, const bool narrow_tile = false, const std::uint32_t transpose = 0)
+inline void _llk_unpack_AB_init_(const ckernel::TensorShape tensor_shape, const std::uint32_t transpose = 0)
 {
+    const std::uint32_t num_faces = tensor_shape.total_num_faces();
+    // TODO: Remove this assert after testing >4 num_faces because there is no reason to limit this for non-broadcast versions
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose); // transpose within the face
 
@@ -128,14 +132,16 @@ inline void _llk_unpack_AB_reduce_init_(
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(ReduceDim::REDUCE_ROW == dim ? !within_face_16x16_transpose : within_face_16x16_transpose);
 
     constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;
-    config_unpacker_x_end<UNP_SEL>(face_r_dim);
+    config_unpacker_x_end<UNP_SEL>(tensor_shape.face_r_dim);
 
-    _llk_unpack_AB_mop_config_<BType>(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
+    _llk_unpack_AB_mop_config_<BType>(transpose > 0, tensor_shape); // transpose of faces 0,2,1,3
 }
 
 inline void _llk_unpack_AB_uninit_(const std::uint32_t face_r_dim = FACE_R_DIM)
 {
-    TT_SETADCXX(p_setadc::UNP_AB, face_r_dim * FACE_C_DIM - 1, 0x0);
+    // TODO NC: Issue tt-llk#1036 will make this transient
+    TT_SETADCXX(p_setadc::UNP_A, face_r_dim, 0x0);
+    TT_SETADCXX(p_setadc::UNP_B, face_r_dim, 0x0);
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
@@ -267,7 +273,7 @@ inline void _llk_unpack_bcastA_B_uninit_(const std::uint32_t y_stride = FACE_R_D
 {
     // Revisit default stride value in tt-llk#1015
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(y_stride);
-    TT_SETADCXX(p_setadc::UNP_AB, face_r_dim * FACE_C_DIM - 1, 0x0);
+    TT_SETADCXX(p_setadc::UNP_AB, tensor_shape.face_r_dim * tensor_shape.face_c_dim - 1, 0x0);
 }
 
 inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint32_t address_b, uint32_t srca_reuse_count = 4)
