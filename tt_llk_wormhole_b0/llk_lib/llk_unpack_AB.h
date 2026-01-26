@@ -509,3 +509,18 @@ inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const
     t6_semaphore_get(semaphore::UNPACK_SYNC);
     switch_config_context(unp_cfg_context);
 }
+
+inline void _llk_unpackA_bcastB_row_as_col_uninit_()
+{
+    // Reset transpose register to default (no transpose)
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
+
+    // Reset srcB strides to defaults
+    cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_XY_REG_1_Ystride_RMW>(FACE_R_DIM * 2);
+    cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(FACE_R_DIM * FACE_C_DIM * 2);
+    cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_XY_REG_0_Ystride_RMW>(FACE_R_DIM * 2);
+
+    // Reset X counters to full tile dimensions
+    TT_SETADCXX(p_setadc::UNP_A, TILE_R_DIM * TILE_C_DIM - 1, 0x0);
+    TT_SETADCXX(p_setadc::UNP_B, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
+}

@@ -590,3 +590,31 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_(uint32_t dst_index)
 
     math::clear_dst_reg_addr();
 }
+
+inline void _llk_math_eltwise_binary_bcastB_row_as_col_uninit_()
+{
+    // Reset address modifiers to defaults
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_0);
+
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_1);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 0},
+    }
+        .set(ADDR_MOD_2);
+
+    // Clear any pending dvalid signals
+    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0);
+}
