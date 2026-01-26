@@ -96,7 +96,10 @@ def test_pack_untilize(
         dest_sync=dest_sync,
         dest_acc=dest_acc,
         formats=formats,
-        input_dimensions=input_dimensions,
+        input_dimensions=[
+            32,
+            input_dimensions[1],
+        ],  # Using one tile-row because pack untilize packs per tile-row.
         tile_dimensions=[32, 32],
     )
 
