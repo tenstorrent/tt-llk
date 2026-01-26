@@ -551,11 +551,4 @@ def get_num_tiles_in_block(
         dest_sync, dest_acc, formats, tile_dimensions
     )
 
-    block_tiles = max_tiles_in_dest
-
-    # (num_tiles_in_input % max_tiles_in_dest or max_tiles_in_dest) wouldn't work here for certain cases.
-    # Example: 9 tiles can be split into blocks of 3, but above equation outputs 1.
-    while block_tiles > 1 and num_tiles_in_input % block_tiles != 0:
-        block_tiles -= 1
-
-    return block_tiles
+    return num_tiles_in_input % max_tiles_in_dest or max_tiles_in_dest
