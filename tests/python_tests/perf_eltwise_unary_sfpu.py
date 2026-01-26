@@ -107,6 +107,7 @@ def test_perf_eltwise_unary_sfpu(
         MathOperation.Gelu,
         MathOperation.Hardsigmoid,
         MathOperation.Log,
+        MathOperation.Log1p,
         MathOperation.Neg,
         MathOperation.Silu,
         MathOperation.Sin,

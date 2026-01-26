@@ -43,6 +43,7 @@ from helpers.utils import passed_test
         MathOperation.Acosh,
         MathOperation.Cos,
         MathOperation.Log,
+        MathOperation.Log1p,
         MathOperation.Reciprocal,
         MathOperation.Sin,
         MathOperation.Sqrt,
