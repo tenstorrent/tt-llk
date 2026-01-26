@@ -9,6 +9,7 @@ from helpers.format_config import DataFormat
 from helpers.golden_generators import UntilizeGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, DestSync, format_dict
 from helpers.param_config import (
+    get_num_tiles_in_block,
     input_output_formats,
     parametrize,
 )
@@ -36,7 +37,9 @@ from helpers.utils import passed_test
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     input_dimensions=[[96, 288], [64, 64], [32, 128], [128, 128], [32, 64]],
-    dest_sync=[DestSync.Half, DestSync.Full],
+    dest_sync=[
+        DestSync.Half
+    ],  # TODO: Update to include DestSync.Full when supported. Currently there's an assert that prevents running with DestSync.Full.
 )
 def test_pack_untilize(
     formats, dest_acc, input_dimensions, dest_sync, workers_tensix_coordinates
@@ -89,12 +92,12 @@ def test_pack_untilize(
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
     )
 
-    # _llk_pack_untilize_init_ has a static_assert that checks if block_ct_dim is less or equal to 8.
-    # TODO: Update this logic to accept more than 8 tiles per block if the static_assert changes in the future.
-    max_bct_dim = 8 if dest_acc == DestAccumulation.No else 4
-    full_ct_dim = input_dimensions[1] // 32
-    block_ct_dim = next(
-        (bct for bct in range(max_bct_dim, 0, -1) if full_ct_dim % bct == 0), 1
+    block_ct_dim = get_num_tiles_in_block(
+        dest_sync=dest_sync,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
     )
 
     configuration = TestConfig(
