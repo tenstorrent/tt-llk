@@ -26,9 +26,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         for (int tile = 0; tile < num_tiles_in_block; tile++)
         {
             int tile_idx = (block * num_tiles_in_block) + tile;
-            int32_t* A = (int32_t*)buffer_A[tile_idx];
-            int32_t* B = (int32_t*)buffer_B[tile_idx];
-            int32_t* C = (int32_t*)buffer_Res[tile_idx];
+            int32_t* A   = (int32_t*)buffer_A[tile_idx];
+            int32_t* B   = (int32_t*)buffer_B[tile_idx];
+            int32_t* C   = (int32_t*)buffer_Res[tile_idx];
 
             std::transform(A, A + 1024, B, C, std::plus<int32_t>());
         }
@@ -49,9 +49,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         for (int tile = 0; tile < num_tiles_in_block; tile++)
         {
             int tile_idx = (block * num_tiles_in_block) + tile;
-            int32_t* A = (int32_t*)buffer_A[tile_idx];
-            int32_t* B = (int32_t*)buffer_B[tile_idx];
-            int32_t* C = (int32_t*)buffer_Res[tile_idx];
+            int32_t* A   = (int32_t*)buffer_A[tile_idx];
+            int32_t* B   = (int32_t*)buffer_B[tile_idx];
+            int32_t* C   = (int32_t*)buffer_Res[tile_idx];
 
             std::transform(A, A + 1024, B, C, std::plus<int32_t>());
         }
@@ -72,9 +72,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         for (int tile = 0; tile < num_tiles_in_block; tile++)
         {
             int tile_idx = (block * num_tiles_in_block) + tile;
-            int32_t* A = (int32_t*)buffer_A[tile_idx];
-            int32_t* B = (int32_t*)buffer_B[tile_idx];
-            int32_t* C = (int32_t*)buffer_Res[tile_idx];
+            int32_t* A   = (int32_t*)buffer_A[tile_idx];
+            int32_t* B   = (int32_t*)buffer_B[tile_idx];
+            int32_t* C   = (int32_t*)buffer_Res[tile_idx];
 
             std::transform(A, A + 1024, B, C, std::plus<int32_t>());
         }
