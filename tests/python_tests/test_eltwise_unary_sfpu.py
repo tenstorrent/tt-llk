@@ -25,8 +25,11 @@ from helpers.test_variant_parameters import (
     FAST_MODE,
     INPUT_DIMENSIONS,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 SUPPORTED_FAST_MODE_OPS = [
@@ -229,6 +232,11 @@ def eltwise_unary_sfpu(
         input_dimensions_B=input_dimensions,
     )
 
+    # Calculate block parameters for destination register banking
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt_A, formats.input_format
+    )
+
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
         mathop,
@@ -248,7 +256,11 @@ def eltwise_unary_sfpu(
             FAST_MODE(fast_mode),
             MATH_OP(mathop=mathop),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            TILE_COUNT(tile_cnt_A),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
