@@ -9,9 +9,12 @@ from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.test_variant_parameters import (
     INPUT_DIMENSIONS,
+    NUM_BLOCKS,
     NUM_ROWS_TO_PACK,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
 from helpers.utils import passed_test
@@ -24,7 +27,7 @@ dimension_combinations = [
     for m in range(tile_dim, max_tiles * tile_dim + 1, tile_dim)
     for n in range(tile_dim, max_tiles * tile_dim + 1, tile_dim)
     if m * n <= max_tiles * tile_dim * tile_dim
-]
+] + [[64, 64], [128, 64], [64, 128]]
 
 
 @parametrize(
@@ -63,6 +66,11 @@ def test_pack_rows(
         tile_count=tile_cnt_A,
     )
 
+    # Calculate block parameters for destination register banking
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt_A, formats.input_format
+    )
+
     # Calculate expected output size per tile
     output_elements_per_tile = num_rows_to_pack * row_num_datums
 
@@ -75,6 +83,8 @@ def test_pack_rows(
         runtimes=[
             TILE_COUNT(tile_cnt_A),
             NUM_ROWS_TO_PACK(num_rows_to_pack),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
