@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     EltwiseBinaryGolden,
@@ -71,7 +72,13 @@ def get_tile_params(tile_dimensions):
     dest_acc=[DestAccumulation.No],
     math_fidelity=[MathFidelity.LoFi],
     transpose_srca=[Transpose.No],
-    input_dimensions=[[32, 32], [64, 64], [128, 64], [64, 128], [128, 128]],  # Extended to test more tiles
+    input_dimensions=[
+        [32, 32],
+        [64, 64],
+        [128, 64],
+        [64, 128],
+        [128, 128],
+    ],  # Extended to test more tiles
     tile_dimensions=[[32, 32]],  # More dimensions coming soon....
 )
 def test_eltwise_binary(

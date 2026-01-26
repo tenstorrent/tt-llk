@@ -4,6 +4,7 @@
 
 import pytest
 import torch
+
 from helpers.format_config import DataFormat
 from helpers.llk_params import DestAccumulation, MathOperation, format_dict
 from helpers.param_config import input_output_formats, parametrize
@@ -23,7 +24,9 @@ def generate_golden(operand1, true_value, false_value, input_dimensions):
     # operand1, true_value, and false_value are 1D tensors of floats
     mask = operand1.view(input_dimensions[0], input_dimensions[1]) != 0
     return torch.where(
-        mask, true_value.view(input_dimensions[0], input_dimensions[1]), false_value.view(input_dimensions[0], input_dimensions[1])
+        mask,
+        true_value.view(input_dimensions[0], input_dimensions[1]),
+        false_value.view(input_dimensions[0], input_dimensions[1]),
     ).flatten()
 
 
@@ -46,7 +49,9 @@ def torch_equal_nan(a, b):
     test_case=["mixed", "all_ones", "all_zeros"],
     input_dimensions=[[32, 32], [64, 64], [128, 64], [64, 128]],
 )
-def test_ttnn_where(formats, dest_acc, mathop, test_case, input_dimensions, workers_tensix_coordinates):
+def test_ttnn_where(
+    formats, dest_acc, mathop, test_case, input_dimensions, workers_tensix_coordinates
+):
 
     if (
         formats.input == DataFormat.Float32 and formats.output == DataFormat.Float32

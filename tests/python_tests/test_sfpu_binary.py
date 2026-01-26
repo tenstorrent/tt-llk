@@ -3,6 +3,7 @@
 
 import pytest
 import torch
+
 from helpers.chip_architecture import ChipArchitecture
 from helpers.format_config import DataFormat
 from helpers.golden_generators import BinarySFPUGolden, get_golden_generator
@@ -40,7 +41,9 @@ from helpers.utils import passed_test
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     input_dimensions=[[64, 32], [64, 64], [128, 64], [64, 128]],
 )
-def test_sfpu_binary_float(formats, dest_acc, mathop, input_dimensions, workers_tensix_coordinates):
+def test_sfpu_binary_float(
+    formats, dest_acc, mathop, input_dimensions, workers_tensix_coordinates
+):
     if (
         TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE
         and mathop == MathOperation.SfpuElwsub
@@ -81,7 +84,9 @@ def test_sfpu_binary_float(formats, dest_acc, mathop, input_dimensions, workers_
     dest_acc=[DestAccumulation.Yes],
     input_dimensions=[[64, 32]],
 )
-def test_sfpu_binary_int(formats, dest_acc, mathop, input_dimensions, workers_tensix_coordinates):
+def test_sfpu_binary_int(
+    formats, dest_acc, mathop, input_dimensions, workers_tensix_coordinates
+):
     sfpu_binary(formats, dest_acc, mathop, input_dimensions, workers_tensix_coordinates)
 
 
@@ -156,7 +161,9 @@ def test_sfpu_binary_add_top_row(formats, dest_acc, mathop, workers_tensix_coord
     ), "Assert against golden failed"
 
 
-def sfpu_binary(formats, dest_acc, mathop, input_dimensions, workers_tensix_coordinates):
+def sfpu_binary(
+    formats, dest_acc, mathop, input_dimensions, workers_tensix_coordinates
+):
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
