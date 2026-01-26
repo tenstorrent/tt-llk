@@ -21,11 +21,14 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
-    for (int i = 0; i < params->TILE_CNT; i++)
+    for (int i = 0; i < num_tiles_in_block * num_blocks; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
@@ -48,6 +51,8 @@ using namespace ckernel::sfpu;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
     const bool is_int_fpu_en = false;
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -59,23 +64,26 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats.math);
 #endif
 
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (int i = 0; i < params->TILE_CNT; i++)
+    for (int block = 0; block < num_blocks; block++)
     {
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-            i, formats.math, formats.math);
+        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        {
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                tile, formats.math, formats.math);
+        }
+
+        _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
+
+        // Note: argument passed to _llk_math_eltwise_binary_sfpu_start_ is dest index of first operand, and
+        // argument passed of _calculate_sfpu_binary_ is dest index of the second operand
+
+        _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
+        test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, 32, formats.math>(0, 1, 0);
+
+        _llk_math_eltwise_binary_sfpu_done_();
+        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
-
-    _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
-
-    // Note: argument passed to _llk_math_eltwise_binary_sfpu_start_ is dest index of first operand, and
-    // argument passed of _calculate_sfpu_binary_ is dest index of the second operand
-
-    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
-    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, 32, formats.math>(0, 1, 0);
-
-    _llk_math_eltwise_binary_sfpu_done_();
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif
@@ -88,6 +96,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16);
 #else
@@ -102,12 +113,16 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
 #endif
 
-    _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params->TILE_CNT; i++)
+    for (int block = 0; block < num_blocks; block++)
     {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_packer_wait_for_math_done_();
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        {
+            int res_tile_idx = (block * num_tiles_in_block) + tile;
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(tile, L1_ADDRESS(buffer_Res[res_tile_idx]));
+        }
+        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif

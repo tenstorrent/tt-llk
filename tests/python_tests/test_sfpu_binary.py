@@ -15,8 +15,11 @@ from helpers.test_variant_parameters import (
     APPROX_MODE,
     INPUT_DIMENSIONS,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 
@@ -35,8 +38,9 @@ from helpers.utils import passed_test
         MathOperation.SfpuElwmul,
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    input_dimensions=[[64, 32], [64, 64], [128, 64], [64, 128]],
 )
-def test_sfpu_binary_float(formats, dest_acc, mathop, workers_tensix_coordinates):
+def test_sfpu_binary_float(formats, dest_acc, mathop, input_dimensions, workers_tensix_coordinates):
     if (
         TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE
         and mathop == MathOperation.SfpuElwsub
@@ -60,7 +64,7 @@ def test_sfpu_binary_float(formats, dest_acc, mathop, workers_tensix_coordinates
             "Float16_a isn't supported for SFPU on Blackhole without being converted to 32-bit intermediate format in dest register"
         )
 
-    sfpu_binary(formats, dest_acc, mathop, workers_tensix_coordinates)
+    sfpu_binary(formats, dest_acc, mathop, input_dimensions, workers_tensix_coordinates)
 
 
 @parametrize(
@@ -151,15 +155,17 @@ def test_sfpu_binary_add_top_row(formats, dest_acc, mathop, workers_tensix_coord
     ), "Assert against golden failed"
 
 
-def sfpu_binary(formats, dest_acc, mathop, workers_tensix_coordinates):
-
-    input_dimensions = [64, 32]
+def sfpu_binary(formats, dest_acc, mathop, input_dimensions, workers_tensix_coordinates):
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
+    )
+
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt_A, formats.input_format
     )
 
     generate_golden = get_golden_generator(BinarySFPUGolden)
@@ -193,7 +199,11 @@ def sfpu_binary(formats, dest_acc, mathop, workers_tensix_coordinates):
             MATH_OP(mathop=mathop),
             APPROX_MODE(),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            TILE_COUNT(tile_cnt_A),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
