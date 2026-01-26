@@ -105,7 +105,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(formats.pack_src, formats.pack_dst, tile_size);
 #endif
 
-    _llk_pack_init_<false /* untilize */, false /* zero_output */>(formats.pack_dst);
+#ifdef ARCH_BLACKHOLE
+    _llk_pack_init_<false /* untilize */, false /* zero_output */>(formats.pack_dst, tensor_shape.face_r_dim, tensor_shape.total_col_dim(), num_faces);
+#else
+    _llk_pack_init_<false /* untilize */, false /* zero_output */>(formats.pack_dst, tensor_shape.face_r_dim, num_faces, partial_face, narrow_tile);
+#endif
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
