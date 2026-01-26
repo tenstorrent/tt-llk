@@ -20,9 +20,12 @@ from helpers.test_variant_parameters import (
     INPUT_DIMENSIONS,
     MATH_FIDELITY,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     SRCA_REUSE_COUNT,
     TILE_COUNT,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test
 
@@ -43,7 +46,9 @@ from helpers.utils import passed_test
     input_dimensions=[
         [128, 32],
         [32, 128],
+        [64, 64],
         [64, 128],
+        [128, 64],
     ],
 )
 def test_unp_bcast_sub_sdpa(
@@ -120,6 +125,11 @@ def test_unp_bcast_sub_sdpa(
         : 1024 * reuse_factor
     ]
 
+    # Calculate block parameters for destination register banking
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt_A, formats.input_format
+    )
+
     configuration = TestConfig(
         "sources/unpack_a_bcast_eltwise_test.cpp",
         formats,
@@ -134,6 +144,8 @@ def test_unp_bcast_sub_sdpa(
         runtimes=[
             TILE_COUNT(tile_cnt_A),
             SRCA_REUSE_COUNT(srca_reuse_count),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
