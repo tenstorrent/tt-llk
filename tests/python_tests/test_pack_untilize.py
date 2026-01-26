@@ -9,7 +9,6 @@ from helpers.format_config import DataFormat
 from helpers.golden_generators import UntilizeGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, DestSync, format_dict
 from helpers.param_config import (
-    get_num_tiles_in_block,
     input_output_formats,
     parametrize,
 )
@@ -92,15 +91,12 @@ def test_pack_untilize(
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
     )
 
-    block_ct_dim = get_num_tiles_in_block(
-        dest_sync=dest_sync,
-        dest_acc=dest_acc,
-        formats=formats,
-        input_dimensions=[
-            32,
-            input_dimensions[1],
-        ],  # Using one tile-row because pack untilize packs per tile-row.
-        tile_dimensions=[32, 32],
+    # _llk_pack_untilize_init_ has a static_assert that checks if block_ct_dim is less or equal to 8.
+    # TODO: Update this logic to accept more than 8 tiles per block if the static_assert changes in the future.
+    max_bct_dim = 8 if dest_acc == DestAccumulation.No else 4
+    full_ct_dim = input_dimensions[1] // 32
+    block_ct_dim = next(
+        (bct for bct in range(max_bct_dim, 0, -1) if full_ct_dim % bct == 0), 1
     )
 
     configuration = TestConfig(
