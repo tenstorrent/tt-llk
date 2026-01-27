@@ -35,7 +35,9 @@ class Fpu:
     def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
-    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def calculate(
+        self, operation: "FusedOperation", config: "GlobalConfig", tile_idx: int
+    ) -> str:
         return ""
 
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
@@ -102,7 +104,9 @@ class MatmulFpu(Fpu):
             f"    );\n"
         )
 
-    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def calculate(
+        self, operation: "FusedOperation", config: "GlobalConfig", tile_idx: int
+    ) -> str:
         ct_dim = operation.ct_dim
         rt_dim = operation.rt_dim
         kt_dim = operation.kt_dim
@@ -157,20 +161,19 @@ class EltwiseFpu(Fpu):
             f"    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{op}, BroadcastType::NONE, {math_fidelity}>({num_faces}, 0);\n"
         )
 
-    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def calculate(
+        self, operation: "FusedOperation", config: "GlobalConfig", tile_idx: int
+    ) -> str:
         stage = operation.stage_id
         math_fidelity = operation.math_fidelity.value
         dest_acc = config.dest_acc.value
-        tile_cnt = operation.output.tile_count
         op = self.operation.cpp_enum_value
         num_faces = operation.num_faces
 
         return (
-            f"    for (int i = 0; i < {tile_cnt}; i++)\n"
-            f"    {{\n"
-            f"        _llk_math_eltwise_binary_<{op}, BroadcastType::NONE, dest_sync{stage},\n"
-            f"            {dest_acc}, {math_fidelity}, EltwiseBinaryReuseDestType::NONE>({num_faces}, i, false);\n"
-            f"    }}\n"
+            f"    _llk_math_eltwise_binary_<{op}, BroadcastType::NONE, dest_sync{stage},\n"
+            f"        {dest_acc}, {math_fidelity}, EltwiseBinaryReuseDestType::NONE>({num_faces}, {tile_idx}, false\n"
+            f"    );\n"
         )
 
     def __str__(self) -> str:
@@ -247,21 +250,19 @@ class ReduceFpu(Fpu):
             f"    _llk_math_reduce_init_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false>();\n"
         )
 
-    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def calculate(
+        self, operation: "FusedOperation", config: "GlobalConfig", tile_idx: int
+    ) -> str:
         math_fidelity = operation.math_fidelity.value
         dest_acc = config.dest_acc.value
-        tile_cnt = operation.output.tile_count
         num_faces = operation.num_faces
         pool_type_cpp = f"PoolType::{self.pool.value}"
         reduce_dim_cpp = self.reduce_dim()
 
         return (
-            f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
-            f"    {{\n"
-            f"        _llk_math_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false, false>(\n"
-            f"            i, false, {num_faces}\n"
-            f"        );\n"
-            f"    }}\n"
+            f"    _llk_math_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false, false>(\n"
+            f"        {tile_idx}, false, {num_faces}\n"
+            f"    );\n"
         )
 
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
@@ -328,32 +329,30 @@ class DatacopyFpu(Fpu):
 
         return code
 
-    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def calculate(
+        self, operation: "FusedOperation", config: "GlobalConfig", tile_idx: int
+    ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
-        tile_cnt = operation.output.tile_count
         broadcast_type = "BroadcastType::NONE"
         unpack_to_dest = "true" if operation.unpack_to_dest else "false"
         data_copy_type = f"DataCopyType::{operation.data_copy_type.name}"
         num_faces = operation.num_faces
-        dst_index = operation.dst_index
-
-        code = f"    for (int i = 0; i < {tile_cnt}; ++i)\n" f"    {{\n"
 
         if config.architecture == ChipArchitecture.BLACKHOLE:
-            code += (
-                f"        _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {broadcast_type}, {unpack_to_dest}>(\n"
-                f"            {dst_index} + i, math_format{stage}, math_format{stage}, {num_faces});\n"
+            code = (
+                f"    _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {broadcast_type}, {unpack_to_dest}>(\n"
+                f"        {tile_idx}, math_format{stage}, math_format{stage}, {num_faces}\n"
+                f"    );\n"
             )
         elif config.architecture == ChipArchitecture.WORMHOLE:
-            code += (
-                f"        _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {broadcast_type}, {unpack_to_dest}>(\n"
-                f"            {dst_index} + i, math_format{stage}, math_format{stage});\n"
+            code = (
+                f"    _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {broadcast_type}, {unpack_to_dest}>(\n"
+                f"        {tile_idx}, math_format{stage}, math_format{stage}\n"
+                f"    );\n"
             )
         else:
             raise ValueError("Unsupported architecture for DatacopyFpu")
-
-        code += "    }\n"
 
         return code
 
@@ -721,6 +720,10 @@ class Math:
         stage = operation.stage_id
         format = f"DataFormat::{operation.math_format.name}"
         dest_acc = config.dest_acc.value
+        batch_size = operation.batch_size
+        tile_cnt = operation.output.tile_count
+        if isinstance(self.fpu, MatmulFpu):
+            tile_cnt = 1
 
         code = (
             f"    // Operation {stage}: Math Setup\n"
@@ -734,18 +737,22 @@ class Math:
         else:
             code += self.hw_configure(operation, config)
             code += self.fpu.init(operation, config)
-            code += f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
-            code += self.fpu.calculate(operation, config)
+
+            batch_start = 0
+            while batch_start < tile_cnt:
+                code += f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
+                batch_end = min(batch_start + batch_size, tile_cnt)
+                for tile_idx in range(batch_end - batch_start):
+                    code += self.fpu.calculate(operation, config, tile_idx)
+                batch_start += batch_end
+
+                for sfpu in self.sfpu:
+                    code += "\n"
+                    code += sfpu.init(operation, config)
+                    code += sfpu.calculate(operation, config)
+                    code += sfpu.uninit(operation, config)
+
+                code += f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
             code += self.fpu.uninit(operation, config)
-
-            for sfpu in self.sfpu:
-                code += "\n"
-                code += sfpu.init(operation, config)
-                code += sfpu.calculate(operation, config)
-                code += sfpu.uninit(operation, config)
-
-            code += (
-                f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
-            )
 
         return code

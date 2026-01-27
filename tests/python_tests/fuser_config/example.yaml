@@ -1,5 +1,5 @@
 dest_acc: "Yes"
-profiler_enabled: true
+# profiler_enabled: true
 loop_factor: 16
 
 operations:
@@ -24,7 +24,7 @@ operations:
     math_fidelity: "LoFi"
     unpack_transpose_within_face: "Yes"
     unpack_transpose_faces: "No"
-    batch_size: 2
+    # batch_size: 2
 
   - src_a: "datacopy_output"
     src_b: "input_B"
