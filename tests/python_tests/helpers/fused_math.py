@@ -898,6 +898,7 @@ class Math:
         stage = operation.stage_id
         format = f"DataFormat::{operation.math_format.name}"
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         dest_acc = config.dest_acc.value
         batch_size = operation.batch_size
@@ -906,6 +907,8 @@ class Math:
             tile_cnt = 1
 
 >>>>>>> 13264353 (math calculate with batches)
+=======
+>>>>>>> 4b730d89 (perf math with batching)
         code = (
             f"    // Operation {stage}: Math Setup\n"
             f"    const uint32_t math_format{stage} = static_cast<std::underlying_type_t<DataFormat>>({format});\n"
@@ -916,6 +919,7 @@ class Math:
             code += self.exec_perf(operation, config)
 
         else:
+<<<<<<< HEAD
 <<<<<<< HEAD
             code += self.calculate(operation, config)
 =======
@@ -939,5 +943,8 @@ class Math:
                 code += f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
             code += self.fpu.uninit(operation, config)
 >>>>>>> 13264353 (math calculate with batches)
+=======
+            code += self.calculate(operation, config)
+>>>>>>> 4b730d89 (perf math with batching)
 
         return code
