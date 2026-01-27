@@ -9,9 +9,12 @@ using namespace ckernel;
 
 /**
  * @brief MOP configuration for unpack of unary operations with broadcasts
- * @tparam UNP_SEL: Unpacker resource, must be p_unpacr::UNP_B when unpack_to_dest=false
- * @tparam BROADCAST_TYPE: Broadcast type, values = [SCALAR, COL, ROW]
- * @tparam unpack_to_dest: If true, unpack to dest using UNPACKER0 (srcA), else unpack to srcB using UNPACKER1
+ * @tparam UNP_SEL Unpacker resource selector used only when unpack_to_dest=false; in that case it must be
+ * p_unpacr::UNP_B (see static_assert). When unpack_to_dest=true, this function internally uses
+ * p_unpacr::UNP_A regardless of the value of UNP_SEL.
+ * @tparam BROADCAST_TYPE Broadcast type, values = [SCALAR, COL, ROW]
+ * @tparam unpack_to_dest If true, unpack to dest using UNPACKER0 (srcA / p_unpacr::UNP_A); otherwise unpack to
+ * srcB using UNPACKER1 (p_unpacr::UNP_B).
  */
 template <uint32_t UNP_SEL, BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false>
 inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_desc_id, const uint32_t num_tiles)
@@ -36,6 +39,10 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
         unpack_tile_inc = TT_OP_UNPACR1_TILE_INC(0, 1 /*Src Tile Idx*/, buf_desc_id, 1 /*Set Dvalid*/);
     }
 
+    // Note: The unpack_to_dest branches use different hardware instructions (TT_UNPACR_DEST_* vs TT_UNPACR1_*)
+    // that target different destinations (dest register vs srcB register). While the parameters are identical,
+    // these are fundamentally different opcodes and cannot be unified. The duplication is intentional to
+    // clearly show the two code paths.
     if constexpr (BROADCAST_TYPE == BroadcastType::SCALAR)
     {
         load_replay_buf<0, replay_buf_len>(
