@@ -9,39 +9,46 @@ using namespace ckernel;
 
 /**
  * @brief MOP configuration for unpack of unary operations with broadcasts
- * @details Sets up MOP for unpacking unary operands tile by tile with broadcast support
- *
- * NOTE: movA2D broadcast is not working on Quasar. For unary broadcast operations,
- * we use only srcB (UNPACKER1) instead of srcA. This implementation only supports
- * UNPACKER1 (SrcB) - srcA support has been removed. A srcA workaround implementation
- * will be added in the future.
- *
- * @tparam UNP_SEL: Selects which unpacker resource to use, must be p_unpacr::UNP_B
- * @tparam BROADCAST_TYPE: Sets the broadcast type, values = [SCALAR, COL, ROW]
- * @param buf_desc_id: The buffer descriptor ID where the buffer information is
- * stored in the buffer descriptor table, values = 0 - 16
- * @param num_tiles: number of tiles to unpack at a time
+ * @tparam UNP_SEL: Unpacker resource, must be p_unpacr::UNP_B when unpack_to_dest=false
+ * @tparam BROADCAST_TYPE: Broadcast type, values = [SCALAR, COL, ROW]
+ * @tparam unpack_to_dest: If true, unpack to dest using UNPACKER0 (srcA), else unpack to srcB using UNPACKER1
  */
-template <uint32_t UNP_SEL, BroadcastType BROADCAST_TYPE>
+template <uint32_t UNP_SEL, BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false>
 inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_desc_id, const uint32_t num_tiles)
 {
-    static_assert((UNP_SEL == p_unpacr::UNP_B), "UNP_SEL must be p_unpacr::UNP_B - movA2D broadcast is not working on Quasar");
+    static_assert(
+        unpack_to_dest || (UNP_SEL == p_unpacr::UNP_B),
+        "UNP_SEL must be p_unpacr::UNP_B when unpack_to_dest is false - movA2D broadcast is not working on Quasar");
     static_assert((BROADCAST_TYPE != BroadcastType::NONE), "Broadcast type cannot be NONE for this operation");
 
-    const uint32_t MOP_OUTER_LOOP        = num_tiles;
-    constexpr uint32_t MOP_INNER_LOOP    = 1;
-    constexpr static uint replay_buf_len = (BROADCAST_TYPE == BroadcastType::SCALAR) ? 1 : 2;
+    const uint32_t MOP_OUTER_LOOP     = num_tiles;
+    constexpr uint32_t MOP_INNER_LOOP = 1;
+    // Replay buffer length: SCALAR=1, ROW=2, COL=4 (unpack_to_dest=false) or 2 (unpack_to_dest=true)
+    constexpr static uint replay_buf_len = (BROADCAST_TYPE == BroadcastType::SCALAR) ? 1 : ((BROADCAST_TYPE == BroadcastType::COL && !unpack_to_dest) ? 4 : 2);
 
-    uint unpack_tile_inc = TT_OP_UNPACR1_TILE_INC(0, 1 /*Src Tile Idx*/, buf_desc_id, 1 /*Set Dvalid*/);
+    uint unpack_tile_inc;
+    if constexpr (unpack_to_dest)
+    {
+        unpack_tile_inc = TT_OP_UNPACR_DEST_TILE_INC(1, 1 /*Src Tile Idx*/, buf_desc_id, 0 /*Set Dvalid*/);
+    }
+    else
+    {
+        unpack_tile_inc = TT_OP_UNPACR1_TILE_INC(0, 1 /*Src Tile Idx*/, buf_desc_id, 1 /*Set Dvalid*/);
+    }
 
-    // Load replay buffer with broadcast pattern based on broadcast type
     if constexpr (BROADCAST_TYPE == BroadcastType::SCALAR)
     {
         load_replay_buf<0, replay_buf_len>(
             [buf_desc_id]
             {
-                // Unpack Face 0, Row 0 → absolute row 0 (contains scalar at column 0)
-                TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                if constexpr (unpack_to_dest)
+                {
+                    TT_UNPACR_DEST_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                }
+                else
+                {
+                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                }
             });
     }
     else if constexpr (BROADCAST_TYPE == BroadcastType::ROW)
@@ -49,10 +56,16 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
         load_replay_buf<0, replay_buf_len>(
             [buf_desc_id]
             {
-                // Unpack Face 0, Row 0 → absolute row 0 (Dst_Face_Idx=0, Dst_Row_Idx=0)
-                TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 0 /*SetDatValid*/);
-                // Unpack Face 1, Row 0 → absolute row 16 (Dst_Face_Idx=1, Dst_Row_Idx=0) (last instruction sets dvalid)
-                TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 1 /*Dst_Face_Idx*/, 1 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                if constexpr (unpack_to_dest)
+                {
+                    TT_UNPACR_DEST_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 0 /*SetDatValid*/);
+                    TT_UNPACR_DEST_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 1 /*Dst_Face_Idx*/, 1 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                }
+                else
+                {
+                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 0 /*SetDatValid*/);
+                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 1 /*Dst_Face_Idx*/, 1 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                }
             });
     }
     else if constexpr (BROADCAST_TYPE == BroadcastType::COL)
@@ -60,15 +73,31 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
         load_replay_buf<0, replay_buf_len>(
             [buf_desc_id]
             {
-                // Unpack Face 0 (entire face) → column will be extracted in math section
-                TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 0 /*SetDatValid*/);
-                // Unpack Face 2 (entire face) → column will be extracted in math section (last instruction sets dvalid)
-                TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 2 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                if constexpr (unpack_to_dest)
+                {
+                    TT_UNPACR_DEST_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 0 /*SetDatValid*/);
+                    TT_UNPACR_DEST_FACE(2 /*Dst Face Idx*/, 2 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                }
+                else
+                {
+                    // COL: unpack F0, F0, F2, F2 to srcB Face 0 (like binary broadcast)
+                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 0 /*SetDatValid*/);
+                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 0 /*SetDatValid*/);
+                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 2 /*Src Face Idx*/, 0, 0, buf_desc_id, 0 /*SetDatValid*/);
+                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 2 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                }
             });
     }
 
-    // Increment by 1 tile because UNPACR_ROW and UNPACR_FACE instructions do not increment counters
-    uint inc_src_tile_instrn = TT_OP_INC_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL, 1);
+    uint inc_src_tile_instrn;
+    if constexpr (unpack_to_dest)
+    {
+        inc_src_tile_instrn = TT_OP_INC_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, p_unpacr::UNP_A, 1);
+    }
+    else
+    {
+        inc_src_tile_instrn = TT_OP_INC_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL, 1);
+    }
 
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0), inc_src_tile_instrn);
 
@@ -79,40 +108,25 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
 
 /**
  * @brief Initialization for unpack of unary operations with broadcasts
- * @details Sets up MOP for unpacking unary operands tile by tile with broadcast support
- * Uses UNPACKER1 (SrcB) only - movA2D broadcast is not working on Quasar
- * @tparam UNP_SEL: Selects which unpacker resource to use, must be p_unpacr::UNP_B
- * @tparam BROADCAST_TYPE: Sets the broadcast type, values = [SCALAR, COL, ROW]
- * @param buf_desc_id: The buffer descriptor ID where the buffer information is
- * stored in the buffer descriptor table, values = 0 - 16
- * @param num_tiles: number of tiles to unpack at a time
  */
-template <uint32_t UNP_SEL, BroadcastType BROADCAST_TYPE>
+template <uint32_t UNP_SEL, BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false>
 inline void _llk_unpack_unary_broadcast_operands_init_(const uint32_t buf_desc_id, const uint32_t num_tiles)
 {
-    _llk_unpack_unary_broadcast_operands_mop_config_<UNP_SEL, BROADCAST_TYPE>(buf_desc_id, num_tiles);
+    _llk_unpack_unary_broadcast_operands_mop_config_<UNP_SEL, BROADCAST_TYPE, unpack_to_dest>(buf_desc_id, num_tiles);
 }
 
 /**
  * @brief Unpacks unary operands with broadcast support
- * @details Uses UNPACKER1 (SrcB) only - movA2D broadcast is not working on Quasar
- * @tparam UNP_SEL: Selects which unpacker resource to use, must be p_unpacr::UNP_B
- * @param start_l1_tile_idx: Start tile index into the L1 buffer
  */
-template <uint32_t UNP_SEL>
+template <uint32_t UNP_SEL, bool unpack_to_dest = false>
 inline void _llk_unpack_unary_broadcast_operands_(const uint start_l1_tile_idx)
 {
-    static_assert((UNP_SEL == p_unpacr::UNP_B), "UNP_SEL must be p_unpacr::UNP_B - movA2D broadcast is not working on Quasar");
+    static_assert(
+        unpack_to_dest || (UNP_SEL == p_unpacr::UNP_B),
+        "UNP_SEL must be p_unpacr::UNP_B when unpack_to_dest is false - movA2D broadcast is not working on Quasar");
 
-    // RT: for the best performance, setting counters should be placed in a REPLAY buffer
-    // in the mop_config, but for back compatibility with APIs, the counter functions must
-    // be programmable with users input offset idx
-
-    // Reset Dest counters for Unpacker to 0
-    // Set Source counter to L1 base + offset
-    TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL, start_l1_tile_idx);
-    TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL, 0);
-
-    // Runs MOP
+    constexpr uint32_t counter_unp_sel = unpack_to_dest ? p_unpacr::UNP_A : UNP_SEL;
+    TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, counter_unp_sel, start_l1_tile_idx);
+    TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, counter_unp_sel, 0);
     ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
 }
