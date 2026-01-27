@@ -109,15 +109,15 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 return;
             }
 
-            // FIXME: Currently have no way to mock math for unpack to dest
             for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
             {
                 for (uint32_t block = 0; block < params->TILE_CNT / BLOCK_CT_DIM; block++)
                 {
                     for (uint32_t block_tile = 0; block_tile < BLOCK_CT_DIM; block_tile++)
                     {
-                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                            block_tile, formats.math, formats.math);
+                        math_unpack_to_dest_math_ready();
+                        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(block_tile);
+                        math::math_unpack_to_dest_tile_ready();
                     }
                 }
             }
