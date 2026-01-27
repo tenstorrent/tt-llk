@@ -372,6 +372,8 @@ class Sfpu:
         tensor: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        batch_dims: tuple,
+        batch_tile_cnt: int,
     ) -> torch.Tensor:
         return tensor
 
@@ -415,11 +417,12 @@ class UnarySfpu(Sfpu):
         tensor: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        batch_dims: tuple,
+        batch_tile_cnt: int,
     ) -> torch.Tensor:
         format_input = operation.src_a.data_format
         format_output = operation.output.data_format
         dest_acc = config.dest_acc
-        dimensions = operation.output.dimensions
 
         generate_sfpu_golden = get_golden_generator(UnarySFPUGolden)
 
@@ -429,10 +432,11 @@ class UnarySfpu(Sfpu):
             format_output,
             dest_acc,
             format_input,
-            dimensions,
+            batch_dims,
             self.iterations,
             self.dest_idx,
             self.fill_const_value,
+            skip_tilize=True,
         )
 
     def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
@@ -494,9 +498,10 @@ class BinarySfpu(Sfpu):
         tensor: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        batch_dims: tuple,
+        batch_tile_cnt: int,
     ) -> torch.Tensor:
         math_format = operation.output.data_format
-        dimensions = operation.output.dimensions
 
         generate_binary_golden = get_golden_generator(BinarySFPUGolden)
         golden_tensor = generate_binary_golden(
@@ -506,8 +511,9 @@ class BinarySfpu(Sfpu):
             self.dst_index_in1,
             self.dst_index_out,
             self.iterations,
-            dimensions,
+            batch_dims,
             math_format,
+            skip_tilize=True,
         )
 
         return golden_tensor
@@ -632,10 +638,45 @@ class Math:
         operation: "FusedOperation",
         config: "GlobalConfig",
     ) -> torch.Tensor:
+        from .tilize_untilize import tilize_block, untilize_block
+
         result = self.fpu.golden(tensor_a, tensor_b, operation, config)
 
-        for sfpu in self.sfpu:
-            result = sfpu.golden(result, operation, config)
+        if not self.sfpu:
+            return result
+
+        tile_cnt = operation.output.tile_count
+        batch_size = operation.batch_size
+        dimensions = operation.output.dimensions
+        data_format = operation.output.data_format
+
+        result_tilized = tilize_block(
+            result.flatten(), dimensions, data_format
+        ).flatten()
+
+        tile_size = 1024
+
+        batch_start = 0
+        while batch_start < tile_cnt:
+            batch_end = min(batch_start + batch_size, tile_cnt)
+            batch_tile_cnt = batch_end - batch_start
+
+            batch_start_elem = batch_start * tile_size
+            batch_end_elem = batch_end * tile_size
+            batch_tensor = result_tilized[batch_start_elem:batch_end_elem].clone()
+
+            batch_dims = (batch_tile_cnt * 32, 32)
+
+            for sfpu in self.sfpu:
+                batch_tensor = sfpu.golden(
+                    batch_tensor, operation, config, batch_dims, batch_tile_cnt
+                )
+
+            result_tilized[batch_start_elem:batch_end_elem] = batch_tensor.flatten()
+
+            batch_start = batch_end
+
+        result = untilize_block(result_tilized, data_format, dimensions)
 
         return result
 
