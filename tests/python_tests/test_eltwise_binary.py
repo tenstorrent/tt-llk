@@ -44,6 +44,7 @@ from helpers.utils import passed_test
         [
             DataFormat.Float16_b,
             DataFormat.Float32,
+            DataFormat.Bfp8_b,
         ],
         same=False,
     ),
@@ -80,18 +81,22 @@ def test_eltwise_binary(
     if math_fidelity != MathFidelity.LoFi and math_op != MathOperation.Elwmul:
         pytest.skip("High fidelity operations are only supported for Elwmul")
     face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(tile_dimensions)
+    num_faces = num_faces_r_dim * num_faces_c_dim
 
     # Calculate tile count based on tile_dimensions (not hardcoded 32x32)
     tile_rows, tile_cols = tile_dimensions
     tile_cnt_A = (input_dimensions[0] // tile_rows) * (input_dimensions[1] // tile_cols)
     tile_cnt_B = tile_cnt_A
 
-    # Generate stimuli has hardcoded tile dims of 32x32
+    # Generate stimuli with correct face dimensions for smaller tiles
     src_A, _, src_B, _ = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
+        face_r_dim=face_r_dim,
+        num_faces=num_faces,
+        tile_dimensions=tile_dimensions,
     )
 
     MAX_TILES_IN_BLOCK = (
@@ -106,7 +111,6 @@ def test_eltwise_binary(
 
     # Compute element-wise operation
     binary_golden = get_golden_generator(EltwiseBinaryGolden)
-    num_faces = num_faces_r_dim * num_faces_c_dim
 
     if broadcast_type == BroadcastType.None_:
         # No broadcast: compute golden directly on raw data, send raw data to device

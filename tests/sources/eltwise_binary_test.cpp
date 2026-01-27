@@ -36,6 +36,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
     const int num_tiles_in_block            = params->NUM_TILES_IN_BLOCK;
     const int num_blocks                    = params->NUM_BLOCKS;
 
+    // Get tile size from Operand for BFP format support
+    // The tile_size tells the unpacker where exponents end and mantissas begin
+    const uint32_t tile_size_A = buffer_A.get_tile_size();
+    const uint32_t tile_size_B = buffer_B.get_tile_size();
+
     // Configure hardware for unpacking, no broadcast, no transpose
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src,
@@ -45,7 +50,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
         tensor_shape.face_r_dim,
         tensor_shape.face_r_dim,
         tensor_shape.total_num_faces(),
-        tensor_shape.total_num_faces());
+        tensor_shape.total_num_faces(),
+        tile_size_A,
+        tile_size_B);
 
     _llk_unpack_AB_init_<BROADCAST_TYPE>(tensor_shape, transpose);
 
@@ -79,7 +86,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // Initialize math for element-wise operation
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BROADCAST_TYPE>(tensor_shape, 0);
+    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BROADCAST_TYPE>(tensor_shape, 0 /* acc_to_dest */);
 
     // Perform element-wise operation
     for (int block = 0; block < num_blocks; block++)
@@ -141,7 +148,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     for (int block = 0; block < num_blocks; block++)
     {
-        // asm volatile("ebreak");
         _llk_packer_wait_for_math_done_();
         for (int tile = 0; tile < num_tiles_in_block; tile++)
         {

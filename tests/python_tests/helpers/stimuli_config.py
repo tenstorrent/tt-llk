@@ -174,7 +174,7 @@ class StimuliConfig:
             tile_elements = num_faces * face_r_dim * FACE_C_DIM
 
         pack_function_lambda = lambda buffer_tile: (
-            pack_function(buffer_tile, num_faces=num_faces)
+            pack_function(buffer_tile, num_faces=num_faces, face_r_dim=face_r_dim)
             if pack_function in [pack_bfp8_b, pack_mxfp8r, pack_mxfp8p]
             else pack_function(buffer_tile)
         )

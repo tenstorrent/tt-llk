@@ -9,6 +9,7 @@ from .format_config import (
     DataFormat,
 )
 from .llk_params import format_dict
+from .tile_constants import DEFAULT_TILE_C_DIM, DEFAULT_TILE_R_DIM, SUPPORTED_TILE_SIZES
 
 
 def flatten_list(sublists):
@@ -147,6 +148,7 @@ def calculate_tile_and_face_counts(
     input_dimensions_B: list,
     face_r_dim: int,
     num_faces: int,
+    tile_dimensions: list = None,
 ) -> tuple[int, int, int]:
     """
     Calculate tile counts and faces to generate based on input dimensions and face configuration.
@@ -154,26 +156,33 @@ def calculate_tile_and_face_counts(
     Args:
         input_dimensions_A: [height, width] in elements for input A
         input_dimensions_B: [height, width] in elements for input B
-        face_r_dim: Number of rows in a face (typically 16 for full faces)
-        num_faces: Number of faces to generate for partial face case
+        face_r_dim: Number of rows in a face (1, 2, 4, 8, or 16)
+        num_faces: Number of faces per tile (1, 2, or 4)
+        tile_dimensions: Optional [rows, cols] - if not provided, uses default 32x32
 
     Returns:
         tuple: (tile_cnt_A, tile_cnt_B, faces_to_generate)
     """
-    assert (
-        face_r_dim == 16 or face_r_dim == input_dimensions_A[0]
-    ), f"Invalid face_r_dim, got {face_r_dim}"
-
-    # Handle partial faces
-    if face_r_dim < 16:
-        # Partial face case: generate exactly num_faces worth of data
-        tile_cnt_A, tile_cnt_B = 1, 1
-        faces_to_generate = num_faces  # Generate exactly the right number of faces
+    # Use provided tile_dimensions or default to 32x32
+    if tile_dimensions is None:
+        tile_r_dim = DEFAULT_TILE_R_DIM
+        tile_c_dim = DEFAULT_TILE_C_DIM
     else:
-        # Full tile case
-        tile_cnt_A = input_dimensions_A[0] // 32 * input_dimensions_A[1] // 32
-        tile_cnt_B = input_dimensions_B[0] // 32 * input_dimensions_B[1] // 32
-        faces_to_generate = 4
+        tile_tuple = tuple(tile_dimensions)
+        assert tile_tuple in SUPPORTED_TILE_SIZES, (
+            f"Unsupported tile dimensions: {tile_dimensions}. "
+            f"Supported sizes are: {SUPPORTED_TILE_SIZES}"
+        )
+        tile_r_dim, tile_c_dim = tile_dimensions
+
+    # Calculate tile counts based on actual tile dimensions
+    tile_cnt_A = (input_dimensions_A[0] // tile_r_dim) * (
+        input_dimensions_A[1] // tile_c_dim
+    )
+    tile_cnt_B = (input_dimensions_B[0] // tile_r_dim) * (
+        input_dimensions_B[1] // tile_c_dim
+    )
+    faces_to_generate = num_faces
 
     return tile_cnt_A, tile_cnt_B, faces_to_generate
 
@@ -187,8 +196,9 @@ def generate_stimuli(
     const_value_A=1,
     const_value_B=1,
     sfpu=True,
-    face_r_dim=16,  # Add face_r_dim parameter
-    num_faces=4,  # Add num_faces parameter for partial faces
+    face_r_dim=16,
+    num_faces=4,
+    tile_dimensions=None,  # Optional tile dimensions for non-32x32 tiles
     negative_values=False,
     output_format=None,  # Optional output format to consider for range constraints (MX)
     sequential_A=False,  # Generate sequential values (1, 2, 3, ...) for src_A
@@ -198,6 +208,9 @@ def generate_stimuli(
     Generate stimuli data for testing.
 
     Args:
+        face_r_dim: Number of rows per face (1, 2, 4, 8, or 16)
+        num_faces: Number of faces per tile (1, 2, or 4)
+        tile_dimensions: Optional [rows, cols] for non-32x32 tiles
         sequential_A: If True, generates sequential values starting from 1 for src_A.
                      src_A will have values 1, 2, 3, ...
         sequential_B: If True, generates sequential values starting from 1 for src_B.
@@ -206,7 +219,7 @@ def generate_stimuli(
     """
 
     tile_cnt_A, tile_cnt_B, faces_to_generate = calculate_tile_and_face_counts(
-        input_dimensions_A, input_dimensions_B, face_r_dim, num_faces
+        input_dimensions_A, input_dimensions_B, face_r_dim, num_faces, tile_dimensions
     )
 
     dtype_A = (
