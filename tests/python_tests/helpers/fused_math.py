@@ -651,6 +651,38 @@ class Math:
 
         return code
 
+    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
+        dest_acc = config.dest_acc.value
+        batch_size = operation.batch_size
+
+        tile_cnt = operation.output.tile_count
+        if isinstance(self.fpu, MatmulFpu):
+            tile_cnt = 1
+
+        batch_start = 0
+
+        code = self.hw_configure(operation, config)
+        code += self.fpu.init(operation, config)
+        while batch_start < tile_cnt:
+            code += f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
+            batch_end = min(batch_start + batch_size, tile_cnt)
+            for tile_idx in range(batch_end - batch_start):
+                code += self.fpu.calculate(operation, config, tile_idx)
+            batch_start += batch_end
+            for sfpu in self.sfpu:
+                code += "\n"
+                code += sfpu.init(operation, config)
+                code += sfpu.calculate(operation, config)
+                code += sfpu.uninit(operation, config)
+
+            code += (
+                f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
+            )
+        code += self.fpu.uninit(operation, config)
+
+        return code
+
     def perf_clear_valid(
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
@@ -674,27 +706,44 @@ class Math:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
 
+        if config.perf_run_type == PerfRunType.L1_TO_L1:
+            wait_for_dest = (
+                f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
+            )
+            dest_section_done = (
+                f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
+            )
+        else:
+            wait_for_dest = ""
+            dest_section_done = ""
+
         if config.perf_run_type == PerfRunType.PACK_ISOLATE:
-            return ""
+            code = ""
         elif (
             config.perf_run_type == PerfRunType.UNPACK_ISOLATE
             or config.perf_run_type == PerfRunType.L1_CONGESTION
         ):
-            return self.perf_clear_valid(operation, config)
-        elif config.perf_run_type == PerfRunType.MATH_ISOLATE:
-            code = self.fpu.calculate(operation, config)
-            for sfpu in self.sfpu:
-                code += sfpu.calculate(operation, config)
-            return code
+            code = self.perf_clear_valid(operation, config)
         else:
-            code = f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
-            code += self.fpu.calculate(operation, config)
-            for sfpu in self.sfpu:
-                code += sfpu.calculate(operation, config)
-            code += (
-                f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
-            )
-            return code
+            tile_cnt = operation.output.tile_count
+            if isinstance(self.fpu, MatmulFpu):
+                tile_cnt = 1
+            batch_size = operation.batch_size
+            code = ""
+
+            batch_start = 0
+            while batch_start < tile_cnt:
+                code += wait_for_dest
+                batch_end = min(batch_start + batch_size, tile_cnt)
+                for tile_idx in range(batch_end - batch_start):
+                    code += self.fpu.calculate(operation, config, tile_idx)
+                batch_start += batch_end
+                for sfpu in self.sfpu:
+                    code += "\n"
+                    code += sfpu.calculate(operation, config)
+                code += dest_section_done
+
+        return code
 
     def exec_perf(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         code = ""
@@ -719,12 +768,6 @@ class Math:
     def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
         format = f"DataFormat::{operation.math_format.name}"
-        dest_acc = config.dest_acc.value
-        batch_size = operation.batch_size
-        tile_cnt = operation.output.tile_count
-        if isinstance(self.fpu, MatmulFpu):
-            tile_cnt = 1
-
         code = (
             f"    // Operation {stage}: Math Setup\n"
             f"    const uint32_t math_format{stage} = static_cast<std::underlying_type_t<DataFormat>>({format});\n"
@@ -735,24 +778,6 @@ class Math:
             code += self.exec_perf(operation, config)
 
         else:
-            code += self.hw_configure(operation, config)
-            code += self.fpu.init(operation, config)
-
-            batch_start = 0
-            while batch_start < tile_cnt:
-                code += f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
-                batch_end = min(batch_start + batch_size, tile_cnt)
-                for tile_idx in range(batch_end - batch_start):
-                    code += self.fpu.calculate(operation, config, tile_idx)
-                batch_start += batch_end
-
-                for sfpu in self.sfpu:
-                    code += "\n"
-                    code += sfpu.init(operation, config)
-                    code += sfpu.calculate(operation, config)
-                    code += sfpu.uninit(operation, config)
-
-                code += f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
-            code += self.fpu.uninit(operation, config)
+            code += self.calculate(operation, config)
 
         return code
