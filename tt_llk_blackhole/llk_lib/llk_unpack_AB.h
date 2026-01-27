@@ -157,15 +157,15 @@ inline void _llk_unpack_AB_reduce_init_(
  * Resets the unpacker address counters for both SrcA and SrcB to their default
  * tile element counts based on the provided tensor shapes.
  *
- * @param face_r_dim: Row dimension of each face (typically 16)
+ * @param unpA_tensor_shape: Tensor shape for source A operand
+ * @param unpB_tensor_shape: Tensor shape for source B operand
  */
- inline void _llk_unpack_AB_uninit_(const std::uint32_t face_r_dim = FACE_R_DIM)
+inline void _llk_unpack_AB_uninit_(const ckernel::TensorShape unpA_tensor_shape, const ckernel::TensorShape unpB_tensor_shape)
 {
     // TODO NC: Issue tt-llk#1036 will make this transient
-    TT_SETADCXX(p_setadc::UNP_A, face_r_dim, 0x0);
-    TT_SETADCXX(p_setadc::UNP_B, face_r_dim, 0x0);
+    TT_SETADCXX(p_setadc::UNP_A, unpA_tensor_shape.face_r_dim * unpA_tensor_shape.face_c_dim - 1, 0x0);
+    TT_SETADCXX(p_setadc::UNP_B, unpB_tensor_shape.face_r_dim * unpB_tensor_shape.face_c_dim - 1, 0x0);
 }
-
 
 /**
  * @brief Unpack two tiles from L1 memory into SrcA and SrcB registers

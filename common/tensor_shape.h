@@ -4,7 +4,7 @@
 
 #pragma once
 
-// #include <array>
+#include <array>
 #include <cstdint>
 
 namespace ckernel
@@ -74,19 +74,16 @@ static_assert(sizeof(TensorShape) == 4, "TensorShape must be 4 bytes");
 
 /**
  * @brief Operations that are dependent of face positioning within a tile will have this function called to validate the tensor shape.
+ * Will start relaxing this constraint once we test larger tensor shapes
  *
  * @param tensor_shape: Tensor shape to validate
  **/
 inline void validate_tensor_shape_tile_dependent_ops_(const TensorShape &tensor_shape)
 {
-    constexpr uint8_t VALID_FACE_R_DIMS[] = {1, 2, 4, 8, 16};
-    constexpr uint8_t VALID_NUM_FACES[]   = {1, 2, 4};
-    LLK_ASSERT(
-        std::find(std::begin(VALID_NUM_FACES), std::end(VALID_NUM_FACES), tensor_shape.total_num_faces()) != std::end(VALID_NUM_FACES),
-        "total num_faces must be 1, 2, or 4");
-    LLK_ASSERT(
-        std::find(std::begin(VALID_FACE_R_DIMS), std::end(VALID_FACE_R_DIMS), tensor_shape.face_r_dim) != std::end(VALID_FACE_R_DIMS),
-        "face_r_dim must be 1, 2, 4, 8, 16");
+    const uint8_t num_faces  = tensor_shape.total_num_faces();
+    const uint8_t face_r_dim = tensor_shape.face_r_dim;
+    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "total num_faces must be 1, 2, or 4");
+    LLK_ASSERT(face_r_dim == 1 || face_r_dim == 2 || face_r_dim == 4 || face_r_dim == 8 || face_r_dim == 16, "face_r_dim must be 1, 2, 4, 8, 16");
     LLK_ASSERT(tensor_shape.face_c_dim == 16, "face_c_dim must be 16");
 }
 
