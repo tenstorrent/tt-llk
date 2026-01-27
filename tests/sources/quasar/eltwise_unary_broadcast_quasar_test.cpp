@@ -68,8 +68,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
             bd_val_B.f.y_dim             = params->TEST_FACE_R_DIM;
             bd_val_B.f.z_dim             = params->num_faces;
             td_val_B.buf_desc            = bd_val_B;
-            td_val_B.buf_desc_id         = buf_desc_id; // Same buf_desc_id is OK - UNPACKER1 won't read from L1 in workaround
-            td_val_B.reg_data_format     = static_cast<uint8_t>(formats.unpack_dst);
+            td_val_B.buf_desc_id = buf_desc_id; // Reuse buf_desc_id: UNPACKER1 doesn't read from L1, but its descriptor is needed to hold intermediate data in
+                                                // the dest→srcB→dest workaround
+            td_val_B.reg_data_format = static_cast<uint8_t>(formats.unpack_dst);
             _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val, td_val_B);
         }
         else

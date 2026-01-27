@@ -52,41 +52,13 @@ inline void _llk_math_eltwise_unary_broadcast_mop_config_(const uint32_t num_row
     if constexpr (unpack_to_dest)
     {
         // Workaround: movA2D doesn't support broadcast, so dest→srcB→dest via MOVD2B then MOVB2D
-        const uint32_t num_rows_per_move_instrn = ELTWISE_MATH_ROWS;
-        const uint32_t MOP_INNER_LOOP           = num_rows_inner_loop >> math_rows_log2(num_rows_per_move_instrn);
-        const uint32_t mov_rows_instn           = p_mov_src_to_dest::MOV_8_ROWS;
-        const uint32_t MOP_OUTER_LOOP           = num_dvalids_outer_loop;
-
-        constexpr uint32_t bcast_datum0 = (BROADCAST_TYPE == BroadcastType::SCALAR || BROADCAST_TYPE == BroadcastType::COL) ? 1 : 0;
-        constexpr uint32_t dst_addr     = (BROADCAST_TYPE == BroadcastType::SCALAR || BROADCAST_TYPE == BroadcastType::ROW) ? 1 : 0;
-
         _llk_math_eltwise_unary_broadcast_addrmod_<BROADCAST_TYPE>();
-
-        const auto movb2d_func = [mov_rows_instn, bcast_datum0, dst_addr](uint8_t addr_mod)
-        { return TT_OP_MOVB2D(0, 0, addr_mod, mov_rows_instn, bcast_datum0, dst_addr); };
-
-        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, movb2d_func(ADDR_MOD_0));
-
-        temp.set_end_op(TT_OP_CLEARDVALID(p_cleardvalid::CLR_SRCB_VLD, 0, 0, 0, 0, 0));
-        if constexpr (BROADCAST_TYPE != BroadcastType::SCALAR)
-        {
-            constexpr uint ADDR_MOD = (BROADCAST_TYPE == BroadcastType::COL) ? ADDR_MOD_2 : ADDR_MOD_0;
-            temp.set_last_inner_loop_instr(movb2d_func(ADDR_MOD));
-        }
-        else
-        {
-            temp.set_last_inner_loop_instr(movb2d_func(ADDR_MOD_1));
-        }
-
-        temp.program_bank0_sw_cntl(instrn_buffer);
-        return;
     }
 
     const uint32_t num_rows_per_move_instrn = ELTWISE_MATH_ROWS;
     const uint32_t MOP_INNER_LOOP           = num_rows_inner_loop >> math_rows_log2(num_rows_per_move_instrn);
     const uint32_t mov_rows_instn           = p_mov_src_to_dest::MOV_8_ROWS;
-
-    const uint32_t MOP_OUTER_LOOP = num_dvalids_outer_loop;
+    const uint32_t MOP_OUTER_LOOP           = num_dvalids_outer_loop;
 
     constexpr uint32_t bcast_datum0 = (BROADCAST_TYPE == BroadcastType::SCALAR || BROADCAST_TYPE == BroadcastType::COL) ? 1 : 0;
     constexpr uint32_t dst_addr     = (BROADCAST_TYPE == BroadcastType::SCALAR || BROADCAST_TYPE == BroadcastType::ROW) ? 1 : 0;
@@ -100,14 +72,8 @@ inline void _llk_math_eltwise_unary_broadcast_mop_config_(const uint32_t num_row
 
     if constexpr (BROADCAST_TYPE != BroadcastType::SCALAR)
     {
-        if constexpr (BROADCAST_TYPE == BroadcastType::COL)
-        {
-            temp.set_last_inner_loop_instr(movb2d_func(ADDR_MOD_2));
-        }
-        else
-        {
-            temp.set_last_inner_loop_instr(movb2d_func(ADDR_MOD_0));
-        }
+        constexpr uint ADDR_MOD = (BROADCAST_TYPE == BroadcastType::COL) ? ADDR_MOD_2 : ADDR_MOD_0;
+        temp.set_last_inner_loop_instr(movb2d_func(ADDR_MOD));
     }
     else
     {
@@ -171,6 +137,8 @@ inline void _llk_math_eltwise_unary_broadcast_init_(const uint num_rows_per_matr
     if constexpr (unpack_to_dest)
     {
         _llk_math_eltwise_unary_broadcast_d2b_mop_config_<BROADCAST_TYPE>(num_rows_per_matrix, num_matrices);
+        _llk_math_eltwise_unary_broadcast_addrmod_<BROADCAST_TYPE>();
+        _llk_math_eltwise_unary_broadcast_mop_config_<BROADCAST_TYPE, unpack_to_dest>(num_rows_per_matrix, num_matrices);
     }
     else
     {
@@ -190,41 +158,10 @@ inline void _llk_math_eltwise_unary_broadcast_(const uint32_t num_rows_per_tile,
     {
         ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
         _reset_counters_<p_setrwc::SET_ABD_F>();
-
-        _llk_math_eltwise_unary_broadcast_addrmod_<BROADCAST_TYPE>();
-        const uint32_t num_rows_per_move_instrn = ELTWISE_MATH_ROWS;
-        const uint32_t MOP_INNER_LOOP           = num_rows_per_tile >> math_rows_log2(num_rows_per_move_instrn);
-        const uint32_t mov_rows_instn           = p_mov_src_to_dest::MOV_8_ROWS;
-        const uint32_t MOP_OUTER_LOOP           = 1;
-
-        constexpr uint32_t bcast_datum0 = (BROADCAST_TYPE == BroadcastType::SCALAR || BROADCAST_TYPE == BroadcastType::COL) ? 1 : 0;
-        constexpr uint32_t dst_addr     = (BROADCAST_TYPE == BroadcastType::SCALAR || BROADCAST_TYPE == BroadcastType::ROW) ? 1 : 0;
-
-        const auto movb2d_func = [mov_rows_instn, bcast_datum0, dst_addr](uint8_t addr_mod)
-        { return TT_OP_MOVB2D(0, 0, addr_mod, mov_rows_instn, bcast_datum0, dst_addr); };
-
-        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, movb2d_func(ADDR_MOD_0));
-        temp.set_end_op(TT_OP_CLEARDVALID(p_cleardvalid::CLR_SRCB_VLD, 0, 0, 0, 0, 0));
-
-        if constexpr (BROADCAST_TYPE != BroadcastType::SCALAR)
-        {
-            constexpr uint ADDR_MOD = (BROADCAST_TYPE == BroadcastType::COL) ? ADDR_MOD_2 : ADDR_MOD_0;
-            temp.set_last_inner_loop_instr(movb2d_func(ADDR_MOD));
-        }
-        else
-        {
-            temp.set_last_inner_loop_instr(movb2d_func(ADDR_MOD_1));
-        }
-
-        temp.program_bank0_sw_cntl(instrn_buffer);
-        _set_dst_write_addr_by_rows_(num_rows_per_tile, tile_idx);
-        ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
     }
-    else
-    {
-        _set_dst_write_addr_by_rows_(num_rows_per_tile, tile_idx);
-        ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
-    }
+
+    _set_dst_write_addr_by_rows_(num_rows_per_tile, tile_idx);
+    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
 
     _reset_counters_<p_setrwc::SET_ABD_F>();
 }

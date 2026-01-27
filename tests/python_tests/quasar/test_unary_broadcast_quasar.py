@@ -18,7 +18,6 @@ from helpers.llk_params import (
 from helpers.param_config import (
     generate_unary_input_dimensions,
     input_output_formats,
-    parametrize,
 )
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
@@ -35,26 +34,58 @@ from helpers.test_variant_parameters import (
 from helpers.utils import passed_test
 
 
-@pytest.mark.quasar
-@parametrize(
-    formats=input_output_formats(
+def generate_unary_broadcast_combinations():
+    """Generate all unary broadcast test combinations."""
+    formats_list = input_output_formats(
         [
             DataFormat.Float16_b,
             DataFormat.Float16,
             DataFormat.Float32,
         ],
-    ),
-    dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
-    broadcast_type=[
+    )
+
+    broadcast_types = [
+        BroadcastType.Scalar,
         BroadcastType.Column,
         BroadcastType.Row,
-        BroadcastType.Scalar,
-    ],
-    implied_math_format=[
+    ]
+
+    implied_math_formats = [
         ImpliedMathFormat.No,
         ImpliedMathFormat.Yes,
-    ],
-    input_dimensions=lambda dest_acc: generate_unary_input_dimensions(dest_acc),
+    ]
+
+    combinations = []
+    for fmt in formats_list:
+        dest_acc_modes = get_valid_dest_accumulation_modes(fmt)
+        for dest_acc in dest_acc_modes:
+            # Skip 32-bit input formats with dest_acc=No (not supported)
+            if fmt.input_format.is_32_bit() and dest_acc == DestAccumulation.No:
+                continue
+
+            for broadcast_type in broadcast_types:
+                for implied_math_format in implied_math_formats:
+                    for input_dimensions in generate_unary_input_dimensions(dest_acc):
+                        combinations.append(
+                            (
+                                fmt,
+                                dest_acc,
+                                broadcast_type,
+                                implied_math_format,
+                                input_dimensions,
+                            )
+                        )
+
+    return combinations
+
+
+UNARY_BROADCAST_COMBINATIONS = generate_unary_broadcast_combinations()
+
+
+@pytest.mark.quasar
+@pytest.mark.parametrize(
+    "formats,dest_acc,broadcast_type,implied_math_format,input_dimensions",
+    UNARY_BROADCAST_COMBINATIONS,
 )
 def test_unary_broadcast_quasar(
     formats,
@@ -64,9 +95,6 @@ def test_unary_broadcast_quasar(
     input_dimensions,
     boot_mode=BootMode.DEFAULT,
 ):
-    # Skip 32-bit input formats with dest_acc=No (not supported)
-    if formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No:
-        pytest.skip("32-bit input formats require dest_acc=Yes")
 
     # Generate input stimuli
     src_B, tile_cnt_B, _, _ = generate_stimuli(
