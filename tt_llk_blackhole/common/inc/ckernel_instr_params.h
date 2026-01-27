@@ -116,6 +116,21 @@ struct p_srcb
     constexpr static std::uint32_t BACKWARD_PASS = 0x1;
 };
 
+constexpr static uint SETADC_CH0(uint cnt)
+{
+    return cnt;
+}
+
+constexpr static uint SETADC_CH1(uint cnt)
+{
+    return cnt << 2;
+}
+
+constexpr static uint SETADC_CH01(uint cnt)
+{
+    return cnt << 2 | cnt;
+}
+
 struct p_setadc
 {
     constexpr static std::uint32_t UNP0   = 0b001;
@@ -130,8 +145,15 @@ struct p_setadc
     constexpr static std::uint32_t SET_Z = 2;
     constexpr static std::uint32_t SET_W = 3;
 
-    constexpr static std::uint32_t CH_0 = 0;
-    constexpr static std::uint32_t CH_1 = 1;
+    constexpr static uint X  = 1;
+    constexpr static uint Y  = 2;
+    constexpr static uint XY = 3;
+    constexpr static uint Z  = 1;
+    constexpr static uint W  = 2;
+    constexpr static uint ZW = 3;
+
+    constexpr static uint CH_0 = 0;
+    constexpr static uint CH_1 = 1;
 };
 
 struct p_pacr
