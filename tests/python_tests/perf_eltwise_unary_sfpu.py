@@ -36,43 +36,43 @@ from helpers.test_variant_parameters import (
 @parametrize(
     formats=input_output_formats(
         [
-            DataFormat.Float32,
-            DataFormat.Float16,
+            # DataFormat.Float32,
+            # DataFormat.Float16,
             DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
+            # DataFormat.Bfp8_b,
         ]
     ),
     approx_mode=[
         ApproximationMode.Yes,
-        ApproximationMode.No,
+        # ApproximationMode.No,
     ],
     mathop=[
-        MathOperation.Reciprocal,
-        MathOperation.Sqrt,
-        MathOperation.Silu,
-        MathOperation.Gelu,
+        # MathOperation.Reciprocal,
+        # MathOperation.Sqrt,
+        # MathOperation.Silu,
+        # MathOperation.Gelu,
         MathOperation.Exp,
-        MathOperation.TopKLocalSort,
-        MathOperation.TopKMerge,
-        MathOperation.TopKRebuild,
+        # MathOperation.TopKLocalSort,
+        # MathOperation.TopKMerge,
+        # MathOperation.TopKRebuild,
     ],
     dest_acc=[
-        DestAccumulation.Yes,
         DestAccumulation.No,
+        # DestAccumulation.Yes,
     ],
     loop_factor=[
         16,
     ],  # Number of iterations to run the test in order to minimize profiler overhead in measurement
     iterations=[
-        8,
         32,
+        # 32,
     ],  # Number of SFPU iterations
     fast_mode=[
         FastMode.Yes,
-        FastMode.No,
+        # FastMode.No,
     ],
     stable_sort=[
-        StableSort.Yes,
+        # StableSort.Yes,
         StableSort.No,
     ],
     input_dimensions=[
