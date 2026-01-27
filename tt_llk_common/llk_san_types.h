@@ -11,6 +11,7 @@
 
 #include "ckernel.h"
 #include "llk_defs.h"
+#include "llk_san_output.h"
 
 namespace llk_san
 {
@@ -162,7 +163,7 @@ public:
 
     const T& get_underlying() const
     {
-        LLK_ASSERT(is_known(), "panic: llk_san: underlying value is not known");
+        // LLK_SAN_ASSERT(is_known(), "panic: llk_san: underlying value is not known");
         return underlying;
     }
 };

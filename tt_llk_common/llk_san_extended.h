@@ -13,5 +13,5 @@
 // template <bool clear = false, typename... Ts>
 // llk_san_extended_state_mask(Ts... args)
 // {
-//     LLK_ASSERT(false, "not implemented");
+//     LLK_SAN_ASSERT(false, "not implemented");
 // }
