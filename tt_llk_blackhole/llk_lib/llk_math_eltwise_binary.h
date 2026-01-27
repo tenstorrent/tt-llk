@@ -273,3 +273,227 @@ inline void _llk_math_eltwise_binary_uninit_()
 {
     // No state to restore - all states are transient or default
 }
+
+/*************************************************************************
+
+SDPA OPTIMIZATION
+--------------------------------
+Request is to do fthe following:
+On math side of this operation we need to do the following:
+- Transpose srcB from rows to columns, that way we get effect of broadcasted column
+- Move srcB counte to index 16 since transpose is done on rows 16 - 31.
+- Subtract F0 and F1 in srcA and srcB
+- Change srcB bank
+- Repeat subtraction for F2 and F3
+
+*************************************************************************/
+
+inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod()
+{
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_0);
+
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .srcb = {.incr = 0x3F & -8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_1);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 16},
+        .dest = {.incr = 0},
+    }
+        .set(ADDR_MOD_2);
+
+    addr_mod_t {
+        .srca = {.incr = 16},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 0},
+    }
+        .set(ADDR_MOD_3);
+}
+
+template <bool transpose_faces = false>
+inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop()
+{
+    // Without transpose: 13 instructions
+    // With transpose: 17 instructions (extra srcA jumps and manipulations between faces)
+    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 17 : 13;
+
+    uint32_t innerloop           = 1;
+    constexpr uint32_t outerloop = 1;
+
+    ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, REPLAY_BUFFER_SIZE, 0, 0));
+    tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB)); // Clearing src A dvalid
+    tmp.program();
+}
+
+template <EltwiseBinaryType eltwise_binary_type, bool transpose_faces = false>
+inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
+{
+    // Without transpose: 13 instructions
+    // With transpose: 17 instructions (extra srcA jumps and manipulations between faces)
+    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 17 : 13;
+
+    _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod();
+
+    auto eltwise_op = [](uint8_t addr_mod)
+    {
+        if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWSUB)
+        {
+            TTI_ELWSUB(0, 0, 0, addr_mod, 0);
+        }
+        else if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWADD)
+        {
+            TTI_ELWADD(0, 0, 0, addr_mod, 0);
+        }
+        else if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWMUL)
+        {
+            TTI_ELWMUL(0, 0, 0, addr_mod, 0);
+        }
+    };
+
+    // ********************************************************
+    //  Setup replay buffer
+    lltt::record<lltt::NoExec>(0, REPLAY_BUFFER_SIZE);
+
+    TTI_TRNSPSRCB; // rows -> cols
+    /*
+    Dummy SFPLOAD with no effect to move srcB counter to be 16 since transpose is done on rows 16 - 31.
+    Main thing is ADDR_MOD_2 that has srcB increment of 16
+    */
+    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
+
+    if constexpr (transpose_faces)
+    {
+        // ********************************************************
+        // TRANSPOSE FACES MODE:
+        // srcA unpacked with face transpose: F0, F2, F1, F3
+        // srcB unpacked normally (broadcast): F0/F1, then F2/F3
+        // Need to align srcA face access with srcB broadcast groups:
+        //   - srcA F0 with srcB F0/F1 → dest F0
+        //   - srcA F2 with srcB F0/F1 → dest F1
+        //   - srcA F1 with srcB F2/F3 → dest F2
+        //   - srcA F3 with srcB F2/F3 → dest F3
+        // ********************************************************
+
+        // F0 (srcA at 0-15) - F0 (srcB) → dest 0-15
+        eltwise_op(ADDR_MOD_0); // srcA: 0->8, dest: 0->8
+        eltwise_op(ADDR_MOD_1); // srcA: 8->16, dest: 8->16
+
+        // Jump srcA from 16 to 32 to skip F1 and access F2
+        // Use ADDR_MOD_3 which has srcA incr=0, dest incr=16
+        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0); // srcA: 16->32, dest stays at 16
+
+        // F2 (srcA at 32-47) - F1 (srcB) → dest 16-31
+        eltwise_op(ADDR_MOD_0); // srcA: 32->40, dest: 16->24
+        eltwise_op(ADDR_MOD_1); // srcA: 40->48, dest: 24->32
+
+        // BOTTOM FACES F2 AND F3
+        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0); // clear dvalid on srcB and reset srcB counters
+
+        TTI_TRNSPSRCB; // rows -> cols
+
+        // Jump srcA back from 48 to 16 to access F1
+        // Reset srcA to 16, dest stays at 32
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A); // srcA: 48->0
+        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);     // srcA: 0->16, dest stays at 32
+
+        // F1 (srcA at 16-31) - F2 (srcB) → dest 32-47
+        eltwise_op(ADDR_MOD_0); // srcA: 16->24, dest: 32->40
+        eltwise_op(ADDR_MOD_1); // srcA: 24->32, dest: 40->48
+
+        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0); // srcA: 32->48, dest stays at 48
+
+        // F3 (srcA at 48-63) - F3 (srcB) → dest 48-63
+        eltwise_op(ADDR_MOD_0); // srcA: 48->56, dest: 48->56
+        eltwise_op(ADDR_MOD_1); // srcA: 56->64, dest: 56->64
+
+        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0); // clear both src dvalids
+    }
+    else
+    {
+        // ********************************************************
+        // NORMAL MODE: Write faces in order F0, F1, F2, F3
+        // ********************************************************
+
+        eltwise_op(ADDR_MOD_0);
+        eltwise_op(ADDR_MOD_1);
+
+        eltwise_op(ADDR_MOD_0);
+        eltwise_op(ADDR_MOD_1);
+
+        // BOTTOM FACES F2 AND F3
+
+        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0); // clear dvalid on srcB and reset srcB counters
+
+        TTI_TRNSPSRCB; // rows -> cols
+
+        eltwise_op(ADDR_MOD_0);
+        eltwise_op(ADDR_MOD_1);
+
+        eltwise_op(ADDR_MOD_0);
+        eltwise_op(ADDR_MOD_1);
+
+        TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0); // clear both src dvalids
+    }
+
+    // ********************************************************
+
+    _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop<transpose_faces>();
+
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+    math::reset_counters(p_setrwc::SET_ABD_F);
+}
+
+inline void _llk_math_eltwise_binary_bcastB_row_as_col_(uint32_t dst_index)
+{
+    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB); // clear all counters
+
+    // run the MOP
+    ckernel_template::run();
+
+    math::clear_dst_reg_addr();
+}
+
+inline void _llk_math_eltwise_binary_bcastB_row_as_col_uninit_()
+{
+    // Reset address modifiers to defaults
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_0);
+
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_1);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 0},
+    }
+        .set(ADDR_MOD_2);
+
+    addr_mod_t {
+        .srca = {.incr = 0},
+        .srcb = {.incr = 0},
+        .dest = {.incr = 0},
+    }
+        .set(ADDR_MOD_3);
+
+    // Clear any pending dvalid signals
+    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0);
+}

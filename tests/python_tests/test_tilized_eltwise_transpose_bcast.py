@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
-from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     BroadcastGolden,
@@ -86,7 +85,7 @@ def extract_row_from_tilized(tilized_tensor, row_index, data_format):
     return result
 
 
-@skip_for_blackhole
+# @skip_for_blackhole
 @parametrize(
     formats=input_output_formats(
         [
