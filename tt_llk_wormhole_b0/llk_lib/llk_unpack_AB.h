@@ -20,16 +20,27 @@
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
+/**
+ * @brief Configure the MOP (Micro-Operation Program) for unpacking two source operands A and B
+ *
+ * Sets up the unpacker MOP to handle various broadcast modes and transpose configurations.
+ * The MOP programs the sequence of unpack operations based on tile geometry and broadcast type.
+ *
+ * @tparam BType: Broadcast type for source B, values = <NONE/COL/ROW/SCALAR>
+ * @param transpose_of_faces: Whether to transpose faces (reorder faces 0,2,1,3)
+ * @param tensor_shape: Tensor shape describing tile dimensions (face_r_dim, face_c_dim, num_faces)
+ */
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const ckernel::TensorShape tensor_shape)
 {
     const std::uint32_t num_faces = tensor_shape.total_num_faces();
     const bool narrow_tile        = (tensor_shape.num_faces_c_dim == 1);
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    // TODO: Remove this assert after testing >4 num_faces because there is no reason to limit this for non-broadcast versions
+    validate_tensor_shape_tile_dependent_ops_(tensor_shape);
 
     if (transpose_of_faces)
     {
-        LLK_ASSERT(num_faces == 4, "num_faces must be 4 when transpose_of_faces is true");
+        LLK_ASSERT(num_faces == MAX_NUM_FACES, "num_faces must be 4 when transpose_of_faces is true");
     }
 
     static constexpr uint unpack_srca           = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
@@ -98,12 +109,22 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const cker
     }
 }
 
+/**
+ * @brief Initialize unpacker to unpack two source operands A and B into SrcA and SrcB registers
+ *
+ * Configures the unpacker hardware for dual-operand unpacking with support for various
+ * broadcast modes and optional transpose. Sets up number of datums to unpack based on face dimensions.
+ *
+ * @tparam BType: Broadcast type for source B, values = <NONE/COL/ROW/SCALAR>
+ * @param tensor_shape: Tensor shape describing tile dimensions (face_r_dim, face_c_dim, num_faces)
+ * @param transpose: Whether to transpose within each face (0 = no transpose, >0 = transpose)
+ */
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_init_(const ckernel::TensorShape tensor_shape, const std::uint32_t transpose = 0)
 {
     const std::uint32_t num_faces = tensor_shape.total_num_faces();
     // TODO: Remove this assert after testing >4 num_faces because there is no reason to limit this for non-broadcast versions
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    validate_tensor_shape_tile_dependent_ops_(tensor_shape);
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose); // transpose within the face
 
     config_unpacker_x_end<p_setadc::UNP_AB>(face_r_dim);
@@ -137,13 +158,32 @@ inline void _llk_unpack_AB_reduce_init_(
     _llk_unpack_AB_mop_config_<BType>(transpose > 0, tensor_shape); // transpose of faces 0,2,1,3
 }
 
-inline void _llk_unpack_AB_uninit_(const std::uint32_t face_r_dim = FACE_R_DIM)
-{
-    // TODO NC: Issue tt-llk#1036 will make this transient
-    TT_SETADCXX(p_setadc::UNP_A, face_r_dim, 0x0);
-    TT_SETADCXX(p_setadc::UNP_B, face_r_dim, 0x0);
-}
+/**
+ * @brief Uninitialize unpacker after AB unpacking operations
+ *
+ * Resets the unpacker address counters for both SrcA and SrcB to their default
+ * tile element counts based on the provided tensor shapes.
+ *
+ * @param unpA_tensor_shape: Tensor shape for source A operand
+ * @param unpB_tensor_shape: Tensor shape for source B operand
+ */
+ inline void _llk_unpack_AB_uninit_(const ckernel::TensorShape unpA_tensor_shape, const ckernel::TensorShape unpB_tensor_shape)
+ {
+     // TODO NC: Issue tt-llk#1036 will make this transient
+     TT_SETADCXX(p_setadc::UNP_A, unpA_tensor_shape.face_r_dim * unpA_tensor_shape.face_c_dim - 1, 0x0);
+     TT_SETADCXX(p_setadc::UNP_B, unpB_tensor_shape.face_r_dim * unpB_tensor_shape.face_c_dim - 1, 0x0);
+ }
 
+/**
+ * @brief Unpack two tiles from L1 memory into SrcA and SrcB registers
+ *
+ * Performs the actual unpacking operation by programming base addresses and running
+ * the configured MOP. Handles context switching and synchronization with the unpacker.
+ *
+ * @tparam BType: Broadcast type for source B, values = <NONE/COL/ROW/SCALAR>
+ * @param address_a: L1 memory address of source A tile
+ * @param address_b: L1 memory address of source B tile
+ */
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t address_b)
 {
