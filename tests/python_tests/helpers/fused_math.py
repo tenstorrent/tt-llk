@@ -669,7 +669,7 @@ class Math:
             batch_end = min(batch_start + batch_size, tile_cnt)
             for tile_idx in range(batch_end - batch_start):
                 code += self.fpu.calculate(operation, config, tile_idx)
-            batch_start += batch_end
+            batch_start = batch_end
             for sfpu in self.sfpu:
                 code += "\n"
                 code += sfpu.init(operation, config)
@@ -737,7 +737,7 @@ class Math:
                 batch_end = min(batch_start + batch_size, tile_cnt)
                 for tile_idx in range(batch_end - batch_start):
                     code += self.fpu.calculate(operation, config, tile_idx)
-                batch_start += batch_end
+                batch_start = batch_end
                 for sfpu in self.sfpu:
                     code += "\n"
                     code += sfpu.calculate(operation, config)

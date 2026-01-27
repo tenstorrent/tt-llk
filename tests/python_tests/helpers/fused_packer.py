@@ -107,11 +107,28 @@ class Packer:
         else:
             code += self.hw_configure(operation, config)
             code += self.init(operation, config)
-            code += "    _llk_packer_wait_for_math_done_();\n"
-            code += self.pack(operation, config)
-            code += (
-                f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();\n"
-            )
+
+            tile_cnt = operation.output.tile_count
+            batch_size = operation.batch_size
+
+            batch_start = 0
+
+            while batch_start < tile_cnt:
+                code += "    _llk_packer_wait_for_math_done_();\n"
+                batch_end = min(batch_start + batch_size, tile_cnt)
+                for dest_idx in range(batch_end - batch_start):
+                    global_tile_idx = batch_start + dest_idx
+
+                    tr = global_tile_idx // operation.dest_tiles_w
+                    tc = global_tile_idx % operation.dest_tiles_w
+
+                    if tr < operation.output_tiles_h and tc < operation.output_tiles_w:
+                        l1_idx = tr * operation.output_tiles_w + tc
+                        code += self.pack(operation, config, dest_idx, l1_idx)
+
+                batch_start = batch_end
+
+                code += f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();\n"
             code += self.unpacker_sync(operation, config)
             code += self.uninit(operation, config)
 
@@ -175,21 +192,27 @@ class Packer:
 
         return code
 
-    def pack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def pack(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        dest_idx: int,
+        l1_idx: int,
+    ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
         dest_sync = f"DstSync::Sync{operation.dest_sync.name}"
 
         return (
-            f"    for (int tr = 0; tr < {operation.output_tiles_h}; tr++)\n"
-            f"    {{\n"
-            f"        for (int tc = 0; tc < {operation.output_tiles_w}; tc++)\n"
-            f"        {{\n"
-            f"            uint32_t dest_idx = tr * {operation.dest_tiles_w} + tc;\n"
-            f"            uint32_t l1_idx = tr * {operation.output_tiles_w} + tc;\n"
-            f"            _llk_pack_<{dest_sync}, {dest_acc}, false>(dest_idx, L1_ADDRESS(buffer_Res{stage}[l1_idx]));\n"
-            f"        }}\n"
-            f"    }}\n"
+            # f"    for (int tr = 0; tr < {operation.output_tiles_h}; tr++)\n"
+            # f"    {{\n"
+            # f"        for (int tc = 0; tc < {operation.output_tiles_w}; tc++)\n"
+            # f"        {{\n"
+            # f"            uint32_t dest_idx = tr * {operation.dest_tiles_w} + tc;\n"
+            # f"            uint32_t l1_idx = tr * {operation.output_tiles_w} + tc;\n"
+            f"    _llk_pack_<{dest_sync}, {dest_acc}, false>({dest_idx}, L1_ADDRESS(buffer_Res{stage}[{l1_idx}]));\n"
+            # f"        }}\n"
+            # f"    }}\n"
         )
 
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
