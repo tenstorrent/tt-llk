@@ -27,6 +27,14 @@ MAX_FACE_R_DIM = 16
 FACE_C_DIM = 16
 
 # =============================================================================
+# BFP Format Constants
+# =============================================================================
+
+# Minimum exponents required for BFP formats (hardware constraint)
+# The exponent section must be padded to at least 16 bytes for both unpacker and packer
+MIN_BFP_EXPONENTS = 16
+
+# =============================================================================
 # Maximum/Default Tile Dimensions
 # =============================================================================
 
@@ -134,8 +142,8 @@ def calculate_tile_size_bytes(data_format, tile_dimensions, format_tile_sizes):
     For standard 32x32 tiles, uses the predefined format_tile_sizes which includes
     format-specific overhead (e.g., exponent bytes for Bfp8_b).
 
-    For non-32x32 tiles, calculates size based on actual element count and
-    bytes per element for the format.
+    For BFP formats, hardware requires minimum 16 exponents total for both
+    unpacker (input) and packer (output).
 
     Args:
         data_format: DataFormat enum value
@@ -145,19 +153,23 @@ def calculate_tile_size_bytes(data_format, tile_dimensions, format_tile_sizes):
     Returns:
         int: Tile size in bytes
     """
+    from .format_config import DataFormat
+
     tile_rows, tile_cols = tile_dimensions
     tile_elements = tile_rows * tile_cols
 
-    # For non-standard tiles, calculate from element count
-    # Get the full tile size and derive bytes per element
-    full_tile_size = format_tile_sizes[data_format]
-
     # For standard 32x32 tiles, use the predefined sizes (includes format overhead)
     if tile_elements == MAX_TILE_ELEMENTS:
-        return full_tile_size
+        return format_tile_sizes[data_format]
 
-    # Most formats: bytes_per_element = full_tile_size / 1024
-    # Special cases handled by ratio calculation
-    bytes_per_element_ratio = full_tile_size / MAX_TILE_ELEMENTS
+    # For BFP8_b, hardware requires minimum exponents for both unpacker and packer
+    if data_format in (DataFormat.Bfp8, DataFormat.Bfp8_b):
+        actual_exponents = tile_elements // 16
+        total_exponents = max(actual_exponents, MIN_BFP_EXPONENTS)
+        # mantissas = 1 byte per element
+        return total_exponents + tile_elements
 
-    return int(tile_elements * bytes_per_element_ratio)
+    # Use data_format.num_bytes_per_tile() for other formats
+    # - MxFp8: 1 scale per 32 elements (at beginning of tile)
+    # - Other formats: just element size * count
+    return data_format.num_bytes_per_tile(tile_elements)
