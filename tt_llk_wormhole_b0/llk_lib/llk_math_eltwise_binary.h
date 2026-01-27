@@ -168,11 +168,6 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, uint dst_in
             for (std::uint32_t n = 0; n < outerloop; n++)
             {
                 eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
-
-                // TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-                // TTI_TRNSPSRCB;  // Transpose srcB in place
-                // TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-
                 ckernel_template::run();
             }
             // Manually clear B once mop is done for scaler bcast
@@ -449,9 +444,9 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod()
         .set(ADDR_MOD_2);
 
     addr_mod_t {
-        .srca = {.incr = 0},
+        .srca = {.incr = 16},
         .srcb = {.incr = 0},
-        .dest = {.incr = 16},
+        .dest = {.incr = 0},
     }
         .set(ADDR_MOD_3);
 }
@@ -460,8 +455,8 @@ template <bool transpose_faces = false>
 inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop()
 {
     // Without transpose: 13 instructions
-    // With transpose: 20 instructions (extra dest manipulations between faces)
-    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 13 : 13;
+    // With transpose: 17 instructions (extra srcA jumps and manipulations between faces)
+    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 17 : 13;
 
     uint32_t innerloop           = 1;
     constexpr uint32_t outerloop = 1;
@@ -475,8 +470,8 @@ template <EltwiseBinaryType eltwise_binary_type, bool transpose_faces = false>
 inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
 {
     // Without transpose: 13 instructions
-    // With transpose: 20 instructions (extra dest manipulations between faces)
-    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 13 : 13;
+    // With transpose: 17 instructions (extra srcA jumps and manipulations between faces)
+    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 17 : 13;
 
     _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod();
 
@@ -510,44 +505,47 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
     if constexpr (transpose_faces)
     {
         // ********************************************************
-        // TRANSPOSE FACES MODE: Write F0 to dest0, F1 to dest32, F2 to dest16, F3 to dest48
-        // srcA flows naturally: F0(0-15), F1(16-31), F2(32-47), F3(48-63)
-        // Only dest write locations are modified to achieve face transpose
+        // TRANSPOSE FACES MODE:
+        // srcA unpacked with face transpose: F0, F2, F1, F3
+        // srcB unpacked normally (broadcast): F0/F1, then F2/F3
+        // Need to align srcA face access with srcB broadcast groups:
+        //   - srcA F0 with srcB F0/F1 → dest F0
+        //   - srcA F2 with srcB F0/F1 → dest F1
+        //   - srcA F1 with srcB F2/F3 → dest F2
+        //   - srcA F3 with srcB F2/F3 → dest F3
         // ********************************************************
 
-        // F0: write to dest 0-15 (face 0 position - normal)
-        eltwise_op(ADDR_MOD_0); // dest: 0 -> 8
-        eltwise_op(ADDR_MOD_1); // dest: 8 -> 16
+        // F0 (srcA at 0-15) - F0 (srcB) → dest 0-15
+        eltwise_op(ADDR_MOD_0); // srcA: 0->8, dest: 0->8
+        eltwise_op(ADDR_MOD_1); // srcA: 8->16, dest: 8->16
 
-        // Dummy SFPLOAD with no effect to move Dst counter by 16
-        // Jump dest from 16 to 32 for F1 to write at F2 position
-        // TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+        // Jump srcA from 16 to 32 to skip F1 and access F2
+        // Use ADDR_MOD_3 which has srcA incr=0, dest incr=16
+        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0); // srcA: 16->32, dest stays at 16
 
-        // F1: write to dest 32-47 (face 2 position - swapped)
-        eltwise_op(ADDR_MOD_0); // dest: 32 -> 40
-        eltwise_op(ADDR_MOD_1); // dest: 40 -> 48
+        // F2 (srcA at 32-47) - F1 (srcB) → dest 16-31
+        eltwise_op(ADDR_MOD_0); // srcA: 32->40, dest: 16->24
+        eltwise_op(ADDR_MOD_1); // srcA: 40->48, dest: 24->32
 
         // BOTTOM FACES F2 AND F3
         TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0); // clear dvalid on srcB and reset srcB counters
 
         TTI_TRNSPSRCB; // rows -> cols
 
-        // Reset dest to 16 for F2 to write at F1 position
-        // After F1, dest is at 48. Reset to 0, then add 16.
-        // TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D); // dest: 48 -> 0
-        // TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+        // Jump srcA back from 48 to 16 to access F1
+        // Reset srcA to 16, dest stays at 32
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A); // srcA: 48->0
+        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);     // srcA: 0->16, dest stays at 32
 
-        // F2: write to dest 16-31 (face 1 position - swapped)
-        eltwise_op(ADDR_MOD_0); // dest: 16 -> 24
-        eltwise_op(ADDR_MOD_1); // dest: 24 -> 32
+        // F1 (srcA at 16-31) - F2 (srcB) → dest 32-47
+        eltwise_op(ADDR_MOD_0); // srcA: 16->24, dest: 32->40
+        eltwise_op(ADDR_MOD_1); // srcA: 24->32, dest: 40->48
 
-        // Dummy SFPLOAD with no effect to move Dst counter by 16
-        // Jump dest from 32 to 48 for F3
-        // TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);
+        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0); // srcA: 32->48, dest stays at 48
 
-        // F3: write to dest 48-63 (face 3 position - normal)
-        eltwise_op(ADDR_MOD_0); // dest: 48 -> 56
-        eltwise_op(ADDR_MOD_1); // dest: 56 -> 64
+        // F3 (srcA at 48-63) - F3 (srcB) → dest 48-63
+        eltwise_op(ADDR_MOD_0); // srcA: 48->56, dest: 48->56
+        eltwise_op(ADDR_MOD_1); // srcA: 56->64, dest: 56->64
 
         TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0); // clear both src dvalids
     }
