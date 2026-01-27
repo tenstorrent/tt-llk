@@ -1,9 +1,11 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
 import torch
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
+    BroadcastGolden,
     EltwiseBinaryGolden,
     get_golden_generator,
 )
@@ -33,6 +35,7 @@ from helpers.test_variant_parameters import (
     UNPACK_TRANS_WITHIN_FACE,
 )
 from helpers.tile_constants import get_tile_params
+from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
 
@@ -40,11 +43,23 @@ from helpers.utils import passed_test
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
-        ]
+            DataFormat.Float32,
+        ],
+        same=False,
     ),
-    broadcast_type=[BroadcastType.None_],
+    broadcast_type=[
+        BroadcastType.None_,
+        BroadcastType.Row,
+        BroadcastType.Column,
+        BroadcastType.Scalar,
+    ],
     dest_acc=[DestAccumulation.No],
-    math_fidelity=[MathFidelity.LoFi],
+    math_fidelity=[
+        MathFidelity.LoFi,
+        MathFidelity.HiFi2,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
+    ],
     transpose_srca=[Transpose.No],
     math_op=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
     input_dimensions=[[512, 32]],
@@ -61,6 +76,9 @@ def test_eltwise_binary(
     tile_dimensions,
     workers_tensix_coordinates,
 ):
+
+    if math_fidelity != MathFidelity.LoFi and math_op != MathOperation.Elwmul:
+        pytest.skip("High fidelity operations are only supported for Elwmul")
     face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(tile_dimensions)
 
     # Calculate tile count based on tile_dimensions (not hardcoded 32x32)
@@ -86,16 +104,68 @@ def test_eltwise_binary(
     num_blocks = (tile_cnt_A + MAX_TILES_IN_BLOCK - 1) // MAX_TILES_IN_BLOCK
     num_tiles_in_block = tile_cnt_A % MAX_TILES_IN_BLOCK or MAX_TILES_IN_BLOCK
 
-    # Compute element-wise operation in tilized format
+    # Compute element-wise operation
     binary_golden = get_golden_generator(EltwiseBinaryGolden)
+    num_faces = num_faces_r_dim * num_faces_c_dim
 
-    golden_tensor = binary_golden(
-        math_op,
-        src_A,
-        src_B,
-        formats.output_format,
-        math_fidelity,
-    )
+    if broadcast_type == BroadcastType.None_:
+        # No broadcast: compute golden directly on raw data, send raw data to device
+        golden_tensor = binary_golden(
+            math_op,
+            src_A,
+            src_B,
+            formats.output_format,
+            math_fidelity,
+        )
+        stimuli_A = src_A
+        stimuli_B = src_B
+    else:
+        # Broadcast modes: need to tilize inputs, apply broadcast, then compute golden
+        # Use tilize_block to handle multi-tile inputs with smaller tile sizes
+        src_A_tilized = tilize_block(
+            src_A,
+            dimensions=input_dimensions,
+            stimuli_format=formats.input_format,
+            num_faces=num_faces,
+            tile_dimensions=tile_dimensions,
+            face_r_dim=face_r_dim,
+        )
+        src_B_tilized = tilize_block(
+            src_B,
+            dimensions=input_dimensions,
+            stimuli_format=formats.input_format,
+            num_faces=num_faces,
+            tile_dimensions=tile_dimensions,
+            face_r_dim=face_r_dim,
+        )
+
+        # Flatten tilized tensors for broadcast and golden calculation
+        src_A_tilized_flat = src_A_tilized.flatten()
+        src_B_tilized_flat = src_B_tilized.flatten()
+
+        # Apply broadcast to SrcB
+        broadcast_golden = get_golden_generator(BroadcastGolden)
+        src_B_broadcasted_tilized = broadcast_golden(
+            broadcast_type,
+            src_B_tilized_flat,
+            formats.input_format,
+            num_faces=num_faces,
+            tile_cnt=tile_cnt_A,
+            face_r_dim=face_r_dim,
+        )
+
+        # Compute golden on tilized data
+        golden_tensor = binary_golden(
+            math_op,
+            src_A_tilized_flat,
+            src_B_broadcasted_tilized,
+            formats.output_format,
+            math_fidelity,
+        )
+
+        # Send tilized data to device for broadcast modes
+        stimuli_A = src_A_tilized_flat
+        stimuli_B = src_B_tilized_flat
 
     configuration = TestConfig(
         "sources/eltwise_binary_test.cpp",
@@ -116,15 +186,15 @@ def test_eltwise_binary(
             TEST_FACE_DIMS(face_r_dim=face_r_dim),
         ],
         variant_stimuli=StimuliConfig(
-            src_A,
+            stimuli_A,
             formats.input_format,
-            src_B,
+            stimuli_B,
             formats.input_format,
             formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
             tile_count_res=tile_cnt_A,
-            num_faces=num_faces_r_dim * num_faces_c_dim,
+            num_faces=num_faces,
             face_r_dim=face_r_dim,
             tile_dimensions=tile_dimensions,
         ),
