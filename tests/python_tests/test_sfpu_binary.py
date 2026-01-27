@@ -3,7 +3,6 @@
 
 import pytest
 import torch
-
 from helpers.chip_architecture import ChipArchitecture
 from helpers.format_config import DataFormat
 from helpers.golden_generators import BinarySFPUGolden, get_golden_generator

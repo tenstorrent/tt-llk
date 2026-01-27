@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
-
 from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (

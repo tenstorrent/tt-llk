@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
-
 from helpers.format_config import DataFormat
 from helpers.golden_generators import PackRowsGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, format_dict
