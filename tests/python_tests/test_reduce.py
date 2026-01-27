@@ -46,29 +46,17 @@ mathop_mapping = {
         ]
     ),
     is_reduce_to_one=[False, True],
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )
 def test_reduce(
     input_dimensions,
     formats,
-    dest_acc,
     reduce_dim,
     pool_type,
     is_reduce_to_one,
     workers_tensix_coordinates,
 ):
-
-    if (
-        (dest_acc == DestAccumulation.No)
-        and (formats.input_format.is_32_bit() or is_dest_acc_needed(formats))
-    ) or (
-        (dest_acc == DestAccumulation.Yes)
-        and not (formats.input_format.is_32_bit() or is_dest_acc_needed(formats))
-    ):
-        assert True  # skip invalid dest_acc and format combinations
-        return
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -96,6 +84,11 @@ def test_reduce(
         reduce_to_one=is_reduce_to_one,
     )
 
+    dest_acc = (
+        DestAccumulation.Yes
+        if (formats.input_format.is_32_bit() or is_dest_acc_needed(formats))
+        else DestAccumulation.No
+    )
     output_tile_count = 1 if is_reduce_to_one else tile_cnt_A
 
     DEST_SYNC_TILE_LIMITS = {
