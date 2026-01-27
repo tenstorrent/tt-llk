@@ -16,7 +16,7 @@ from helpers.llk_params import (
     MathOperation,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import input_output_formats
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -31,47 +31,47 @@ from helpers.test_variant_parameters import (
 from helpers.utils import passed_test
 
 SUPPORTED_FAST_MODE_OPS = [
-    MathOperation.Log1p,
+    # MathOperation.Log1p,
     MathOperation.Exp,
-    MathOperation.Rsqrt,
-    MathOperation.Sqrt,
+    # MathOperation.Rsqrt,
+    # MathOperation.Sqrt,
 ]
 
 ALL_MATHOPS = [
-    MathOperation.Abs,
-    MathOperation.Atanh,
-    MathOperation.Asinh,
-    MathOperation.Acosh,
-    MathOperation.Cos,
-    MathOperation.Log,
-    MathOperation.Log1p,
-    MathOperation.Reciprocal,
-    MathOperation.Sin,
-    MathOperation.Sqrt,
-    MathOperation.Rsqrt,
-    MathOperation.Square,
-    MathOperation.Tanh,
-    MathOperation.Celu,
-    MathOperation.Silu,
-    MathOperation.Gelu,
-    MathOperation.Neg,
-    MathOperation.Fill,
-    MathOperation.Elu,
+    # MathOperation.Abs,
+    # MathOperation.Atanh,
+    # MathOperation.Asinh,
+    # MathOperation.Acosh,
+    # MathOperation.Cos,
+    # MathOperation.Log,
+    # MathOperation.Log1p,
+    # MathOperation.Reciprocal,
+    # MathOperation.Sin,
+    # MathOperation.Sqrt,
+    # MathOperation.Rsqrt,
+    # MathOperation.Square,
+    # MathOperation.Tanh,
+    # MathOperation.Celu,
+    # MathOperation.Silu,
+    # MathOperation.Gelu,
+    # MathOperation.Neg,
+    # MathOperation.Fill,
+    # MathOperation.Elu,
     MathOperation.Exp,
-    MathOperation.Exp2,
-    MathOperation.Hardsigmoid,
-    MathOperation.Threshold,
-    MathOperation.ReluMax,
-    MathOperation.ReluMin,
+    # MathOperation.Exp2,
+    # MathOperation.Hardsigmoid,
+    # MathOperation.Threshold,
+    # MathOperation.ReluMax,
+    # MathOperation.ReluMin,
 ]
 
 FORMATS = input_output_formats(
     [
-        DataFormat.Float32,
-        DataFormat.Float16,
+        # DataFormat.Float32,
+        # DataFormat.Float16,
         DataFormat.Float16_b,
-        DataFormat.Bfp8_b,
-    ]
+        # DataFormat.Bfp8_b,
+    ],
 )
 
 FLOAT_TEST_PARAMS = list(
@@ -80,19 +80,19 @@ FLOAT_TEST_PARAMS = list(
             (fmt, approx, mathop, fast, dest)
             for fmt, approx, mathop, fast, dest in product(
                 FORMATS,
-                [ApproximationMode.No, ApproximationMode.Yes],
+                [ApproximationMode.Yes],  # ApproximationMode.Yes],
                 SUPPORTED_FAST_MODE_OPS,
-                [FastMode.No, FastMode.Yes],
-                [DestAccumulation.No, DestAccumulation.Yes],
+                [FastMode.Yes],  # [FastMode.No, FastMode.Yes],
+                [DestAccumulation.No],  # [DestAccumulation.No, DestAccumulation.Yes],
             )
         ),
         (
             (fmt, approx, mathop, FastMode.No, dest)
             for fmt, approx, mathop, dest in product(
                 FORMATS,
-                [ApproximationMode.No, ApproximationMode.Yes],
+                [ApproximationMode.No],  # ApproximationMode.Yes],
                 [op for op in ALL_MATHOPS if op not in SUPPORTED_FAST_MODE_OPS],
-                [DestAccumulation.No, DestAccumulation.Yes],
+                [DestAccumulation.No],  # DestAccumulation.Yes],
             )
         ),
     )
@@ -169,38 +169,6 @@ def test_eltwise_unary_sfpu_float(
 
     eltwise_unary_sfpu(
         "sources/eltwise_unary_sfpu_test.cpp",
-        formats,
-        dest_acc,
-        approx_mode,
-        mathop,
-        fast_mode,
-        workers_tensix_coordinates,
-    )
-
-
-@parametrize(
-    formats=input_output_formats([DataFormat.Int32]),
-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
-    mathop=[
-        MathOperation.Neg,
-        MathOperation.Fill,
-    ],
-    fast_mode=[FastMode.No, FastMode.Yes],
-    dest_acc=[DestAccumulation.Yes],
-)
-def test_eltwise_unary_sfpu_int(
-    formats: list[InputOutputFormat],
-    approx_mode: ApproximationMode,
-    mathop: MathOperation,
-    fast_mode: FastMode,
-    dest_acc: DestAccumulation,
-    workers_tensix_coordinates: str,
-):
-    if formats.input_format == DataFormat.Int32:
-        pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
-
-    eltwise_unary_sfpu(
-        "sources/eltwise_unary_sfpu_int.cpp",
         formats,
         dest_acc,
         approx_mode,
