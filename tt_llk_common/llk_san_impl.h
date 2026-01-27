@@ -9,7 +9,7 @@
 #include <limits>
 #include <string>
 
-#include "llk_assert.h"
+#include "llk_san_output.h"
 #include "llk_san_types.h"
 
 namespace llk_san
@@ -20,7 +20,7 @@ namespace llk_san
 // sstanisic todo: implement support_backtrace_impl
 // static inline void support_backtrace_impl(std::string function_name)
 // {
-//     LLK_ASSERT(false, "not implemented");
+//     LLK_SAN_ASSERT(false, "not implemented");
 // }
 
 // Goes in LLK_API
@@ -28,7 +28,7 @@ namespace llk_san
 // sstanisic todo: implement support_globals_impl
 // static inline void support_globals_impl(bool dst_acc_mode, DstSync dst_sync, bool approx, std::int32_t math_fidelity)
 // {
-//     LLK_ASSERT(false, "not implemented");
+//     LLK_SAN_ASSERT(false, "not implemented");
 // }
 
 // // State set only
@@ -47,7 +47,7 @@ namespace llk_san
 //     std::int32_t tile_size,
 //     std::int32_t page_size)
 // {
-//     LLK_SAN_PANIC(false, "not implemented");
+//     LLK_SAN_OP_PANIC(false, "not implemented");
 // }
 
 // Goes in LLK_LIB in HWConfigure and HWReconfig
@@ -65,9 +65,6 @@ static inline void unpack_operand_configure_impl(
     state_t<uint32_t> num_faces_A,
     state_t<uint32_t> num_faces_B)
 {
-    LLK_PANIC(!reconfig && state.is_configured, "panic: llk_san: user tried to configure unpacker twice");
-    LLK_PANIC(reconfig && !state.is_configured, "panic: llk_san: user tried to reconfigure unpacker before configuring it");
-
     unpack_src_state_t& src_a = state.src_a;
 
     src_a.input_format  = src_fmt_A;
@@ -90,9 +87,6 @@ static inline void unpack_operand_configure_impl(
 template <bool reconfig = false>
 static inline void math_operand_configure_impl(math_operand_state_t& state, state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
 {
-    LLK_PANIC(!reconfig && state.is_configured, "panic: llk_san: user tried to configure math twice");
-    LLK_PANIC(reconfig && !state.is_configured, "panic: llk_san: user tried to reconfigure math before configuring it");
-
     state.src_a.input_format = math_fmt_A;
     state.src_b.input_format = math_fmt_B;
     state.is_configured      = true;
@@ -111,9 +105,6 @@ static inline void pack_operand_configure_impl(
     state_t<bool> partial_face,
     state_t<bool> narrow_tile)
 {
-    LLK_PANIC(!reconfig && state.is_configured, "panic: llk_san: user tried to configure packer twice");
-    LLK_PANIC(reconfig && !state.is_configured, "panic: llk_san: user tried to reconfigure packer before configuring it");
-
     state.input_format  = src_fmt;
     state.output_format = dst_fmt;
     state.face_height   = face_height;
@@ -139,26 +130,22 @@ static inline void unpack_operand_check_impl(
     state_t<uint32_t> num_faces_A,
     state_t<uint32_t> num_faces_B)
 {
-    LLK_PANIC(!state.is_configured, "panic: llk_san: executing init/execute/uninit before hwconfigure");
-
-    LLK_SAN_ASSERT(state.dest_width_32, dest_acc_en, "panic: llk_san: dest_acc_en doesn't match state.dest_width_32");
-
-    LLK_SAN_ASSERT(state.src_a.input_format, src_fmt_A, "panic: llk_san: src_fmt_A doesn't match state.src_a.input_format");
-    LLK_SAN_ASSERT(state.src_b.input_format, src_fmt_B, "panic: llk_san: src_fmt_B doesn't match state.src_b.input_format");
-    LLK_SAN_ASSERT(state.src_a.output_format, dst_fmt_A, "panic: llk_san: dst_fmt_A doesn't match state.src_a.output_format");
-    LLK_SAN_ASSERT(state.src_b.output_format, dst_fmt_B, "panic: llk_san: dst_fmt_B doesn't match state.src_b.output_format");
-    LLK_SAN_ASSERT(state.src_a.face_height, face_height_A, "panic: llk_san: face_height_A doesn't match state.src_a.face_height");
-    LLK_SAN_ASSERT(state.src_b.face_height, face_height_B, "panic: llk_san: face_height_B doesn't match state.src_b.face_height");
-    LLK_SAN_ASSERT(state.src_a.num_faces, num_faces_A, "panic: llk_san: num_faces_A doesn't match state.src_a.num_faces");
-    LLK_SAN_ASSERT(state.src_b.num_faces, num_faces_B, "panic: llk_san: num_faces_B doesn't match state.src_b.num_faces");
+    LLK_SAN_OP_ASSERT(state.dest_width_32, dest_acc_en, "UODW");       // panic: dest_acc_en doesn't match state.dest_width_32
+    LLK_SAN_OP_ASSERT(state.src_a.input_format, src_fmt_A, "UOAI");    // panic: src_fmt_A doesn't match state.src_a.input_format
+    LLK_SAN_OP_ASSERT(state.src_b.input_format, src_fmt_B, "UOBI");    // panic: src_fmt_B doesn't match state.src_b.input_format
+    LLK_SAN_OP_ASSERT(state.src_a.output_format, dst_fmt_A, "UOAO");   // panic: dst_fmt_A doesn't match state.src_a.output_format
+    LLK_SAN_OP_ASSERT(state.src_b.output_format, dst_fmt_B, "UOBO");   // panic: dst_fmt_B doesn't match state.src_b.output_format
+    LLK_SAN_OP_ASSERT(state.src_a.face_height, face_height_A, "UOFH"); // panic: face_height_A doesn't match state.src_a.face_height
+    LLK_SAN_OP_ASSERT(state.src_b.face_height, face_height_B, "UOFH"); // panic: face_height_B doesn't match state.src_b.face_height
+    LLK_SAN_OP_ASSERT(state.src_a.num_faces, num_faces_A, "UONF");     // panic: num_faces_A doesn't match state.src_a.num_faces
+    LLK_SAN_OP_ASSERT(state.src_b.num_faces, num_faces_B, "UONF");     // panic: num_faces_B doesn't match state.src_b.num_faces
 }
 
 // No state set, just check that non x arguments match the stored ones
 static inline void math_operand_check_impl(math_operand_state_t& state, state_t<uint32_t> math_fmt_A, state_t<uint32_t> math_fmt_B)
 {
-    LLK_PANIC(!state.is_configured, "panic: llk_san: executing init/execute/uninit before hwconfigure");
-    LLK_SAN_ASSERT(state.src_a.input_format, math_fmt_A, "panic: llk_san: math_fmt_A doesn't match state.src_a.input_format");
-    LLK_SAN_ASSERT(state.src_b.input_format, math_fmt_B, "panic: llk_san: math_fmt_B doesn't match state.src_b.input_format");
+    LLK_SAN_OP_ASSERT(state.src_a.input_format, math_fmt_A, "MOAI"); // panic: math_fmt_A doesn't match state.src_a.input_format
+    LLK_SAN_OP_ASSERT(state.src_b.input_format, math_fmt_B, "MOBI"); // panic: math_fmt_B doesn't match state.src_b.input_format
 }
 
 // No state set, just check that non x arguments match the stored ones
@@ -173,15 +160,14 @@ static inline void pack_operand_check_impl(
     state_t<bool> partial_face,
     state_t<bool> narrow_tile)
 {
-    LLK_PANIC(!state.is_configured, "panic: llk_san: executing init/execute/uninit before hwconfigure");
-    LLK_SAN_ASSERT(state.dest_width_32, dest_acc_en, "panic: llk_san: dest_acc_en doesn't match state.dest_width_32");
-    LLK_SAN_ASSERT(state.input_format, src_fmt, "panic: llk_san: src_fmt doesn't match state.input_format");
-    LLK_SAN_ASSERT(state.output_format, dst_fmt, "panic: llk_san: dst_fmt doesn't match state.output_format");
-    // sstanisic fixme: LLK_SAN_ASSERT(state.face_height, face_height, "panic: llk_san: face_height doesn't match state.face_height");
-    LLK_SAN_ASSERT(state.tile_width, tile_width, "panic: llk_san: tile_width doesn't match state.tile_width");
-    LLK_SAN_ASSERT(state.num_faces, num_faces, "panic: llk_san: num_faces doesn't match state.num_faces");
-    LLK_SAN_ASSERT(state.partial_face, partial_face, "panic: llk_san: partial_face doesn't match state.partial_face");
-    LLK_SAN_ASSERT(state.narrow_tile, narrow_tile, "panic: llk_san: narrow_tile doesn't match state.narrow_tile");
+    LLK_SAN_OP_ASSERT(state.dest_width_32, dest_acc_en, "PODW"); // panic: dest_acc_en doesn't match state.dest_width_32
+    LLK_SAN_OP_ASSERT(state.input_format, src_fmt, "POIF");      // panic: src_fmt doesn't match state.input_format
+    LLK_SAN_OP_ASSERT(state.output_format, dst_fmt, "POOF");     // panic: dst_fmt doesn't match state.output_format
+    // sstanisic fixme: LLK_SAN_OP_ASSERT(state.face_height, face_height, "POFH"); // panic: face_height doesn't match state.face_height
+    LLK_SAN_OP_ASSERT(state.tile_width, tile_width, "POTW");     // panic: tile_width doesn't match state.tile_width
+    LLK_SAN_OP_ASSERT(state.num_faces, num_faces, "PONF");       // panic: num_faces doesn't match state.num_faces
+    LLK_SAN_OP_ASSERT(state.partial_face, partial_face, "POPF"); // panic: partial_face doesn't match state.partial_face
+    LLK_SAN_OP_ASSERT(state.narrow_tile, narrow_tile, "POINT");  // panic: narrow_tile doesn't match state.narrow_tile
 }
 
 template <typename... Ts>
@@ -298,7 +284,7 @@ static inline void operation_init_impl(operation_state_t& state, const Ts... arg
 template <operation_t op, typename... Ts>
 void operation_check_impl(operation_state_t& state, const Ts... args)
 {
-    LLK_PANIC(state.operation != op, "llk_san: fault: operation type doesn't match stored operation");
+    LLK_SAN_ASSERT(state.operation == op, "OPOP"); // fault: operation type doesn't match stored operation
 
     constexpr uint8_t args_count = _args_count<Ts...>();
 
@@ -308,21 +294,22 @@ void operation_check_impl(operation_state_t& state, const Ts... args)
 
     constexpr size_t entry_size = _operation_entry_size<args_count>(args_sizeof, args_alignof, args_offsetof);
 
-    static_assert(entry_size <= operation_state_t::BUFFER_SIZE, "llk_san: fault: operation entry will overflow the buffer");
+    static_assert(entry_size <= operation_state_t::BUFFER_SIZE, "operation entry will overflow the buffer");
 
     // | ARG_COUNT | SIZEOF(args[0]) ... | ALIGNOF(args[1]) ... | args[0] PADDING ... |
 
     char* ptr = state.buffer;
 
-    LLK_ASSERT(std::memcmp(&args_count, ptr, sizeof(args_count)) == 0, "llk_san: fault: saved vs provided args_count mismatch");
+    LLK_SAN_ASSERT(std::memcmp(&args_count, ptr, sizeof(args_count)) == 0, "OPCO"); // fault: saved vs provided args_count mismatch
     ptr += sizeof(args_count);
 
     if constexpr (args_count > 0)
     {
-        LLK_ASSERT(std::memcmp(args_sizeof.data(), ptr, args_count * sizeof(args_sizeof[0])) == 0, "llk_san: fault: saved vs provided args_sizeof mismatch");
+        LLK_SAN_ASSERT(std::memcmp(args_sizeof.data(), ptr, args_count * sizeof(args_sizeof[0])) == 0, "OPSI"); // fault: saved vs provided args_sizeof mismatch
         ptr += args_count * sizeof(args_sizeof[0]);
 
-        LLK_ASSERT(std::memcmp(args_alignof.data(), ptr, args_count * sizeof(args_alignof[0])) == 0, "llk_san: fault: saved vs provided args_sizeof mismatch");
+        LLK_SAN_ASSERT(
+            std::memcmp(args_alignof.data(), ptr, args_count * sizeof(args_alignof[0])) == 0, "OPAL"); // fault: saved vs provided args_alignof mismatch
         ptr += args_count * sizeof(args_alignof[0]);
 
         constexpr size_t max_align = alignof(max_align_t);
@@ -331,7 +318,8 @@ void operation_check_impl(operation_state_t& state, const Ts... args)
 
         // sstanisic fixme: remove the awful lambda
         size_t i = 0;
-        ([&] { LLK_ASSERT(std::memcmp(ptr + args_offsetof[i++], &args, sizeof(args)) == 0, "llk_san: panic: saved vs provided args mismatch"); }(), ...);
+        ([&] { LLK_ASSERT(std::memcmp(ptr + args_offsetof[i++], &args, sizeof(args)) == 0, "OPAR"); }(),
+         ...); // llk_san: panic: saved vs provided args[i] mismatch
     }
 }
 
@@ -340,42 +328,40 @@ void operation_check_impl(operation_state_t& state, const Ts... args)
 template <operation_t op>
 void operation_uninit_impl(operation_state_t& state)
 {
-    LLK_PANIC(!state.expect_uninit, "llk_san: fault: operation was not expected to be uninitialized");
-
     state.expect_uninit = false;
 }
 
 template <fsm_state_t next>
 void fsm_advance_impl(fsm_state_t& current, const operation_state_t& operation)
 {
-    LLK_PANIC(current == fsm_state_t::INITIAL && next != fsm_state_t::CONFIGURED, "llk_san: panic: expected first operation to be configure");
+    LLK_SAN_PANIC(current == fsm_state_t::INITIAL && next != fsm_state_t::CONFIGURED, "FIC"); // expected first operation to be configure
 
-    LLK_PANIC(current == fsm_state_t::CONFIGURED && next != fsm_state_t::INITIALIZED, "llk_san: panic: expected init after configure");
+    LLK_SAN_PANIC(current == fsm_state_t::CONFIGURED && next != fsm_state_t::INITIALIZED, "FCI"); // expected init after configure
 
-    LLK_PANIC(current == fsm_state_t::INITIALIZED && next != fsm_state_t::EXECUTED, "llk_san: panic: expected execute after init");
+    LLK_SAN_PANIC(current == fsm_state_t::INITIALIZED && next != fsm_state_t::EXECUTED, "FIE"); // expected execute after init
 
-    LLK_PANIC(
+    LLK_SAN_PANIC(
         current == fsm_state_t::EXECUTED && operation.expect_uninit && (next != fsm_state_t::UNINITIALIZED && next != fsm_state_t::EXECUTED),
-        "llk_san: panic: expected execute or uninit after execute");
+        "FEEU"); // expected execute or uninit after execute
 
-    // shouldn't be possible to trigger, sanity check
-    LLK_PANIC(
+    // // shouldn't be possible to trigger, sanity check
+    LLK_SAN_PANIC(
         current == fsm_state_t::EXECUTED && !operation.expect_uninit && next == fsm_state_t::UNINITIALIZED,
-        "llk_san: fault: unexpected uninit after execute that doesn't require uninit");
+        "FEUU"); // unexpected uninit after execute that doesn't require uninit
 
-    LLK_PANIC(
+    LLK_SAN_PANIC(
         current == fsm_state_t::EXECUTED && !operation.expect_uninit &&
             (next != fsm_state_t::EXECUTED && next != fsm_state_t::INITIALIZED && next != fsm_state_t::RECONFIGURED),
-        "llk_san: panic: expected execute, init or reconfig operation after execute");
+        "FEEIR"); // expected execute, init or reconfig operation after execute
 
-    LLK_PANIC(
+    LLK_SAN_PANIC(
         current == fsm_state_t::EXECUTED && !operation.expect_uninit &&
             (next != fsm_state_t::EXECUTED && next != fsm_state_t::INITIALIZED && next != fsm_state_t::RECONFIGURED),
-        "llk_san: panic: expected execute, init or reconfig operation after execute");
+        "FEEIR"); // expected execute, init or reconfig operation after execute
 
-    LLK_PANIC(
+    LLK_SAN_PANIC(
         current == fsm_state_t::UNINITIALIZED && (next != fsm_state_t::INITIALIZED && next != fsm_state_t::RECONFIGURED),
-        "llk_san: panic: expected init or reconfigure after uninit");
+        "FUIR"); // expected init or reconfigure after uninit
 
     // valid transition -> commit
     current = next;
