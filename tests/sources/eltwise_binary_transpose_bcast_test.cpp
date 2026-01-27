@@ -23,6 +23,9 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
     // Configure hardware for unpacking:
     // - srcA with transpose enabled
     // - srcB with column broadcast
@@ -37,7 +40,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         params->UNPACK_TRANSPOSE_FACES); // Enable face rearrangement for srcA
 
     // Unpack tiles: srcA will be transposed, srcB will be column broadcasted
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (int i = 0; i < num_tiles_in_block * num_blocks; ++i)
     {
         _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
     }
@@ -55,21 +58,25 @@ using namespace ckernel;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
     // Initialize math for element-wise subtraction
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE>(4 /* num_faces */, 0);
 
-    _llk_math_wait_for_dest_available_<dest_sync>();
-
     // Perform element-wise subtraction: result = transposed(srcA) - column_broadcast(srcB)
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (int block = 0; block < num_blocks; block++)
     {
-        _llk_math_eltwise_binary_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE, dest_sync, is_fp32_dest_acc_en>(
-            4 /* num_faces */, i /* dst_index */, false /* clear_fp32_dst_acc */);
+        _llk_math_wait_for_dest_available_<dest_sync>();
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        {
+            _llk_math_eltwise_binary_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE, dest_sync, is_fp32_dest_acc_en>(
+                4 /* num_faces */, tile /* dst_index */, false /* clear_fp32_dst_acc */);
+        }
+        _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
-
-    _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 
 #endif
@@ -82,6 +89,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #else
@@ -96,12 +106,16 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>();
 #endif
 
-    _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params->TILE_CNT; i++)
+    for (int block = 0; block < num_blocks; block++)
     {
-        _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_packer_wait_for_math_done_();
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        {
+            int res_tile_idx = (block * num_tiles_in_block) + tile;
+            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(tile, L1_ADDRESS(buffer_Res[res_tile_idx]));
+        }
+        _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
-    _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 
 #endif

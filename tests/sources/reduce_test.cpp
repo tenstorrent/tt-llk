@@ -26,6 +26,9 @@ constexpr bool row_pool                             = (REDUCE_DIM == ckernel::Re
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
 
@@ -38,7 +41,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
     config_unpacker_x_end<UNP_SEL>(FACE_R_DIM);
     _llk_unpack_AB_mop_config_<BroadcastType::NONE>(false /* transpose_of_faces */, 4 /* num_faces */, false /* narrow_tile */);
 
-    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]));
+    for (int i = 0; i < num_tiles_in_block * num_blocks; ++i)
+    {
+        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[0]));
+    }
 }
 
 #endif
@@ -51,15 +57,25 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
     const std::uint32_t math_fid         = 4;
     const bool is_int_fpu_en             = false;
     const bool enforce_fp32_accumulation = false;
     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();
-    _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, enforce_fp32_accumulation>();
-    _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, is_int_fpu_en, enforce_fp32_accumulation>(0);
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+
+    for (int block = 0; block < num_blocks; block++)
+    {
+        _llk_math_wait_for_dest_available_<DstSync::SyncFull>();
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        {
+            _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, math_fid, is_int_fpu_en, enforce_fp32_accumulation>(tile);
+        }
+        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    }
 }
 
 #endif
@@ -72,6 +88,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
     _llk_pack_init_<false, false>(formats.pack_dst);
 
 #ifdef ARCH_BLACKHOLE
@@ -88,9 +107,16 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_pack_dest_init_<DstSync::SyncFull, is_fp32_dest_acc_en, false>();
 #endif
 
-    _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    for (int block = 0; block < num_blocks; block++)
+    {
+        _llk_packer_wait_for_math_done_();
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        {
+            int res_tile_idx = (block * num_tiles_in_block) + tile;
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(tile, L1_ADDRESS(buffer_Res[res_tile_idx]));
+        }
+        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    }
 
     _llk_pack_reduce_mask_clear_();
 }

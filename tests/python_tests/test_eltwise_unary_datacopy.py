@@ -20,10 +20,13 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_INDEX,
     INPUT_DIMENSIONS,
+    NUM_BLOCKS,
     NUM_FACES,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
     TILIZE,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 
@@ -76,21 +79,31 @@ def get_valid_num_faces_datacopy(tilize):
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     num_faces=lambda tilize: get_valid_num_faces_datacopy(tilize),
     tilize=lambda formats: get_valid_tilize_datacopy(formats),
+    input_dimensions=[[64, 64], [128, 64], [64, 128]],  # Extended to test more tiles
     dest_index=lambda dest_acc: get_valid_dest_indices(
         dest_sync=DestSync.Half, dest_acc=dest_acc, tile_count=4
     ),
 )
 def test_unary_datacopy(
-    formats, dest_acc, num_faces, tilize, dest_index, workers_tensix_coordinates
+    formats,
+    dest_acc,
+    num_faces,
+    tilize,
+    input_dimensions,
+    dest_index,
+    workers_tensix_coordinates,
 ):
-
-    input_dimensions = [64, 64]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
+    )
+
+    # Calculate block parameters for destination register banking
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt_A, formats.input_format
     )
 
     if tilize == Tilize.No:
@@ -115,7 +128,13 @@ def test_unary_datacopy(
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             TILIZE(tilize),
         ],
-        runtimes=[DEST_INDEX(dest_index), TILE_COUNT(tile_cnt_A), NUM_FACES(num_faces)],
+        runtimes=[
+            DEST_INDEX(dest_index),
+            TILE_COUNT(tile_cnt_A),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_FACES(num_faces),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

@@ -17,7 +17,10 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 # Helper dictionary to map reduce dimensions to math operations
@@ -40,10 +43,16 @@ mathop_mapping = {
     dest_acc=[DestAccumulation.No],
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
+    input_dimensions=[[32, 32], [64, 64], [128, 64], [64, 128]],
 )
-def test_reduce(formats, dest_acc, reduce_dim, pool_type, workers_tensix_coordinates):
-    input_dimensions = [32, 32]
-
+def test_reduce(
+    formats,
+    dest_acc,
+    reduce_dim,
+    pool_type,
+    input_dimensions,
+    workers_tensix_coordinates,
+):
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
@@ -60,6 +69,10 @@ def test_reduce(formats, dest_acc, reduce_dim, pool_type, workers_tensix_coordin
         # reduce average divides by length of elements in array we reduce
         src_B = torch.full((1024,), 1 / 32)
 
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt_A, formats.input_format
+    )
+
     generate_golden = get_golden_generator(ReduceGolden)
     golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
 
@@ -67,6 +80,10 @@ def test_reduce(formats, dest_acc, reduce_dim, pool_type, workers_tensix_coordin
         "sources/reduce_test.cpp",
         formats,
         templates=[MATH_OP(mathop=mathop_mapping[reduce_dim], pool_type=pool_type)],
+        runtimes=[
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

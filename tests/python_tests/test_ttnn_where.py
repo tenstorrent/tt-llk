@@ -13,14 +13,19 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DISABLE_SRC_ZERO_FLAG,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 
 
-def generate_golden(operand1, true_value, false_value):
+def generate_golden(operand1, true_value, false_value, input_dimensions):
     # operand1, true_value, and false_value are 1D tensors of floats
-    mask = operand1.view(32, 32) != 0
+    mask = operand1.view(input_dimensions[0], input_dimensions[1]) != 0
     return torch.where(
-        mask, true_value.view(32, 32), false_value.view(32, 32)
+        mask,
+        true_value.view(input_dimensions[0], input_dimensions[1]),
+        false_value.view(input_dimensions[0], input_dimensions[1]),
     ).flatten()
 
 
@@ -41,8 +46,11 @@ def torch_equal_nan(a, b):
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     mathop=MathOperation.TTNNWhere,
     test_case=["mixed", "all_ones", "all_zeros"],
+    input_dimensions=[[32, 32], [64, 64], [128, 64], [64, 128]],
 )
-def test_ttnn_where(formats, dest_acc, mathop, test_case, workers_tensix_coordinates):
+def test_ttnn_where(
+    formats, dest_acc, mathop, test_case, input_dimensions, workers_tensix_coordinates
+):
 
     if (
         formats.input == DataFormat.Float32 and formats.output == DataFormat.Float32
@@ -54,7 +62,6 @@ def test_ttnn_where(formats, dest_acc, mathop, test_case, workers_tensix_coordin
     ) and dest_acc == DestAccumulation.Yes:
         pytest.skip("DataFormat.Float16_b not supported with DestAccumulation.Yes")
 
-    input_dimensions = [32, 32]  # Single tile dimensions
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
@@ -78,13 +85,21 @@ def test_ttnn_where(formats, dest_acc, mathop, test_case, workers_tensix_coordin
         src_A = torch.zeros_like(src_A)
     # For "mixed" case, use the generated stimuli as-is
 
-    golden = generate_golden(src_A, src_B, src_C)
+    # Calculate block parameters for destination register banking
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt_A, formats.input_format
+    )
+
+    golden = generate_golden(src_A, src_B, src_C, input_dimensions)
 
     configuration = TestConfig(
         "sources/ttnn_where_test.cpp",
         formats,
         templates=[MATH_OP(mathop), DISABLE_SRC_ZERO_FLAG(True)],
-        runtimes=[],
+        runtimes=[
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
+        ],
         variant_stimuli=StimuliConfig(
             src_A.flatten(),
             formats.input_format,
@@ -104,7 +119,8 @@ def test_ttnn_where(formats, dest_acc, mathop, test_case, workers_tensix_coordin
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
 
-    res_from_L1 = res_from_L1[:1024]
+    expected_size = input_dimensions[0] * input_dimensions[1]
+    res_from_L1 = res_from_L1[:expected_size]
     assert len(res_from_L1) == len(
         golden
     ), "Result tensor and golder tensor are not of the same length"
@@ -168,7 +184,7 @@ def test_ttnn_where_mcw(
     T = torch.ones(height, width, dtype=format_dict[formats.input_format]) * 2
     F = torch.ones(height, width, dtype=format_dict[formats.input_format]) * 11
 
-    golden = generate_golden(C, T, F)
+    golden = generate_golden(C, T, F, [height, width])
 
     configuration = TestConfig(
         "sources/ttnn_where_test.cpp",

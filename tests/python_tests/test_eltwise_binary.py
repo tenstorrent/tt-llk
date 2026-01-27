@@ -31,6 +31,7 @@ from helpers.test_variant_parameters import (
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 
@@ -70,7 +71,13 @@ def get_tile_params(tile_dimensions):
     dest_acc=[DestAccumulation.No],
     math_fidelity=[MathFidelity.LoFi],
     transpose_srca=[Transpose.No],
-    input_dimensions=[[32, 32], [64, 64]],
+    input_dimensions=[
+        [32, 32],
+        [64, 64],
+        [128, 64],
+        [64, 128],
+        [128, 128],
+    ],  # Extended to test more tiles
     tile_dimensions=[[32, 32]],  # More dimensions coming soon....
 )
 def test_eltwise_binary(
@@ -101,15 +108,10 @@ def test_eltwise_binary(
         # const_value_B=2
     )
 
-    MAX_TILES_IN_BLOCK = (
-        4
-        if (formats.input_format == DataFormat.Float32)
-        or (formats.input_format == DataFormat.Int32)
-        else 8
+    # Calculate block parameters for destination register banking
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt_A, formats.input_format
     )
-
-    num_blocks = (tile_cnt_A + MAX_TILES_IN_BLOCK - 1) // MAX_TILES_IN_BLOCK
-    num_tiles_in_block = tile_cnt_A % MAX_TILES_IN_BLOCK or MAX_TILES_IN_BLOCK
 
     # Compute element-wise subtraction in tilized format
     binary_golden = get_golden_generator(EltwiseBinaryGolden)

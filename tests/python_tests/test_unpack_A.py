@@ -31,7 +31,9 @@ from helpers.test_variant_parameters import (
     ACC_TO_DEST,
     BROADCAST_TYPE,
     DISABLE_SRC_ZERO_FLAG,
+    NUM_BLOCKS,
     NUM_FACES,
+    NUM_TILES_IN_BLOCK,
     PARTIAL_FACE,
     REUSE_DEST_TYPE,
     STOCHASTIC_ROUNDING,
@@ -40,6 +42,7 @@ from helpers.test_variant_parameters import (
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
@@ -350,6 +353,11 @@ def test_unpack_comprehensive(
         num_faces=num_faces,
     )
 
+    # Calculate block parameters for destination register banking
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt_A, formats.input_format
+    )
+
     # generate golden tensor with proper broadcast and transpose handling
     # PRIORITY: Broadcast types take precedence over transpose operations
     if broadcast_type in (
@@ -467,6 +475,8 @@ def test_unpack_comprehensive(
             UNPACK_TRANS_WITHIN_FACE(within_face_16x16_transpose),
             NUM_FACES(num_faces),
             TILE_COUNT(tile_cnt_A),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
             TEST_FACE_DIMS(face_r_dim=face_r_dim),
         ],
         variant_stimuli=StimuliConfig(

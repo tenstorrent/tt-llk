@@ -22,6 +22,9 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src,
         formats.unpack_src,
@@ -71,6 +74,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
     _llk_math_matmul_init_<MATH_FIDELITY, THROTTLE_LEVEL>(
         params->in0_tile_r_dim,
         params->in0_tile_c_dim,
@@ -101,6 +107,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
         formats.pack_src, formats.pack_dst, TILE_SIZE_PACK, FACE_R_DIM, TILE_C_DIM, params->num_faces, params->PARTIAL_FACE_PACK);
@@ -112,12 +121,16 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, params->num_faces, params->PARTIAL_FACE_PACK);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, false>();
 #endif
-    _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params->TILE_CNT; i++)
+    for (int block = 0; block < num_blocks; block++)
     {
-        _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(params->DST_INDEX + i, L1_ADDRESS(buffer_Res[i]));
+        _llk_packer_wait_for_math_done_();
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        {
+            int res_tile_idx = (block * num_tiles_in_block) + tile;
+            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(params->DST_INDEX + res_tile_idx, L1_ADDRESS(buffer_Res[res_tile_idx]));
+        }
+        _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
-    _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 
 #endif

@@ -17,8 +17,11 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     INPUT_DIMENSIONS,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
 
@@ -34,7 +37,9 @@ from helpers.utils import passed_test
     mathop=[MathOperation.ReduceColumn],
     reduce_pool=[ReducePool.Max],  # Only MAX is supported for SDPA reduce
     input_dimensions=[
-        [128, 64],  # 4x2 subblock
+        [64, 64],
+        [128, 64],
+        [64, 128],
     ],
 )
 def test_sfpu_reduce_sdpa(
@@ -54,6 +59,11 @@ def test_sfpu_reduce_sdpa(
     )
 
     src_A = tilize_block(src_A, input_dimensions).flatten()
+
+    # Calculate block parameters for destination register banking
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt_A, formats.input_format
+    )
 
     # GOLDEN GENERATION
     # *******************************************************
@@ -77,7 +87,11 @@ def test_sfpu_reduce_sdpa(
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop, pool_type=reduce_pool),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
+            TILE_COUNT(tile_cnt_A),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

@@ -29,11 +29,14 @@ from helpers.test_variant_parameters import (
     DEST_INDEX,
     DEST_SYNC,
     INPUT_DIMENSIONS,
+    NUM_BLOCKS,
     NUM_FACES,
+    NUM_TILES_IN_BLOCK,
     RELU_CONFIG,
     TILE_COUNT,
     TILIZE,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 
@@ -120,7 +123,7 @@ def is_relu_threshold_tolerance_issue(
         ]
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
-    input_dimensions=[[32, 32], [64, 64], [32, 64], [64, 32]],
+    input_dimensions=[[32, 32], [64, 64], [128, 64], [64, 128], [32, 64], [64, 32]],
     relu_type=[
         PackerReluType.NoRelu,
         PackerReluType.ZeroRelu,
@@ -156,6 +159,11 @@ def test_pack(
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
+    )
+
+    # Calculate block parameters for destination register banking
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt_A, formats.input_format
     )
 
     # Generate golden output
@@ -224,6 +232,8 @@ def test_pack(
             DEST_SYNC(dest_sync),
         ],
         runtimes=[
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
             TILE_COUNT(tile_cnt_A),
             DEST_INDEX(dest_index),
             RELU_CONFIG(relu_config),

@@ -27,11 +27,13 @@ from helpers.test_variant_parameters import (
     DEST_SYNC,
     MATH_FIDELITY,
     MATH_OP,
+    NUM_BLOCKS,
     NUM_FACES,
-    TILE_COUNT,
+    NUM_TILES_IN_BLOCK,
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.tilize_untilize import tilize, tilize_block
 from helpers.utils import passed_test
 
@@ -47,7 +49,7 @@ from helpers.utils import passed_test
     dest_acc=[DestAccumulation.No],
     math_fidelity=[MathFidelity.LoFi],
     transpose_srca=[Transpose.Yes],
-    input_dimensions=[[32, 32]],
+    input_dimensions=[[32, 32], [64, 64], [128, 64], [64, 128]],
 )
 def test_eltwise_binary_transpose_bcast(
     formats,
@@ -63,6 +65,11 @@ def test_eltwise_binary_transpose_bcast(
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
+    )
+
+    # Calculate block parameters for destination register banking
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        tile_cnt_A, formats.input_format
     )
 
     # Tilize the input data for hardware
@@ -127,7 +134,8 @@ def test_eltwise_binary_transpose_bcast(
         runtimes=[
             UNPACK_TRANS_FACES(transpose_srca),
             UNPACK_TRANS_WITHIN_FACE(transpose_srca),
-            TILE_COUNT(tile_cnt_A),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
             NUM_FACES(4),
         ],
         variant_stimuli=StimuliConfig(

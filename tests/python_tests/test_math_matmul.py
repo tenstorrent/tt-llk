@@ -31,7 +31,9 @@ from helpers.test_variant_parameters import (
     IN_TILE_DIMS,
     INPUT_DIMENSIONS,
     MATH_FIDELITY,
+    NUM_BLOCKS,
     NUM_FACES,
+    NUM_TILES_IN_BLOCK,
     PARTIAL_FACE,
     STOCHASTIC_ROUNDING,
     THROTTLE_LEVEL,
@@ -39,6 +41,7 @@ from helpers.test_variant_parameters import (
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
 )
+from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
@@ -161,6 +164,11 @@ def test_math_matmul(
         src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
     )
 
+    # Calculate block parameters for destination register banking
+    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
+        matmul_config.tile_dimensions.tile_cnt, formats.output_format
+    )
+
     configuration = TestConfig(
         "sources/math_matmul_test.cpp",
         formats,
@@ -173,6 +181,8 @@ def test_math_matmul(
         ],
         runtimes=[
             TILE_COUNT(matmul_config.tile_dimensions.tile_cnt),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
             NUM_FACES(num_faces, num_faces_A, num_faces_B),
             UNPACK_TRANS_FACES(transpose),
             UNPACK_TRANS_WITHIN_FACE(transpose),
