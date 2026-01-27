@@ -122,14 +122,13 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const cker
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_init_(const ckernel::TensorShape tensor_shape, const std::uint32_t transpose = 0)
 {
-    const std::uint32_t num_faces = tensor_shape.total_num_faces();
     // TODO: Remove this assert after testing >4 num_faces because there is no reason to limit this for non-broadcast versions
     validate_tensor_shape_tile_dependent_ops_(tensor_shape);
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose); // transpose within the face
 
-    config_unpacker_x_end<p_setadc::UNP_AB>(face_r_dim);
+    config_unpacker_x_end<p_setadc::UNP_AB>(tensor_shape.face_r_dim);
 
-    _llk_unpack_AB_mop_config_<BType>(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
+    _llk_unpack_AB_mop_config_<BType>(transpose > 0, tensor_shape); // transpose of faces 0,2,1,3
 }
 
 template <ReduceDim dim, BroadcastType BType = BroadcastType::NONE, bool enforce_fp32_accumulation = false>
@@ -153,8 +152,12 @@ inline void _llk_unpack_AB_reduce_init_(
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(ReduceDim::REDUCE_ROW == dim ? !within_face_16x16_transpose : within_face_16x16_transpose);
 
     constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;
-    config_unpacker_x_end<UNP_SEL>(tensor_shape.face_r_dim);
+    config_unpacker_x_end<UNP_SEL>(face_r_dim);
 
+    // Create TensorShape from individual parameters
+    const uint8_t num_faces_c_dim = narrow_tile ? 1 : 2;
+    const uint8_t num_faces_r_dim = num_faces / num_faces_c_dim;
+    const ckernel::TensorShape tensor_shape(face_r_dim, FACE_C_DIM, num_faces_r_dim, num_faces_c_dim);
     _llk_unpack_AB_mop_config_<BType>(transpose > 0, tensor_shape); // transpose of faces 0,2,1,3
 }
 
@@ -167,12 +170,12 @@ inline void _llk_unpack_AB_reduce_init_(
  * @param unpA_tensor_shape: Tensor shape for source A operand
  * @param unpB_tensor_shape: Tensor shape for source B operand
  */
- inline void _llk_unpack_AB_uninit_(const ckernel::TensorShape unpA_tensor_shape, const ckernel::TensorShape unpB_tensor_shape)
- {
-     // TODO NC: Issue tt-llk#1036 will make this transient
-     TT_SETADCXX(p_setadc::UNP_A, unpA_tensor_shape.face_r_dim * unpA_tensor_shape.face_c_dim - 1, 0x0);
-     TT_SETADCXX(p_setadc::UNP_B, unpB_tensor_shape.face_r_dim * unpB_tensor_shape.face_c_dim - 1, 0x0);
- }
+inline void _llk_unpack_AB_uninit_(const ckernel::TensorShape unpA_tensor_shape, const ckernel::TensorShape unpB_tensor_shape)
+{
+    // TODO NC: Issue tt-llk#1036 will make this transient
+    TT_SETADCXX(p_setadc::UNP_A, unpA_tensor_shape.face_r_dim * unpA_tensor_shape.face_c_dim - 1, 0x0);
+    TT_SETADCXX(p_setadc::UNP_B, unpB_tensor_shape.face_r_dim * unpB_tensor_shape.face_c_dim - 1, 0x0);
+}
 
 /**
  * @brief Unpack two tiles from L1 memory into SrcA and SrcB registers
@@ -313,7 +316,7 @@ inline void _llk_unpack_bcastA_B_uninit_(const std::uint32_t y_stride = FACE_R_D
 {
     // Revisit default stride value in tt-llk#1015
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(y_stride);
-    TT_SETADCXX(p_setadc::UNP_AB, tensor_shape.face_r_dim * tensor_shape.face_c_dim - 1, 0x0);
+    TT_SETADCXX(p_setadc::UNP_AB, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
 
 inline void _llk_unpack_bcastA_B_(const std::uint32_t address_a, const std::uint32_t address_b, uint32_t srca_reuse_count = 4)
