@@ -4,12 +4,16 @@
 
 #pragma once
 
-#include <array>
+// #include <array>
 #include <cstdint>
 
 namespace ckernel
 {
 
+/*
+   The current max constraints are set for large default size of 32x32, but that is until tensorShape is piped to all ops
+   Once it is piped to all ops, we can relax max number of faces, to be closer to description of a tensorshape
+*/
 constexpr uint8_t MAX_FACE_R_DIM      = 16;
 constexpr uint8_t MAX_FACE_C_DIM      = 16;
 constexpr uint8_t MAX_TILE_R_DIM      = 32;
@@ -17,8 +21,9 @@ constexpr uint8_t MAX_TILE_C_DIM      = 32;
 constexpr uint8_t MAX_NUM_FACES_R_DIM = 2;
 constexpr uint8_t MAX_NUM_FACES_C_DIM = 2;
 constexpr uint8_t MAX_NUM_FACES       = MAX_NUM_FACES_R_DIM * MAX_NUM_FACES_C_DIM;
-constexpr uint8_t MAX_FPU_ROWS        = 8;
-constexpr uint8_t MAX_FPU_ROWS_LOG2   = 3;
+
+constexpr uint8_t MAX_FPU_ROWS      = 8;
+constexpr uint8_t MAX_FPU_ROWS_LOG2 = 3;
 
 /**
  * @brief Standardized tensor shape representation for LLK operations.
