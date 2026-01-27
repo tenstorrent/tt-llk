@@ -109,5 +109,6 @@ enum class SfpuType
     reduce,
     add_top_row,
     typecast,
+    load_const_first_row,
 };
 #endif // ARCH_QUASAR

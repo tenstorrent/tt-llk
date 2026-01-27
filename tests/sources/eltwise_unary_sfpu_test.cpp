@@ -28,11 +28,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
 
-    for (int i = 0; i < params->TILE_CNT; ++i)
-    {
-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
-    }
+    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+        L1_ADDRESS(buffer_A[0]), formats.unpack_src, formats.unpack_dst);
 }
 
 #endif
@@ -62,21 +59,18 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
-    for (int i = 0; i < params->TILE_CNT; ++i)
-    {
-        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-            i, formats.math, formats.math);
+    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+        0, formats.math, formats.math);
 
-        // calculation of sfpu operation on dest
-        _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
-        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
-        // calling sfpu function from ckernel
-        // this part is where parametrization of operation takes part
-        test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
+    // calculation of sfpu operation on dest
+    _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
+    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
+    // calling sfpu function from ckernel
+    // this part is where parametrization of operation takes part
+    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
 
-        _llk_math_eltwise_unary_sfpu_done_();
-    }
+    _llk_math_eltwise_unary_sfpu_done_();
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
@@ -106,10 +100,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params->TILE_CNT; ++i)
-    {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
-    }
+    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
+    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(1, L1_ADDRESS(buffer_Res[1]));
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 

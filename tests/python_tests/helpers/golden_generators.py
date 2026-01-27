@@ -1270,6 +1270,7 @@ class UnarySFPUGolden:
             MathOperation.ReluMax: self._relu_max,
             MathOperation.ReluMin: self._relu_min,
             MathOperation.ReduceColumn: self._reduce_columns,
+            MathOperation.LoadConstFirstRow: self._load_const_first_row,
         }
         self.data_format = None
         self.dest_acc = DestAccumulation.No
@@ -1296,6 +1297,12 @@ class UnarySFPUGolden:
         # Special handling for SumColumns which needs to process the entire tensor
         if operation == MathOperation.ReduceColumn:
             return self.ops[operation](operand1, reduce_pool)
+
+        # Special handling for LoadConstFirstRow - only modifies first row of each tile
+        if operation == MathOperation.LoadConstFirstRow:
+            return self._load_const_first_row_golden(
+                operand1, data_format, dest_acc, input_format, dimensions
+            )
 
         # determine the data format for dst
         if self.dest_acc == DestAccumulation.Yes:
@@ -1574,6 +1581,61 @@ class UnarySFPUGolden:
         reduced_tile_tensor = torch.zeros_like(x)
         reduced_tile_tensor[0, :] = reduced_tile
         return reduced_tile_tensor
+
+    def _load_const_first_row(self, x):
+        """Placeholder for ops dict - actual implementation in _load_const_first_row_golden."""
+        # The constant value 0x40400000 in IEEE 754 FP32 is 3.0f
+        return 3.0
+
+    def _load_const_first_row_golden(
+        self,
+        operand1,
+        data_format,
+        dest_acc,
+        input_format,
+        dimensions: tuple[int, int],
+    ):
+        """
+        Golden generator for load_const_first_row operation.
+
+        This operation loads a constant value (3.0f) into the first row (row 0)
+        of each 32x32 tile. Row 0 spans 32 columns across Face 0 and Face 1.
+
+        In tilized format:
+        - Face 0, row 0 = indices 0-15 (left half of row 0)
+        - Face 1, row 0 = indices 256-271 (right half of row 0)
+        """
+        # The constant value 0x40400000 in IEEE 754 FP32 is 3.0f
+        CONST_VALUE = 3.0
+
+        # Determine destination format
+        if dest_acc == DestAccumulation.Yes:
+            dst_format = DataFormat.Float32
+        elif DataFormat.Float16 in (input_format, data_format):
+            dst_format = DataFormat.Float16
+        else:
+            dst_format = DataFormat.Float16_b
+
+        tensor = to_tensor(operand1, dst_format)
+        result = tilize_block(tensor, dimensions, input_format).flatten()
+
+        # Calculate number of tiles
+        num_tiles = result.numel() // ELEMENTS_PER_TILE
+
+        # Modify first row of each tile (in tilized format)
+        for tile_idx in range(num_tiles):
+            tile_offset = tile_idx * ELEMENTS_PER_TILE
+
+            # Face 0, row 0 (first 16 elements of Face 0)
+            result[tile_offset : tile_offset + FACE_DIM] = CONST_VALUE
+
+            # Face 1, row 0 (first 16 elements of Face 1)
+            face1_offset = tile_offset + ELEMENTS_PER_FACE
+            result[face1_offset : face1_offset + FACE_DIM] = CONST_VALUE
+
+        result = untilize_block(result, input_format, dimensions).flatten()
+
+        return torch.tensor(result.tolist(), dtype=format_dict[data_format])
 
 
 @register_golden

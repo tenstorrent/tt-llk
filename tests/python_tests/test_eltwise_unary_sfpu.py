@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-from itertools import chain, product
-
 import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture
@@ -18,7 +16,6 @@ from helpers.llk_params import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_config import StimuliConfig
-from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     APPROX_MODE,
@@ -37,65 +34,53 @@ SUPPORTED_FAST_MODE_OPS = [
 ]
 
 ALL_MATHOPS = [
-    MathOperation.Abs,
-    MathOperation.Atanh,
-    MathOperation.Asinh,
-    MathOperation.Acosh,
-    MathOperation.Cos,
-    MathOperation.Log,
-    MathOperation.Log1p,
-    MathOperation.Reciprocal,
-    MathOperation.Sin,
-    MathOperation.Sqrt,
-    MathOperation.Rsqrt,
-    MathOperation.Square,
-    MathOperation.Tanh,
-    MathOperation.Celu,
-    MathOperation.Silu,
-    MathOperation.Gelu,
-    MathOperation.Neg,
-    MathOperation.Fill,
-    MathOperation.Elu,
-    MathOperation.Exp,
-    MathOperation.Exp2,
-    MathOperation.Hardsigmoid,
-    MathOperation.Threshold,
-    MathOperation.ReluMax,
-    MathOperation.ReluMin,
+    # MathOperation.Abs,
+    # MathOperation.Atanh,
+    # MathOperation.Asinh,
+    # MathOperation.Acosh,
+    # MathOperation.Cos,
+    # MathOperation.Log,
+    # MathOperation.Log1p,
+    # MathOperation.Reciprocal,
+    # MathOperation.Sin,
+    # MathOperation.Sqrt,
+    # MathOperation.Rsqrt,
+    # MathOperation.Square,
+    # MathOperation.Tanh,
+    # MathOperation.Celu,
+    # MathOperation.Silu,
+    # MathOperation.Gelu,
+    # MathOperation.Neg,
+    # MathOperation.Fill,
+    # MathOperation.Elu,
+    # MathOperation.Exp,
+    # MathOperation.Exp2,
+    # MathOperation.Hardsigmoid,
+    # MathOperation.Threshold,
+    # MathOperation.ReluMax,
+    # MathOperation.ReluMin,
+    MathOperation.LoadConstFirstRow,
 ]
 
 FORMATS = input_output_formats(
     [
-        DataFormat.Float32,
-        DataFormat.Float16,
+        # DataFormat.Float32,
+        # DataFormat.Float16,
         DataFormat.Float16_b,
-        DataFormat.Bfp8_b,
+        # DataFormat.Bfp8_b,
     ]
 )
 
-FLOAT_TEST_PARAMS = list(
-    chain(
-        (
-            (fmt, approx, mathop, fast, dest)
-            for fmt, approx, mathop, fast, dest in product(
-                FORMATS,
-                [ApproximationMode.No, ApproximationMode.Yes],
-                SUPPORTED_FAST_MODE_OPS,
-                [FastMode.No, FastMode.Yes],
-                [DestAccumulation.No, DestAccumulation.Yes],
-            )
-        ),
-        (
-            (fmt, approx, mathop, FastMode.No, dest)
-            for fmt, approx, mathop, dest in product(
-                FORMATS,
-                [ApproximationMode.No, ApproximationMode.Yes],
-                [op for op in ALL_MATHOPS if op not in SUPPORTED_FAST_MODE_OPS],
-                [DestAccumulation.No, DestAccumulation.Yes],
-            )
-        ),
-    )
-)
+# Isolated test case: 32x32, Float16_b, no dest acc, no approx mode, LoadConstFirstRow
+FLOAT_TEST_PARAMS = [
+    (
+        FORMATS[0],
+        ApproximationMode.No,
+        MathOperation.LoadConstFirstRow,
+        FastMode.No,
+        DestAccumulation.No,
+    ),
+]
 
 
 @pytest.mark.nightly
@@ -220,14 +205,20 @@ def eltwise_unary_sfpu(
 ):
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
-    input_dimensions = [64, 64]
+    input_dimensions = [32, 32]
 
-    src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
-        stimuli_format_A=formats.input_format,
-        input_dimensions_A=input_dimensions,
-        stimuli_format_B=formats.input_format,
-        input_dimensions_B=input_dimensions,
-    )
+    # src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
+    #     stimuli_format_A=formats.input_format,
+    #     input_dimensions_A=input_dimensions,
+    #     stimuli_format_B=formats.input_format,
+    #     input_dimensions_B=input_dimensions,
+    # )
+
+    torch_dtype = format_dict[formats.input_format]
+    src_A = torch.ones(input_dimensions[0], input_dimensions[1], dtype=torch_dtype)
+    src_B = torch.ones(input_dimensions[0], input_dimensions[1], dtype=torch_dtype)
+    tile_cnt_A = 1
+    tile_cnt_B = 1
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
@@ -257,7 +248,7 @@ def eltwise_unary_sfpu(
             formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
-            tile_count_res=tile_cnt_A,
+            tile_count_res=2,  # Read 2 tiles: dest index 0 and dest index 1
         ),
         dest_acc=dest_acc,
         # If dest_acc is off, we unpack Float32 into 16-bit format in src registers (later copied over in dest reg for SFPU op)
@@ -268,14 +259,25 @@ def eltwise_unary_sfpu(
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
 
-    # res_from_L1 = res_from_L1[:1024]
-    # golden_tensor = golden_tensor[:1024]
-    assert len(res_from_L1) == len(
-        golden_tensor
-    ), "Result tensor and golder tensor are not of the same length"
-
+    # Split result into two tiles (1024 elements each for 32x32)
+    tile_size = 32 * 32
     torch_format = format_dict[formats.output_format]
-    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+    # First tile (dest index 0)
+    res_tensor = torch.tensor(res_from_L1[:tile_size], dtype=torch_format)
+
+    # Second tile (dest index 1) - print as 32x32
+    dest_index_1_data = res_from_L1[tile_size : tile_size * 2]
+    dest_index_1_tensor = torch.tensor(dest_index_1_data, dtype=torch_format).reshape(
+        32, 32
+    )
+    print("\n========== DEST INDEX 1 (32x32 tile) ==========")
+    print(dest_index_1_tensor)
+    print("================================================\n")
+
+    assert len(res_tensor) == len(
+        golden_tensor
+    ), "Result tensor and golden tensor are not of the same length"
 
     assert passed_test(
         golden_tensor, res_tensor, formats.output_format

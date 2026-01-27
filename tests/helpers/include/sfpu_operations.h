@@ -14,6 +14,7 @@
 // 1. Include the metal header below: #include "metal_sfpu/<operation>.h"
 // 2. Add the operation enum to SfpuType in llk_sfpu_types.h
 // 3. Add the case statement in call_sfpu_operation() switch below
+#include "ckernel_sfpu_load_const_first_row.h"
 #include "metal_sfpu/ckernel_sfpu_exp.h"
 #include "metal_sfpu/ckernel_sfpu_log1p.h"
 #include "metal_sfpu/ckernel_sfpu_tanh.h"
@@ -176,6 +177,10 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0, float fil
             break;
         case SfpuType::relu_min:
             _relu_min_<sfpi::vFloat, APPROX_MODE, ITERATIONS>(5.0f);
+            break;
+        case SfpuType::load_const_first_row:
+            _init_load_const_first_row_();
+            _calculate_load_const_first_row_<APPROX_MODE>();
             break;
         default:
             return; // Unsupported op – should never happen
