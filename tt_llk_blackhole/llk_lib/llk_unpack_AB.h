@@ -306,6 +306,6 @@ inline void _llk_unpackA_bcastB_row_as_col_uninit_()
     cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_XY_REG_0_Ystride_RMW>(FACE_R_DIM * 2);
 
     // Reset X counters to full tile dimensions
-    TT_SETADCXX(p_setadc::UNP_A, TILE_R_DIM * TILE_C_DIM - 1, 0x0);
-    TT_SETADCXX(p_setadc::UNP_B, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
+    TTI_SETADCXX(p_setadc::UNP_A, TILE_R_DIM * TILE_C_DIM - 1, 0x0);
+    TTI_SETADCXX(p_setadc::UNP_B, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
 }
