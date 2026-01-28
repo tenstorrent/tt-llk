@@ -256,33 +256,34 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
     {
         // Phase 1: Startup - first 2 LOADMACROs with NOPs (cycles 0-4)
         // Need NOPs because SHFT2[0] can't start until cycle 5
-        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 0);   // Cycle 0: LM[0]
-        TTI_SFPNOP;                              // Cycle 1: NOP (MAD[0] executes)
-        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 2);   // Cycle 2: LM[1]
-        TTI_SFPNOP;                              // Cycle 3: NOP (MAD[1] executes)
-        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 4);   // Cycle 4: LM[2] | STOCHRND[0]
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 0); // Cycle 0: LM[0]
+        TTI_SFPNOP;                            // Cycle 1: NOP (MAD[0] executes)
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 2); // Cycle 2: LM[1]
+        TTI_SFPNOP;                            // Cycle 3: NOP (MAD[1] executes)
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 4); // Cycle 4: LM[2] | STOCHRND[0]
 
         // Phase 2: Alternating LM/SHFT2 pattern (cycles 5-15)
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 5: SHFT2[0]
-        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 6);                          // Cycle 6: LM[3] | STOCHRND[1] | SETSGN[0]
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 7: SHFT2[1] | STORE[0]
-        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 8);                          // Cycle 8: LM[4] | STOCHRND[2] | SETSGN[1]
-        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 9: SHFT2[2] | STORE[1]
-        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 10);                         // Cycle 10: LM[5] | STOCHRND[3] | SETSGN[2]
-        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 11: SHFT2[3] | STORE[2]
-        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 12);                         // Cycle 12: LM[6] | STOCHRND[4] | SETSGN[3]
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 13: SHFT2[4] | STORE[3]
-        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 14);                         // Cycle 14: LM[7] | STOCHRND[5] | SETSGN[4]
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 15: SHFT2[5] | STORE[4]
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 5: SHFT2[0]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 6);                         // Cycle 6: LM[3] | STOCHRND[1] | SETSGN[0]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 7: SHFT2[1] | STORE[0]
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 8);                         // Cycle 8: LM[4] | STOCHRND[2] | SETSGN[1]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 9: SHFT2[2] | STORE[1]
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 10);                        // Cycle 10: LM[5] | STOCHRND[3] | SETSGN[2]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 11: SHFT2[3] | STORE[2]
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 12);                        // Cycle 12: LM[6] | STOCHRND[4] | SETSGN[3]
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 13: SHFT2[4] | STORE[3]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 14);                        // Cycle 14: LM[7] | STOCHRND[5] | SETSGN[4]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 15: SHFT2[5] | STORE[4]
 
         // Phase 3: Drain - remaining SHFT2s and scheduled ops (cycles 16-21)
-        TTI_SFPNOP;                                                     // Cycle 16: STOCHRND[6] | SETSGN[5]
-        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 17: SHFT2[6] | STORE[5]
-        TTI_SFPNOP;                                                     // Cycle 18: STOCHRND[7] | SETSGN[6]
-        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 19: SHFT2[7] | STORE[6]
+        TTI_SFPNOP;                                                    // Cycle 16: STOCHRND[6] | SETSGN[5]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 17: SHFT2[6] | STORE[5]
+        TTI_SFPNOP;                                                    // Cycle 18: STOCHRND[7] | SETSGN[6]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 19: SHFT2[7] | STORE[6]
         // TTI_SFPNOP;                                                  // Cycle 20: SETSGN[7]
         // TTI_SFPNOP;                                                  // Cycle 21: STORE[7]
-    }    else
+    }
+    else
     {
         // Unroll 8 best for approx, unroll 0 for precise, compiler figures this out
         for (int d = 0; d < ITERATIONS; d++)
@@ -495,9 +496,9 @@ inline void _init_exponential_()
 
         // Load shift amount (15) into LREG[14] for SFPSHFT2
         // SFPSHFT2 mode 5 reads shift amount from VC register
-        TTI_SFPLOADI(0, 0xA, 15);     // Lower 16 bits = 15
-        TTI_SFPLOADI(0, 0x8, 0);      // Upper 16 bits = 0
-        TTI_SFPCONFIG(0, 14, 0);      // Store in LREG[14]
+        TTI_SFPLOADI(0, 0xA, 15); // Lower 16 bits = 15
+        TTI_SFPLOADI(0, 0x8, 0);  // Upper 16 bits = 0
+        TTI_SFPCONFIG(0, 14, 0);  // Store in LREG[14]
 
         // ===================================================================
         // Program Macro Instructions via Backdoor Load
@@ -530,9 +531,9 @@ inline void _init_exponential_()
         //   - STOCHRND delay 3: 0x1E
         //   - SETSGN delay 5: 0xEF
         //   - STORE delay 6: 0x73
-        TTI_SFPLOADI(0, 0xA, 0x85EF);  // Slots 1-2: Simple=0xEF (delay 5), MAD=0x85
-        TTI_SFPLOADI(0, 0x8, 0x731E);  // Slots 3-4: Round=0x1E (delay 3), Store=0x73 (delay 6)
-        TTI_SFPCONFIG(0, 4, 0);        // Load into Macro Sequence Register 0 (dest=4)
+        TTI_SFPLOADI(0, 0xA, 0x85EF); // Slots 1-2: Simple=0xEF (delay 5), MAD=0x85
+        TTI_SFPLOADI(0, 0x8, 0x731E); // Slots 3-4: Round=0x1E (delay 3), Store=0x73 (delay 6)
+        TTI_SFPCONFIG(0, 4, 0);       // Load into Macro Sequence Register 0 (dest=4)
 
         // Reset LoadMacroConfig[Lane].Misc for all lanes
         // Sets StoreMod0=0 (SRCB), UsesLoadMod0ForStore=0, UnitDelayKind=0
