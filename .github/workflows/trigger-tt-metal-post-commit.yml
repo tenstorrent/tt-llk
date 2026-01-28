@@ -242,7 +242,7 @@ jobs:
           DISPATCHED_TESTS=""
 
           if [ "${{ needs.detect-changes.outputs.run-wormhole }}" = "true" ]; then
-            DISPATCHED_TESTS="${DISPATCHED_TESTS}- 🌀 **Wormhole post-commit tests**"$'\n'
+            DISPATCHED_TESTS="${DISPATCHED_TESTS}- 🌀 **All post-commit tests**"$'\n'
           fi
 
           if [ "${{ needs.detect-changes.outputs.run-blackhole }}" = "true" ]; then
