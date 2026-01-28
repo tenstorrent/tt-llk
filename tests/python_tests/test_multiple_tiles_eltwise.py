@@ -7,11 +7,17 @@ from helpers.format_config import DataFormat
 from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
 from helpers.llk_params import (
     DestAccumulation,
+    DestSync,
     MathFidelity,
     MathOperation,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -23,7 +29,6 @@ from helpers.test_variant_parameters import (
     NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
-from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 
@@ -44,7 +49,7 @@ from helpers.utils import passed_test
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    input_dimensions=[[32, 32], [32, 64], [64, 64], [128, 64], [64, 128]],
+    input_dimensions=[[32, 32], [32, 64], [64, 64], [128, 64], [64, 128], [128, 256]],
 )
 def test_multiple_tiles(
     formats,
@@ -65,8 +70,20 @@ def test_multiple_tiles(
         input_dimensions_B=input_dimensions,
     )
 
-    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
-        tile_cnt_A, formats.input_format
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
     )
 
     generate_golden = get_golden_generator(EltwiseBinaryGolden)

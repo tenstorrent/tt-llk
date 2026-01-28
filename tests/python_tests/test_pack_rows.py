@@ -4,8 +4,13 @@
 import torch
 from helpers.format_config import DataFormat
 from helpers.golden_generators import PackRowsGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, format_dict
-from helpers.param_config import input_output_formats, parametrize
+from helpers.llk_params import DestAccumulation, DestSync, format_dict
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -16,7 +21,6 @@ from helpers.test_variant_parameters import (
     NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
-from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 max_tiles = 4
@@ -48,6 +52,7 @@ dimension_combinations = [
 def test_pack_rows(
     formats, dest_acc, num_rows_to_pack, dimensions, workers_tensix_coordinates
 ):
+    print(dimension_combinations)
     row_num_datums = 16
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
@@ -67,8 +72,20 @@ def test_pack_rows(
     )
 
     # Calculate block parameters for destination register banking
-    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
-        tile_cnt_A, formats.input_format
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=dimensions,
+        tile_dimensions=(tile_dim, tile_dim),
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=dimensions,
+        tile_dimensions=(tile_dim, tile_dim),
     )
 
     # Calculate expected output size per tile

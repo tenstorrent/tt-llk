@@ -10,12 +10,18 @@ from helpers.golden_generators import (
 from helpers.llk_params import (
     BroadcastType,
     DestAccumulation,
+    DestSync,
     MathFidelity,
     MathOperation,
     Transpose,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -31,7 +37,6 @@ from helpers.test_variant_parameters import (
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
 )
-from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 
@@ -77,7 +82,8 @@ def get_tile_params(tile_dimensions):
         [128, 64],
         [64, 128],
         [128, 128],
-    ],  # Extended to test more tiles
+        [128, 256],  # 32 tiles
+    ],
     tile_dimensions=[[32, 32]],  # More dimensions coming soon....
 )
 def test_eltwise_binary(
@@ -109,8 +115,20 @@ def test_eltwise_binary(
     )
 
     # Calculate block parameters for destination register banking
-    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
-        tile_cnt_A, formats.input_format
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=tile_dimensions,
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=tile_dimensions,
     )
 
     # Compute element-wise subtraction in tilized format

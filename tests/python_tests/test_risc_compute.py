@@ -14,7 +14,6 @@ from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import NUM_BLOCKS, NUM_TILES_IN_BLOCK
-from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 
@@ -31,9 +30,6 @@ def test_risc_compute(formats, input_dimensions, workers_tensix_coordinates):
     )
 
     # Calculate block parameters for destination register banking
-    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
-        tile_cnt_A, formats.input_format
-    )
 
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
     golden_tensor = generate_golden(
