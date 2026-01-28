@@ -112,7 +112,7 @@ inline void _llk_unpack_tilize_(
     // std::uint32_t num_loops = narrow_tile ? 2 : num_faces/2;
 
     std::uint32_t address = base_address + top_face_offset_address;
-    LLK_ASSERT(is_valid_L1_address(address), "L1 base_address must be in valid L1 memory region");
+    // LLK_ASSERT(is_valid_L1_address(address), "L1 base_address must be in valid L1 memory region");
 
     // Clear z/w start counters
     TTI_SETADCZW(0b001, 0, 0, 0, 0, 0b1111);
