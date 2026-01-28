@@ -410,14 +410,12 @@ inline void _llk_math_eltwise_binary_(uint32_t dst_index)
 
 SDPA OPTIMIZATION
 --------------------------------
-Request is to do fthe following:
-On math side of this operation we need to do the following:
+Request is to do the following:
 - Transpose srcB from rows to columns, that way we get effect of broadcasted column
-- Move srcB counte to index 16 since transpose is done on rows 16 - 31.
+- Move srcB counter to index 16 since transpose is done on rows 16 - 31.
 - Subtract F0 and F1 in srcA and srcB
 - Change srcB bank
-- Repeat subtraction for F2 and F3
-
+- Repeat subtraction for F2 and F3 in srcA and srcB
 *************************************************************************/
 
 inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod()
@@ -431,7 +429,7 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod()
 
     addr_mod_t {
         .srca = {.incr = 8},
-        .srcb = {.incr = 0x3F & -8},
+        .srcb = {.incr = 0x3F & -8}, // decrement srcB by 8
         .dest = {.incr = 8},
     }
         .set(ADDR_MOD_1);
@@ -462,7 +460,7 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop()
     constexpr uint32_t outerloop = 1;
 
     ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, REPLAY_BUFFER_SIZE, 0, 0));
-    tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB)); // Clearing src A dvalid
+    tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB)); // Clearing src A and B dvalid
     tmp.program();
 }
 
