@@ -29,17 +29,17 @@ void run_kernel(const volatile struct RuntimeParams* params)
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-            formats.unpack_src,
-            formats.unpack_src,
-            formats.unpack_dst,
-            formats.unpack_dst,
-            FACE_R_DIM,
-            FACE_R_DIM,
-            params->num_faces_A,
-            params->num_faces_B,
-            TILE_SIZE_UNPACK_A,
-            TILE_SIZE_UNPACK_B);
+        // _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        //     formats.unpack_src,
+        //     formats.unpack_src,
+        //     formats.unpack_dst,
+        //     formats.unpack_dst,
+        //     FACE_R_DIM,
+        //     FACE_R_DIM,
+        //     params->num_faces_A,
+        //     params->num_faces_B,
+        //     TILE_SIZE_UNPACK_A,
+        //     TILE_SIZE_UNPACK_B);
         _llk_unpack_AB_matmul_init_<>(
             params->UNPACK_TRANSPOSE_FACES,
             params->CT_DIM,
@@ -97,10 +97,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     {
         ZONE_SCOPED("INIT")
-        _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-        _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
+        // _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
+
         _llk_math_matmul_init_<MATH_FIDELITY, THROTTLE_LEVEL>(
             /* tile A */ TILE_R_DIM,
             /* tile A */ TILE_C_DIM,

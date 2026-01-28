@@ -5,16 +5,16 @@ import pytest
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     DestAccumulation,
-    MathFidelity,
-    MathOperation,
     PerfRunType,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    input_output_formats,
+    parametrize,
+)
 from helpers.perf import PerfConfig
 from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
-    MATH_FIDELITY,
-    MATH_OP,
+    BLOCK_CT_DIM,
     TILE_COUNT,
 )
 
@@ -22,28 +22,37 @@ from helpers.test_variant_parameters import (
 @pytest.mark.perf
 @parametrize(
     formats=input_output_formats(
-        # [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
-        [DataFormat.Float16_b]
+        [
+            DataFormat.Float16_b,
+        ]
     ),
-    mathop=[MathOperation.Elwsub],
-    tile_count=16,
-    math_fidelity=[MathFidelity.LoFi],
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    block_ct_dim=[1, 2, 4, 8, 16],
 )
-def test_perf_eltwise_binary_fpu(
+def test_perf_reduce_block_max_row(
     perf_report,
     formats,
-    mathop,
-    tile_count,
-    math_fidelity,
     dest_acc,
+    block_ct_dim,
     workers_tensix_coordinates,
 ):
-    if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
-        pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
+    """
+    Performance test for reduce_block_max_row operation.
+
+    This tests the custom block-based max row reduction that processes
+    multiple tiles in the width dimension as a single block operation.
+
+    Parameters swept (from tt-metal test_sdpa_reduce_c.cpp):
+    - block_ct_dim: 1, 2, 4, 8, 16 (k_chunk_sizes in SDPA test)
+    - dest_acc: No (16-bit), Yes (32-bit FP32 destination accumulation)
+    - formats: Float16_b only (as per API constraints)
+    """
+
+    # Total tiles = block_ct_dim (processed as a block)
+    tile_count = block_ct_dim
 
     configuration = PerfConfig(
-        "sources/eltwise_binary_fpu_perf.cpp",
+        "sources/reduce_block_max_row_perf.cpp",
         formats,
         run_types=[
             PerfRunType.L1_TO_L1,
@@ -52,7 +61,9 @@ def test_perf_eltwise_binary_fpu(
             PerfRunType.PACK_ISOLATE,
             PerfRunType.L1_CONGESTION,
         ],
-        templates=[MATH_FIDELITY(math_fidelity), MATH_OP(mathop=mathop)],
+        templates=[
+            BLOCK_CT_DIM(block_ct_dim),
+        ],
         runtimes=[TILE_COUNT(tile_count)],
         variant_stimuli=StimuliConfig(
             None,
@@ -61,9 +72,10 @@ def test_perf_eltwise_binary_fpu(
             formats.input_format,
             formats.output_format,
             tile_count_A=tile_count,
-            tile_count_B=tile_count,
-            tile_count_res=tile_count,
+            tile_count_B=1,  # Scale tile (single tile with 1.0 values)
+            tile_count_res=1,  # One output tile (reduced result)
         ),
+        unpack_to_dest=False,
         dest_acc=dest_acc,
     )
 
