@@ -777,7 +777,7 @@ class Math:
             else:
                 code += self.fpu.init(operation, config)
                 code += self._wait_for_dest(operation)
-                code += self.fpu.calculate(operation, config, 0)
+                code += self.fpu.calculate(operation, config)
                 code += self._sfpu_code(operation, config)
                 code += self._dest_section_done(operation, config)
         else:
