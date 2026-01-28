@@ -1,0 +1,479 @@
+// SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
+//
+// SPDX-License-Identifier: Apache-2.0
+
+#pragma once
+
+#include <array>
+#include <cstdint>
+
+#include "ckernel.h"
+
+namespace llk_perf
+{
+
+// Note: Most counter base register addresses are defined in hw_specific/<arch>/inc/tensix.h
+// TDMA_UNPACK registers are missing from hardware headers, so we define them here
+#ifndef RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0
+#define RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0 (RISCV_DEBUG_REGS_START_ADDR | 0x00C)
+#define RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK1 (RISCV_DEBUG_REGS_START_ADDR | 0x010)
+#define RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK2 (RISCV_DEBUG_REGS_START_ADDR | 0x014)
+#endif
+
+// L1 counter MUX control register - bit 4 selects which L1 counter set is active
+#ifndef RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL
+#define RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL (RISCV_DEBUG_REGS_START_ADDR | 0x218)
+#endif
+
+// Performance counter output registers (for reading cycle/count results)
+// NOTE: Table shows TDMA_UNPACK outputs at 0x018/0x01C but empirically 0x108/0x10C works
+// IMPORTANT: The low output (`OUT_L`) returns the reference cycle count for the bank's
+// measurement window. This value is independent of the selected event and will be
+// identical across selections when scanning multiple counters in the same bank.
+// The high output (`OUT_H`) returns the event-specific count for the currently selected
+// counter (set via bits [15:8] of the mode register).
+#define RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD (RISCV_DEBUG_REGS_START_ADDR | 0x100)
+#define RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD (RISCV_DEBUG_REGS_START_ADDR | 0x104)
+#define RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK   (RISCV_DEBUG_REGS_START_ADDR | 0x108)
+#define RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK   (RISCV_DEBUG_REGS_START_ADDR | 0x10C)
+#define RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_PACK     (RISCV_DEBUG_REGS_START_ADDR | 0x110)
+#define RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK     (RISCV_DEBUG_REGS_START_ADDR | 0x114)
+#define RISCV_DEBUG_REG_PERF_CNT_OUT_L_DBG_L1        (RISCV_DEBUG_REGS_START_ADDR | 0x118)
+#define RISCV_DEBUG_REG_PERF_CNT_OUT_H_DBG_L1        (RISCV_DEBUG_REGS_START_ADDR | 0x11C)
+#define RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU           (RISCV_DEBUG_REGS_START_ADDR | 0x120)
+#define RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU           (RISCV_DEBUG_REGS_START_ADDR | 0x124)
+
+// L1 Memory addresses - separate per TRISC thread
+// Expanded to support up to 66 counters: 66 config words (264 bytes) + 132 data words (528 bytes) = 792 bytes per thread
+// Thread blocks:
+// UNPACK: CONFIG 0x2F7D0, DATA 0x2F8D8 (0x2F7D0 + 0x108)
+// MATH:   CONFIG 0x2FAE8, DATA 0x2FBF0 (UNPACK + 0x318)
+// PACK:   CONFIG 0x2FE00, DATA 0x2FF08 (MATH + 0x318)
+#define PERF_COUNTER_UNPACK_CONFIG_ADDR 0x2F7D0 // 66 words: UNPACK metadata
+#define PERF_COUNTER_UNPACK_DATA_ADDR   0x2F8D8 // 132 words: UNPACK results
+#define PERF_COUNTER_MATH_CONFIG_ADDR   0x2FAE8 // 66 words: MATH metadata
+#define PERF_COUNTER_MATH_DATA_ADDR     0x2FBF0 // 132 words: MATH results
+#define PERF_COUNTER_PACK_CONFIG_ADDR   0x2FE00 // 66 words: PACK metadata
+#define PERF_COUNTER_PACK_DATA_ADDR     0x2FF08 // 132 words: PACK results
+
+// Configuration word format: [mode_bit(16), counter_sel(8-15), bank_id(0-7)]
+// Use compact underlying type to reduce memory footprint
+enum class CounterBank : uint8_t
+{
+    INSTRN_THREAD = 0,
+    FPU           = 1,
+    TDMA_UNPACK   = 2,
+    L1            = 3,
+    TDMA_PACK     = 4,
+};
+
+// Number of counter banks represented by CounterBank enum
+inline constexpr uint32_t COUNTER_BANK_COUNT = 5;
+// Number of counter slots supported per thread (config words and data pairs)
+inline constexpr uint32_t COUNTER_SLOT_COUNT = 66;
+
+inline constexpr uint32_t get_counter_base_addr(CounterBank bank)
+{
+    constexpr uint32_t base_addrs[COUNTER_BANK_COUNT] = {
+        RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, // INSTRN_THREAD
+        RISCV_DEBUG_REG_PERF_CNT_FPU0,           // FPU
+        RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0,   // TDMA_UNPACK
+        RISCV_DEBUG_REG_PERF_CNT_L1_0,           // L1
+        RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0,     // TDMA_PACK
+    };
+
+    const uint32_t idx = static_cast<uint32_t>(bank);
+    return idx < COUNTER_BANK_COUNT ? base_addrs[idx] : 0u;
+}
+
+inline constexpr uint32_t get_counter_output_low_addr(CounterBank bank)
+{
+    constexpr uint32_t low_addrs[COUNTER_BANK_COUNT] = {
+        RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD, // INSTRN_THREAD
+        RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU,           // FPU
+        RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK,   // TDMA_UNPACK
+        RISCV_DEBUG_REG_PERF_CNT_OUT_L_DBG_L1,        // L1
+        RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_PACK,     // TDMA_PACK
+    };
+
+    const uint32_t idx = static_cast<uint32_t>(bank);
+    return idx < COUNTER_BANK_COUNT ? low_addrs[idx] : 0u;
+}
+
+inline constexpr uint32_t get_counter_output_high_addr(CounterBank bank)
+{
+    constexpr uint32_t high_addrs[COUNTER_BANK_COUNT] = {
+        RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD, // INSTRN_THREAD
+        RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU,           // FPU
+        RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK,   // TDMA_UNPACK
+        RISCV_DEBUG_REG_PERF_CNT_OUT_H_DBG_L1,        // L1
+        RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK,     // TDMA_PACK
+    };
+
+    const uint32_t idx = static_cast<uint32_t>(bank);
+    return idx < COUNTER_BANK_COUNT ? high_addrs[idx] : 0u;
+}
+
+// Compact underlying type for mode as well
+enum class CounterMode : uint8_t
+{
+    REQUESTS = 0,
+    GRANTS   = 1,
+};
+
+struct CounterResult
+{
+    uint32_t cycles;
+    uint32_t count;
+    CounterBank bank;
+    uint32_t counter_id;
+};
+
+namespace counter_id
+{
+
+namespace instrn_thread
+{
+constexpr uint32_t INST_CFG               = 0;
+constexpr uint32_t INST_SYNC              = 1;
+constexpr uint32_t INST_THCON             = 2;
+constexpr uint32_t INST_XSEARCH           = 3;
+constexpr uint32_t INST_MOVE              = 4;
+constexpr uint32_t INST_MATH              = 5;
+constexpr uint32_t INST_UNPACK            = 6;
+constexpr uint32_t INST_PACK              = 7;
+constexpr uint32_t STALLED                = 8;
+constexpr uint32_t SRCA_CLEARED_0         = 9;
+constexpr uint32_t SRCA_CLEARED_1         = 10;
+constexpr uint32_t SRCA_CLEARED_2         = 11;
+constexpr uint32_t SRCB_CLEARED_0         = 12;
+constexpr uint32_t SRCB_CLEARED_1         = 13;
+constexpr uint32_t SRCB_CLEARED_2         = 14;
+constexpr uint32_t SRCA_VALID_0           = 15;
+constexpr uint32_t SRCA_VALID_1           = 16;
+constexpr uint32_t SRCA_VALID_2           = 17;
+constexpr uint32_t SRCB_VALID_0           = 18;
+constexpr uint32_t SRCB_VALID_1           = 19;
+constexpr uint32_t SRCB_VALID_2           = 20;
+constexpr uint32_t STALL_THCON            = 21;
+constexpr uint32_t STALL_PACK0            = 22;
+constexpr uint32_t STALL_MATH             = 23;
+constexpr uint32_t STALL_SEM_ZERO         = 24;
+constexpr uint32_t STALL_SEM_MAX          = 25;
+constexpr uint32_t STALL_MOVE             = 26;
+constexpr uint32_t STALL_TRISC_REG_ACCESS = 27;
+constexpr uint32_t STALL_SFPU             = 28;
+} // namespace instrn_thread
+
+namespace fpu
+{
+constexpr uint32_t FPU_OP_VALID  = 0;
+constexpr uint32_t SFPU_OP_VALID = 1;
+} // namespace fpu
+
+namespace tdma_unpack
+{
+constexpr uint32_t MATH_INSTR_SRC_READY = 0;
+constexpr uint32_t MATH_NOT_D2A_STALL   = 1;
+constexpr uint32_t MATH_FIDELITY_PHASES = 2;
+constexpr uint32_t MATH_INSTR_BUF_RDEN  = 3;
+constexpr uint32_t MATH_INSTR_VALID     = 4;
+constexpr uint32_t TDMA_SRCB_REGIF_WREN = 5;
+constexpr uint32_t TDMA_SRCA_REGIF_WREN = 6;
+constexpr uint32_t UNPACK_BUSY_0        = 7;
+constexpr uint32_t UNPACK_BUSY_1        = 8;
+constexpr uint32_t UNPACK_BUSY_2        = 9;
+constexpr uint32_t UNPACK_BUSY_3        = 10;
+} // namespace tdma_unpack
+
+namespace l1
+{
+// l1_mux = 0
+constexpr uint32_t NOC_RING0_INCOMING_1 = 0;
+constexpr uint32_t NOC_RING0_INCOMING_0 = 1;
+constexpr uint32_t NOC_RING0_OUTGOING_1 = 2;
+constexpr uint32_t NOC_RING0_OUTGOING_0 = 3;
+constexpr uint32_t L1_ARB_TDMA_BUNDLE_1 = 4;
+constexpr uint32_t L1_ARB_TDMA_BUNDLE_0 = 5;
+constexpr uint32_t L1_ARB_UNPACKER      = 6;
+constexpr uint32_t L1_NO_ARB_UNPACKER   = 7;
+
+// l1_mux = 1 (same IDs, different mux setting)
+constexpr uint32_t NOC_RING1_INCOMING_1 = 0;
+constexpr uint32_t NOC_RING1_INCOMING_0 = 1;
+constexpr uint32_t NOC_RING1_OUTGOING_1 = 2;
+constexpr uint32_t NOC_RING1_OUTGOING_0 = 3;
+constexpr uint32_t TDMA_BUNDLE_1_ARB    = 4;
+constexpr uint32_t TDMA_BUNDLE_0_ARB    = 5;
+constexpr uint32_t TDMA_EXT_UNPACK_9_10 = 6;
+constexpr uint32_t TDMA_PACKER_2_WR     = 7;
+} // namespace l1
+
+namespace tdma_pack
+{
+constexpr uint32_t DSTAC_RDEN_RAW_0    = 0;
+constexpr uint32_t DSTAC_RDEN_RAW_1    = 1;
+constexpr uint32_t DSTAC_RDEN_RAW_2    = 2;
+constexpr uint32_t DSTAC_RDEN_RAW_3    = 3;
+constexpr uint32_t PACK_NOT_DEST_STALL = 4;
+constexpr uint32_t PACK_NOT_SB_STALL   = 5;
+constexpr uint32_t PACK_BUSY_10        = 6;
+constexpr uint32_t PACK_BUSY_11        = 7;
+} // namespace tdma_pack
+} // namespace counter_id
+
+class PerfCounters
+{
+private:
+    uint32_t num_counters {0};
+    CounterMode mode {CounterMode::GRANTS};
+
+    static inline volatile uint32_t* get_config_mem()
+    {
+#if defined(LLK_TRISC_UNPACK)
+        constexpr uint32_t addr = PERF_COUNTER_UNPACK_CONFIG_ADDR;
+#elif defined(LLK_TRISC_MATH)
+        constexpr uint32_t addr = PERF_COUNTER_MATH_CONFIG_ADDR;
+#elif defined(LLK_TRISC_PACK)
+        constexpr uint32_t addr = PERF_COUNTER_PACK_CONFIG_ADDR;
+#else
+        constexpr uint32_t addr = PERF_COUNTER_MATH_CONFIG_ADDR;
+#endif
+        return reinterpret_cast<volatile uint32_t*>(addr);
+    }
+
+    static inline volatile uint32_t* get_data_mem()
+    {
+#if defined(LLK_TRISC_UNPACK)
+        constexpr uint32_t addr = PERF_COUNTER_UNPACK_DATA_ADDR;
+#elif defined(LLK_TRISC_MATH)
+        constexpr uint32_t addr = PERF_COUNTER_MATH_DATA_ADDR;
+#elif defined(LLK_TRISC_PACK)
+        constexpr uint32_t addr = PERF_COUNTER_PACK_DATA_ADDR;
+#else
+        constexpr uint32_t addr = PERF_COUNTER_MATH_DATA_ADDR;
+#endif
+        return reinterpret_cast<volatile uint32_t*>(addr);
+    }
+
+    // Helper to extract fields from config word
+    static inline void unpack_config(uint32_t metadata, uint8_t& bank_id, uint8_t& counter_id, uint8_t& mode_bit, uint8_t& l1_mux)
+    {
+        bank_id    = metadata & 0xFF;
+        counter_id = (metadata >> 8) & 0xFF;
+        mode_bit   = (metadata >> 16) & 0x1;
+        l1_mux     = (metadata >> 17) & 0x1;
+    }
+
+public:
+    PerfCounters() = default;
+
+    void start()
+    {
+        volatile uint32_t* config_mem = get_config_mem();
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+        volatile uint32_t* dbg_regs = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
+
+        // First pass: count valid configs, determine mode, and build bank present mask
+        uint32_t present_mask = 0;
+        num_counters          = 0;
+
+        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
+        {
+            uint32_t metadata = config_mem[i];
+            if ((metadata & 0x80000000u) == 0)
+            {
+                continue;
+            }
+
+            uint8_t bank_id, counter_id, mode_bit, l1_mux;
+            unpack_config(metadata, bank_id, counter_id, mode_bit, l1_mux);
+
+            if (num_counters == 0)
+            {
+                mode = mode_bit ? CounterMode::GRANTS : CounterMode::REQUESTS;
+            }
+
+            present_mask |= 1u << bank_id;
+            num_counters++;
+        }
+
+        if (num_counters == 0)
+        {
+            return;
+        }
+
+        // Second pass: start each bank once
+        uint32_t started_mask = 0;
+        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT && started_mask != present_mask; i++)
+        {
+            uint32_t metadata = config_mem[i];
+            if ((metadata & 0x80000000u) == 0)
+            {
+                continue;
+            }
+
+            uint8_t bank_id, counter_id, mode_bit, l1_mux;
+            unpack_config(metadata, bank_id, counter_id, mode_bit, l1_mux);
+
+            uint32_t bank_bit = 1u << bank_id;
+            if (started_mask & bank_bit)
+            {
+                continue;
+            }
+
+            CounterBank bank = static_cast<CounterBank>(bank_id);
+
+            // Configure L1 MUX if needed
+            if (bank == CounterBank::L1)
+            {
+                uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
+                uint32_t cur            = dbg_regs[mux_ctrl_addr];
+                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((l1_mux & 0x1u) << 4);
+            }
+
+            // Start the bank
+            uint32_t counter_base          = get_counter_base_addr(bank);
+            uint32_t counter_reg_addr      = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            dbg_regs[counter_reg_addr]     = 0xFFFFFFFF;
+            dbg_regs[counter_reg_addr + 1] = 0;
+            dbg_regs[counter_reg_addr + 2] = 0;
+            dbg_regs[counter_reg_addr + 2] = 1; // Start
+
+            started_mask |= bank_bit;
+        }
+#pragma GCC diagnostic pop
+    }
+
+    std::array<CounterResult, COUNTER_SLOT_COUNT> stop()
+    {
+        std::array<CounterResult, COUNTER_SLOT_COUNT> results;
+        volatile uint32_t* config_mem = get_config_mem();
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+        volatile uint32_t* dbg_regs = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
+        volatile uint32_t* data_mem = get_data_mem();
+
+        // First pass: stop all banks
+        uint32_t stopped_mask = 0;
+        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
+        {
+            uint32_t metadata = config_mem[i];
+            if ((metadata & 0x80000000u) == 0)
+            {
+                continue;
+            }
+
+            uint8_t bank_id   = metadata & 0xFF;
+            uint32_t bank_bit = 1u << bank_id;
+
+            if (stopped_mask & bank_bit)
+            {
+                continue;
+            }
+
+            CounterBank bank  = static_cast<CounterBank>(bank_id);
+            uint32_t base     = get_counter_base_addr(bank);
+            uint32_t reg_addr = (base - RISCV_DEBUG_REGS_START_ADDR) / 4;
+
+            dbg_regs[reg_addr + 2] = 0; // Clear
+            dbg_regs[reg_addr + 2] = 2; // Stop (bit1 0->1)
+
+            stopped_mask |= bank_bit;
+        }
+
+        // Second pass: read all counters
+        uint32_t mode_value = (static_cast<uint32_t>(mode) & 0x1u) << 16;
+        uint32_t result_idx = 0;
+
+        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
+        {
+            uint32_t metadata = config_mem[i];
+            if ((metadata & 0x80000000u) == 0)
+            {
+                continue;
+            }
+
+            uint8_t bank_id, counter_id, mode_bit, l1_mux;
+            unpack_config(metadata, bank_id, counter_id, mode_bit, l1_mux);
+
+            CounterBank bank = static_cast<CounterBank>(bank_id);
+
+            // Configure L1 MUX if needed before reading
+            if (bank == CounterBank::L1)
+            {
+                uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
+                uint32_t cur            = dbg_regs[mux_ctrl_addr];
+                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((l1_mux & 0x1u) << 4);
+            }
+
+            uint32_t counter_base     = get_counter_base_addr(bank);
+            uint32_t counter_reg_addr = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
+
+            // Select the desired counter and req/grant output in mode register
+            dbg_regs[counter_reg_addr + 1] = (static_cast<uint32_t>(counter_id) << 8) | mode_value;
+
+            // Allow selection/mux to settle: perform a dummy read sequence
+            uint32_t output_low_addr  = (get_counter_output_low_addr(bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            uint32_t output_high_addr = (get_counter_output_high_addr(bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            (void)dbg_regs[output_low_addr];
+            (void)dbg_regs[output_high_addr];
+
+            // Read outputs again for the actual value
+            results[result_idx].cycles     = dbg_regs[output_low_addr];
+            results[result_idx].count      = dbg_regs[output_high_addr];
+            results[result_idx].bank       = bank;
+            results[result_idx].counter_id = counter_id;
+
+            // Write to L1 memory for Python to read (2 words per counter: cycles, count)
+            data_mem[result_idx * 2]     = results[result_idx].cycles;
+            data_mem[result_idx * 2 + 1] = results[result_idx].count;
+
+            result_idx++;
+        }
+#pragma GCC diagnostic pop
+
+        return results;
+    }
+};
+
+// RAII helper: reads config from L1, starts counters on construction, stops on destruction.
+// Configuration is done externally via Python before running the kernel.
+class ScopedPerfCounters
+{
+private:
+    PerfCounters counters_;
+    bool stopped_ = false;
+
+public:
+    ScopedPerfCounters()
+    {
+        counters_.start();
+    }
+
+    ~ScopedPerfCounters()
+    {
+        if (!stopped_)
+        {
+            counters_.stop();
+        }
+    }
+
+    // Manually stop and return results; destructor will not stop again
+    std::array<CounterResult, COUNTER_SLOT_COUNT> stop()
+    {
+        stopped_ = true;
+        return counters_.stop();
+    }
+
+    // Non-copyable, non-movable
+    ScopedPerfCounters(const ScopedPerfCounters&)            = delete;
+    ScopedPerfCounters& operator=(const ScopedPerfCounters&) = delete;
+    ScopedPerfCounters(ScopedPerfCounters&&)                 = delete;
+    ScopedPerfCounters& operator=(ScopedPerfCounters&&)      = delete;
+};
+
+} // namespace llk_perf
