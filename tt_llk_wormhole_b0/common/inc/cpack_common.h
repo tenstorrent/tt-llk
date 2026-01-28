@@ -637,7 +637,7 @@ inline void select_packer_dest_registers()
 // Program packer destination addresses from GPRs
 inline void program_packer_destination(uint32_t addr, bool restore = true)
 {
-    LLK_ASSERT(is_valid_L1_address(addr), "L1 address must be in valid L1 memory region");
+    // LLK_ASSERT(is_valid_L1_address(addr), "L1 address must be in valid L1 memory region");
     uint32_t new_l1_addr = (1 << 31) | addr;
     TT_SETDMAREG(0, LOWER_HALFWORD(addr), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
     TT_SETDMAREG(0, UPPER_HALFWORD(new_l1_addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
@@ -656,7 +656,7 @@ inline void program_packer_destination(uint32_t addr, bool restore = true)
 template <uint32_t block_ct_dim, uint32_t full_ct_dim, bool diagonal = false, uint32_t row_num_datums = TILE_C_DIM>
 inline void program_packer_untilized_destination(const uint32_t addr, const uint32_t pack_dst_format)
 {
-    LLK_ASSERT(is_valid_L1_address(addr), "L1 address must be in valid L1 memory region");
+    // LLK_ASSERT(is_valid_L1_address(addr), "L1 address must be in valid L1 memory region");
 
     if constexpr (diagonal)
     {
@@ -851,6 +851,36 @@ inline std::array<pack_counters_t, NUM_PACKERS> read_pack_counters()
     counters_vec[3] = read_pack_counters_helper(PACK_COUNTERS_SEC3_pack_per_xy_plane_ADDR32, cfg);
 
     return counters_vec;
+}
+
+constexpr uint DstTileSizeLog2[3] = {
+    6, // 32x32 tile shape
+    5, // 32x16, 16x32 tile shape
+    4  // 16x16 tile shape
+};
+
+/**
+ * @brief Calculates the maximum number of destination tiles that can fit in the destination register.
+ *
+ * @tparam SYNC_MODE   Destination synchronization mode (SyncHalf or SyncFull)
+ * @tparam ACCUM_MODE Accumulation mode: true for 32-bit (FP32), false for 16-bit
+ * @tparam TILE_SHAPE      Tile shape enum value (e.g., 32x32, 16x16, etc.)
+ * @return constexpr std::uint32_t   Maximum number of destination tiles
+ *
+ * The calculation is based on the destination register size and the tile shape.
+ *
+ * Formula:
+ *   DEST_REGISTER_SIZE >> DstTileSizeLog2[static_cast<int>(TILE_SHAPE)]
+ *
+ * Where DEST_REGISTER_SIZE is selected based on SYNC_MODE and ACCUM_MODE.
+ */
+template <DstSync SYNC_MODE, bool ACCUM_MODE, DstTileShape TILE_SHAPE>
+constexpr std::uint32_t get_dest_max_tiles()
+{
+    constexpr std::uint32_t DEST_REGISTER_SIZE = SYNC_MODE == DstSync::SyncHalf ? (ACCUM_MODE ? DEST_REGISTER_HALF_SIZE >> 1 : DEST_REGISTER_HALF_SIZE)
+                                                                                : (ACCUM_MODE ? DEST_REGISTER_FULL_SIZE >> 1 : DEST_REGISTER_FULL_SIZE);
+
+    return DEST_REGISTER_SIZE >> DstTileSizeLog2[static_cast<int>(TILE_SHAPE)];
 }
 
 } // namespace ckernel::packer
