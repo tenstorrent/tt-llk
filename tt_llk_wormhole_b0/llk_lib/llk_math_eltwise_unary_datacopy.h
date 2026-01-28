@@ -34,6 +34,9 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1); // Do not 0 out ints
             TTI_SETDVALID(0b10);
 
+            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(1);
+            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Tf32));
+
             // move back to B and broadcast in 2 parts, first hi16 bits then lo16 bits
             constexpr int dest_32b_hi = 0;
             constexpr int dest_32b_lo = 1;
@@ -52,9 +55,14 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST, 48);
             TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST, 56);
 
+            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float16));
+
             // move lo bits D2B
             TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ZERO_OFFSET, ADDR_MOD_3, p_movd2b::MOV_1_ROW, 0);
             TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movd2b::MOV_1_ROW, 16);
+
+            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(0);
+            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float32));
 
             // broadcast lo bits B2D
             TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ZERO_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST, 0);
@@ -67,7 +75,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST, 56);
 
             // restore fp32 mode
-            cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(0);
+            // cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(0);
             TTI_CLEARDVALID(0b10, 0);
         }
         else if constexpr (src_b_bcast_type == BroadcastType::SCALAR)
@@ -75,6 +83,9 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             // workarounds for hi/lo D2B/B2D on BH (Issue #449)
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1); // Do not 0 out ints
             TTI_SETDVALID(0b10);
+
+            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(1);
+            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Tf32));
 
             // move back to B and broadcast in 2 parts, first hi16 bits then lo16 bits
             constexpr int dest_32b_hi = 0;
@@ -93,8 +104,13 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ZERO_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST_D0_BRCST, 48);
             TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ZERO_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST_D0_BRCST, 56);
 
+            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float16));
+
             // move lo bits D2B
             TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ZERO_OFFSET, ADDR_MOD_3, p_movd2b::MOV_1_ROW, 0);
+
+            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(0);
+            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float32));
 
             // broadcast lo bits B2D
             TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ZERO_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST_D0_BRCST, 0);
@@ -116,9 +132,12 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1); // Do not 0 out ints
             TTI_SETDVALID(0b10);
 
+
 #pragma GCC unroll 2
             for (int offset = 0; offset < 2; ++offset)
             {
+            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(1);
+            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Tf32));
 #pragma GCC unroll 2
                 for (int dst_32b_hi_lo_idx = 0; dst_32b_hi_lo_idx < 2; ++dst_32b_hi_lo_idx)
                 {
@@ -128,6 +147,10 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
                     TTI_MOVD2B(dst_32b_hi_lo_idx, p_movd2b::SRC_ROW16_OFFSET + 8, ADDR_MOD_3, p_movd2b::MOV_4_ROWS, offset * 32 + 8);
                     TTI_MOVD2B(dst_32b_hi_lo_idx, p_movd2b::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movd2b::MOV_4_ROWS, offset * 32 + 12);
 
+                    if(dst_32b_hi_lo_idx == 1){
+                        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float32));
+                    }
+
                     TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 0);
                     TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 4);
                     TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 8);
@@ -136,11 +159,14 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
                     TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 20);
                     TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 24);
                     TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 28);
+
+                    if(dst_32b_hi_lo_idx == 0){
+                        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float16));
+                    }
                 }
             }
 
             // restore fp32 mode
-
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(0);
             TTI_CLEARDVALID(0b10, 0);
         }
