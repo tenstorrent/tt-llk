@@ -342,7 +342,6 @@ class PerfConfig(TestConfig):
             self.generate_variant_hash()
             variant_raw_data = []
             for _ in range(run_count):
-                self.write_runtimes_to_L1(location)
                 elfs = self.run_elf_files(location)
                 wait_for_tensix_operations_finished(elfs, location)
 

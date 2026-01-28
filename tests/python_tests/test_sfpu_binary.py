@@ -193,8 +193,8 @@ def sfpu_binary(formats, dest_acc, mathop, workers_tensix_coordinates):
             APPROX_MODE(),
         ],
         runtimes=[
-            TILE_COUNT(tile_cnt_A),
             generate_input_dim(input_dimensions, input_dimensions),
+            TILE_COUNT(tile_cnt_A),
         ],
         variant_stimuli=StimuliConfig(
             src_A,

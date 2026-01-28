@@ -199,10 +199,10 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: ${{ matrix.runs_on }}
-      test_splits: 2
+      test_splits: 3
       pytest_markers: "perf"
       timeout_minutes: 240
-      use_durations: true
+      use_durations: false
 
   check-all-green:
     name: "✅ Check all green"

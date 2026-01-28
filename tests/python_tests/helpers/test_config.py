@@ -412,7 +412,7 @@ class TestConfig:
     def generate_runtime_args_struct(self):
         # Generate runtime parameter struct
         lines = [
-            "// Struct containing runtme parameter layout",
+            "// Struct containing runtime parameter layout",
             "struct RuntimeParams {",
             "uint32_t TILE_SIZE_PACK;",
             "uint32_t TILE_SIZE_UNPACK_A;",
@@ -421,7 +421,7 @@ class TestConfig:
 
         self.runtime_format = "@III"  # tile size types for formatter
 
-        if not self.compile_time_formats:
+        if not self.compile_time_formats and self.formats:
             lines = [
                 "struct FormatConfig{",
                 "uint32_t unpack_src;",
@@ -582,12 +582,11 @@ class TestConfig:
             unpack_size_b,  # uint32_t TILE_SIZE_UNPACK_B;
         ]
 
-        if not self.compile_time_formats:
+        if not self.compile_time_formats and self.formats_config:
             if self.L1_to_L1_iterations == 1:
                 self.formats_config = self.formats_config[0:1]
 
             for formats_config in self.formats_config:
-                print(formats_config)
                 argument_data.extend(
                     [
                         TestConfig.DATA_FORMAT_ENUM_VALUES[formats_config.unpack_A_src],
@@ -817,10 +816,10 @@ class TestConfig:
             "",
         ]
 
-        header_content.extend(self.runtime_arguments_struct)
-
-        if self.compile_time_formats:
-            header_content.extend(self.generate_compile_time_formats())
+        if self.formats:
+            header_content.extend(self.runtime_arguments_struct)
+            if self.compile_time_formats:
+                header_content.extend(self.generate_compile_time_formats())
 
         for parameter in self.templates:
             header_content.append(parameter.covert_to_cpp())
@@ -971,10 +970,12 @@ class TestConfig:
         ):
             raise ValueError("Quasar only supports TRISC boot mode")
 
-        reset_mailboxes(location)
-
         # Perform soft reset
         set_tensix_soft_reset(1, location=location)
+
+        reset_mailboxes(location)
+        self.write_runtimes_to_L1(location)
+
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
         )
@@ -1065,8 +1066,6 @@ class TestConfig:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
         self.variant_stimuli.write(location)
-
-        self.write_runtimes_to_L1(location)
         elfs = self.run_elf_files(location)
         wait_for_tensix_operations_finished(elfs, location)
 
