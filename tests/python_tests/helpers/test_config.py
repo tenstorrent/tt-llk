@@ -409,7 +409,7 @@ class TestConfig:
     def generate_runtime_args_struct(self):
         # Generate runtime parameter struct
         lines = [
-            "// Struct containing runtme parameter layout",
+            "// Struct containing runtime parameter layout",
             "struct RuntimeParams {",
             "uint32_t TILE_SIZE_PACK;",
             "uint32_t TILE_SIZE_UNPACK_A;",
@@ -584,7 +584,6 @@ class TestConfig:
                 self.formats_config = self.formats_config[0:1]
 
             for formats_config in self.formats_config:
-                print(formats_config)
                 argument_data.extend(
                     [
                         TestConfig.DATA_FORMAT_ENUM_VALUES[formats_config.unpack_A_src],
@@ -967,10 +966,12 @@ class TestConfig:
         ):
             raise ValueError("Quasar only supports TRISC boot mode")
 
-        reset_mailboxes(location)
-
         # Perform soft reset
         set_tensix_soft_reset(1, location=location)
+
+        reset_mailboxes(location)
+        self.write_runtimes_to_L1(location)
+
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
         )
@@ -1061,8 +1062,6 @@ class TestConfig:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
         self.variant_stimuli.write(location)
-
-        self.write_runtimes_to_L1(location)
         elfs = self.run_elf_files(location)
         wait_for_tensix_operations_finished(elfs, location)
 
