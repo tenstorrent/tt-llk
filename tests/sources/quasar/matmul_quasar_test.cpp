@@ -8,7 +8,6 @@
 
 #include "ckernel.h"
 #include "llk_defs.h"
-#include "llk_memory_checks.h"
 
 // Globals
 uint32_t unp_cfg_context          = 0;
