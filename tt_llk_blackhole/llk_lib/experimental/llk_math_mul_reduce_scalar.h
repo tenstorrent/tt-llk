@@ -4,13 +4,12 @@
 
 #pragma once
 
+#include "../llk_math_common.h"
 #include "ckernel_globals.h"
 #include "ckernel_include.h"
 #include "ckernel_ops.h"
-#include "ckernel_template.h"
 #include "cmath_common.h"
 #include "llk_defs.h"
-#include "llk_math_common.h"
 #include "llk_operands.h"
 
 using namespace ckernel;
@@ -44,9 +43,7 @@ using namespace ckernel;
 /**
  * @brief Move destination tile to source registers for mul_reduce_scalar
  *
- * Custom function to move data from destination registers to source A or B
- * registers. Used in mul_reduce_scalar to reuse intermediate multiply results
- * for the reduction phase.
+ * Moves data from destination registers to source A or B registers.
  *
  * @tparam binary_reuse_dest Direction: DEST_TO_SRCA or DEST_TO_SRCB
  * @param idst Destination tile index (0-7)
@@ -56,14 +53,12 @@ inline void _llk_math_mul_reduce_scalar_move_dest_to_src_(uint32_t idst = 0)
 {
     if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA)
     {
-        // Reset destination target register to base address before moving data from destination to source A
         if (idst == 0)
         {
             TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, 0);
             TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
         }
 
-        // Use switch to handle different idst values with compile-time constants
         switch (idst)
         {
             case 0:
@@ -96,11 +91,9 @@ inline void _llk_math_mul_reduce_scalar_move_dest_to_src_(uint32_t idst = 0)
     }
     else if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB)
     {
-        // Explicitly reset D (dest read) and B (srcB write) counters to 0
         TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
         TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B);
 
-        // Use compile-time constants for all 16 MOVD2B calls
         TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 0, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
         TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 4, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
         TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 8, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
@@ -120,8 +113,15 @@ inline void _llk_math_mul_reduce_scalar_move_dest_to_src_(uint32_t idst = 0)
     }
 }
 
-// Helper: Configure address modifiers for mul_reduce_scalar operations
-template <PoolType type, int MATH_FIDELITY_DESC>
+/**
+ * @brief Configure address modifiers for mul_reduce_scalar operations
+ *
+ * Sets up address modifiers for source A, source B, destination, and fidelity
+ * registers based on the specified math fidelity level.
+ *
+ * @tparam MATH_FIDELITY_DESC Math fidelity descriptor (0 = default, higher = more precision)
+ */
+template <int MATH_FIDELITY_DESC>
 inline void mul_reduce_scalar_configure_addrmod()
 {
     constexpr int NUM_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
@@ -130,77 +130,49 @@ inline void mul_reduce_scalar_configure_addrmod()
 
     addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 0, .clr = 1}}.set(ADDR_MOD_0);
     addr_mod_t {.srca = {.incr = 16}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.clr = 1}}.set(ADDR_MOD_1);
-    addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 8}, .dest = {.incr = 8}}.set(ADDR_MOD_2);
 
     if constexpr (HIGH_FIDELITY)
     {
-        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = FIDELITY_INCREMENT}}.set(ADDR_MOD_3);
-    }
-}
-
-// Helper: Configure MOP for mul_reduce_scalar operations
-template <ReduceDim dim, int num_fidelity_phases>
-inline void mul_reduce_scalar_configure_mop()
-{
-    if constexpr (dim == ReduceDim::REDUCE_SCALAR)
-    {
-        ckernel_template tmp(1, num_fidelity_phases, TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 4));
-        tmp.set_last_inner_loop_instr(TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4));
-        tmp.set_last_outer_loop_instr(TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4));
-        tmp.program();
-    }
-    else
-    {
-        ckernel_template tmp(1, num_fidelity_phases, TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 0));
-        tmp.set_last_inner_loop_instr(TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0));
-        tmp.set_last_outer_loop_instr(TT_OP_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0));
-        tmp.program();
+        addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = FIDELITY_INCREMENT}}.set(ADDR_MOD_2);
     }
 }
 
 /**
  * @brief Initialize reduce for mul_reduce_scalar operation
  *
- * Configures address modifiers, MOP, and resets counters for the fused
+ * Configures address modifiers and resets counters for the fused
  * multiply-reduce-scalar operation.
+ *
+ * @tparam is_fp32_dest_acc_en If true, enables FP32 destination accumulation
+ * @tparam MATH_FIDELITY_DESC Math fidelity descriptor (0 = default, higher = more precision)
+ * @tparam enforce_fp32_accumulation If true, enforces FP32 accumulation (requires is_fp32_dest_acc_en)
  */
-template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
+template <bool is_fp32_dest_acc_en, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
 inline void _llk_math_mul_reduce_scalar_init_()
 {
-    constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
-
-    mul_reduce_scalar_configure_addrmod<type, MATH_FIDELITY_DESC>();
-    if constexpr (HIGH_FIDELITY)
-    {
-        mul_reduce_scalar_configure_mop<dim, MATH_FIDELITY_PHASES>();
-    }
+    mul_reduce_scalar_configure_addrmod<MATH_FIDELITY_DESC>();
 
     if constexpr (enforce_fp32_accumulation)
     {
         static_assert(is_fp32_dest_acc_en, "FP32 Dest must be enabled for FP32 accumulation");
     }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
-
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
 /**
  * @brief Perform column reduction for mul_reduce_scalar (accumulates across tiles)
  *
- * This function performs a column-wise reduction that accumulates results into
- * the specified destination tile. Used in a loop to accumulate multiple input
- * tiles into a single output tile.
+ * Performs column-wise reduction that accumulates results into the specified
+ * destination tile. Used in a loop to accumulate multiple input tiles.
+ *
+ * @tparam MATH_FIDELITY_DESC Math fidelity descriptor (0 = default, higher = more precision)
+ * @param dst_index Destination tile index to accumulate into (0-7)
+ * @param narrow_tile If true, process only 2 row tiles instead of full tile
+ * @param num_faces Number of faces (1, 2, or 4)
  */
-template <
-    PoolType type,
-    ReduceDim dim,
-    bool is_fp32_dest_acc_en,
-    int MATH_FIDELITY_DESC         = 0,
-    bool is_int_fpu_en             = false,
-    bool enforce_fp32_accumulation = false,
-    bool scalar                    = false>
-inline void _llk_math_mul_reduce_scalar_column_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
+template <int MATH_FIDELITY_DESC = 0>
+inline void _llk_math_mul_reduce_column_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
 {
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
@@ -213,17 +185,13 @@ inline void _llk_math_mul_reduce_scalar_column_(const uint dst_index, bool narro
     {
         if constexpr (HIGH_FIDELITY)
         {
-            // High-fidelity loop: run multiple iterations for better precision
             for (int i = 0; i < MATH_FIDELITY_PHASES - 1; i++)
             {
-                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 0);
+                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0);
             }
-            TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
-        else
-        {
-            TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
-        }
+        TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+
         if ((!narrow_tile) && (num_faces > 1))
         {
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
@@ -233,15 +201,12 @@ inline void _llk_math_mul_reduce_scalar_column_(const uint dst_index, bool narro
             {
                 for (int i = 0; i < MATH_FIDELITY_PHASES - 1; i++)
                 {
-                    TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 0);
+                    TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0);
                 }
-                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
             }
-            else
-            {
-                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
-            }
+            TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
+
         if (row_tile == 0)
         {
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
@@ -254,64 +219,53 @@ inline void _llk_math_mul_reduce_scalar_column_(const uint dst_index, bool narro
         }
     }
 
-    // Reset Dest counter to prevent leaking into next dest tile
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 }
 
 /**
  * @brief Perform final scalar reduction for mul_reduce_scalar
  *
- * This function performs the final scalar reduction, collapsing a column-reduced
- * tile into a single scalar value stored in the first element of the output tile.
+ * Collapses a column-reduced tile into a single scalar value stored in the
+ * first element of the output tile.
+ *
+ * @tparam MATH_FIDELITY_DESC Math fidelity descriptor (0 = default, higher = more precision)
  */
-template <
-    PoolType type,
-    ReduceDim dim,
-    bool is_fp32_dest_acc_en,
-    int MATH_FIDELITY_DESC         = 0,
-    bool is_int_fpu_en             = false,
-    bool enforce_fp32_accumulation = false,
-    bool clear_dvalid              = true>
-inline void _llk_math_mul_reduce_scalar_final_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
+template <int MATH_FIDELITY_DESC = 0>
+inline void _llk_math_mul_reduce_scalar_()
 {
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
-    if constexpr (dim == ReduceDim::REDUCE_SCALAR)
+    // Copy row 0 from dest to srcB (rows 16-31 as scratch) and transpose
+    TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+    TTI_GATESRCRST(0b1, 0b1);
+    TTI_TRNSPSRCB;
+    TTI_GATESRCRST(0b1, 0b1);
+
+    // Copy all 16 rows from srcB to srcA
+    TTI_MOVB2A(p_movb2a::SRCA_ZERO_OFFSET + 0, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, p_movb2a::SRCB_ROW16_OFFSET + 0);
+    TTI_MOVB2A(p_movb2a::SRCA_ZERO_OFFSET + 4, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, p_movb2a::SRCB_ROW16_OFFSET + 4);
+    TTI_MOVB2A(p_movb2a::SRCA_ZERO_OFFSET + 8, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, p_movb2a::SRCB_ROW16_OFFSET + 8);
+    TTI_MOVB2A(p_movb2a::SRCA_ZERO_OFFSET + 12, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, p_movb2a::SRCB_ROW16_OFFSET + 12);
+    TTI_GATESRCRST(0b1, 0b1);
+
+    TTI_ZEROACC(p_zeroacc::CLR_SPECIFIC, 0, 0, ADDR_MOD_0, 0);
+
+    if constexpr (HIGH_FIDELITY)
     {
-        // Copy row from dest to srcB (rows 16-31 as scratch) and transpose
-        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-        TTI_GATESRCRST(0b1, 0b1);
-        TTI_TRNSPSRCB;
-        TTI_GATESRCRST(0b1, 0b1);
-
-        // Copy all 16 rows from srcB to srcA
-        TTI_MOVB2A(p_movb2a::SRCA_ZERO_OFFSET + 0, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, p_movb2a::SRCB_ROW16_OFFSET + 0);
-        TTI_MOVB2A(p_movb2a::SRCA_ZERO_OFFSET + 4, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, p_movb2a::SRCB_ROW16_OFFSET + 4);
-        TTI_MOVB2A(p_movb2a::SRCA_ZERO_OFFSET + 8, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, p_movb2a::SRCB_ROW16_OFFSET + 8);
-        TTI_MOVB2A(p_movb2a::SRCA_ZERO_OFFSET + 12, ADDR_MOD_0, p_movb2a::MOV_4_ROWS, p_movb2a::SRCB_ROW16_OFFSET + 12);
-        TTI_GATESRCRST(0b1, 0b1);
-
-        // Zero out scratch in dest
-        TTI_ZEROACC(p_zeroacc::CLR_SPECIFIC, 0, 0, ADDR_MOD_0, 0);
-
-        if constexpr (HIGH_FIDELITY)
+        for (int i = 0; i < MATH_FIDELITY_PHASES - 1; i++)
         {
-            // High-fidelity scalar reduction
-            for (int i = 0; i < MATH_FIDELITY_PHASES - 1; i++)
-            {
-                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_3, p_gpool::INDEX_DIS, 0);
-            }
+            TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0);
         }
-        TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
     }
+    TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
 }
 
 /**
  * @brief Clear data valid flags after mul_reduce_scalar operation
  *
- * Used at the end of fused operations to clear DVALID flags and reset counters.
+ * Clears DVALID flags and resets all counters. Should be called after
+ * mul_reduce_scalar operations are complete.
  */
 inline void _llk_math_mul_reduce_scalar_clear_dvalid_()
 {
