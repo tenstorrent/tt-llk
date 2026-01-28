@@ -83,6 +83,12 @@ enum class StochRndType : uint8_t
     All  = 3,
 };
 
+enum class TdmaEngine : uint8_t
+{
+    UNPACK = 0,
+    PACK   = 1,
+};
+
 } // namespace ckernel
 
 // Make SfpuType available in global namespace for compatibility with test infrastructure
