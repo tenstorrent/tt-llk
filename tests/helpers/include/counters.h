@@ -44,17 +44,22 @@ namespace llk_perf
 #define RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU           (RISCV_DEBUG_REGS_START_ADDR | 0x124)
 
 // L1 Memory addresses - separate per TRISC thread
-// Expanded to support up to 66 counters: 66 config words (264 bytes) + 132 data words (528 bytes) = 792 bytes per thread
-// Thread blocks:
-// UNPACK: CONFIG 0x2F7D0, DATA 0x2F8D8 (0x2F7D0 + 0x108)
-// MATH:   CONFIG 0x2FAE8, DATA 0x2FBF0 (UNPACK + 0x318)
-// PACK:   CONFIG 0x2FE00, DATA 0x2FF08 (MATH + 0x318)
-#define PERF_COUNTER_UNPACK_CONFIG_ADDR 0x2F7D0 // 66 words: UNPACK metadata
-#define PERF_COUNTER_UNPACK_DATA_ADDR   0x2F8D8 // 132 words: UNPACK results
-#define PERF_COUNTER_MATH_CONFIG_ADDR   0x2FAE8 // 66 words: MATH metadata
-#define PERF_COUNTER_MATH_DATA_ADDR     0x2FBF0 // 132 words: MATH results
-#define PERF_COUNTER_PACK_CONFIG_ADDR   0x2FE00 // 66 words: PACK metadata
-#define PERF_COUNTER_PACK_DATA_ADDR     0x2FF08 // 132 words: PACK results
+// SOURCE OF TRUTH: tests/python_tests/helpers/test_config.py (TestConfig class)
+// These values MUST match TestConfig.PERF_COUNTERS_* addresses.
+// Must be below profiler buffers which start at 0x16B000
+// Layout: 66 config words (264 bytes) + 132 data words (528 bytes) = 792 bytes per thread
+// Thread blocks (0x318 = 792 bytes spacing):
+// UNPACK: CONFIG 0x16A000, DATA 0x16A108
+// MATH:   CONFIG 0x16A318, DATA 0x16A420
+// PACK:   CONFIG 0x16A630, DATA 0x16A738
+#define PERF_COUNTERS_BASE_ADDR         0x16A000
+#define PERF_COUNTERS_SIZE              0xA00    // 2560 bytes for all 3 threads
+#define PERF_COUNTER_UNPACK_CONFIG_ADDR 0x16A000 // 66 words: UNPACK metadata
+#define PERF_COUNTER_UNPACK_DATA_ADDR   0x16A108 // 132 words: UNPACK results
+#define PERF_COUNTER_MATH_CONFIG_ADDR   0x16A318 // 66 words: MATH metadata
+#define PERF_COUNTER_MATH_DATA_ADDR     0x16A420 // 132 words: MATH results
+#define PERF_COUNTER_PACK_CONFIG_ADDR   0x16A630 // 66 words: PACK metadata
+#define PERF_COUNTER_PACK_DATA_ADDR     0x16A738 // 132 words: PACK results
 
 // Configuration word format: [mode_bit(16), counter_sel(8-15), bank_id(0-7)]
 // Use compact underlying type to reduce memory footprint

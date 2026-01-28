@@ -9,22 +9,22 @@ from ttexalens.tt_exalens_lib import read_words_from_device, write_words_to_devi
 
 from .test_config import TestConfig
 
-# L1 Memory addresses - separate per TRISC thread
-# Support up to 66 counters: 66 config words + 132 data words per thread
-PERF_COUNTER_UNPACK_CONFIG_ADDR = 0x2F7D0  # 66 words: UNPACK metadata
-PERF_COUNTER_UNPACK_DATA_ADDR = 0x2F8D8  # 132 words: UNPACK results
-PERF_COUNTER_MATH_CONFIG_ADDR = 0x2FAE8  # 66 words: MATH metadata
-PERF_COUNTER_MATH_DATA_ADDR = 0x2FBF0  # 132 words: MATH results
-PERF_COUNTER_PACK_CONFIG_ADDR = 0x2FE00  # 66 words: PACK metadata
-PERF_COUNTER_PACK_DATA_ADDR = 0x2FF08  # 132 words: PACK results
-
 COUNTER_SLOT_COUNT = 66  # Max counters per thread
 COUNTER_DATA_WORD_COUNT = COUNTER_SLOT_COUNT * 2  # 2 words per counter (cycles + count)
 
 _THREAD_ADDRESSES = {
-    "UNPACK": (PERF_COUNTER_UNPACK_CONFIG_ADDR, PERF_COUNTER_UNPACK_DATA_ADDR),
-    "MATH": (PERF_COUNTER_MATH_CONFIG_ADDR, PERF_COUNTER_MATH_DATA_ADDR),
-    "PACK": (PERF_COUNTER_PACK_CONFIG_ADDR, PERF_COUNTER_PACK_DATA_ADDR),
+    "UNPACK": (
+        TestConfig.PERF_COUNTER_UNPACK_CONFIG_ADDR,
+        TestConfig.PERF_COUNTER_UNPACK_DATA_ADDR,
+    ),
+    "MATH": (
+        TestConfig.PERF_COUNTER_MATH_CONFIG_ADDR,
+        TestConfig.PERF_COUNTER_MATH_DATA_ADDR,
+    ),
+    "PACK": (
+        TestConfig.PERF_COUNTER_PACK_CONFIG_ADDR,
+        TestConfig.PERF_COUNTER_PACK_DATA_ADDR,
+    ),
 }
 
 COUNTER_BANK_NAMES = {
