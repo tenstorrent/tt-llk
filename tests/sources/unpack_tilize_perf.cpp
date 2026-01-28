@@ -34,7 +34,6 @@ static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 void run_kernel(const volatile struct RuntimeParams* params)
 {
     LLK_ASSERT(FULL_RT_DIM * FULL_CT_DIM == params->TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to params->TILE_CNT");
-    constexpr uint32_t src = 0x65000;
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -54,10 +53,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
             {
-                const uint32_t tile_row_addr = L1_ADDRESS(src + (i % 8) * 0x1000); // TODO SS<-LP use PERF_ADDRESS here
                 for (uint32_t j = 0; j < BLOCK_CT_DIM; j++)
                 {
-                    _llk_unpack_tilize_(tile_row_addr, j, formats.unpack_src, 0, FACE_R_DIM, 4, false);
+                    _llk_unpack_tilize_(PERF_ADDRESS(PERF_INPUT_A + i), j, formats.unpack_src, 0, FACE_R_DIM, 4, false);
                 }
             }
         }
@@ -159,8 +157,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    constexpr uint32_t dst = 0x70000;
-    const bool UNTILIZE    = false;
+    const bool UNTILIZE = false;
 
     {
         ZONE_SCOPED("INIT")
@@ -190,7 +187,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (uint32_t i = 0; i < params->TILE_CNT; ++i)
                 {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(dst + (i % 8) * 0x1000)); // TODO SS<-LP use PERF_ADDRESS here
+                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, PERF_ADDRESS(PERF_OUTPUT, i));
                 }
             }
             PROFILER_SYNC();
@@ -206,7 +203,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 _llk_packer_wait_for_math_done_();
                 for (uint32_t i = 0; i < num_tiles; ++i)
                 {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(dst + (i % 8) * 0x1000)); // TODO SS<-LP use PERF_ADDRESS here
+                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, PERF_ADDRESS(PERF_OUTPUT, i));
                 }
                 _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
                 remaining_tiles -= num_tiles;
