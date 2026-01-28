@@ -15,7 +15,7 @@
 #include "llk_unpack_tilize.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams*)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
     tdma_descriptor_t td_val;
     const uint buf_desc_id = 0;
@@ -28,11 +28,11 @@ void run_kernel(const volatile struct RuntimeParams*)
     unsigned l1_addr_16B;
     if constexpr (UNPACKER_ENGINE_SEL == p_unpacr::UNP_A || UNPACKER_ENGINE_SEL == p_unpacr::UNP_DEST)
     {
-        l1_addr_16B = buffer_A[0] / 16;
+        l1_addr_16B = params->buffer_A[0] / 16;
     }
     else if constexpr (UNPACKER_ENGINE_SEL == p_unpacr::UNP_B)
     {
-        l1_addr_16B = buffer_B[0] / 16;
+        l1_addr_16B = params->buffer_B[0] / 16;
     }
 
     bd_val.f.l1_addr_16B = l1_addr_16B;
@@ -59,14 +59,14 @@ void run_kernel(const volatile struct RuntimeParams*)
     {
         _llk_unpack_configure_unary_<UNPACKER_ENGINE_SEL>(td_val);
     }
-    _llk_unpack_tilize_init_<UNPACKER_ENGINE_SEL, is_fp32_dest_acc_en, params->FULL_CT_DIM, params->BLOCK_CT_DIM, C_DIM_FACES>(buf_desc_id);
+    _llk_unpack_tilize_init_<UNPACKER_ENGINE_SEL, is_fp32_dest_acc_en, FULL_CT_DIM, BLOCK_CT_DIM, C_DIM_FACES>(buf_desc_id);
 
     // One _llk_unpack_tilize_ call unpacks one block ct_dim of tiles (one tile row)
     // The internal parts of the strides are applied inside of the _llk_ itself, the external parts are passed to the _llk_unpack_tilize_ call
     // x_stride = x_stride_internal = col dim of a tile in L1 in units of 16 datums (1 face);
     // y_stride = y_stride_external + x_stride_internal
     // In this case x = 0 because the entire tile row fits into Dest
-    uint y_stride_external = params->FULL_CT_DIM * R_DIM_FACES * TEST_FACE_R_DIM;
+    uint y_stride_external = FULL_CT_DIM * R_DIM_FACES * TEST_FACE_R_DIM;
     for (uint y = 0; y < BLOCK_RT_DIM; y++)
     {
         _llk_unpack_tilize_<UNPACKER_ENGINE_SEL>(y * y_stride_external /*  + 0 * x_stride  */);
@@ -112,7 +112,7 @@ void run_kernel(const volatile struct RuntimeParams*)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams*)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
     uint32_t const buf_desc_id    = 8;
     const uint num_tiles_per_pack = TILE_CNT;
@@ -120,7 +120,7 @@ void run_kernel(const volatile struct RuntimeParams*)
     set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
     buffer_descriptor_u bd_val = {0};
-    bd_val.f.l1_addr_16B       = buffer_Res[0] / 16;
+    bd_val.f.l1_addr_16B       = params->buffer_Res[0] / 16;
     bd_val.f.format            = static_cast<uint8_t>(formats.pack_dst);
     bd_val.f.x_dim             = TEST_FACE_C_DIM;
     bd_val.f.y_dim             = TEST_FACE_R_DIM;

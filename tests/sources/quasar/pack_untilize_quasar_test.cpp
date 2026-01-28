@@ -26,7 +26,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     buffer_descriptor_u bd_val = {0};
 
-    bd_val.f.l1_addr_16B = buffer_A[0] / 16;
+    bd_val.f.l1_addr_16B = params->buffer_A[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.unpack_src);
     bd_val.f.x_dim       = TEST_FACE_C_DIM;
     bd_val.f.y_dim       = TEST_FACE_R_DIM;
@@ -68,7 +68,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(num_faces * TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
     for (uint block_rt = 0; block_rt < BLOCK_RT_DIM; block_rt++)
     {
-        for (uint block_ct = 0; block_ct < params->BLOCK_CT_DIM; block_ct++)
+        for (uint block_ct = 0; block_ct < BLOCK_CT_DIM; block_ct++)
         {
             _llk_math_eltwise_unary_datacopy_(num_faces * TEST_FACE_R_DIM /*num_rows_per_tile*/, block_ct);
         }
@@ -94,7 +94,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     buffer_descriptor_u bd_val = {0};
 
-    bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
+    bd_val.f.l1_addr_16B = params->buffer_Res[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
     bd_val.f.x_dim       = TEST_FACE_C_DIM;
     bd_val.f.y_dim       = TEST_FACE_R_DIM;
@@ -111,14 +111,14 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     _configure_buf_desc_table_(tdma_desc.buf_desc_id, tdma_desc.buf_desc);
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
-    _llk_pack_untilize_init_<params->FULL_CT_DIM, params->BLOCK_CT_DIM, C_DIM_FACES>(buf_desc_id, tile_shape);
+    _llk_pack_untilize_init_<FULL_CT_DIM, BLOCK_CT_DIM, C_DIM_FACES>(buf_desc_id, tile_shape);
 
     // One _llk_pack_untilize_ call packs one block ct_dim of tiles (one tile row)
     // The internal parts of the strides are applied inside of the _llk_ itself, the external parts are passed to the _llk_pack_untilize_ call
     // x_stride = x_stride_internal = col dim of a tile in L1 in units of 16 datums (1 face);
     // y_stride = y_stride_external + x_stride_internal
     // In this case x = 0 because the entire tile row fits into Dest
-    uint y_stride_external = params->FULL_CT_DIM * R_DIM_FACES * TEST_FACE_R_DIM;
+    uint y_stride_external = FULL_CT_DIM * R_DIM_FACES * TEST_FACE_R_DIM;
     for (uint y = 0; y < BLOCK_RT_DIM; y++)
     {
         _llk_pack_untilize_(0, y * y_stride_external /*  + 0 * x_stride  */);

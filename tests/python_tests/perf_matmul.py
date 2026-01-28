@@ -80,14 +80,6 @@ def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordina
     if is_dest_acc_needed(formats) and dest_acc == DestAccumulation.No:
         pytest.skip("Dest accumulation must be enabled for this format")
 
-    run_types = [
-        PerfRunType.L1_TO_L1,
-        PerfRunType.UNPACK_ISOLATE,
-        PerfRunType.MATH_ISOLATE,
-        PerfRunType.PACK_ISOLATE,
-        PerfRunType.L1_CONGESTION,
-    ]
-
     # Calculate all matmul dimensions using helper function
     dims = generate_tile_dims((matrix_a, matrix_b))
 
@@ -96,7 +88,13 @@ def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordina
     configuration = PerfConfig(
         "sources/matmul_perf.cpp",
         formats,
-        run_types,
+        run_types=[
+            PerfRunType.L1_TO_L1,
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        ],
         templates=[
             MATH_FIDELITY(math_fidelity),
             DEST_SYNC(),

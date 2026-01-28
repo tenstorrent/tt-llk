@@ -280,8 +280,9 @@ def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=5, max_bac
 def reset_mailboxes(location: str = "0,0"):
     """Reset all core mailboxes before each test."""
     reset_value = 0  # Constant - indicates the TRISC kernel run status
-    for mailbox in [Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker]:
-        write_words_to_device(location=location, addr=mailbox.value, data=reset_value)
+
+    target_addr = min(Mailbox.Packer.value, Mailbox.Math.value, Mailbox.Unpacker.value)
+    write_words_to_device(location=location, addr=target_addr, data=3 * [reset_value])
 
 
 def pull_coverage_stream_from_tensix(
