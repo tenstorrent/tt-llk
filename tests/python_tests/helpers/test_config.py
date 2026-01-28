@@ -418,7 +418,7 @@ class TestConfig:
 
         self.runtime_format = "@III"  # tile size types for formatter
 
-        if not self.compile_time_formats:
+        if not self.compile_time_formats and self.formats:
             lines = [
                 "struct FormatConfig{",
                 "uint32_t unpack_src;",
@@ -579,7 +579,7 @@ class TestConfig:
             unpack_size_b,  # uint32_t TILE_SIZE_UNPACK_B;
         ]
 
-        if not self.compile_time_formats:
+        if not self.compile_time_formats and self.formats_config:
             if self.L1_to_L1_iterations == 1:
                 self.formats_config = self.formats_config[0:1]
 
@@ -813,10 +813,10 @@ class TestConfig:
             "",
         ]
 
-        header_content.extend(self.runtime_arguments_struct)
-
-        if self.compile_time_formats:
-            header_content.extend(self.generate_compile_time_formats())
+        if self.formats:
+            header_content.extend(self.runtime_arguments_struct)
+            if self.compile_time_formats:
+                header_content.extend(self.generate_compile_time_formats())
 
         for parameter in self.templates:
             header_content.append(parameter.covert_to_cpp())
