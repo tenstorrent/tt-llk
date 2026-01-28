@@ -5,23 +5,25 @@
 import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture
-
-# from helpers.profiler import ProfilerConfig
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
     MathOperation,
+    PerfRunType,
     format_dict,
 )
 from helpers.param_config import input_output_formats, parametrize
+from helpers.perf import PerfConfig
+from helpers.profiler import Profiler
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     APPROX_MODE,
     INPUT_DIMENSIONS,
+    LOOP_FACTOR,
     MATH_OP,
     TILE_COUNT,
 )
@@ -39,6 +41,7 @@ from helpers.test_variant_parameters import (
     dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
 )
 def test_eltwise_unary_sfpu_float(
+    perf_report,
     formats: list[InputOutputFormat],
     approx_mode: ApproximationMode,
     mathop: MathOperation,
@@ -77,11 +80,14 @@ def test_eltwise_unary_sfpu_float(
         input_dimensions_B=input_dimensions,
     )
 
-    min_val, max_val = -5, 5
+    min_val, max_val = -10, 0.7
     # min_val, max_val = 0, 1
-    size = 256  # src_A.shape[0]
+    size = 128  # src_A.shape[0]
     for i in range(size):
         src_A[i] = min_val + (max_val - min_val) * i / (size - 1.0)
+    src_A[0] = -100
+    src_A[1] = -200
+    src_A[2] = -300
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
@@ -93,39 +99,62 @@ def test_eltwise_unary_sfpu_float(
         input_dimensions,
     )
 
-    # configuration = ProfilerConfig(
-    configuration = TestConfig(
-        "sources/fast_exp_test.cpp",
-        formats,
-        templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
-            APPROX_MODE(approx_mode),
-            MATH_OP(mathop=mathop),
-        ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
-        variant_stimuli=StimuliConfig(
-            src_A,
-            formats.input_format,
-            src_B,
-            formats.input_format,
-            formats.output_format,
-            tile_count_A=tile_cnt_A,
-            tile_count_B=tile_cnt_B,
-            tile_count_res=tile_cnt_A,
-        ),
-        dest_acc=dest_acc,
-        # If dest_acc is off, we unpack Float32 into 16-bit format in src registers (later copied over in dest reg for SFPU op)
-        unpack_to_dest=(
-            formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-        ),
+    templates = [
+        INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+        APPROX_MODE(approx_mode),
+        MATH_OP(mathop=mathop),
+    ]
+    variant_stimuli = StimuliConfig(
+        src_A,
+        formats.input_format,
+        src_B,
+        formats.input_format,
+        formats.output_format,
+        tile_count_A=tile_cnt_A,
+        tile_count_B=tile_cnt_B,
+        tile_count_res=tile_cnt_A,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    profile = False
+    if profile:
+        configuration = PerfConfig(
+            "sources/fast_exp_test.cpp",
+            formats,
+            run_types=[
+                PerfRunType.L1_TO_L1,
+            ],
+            templates=templates,
+            runtimes=[TILE_COUNT(1), LOOP_FACTOR(2)],
+            variant_stimuli=variant_stimuli,
+            dest_acc=dest_acc,
+            unpack_to_dest=(
+                formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+            ),
+        )
+        configuration.run(perf_report, location=workers_tensix_coordinates)
 
-    # runtime = Profiler.get_data(test_config["testname"])
-    # timestamps = runtime.math().timestamps()  # .marker("TEST_TIMESTAMP").frame()
-    # zones = runtime.zones().marker("TILE_LOOP").frame()
-    # print(zones)
+        runtime = Profiler.get_data(
+            configuration.test_name,
+            configuration.variant_id,
+            workers_tensix_coordinates,
+        )
+        timestamps = runtime.math().timestamps()  # .marker("TEST_TIMESTAMP").frame()
+        zones = runtime.zones().marker("TILE_LOOP").frame()
+        print(zones)
+        return
+    else:
+        configuration = TestConfig(
+            "sources/fast_exp_test.cpp",
+            formats,
+            templates=templates,
+            runtimes=[TILE_COUNT(tile_cnt_A)],
+            variant_stimuli=variant_stimuli,
+            dest_acc=dest_acc,
+            unpack_to_dest=(
+                formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+            ),
+        )
+        res_from_L1 = configuration.run(workers_tensix_coordinates)
 
     assert len(res_from_L1) == len(
         golden_tensor
@@ -140,6 +169,32 @@ def test_eltwise_unary_sfpu_float(
 
     import numpy as np
 
+    mad = 256.0 * 1.4426950408889634 * src_A_np + 32500.818359375
+    # expected = mad
+    # expected = np.clip(src_A_np, -88.5, 1e30)
+    # expected = np.abs(src_A_np)
+    # expected = np.abs(mad)
+    # expected = 0.5*(mad + np.abs(mad))
+    # expected = np.round(0.5*(mad + np.abs(mad))).astype(np.uint16).astype(np.int32)
+    expected = (
+        np.round(0.5 * (mad + np.abs(mad))).astype(np.uint16).astype(np.int32) << 15
+    ).view(np.float32)
+    # expected = np.exp(src_A_np)
+    for i in range(size):
+        print(
+            i,
+            "\t",
+            src_A_np[i],
+            "\t",
+            # golden_tensor_np[i],
+            res_tensor_np[i],
+            "\t",
+            # np.max(np.abs(res_tensor_np[i] - golden_tensor_np[i])),
+            expected[i],
+            "\t\t",
+            # res_tensor_np[i] - expected[i],
+        )
+
     N = 5
     print("")
     print("INPUT_SIZE:", size)
@@ -150,15 +205,6 @@ def test_eltwise_unary_sfpu_float(
     print("INPUT: ", src_A_np[size - N : size])
     print("OUTPUT:", res_tensor_np[size - N : size])
     print("GOLDEN:", golden_tensor_np[size - N : size])
-
-    # for i in range(256):
-    #    print(
-    #        i,
-    #        src_A_np[i],
-    #        golden_tensor_np[i],
-    #        res_tensor_np[i],
-    #        np.max(np.abs(res_tensor_np[i] - golden_tensor_np[i])),
-    #    )
 
     print(
         "MAXABSDIFF:",
