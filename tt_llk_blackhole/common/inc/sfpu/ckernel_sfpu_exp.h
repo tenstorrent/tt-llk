@@ -160,109 +160,129 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uin
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK>
 void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
-    if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    if (false)
     {
-        // ========================================================================
-        // Pipelined exponential approximation achieving 2 cycles per iteration
-        // ========================================================================
-        //
-        // ALGORITHM:
-        //   exp(x) ≈ 2^((A*x + B) + |A*x + B|)
-        //   where A = 256/ln(2) ≈ 369.33, B = offset ≈ 32500
-        //
-        //   This is based on Schraudolph's fast exponential approximation but
-        //   restructured to avoid input sanitization and enable better pipelining.
-        //
-        // COMPUTATION FLOW (per iteration):
-        //   1. LoadMacro: Load input x from DEST into LREG
-        //   2. Discrete MAD: Compute temp = A * x + (B-C)
-        //   3. Macro ABS: Compute |temp|
-        //   4. Macro ADD: Compute result = temp + |temp|  (via 1.0 * temp + |temp|)
-        //   5. Discrete STOCHRND: Convert FP32 result to uint16
-        //   6. Macro SHFT2: Shift left by 15 bits (to position in exponent field)
-        //   7. Macro STORE: Write final result to DEST
-        //
-        // PIPELINE STRUCTURE:
-        //   Uses 4 LREGs (0-3) to maintain 2-cycle throughput in steady state.
-        //   Each LoadMacro schedules future operations (ABS, ADD, SHFT2, STORE)
-        //   that execute with appropriate delays as later iterations proceed.
-        //
-        // CYCLE-BY-CYCLE EXECUTION (steady state, iterations i and i+1):
-        //   Cycle 0: LoadMacro(i)     - loads input for iteration i
-        //   Cycle 1: Discrete MAD(i)  - computes temp = A*x + B for iteration i
-        //            LoadMacro(i+1)   - loads input for iteration i+1
-        //   Cycle 2: Macro ABS(i)     - computes |temp| for iteration i
-        //            Discrete MAD(i+1)- computes temp for iteration i+1
-        //   Cycle 3: Macro ADD(i)     - computes temp + |temp| for iteration i
-        //            Discrete STOCHRND(i) - converts to uint16 for iteration i
-        //   Cycle 4: Macro SHFT2(i)   - shifts result for iteration i
-        //   Cycle 5: Macro STORE(i)   - stores result for iteration i
-        //
-        // INSTRUCTION SCHEDULING:
-        //   - LoadMacro schedules: ABS (delay 1), ADD (delay 1), SHFT2 (delay 2), STORE (delay 4)
-        //   - Discrete instructions: MAD and STOCHRND issued explicitly
-        //   - SHFT2 must be in LoadMacro (writes to staging registers)
-        //   - STOCHRND must be discrete (constraint from expert feedback)
-        
-        // ========================================================================
-        // Iteration 0: LREG0 - Prime the pipeline
-        // ========================================================================
-        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 0);                                          // Cycle 0: Load x into LREG0, schedule macro ops
-        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG11, p_sfpu::LREG12, p_sfpu::LREG0, 0);   // Cycle 1: temp0 = A * x + (B-C)
-        
-        // ========================================================================
-        // Iteration 1: LREG1 - Pipeline filling
-        // ========================================================================
-        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 2);                                          // Cycle 2: Load x into LREG1, schedule macro ops
-        TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG11, p_sfpu::LREG12, p_sfpu::LREG1, 0);   // Cycle 3: temp1 = A * x + (B-C)
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG0, p_sfpu::LREG0, sfpi::SFPSTOCHRND_MOD1_FP32_TO_UINT16);  // Cycle 3: Convert LREG0 (temp0 + |temp0|) to uint16
-        //                                                                                                  // (ABS and ADD from iter 0 completed by now)
-        
-        // ========================================================================
-        // Iteration 2: LREG2 - Pipeline filling
-        // ========================================================================
-        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 4);                                          // Cycle 4: Load x into LREG2, schedule macro ops
-        TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG11, p_sfpu::LREG12, p_sfpu::LREG2, 0);   // Cycle 5: temp2 = A * x + (B-C)
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG1, p_sfpu::LREG1, sfpi::SFPSTOCHRND_MOD1_FP32_TO_UINT16);  // Cycle 5: Convert LREG1 (temp1 + |temp1|) to uint16
-        //                                                                                                  // (SHFT2 and STORE from iter 0 executing)
-        
-        // ========================================================================
-        // Iteration 3: LREG3 - Pipeline full, steady state begins
-        // ========================================================================
-        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 6);                                          // Cycle 6: Load x into LREG3, schedule macro ops
-        TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG11, p_sfpu::LREG12, p_sfpu::LREG3, 0);   // Cycle 7: temp3 = A * x + (B-C)
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPSTOCHRND_MOD1_FP32_TO_UINT16);  // Cycle 7: Convert LREG2 (temp2 + |temp2|) to uint16
-        //                                                                                                  // (iter 0 complete, iter 1 SHFT2/STORE executing)
-        
-        // ========================================================================
-        // Iterations 4-7: Steady state - 2 cycles per iteration
-        // ========================================================================
-        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 8);                                          // Cycle 8: Reuse LREG0
-        TTI_SFPMAD(p_sfpu::LREG0, p_sfpu::LREG11, p_sfpu::LREG12, p_sfpu::LREG0, 0);   // Cycle 9
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG3, p_sfpu::LREG3, sfpi::SFPSTOCHRND_MOD1_FP32_TO_UINT16);  // Cycle 9
-        
-        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 10);                                         // Cycle 10: Reuse LREG1
-        TTI_SFPMAD(p_sfpu::LREG1, p_sfpu::LREG11, p_sfpu::LREG12, p_sfpu::LREG1, 0);   // Cycle 11
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG0, p_sfpu::LREG0, sfpi::SFPSTOCHRND_MOD1_FP32_TO_UINT16);  // Cycle 11
-        
-        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 12);                                         // Cycle 12: Reuse LREG2
-        TTI_SFPMAD(p_sfpu::LREG2, p_sfpu::LREG11, p_sfpu::LREG12, p_sfpu::LREG2, 0);   // Cycle 13
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG1, p_sfpu::LREG1, sfpi::SFPSTOCHRND_MOD1_FP32_TO_UINT16);  // Cycle 13
-        
-        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 14);                                         // Cycle 14: Reuse LREG3
-        TTI_SFPMAD(p_sfpu::LREG3, p_sfpu::LREG11, p_sfpu::LREG12, p_sfpu::LREG3, 0);   // Cycle 15
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG2, p_sfpu::LREG2, sfpi::SFPSTOCHRND_MOD1_FP32_TO_UINT16);  // Cycle 15
-        
-        // ========================================================================
-        // Pipeline drain: Complete remaining operations
-        // ========================================================================
-        TTI_SFP_STOCH_RND(0, 0, 0, p_sfpu::LREG3, p_sfpu::LREG3, sfpi::SFPSTOCHRND_MOD1_FP32_TO_UINT16);  // Cycle 16: Final STOCHRND
-        TTI_SFPNOP;  // Cycle 17: Allow final SHFT2 and STORE operations to complete
-        
-        // Total: 18 cycles for 8 iterations = 2.25 cycles/iteration average
-        // (Steady state is 2 cycles/iteration for iterations 3-7)
+        // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is more negative than that, swap the input
+        // value with -88.5 and store back to DEST
+        //  - in other words, after the sanitize step, the values in DEST will be in the range {-88.5 , +inf}
+
+        // Macro Sequence Register 1 configured to read back in the original values from dest, sanitize them to a range we can handle, and then store them back
+        // to dest
+        //  LD     : bring in the original value from DEST (y)
+        //  MAD    : unused
+        //  ROUND  : unused
+        //  SIMPLE : SWAP the larger value of y and -88.5 into the LREG
+        //  STORE  : store the sanitized value back to dest
+        TTI_SFPLOADMACRO(
+            4,
+            0,
+            ADDR_MOD_7,
+            0);     // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value - Dest offset  0 is targeting the even columns for rows   3: 0
+        TTI_SFPNOP; // NOP is necessary because the SWAP operation takes 2 cycles and unfortunately is not pipelined
+        TTI_SFPLOADMACRO(
+            5,
+            0,
+            ADDR_MOD_7,
+            2); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value - Dest offset  2 is targeting the odd  columns for rows   3: 0
+        TTI_SFPNOP;
+        TTI_SFPLOADMACRO(
+            6,
+            0,
+            ADDR_MOD_7,
+            4); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value - Dest offset  4 is targeting the even columns for rows   7: 4
+        TTI_SFPNOP;
+        TTI_SFPLOADMACRO(
+            7,
+            0,
+            ADDR_MOD_7,
+            6); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value - Dest offset  6 is targeting the odd  columns for rows   7: 4
+        TTI_SFPNOP;
+        TTI_SFPLOADMACRO(
+            4,
+            0,
+            ADDR_MOD_7,
+            8); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value - Dest offset  8 is targeting the even columns for rows  11: 8
+        TTI_SFPNOP;
+        TTI_SFPLOADMACRO(
+            5,
+            0,
+            ADDR_MOD_7,
+            10); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value - Dest offset 10 is targeting the even columns for rows  11: 8
+        TTI_SFPNOP;
+        TTI_SFPLOADMACRO(
+            6,
+            0,
+            ADDR_MOD_7,
+            12); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value - Dest offset 12 is targeting the odd  columns for rows  15:12
+        TTI_SFPNOP;
+        TTI_SFPLOADMACRO(
+            7,
+            0,
+            ADDR_MOD_7,
+            14); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value - Dest offset 14 is targeting the even columns for rows  15:12
+        // NOP not needed in this spot because the next LoadMacro is a computational macro which doesn't immediately use the SIMPLE unit
+
+        // Macro Sequence Register 0 configured to read back in the sanitized values and calculate the approximate exponential value
+        //  LD     : the sanitized value from DEST (y)
+        //  MAD    : compute (A * y) + (B-C)  , where A = (2^8)/ln(2) , B = 127 * (2^8) , C = Adjustment parameter of roughly 11.2 to minimize error
+        //  ROUND  : convert the MAD result from FP32 to a 16-bit unsigned integer using stochastic rounding
+        //  SIMPLE : shift the 16-bit integer to the left by 15 bits to place the MSB of the computed value into the MSB of the exponent bits of the fp32 format
+        //  STORE  : store the shifted value back to dest
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 0); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[0] for loading and intermediate results
+                                               // - Dest offset  0 is targeting the even columns for rows   3: 0
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 2); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[1] for loading and intermediate results
+                                               // - Dest offset  2 is targeting the odd  columns for rows   3: 0
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 4); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[2] for loading and intermediate results
+                                               // - Dest offset  4 is targeting the even columns for rows   7: 4
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 6); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[3] for loading and intermediate results
+                                               // - Dest offset  6 is targeting the odd  columns for rows   7: 4
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 8); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[0] for loading and intermediate results
+                                               // - Dest offset  8 is targeting the even columns for rows  11: 8
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 10); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[1] for loading and intermediate
+                                                // results - Dest offset 10 is targeting the even columns for rows  11: 8
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 12); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[2] for loading and intermediate
+                                                // results - Dest offset 12 is targeting the odd  columns for rows  15:12
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 14); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[3] for loading and intermediate
+                                                // results - Dest offset 14 is targeting the even columns for rows  15:12
+        // NOP needed to allow time for the final Computation Loadmacro to complete before returning to the Sanitation Loadmacro at the top for the next
+        // iteration
+        //  - to be completely safe, use 3 NOP; in practice 1 seems to be enough, probably because the overhead of the DEST INCRW stuff introduces 2 cycles of
+        //  delay
+        TTI_SFPNOP;
+        // TTI_SFPNOP;
+        // TTI_SFPNOP;
     }
-    else
+    else if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    {
+        // Phase 1: Startup - first 2 LOADMACROs with NOPs (cycles 0-4)
+        // Need NOPs because SHFT2[0] can't start until cycle 5
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 0);   // Cycle 0: LM[0]
+        TTI_SFPNOP;                              // Cycle 1: NOP (MAD[0] executes)
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 2);   // Cycle 2: LM[1]
+        TTI_SFPNOP;                              // Cycle 3: NOP (MAD[1] executes)
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 4);   // Cycle 4: LM[2] | STOCHRND[0]
+
+        // Phase 2: Alternating LM/SHFT2 pattern (cycles 5-15)
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 5: SHFT2[0]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 6);                          // Cycle 6: LM[3] | STOCHRND[1] | SETSGN[0]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 7: SHFT2[1] | STORE[0]
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 8);                          // Cycle 8: LM[4] | STOCHRND[2] | SETSGN[1]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 9: SHFT2[2] | STORE[1]
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 10);                         // Cycle 10: LM[5] | STOCHRND[3] | SETSGN[2]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 11: SHFT2[3] | STORE[2]
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 12);                         // Cycle 12: LM[6] | STOCHRND[4] | SETSGN[3]
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 13: SHFT2[4] | STORE[3]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 14);                         // Cycle 14: LM[7] | STOCHRND[5] | SETSGN[4]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 15: SHFT2[5] | STORE[4]
+
+        // Phase 3: Drain - remaining SHFT2s and scheduled ops (cycles 16-21)
+        TTI_SFPNOP;                                                     // Cycle 16: STOCHRND[6] | SETSGN[5]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 17: SHFT2[6] | STORE[5]
+        TTI_SFPNOP;                                                     // Cycle 18: STOCHRND[7] | SETSGN[6]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5);  // Cycle 19: SHFT2[7] | STORE[6]
+        // TTI_SFPNOP;                                                  // Cycle 20: SETSGN[7]
+        // TTI_SFPNOP;                                                  // Cycle 21: STORE[7]
+    }    else
     {
         // Unroll 8 best for approx, unroll 0 for precise, compiler figures this out
         for (int d = 0; d < ITERATIONS; d++)
@@ -282,155 +302,243 @@ constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(
 template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
 inline void _init_exponential_()
 {
-    if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    if (false)
     {
-        // ========================================================================
-        // Setup for pipelined exponential approximation
-        // ========================================================================
-        //
-        // ALGORITHM OVERVIEW:
-        //   exp(x) ≈ 2^((A*x + B) + |A*x + B|)
-        //   where A = 256/ln(2) ≈ 369.33, B ≈ 32500
-        //
-        //   This achieves ~2 cycles per iteration through careful instruction
-        //   scheduling across 5 execution units (Load, Simple, MAD, Round, Store)
-        //
-        // LOADMACRO MECHANICS:
-        //   Each TTI_SFPLOADMACRO invocation:
-        //   1. Loads input from DEST into specified LREG (Load unit, cycle 0)
-        //   2. Schedules future operations based on Macro Sequence configuration
-        //   3. Future ops execute with delays counted from the LoadMacro cycle
-        //
-        // EXECUTION UNITS AND THEIR ROLES:
-        //   - Load unit:   Loads input (part of LoadMacro execution)
-        //   - Simple unit: Executes ABS (from LoadMacro macro)
-        //   - MAD unit:    Executes discrete MAD, then macro ADD
-        //   - Round unit:  Executes discrete STOCHRND, then macro SHFT2
-        //   - Store unit:  Executes STORE (from LoadMacro macro)
+        // Algorithm is adapted from:
+        //      A Fast, Compact Approximation of the Exponential Function
+        //      Nicol N. Schraudolph
+        //      IDSIA, Lugano, Switzerland
+
+        // First, set up constant values which are needed for the computation
+        //      We will first sanitize the input values (y) to be in the range that won't cause underflow, which for our hardware means we need to limit
+        //      negative values to be greater than or equal to -88.5 The computation that is needed is (A * y) + (B - C) , where A = (2^8)/ln(2) , B = 127 *
+        //      (2^8) , C = Adjustment parameter of roughly 11.2 to minimize error
+        //          - NOTE: we would like to be able to use 2^23 instead of 2^8 and compute a 32-bit quantity, but our hardware only supports rounding FP32 into
+        //          a 16-bit integer, so we use 2^8 and then shift left by 15 bits after rounding
+        //      So we will set up the following constants:
+        //          LREG[14] =       =    -88.5               = 0xc2b10000
+        //          LREG[12] = A     =    369.329925537109375 = 0x43b8aa3b
+        //          LREG[13] = (B-C) =  32500.818359375       = 0x46fde9a3
 
         constexpr float LN2_RECIP = 1.4426950408889634f;
-        constexpr float A         = 256.0f * LN2_RECIP;      // ~369.33
+        constexpr float A         = 256.0f * LN2_RECIP;
+        constexpr float B_minus_C = 32500.818359375f;
+        constexpr float THRESHOLD = -88.5f;
+
+        constexpr float scale_fp32 = __builtin_bit_cast(float, scale);
+
+        constexpr float A_scaled         = A * scale_fp32;
+        constexpr float THRESHOLD_scaled = THRESHOLD / scale_fp32;
+
+        TTI_SFPLOADI(0, 0xA, lo16(THRESHOLD_scaled));
+        TTI_SFPLOADI(0, 0x8, hi16(THRESHOLD_scaled));
+        TTI_SFPCONFIG(0, 14, 0); // SFPCONFIG Dest 14 = LREG[14] =            -88.5               = 0xc2b10000
+
+        TTI_SFPLOADI(0, 0xA, lo16(A_scaled));
+        TTI_SFPLOADI(0, 0x8, hi16(A_scaled));
+        TTI_SFPCONFIG(0, 12, 0); // SFPCONFIG Dest 12 = LREG[12] = A     =    369.329925537109375 = 0x43b8aa3b
+
+        TTI_SFPLOADI(0, 0xA, lo16(B_minus_C));
+        TTI_SFPLOADI(0, 0x8, hi16(B_minus_C));
+        TTI_SFPCONFIG(0, 13, 0); // SFPCONFIG Dest 13 = LREG[13] = (B-C) =  32500.818359375       = 0x46fde9a3
+
+        // Next, set up the macro instructions which will be necessary
+        //  - for the sanitize function: we will need a SWAP instruction
+        //  - for the main computation function: we will need MAD, ROUND, and SHIFT instructions
+
+        // There are two ways to program the macro instruction registers, and this setup leverages both ways
+        //  - we can either use the SFPCONFIG flow, by setting up the bits of the instruction into LREG[0] and then targeting the Macro instruction register
+        //  - or we can use the shortcut / backdoor load method which relies on having some illegal destination register values as part of the instruction
+
+        // Use SFPCONFIG method for the SWAP instruction, since we want the SWAP itself to use a destination register which is not normally a legal value
+        //      (we are cheating a bit here, since we only care about one half of the swap and we want to use a constant for the other half)
+        //
+        //              imm12 = 0,       lreg_src_c = 0 (will be fed by value loaded from Dest into Loadmacro lreg_dest),  lreg_dest = LREG[14] = - 88.5,
+        //              instr_mod1 = 1 swap the values with the larger of the two ending up in lreg_dest -> but we will use the Loadmacro lreg_dest register as
+        //              output
+        // TTI_SFP_SWAP(0,               0,                                                                                14,                            1);
+        TTI_SFPLOADI(0, 0xA, 0x00E1);
+        TTI_SFPLOADI(0, 0x8, 0x9200);
+        TTI_SFPCONFIG(0, 0, 0); // SFPCONFIG Dest 0 = Programmable Macro instruction 0: TTI_SFPSWAP(0, 0, 14, 1); // compare against LREG[14] (-88.5), and put
+                                // the larger value into LREG[loadmacro_lreg_dest]
+        TTI_SFPNOP;
+
+        // Backdoor load of Macro Instruction 1
+        // Dummy version of MAD instruction with lreg_dest = 4'b11_01 = 13 to install into Programmable Macro instruction register 1, which is Macro Instruction
+        // Register 5
+        TTI_SFPMAD(12, 0, 13, 13, 0); // MACRO Instruction 1 <--- lreg X = lreg[12] (A) * lreg[0] (y) + lreg[13] (B-C)
+
+        // Backdoor load of Macro Instruction 2
+        // ROUND instruction to convert FP32 result into an integer value (int16)
+        //                Stochastic = 0,  Imm(Descale),  SrcB(unused),   SrcC(input value),  Lreg_dest = 14 to install in Programmable Macro Instruction reg
+        //                2'b10,  instr_mod1 = 14 to treat input as fp32, output as unsigned int16, use imm as descale
+        TTI_SFP_STOCH_RND(0, 0, 0, 0, 14, 14); // Round to unsigned Int16
+
+        // Backdoor load of Macro Instruction 3
+        // If using the unsigned int rounding mode, then shift by 15; SHL to move integer bits to exponent;
+        TTI_SFPSHFT(15, 0, 15, 1); // imm = 15 to shift left by 15 bits; lreg_c = 0 (will use macro reg); lreg_dest = 15 to install in Programmable Macro
+                                   // Instruction reg 2'b11, which is Macro Instruction Register 7
+
+        // So at this point, we have the following instructions loaded into our macro registers:
+        //
+        // 00: (no macro instruction, just execute whatever is issued from Tensix) <-- these are fixed / not programmable
+        // 01: ( Rsvd                                                            ) <-- these are fixed / not programmable
+        // 02: ( NOP                                                             ) <-- these are fixed / not programmable
+        // 03: ( SFPSTORE                                                        ) <-- these are fixed / not programmable
+        // 04: TTI_SFPSWAP       (0, 0, 11, 1)
+        // 05: TTI_SFPMAD        (12, 0, 13, 13, 0)
+        // 06: TTI_SFP_STOCH_RND (1, 0, 0, 0, 14, 14)
+        // 07: TTI_SFPSHFT       (15,0,15,1)
+
+        // Now we want to set up our two sequences
+
+        // Sequence 1 setup: we want to Load, SWAP, <delay>, Store
+        //       Delay slot:                  0     1        2
+        //                                                                                                                                                                                                 Use
+        //                                                                                                                                                                                                 Loaded  Result          Macro
+        //                                                                                                                                                                                                 Value   Value   Delay   Instruction
+        //                                                                                                                                                                                                 SRCB    Stage   Slot    Select
+        TTI_SFPLOADI(0, 0xA, 0x0004); // slot1 : SIMPLE UNIT, want SWAP  instruction which is in macro instruction mux[4], delayed by 0 ; not using staging flop
+                                      // as dest; not using load reg as srcb : 8'b0_______0_______000_____100          = 0x04 slot2 : MAD    UNIT, unused :
+                                      // 8'b0_______0_______000_____000          = 0x00
+        TTI_SFPLOADI(0, 0x8, 0x1300); // slot3 : ROUND  UNIT, unused : 8'b0_______0_______000_____000          = 0x00 slot4 : STORE  UNIT, want STORE
+                                      // instruction which is in macro instruction mux[3], delayed by 2 ; not using staging flop as src ; :
+                                      // 8'b0_______0_______010_____011          = 0x13
+        TTI_SFPCONFIG(0, 5, 0);       // SFPCONFIG Dest 5 = Macro Sequence Register 1
+
+        // Sequence 0 setup: we want to Load, MAD, <delay>, ROUND, SHIFT, Store
+        //       Delay slot:                  0    1        2      3      4
+        //                                                                                                                                                                                                 Use
+        //                                                                                                                                                                                                 Loaded  Result          Macro
+        //                                                                                                                                                                                                 Value   Value   Delay   Instruction
+        //                                                                                                                                                                                                 SRCB    Stage   Slot    Select
+        TTI_SFPLOADI(
+            0,
+            0xA,
+            0x85DF); // slot1 : SIMPLE UNIT, want SHIFT instruction which is in macro instruction mux[7], delayed by 3 ;     using staging flop as dest; using
+                     // load reg as srcb : 8'b1_______1_______011_____111          = 0xDF slot2 : MAD    UNIT, want MAD   instruction which is in macro
+                     // instruction mux[5], delayed by 0 ; not using staging flop as dest;     using load reg as srcb : 8'b1_______0_______000_____101 = 0x85
+        TTI_SFPLOADI(
+            0,
+            0x8,
+            0x6316); // slot3 : ROUND  UNIT, want ROUND instruction which is in macro instruction mux[6], delayed by 2 ; not using staging flop as dest; using
+                     // : 8'b0_______0_______010_____110          = 0x16 slot4 : STORE  UNIT, want STORE instruction which is in macro instruction mux[3],
+                     // delayed by 4 ;     using staging flop as src ;     using                  : 8'b0_______1_______100_____011          = 0x63
+        TTI_SFPCONFIG(0, 4, 0); // Load it into macro sequence register 0 (destination = 4)
+
+        // Reset LoadMacroConfig[Lane].Misc for all lanes, in case it has been previously set by another use of macros.
+        TTI_SFPCONFIG(0, 8, 1);
+    }
+    else if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    {
+        // ===================================================================
+        // Based on "A Fast, Compact Approximation of the Exponential Function" by Schraudolph.
+        //
+        // For inputs <~ -88 (-(B-C)/A) output will be incorrect but will be guaranteed to be negative.
+        // For inputs >~ 0.72 (2^15-1-(B-C))/A output will be equal to Exp(0.7207).
+        //
+        // Constants:
+        //   LREG[12] = A = 256.0 * (1/ln2) = 369.329925537109375
+        //   LREG[13] = B - C = 32500.818359375
+        //   LREG[14] = 15 (shift amount for SFPSHFT2)
+        //
+        // Macro Instructions (backdoor loaded):
+        //   Macro 5: MAD        - compute i = A * x + (B-C)
+        //   Macro 6: STOCHRND   - convert to INT16 (sign-magnitude format)
+        //   Macro 7: SETSGN     - restore sign from STOCHRND result to shifted value
+        //
+        // Macro Sequence Register 0
+        //   Slot 1 (Simple): SETSGN @ delay 5, writes to LREG[16] (staging)
+        //     - Bit 7 = 1: VB = loadmacro's VD (sign source from STOCHRND result)
+        //     - Bit 6 = 1: VD = 16 (staging register, avoids write port conflict)
+        //     - Bits 5:3 = 101: delay 5
+        //     - Bits 2:0 = 111: macro 7 (SETSGN)
+        //     - Encoding: 0b1_1_101_111 = 0xEF
+        //
+        //   Slot 2 (MAD): MAD @ delay 0
+        //     - Bit 7 = 1: use loaded value as VB
+        //     - Bit 6 = 0: write to LREG[lreg_dest]
+        //     - Bits 5:3 = 000: delay 0
+        //     - Bits 2:0 = 101: macro 5 (MAD)
+        //     - Encoding: 0b1_0_000_101 = 0x85
+        //
+        //   Slot 3 (Round): STOCHRND @ delay 3
+        //     - Bits 5:3 = 011: delay 3
+        //     - Bits 2:0 = 110: macro 6 (STOCHRND)
+        //     - Encoding: 0b0_0_011_110 = 0x1E
+        //
+        //   Slot 4 (Store): STORE @ delay 6, reads from LREG[16]
+        //     - Bit 7 = 0: don't preserve VD from instruction
+        //     - Bit 6 = 1: read from LREG[16] (staging register)
+        //     - Bits 5:3 = 110: delay 6
+        //     - Bits 2:0 = 011: macro 3 (STORE)
+        //     - Encoding: 0b0_1_110_011 = 0x73
+        //
+        // =======================================================================
+
+        constexpr float LN2_RECIP = 1.4426950408889634f;
+        constexpr float A         = 256.0f * LN2_RECIP;
         constexpr float B_minus_C = 32500.818359375f;
 
         constexpr float scale_fp32 = __builtin_bit_cast(float, scale);
-        constexpr float A_scaled         = A * scale_fp32;
-        constexpr float B_minus_C_scaled = B_minus_C;
+        constexpr float A_scaled   = A * scale_fp32;
 
-        // ====================================================================
-        // Step 1: Configure constant LREGs for the discrete MAD operation
-        // ====================================================================
-        // The discrete MAD computes: temp = A * x + (B-C)
-        // This is the first stage of the exponential approximation
-        
+        // Load constant A into LREG[12]
         TTI_SFPLOADI(0, 0xA, lo16(A_scaled));
         TTI_SFPLOADI(0, 0x8, hi16(A_scaled));
-        TTI_SFPCONFIG(0, 11, 0);  // LREG[11] = A coefficient
+        TTI_SFPCONFIG(0, 12, 0);
 
-        TTI_SFPLOADI(0, 0xA, lo16(B_minus_C_scaled));
-        TTI_SFPLOADI(0, 0x8, hi16(B_minus_C_scaled));
-        TTI_SFPCONFIG(0, 12, 0);  // LREG[12] = (B-C) offset
+        // Load constant (B-C) into LREG[13]
+        TTI_SFPLOADI(0, 0xA, lo16(B_minus_C));
+        TTI_SFPLOADI(0, 0x8, hi16(B_minus_C));
+        TTI_SFPCONFIG(0, 13, 0);
 
-        // ====================================================================
-        // Step 2: Backdoor load macro instructions (VD >= 12 triggers this)
-        // ====================================================================
-        // When an SFPU instruction has VD in range [12,15], it doesn't execute
-        // normally but instead programs a macro instruction register:
-        //   VD=12 -> Macro Instruction Register 4 (mux index 4)
-        //   VD=13 -> Macro Instruction Register 5 (mux index 5)
-        //   VD=14 -> Macro Instruction Register 6 (mux index 6)
-        //   VD=15 -> Macro Instruction Register 7 (mux index 7)
+        // Load shift amount (15) into LREG[14] for SFPSHFT2
+        // SFPSHFT2 mode 5 reads shift amount from VC register
+        TTI_SFPLOADI(0, 0xA, 15);     // Lower 16 bits = 15
+        TTI_SFPLOADI(0, 0x8, 0);      // Upper 16 bits = 0
+        TTI_SFPCONFIG(0, 14, 0);      // Store in LREG[14]
+
+        // ===================================================================
+        // Program Macro Instructions via Backdoor Load
+        // ===================================================================
+
+        // Macro Instruction 1 (slot 5): MAD
+        // Computes: LREG[dest] = LREG[12] * LREG[dest] + LREG[13]
+        // dest=13 triggers backdoor load to Macro Instruction Register 5
+        TTI_SFPMAD(12, 0, 13, 13, 0);
+
+        // Macro Instruction 2 (slot 6): STOCHRND with INT16 mode
+        // Converts FP32 to sign-magnitude integer with max magnitude 32767
+        // dest=14 triggers backdoor load to Macro Instruction Register 6
+        // Mode 7 = FP32_TO_INT16 (keeps sign in bit 31, clamps magnitude to 32767)
+        TTI_SFP_STOCH_RND(0, 0, 0, 0, 14, 7);
+
+        // Macro Instruction 3 (slot 7): SETSGN
+        // VC=4: reads exp/mantissa from LREG[4] (where discrete SHFT2 writes)
+        // VD=15: triggers backdoor load to Macro Instruction Register 7
+        // Mod1=0: sign comes from VB (which equals loadmacro's VD after override)
         //
-        // These macro instructions are templates that LoadMacro will instantiate
-        // with appropriate source/dest registers during execution.
+        // When executed via LOADMACRO with sequence bits:
+        //   - Bit 7=1: VB = loadmacro's VD (0-3, sign source from STOCHRND)
+        //   - Bit 6=1: VD = 16 (staging register for output)
+        //   - VC is preserved as 4 (exp/man source from SHFT2 result)
+        TTI_SFPSETSGN(0, 4, 15, 0);
 
-        // Macro Instruction 4 (Simple unit): SFPABS
-        // Computes absolute value: |temp|
-        // Will operate on the result of the discrete MAD instruction
-        TTI_SFPABS(0, 0, 12, 0);
-
-        // Macro Instruction 5 (MAD unit): SFPADD
-        // Computes: 1.0 * temp + |temp| = temp + |temp|
-        // This is the second stage: adding the original value to its absolute value
-        TTI_SFPADD(p_sfpu::LCONST_1, 0, 0, 13, 0);
-
-        // Macro Instruction 6 (Round unit): SFPSHFT2
-        // Shifts left by 15 bits to position the value in the FP32 exponent field
-        // IMPORTANT: SHFT2 (not SHFT) because it can write to staging registers
-        // The staging register is required for the Store unit to read from
-        TTI_SFPSHFT2(15, 0, 14, 1);
-
-        // ====================================================================
-        // Step 3: Configure Macro Sequence Register 0
-        // ====================================================================
-        // This defines WHEN each macro instruction executes relative to the
-        // LoadMacro that triggered it. Used by MacroIndex 0-3 (LREG 0-3).
-        //
-        // DELAY SEMANTICS:
-        //   Delays count from when LoadMacro executes:
-        //   - Delay 0: Would execute same cycle as LoadMacro (not used here)
-        //   - Delay 1: Executes 2 cycles after LoadMacro
-        //   - Delay 2: Executes 3 cycles after LoadMacro
-        //   - Delay N: Executes N+1 cycles after LoadMacro
-        //
-        // DEPENDENCY CHAIN (for a single iteration):
-        //   Cycle 0: LoadMacro loads x into LREG
-        //   Cycle 1: Discrete MAD computes temp = A*x + B-C (overwrites LREG)
-        //   Cycle 2: Macro ABS executes (delay=1, operates on temp from MAD)
-        //   Cycle 3: Macro ADD executes (delay=1, uses temp and |temp|)
-        //            Discrete STOCHRND converts result to uint16
-        //   Cycle 4: Macro SHFT2 executes (delay=2, shifts the uint16)
-        //   Cycle 5: Macro STORE executes (delay=4, writes final result)
-        //
-        // ENCODING FORMAT (8 bits per unit):
-        //   [7]   = use_loaded_as_srcb: Use the value loaded by LoadMacro as SRCB
-        //   [6]   = use_staging: Write to (Simple/MAD/Round) or read from (Store) staging reg
-        //   [5:3] = delay: How many cycles after LoadMacro to execute (0-7)
-        //   [2:0] = macro_select: Which macro instruction template to use (0-7)
-        //           0 = execute discrete instruction
-        //           2 = NOP
-        //           3 = STORE
-        //           4-7 = programmable macro instructions
-        
-        TTI_SFPLOADI(0, 0xA, 0x0D04);
-        // slot1 (Simple unit): 8'b0_0_001_100 = 0x04
-        //   Bit 7=0: Don't use loaded value as SRCB
-        //            (ABS will operate on LREG value which is temp from discrete MAD)
-        //   Bit 6=0: Don't write to staging register
-        //   Bits 5:3=001: Delay = 1 (execute 2 cycles after LoadMacro)
-        //                 This gives time for discrete MAD to complete
-        //   Bits 2:0=100: Use macro instruction 4 = ABS
-        //
-        // slot2 (MAD unit): 8'b0_0_001_101 = 0x0D
-        //   Bit 7=0: Don't use loaded value as SRCB
-        //            (ADD will use temp and |temp| from previous operations)
-        //   Bit 6=0: Don't write to staging register
-        //   Bits 5:3=001: Delay = 1 (execute 2 cycles after LoadMacro, same as ABS)
-        //                 ABS and ADD can execute in parallel on their respective units
-        //   Bits 2:0=101: Use macro instruction 5 = ADD
-
-        TTI_SFPLOADI(0, 0x8, 0x6316);
-        // slot3 (Round unit): 8'b0_0_010_110 = 0x16
-        //   Bit 7=0: Don't use loaded value as SRCB
-        //   Bit 6=0: Don't use staging for input (input comes from LREG)
-        //   Bits 5:3=010: Delay = 2 (execute 3 cycles after LoadMacro)
-        //                 This gives time for discrete STOCHRND to execute first
-        //   Bits 2:0=110: Use macro instruction 6 = SHFT2
-        //
-        // slot4 (Store unit): 8'b0_1_100_011 = 0x63
-        //   Bit 7=0: Don't use loaded value (not applicable for Store)
-        //   Bit 6=1: Read from staging register
-        //            (SHFT2 wrote its result to staging reg via bit 6 of its config)
-        //   Bits 5:3=100: Delay = 4 (execute 5 cycles after LoadMacro)
-        //                 This allows all previous operations to complete
-        //   Bits 2:0=011: Use macro instruction 3 = STORE (fixed/built-in)
-
-        TTI_SFPCONFIG(0, 4, 0);  // Install into Macro Sequence Register 0
-                                  // Destination 4 selects Macro Sequence Register 0
-                                  // which is used by MacroIndex 0-3 (our LREG indices)
+        //   Low 16 bits:  Slot2(MAD)=0x85, Slot1(Simple)=0xEF -> 0x85EF
+        //   High 16 bits: Slot4(Store)=0x73, Slot3(Round)=0x1E -> 0x731E
+        //   - STOCHRND delay 3: 0x1E
+        //   - SETSGN delay 5: 0xEF
+        //   - STORE delay 6: 0x73
+        TTI_SFPLOADI(0, 0xA, 0x85EF);  // Slots 1-2: Simple=0xEF (delay 5), MAD=0x85
+        TTI_SFPLOADI(0, 0x8, 0x731E);  // Slots 3-4: Round=0x1E (delay 3), Store=0x73 (delay 6)
+        TTI_SFPCONFIG(0, 4, 0);        // Load into Macro Sequence Register 0 (dest=4)
 
         // Reset LoadMacroConfig[Lane].Misc for all lanes
-        // This clears any previous macro configuration that might interfere
+        // Sets StoreMod0=0 (SRCB), UsesLoadMod0ForStore=0, UnitDelayKind=0
         TTI_SFPCONFIG(0, 8, 1);
+
+        TTI_SFPNOP;
     }
     else if constexpr (APPROXIMATION_MODE)
     {
