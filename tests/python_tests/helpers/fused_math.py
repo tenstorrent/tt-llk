@@ -750,12 +750,24 @@ class Math:
     ) -> str:
         batch_size = operation.batch_size
         tile_cnt = operation.output.tile_count
+
+        num_full_batches = tile_cnt // batch_size
+        remaining_tiles = tile_cnt % batch_size
+
         code = ""
-        batch_start = 0
-        while batch_start < tile_cnt:
-            batch_end = min(batch_start + batch_size, tile_cnt)
-            code += body_fn(batch_end - batch_start)
-            batch_start = batch_end
+
+        if num_full_batches > 0:
+            code += (
+                f"for (uint32_t batch = 0; batch < {num_full_batches}; ++batch) {{\n"
+            )
+            code += body_fn(batch_size)
+            code += "}\n"
+
+        if remaining_tiles > 0:
+            code += "{\n"
+            code += body_fn(remaining_tiles)
+            code += "}\n"
+
         return code
 
     def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
