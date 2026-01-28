@@ -49,13 +49,31 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            return _perf_unpack_loop_set_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES);
+            // Set valid flags matching the pattern expected by the math kernel
+            // SrcA valid is set for each tile, SrcB valid is set once per block
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            {
+                // Set SrcA valid for each tile in the block
+                for (int i = 0; i < BLOCK_CT_DIM; ++i)
+                {
+                    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::UNPACK | p_stall::SRCA_CLR);
+                    TTI_UNPACR_NOP(ckernel::SrcA, p_unpacr_nop::UNP_SET_DVALID);
+                }
+                // Clear SrcB valid once after processing the entire block
+                TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::UNPACK | p_stall::SRCB_CLR);
+                TTI_UNPACR_NOP(ckernel::SrcB, p_unpacr_nop::UNP_SET_DVALID);
+            }
+            return;
         }
         else
         {
-            // Unpack block_ct_dim tiles from input A (operand) starting at address 0
-            // and 1 tile from input B (scaler with 1.0 values) at address 0
-            _llk_unpack_AB_reduce_block_max_row_(PERF_ADDRESS(PERF_INPUT_A, 0), PERF_ADDRESS(PERF_INPUT_B, 0));
+            // Run the unpack operation multiple times to amortize profiler overhead
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            {
+                // Unpack block_ct_dim tiles from input A (operand) starting at address 0
+                // and 1 tile from input B (scaler with 1.0 values) at address 0
+                _llk_unpack_AB_reduce_block_max_row_(PERF_ADDRESS(PERF_INPUT_A, 0), PERF_ADDRESS(PERF_INPUT_B, 0));
+            }
         }
         PROFILER_SYNC();
     }
@@ -87,19 +105,37 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            return _perf_math_loop_clear_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES);
+            // Clear valid flags matching the pattern used by the math kernel
+            // SrcA is cleared after each tile, SrcB only after the entire block
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            {
+                for (int i = 0; i < BLOCK_CT_DIM; ++i)
+                {
+                    _perf_math_loop_clear_valid<true /* clear SrcA valid */, false /* don't clear SrcB valid */>(1);
+                }
+                _perf_math_loop_clear_valid<false /* don't clear SrcA valid */, true /* clear SrcB valid */>(1);
+            }
+            return;
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-            _llk_math_reduce_block_max_row_<BLOCK_CT_DIM, is_fp32_dest_acc_en>(0);
-            _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+            // Run the math operation multiple times to amortize profiler overhead
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            {
+                _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+                _llk_math_reduce_block_max_row_<BLOCK_CT_DIM, is_fp32_dest_acc_en>(0);
+                _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+            }
         }
         else
         {
-            _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-            _llk_math_reduce_block_max_row_<BLOCK_CT_DIM, is_fp32_dest_acc_en>(0);
-            _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+            // Run the full operation multiple times to amortize profiler overhead
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            {
+                _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+                _llk_math_reduce_block_max_row_<BLOCK_CT_DIM, is_fp32_dest_acc_en>(0);
+                _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+            }
         }
         PROFILER_SYNC();
     }
@@ -137,13 +173,21 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, PERF_ADDRESS(PERF_OUTPUT, 0));
+            // Run the pack operation multiple times to amortize profiler overhead
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            {
+                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, PERF_ADDRESS(PERF_OUTPUT, 0));
+            }
         }
         else
         {
-            _llk_packer_wait_for_math_done_();
-            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, PERF_ADDRESS(PERF_OUTPUT, 0));
-            _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+            // Run the full operation multiple times to amortize profiler overhead
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            {
+                _llk_packer_wait_for_math_done_();
+                _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(0, PERF_ADDRESS(PERF_OUTPUT, 0));
+                _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+            }
         }
 
         _llk_pack_reduce_mask_clear_();

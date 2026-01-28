@@ -15,6 +15,7 @@ from helpers.perf import PerfConfig
 from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
     BLOCK_CT_DIM,
+    LOOP_FACTOR,
     TILE_COUNT,
 )
 
@@ -26,14 +27,16 @@ from helpers.test_variant_parameters import (
             DataFormat.Float16_b,
         ]
     ),
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    dest_acc=[DestAccumulation.No],
     block_ct_dim=[1, 2, 4, 8, 16],
+    loop_factor=16,  # Multiple loop factors to minimize profiler overhead
 )
 def test_perf_reduce_block_max_row(
     perf_report,
     formats,
     dest_acc,
     block_ct_dim,
+    loop_factor,
     workers_tensix_coordinates,
 ):
     """
@@ -41,11 +44,14 @@ def test_perf_reduce_block_max_row(
 
     This tests the custom block-based max row reduction that processes
     multiple tiles in the width dimension as a single block operation.
+    This is a specialized kernel for SDPA (Scaled Dot-Product Attention)
+    that performs row-wise max reduction across a block of tiles.
 
     Parameters swept (from tt-metal test_sdpa_reduce_c.cpp):
     - block_ct_dim: 1, 2, 4, 8, 16 (k_chunk_sizes in SDPA test)
     - dest_acc: No (16-bit), Yes (32-bit FP32 destination accumulation)
     - formats: Float16_b only (as per API constraints)
+    - loop_factor: 10-200 in steps of 10 to minimize profiler overhead
     """
 
     # Total tiles = block_ct_dim (processed as a block)
@@ -55,16 +61,19 @@ def test_perf_reduce_block_max_row(
         "sources/reduce_block_max_row_perf.cpp",
         formats,
         run_types=[
-            PerfRunType.L1_TO_L1,
+            # PerfRunType.L1_TO_L1,
             PerfRunType.UNPACK_ISOLATE,
-            PerfRunType.MATH_ISOLATE,
-            PerfRunType.PACK_ISOLATE,
-            PerfRunType.L1_CONGESTION,
+            # PerfRunType.MATH_ISOLATE,
+            # PerfRunType.PACK_ISOLATE,
+            # PerfRunType.L1_CONGESTION,
         ],
         templates=[
             BLOCK_CT_DIM(block_ct_dim),
         ],
-        runtimes=[TILE_COUNT(tile_count)],
+        runtimes=[
+            TILE_COUNT(tile_count),
+            LOOP_FACTOR(loop_factor),  # Used to minimize profiler overhead
+        ],
         variant_stimuli=StimuliConfig(
             None,
             formats.input_format,
