@@ -674,7 +674,7 @@ class Math:
         tile_size = 1024
 
         batch_start = 0
-        while batch_start < tile_cnt:
+        for batch_start in range(0, tile_cnt, batch_size):
             batch_end = min(batch_start + batch_size, tile_cnt)
             batch_tile_cnt = batch_end - batch_start
 
@@ -690,8 +690,6 @@ class Math:
                 )
 
             result_tilized[batch_start_elem:batch_end_elem] = batch_tensor.flatten()
-
-            batch_start = batch_end
 
         result = untilize_block(result_tilized, data_format, dimensions)
 
@@ -860,13 +858,12 @@ class Math:
         tile_cnt = 1 if isinstance(self.fpu, MatmulFpu) else operation.output.tile_count
         code = ""
         batch_start = 0
-        while batch_start < tile_cnt:
+        for batch_start in range(0, tile_cnt, batch_size):
             if use_sync:
                 code += self._wait_for_dest(operation)
             batch_end = min(batch_start + batch_size, tile_cnt)
             for tile_idx in range(batch_end - batch_start):
                 code += self.fpu.calculate(operation, config, tile_idx)
-            batch_start = batch_end
             code += self._sfpu_code(operation, config, calc_only=True)
             if use_sync:
                 code += self._dest_section_done(operation, config)
