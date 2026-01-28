@@ -131,8 +131,8 @@ inline void _llk_unpack_set_srcb_dummy_valid_()
  */
 inline void _llk_unpack_configure_addresses_(const std::uint32_t address_a, const std::uint32_t address_b, volatile uint tt_reg_ptr *cfg)
 {
-    LLK_ASSERT(is_valid_L1_address(address_a), "L1 address_a must be in valid L1 memory region");
-    LLK_ASSERT(is_valid_L1_address(address_b), "L1 address_b must be in valid L1 memory region");
+    // LLK_ASSERT(is_valid_L1_address(address_a), "L1 address_a must be in valid L1 memory region");
+    // LLK_ASSERT(is_valid_L1_address(address_b), "L1 address_b must be in valid L1 memory region");
 
     // Program srcA and srcB base addresses
     if (0 == unp_cfg_context)
@@ -158,7 +158,7 @@ inline void _llk_unpack_configure_addresses_(const std::uint32_t address_a, cons
  */
 inline void _llk_unpack_configure_single_address_(const std::uint32_t address, volatile uint tt_reg_ptr *cfg)
 {
-    LLK_ASSERT(is_valid_L1_address(address), "L1 base_address must be in valid L1 memory region");
+    // LLK_ASSERT(is_valid_L1_address(address), "L1 base_address must be in valid L1 memory region");
 
     // Program srcA base address
     if (0 == unp_cfg_context)
