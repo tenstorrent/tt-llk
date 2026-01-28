@@ -252,7 +252,7 @@ jobs:
           # Both Wormhole and Blackhole trigger L2 and Perf tests
           if [ "${{ needs.detect-changes.outputs.run-wormhole }}" = "true" ] || \
              [ "${{ needs.detect-changes.outputs.run-blackhole }}" = "true" ]; then
-            DISPATCHED_TESTS="${DISPATCHED_TESTS}- 🧪 **C++ post-commit tests**"$'\n'
+            DISPATCHED_TESTS="${DISPATCHED_TESTS}- ⚙️ **C++ post-commit tests**"$'\n'
             DISPATCHED_TESTS="${DISPATCHED_TESTS}- 📊 **Device perf regression tests**"$'\n'
           fi
 
