@@ -154,8 +154,6 @@ class FusedOperation:
             if self.batch_size != 1 and self.batch_size != tile_count:
                 self.batch_size = tile_count
 
-        print(self.batch_size)
-
     @property
     def src_a(self) -> Operand:
         mapping = self.operand_mapping

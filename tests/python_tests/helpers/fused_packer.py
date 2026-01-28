@@ -246,8 +246,8 @@ class Packer:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        dest_idx: int = 0,
-        l1_idx: int = 0,
+        dest_idx,
+        l1_idx,
     ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
