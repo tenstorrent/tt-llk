@@ -6,13 +6,11 @@ import glob
 import os
 import re
 from dataclasses import fields
-from hashlib import sha256
 from pathlib import Path
 from typing import Any, ClassVar
 
 import pandas as pd
 import pytest
-from ttexalens.tt_exalens_lib import write_to_device
 
 from .device import BootMode, wait_for_tensix_operations_finished
 from .format_config import FormatConfig
@@ -280,6 +278,8 @@ class PerfConfig(TestConfig):
         unpack_to_dest=False,
         disable_format_inference=False,
         dest_acc=DestAccumulation.No,
+        compile_time_formats: bool = False,
+        skip_build_header: bool = False,
     ):
         super().__init__(
             test_name,
@@ -293,6 +293,8 @@ class PerfConfig(TestConfig):
             unpack_to_dest,
             disable_format_inference,
             dest_acc,
+            compile_time_formats,
+            skip_build_header,
         )
 
         self.passed_templates = templates
@@ -309,23 +311,6 @@ class PerfConfig(TestConfig):
             )
             for run_type in run_types
         ]
-
-    def generate_variant_hash(self):
-        NON_COMPILATION_ARGUMENTS = [
-            "variant_stimuli",
-            "run_configs",
-            "variant_id",
-            "runtime_params_struct",
-            "runtime_format",
-            "runtimes",
-        ]
-        temp_str = [
-            str(value)
-            for field_name, value in self.__dict__.items()
-            if field_name not in NON_COMPILATION_ARGUMENTS
-        ]
-
-        self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
     @staticmethod
     def _dataclass_name_and_values(obj):
@@ -355,8 +340,6 @@ class PerfConfig(TestConfig):
             self.generate_variant_hash()
             variant_raw_data = []
             for _ in range(run_count):
-                write_to_device(location, 0x64FF0, [0, 0, 0, 0, 0, 0, 0])
-                self.write_runtimes_to_L1(location)
                 elfs = self.run_elf_files(location)
                 wait_for_tensix_operations_finished(elfs, location)
 

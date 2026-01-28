@@ -10,13 +10,12 @@ from helpers.param_config import (
     parametrize,
 )
 from helpers.perf import PerfConfig
-from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
-    INPUT_DIMENSIONS,
     LOOP_FACTOR,
     MATH_OP,
     REDUCE_POOL_TYPE,
     TILE_COUNT,
+    generate_input_dim,
 )
 
 
@@ -70,7 +69,7 @@ def test_perf_sfpu_reduce_sdpa(
             # PerfRunType.PACK_ISOLATE,     # Pack timing for reference
         ],
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+            generate_input_dim(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
             REDUCE_POOL_TYPE(reduce_pool),
         ],
@@ -78,16 +77,6 @@ def test_perf_sfpu_reduce_sdpa(
             TILE_COUNT(tile_count),
             LOOP_FACTOR(loop_factor),  # Used to minimize profiler overhead
         ],
-        variant_stimuli=StimuliConfig(
-            None,
-            formats.input_format,
-            None,
-            formats.input_format,
-            formats.output_format,
-            tile_count_A=tile_count,
-            tile_count_B=tile_count,
-            tile_count_res=tile_count,
-        ),
         unpack_to_dest=False,  # Must be False since math kernel does A2D copy
         dest_acc=dest_acc,
     )

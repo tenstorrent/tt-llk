@@ -28,7 +28,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     for (int i = 0; i < params->TILE_CNT; i++)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
+            L1_ADDRESS(params->buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }
 }
 
@@ -105,7 +105,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < params->TILE_CNT; i++)
     {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(params->buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

@@ -8,6 +8,7 @@
 
 #include "build.h"
 #include "ckernel.h"
+#include "llk_assert.h"
 #include "llk_defs.h"
 #include "params.h"
 #include "perf.h"
@@ -22,12 +23,6 @@ static_assert(PERF_RUN_TYPE == PerfRunType::L1_TO_L1, "Only L1 to L1 is supporte
 
 static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
-// Algorithm invariants
-static_assert(FULL_CT_DIM % BLOCK_CT_DIM == 0, "FULL_CT_DIM must be divisible by BLOCK_CT_DIM");
-
-// Test assumptions
-// static_assert(FULL_RT_DIM * FULL_CT_DIM == params->TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to params->TILE_CNT");
-
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
@@ -36,7 +31,12 @@ static_assert(FULL_CT_DIM % BLOCK_CT_DIM == 0, "FULL_CT_DIM must be divisible by
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    constexpr std::uint32_t TILE_SIZE = 2048 / 16; // size of tile in 16B words
+    const volatile struct FormatConfig& formats = params->formats;
+    constexpr std::uint32_t TILE_SIZE           = 2048 / 16; // size of tile in 16B words
+
+    // Test assumptions
+    LLK_ASSERT(params->FULL_CT_DIM % params->BLOCK_CT_DIM == 0, "FULL_CT_DIM must be divisible by BLOCK_CT_DIM");
+    LLK_ASSERT(params->FULL_RT_DIM * params->FULL_CT_DIM == params->TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to TILE_CNT");
 
     {
         ZONE_SCOPED("INIT")
@@ -49,10 +49,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
     {
         ZONE_SCOPED("TILE_LOOP")
 
-        for (uint32_t tile = 0; tile < params->TILE_CNT; tile += FULL_CT_DIM)
+        for (uint32_t tile = 0; tile < params->TILE_CNT; tile += params->FULL_CT_DIM)
         {
-            _llk_unpack_untilize_pass_<true>(PERF_ADDRESS(PERF_INPUT_A, tile), FULL_CT_DIM);
-            _llk_unpack_untilize_pass_<false>(PERF_ADDRESS(PERF_INPUT_A, tile), FULL_CT_DIM);
+            _llk_unpack_untilize_pass_<true>(PERF_ADDRESS(PERF_INPUT_A, tile), params->FULL_CT_DIM);
+            _llk_unpack_untilize_pass_<false>(PERF_ADDRESS(PERF_INPUT_A, tile), params->FULL_CT_DIM);
         }
         PROFILER_SYNC();
     }
@@ -71,6 +71,7 @@ using namespace ckernel;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const volatile struct FormatConfig& formats = params->formats;
     {
         ZONE_SCOPED("INIT")
 
@@ -115,7 +116,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    constexpr bool UNTILIZE = false;
+    const volatile struct FormatConfig& formats = params->formats;
+    constexpr bool UNTILIZE                     = false;
 
     {
         ZONE_SCOPED("INIT")

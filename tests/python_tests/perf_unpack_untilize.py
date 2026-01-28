@@ -6,11 +6,10 @@ from helpers.format_config import DataFormat
 from helpers.llk_params import PerfRunType
 from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import PerfConfig
-from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
-    INPUT_DIMENSIONS,
     LOOP_FACTOR,
     TILE_COUNT,
+    generate_input_dim,
 )
 
 
@@ -37,18 +36,11 @@ def test_perf_unpack_untilize(
         "sources/unpack_untilize_perf.cpp",
         formats,
         [PerfRunType.L1_TO_L1],
-        templates=[INPUT_DIMENSIONS(input_dimensions, input_dimensions)],
-        runtimes=[TILE_COUNT(tile_count), LOOP_FACTOR()],
-        variant_stimuli=StimuliConfig(
-            None,
-            formats.input_format,
-            None,
-            formats.input_format,
-            formats.output_format,
-            tile_count_A=tile_count,
-            tile_count_B=tile_count,
-            tile_count_res=tile_count,
-        ),
+        runtimes=[
+            generate_input_dim(input_dimensions, input_dimensions),
+            TILE_COUNT(tile_count),
+            LOOP_FACTOR(),
+        ],
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)
