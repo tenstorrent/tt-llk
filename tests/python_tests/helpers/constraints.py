@@ -2,8 +2,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from helpers.format_config import DataFormat
+from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.llk_params import DestAccumulation, DestSync, MathFidelity, MathOperation
+
+from .data_format_inference import is_format_combination_outlier
 
 
 def get_valid_dest_accumulation_modes(formats):
@@ -66,6 +68,7 @@ def get_valid_math_fidelities(format, operation, PERF_RUN: bool = False):
 
 
 def get_valid_dest_indices(
+    formats: InputOutputFormat,
     dest_sync: DestSync,
     dest_acc: DestAccumulation,
     tile_count: int,
@@ -85,10 +88,18 @@ def get_valid_dest_indices(
 
     capacity_tiles = 16
 
+    is_outlier = is_format_combination_outlier(
+        formats.input_format, formats.output_format, dest_acc
+    )
+
     if dest_sync == DestSync.Half:
         capacity_tiles = capacity_tiles // 2
 
-    if dest_acc == DestAccumulation.Yes:
+    if (
+        dest_acc == DestAccumulation.Yes
+        or formats.input_format.is_32_bit()
+        or is_outlier
+    ):
         capacity_tiles = capacity_tiles // 2
 
     if tile_count > capacity_tiles:

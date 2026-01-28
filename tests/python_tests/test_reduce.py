@@ -6,12 +6,18 @@ from helpers.format_config import DataFormat
 from helpers.golden_generators import ReduceGolden, get_golden_generator
 from helpers.llk_params import (
     DestAccumulation,
+    DestSync,
     MathOperation,
     ReduceDimension,
     ReducePool,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -20,7 +26,6 @@ from helpers.test_variant_parameters import (
     NUM_BLOCKS,
     NUM_TILES_IN_BLOCK,
 )
-from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 # Helper dictionary to map reduce dimensions to math operations
@@ -64,17 +69,31 @@ def test_reduce(
         ReducePool.Max,
         ReducePool.Sum,
     ]:  # result in srcA should be divided by 1
-        src_B = torch.full((1024,), 1)
+        src_B = torch.full((tile_cnt_B * 1024,), 1)
     else:
         # reduce average divides by length of elements in array we reduce
-        src_B = torch.full((1024,), 1 / 32)
+        src_B = torch.full((tile_cnt_B * 1024,), 1 / 32)
 
-    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
-        tile_cnt_A, formats.input_format
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=(32, 32),
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=(32, 32),
     )
 
     generate_golden = get_golden_generator(ReduceGolden)
-    golden_tensor = generate_golden(src_A, reduce_dim, pool_type, formats.output_format)
+    golden_tensor = generate_golden(
+        src_A, reduce_dim, pool_type, formats.output_format, tile_cnt_A
+    )
 
     configuration = TestConfig(
         "sources/reduce_test.cpp",

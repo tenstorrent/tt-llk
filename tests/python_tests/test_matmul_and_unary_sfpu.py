@@ -81,7 +81,7 @@ def test_matmul_and_unary_sfpu(
     math_fidelity,
     workers_tensix_coordinates,
 ):
-    input_dimensions = [32, 32]
+    input_dimensions = [32, 32]  # TODO: Add more dimensions.
 
     if mathop in [MathOperation.Cos, MathOperation.Sin]:
         pytest.skip("Cos and Sin operations are not fully functional yet")

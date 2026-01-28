@@ -17,6 +17,70 @@ from .llk_params import format_dict
 torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
 
 
+def print_all_tiles_to_file(
+    golden_tensor,
+    res_tensor,
+    output_data_format: DataFormat,
+    filename: str = "tensor_dump.txt",
+):
+    """Print all tiles (golden and result) to a file for inspection."""
+    num_tiles = (res_tensor.size()[0]) // 1024
+    tile_shape = (32, 32)
+
+    with open(filename, "w") as f:
+        f.write(f"Total tiles: {num_tiles}\n")
+        f.write(f"Output format: {output_data_format}\n")
+        f.write("=" * 80 + "\n\n")
+
+        for tile_no in range(num_tiles):
+            result_tile = res_tensor[tile_no * 1024 : (tile_no + 1) * 1024].view(
+                tile_shape
+            )
+            golden_tile = golden_tensor[tile_no * 1024 : (tile_no + 1) * 1024].view(
+                tile_shape
+            )
+
+            # Print result tile
+            f.write(f"=== Result Tile {tile_no + 1} ===\n")
+            f.write(
+                "Row\t"
+                + "".join([f"  Col{col:02d}" for col in range(16)])
+                + " "
+                + "".join([f"  Col{col:02d}" for col in range(16, 32)])
+                + "\n"
+            )
+            for row in range(32):
+                # All 32 columns on one line
+                row_values = [f"{result_tile[row, col]:7.2f}" for col in range(32)]
+                f.write(
+                    f"{row+1:02d}.\t{''.join(row_values[:16])} {''.join(row_values[16:])}\n"
+                )
+                if row == 15:
+                    f.write("\n")
+            f.write("\n")
+
+            # Print golden tile
+            f.write(f"=== Golden Tile {tile_no + 1} ===\n")
+            f.write(
+                "Row\t"
+                + "".join([f"  Col{col:02d}" for col in range(16)])
+                + " "
+                + "".join([f"  Col{col:02d}" for col in range(16, 32)])
+                + "\n"
+            )
+            for row in range(32):
+                # All 32 columns on one line
+                row_values = [f"{golden_tile[row, col]:7.2f}" for col in range(32)]
+                f.write(
+                    f"{row+1:02d}.\t{''.join(row_values[:16])} {''.join(row_values[16:])}\n"
+                )
+                if row == 15:
+                    f.write("\n")
+            f.write("\n")
+
+            f.write("\n" + "=" * 80 + "\n\n")
+
+
 def print_faces(operand1):
     f0 = operand1[:256].view(16, 16)
     f1 = operand1[256:512].view(16, 16)

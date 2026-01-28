@@ -18,12 +18,18 @@ from helpers.golden_generators import (
 from helpers.llk_params import (
     BroadcastType,
     DestAccumulation,
+    DestSync,
     EltwiseBinaryReuseDestType,
     StochasticRounding,
     Transpose,
     format_dict,
 )
-from helpers.param_config import generate_params, input_output_formats
+from helpers.param_config import (
+    generate_params,
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -42,7 +48,6 @@ from helpers.test_variant_parameters import (
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
 )
-from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.utils import passed_test
 
 # SUPPORTED FORMATS FOR TEST
@@ -343,6 +348,7 @@ def test_unpack_comprehensive(
     else:
         input_dimensions = [32, 32]
         partial_face = False
+    tile_dimensions = input_dimensions
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -353,11 +359,20 @@ def test_unpack_comprehensive(
         num_faces=num_faces,
     )
 
-    # Calculate block parameters for destination register banking
-    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
-        tile_cnt_A, formats.input_format
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=tile_dimensions,
     )
-
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=tile_dimensions,
+    )
     # generate golden tensor with proper broadcast and transpose handling
     # PRIORITY: Broadcast types take precedence over transpose operations
     if broadcast_type in (
