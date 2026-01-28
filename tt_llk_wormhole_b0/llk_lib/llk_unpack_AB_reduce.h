@@ -22,6 +22,7 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_unpack_common.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -153,19 +154,8 @@ inline void _llk_unpack_AB_reduce_(const std::uint32_t address_a, const std::uin
     // Wait for free context
     wait_for_next_context(2);
 
-    // Program base addresses into hardware registers based on current context
-    if (0 == unp_cfg_context)
-    {
-        // Context 0: Use primary base address registers
-        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a; // SrcA address
-        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b; // SrcB address
-    }
-    else
-    {
-        // Context 1: Use alternate base address registers
-        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a; // SrcA address
-        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b; // SrcB address
-    }
+    // Validate and configure addresses
+    _llk_unpack_configure_addresses_(address_a, address_b, cfg);
 
     // Trisc::SEMPOST for context acquire
     semaphore_post(semaphore::UNPACK_SYNC);
