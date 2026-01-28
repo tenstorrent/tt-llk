@@ -50,18 +50,21 @@ void run_kernel(const volatile struct RuntimeParams* params)
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             // Set valid flags matching the pattern expected by the math kernel
-            // SrcA valid is set for each tile, SrcB valid is set once per block
+            // Use TTI_UNPACR to match the exact pattern used by the unpack function
             for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
+                // Set SrcB valid once for the entire block (scaler stays the same)
+                // This matches line 128 in llk_unpack_AB_reduce_custom.h
+                TTI_STALLWAIT(ckernel::p_stall::STALL_TDMA, ckernel::p_stall::SRCB_CLR);
+                TTI_UNPACR(SrcB, 0b00000000 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
                 // Set SrcA valid for each tile in the block
+                // This matches the MOP template pattern (line 41 in llk_unpack_AB_reduce_custom.h)
                 for (int i = 0; i < BLOCK_CT_DIM; ++i)
                 {
-                    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::UNPACK | p_stall::SRCA_CLR);
-                    TTI_UNPACR_NOP(ckernel::SrcA, p_unpacr_nop::UNP_SET_DVALID);
+                    TTI_STALLWAIT(ckernel::p_stall::STALL_TDMA, ckernel::p_stall::SRCA_CLR);
+                    TTI_UNPACR(SrcA, 0b00000001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
                 }
-                // Clear SrcB valid once after processing the entire block
-                TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::UNPACK | p_stall::SRCB_CLR);
-                TTI_UNPACR_NOP(ckernel::SrcB, p_unpacr_nop::UNP_SET_DVALID);
             }
             return;
         }
@@ -122,9 +125,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
             // Run the math operation multiple times to amortize profiler overhead
             for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+                // _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
                 _llk_math_reduce_block_max_row_<BLOCK_CT_DIM, is_fp32_dest_acc_en>(0);
-                _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                // _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
         }
         else
@@ -168,7 +171,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            _llk_pack_reduce_mask_clear_();
+            // _llk_pack_reduce_mask_clear_();
             return;
         }
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
