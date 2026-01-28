@@ -145,6 +145,8 @@ struct p_setadc
     constexpr static std::uint32_t SET_Z = 2;
     constexpr static std::uint32_t SET_W = 3;
 
+    // Added here to match Wormhole B0
+    // This allows reuse of Wormhole code in some optimizations
     constexpr static uint X  = 1;
     constexpr static uint Y  = 2;
     constexpr static uint XY = 3;
