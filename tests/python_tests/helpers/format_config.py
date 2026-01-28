@@ -24,12 +24,17 @@ class DataFormat(Enum):
     """
     An enumeration of data formats supported by the LLKs.
     Holds format name and byte size, and is extendable.
+    Matches the C++ DataFormat enum in tensix_types.h
     """
 
     Float16 = DataFormatInfo("Float16", 2)
     Float16_b = DataFormatInfo("Float16_b", 2)
     Bfp8 = DataFormatInfo("Bfp8", 1)
     Bfp8_b = DataFormatInfo("Bfp8_b", 1)
+    Bfp4 = DataFormatInfo("Bfp4", 1)
+    Bfp4_b = DataFormatInfo("Bfp4_b", 1)
+    Bfp2 = DataFormatInfo("Bfp2", 1)
+    Bfp2_b = DataFormatInfo("Bfp2_b", 1)
     Float32 = DataFormatInfo("Float32", 4)
     Int32 = DataFormatInfo("Int32", 4)
     Tf32 = DataFormatInfo("Tf32", 3)
@@ -37,6 +42,7 @@ class DataFormat(Enum):
     UInt16 = DataFormatInfo("UInt16", 2)
     Int8 = DataFormatInfo("Int8", 1)
     UInt8 = DataFormatInfo("UInt8", 1)
+    Lf8 = DataFormatInfo("Lf8", 1)
 
     @property
     def size(self) -> int:
@@ -73,7 +79,14 @@ class DataFormat(Enum):
     def num_bytes_per_tile(self, num_datums: int = 1024) -> int:
         """Returns the number of bytes per tile for the data format."""
         num_exponents = 0
-        if self in {DataFormat.Bfp8, DataFormat.Bfp8_b}:
+        if self in {
+            DataFormat.Bfp8,
+            DataFormat.Bfp8_b,
+            DataFormat.Bfp4,
+            DataFormat.Bfp4_b,
+            DataFormat.Bfp2,
+            DataFormat.Bfp2_b,
+        }:
             num_exponents = num_datums // 16
         return (self.size * num_datums) + num_exponents
 

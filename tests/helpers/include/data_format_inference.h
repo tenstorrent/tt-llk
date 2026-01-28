@@ -37,22 +37,62 @@ constexpr bool is_quasar    = true;
  * including unpacking, math operations, and packing.
  *
  * Each member represents the data format used at a specific stage:
- * - unpack_src: unpacker input format found in L1.
- * - unpack_dst: unpacker output format when unpacking from L1 to the register(s).
+ * - unpack_A_src: unpacker A input format found in L1.
+ * - unpack_A_dst: unpacker A output format when unpacking from L1 to the register(s).
+ * - unpack_B_src: unpacker B input format found in L1.
+ * - unpack_B_dst: unpacker B output format when unpacking from L1 to the register(s).
  * - math: math format used during compute operations and storing in dest register.
  * - pack_src: packer input format, when packing from dest register to L1.
  * - pack_dst: packer output format, desired result format in L1.
+ *
+ * Note: For backward compatibility, unpack_src and unpack_dst are provided as aliases to unpack_A_src/dst.
  */
 struct FormatConfig
 {
-    const uint32_t unpack_src;
-    const uint32_t unpack_dst;
+    const uint32_t unpack_A_src;
+    const uint32_t unpack_A_dst;
+    const uint32_t unpack_B_src;
+    const uint32_t unpack_B_dst;
     const uint32_t math;
     const uint32_t pack_src;
     const uint32_t pack_dst;
 
+    // Backward compatibility: unpack_src and unpack_dst fields alias to unpack_A
+    const uint32_t& unpack_src;
+    const uint32_t& unpack_dst;
+
+    // Constructor for same formats (5 parameters) - backward compatible
     constexpr FormatConfig(uint32_t unpack_src_, uint32_t unpack_dst_, uint32_t math_, uint32_t pack_src_, uint32_t pack_dst_) :
-        unpack_src(unpack_src_), unpack_dst(unpack_dst_), math(math_), pack_src(pack_src_), pack_dst(pack_dst_)
+        unpack_A_src(unpack_src_),
+        unpack_A_dst(unpack_dst_),
+        unpack_B_src(unpack_src_),
+        unpack_B_dst(unpack_dst_),
+        math(math_),
+        pack_src(pack_src_),
+        pack_dst(pack_dst_),
+        unpack_src(unpack_A_src),
+        unpack_dst(unpack_A_dst)
+    {
+    }
+
+    // Constructor for different A/B formats (7 parameters)
+    constexpr FormatConfig(
+        uint32_t unpack_A_src_,
+        uint32_t unpack_A_dst_,
+        uint32_t unpack_B_src_,
+        uint32_t unpack_B_dst_,
+        uint32_t math_,
+        uint32_t pack_src_,
+        uint32_t pack_dst_) :
+        unpack_A_src(unpack_A_src_),
+        unpack_A_dst(unpack_A_dst_),
+        unpack_B_src(unpack_B_src_),
+        unpack_B_dst(unpack_B_dst_),
+        math(math_),
+        pack_src(pack_src_),
+        pack_dst(pack_dst_),
+        unpack_src(unpack_A_src),
+        unpack_dst(unpack_A_dst)
     {
     }
 };

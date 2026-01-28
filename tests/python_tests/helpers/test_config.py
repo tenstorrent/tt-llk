@@ -389,15 +389,27 @@ def generate_build_header(test_config):
     # Check if we need to generate multiple format configurations
     l1_to_l1_iterations = test_config.get("L1_to_L1_iterations", 1)
 
-    formats_config = data_formats(
-        input_format=formats.input_format,
-        output_format=formats.output_format,
-        is_fp32_dest_acc_en=dest_acc,
-        num_iterations=l1_to_l1_iterations,
-        unpacking_to_dest=unpack_to_dest == "true",
-        chip_arch=get_chip_architecture(),
-        disable_format_inference=test_config.get("disable_format_inference", False),
+    # Check if user has provided explicit A/B formats (different from each other)
+    # If so, use them directly instead of running format inference
+    has_explicit_ab_formats = (
+        hasattr(formats, "unpack_B_src")
+        and formats.unpack_A_src != formats.unpack_B_src
     )
+
+    if has_explicit_ab_formats:
+        # User provided explicit A/B formats, use them directly
+        formats_config = [formats]
+    else:
+        # Run format inference as before
+        formats_config = data_formats(
+            input_format=formats.input_format,
+            output_format=formats.output_format,
+            is_fp32_dest_acc_en=dest_acc,
+            num_iterations=l1_to_l1_iterations,
+            unpacking_to_dest=unpack_to_dest == "true",
+            chip_arch=get_chip_architecture(),
+            disable_format_inference=test_config.get("disable_format_inference", False),
+        )
 
     if l1_to_l1_iterations > 1:
         # Generate format data as arrays that params.h can use to construct FormatConfig objects
@@ -425,11 +437,21 @@ def generate_build_header(test_config):
             f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.pack_dst.name})"
             for fmt in formats_config
         ]
+        unpack_b_in_values = [
+            f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_B_src.name})"
+            for fmt in formats_config
+        ]
+        unpack_b_out_values = [
+            f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_B_dst.name})"
+            for fmt in formats_config
+        ]
 
         header_content.extend(
             [
                 f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_IN_LIST = {{{', '.join(unpack_a_in_values)}}};",
                 f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_OUT_LIST = {{{', '.join(unpack_a_out_values)}}};",
+                f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_B_IN_LIST = {{{', '.join(unpack_b_in_values)}}};",
+                f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_B_OUT_LIST = {{{', '.join(unpack_b_out_values)}}};",
                 f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> MATH_FORMAT_LIST = {{{', '.join(math_values)}}};",
                 f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_IN_LIST = {{{', '.join(pack_in_values)}}};",
                 f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_OUT_LIST = {{{', '.join(pack_out_values)}}};",
@@ -445,6 +467,8 @@ def generate_build_header(test_config):
             [
                 f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_src.name});",
                 f"constexpr auto UNPACK_A_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_dst.name});",
+                f"constexpr auto UNPACK_B_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_B_src.name});",
+                f"constexpr auto UNPACK_B_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_B_dst.name});",
                 f"constexpr auto MATH_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.math.name});",
                 f"constexpr auto PACK_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_src.name});",
                 f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_dst.name});",

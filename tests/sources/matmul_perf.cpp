@@ -33,10 +33,10 @@ void run_kernel()
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_AB_matmul_hw_configure_<is_fp32_dest_acc_en, StochRndType::None>(
-            formats.unpack_src,
-            formats.unpack_src,
-            formats.unpack_dst,
-            formats.unpack_dst,
+            formats.unpack_B_src,
+            formats.unpack_A_src,
+            formats.unpack_B_dst,
+            formats.unpack_A_dst,
             FACE_R_DIM,
             FACE_R_DIM,
             /* transpose within face */ false,
@@ -93,7 +93,7 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_math_hw_configure_<false, false>(formats.math, formats.math);
+        _llk_math_hw_configure_<false, false>(formats.unpack_B_dst, formats.unpack_A_dst);
         _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
         _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor, THROTTLE_LEVEL>(
             /* tile A */ TILE_R_DIM,
