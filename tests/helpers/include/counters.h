@@ -121,6 +121,20 @@ enum class CounterMode : uint8_t
     GRANTS   = 1,
 };
 
+// Helper functions for direct register access
+namespace detail
+{
+inline void write_reg(uint32_t addr, uint32_t value)
+{
+    *reinterpret_cast<volatile uint32_t*>(addr) = value;
+}
+
+inline uint32_t read_reg(uint32_t addr)
+{
+    return *reinterpret_cast<volatile uint32_t*>(addr);
+}
+} // namespace detail
+
 struct CounterResult
 {
     uint32_t cycles;
@@ -272,10 +286,6 @@ public:
     {
         volatile uint32_t* config_mem = get_config_mem();
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
-        volatile uint32_t* dbg_regs = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
-
         // First pass: count valid configs, determine mode, and build bank present mask
         uint32_t present_mask = 0;
         num_counters          = 0;
@@ -329,33 +339,26 @@ public:
             // Configure L1 MUX if needed
             if (bank == CounterBank::L1)
             {
-                uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
-                uint32_t cur            = dbg_regs[mux_ctrl_addr];
-                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((l1_mux & 0x1u) << 4);
+                uint32_t cur = detail::read_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL);
+                detail::write_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL, (cur & ~(1u << 4)) | ((l1_mux & 0x1u) << 4));
             }
 
             // Start the bank
-            uint32_t counter_base          = get_counter_base_addr(bank);
-            uint32_t counter_reg_addr      = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
-            dbg_regs[counter_reg_addr]     = 0xFFFFFFFF;
-            dbg_regs[counter_reg_addr + 1] = 0;
-            dbg_regs[counter_reg_addr + 2] = 0;
-            dbg_regs[counter_reg_addr + 2] = 1; // Start
+            uint32_t counter_base = get_counter_base_addr(bank);
+            detail::write_reg(counter_base, 0xFFFFFFFF); // Reference period
+            detail::write_reg(counter_base + 4, 0);      // Mode register
+            detail::write_reg(counter_base + 8, 0);      // Clear start/stop
+            detail::write_reg(counter_base + 8, 1);      // Start (rising edge)
 
             started_mask |= bank_bit;
         }
-#pragma GCC diagnostic pop
     }
 
     std::array<CounterResult, COUNTER_SLOT_COUNT> stop()
     {
         std::array<CounterResult, COUNTER_SLOT_COUNT> results;
         volatile uint32_t* config_mem = get_config_mem();
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
-        volatile uint32_t* dbg_regs = reinterpret_cast<volatile uint32_t*>(RISCV_DEBUG_REGS_START_ADDR);
-        volatile uint32_t* data_mem = get_data_mem();
+        volatile uint32_t* data_mem   = get_data_mem();
 
         // First pass: stop all banks
         uint32_t stopped_mask = 0;
@@ -375,12 +378,11 @@ public:
                 continue;
             }
 
-            CounterBank bank  = static_cast<CounterBank>(bank_id);
-            uint32_t base     = get_counter_base_addr(bank);
-            uint32_t reg_addr = (base - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            CounterBank bank = static_cast<CounterBank>(bank_id);
+            uint32_t base    = get_counter_base_addr(bank);
 
-            dbg_regs[reg_addr + 2] = 0; // Clear
-            dbg_regs[reg_addr + 2] = 2; // Stop (bit1 0->1)
+            detail::write_reg(base + 8, 0); // Clear
+            detail::write_reg(base + 8, 2); // Stop (bit1 0->1)
 
             stopped_mask |= bank_bit;
         }
@@ -405,26 +407,24 @@ public:
             // Configure L1 MUX if needed before reading
             if (bank == CounterBank::L1)
             {
-                uint32_t mux_ctrl_addr  = (RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL - RISCV_DEBUG_REGS_START_ADDR) / 4;
-                uint32_t cur            = dbg_regs[mux_ctrl_addr];
-                dbg_regs[mux_ctrl_addr] = (cur & ~(1u << 4)) | ((l1_mux & 0x1u) << 4);
+                uint32_t cur = detail::read_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL);
+                detail::write_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL, (cur & ~(1u << 4)) | ((l1_mux & 0x1u) << 4));
             }
 
-            uint32_t counter_base     = get_counter_base_addr(bank);
-            uint32_t counter_reg_addr = (counter_base - RISCV_DEBUG_REGS_START_ADDR) / 4;
+            uint32_t counter_base = get_counter_base_addr(bank);
 
             // Select the desired counter and req/grant output in mode register
-            dbg_regs[counter_reg_addr + 1] = (static_cast<uint32_t>(counter_id) << 8) | mode_value;
+            detail::write_reg(counter_base + 4, (static_cast<uint32_t>(counter_id) << 8) | mode_value);
 
             // Allow selection/mux to settle: perform a dummy read sequence
-            uint32_t output_low_addr  = (get_counter_output_low_addr(bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
-            uint32_t output_high_addr = (get_counter_output_high_addr(bank) - RISCV_DEBUG_REGS_START_ADDR) / 4;
-            (void)dbg_regs[output_low_addr];
-            (void)dbg_regs[output_high_addr];
+            uint32_t output_low_addr  = get_counter_output_low_addr(bank);
+            uint32_t output_high_addr = get_counter_output_high_addr(bank);
+            (void)detail::read_reg(output_low_addr);
+            (void)detail::read_reg(output_high_addr);
 
             // Read outputs again for the actual value
-            results[result_idx].cycles     = dbg_regs[output_low_addr];
-            results[result_idx].count      = dbg_regs[output_high_addr];
+            results[result_idx].cycles     = detail::read_reg(output_low_addr);
+            results[result_idx].count      = detail::read_reg(output_high_addr);
             results[result_idx].bank       = bank;
             results[result_idx].counter_id = counter_id;
 
@@ -434,7 +434,6 @@ public:
 
             result_idx++;
         }
-#pragma GCC diagnostic pop
 
         return results;
     }
