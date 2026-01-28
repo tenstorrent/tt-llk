@@ -309,6 +309,14 @@ class ADD_TOP_ROW(TemplateParameter):
         return f"constexpr bool ADD_TOP_ROW = {str(self.add_top_row).lower()};"
 
 
+@dataclass
+class BLOCK_CT_DIM(TemplateParameter):
+    block_ct_dim: int
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr uint32_t BLOCK_CT_DIM = {self.block_ct_dim};"
+
+
 # === RUNTIME PARAMETER IMPLEMENTATIONS ===
 
 

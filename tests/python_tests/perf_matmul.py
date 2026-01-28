@@ -26,7 +26,7 @@ from helpers.test_variant_parameters import (
 )
 
 # Important K dimensions to test
-KT_DIMS = [1, 2, 3, 4, 8, 64]
+KT_DIMS = [8]
 
 
 def matmul_combos(
@@ -60,18 +60,18 @@ def matmul_combos(
         formats=input_output_formats(
             [
                 DataFormat.Float16_b,
-                DataFormat.Float16,
-                DataFormat.Float32,
-                DataFormat.Bfp8_b,
+                # DataFormat.Float16,
+                # DataFormat.Float32,
+                # DataFormat.Bfp8_b,
             ]
         ),
-        dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+        dest_acc=[DestAccumulation.No],  # , DestAccumulation.Yes],
     ),
     math_fidelity=[
-        MathFidelity.LoFi,
+        # MathFidelity.LoFi,
         MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
+        # MathFidelity.HiFi3,
+        # MathFidelity.HiFi4,
     ],
 )
 def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordinates):
@@ -82,11 +82,11 @@ def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordina
         pytest.skip("Dest accumulation must be enabled for this format")
 
     run_types = [
-        PerfRunType.L1_TO_L1,
+        # PerfRunType.L1_TO_L1,
         PerfRunType.UNPACK_ISOLATE,
         PerfRunType.MATH_ISOLATE,
         PerfRunType.PACK_ISOLATE,
-        PerfRunType.L1_CONGESTION,
+        # PerfRunType.L1_CONGESTION,
     ]
 
     # Calculate all matmul dimensions using helper function

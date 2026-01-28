@@ -61,7 +61,7 @@ from helpers.test_variant_parameters import (
         # DestAccumulation.Yes,
     ],
     loop_factor=[
-        16,
+        64,
     ],  # Number of iterations to run the test in order to minimize profiler overhead in measurement
     iterations=[
         32,
@@ -154,6 +154,26 @@ def test_perf_eltwise_unary_sfpu(
     unpack_to_dest = (
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
     )
+
+    print("PerfConfig parameters:")
+    print(f"  source file: sources/eltwise_unary_sfpu_perf.cpp")
+    print(f"  formats: {formats}")
+    print(
+        f"  run_types: {[PerfRunType.L1_TO_L1, PerfRunType.UNPACK_ISOLATE, PerfRunType.MATH_ISOLATE, PerfRunType.PACK_ISOLATE, PerfRunType.L1_CONGESTION]}"
+    )
+    print(f"  input_dimensions: {input_dimensions}")
+    print(f"  mathop: {mathop}")
+    print(f"  approx_mode: {approx_mode}")
+    print(f"  iterations: {iterations}")
+    print(f"  fast_mode: {fast_mode}")
+    print(f"  stable_sort: {stable_sort}")
+    print(f"  tile_count_A: {tile_count_A}")
+    print(f"  loop_factor: {loop_factor}")
+    print(f"  faces_to_generate (num_faces): {faces_to_generate}")
+    print(f"  unpack_to_dest: {unpack_to_dest}")
+    print(f"  dest_acc: {dest_acc}")
+    print(f"  tile_count_B: {tile_count_B}")
+    print(f"  output_format: {formats.output_format}")
 
     configuration = PerfConfig(
         "sources/eltwise_unary_sfpu_perf.cpp",

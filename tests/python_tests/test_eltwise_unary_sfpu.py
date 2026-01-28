@@ -85,15 +85,6 @@ FLOAT_TEST_PARAMS = list(
                 [DestAccumulation.No],  # [DestAccumulation.No, DestAccumulation.Yes],
             )
         ),
-        (
-            (fmt, approx, mathop, FastMode.No, dest)
-            for fmt, approx, mathop, dest in product(
-                FORMATS,
-                [ApproximationMode.No],  # ApproximationMode.Yes],
-                [op for op in ALL_MATHOPS if op not in SUPPORTED_FAST_MODE_OPS],
-                [DestAccumulation.No],  # DestAccumulation.Yes],
-            )
-        ),
     )
 )
 

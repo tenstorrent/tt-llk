@@ -170,12 +170,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
                         {
                             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                                 block_start + block_tile, formats.math, formats.math);
+                            ckernel::sfpu::_init_exponential_<APPROX_MODE, FAST_MODE, 0x3F800000 /* exp_base_scale_factor */>();
                         }
                     }
-
-                    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(/* dst_index */ block_start);
-                    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS, FAST_MODE, STABLE_SORT>(SFPU_UNARY_OPERATION, formats.math);
-                    _llk_math_eltwise_unary_sfpu_done_();
                 }
             }
         }

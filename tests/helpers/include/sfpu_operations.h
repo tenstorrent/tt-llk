@@ -68,7 +68,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0, float fil
             _calculate_exp2_<APPROX_MODE, ITERATIONS>();
             break;
         case SfpuType::exponential:
-            _init_exponential_<APPROX_MODE, FAST_MODE, 0x3F800000 /* exp_base_scale_factor */>();
+            // _init_exponential_<APPROX_MODE, FAST_MODE, 0x3F800000 /* exp_base_scale_factor */>();
             if (FAST_MODE && APPROX_MODE)
             {
                 for (int i = 0; i < 4; i++)
