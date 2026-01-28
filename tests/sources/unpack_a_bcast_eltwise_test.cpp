@@ -11,9 +11,9 @@
 #include "llk_defs.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -28,7 +28,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_unpack_bcastA_B_init_();
 
     // Single call works on 1 tile that goes to srcA and then reuses it for 4 srcB tiles that are changeable
-    for (int i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
+    for (std::uint32_t i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
     {
         _llk_unpack_bcastA_B_(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i * params->SRCA_REUSE_COUNT]), params->SRCA_REUSE_COUNT);
     }
@@ -46,11 +46,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
 {
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, 0>(params->SRCA_REUSE_COUNT);
+    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, MATH_FIDELITY>(params->SRCA_REUSE_COUNT);
 
     _llk_math_wait_for_dest_available_<dest_sync>();
 
-    for (int i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
+    for (std::uint32_t i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
     {
         _llk_math_eltwise_binary_(i * params->SRCA_REUSE_COUNT /* dst_index */);
     }
@@ -83,7 +83,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params->TILE_CNT; i++)
+    for (std::uint32_t i = 0; i < params->TILE_CNT; i++)
     {
         _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }

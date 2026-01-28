@@ -11,9 +11,9 @@
 #include "params.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
 
 constexpr std::uint32_t within_face_16x16_transpose = (REDUCE_DIM == ckernel::ReduceDim::REDUCE_ROW) ? 1 : 0;
 constexpr bool row_pool                             = (REDUCE_DIM == ckernel::ReduceDim::REDUCE_ROW);
@@ -51,7 +51,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const std::uint32_t math_fid         = 4;
+    constexpr MathFidelity math_fid      = MathFidelity::HiFi4;
     const bool is_int_fpu_en             = false;
     const bool enforce_fp32_accumulation = false;
     _llk_math_pack_sync_init_<DstSync::SyncFull, is_fp32_dest_acc_en>();

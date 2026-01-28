@@ -15,10 +15,10 @@
 #include "profiler.h"
 
 // Globals
-uint32_t unp_cfg_context            = 0;
-uint32_t pack_sync_tile_dst_ptr     = 0;
-uint32_t math_sync_tile_dst_index   = 0;
-static constexpr int MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
+std::uint32_t unp_cfg_context                 = 0;
+std::uint32_t pack_sync_tile_dst_ptr          = 0;
+std::uint32_t math_sync_tile_dst_index        = 0;
+static constexpr std::uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -55,9 +55,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE != PerfRunType::PACK_ISOLATE)
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int i = 0; i < params->TILE_CNT; ++i)
+                for (std::uint32_t i = 0; i < params->TILE_CNT; ++i)
                 {
                     _llk_unpack_A_<BroadcastType::NONE, is_fp32_dest_acc_en, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
                         PERF_ADDRESS(PERF_INPUT_A, /* tile_idx */ i), formats.unpack_src, formats.unpack_dst);
@@ -95,9 +95,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             if constexpr (unpack_to_dest)
             {
-                for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+                for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; ++loop)
                 {
-                    for (int i = 0; i < params->TILE_CNT; ++i)
+                    for (std::uint32_t i = 0; i < params->TILE_CNT; ++i)
                     {
                         // Only perform synchronization with unpacker, it does not copy
                         // the data when unpack_to_dest is true - as data is already in dest.
@@ -119,12 +119,12 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             if constexpr (unpack_to_dest)
             {
-                for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+                for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; ++loop)
                 {
-                    for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                    for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                     {
-                        int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
-                        for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                        std::uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                        for (std::uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                         {
                             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                                 block_start + block_tile, formats.math, formats.math);
@@ -136,13 +136,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
             }
             else
             {
-                for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+                for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; ++loop)
                 {
-                    for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                    for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                     {
-                        int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                        std::uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
-                        for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                        for (std::uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                         {
                             _perf_math_loop_clear_valid<
                                 /* src A */ true,
@@ -158,15 +158,15 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
                     if constexpr (!unpack_to_dest)
                     {
-                        int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                        std::uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
-                        for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                        for (std::uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                         {
                             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                                 block_start + block_tile, formats.math, formats.math);
@@ -181,16 +181,16 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE != PerfRunType::PACK_ISOLATE)
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    std::uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
                     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
                     // Copy from srcA to dest
-                    for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (std::uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
                         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                             block_start + block_tile, formats.math, formats.math);
@@ -240,13 +240,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    std::uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
-                    for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (std::uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
                         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, /* untilize */ false>(
                             block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
@@ -256,14 +256,14 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_TO_L1 || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    std::uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
                     _llk_packer_wait_for_math_done_();
-                    for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (std::uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
                         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, /* untilize */ false>(
                             block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));

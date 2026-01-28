@@ -90,7 +90,7 @@ class MatmulFpu(Fpu):
 
     def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
-        math_fidelity = operation.math_fidelity.value
+        math_fidelity = operation.math_fidelity.cpp_enum_value
         ct_dim = operation.ct_dim
         rt_dim = operation.rt_dim
         transpose = "true" if operation.unpack_transpose_faces.value else "false"
@@ -106,7 +106,7 @@ class MatmulFpu(Fpu):
         ct_dim = operation.ct_dim
         rt_dim = operation.rt_dim
         kt_dim = operation.kt_dim
-        math_fidelity = operation.math_fidelity.value
+        math_fidelity = operation.math_fidelity.cpp_enum_value
         return (
             f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
             f"    {{\n"
@@ -148,7 +148,7 @@ class EltwiseFpu(Fpu):
 
     def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
-        math_fidelity = operation.math_fidelity.value
+        math_fidelity = operation.math_fidelity.cpp_enum_value
         op = self.operation.cpp_enum_value
         num_faces = operation.num_faces
 
@@ -159,7 +159,7 @@ class EltwiseFpu(Fpu):
 
     def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
-        math_fidelity = operation.math_fidelity.value
+        math_fidelity = operation.math_fidelity.cpp_enum_value
         dest_acc = config.dest_acc.value
         tile_cnt = operation.output.tile_count
         op = self.operation.cpp_enum_value
@@ -237,7 +237,7 @@ class ReduceFpu(Fpu):
 
     def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
-        math_fidelity = operation.math_fidelity.value
+        math_fidelity = operation.math_fidelity.cpp_enum_value
         dest_acc = config.dest_acc.value
         pool_type_cpp = f"PoolType::{self.pool.value}"
         reduce_dim_cpp = self.reduce_dim()
@@ -248,7 +248,7 @@ class ReduceFpu(Fpu):
         )
 
     def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        math_fidelity = operation.math_fidelity.value
+        math_fidelity = operation.math_fidelity.cpp_enum_value
         dest_acc = config.dest_acc.value
         tile_cnt = operation.output.tile_count
         num_faces = operation.num_faces
@@ -724,7 +724,7 @@ class Math:
 
         code = (
             f"    // Operation {stage}: Math Setup\n"
-            f"    const uint32_t math_format{stage} = static_cast<std::underlying_type_t<DataFormat>>({format});\n"
+            f"    const std::uint32_t math_format{stage} = ckernel::to_underlying({format});\n"
             f"    const DstSync dest_sync{stage} = DstSync::Sync{operation.dest_sync.name};\n"
         )
 
