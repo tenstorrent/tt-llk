@@ -68,6 +68,7 @@ class Packer:
     def _batch_loop(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         batch_size = operation.batch_size
         tile_cnt = operation.output.tile_count
+<<<<<<< HEAD
         tiles_h = operation.output_tiles_h
         tiles_w = operation.output_tiles_w
 
@@ -106,6 +107,22 @@ class Packer:
             code += "}\n"
             code += self._dest_section_done(config)
 
+=======
+        code = ""
+        batch_start = 0
+        while batch_start < tile_cnt:
+            code += self._wait_for_math()
+            batch_end = min(batch_start + batch_size, tile_cnt)
+            for dest_idx in range(batch_end - batch_start):
+                global_tile_idx = batch_start + dest_idx
+                tr = global_tile_idx // operation.dest_tiles_w
+                tc = global_tile_idx % operation.dest_tiles_w
+                if tr < operation.output_tiles_h and tc < operation.output_tiles_w:
+                    l1_idx = tr * operation.output_tiles_w + tc
+                    code += self.pack(operation, config, dest_idx, l1_idx)
+            batch_start = batch_end
+            code += self._dest_section_done(config)
+>>>>>>> bd46663d (tile by tile matmul calc)
         return code
 
     def _generate_tile_loop(
@@ -246,8 +263,13 @@ class Packer:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
+<<<<<<< HEAD
         dest_idx,
         l1_idx,
+=======
+        dest_idx: int = 0,
+        l1_idx: int = 0,
+>>>>>>> bd46663d (tile by tile matmul calc)
     ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value

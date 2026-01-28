@@ -153,6 +153,11 @@ class FusedOperation:
             tile_count = self.output.tile_count
             if self.batch_size != 1 and self.batch_size != tile_count:
                 self.batch_size = tile_count
+<<<<<<< HEAD
+=======
+
+        print(self.batch_size)
+>>>>>>> bd46663d (tile by tile matmul calc)
 
     @property
     def src_a(self) -> Operand:
