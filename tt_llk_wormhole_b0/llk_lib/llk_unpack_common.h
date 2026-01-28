@@ -71,33 +71,71 @@ inline void _llk_unpack_configure_stoch_rnd_()
 // TODO NC: Clean up as the part of tt-metal#34499
 template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srca_impl_(
-    const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
+    const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size, const std::uint32_t unpack_face_r_dim = FACE_R_DIM, const std::uint32_t unpack_num_faces = 4)
 {
+    LLK_ASSERT(unpack_num_faces == 1 || unpack_num_faces == 2 || unpack_num_faces == 4, "unpack_num_faces must be 1, 2, or 4");
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK0);
     if constexpr (to_from_int8)
     {
         static_assert(is_fp32_dest_acc_en, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcAUnsigned_RMW>(((uint)unpack_src_format == (uint)DataFormat::UInt8) ? 1 : 0);
     }
+
+    uint unpack_ch1_x_stride = (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
+                             : (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
+                                                                                          : 1;
+    uint unpack_ch1_z_stride = FACE_C_DIM * FACE_R_DIM * unpack_ch1_x_stride;
+    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(unpack_ch1_z_stride);
+
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32, 0, 0x0f>(unpack_src_format);
+    // Set Z-dim to number of faces
+    cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 0, 0xffff0000>(0 | (unpack_num_faces << 16));
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Out_data_format_RMW>(unpack_dst_format);
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_A)); // update gpr which holds tile size A
+
+    uint unpA_x_end = (unpack_face_r_dim == 0) ? 1 : (unpack_face_r_dim << 4) - 1;
+    TT_SETADCXX(p_setadc::UNP_A, unpA_x_end, 0x0);
+
+    // Program base address for all 2 sections (each section address is loaded to corresponding context)
+    // Load dummy data to unused location if face height is 0
+    const uint Dest_cntx0_address                  = unpack_face_r_dim == 0 ? 22 * 16 : 4 * 16;
+    const uint Dest_cntx1_address                  = unpack_face_r_dim == 0 ? 22 * 16 : 4 * 16;
+    cfg_reg_rmw_tensix<THCON_SEC0_REG5_Dest_cntx0_address_ADDR32, 0, 0xffffffff>(Dest_cntx0_address | (Dest_cntx1_address << 16));
+
+    // Program unpacker0 per context x_dim (face size in l1)
+    // Overrides value set by tile descriptor when thread override bit is set in unpack instruction
+    const uint face_dim                          = unpack_face_r_dim * FACE_C_DIM;
+    cfg_reg_rmw_tensix<THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32, 0, 0xffffffff>(face_dim | (face_dim << 16));
 }
 
 // TODO NC: Clean up as the part of tt-metal#34499
 template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srcb_impl_(
-    const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
+    const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size, const std::uint32_t unpack_face_r_dim = FACE_R_DIM, const std::uint32_t unpack_num_faces = 4)
 {
+    LLK_ASSERT(unpack_num_faces == 1 || unpack_num_faces == 2 || unpack_num_faces == 4, "unpack_num_faces must be 1, 2, or 4");
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
     if constexpr (to_from_int8)
     {
         static_assert(is_fp32_dest_acc_en, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcBUnsigned_RMW>(((uint)unpack_src_format == (uint)DataFormat::UInt8) ? 1 : 0);
     }
-    cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32, 0, 0x0f>(unpack_src_format);
+
+    uint unpack_ch1_x_stride = (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
+                             : (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
+                                                                                          : 1;
+    uint unpack_ch1_z_stride = FACE_C_DIM * FACE_R_DIM * unpack_ch1_x_stride;
+    cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(unpack_ch1_z_stride);
+
+    // Set source format and set X-dim to face_r_dim * FACE_C_DIM
+    cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32, 0, 0xffff000f>(unpack_src_format | (unpack_face_r_dim * FACE_C_DIM) << 16);
+    // Set Z-dim to number of faces
+    cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32 + 1, 0, 0xffff0000>(0 | (unpack_num_faces << 16));
+
     cfg_reg_rmw_tensix<THCON_SEC1_REG2_Out_data_format_RMW>(unpack_dst_format);
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_B)); // update gpr which holds tile size B
+
+    TT_SETADCXX(p_setadc::UNP_B, (unpack_face_r_dim << 4) - 1, 0x0);
 }
 
 // TODO NC: Remove as a part of tt-metal#36411
