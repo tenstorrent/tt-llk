@@ -98,6 +98,7 @@ def extract_row_from_tilized(tilized_tensor, row_index, data_format):
     input_dimensions=[[32, 32]],
     row_index=list(range(32)),
     transpose_A=[Transpose.Yes, Transpose.No],
+    math_op=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
 )
 def test_tilized_eltwise_transpose_bcast(
     formats,
@@ -106,6 +107,7 @@ def test_tilized_eltwise_transpose_bcast(
     input_dimensions,
     row_index,
     transpose_A,
+    math_op,
     workers_tensix_coordinates,
 ):
     """
@@ -114,7 +116,7 @@ def test_tilized_eltwise_transpose_bcast(
     - srcA: normal tilized input (optionally transposed via unpacker)
     - srcB: for golden calculation, we extract the specific row (based on row_index),
             transpose it, then apply column broadcast
-    - Operation: element-wise subtraction (elwsub)
+    - Operation: element-wise binary operation (elwadd, elwsub, or elwmul)
 
     row_index determines which row of the 32x32 tile to broadcast:
     - 0-15: Row from top half (F0Rn and F1Rn)
@@ -200,10 +202,10 @@ def test_tilized_eltwise_transpose_bcast(
             num_faces=4,
         )
 
-    # Step 7: Compute element-wise subtraction in tilized format
+    # Step 7: Compute element-wise binary operation in tilized format
     binary_golden = get_golden_generator(EltwiseBinaryGolden)
     golden_tensor = binary_golden(
-        MathOperation.Elwsub,
+        math_op,
         src_A_tilized_for_golden,  # Tilized srcA (optionally transposed)
         src_B_broadcasted_tilized,  # Row-extracted + transposed + column broadcasted srcB
         formats.output_format,
@@ -217,7 +219,7 @@ def test_tilized_eltwise_transpose_bcast(
         templates=[
             MATH_FIDELITY(math_fidelity),
             BROADCAST_TYPE(BroadcastType.Row),
-            MATH_OP(mathop=MathOperation.Elwsub),
+            MATH_OP(mathop=math_op),
             DEST_SYNC(),
             UNPACK_TRANS_FACES(transpose_A),
             UNPACK_TRANS_WITHIN_FACE(transpose_A),
