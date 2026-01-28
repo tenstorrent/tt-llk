@@ -115,9 +115,12 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 {
                     for (uint32_t block_tile = 0; block_tile < BLOCK_CT_DIM; block_tile++)
                     {
-                        math_unpack_to_dest_math_ready();
-                        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(block_tile);
-                        math::math_unpack_to_dest_tile_ready();
+                        // In this case, unpacker needs software synchronization from math - to acknowledge that destination register is
+                        // "consumed" and can be overwritten with new data.
+                        // Due to the fact that BROADCAST_TYPE is always NONE in the test and combination of unpack_to_dest and 32b data is always set,
+                        // this method will perform synchronization only and no actual data copy.
+                        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                            block_tile, formats.math, formats.math);
                     }
                 }
             }

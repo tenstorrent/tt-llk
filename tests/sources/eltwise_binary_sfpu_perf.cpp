@@ -47,6 +47,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
+            // In case of math isolate, we don't want any software synchronization from unpack to math.
+            // So we just set/clear valid bits here - which is unavoidable hardware synchronization.
+            // When unpack_to_dest is used, we assume the data is immediately ready in destination register.
+            // Otherwise, we assume the data is immediately ready in source A/B registers.
             if (!unpack_to_dest)
             {
                 // Set valid for source A always.
@@ -100,67 +104,63 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
         {
-            if constexpr (unpack_to_dest)
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+                for (int i = 0; i < params->TILE_CNT; ++i)
                 {
-                    for (int i = 0; i < params->TILE_CNT; ++i)
+                    // For unpack isolate scenario, math should only perform necessary synchronization and nothing else.
+                    if constexpr (unpack_to_dest)
                     {
-                        math_unpack_to_dest_math_ready();
-                        math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(i % MAX_TILES_DEST);
-                        math::math_unpack_to_dest_tile_ready();
+                        // In this case, unpacker needs software synchronization from math - to acknowledge that destination register is
+                        // "consumed" and can be overwritten with new data.
+                        // Due to the fact that BROADCAST_TYPE is always NONE in the test and combination of unpack_to_dest and 32b data is always set,
+                        // this method will perform synchronization only and no actual data copy.
+                        _llk_math_eltwise_unary_datacopy_<data_copy_type, DST_SYNC_MODE, is_fp32_dest_acc_en, BROADCAST_TYPE, unpack_to_dest>(
+                            i % MAX_TILES_DEST, formats.math, formats.math);
+                    }
+                    else
+                    {
+                        // Perform only necessary hardware synchronization to indicate that source registers are consumed.
+                        _perf_math_loop_clear_valid<
+                            /* src A */ true,
+                            /* src B */ true>(
+                            /* iterations*/ params->num_faces);
                     }
                 }
-            }
-            else
-            {
-                // Clear valid for sources A and B
-                _perf_math_loop_clear_valid<
-                    /* src A */ true,
-                    /* src B */ true>(
-                    /* iterations*/ params->num_faces * params->TILE_CNT * params->LOOP_FACTOR);
             }
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            if constexpr (unpack_to_dest)
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
-                    {
-                        int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
-                        for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    _llk_math_wait_for_dest_available_<DST_SYNC_MODE>();
+
+                    for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    {
+                        if constexpr (unpack_to_dest)
                         {
-                            math_unpack_to_dest_math_ready();
-                            math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(block_tile);
-                            math::math_unpack_to_dest_tile_ready();
+                            // In this case, unpacker needs software synchronization from math - to acknowledge that destination register is
+                            // "consumed" and can be overwritten with new data.
+                            // Due to the fact that BROADCAST_TYPE is always NONE in the test and combination of unpack_to_dest and 32b data is always set,
+                            // this method will perform synchronization only and no actual data copy.
+                            _llk_math_eltwise_unary_datacopy_<data_copy_type, DST_SYNC_MODE, is_fp32_dest_acc_en, BROADCAST_TYPE, unpack_to_dest>(
+                                block_tile, formats.math, formats.math);
                         }
-
-                        _llk_math_dest_section_done_<DST_SYNC_MODE, is_fp32_dest_acc_en>();
-                    }
-                }
-            }
-            else
-            {
-                for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
-                {
-                    for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
-                    {
-                        int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
-
-                        for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                        else
                         {
+                            // Perform only necessary hardware synchronization to indicate that source registers are consumed.
                             _perf_math_loop_clear_valid<
                                 /* src A */ true,
                                 /* src B */ true>(
                                 /* iterations*/ params->num_faces);
                         }
-
-                        _llk_math_wait_for_dest_available_<DST_SYNC_MODE>();
-                        _llk_math_dest_section_done_<DST_SYNC_MODE, is_fp32_dest_acc_en>();
                     }
+
+                    _llk_math_dest_section_done_<DST_SYNC_MODE, is_fp32_dest_acc_en>();
                 }
             }
         }
@@ -174,6 +174,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
                     for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
+                        // When data is not unpacked to dest, math needs to copy data from srcA to dest before starting SFPU operation.
+                        // Otherwise, data is immediately ready in destination register.
                         if constexpr (!unpack_to_dest)
                         {
                             _llk_math_eltwise_unary_datacopy_<data_copy_type, DST_SYNC_MODE, is_fp32_dest_acc_en, BROADCAST_TYPE, unpack_to_dest>(
