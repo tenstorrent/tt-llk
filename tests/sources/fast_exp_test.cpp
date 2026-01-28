@@ -69,12 +69,6 @@ void calculate_exponential(const uint exp_base_scale_factor = p_sfpu::kCONST_1_F
     _calculate_exponential_<APPROXIMATION_MODE, SCALE_EN, ITERATIONS, FAST_APPROX, SKIP_POSITIVE_CHECK>(exp_base_scale_factor);
 }
 
-template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale = 0x3F800000>
-void exp_init()
-{
-    _init_exponential_<APPROXIMATION_MODE, FAST_APPROX, scale>();
-}
-
 } // namespace sfpu
 } // namespace ckernel
 
