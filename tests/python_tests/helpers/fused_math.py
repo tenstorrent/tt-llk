@@ -159,7 +159,7 @@ class EltwiseFpu(Fpu):
 
     def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
-        math_fidelity = operation.math_fidelity.value
+        math_fidelity = operation.math_fidelity.cpp_enum_value
         dest_acc = config.dest_acc.value
         tile_cnt = operation.output.tile_count
         op = self.operation.cpp_enum_value
@@ -237,7 +237,7 @@ class ReduceFpu(Fpu):
 
     def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
-        math_fidelity = operation.math_fidelity.value
+        math_fidelity = operation.math_fidelity.cpp_enum_value
         dest_acc = config.dest_acc.value
         pool_type_cpp = f"PoolType::{self.pool.value}"
         reduce_dim_cpp = self.reduce_dim()
@@ -248,7 +248,7 @@ class ReduceFpu(Fpu):
         )
 
     def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        math_fidelity = operation.math_fidelity.value
+        math_fidelity = operation.math_fidelity.cpp_enum_value
         dest_acc = config.dest_acc.value
         tile_cnt = operation.output.tile_count
         num_faces = operation.num_faces

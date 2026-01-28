@@ -259,7 +259,9 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, const 
         (eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB) || (eltwise_binary_type == ELWMUL),
         "eltwise_binary_type must be ELWADD, ELWSUB, or ELWMUL");
 
-    eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, math_fidelity>();
+    constexpr std::uint32_t math_fidelity_increment = 1;
+
+    eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, math_fidelity_increment>();
     eltwise_binary_configure_mop<eltwise_binary_type, src_b_bcast_type, math_fidelity, binary_reuse_dest>(acc_to_dest, num_faces);
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
