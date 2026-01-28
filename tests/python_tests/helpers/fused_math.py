@@ -90,31 +90,41 @@ class MatmulFpu(Fpu):
         )
         return golden
 
-    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def init(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        rt_dim: int = None,
+        ct_dim: int = None,
+    ) -> str:
         stage = operation.stage_id
         math_fidelity = operation.math_fidelity.value
-        ct_dim = operation.ct_dim
-        rt_dim = operation.rt_dim
+        ct = ct_dim if ct_dim is not None else operation.ct_dim
+        rt = rt_dim if rt_dim is not None else operation.rt_dim
         transpose = "true" if operation.unpack_transpose_faces.value else "false"
 
         return (
             f"    // Operation {stage}: Matmul FPU\n"
             f"    _llk_math_matmul_init_<{math_fidelity}>(\n"
-            f"        TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, {transpose}, {ct_dim}, {rt_dim}\n"
+            f"        TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, {transpose}, {ct}, {rt}\n"
             f"    );\n"
         )
 
     def calculate(
-        self, operation: "FusedOperation", config: "GlobalConfig", tile_idx: int
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        rt_dim: int = None,
+        ct_dim: int = None,
     ) -> str:
-        ct_dim = operation.ct_dim
-        rt_dim = operation.rt_dim
+        ct = ct_dim if ct_dim is not None else operation.ct_dim
+        rt = rt_dim if rt_dim is not None else operation.rt_dim
         kt_dim = operation.kt_dim
         math_fidelity = operation.math_fidelity.value
         return (
             f"    for (uint32_t j = 0; j < {kt_dim}; j++)\n"
             f"    {{\n"
-            f"        _llk_math_matmul_<{math_fidelity}>(0, {ct_dim}, {rt_dim});\n"
+            f"        _llk_math_matmul_<{math_fidelity}>(0, {ct}, {rt});\n"
             f"    }}\n"
         )
 
@@ -645,10 +655,17 @@ class Math:
         if not self.sfpu:
             return result
 
-        tile_cnt = operation.output.tile_count
         batch_size = operation.batch_size
-        dimensions = operation.output.dimensions
         data_format = operation.output.data_format
+
+        if isinstance(self.fpu, MatmulFpu):
+            rt_dim = operation.rt_dim
+            ct_dim = operation.ct_dim
+            tile_cnt = rt_dim * ct_dim
+            dimensions = [rt_dim * 32, ct_dim * 32]
+        else:
+            tile_cnt = operation.output.tile_count
+            dimensions = operation.output.dimensions
 
         result_tilized = tilize_block(
             result.flatten(), dimensions, data_format
@@ -684,44 +701,99 @@ class Math:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
         if stage == 0:
-            code = f"    _llk_math_hw_configure_<{dest_acc}>(math_format{stage}, math_format{stage});\n"
+            code = f"_llk_math_hw_configure_<{dest_acc}>(math_format{stage}, math_format{stage});\n"
         else:
-            code = f"    _llk_math_reconfig_data_format_<{dest_acc}, false>(math_format{stage}, math_format{stage});\n"
+            code = f"_llk_math_reconfig_data_format_<{dest_acc}, false>(math_format{stage}, math_format{stage});\n"
 
-        code += f"    _llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n\n"
+        code += f"_llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n\n"
 
         return code
 
-    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        stage = operation.stage_id
-        dest_acc = config.dest_acc.value
-        batch_size = operation.batch_size
-
-        tile_cnt = operation.output.tile_count
-        if isinstance(self.fpu, MatmulFpu):
-            tile_cnt = 1
-
-        batch_start = 0
-
-        code = self.hw_configure(operation, config)
-        code += self.fpu.init(operation, config)
-        while batch_start < tile_cnt:
-            code += f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
-            batch_end = min(batch_start + batch_size, tile_cnt)
-            for tile_idx in range(batch_end - batch_start):
-                code += self.fpu.calculate(operation, config, tile_idx)
-            batch_start = batch_end
-            for sfpu in self.sfpu:
-                code += "\n"
+    def _sfpu_code(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        calc_only: bool = False,
+    ) -> str:
+        code = ""
+        for sfpu in self.sfpu:
+            code += "\n"
+            if not calc_only:
                 code += sfpu.init(operation, config)
-                code += sfpu.calculate(operation, config)
+            code += sfpu.calculate(operation, config)
+            if not calc_only:
                 code += sfpu.uninit(operation, config)
+        return code
 
-            code += (
-                f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
-            )
+    def _wait_for_dest(self, operation: "FusedOperation") -> str:
+        return f"_llk_math_wait_for_dest_available_<dest_sync{operation.stage_id}>();\n"
+
+    def _dest_section_done(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        return f"_llk_math_dest_section_done_<dest_sync{operation.stage_id}, {config.dest_acc.value}>();\n"
+
+    def _matmul_tile_loop(
+        self, operation: "FusedOperation", config: "GlobalConfig", body_fn
+    ) -> str:
+        rt_dim = operation.rt_dim
+        ct_dim = operation.ct_dim
+        code = f"for (uint32_t mt = 0; mt < {rt_dim}; ++mt) {{\n"
+        code += f"for (uint32_t nt = 0; nt < {ct_dim}; ++nt) {{\n"
+        code += body_fn()
+        code += "}\n"
+        code += "}\n"
+        return code
+
+    def _batch_loop(
+        self, operation: "FusedOperation", config: "GlobalConfig", body_fn
+    ) -> str:
+        batch_size = operation.batch_size
+        tile_cnt = operation.output.tile_count
+        code = ""
+        batch_start = 0
+        while batch_start < tile_cnt:
+            batch_end = min(batch_start + batch_size, tile_cnt)
+            code += body_fn(batch_end - batch_start)
+            batch_start = batch_end
+        return code
+
+    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        batch_size = operation.batch_size
+        code = self.hw_configure(operation, config)
+
+        if isinstance(self.fpu, MatmulFpu):
+            if batch_size == 1:
+                code += self.fpu.init(operation, config, rt_dim=1, ct_dim=1)
+
+                def matmul_body():
+                    body = self._wait_for_dest(operation)
+                    body += self.fpu.calculate(operation, config, rt_dim=1, ct_dim=1)
+                    body += self._sfpu_code(operation, config)
+                    body += self._dest_section_done(operation, config)
+                    return body
+
+                code += self._matmul_tile_loop(operation, config, matmul_body)
+            else:
+                code += self.fpu.init(operation, config)
+                code += self._wait_for_dest(operation)
+                code += self.fpu.calculate(operation, config, 0)
+                code += self._sfpu_code(operation, config)
+                code += self._dest_section_done(operation, config)
+        else:
+            code += self.fpu.init(operation, config)
+
+            def batch_body(batch_tile_cnt):
+                body = self._wait_for_dest(operation)
+                for tile_idx in range(batch_tile_cnt):
+                    body += self.fpu.calculate(operation, config, tile_idx)
+                body += self._sfpu_code(operation, config)
+                body += self._dest_section_done(operation, config)
+                return body
+
+            code += self._batch_loop(operation, config, batch_body)
+
         code += self.fpu.uninit(operation, config)
-
         return code
 
     def perf_clear_valid(
@@ -744,54 +816,61 @@ class Math:
     def calculate_with_perf(
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
-        stage = operation.stage_id
-        dest_acc = config.dest_acc.value
-
-        if config.perf_run_type == PerfRunType.L1_TO_L1:
-            wait_for_dest = (
-                f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
-            )
-            dest_section_done = (
-                f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
-            )
-        else:
-            wait_for_dest = ""
-            dest_section_done = ""
-
         if config.perf_run_type == PerfRunType.PACK_ISOLATE:
-            code = ""
-        elif (
-            config.perf_run_type == PerfRunType.UNPACK_ISOLATE
-            or config.perf_run_type == PerfRunType.L1_CONGESTION
+            return ""
+
+        if config.perf_run_type in (
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
         ):
-            code = self.perf_clear_valid(operation, config)
-        else:
-            tile_cnt = operation.output.tile_count
-            if isinstance(self.fpu, MatmulFpu):
-                tile_cnt = 1
-            batch_size = operation.batch_size
-            code = ""
+            return self.perf_clear_valid(operation, config)
 
-            batch_start = 0
-            while batch_start < tile_cnt:
-                code += wait_for_dest
-                batch_end = min(batch_start + batch_size, tile_cnt)
-                for tile_idx in range(batch_end - batch_start):
-                    code += self.fpu.calculate(operation, config, tile_idx)
-                batch_start = batch_end
-                for sfpu in self.sfpu:
-                    code += "\n"
-                    code += sfpu.calculate(operation, config)
-                code += dest_section_done
+        # Use sync unless explicitly in an isolation mode
+        use_sync = config.perf_run_type not in (
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        )
+        batch_size = operation.batch_size
 
+        if isinstance(self.fpu, MatmulFpu) and batch_size == 1:
+
+            def matmul_body():
+                body = self._wait_for_dest(operation) if use_sync else ""
+                body += self.fpu.calculate(operation, config, rt_dim=1, ct_dim=1)
+                body += self._sfpu_code(operation, config, calc_only=True)
+                body += self._dest_section_done(operation, config) if use_sync else ""
+                return body
+
+            return self._matmul_tile_loop(operation, config, matmul_body)
+
+        tile_cnt = 1 if isinstance(self.fpu, MatmulFpu) else operation.output.tile_count
+        code = ""
+        batch_start = 0
+        while batch_start < tile_cnt:
+            if use_sync:
+                code += self._wait_for_dest(operation)
+            batch_end = min(batch_start + batch_size, tile_cnt)
+            for tile_idx in range(batch_end - batch_start):
+                code += self.fpu.calculate(operation, config, tile_idx)
+            batch_start = batch_end
+            code += self._sfpu_code(operation, config, calc_only=True)
+            if use_sync:
+                code += self._dest_section_done(operation, config)
         return code
 
     def exec_perf(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        code = ""
-        code += "{\n"
+        batch_size = operation.batch_size
+        is_matmul_tile_by_tile = isinstance(self.fpu, MatmulFpu) and batch_size == 1
+
+        code = "{\n"
         code += '    ZONE_SCOPED("INIT")\n'
         code += self.hw_configure(operation, config)
-        code += self.fpu.init(operation, config)
+        if is_matmul_tile_by_tile:
+            code += self.fpu.init(operation, config, rt_dim=1, ct_dim=1)
+        else:
+            code += self.fpu.init(operation, config)
         code += "    PROFILER_SYNC();\n"
         code += "}\n"
 

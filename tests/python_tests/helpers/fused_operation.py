@@ -153,12 +153,13 @@ class FusedOperation:
         else:
             self.bh_tilize = Tilize.No
 
-        if (
-            self.batch_size <= 0
-            or self.batch_size > self.output.tile_count
-            or isinstance(self.math.fpu, MatmulFpu)
-        ):
+        if self.batch_size <= 0 or self.batch_size > self.output.tile_count:
             self.batch_size = self.output.tile_count
+
+        if isinstance(self.math.fpu, MatmulFpu):
+            tile_count = self.output.tile_count
+            if self.batch_size != 1 and self.batch_size != tile_count:
+                self.batch_size = tile_count
 
         print(self.batch_size)
 
@@ -215,8 +216,6 @@ class FusedOperation:
         master_golden_tensor = self.packer().golden(master_golden_tensor, self, config)
 
         self.output._master_golden = master_golden_tensor.flatten()
-
-        self.output.dimensions = self.output_pack_dims
 
         return master_golden_tensor
 
