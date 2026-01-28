@@ -55,14 +55,14 @@ using namespace ckernel;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    // Initialize math for element-wise subtraction with column broadcast
+    // Initialize math for element-wise binary operation with column broadcast
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
     // Use UNPACK_TRANSPOSE_FACES to control face transpose on math side as well
     // When transpose_faces=true, faces are written as: F0->dest0, F1->dest32, F2->dest16, F3->dest48
     // This swaps F1 and F2 positions to achieve the face transpose effect
-    _llk_math_eltwise_binary_bcastB_row_as_col_init_<EltwiseBinaryType::ELWSUB, UNPACK_TRANSPOSE_FACES>();
+    _llk_math_eltwise_binary_bcastB_row_as_col_init_<ELTWISE_BINARY_OP, UNPACK_TRANSPOSE_FACES>();
 
     _llk_math_wait_for_dest_available_<dest_sync>();
 
