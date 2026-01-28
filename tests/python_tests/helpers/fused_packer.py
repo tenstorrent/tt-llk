@@ -68,20 +68,44 @@ class Packer:
     def _batch_loop(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         batch_size = operation.batch_size
         tile_cnt = operation.output.tile_count
+        tiles_h = operation.output_tiles_h
+        tiles_w = operation.output_tiles_w
+
+        num_full_batches = tile_cnt // batch_size
+        remaining_tiles = tile_cnt % batch_size
+
         code = ""
-        batch_start = 0
-        while batch_start < tile_cnt:
+
+        if num_full_batches > 0:
+            code += (
+                f"for (uint32_t batch = 0; batch < {num_full_batches}; ++batch) {{\n"
+            )
             code += self._wait_for_math()
-            batch_end = min(batch_start + batch_size, tile_cnt)
-            for dest_idx in range(batch_end - batch_start):
-                global_tile_idx = batch_start + dest_idx
-                tr = global_tile_idx // operation.dest_tiles_w
-                tc = global_tile_idx % operation.dest_tiles_w
-                if tr < operation.output_tiles_h and tc < operation.output_tiles_w:
-                    l1_idx = tr * operation.output_tiles_w + tc
-                    code += self.pack(operation, config, dest_idx, l1_idx)
-            batch_start = batch_end
+            code += f"for (uint32_t i = 0; i < {batch_size}; ++i) {{\n"
+            code += f"uint32_t global_tile_idx = batch * {batch_size} + i;\n"
+            code += f"uint32_t tr = global_tile_idx / {tiles_w};\n"
+            code += f"uint32_t tc = global_tile_idx % {tiles_w};\n"
+            code += f"if (tr < {tiles_h} && tc < {tiles_w}) {{\n"
+            code += f"uint32_t l1_idx = tr * {tiles_w} + tc;\n"
+            code += self.pack(operation, config, "i", "l1_idx")
+            code += "}\n"
+            code += "}\n"
             code += self._dest_section_done(config)
+            code += "}\n"
+
+        if remaining_tiles > 0:
+            code += self._wait_for_math()
+            code += f"for (uint32_t i = 0; i < {remaining_tiles}; ++i) {{\n"
+            code += f"uint32_t global_tile_idx = {num_full_batches * batch_size} + i;\n"
+            code += f"uint32_t tr = global_tile_idx / {tiles_w};\n"
+            code += f"uint32_t tc = global_tile_idx % {tiles_w};\n"
+            code += f"if (tr < {tiles_h} && tc < {tiles_w}) {{\n"
+            code += f"uint32_t l1_idx = tr * {tiles_w} + tc;\n"
+            code += self.pack(operation, config, "i", "l1_idx")
+            code += "}\n"
+            code += "}\n"
+            code += self._dest_section_done(config)
+
         return code
 
     def _generate_tile_loop(
