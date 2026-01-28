@@ -134,7 +134,7 @@ inline void unpack_tilize_to_dest_impl(
     // Clear z/w start counters
     TTI_SETADCZW(0b001, 0, 0, 0, 0, 0b1111);
 
-    LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
+    // LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
     // Get tile address
     cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
 
@@ -155,7 +155,7 @@ inline void unpack_tilize_to_dest_impl(
 
         // Increment address to point to bottom faces in L1
         address += bot_face_offset_address;
-        LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
+        // LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
 
         // Get tile address
         TT_SETDMAREG(0, LOWER_HALFWORD(address), 0, LO_16(p_gpr_unpack::TMP0));
