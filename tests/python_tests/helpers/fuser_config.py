@@ -73,24 +73,24 @@ class FuserConfig:
             operation.stage_id = i
             operation.num_stages = num_stages
 
-        if operation.dest_sync == DestSync.Half:
-            dest_capacity = (
-                4 if self.global_config.dest_acc == DestAccumulation.Yes else 8
-            )
-        else:
-            dest_capacity = (
-                8 if self.global_config.dest_acc == DestAccumulation.Yes else 16
-            )
-
-        output_tile_count = operation.output.tile_count
-
-        if output_tile_count > dest_capacity:
-            if isinstance(operation.math.fpu, MatmulFpu):
-                operation.batch_size = 1
+            if operation.dest_sync == DestSync.Half:
+                dest_capacity = (
+                    4 if self.global_config.dest_acc == DestAccumulation.Yes else 8
+                )
             else:
-                operation.batch_size = min(operation.batch_size, dest_capacity)
+                dest_capacity = (
+                    8 if self.global_config.dest_acc == DestAccumulation.Yes else 16
+                )
 
-        operation.batch_size = min(operation.batch_size, output_tile_count)
+            output_tile_count = operation.output.tile_count
+
+            if output_tile_count > dest_capacity:
+                if isinstance(operation.math.fpu, MatmulFpu):
+                    operation.batch_size = 1
+                else:
+                    operation.batch_size = min(operation.batch_size, dest_capacity)
+
+            operation.batch_size = min(operation.batch_size, output_tile_count)
 
     def run(self, worker_id="master", location="0,0", run_count=2):
         from .fused_generator import FUSED_TESTS_DIR, FusedKernelGenerator
