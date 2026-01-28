@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import pytest
-from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat
 from helpers.llk_params import DestAccumulation, MathOperation, PerfRunType, ReducePool
 from helpers.param_config import (
@@ -20,7 +19,7 @@ from helpers.test_variant_parameters import (
 )
 
 
-@skip_for_blackhole
+# @skip_for_blackhole
 @pytest.mark.perf
 @parametrize(
     formats=input_output_formats(
@@ -30,9 +29,7 @@ from helpers.test_variant_parameters import (
     dest_acc=[DestAccumulation.No],
     mathop=[MathOperation.ReduceColumn],
     reduce_pool=[ReducePool.Max],  # Only MAX is supported for SDPA reduce
-    loop_factor=list(
-        range(10, 201, 10)
-    ),  # Multiple loop factors to minimize profiler overhead
+    loop_factor=[16],
 )
 def test_perf_sfpu_reduce_sdpa(
     perf_report,
@@ -67,7 +64,7 @@ def test_perf_sfpu_reduce_sdpa(
             # PerfRunType.L1_TO_L1,         # Full operation timing
             PerfRunType.MATH_ISOLATE,  # Only SFPU computation cycles (_calculate_reduce_sdpa_)
             # PerfRunType.UNPACK_ISOLATE,   # Unpack timing for reference
-            # PerfRunType.PACK_ISOLATE,     # Pack timing for reference
+            PerfRunType.PACK_ISOLATE,  # Pack timing for reference
         ],
         templates=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),

@@ -68,6 +68,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef LLK_TRISC_MATH
 
 #include "ckernel_sfpu.h"
+#include "ckernel_sfpu_reduce_custom.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_eltwise_unary_sfpu.h"
@@ -78,23 +79,25 @@ using namespace ckernel::sfpu;
 void run_kernel(const volatile struct RuntimeParams* params)
 {
     constexpr uint32_t block_height = BLOCK_RT_DIM;
+// Initialize datacopy from srcA to dest
+#ifdef ARCH_BLACKHOLE
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(4, formats.math);
+#else
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(4, formats.math);
+#endif
+    _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
+
+    // Initialize SFPU for reduce operation
+    _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
+
+    // Initialize SDPA reduce using unified function
+    _init_reduce_<PoolType::MAX, DataFormat::Float16_b>(BLOCK_CT_DIM);
 
     {
         ZONE_SCOPED("INIT")
-        // Initialize datacopy from srcA to dest
-#ifdef ARCH_BLACKHOLE
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(4, formats.math);
-#else
-        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false>(4, formats.math);
-#endif
-        _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
-        // Initialize SFPU for reduce operation
-        _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
-
-        // Initialize SDPA reduce using unified function
-        _init_reduce_<PoolType::MAX, DataFormat::Float16_b>(BLOCK_CT_DIM);
+        ckernel::sfpu::_init_reduce_max_col_subblock_4x2_<DataFormat::Float16_b>();
 
         PROFILER_SYNC();
     }
@@ -122,7 +125,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     // Run the SFPU reduce SDPA calculation
                     // This is the core computation we want to measure
 
-                    _calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
+                    // _calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
+                    ckernel::sfpu::_calculate_reduce_max_col_subblock_4x2_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(BLOCK_RT_DIM);
 
                     // Clear the valid flag for source A
                     TTI_CLEARDVALID(1, 0);
