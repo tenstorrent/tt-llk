@@ -146,12 +146,19 @@ class OperandMapping:
         self.operand_registry = operand_registry
 
     def create_output_operand(
-        self, operand_registry: "OperandRegistry", output_format: DataFormat
+        self,
+        operand_registry: "OperandRegistry",
+        output_format: DataFormat,
+        output_dims: Tuple[int, int],
     ):
         if self.output in operand_registry.operands:
             return
 
-        output_dims = self.resolve_output_dimensions(operand_registry)
+        max_output_dims = self.resolve_output_dimensions(operand_registry)
+
+        if output_dims[0] > max_output_dims[0] or output_dims[1] > max_output_dims[1]:
+            raise ValueError(f"Max output dimensions are {max_output_dims}")
+
         operand_registry.add_output(
             name=self.output,
             dimensions=output_dims,
@@ -243,6 +250,7 @@ class OperandRegistry:
         output: str,
         src_a_dims: Tuple[int, int] = [32, 32],
         src_b_dims: Tuple[int, int] = [32, 32],
+        output_dims: Tuple[int, int] = [64, 64],
         input_format: DataFormat = DataFormat.Float16_b,
         output_format: DataFormat = DataFormat.Float16_b,
         src_a_tensor: torch.Tensor = None,
@@ -281,6 +289,6 @@ class OperandRegistry:
             operand_registry=self,
         )
 
-        mapping.create_output_operand(self, output_format)
+        mapping.create_output_operand(self, output_format, output_dims)
 
         return mapping

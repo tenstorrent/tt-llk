@@ -443,7 +443,7 @@ class UnpackerTilizeA(Unpacker):
     def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
         face_r_dim = operation.face_r_dim
-        block_ct_dim = operation.block_ct_dim
+        block_ct_dim = operation.dest_tiles_w
         transpose_faces = operation.unpack_transpose_faces.value
         transpose_within_face = operation.unpack_transpose_within_face.value
 
@@ -456,8 +456,8 @@ class UnpackerTilizeA(Unpacker):
         stage = operation.stage_id
         face_r_dim = operation.face_r_dim
         num_faces = operation.num_faces
-        block_rt_dim = operation.block_rt_dim
-        block_ct_dim = operation.block_ct_dim
+        block_rt_dim = operation.dest_tiles_h
+        block_ct_dim = operation.dest_tiles_w
 
         # Blackhole
         if config.architecture == ChipArchitecture.BLACKHOLE:
