@@ -129,6 +129,9 @@ class FusedOperation:
             if self.batch_size != 1 and self.batch_size != tile_count:
                 self.batch_size = tile_count
 
+        if self.broadcast_type != BroadcastType.None_:
+            self.data_copy_type = DataCopyType.B2D
+
     @property
     def src_a(self) -> Operand:
         mapping = self.operand_mapping
