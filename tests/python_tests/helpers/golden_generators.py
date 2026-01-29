@@ -1248,15 +1248,19 @@ class UnarySFPUGolden:
             MathOperation.Acosh: self._acosh,
             MathOperation.Cos: self._cos,
             MathOperation.Log: self._log,
+            MathOperation.Log1p: self._log1p,
             MathOperation.Reciprocal: self._reciprocal,
+            MathOperation.Relu: self._relu,
             MathOperation.Rsqrt: self._rsqrt,
             MathOperation.Sin: self._sin,
             MathOperation.Sqrt: self._sqrt,
             MathOperation.Square: self._square,
+            MathOperation.Tanh: self._tanh,
             MathOperation.Celu: self._celu,
             MathOperation.Silu: self._silu,
             MathOperation.Gelu: self._gelu,
             MathOperation.Neg: self._neg,
+            MathOperation.Tanh: self._tanh,
             MathOperation.Fill: self._fill,
             MathOperation.Elu: self._elu,
             MathOperation.Exp: self._exp,
@@ -1420,6 +1424,11 @@ class UnarySFPUGolden:
             return self.handle_infinite_numbers(-math.inf)
         return math.log(x)
 
+    def _log1p(self, x):
+        if x == -1.0:
+            return self.handle_infinite_numbers(-math.inf)
+        return math.log1p(x)
+
     def _reciprocal(self, x):
         if x == 0.0:
             return self.handle_infinite_numbers(float("inf"))
@@ -1428,6 +1437,9 @@ class UnarySFPUGolden:
     def _sin(self, x):
         # Never not finite, values range from [-1, 1]
         return math.sin(x)
+
+    def _relu(self, x):
+        return max(0.0, x)
 
     def _rsqrt(self, x):
         if x < 0.0:
@@ -1441,10 +1453,16 @@ class UnarySFPUGolden:
             return math.nan
         return math.sqrt(x)
 
+    def _tanh(self, x):
+        return math.tanh(x)
+
     def _square(self, x):
         if not math.isfinite(x * x):
             return self.handle_infinite_numbers(math.inf)
         return x * x
+
+    def _tanh(self, x):
+        return math.tanh(x)
 
     def _celu(self, x):
         input_tensor = (
