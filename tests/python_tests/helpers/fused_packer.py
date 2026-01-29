@@ -46,7 +46,7 @@ class Packer:
         code = f"for (uint32_t mt = 0; mt < {rt_dim}; ++mt) {{\n"
         code += f"for (uint32_t nt = 0; nt < {ct_dim}; ++nt) {{\n"
         code += self._wait_for_math()
-        code += f"uint32_t tile_idx = mt * {operation.output_tiles_w} + nt;\n"
+        code += f"uint32_t tile_idx = mt * {operation.dest_tiles_w} + nt;\n"
         code += self.pack(operation, config, 0, "tile_idx")
         code += self._dest_section_done(config)
         code += "}\n"
