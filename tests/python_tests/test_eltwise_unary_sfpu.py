@@ -284,8 +284,7 @@ def eltwise_unary_sfpu(
     ), "Assert against golden failed"
 
 
-# Test exponential with APPROX_MODE=Yes, FAST_MODE=Yes, and CLAMP_NEGATIVE=true/false
-# This tests the ITERATIONS=32 fast approximation path
+# Test exponential with APPROX_MODE=true, FAST_MODE=true, and CLAMP_NEGATIVE=true/false
 @pytest.mark.parametrize("clamp_negative", [True, False])
 def test_exponential_clamp_negative(
     clamp_negative: bool,
