@@ -8,6 +8,7 @@ import torch
 
 from .golden_generators import (  # TilizeGolden,
     BinarySFPUGolden,
+    BroadcastGolden,
     DataCopyGolden,
     EltwiseBinaryGolden,
     MatmulGolden,
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
 from .chip_architecture import ChipArchitecture
 from .llk_params import (
     ApproximationMode,
+    BroadcastType,
     MathOperation,
     PerfRunType,
     ReduceDimension,
@@ -303,14 +305,31 @@ class DatacopyFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
     ) -> torch.Tensor:
-        golden_generator = get_golden_generator(DataCopyGolden)
-        golden_tensor = golden_generator(
-            tensor_a,
-            operation.output.data_format,
-            num_faces=operation.num_faces,
-            input_dimensions=operation.src_a.dimensions,
-            face_r_dim=operation.face_r_dim,
-        )
+        if operation.broadcast_type == BroadcastType.None_:
+            golden_generator = get_golden_generator(DataCopyGolden)
+            golden_tensor = golden_generator(
+                tensor_a,
+                operation.output.data_format,
+                num_faces=operation.num_faces,
+                input_dimensions=operation.src_a.dimensions,
+                face_r_dim=operation.face_r_dim,
+            )
+        else:
+            tilized_a = tilize_block(
+                tensor_a, operation.src_a.dimensions, operation.src_a.data_format
+            )
+            golden_generator = get_golden_generator(BroadcastGolden)
+            golden_tensor = golden_generator(
+                operation.broadcast_type,
+                tilized_a,
+                operation.output.data_format,
+                operation.num_faces,
+                operation.src_a.tile_count,
+                operation.face_r_dim,
+            )
+            golden_tensor = untilize_block(
+                golden_tensor, operation.output.data_format, operation.src_a.dimensions
+            )
 
         return golden_tensor
 
