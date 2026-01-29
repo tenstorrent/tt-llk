@@ -22,6 +22,7 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     APPROX_MODE,
+    CLAMP_NEGATIVE,
     FAST_MODE,
     INPUT_DIMENSIONS,
     MATH_OP,
@@ -273,6 +274,74 @@ def eltwise_unary_sfpu(
     assert len(res_from_L1) == len(
         golden_tensor
     ), "Result tensor and golder tensor are not of the same length"
+
+    torch_format = format_dict[formats.output_format]
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+    assert passed_test(
+        golden_tensor, res_tensor, formats.output_format
+    ), "Assert against golden failed"
+
+
+# Test exponential with APPROX_MODE=Yes, FAST_MODE=Yes, and CLAMP_NEGATIVE=true/false
+# This tests the ITERATIONS=32 fast approximation path
+@pytest.mark.parametrize("clamp_negative", [True, False])
+def test_exponential_clamp_negative(
+    clamp_negative: bool,
+    workers_tensix_coordinates: str,
+):
+    torch.manual_seed(0)
+    input_dimensions = [64, 64]
+    formats = InputOutputFormat(DataFormat.Float16_b, DataFormat.Float16_b)
+    dest_acc = DestAccumulation.No
+
+    src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
+        stimuli_format_A=formats.input_format,
+        input_dimensions_A=input_dimensions,
+        stimuli_format_B=formats.input_format,
+        input_dimensions_B=input_dimensions,
+    )
+
+    generate_golden = get_golden_generator(UnarySFPUGolden)
+    golden_tensor = generate_golden(
+        MathOperation.Exp,
+        src_A,
+        formats.output_format,
+        dest_acc,
+        formats.input_format,
+        input_dimensions,
+    )
+
+    configuration = TestConfig(
+        "sources/eltwise_unary_sfpu_test.cpp",
+        formats,
+        templates=[
+            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+            APPROX_MODE(ApproximationMode.Yes),
+            FAST_MODE(FastMode.Yes),
+            CLAMP_NEGATIVE(clamp_negative),
+            MATH_OP(mathop=MathOperation.Exp),
+        ],
+        runtimes=[TILE_COUNT(tile_cnt_A)],
+        variant_stimuli=StimuliConfig(
+            src_A,
+            formats.input_format,
+            src_B,
+            formats.input_format,
+            formats.output_format,
+            tile_count_A=tile_cnt_A,
+            tile_count_B=tile_cnt_B,
+            tile_count_res=tile_cnt_A,
+        ),
+        dest_acc=dest_acc,
+        unpack_to_dest=False,
+    )
+
+    res_from_L1 = configuration.run(workers_tensix_coordinates)
+
+    assert len(res_from_L1) == len(
+        golden_tensor
+    ), "Result tensor and golden tensor are not of the same length"
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
