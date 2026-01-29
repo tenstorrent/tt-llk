@@ -398,7 +398,7 @@ inline void _llk_pack_mop_config_(
         const uint PACK_INTF_SEL = face_r_dim == 1 ? p_pacr::SINGLE_INTF_ACTIVE : (face_r_dim == 2 ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::ALL_INTF_ACTIVE);
 
         const uint MOP_INNER_LOOP = (face_r_dim < 4) ? 1 : face_r_dim >> 2;
-        const uint MOP_OUTER_LOOP = num_faces;
+        const uint MOP_OUTER_LOOP = 8 * num_faces;
 
         ckernel::ckernel_template tmp(
             MOP_OUTER_LOOP,

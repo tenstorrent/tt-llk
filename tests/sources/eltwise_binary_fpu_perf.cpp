@@ -39,7 +39,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     {
         ZONE_SCOPED("INIT")
 
-        _llk_unpack_AB_init_<>(
+        _llk_unpack_AB_init_<BroadcastType::COL>(
             FACE_R_DIM,
             TILE_NUM_FACES,
             /* narrow tile */ false,
@@ -54,13 +54,16 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            return _perf_unpack_loop_set_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES);
+            return _perf_unpack_loop_set_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES * params->LOOP_FACTOR);
         }
         else
         {
-            for (uint32_t tile = 0; tile < params->TILE_CNT; tile++)
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                _llk_unpack_AB_<>(PERF_ADDRESS(PERF_INPUT_A, tile), PERF_ADDRESS(PERF_INPUT_B, tile));
+                for (uint32_t tile = 0; tile < params->TILE_CNT; tile++)
+                {
+                    _llk_unpack_AB_<BroadcastType::COL>(PERF_ADDRESS(PERF_INPUT_A, tile), PERF_ADDRESS(PERF_INPUT_B, 0));
+                }
             }
         }
         PROFILER_SYNC();
@@ -81,7 +84,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     {
         ZONE_SCOPED("INIT")
 
-        _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(TILE_NUM_FACES, false);
+        _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::COL, MATH_FIDELITY>(TILE_NUM_FACES, false);
         PROFILER_SYNC();
     }
     {
@@ -102,7 +105,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
                 for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                 {
-                    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(
+                    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::COL, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(
                         TILE_NUM_FACES, block_tile, false);
                 }
             }
@@ -116,7 +119,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
                 for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                 {
-                    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(
+                    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::COL, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(
                         TILE_NUM_FACES, block_tile, false);
                 }
                 _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
