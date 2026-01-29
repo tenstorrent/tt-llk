@@ -109,18 +109,8 @@ class FusedOperation:
         self.ct_dim = self.output.dimensions[1] // num_cols
         self.kt_dim = self.src_a.dimensions[1] // num_cols
 
-        if self.output_pack_dims is None:
-            self.output_pack_dims = self.output.dimensions
-
-        self.output_tiles_h = self.output_pack_dims[0] // 32
-        self.output_tiles_w = self.output_pack_dims[1] // 32
-
-        self.dest_tiles_h = self.output.dimensions[0] // 32
-        self.dest_tiles_w = self.output.dimensions[1] // 32
-
-        self.output_pack_tile_cnt = self.output_tiles_h * self.output_tiles_w
-
-        self.output.pack_dims = self.output_pack_dims
+        self.dest_tiles_h = self.output.dimensions[0] // num_rows
+        self.dest_tiles_w = self.output.dimensions[1] // num_cols
 
         if (
             get_chip_architecture() == ChipArchitecture.BLACKHOLE
@@ -154,14 +144,14 @@ class FusedOperation:
         mapping = self.operand_mapping
         return mapping.operand_registry.get(mapping.output)
 
-    def unpack(self, config) -> str:
-        unpacker_instance = self.unpacker()
-        return unpacker_instance.exec(self, config)
-
     @property
     def max_output_dimensions(self) -> Operand:
         mapping = self.operand_mapping
         return mapping.resolve_output_dimensions(mapping.operand_registry)
+
+    def unpack(self, config) -> str:
+        unpacker_instance = self.unpacker()
+        return unpacker_instance.exec(self, config)
 
     def do_math(self, config) -> str:
         return self.math.exec(self, config)
