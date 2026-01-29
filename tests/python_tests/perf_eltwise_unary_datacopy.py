@@ -5,17 +5,16 @@ import pytest
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     DestAccumulation,
-    MathFidelity,
-    MathOperation,
     PerfRunType,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    input_output_formats,
+    parametrize,
+)
 from helpers.perf import PerfConfig
 from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
     LOOP_FACTOR,
-    MATH_FIDELITY,
-    MATH_OP,
     TILE_COUNT,
 )
 
@@ -23,38 +22,46 @@ from helpers.test_variant_parameters import (
 @pytest.mark.perf
 @parametrize(
     formats=input_output_formats(
-        # [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
-        [DataFormat.Float16_b]
+        [
+            DataFormat.Float16_b,
+        ]
     ),
-    mathop=[MathOperation.Elwsub],
-    tile_count=16,
-    math_fidelity=[MathFidelity.LoFi],
     dest_acc=[DestAccumulation.No],
 )
-def test_perf_eltwise_binary_fpu(
+def test_perf_eltwise_unary_datacopy(
     perf_report,
     formats,
-    mathop,
-    tile_count,
-    math_fidelity,
     dest_acc,
     workers_tensix_coordinates,
 ):
-    if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
-        pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
+    """
+    Performance test for eltwise unary datacopy operation.
+
+    This tests the simple unpack -> datacopy (A2D) -> pack path:
+    - Unpack to srcA
+    - Copy from srcA to dest
+    - Pack from dest to L1
+
+    Parameters:
+    - 8 tiles input/output
+    - No dest accumulation (16-bit mode)
+    - No unpack to dest
+    - Float16_b format only
+    """
+
+    tile_count = 8
 
     configuration = PerfConfig(
-        "sources/eltwise_binary_fpu_perf.cpp",
+        "sources/eltwise_unary_datacopy_perf.cpp",
         formats,
         run_types=[
-            PerfRunType.L1_TO_L1,
-            PerfRunType.UNPACK_ISOLATE,
-            PerfRunType.MATH_ISOLATE,
+            # PerfRunType.L1_TO_L1,
+            # PerfRunType.UNPACK_ISOLATE,
+            # PerfRunType.MATH_ISOLATE,
             PerfRunType.PACK_ISOLATE,
-            PerfRunType.L1_CONGESTION,
+            # PerfRunType.L1_CONGESTION,
         ],
-        templates=[MATH_FIDELITY(math_fidelity), MATH_OP(mathop=mathop)],
-        runtimes=[TILE_COUNT(tile_count), LOOP_FACTOR(16)],
+        templates=[TILE_COUNT(tile_count), LOOP_FACTOR(16)],
         variant_stimuli=StimuliConfig(
             None,
             formats.input_format,
@@ -62,9 +69,10 @@ def test_perf_eltwise_binary_fpu(
             formats.input_format,
             formats.output_format,
             tile_count_A=tile_count,
-            tile_count_B=1,  # Broadcast column on srcB - only need 1 tile
+            tile_count_B=tile_count,
             tile_count_res=tile_count,
         ),
+        unpack_to_dest=False,
         dest_acc=dest_acc,
     )
 

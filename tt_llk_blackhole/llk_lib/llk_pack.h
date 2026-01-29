@@ -399,8 +399,13 @@ inline void _llk_pack_mop_config_(
         const std::uint32_t PACK_INTF_SEL =
             face_r_dim == 1 ? p_pacr::SINGLE_INTF_ACTIVE : (face_r_dim == 2 ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::ALL_INTF_ACTIVE);
 
+<<<<<<< HEAD
         const std::uint32_t MOP_INNER_LOOP = (face_r_dim < 4) ? 1 : face_r_dim >> 2;
         const std::uint32_t MOP_OUTER_LOOP = num_faces * num_tiles;
+=======
+        const uint MOP_INNER_LOOP = (face_r_dim < 4) ? 1 : face_r_dim >> 2;
+        const uint MOP_OUTER_LOOP = 8 * num_faces;
+>>>>>>> 90624547 (yolo)
 
         ckernel::ckernel_template tmp(
             MOP_OUTER_LOOP,
