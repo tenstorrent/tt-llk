@@ -51,10 +51,6 @@ using namespace ckernel::sfpu;
 
 const int iterations = 32;
 
-#ifndef CLAMP_NEGATIVE
-constexpr bool CLAMP_NEGATIVE = true;
-#endif
-
 void run_kernel(const volatile struct RuntimeParams *params)
 {
 // copy srca to dest
