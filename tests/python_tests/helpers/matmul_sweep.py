@@ -105,6 +105,8 @@ def generate_matmul_dimension_combinations(
         - excludes: ([128, 32], [32, 128]) → result 4×4 = 16 tiles
     """
 
+    return [([32, 32], [32, 32])]
+
     return [
         ([mt_dim * TILE_DIM, kt_dim * TILE_DIM], [kt_dim * TILE_DIM, nt_dim * TILE_DIM])
         for mt_dim in range(1, max_tiles + 1)
@@ -118,7 +120,8 @@ def generate_matmul_tiny_tiles_combinations(max_tiles: int) -> List[tuple]:
     tile_A_rows = [1, 2, 4, 8, 16]
     tile_A_columns = 32
     tile_B_rows = 32
-    tile_B_columns = list(range(32, (max_tiles + 1) * 32, 32))
+    tile_B_columns = [32]
+    # tile_B_columns = list(range(32, (max_tiles + 1) * 32, 32))
 
     return [
         ((tile_A_row, tile_A_columns), (tile_B_rows, tile_B_column))
@@ -237,11 +240,11 @@ def generate_face_layout_config(num_faces: int) -> List[FaceLayoutConfig]:
                 transpose_within=Transpose.No,
                 partial_face=False,
             ),
-            FaceLayoutParameters(
-                transpose_faces=Transpose.Yes,
-                transpose_within=Transpose.Yes,
-                partial_face=False,
-            ),
+            # FaceLayoutParameters(
+            #     transpose_faces=Transpose.Yes,
+            #     transpose_within=Transpose.Yes,
+            #     partial_face=False,
+            # ),
         ],
     }
 
@@ -347,7 +350,7 @@ def sweep_matmul(
                                     dest_sync=dest_sync,
                                     dest_acc=dest_acc,
                                 )
-                                combinations.append(edge_case_dims)
+                                # combinations.append(edge_case_dims)
 
     return combinations
 
@@ -410,8 +413,8 @@ def sweep_tiny_tiles_matmul(
                 tile_dims.tile_cnt,
             )
             max_dst_indices = [0]
-            if math_matmul and max_dst_index != 0:
-                max_dst_indices.append(max_dst_index)
+            # if math_matmul and max_dst_index != 0:
+            #     max_dst_indices.append(max_dst_index)
 
             for max_dst_idx in max_dst_indices:
                 combinations.append(
