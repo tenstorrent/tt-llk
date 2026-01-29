@@ -303,30 +303,25 @@ class UnpackerAB(Unpacker):
     def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         face_r_dim = operation.face_r_dim
         num_faces = operation.num_faces
-        broadcast_type = "BroadcastType::NONE"
+        broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
 
         transpose_faces = "true" if operation.unpack_transpose_faces.value else "false"
         transpose_within_face = (
             "true" if operation.unpack_transpose_within_face.value else "false"
         )
 
-        if transpose_within_face != transpose_faces:
-            raise ValueError(
-                "UnpackerAB does not support different values for transpose_faces and transpose_within_face"
-            )
-
         if isinstance(operation.math.fpu, ReduceFpu):
             reduce_dim = operation.math.fpu.reduce_dim()
-            within_face_16x16_transpose = (
-                1 if reduce_dim == "ReduceDim::REDUCE_ROW" else 0
-            )
             return (
-                f"    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>({within_face_16x16_transpose});\n"
-                f"    constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;\n"
-                f"    config_unpacker_x_end<UNP_SEL>({face_r_dim});\n"
-                f"    _llk_unpack_AB_mop_config_<BroadcastType::NONE>(false, 4, false);\n"
+                f"_llk_unpack_AB_reduce_init_<{reduce_dim}, {broadcast_type}>(\n"
+                f"{face_r_dim}, {num_faces}, false, {transpose_faces}, {transpose_within_face});\n"
             )
         else:
+            if transpose_within_face != transpose_faces:
+                raise ValueError(
+                    "UnpackerAB does not support different values for transpose_faces and transpose_within_face"
+                )
+
             return f"    _llk_unpack_AB_init_<{broadcast_type}>({face_r_dim}, {num_faces}, false, {transpose_faces});\n"
 
     def unpack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
@@ -384,7 +379,7 @@ class UnpackerA(Unpacker):
     def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
         unpack_to_dest = "true" if operation.unpack_to_dest else "false"
-        broadcast_type = "BroadcastType::NONE"
+        broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
         eltwise_reuse_type = "NONE"
         face_r_dim = operation.face_r_dim
         num_faces = operation.num_faces
@@ -402,7 +397,7 @@ class UnpackerA(Unpacker):
         stage = operation.stage_id
         tile_cnt = operation.output.tile_count
         unpack_to_dest = "true" if operation.unpack_to_dest else "false"
-        broadcast_type = "BroadcastType::NONE"
+        broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
 
         code = (
             f"    for (int i = 0; i < {tile_cnt}; ++i)\n"

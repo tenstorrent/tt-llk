@@ -29,6 +29,7 @@ from helpers.fused_unpacker import (
 )
 from helpers.llk_params import (
     ApproximationMode,
+    BroadcastType,
     DestSync,
     MathOperation,
     ReducePool,
@@ -147,6 +148,13 @@ REDUCE_POOL_MAP: Dict[str, ReducePool] = {
 APPROXIMATION_MODE_MAP: Dict[str, ApproximationMode] = {
     "Yes": ApproximationMode.Yes,
     "No": ApproximationMode.No,
+}
+
+BROADCAST_TYPE_MAP: Dict[str, BroadcastType] = {
+    "None": BroadcastType.None_,
+    "Row": BroadcastType.Row,
+    "Column": BroadcastType.Column,
+    "Scalar": BroadcastType.Scalar,
 }
 
 
@@ -289,6 +297,8 @@ def parse_operation(
         kwargs["output_pack_dims"] = op_config["output_pack_dims"]
     if "batch_size" in op_config:
         kwargs["batch_size"] = op_config["batch_size"]
+    if "broadcast_type" in op_config:
+        kwargs["broadcast_type"] = BROADCAST_TYPE_MAP[op_config["broadcast_type"]]
 
     return FusedOperation(
         operand_mapping=operand_mapping,

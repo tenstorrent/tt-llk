@@ -14,6 +14,7 @@ from .fused_operand import Operand, OperandMapping
 from .fused_packer import Packer
 from .fused_unpacker import Unpacker, UnpackerTilizeA
 from .llk_params import (
+    BroadcastType,
     DataCopyType,
     DestSync,
     MathFidelity,
@@ -59,6 +60,7 @@ class FusedOperation:
     srca_reuse_count: int = 4
     output_pack_dims: Tuple[int, int] = None
     batch_size: int = 0
+    broadcast_type: BroadcastType = BroadcastType.None_
 
     def __post_init__(self):
         mapping = self.operand_mapping
@@ -226,4 +228,6 @@ class FusedOperation:
             f"  Math Fidelity: {self.math_fidelity}\n"
             f"  Unpack Transpose Faces: {self.unpack_transpose_faces}\n"
             f"  Unpack Transpose Within Faces: {self.unpack_transpose_within_face}\n"
+            f"  Batch Size: {self.batch_size}\n"
+            f"  Broadcast Type: {self.broadcast_type}\n"
         )

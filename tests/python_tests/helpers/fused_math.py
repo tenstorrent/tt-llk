@@ -165,10 +165,11 @@ class EltwiseFpu(Fpu):
         math_fidelity = operation.math_fidelity.value
         op = self.operation.cpp_enum_value
         num_faces = operation.num_faces
+        broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
 
         return (
             f"    // Operation {stage}: Eltwise {op} FPU\n"
-            f"    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{op}, BroadcastType::NONE, {math_fidelity}>({num_faces}, 0);\n"
+            f"    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{op}, {broadcast_type}, {math_fidelity}>({num_faces}, 0);\n"
         )
 
     def calculate(
@@ -179,9 +180,10 @@ class EltwiseFpu(Fpu):
         dest_acc = config.dest_acc.value
         op = self.operation.cpp_enum_value
         num_faces = operation.num_faces
+        broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
 
         return (
-            f"    _llk_math_eltwise_binary_<{op}, BroadcastType::NONE, dest_sync{stage},\n"
+            f"    _llk_math_eltwise_binary_<{op}, {broadcast_type}, dest_sync{stage},\n"
             f"        {dest_acc}, {math_fidelity}, EltwiseBinaryReuseDestType::NONE>({num_faces}, {tile_idx}, false\n"
             f"    );\n"
         )
@@ -316,7 +318,7 @@ class DatacopyFpu(Fpu):
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
         tilize_en = "true" if operation.bh_tilize.value else "false"
-        broadcast_type = "BroadcastType::NONE"
+        broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
         data_copy_type = f"DataCopyType::{operation.data_copy_type.name}"
         num_faces = operation.num_faces
         is_int_fpu_en = dest_acc
@@ -344,7 +346,7 @@ class DatacopyFpu(Fpu):
     ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
-        broadcast_type = "BroadcastType::NONE"
+        broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
         unpack_to_dest = "true" if operation.unpack_to_dest else "false"
         data_copy_type = f"DataCopyType::{operation.data_copy_type.name}"
         num_faces = operation.num_faces
