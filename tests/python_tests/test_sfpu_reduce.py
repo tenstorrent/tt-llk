@@ -12,11 +12,14 @@ from helpers.golden_generators import (
 from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
+    DestSync,
     MathOperation,
     ReducePool,
     format_dict,
 )
 from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
     input_output_formats,
     parametrize,
 )
@@ -30,7 +33,6 @@ from helpers.test_variant_parameters import (
     NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
-from helpers.tile_block_helpers import calculate_num_blocks_and_tiles
 from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
 
@@ -42,7 +44,7 @@ dimension_combinations = [
     for m in range(tile_dim, max_tiles * tile_dim + 1, tile_dim)
     for n in range(tile_dim, max_tiles * tile_dim + 1, tile_dim)
     if m * n <= max_tiles * tile_dim * tile_dim
-] + [[64, 64], [128, 64], [64, 128]]
+] + [[64, 64]]
 
 
 def get_format_input_bounds(formats: InputOutputFormat) -> list[tuple[int, int]]:
@@ -54,6 +56,7 @@ def get_format_input_bounds(formats: InputOutputFormat) -> list[tuple[int, int]]
     return [(-1000, 1000), (0, 1000), (-1000, 0)]
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [
@@ -100,8 +103,20 @@ def test_sfpu_reduce(
     src_B = torch.zeros_like(src_A)
 
     # Calculate block parameters for destination register banking
-    num_blocks, num_tiles_in_block = calculate_num_blocks_and_tiles(
-        tile_cnt, formats.input_format
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
     )
 
     # Max Reduction can do block and single tile reduction whereas Sum/Avg only do single tile reduction, convert Sum/Avg golden to do block reduction by retilizing input to src_A

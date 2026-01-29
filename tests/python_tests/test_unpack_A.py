@@ -315,6 +315,7 @@ def create_simple_ids(all_params):
 param_ids = create_simple_ids(all_params)
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 # When tests are randomised, they fail in various ways: https://github.com/tenstorrent/tt-llk/issues/1108
 @skip_for_blackhole
 @pytest.mark.parametrize(

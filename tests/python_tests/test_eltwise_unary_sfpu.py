@@ -12,11 +12,8 @@ from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
-<<<<<<< HEAD
     FastMode,
-=======
     DestSync,
->>>>>>> a40287f7 (First half done.)
     MathOperation,
     format_dict,
 )
@@ -40,81 +37,7 @@ from helpers.test_variant_parameters import (
 )
 from helpers.utils import passed_test
 
-SUPPORTED_FAST_MODE_OPS = [
-    MathOperation.Log1p,
-    MathOperation.Exp,
-    MathOperation.Rsqrt,
-    MathOperation.Sqrt,
-]
 
-<<<<<<< HEAD
-ALL_MATHOPS = [
-    MathOperation.Abs,
-    MathOperation.Atanh,
-    MathOperation.Asinh,
-    MathOperation.Acosh,
-    MathOperation.Cos,
-    MathOperation.Log,
-    MathOperation.Log1p,
-    MathOperation.Reciprocal,
-    MathOperation.Sin,
-    MathOperation.Sqrt,
-    MathOperation.Rsqrt,
-    MathOperation.Square,
-    MathOperation.Tanh,
-    MathOperation.Celu,
-    MathOperation.Silu,
-    MathOperation.Gelu,
-    MathOperation.Neg,
-    MathOperation.Fill,
-    MathOperation.Elu,
-    MathOperation.Exp,
-    MathOperation.Exp2,
-    MathOperation.Hardsigmoid,
-    MathOperation.Threshold,
-    MathOperation.ReluMax,
-    MathOperation.ReluMin,
-]
-
-FORMATS = input_output_formats(
-    [
-        DataFormat.Float32,
-        DataFormat.Float16,
-        DataFormat.Float16_b,
-        DataFormat.Bfp8_b,
-    ]
-)
-
-FLOAT_TEST_PARAMS = list(
-    chain(
-        (
-            (fmt, approx, mathop, fast, dest)
-            for fmt, approx, mathop, fast, dest in product(
-                FORMATS,
-                [ApproximationMode.No, ApproximationMode.Yes],
-                SUPPORTED_FAST_MODE_OPS,
-                [FastMode.No, FastMode.Yes],
-                [DestAccumulation.No, DestAccumulation.Yes],
-            )
-        ),
-        (
-            (fmt, approx, mathop, FastMode.No, dest)
-            for fmt, approx, mathop, dest in product(
-                FORMATS,
-                [ApproximationMode.No, ApproximationMode.Yes],
-                [op for op in ALL_MATHOPS if op not in SUPPORTED_FAST_MODE_OPS],
-                [DestAccumulation.No, DestAccumulation.Yes],
-            )
-        ),
-    )
-)
-
-
-@pytest.mark.nightly
-@pytest.mark.parametrize(
-    "formats,approx_mode,mathop,fast_mode,dest_acc",
-    FLOAT_TEST_PARAMS,
-=======
 @parametrize(
     formats=input_output_formats(
         [
@@ -152,7 +75,6 @@ FLOAT_TEST_PARAMS = list(
     ],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     input_dimensions=[[64, 64], [128, 32], [32, 128], [128, 256]],
->>>>>>> a40287f7 (First half done.)
 )
 def test_eltwise_unary_sfpu_float(
     formats: list[InputOutputFormat],
@@ -224,15 +146,13 @@ def test_eltwise_unary_sfpu_float(
         dest_acc,
         approx_mode,
         mathop,
-<<<<<<< HEAD
         fast_mode,
-=======
         input_dimensions,
->>>>>>> a40287f7 (First half done.)
         workers_tensix_coordinates,
     )
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats([DataFormat.Int32]),
     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
@@ -262,11 +182,8 @@ def test_eltwise_unary_sfpu_int(
         dest_acc,
         approx_mode,
         mathop,
-<<<<<<< HEAD
         fast_mode,
-=======
         input_dimensions,
->>>>>>> a40287f7 (First half done.)
         workers_tensix_coordinates,
     )
 
@@ -277,11 +194,8 @@ def eltwise_unary_sfpu(
     dest_acc,
     approx_mode,
     mathop,
-<<<<<<< HEAD
     fast_mode: FastMode,
-=======
     input_dimensions: list[int],
->>>>>>> a40287f7 (First half done.)
     workers_tensix_coordinates,
 ):
     torch.manual_seed(0)

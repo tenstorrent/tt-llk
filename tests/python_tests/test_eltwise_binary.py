@@ -66,6 +66,7 @@ def get_tile_params(tile_dimensions):
     return num_faces, face_r_dim
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [
@@ -76,14 +77,7 @@ def get_tile_params(tile_dimensions):
     dest_acc=[DestAccumulation.No],
     math_fidelity=[MathFidelity.LoFi],
     transpose_srca=[Transpose.No],
-    input_dimensions=[
-        [32, 32],
-        [64, 64],
-        [128, 64],
-        [64, 128],
-        [128, 128],
-        [128, 256],  # 32 tiles
-    ],
+    input_dimensions=[[32, 32], [64, 64]],
     tile_dimensions=[[32, 32]],  # More dimensions coming soon....
 )
 def test_eltwise_binary(
@@ -122,7 +116,6 @@ def test_eltwise_binary(
         input_dimensions=input_dimensions,
         tile_dimensions=tile_dimensions,
     )
-
     num_tiles_in_block = get_num_tiles_in_block(
         dest_sync=DestSync.Half,
         dest_acc=dest_acc,

@@ -17,6 +17,7 @@ from helpers.test_variant_parameters import (
 from helpers.utils import passed_test
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [

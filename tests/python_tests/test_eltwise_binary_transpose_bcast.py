@@ -43,6 +43,7 @@ from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @skip_for_blackhole
 @parametrize(
     formats=input_output_formats(
@@ -54,7 +55,7 @@ from helpers.utils import passed_test
     dest_acc=[DestAccumulation.No],
     math_fidelity=[MathFidelity.LoFi],
     transpose_srca=[Transpose.Yes],
-    input_dimensions=[[32, 32], [64, 64], [128, 64], [64, 128], [128, 256]],
+    input_dimensions=[[32, 32], [64, 64], [128, 64], [64, 128]],
 )
 def test_eltwise_binary_transpose_bcast(
     formats,

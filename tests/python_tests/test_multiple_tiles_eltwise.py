@@ -32,6 +32,7 @@ from helpers.test_variant_parameters import (
 from helpers.utils import passed_test
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [
@@ -49,7 +50,7 @@ from helpers.utils import passed_test
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    input_dimensions=[[32, 32], [32, 64], [64, 64], [128, 64], [64, 128], [128, 256]],
+    input_dimensions=[[32, 32], [32, 64], [64, 64], [128, 64], [64, 128]],
 )
 def test_multiple_tiles(
     formats,

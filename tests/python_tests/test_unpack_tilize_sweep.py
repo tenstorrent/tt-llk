@@ -8,19 +8,27 @@ from helpers.format_config import DataFormat
 from helpers.golden_generators import TilizeGolden, get_golden_generator
 from helpers.llk_params import (
     DestAccumulation,
+    DestSync,
     NarrowTile,
     StochasticRounding,
     Transpose,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     INPUT_DIMENSIONS,
     NARROW_TILE,
+    NUM_BLOCKS,
     NUM_FACES,
+    NUM_TILES_IN_BLOCK,
     STOCHASTIC_ROUNDING,
     TILE_COUNT,
     UNPACK_TRANS_FACES,
@@ -29,6 +37,7 @@ from helpers.test_variant_parameters import (
 from helpers.utils import passed_test
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [
@@ -125,6 +134,22 @@ def test_unpack_tilize_comprehensive(
     )
     golden_tensor = golden_tensor.to(torch_format)
 
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=(32, 32),
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=(32, 32),
+    )
+
     configuration = TestConfig(
         "sources/unpack_tilize_sweep_test.cpp",
         formats,
@@ -133,6 +158,8 @@ def test_unpack_tilize_comprehensive(
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
         ],
         runtimes=[
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
             UNPACK_TRANS_FACES(Transpose.No),
             UNPACK_TRANS_WITHIN_FACE(transpose),
             NARROW_TILE(narrow_tile),

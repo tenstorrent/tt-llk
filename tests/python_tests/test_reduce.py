@@ -36,6 +36,7 @@ mathop_mapping = {
 }
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [

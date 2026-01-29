@@ -5,11 +5,18 @@ import torch
 from helpers.format_config import DataFormat
 from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
 from helpers.llk_params import (
+    DestAccumulation,
+    DestSync,
     MathFidelity,
     MathOperation,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -19,7 +26,7 @@ from helpers.utils import passed_test
 
 @parametrize(
     formats=input_output_formats([DataFormat.Int32]),
-    input_dimensions=[[32, 96], [64, 64], [128, 64], [64, 128]],
+    input_dimensions=[[32, 96], [64, 64], [128, 64], [64, 128], [128, 256]],
 )
 def test_risc_compute(formats, input_dimensions, workers_tensix_coordinates):
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
@@ -30,6 +37,21 @@ def test_risc_compute(formats, input_dimensions, workers_tensix_coordinates):
     )
 
     # Calculate block parameters for destination register banking
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=DestAccumulation.No,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=DestAccumulation.No,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
 
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
     golden_tensor = generate_golden(
