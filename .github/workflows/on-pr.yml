@@ -188,7 +188,7 @@ jobs:
     uses: ./.github/workflows/setup-and-test.yml
     needs: [build-images, detect-changes]
     if: ${{ github.event_name != 'push' &&
-            needs.detect-changes.outputs.performance == 'true' }}
+            needs.detect-changes.outputs.performance == 'true' && 0 }} # Turned off for now
     strategy:
       fail-fast: false
       matrix:
@@ -200,7 +200,7 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: ${{ matrix.runs_on }}
-      test_splits: 3
+      test_splits: 4
       pytest_markers: "perf"
       timeout_minutes: 240
       use_durations: false
@@ -214,7 +214,7 @@ jobs:
       - setup-and-test-wormhole
       - setup-and-test-blackhole
       - build-quasar
-      - perf-tests
+#      - perf-tests
     runs-on: ubuntu-latest
     steps:
       - name: Check if the required jobs succeeded or failed

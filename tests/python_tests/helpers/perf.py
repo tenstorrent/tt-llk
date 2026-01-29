@@ -107,14 +107,12 @@ class PerfReport:
         self._masks = [pd.Series(), pd.Series(True, index=frame.index)]
 
     def dump_csv(self, filename: str):
-        if not TestConfig.PERF_DATA_DIR.exists():
-            TestConfig.PERF_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
         frame = pd.concat(self._frames, ignore_index=True)
         mask = pd.concat(self._masks, ignore_index=True)
 
         # apply masks
-        frame[mask].to_csv(TestConfig.PERF_DATA_DIR / filename, index=False)
+        frame[mask].to_csv(filename, index=False)
 
 
 def dump_scatter(testname: str, report: PerfReport):
