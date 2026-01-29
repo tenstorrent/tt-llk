@@ -239,6 +239,7 @@ class StimuliConfig:
         read_bytes_cnt = (
             format_tile_sizes[self.stimuli_res_format] * self.tile_count_res
         )
+
         read_data = read_from_device(
             location, self.buf_res_addr, num_bytes=read_bytes_cnt
         )

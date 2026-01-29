@@ -129,5 +129,5 @@ def test_sfpu_reduce_sdpa(
 
     # Check only the first row for correctness, not full tensors
     assert passed_test(
-        golden_tensor[0], res_tensor[0], formats.output_format, print_erros=True
+        golden_tensor[0], res_tensor[0], formats.output_format, print_errors=True
     )
