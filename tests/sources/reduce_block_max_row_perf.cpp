@@ -27,17 +27,18 @@ static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        formats.unpack_src,
+        formats.unpack_src,
+        formats.unpack_dst,
+        formats.unpack_dst,
+        FACE_R_DIM,
+        FACE_R_DIM,
+        /* num_faces */ 4,
+        /* num_faces */ 4);
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-            formats.unpack_src,
-            formats.unpack_src,
-            formats.unpack_dst,
-            formats.unpack_dst,
-            FACE_R_DIM,
-            FACE_R_DIM,
-            /* num_faces */ 4,
-            /* num_faces */ 4);
+
         _llk_unpack_AB_reduce_block_max_row_init_<BLOCK_CT_DIM, is_fp32_dest_acc_en>();
         PROFILER_SYNC();
     }
@@ -93,10 +94,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     {
         ZONE_SCOPED("INIT")
-        _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-        _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
         _llk_math_reduce_block_max_row_init_<BLOCK_CT_DIM, is_fp32_dest_acc_en>();
         PROFILER_SYNC();
     }
