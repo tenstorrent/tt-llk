@@ -158,6 +158,11 @@ class FusedOperation:
         unpacker_instance = self.unpacker()
         return unpacker_instance.exec(self, config)
 
+    @property
+    def max_output_dimensions(self) -> Operand:
+        mapping = self.operand_mapping
+        return mapping.resolve_output_dimensions(mapping.operand_registry)
+
     def do_math(self, config) -> str:
         return self.math.exec(self, config)
 
