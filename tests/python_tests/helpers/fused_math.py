@@ -650,23 +650,16 @@ class Math:
         operation: "FusedOperation",
         config: "GlobalConfig",
     ) -> torch.Tensor:
-        from .tilize_untilize import tilize_block, untilize_block
-
         batch_size = operation.batch_size
         data_format = operation.output.data_format
-
         tile_cnt = operation.output.tile_count
-        dimensions = operation.output.dimensions
+        tile_size = 1024
 
-        result = self.fpu.golden(tensor_a, tensor_b, operation, config).flatten()[
-            : dimensions[0] * dimensions[1]
-        ]
+        result = self.fpu.golden(tensor_a, tensor_b, operation, config).flatten()
 
         result_tilized = tilize_block(
-            result.flatten(), dimensions, data_format
+            result, operation.max_output_dimensions, data_format
         ).flatten()
-
-        tile_size = 1024
 
         batch_start = 0
         for batch_start in range(0, tile_cnt, batch_size):
@@ -686,9 +679,12 @@ class Math:
 
             result_tilized[batch_start_elem:batch_end_elem] = batch_tensor.flatten()
 
-        result = untilize_block(result_tilized, data_format, dimensions).reshape(
-            dimensions
-        )
+        dimensions = operation.output.dimensions
+        num_elements = dimensions[0] * dimensions[1]
+
+        result = untilize_block(
+            result_tilized.flatten()[:num_elements], data_format, dimensions
+        ).reshape(dimensions)
 
         return result
 
