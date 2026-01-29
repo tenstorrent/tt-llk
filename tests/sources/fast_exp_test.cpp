@@ -57,21 +57,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-const int iterations = 8;
-
-namespace ckernel
-{
-namespace sfpu
-{
-template <bool APPROXIMATION_MODE, bool FAST_APPROX, bool SCALE_EN = false, int ITERATIONS = 8, bool SKIP_POSITIVE_CHECK = false>
-void calculate_exponential(const uint exp_base_scale_factor = p_sfpu::kCONST_1_FP16B)
-{
-    _calculate_exponential_<APPROXIMATION_MODE, SCALE_EN, ITERATIONS, FAST_APPROX, SKIP_POSITIVE_CHECK>(exp_base_scale_factor);
-}
-
-} // namespace sfpu
-} // namespace ckernel
-
 void run_kernel(const volatile struct RuntimeParams *params)
 {
 // copy srca to dest
@@ -98,13 +83,17 @@ void run_kernel(const volatile struct RuntimeParams *params)
                 _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                     i, formats.math, formats.math);
 
-                // calculation of sfpu operation on dest
-                //_llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
                 _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
 
                 // for (int loop = 0; loop < 256; loop++)
                 {
-                    ckernel::sfpu::calculate_exponential<true, true, false, iterations, false>(p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor*/);
+                    _calculate_exponential_<true, false, 32, true, false>(p_sfpu::kCONST_1_FP16B);
+                    // for (int face = 0; face < 4; face++)
+                    //{
+                    //     _calculate_exponential_<true, false, 8, true, false>(p_sfpu::kCONST_1_FP16B);
+                    //     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+                    //     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+                    // }
                 }
 
                 _llk_math_eltwise_unary_sfpu_done_();
