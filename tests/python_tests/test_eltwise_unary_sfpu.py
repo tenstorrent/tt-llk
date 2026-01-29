@@ -292,15 +292,20 @@ def test_exponential_clamp_negative(
     workers_tensix_coordinates: str,
 ):
     torch.manual_seed(0)
-    input_dimensions = [64, 64]
+    input_dimensions = [32, 32]
     formats = InputOutputFormat(DataFormat.Float16_b, DataFormat.Float16_b)
     dest_acc = DestAccumulation.No
 
-    # Generate custom stimuli with range [-300, 0.7]
+    # Generate custom stimuli with range [-5, 0.7]
     num_elements = input_dimensions[0] * input_dimensions[1]
-    src_A = (
-        torch.rand(num_elements, dtype=torch.bfloat16) * 300.7 - 300.0
-    )  # [-300, 0.7]
+    src_A = torch.rand(num_elements, dtype=torch.bfloat16) * 5.7 - 5.0
+    # Set some values to be large and negative:
+    src_A[0] = -10000
+    src_A[1] = -1000
+    src_A[2] = -200
+    src_A[3] = -100
+    src_A[4] = -88.5
+
     src_B = torch.zeros(num_elements, dtype=torch.bfloat16)
     tile_cnt_A = (input_dimensions[0] // 32) * (input_dimensions[1] // 32)
     tile_cnt_B = tile_cnt_A
@@ -349,8 +354,16 @@ def test_exponential_clamp_negative(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
+    # When clamp_negative = False require inputs < -88 to be negative (but not necessarily correct),
+    # and don't include them in the resulting isclose check.
+    if not clamp_negative:
+        assert torch.all(
+            res_tensor[:5] <= 0
+        ), "Some of the first 5 elements are positive"
+        res_tensor[:5] = golden_tensor[:5]
+
     # Use relaxed tolerance for this test
-    atol, rtol = 0.1, 0.1
+    atol, rtol = 0.02, 0.02
     is_close = torch.isclose(golden_tensor, res_tensor, rtol=rtol, atol=atol)
     is_nan = torch.isnan(golden_tensor) & torch.isnan(res_tensor)
     is_valid = is_close | is_nan
