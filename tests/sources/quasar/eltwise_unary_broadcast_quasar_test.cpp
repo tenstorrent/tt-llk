@@ -91,8 +91,21 @@ void run_kernel(const volatile struct RuntimeParams *params)
         }
     }
 
-    _llk_unpack_unary_broadcast_operands_init_<p_unpacr::UNP_B, BROADCAST_TYPE, unpack_to_dest>(buf_desc_id, num_tiles_per_unpack);
-    _llk_unpack_unary_broadcast_operands_<p_unpacr::UNP_B, unpack_to_dest>(0);
+    if constexpr (unpack_to_dest)
+    {
+        _llk_unpack_unary_broadcast_operands_init_<p_unpacr::UNP_A, BROADCAST_TYPE, unpack_to_dest>(buf_desc_id, num_tiles_per_unpack);
+        _llk_unpack_unary_broadcast_operands_<p_unpacr::UNP_A, unpack_to_dest>(0);
+    }
+    else
+    {
+        _llk_unpack_unary_broadcast_operands_init_<p_unpacr::UNP_B, BROADCAST_TYPE, unpack_to_dest>(buf_desc_id, num_tiles_per_unpack);
+        _llk_unpack_unary_broadcast_operands_<p_unpacr::UNP_B, unpack_to_dest>(0);
+    }
+
+    if (unpack_to_dest)
+    {
+        _llk_unpack_dest_dvalid_section_done_();
+    }
 }
 
 #endif
@@ -119,14 +132,12 @@ void run_kernel(const volatile struct RuntimeParams *params)
     DataFormat src_format = static_cast<DataFormat>(formats.math);
     _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, false /*int32_dest*/>(src_format, src_format);
 
-    const uint num_rows_per_matrix = params->num_faces * params->TEST_FACE_R_DIM;
-    const uint num_matrices        = (BROADCAST_TYPE == BroadcastType::SCALAR) ? 1 : params->num_faces;
-
-    _llk_math_eltwise_unary_broadcast_init_<BROADCAST_TYPE, unpack_to_dest>(num_rows_per_matrix, num_matrices);
+    TileShape tile_shape = {.num_faces = params->num_faces, .face_r_dim = params->TEST_FACE_R_DIM, .face_c_dim = params->TEST_FACE_C_DIM, .narrow_tile = false};
+    _llk_math_eltwise_unary_broadcast_init_<BROADCAST_TYPE, unpack_to_dest>(tile_shape);
 
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_math_eltwise_unary_broadcast_<BROADCAST_TYPE, unpack_to_dest>(num_rows_per_matrix, i);
+        _llk_math_eltwise_unary_broadcast_<BROADCAST_TYPE, unpack_to_dest>(i);
     }
     _llk_math_set_dvalid_<p_cleardvalid::FPU>();
 }
