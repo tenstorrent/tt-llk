@@ -99,10 +99,8 @@ inline void _llk_unpack_A_mop_config_(
         constexpr uint32_t innerloop = 1;
         constexpr uint32_t outerloop = 1; // TODO: add support for num_faces
         ckernel_template tmp(outerloop, innerloop, unpack_srcb, srcb_set_z_2);
-        if (!(unpack_dst_format == (uint)DataFormat::UInt16))
-        {
-            tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
-        }
+        // ELWADD used in datacopy for float16
+        tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
         tmp.set_end_op(unpack_srcb);
         tmp.program();
     }
@@ -124,11 +122,8 @@ inline void _llk_unpack_A_mop_config_(
         constexpr uint32_t outerloop = 1;
         constexpr uint32_t innerloop = 1;
         ckernel_template tmp(outerloop, innerloop, unpack_srcb_inc_z_0);
-        // ELWADD used in datacopy due to WH broadcast bug, use zerosrca regardless of acc_to_dest
-        if (!(unpack_dst_format == (uint)DataFormat::UInt16))
-        {
-            tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
-        }
+        // ELWADD used in datacopy for float16
+        tmp.set_start_op(unpack_srca_zerosrc_set_dvalid);
         tmp.program();
     }
     else
@@ -223,6 +218,7 @@ inline void _llk_unpack_A_init_(
         config_unpacker_x_end<UNP_SEL>(face_r_dim);
     }
 
+    // TODO NC: Move to TRISC1 tt-metal#36411
     if constexpr (BType != BroadcastType::NONE && unpack_to_dest)
     {
         _llk_unpack_dbg_feature_disable_();
@@ -237,6 +233,7 @@ template <
     bool unpack_to_dest                          = false>
 inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpack_src_format = 0, const std::uint32_t unpack_dst_format = 0)
 {
+    LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
     // Clear z/w start counters
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 

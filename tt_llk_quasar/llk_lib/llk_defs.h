@@ -50,13 +50,15 @@ enum class SfpuType : uint32_t
     exponential,
     reciprocal,
     sqrt,
+    rsqrt,
     relu,
     lrelu,
     relumin,
     relumax,
     stochround,
     typecast,
-    add
+    add,
+    square
 };
 
 enum class DstSync : uint8_t
@@ -82,3 +84,6 @@ enum class StochRndType : uint8_t
 };
 
 } // namespace ckernel
+
+// Make SfpuType available in global namespace for compatibility with test infrastructure
+using SfpuType = ckernel::SfpuType;

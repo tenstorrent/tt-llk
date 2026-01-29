@@ -13,6 +13,7 @@
 #include "ckernel_template.h"
 #include "cunpack_common.h"
 #include "llk_assert.h"
+#include "llk_unpack_common.h"
 
 using namespace ckernel;
 using namespace ckernel::unpacker;
@@ -92,15 +93,8 @@ inline void unpack_tilize_impl(
         // Wait for free context
         wait_for_next_context(2);
 
-        // Get tile address
-        if (0 == unp_cfg_context)
-        {
-            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
-        }
-        else
-        {
-            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
-        }
+        // Validate and configure address
+        _llk_unpack_configure_single_address_(address, cfg);
 
         // Trisc::SEMPOST for context acquire
         semaphore_post(semaphore::UNPACK_SYNC);
@@ -140,6 +134,7 @@ inline void unpack_tilize_to_dest_impl(
     // Clear z/w start counters
     TTI_SETADCZW(0b001, 0, 0, 0, 0, 0b1111);
 
+    LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
     // Get tile address
     cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
 
@@ -160,6 +155,7 @@ inline void unpack_tilize_to_dest_impl(
 
         // Increment address to point to bottom faces in L1
         address += bot_face_offset_address;
+        LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
 
         // Get tile address
         TT_SETDMAREG(0, LOWER_HALFWORD(address), 0, LO_16(p_gpr_unpack::TMP0));
@@ -367,17 +363,8 @@ inline void _llk_unpack_tilizeA_B_(
         // Wait for free context
         wait_for_next_context(2);
 
-        // Get tile address
-        if (0 == unp_cfg_context)
-        {
-            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_a;
-            cfg[THCON_SEC1_REG3_Base_address_ADDR32] = address_b;
-        }
-        else
-        {
-            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_a;
-            cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = address_b;
-        }
+        // Validate and configure addresses
+        _llk_unpack_configure_addresses_(address_a, address_b, cfg);
 
         // Trisc::SEMPOST for context acquire
         semaphore_post(semaphore::UNPACK_SYNC);
@@ -416,11 +403,20 @@ inline void _llk_unpack_tilizeA_B_(
 
 inline void _llk_unpack_tilize_uninit_(const std::uint32_t unpack_dst_format, const std::uint32_t face_r_dim)
 {
+    // Stalling SETDMAREG done by THCON until UNPACK finishes
     TTI_STALLWAIT(p_stall::STALL_THCON, p_stall::UNPACK);
     TT_SETADCXX(p_setadc::UNP_A, face_r_dim * FACE_C_DIM - 1, 0x0);
     TT_SETADCXX(p_setadc::UNP_B, face_r_dim * FACE_C_DIM - 1, 0x0);
-    unpack_config_u config = {0};
 
+    // Revert Z and Y dim value back to default:
+    // THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1 - word 1 of the same-named register
+    // y-dim sits in lower 16 bits and is set to 1 by default
+    // z-dim sits in upper 16 bits and is set to unpA_num_faces which is 4 by default
+    // TODO NC: Make this configurable and restored to a default operand state under tt-llk#1161
+    cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 16, 0xffff0000>(4);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 0, 0x0000ffff>(1);
+
+    unpack_config_u config   = {0};
     config.f.out_data_format = unpack_dst_format;
     config.f.throttle_mode   = 2;
     TT_SETDMAREG(0, LOWER_HALFWORD(config.val[0]), 0, LO_16(p_gpr_unpack::TMP0));
@@ -599,16 +595,8 @@ inline void _llk_unpack_fast_tilize_block_(
 
     wait_for_next_context(2);
 
-    if (0 == unp_cfg_context)
-    {
-        cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
-        cfg[THCON_SEC1_REG3_Base_address_ADDR32] = unpB_address;
-    }
-    else
-    {
-        cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
-        cfg[THCON_SEC1_REG3_Base_cntx1_address_ADDR32] = unpB_address;
-    }
+    // Validate and configure addresses
+    _llk_unpack_configure_addresses_(address, unpB_address, cfg);
 
     semaphore_post(semaphore::UNPACK_SYNC);
 

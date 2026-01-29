@@ -9,6 +9,15 @@
 #include "ckernel_sfpu_binary.h"
 #include "llk_sfpu_types.h"
 
+// Metal SFPU operations from tt-metal repository
+// To add a new metal SFPU operation:
+// 1. Include the metal header below: #include "metal_sfpu/<operation>.h"
+// 2. Add the operation enum to SfpuType in llk_sfpu_types.h
+// 3. Add the case statement in call_sfpu_operation() switch below
+#include "metal_sfpu/ckernel_sfpu_exp.h"
+#include "metal_sfpu/ckernel_sfpu_log1p.h"
+#include "metal_sfpu/ckernel_sfpu_tanh.h"
+
 namespace test_utils
 {
 using namespace ckernel;
@@ -60,8 +69,21 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0, float fil
             break;
         case SfpuType::exponential:
             _init_exponential_<APPROX_MODE, FAST_MODE, 0x3F800000 /* exp_base_scale_factor */>();
-            _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */>(
-                p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
+            if (FAST_MODE && APPROX_MODE)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */>(
+                        p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
+                    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+                    TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+                }
+            }
+            else
+            {
+                _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */>(
+                    p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
+            }
             break;
         case SfpuType::fill:
             if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
@@ -84,6 +106,10 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0, float fil
         case SfpuType::log:
             _init_log_<APPROX_MODE>();
             _calculate_log_<APPROX_MODE, false, ITERATIONS>(ITERATIONS, 0);
+            break;
+        case SfpuType::log1p:
+            log1p_init<APPROX_MODE, FAST_MODE, is_fp32_dest_acc_en>();
+            calculate_log1p<APPROX_MODE, FAST_MODE, is_fp32_dest_acc_en, ITERATIONS>();
             break;
         case SfpuType::neg:
         case SfpuType::negative:
@@ -116,6 +142,10 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0, float fil
             break;
         case SfpuType::square:
             _calculate_square_<APPROX_MODE, ITERATIONS>();
+            break;
+        case SfpuType::tanh:
+            tanh_init<APPROX_MODE, is_fp32_dest_acc_en>();
+            calculate_tanh<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>();
             break;
         case SfpuType::threshold:
             _calculate_threshold_<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);

@@ -41,16 +41,32 @@ download_headers() {
     local header_dir="${SCRIPT_DIR}/hw_specific/${chip_arch}/inc"
     local stamp_file="${header_dir}/.headers_downloaded"
 
+    # Define headers first
+    local base_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/internal/tt-1xx/${chip_arch}"
+    local headers=( "core_config.h" "cfg_defines.h" "dev_mem_map.h" "tensix.h" "tensix_types.h")
+    if [[ "$chip_arch" == "quasar" ]]; then
+        base_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/internal/tt-2xx/quasar"
+        headers=( "core_config.h" "dev_mem_map.h" )
+    fi
+
+    # Check stamp file AND verify headers exist
     if [[ -f "$stamp_file" ]]; then
-        echo "Headers for ${chip_arch} already downloaded."
-        return
+        local all_headers_present=true
+        for header in "${headers[@]}"; do
+            if [[ ! -f "${header_dir}/${header}" ]]; then
+                all_headers_present=false
+                break
+            fi
+        done
+
+        if [[ "$all_headers_present" == true ]]; then
+            echo "Headers for ${chip_arch} already downloaded."
+            return
+        fi
     fi
 
     echo "Downloading headers for ${chip_arch}..."
     mkdir -p "$header_dir/internal"
-
-    local base_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/internal/tt-1xx/${chip_arch}"
-    local headers=("cfg_defines.h" "dev_mem_map.h" "tensix.h" "tensix_types.h")
 
     local risc_attribs_url="https://raw.githubusercontent.com/tenstorrent/tt-metal/refs/heads/main/tt_metal/hw/inc/internal/risc_attribs.h"
 
@@ -84,6 +100,45 @@ download_headers() {
 
     touch "$stamp_file"
     echo "Headers for ${chip_arch} downloaded successfully."
+}
+
+# Function to download SFPU files from tt-metal
+download_sfpu_files() {
+    local chip_arch=$1
+    local sfpu_dir="${SCRIPT_DIR}/hw_specific/${chip_arch}/metal_sfpu"
+    local stamp_file="${sfpu_dir}/.sfpu_downloaded"
+
+    # Map architecture to tt-metal path
+    local ckernels_path=""
+    case "$chip_arch" in
+        wormhole) ckernels_path="wormhole_b0" ;;
+        blackhole) ckernels_path="blackhole" ;;
+        quasar) touch "$stamp_file"; return ;;
+        *) echo "WARNING: Unknown architecture ${chip_arch}, skipping..."; touch "$stamp_file"; return ;;
+    esac
+
+    mkdir -p "$sfpu_dir"
+
+    if [[ -f "$stamp_file" ]]; then
+        echo "SFPU files for ${chip_arch} already downloaded."
+        return
+    fi
+
+    echo "Downloading SFPU files for ${chip_arch}..."
+
+	if git clone --depth 1 --filter=blob:none --sparse https://github.com/tenstorrent/tt-metal.git tt-metal-temp 2>/dev/null; then
+		if git -C tt-metal-temp sparse-checkout set tt_metal/hw/ckernels/${ckernels_path}/metal/llk_api/llk_sfpu 2>/dev/null; then
+			cp tt-metal-temp/tt_metal/hw/ckernels/${ckernels_path}/metal/llk_api/llk_sfpu/*.h "${sfpu_dir}/" || \
+				echo "ERROR: Failed to copy SFPU headers" >&2
+		else
+			echo "ERROR: Failed to sparse-checkout SFPU headers" >&2
+		fi
+		rm -rf tt-metal-temp
+	else
+		echo "ERROR: Failed to clone tt-metal repository" >&2
+	fi
+
+    touch "$stamp_file"
 }
 
 # Function to setup pre-commit hooks
@@ -139,11 +194,10 @@ main() {
     fi
 
     # Download headers
-    if [[ "$chip_arch" != "quasar" ]]; then
-        download_headers "$chip_arch"
-    else
-        echo "No external headers needed for quasar architecture."
-    fi
+    download_headers "$chip_arch"
+
+    # Download SFPU files
+    download_sfpu_files "$chip_arch"
 
     # Setup pre-commit hooks
     setup_precommit
