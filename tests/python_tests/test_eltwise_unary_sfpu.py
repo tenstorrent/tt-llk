@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-from itertools import chain, product
-
 import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture
@@ -12,8 +10,8 @@ from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
-    FastMode,
     DestSync,
+    FastMode,
     MathOperation,
     format_dict,
 )
