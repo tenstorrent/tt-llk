@@ -378,8 +378,26 @@ template <std::uint32_t UNP_SEL = p_setadc::UNP_AB>
 inline void config_unpacker_x_end(const uint32_t face_r_dim)
 {
     static_assert(UNP_SEL == p_setadc::UNP_A || UNP_SEL == p_setadc::UNP_B || UNP_SEL == p_setadc::UNP_AB, "UNP_SEL must be UNP_A, UNP_B, or UNP_AB");
-    LLK_ASSERT(face_r_dim == 1 || face_r_dim == 2 || face_r_dim == 4 || face_r_dim == 8 || face_r_dim == 16, "face_r_dim must be 1, 2, 4, 8, or 16");
-    TTI_SETADCXX(UNP_SEL, face_r_dim * FACE_C_DIM - 1, 0x0);
+    LLK_ASSERT(
+        face_r_dim == 1 || face_r_dim == 2 || face_r_dim == 4 || face_r_dim == 8 || face_r_dim == FACE_R_DIM, "face_r_dim must be 1, 2, 4, 8, or FACE_R_DIM");
+    switch (face_r_dim)
+    {
+        case 1:
+            TTI_SETADCXX(UNP_SEL, 1 * FACE_C_DIM - 1, 0x0);
+            break;
+        case 2:
+            TTI_SETADCXX(UNP_SEL, 2 * FACE_C_DIM - 1, 0x0);
+            break;
+        case 4:
+            TTI_SETADCXX(UNP_SEL, 4 * FACE_C_DIM - 1, 0x0);
+            break;
+        case 8:
+            TTI_SETADCXX(UNP_SEL, 8 * FACE_C_DIM - 1, 0x0);
+            break;
+        default:
+            TTI_SETADCXX(UNP_SEL, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
+            break;
+    }
 }
 
 inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
