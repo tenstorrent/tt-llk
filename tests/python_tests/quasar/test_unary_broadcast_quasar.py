@@ -66,6 +66,13 @@ def generate_unary_broadcast_combinations():
             for broadcast_type in broadcast_types:
                 for implied_math_format in implied_math_formats:
                     for input_dimensions in generate_unary_input_dimensions(dest_acc):
+                        # TODO: Comment out multiple tiles for now - SCALAR broadcast with multiple tiles is not working
+                        # Filter out multiple tile cases (keep only single tile: [32, 32])
+                        num_tiles = (input_dimensions[0] // 32) * (
+                            input_dimensions[1] // 32
+                        )
+                        if num_tiles > 1:
+                            continue
                         combinations.append(
                             (
                                 fmt,

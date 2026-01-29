@@ -26,8 +26,11 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
 
     const uint32_t MOP_OUTER_LOOP     = num_tiles;
     constexpr uint32_t MOP_INNER_LOOP = 1;
-    // Replay buffer length: SCALAR=1, ROW=2, COL=4 (unpack_to_dest=false) or 2 (unpack_to_dest=true)
-    constexpr static uint replay_buf_len = (BROADCAST_TYPE == BroadcastType::SCALAR) ? 1 : ((BROADCAST_TYPE == BroadcastType::COL && !unpack_to_dest) ? 4 : 2);
+    // Replay buffer length: SCALAR=1, ROW=4 (unpack_to_dest=false) or 2 (unpack_to_dest=true), COL=4 (unpack_to_dest=false) or 2 (unpack_to_dest=true)
+    constexpr static uint replay_buf_len =
+        (BROADCAST_TYPE == BroadcastType::SCALAR)
+            ? 1
+            : ((BROADCAST_TYPE == BroadcastType::ROW && !unpack_to_dest) ? 4 : ((BROADCAST_TYPE == BroadcastType::COL && !unpack_to_dest) ? 4 : 2));
 
     uint unpack_tile_inc;
     if constexpr (unpack_to_dest)
@@ -36,13 +39,16 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
     }
     else
     {
-        unpack_tile_inc = TT_OP_UNPACR1_TILE_INC(0, 1 /*Src Tile Idx*/, buf_desc_id, 1 /*Set Dvalid*/);
+        // For SCALAR, we only need face 0, so skip start_op and only use replay buffer
+        if constexpr (BROADCAST_TYPE == BroadcastType::SCALAR)
+        {
+            unpack_tile_inc = TT_OP_NOP;
+        }
+        else
+        {
+            unpack_tile_inc = TT_OP_UNPACR1_TILE_INC(0, 1 /*Src Tile Idx*/, buf_desc_id, 1 /*Set Dvalid*/);
+        }
     }
-
-    // Note: The unpack_to_dest branches use different hardware instructions (TT_UNPACR_DEST_* vs TT_UNPACR1_*)
-    // that target different destinations (dest register vs srcB register). While the parameters are identical,
-    // these are fundamentally different opcodes and cannot be unified. The duplication is intentional to
-    // clearly show the two code paths.
     if constexpr (BROADCAST_TYPE == BroadcastType::SCALAR)
     {
         load_replay_buf<0, replay_buf_len>(
@@ -50,11 +56,11 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
             {
                 if constexpr (unpack_to_dest)
                 {
-                    TT_UNPACR_DEST_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                    TT_UNPACR_DEST_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
                 }
                 else
                 {
-                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
                 }
             });
     }
@@ -70,8 +76,12 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
                 }
                 else
                 {
-                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 0 /*SetDatValid*/);
-                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 1 /*Dst_Face_Idx*/, 1 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                    // ROW: unpack F0 row, F1 row, F0 row, F1 row (like binary broadcast - all set dvalid)
+                    // Pattern: F0, F1, F0, F1 to match golden generator (output faces 0,1,2,3 use F0 row, F1 row, F0 row, F1 row)
+                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 1 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 1 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
                 }
             });
     }
@@ -87,10 +97,10 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
                 }
                 else
                 {
-                    // COL: unpack F0, F0, F2, F2 to srcB Face 0 (like binary broadcast)
-                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 0 /*SetDatValid*/);
-                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 0 /*SetDatValid*/);
-                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 2 /*Src Face Idx*/, 0, 0, buf_desc_id, 0 /*SetDatValid*/);
+                    // COL: unpack F0, F0, F2, F2 all to srcB Face 0 (like binary broadcast - all set dvalid)
+                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 2 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
                     TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 2 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
                 }
             });
