@@ -253,6 +253,7 @@ def parse_operation(
         output=op_config["output"],
         src_a_dims=op_config.get("src_a_dims", [32, 32]),
         src_b_dims=op_config.get("src_b_dims", [32, 32]),
+        output_dims=op_config.get("output_dims", [32, 32]),
         input_format=input_format,
         output_format=output_format,
         src_a_const_value=op_config.get("src_a_const_value"),
@@ -293,8 +294,6 @@ def parse_operation(
         kwargs["unpack_transpose_faces"] = TRANSPOSE_MAP[
             op_config["unpack_transpose_faces"]
         ]
-    if "output_pack_dims" in op_config:
-        kwargs["output_pack_dims"] = op_config["output_pack_dims"]
     if "batch_size" in op_config:
         kwargs["batch_size"] = op_config["batch_size"]
     if "broadcast_type" in op_config:

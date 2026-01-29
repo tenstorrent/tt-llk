@@ -8,6 +8,7 @@ operations:
     output: "datacopy_output"
     src_a_dims: [64, 64]
     src_b_dims: [64, 64]
+    output_dims: [64, 64]
     input_format: "Float16_b"
     output_format: "Float16_b"
     unpacker: "UnpackerA"
@@ -31,6 +32,7 @@ operations:
     output: "tilized_output"
     src_a_dims: [64, 64]
     src_b_dims: [64, 64]
+    output_dims: [64, 64]
     input_format: "Float16_b"
     output_format: "Float16_b"
     unpacker: "UnpackerTilizeA"
@@ -61,6 +63,7 @@ operations:
     output: "reduced_output"
     src_a_dims: [64, 64]
     src_b_dims: [64, 64]
+    output_dims: [64, 64]
     src_b_const_value: 1.0
     input_format: "Float16_b"
     output_format: "Float16_b"
@@ -85,6 +88,7 @@ operations:
     output: "elwadd1"
     src_a_dims: [64, 64]
     src_b_dims: [64, 64]
+    output_dims: [64, 64]
     input_format: "Float16_b"
     output_format: "Float16_b"
     unpacker: "UnpackerAB"
@@ -106,6 +110,7 @@ operations:
     output: "matmul_result"
     src_a_dims: [64, 64]
     src_b_dims: [64, 64]
+    output_dims: [32, 64]
     input_format: "Float16_b"
     output_format: "Float32"
     unpacker: "MatmulUnpacker"
@@ -122,7 +127,6 @@ operations:
           iterations: 128
     packer: "Packer"
     math_fidelity: "HiFi2"
-    output_pack_dims: [32, 64]
     batch_size: 1
 
   - src_a: "matmul_result"
@@ -130,6 +134,7 @@ operations:
     output: "final_output"
     src_a_dims: [32, 64]
     src_b_dims: [64, 32]
+    output_dims: [32, 32]
     input_format: "Float32"
     output_format: "Float32"
     unpacker: "MatmulUnpacker"

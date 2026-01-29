@@ -652,22 +652,15 @@ class Math:
     ) -> torch.Tensor:
         from .tilize_untilize import tilize_block, untilize_block
 
-        result = self.fpu.golden(tensor_a, tensor_b, operation, config)
-
-        if not self.sfpu:
-            return result
-
         batch_size = operation.batch_size
         data_format = operation.output.data_format
 
-        if isinstance(self.fpu, MatmulFpu):
-            rt_dim = operation.rt_dim
-            ct_dim = operation.ct_dim
-            tile_cnt = rt_dim * ct_dim
-            dimensions = [rt_dim * 32, ct_dim * 32]
-        else:
-            tile_cnt = operation.output.tile_count
-            dimensions = operation.output.dimensions
+        tile_cnt = operation.output.tile_count
+        dimensions = operation.output.dimensions
+
+        result = self.fpu.golden(tensor_a, tensor_b, operation, config).flatten()[
+            : dimensions[0] * dimensions[1]
+        ]
 
         result_tilized = tilize_block(
             result.flatten(), dimensions, data_format
@@ -693,7 +686,9 @@ class Math:
 
             result_tilized[batch_start_elem:batch_end_elem] = batch_tensor.flatten()
 
-        result = untilize_block(result_tilized, data_format, dimensions)
+        result = untilize_block(result_tilized, data_format, dimensions).reshape(
+            dimensions
+        )
 
         return result
 

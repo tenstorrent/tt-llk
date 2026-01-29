@@ -70,15 +70,6 @@ class FusedOperation:
         src_b = registry.get(mapping.src_b)
         output = registry.get(mapping.output)
 
-        input_A_dimensions = src_a.dimensions if src_a.dimensions else [32, 32]
-        input_B_dimensions = src_b.dimensions if src_b.dimensions else [32, 32]
-
-        from .format_config import InputOutputFormat
-
-        formats = InputOutputFormat(
-            input_format=src_a.data_format, output_format=output.data_format
-        )
-
         TILE_SIZES = {
             DataFormat.Bfp8_b: 68,
             DataFormat.Float32: 256,
@@ -102,29 +93,21 @@ class FusedOperation:
 
         self.tile_size = 16 * 16 * self.num_faces
 
-        self.buffer_A_tile_size = format_tile_sizes[formats.input_format]
-        self.buffer_B_tile_size = format_tile_sizes[formats.input_format]
-        self.buffer_Res_tile_size = format_tile_sizes[formats.output_format]
+        self.buffer_A_tile_size = format_tile_sizes[self.src_a.data_format]
+        self.buffer_B_tile_size = format_tile_sizes[self.src_b.data_format]
+        self.buffer_Res_tile_size = format_tile_sizes[self.output.data_format]
 
         num_rows = 32
         num_cols = 32
 
-        validate_tile_dimensions(input_A_dimensions[0], num_rows)
-        validate_tile_dimensions(input_A_dimensions[1], num_cols)
-        validate_tile_dimensions(input_B_dimensions[0], num_rows)
-        validate_tile_dimensions(input_B_dimensions[1], num_cols)
+        validate_tile_dimensions(self.src_a.dimensions[0], num_rows)
+        validate_tile_dimensions(self.src_a.dimensions[1], num_cols)
+        validate_tile_dimensions(self.src_b.dimensions[0], num_rows)
+        validate_tile_dimensions(self.src_b.dimensions[1], num_cols)
 
-        full_rt_dim = input_A_dimensions[0] // num_rows
-        full_ct_dim = input_B_dimensions[1] // num_cols
-
-        self.full_rt_dim = full_rt_dim
-        self.full_ct_dim = full_ct_dim
-        self.block_rt_dim = full_rt_dim
-        self.block_ct_dim = full_ct_dim
-
-        self.rt_dim = input_A_dimensions[0] // num_rows
-        self.ct_dim = input_B_dimensions[1] // num_cols
-        self.kt_dim = input_A_dimensions[1] // num_cols
+        self.rt_dim = self.output.dimensions[0] // num_rows
+        self.ct_dim = self.output.dimensions[1] // num_cols
+        self.kt_dim = self.src_a.dimensions[1] // num_cols
 
         if self.output_pack_dims is None:
             self.output_pack_dims = self.output.dimensions
@@ -142,7 +125,7 @@ class FusedOperation:
         if (
             get_chip_architecture() == ChipArchitecture.BLACKHOLE
             and self.unpacker is UnpackerTilizeA
-            and formats.input_format != DataFormat.Bfp8_b
+            and self.src_a.data_format != DataFormat.Bfp8_b
         ):
             self.bh_tilize = Tilize.Yes
         else:
