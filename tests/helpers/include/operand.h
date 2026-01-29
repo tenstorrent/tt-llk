@@ -18,6 +18,11 @@ public:
         return base_addr + index * tile_size;
     }
 
+    [[nodiscard]] constexpr uint32_t get_tile_size() const noexcept
+    {
+        return tile_size;
+    }
+
 private:
     uint32_t base_addr;
     uint32_t tile_size;
