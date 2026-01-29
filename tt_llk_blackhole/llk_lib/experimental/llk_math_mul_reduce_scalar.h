@@ -4,12 +4,12 @@
 
 #pragma once
 
-#include "../llk_math_common.h"
 #include "ckernel_globals.h"
 #include "ckernel_include.h"
 #include "ckernel_ops.h"
 #include "cmath_common.h"
 #include "llk_defs.h"
+#include "llk_math_common.h"
 #include "llk_operands.h"
 
 using namespace ckernel;
@@ -20,25 +20,57 @@ using namespace ckernel;
 
 // Helper macros for moving destination to source registers
 #define MOVD2A_4_ROWS(base_offset, row_offset) \
-    TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + (row_offset) * 4, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, (base_offset) + (row_offset) * 4)
+    TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + (row_offset) * 4, ADDR_MOD_0, p_movd2a::MOV_4_ROWS, (base_offset) + (row_offset) * 4);
 
 #define MOVD2A_16_ROWS(base_offset) \
-    MOVD2A_4_ROWS(base_offset, 0);  \
-    MOVD2A_4_ROWS(base_offset, 1);  \
-    MOVD2A_4_ROWS(base_offset, 2);  \
-    MOVD2A_4_ROWS(base_offset, 3);  \
-    MOVD2A_4_ROWS(base_offset, 4);  \
-    MOVD2A_4_ROWS(base_offset, 5);  \
-    MOVD2A_4_ROWS(base_offset, 6);  \
-    MOVD2A_4_ROWS(base_offset, 7);  \
-    MOVD2A_4_ROWS(base_offset, 8);  \
-    MOVD2A_4_ROWS(base_offset, 9);  \
-    MOVD2A_4_ROWS(base_offset, 10); \
-    MOVD2A_4_ROWS(base_offset, 11); \
-    MOVD2A_4_ROWS(base_offset, 12); \
-    MOVD2A_4_ROWS(base_offset, 13); \
-    MOVD2A_4_ROWS(base_offset, 14); \
+    MOVD2A_4_ROWS(base_offset, 0)   \
+    MOVD2A_4_ROWS(base_offset, 1)   \
+    MOVD2A_4_ROWS(base_offset, 2)   \
+    MOVD2A_4_ROWS(base_offset, 3)   \
+    MOVD2A_4_ROWS(base_offset, 4)   \
+    MOVD2A_4_ROWS(base_offset, 5)   \
+    MOVD2A_4_ROWS(base_offset, 6)   \
+    MOVD2A_4_ROWS(base_offset, 7)   \
+    MOVD2A_4_ROWS(base_offset, 8)   \
+    MOVD2A_4_ROWS(base_offset, 9)   \
+    MOVD2A_4_ROWS(base_offset, 10)  \
+    MOVD2A_4_ROWS(base_offset, 11)  \
+    MOVD2A_4_ROWS(base_offset, 12)  \
+    MOVD2A_4_ROWS(base_offset, 13)  \
+    MOVD2A_4_ROWS(base_offset, 14)  \
     MOVD2A_4_ROWS(base_offset, 15)
+
+/**
+ * @brief Execute GAPOOL operations with optional high fidelity phases
+ *
+ * Executes the appropriate number of GAPOOL instructions based on fidelity level.
+ * For high fidelity (MATH_FIDELITY_PHASES > 0), executes MATH_FIDELITY_PHASES - 1
+ * iterations with ADDR_MOD_2, followed by one final GAPOOL with ADDR_MOD_0.
+ *
+ * @tparam MATH_FIDELITY_PHASES Number of fidelity phases (0, 2, 3, or 4)
+ */
+template <int MATH_FIDELITY_PHASES>
+inline void execute_high_fidelity_gapool()
+{
+    static_assert(
+        MATH_FIDELITY_PHASES == 0 || MATH_FIDELITY_PHASES == 2 || MATH_FIDELITY_PHASES == 3 || MATH_FIDELITY_PHASES == 4,
+        "MATH_FIDELITY_PHASES must be 0, 2, 3, or 4");
+
+    if constexpr (MATH_FIDELITY_PHASES >= 2)
+    {
+        TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0);
+    }
+    if constexpr (MATH_FIDELITY_PHASES >= 3)
+    {
+        TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0);
+    }
+    if constexpr (MATH_FIDELITY_PHASES >= 4)
+    {
+        TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0);
+    }
+
+    TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+}
 
 /**
  * @brief Move destination tile to source registers for mul_reduce_scalar
@@ -55,7 +87,7 @@ inline void _llk_math_mul_reduce_scalar_move_dest_to_src_(uint32_t idst = 0)
     {
         if (idst == 0)
         {
-            TT_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, 0);
+            TTI_SETC16(DEST_TARGET_REG_CFG_MATH_Offset_ADDR32, 0);
             TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
         }
 
@@ -91,8 +123,7 @@ inline void _llk_math_mul_reduce_scalar_move_dest_to_src_(uint32_t idst = 0)
     }
     else if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB)
     {
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_B);
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_BD);
 
         TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 0, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 0);
         TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 4, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
@@ -172,39 +203,26 @@ inline void _llk_math_mul_reduce_scalar_init_()
  * @param num_faces Number of faces (1, 2, or 4)
  */
 template <int MATH_FIDELITY_DESC = 0>
-inline void _llk_math_mul_reduce_column_(const uint dst_index, bool narrow_tile = false, const uint num_faces = 4)
+inline void _llk_math_mul_reduce_column_(const std::uint32_t dst_index, bool narrow_tile = false, const std::uint32_t num_faces = 4)
 {
+    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
-    const uint num_row_tiles           = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
+    const std::uint32_t num_row_tiles  = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
 
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
-    for (uint row_tile = 0; row_tile < num_row_tiles; row_tile++)
+    for (std::uint32_t row_tile = 0; row_tile < num_row_tiles; row_tile++)
     {
-        if constexpr (HIGH_FIDELITY)
-        {
-            for (int i = 0; i < MATH_FIDELITY_PHASES - 1; i++)
-            {
-                TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0);
-            }
-        }
-        TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+        execute_high_fidelity_gapool<MATH_FIDELITY_PHASES>();
 
         if ((!narrow_tile) && (num_faces > 1))
         {
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_A, 0, 0, 8, p_setrwc::SET_A);
 
-            if constexpr (HIGH_FIDELITY)
-            {
-                for (int i = 0; i < MATH_FIDELITY_PHASES - 1; i++)
-                {
-                    TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0);
-                }
-            }
-            TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+            execute_high_fidelity_gapool<MATH_FIDELITY_PHASES>();
         }
 
         if (row_tile == 0)
@@ -218,8 +236,6 @@ inline void _llk_math_mul_reduce_column_(const uint dst_index, bool narrow_tile 
             TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AD);
         }
     }
-
-    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 }
 
 /**
@@ -234,7 +250,6 @@ template <int MATH_FIDELITY_DESC = 0>
 inline void _llk_math_mul_reduce_scalar_()
 {
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
-    constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
     // Copy row 0 from dest to srcB (rows 16-31 as scratch) and transpose
     TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
@@ -251,14 +266,7 @@ inline void _llk_math_mul_reduce_scalar_()
 
     TTI_ZEROACC(p_zeroacc::CLR_SPECIFIC, 0, 0, ADDR_MOD_0, 0);
 
-    if constexpr (HIGH_FIDELITY)
-    {
-        for (int i = 0; i < MATH_FIDELITY_PHASES - 1; i++)
-        {
-            TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0);
-        }
-    }
-    TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+    execute_high_fidelity_gapool<MATH_FIDELITY_PHASES>();
 }
 
 /**
