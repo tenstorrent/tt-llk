@@ -26,9 +26,9 @@ static constexpr int MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 #include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    const volatile struct FormatConfig& formats = params->formats;
+    const struct FormatConfig& formats = params.formats;
     {
         ZONE_SCOPED("INIT")
         // Configure unpacker for Float16_b format
@@ -48,13 +48,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             // Set valid for source A only (B is not used in this operation)
-            return _perf_unpack_loop_set_valid<true, false>(params->TILE_CNT * params->LOOP_FACTOR);
+            return _perf_unpack_loop_set_valid<true, false>(params.TILE_CNT * params.LOOP_FACTOR);
         }
         else
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
             {
-                for (int i = 0; i < params->TILE_CNT; ++i)
+                for (int i = 0; i < params.TILE_CNT; ++i)
                 {
                     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
                         PERF_ADDRESS(PERF_INPUT_A, i), formats.unpack_src, formats.unpack_dst);
@@ -77,10 +77,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    const volatile struct FormatConfig& formats = params->formats;
-    const uint32_t block_height                 = BLOCK_RT_DIM;
+    const struct FormatConfig& formats = params.formats;
+    const uint32_t block_height        = BLOCK_RT_DIM;
 
     {
         ZONE_SCOPED("INIT")
@@ -110,16 +110,16 @@ void run_kernel(const volatile struct RuntimeParams* params)
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             // Clear valid for source A only (B is not used)
-            return _perf_math_loop_clear_valid<true, false>(params->TILE_CNT * params->LOOP_FACTOR);
+            return _perf_math_loop_clear_valid<true, false>(params.TILE_CNT * params.LOOP_FACTOR);
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
             // For MATH_ISOLATE, we need to properly handle data valid flags
             // The unpack thread sets valid flags, and we need to clear them
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
             {
-                for (int i = 0; i < params->TILE_CNT; ++i)
+                for (int i = 0; i < params.TILE_CNT; ++i)
                 {
                     // Assume data is already in dest registers (skipping A2D copy)
                     // Run the SFPU reduce SDPA calculation
@@ -137,11 +137,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
         else
         {
             // Full L1-to-L1 operation
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    uint32_t block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
                     // Wait for destination to be available
                     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
@@ -176,9 +176,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    const volatile struct FormatConfig& formats = params->formats;
+    const struct FormatConfig& formats = params.formats;
     {
         ZONE_SCOPED("INIT")
         // Configure packer hardware
@@ -207,11 +207,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    uint32_t block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
                     for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
@@ -223,11 +223,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
         else
         {
             // Full L1-to-L1 operation
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    uint32_t block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
                     _llk_packer_wait_for_math_done_();
                     for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)

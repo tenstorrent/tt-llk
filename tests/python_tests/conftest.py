@@ -260,9 +260,18 @@ def perf_report(request, worker_id):
     if PerfConfig.TEST_COUNTER == 0:
         return
 
-    temp_report.dump_csv(f"{test_module}.{worker_id}.csv")
+    raw_path = TestConfig.PERF_DATA_DIR / f"{test_module}.{worker_id}.csv"
+    post_path = TestConfig.PERF_DATA_DIR / f"{test_module}.{worker_id}.post.csv"
+
+    if raw_path.exists():
+        raw_path.unlink()
+
+    if post_path.exists():
+        post_path.unlink()
+
+    temp_report.dump_csv(raw_path)
     temp_report.post_process()
-    temp_report.dump_csv(f"{test_module}.{worker_id}.post.csv")
+    temp_report.dump_csv(post_path)
 
 
 def pytest_sessionfinish(session):

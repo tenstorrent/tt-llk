@@ -15,7 +15,7 @@
 #include "llk_unpack_unary_operand.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
     // Setup data valid scheme
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
@@ -26,7 +26,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     buffer_descriptor_u bd_val = {0};
 
-    bd_val.f.l1_addr_16B = params->buffer_A[0] / 16;
+    bd_val.f.l1_addr_16B = params.buffer_A[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.unpack_src);
     bd_val.f.x_dim       = TEST_FACE_C_DIM;
     bd_val.f.y_dim       = TEST_FACE_R_DIM;
@@ -52,7 +52,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 using namespace ckernel;
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
 #ifdef FORMAT_INT32
     const bool is_int_fpu_en = true;
@@ -84,7 +84,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_pack_untilize.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
     // Setup data valid scheme
     set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
@@ -94,7 +94,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     buffer_descriptor_u bd_val = {0};
 
-    bd_val.f.l1_addr_16B = params->buffer_Res[0] / 16;
+    bd_val.f.l1_addr_16B = params.buffer_Res[0] / 16;
     bd_val.f.format      = static_cast<uint8_t>(formats.pack_dst);
     bd_val.f.x_dim       = TEST_FACE_C_DIM;
     bd_val.f.y_dim       = TEST_FACE_R_DIM;

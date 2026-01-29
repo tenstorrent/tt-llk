@@ -187,7 +187,8 @@ jobs:
     name: "⚡ Performance tests (${{ matrix.target }})"
     uses: ./.github/workflows/setup-and-test.yml
     needs: [build-images, detect-changes]
-    if: false
+    if: ${{ github.event_name != 'push' &&
+            needs.detect-changes.outputs.performance == 'true'}}
     strategy:
       fail-fast: false
       matrix:
@@ -199,7 +200,7 @@ jobs:
     with:
       docker_image: ${{ needs.build-images.outputs.docker-image }}
       runs_on: ${{ matrix.runs_on }}
-      test_splits: 3
+      test_splits: 4
       pytest_markers: "perf"
       timeout_minutes: 240
       use_durations: false

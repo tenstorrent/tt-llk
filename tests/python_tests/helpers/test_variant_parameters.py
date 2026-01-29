@@ -251,7 +251,7 @@ class UNPACKER_ENGINE_SEL(TemplateParameter):
     unpacker_engine_sel: UnpackerEngine = UnpackerEngine.UnpA
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr uint UNPACKER_ENGINE_SEL = p_unpacr::{self.unpacker_engine_sel.value};"
+        return f"constexpr uint UNPACKER_ENGINE_SEL = ckernel::p_unpacr::{self.unpacker_engine_sel.value};"
 
 
 @dataclass
