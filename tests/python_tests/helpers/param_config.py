@@ -14,7 +14,7 @@ from .format_config import (
     FormatConfig,
     InputOutputFormat,
 )
-from .llk_params import DestAccumulation, DestSync, Enum
+from .llk_params import BlockMode, DestAccumulation, DestSync
 
 checked_formats_and_dest_acc = {}
 
@@ -22,14 +22,6 @@ DEST_SYNC_TILE_LIMITS = {
     DestSync.Half: 8,
     DestSync.Full: 16,
 }
-
-
-class BlockMode(Enum):
-    """Mode for calculating number of blocks and tiles in block."""
-
-    Default = "default"
-    Tilize = "tilize"
-    Untilize = "untilize"
 
 
 def format_combination_sweep(
