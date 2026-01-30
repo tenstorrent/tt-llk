@@ -145,8 +145,8 @@ class Packer:
         code = (
             f"    // Operation {stage}: Packer\n"
             f"    const Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});\n"
-            f"    const uint32_t pack_src_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_src.name});\n"
-            f"    const uint32_t pack_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name});\n"
+            f"    const std::uint32_t pack_src_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_src.name});\n"
+            f"    const std::uint32_t pack_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name});\n"
         )
 
         if config.profiler_enabled:
