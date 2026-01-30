@@ -5,8 +5,6 @@
 
 set -e
 
-set -e
-
 REPO=tenstorrent/tt-llk
 BASE_IMAGE_NAME=ghcr.io/$REPO/tt-llk-base-ubuntu-22-04
 CI_IMAGE_NAME=ghcr.io/$REPO/tt-llk-ci-ubuntu-22-04
