@@ -668,7 +668,7 @@ typedef enum
 
 /////////////
 // Convenience and type defines
-typedef std::uint32_t std::uint32_t;
+typedef std::uint32_t uint;
 typedef std::uint8_t byte;
 
 template <class T>
