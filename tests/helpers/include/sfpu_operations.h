@@ -9,8 +9,8 @@
 #include "ckernel_sfpu.h"
 #include "ckernel_sfpu_add_top_row.h"
 #include "ckernel_sfpu_binary.h"
-#include "llk_sfpu_types.h"
 #include "llk_defs.h"
+#include "llk_sfpu_types.h"
 
 // Metal SFPU operations from tt-metal repository
 // To add a new metal SFPU operation:
