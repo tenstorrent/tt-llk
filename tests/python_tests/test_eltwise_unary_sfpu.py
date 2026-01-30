@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
-
 from itertools import chain, product
 
 import pytest
@@ -12,11 +11,17 @@ from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
+    DestSync,
     FastMode,
     MathOperation,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -26,6 +31,8 @@ from helpers.test_variant_parameters import (
     FAST_MODE,
     INPUT_DIMENSIONS,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
 from helpers.utils import passed_test
@@ -74,12 +81,15 @@ FORMATS = input_output_formats(
     ]
 )
 
+TEST_INPUT_DIMENSIONS = [[64, 64], [128, 32], [32, 128], [128, 256]]
+
 FLOAT_TEST_PARAMS = list(
     chain(
         (
-            (fmt, approx, mathop, fast, dest)
-            for fmt, approx, mathop, fast, dest in product(
+            (fmt, input_dimensions, approx, mathop, fast, dest)
+            for fmt, input_dimensions, approx, mathop, fast, dest in product(
                 FORMATS,
+                TEST_INPUT_DIMENSIONS,
                 [ApproximationMode.No, ApproximationMode.Yes],
                 SUPPORTED_FAST_MODE_OPS,
                 [FastMode.No, FastMode.Yes],
@@ -87,9 +97,10 @@ FLOAT_TEST_PARAMS = list(
             )
         ),
         (
-            (fmt, approx, mathop, FastMode.No, dest)
-            for fmt, approx, mathop, dest in product(
+            (fmt, input_dimensions, approx, mathop, FastMode.No, dest)
+            for fmt, input_dimensions, approx, mathop, dest in product(
                 FORMATS,
+                TEST_INPUT_DIMENSIONS,
                 [ApproximationMode.No, ApproximationMode.Yes],
                 [op for op in ALL_MATHOPS if op not in SUPPORTED_FAST_MODE_OPS],
                 [DestAccumulation.No, DestAccumulation.Yes],
@@ -101,11 +112,12 @@ FLOAT_TEST_PARAMS = list(
 
 @pytest.mark.nightly
 @pytest.mark.parametrize(
-    "formats,approx_mode,mathop,fast_mode,dest_acc",
+    "formats,input_dimensions,approx_mode,mathop,fast_mode,dest_acc",
     FLOAT_TEST_PARAMS,
 )
 def test_eltwise_unary_sfpu_float(
     formats: list[InputOutputFormat],
+    input_dimensions: list[int],
     approx_mode: ApproximationMode,
     mathop: MathOperation,
     fast_mode: FastMode,
@@ -170,6 +182,7 @@ def test_eltwise_unary_sfpu_float(
     eltwise_unary_sfpu(
         "sources/eltwise_unary_sfpu_test.cpp",
         formats,
+        input_dimensions,
         dest_acc,
         approx_mode,
         mathop,
@@ -180,6 +193,7 @@ def test_eltwise_unary_sfpu_float(
 
 @parametrize(
     formats=input_output_formats([DataFormat.Int32]),
+    input_dimensions=[[64, 64], [128, 32], [32, 128], [128, 256]],
     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
     mathop=[
         MathOperation.Neg,
@@ -190,6 +204,7 @@ def test_eltwise_unary_sfpu_float(
 )
 def test_eltwise_unary_sfpu_int(
     formats: list[InputOutputFormat],
+    input_dimensions: list[int],
     approx_mode: ApproximationMode,
     mathop: MathOperation,
     fast_mode: FastMode,
@@ -202,6 +217,7 @@ def test_eltwise_unary_sfpu_int(
     eltwise_unary_sfpu(
         "sources/eltwise_unary_sfpu_int.cpp",
         formats,
+        input_dimensions,
         dest_acc,
         approx_mode,
         mathop,
@@ -213,6 +229,7 @@ def test_eltwise_unary_sfpu_int(
 def eltwise_unary_sfpu(
     test_name,
     formats: list[InputOutputFormat],
+    input_dimensions: list[int],
     dest_acc,
     approx_mode,
     mathop,
@@ -221,7 +238,6 @@ def eltwise_unary_sfpu(
 ):
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
-    input_dimensions = [64, 64]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -240,6 +256,23 @@ def eltwise_unary_sfpu(
         input_dimensions,
     )
 
+    # Calculate block parameters for destination register banking
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
     configuration = TestConfig(
         test_name,
         formats,
@@ -250,7 +283,11 @@ def eltwise_unary_sfpu(
             CLAMP_NEGATIVE(True),
             MATH_OP(mathop=mathop),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            TILE_COUNT(tile_cnt_A),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
