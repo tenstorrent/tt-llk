@@ -20,7 +20,11 @@ from helpers.param_config import (
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
-from helpers.test_variant_parameters import NUM_BLOCKS, NUM_TILES_IN_BLOCK
+from helpers.test_variant_parameters import (
+    NUM_BLOCKS,
+    NUM_TILES_IN_LAST_BLOCK,
+    NUM_TILES_IN_STANDARD_BLOCK,
+)
 from helpers.utils import passed_test
 
 
@@ -51,19 +55,30 @@ def test_risc_compute(formats, input_dimensions, workers_tensix_coordinates):
         tile_dimensions=[32, 32],
     )
 
-    num_tiles_in_block = get_num_tiles_in_block(
+    num_tiles_in_standard_block = get_num_tiles_in_block(
         dest_sync=DestSync.Half,
         dest_acc=DestAccumulation.No,
         formats=formats,
         input_dimensions=input_dimensions,
         tile_dimensions=[32, 32],
+        last_block=False,
+    )
+
+    num_tiles_in_last_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=DestAccumulation.No,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+        last_block=True,
     )
 
     configuration = TestConfig(
         "sources/risc_compute_test.cpp",
         formats,
         runtimes=[
-            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_TILES_IN_STANDARD_BLOCK(num_tiles_in_standard_block),
+            NUM_TILES_IN_LAST_BLOCK(num_tiles_in_last_block),
             NUM_BLOCKS(num_blocks),
         ],
         variant_stimuli=StimuliConfig(

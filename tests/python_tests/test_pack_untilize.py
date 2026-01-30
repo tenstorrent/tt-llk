@@ -7,9 +7,9 @@ from helpers.constraints import get_valid_dest_accumulation_modes
 from helpers.data_format_inference import infer_data_formats
 from helpers.format_config import DataFormat
 from helpers.golden_generators import UntilizeGolden, get_golden_generator
-from helpers.llk_params import BlockMode, DestAccumulation, DestSync, format_dict
+from helpers.llk_params import DestAccumulation, DestSync, format_dict
 from helpers.param_config import (
-    get_num_tiles_in_block,
+    get_num_tiles_in_block_pack_untilize,
     input_output_formats,
     parametrize,
 )
@@ -95,13 +95,12 @@ def test_pack_untilize(
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
     )
 
-    block_ct_dim = get_num_tiles_in_block(
+    block_ct_dim = get_num_tiles_in_block_pack_untilize(
         dest_sync=dest_sync,
         dest_acc=dest_acc,
         formats=formats,
         input_dimensions=input_dimensions,
         tile_dimensions=tile_dimensions,
-        block_mode=BlockMode.Untilize,
     )
 
     configuration = TestConfig(

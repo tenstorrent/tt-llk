@@ -14,7 +14,7 @@ from .format_config import (
     FormatConfig,
     InputOutputFormat,
 )
-from .llk_params import BlockMode, DestAccumulation, DestSync
+from .llk_params import DestAccumulation, DestSync
 
 checked_formats_and_dest_acc = {}
 
@@ -501,7 +501,7 @@ def get_max_tiles_num_in_dest(
 
 
 # Returns the number of blocks in the input matrix.
-# A block is defined as a maximum matrix size that can fit in dest register.
+# A block is defined as a maximum matrix size that can fit in dest register or the remainder of the matrix.
 def get_num_blocks(
     dest_sync: DestSync,
     dest_acc: DestAccumulation,
@@ -509,14 +509,13 @@ def get_num_blocks(
     input_dimensions: List[int],
     tile_dimensions: List[int] = None,
     dest_index: int = 0,
-    block_mode: BlockMode = BlockMode.Default,
 ) -> int:
     """
     Compute how many destination-register-sized blocks are needed to store an input matrix.
     A *block* is the largest contiguous group of tiles that can fit into the destination
     register for a given ``dest_sync`` mode, accumulation mode, and output format. The
     function partitions the input matrix (expressed in tiles) into such blocks and returns
-    how many blocks are required.
+    how many blocks are required. Bare in mind that the last block may be partially filled.
     """
 
     if tile_dimensions is None:
@@ -526,32 +525,19 @@ def get_num_blocks(
         input_dimensions[1] // tile_dimensions[1]
     )
 
-    match block_mode:
-        case BlockMode.Default | BlockMode.Tilize:
-            max_tiles_in_dest = get_max_tiles_num_in_dest(
-                dest_sync=dest_sync,
-                dest_acc=dest_acc,
-                formats=formats,
-            )
-            max_tiles_in_dest -= dest_index
+    max_tiles_in_dest = get_max_tiles_num_in_dest(
+        dest_sync=dest_sync,
+        dest_acc=dest_acc,
+        formats=formats,
+    )
+    max_tiles_in_dest -= dest_index
 
-            if max_tiles_in_dest <= 0:
-                raise ValueError(
-                    f"dest_index {dest_index} is out of bounds for maximum tiles in dest {max_tiles_in_dest + dest_index}"
-                )
+    if max_tiles_in_dest <= 0:
+        raise ValueError(
+            f"dest_index {dest_index} is out of bounds for maximum tiles in dest {max_tiles_in_dest + dest_index}"
+        )
 
-            return (num_tiles_in_input + max_tiles_in_dest - 1) // max_tiles_in_dest
-        case BlockMode.Untilize:
-            return num_tiles_in_input // get_num_tiles_in_block(
-                dest_sync=dest_sync,
-                dest_acc=dest_acc,
-                formats=formats,
-                input_dimensions=input_dimensions,
-                tile_dimensions=tile_dimensions,
-                block_mode=block_mode,
-            )
-        case _:
-            raise ValueError(f"Unknown BlockMode: {block_mode}")
+    return (num_tiles_in_input + max_tiles_in_dest - 1) // max_tiles_in_dest
 
 
 def get_num_tiles_in_block(
@@ -561,14 +547,16 @@ def get_num_tiles_in_block(
     input_dimensions: List[int],
     tile_dimensions: List[int] = None,
     dest_index: int = 0,
-    block_mode: BlockMode = BlockMode.Default,
+    last_block: bool = False,
 ) -> int:
     """
     Return the number of tiles contained in a single logical block.
     A *block* is the largest contiguous portion of the input matrix (expressed in
     tiles) that can fit into the destination register given the current
     synchronization and accumulation settings. Conceptually, the input matrix is
-    partitioned into ``get_num_blocks(...)`` such blocks.
+    partitioned into ``get_num_blocks(...)`` such blocks. If we can't divide the input matrix
+    into blocks of equal size, the last block may be smaller than the others and that's the output
+    of this function.
     """
 
     if tile_dimensions is None:
@@ -590,18 +578,45 @@ def get_num_tiles_in_block(
             f"dest_index {dest_index} is out of bounds for maximum tiles in dest {max_tiles_in_dest + dest_index}"
         )
 
-    match block_mode:
-        case BlockMode.Default | BlockMode.Tilize:
-            return num_tiles_in_input % max_tiles_in_dest or max_tiles_in_dest
-        case BlockMode.Untilize:
-            # (num_tiles_in_input % max_tiles_in_dest or max_tiles_in_dest) wouldn't work here for certain cases.
-            # Example: 9 tiles can be split into blocks of 3, but above equation outputs 1.
-            num_tiles_per_tile_row = num_tiles_in_input // (
-                input_dimensions[0] // tile_dimensions[0]
-            )
-            block_tiles = min(max_tiles_in_dest, num_tiles_per_tile_row)
-            while num_tiles_in_input % block_tiles != 0:
-                block_tiles -= 1
-            return block_tiles
-        case _:
-            raise ValueError(f"Unknown BlockMode: {block_mode}")
+    if last_block:
+        remaining_tiles = num_tiles_in_input % max_tiles_in_dest
+        return remaining_tiles if remaining_tiles != 0 else max_tiles_in_dest
+
+    return max_tiles_in_dest
+
+
+def get_num_tiles_in_block_pack_untilize(
+    dest_sync: DestSync,
+    dest_acc: DestAccumulation,
+    formats: InputOutputFormat,
+    input_dimensions: List[int],
+    tile_dimensions: List[int] = None,
+    dest_index: int = 0,
+):
+    if tile_dimensions is None:
+        tile_dimensions = [32, 32]
+
+    num_tiles_in_input = (input_dimensions[0] // tile_dimensions[0]) * (
+        input_dimensions[1] // tile_dimensions[1]
+    )
+    max_tiles_in_dest = get_max_tiles_num_in_dest(
+        dest_sync,
+        dest_acc,
+        formats,
+    )
+
+    max_tiles_in_dest -= dest_index
+    if max_tiles_in_dest <= 0:
+        raise ValueError(
+            f"dest_index {dest_index} is out of bounds for maximum tiles in dest {max_tiles_in_dest + dest_index}"
+        )
+
+    num_tiles_per_tile_row = num_tiles_in_input // (
+        input_dimensions[0] // tile_dimensions[0]
+    )
+    block_tiles = min(max_tiles_in_dest, num_tiles_per_tile_row)
+
+    while num_tiles_in_input % block_tiles != 0:
+        block_tiles -= 1
+
+    return block_tiles

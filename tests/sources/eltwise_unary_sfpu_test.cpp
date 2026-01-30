@@ -23,8 +23,9 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params->NUM_BLOCKS;
+    const int num_tiles_in_standard_block = params->NUM_TILES_IN_STANDARD_BLOCK;
+    const int num_tiles_in_last_block     = params->NUM_TILES_IN_LAST_BLOCK;
+    const int num_blocks                  = params->NUM_BLOCKS;
 
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
@@ -33,9 +34,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     for (int block = 0; block < num_blocks; block++)
     {
-        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        const int num_tiles_in_current_block = (block == num_blocks - 1) ? num_tiles_in_last_block : num_tiles_in_standard_block;
+
+        for (int tile = 0; tile < num_tiles_in_current_block; tile++)
         {
-            int src_tile_idx = (block * num_tiles_in_block) + tile;
+            int src_tile_idx = (block * num_tiles_in_standard_block) + tile;
             _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
                 L1_ADDRESS(buffer_A[src_tile_idx]), formats.unpack_src, formats.unpack_dst);
         }
@@ -60,8 +63,9 @@ const int iterations = 32;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params->NUM_BLOCKS;
+    const int num_tiles_in_standard_block = params->NUM_TILES_IN_STANDARD_BLOCK;
+    const int num_tiles_in_last_block     = params->NUM_TILES_IN_LAST_BLOCK;
+    const int num_blocks                  = params->NUM_BLOCKS;
 
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
@@ -74,8 +78,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     for (int block = 0; block < num_blocks; block++)
     {
+        const int num_tiles_in_current_block = (block == num_blocks - 1) ? num_tiles_in_last_block : num_tiles_in_standard_block;
+
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        for (int tile = 0; tile < num_tiles_in_current_block; tile++)
         {
             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                 tile, formats.math, formats.math);
@@ -103,8 +109,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params->NUM_BLOCKS;
+    const int num_tiles_in_standard_block = params->NUM_TILES_IN_STANDARD_BLOCK;
+    const int num_tiles_in_last_block     = params->NUM_TILES_IN_LAST_BLOCK;
+    const int num_blocks                  = params->NUM_BLOCKS;
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -122,10 +129,12 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     for (int block = 0; block < num_blocks; block++)
     {
+        const int num_tiles_in_current_block = (block == num_blocks - 1) ? num_tiles_in_last_block : num_tiles_in_standard_block;
+
         _llk_packer_wait_for_math_done_();
-        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        for (int tile = 0; tile < num_tiles_in_current_block; tile++)
         {
-            int res_tile_idx = (block * num_tiles_in_block) + tile;
+            int res_tile_idx = (block * num_tiles_in_standard_block) + tile;
             _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(tile, L1_ADDRESS(buffer_Res[res_tile_idx]));
         }
         _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
