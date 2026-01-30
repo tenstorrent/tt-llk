@@ -897,18 +897,6 @@ class Math:
     def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id
         format = f"DataFormat::{operation.math_format.name}"
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-        dest_acc = config.dest_acc.value
-        batch_size = operation.batch_size
-        tile_cnt = operation.output.tile_count
-        if isinstance(self.fpu, MatmulFpu):
-            tile_cnt = 1
-
->>>>>>> 13264353 (math calculate with batches)
-=======
->>>>>>> 4b730d89 (perf math with batching)
         code = (
             f"    // Operation {stage}: Math Setup\n"
             f"    const uint32_t math_format{stage} = static_cast<std::underlying_type_t<DataFormat>>({format});\n"
@@ -919,32 +907,6 @@ class Math:
             code += self.exec_perf(operation, config)
 
         else:
-<<<<<<< HEAD
-<<<<<<< HEAD
             code += self.calculate(operation, config)
-=======
-            code += self.hw_configure(operation, config)
-            code += self.fpu.init(operation, config)
-
-            batch_start = 0
-            while batch_start < tile_cnt:
-                code += f"    _llk_math_wait_for_dest_available_<dest_sync{stage}>();\n"
-                batch_end = min(batch_start + batch_size, tile_cnt)
-                for tile_idx in range(batch_end - batch_start):
-                    code += self.fpu.calculate(operation, config, tile_idx)
-                batch_start += batch_end
-
-                for sfpu in self.sfpu:
-                    code += "\n"
-                    code += sfpu.init(operation, config)
-                    code += sfpu.calculate(operation, config)
-                    code += sfpu.uninit(operation, config)
-
-                code += f"    _llk_math_dest_section_done_<dest_sync{stage}, {dest_acc}>();\n"
-            code += self.fpu.uninit(operation, config)
->>>>>>> 13264353 (math calculate with batches)
-=======
-            code += self.calculate(operation, config)
->>>>>>> 4b730d89 (perf math with batching)
 
         return code
