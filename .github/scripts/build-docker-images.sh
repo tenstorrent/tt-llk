@@ -19,6 +19,8 @@ echo "Docker tag: $DOCKER_TAG"
 # Are we on main branch
 ON_MAIN=$(git branch --show-current | grep -q main && echo "true" || echo "false")
 
+export DOCKER_BUILDKIT=1
+
 build_and_push() {
     local image_name=$1
     local dockerfile=$2
@@ -32,6 +34,7 @@ build_and_push() {
         echo "Building image $image_name:$DOCKER_TAG"
         docker build \
             --build-arg FROM_TAG=$DOCKER_TAG \
+            --compression=zstd \
             ${from_image:+--build-arg FROM_IMAGE=$from_image} \
             -t $image_name:$DOCKER_TAG \
             -t $image_name:latest \
