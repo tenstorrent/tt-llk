@@ -58,7 +58,6 @@ class FusedOperation:
     dest_sync: DestSync = DestSync.Half
     dst_index: int = 0
     srca_reuse_count: int = 4
-    output_pack_dims: Tuple[int, int] = None
     batch_size: int = 0
     broadcast_type: BroadcastType = BroadcastType.None_
 
@@ -148,7 +147,7 @@ class FusedOperation:
         return mapping.operand_registry.get(mapping.output)
 
     @property
-    def max_output_dimensions(self) -> Operand:
+    def max_output_dimensions(self) -> Tuple[int, int]:
         mapping = self.operand_mapping
         return mapping.resolve_output_dimensions(mapping.operand_registry)
 
