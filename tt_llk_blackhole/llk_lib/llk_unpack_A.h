@@ -232,6 +232,8 @@ inline void _llk_unpack_A_uninit_(const std::uint32_t face_r_dim)
 {
     // Unpack A is used for all single unpacker operations, except bcast, since bcast HW feature is only available on unpacker B
     constexpr std::uint32_t UNP_SEL = (BType == BroadcastType::NONE) ? p_setadc::UNP_A : p_setadc::UNP_B;
+    // Stalling SETADCXX done by THCON until UNPACK finished
+    TTI_STALLWAIT(p_stall::STALL_THCON, (UNP_SEL == p_setadc::UNP_A) ? p_stall::UNPACK0 : p_stall::UNPACK1);
     // TODO NC: Issue tt-llk#1036 will make this transient
     TT_SETADCXX(UNP_SEL, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
