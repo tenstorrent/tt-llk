@@ -101,10 +101,12 @@ def unpack_tilize(
 
     if validate_lossless:
         # Lossless validation
+        diff = golden_tensor - res_tensor
+        abs_diff = diff.abs()
         assert torch.allclose(golden_tensor, res_tensor, atol=0, rtol=1e-6), (
             f"Float32 tilize lost precision! Input and output differ.\n"
-            f"Max difference: {(golden_tensor - res_tensor).abs().max().item()}\n"
-            f"Num different elements: {(torch.abs(golden_tensor - res_tensor) > 1e-6).sum()}\n"
+            f"Max difference: {abs_diff.max().item()}\n"
+            f"Num different elements: {(abs_diff > 1e-6).sum()}\n"
             f"Expected (golden): {golden_tensor[:10]}\n"
             f"Got (result): {res_tensor[:10]}"
         )
