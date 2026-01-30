@@ -12,9 +12,9 @@ if TYPE_CHECKING:
 
 from .chip_architecture import ChipArchitecture
 from .fused_math import ReduceFpu
-from .golden_generators import TransposeGolden, get_golden_generator
-from .llk_params import PerfRunType, Transpose
-from .tilize_untilize import tilize_block
+from .golden_generators import BroadcastGolden, TransposeGolden, get_golden_generator
+from .llk_params import BroadcastType, PerfRunType, Transpose
+from .tilize_untilize import tilize_block, untilize_block
 
 
 class Unpacker:
@@ -277,6 +277,24 @@ class UnpackerAB(Unpacker):
         config: "GlobalConfig",
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         t_matrix = get_golden_generator(TransposeGolden)
+        if operation.broadcast_type != BroadcastType.None_:
+            tilized_b = tilize_block(
+                tensor_b, operation.src_b.dimensions, operation.src_b.data_format
+            )
+            broadcast_golden = get_golden_generator(BroadcastGolden)
+            broadcast_result = broadcast_golden(
+                operation.broadcast_type,
+                tilized_b,
+                operation.src_b.data_format,
+                operation.num_faces,
+                operation.src_b.tile_count,
+                operation.face_r_dim,
+            )
+            tensor_b = untilize_block(
+                broadcast_result,
+                operation.src_b.data_format,
+                operation.src_b.dimensions,
+            )
 
         if operation.unpack_transpose_faces == Transpose.Yes:
             tensor_a = t_matrix.transpose_faces_multi_tile(
@@ -354,25 +372,45 @@ class UnpackerA(Unpacker):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         t_matrix = get_golden_generator(TransposeGolden)
 
-        if operation.unpack_transpose_faces == Transpose.Yes:
-            tensor_a = t_matrix.transpose_faces_multi_tile(
-                tensor_a,
-                operation.src_a.data_format,
-                operation.src_a.tile_count,
-                tilize=True,
-                untilize=True,
-                input_dimensions=operation.src_a.dimensions,
+        if operation.broadcast_type != BroadcastType.None_:
+            tensor_b = tensor_a
+            tensor_b = tilize_block(
+                tensor_b, operation.src_a.dimensions, operation.src_a.data_format
             )
+            broadcast_golden = get_golden_generator(BroadcastGolden)
+            tensor_b = broadcast_golden(
+                operation.broadcast_type,
+                tensor_b,
+                operation.src_a.data_format,
+                operation.num_faces,
+                operation.src_a.tile_count,
+                operation.face_r_dim,
+            )
+            tensor_b = untilize_block(
+                tensor_b,
+                operation.src_a.data_format,
+                operation.src_a.dimensions,
+            )
+        else:
+            if operation.unpack_transpose_faces == Transpose.Yes:
+                tensor_a = t_matrix.transpose_faces_multi_tile(
+                    tensor_a,
+                    operation.src_a.data_format,
+                    operation.src_a.tile_count,
+                    tilize=True,
+                    untilize=True,
+                    input_dimensions=operation.src_a.dimensions,
+                )
 
-        if operation.unpack_transpose_within_face == Transpose.Yes:
-            tensor_a = t_matrix.transpose_within_faces_multi_tile(
-                tensor_a,
-                operation.src_a.data_format,
-                operation.src_a.tile_count,
-                tilize=True,
-                untilize=True,
-                input_dimensions=operation.src_a.dimensions,
-            )
+            if operation.unpack_transpose_within_face == Transpose.Yes:
+                tensor_a = t_matrix.transpose_within_faces_multi_tile(
+                    tensor_a,
+                    operation.src_a.data_format,
+                    operation.src_a.tile_count,
+                    tilize=True,
+                    untilize=True,
+                    input_dimensions=operation.src_a.dimensions,
+                )
 
         return tensor_a.flatten(), tensor_b.flatten()
 
