@@ -61,7 +61,7 @@ inline void _llk_unpack_AB_reduce_block_max_row_mop_config_()
  * This function should NOT be used as a substitute for native reduce unpacking LLK initialization.
  * Use the standard _llk_unpack_AB_reduce_init_ for general-purpose reduction operations.
  */
-template <uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
+template <std::uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
 inline void _llk_unpack_AB_reduce_block_max_row_init_()
 {
     if constexpr (is_fp32_dest_acc_en)
@@ -106,7 +106,7 @@ inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, 
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
 
     // Program srcA and srcB base addresses
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // Wait for free context
     wait_for_next_context(2);

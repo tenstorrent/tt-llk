@@ -26,31 +26,31 @@ using namespace ckernel;
 namespace ckernel::math
 {
 
-constexpr uint DstTileSize[3] = {
+constexpr std::uint32_t DstTileSize[3] = {
     64, // 32x32 tile shape
     32, // 32x16, 16x32 tile shape
     16  // 16x16 tile shape
 };
-constexpr uint DstTileSizeLog2[3] = {
+constexpr std::uint32_t DstTileSizeLog2[3] = {
     6, // 32x32 tile shape
     5, // 32x16, 16x32 tile shape
     4  // 16x16 tile shape
 };
 
-constexpr uint replay_buf_offset = 16; // split replay buffer usage between fpu/sfpu
-                                       // first 16 for sfpu, next 16 for fpu
+constexpr std::uint32_t replay_buf_offset = 16; // split replay buffer usage between fpu/sfpu
+                                                // first 16 for sfpu, next 16 for fpu
 
-inline void reset_counters(const uint setrwc)
+inline void reset_counters(const std::uint32_t setrwc)
 {
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, setrwc);
 }
 
-inline void incr_counters(const uint incr_a, const uint incr_b, const uint incr_d, const uint incr_cr)
+inline void incr_counters(const std::uint32_t incr_a, const std::uint32_t incr_b, const std::uint32_t incr_d, const std::uint32_t incr_cr)
 {
     TT_INCRWC(incr_cr, incr_d, incr_b, incr_a);
 }
 
-inline void move_d2a_fixed_face(const uint8_t addrmod)
+inline void move_d2a_fixed_face(const std::uint8_t addrmod)
 {
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::SRCA_VLD); // MOVD2A for a whole face assumes unpacker will set a dummy data_valid, so we want to wait on that
     TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, addrmod, p_movd2a::MOV_4_ROWS, 0);
@@ -59,7 +59,7 @@ inline void move_d2a_fixed_face(const uint8_t addrmod)
     TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 12, addrmod, p_movd2a::MOV_4_ROWS, 12);
 }
 
-inline void move_d2b_fixed_face(const uint8_t addrmod)
+inline void move_d2b_fixed_face(const std::uint8_t addrmod)
 {
     TTI_STALLWAIT(p_stall::STALL_MATH, p_stall::SRCB_VLD); // MOVD2B for a whole face assumes unpacker will set a dummy data_valid, so we want to wait on that
     TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 0, addrmod, p_movd2b::MOV_4_ROWS, 0);
@@ -68,7 +68,7 @@ inline void move_d2b_fixed_face(const uint8_t addrmod)
     TTI_MOVD2B(0, p_movd2b::SRC_ZERO_OFFSET + 12, addrmod, p_movd2b::MOV_4_ROWS, 12);
 }
 
-inline void move_d2a_row_broadcast_fixed_face(const uint8_t addrmod)
+inline void move_d2a_row_broadcast_fixed_face(const std::uint8_t addrmod)
 {
     // // Seems to make things 200 clocks slower. Really shouldn't though.
     TTI_MOVD2A(0, p_mova2d::MATH_HALO_ROWS + 0, addrmod, p_movd2a::MOV_1_ROW, 0);

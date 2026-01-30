@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel_addrmod.h"
 #include "ckernel_instr_params.h"
 #include "sfpi.h"
@@ -78,8 +80,8 @@ inline void _calculate_reshuffle_rows_(const uint idx_addr)
         {
             continue;
         }
-        uint output_row_addr = (dst_row & ~0x3) + (dst_row & 0x10);
-        uint output_row_lreg = output_lreg[dst_row % 4];
+        std::uint32_t output_row_addr = (dst_row & ~0x3) + (dst_row & 0x10);
+        std::uint32_t output_row_lreg = output_lreg[dst_row % 4];
 
         // load in the input row and output row
         TT_SFPLOAD(p_sfpu::LREG0, 0, ADDR_MOD_3, input_row_addr);                            // Face 0/2, even columns

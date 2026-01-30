@@ -7,6 +7,8 @@
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
 #define tt_l1_ptr           __attribute__((rvtt_l1_ptr))
 #define tt_reg_ptr          __attribute__((rvtt_reg_ptr))
+#include <cstdint>
+
 #include "ckernel_include.h"
 #include "ckernel_ops.h"
 // #include "fw_debug.h"
@@ -22,55 +24,58 @@ static int const DEST_MAX_ADDR_HALF_32B = 256;
 static int const DEST_MAX_ADDR_16B      = 1024;
 static int const DEST_MAX_ADDR_32B      = 512;
 
-constexpr uint8_t TENSIX_MATH_SEMAPHORE   = p_stall::SEMAPHORE_1;
-constexpr uint8_t TENSIX_PERF_SEMAPHORE   = p_stall::SEMAPHORE_2;
-constexpr uint8_t MATH_SEMAPHORE          = 1;
-constexpr uint8_t PC_BUF_SEMAPHORE_BASE   = 32; // base address for semaphores in PC buffer. FIXME: must be kept in sync with SEM_COUNT parameter... ugly...
-constexpr uint8_t STREAM_SEMAPHORE        = 5;  // semaphore used by unpack thread to sync between trisc and unpacker
-constexpr uint8_t TENSIX_STREAM_SEMAPHORE = p_stall::SEMAPHORE_5; // semaphore used by unpack thread to sync between trisc and unpacker
-constexpr uint8_t PARAM_ITERATIONS        = 0;
-constexpr uint8_t TENSIX_UNPACK_TO_DEST_UNPACK_SEMAPHORE = p_stall::SEMAPHORE_4;
-constexpr uint8_t UNPACK_TO_DEST_UNPACK_SEMAPHORE        = 4;
-constexpr uint8_t TENSIX_PACK_STREAM_SEMAPHORE           = p_stall::SEMAPHORE_6;
-constexpr uint8_t PACK_STREAM_SEMAPHORE                  = 6;
-constexpr uint8_t TENSIX_UNPACK_TO_DEST_PACK_SEMAPHORE   = p_stall::SEMAPHORE_7;
-constexpr uint8_t UNPACK_TO_DEST_PACK_SEMAPHORE          = 7;
+constexpr std::uint8_t TENSIX_MATH_SEMAPHORE = p_stall::SEMAPHORE_1;
+constexpr std::uint8_t TENSIX_PERF_SEMAPHORE = p_stall::SEMAPHORE_2;
+constexpr std::uint8_t MATH_SEMAPHORE        = 1;
+constexpr std::uint8_t PC_BUF_SEMAPHORE_BASE = 32; // base address for semaphores in PC buffer. FIXME: must be kept in sync with SEM_COUNT parameter... ugly...
+constexpr std::uint8_t STREAM_SEMAPHORE      = 5;  // semaphore used by unpack thread to sync between trisc and unpacker
+constexpr std::uint8_t TENSIX_STREAM_SEMAPHORE                = p_stall::SEMAPHORE_5; // semaphore used by unpack thread to sync between trisc and unpacker
+constexpr std::uint8_t PARAM_ITERATIONS                       = 0;
+constexpr std::uint8_t TENSIX_UNPACK_TO_DEST_UNPACK_SEMAPHORE = p_stall::SEMAPHORE_4;
+constexpr std::uint8_t UNPACK_TO_DEST_UNPACK_SEMAPHORE        = 4;
+constexpr std::uint8_t TENSIX_PACK_STREAM_SEMAPHORE           = p_stall::SEMAPHORE_6;
+constexpr std::uint8_t PACK_STREAM_SEMAPHORE                  = 6;
+constexpr std::uint8_t TENSIX_UNPACK_TO_DEST_PACK_SEMAPHORE   = p_stall::SEMAPHORE_7;
+constexpr std::uint8_t UNPACK_TO_DEST_PACK_SEMAPHORE          = 7;
 
-constexpr uint32_t KERNEL_COMPLETE = 0x1;
+constexpr std::uint32_t KERNEL_COMPLETE = 0x1;
 
-volatile uint *const reg_base        = (volatile uint *)0xFFB10000;
-volatile uint *const pc_buf_base     = (volatile uint *)PC_BUF_BASE;
-volatile uint *const regfile         = (volatile uint *)REGFILE_BASE;
-volatile uint *const instrn_buffer   = (volatile uint *)INSTRN_BUF_BASE;
-volatile uint *const mailbox_base[4] = {
-    (volatile uint *)TENSIX_MAILBOX0_BASE, (volatile uint *)TENSIX_MAILBOX1_BASE, (volatile uint *)TENSIX_MAILBOX2_BASE, (volatile uint *)TENSIX_MAILBOX3_BASE};
-volatile uint *const replay_mmap = (uint32_t volatile *)(INSTRN_BUF_BASE + (1 << 10));
+volatile std::uint32_t *const reg_base        = (volatile std::uint32_t *)0xFFB10000;
+volatile std::uint32_t *const pc_buf_base     = (volatile std::uint32_t *)PC_BUF_BASE;
+volatile std::uint32_t *const regfile         = (volatile std::uint32_t *)REGFILE_BASE;
+volatile std::uint32_t *const instrn_buffer   = (volatile std::uint32_t *)INSTRN_BUF_BASE;
+volatile std::uint32_t *const mailbox_base[4] = {
+    (volatile std::uint32_t *)TENSIX_MAILBOX0_BASE,
+    (volatile std::uint32_t *)TENSIX_MAILBOX1_BASE,
+    (volatile std::uint32_t *)TENSIX_MAILBOX2_BASE,
+    (volatile std::uint32_t *)TENSIX_MAILBOX3_BASE};
+volatile std::uint32_t *const replay_mmap = (std::uint32_t volatile *)(INSTRN_BUF_BASE + (1 << 10));
 
-inline void mmio_register_write(register_space_e space, uint addr, uint data)
+inline void mmio_register_write(register_space_e space, std::uint32_t addr, std::uint32_t data)
 {
-    const uint regaddr = (space << 6) | (addr & 0x3F);
+    const std::uint32_t regaddr = (space << 6) | (addr & 0x3F);
     // FWLOG2("Regaddr: 0x%x, data: 0x%x", regaddr, data);
     reg_base[regaddr] = data;
 }
 
-inline void sync_regfile_write(const uint index)
+inline void sync_regfile_write(const std::uint32_t index)
 {
-    volatile uint foo     = 0xdeadbeef;
-    volatile uint *fooptr = &foo;
-    *fooptr               = regfile[index];
+    volatile std::uint32_t foo     = 0xdeadbeef;
+    volatile std::uint32_t *fooptr = &foo;
+    *fooptr                        = regfile[index];
 }
 
-inline uint8_t semaphore_read(const uint8_t index)
+inline std::uint8_t semaphore_read(const std::uint8_t index)
 {
     return pc_buf_base[PC_BUF_SEMAPHORE_BASE + index];
 }
 
-inline void semaphore_post(const uint8_t index)
+inline void semaphore_post(const std::uint8_t index)
 {
     pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 0;
 }
 
-inline void semaphore_get(const uint8_t index)
+inline void semaphore_get(const std::uint8_t index)
 {
     pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 1;
 }
@@ -79,16 +84,16 @@ inline void semaphore_get(const uint8_t index)
 // tenstorrent/tensix#976
 // now handled by the compiler)
 // workaround is needed only for GS
-inline uint reg_read(uint32_t addr)
+inline std::uint32_t reg_read(std::uint32_t addr)
 {
-    volatile uint tt_reg_ptr *p_reg = reinterpret_cast<volatile uint tt_reg_ptr *>(addr);
+    volatile std::uint32_t tt_reg_ptr *p_reg = reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(addr);
     return p_reg[0];
 }
 
-inline void reg_write(uint32_t addr, uint32_t data)
+inline void reg_write(std::uint32_t addr, std::uint32_t data)
 {
-    volatile uint tt_reg_ptr *p_reg = reinterpret_cast<volatile uint tt_reg_ptr *>(addr);
-    p_reg[0]                        = data;
+    volatile std::uint32_t tt_reg_ptr *p_reg = reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(addr);
+    p_reg[0]                                 = data;
 }
 
 //
@@ -137,8 +142,8 @@ inline void reg_write(uint32_t addr, uint32_t data)
 
 inline void tensix_sync()
 {
-    volatile uint foo     = 0xdeadbeef;
-    volatile uint *fooptr = &foo;
+    volatile std::uint32_t foo     = 0xdeadbeef;
+    volatile std::uint32_t *fooptr = &foo;
     // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
     pc_buf_base[1] = foo;
 
@@ -365,7 +370,8 @@ __attribute__((always_inline)) inline void load_replay_buf(F fn)
 // Same as above, but used if start/len/exec_while_loading are not known
 // at compile time.
 template <typename F>
-__attribute__((always_inline)) inline void load_replay_buf(uint start, uint len, bool exec_while_loading, uint set_mutex, uint last, F fn)
+__attribute__((always_inline)) inline void load_replay_buf(
+    std::uint32_t start, std::uint32_t len, bool exec_while_loading, std::uint32_t set_mutex, std::uint32_t last, F fn)
 {
     disable_gathering();
 

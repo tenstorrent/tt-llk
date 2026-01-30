@@ -53,34 +53,34 @@
 namespace ckernel
 {
 
-constexpr uint PACK_FLUSH_COUNTERS = // counters flush
+constexpr std::uint32_t PACK_FLUSH_COUNTERS = // counters flush
     (1 << PACK_COUNTERS_SEC2_pack_per_xy_plane_SHAMT) | (1 << PACK_COUNTERS_SEC2_pack_reads_per_xy_plane_SHAMT) |
     (1 << PACK_COUNTERS_SEC2_pack_xys_per_tile_SHAMT);
 
-constexpr uint RESET_VAL          = 0;
-constexpr uint KERNEL_IN_PROGRESS = 15;
-constexpr uint KERNEL_COMPLETE    = 1;
+constexpr std::uint32_t RESET_VAL          = 0;
+constexpr std::uint32_t KERNEL_IN_PROGRESS = 15;
+constexpr std::uint32_t KERNEL_COMPLETE    = 1;
 
-extern volatile uint tt_reg_ptr *reg_base;
-extern volatile uint tt_reg_ptr *pc_buf_base;
-extern volatile uint tt_reg_ptr *regfile;
+extern volatile std::uint32_t tt_reg_ptr *reg_base;
+extern volatile std::uint32_t tt_reg_ptr *pc_buf_base;
+extern volatile std::uint32_t tt_reg_ptr *regfile;
 } // namespace ckernel
 
-extern volatile uint32_t __instrn_buffer[];
+extern volatile std::uint32_t __instrn_buffer[];
 
 namespace ckernel
 {
-constexpr inline volatile uint32_t(tt_reg_ptr &instrn_buffer)[] = __instrn_buffer;
-extern volatile uint tt_reg_ptr *mailbox_base[4];
+constexpr inline volatile std::uint32_t(tt_reg_ptr &instrn_buffer)[] = __instrn_buffer;
+extern volatile std::uint32_t tt_reg_ptr *mailbox_base[4];
 
-extern uint32_t cfg_state_id;
-extern uint32_t dest_offset_id;
-extern uint32_t dbg_event_index;
-extern uint32_t dbg_event_end;
+extern std::uint32_t cfg_state_id;
+extern std::uint32_t dest_offset_id;
+extern std::uint32_t dbg_event_index;
+extern std::uint32_t dbg_event_end;
 
-extern volatile uint16_t tt_reg_ptr *debug_mailbox_base;
-extern uint8_t mailbox_index;
-const extern uint8_t mailbox_end;
+extern volatile std::uint16_t tt_reg_ptr *debug_mailbox_base;
+extern std::uint8_t mailbox_index;
+const extern std::uint8_t mailbox_end;
 
 // Internal scope to namespace methods only (C++ does not allow namespace private ownership)
 namespace internal
@@ -89,8 +89,8 @@ namespace internal
 
 inline void tensix_sync()
 {
-    volatile uint foo     = 0;
-    volatile uint *fooptr = &foo;
+    volatile std::uint32_t foo     = 0;
+    volatile std::uint32_t *fooptr = &foo;
     // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
     pc_buf_base[1] = foo;
 
@@ -547,7 +547,7 @@ template <ExecBool Exec = NoExec, typename Callable, typename... Args>
 }
 #endif // defined(COMPILE_FOR_TRISC)
 
-enum class CSR : uint16_t
+enum class CSR : std::uint16_t
 {
     tensix_queue_status        = 0xBC0,
     tensix_busy_status         = 0xBC1,
@@ -562,9 +562,9 @@ enum class CSR : uint16_t
 };
 
 template <CSR csr_num, bool fence = true>
-inline uint32_t csr_read()
+inline std::uint32_t csr_read()
 {
-    uint32_t ret;
+    std::uint32_t ret;
 
     if constexpr (fence)
     {
@@ -576,11 +576,11 @@ inline uint32_t csr_read()
 }
 
 // Use at your own risk :-)
-template <uint16_t csr_num, bool fence = true>
-inline uint32_t csr_read()
+template <std::uint16_t csr_num, bool fence = true>
+inline std::uint32_t csr_read()
 {
     static_assert(csr_num < (1 << 12), "Given CSR number is out of range");
-    uint32_t ret;
+    std::uint32_t ret;
 
     if constexpr (fence)
     {
@@ -593,7 +593,7 @@ inline uint32_t csr_read()
 
 union qstatus_u
 {
-    uint32_t val;
+    std::uint32_t val;
 
     struct
     {
@@ -627,7 +627,7 @@ union qstatus_u
 
 union bstatus_u
 {
-    uint32_t val;
+    std::uint32_t val;
 
     struct
     {
@@ -657,11 +657,11 @@ union bstatus_u
     };
 };
 
-inline void init_prng_seed(const uint seed)
+inline void init_prng_seed(const std::uint32_t seed)
 {
     // The seed for PRNG should at least be initialized during chip boot-up time.
-    volatile uint tt_reg_ptr *cfg  = get_cfg_pointer();
-    cfg[PRNG_SEED_Seed_Val_ADDR32] = seed;
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer();
+    cfg[PRNG_SEED_Seed_Val_ADDR32]         = seed;
 
     // TODO: ckernel::wait does not work properly. Use ckernel::wait when fixed.
     for (int i = 0; i < 600; i++)
@@ -675,7 +675,7 @@ inline constexpr bool is_valid_instruction_mode(InstrModLoadStore mode)
     return mode == InstrModLoadStore::INT32_2S_COMP || mode == InstrModLoadStore::INT32 || mode == InstrModLoadStore::LO16;
 }
 
-inline void apply_sign_magnitude_conversion(uint src, uint dst, InstrModCast cast_mode)
+inline void apply_sign_magnitude_conversion(std::uint32_t src, std::uint32_t dst, InstrModCast cast_mode)
 {
     TTI_SFPCAST(src /*lreg*/, dst /*ldest*/, cast_mode);
     // Required after cast due to a bug in Blackhole RTL (Refer tenstorrent/tt-llk-bh#16)
