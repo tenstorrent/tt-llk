@@ -136,7 +136,7 @@ def test_sfpu_reduce(
             tile_count_res=tile_cnt,
         ),
         dest_acc=dest_acc,
-        unpack_to_dest=True,
+        unpack_to_dest=formats.input_format.is_32_bit(),
         disable_format_inference=True,
     )
     res_from_L1 = configuration.run(workers_tensix_coordinates)
