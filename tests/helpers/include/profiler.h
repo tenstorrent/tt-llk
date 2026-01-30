@@ -135,7 +135,7 @@ __attribute__((always_inline)) inline void write_entry(EntryType type, uint16_t 
     uint32_t timestamp_high = static_cast<uint32_t>(timestamp >> 32);
 
     uint32_t type_numeric = static_cast<uint32_t>(type);
-    uint32_t meta         = (type_numeric << ENTRY_TYPE_SHAMT) | ((uint32_t)id16 << ENTRY_ID_SHAMT);
+    uint32_t meta         = (type_numeric << ENTRY_TYPE_SHAMT) | (static_cast<uint32_t>(id16) << ENTRY_ID_SHAMT);
 
     buffer[TRISC_ID][write_idx++] = meta | (timestamp_high & ~ENTRY_META_MASK);
     buffer[TRISC_ID][write_idx++] = static_cast<uint32_t>(timestamp);

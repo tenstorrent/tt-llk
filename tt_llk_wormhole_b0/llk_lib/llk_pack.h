@@ -216,7 +216,7 @@ inline void _llk_pack_fast_tilize_addrmod_config_(const std::uint32_t unit_dim)
     // first two address mods move to the next row, the stride depends on the number of contiguous faces loaded in the single unpacker instruction
     // for unit_dim 1, that is 2 so the stride is 2, and analogously for unit_dims 2 and 3 its 4 and 6
     addr_mod_pack_t {
-        .y_src = {.incr = (uint8_t)(unit_dim == 1 ? 2 : 4)},
+        .y_src = {.incr = static_cast<std::uint8_t>(unit_dim == 1 ? 2 : 4)},
     }
         .set(ADDR_MOD_0);
 
@@ -272,11 +272,11 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, cons
     // set the address offset to the size of the tile in 16B words
     uint tile_size = SCALE_DATUM_SIZE(pack_dst_format, TILE_C_DIM * TILE_R_DIM);
     // Not sure why BFP formats are not included SCALE_DATUM_SIZE but too scared to change that.
-    if (pack_dst_format == (uint)DataFormat::Bfp4 || pack_dst_format == (uint)DataFormat::Bfp4_b)
+    if (pack_dst_format == to_underlying(DataFormat::Bfp4) || pack_dst_format == to_underlying(DataFormat::Bfp4_b))
     {
         tile_size = tile_size / 2; // 2 BFP4 datums per byte
     }
-    else if (pack_dst_format == (uint)DataFormat::Bfp2 || pack_dst_format == (uint)DataFormat::Bfp2_b)
+    else if (pack_dst_format == to_underlying(DataFormat::Bfp2) || pack_dst_format == to_underlying(DataFormat::Bfp2_b))
     {
         tile_size = tile_size / 4; // 4 BFP2 datums per byte
     }
