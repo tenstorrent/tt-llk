@@ -323,12 +323,21 @@ class UnpackerAB(Unpacker):
         num_faces = operation.num_faces
         broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
 
+        if (
+            operation.broadcast_type == BroadcastType.Scalar
+            and operation.unpack_transpose_faces.value
+        ):
+            raise ValueError("SrcA transpose is not supported with scalar broadcast")
+
         transpose_faces = "true" if operation.unpack_transpose_faces.value else "false"
         transpose_within_face = (
             "true" if operation.unpack_transpose_within_face.value else "false"
         )
 
         if isinstance(operation.math.fpu, ReduceFpu):
+            if operation.broadcast_type != BroadcastType.None_:
+                raise ValueError("ReduceFpu does not support broadcasted inputs.")
+
             reduce_dim = operation.math.fpu.reduce_dim()
             return (
                 f"_llk_unpack_AB_reduce_init_<{reduce_dim}, {broadcast_type}>(\n"
@@ -425,6 +434,7 @@ class UnpackerA(Unpacker):
         transpose_within_face = (
             "true" if operation.unpack_transpose_within_face.value else "false"
         )
+
         return (
             f"    _llk_unpack_A_init_<{broadcast_type}, false, EltwiseBinaryReuseDestType::{eltwise_reuse_type}, {unpack_to_dest}>(\n"
             f"        {transpose_faces}, {transpose_within_face}, {face_r_dim}, {num_faces}, unpack_a_src_format{stage}, unpack_a_dst_format{stage}\n"
@@ -484,6 +494,8 @@ class UnpackerTilizeA(Unpacker):
         block_ct_dim = operation.dest_tiles_w
         transpose_faces = operation.unpack_transpose_faces.value
         transpose_within_face = operation.unpack_transpose_within_face.value
+        if operation.broadcast_type != BroadcastType.None_:
+            raise ValueError("UnpackerTilizeA does not support broadcast")
 
         if transpose_faces or transpose_within_face:
             raise ValueError("UnpackerTilizeA does not support transpose")
