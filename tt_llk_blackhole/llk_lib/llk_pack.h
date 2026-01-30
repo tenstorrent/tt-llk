@@ -144,7 +144,7 @@ inline void _llk_pack_mop_config_(
         const std::uint32_t MOP_OUTER_LOOP  = 2;
 
         // Last row of half-tile (16 rows) is different between halves, so can't be replayed.
-        const uint replay_buf_len = 15;
+        const std::uint32_t replay_buf_len = 15;
 
         // This replay buffer finishes 2 faces
         load_replay_buf(

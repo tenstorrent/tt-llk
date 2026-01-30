@@ -191,10 +191,10 @@ constexpr InstrModLoadStore get_instruction_mode()
  * @param num_cols The number of columns in the tensor block of multiple tiles
  * @note One tile is 64 rows in dest
  */
-inline void configure_addrmod_max_min(uint32_t num_cols)
+inline void configure_addrmod_max_min(std::uint32_t num_cols)
 {
     // Reduction done on first tile before looping through the rest, so we look at num_cols - 1 tile
-    uint32_t skip_rows = (num_cols - 1) * ROWS_PER_TILE;
+    std::uint32_t skip_rows = (num_cols - 1) * ROWS_PER_TILE;
 
     addr_mod_t {
         .srca = {.incr = 0},
@@ -206,7 +206,7 @@ inline void configure_addrmod_max_min(uint32_t num_cols)
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
-        .dest = {.incr = static_cast<int16_t>(skip_rows)},
+        .dest = {.incr = static_cast<std::int16_t>(skip_rows)},
     }
         .set(ADDR_MOD_5);
 }
@@ -226,7 +226,7 @@ inline void configure_addrmod_max_min(uint32_t num_cols)
  * @param num_cols The number of columns to process (typically 32 for a single tile, or multiple of 32 for block operations)
  */
 template <InstrModLoadStore INSTRUCTION_MODE, PoolType pool_type>
-inline void init_reduce_max_min(uint32_t num_cols)
+inline void init_reduce_max_min(std::uint32_t num_cols)
 {
     // Initialize SFPU config and set swap direction before defining LOADMACRO sequences
     _init_sfpu_config_reg();

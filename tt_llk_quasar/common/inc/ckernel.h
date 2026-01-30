@@ -153,8 +153,8 @@ inline void tensix_sync()
 
 inline void mop_sync()
 {
-    volatile uint foo     = 0xdeadbeef;
-    volatile uint *fooptr = &foo;
+    volatile std::uint32_t foo     = 0xdeadbeef;
+    volatile std::uint32_t *fooptr = &foo;
     // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
     pc_buf_base[2] = foo;
 
@@ -162,7 +162,7 @@ inline void mop_sync()
     *fooptr = pc_buf_base[2];
 }
 
-inline void cfg_rmw(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask, uint32_t val)
+inline void cfg_rmw(std::uint32_t cfg_addr32, std::uint32_t cfg_shamt, std::uint32_t cfg_mask, std::uint32_t val)
 {
     //  FWLOG1("cfg_rmw() addr:%d", cfg_addr32 );
     //  FWLOG1("cfg_rmw() shamt:%d", cfg_shamt );
@@ -171,38 +171,38 @@ inline void cfg_rmw(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask, 
 
     // uint32_t bit_offset = cfg_shamt - cfg_shamt 0x1ffff;
 
-    uint32_t wrdata = val << cfg_shamt;
-    uint8_t mask_b0 = cfg_mask & 0xff;
+    std::uint32_t wrdata = val << cfg_shamt;
+    std::uint8_t mask_b0 = cfg_mask & 0xff;
     if (mask_b0 != 0)
     {
-        uint8_t data_b0 = wrdata & 0xff;
+        std::uint8_t data_b0 = wrdata & 0xff;
         // FWLOG1("cfg_rmw() data_b0 :%x", data_b0  );
         TT_RMWCIB0(cfg_addr32, mask_b0, data_b0);
     }
     wrdata >>= 8;
 
-    uint8_t mask_b1 = (cfg_mask >> 8) & 0xff;
+    std::uint8_t mask_b1 = (cfg_mask >> 8) & 0xff;
     if (mask_b1 != 0)
     {
-        uint8_t data_b1 = (wrdata) & 0xff;
+        std::uint8_t data_b1 = (wrdata) & 0xff;
         // FWLOG1("cfg_rmw() data_b1 :%x", data_b1  );
         TT_RMWCIB1(cfg_addr32, mask_b1, data_b1);
     }
     wrdata >>= 8;
 
-    uint8_t mask_b2 = (cfg_mask >> 16) & 0xff;
+    std::uint8_t mask_b2 = (cfg_mask >> 16) & 0xff;
     if (mask_b2 != 0)
     {
-        uint8_t data_b2 = (wrdata) & 0xff;
+        std::uint8_t data_b2 = (wrdata) & 0xff;
         // FWLOG1("cfg_rmw() data_b2 :%x", data_b2  );
         TT_RMWCIB2(cfg_addr32, mask_b2, data_b2);
     }
     wrdata >>= 8;
 
-    uint8_t mask_b3 = (cfg_mask >> 24) & 0xff;
+    std::uint8_t mask_b3 = (cfg_mask >> 24) & 0xff;
     if (mask_b3 != 0)
     {
-        uint8_t data_b3 = (wrdata) & 0xff;
+        std::uint8_t data_b3 = (wrdata) & 0xff;
         // FWLOG1("cfg_rmw() data_b3 :%x", data_b3  );
         TT_RMWCIB3(cfg_addr32, mask_b3, data_b3);
     }
@@ -249,18 +249,18 @@ inline void cfg_rmw(uint32_t cfg_addr32, uint32_t cfg_shamt, uint32_t cfg_mask, 
 // }
 
 // CHECKME: does this need to change now that BRISC is gone?
-inline void mailbox_write(const uint8_t thread, const uint32_t data)
+inline void mailbox_write(const std::uint8_t thread, const std::uint32_t data)
 {
     mailbox_base[thread][0] = data;
 }
 
 // Blocking read
-inline uint32_t mailbox_read(const uint8_t thread)
+inline std::uint32_t mailbox_read(const std::uint8_t thread)
 {
     return mailbox_base[thread][0];
 }
 
-inline bool mailbox_not_empty(const uint8_t thread)
+inline bool mailbox_not_empty(const std::uint8_t thread)
 {
     return mailbox_base[thread][1] > 0;
 }
@@ -279,16 +279,16 @@ inline bool mailbox_not_empty(const uint8_t thread)
 // example, a TRISC access to an unpacker 1 register and an UNPACR
 // instruction that targets unpacker 0).
 //
-constexpr static uint TRACK_GLOBAL_CFG             = 1 << 0;
-constexpr static uint EN_SUBDIVIDED_CFG_FOR_UNPACR = 1 << 1;
-constexpr static uint TRACK_GPR                    = 1 << 2;
-constexpr static uint TRACK_TDMA                   = 1 << 3;
-constexpr static uint TRACK_TENSIX_INSTRUCTIONS    = 1 << 4;
-constexpr static uint TRACK_ALL                    = 0x1F;
+constexpr static std::uint32_t TRACK_GLOBAL_CFG             = 1 << 0;
+constexpr static std::uint32_t EN_SUBDIVIDED_CFG_FOR_UNPACR = 1 << 1;
+constexpr static std::uint32_t TRACK_GPR                    = 1 << 2;
+constexpr static std::uint32_t TRACK_TDMA                   = 1 << 3;
+constexpr static std::uint32_t TRACK_TENSIX_INSTRUCTIONS    = 1 << 4;
+constexpr static std::uint32_t TRACK_ALL                    = 0x1F;
 
 // HACK: I inverted this signal in RTL, should probably clean this up at some point
-template <uint bitmask>
-inline void set_ttsync_enables(uint thread_id = 0xdeadface)
+template <std::uint32_t bitmask>
+inline void set_ttsync_enables(std::uint32_t thread_id = 0xdeadface)
 {
     static_assert((bitmask & ~TRACK_ALL) == 0, "The given bitmask targets bits outside the allowable range");
     auto t6dbg = RISCV_DEBUG_REGS;
@@ -350,7 +350,7 @@ __attribute__((always_inline)) inline void enable_gathering()
 // returns void, and issues the instructions you want to load into the
 // replay buffer. start, len, and exec_while_loading have the same meaning
 // as they do for the REPLAY instruction, as descired in assembly.yaml.
-template <uint start, uint len, bool exec_while_loading = false, uint set_mutex = 0, uint last = 0, typename F>
+template <std::uint32_t start, std::uint32_t len, bool exec_while_loading = false, std::uint32_t set_mutex = 0, std::uint32_t last = 0, typename F>
 __attribute__((always_inline)) inline void load_replay_buf(F fn)
 {
     if (len > 0)
@@ -384,7 +384,7 @@ __attribute__((always_inline)) inline void load_replay_buf(
     enable_gathering();
 }
 
-enum class CSR : uint16_t
+enum class CSR : std::uint16_t
 {
     tensix_queue_status = 0xBC0,
     tensix_busy_status  = 0xBC1,
@@ -400,9 +400,9 @@ enum class CSR : uint16_t
 };
 
 template <CSR csr_num, bool fence = true>
-inline uint32_t csr_read()
+inline std::uint32_t csr_read()
 {
-    uint32_t ret;
+    std::uint32_t ret;
 
     if (fence)
     {
@@ -414,11 +414,11 @@ inline uint32_t csr_read()
 }
 
 // Use at your own risk :-)
-template <uint16_t csr_num, bool fence = true>
-inline uint32_t csr_read()
+template <std::uint16_t csr_num, bool fence = true>
+inline std::uint32_t csr_read()
 {
     static_assert(csr_num < (1 << 12), "Given CSR number is out of range");
-    uint32_t ret;
+    std::uint32_t ret;
 
     if (fence)
     {
@@ -430,7 +430,7 @@ inline uint32_t csr_read()
 }
 
 template <CSR csr_num, bool fence = true>
-inline void csr_write(uint32_t val)
+inline void csr_write(std::uint32_t val)
 {
     if (fence)
     {
@@ -440,8 +440,8 @@ inline void csr_write(uint32_t val)
 }
 
 // Use at your own risk :-)
-template <uint16_t csr_num, bool fence = true>
-inline void csr_write(uint32_t val)
+template <std::uint16_t csr_num, bool fence = true>
+inline void csr_write(std::uint32_t val)
 {
     static_assert(csr_num < (1 << 12), "Given CSR number is out of range");
 
@@ -454,7 +454,7 @@ inline void csr_write(uint32_t val)
 
 union qstatus_u
 {
-    uint32_t val;
+    std::uint32_t val;
 
     struct
     {
@@ -488,7 +488,7 @@ union qstatus_u
 
 union bstatus_u
 {
-    uint32_t val;
+    std::uint32_t val;
 
     struct
     {
@@ -637,7 +637,7 @@ inline void wait_fpu_idle()
     wait_bstatus_low(wait_for_me.val);
 */
 
-inline void wait_bstatus_low(uint32_t val)
+inline void wait_bstatus_low(std::uint32_t val)
 {
     bstatus_u bstatus;
     do
@@ -651,8 +651,8 @@ inline void wait_bstatus_low(uint32_t val)
 [[maybe_unused]]
 static void time_waster(int num_iters)
 {
-    uint32_t volatile *some_random_l1_address = (uint32_t volatile *)0x14FFE;
-    uint32_t dont_optimize_me_away;
+    std::uint32_t volatile *some_random_l1_address = (std::uint32_t volatile *)0x14FFE;
+    std::uint32_t dont_optimize_me_away;
 
     for (int i = 0; i < num_iters; i++)
     {
@@ -679,14 +679,14 @@ enum class dest_dvalid_client : int
 };
 
 // I wish C++ had better code generation, instead of this messy templating stuff
-template <uint32_t wait_mask, uint32_t wait_polarity, uint32_t toggle_mask>
+template <std::uint32_t wait_mask, std::uint32_t wait_polarity, std::uint32_t toggle_mask>
 struct mk_dest_dvalid_reg
 {
     static_assert(wait_mask < 16);
     static_assert(wait_polarity < 16);
     static_assert(toggle_mask < 16);
 
-    static uint32_t const val = ((wait_mask << 0) | (wait_polarity << 4) | (toggle_mask << 8));
+    static std::uint32_t const val = ((wait_mask << 0) | (wait_polarity << 4) | (toggle_mask << 8));
 };
 
 /* Examples:
@@ -715,7 +715,7 @@ Using unpack-to-dest with SFPU and then packing out:
 template <dest_dvalid_client CURR_CLIENT, int N /*deduced*/>
 void set_up_dest_dvalid_per_thread(dest_dvalid_client const (&clients)[N])
 {
-    static uint32_t const ctrl_regs[] = {
+    static std::uint32_t const ctrl_regs[] = {
         UNPACK_TO_DEST_DVALID_CTRL_wait_mask_ADDR32,
         MATH_DEST_DVALID_CTRL_wait_mask_ADDR32,
         SFPU_DEST_DVALID_CTRL_wait_mask_ADDR32,
@@ -724,7 +724,7 @@ void set_up_dest_dvalid_per_thread(dest_dvalid_client const (&clients)[N])
     static_assert(N > 1, "Doesn't make sense to set dvalid control if you only have one client");
     static_assert(N <= 4, "We only support up to 3 producer-consumer pairs");
 
-    auto cfg = (uint32_t volatile *)TENSIX_CFG_BASE;
+    auto cfg = (std::uint32_t volatile *)TENSIX_CFG_BASE;
 
     if (CURR_CLIENT == clients[0])
     {
@@ -745,9 +745,13 @@ void set_up_dest_dvalid_per_thread(dest_dvalid_client const (&clients)[N])
 
 // d e e p e s t l o r e
 __attribute__((always_inline)) inline void rv_wrcfg(
-    uint32_t const &wrdata_hi, uint32_t const &wrdata_lo, uint32_t const &cfg_addr, uint32_t const write_64b = 0, uint32_t const byte_mask = 0xFF)
+    std::uint32_t const &wrdata_hi,
+    std::uint32_t const &wrdata_lo,
+    std::uint32_t const &cfg_addr,
+    std::uint32_t const write_64b = 0,
+    std::uint32_t const byte_mask = 0xFF)
 {
-    uint32_t const base_instrn = TRISC_OP_SWIZZLE(TT_OP_RV_WRCFG(byte_mask, write_64b, 0, 0, 0));
+    std::uint32_t const base_instrn = TRISC_OP_SWIZZLE(TT_OP_RV_WRCFG(byte_mask, write_64b, 0, 0, 0));
     asm volatile(
         ".equ reg_lut_zero, 0\n"
         ".equ reg_lut_ra, 1\n"
@@ -791,14 +795,14 @@ __attribute__((always_inline)) inline void rv_wrcfg(
 // Refer to the comments about the Ports for RISC memory-mapped access near
 // to the top of tt_replay_unit.sv
 // The division by 4 is because the comment uses byte addresses.
-static const uint32_t replay_live_mutex = 256 >> 2;
-static const uint32_t mutex_0_unbanked  = 264 >> 2;
-static const uint32_t mutex_1_unbanked  = 268 >> 2;
-static const uint32_t replay_write_id   = 272 >> 2; // replay_instr_bank_write_id in the RTL
-static const uint32_t replay_read_id    = 276 >> 2; // replay_instr_bank_read_id in the RTL
-static const uint32_t mmio_write_id     = 280 >> 2; // mm_bank_write_id in the RTL
+static const std::uint32_t replay_live_mutex = 256 >> 2;
+static const std::uint32_t mutex_0_unbanked  = 264 >> 2;
+static const std::uint32_t mutex_1_unbanked  = 268 >> 2;
+static const std::uint32_t replay_write_id   = 272 >> 2; // replay_instr_bank_write_id in the RTL
+static const std::uint32_t replay_read_id    = 276 >> 2; // replay_instr_bank_read_id in the RTL
+static const std::uint32_t mmio_write_id     = 280 >> 2; // mm_bank_write_id in the RTL
 
-inline void start_using_replay_mmio_load(uint32_t double_banked = true)
+inline void start_using_replay_mmio_load(std::uint32_t double_banked = true)
 {
     // State at the end of this routine, once replay is idle
     //    o Both Mutexes == 1
@@ -819,7 +823,7 @@ inline void start_using_replay_mmio_load(uint32_t double_banked = true)
             : "t1");
 
     wait_replay_idle();
-    uint32_t initial_read_id = replay_mmap[replay_read_id];
+    std::uint32_t initial_read_id = replay_mmap[replay_read_id];
     if (replay_mmap[mmio_write_id] == initial_read_id)
     {
         // Already lined up. Just grab both Mutexes.

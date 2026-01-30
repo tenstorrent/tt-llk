@@ -98,8 +98,8 @@ class Packer:
         code = (
             f"    // Operation {stage}: Packer\n"
             f"    const Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});\n"
-            f"    const uint32_t pack_src_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_src.name});\n"
-            f"    const uint32_t pack_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name});\n"
+            f"    const std::uint32_t pack_src_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_src.name});\n"
+            f"    const std::uint32_t pack_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name});\n"
         )
 
         if config.profiler_enabled:
@@ -185,8 +185,8 @@ class Packer:
             f"    {{\n"
             f"        for (int tc = 0; tc < {operation.output_tiles_w}; tc++)\n"
             f"        {{\n"
-            f"            uint32_t dest_idx = tr * {operation.dest_tiles_w} + tc;\n"
-            f"            uint32_t l1_idx = tr * {operation.output_tiles_w} + tc;\n"
+            f"            std::uint32_t dest_idx = tr * {operation.dest_tiles_w} + tc;\n"
+            f"            std::uint32_t l1_idx = tr * {operation.output_tiles_w} + tc;\n"
             f"            _llk_pack_<{dest_sync}, {dest_acc}, false>(dest_idx, L1_ADDRESS(buffer_Res{stage}[l1_idx]));\n"
             f"        }}\n"
             f"    }}\n"

@@ -122,9 +122,9 @@ void riscv_dbg_wr(rvdbg_risc_sel risc_sel, rvdbg_reg index, std::uint32_t val)
 
 // Using the (rather clumsy) interface in the riscv_debug_regs, read a
 // value from one of the RISCV debug control registers
-uint32_t riscv_dbg_rd(rvdbg_risc_sel risc_sel, rvdbg_reg index)
+std::uint32_t riscv_dbg_rd(rvdbg_risc_sel risc_sel, rvdbg_reg index)
 {
-    uint32_t const cntl0_rd_cmd = CNTL0_PULSE | static_cast<uint32_t>(risc_sel) | CNTL0_RD | static_cast<uint32_t>(index);
+    std::uint32_t const cntl0_rd_cmd = CNTL0_PULSE | static_cast<std::uint32_t>(risc_sel) | CNTL0_RD | static_cast<std::uint32_t>(index);
 
     RISCV_DEBUG_REGS->RISC_DBG_CNTL_0 = 0; // Clear pulse bit so we get a 0-1 transition on it
     RISCV_DEBUG_REGS->RISC_DBG_CNTL_0 = cntl0_rd_cmd;

@@ -241,13 +241,13 @@ inline void _calculate_max_pool_with_indices_generic_(const std::uint32_t values
     // We only need to reload the first block's result into LREG1/LREG5 for the final swap.
     // store_result: if false, result stays in LREG0/LREG4 for caller to use directly.
     auto process_16_rows = [&reduce_8_rows, values_tile_offset, indices_tile_offset, eight_row_offset, instr_mod_index](
-                               const uint base_offset, const uint col_offset, const bool store_result) __attribute__((always_inline))
+                               const std::uint32_t base_offset, const std::uint32_t col_offset, const bool store_result) __attribute__((always_inline))
     {
         // Precompute base addresses for both 8-row blocks
-        const uint val_base_first  = values_tile_offset + base_offset + col_offset;
-        const uint idx_base_first  = indices_tile_offset + base_offset + col_offset;
-        const uint val_base_second = values_tile_offset + eight_row_offset + base_offset + col_offset;
-        const uint idx_base_second = indices_tile_offset + eight_row_offset + base_offset + col_offset;
+        const std::uint32_t val_base_first  = values_tile_offset + base_offset + col_offset;
+        const std::uint32_t idx_base_first  = indices_tile_offset + base_offset + col_offset;
+        const std::uint32_t val_base_second = values_tile_offset + eight_row_offset + base_offset + col_offset;
+        const std::uint32_t idx_base_second = indices_tile_offset + eight_row_offset + base_offset + col_offset;
 
         // First 8 rows: reduce and STORE (we need to free registers for second block)
         reduce_8_rows(val_base_first, idx_base_first, true);

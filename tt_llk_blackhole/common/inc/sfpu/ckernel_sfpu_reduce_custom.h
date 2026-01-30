@@ -38,7 +38,7 @@ inline void sfpu_reduce_max_col_subblock_4x2_configure_addrmod()
 
 inline void sfpu_reduce_max_col_subblock_4x2_load_initial_values()
 {
-    constexpr uint16_t neg_inf_fp16b = 0xFF80;
+    constexpr std::uint16_t neg_inf_fp16b = 0xFF80;
 
     // F0 - Initialize with negative infinity
     TTI_SFPLOADI(p_sfpu::LREG4, InstrModLoadStore::FP16B, neg_inf_fp16b);

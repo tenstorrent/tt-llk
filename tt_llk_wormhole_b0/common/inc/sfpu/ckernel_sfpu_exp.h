@@ -269,7 +269,7 @@ constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uin
 constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
 constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
 
-template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
+template <bool APPROXIMATION_MODE, bool FAST_APPROX, std::uint32_t scale /* 1.0f in FP32 */>
 inline void _init_exponential_()
 {
     if constexpr (FAST_APPROX && APPROXIMATION_MODE)

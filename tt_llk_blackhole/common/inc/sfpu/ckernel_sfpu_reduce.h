@@ -215,10 +215,10 @@ constexpr InstrModLoadStore get_instruction_mode()
  * @param num_cols The number of columns in the tensor block of multiple tiles
  * @note One tile is 64 rows in dest
  */
-inline void configure_addrmod_max_min(uint32_t num_cols)
+inline void configure_addrmod_max_min(std::uint32_t num_cols)
 {
     // Reduction done on first tile before looping through the rest, so we look at num_cols - 1 tile
-    uint32_t skip_rows = (num_cols - 1) * ROWS_PER_TILE;
+    std::uint32_t skip_rows = (num_cols - 1) * ROWS_PER_TILE;
 
     addr_mod_t {
         .srca = {.incr = 0},
@@ -237,7 +237,7 @@ inline void configure_addrmod_max_min(uint32_t num_cols)
     addr_mod_t {
         .srca = {.incr = 0},
         .srcb = {.incr = 0},
-        .dest = {.incr = static_cast<int16_t>(skip_rows)},
+        .dest = {.incr = static_cast<std::int16_t>(skip_rows)},
     }
         .set(ADDR_MOD_5);
 }
@@ -281,7 +281,7 @@ inline void init_reduce_max_min_int32()
  * @param num_cols The number of columns to process (typically 32 for a single tile, or multiple of 32 for block operations)
  */
 template <InstrModLoadStore INSTRUCTION_MODE, PoolType pool_type>
-inline void init_reduce_max_min(uint32_t num_cols)
+inline void init_reduce_max_min(std::uint32_t num_cols)
 {
     // Initialize SFPU config and set swap direction before defining LOADMACRO sequences
     _init_sfpu_config_reg();
@@ -395,26 +395,26 @@ inline void init_reduce_sum_avg()
 template <InstrModLoadStore INSTRUCTION_MODE, PoolType pool_type, ReduceDim reduce_dim>
 inline void calculate_reduce_max_min_int32()
 {
-    constexpr auto INSTR_MOD_CAST    = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
-    constexpr uint ODD_COLUMNS       = 2;
-    constexpr uint COLUMN_OFFSETS[4] = {0, 2, 0, 2}; // even, odd, even, odd
-    constexpr uint FACE_ADDRS[2][4]  = {
+    constexpr auto INSTR_MOD_CAST             = InstrModCast::INT_SIGN_MAGN_TO_INT32_2S_COMP;
+    constexpr std::uint32_t ODD_COLUMNS       = 2;
+    constexpr std::uint32_t COLUMN_OFFSETS[4] = {0, 2, 0, 2}; // even, odd, even, odd
+    constexpr std::uint32_t FACE_ADDRS[2][4]  = {
         {0, 0, 32, 32},  // j=0: Face 0 and Face 2
         {16, 16, 48, 48} // j=1: Face 1 and Face 3
     };
-    constexpr uint FINAL_REDUCE_ADDRS[2][2] = {
+    constexpr std::uint32_t FINAL_REDUCE_ADDRS[2][2] = {
         {0, 32}, // j=0: Face 0 and Face 2
         {16, 48} // j=1: Face 1 and Face 3
     };
 
-    for (uint j = 0; j < 2; j++)
+    for (std::uint32_t j = 0; j < 2; j++)
     {
-        uint top_face_addr    = FINAL_REDUCE_ADDRS[j][0]; // face 0 & 1 dst indices
-        uint bottom_face_addr = FINAL_REDUCE_ADDRS[j][1]; // face 2 & 3 dst indices
+        std::uint32_t top_face_addr    = FINAL_REDUCE_ADDRS[j][0]; // face 0 & 1 dst indices
+        std::uint32_t bottom_face_addr = FINAL_REDUCE_ADDRS[j][1]; // face 2 & 3 dst indices
 
         // After this loop executes vertically adjacent faces (f0 & f2 first iteration of outer loop, f1 & f3 second iteration) are processed and store max/min
         // values in top 4 rows of their faces
-        for (uint i = 0; i < NUM_FACES; i++)
+        for (std::uint32_t i = 0; i < NUM_FACES; i++)
         {
             load_face_data<INSTRUCTION_MODE>(FACE_ADDRS[j][i], COLUMN_OFFSETS[i]);
             convert_to_sign_magnitude_x4_lregs<INSTR_MOD_CAST>();

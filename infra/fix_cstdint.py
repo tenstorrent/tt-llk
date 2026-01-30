@@ -26,8 +26,10 @@ Edge cases handled:
 """
 
 import argparse
+import io
 import re
 import sys
+import tokenize
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Tuple
@@ -88,10 +90,12 @@ class CstdintFixer:
     STRING_PATTERN = re.compile(r'(?:L|u|U|u8)?"(?:[^"\\]|\\.)*"')
 
     # Character literals (single quotes) - also handle escape sequences and prefixes
-    CHAR_LITERAL_PATTERN = re.compile(r"(?:L|u|U|u8)?'(?:[^'\\]|\\.)*'")
+    # Excludes newlines to avoid spanning across lines (e.g., apostrophes in comments).
+    CHAR_LITERAL_PATTERN = re.compile(r"(?:L|u|U|u8)?'(?:[^'\\\n]|\\.)*'")
 
     # Multi-line comments /* ... */
-    MULTILINE_COMMENT_PATTERN = re.compile(r"/\*.*?\*/", re.DOTALL)
+    # Avoid matching comment-like patterns inside // line comments (e.g., "//*").
+    MULTILINE_COMMENT_PATTERN = re.compile(r"(?<!/)/\*.*?\*/", re.DOTALL)
 
     # Single-line comments // ... (to end of line)
     SINGLE_LINE_COMMENT_PATTERN = re.compile(r"//[^\n]*")
@@ -99,6 +103,10 @@ class CstdintFixer:
     def should_check_file(self, file_path: Path) -> bool:
         """Check if file should be processed based on extension."""
         return file_path.suffix.lower() in self.CHECK_EXTENSIONS
+
+    def _is_tests_python_file(self, file_path: Path) -> bool:
+        """Check if file is a Python file under tests/."""
+        return file_path.suffix.lower() == ".py" and "tests" in file_path.parts
 
     def _create_safe_content(self, content: str) -> str:
         """
@@ -110,9 +118,9 @@ class CstdintFixer:
         Processing order matters:
         1. Raw strings first (can contain sequences that look like other patterns)
         2. Regular strings
-        3. Character literals
-        4. Multi-line comments (can span lines, may contain string-like sequences)
-        5. Single-line comments (last, as // could appear in strings)
+        3. Multi-line comments (can span lines, may contain string-like sequences)
+        4. Single-line comments (last, as // could appear in strings)
+        5. Character literals (after comments to avoid apostrophes in comments)
         """
         safe = content
 
@@ -122,16 +130,16 @@ class CstdintFixer:
         # 2. Regular string literals
         safe = self.STRING_PATTERN.sub(lambda m: " " * len(m.group(0)), safe)
 
-        # 3. Character literals
-        safe = self.CHAR_LITERAL_PATTERN.sub(lambda m: " " * len(m.group(0)), safe)
-
-        # 4. Multi-line comments /* ... */
+        # 3. Multi-line comments /* ... */
         safe = self.MULTILINE_COMMENT_PATTERN.sub(lambda m: " " * len(m.group(0)), safe)
 
-        # 5. Single-line comments // ...
+        # 4. Single-line comments // ...
         safe = self.SINGLE_LINE_COMMENT_PATTERN.sub(
             lambda m: " " * len(m.group(0)), safe
         )
+
+        # 5. Character literals
+        safe = self.CHAR_LITERAL_PATTERN.sub(lambda m: " " * len(m.group(0)), safe)
 
         return safe
 
@@ -187,6 +195,69 @@ class CstdintFixer:
         return bool(self.STD_UINT_TYPES_PATTERN.search(safe_content)) or bool(
             self.STD_UINT32_PATTERN.search(safe_content)
         )
+
+    def _replace_cstdint_in_text(self, text: str) -> str:
+        """Replace uint types in a text snippet."""
+        text = self.UINT_TYPES_PATTERN.sub(r"std::\1", text)
+        text = self.UINT_STANDALONE_PATTERN.sub("std::uint32_t", text)
+        return text
+
+    def _fix_python_test_file(
+        self, file_path: Path, dry_run: bool = False
+    ) -> FixResult:
+        """
+        Fix uint*_t types and standalone uint inside Python string literals
+        for files under tests/.
+        """
+        result = FixResult(file_path=file_path, had_changes=False)
+
+        try:
+            content = file_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            return result
+        except Exception as e:
+            result.errors.append(f"Error reading file: {e}")
+            return result
+
+        lines = content.splitlines(keepends=True)
+        line_offsets = [0]
+        for line in lines[:-1]:
+            line_offsets.append(line_offsets[-1] + len(line))
+
+        def pos_to_index(pos: Tuple[int, int]) -> int:
+            row, col = pos
+            return line_offsets[row - 1] + col
+
+        replacements: List[Tuple[int, int, str]] = []
+        try:
+            tokens = tokenize.generate_tokens(io.StringIO(content).readline)
+            for token in tokens:
+                if token.type != tokenize.STRING:
+                    continue
+                start = pos_to_index(token.start)
+                end = pos_to_index(token.end)
+                original = token.string
+                updated = self._replace_cstdint_in_text(original)
+                if updated != original:
+                    replacements.append((start, end, updated))
+        except tokenize.TokenError as e:
+            result.errors.append(f"Error tokenizing file: {e}")
+            return result
+
+        if replacements:
+            new_content = content
+            for start, end, updated in sorted(
+                replacements, key=lambda x: x[0], reverse=True
+            ):
+                new_content = new_content[:start] + updated + new_content[end:]
+            result.had_changes = new_content != content
+            if result.had_changes and not dry_run:
+                try:
+                    file_path.write_text(new_content, encoding="utf-8")
+                except Exception as e:
+                    result.errors.append(f"Error writing file: {e}")
+
+        return result
 
     def _find_include_insert_position(self, content: str, safe_content: str) -> int:
         """
@@ -297,6 +368,9 @@ class CstdintFixer:
             FixResult with details about what was fixed
         """
         result = FixResult(file_path=file_path, had_changes=False)
+
+        if self._is_tests_python_file(file_path):
+            return self._fix_python_test_file(file_path, dry_run=dry_run)
 
         if not self.should_check_file(file_path):
             return result

@@ -144,7 +144,7 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
 
     // Program srcA and srcB base addresses
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // Wait for free context
     wait_for_next_context(2);
@@ -175,7 +175,7 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
 inline void _llk_unpack_bcastA_B_mop_config_()
 {
     // Setup address modifiers for unpacker instructions
-    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0      = 0b00'00'00'00;
+    constexpr std::uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00;
     constexpr std::uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
 
     /*
@@ -217,7 +217,7 @@ inline void _llk_unpack_bcastA_B_init_()
     TTI_SETADCXX(p_setadc::UNP_B, TILE_R_DIM * TILE_C_DIM - 1, 0); // Directly set unpacker B counter to unpack whole tile
 
     // Setup address modifiers for unpacker instructions
-    constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
+    constexpr std::uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
 
     /*
 

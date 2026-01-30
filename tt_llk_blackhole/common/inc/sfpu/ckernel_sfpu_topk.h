@@ -587,15 +587,15 @@ inline void _bitonic_topk_merge(const int m_iter, const int k)
             std::uint32_t total_datums_to_compare =
                 ((64 >> m_iter) < 2 * k_max) ? 2 * k_max
                                              : (64 >> m_iter); // max(2, max(64, 64/(2^m))) total datums to compare; there's always at least 2*K datums
-            uint dist            = (k_max << m_iter) > 32 ? 32 : (k_max << m_iter); // min(32, k*2^k)
-            uint ld_dist         = (dist < 16) ? dist : 2 * dist;                   // Accounts for face offsets within a tile
-            uint datums_compared = 0;
-            uint dst_offset      = 0;
-            uint dst_cr          = 0;
+            std::uint32_t dist            = (k_max << m_iter) > 32 ? 32 : (k_max << m_iter); // min(32, k*2^k)
+            std::uint32_t ld_dist         = (dist < 16) ? dist : 2 * dist;                   // Accounts for face offsets within a tile
+            std::uint32_t datums_compared = 0;
+            std::uint32_t dst_offset      = 0;
+            std::uint32_t dst_cr          = 0;
 
             while (datums_compared < total_datums_to_compare)
             {
-                for (uint ii = 0; ii < inner_d; ii++)
+                for (std::uint32_t ii = 0; ii < inner_d; ii++)
                 {
                     bitonic_topk_load8<is_fp32_dest_acc_en>(dst_offset, ld_dist);
                     TTI_SFPSWAP(0, top_min ? p_sfpu::LREG1 : p_sfpu::LREG0, top_min ? p_sfpu::LREG0 : p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
@@ -631,15 +631,15 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
     // init replay buffer for rebuild iteration 'm_iter' if uninitialized
     bool init_rebuild = (topk_replay_init != m_iter + 1) ? true : false;
 
-    uint dst_addr_offset = 0;
+    std::uint32_t dst_addr_offset = 0;
     for (int face = 0; face < 2; face++)
     {
         for (int col = 0; col < 2; col++)
         {
-            uint total_datums_shift = (skip_second & 0x1);
+            std::uint32_t total_datums_shift = (skip_second & 0x1);
             TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-            uint rebuild_m = m_iter + 1;
-            uint total_datums_to_compare =
+            std::uint32_t rebuild_m = m_iter + 1;
+            std::uint32_t total_datums_to_compare =
                 ((64 >> rebuild_m) < 2 * k) ? 2 * k : (64 >> rebuild_m); // max(2*k, 64/(2^m)) total datums to compare; there's always at least 2*K datums
             total_datums_to_compare = total_datums_to_compare >> total_datums_shift; // Reduce by 2 if skipping last
             std::uint32_t dist      = (k << rebuild_m) > 32 ? 32 : (k << rebuild_m); // min(32, k*2^k)

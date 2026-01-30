@@ -197,7 +197,7 @@ sfpi_inline void _program_welfords_replay_buffer_()
  *
  * @tparam input_lreg The index of the input LREG to replay. LREG0-3.
  */
-template <uint32_t input_lreg>
+template <std::uint32_t input_lreg>
 sfpi_inline void _execute_welfords_row_replay_buffer_()
 {
     lltt::replay(WELFORD_INSTR_PER_ROW * input_lreg, WELFORD_INSTR_PER_ROW);
@@ -214,8 +214,8 @@ sfpi_inline void _execute_welfords_row_replay_buffer_()
  * This is a helper function that performs all three steps for a single block:
  * load inputs, load reciprocal and compute running mean and m2. Each block has 4 rows of 32 columns.
  */
-template <std::size_t reciprocal_size, uint32_t I, uint32_t J>
-sfpi_inline void _calculate_welfords_block_(uint32_t start_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+template <std::size_t reciprocal_size, std::uint32_t I, std::uint32_t J>
+sfpi_inline void _calculate_welfords_block_(std::uint32_t start_idx, const std::array<std::uint32_t, reciprocal_size>& reciprocal_lut)
 {
     _welfords_load_block_<I, J>();
 
@@ -249,13 +249,13 @@ sfpi_inline void _calculate_welfords_block_(uint32_t start_idx, const std::array
  * This is a helper function that performs all three steps for a single block:
  * load inputs, load reciprocal and compute running mean and m2. Each block has 4 rows of 32 columns.
  */
-template <std::size_t reciprocal_size, uint32_t I, uint32_t J>
+template <std::size_t reciprocal_size, std::uint32_t I, std::uint32_t J>
 sfpi_inline void _calculate_welfords_block_w_offset_(
-    uint32_t& start_idx, uint32_t start_row, uint32_t end_row, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+    std::uint32_t& start_idx, std::uint32_t start_row, std::uint32_t end_row, const std::array<std::uint32_t, reciprocal_size>& reciprocal_lut)
 {
     // These are the row indices of the block in the tile.
-    constexpr uint32_t block_min_row_idx = I * 16 + J * 4;
-    constexpr uint32_t block_max_row_idx = block_min_row_idx + 4;
+    constexpr std::uint32_t block_min_row_idx = I * 16 + J * 4;
+    constexpr std::uint32_t block_max_row_idx = block_min_row_idx + 4;
 
     // If the start_row and end_row don't intersect with this block, we don't need to process this.
     if (((start_row >= block_max_row_idx) || (end_row <= block_min_row_idx)))
@@ -264,8 +264,8 @@ sfpi_inline void _calculate_welfords_block_w_offset_(
     }
 
     // Trim the start_row and end_row so we only look at rows in this window
-    const uint32_t block_start_row = std::max(block_min_row_idx, start_row);
-    const uint32_t block_end_row   = std::min(block_max_row_idx, end_row);
+    const std::uint32_t block_start_row = std::max(block_min_row_idx, start_row);
+    const std::uint32_t block_end_row   = std::min(block_max_row_idx, end_row);
 
     // Make the start_row and end_row relative to this block
     start_row = block_start_row - block_min_row_idx;
@@ -328,7 +328,7 @@ sfpi_inline void _clear_previous_mean_and_m2_()
  * @param reciprocal_lut The lookup table containing the reciprocals of the sample counts.
  */
 template <std::size_t reciprocal_size>
-sfpi_inline void _calculate_welfords_tile_(uint32_t start_idx, const std::array<uint32_t, reciprocal_size>& reciprocal_lut)
+sfpi_inline void _calculate_welfords_tile_(std::uint32_t start_idx, const std::array<std::uint32_t, reciprocal_size>& reciprocal_lut)
 {
     // We load 4 rows of a tile (with 32 columns each) at a time and process them.
     // To finish the entire tile, we need to repeat this process 8 times.

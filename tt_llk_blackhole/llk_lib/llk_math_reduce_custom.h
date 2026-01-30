@@ -166,9 +166,9 @@ inline void _llk_math_reduce_block_max_row_mop_config_()
     static constexpr std::uint32_t inner_loop = 4;
 
     // Reduce F0 and F1 column-wise, doesn't change DEST counter
-    static constexpr uint start_op = TT_OP_REPLAY(0, 2, 0, 0);
+    static constexpr std::uint32_t start_op = TT_OP_REPLAY(0, 2, 0, 0);
     // Increment DEST counter by 32 to point to F2 (DEST row 32)
-    static constexpr uint inner_loop_op = TT_OP_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+    static constexpr std::uint32_t inner_loop_op = TT_OP_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
     // Reduce F2 and F3 column-wise, doesn't change DEST counter, but clears A valid bits at the end
     static constexpr std::uint32_t end_op_1 = TT_OP_REPLAY(0, 2, 0, 0);
     // Clear A valid bit to get another operand tile (scaler face stays the same)
@@ -195,7 +195,7 @@ inline void _llk_math_reduce_block_max_row_mop_config_()
  * Use the standard _llk_math_reduce_init_<PoolType::MAX, ReduceDim::REDUCE_ROW>() with multiple
  * _llk_math_reduce_() calls in a loop for general-purpose block reduction.
  */
-template <uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
+template <std::uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
 inline void _llk_math_reduce_block_max_row_init_()
 {
     if constexpr (is_fp32_dest_acc_en)
