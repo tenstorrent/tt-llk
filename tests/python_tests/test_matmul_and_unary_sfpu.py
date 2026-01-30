@@ -4,6 +4,7 @@
 
 import pytest
 import torch
+from conftest import skip_for_blackhole, skip_for_coverage, skip_for_wormhole
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
