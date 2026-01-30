@@ -33,7 +33,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, params->num_faces, params->num_faces);
 
-        _llk_unpack_A_init_<BroadcastType::NONE, is_fp32_dest_acc_en, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+        _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             params->UNPACK_TRANSPOSE_FACES, params->UNPACK_TRANSPOSE_WITHIN_FACE, FACE_R_DIM, params->num_faces, formats.unpack_src, formats.unpack_dst);
         PROFILER_SYNC();
     }
@@ -42,14 +42,14 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            if (!unpack_to_dest)
+            if constexpr (!unpack_to_dest)
             {
                 // Set valid for source A always.
                 // Set valid for source B only if dest_acc is enabled.
                 // Works only when unpacking to dest is not used.
                 _perf_unpack_loop_set_valid<
                     /* src A */ true,
-                    /* src B */ is_fp32_dest_acc_en>(
+                    /* src B */ false>(
                     /* iterations*/ params->num_faces * params->TILE_CNT * params->LOOP_FACTOR);
             }
         }
@@ -59,7 +59,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (int i = 0; i < params->TILE_CNT; ++i)
                 {
-                    _llk_unpack_A_<BroadcastType::NONE, is_fp32_dest_acc_en, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+                    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
                         PERF_ADDRESS(PERF_INPUT_A, /* tile_idx */ i), formats.unpack_src, formats.unpack_dst);
                 }
             }

@@ -18,7 +18,8 @@
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
-inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false, const bool unpack_to_dest = false)
+template <bool unpack_to_dest>
+inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false)
 {
     static constexpr uint unpack_srca =
         TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
@@ -30,7 +31,7 @@ inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false, const
     const uint32_t outerloop     = narrow_tile ? 1 : 2;
     constexpr uint32_t innerloop = 1;
 
-    if (unpack_to_dest)
+    if constexpr (unpack_to_dest)
     {
         ckernel_template tmp(outerloop, innerloop, unpack_srca_to_dest);
         tmp.program();
@@ -43,6 +44,7 @@ inline void _llk_unpack_tilize_mop_config_(const bool narrow_tile = false, const
     }
 }
 
+template <bool unpack_to_dest>
 inline void _llk_unpack_tilize_init_(
     const std::uint32_t unpack_src_format = 0,
     const std::uint32_t unpack_dst_format = 0,
@@ -51,10 +53,6 @@ inline void _llk_unpack_tilize_init_(
     const bool narrow_tile                = false)
 {
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
-
-    // In case of 32-bit integer numbers, we have to unpack into dest register
-    const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
-                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32));
 
     const std::uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
 
@@ -74,7 +72,7 @@ inline void _llk_unpack_tilize_init_(
     TTI_REG2FLOP(
         1, 0, 0, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_unpack::FACE_DIM_1x16); // GPR preloaded with  16 | (16 << 16)
 
-    _llk_unpack_tilize_mop_config_(narrow_tile, unpack_to_dest);
+    _llk_unpack_tilize_mop_config_<unpack_to_dest>(narrow_tile);
 }
 
 // Internal function to implement unpacking to source register
@@ -174,6 +172,7 @@ inline void unpack_tilize_to_dest_impl(
     unpack_to_dest_tile_done(unp_cfg_context);
 }
 
+template <bool unpack_to_dest>
 inline void _llk_unpack_tilize_(
     const std::uint32_t base_address,
     const std::uint32_t tile_index,
@@ -184,9 +183,6 @@ inline void _llk_unpack_tilize_(
     const bool narrow_tile          = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    // In case of 32-bit integer numbers, we have to unpack into dest register
-    const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
-                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32));
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
     // Each iteration unpacks 2 face_r_dimx16 faces (1st 0,1 2nd 2,3 unless tile is <=16x32)
@@ -200,7 +196,7 @@ inline void _llk_unpack_tilize_(
     // Program srcA and srcB base addresses
     std::uint32_t num_loops = narrow_tile ? 2 : num_faces / 2;
 
-    if (!unpack_to_dest)
+    if constexpr (!unpack_to_dest)
     {
         unpack_tilize_impl(base_address, num_loops, top_face_offset_address, bot_face_offset_address);
     }

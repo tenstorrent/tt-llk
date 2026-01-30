@@ -29,6 +29,7 @@ from .llk_params import (
     Tilize,
     Transpose,
     UnpackerEngine,
+    UnpackToDest,
 )
 from .matmul_sweep import validate_tile_dimensions
 
@@ -210,6 +211,16 @@ class FAST_MODE(TemplateParameter):
 
     def covert_to_cpp(self) -> str:
         return f"constexpr bool FAST_MODE = {str(self.fast_mode.value).lower()};"
+
+
+@dataclass
+class UNPACK_TO_DEST(TemplateParameter):
+    unpack_to_dest: UnpackToDest = UnpackToDest.No
+
+    def covert_to_cpp(self) -> str:
+        return (
+            f"constexpr bool UNPACK_TO_DEST = {str(self.unpack_to_dest.value).lower()};"
+        )
 
 
 @dataclass

@@ -12,6 +12,7 @@ from helpers.llk_params import (
     PerfRunType,
     StableSort,
     Transpose,
+    UnpackToDest,
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import PerfConfig
@@ -27,6 +28,7 @@ from helpers.test_variant_parameters import (
     NUM_FACES,
     STABLE_SORT,
     TILE_COUNT,
+    UNPACK_TO_DEST,
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
 )
@@ -75,6 +77,10 @@ from helpers.test_variant_parameters import (
         StableSort.Yes,
         StableSort.No,
     ],
+    unpack_dest=[
+        UnpackToDest.Yes,
+        UnpackToDest.No,
+    ],
     input_dimensions=[
         [128, 64],  # tile_cnt: 8
     ],  # Specifying different input sizes to cover different tile counts
@@ -89,6 +95,7 @@ def test_perf_eltwise_unary_sfpu(
     iterations,
     fast_mode,
     stable_sort,
+    unpack_dest,
     input_dimensions,
     workers_tensix_coordinates,
 ):
@@ -144,6 +151,30 @@ def test_perf_eltwise_unary_sfpu(
             f"{mathop} does not use stable_sort parameter - skipping Yes variant"
         )
 
+    # Skip invalid format combinations with unpack_to_dest
+    from helpers.format_config import InputOutputFormat
+
+    if (
+        dest_acc == DestAccumulation.No
+        and unpack_dest == UnpackToDest.Yes
+        and (
+            formats == InputOutputFormat(DataFormat.Bfp8_b, DataFormat.Float16)
+            or formats == InputOutputFormat(DataFormat.Bfp8_b, DataFormat.Float16_b)
+            or formats == InputOutputFormat(DataFormat.Float16_b, DataFormat.Float16)
+        )
+    ):
+        pytest.skip(
+            "Bfp8_b to Float16/Float16_b conversion with dest_acc=No and unpack_to_dest=Yes is not supported"
+        )
+
+    # Skip if must unpack to dest but parameter says No
+    if (
+        formats.input_format.is_32_bit()
+        and dest_acc == DestAccumulation.Yes
+        and unpack_dest == UnpackToDest.No
+    ):
+        pytest.skip("Must unpack to dest because input is 32-bit and dest_acc is Yes")
+
     # Calculate tile count from input dimensions
     tile_count_A, tile_count_B, faces_to_generate = calculate_tile_and_face_counts(
         input_dimensions, input_dimensions, face_r_dim=16, num_faces=4
@@ -151,9 +182,11 @@ def test_perf_eltwise_unary_sfpu(
 
     # If dest_acc is on, we unpack Float32 into 16-bit format in src registers
     # (later copied over in dest reg for SFPU op)
-    unpack_to_dest = (
-        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.No
-    )
+    # On Wormhole, we now support unpack_to_dest for 16-bit formats even with dest_acc=No
+    can_unpack_to_dest = (
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+    ) or (formats.input_format.is_32_bit() == False and dest_acc == DestAccumulation.No)
+    unpack_to_dest_value = can_unpack_to_dest and unpack_dest == UnpackToDest.Yes
 
     configuration = PerfConfig(
         "sources/eltwise_unary_sfpu_perf.cpp",
@@ -172,6 +205,7 @@ def test_perf_eltwise_unary_sfpu(
             ITERATIONS(iterations),
             FAST_MODE(fast_mode),
             STABLE_SORT(stable_sort),
+            UNPACK_TO_DEST(unpack_dest),
         ],
         runtimes=[
             TILE_COUNT(tile_count_A),
@@ -190,7 +224,7 @@ def test_perf_eltwise_unary_sfpu(
             tile_count_B=tile_count_B,
             tile_count_res=tile_count_A,
         ),
-        unpack_to_dest=unpack_to_dest,
+        unpack_to_dest=unpack_to_dest_value,
         dest_acc=dest_acc,
     )
 

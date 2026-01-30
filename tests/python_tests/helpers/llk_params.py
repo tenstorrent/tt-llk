@@ -256,6 +256,11 @@ class FastMode(Enum):
     No = "false"
 
 
+class UnpackToDest(Enum):
+    Yes = "true"
+    No = "false"
+
+
 class StableSort(Enum):
     Yes = "true"
     No = "false"

@@ -14,6 +14,7 @@ from helpers.llk_params import (
     DestAccumulation,
     FastMode,
     MathOperation,
+    UnpackToDest,
     format_dict,
 )
 from helpers.param_config import input_output_formats, parametrize
@@ -76,22 +77,24 @@ FORMATS = input_output_formats(
 FLOAT_TEST_PARAMS = list(
     chain(
         (
-            (fmt, approx, mathop, fast, dest)
-            for fmt, approx, mathop, fast, dest in product(
+            (fmt, approx, mathop, fast, dest, unpack_dest)
+            for fmt, approx, mathop, fast, dest, unpack_dest in product(
                 FORMATS,
                 [ApproximationMode.No, ApproximationMode.Yes],
                 SUPPORTED_FAST_MODE_OPS,
                 [FastMode.No, FastMode.Yes],
                 [DestAccumulation.No, DestAccumulation.Yes],
+                [UnpackToDest.No, UnpackToDest.Yes],
             )
         ),
         (
-            (fmt, approx, mathop, FastMode.No, dest)
-            for fmt, approx, mathop, dest in product(
+            (fmt, approx, mathop, FastMode.No, dest, unpack_dest)
+            for fmt, approx, mathop, dest, unpack_dest in product(
                 FORMATS,
                 [ApproximationMode.No, ApproximationMode.Yes],
                 [op for op in ALL_MATHOPS if op not in SUPPORTED_FAST_MODE_OPS],
                 [DestAccumulation.No, DestAccumulation.Yes],
+                [UnpackToDest.No, UnpackToDest.Yes],
             )
         ),
     )
@@ -100,7 +103,7 @@ FLOAT_TEST_PARAMS = list(
 
 @pytest.mark.nightly
 @pytest.mark.parametrize(
-    "formats,approx_mode,mathop,fast_mode,dest_acc",
+    "formats,approx_mode,mathop,fast_mode,dest_acc,unpack_dest",
     FLOAT_TEST_PARAMS,
 )
 def test_eltwise_unary_sfpu_float(
@@ -109,6 +112,7 @@ def test_eltwise_unary_sfpu_float(
     mathop: MathOperation,
     fast_mode: FastMode,
     dest_acc: DestAccumulation,
+    unpack_dest: UnpackToDest,
     workers_tensix_coordinates: str,
 ):
     if TestConfig.WITH_COVERAGE and mathop in [
@@ -166,6 +170,19 @@ def test_eltwise_unary_sfpu_float(
             reason="Exp-related operations are not supported for bf8_b format in approximation mode."
         )
 
+    if (
+        dest_acc == DestAccumulation.No
+        and unpack_dest == UnpackToDest.Yes
+        and (
+            formats == InputOutputFormat(DataFormat.Bfp8_b, DataFormat.Float16)
+            or formats == InputOutputFormat(DataFormat.Bfp8_b, DataFormat.Float16_b)
+            or formats == InputOutputFormat(DataFormat.Float16_b, DataFormat.Float16)
+        )
+    ):
+        pytest.skip(
+            reason="Bfp8_b to Float16/Float16_b conversion with dest_acc=No and unpack_to_dest=Yes is not supported"
+        )
+
     eltwise_unary_sfpu(
         "sources/eltwise_unary_sfpu_test.cpp",
         formats,
@@ -173,6 +190,7 @@ def test_eltwise_unary_sfpu_float(
         approx_mode,
         mathop,
         fast_mode,
+        unpack_dest,
         workers_tensix_coordinates,
     )
 
@@ -216,6 +234,7 @@ def eltwise_unary_sfpu(
     approx_mode,
     mathop,
     fast_mode: FastMode,
+    unpack_dest: UnpackToDest,
     workers_tensix_coordinates,
 ):
     torch.manual_seed(0)
@@ -239,6 +258,16 @@ def eltwise_unary_sfpu(
         input_dimensions,
     )
 
+    can_unpack_to_dest = (
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+    ) or (formats.input_format.is_32_bit() == False and dest_acc == DestAccumulation.No)
+    if (
+        formats.input_format.is_32_bit()
+        and dest_acc == DestAccumulation.Yes
+        and unpack_dest == UnpackToDest.No
+    ):
+        pytest.skip("Must Unpack to dest because input is 32-bit and dest_acc is Yes")
+
     configuration = TestConfig(
         test_name,
         formats,
@@ -261,9 +290,8 @@ def eltwise_unary_sfpu(
         ),
         dest_acc=dest_acc,
         # If dest_acc is off, we unpack Float32 into 16-bit format in src registers (later copied over in dest reg for SFPU op)
-        unpack_to_dest=(
-            formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-        ),
+        # On Wormhole, we now support unpack_to_dest for 16-bit formats even with dest_acc=No
+        unpack_to_dest=(can_unpack_to_dest and unpack_dest == UnpackToDest.Yes),
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
@@ -272,7 +300,7 @@ def eltwise_unary_sfpu(
     # golden_tensor = golden_tensor[:1024]
     assert len(res_from_L1) == len(
         golden_tensor
-    ), "Result tensor and golder tensor are not of the same length"
+    ), "Result tensor and golden tensor are not of the same length"
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
