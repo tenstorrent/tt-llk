@@ -138,7 +138,8 @@ class TestConfig:
     INFRA_TESTING: ClassVar[bool] = False
 
     # === Addresses ===
-    RUNTIME_ADDRESS: ClassVar[int] = 0xA2000
+    RUNTIME_ADDRESS_NON_COVERAGE: ClassVar[int] = 0x20000
+    RUNTIME_ADDRESS_COVERAGE: ClassVar[int] = 0x61000
     TRISC_PROFILER_BARRIER_ADDRESS: ClassVar[int] = 0x16AFF4
     TRISC_START_ADDRS: ClassVar[list[int]] = [0x16DFF0, 0x16DFF4, 0x16DFF8]
     THREAD_PERFORMANCE_DATA_BUFFER_LENGTH = 0x400
@@ -441,6 +442,8 @@ class TestConfig:
                 )  # L1_to_L1_iterations times format struct
 
         if self.variant_stimuli:
+            if TestConfig.WITH_COVERAGE:
+                self.variant_stimuli.coverage_addresses = True
             stimuli_fields, stimuli_pack_format = (
                 self.variant_stimuli.generate_runtime_struct_fields()
             )
@@ -615,7 +618,14 @@ class TestConfig:
         serialised_data = struct.pack(self.runtime_format, *argument_data)
 
         if len(serialised_data) != 0:
-            write_to_device(location, TestConfig.RUNTIME_ADDRESS, serialised_data)
+            if TestConfig.WITH_COVERAGE:
+                write_to_device(
+                    location, TestConfig.RUNTIME_ADDRESS_COVERAGE, serialised_data
+                )
+            else:
+                write_to_device(
+                    location, TestConfig.RUNTIME_ADDRESS_NON_COVERAGE, serialised_data
+                )
 
     def collect_hash(self):
         lock_file = Path("/tmp/tt-llk-build-print.lock")
@@ -958,7 +968,6 @@ class TestConfig:
         set_tensix_soft_reset(1, location=location)
 
         reset_mailboxes(location)
-        self.write_runtimes_to_L1(location)
 
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
@@ -1049,6 +1058,7 @@ class TestConfig:
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
+        self.write_runtimes_to_L1(location)
         self.variant_stimuli.write(location)
         elfs = self.run_elf_files(location)
         wait_for_tensix_operations_finished(elfs, location)

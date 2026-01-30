@@ -188,7 +188,7 @@ jobs:
     uses: ./.github/workflows/setup-and-test.yml
     needs: [build-images, detect-changes]
     if: ${{ github.event_name != 'push' &&
-            needs.detect-changes.outputs.performance == 'true' && 0 }} # Turned off for now
+            needs.detect-changes.outputs.performance == 'true'}}
     strategy:
       fail-fast: false
       matrix:

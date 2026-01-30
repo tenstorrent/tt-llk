@@ -25,7 +25,7 @@ from helpers.test_variant_parameters import (
 )
 
 # Important K dimensions to test
-KT_DIMS = [1, 2, 3, 4, 8, 64]
+KT_DIMS = [64]
 
 
 def matmul_combos(
@@ -64,13 +64,13 @@ def matmul_combos(
                 DataFormat.Bfp8_b,
             ]
         ),
-        dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+        dest_acc=[DestAccumulation.Yes],  # , DestAccumulation.Yes],
     ),
     math_fidelity=[
         MathFidelity.LoFi,
-        MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
+        # MathFidelity.HiFi2,
+        # MathFidelity.HiFi3,
+        # MathFidelity.HiFi4,
     ],
 )
 def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordinates):

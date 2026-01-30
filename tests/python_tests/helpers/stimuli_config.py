@@ -31,7 +31,8 @@ from .unpack import (
 class StimuliConfig:
 
     # === STATIC VARIABLES ===
-    STIMULI_L1_ADDRESS = 0xA3000
+    STIMULI_L1_ADDRESS_PERF = 0x21000
+    STIMULI_L1_ADDRESS_COVERAGE = 0x62000
 
     # Full tile elements (always 1024 for a 32x32 tile)
     TILE_ELEMENTS = 1024
@@ -73,13 +74,20 @@ class StimuliConfig:
         self.tile_dimensions = tile_dimensions
         self.sfpu = sfpu
         self.write_full_tiles = write_full_tiles
+        self.coverage_addresses = False
 
         # Stimuli addresses calculation - ALWAYS use full tile sizes for address spacing
         # Hardware expects full tile alignment regardless of num_faces
         self.tile_size_A_bytes = format_tile_sizes[self.stimuli_A_format]
         self.tile_size_B_bytes = format_tile_sizes[self.stimuli_B_format]
 
-        self.buf_a_addr = StimuliConfig.STIMULI_L1_ADDRESS
+    def generate_runtime_operands_values(self, formats) -> list:
+
+        self.buf_a_addr = (
+            StimuliConfig.STIMULI_L1_ADDRESS_COVERAGE
+            if self.coverage_addresses
+            else StimuliConfig.STIMULI_L1_ADDRESS_PERF
+        )
         self.buf_b_addr = self.buf_a_addr + self.tile_size_A_bytes * self.tile_count_A
 
         if self.buffer_C is not None:
@@ -94,8 +102,6 @@ class StimuliConfig:
             self.buf_res_addr = (
                 self.buf_b_addr + self.tile_size_B_bytes * self.tile_count_B
             )
-
-    def generate_runtime_operands_values(self, formats) -> list:
 
         buf_a_format = format_tile_sizes[
             DataFormat.Float16_b if formats is None else formats.input_format
@@ -206,6 +212,11 @@ class StimuliConfig:
         if not pack_function_A or not pack_function_B:
             raise ValueError(
                 f"Unsupported data formats: srcA({self.stimuli_A_format.name}), srcB({self.stimuli_B_format.name})"
+            )
+
+        if not self.buf_a_addr:
+            raise ValueError(
+                "You need to [ def generate_runtime_operands_values(self, formats) -> list ] before you write stimuli. This needs to be done to calculate the addresses"
             )
 
         StimuliConfig.write_matrix(

@@ -339,6 +339,13 @@ class PerfConfig(TestConfig):
             variant_raw_data = []
             for _ in range(run_count):
                 elfs = self.run_elf_files(location)
+
+                print(
+                    hex(self.variant_stimuli.buf_a_addr),
+                    hex(self.variant_stimuli.buf_b_addr),
+                    hex(self.variant_stimuli.buf_res_addr),
+                )
+
                 wait_for_tensix_operations_finished(elfs, location)
 
                 profiler_data = Profiler.get_data(
