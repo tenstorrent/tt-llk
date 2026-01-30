@@ -367,4 +367,12 @@ class ReluConfig(Enum):
     ZeroRelu = 1
 
 
+class BlockMode(Enum):
+    """Mode for calculating number of blocks and tiles in block."""
+
+    Default = "default"
+    Tilize = "tilize"
+    Untilize = "untilize"
+
+
 # *********************************
