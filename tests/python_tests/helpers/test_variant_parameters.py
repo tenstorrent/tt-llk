@@ -473,15 +473,36 @@ class CRK_TILE_DIMM(RuntimeParameter):
         return "\n".join(lines), "III"
 
 
+# When we loop over blocks in kernels, we may have blocks that are "standard"
+# (i.e., full size) and a last block that may be smaller (if the total number of
+# tiles is not a multiple of the dest size). This parameter represents how many tiles
+# are in a standard block.
 @dataclass
-class NUM_TILES_IN_BLOCK(RuntimeParameter):
-    num_tiles_in_block: int = 1
+class NUM_TILES_IN_STANDARD_BLOCK(RuntimeParameter):
+    num_tiles_in_standard_block: int = 1
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr int NUM_TILES_IN_BLOCK = {self.num_tiles_in_block};"
+        return f"constexpr int NUM_TILES_IN_STANDARD_BLOCK = {self.num_tiles_in_standard_block};"
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return f"int NUM_TILES_IN_BLOCK;", "i"
+        return f"int NUM_TILES_IN_STANDARD_BLOCK;", "i"
+
+
+# When we loop over blocks in kernels, we may have blocks that are "standard"
+# (i.e., full size) and a last block that may be smaller (if the total number of
+# tiles is not a multiple of the dest size). This parameter represents how many tiles
+# are in the last block.
+@dataclass
+class NUM_TILES_IN_LAST_BLOCK(RuntimeParameter):
+    num_tiles_in_last_block: int = 1
+
+    def covert_to_cpp(self) -> str:
+        return (
+            f"constexpr int NUM_TILES_IN_LAST_BLOCK = {self.num_tiles_in_last_block};"
+        )
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return f"int NUM_TILES_IN_LAST_BLOCK;", "i"
 
 
 @dataclass

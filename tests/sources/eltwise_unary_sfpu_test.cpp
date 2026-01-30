@@ -50,7 +50,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 =======
         for (int tile = 0; tile < num_tiles_in_block; tile++)
         {
-            int src_tile_idx = (block * num_tiles_in_block) + tile;
+            int src_tile_idx = (block * num_tiles_in_standard_block) + tile;
             _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
                 L1_ADDRESS(buffer_A[src_tile_idx]), formats.unpack_src, formats.unpack_dst);
         }

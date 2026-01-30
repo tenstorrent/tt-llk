@@ -32,7 +32,8 @@ from helpers.test_variant_parameters import (
     INPUT_DIMENSIONS,
     MATH_OP,
     NUM_BLOCKS,
-    NUM_TILES_IN_BLOCK,
+    NUM_TILES_IN_LAST_BLOCK,
+    NUM_TILES_IN_STANDARD_BLOCK,
     TILE_COUNT,
 )
 from helpers.utils import passed_test
@@ -265,12 +266,22 @@ def eltwise_unary_sfpu(
         tile_dimensions=[32, 32],
     )
 
-    num_tiles_in_block = get_num_tiles_in_block(
+    num_tiles_in_standard_block = get_num_tiles_in_block(
         dest_sync=DestSync.Half,
         dest_acc=dest_acc,
         formats=formats,
         input_dimensions=input_dimensions,
         tile_dimensions=[32, 32],
+        last_block=False,
+    )
+
+    num_tiles_in_last_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+        last_block=True,
     )
 
     configuration = TestConfig(
@@ -285,7 +296,8 @@ def eltwise_unary_sfpu(
         ],
         runtimes=[
             TILE_COUNT(tile_cnt_A),
-            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_TILES_IN_STANDARD_BLOCK(num_tiles_in_standard_block),
+            NUM_TILES_IN_LAST_BLOCK(num_tiles_in_last_block),
             NUM_BLOCKS(num_blocks),
         ],
         variant_stimuli=StimuliConfig(
