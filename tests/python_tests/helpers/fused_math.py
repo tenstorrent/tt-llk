@@ -736,8 +736,8 @@ class Math:
     ) -> str:
         rt_dim = operation.rt_dim
         ct_dim = operation.ct_dim
-        code = f"for (uint32_t mt = 0; mt < {rt_dim}; ++mt) {{\n"
-        code += f"for (uint32_t nt = 0; nt < {ct_dim}; ++nt) {{\n"
+        code = f"for (std::uint32_t mt = 0; mt < {rt_dim}; ++mt) {{\n"
+        code += f"for (std::uint32_t nt = 0; nt < {ct_dim}; ++nt) {{\n"
         code += body_fn()
         code += "}\n"
         code += "}\n"
@@ -755,9 +755,7 @@ class Math:
         code = ""
 
         if num_full_batches > 0:
-            code += (
-                f"for (uint32_t batch = 0; batch < {num_full_batches}; ++batch) {{\n"
-            )
+            code += f"for (std::uint32_t batch = 0; batch < {num_full_batches}; ++batch) {{\n"
             code += body_fn(batch_size)
             code += "}\n"
 

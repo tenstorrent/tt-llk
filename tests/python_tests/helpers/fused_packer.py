@@ -43,10 +43,10 @@ class Packer:
     ) -> str:
         rt_dim = operation.rt_dim
         ct_dim = operation.ct_dim
-        code = f"for (uint32_t mt = 0; mt < {rt_dim}; ++mt) {{\n"
-        code += f"for (uint32_t nt = 0; nt < {ct_dim}; ++nt) {{\n"
+        code = f"for (std::uint32_t mt = 0; mt < {rt_dim}; ++mt) {{\n"
+        code += f"for (std::uint32_t nt = 0; nt < {ct_dim}; ++nt) {{\n"
         code += self._wait_for_math()
-        code += f"uint32_t tile_idx = mt * {operation.dest_tiles_w} + nt;\n"
+        code += f"std::uint32_t tile_idx = mt * {operation.dest_tiles_w} + nt;\n"
         code += self.pack(operation, config, 0, "tile_idx")
         code += self._dest_section_done(config)
         code += "}\n"
@@ -63,12 +63,10 @@ class Packer:
         code = ""
 
         if num_full_batches > 0:
-            code += (
-                f"for (uint32_t batch = 0; batch < {num_full_batches}; ++batch) {{\n"
-            )
+            code += f"for (std::uint32_t batch = 0; batch < {num_full_batches}; ++batch) {{\n"
             code += self._wait_for_math()
-            code += f"for (uint32_t i = 0; i < {batch_size}; ++i) {{\n"
-            code += f"uint32_t tile_idx = batch * {batch_size} + i;\n"
+            code += f"for (std::uint32_t i = 0; i < {batch_size}; ++i) {{\n"
+            code += f"std::uint32_t tile_idx = batch * {batch_size} + i;\n"
             code += self.pack(operation, config, "i", "tile_idx")
             code += "}\n"
             code += self._dest_section_done(config)
@@ -76,8 +74,8 @@ class Packer:
 
         if remaining_tiles > 0:
             code += self._wait_for_math()
-            code += f"for (uint32_t i = 0; i < {remaining_tiles}; ++i) {{\n"
-            code += f"uint32_t tile_idx = {num_full_batches * batch_size} + i;\n"
+            code += f"for (std::uint32_t i = 0; i < {remaining_tiles}; ++i) {{\n"
+            code += f"std::uint32_t tile_idx = {num_full_batches * batch_size} + i;\n"
             code += self.pack(operation, config, "i", "tile_idx")
             code += "}\n"
             code += self._dest_section_done(config)
