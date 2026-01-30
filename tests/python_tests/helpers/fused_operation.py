@@ -25,6 +25,12 @@ from .llk_params import (
 )
 from .matmul_sweep import validate_tile_dimensions
 
+# Import for type checking MultiStageMath
+try:
+    from .math_stage import MultiStageMath
+except ImportError:
+    MultiStageMath = None
+
 
 @dataclass
 class FusedOperation:
@@ -124,13 +130,18 @@ class FusedOperation:
         if self.batch_size <= 0 or self.batch_size > self.output.tile_count:
             self.batch_size = self.output.tile_count
 
-        if isinstance(self.math.fpu, MatmulFpu):
+        # Check if math.fpu exists (for both Math and MultiStageMath)
+        if hasattr(self.math, "fpu") and isinstance(self.math.fpu, MatmulFpu):
             tile_count = self.output.tile_count
             if self.batch_size != 1 and self.batch_size != tile_count:
                 self.batch_size = tile_count
 
         if self.broadcast_type != BroadcastType.None_:
             self.data_copy_type = DataCopyType.B2D
+
+    def is_multi_stage(self) -> bool:
+        """Check if this operation uses MultiStageMath."""
+        return MultiStageMath is not None and isinstance(self.math, MultiStageMath)
 
     @property
     def src_a(self) -> Operand:
@@ -171,8 +182,20 @@ class FusedOperation:
         tensor_a = self.src_a.raw_data.view(src_a_dims)
         tensor_b = self.src_b.raw_data.view(src_b_dims)
 
+        # For MultiStageMath, we need to collect stage inputs
+        stage_inputs = None
+        if self.is_multi_stage():
+            stage_inputs = self._collect_stage_inputs_raw()
+
         tensor_a, tensor_b = self.unpacker().golden(tensor_a, tensor_b, self, config)
-        l1_golden_tensor = self.math.golden(tensor_a, tensor_b, self, config)
+
+        if self.is_multi_stage():
+            l1_golden_tensor = self.math.golden(
+                tensor_a, tensor_b, self, config, stage_inputs
+            )
+        else:
+            l1_golden_tensor = self.math.golden(tensor_a, tensor_b, self, config)
+
         l1_golden_tensor = self.packer().golden(l1_golden_tensor, self, config)
 
         self.output.l1_golden = l1_golden_tensor.flatten()
@@ -181,27 +204,89 @@ class FusedOperation:
         golden_tensor_a = self.src_a.master_golden.view(src_a_dims)
         golden_tensor_b = self.src_b.master_golden.view(src_b_dims)
 
+        # For MultiStageMath, collect master golden stage inputs
+        master_stage_inputs = None
+        if self.is_multi_stage():
+            master_stage_inputs = self._collect_stage_inputs_master()
+
         golden_tensor_a, golden_tensor_b = self.unpacker().golden(
             golden_tensor_a, golden_tensor_b, self, config
         )
-        master_golden_tensor = self.math.golden(
-            golden_tensor_a, golden_tensor_b, self, config
-        )
+
+        if self.is_multi_stage():
+            master_golden_tensor = self.math.golden(
+                golden_tensor_a, golden_tensor_b, self, config, master_stage_inputs
+            )
+        else:
+            master_golden_tensor = self.math.golden(
+                golden_tensor_a, golden_tensor_b, self, config
+            )
+
         master_golden_tensor = self.packer().golden(master_golden_tensor, self, config)
 
         self.output._master_golden = master_golden_tensor.flatten()
 
         return master_golden_tensor
 
+    def _collect_stage_inputs_raw(self):
+        """Collect raw data inputs for each reuse_dest stage."""
+        if not self.is_multi_stage():
+            return None
+
+        stage_inputs = []
+        registry = self.operand_mapping.operand_registry
+
+        for stage in self.math.reuse_stages:
+            operand_name = stage.unpacker_config.input_operand
+            if operand_name and registry.exists(operand_name):
+                operand = registry.get(operand_name)
+                stage_inputs.append(operand.raw_data.view(operand.dimensions))
+            else:
+                # Default to src_b if no operand specified
+                stage_inputs.append(self.src_b.raw_data.view(self.src_b.dimensions))
+
+        return stage_inputs
+
+    def _collect_stage_inputs_master(self):
+        """Collect master golden inputs for each reuse_dest stage."""
+        if not self.is_multi_stage():
+            return None
+
+        stage_inputs = []
+        registry = self.operand_mapping.operand_registry
+
+        for stage in self.math.reuse_stages:
+            operand_name = stage.unpacker_config.input_operand
+            if operand_name and registry.exists(operand_name):
+                operand = registry.get(operand_name)
+                stage_inputs.append(operand.master_golden.view(operand.dimensions))
+            else:
+                # Default to src_b if no operand specified
+                stage_inputs.append(
+                    self.src_b.master_golden.view(self.src_b.dimensions)
+                )
+
+        return stage_inputs
+
     def __str__(self):
+        # Handle both Math and MultiStageMath
+        if self.is_multi_stage():
+            math_str = f"MultiStageMath with {len(self.math.stages)} stages"
+            fpu_str = ", ".join(str(s.fpu) for s in self.math.stages)
+            sfpu_str = str([op.__str__() for op in self.math.sfpu])
+        else:
+            math_str = str(self.math)
+            fpu_str = str(self.math.fpu)
+            sfpu_str = str([op.__str__() for op in self.math.sfpu])
+
         return (
             f"\n{'='*60}\n"
             f"Operation {self.stage_id}\n"
             f"{'='*60}\n"
             f"  Unpacker: {self.unpacker.__name__}\n"
-            f"  Math: {self.math}\n"
-            f"    Fpu Math Op: {self.math.fpu}\n"
-            f"    Sfpu Math Ops: {[op.__str__() for op in self.math.sfpu]}\n"
+            f"  Math: {math_str}\n"
+            f"    Fpu Math Op: {fpu_str}\n"
+            f"    Sfpu Math Ops: {sfpu_str}\n"
             f"  Packer: {self.packer.__name__}\n"
             f"  Src_A: {self.src_a}\n"
             f"  Src_B: {self.src_b}\n"

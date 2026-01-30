@@ -229,6 +229,10 @@ class OperandRegistry:
             raise KeyError(f"Operand '{name}' not found")
         return self.operands[name]
 
+    def exists(self, name: str) -> bool:
+        """Check if an operand with the given name exists."""
+        return name in self.operands
+
     def get_all_inputs(self) -> list[Operand]:
         return [op for op in self.operands.values() if op.is_input()]
 

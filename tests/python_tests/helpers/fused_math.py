@@ -25,6 +25,7 @@ from .chip_architecture import ChipArchitecture
 from .llk_params import (
     ApproximationMode,
     BroadcastType,
+    EltwiseBinaryReuseDestType,
     MathOperation,
     PerfRunType,
     ReduceDimension,
@@ -192,6 +193,98 @@ class EltwiseFpu(Fpu):
 
     def __str__(self) -> str:
         return f"EltwiseFpu({self.operation})"
+
+
+class ReuseDestEltwiseFpu:
+    """
+    Represents an eltwise FPU operation that reuses destination register data.
+    This is used for chaining multiple eltwise operations within a single L1-to-L1 operation
+    without additional memory traffic.
+    """
+
+    def __init__(
+        self,
+        operation: MathOperation,
+        reuse_dest_type: EltwiseBinaryReuseDestType = EltwiseBinaryReuseDestType.DEST_TO_SRCA,
+        iterations: int = 1,
+    ):
+        if operation not in MathOperation.get_fpu_binary_operations():
+            raise ValueError(
+                f"Operation {operation} is not a valid FPU binary operation."
+            )
+        if reuse_dest_type == EltwiseBinaryReuseDestType.NONE:
+            raise ValueError(
+                "ReuseDestEltwiseFpu requires a reuse dest type other than NONE."
+            )
+        self.operation = operation
+        self.reuse_dest_type = reuse_dest_type
+        self.iterations = iterations
+
+    def get_headers(self) -> List[str]:
+        return [
+            "llk_math_common.h",
+            "llk_math_eltwise_binary.h",
+        ]
+
+    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        stage = operation.stage_id
+        math_fidelity = operation.math_fidelity.value
+        op = self.operation.cpp_enum_value
+        num_faces = operation.num_faces
+        broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
+
+        return (
+            f"    // Operation {stage}: Reuse Dest Eltwise {op} FPU\n"
+            f"    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{op}, {broadcast_type}, {math_fidelity}>({num_faces}, 0);\n"
+        )
+
+    def calculate(
+        self, operation: "FusedOperation", config: "GlobalConfig", tile_idx: int
+    ) -> str:
+        stage = operation.stage_id
+        math_fidelity = operation.math_fidelity.value
+        dest_acc = config.dest_acc.value
+        op = self.operation.cpp_enum_value
+        num_faces = operation.num_faces
+        broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
+        reuse_type = f"EltwiseBinaryReuseDestType::{self.reuse_dest_type.name}"
+
+        code = ""
+        for _ in range(self.iterations):
+            code += (
+                f"    _llk_math_eltwise_binary_<{op}, {broadcast_type}, dest_sync{stage},\n"
+                f"        {dest_acc}, {math_fidelity}, {reuse_type}>({num_faces}, {tile_idx}, false\n"
+                f"    );\n"
+            )
+        return code
+
+    def golden(
+        self,
+        tensor: torch.Tensor,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+    ) -> torch.Tensor:
+        """
+        Apply the eltwise operation with reuse dest semantics.
+        DEST_TO_SRCA: dest = dest op dest (self-operation)
+        DEST_TO_SRCB: dest = dest op dest (self-operation)
+        """
+        output_format = operation.output.data_format
+        math_fidelity = operation.math_fidelity
+
+        generate_golden = get_golden_generator(EltwiseBinaryGolden)
+
+        result = tensor.clone()
+        for _ in range(self.iterations):
+            # When reusing dest, both operands come from dest
+            result = generate_golden(
+                self.operation, result, result, output_format, math_fidelity
+            ).flatten()
+
+        return result
+
+    def __str__(self) -> str:
+        return f"ReuseDestEltwiseFpu({self.operation}, {self.reuse_dest_type})"
 
 
 class ReduceFpu(Fpu):
@@ -635,10 +728,17 @@ class SfpuWhere(Sfpu):
 class Math:
     fpu: Fpu
     sfpu: List[Sfpu]
+    post_eltwise_fpu: List["ReuseDestEltwiseFpu"]
 
-    def __init__(self, fpu: Type[Fpu], sfpu: List[Sfpu] = []):
+    def __init__(
+        self,
+        fpu: Type[Fpu],
+        sfpu: List[Sfpu] = [],
+        post_eltwise_fpu: List["ReuseDestEltwiseFpu"] = [],
+    ):
         self.fpu = fpu
         self.sfpu = sfpu
+        self.post_eltwise_fpu = post_eltwise_fpu if post_eltwise_fpu else []
 
     def get_headers(self) -> List[str]:
         headers = set()
@@ -647,6 +747,9 @@ class Math:
 
         for sfpu in self.sfpu:
             headers.update(sfpu.get_headers())
+
+        for post_fpu in self.post_eltwise_fpu:
+            headers.update(post_fpu.get_headers())
 
         return sorted(list(headers))
 
@@ -683,6 +786,10 @@ class Math:
                 batch_tensor = sfpu.golden(
                     batch_tensor, operation, config, batch_dims, batch_tile_cnt
                 )
+
+            # Apply post eltwise FPU operations with reuse dest
+            for post_fpu in self.post_eltwise_fpu:
+                batch_tensor = post_fpu.golden(batch_tensor, operation, config)
 
             result_tilized[batch_start_elem:batch_end_elem] = batch_tensor.flatten()
 
@@ -721,6 +828,22 @@ class Math:
             code += sfpu.calculate(operation, config)
             if not calc_only:
                 code += sfpu.uninit(operation, config)
+        return code
+
+    def _post_eltwise_fpu_code(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        tile_idx: int,
+        calc_only: bool = False,
+    ) -> str:
+        """Generate code for post eltwise FPU operations with reuse dest."""
+        code = ""
+        for post_fpu in self.post_eltwise_fpu:
+            code += "\n"
+            if not calc_only:
+                code += post_fpu.init(operation, config)
+            code += post_fpu.calculate(operation, config, tile_idx)
         return code
 
     def _wait_for_dest(self, operation: "FusedOperation") -> str:
@@ -780,6 +903,7 @@ class Math:
                     body = self._wait_for_dest(operation)
                     body += self.fpu.calculate(operation, config, rt_dim=1, ct_dim=1)
                     body += self._sfpu_code(operation, config)
+                    body += self._post_eltwise_fpu_code(operation, config, tile_idx=0)
                     body += self._dest_section_done(operation, config)
                     return body
 
@@ -789,6 +913,8 @@ class Math:
                 code += self._wait_for_dest(operation)
                 code += self.fpu.calculate(operation, config)
                 code += self._sfpu_code(operation, config)
+                for tile_idx in range(operation.output.tile_count):
+                    code += self._post_eltwise_fpu_code(operation, config, tile_idx)
                 code += self._dest_section_done(operation, config)
         else:
             code += self.fpu.init(operation, config)
@@ -798,6 +924,8 @@ class Math:
                 for tile_idx in range(batch_tile_cnt):
                     body += self.fpu.calculate(operation, config, tile_idx)
                 body += self._sfpu_code(operation, config)
+                for tile_idx in range(batch_tile_cnt):
+                    body += self._post_eltwise_fpu_code(operation, config, tile_idx)
                 body += self._dest_section_done(operation, config)
                 return body
 
@@ -850,6 +978,9 @@ class Math:
                 body = self._wait_for_dest(operation) if use_sync else ""
                 body += self.fpu.calculate(operation, config, rt_dim=1, ct_dim=1)
                 body += self._sfpu_code(operation, config, calc_only=True)
+                body += self._post_eltwise_fpu_code(
+                    operation, config, tile_idx=0, calc_only=True
+                )
                 body += self._dest_section_done(operation, config) if use_sync else ""
                 return body
 
@@ -865,6 +996,10 @@ class Math:
             for tile_idx in range(batch_end - batch_start):
                 code += self.fpu.calculate(operation, config, tile_idx)
             code += self._sfpu_code(operation, config, calc_only=True)
+            for tile_idx in range(batch_end - batch_start):
+                code += self._post_eltwise_fpu_code(
+                    operation, config, tile_idx, calc_only=True
+                )
             if use_sync:
                 code += self._dest_section_done(operation, config)
         return code

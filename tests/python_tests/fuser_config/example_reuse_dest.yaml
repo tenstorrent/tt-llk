@@ -1,0 +1,138 @@
+# Example YAML demonstrating multi-stage math operations with reuse dest
+#
+# This shows the new "stages" format where each stage is a (unpacker, fpu, sfpu list) unit.
+# Multiple stages share the destination register, with only one pack at the end.
+#
+# Flow for a 2-stage operation with batch_size=1:
+#   Stage 0: Unpack A,B -> FPU(A,B) -> SFPU chain -> result in DEST
+#   Stage 1: Unpack C (reuse_dest) -> FPU(DEST, C) -> SFPU chain -> result in DEST
+#   Pack: DEST -> L1
+
+dest_acc: "Yes"
+loop_factor: 16
+
+operations:
+  # Example 1: Two-stage operation
+  # Stage 0: Datacopy from input_A, apply Exp SFPU
+  # Stage 1: Elwadd with input_B (dest + input_B), apply Sqrt SFPU
+  - src_a: "input_A"
+    src_b: "input_B"
+    output: "two_stage_output"
+    src_a_dims: [32, 32]
+    src_b_dims: [32, 32]
+    output_dims: [32, 32]
+    input_format: "Float16_b"
+    output_format: "Float16_b"
+    unpacker: "UnpackerA"
+    math:
+      stages:
+        # Stage 0: First stage - normal unpacking
+        - fpu: "Datacopy"
+          sfpu:
+            - type: "UnarySfpu"
+              operation: "Exp"
+              approximation_mode: "No"
+              iterations: 8
+          unpacker:
+            input_operand: "input_A"
+            broadcast_type: "None"
+
+        # Stage 1: Second stage - uses reuse_dest
+        # DEST is loaded into SRCA, new input (input_B) goes to SRCB
+        # Result: DEST + input_B
+        - fpu: "Elwadd"
+          sfpu:
+            - type: "UnarySfpu"
+              operation: "Sqrt"
+              approximation_mode: "No"
+              iterations: 8
+          unpacker:
+            input_operand: "input_B"
+            reuse_dest_type: "DEST_TO_SRCA"
+            broadcast_type: "None"
+    packer: "Packer"
+    math_fidelity: "HiFi4"
+    batch_size: 1
+
+  # Example 2: Three-stage operation with chained operations
+  # Stage 0: Elwadd(A, B) -> Exp
+  # Stage 1: Elwmul(DEST, C) -> Neg  (DEST = DEST * C)
+  # Stage 2: Elwadd(DEST, D) -> Abs  (DEST = DEST + D)
+  - src_a: "two_stage_output"
+    src_b: "input_B"
+    output: "three_stage_output"
+    src_a_dims: [32, 32]
+    src_b_dims: [32, 32]
+    output_dims: [32, 32]
+    input_format: "Float16_b"
+    output_format: "Float16_b"
+    unpacker: "UnpackerAB"
+    math:
+      stages:
+        # Stage 0: A + B
+        - fpu: "Elwadd"
+          sfpu:
+            - type: "UnarySfpu"
+              operation: "Exp"
+              iterations: 8
+          unpacker:
+            input_operand: "two_stage_output"
+            broadcast_type: "None"
+
+        # Stage 1: DEST * input_B (DEST goes to SRCA)
+        - fpu: "Elwmul"
+          sfpu:
+            - type: "UnarySfpu"
+              operation: "Neg"
+              iterations: 8
+          unpacker:
+            input_operand: "input_B"
+            reuse_dest_type: "DEST_TO_SRCA"
+
+        # Stage 2: DEST + input_B again
+        - fpu: "Elwadd"
+          sfpu:
+            - type: "UnarySfpu"
+              operation: "Abs"
+              iterations: 8
+          unpacker:
+            input_operand: "input_B"
+            reuse_dest_type: "DEST_TO_SRCA"
+    packer: "Packer"
+    math_fidelity: "HiFi4"
+    batch_size: 1
+
+  # Example 3: Using DEST_TO_SRCB - input goes to SRCA
+  # Stage 0: Datacopy input_A -> Sqrt
+  # Stage 1: Elwsub where NEW_INPUT - DEST (new input in SRCA, DEST in SRCB)
+  - src_a: "three_stage_output"
+    src_b: "input_B"
+    output: "final_output"
+    src_a_dims: [32, 32]
+    src_b_dims: [32, 32]
+    output_dims: [32, 32]
+    input_format: "Float16_b"
+    output_format: "Float16_b"
+    unpacker: "UnpackerA"
+    math:
+      stages:
+        - fpu: "Datacopy"
+          sfpu:
+            - type: "UnarySfpu"
+              operation: "Sqrt"
+              iterations: 8
+          unpacker:
+            input_operand: "three_stage_output"
+
+        # NEW_INPUT - DEST: input_B goes to SRCA, DEST goes to SRCB
+        - fpu: "Elwsub"
+          sfpu:
+            - type: "UnarySfpu"
+              operation: "Reciprocal"
+              iterations: 8
+          unpacker:
+            input_operand: "input_B"
+            reuse_dest_type: "DEST_TO_SRCB"  # DEST -> SRCB, so result = NEW - DEST
+    packer: "Packer"
+    math_fidelity: "HiFi4"
+    batch_size: 1
