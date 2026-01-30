@@ -12,6 +12,15 @@ template <bool APPROXIMATE, typename Callable, typename... Args>
 inline void _llk_math_eltwise_ternary_sfpu_params_(
     Callable&& sfpu_func, uint dst_index_in0, uint dst_index_in1, uint dst_index_in2, uint dst_index_out, int vector_mode = (int)VectorMode::RC, Args&&... args)
 {
+    LLK_ASSERT(
+        (dst_index_in0 < ckernel::math::get_dest_max_tiles<DST_SYNC_MODE, DST_ACCUM_MODE, DstTileShape::Tile32x32>()), "dst_index_in0 exceeds max dest tiles");
+    LLK_ASSERT(
+        (dst_index_in1 < ckernel::math::get_dest_max_tiles<DST_SYNC_MODE, DST_ACCUM_MODE, DstTileShape::Tile32x32>()), "dst_index_in1 exceeds max dest tiles");
+    LLK_ASSERT(
+        (dst_index_in2 < ckernel::math::get_dest_max_tiles<DST_SYNC_MODE, DST_ACCUM_MODE, DstTileShape::Tile32x32>()), "dst_index_in2 exceeds max dest tiles");
+    LLK_ASSERT(
+        (dst_index_out < ckernel::math::get_dest_max_tiles<DST_SYNC_MODE, DST_ACCUM_MODE, DstTileShape::Tile32x32>()), "dst_index_out exceeds max dest tiles");
+
     _llk_math_eltwise_ternary_sfpu_start_<DST_SYNC_MODE>(0); // Reuse same sync primitive
 
     if (vector_mode == (int)VectorMode::R)
@@ -20,14 +29,11 @@ inline void _llk_math_eltwise_ternary_sfpu_params_(
         for (int face = 0; face < 2; face++)
         {
             std::forward<Callable>(sfpu_func)(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out, std::forward<Args>(args)...);
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D); // repeat 2x
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_();
         }
         // Skip next 2 faces
-        for (int i = 0; i < 4; ++i)
-        {
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-        }
+        _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_();
+        _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_();
     }
     else if (vector_mode == (int)VectorMode::C)
     {
@@ -35,10 +41,8 @@ inline void _llk_math_eltwise_ternary_sfpu_params_(
         for (int face = 0; face < 2; face++)
         {
             std::forward<Callable>(sfpu_func)(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out, std::forward<Args>(args)...);
-            for (int i = 0; i < 4; ++i)
-            {
-                TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-            }
+            _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_();
+            _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_();
         }
     }
     else if (vector_mode == (int)VectorMode::RC)
@@ -47,8 +51,7 @@ inline void _llk_math_eltwise_ternary_sfpu_params_(
         for (int face = 0; face < 4; face++)
         {
             std::forward<Callable>(sfpu_func)(dst_index_in0, dst_index_in1, dst_index_in2, dst_index_out, std::forward<Args>(args)...);
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+            _llk_math_eltwise_ternary_sfpu_inc_dst_face_addr_();
         }
     }
     else
