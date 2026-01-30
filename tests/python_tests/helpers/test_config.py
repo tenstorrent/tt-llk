@@ -269,6 +269,7 @@ class TestConfig:
                 TestConfig.PROFILER_SHARED_OBJ_DIR,
                 TestConfig.PROFILER_SHARED_ELF_DIR,
                 TestConfig.COVERAGE_INFO_DIR,
+                TestConfig.PERF_DATA_DIR,
             ]
         )
         TestConfig._BUILD_DIRS_CREATED = True
@@ -757,24 +758,6 @@ class TestConfig:
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
-            def build_kernel_part_main(name: str):
-                kernel_trisc_flag = ""
-                if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-                    kernel_trisc_flag = f"-DCOMPILE_FOR_TRISC={TestConfig.KERNEL_COMPONENTS.index(name)}"
-
-                run_shell_command(  # main_%.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {shared_obj_dir / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
-                    TestConfig.TESTS_WORKING_DIR,
-                )
-
-            with ThreadPoolExecutor(max_workers=3) as executor:
-                futures = [
-                    executor.submit(build_kernel_part_main, name)
-                    for name in TestConfig.KERNEL_COMPONENTS
-                ]
-                for fut in futures:
-                    fut.result()
-
             if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
                 # brisc.elf : tmu-crt0.o brisc.o
                 run_shell_command(
@@ -813,10 +796,10 @@ class TestConfig:
             "",
         ]
 
-        if self.formats:
-            header_content.extend(self.runtime_arguments_struct)
-            if self.compile_time_formats:
-                header_content.extend(self.generate_compile_time_formats())
+        header_content.extend(self.runtime_arguments_struct)
+
+        if self.formats and self.compile_time_formats:
+            header_content.extend(self.generate_compile_time_formats())
 
         for parameter in self.templates:
             header_content.append(parameter.covert_to_cpp())
@@ -891,8 +874,13 @@ class TestConfig:
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
+                run_shell_command(  # main_%.o
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {kernel_trisc_flag} -DLLK_TRISC_{name.upper()} -c -o {VARIANT_OBJ_DIR / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
+                    TestConfig.TESTS_WORKING_DIR,
+                )
+
                 run_shell_command(  # %.elf : main_%.o kernel_%.o [coverage.o] tmu-crt0.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {shared_obj_dir / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {shared_obj_dir / "tmu-crt0.o"} {SFPI_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"{name}.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {TestConfig.OPTIONS_LINK} {VARIANT_OBJ_DIR / f"main_{name}.o"} {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {COVERAGE_DEPS} {shared_obj_dir / "tmu-crt0.o"} {SFPI_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / f"{name}.ld"} -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} -o {VARIANT_ELF_DIR / f"{name}.elf"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 

@@ -20,9 +20,9 @@ uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    const volatile struct FormatConfig& formats = params->formats;
+    const struct FormatConfig& formats = params.formats;
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src,
         formats.unpack_src,
@@ -30,35 +30,35 @@ void run_kernel(const volatile struct RuntimeParams* params)
         formats.unpack_dst,
         FACE_R_DIM,
         FACE_R_DIM,
-        params->num_faces_A,
-        params->num_faces_B,
-        params->TILE_SIZE_UNPACK_A,
-        params->TILE_SIZE_UNPACK_B);
+        params.num_faces_A,
+        params.num_faces_B,
+        params.TILE_SIZE_UNPACK_A,
+        params.TILE_SIZE_UNPACK_B);
     _llk_unpack_AB_matmul_init_<>(
-        params->UNPACK_TRANSPOSE_FACES,
-        params->CT_DIM,
-        params->RT_DIM,
-        params->KT_DIM,
+        params.UNPACK_TRANSPOSE_FACES,
+        params.CT_DIM,
+        params.RT_DIM,
+        params.KT_DIM,
         FACE_R_DIM,
         FACE_R_DIM,
-        params->num_faces_A,
-        params->num_faces_B,
-        params->PARTIAL_FACE_A,
-        params->PARTIAL_FACE_B);
-    for (uint32_t j = 0; j < params->KT_DIM; j++)
+        params.num_faces_A,
+        params.num_faces_B,
+        params.PARTIAL_FACE_A,
+        params.PARTIAL_FACE_B);
+    for (uint32_t j = 0; j < params.KT_DIM; j++)
     {
         _llk_unpack_AB_matmul_<>(
-            L1_ADDRESS(params->buffer_A[0]),
-            L1_ADDRESS(params->buffer_B[0]),
+            L1_ADDRESS(params.buffer_A[0]),
+            L1_ADDRESS(params.buffer_B[0]),
             j,
-            j * params->CT_DIM,
-            params->TILE_SIZE_UNPACK_A,
-            params->TILE_SIZE_UNPACK_B,
-            params->PARTIAL_FACE_A,
-            params->PARTIAL_FACE_B,
-            params->CT_DIM,
-            params->RT_DIM,
-            params->KT_DIM);
+            j * params.CT_DIM,
+            params.TILE_SIZE_UNPACK_A,
+            params.TILE_SIZE_UNPACK_B,
+            params.PARTIAL_FACE_A,
+            params.PARTIAL_FACE_B,
+            params.CT_DIM,
+            params.RT_DIM,
+            params.KT_DIM);
     }
 }
 
@@ -70,24 +70,24 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #include "llk_math_matmul.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    const volatile struct FormatConfig& formats = params->formats;
+    const struct FormatConfig& formats = params.formats;
     _llk_math_matmul_init_<MATH_FIDELITY, THROTTLE_LEVEL>(
-        params->in0_tile_r_dim,
-        params->in0_tile_c_dim,
-        params->in1_tile_r_dim,
-        params->in1_tile_c_dim,
-        params->PARTIAL_FACE_MATH,
-        params->UNPACK_TRANSPOSE_FACES,
-        params->CT_DIM,
-        params->RT_DIM);
+        params.in0_tile_r_dim,
+        params.in0_tile_c_dim,
+        params.in1_tile_r_dim,
+        params.in1_tile_c_dim,
+        params.PARTIAL_FACE_MATH,
+        params.UNPACK_TRANSPOSE_FACES,
+        params.CT_DIM,
+        params.RT_DIM);
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<dest_sync>();
-    for (uint32_t j = 0; j < params->KT_DIM; j++)
+    for (uint32_t j = 0; j < params.KT_DIM; j++)
     {
-        _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(params->DST_INDEX, params->CT_DIM, params->RT_DIM);
+        _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(params.DST_INDEX, params.CT_DIM, params.RT_DIM);
     }
 
     _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
@@ -101,24 +101,24 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    const volatile struct FormatConfig& formats = params->formats;
+    const struct FormatConfig& formats = params.formats;
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
-        formats.pack_src, formats.pack_dst, params->TILE_SIZE_PACK, FACE_R_DIM, TILE_C_DIM, params->num_faces, params->PARTIAL_FACE_PACK);
-    _llk_pack_init_<false, false, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces, false /* partial_face parameter is unused on BH */);
+        formats.pack_src, formats.pack_dst, params.TILE_SIZE_PACK, FACE_R_DIM, TILE_C_DIM, params.num_faces, params.PARTIAL_FACE_PACK);
+    _llk_pack_init_<false, false, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params.num_faces, false /* partial_face parameter is unused on BH */);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(
-        formats.pack_src, formats.pack_dst, params->TILE_SIZE_PACK, FACE_R_DIM, params->num_faces, params->PARTIAL_FACE_PACK);
-    _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, params->num_faces, params->PARTIAL_FACE_PACK);
+        formats.pack_src, formats.pack_dst, params.TILE_SIZE_PACK, FACE_R_DIM, params.num_faces, params.PARTIAL_FACE_PACK);
+    _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, params.num_faces, params.PARTIAL_FACE_PACK);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, false>();
 #endif
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params->TILE_CNT; i++)
+    for (int i = 0; i < params.TILE_CNT; i++)
     {
-        _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(params->DST_INDEX + i, L1_ADDRESS(params->buffer_Res[i]));
+        _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(params.DST_INDEX + i, L1_ADDRESS(params.buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }

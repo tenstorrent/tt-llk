@@ -42,7 +42,7 @@ constexpr bool row_pool                             = (REDUCE_DIM == ckernel::Re
 #include "llk_unpack_AB.h"
 #include "llk_unpack_common.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
     // Configure hardware for AB unpack (single tile per input)
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -52,7 +52,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_unpack_AB_init_<>(FACE_R_DIM, 4, false, within_face_16x16_transpose);
 
     // Unpack the two input tiles (A & B) into the destination register file
-    _llk_unpack_AB_<>(L1_ADDRESS(params->buffer_A[0]), L1_ADDRESS(params->buffer_B[0]));
+    _llk_unpack_AB_<>(L1_ADDRESS(params.buffer_A[0]), L1_ADDRESS(params.buffer_B[0]));
 }
 
 #endif // LLK_TRISC_UNPACK
@@ -71,7 +71,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
     //------------------------------------------------------------------
     // Synchronisation & HW configuration
@@ -115,7 +115,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
     _llk_pack_init_<false, false>(formats.pack_dst);
 
@@ -134,7 +134,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncFull, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(params->buffer_Res[0]));
+    _llk_pack_<DstSync::SyncFull, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(params.buffer_Res[0]));
     _llk_pack_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
 
     _llk_pack_reduce_mask_clear_();

@@ -26,14 +26,14 @@ constexpr uint32_t buffer_B_tilized = 0x1f000;
 #include "llk_unpack_tilize.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
-    auto formats = params->formats;
+    auto formats = params.formats;
 
 #ifdef ARCH_BLACKHOLE
     const std::uint32_t block_ct_dim = 0;
 #else
-    const std::uint32_t block_ct_dim = params->BLOCK_CT_DIM;
+    const std::uint32_t block_ct_dim = params.BLOCK_CT_DIM;
 #endif
 
     int run = 0; // first L1-to-L1 run, we access the first set of formats in our array
@@ -48,10 +48,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
         4 /* num_faces */);
 
     _llk_unpack_tilize_init_(formats[run].unpack_src, formats[run].unpack_dst, 1, FACE_R_DIM, false);
-    _llk_unpack_tilize_(L1_ADDRESS(params->buffer_A[0]), 0, formats[run].unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
+    _llk_unpack_tilize_(L1_ADDRESS(params.buffer_A[0]), 0, formats[run].unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
 
     _llk_unpack_tilize_init_(formats[run].unpack_src, formats[run].unpack_dst, 1, FACE_R_DIM, false);
-    _llk_unpack_tilize_(L1_ADDRESS(params->buffer_B[0]), 0, formats[run].unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
+    _llk_unpack_tilize_(L1_ADDRESS(params.buffer_B[0]), 0, formats[run].unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
 
     t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(
         semaphore::PACK_DONE); // Unpacker waits on signal when packer will increment semaphore to 1 (waits while semaphore == 0), utilizing SEMWAIT.
@@ -84,9 +84,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 using namespace ckernel;
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
-    auto formats                            = params->formats;
+    auto formats                            = params.formats;
     const bool is_int_fpu_en                = false;
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;
@@ -134,9 +134,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const struct RuntimeParams &params)
 {
-    auto formats                            = params->formats;
+    auto formats                            = params.formats;
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;
     const std::uint32_t res_dst_index       = 0;
@@ -177,7 +177,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(res_dst_index, L1_ADDRESS(params->buffer_Res[0]));
+    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(res_dst_index, L1_ADDRESS(params.buffer_Res[0]));
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 

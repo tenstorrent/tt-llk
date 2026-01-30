@@ -33,12 +33,12 @@ static_assert(FULL_CT_DIM % BLOCK_CT_DIM == 0, "FULL_CT_DIM must be divisible by
 #include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
     // Test assumptions
-    LLK_ASSERT(FULL_RT_DIM * FULL_CT_DIM == params->TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to TILE_CNT");
+    LLK_ASSERT(FULL_RT_DIM * FULL_CT_DIM == params.TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to TILE_CNT");
 
-    const volatile struct FormatConfig& formats = params->formats;
+    const struct FormatConfig& formats = params.formats;
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
@@ -55,9 +55,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
             return;
         }
 
-        for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+        for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
         {
-            for (int i = 0; i < params->TILE_CNT; ++i)
+            for (int i = 0; i < params.TILE_CNT; ++i)
             {
                 _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
                     PERF_ADDRESS(PERF_INPUT_A, i), formats.unpack_src, formats.unpack_dst);
@@ -76,10 +76,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 using namespace ckernel;
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    const volatile struct FormatConfig& formats = params->formats;
-    constexpr bool is_int_fpu_en                = false;
+    const struct FormatConfig& formats = params.formats;
+    constexpr bool is_int_fpu_en       = false;
 
     {
         ZONE_SCOPED("INIT")
@@ -108,14 +108,14 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             if constexpr (!unpack_to_dest)
             {
-                _perf_math_loop_clear_valid<true, true>(params->LOOP_FACTOR * params->TILE_CNT * TILE_NUM_FACES);
+                _perf_math_loop_clear_valid<true, true>(params.LOOP_FACTOR * params.TILE_CNT * TILE_NUM_FACES);
                 return;
             }
 
             // FIXME: Currently have no way to mock math for unpack to dest
-            for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+            for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
             {
-                for (uint32_t block = 0; block < params->TILE_CNT / BLOCK_CT_DIM; block++)
+                for (uint32_t block = 0; block < params.TILE_CNT / BLOCK_CT_DIM; block++)
                 {
                     for (uint32_t block_tile = 0; block_tile < BLOCK_CT_DIM; block_tile++)
                     {
@@ -127,9 +127,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
             return;
         }
 
-        for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+        for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
         {
-            for (uint32_t block = 0; block < params->TILE_CNT / BLOCK_CT_DIM; block++)
+            for (uint32_t block = 0; block < params.TILE_CNT / BLOCK_CT_DIM; block++)
             {
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
                 for (uint32_t block_tile = 0; block_tile < BLOCK_CT_DIM; block_tile++)
@@ -151,10 +151,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    const volatile struct FormatConfig& formats = params->formats;
-    constexpr bool UNTILIZE                     = true;
+    const struct FormatConfig& formats = params.formats;
+    constexpr bool UNTILIZE            = true;
 
     {
         ZONE_SCOPED("INIT")
@@ -176,9 +176,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+            for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
             {
-                for (uint32_t tile = 0; tile < params->TILE_CNT; tile += BLOCK_CT_DIM)
+                for (uint32_t tile = 0; tile < params.TILE_CNT; tile += BLOCK_CT_DIM)
                 {
                     _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM>(PERF_ADDRESS(PERF_OUTPUT, tile), formats.pack_dst, FACE_R_DIM, 4, 0);
                 }
@@ -187,9 +187,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
             return;
         }
 
-        for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+        for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
         {
-            for (uint32_t i = 0; i < params->TILE_CNT; i += BLOCK_CT_DIM)
+            for (uint32_t i = 0; i < params.TILE_CNT; i += BLOCK_CT_DIM)
             {
                 _llk_packer_wait_for_math_done_();
                 _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM>(PERF_ADDRESS(PERF_OUTPUT, i), formats.pack_dst, FACE_R_DIM, 4, 0);

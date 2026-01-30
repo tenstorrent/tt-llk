@@ -9,7 +9,9 @@
 class Operand
 {
 public:
-    constexpr Operand(uint32_t base, uint32_t size) : base_addr(base), tile_size(size)
+    Operand() = default;
+
+    Operand(uint32_t base, uint32_t size) : base_addr(base), tile_size(size)
     {
     }
 

@@ -27,9 +27,9 @@ static constexpr bool IS_REDUCE_ROW = (REDUCE_DIM == ckernel::ReduceDim::REDUCE_
 #include "llk_unpack_AB.h"
 #include "llk_unpack_common.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    const volatile struct FormatConfig& formats = params->formats;
+    const struct FormatConfig& formats = params.formats;
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -57,11 +57,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            return _perf_unpack_loop_set_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES);
+            return _perf_unpack_loop_set_valid<true, true>(params.TILE_CNT * TILE_NUM_FACES);
         }
         else
         {
-            for (uint32_t tile = 0; tile < params->TILE_CNT; tile++)
+            for (uint32_t tile = 0; tile < params.TILE_CNT; tile++)
             {
                 _llk_unpack_AB_<>(PERF_ADDRESS(PERF_INPUT_A, tile), PERF_ADDRESS(PERF_INPUT_B, tile));
             }
@@ -77,10 +77,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #include "llk_math_common.h"
 #include "llk_math_reduce.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    const volatile struct FormatConfig& formats = params->formats;
-    constexpr uint32_t MATH_FIDELITY            = 4;
+    const struct FormatConfig& formats = params.formats;
+    constexpr uint32_t MATH_FIDELITY   = 4;
 
     // todo: INT32 reduce is not supported yet
     constexpr bool ENFORCE_FP32_ACC = false;
@@ -100,13 +100,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            return _perf_math_loop_clear_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES);
+            return _perf_math_loop_clear_valid<true, true>(params.TILE_CNT * TILE_NUM_FACES);
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            for (uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+            for (uint32_t block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
             {
-                uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                uint32_t block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
                 for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                 {
@@ -116,9 +116,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else
         {
-            for (uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+            for (uint32_t block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
             {
-                uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                uint32_t block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
                 for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
@@ -139,9 +139,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
-    const volatile struct FormatConfig& formats = params->formats;
+    const struct FormatConfig& formats = params.formats;
     {
         ZONE_SCOPED("INIT")
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
@@ -164,9 +164,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+            for (uint32_t block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
             {
-                uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                uint32_t block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
                 for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                 {
@@ -176,9 +176,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else
         {
-            for (uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+            for (uint32_t block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
             {
-                uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                uint32_t block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
                 _llk_packer_wait_for_math_done_();
                 for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)

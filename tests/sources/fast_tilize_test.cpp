@@ -56,7 +56,7 @@ uint32_t math_sync_tile_dst_index = 0;
 // if the number of remaining tiles is odd and greater than 3, the algorithm will process all but the last three tiles in a single call with unit_dim == 2
 // followed by a call with unit_dim == 3 for the last three tiles
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
     {
         ZONE_SCOPED("INIT")
@@ -68,7 +68,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
-        for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+        for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
         {
             for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
             {
@@ -85,7 +85,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     uint32_t tile_index = read_offset + packed_tiles;
                     if (remaining_tiles > 2 * dest_size)
                     {
-                        _llk_unpack_fast_tilize_block_(L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
+                        _llk_unpack_fast_tilize_block_(L1_ADDRESS(params.buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
                         packed_tiles += dest_size;
                         remaining_tiles -= dest_size;
                     }
@@ -93,7 +93,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     {
                         uint32_t even_remainder = remaining_tiles / 2 + ((remaining_tiles / 2) % 2);
                         num_units               = even_remainder / unit_dim;
-                        _llk_unpack_fast_tilize_block_(L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
+                        _llk_unpack_fast_tilize_block_(L1_ADDRESS(params.buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
                         packed_tiles += even_remainder;
                         remaining_tiles -= even_remainder;
                     }
@@ -102,18 +102,18 @@ void run_kernel(const volatile struct RuntimeParams* params)
                         if (remaining_tiles % 2 == 0 || unit_dim == 1)
                         {
                             num_units = remaining_tiles / unit_dim;
-                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
+                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(params.buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
                         }
                         else if (remaining_tiles == 3)
                         {
-                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_src, 3, 1, BLOCK_CT_DIM);
+                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(params.buffer_A[0]), tile_index, formats.unpack_src, 3, 1, BLOCK_CT_DIM);
                         }
                         else
                         {
                             num_units = (remaining_tiles - 3) / unit_dim;
-                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
+                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(params.buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM);
                             _llk_unpack_fast_tilize_block_(
-                                L1_ADDRESS(params->buffer_A[0]), tile_index + remaining_tiles - 3, formats.unpack_src, 3, 1, BLOCK_CT_DIM);
+                                L1_ADDRESS(params.buffer_A[0]), tile_index + remaining_tiles - 3, formats.unpack_src, 3, 1, BLOCK_CT_DIM);
                         }
                         packed_tiles += remaining_tiles;
                         remaining_tiles = 0;
@@ -134,7 +134,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
     {
         ZONE_SCOPED("INIT")
@@ -146,7 +146,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
-        for (uint32_t loop = 0; loop < (uint32_t)params->LOOP_FACTOR; loop++)
+        for (uint32_t loop = 0; loop < (uint32_t)params.LOOP_FACTOR; loop++)
         {
             for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
             {
@@ -212,7 +212,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(const struct RuntimeParams& params)
 {
     uint32_t use_32bit_dest = formats.unpack_dst == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Tf32);
     {
@@ -224,7 +224,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        for (uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+        for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
         {
             for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
             {
@@ -243,7 +243,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     uint32_t tile_index = write_offset + packed_tiles;
                     if (remaining_tiles > 2 * dest_size)
                     {
-                        _llk_pack_fast_tilize_block_(0, L1_ADDRESS(params->buffer_Res[tile_index]), unit_dim, num_units);
+                        _llk_pack_fast_tilize_block_(0, L1_ADDRESS(params.buffer_Res[tile_index]), unit_dim, num_units);
                         packed_tiles += dest_size;
                         remaining_tiles -= dest_size;
                     }
@@ -251,7 +251,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     {
                         uint32_t even_remainder = remaining_tiles / 2 + ((remaining_tiles / 2) % 2);
                         num_units               = even_remainder / unit_dim;
-                        _llk_pack_fast_tilize_block_(0, L1_ADDRESS(params->buffer_Res[tile_index]), unit_dim, num_units);
+                        _llk_pack_fast_tilize_block_(0, L1_ADDRESS(params.buffer_Res[tile_index]), unit_dim, num_units);
                         packed_tiles += even_remainder;
                         remaining_tiles -= even_remainder;
                     }
@@ -260,17 +260,17 @@ void run_kernel(const volatile struct RuntimeParams* params)
                         if (remaining_tiles % 2 == 0 || unit_dim == 1)
                         {
                             num_units = remaining_tiles / unit_dim;
-                            _llk_pack_fast_tilize_block_(0, L1_ADDRESS(params->buffer_Res[tile_index]), unit_dim, num_units);
+                            _llk_pack_fast_tilize_block_(0, L1_ADDRESS(params.buffer_Res[tile_index]), unit_dim, num_units);
                         }
                         else if (remaining_tiles == 3)
                         {
-                            _llk_pack_fast_tilize_block_(0, L1_ADDRESS(params->buffer_Res[tile_index]), 3, 1);
+                            _llk_pack_fast_tilize_block_(0, L1_ADDRESS(params.buffer_Res[tile_index]), 3, 1);
                         }
                         else
                         {
                             num_units = (remaining_tiles - 3) / unit_dim;
-                            _llk_pack_fast_tilize_block_(0, L1_ADDRESS(params->buffer_Res[tile_index]), unit_dim, num_units);
-                            _llk_pack_fast_tilize_block_(remaining_tiles - 3, L1_ADDRESS(params->buffer_Res[tile_index + remaining_tiles - 3]), 3, 1);
+                            _llk_pack_fast_tilize_block_(0, L1_ADDRESS(params.buffer_Res[tile_index]), unit_dim, num_units);
+                            _llk_pack_fast_tilize_block_(remaining_tiles - 3, L1_ADDRESS(params.buffer_Res[tile_index + remaining_tiles - 3]), 3, 1);
                         }
                         packed_tiles += remaining_tiles;
                         remaining_tiles = 0;

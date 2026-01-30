@@ -214,7 +214,7 @@ jobs:
       - setup-and-test-wormhole
       - setup-and-test-blackhole
       - build-quasar
-#      - perf-tests
+      - perf-tests
     runs-on: ubuntu-latest
     steps:
       - name: Check if the required jobs succeeded or failed
