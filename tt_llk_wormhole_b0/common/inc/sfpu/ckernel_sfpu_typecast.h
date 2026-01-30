@@ -8,8 +8,8 @@
 #include <cstdint>
 
 #include "ckernel.h"
-#include "sfpi.h"
 #include "llk_defs.h"
+#include "sfpi.h"
 
 namespace ckernel
 {
