@@ -566,3 +566,21 @@ class NUM_ROWS_TO_PACK(RuntimeParameter):
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         return "uint32_t NUM_ROWS_TO_PACK;", "I"
+
+
+@dataclass
+class ROW_INDEX(RuntimeParameter):
+    """Row index for broadcast operations (0-31).
+
+    Determines which row of the 32x32 tile to broadcast:
+    - row_index 0-15: Uses F0Rn and F1Rn (top half of tile)
+    - row_index 16-31: Uses F2R(n-16) and F3R(n-16) (bottom half of tile)
+    """
+
+    row_index: int = 0
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr uint32_t ROW_INDEX = {self.row_index};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "uint32_t ROW_INDEX;", "I"
