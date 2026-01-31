@@ -28,7 +28,7 @@ inline void _llk_math_eltwise_unary_datacopy_(
     // adjust it to offset in faces for 32bit data.
     std::uint32_t dst_index_in_faces = dst_index << 2; // Each tile has 4 faces;
 
-    if (unpack_to_dest && is_32bit_input(src_format, dst_format))
+    if constexpr (unpack_to_dest) // && is_32bit_input(src_format, dst_format))
     {
         math_unpack_to_dest_math_ready();
         math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(dst_index);
