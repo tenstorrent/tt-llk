@@ -114,6 +114,8 @@ enum class SfpuType
     min_int32,
     max_uint32,
     min_uint32,
+    unary_max,
+    unary_min,
     unary_max_int32,
     unary_min_int32,
     unary_max_uint32,
