@@ -157,10 +157,10 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const uin
     return result;
 }
 
-template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK>
+template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK, bool CLAMP_NEGATIVE = true>
 void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
-    if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    if constexpr (FAST_APPROX && APPROXIMATION_MODE && CLAMP_NEGATIVE)
     {
         // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is more negative than that, swap the input
         // value with -88.5 and store back to DEST
@@ -252,6 +252,142 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         // TTI_SFPNOP;
         // TTI_SFPNOP;
     }
+    else if constexpr (FAST_APPROX && APPROXIMATION_MODE && ITERATIONS == 8)
+    {
+        // =======================================================================
+        // 8-element version (1 tile face)
+        // Total: ~20 cycles for 8 elements = 2.5 cycles/element
+        // =======================================================================
+
+        // Phase 1: Startup - first 2 LOADMACROs with NOPs (cycles 0-4)
+        // Need NOPs because SHFT2[0] can't start until cycle 5
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 0); // Cycle 0: LM[0]
+        TTI_SFPNOP;                            // Cycle 1: NOP (MAD[0] executes)
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 2); // Cycle 2: LM[1]
+        TTI_SFPNOP;                            // Cycle 3: NOP (MAD[1] executes)
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 4); // Cycle 4: LM[2] | STOCHRND[0]
+
+        // Phase 2: Alternating LM/SHFT2 pattern (cycles 5-15)
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 5: SHFT2[0]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 6);                         // Cycle 6: LM[3] | STOCHRND[1] | SETSGN[0]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 7: SHFT2[1] | STORE[0]
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 8);                         // Cycle 8: LM[4] | STOCHRND[2] | SETSGN[1]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 9: SHFT2[2] | STORE[1]
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 10);                        // Cycle 10: LM[5] | STOCHRND[3] | SETSGN[2]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 11: SHFT2[3] | STORE[2]
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 12);                        // Cycle 12: LM[6] | STOCHRND[4] | SETSGN[3]
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 13: SHFT2[4] | STORE[3]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 14);                        // Cycle 14: LM[7] | STOCHRND[5] | SETSGN[4]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 15: SHFT2[5] | STORE[4]
+
+        // Phase 3: Drain - remaining SHFT2s and scheduled ops (cycles 16-19)
+        TTI_SFPNOP;                                                    // Cycle 16: STOCHRND[6] | SETSGN[5]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 17: SHFT2[6] | STORE[5]
+        TTI_SFPNOP;                                                    // Cycle 18: STOCHRND[7] | SETSGN[6]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 19: SHFT2[7] | STORE[6]
+        // SETSGN[7] at cycle 20 and STORE[7] at cycle 21 complete after return
+    }
+    else if constexpr (FAST_APPROX && APPROXIMATION_MODE && ITERATIONS == 32)
+    {
+        // =======================================================================
+        // Processes all 4 faces in one call to amortize startup/drain overhead.
+        //
+        // Timing:
+        //   - LM[n] at 2n (uniform 2-cycle spacing)
+        //   - MAD[n] at 2n+1 (delay 0)
+        //   - STOCHRND[n] at 2n+4 (delay 3)
+        //   - SHFT2[n] at 2n+5 (discrete)
+        //   - SETSGN[n] at 2n+6 (delay 5)
+        //   - STORE[n] at 2n+7 (delay 6)
+        //
+        // LREG index cycles: n % 4 -> 0,1,2,3,0,1,2,3,...
+        // dest_reg_addr: 2*n -> 0,2,4,6,...,62
+        //
+        // Total: ~68 cycles for 32 elements = 2.125 cycles/element
+        // =======================================================================
+
+        // Phase 1: Startup (cycles 0-4)
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 0); // Cycle 0: LM[0]
+        TTI_SFPNOP;                            // Cycle 1: NOP (MAD[0] executes)
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 2); // Cycle 2: LM[1]
+        TTI_SFPNOP;                            // Cycle 3: NOP (MAD[1] executes)
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 4); // Cycle 4: LM[2] | STOCHRND[0]
+
+        // Phase 2: Steady state - alternating LM/SHFT2 (cycles 5-63)
+        // Elements 0-7 (face 0)
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 5: SHFT2[0]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 6);                         // Cycle 6: LM[3]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 7: SHFT2[1]
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 8);                         // Cycle 8: LM[4]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 9: SHFT2[2]
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 10);                        // Cycle 10: LM[5]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 11: SHFT2[3]
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 12);                        // Cycle 12: LM[6]
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 13: SHFT2[4]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 14);                        // Cycle 14: LM[7]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 15: SHFT2[5]
+
+        // Elements 8-15 (face 1)
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 16);                        // Cycle 16: LM[8]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 17: SHFT2[6]
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 18);                        // Cycle 18: LM[9]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 19: SHFT2[7]
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 20);                        // Cycle 20: LM[10]
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 21: SHFT2[8]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 22);                        // Cycle 22: LM[11]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 23: SHFT2[9]
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 24);                        // Cycle 24: LM[12]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 25: SHFT2[10]
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 26);                        // Cycle 26: LM[13]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 27: SHFT2[11]
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 28);                        // Cycle 28: LM[14]
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 29: SHFT2[12]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 30);                        // Cycle 30: LM[15]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 31: SHFT2[13]
+
+        // Elements 16-23 (face 2)
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 32);                        // Cycle 32: LM[16]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 33: SHFT2[14]
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 34);                        // Cycle 34: LM[17]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 35: SHFT2[15]
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 36);                        // Cycle 36: LM[18]
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 37: SHFT2[16]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 38);                        // Cycle 38: LM[19]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 39: SHFT2[17]
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 40);                        // Cycle 40: LM[20]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 41: SHFT2[18]
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 42);                        // Cycle 42: LM[21]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 43: SHFT2[19]
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 44);                        // Cycle 44: LM[22]
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 45: SHFT2[20]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 46);                        // Cycle 46: LM[23]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 47: SHFT2[21]
+
+        // Elements 24-31 (face 3)
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 48);                        // Cycle 48: LM[24]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 49: SHFT2[22]
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 50);                        // Cycle 50: LM[25]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 51: SHFT2[23]
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 52);                        // Cycle 52: LM[26]
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 53: SHFT2[24]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 54);                        // Cycle 54: LM[27]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 55: SHFT2[25]
+        TTI_SFPLOADMACRO(0, 0, ADDR_MOD_7, 56);                        // Cycle 56: LM[28]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 57: SHFT2[26]
+        TTI_SFPLOADMACRO(1, 0, ADDR_MOD_7, 58);                        // Cycle 58: LM[29]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 59: SHFT2[27]
+        TTI_SFPLOADMACRO(2, 0, ADDR_MOD_7, 60);                        // Cycle 60: LM[30]
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 61: SHFT2[28]
+        TTI_SFPLOADMACRO(3, 0, ADDR_MOD_7, 62);                        // Cycle 62: LM[31]
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 63: SHFT2[29]
+
+        // Phase 3: Drain (cycles 64-67)
+        TTI_SFPNOP;                                                    // Cycle 64: STOCHRND[30] | SETSGN[29]
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 65: SHFT2[30] | STORE[29]
+        TTI_SFPNOP;                                                    // Cycle 66: STOCHRND[31] | SETSGN[30]
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 67: SHFT2[31] | STORE[30]
+        // SETSGN[31] at cycle 68 and STORE[31] at cycle 69 complete after return
+    }
     else
     {
         // Unroll 8 best for approx, unroll 0 for precise, compiler figures this out
@@ -269,10 +405,10 @@ constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uin
 constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
 constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
 
-template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */>
+template <bool APPROXIMATION_MODE, bool FAST_APPROX, uint32_t scale /* 1.0f in FP32 */, bool CLAMP_NEGATIVE = true>
 inline void _init_exponential_()
 {
-    if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    if constexpr (FAST_APPROX && APPROXIMATION_MODE && CLAMP_NEGATIVE)
     {
         // Algorithm is adapted from:
         //      A Fast, Compact Approximation of the Exponential Function
@@ -398,6 +534,117 @@ inline void _init_exponential_()
 
         // Reset LoadMacroConfig[Lane].Misc for all lanes, in case it has been previously set by another use of macros.
         TTI_SFPCONFIG(0, 8, 1);
+    }
+    else if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    {
+        // ===================================================================
+        // Based on "A Fast, Compact Approximation of the Exponential Function" by Schraudolph.
+        //
+        // For inputs <~ -88 (-(B-C)/A) output will be incorrect but will be guaranteed to be negative.
+        // For inputs >~ 0.72 (2^15-1-(B-C))/A output will be equal to Exp(0.7207).
+        //
+        // Constants:
+        //   LREG[12] = A = 256.0 * (1/ln2) = 369.329925537109375
+        //   LREG[13] = B - C = 32500.818359375
+        //   LREG[14] = 15 (shift amount for SFPSHFT2)
+        //
+        // Macro Instructions (backdoor loaded):
+        //   Macro 5: MAD        - compute i = A * x + (B-C)
+        //   Macro 6: STOCHRND   - convert to INT16 (sign-magnitude format)
+        //   Macro 7: SETSGN     - restore sign from STOCHRND result to shifted value
+        //
+        // Macro Sequence Register 0
+        //   Slot 1 (Simple): SETSGN @ delay 5, writes to LREG[16] (staging)
+        //     - Bit 7 = 1: VB = loadmacro's VD (sign source from STOCHRND result)
+        //     - Bit 6 = 1: VD = 16 (staging register, avoids write port conflict)
+        //     - Bits 5:3 = 101: delay 5
+        //     - Bits 2:0 = 111: macro 7 (SETSGN)
+        //     - Encoding: 0b1_1_101_111 = 0xEF
+        //
+        //   Slot 2 (MAD): MAD @ delay 0
+        //     - Bit 7 = 1: use loaded value as VB
+        //     - Bit 6 = 0: write to LREG[lreg_dest]
+        //     - Bits 5:3 = 000: delay 0
+        //     - Bits 2:0 = 101: macro 5 (MAD)
+        //     - Encoding: 0b1_0_000_101 = 0x85
+        //
+        //   Slot 3 (Round): STOCHRND @ delay 3
+        //     - Bits 5:3 = 011: delay 3
+        //     - Bits 2:0 = 110: macro 6 (STOCHRND)
+        //     - Encoding: 0b0_0_011_110 = 0x1E
+        //
+        //   Slot 4 (Store): STORE @ delay 6, reads from LREG[16]
+        //     - Bit 7 = 0: don't preserve VD from instruction
+        //     - Bit 6 = 1: read from LREG[16] (staging register)
+        //     - Bits 5:3 = 110: delay 6
+        //     - Bits 2:0 = 011: macro 3 (STORE)
+        //     - Encoding: 0b0_1_110_011 = 0x73
+        //
+        // =======================================================================
+
+        constexpr float LN2_RECIP = 1.4426950408889634f;
+        constexpr float A         = 256.0f * LN2_RECIP;
+        constexpr float B_minus_C = 32500.818359375f;
+
+        constexpr float scale_fp32 = __builtin_bit_cast(float, scale);
+        constexpr float A_scaled   = A * scale_fp32;
+
+        // Load constant A into LREG[12]
+        TTI_SFPLOADI(0, 0xA, lo16(A_scaled));
+        TTI_SFPLOADI(0, 0x8, hi16(A_scaled));
+        TTI_SFPCONFIG(0, 12, 0);
+
+        // Load constant (B-C) into LREG[13]
+        TTI_SFPLOADI(0, 0xA, lo16(B_minus_C));
+        TTI_SFPLOADI(0, 0x8, hi16(B_minus_C));
+        TTI_SFPCONFIG(0, 13, 0);
+
+        // Load shift amount (15) into LREG[14] for SFPSHFT2
+        // SFPSHFT2 mode 5 reads shift amount from VC register
+        TTI_SFPLOADI(0, 0xA, 15); // Lower 16 bits = 15
+        TTI_SFPLOADI(0, 0x8, 0);  // Upper 16 bits = 0
+        TTI_SFPCONFIG(0, 14, 0);  // Store in LREG[14]
+
+        // ===================================================================
+        // Program Macro Instructions via Backdoor Load
+        // ===================================================================
+
+        // Macro Instruction 1 (slot 5): MAD
+        // Computes: LREG[dest] = LREG[12] * LREG[dest] + LREG[13]
+        // dest=13 triggers backdoor load to Macro Instruction Register 5
+        TTI_SFPMAD(12, 0, 13, 13, 0);
+
+        // Macro Instruction 2 (slot 6): STOCHRND with INT16 mode
+        // Converts FP32 to sign-magnitude integer with max magnitude 32767
+        // dest=14 triggers backdoor load to Macro Instruction Register 6
+        // Mode 7 = FP32_TO_INT16 (keeps sign in bit 31, clamps magnitude to 32767)
+        TTI_SFP_STOCH_RND(0, 0, 0, 0, 14, 7);
+
+        // Macro Instruction 3 (slot 7): SETSGN
+        // VC=4: reads exp/mantissa from LREG[4] (where discrete SHFT2 writes)
+        // VD=15: triggers backdoor load to Macro Instruction Register 7
+        // Mod1=0: sign comes from VB (which equals loadmacro's VD after override)
+        //
+        // When executed via LOADMACRO with sequence bits:
+        //   - Bit 7=1: VB = loadmacro's VD (0-3, sign source from STOCHRND)
+        //   - Bit 6=1: VD = 16 (staging register for output)
+        //   - VC is preserved as 4 (exp/man source from SHFT2 result)
+        TTI_SFPSETSGN(0, 4, 15, 0);
+
+        //   Low 16 bits:  Slot2(MAD)=0x85, Slot1(Simple)=0xEF -> 0x85EF
+        //   High 16 bits: Slot4(Store)=0x73, Slot3(Round)=0x1E -> 0x731E
+        //   - STOCHRND delay 3: 0x1E
+        //   - SETSGN delay 5: 0xEF
+        //   - STORE delay 6: 0x73
+        TTI_SFPLOADI(0, 0xA, 0x85EF); // Slots 1-2: Simple=0xEF (delay 5), MAD=0x85
+        TTI_SFPLOADI(0, 0x8, 0x731E); // Slots 3-4: Round=0x1E (delay 3), Store=0x73 (delay 6)
+        TTI_SFPCONFIG(0, 4, 0);       // Load into Macro Sequence Register 0 (dest=4)
+
+        // Reset LoadMacroConfig[Lane].Misc for all lanes
+        // Sets StoreMod0=0 (SRCB), UsesLoadMod0ForStore=0, UnitDelayKind=0
+        TTI_SFPCONFIG(0, 8, 1);
+
+        TTI_SFPNOP;
     }
     else if constexpr (APPROXIMATION_MODE)
     {
