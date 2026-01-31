@@ -19,10 +19,10 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_INDEX,
-    INPUT_DIMENSIONS,
     NUM_FACES,
     TILE_COUNT,
     TILIZE,
+    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -112,10 +112,14 @@ def test_unary_datacopy(
         "sources/eltwise_unary_datacopy_test.cpp",
         formats,
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             TILIZE(tilize),
         ],
-        runtimes=[DEST_INDEX(dest_index), TILE_COUNT(tile_cnt_A), NUM_FACES(num_faces)],
+        runtimes=[
+            DEST_INDEX(dest_index),
+            TILE_COUNT(tile_cnt_A),
+            NUM_FACES(num_faces),
+            generate_input_dim(input_dimensions, input_dimensions),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

@@ -25,12 +25,12 @@ from helpers.test_variant_parameters import (
     DEST_INDEX,
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
-    INPUT_DIMENSIONS,
     MATH_OP,
     NUM_FACES,
     TEST_FACE_DIMS,
     TILE_COUNT,
     UNPACKER_ENGINE_SEL,
+    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -244,7 +244,7 @@ def test_sfpu_square_quasar(formats_dest_acc_implied_math_input_dims):
         "sources/quasar/sfpu_square_quasar_test.cpp",
         formats,
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+            generate_input_dim(input_dimensions, input_dimensions),
             MATH_OP(mathop=MathOperation.Square),
             IMPLIED_MATH_FORMAT(implied_math_format),
             DATA_COPY_TYPE(DataCopyType.A2D),
@@ -274,6 +274,7 @@ def test_sfpu_square_quasar(formats_dest_acc_implied_math_input_dims):
             formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
         ),
         dest_acc=dest_acc,
+        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()
