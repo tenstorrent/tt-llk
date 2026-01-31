@@ -9,7 +9,11 @@ from .format_config import (
     DataFormat,
 )
 from .llk_params import format_dict
-from .tile_constants import DEFAULT_TILE_C_DIM, DEFAULT_TILE_R_DIM, SUPPORTED_TILE_SIZES
+from .tile_constants import (
+    DEFAULT_TILE_C_DIM,
+    DEFAULT_TILE_R_DIM,
+    validate_tile_dimensions,
+)
 
 
 def flatten_list(sublists):
@@ -168,11 +172,7 @@ def calculate_tile_and_face_counts(
         tile_r_dim = DEFAULT_TILE_R_DIM
         tile_c_dim = DEFAULT_TILE_C_DIM
     else:
-        tile_tuple = tuple(tile_dimensions)
-        assert tile_tuple in SUPPORTED_TILE_SIZES, (
-            f"Unsupported tile dimensions: {tile_dimensions}. "
-            f"Supported sizes are: {SUPPORTED_TILE_SIZES}"
-        )
+        validate_tile_dimensions(tile_dimensions)
         tile_r_dim, tile_c_dim = tile_dimensions
 
     # Calculate tile counts based on actual tile dimensions
