@@ -5,26 +5,52 @@ import torch
 from helpers.format_config import DataFormat
 from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
 from helpers.llk_params import (
+    DestAccumulation,
+    DestSync,
     MathFidelity,
     MathOperation,
     format_dict,
 )
-from helpers.param_config import input_output_formats
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
+from helpers.test_variant_parameters import NUM_BLOCKS, NUM_TILES_IN_BLOCK
 from helpers.utils import passed_test
 
 
-def test_risc_compute(workers_tensix_coordinates):
-    formats = input_output_formats([DataFormat.Int32])[0]
-    input_dimensions = [32, 96]
-
+@parametrize(
+    formats=input_output_formats([DataFormat.Int32]),
+    input_dimensions=[[32, 96], [64, 64], [128, 64], [64, 128], [128, 256]],
+)
+def test_risc_compute(formats, input_dimensions, workers_tensix_coordinates):
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
+    )
+
+    # Calculate block parameters for destination register banking
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=DestAccumulation.No,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=DestAccumulation.No,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
     )
 
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
@@ -35,6 +61,10 @@ def test_risc_compute(workers_tensix_coordinates):
     configuration = TestConfig(
         "sources/risc_compute_test.cpp",
         formats,
+        runtimes=[
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

@@ -6,8 +6,13 @@ import torch
 from helpers.chip_architecture import ChipArchitecture
 from helpers.format_config import DataFormat
 from helpers.golden_generators import BinarySFPUGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, MathOperation, format_dict
-from helpers.param_config import input_output_formats, parametrize
+from helpers.llk_params import DestAccumulation, DestSync, MathOperation, format_dict
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -15,11 +20,14 @@ from helpers.test_variant_parameters import (
     APPROX_MODE,
     INPUT_DIMENSIONS,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
 from helpers.utils import passed_test
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [
@@ -63,6 +71,7 @@ def test_sfpu_binary_float(formats, dest_acc, mathop, workers_tensix_coordinates
     sfpu_binary(formats, dest_acc, mathop, workers_tensix_coordinates)
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [
@@ -80,6 +89,7 @@ def test_sfpu_binary_int(formats, dest_acc, mathop, workers_tensix_coordinates):
     sfpu_binary(formats, dest_acc, mathop, workers_tensix_coordinates)
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [
@@ -102,6 +112,22 @@ def test_sfpu_binary_add_top_row(formats, dest_acc, mathop, workers_tensix_coord
         sfpu=True,
     )
 
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
     generate_golden = get_golden_generator(BinarySFPUGolden)
     golden_tensor = generate_golden(
         mathop,
@@ -122,7 +148,11 @@ def test_sfpu_binary_add_top_row(formats, dest_acc, mathop, workers_tensix_coord
             MATH_OP(mathop=mathop),
             APPROX_MODE(),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            TILE_COUNT(tile_cnt_A),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
@@ -185,6 +215,22 @@ def sfpu_binary(formats, dest_acc, mathop, workers_tensix_coordinates):
     ):
         dest_acc = DestAccumulation.Yes
 
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
     configuration = TestConfig(
         "sources/sfpu_binary_test.cpp",
         formats,
@@ -193,7 +239,11 @@ def sfpu_binary(formats, dest_acc, mathop, workers_tensix_coordinates):
             MATH_OP(mathop=mathop),
             APPROX_MODE(),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            TILE_COUNT(tile_cnt_A),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

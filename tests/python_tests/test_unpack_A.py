@@ -18,12 +18,18 @@ from helpers.golden_generators import (
 from helpers.llk_params import (
     BroadcastType,
     DestAccumulation,
+    DestSync,
     EltwiseBinaryReuseDestType,
     StochasticRounding,
     Transpose,
     format_dict,
 )
-from helpers.param_config import generate_params, input_output_formats
+from helpers.param_config import (
+    generate_params,
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -31,7 +37,9 @@ from helpers.test_variant_parameters import (
     ACC_TO_DEST,
     BROADCAST_TYPE,
     DISABLE_SRC_ZERO_FLAG,
+    NUM_BLOCKS,
     NUM_FACES,
+    NUM_TILES_IN_BLOCK,
     PARTIAL_FACE,
     REUSE_DEST_TYPE,
     STOCHASTIC_ROUNDING,
@@ -307,6 +315,7 @@ def create_simple_ids(all_params):
 param_ids = create_simple_ids(all_params)
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 # When tests are randomised, they fail in various ways: https://github.com/tenstorrent/tt-llk/issues/1108
 @skip_for_blackhole
 @pytest.mark.parametrize(
@@ -340,6 +349,7 @@ def test_unpack_comprehensive(
     else:
         input_dimensions = [32, 32]
         partial_face = False
+    tile_dimensions = input_dimensions
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -350,6 +360,20 @@ def test_unpack_comprehensive(
         num_faces=num_faces,
     )
 
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=tile_dimensions,
+    )
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=tile_dimensions,
+    )
     # generate golden tensor with proper broadcast and transpose handling
     # PRIORITY: Broadcast types take precedence over transpose operations
     if broadcast_type in (
@@ -467,6 +491,8 @@ def test_unpack_comprehensive(
             UNPACK_TRANS_WITHIN_FACE(within_face_16x16_transpose),
             NUM_FACES(num_faces),
             TILE_COUNT(tile_cnt_A),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
             TEST_FACE_DIMS(face_r_dim=face_r_dim),
         ],
         variant_stimuli=StimuliConfig(

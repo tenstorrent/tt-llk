@@ -11,6 +11,8 @@ from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, TilizeGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, DestSync, Tilize, format_dict
 from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
     input_output_formats,
     parametrize,
 )
@@ -20,7 +22,9 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_INDEX,
     INPUT_DIMENSIONS,
+    NUM_BLOCKS,
     NUM_FACES,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
     TILIZE,
 )
@@ -64,6 +68,7 @@ def get_valid_num_faces_datacopy(tilize):
     return [1, 2, 4]
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [
@@ -76,8 +81,8 @@ def get_valid_num_faces_datacopy(tilize):
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     num_faces=lambda tilize: get_valid_num_faces_datacopy(tilize),
     tilize=lambda formats: get_valid_tilize_datacopy(formats),
-    dest_index=lambda dest_acc: get_valid_dest_indices(
-        dest_sync=DestSync.Half, dest_acc=dest_acc, tile_count=4
+    dest_index=lambda dest_acc, formats: get_valid_dest_indices(
+        formats=formats, dest_sync=DestSync.Half, dest_acc=dest_acc, tile_count=4
     ),
 )
 def test_unary_datacopy(
@@ -108,6 +113,22 @@ def test_unary_datacopy(
         else formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
     )
 
+    # Calculate block parameters for destination register banking
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
     configuration = TestConfig(
         "sources/eltwise_unary_datacopy_test.cpp",
         formats,
@@ -115,7 +136,13 @@ def test_unary_datacopy(
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             TILIZE(tilize),
         ],
-        runtimes=[DEST_INDEX(dest_index), TILE_COUNT(tile_cnt_A), NUM_FACES(num_faces)],
+        runtimes=[
+            DEST_INDEX(dest_index),
+            TILE_COUNT(tile_cnt_A),
+            NUM_FACES(num_faces),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

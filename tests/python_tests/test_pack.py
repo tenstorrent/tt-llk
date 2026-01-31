@@ -21,7 +21,12 @@ from helpers.data_format_inference import infer_data_formats
 from helpers.format_config import DataFormat
 from helpers.golden_generators import PackGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, DestSync, PackerReluType, format_dict
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -29,7 +34,9 @@ from helpers.test_variant_parameters import (
     DEST_INDEX,
     DEST_SYNC,
     INPUT_DIMENSIONS,
+    NUM_BLOCKS,
     NUM_FACES,
+    NUM_TILES_IN_BLOCK,
     RELU_CONFIG,
     TILE_COUNT,
     TILIZE,
@@ -109,6 +116,7 @@ def is_relu_threshold_tolerance_issue(
     return acceptable.all().item()
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [
@@ -128,7 +136,8 @@ def is_relu_threshold_tolerance_issue(
         PackerReluType.MaxThresholdRelu,
     ],
     dest_sync=[DestSync.Half, DestSync.Full],
-    dest_index=lambda dest_acc, dest_sync, input_dimensions: get_valid_dest_indices(
+    dest_index=lambda dest_acc, dest_sync, input_dimensions, formats: get_valid_dest_indices(
+        formats=formats,
         dest_sync=dest_sync,
         dest_acc=dest_acc,
         tile_count=(input_dimensions[0] * input_dimensions[1]) // (32 * 32),
@@ -215,6 +224,25 @@ def test_pack(
         data_formats.pack_src,
     )
 
+    # Calculate block parameters for destination register banking
+    num_blocks = get_num_blocks(
+        dest_sync=dest_sync,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=(32, 32),
+        dest_index=dest_index,
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=dest_sync,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=(32, 32),
+        dest_index=dest_index,
+    )
+
     configuration = TestConfig(
         "sources/pack_test.cpp",
         formats,
@@ -228,6 +256,8 @@ def test_pack(
             DEST_INDEX(dest_index),
             RELU_CONFIG(relu_config),
             NUM_FACES(num_faces=4),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
         ],
         variant_stimuli=StimuliConfig(
             src_A,

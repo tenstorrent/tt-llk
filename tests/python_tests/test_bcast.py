@@ -226,6 +226,7 @@ def create_simple_ids(all_params):
 param_ids = create_simple_ids(all_params)
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register by using NUM_BLOCKS and NUM_TILES_IN_BLOCK.
 @pytest.mark.parametrize(
     "testname, formats, broadcast_type, disable_src_zero, acc_to_dest, dest_acc, "
     "stochastic_rnd, reuse_dest, transpose_of_faces, "

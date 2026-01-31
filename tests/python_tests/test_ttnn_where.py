@@ -29,6 +29,7 @@ def torch_equal_nan(a, b):
     return torch.all((a == b) | (torch.isnan(a) & torch.isnan(b)))
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [
@@ -129,6 +130,7 @@ def test_ttnn_where(formats, dest_acc, mathop, test_case, workers_tensix_coordin
     assert torch_equal_nan(golden_tensor, res_tensor), "Assert against golden failed"
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 # MCW test with dynamic format sweeping like main test
 # Use same input/output format - no mixing
 @parametrize(

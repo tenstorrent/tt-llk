@@ -6,23 +6,32 @@ from conftest import skip_for_coverage
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     DestAccumulation,
+    DestSync,
     MathOperation,
     ReducePool,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     INPUT_DIMENSIONS,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
 from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 # Has a compilation error on coverage, https://github.com/tenstorrent/tt-llk/issues/884
 @skip_for_coverage
 @parametrize(
@@ -34,7 +43,8 @@ from helpers.utils import passed_test
     mathop=[MathOperation.ReduceColumn],
     reduce_pool=[ReducePool.Max],  # Only MAX is supported for SDPA reduce
     input_dimensions=[
-        [128, 64],  # 4x2 subblock
+        [64, 64],
+        [128, 64],
     ],
 )
 def test_sfpu_reduce_sdpa(
@@ -54,6 +64,23 @@ def test_sfpu_reduce_sdpa(
     )
 
     src_A = tilize_block(src_A, input_dimensions).flatten()
+
+    # Calculate block parameters for destination register banking
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
 
     # GOLDEN GENERATION
     # *******************************************************
@@ -77,7 +104,11 @@ def test_sfpu_reduce_sdpa(
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop, pool_type=reduce_pool),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
+            TILE_COUNT(tile_cnt_A),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
@@ -97,4 +128,6 @@ def test_sfpu_reduce_sdpa(
     res_tensor = untilize_block(res_tensor, formats.output_format, input_dimensions)
 
     # Check only the first row for correctness, not full tensors
-    assert passed_test(golden_tensor[0], res_tensor[0], formats.output_format)
+    assert passed_test(
+        golden_tensor[0], res_tensor[0], formats.output_format, print_errors=True
+    )

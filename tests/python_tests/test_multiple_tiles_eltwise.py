@@ -7,11 +7,17 @@ from helpers.format_config import DataFormat
 from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
 from helpers.llk_params import (
     DestAccumulation,
+    DestSync,
     MathFidelity,
     MathOperation,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -19,11 +25,14 @@ from helpers.test_variant_parameters import (
     INPUT_DIMENSIONS,
     MATH_FIDELITY,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
 from helpers.utils import passed_test
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [
@@ -41,7 +50,7 @@ from helpers.utils import passed_test
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    input_dimensions=[[32, 32], [32, 64], [64, 64]],
+    input_dimensions=[[32, 32], [32, 64], [64, 64], [128, 64], [64, 128]],
 )
 def test_multiple_tiles(
     formats,
@@ -62,6 +71,22 @@ def test_multiple_tiles(
         input_dimensions_B=input_dimensions,
     )
 
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
     golden_tensor = generate_golden(
         mathop, src_A, src_B, formats.output_format, math_fidelity
@@ -75,7 +100,11 @@ def test_multiple_tiles(
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            TILE_COUNT(tile_cnt_A),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

@@ -24,6 +24,7 @@ from helpers.tilize_untilize import tilize
 from helpers.utils import passed_test
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats(
         [

@@ -13,12 +13,18 @@ from helpers.golden_generators import (
 from helpers.llk_params import (
     BroadcastType,
     DestAccumulation,
+    DestSync,
     MathFidelity,
     MathOperation,
     Transpose,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -27,15 +33,17 @@ from helpers.test_variant_parameters import (
     DEST_SYNC,
     MATH_FIDELITY,
     MATH_OP,
+    NUM_BLOCKS,
     NUM_FACES,
-    TILE_COUNT,
+    NUM_TILES_IN_BLOCK,
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
 )
-from helpers.tilize_untilize import tilize, tilize_block
+from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @skip_for_blackhole
 @parametrize(
     formats=input_output_formats(
@@ -47,7 +55,7 @@ from helpers.utils import passed_test
     dest_acc=[DestAccumulation.No],
     math_fidelity=[MathFidelity.LoFi],
     transpose_srca=[Transpose.Yes],
-    input_dimensions=[[32, 32]],
+    input_dimensions=[[32, 32], [64, 64], [128, 64], [64, 128]],
 )
 def test_eltwise_binary_transpose_bcast(
     formats,
@@ -65,9 +73,30 @@ def test_eltwise_binary_transpose_bcast(
         input_dimensions_B=input_dimensions,
     )
 
+    # Calculate block parameters for destination register banking
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
     # Tilize the input data for hardware
-    src_A_tilized = tilize_block(src_A, input_dimensions, formats.input_format)
-    src_B_tilized = tilize_block(src_B, input_dimensions, formats.input_format)
+    src_A_tilized = tilize_block(
+        src_A, input_dimensions, formats.input_format
+    ).flatten()
+    src_B_tilized = tilize_block(
+        src_B, input_dimensions, formats.input_format
+    ).flatten()
 
     # Compute golden using proper transpose generator that understands tilized data
     transpose_golden = get_golden_generator(TransposeGolden)
@@ -88,22 +117,22 @@ def test_eltwise_binary_transpose_bcast(
         input_dimensions=input_dimensions,
     )
 
-    src_B_tilized_for_bcast = tilize(
-        src_B, stimuli_format=formats.input_format, num_faces=4
-    )
     broadcast_golden = get_golden_generator(BroadcastGolden)
     src_B_broadcasted_tilized = broadcast_golden(
         broadcast_type,
-        src_B_tilized_for_bcast,  # Tilized data
+        src_B_tilized,
         formats.input_format,
         num_faces=4,
-        tile_cnt=tile_cnt_A,
+        tile_cnt=tile_cnt_B,
         face_r_dim=16,
     )
 
-    src_A_transposed_tilized = tilize(
-        src_A_transposed, stimuli_format=formats.output_format, num_faces=4
-    )
+    src_A_transposed_tilized = tilize_block(
+        src_A_transposed,
+        input_dimensions,
+        stimuli_format=formats.output_format,
+        num_faces=4,
+    ).flatten()
 
     # Compute element-wise subtraction in tilized format
     binary_golden = get_golden_generator(EltwiseBinaryGolden)
@@ -127,7 +156,8 @@ def test_eltwise_binary_transpose_bcast(
         runtimes=[
             UNPACK_TRANS_FACES(transpose_srca),
             UNPACK_TRANS_WITHIN_FACE(transpose_srca),
-            TILE_COUNT(tile_cnt_A),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
             NUM_FACES(4),
         ],
         variant_stimuli=StimuliConfig(
@@ -145,6 +175,8 @@ def test_eltwise_binary_transpose_bcast(
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
+
+    golden_tensor = golden_tensor.flatten()
 
     assert len(res_from_L1) == len(
         golden_tensor

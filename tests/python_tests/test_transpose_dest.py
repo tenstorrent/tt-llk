@@ -94,6 +94,7 @@ def generate_transpose_dest_float_combinations(formats_list):
     return combinations
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     fmt_dest_acc_math_transp_unpack_to_dest=generate_transpose_dest_float_combinations(
         TRANSPOSE_DEST_FLOAT_FORMATS
@@ -114,6 +115,7 @@ def test_transpose_dest_float(
     )
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats([DataFormat.Int32]),
     dest_acc=[DestAccumulation.Yes],

@@ -24,15 +24,22 @@ uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
 
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (int block = 0; block < num_blocks; block++)
     {
-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        {
+            int tile_idx = (block * num_tiles_in_block) + tile;
+            _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+                L1_ADDRESS(buffer_A[tile_idx]), formats.unpack_src, formats.unpack_dst);
+        }
     }
 }
 
@@ -51,6 +58,9 @@ using namespace ckernel::sfpu;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(4, formats.math);
@@ -61,19 +71,25 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (int block = 0; block < num_blocks; block++)
     {
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-            i, formats.math, formats.math);
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        {
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                tile, formats.math, formats.math);
+        }
     }
 
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
 
     ckernel::sfpu::_init_reduce_<POOL_TYPE, static_cast<DataFormat>(formats.math)>();
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (int block = 0; block < num_blocks; block++)
     {
-        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
-        ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>();
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        {
+            _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(tile);
+            ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>();
+        }
     }
 
 #ifdef ADD_TOP_ROW
@@ -81,10 +97,13 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
     ckernel::sfpu::_init_add_top_row_();
 
-    for (int i = 1; i < params->TILE_CNT; ++i)
+    for (int block = 0; block < num_blocks; block++)
     {
-        // Add the top rows of all the tiles we reduced in dst register
-        ckernel::sfpu::_calculate_add_top_row_<static_cast<DataFormat>(formats.math)>(0, i, 0); // accumulate the result in tile at index 0
+        for (int tile = 1; tile < num_tiles_in_block; tile++)
+        {
+            // Add the top rows of all the tiles we reduced in dst register
+            ckernel::sfpu::_calculate_add_top_row_<static_cast<DataFormat>(formats.math)>(0, tile, 0); // accumulate the result in tile at index 0
+        }
     }
 
 #endif
@@ -103,6 +122,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #else
@@ -118,9 +140,13 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (int block = 0; block < num_blocks; block++)
     {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        {
+            int res_tile_idx = (block * num_tiles_in_block) + tile;
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(tile, L1_ADDRESS(buffer_Res[res_tile_idx]));
+        }
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

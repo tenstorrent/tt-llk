@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-from itertools import chain, product
-
 import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture
@@ -12,11 +10,17 @@ from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
     ApproximationMode,
     DestAccumulation,
+    DestSync,
     FastMode,
     MathOperation,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks,
+    get_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -25,83 +29,50 @@ from helpers.test_variant_parameters import (
     FAST_MODE,
     INPUT_DIMENSIONS,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
 )
 from helpers.utils import passed_test
 
-SUPPORTED_FAST_MODE_OPS = [
-    MathOperation.Log1p,
-    MathOperation.Exp,
-    MathOperation.Rsqrt,
-    MathOperation.Sqrt,
-]
 
-ALL_MATHOPS = [
-    MathOperation.Abs,
-    MathOperation.Atanh,
-    MathOperation.Asinh,
-    MathOperation.Acosh,
-    MathOperation.Cos,
-    MathOperation.Log,
-    MathOperation.Log1p,
-    MathOperation.Reciprocal,
-    MathOperation.Sin,
-    MathOperation.Sqrt,
-    MathOperation.Rsqrt,
-    MathOperation.Square,
-    MathOperation.Tanh,
-    MathOperation.Celu,
-    MathOperation.Silu,
-    MathOperation.Gelu,
-    MathOperation.Neg,
-    MathOperation.Fill,
-    MathOperation.Elu,
-    MathOperation.Exp,
-    MathOperation.Exp2,
-    MathOperation.Hardsigmoid,
-    MathOperation.Threshold,
-    MathOperation.ReluMax,
-    MathOperation.ReluMin,
-]
-
-FORMATS = input_output_formats(
-    [
-        DataFormat.Float32,
-        DataFormat.Float16,
-        DataFormat.Float16_b,
-        DataFormat.Bfp8_b,
-    ]
-)
-
-FLOAT_TEST_PARAMS = list(
-    chain(
-        (
-            (fmt, approx, mathop, fast, dest)
-            for fmt, approx, mathop, fast, dest in product(
-                FORMATS,
-                [ApproximationMode.No, ApproximationMode.Yes],
-                SUPPORTED_FAST_MODE_OPS,
-                [FastMode.No, FastMode.Yes],
-                [DestAccumulation.No, DestAccumulation.Yes],
-            )
-        ),
-        (
-            (fmt, approx, mathop, FastMode.No, dest)
-            for fmt, approx, mathop, dest in product(
-                FORMATS,
-                [ApproximationMode.No, ApproximationMode.Yes],
-                [op for op in ALL_MATHOPS if op not in SUPPORTED_FAST_MODE_OPS],
-                [DestAccumulation.No, DestAccumulation.Yes],
-            )
-        ),
-    )
-)
-
-
-@pytest.mark.nightly
-@pytest.mark.parametrize(
-    "formats,approx_mode,mathop,fast_mode,dest_acc",
-    FLOAT_TEST_PARAMS,
+@parametrize(
+    formats=input_output_formats(
+        [
+            DataFormat.Float32,
+            DataFormat.Float16,
+            DataFormat.Float16_b,
+            DataFormat.Bfp8_b,
+        ]
+    ),
+    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+    mathop=[
+        MathOperation.Abs,
+        MathOperation.Atanh,
+        MathOperation.Asinh,
+        MathOperation.Acosh,
+        MathOperation.Cos,
+        MathOperation.Log,
+        MathOperation.Reciprocal,
+        MathOperation.Sin,
+        MathOperation.Sqrt,
+        MathOperation.Rsqrt,
+        MathOperation.Square,
+        MathOperation.Celu,
+        MathOperation.Silu,
+        MathOperation.Gelu,
+        MathOperation.Neg,
+        MathOperation.Fill,
+        MathOperation.Elu,
+        MathOperation.Exp,
+        MathOperation.Exp2,
+        MathOperation.Hardsigmoid,
+        MathOperation.Threshold,
+        MathOperation.ReluMax,
+        MathOperation.ReluMin,
+    ],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    input_dimensions=[[64, 64], [128, 32], [32, 128], [128, 256]],
 )
 def test_eltwise_unary_sfpu_float(
     formats: list[InputOutputFormat],
@@ -109,6 +80,7 @@ def test_eltwise_unary_sfpu_float(
     mathop: MathOperation,
     fast_mode: FastMode,
     dest_acc: DestAccumulation,
+    input_dimensions: list[int],
     workers_tensix_coordinates: str,
 ):
     if TestConfig.WITH_COVERAGE and mathop in [
@@ -173,10 +145,12 @@ def test_eltwise_unary_sfpu_float(
         approx_mode,
         mathop,
         fast_mode,
+        input_dimensions,
         workers_tensix_coordinates,
     )
 
 
+# TODO: Extend this test to accept input dimensions larger than dest register.
 @parametrize(
     formats=input_output_formats([DataFormat.Int32]),
     approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
@@ -186,6 +160,7 @@ def test_eltwise_unary_sfpu_float(
     ],
     fast_mode=[FastMode.No, FastMode.Yes],
     dest_acc=[DestAccumulation.Yes],
+    input_dimensions=[[64, 64], [128, 32], [32, 128], [128, 256]],
 )
 def test_eltwise_unary_sfpu_int(
     formats: list[InputOutputFormat],
@@ -193,6 +168,7 @@ def test_eltwise_unary_sfpu_int(
     mathop: MathOperation,
     fast_mode: FastMode,
     dest_acc: DestAccumulation,
+    input_dimensions: list[int],
     workers_tensix_coordinates: str,
 ):
     if formats.input_format == DataFormat.Int32:
@@ -205,6 +181,7 @@ def test_eltwise_unary_sfpu_int(
         approx_mode,
         mathop,
         fast_mode,
+        input_dimensions,
         workers_tensix_coordinates,
     )
 
@@ -216,17 +193,34 @@ def eltwise_unary_sfpu(
     approx_mode,
     mathop,
     fast_mode: FastMode,
+    input_dimensions: list[int],
     workers_tensix_coordinates,
 ):
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
-    input_dimensions = [64, 64]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
+    )
+
+    # Calculate block parameters for destination register banking
+    num_blocks = get_num_blocks(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
+    )
+
+    num_tiles_in_block = get_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=[32, 32],
     )
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
@@ -248,7 +242,11 @@ def eltwise_unary_sfpu(
             FAST_MODE(fast_mode),
             MATH_OP(mathop=mathop),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            TILE_COUNT(tile_cnt_A),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
