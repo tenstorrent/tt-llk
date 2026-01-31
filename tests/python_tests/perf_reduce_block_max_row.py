@@ -27,7 +27,7 @@ from helpers.test_variant_parameters import (
             DataFormat.Float16_b,
         ]
     ),
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     block_ct_dim=[1, 2, 4, 8, 16],
     loop_factor=16,  # Multiple loop factors to minimize profiler overhead
 )
@@ -61,11 +61,11 @@ def test_perf_reduce_block_max_row(
         "sources/reduce_block_max_row_perf.cpp",
         formats,
         run_types=[
-            # PerfRunType.L1_TO_L1,
+            PerfRunType.L1_TO_L1,
             PerfRunType.UNPACK_ISOLATE,
             PerfRunType.MATH_ISOLATE,
-            # PerfRunType.PACK_ISOLATE,
-            # PerfRunType.L1_CONGESTION,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
         ],
         templates=[
             BLOCK_CT_DIM(block_ct_dim),

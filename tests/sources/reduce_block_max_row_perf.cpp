@@ -172,7 +172,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            // _llk_pack_reduce_mask_clear_();
+            _llk_pack_reduce_mask_clear_();
             return;
         }
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
