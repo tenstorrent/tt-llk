@@ -148,6 +148,17 @@ class TestConfig:
         0x16D000,  # Pack
     ]
 
+    # Performance counter L1 memory addresses
+    # NOTE: These addresses must match the values in tests/helpers/include/counters.h
+    PERF_COUNTERS_BASE_ADDR: ClassVar[int] = 0x16A000
+    PERF_COUNTERS_SIZE: ClassVar[int] = 0xA00
+    PERF_COUNTER_UNPACK_CONFIG_ADDR: ClassVar[int] = 0x16A000
+    PERF_COUNTER_UNPACK_DATA_ADDR: ClassVar[int] = 0x16A108
+    PERF_COUNTER_MATH_CONFIG_ADDR: ClassVar[int] = 0x16A318
+    PERF_COUNTER_MATH_DATA_ADDR: ClassVar[int] = 0x16A420
+    PERF_COUNTER_PACK_CONFIG_ADDR: ClassVar[int] = 0x16A630
+    PERF_COUNTER_PACK_DATA_ADDR: ClassVar[int] = 0x16A738
+
     @staticmethod
     def setup_arch():
         TestConfig.CHIP_ARCH = get_chip_architecture()
