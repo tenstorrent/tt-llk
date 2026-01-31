@@ -33,8 +33,10 @@ using namespace ckernel::unpacker;
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const ckernel::TensorShape tensor_shape)
 {
-    const std::uint32_t num_faces = tensor_shape.total_num_faces();
-    const bool narrow_tile        = (tensor_shape.num_faces_c_dim == 1);
+    const std::uint32_t num_faces       = tensor_shape.total_num_faces();
+    const std::uint32_t num_faces_r_dim = tensor_shape.num_faces_r_dim;
+    const std::uint32_t num_faces_c_dim = tensor_shape.num_faces_c_dim;
+    const bool narrow_tile              = (num_faces_c_dim == 1);
     // TODO: Remove this assert after testing >4 num_faces because there is no reason to limit this for non-broadcast versions
     validate_tensor_shape_tile_dependent_ops_(tensor_shape);
 
@@ -47,8 +49,10 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const cker
     static constexpr uint unpack_srcb           = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr uint unpack_srca_transpose = TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
-    const uint32_t outerloop = num_faces < 4 ? 1 : 2;
-    const uint32_t innerloop = num_faces < 2 ? 1 : 2;
+    // Use num_faces_r_dim and num_faces_c_dim instead of hardcoded values
+    // This properly handles all tile configurations including 32x16 and 16x32
+    const uint32_t outerloop = num_faces_r_dim;
+    const uint32_t innerloop = num_faces_c_dim;
 
     const uint srca_op     = transpose_of_faces ? unpack_srca_transpose : unpack_srca;
     const uint srca_end_op = TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001);
@@ -68,15 +72,26 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const cker
 
     if constexpr (BType == BroadcastType::COL)
     {
+        // COL broadcast: B column is broadcast across A faces in the same row
+        // outerloop = num_faces_r_dim (number of B columns needed)
+        // innerloop = num_faces_c_dim (A faces per row that share same B column)
         static constexpr uint unpack_srcb_set_z = TT_OP_SETADCZW(0b010, 0, 0, 0, 2, 0b0001);
 
         ckernel_template tmp(outerloop, innerloop, srca_op);
         tmp.set_start_op(unpack_srcb);
-        set_end_op_with_transpose(tmp, narrow_tile ? unpack_srcb : unpack_srcb_set_z);
+        // For single-face tiles (num_faces=1), don't unpack B at end - it's already unpacked at start
+        // For multi-face tiles, unpack B at end to reload for next face row
+        if (num_faces > 1)
+        {
+            set_end_op_with_transpose(tmp, narrow_tile ? unpack_srcb : unpack_srcb_set_z);
+        }
         tmp.program();
     }
     else if constexpr (BType == BroadcastType::ROW)
     {
+        // ROW broadcast: B row is broadcast across A faces in the same column
+        // outerloop = num_faces_r_dim (face rows)
+        // innerloop = num_faces_c_dim (face columns)
         static constexpr uint unpack_srcb_clear_z  = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001);
         static constexpr uint unpack_srcb_no_z_inc = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
@@ -86,6 +101,7 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const cker
     }
     else if constexpr (BType == BroadcastType::SCALAR)
     {
+        // SCALAR broadcast: single B value broadcast to all A faces
         LLK_ASSERT(!transpose_of_faces, "SrcA transpose is not supported with scalar broadcast");
 
         ckernel_template tmp(1, num_faces, unpack_srca);
@@ -94,6 +110,7 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const cker
     }
     else // BType == BroadcastType::NONE
     {
+        // NONE: no broadcast, A and B faces are paired 1:1
         if (transpose_of_faces)
         {
             static constexpr uint srca_set_z = TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001);

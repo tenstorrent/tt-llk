@@ -65,6 +65,7 @@ from helpers.utils import passed_test
     math_op=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
     input_dimensions=[[512, 32]],
     tile_dimensions=[[1, 32], [2, 32], [4, 32], [8, 32], [16, 32], [32, 32]],
+    # tile_dimensions=[[16, 16]],
 )
 def test_eltwise_binary(
     formats,
