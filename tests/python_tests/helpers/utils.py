@@ -160,7 +160,7 @@ def passed_test(
         tolerances = {
             DataFormat.Float16: Tolerance(atol=0.05, rtol=0.05),
             DataFormat.Float16_b: Tolerance(atol=0.05, rtol=0.05),
-            DataFormat.Float32: Tolerance(atol=0.05, rtol=0.05),
+            DataFormat.Float32: Tolerance(atol=1e-6, rtol=1e-6),
             DataFormat.Int32: Tolerance(atol=0, rtol=0),
             DataFormat.UInt32: Tolerance(atol=0, rtol=0),
             DataFormat.UInt16: Tolerance(atol=0, rtol=0),
