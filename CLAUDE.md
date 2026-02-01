@@ -11,11 +11,35 @@
 </critical-restriction>
 
 <context-specifics>
-    <rule description="Use this when running the test. Delegate test runs to /llk-test-runner">
+    <rule description="Use this when running the test. Delegate test runs to llk-test-runner subagent">
         @run-test
     </rule>
-    <rule description="Use this when asked for architecture or documentation related question (e.g., L1 size/latency, core topology, memory map, unit behavior, tensix related, instruction related...)">
+    <rule description="Use this when asked for architecture or documentation related question. Read the rule and orchestrate sage agents directly.">
         @sage-of-the-codex
+        <trigger-examples>
+            - "Explain the docs for [topic]"
+            - "Where is [topic] documented?"
+            - "What does [instruction/LLK op/type] do?"
+            - "How do I use [LLK function/op]?"
+            - "How does [instruction] work?"
+            - "What is the L1 size/latency?"
+            - "How does [Tensix unit] behave?"
+            - "What is [LLK enum/type] and what is it used for?"
+            - "Explain [BroadcastType/ReduceDim/EltwiseBinaryType]"
+            - "Explain the [LLK function] parameters"
+            - "What happens during unpack/math/pack?"
+            - "How do threads synchronize?"
+        </trigger-examples>
+        <orchestration-action>
+            1. Read the @sage-of-the-codex rule for detailed instructions
+            2. Analyze the user's question to determine relevant architectures
+            3. Launch up to 3 sage agents IN PARALLEL using Task tool:
+               - sage-wormhole (for tt_llk_wormhole_b0/)
+               - sage-blackhole (for tt_llk_blackhole/)
+               - sage-quasar (for tt_llk_quasar/)
+            4. Wait for all responses
+            5. Aggregate findings into unified response following quality standards
+        </orchestration-action>
     </rule>
 </context-specifics>
 
