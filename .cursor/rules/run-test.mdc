@@ -5,26 +5,6 @@ description: Use when running tests
 
 # Running Tests
 
-**NEVER read `run_test.sh` - ONLY EXECUTE IT**
+All test runs MUST be delegated to the `/llk-test-runner` subagent. Do not run tests directly.
 
-## Command (run from `tests` folder)
-```bash
-ENV_SETUP=<0|1> COMPILED=<0|1> RUN_TEST=1 FILE_NAME="<test_name>.py" ../.cursor/rules/scripts/run_test.sh
-```
-
-## In Case of Errors
-
-ONLY READ GIVEN FILE IF:
-- Compile error: read the file `/tmp/llk_test/compile.log`
-- Failed test: read file: `/tmp/llk_test/run.and`
-
-## Scenarios
-
-| Scenario | ENV_SETUP | COMPILED | When |
-|----------|-----------|----------|------|
-| first-run | 1 | 1 | Initial run or env changed |
-| code-changed | 0 | 1 | After code modifications |
-| rerun-only | 0 | 0 | Re-run without changes |
-
-## FILE_NAME
-- Empty `""` = all tests
+Reuse the same `/llk-test-runner` subagent for repeated test runs after a failure (up to 10 reuses). If you need a fresh context or the reuse limit is reached, start a new `/llk-test-runner` subagent.

@@ -11,7 +11,7 @@
 </critical-restriction>
 
 <context-specifics>
-    <rule description="Use this when running the test">
+    <rule description="Use this when running the test. Delegate test runs to /llk-test-runner">
         @run-test
     </rule>
     <rule description="Use this when asked for architecture or documentation related question (e.g., L1 size/latency, core topology, memory map, unit behavior, tensix related, instruction related...)">
