@@ -66,16 +66,6 @@ inline void _llk_pack_configure_addrmod_()
             .z_src = {.incr = 1, .clr = 0},
         }
             .set(ADDR_MOD_2);
-
-        // ADDR_MOD_3 for dest_bank packing: increment L1 dest by one tile size (32 units of 4 bytes = 128 bytes)
-        // and close the current tile
-        addr_mod_pack_t {
-            .y_src = {.incr = 0, .clr = 1, .cr = 0},
-            .y_dst = {.incr = 32, .clr = 1, .cr = 0}, // Increment by 32*4 = 128 bytes (one tile)
-            .z_src = {.incr = 0, .clr = 1},
-            .z_dst = {.incr = 0, .clr = 0},
-        }
-            .set(ADDR_MOD_3);
     }
 }
 
@@ -532,6 +522,16 @@ inline void _llk_pack_init_(
     const std::uint32_t num_tiles = 1)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    const DataFormat src_format = static_cast<DataFormat>(pack_src_format);
+    if (src_format == DataFormat::Float32)
+    {
+        LLK_ASSERT(num_tiles <= 4, "Max supported num_tiles for FLOAT32 is 4.");
+    }
+    else if ((src_format == DataFormat::Float16) || (src_format == DataFormat::Float16_b))
+    {
+        LLK_ASSERT(num_tiles <= 8, "Max supported num_tiles for FLOAT16 or FLOAT16_B is 8.");
+    }
+
     _llk_pack_configure_addrmod_<untilize, tilize>();
     _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, num_tiles);
     set_packer_strides<untilize, tilize>(pack_src_format, tile_c_dim);
@@ -546,6 +546,16 @@ inline void _llk_pack_uninit_()
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t num_tiles = 1)
 {
+    // INSERT_YOUR_CODE
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        LLK_ASSERT(num_tiles <= 4, "When FP32 dest accumulation is enabled, num_tiles must be <= 4.");
+    }
+    else
+    {
+        LLK_ASSERT(num_tiles <= 8, "When FP32 dest accumulation is disabled, num_tiles must be <= 8.");
+    }
+
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
     program_packer_destination(address);
