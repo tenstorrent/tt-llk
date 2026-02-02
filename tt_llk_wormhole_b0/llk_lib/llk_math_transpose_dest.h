@@ -54,19 +54,13 @@ inline void _llk_math_transpose_dest_(const std::uint32_t dst_index)
         if constexpr (transpose_of_faces)
         {
             // 4x 32b face transpositions followed by 8x middle-face row swaps.
-            // This is done over SFPU
             ckernel_unpack_template::run(12, 0xff0);
         }
         else
         {
-            // reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1 << 11);
             // 4x 32b face transpositions.
-
             ckernel_unpack_template::run(4, 0);
-            // tensix_sync();
-            // reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0);
         }
-
 
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(0);
     }
@@ -115,17 +109,7 @@ inline void transpose_dest_configure_mop()
 {
     if (is_32bit)
     {
-        lltt::record(16, 21);
-
-        // Enable override and use Tf32 for hi16 transpose.
-        TTI_RMWCIB0(
-            ALU_FORMAT_SPEC_REG_SrcA_override_MASK,
-            ALU_FORMAT_SPEC_REG_SrcA_override_MASK,
-            ALU_FORMAT_SPEC_REG_SrcA_override_ADDR32);
-        TTI_RMWCIB0(
-            ALU_FORMAT_SPEC_REG_SrcA_val_MASK,
-            static_cast<std::uint32_t>(DataFormat::Tf32),
-            ALU_FORMAT_SPEC_REG_SrcA_val_ADDR32);
+        lltt::record(16, 16);
 
 #pragma GCC unroll 2
         for (int dest_32b_lo = 0; dest_32b_lo < 2; ++dest_32b_lo)
@@ -134,33 +118,10 @@ inline void transpose_dest_configure_mop()
             TTI_MOVD2B(dest_32b_lo, 20, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 4);
             TTI_MOVD2B(dest_32b_lo, 24, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 8);
             TTI_MOVD2B(dest_32b_lo, 28, ADDR_MOD_1, p_movd2b::MOV_4_ROWS, 12);
-
-            if (dest_32b_lo == 1)
-            {
-                // Disable override and restore Float32 for lo16 B2D.
-                TTI_RMWCIB0(
-                    ALU_FORMAT_SPEC_REG_SrcA_override_MASK,
-                    0,
-                    ALU_FORMAT_SPEC_REG_SrcA_override_ADDR32);
-                TTI_RMWCIB0(
-                    ALU_FORMAT_SPEC_REG_SrcA_val_MASK,
-                    static_cast<std::uint32_t>(DataFormat::Float32),
-                    ALU_FORMAT_SPEC_REG_SrcA_val_ADDR32);
-            }
-
             TTI_MOVB2D(dest_32b_lo, 16, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
             TTI_MOVB2D(dest_32b_lo, 20, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 4);
             TTI_MOVB2D(dest_32b_lo, 24, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 8);
             TTI_MOVB2D(dest_32b_lo, 28, dest_32b_lo == 1 ? ADDR_MOD_0 : ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 12);
-
-            if (dest_32b_lo == 0)
-            {
-                // switch to Float16 for lo16 transpose
-                TTI_RMWCIB0(
-                    ALU_FORMAT_SPEC_REG_SrcA_val_MASK,
-                    static_cast<std::uint32_t>(DataFormat::Float16),
-                    ALU_FORMAT_SPEC_REG_SrcA_val_ADDR32);
-            }
         }
 
         uint macro0 = TT_OP_SFPNOP;
@@ -204,9 +165,9 @@ inline void transpose_dest_configure_mop()
         }
 
         // A 32b face transpose consists of: (movd2b_hi, transpose, movb2d_hi_d2b_lo, transpose, movb2d_lo).
-        uint movd2b_hi        = lltt::replay_insn(16, 6);
-        uint movb2d_hi_d2b_lo = lltt::replay_insn(22, 9);
-        uint movb2d_lo        = lltt::replay_insn(31, 6);
+        uint movd2b_hi        = lltt::replay_insn(16, 4);
+        uint movb2d_hi_d2b_lo = lltt::replay_insn(20, 8);
+        uint movb2d_lo        = lltt::replay_insn(28, 4);
         uint transpose        = TT_OP_TRNSPSRCB;
 
         // MOP config:
@@ -267,7 +228,6 @@ inline void _llk_math_transpose_dest_init_()
 {
     transpose_dest_configure_addrmod<is_32bit>();
     transpose_dest_configure_mop<transpose_of_faces, is_32bit>();
-
     if constexpr (is_32bit)
     {
         _llk_math_dbg_feature_disable_();
@@ -276,12 +236,7 @@ inline void _llk_math_transpose_dest_init_()
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 }
 
-template <bool is_32bit = false>
 inline void _llk_math_transpose_dest_uninit_()
 {
-    if constexpr (is_32bit)
-    {
-        _llk_math_dbg_feature_enable_();
-    }
     // No state to restore - all states are transient or default
 }

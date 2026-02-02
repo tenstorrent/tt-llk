@@ -15,14 +15,14 @@ using namespace ckernel::math;
 
 inline void _llk_math_dbg_feature_disable_()
 {
-    // reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1 << 11); // Set debug feature disable bit 11
+    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 1 << 11); // Set debug feature disable bit 11
                                                              // workaround for bug tenstorrent/budabackend#1372
 }
 
 inline void _llk_math_dbg_feature_enable_()
 {
-    // tensix_sync();
-    // reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0); // Clear debug feature disable bit 11
+    tensix_sync();
+    reg_write(RISCV_DEBUG_REG_DBG_FEATURE_DISABLE, 0); // Clear debug feature disable bit 11
                                                        // workaround for bug tenstorrent/budabackend#1372
 }
 

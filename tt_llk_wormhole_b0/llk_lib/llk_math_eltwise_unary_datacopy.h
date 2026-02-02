@@ -22,7 +22,6 @@ inline void eltwise_unary_configure_addrmod(const uint dst_format);
 template <DataCopyType type, DstSync Dst, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
 inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format)
 {
-
     if (unpack_to_dest && is_32bit_input(src_format, dst_format))
     {
         math_unpack_to_dest_math_ready();
@@ -33,9 +32,6 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             // workarounds for hi/lo D2B/B2D on BH (Issue #449)
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1); // Do not 0 out ints
             TTI_SETDVALID(0b10);
-
-            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(1);
-            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Tf32));
 
             // move back to B and broadcast in 2 parts, first hi16 bits then lo16 bits
             constexpr int dest_32b_hi = 0;
@@ -55,14 +51,9 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST, 48);
             TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST, 56);
 
-            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float16));
-
             // move lo bits D2B
             TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ZERO_OFFSET, ADDR_MOD_3, p_movd2b::MOV_1_ROW, 0);
             TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movd2b::MOV_1_ROW, 16);
-
-            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(0);
-            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float32));
 
             // broadcast lo bits B2D
             TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ZERO_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST, 0);
@@ -75,7 +66,7 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST, 56);
 
             // restore fp32 mode
-            // cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(0);
+            cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(0);
             TTI_CLEARDVALID(0b10, 0);
         }
         else if constexpr (src_b_bcast_type == BroadcastType::SCALAR)
@@ -83,9 +74,6 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             // workarounds for hi/lo D2B/B2D on BH (Issue #449)
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1); // Do not 0 out ints
             TTI_SETDVALID(0b10);
-
-            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(1);
-            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Tf32));
 
             // move back to B and broadcast in 2 parts, first hi16 bits then lo16 bits
             constexpr int dest_32b_hi = 0;
@@ -104,13 +92,8 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ZERO_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST_D0_BRCST, 48);
             TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ZERO_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST_D0_BRCST, 56);
 
-            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float16));
-
             // move lo bits D2B
             TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ZERO_OFFSET, ADDR_MOD_3, p_movd2b::MOV_1_ROW, 0);
-
-            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(0);
-            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float32));
 
             // broadcast lo bits B2D
             TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ZERO_OFFSET, ADDR_MOD_3, p_movb2d::MOV_8_ROW_BRCST_D0_BRCST, 0);
@@ -132,12 +115,9 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1); // Do not 0 out ints
             TTI_SETDVALID(0b10);
 
-
 #pragma GCC unroll 2
             for (int offset = 0; offset < 2; ++offset)
             {
-            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(1);
-            cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Tf32));
 #pragma GCC unroll 2
                 for (int dst_32b_hi_lo_idx = 0; dst_32b_hi_lo_idx < 2; ++dst_32b_hi_lo_idx)
                 {
@@ -147,10 +127,6 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
                     TTI_MOVD2B(dst_32b_hi_lo_idx, p_movd2b::SRC_ROW16_OFFSET + 8, ADDR_MOD_3, p_movd2b::MOV_4_ROWS, offset * 32 + 8);
                     TTI_MOVD2B(dst_32b_hi_lo_idx, p_movd2b::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movd2b::MOV_4_ROWS, offset * 32 + 12);
 
-                    if(dst_32b_hi_lo_idx == 1){
-                        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float32));
-                    }
-
                     TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 0);
                     TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 4);
                     TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 8);
@@ -159,10 +135,6 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
                     TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 20);
                     TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 24);
                     TTI_MOVB2D(dst_32b_hi_lo_idx, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movb2d::MOV_4_ROWS_D0_BRCST, offset * 32 + 28);
-
-                    if(dst_32b_hi_lo_idx == 0){
-                        cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float16));
-                    }
                 }
             }
 
@@ -292,19 +264,9 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
         uint innerloop = (rows_per_inst == p_mova2d::MOV_1_ROW) ? total_rows : (total_rows >> 3);
         uint outerloop = num_faces;
 
-        if (((is_fp32_dest_acc_en || is_int_fpu_en) && !(dst_format == (uint)DataFormat::UInt16)) || (dst_format == (uint)DataFormat::UInt8))
-        {
-            // use elwadd to handle unpacking data into src A as fp16, but dest is in fp32 mode OR to handle uint8 datums
-            ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0));
-            tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB));
-            tmp.program();
-        }
-        else
-        {
-            ckernel_template tmp(outerloop, innerloop, TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
-            tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB));
-            tmp.program();
-        }
+        ckernel_template tmp(outerloop, innerloop, TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
+        tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB));
+        tmp.program();
     }
     else if constexpr (type == B2D)
     {
@@ -392,8 +354,7 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     eltwise_unary_configure_addrmod<type, src_b_bcast_type>(dst_format);
-
-    if (src_b_bcast_type != BroadcastType::NONE || is_32bit_input)
+    if (is_fp32_dest_acc_en)
     {
         _llk_math_dbg_feature_disable_();
     }
@@ -412,11 +373,11 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-template <BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
+template <BroadcastType src_b_bcast_type = BroadcastType::NONE, bool is_fp32_dest_acc_en = false>
 inline void _llk_math_eltwise_unary_datacopy_uninit_(const bool is_32bit_input)
 {
     // clear debug feature disable
-    if (src_b_bcast_type != BroadcastType::NONE || is_32bit_input)
+    if (is_fp32_dest_acc_en)
     {
         _llk_math_dbg_feature_enable_();
     }

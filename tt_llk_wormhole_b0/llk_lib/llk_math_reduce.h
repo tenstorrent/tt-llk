@@ -13,6 +13,7 @@
 #include "cmath_common.h"
 #include "llk_assert.h"
 #include "llk_math_common.h"
+#include "api/debug/dprint.h"
 
 using namespace ckernel;
 
@@ -36,6 +37,8 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
+
+    DPRINT<<"Reduce destination mode IN HELL\n";
     if constexpr (dim == ReduceDim::REDUCE_ROW)
     {
         // Transpose for each face in src A done at unpacker, and pool
@@ -68,18 +71,6 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
 
         if constexpr (enforce_fp32_accumulation)
         {
-            // Equivalent to cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(1);
-            TTI_RMWCIB0(
-                ALU_FORMAT_SPEC_REG_SrcA_override_MASK,
-                ALU_FORMAT_SPEC_REG_SrcA_override_MASK,
-                ALU_FORMAT_SPEC_REG_SrcA_override_ADDR32);
-
-            // Equivalent to cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Tf32));
-            TTI_RMWCIB0(
-                ALU_FORMAT_SPEC_REG_SrcA_val_MASK,
-                static_cast<std::uint32_t>(DataFormat::Tf32),
-                ALU_FORMAT_SPEC_REG_SrcA_val_ADDR32);
-
             // Move back to B and transpose in 2 parts, first hi16 bits then lo16 bits
             constexpr int dest_32b_hi = 0;
             constexpr int dest_32b_lo = 1;
@@ -98,12 +89,6 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
             TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
 
-            // Equivalent to cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float16));
-            TTI_RMWCIB0(
-                ALU_FORMAT_SPEC_REG_SrcA_val_MASK,
-                static_cast<std::uint32_t>(DataFormat::Float16),
-                ALU_FORMAT_SPEC_REG_SrcA_val_ADDR32);
-
             // move lo16 bits D2B
             TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
             // transpose face
@@ -111,26 +96,13 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
             // move row again for cases of reducing multiple tiles
             TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
 
-            // Equivalent to cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(0);
-            TTI_RMWCIB0(
-                ALU_FORMAT_SPEC_REG_SrcA_override_MASK,
-                0,
-                ALU_FORMAT_SPEC_REG_SrcA_override_ADDR32);
-
-            // Equivalent to cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float32));
-            TTI_RMWCIB0(
-                ALU_FORMAT_SPEC_REG_SrcA_val_MASK,
-                static_cast<std::uint32_t>(DataFormat::Float32),
-                ALU_FORMAT_SPEC_REG_SrcA_val_ADDR32);
-
             // move lo16 bits B2D
             TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
             TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4);
             TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
             TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
-
         }
-       else
+        else
         {
             // Datums stored in int32 dest cannot be moved to SrcB which is configured for int8 inputs
             // Cast int32 datums to int8 using SFPU instructions (load int32, store int8) before moving data to srcB
@@ -225,18 +197,6 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
 
             if constexpr (enforce_fp32_accumulation)
             {
-                // Equivalent to cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(1);
-                TTI_RMWCIB0(
-                    ALU_FORMAT_SPEC_REG_SrcA_override_MASK,
-                    ALU_FORMAT_SPEC_REG_SrcA_override_MASK,
-                    ALU_FORMAT_SPEC_REG_SrcA_override_ADDR32);
-
-                // Equivalent to cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Tf32));
-                TTI_RMWCIB0(
-                    ALU_FORMAT_SPEC_REG_SrcA_val_MASK,
-                    static_cast<std::uint32_t>(DataFormat::Tf32),
-                    ALU_FORMAT_SPEC_REG_SrcA_val_ADDR32);
-
                 // Move back to B and transpose in 2 parts, first hi16 bits then lo16 bits
                 constexpr int dest_32b_hi = 0;
                 constexpr int dest_32b_lo = 1;
@@ -255,26 +215,12 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
                 TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
                 TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
 
-                TTI_RMWCIB0(
-                    ALU_FORMAT_SPEC_REG_SrcA_val_MASK,
-                    static_cast<std::uint32_t>(DataFormat::Float16),
-                    ALU_FORMAT_SPEC_REG_SrcA_val_ADDR32);
-
                 // move lo16 bits D2B
                 TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
                 // transpose face
                 TTI_TRNSPSRCB;
                 // move row again for cases of reducing multiple tiles
                 TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-
-                TTI_RMWCIB0(
-                    ALU_FORMAT_SPEC_REG_SrcA_override_MASK,
-                    0,
-                    ALU_FORMAT_SPEC_REG_SrcA_override_ADDR32);
-                TTI_RMWCIB0(
-                    ALU_FORMAT_SPEC_REG_SrcA_val_MASK,
-                    static_cast<std::uint32_t>(DataFormat::Float32),
-                    ALU_FORMAT_SPEC_REG_SrcA_val_ADDR32);
 
                 // move lo16 bits B2D
                 TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
@@ -504,6 +450,7 @@ inline void reduce_configure_mop()
 template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_init_()
 {
+    DPRINT<<"Reduce init destination mode\n";
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
@@ -516,6 +463,7 @@ inline void _llk_math_reduce_init_()
     if constexpr (enforce_fp32_accumulation)
     {
         static_assert(is_fp32_dest_acc_en, "FP32 Dest must be enabled for FP32 accumulation");
+        DPRINT<<"Reduce init destination mode\n";
         // MOVB2D/D2B depends on SrcA ALU Format - Hi/Lo16 does not work with Tf32 (only on WH)
         // This is needed because FP32 data from L1 that is unpacked to Src registers is reduced to Tf32
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>((uint)DataFormat::Float32);
