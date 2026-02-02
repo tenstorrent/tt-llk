@@ -9,10 +9,10 @@ import torch
 
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .format_config import DataFormat
-from .fused_math import Math, MatmulFpu
+from .fused_math import NewMath
 from .fused_operand import Operand, OperandMapping
 from .fused_packer import Packer
-from .fused_unpacker import Unpacker, UnpackerTilizeA
+from .fused_unpacker import UnpackerTilizeA
 from .llk_params import (
     BroadcastType,
     DataCopyType,
@@ -28,8 +28,8 @@ from .matmul_sweep import validate_tile_dimensions
 
 @dataclass
 class FusedOperation:
-    unpacker: Type[Unpacker]
-    math: Math
+    # unpacker: Type[Unpacker]
+    math: NewMath
     packer: Type[Packer]
     operand_mapping: OperandMapping
     stage_id: int = 0
@@ -123,10 +123,10 @@ class FusedOperation:
         if self.batch_size <= 0 or self.batch_size > self.output.tile_count:
             self.batch_size = self.output.tile_count
 
-        if isinstance(self.math.fpu, MatmulFpu):
-            tile_count = self.output.tile_count
-            if self.batch_size != 1 and self.batch_size != tile_count:
-                self.batch_size = tile_count
+        # if isinstance(self.math.operations[0].fpu, MatmulFpu):
+        #     tile_count = self.output.tile_count
+        #     if self.batch_size != 1 and self.batch_size != tile_count:
+        #         self.batch_size = tile_count
 
         if self.broadcast_type != BroadcastType.None_:
             self.data_copy_type = DataCopyType.B2D
@@ -152,11 +152,12 @@ class FusedOperation:
         return mapping.resolve_output_dimensions(mapping.operand_registry)
 
     def unpack(self, config) -> str:
-        unpacker_instance = self.unpacker()
-        return unpacker_instance.exec(self, config)
+        # unpacker_instance = self.unpacker()
+        # return unpacker_instance.exec(self, config)
+        return self.math.unpack_body(self, config)
 
     def do_math(self, config) -> str:
-        return self.math.exec(self, config)
+        return self.math.math_body(self, config)
 
     def pack(self, config) -> str:
         packer_instance = self.packer()

@@ -334,7 +334,7 @@ class UnpackerAB(Unpacker):
             "true" if operation.unpack_transpose_within_face.value else "false"
         )
 
-        if isinstance(operation.math.fpu, ReduceFpu):
+        if isinstance(operation.math.operations[0].fpu, ReduceFpu):
             if operation.broadcast_type != BroadcastType.None_:
                 raise ValueError("ReduceFpu does not support broadcasted inputs.")
 
@@ -508,6 +508,7 @@ class UnpackerTilizeA(Unpacker):
         num_faces = operation.num_faces
         block_rt_dim = operation.dest_tiles_h
         block_ct_dim = operation.dest_tiles_w
+        # tile_cnt = operation.output.tile_count
 
         # Blackhole
         if config.architecture == ChipArchitecture.BLACKHOLE:
@@ -523,6 +524,11 @@ class UnpackerTilizeA(Unpacker):
 
         # Wormhole
         elif config.architecture == ChipArchitecture.WORMHOLE:
+            # return (
+            #     f"    for (uint32_t i = 0; i < {tile_cnt}; i++)\n"
+            #     f"        _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
+            #     f"    }}\n"
+            # )
             return (
                 f"    for (std::uint32_t i = 0; i < {block_rt_dim}; i++)\n"
                 f"    {{\n"

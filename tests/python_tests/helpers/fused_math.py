@@ -6,9 +6,8 @@ from typing import TYPE_CHECKING, List, Type
 
 import torch
 
-from .golden_generators import (  # TilizeGolden,
+from .golden_generators import (
     BinarySFPUGolden,
-    BroadcastGolden,
     DataCopyGolden,
     EltwiseBinaryGolden,
     MatmulGolden,
@@ -20,6 +19,7 @@ from .golden_generators import (  # TilizeGolden,
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
+    from .fused_unpacker import Unpacker, MatmulUnpacker, UnpackerAB
 
 from .chip_architecture import ChipArchitecture
 from .llk_params import (
@@ -29,13 +29,255 @@ from .llk_params import (
     PerfRunType,
     ReduceDimension,
     ReducePool,
+    Transpose,
 )
 from .tilize_untilize import tilize_block, untilize_block
+
+
+class FusedCompute:
+    def __init__(
+        self,
+        unpacker=None,
+        fpu=None,
+        sfpu=None,
+        unpack_transpose_faces: Transpose = Transpose.No,
+        unpack_transpose_within_face: Transpose = Transpose.No,
+        broadcast_type: BroadcastType = BroadcastType.None_,
+    ):
+        if fpu is None and sfpu is None:
+            raise ValueError("Compute unit need fpu or sfpu unit")
+        if fpu is not None and sfpu is not None:
+            raise ValueError("Compute unit can be only fpu or sfpu")
+        if sfpu is not None and unpacker is not None:
+            raise ValueError("Sfpu unit does not support unpacker")
+        if fpu is not None and unpacker not in fpu.supported_unpackers():
+            raise ValueError(f"{fpu} does not support {unpacker}")
+
+        self.unpacker = unpacker
+        self.fpu = fpu
+        self.sfpu = sfpu
+        self.unpack_transpose_faces = unpack_transpose_faces
+        self.unpack_transpose_within_face = unpack_transpose_within_face
+        self.broadcast_type = broadcast_type
+
+    def unpack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        if self.unpacker is None:
+            return ""
+        return self.unpacker.exec(operation, config)
+
+    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        code = ""
+
+        if self.fpu is not None:
+            code += self.fpu.init(operation, config)
+            code += self.fpu.calculate(operation, config)
+            code += self.fpu.uninit(operation, config)
+
+        if self.sfpu is not None:
+            code += self.sfpu.init(operation, config)
+            code += self.sfpu.calculate(operation, config)
+            code += self.sfpu.uninit(operation, config)
+
+        return code
+
+    def golden():
+        # TODO
+        pass
+
+
+class NewMath:
+    operations: List[FusedCompute]
+
+    def __init__(self, operations: List[FusedCompute]):
+        self.operations = operations
+
+    def get_unpackers(self) -> List["Unpacker"]:
+        unpackers: List["Unpacker"] = []
+
+        for operation in self.operations:
+            if operation.unpacker is not None:
+                unpackers.append(operation.unpacker)
+
+        return unpackers
+
+    def get_math_units(self) -> List["Unpacker"]:
+        math_units = []
+
+        for operation in self.operations:
+            if operation.fpu is not None:
+                math_units.append(operation.fpu)
+
+            if operation.sfpu is not None:
+                math_units.append(operation.sfpu)
+
+        return math_units
+
+    def get_fpu_units(self) -> List["Unpacker"]:
+        math_units = []
+
+        for operation in self.operations:
+            if operation.fpu is not None:
+                math_units.append(operation.fpu)
+
+        return math_units
+
+    def get_sfpu_units(self) -> List["Unpacker"]:
+        math_units = []
+
+        for operation in self.operations:
+            if operation.sfpu is not None:
+                math_units.append(operation.sfpu)
+
+        return math_units
+
+    def unpack_matmul_body(
+        self, unpackers, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        if unpackers.count() > 1:
+            raise ValueError("Only one matmul unpacker is supported")
+
+    def unpack_body(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        unpackers = self.get_unpackers()
+        from .fused_unpacker import MatmulUnpacker
+
+        if isinstance(unpackers[0], MatmulUnpacker):
+            return self.unpack_matmul_body(unpackers, operation, config)
+
+        batch_size = operation.batch_size
+        tile_cnt = operation.output.tile_count
+
+        code = ""
+        for batch_start in range(0, tile_cnt, batch_size):
+            batch_end = min(batch_start + batch_size, tile_cnt)
+            batch_tile_cnt = batch_end - batch_start
+
+            for unpacker in unpackers:
+                if unpacker == MatmulUnpacker:
+                    raise ValueError("Matmul unpacker can not be here")
+                for i in range(batch_tile_cnt):
+                    code += unpacker().exec(operation, config)
+
+        return code
+
+    def math_hw_configure(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        stage = operation.stage_id
+        dest_acc = config.dest_acc.value
+        if stage == 0:
+            code = f"_llk_math_hw_configure_<{dest_acc}>(math_format{stage}, math_format{stage});\n"
+        else:
+            code = f"_llk_math_reconfig_data_format_<{dest_acc}, false>(math_format{stage}, math_format{stage});\n"
+
+        code += f"_llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n\n"
+
+        return code
+
+    def _wait_for_dest(self, operation: "FusedOperation") -> str:
+        return f"_llk_math_wait_for_dest_available_<dest_sync{operation.stage_id}>();\n"
+
+    def _dest_section_done(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        return f"_llk_math_dest_section_done_<dest_sync{operation.stage_id}, {config.dest_acc.value}>();\n"
+
+    def _matmul_tile_loop(
+        self, operation: "FusedOperation", config: "GlobalConfig", body_fn
+    ) -> str:
+        rt_dim = operation.rt_dim
+        ct_dim = operation.ct_dim
+        code = f"for (uint32_t mt = 0; mt < {rt_dim}; ++mt) {{\n"
+        code += f"for (uint32_t nt = 0; nt < {ct_dim}; ++nt) {{\n"
+        code += body_fn()
+        code += "}\n"
+        code += "}\n"
+        return code
+
+    def _batch_loop(
+        self, operation: "FusedOperation", config: "GlobalConfig", body_fn
+    ) -> str:
+        batch_size = operation.batch_size
+        tile_cnt = operation.output.tile_count
+
+        num_full_batches = tile_cnt // batch_size
+        remaining_tiles = tile_cnt % batch_size
+
+        code = ""
+
+        if num_full_batches > 0:
+            code += (
+                f"for (uint32_t batch = 0; batch < {num_full_batches}; ++batch) {{\n"
+            )
+            code += body_fn(batch_size)
+            code += "}\n"
+
+        if remaining_tiles > 0:
+            code += "{\n"
+            code += body_fn(remaining_tiles)
+            code += "}\n"
+
+        return code
+
+    def math_body(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        batch_size = operation.batch_size
+        code = self.math_hw_configure(operation, config)
+
+        math_units = self.get_math_units()
+        fpu_units = self.get_fpu_units()
+        sfpu_units = self.get_sfpu_units()
+
+        if isinstance(self.operations[0].fpu, MatmulFpu):
+            if batch_size == 1:
+
+                def matmul_body():
+                    body = self._wait_for_dest(operation)
+                    for unit in math_units:
+                        body += unit.init(operation, config)
+                        body += unit.calculate(operation, config)
+                        body += unit.uninit(operation, config)
+                    body += self._dest_section_done(operation, config)
+                    return body
+
+                code += self._matmul_tile_loop(operation, config, matmul_body)
+            else:
+                code += self._wait_for_dest(operation)
+                # code += self.fpu.init(operation, config)
+                # code += self.fpu.calculate(operation, config)
+                # code += self.fpu.uninit(operation, config)
+                # code += self._sfpu_code(operation, config)
+                for unit in math_units:
+                    code += unit.init(operation, config)
+                    if unit in fpu_units:
+                        code += unit.calculate(operation, config, 0)
+                    if unit in sfpu_units:
+                        code += unit.calculate(operation, config)
+                    code += unit.uninit(operation, config)
+                code += self._dest_section_done(operation, config)
+        else:
+
+            def batch_body(batch_tile_cnt):
+                body = self._wait_for_dest(operation)
+                for unit in math_units:
+                    body += unit.init(operation, config)
+                    if unit in fpu_units:
+                        body += unit.calculate(operation, config, 0)
+                    if unit in sfpu_units:
+                        body += unit.calculate(operation, config)
+                    body += unit.uninit(operation, config)
+                body += self._dest_section_done(operation, config)
+                return body
+
+            code += self._batch_loop(operation, config, batch_body)
+
+        return code
 
 
 class Fpu:
     def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
+
+    def supported_unpackers(self) -> List["Unpacker"]:
+        return []
 
     def calculate(
         self, operation: "FusedOperation", config: "GlobalConfig", tile_idx: int
@@ -67,6 +309,9 @@ class MatmulFpu(Fpu):
             "llk_math_common.h",
             "llk_math_matmul.h",
         ]
+
+    def supported_unpackers(self) -> List["Unpacker"]:
+        return [MatmulUnpacker]
 
     def golden(
         self,
@@ -145,6 +390,11 @@ class EltwiseFpu(Fpu):
             "llk_math_eltwise_binary.h",
         ]
 
+    def supported_unpackers(self) -> List["Unpacker"]:
+        from .fused_unpacker import UnpackerA, UnpackerAB
+
+        return [UnpackerAB, UnpackerA]
+
     def golden(
         self,
         tensor_a: torch.Tensor,
@@ -206,6 +456,9 @@ class ReduceFpu(Fpu):
             "llk_math_common.h",
             "llk_math_reduce.h",
         ]
+
+    def supported_unpackers(self) -> List["Unpacker"]:
+        return [UnpackerAB]
 
     def reduce_dim(self) -> str:
         return f"ReduceDim::{self.operation.cpp_enum_value}"
@@ -299,6 +552,11 @@ class DatacopyFpu(Fpu):
             "llk_math_common.h",
             "llk_math_eltwise_unary_datacopy.h",
         ]
+
+    def supported_unpackers(self) -> List["Unpacker"]:
+        from .fused_unpacker import UnpackerA, UnpackerTilizeA
+
+        return [UnpackerA, UnpackerTilizeA]
 
     def golden(
         self,

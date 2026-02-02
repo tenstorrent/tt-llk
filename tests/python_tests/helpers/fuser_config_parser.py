@@ -12,8 +12,9 @@ from helpers.fused_math import (
     BinarySfpu,
     DatacopyFpu,
     EltwiseFpu,
-    Math,
+    FusedCompute,
     MatmulFpu,
+    NewMath,
     ReduceFpu,
     UnarySfpu,
 )
@@ -160,74 +161,99 @@ BROADCAST_TYPE_MAP: Dict[str, BroadcastType] = {
 
 def parse_math_operation(
     math_config: Dict[str, Any], operands: OperandRegistry
-) -> Math:
-    fpu_type = math_config.get("fpu", "Datacopy")
+) -> FusedCompute:
+    type = math_config["type"]
 
-    if fpu_type in FPU_OPERATION_MAP:
-        math_op = FPU_OPERATION_MAP[fpu_type]
-        fpu = EltwiseFpu(math_op)
-    elif fpu_type in REDUCE_OPERATION_MAP:
-        math_op = REDUCE_OPERATION_MAP[fpu_type]
+    if type == "Fpu":
+        fpu_type = math_config.get("operation", None)
+        if fpu_type is None:
+            raise ValueError("Fpu operation can not be None")
 
-        pool_str = math_config.get("reduce_pool", "Max")
-        try:
-            pool = REDUCE_POOL_MAP[pool_str]
-        except KeyError:
-            raise ValueError(f"Unsupported reduce pool: {pool_str}")
+        if fpu_type in FPU_OPERATION_MAP:
+            math_op = FPU_OPERATION_MAP[fpu_type]
+            fpu = EltwiseFpu(math_op)
+        elif fpu_type in REDUCE_OPERATION_MAP:
+            math_op = REDUCE_OPERATION_MAP[fpu_type]
 
-        fpu = ReduceFpu(math_op, pool=pool)
+            pool_str = math_config.get("reduce_pool", "Max")
+            try:
+                pool = REDUCE_POOL_MAP[pool_str]
+            except KeyError:
+                raise ValueError(f"Unsupported reduce pool: {pool_str}")
 
-    elif fpu_type == "Datacopy":
-        fpu = DatacopyFpu()
-    elif fpu_type == "Matmul":
-        fpu = MatmulFpu()
+            fpu = ReduceFpu(math_op, pool=pool)
+
+        elif fpu_type == "Datacopy":
+            fpu = DatacopyFpu()
+        elif fpu_type == "Matmul":
+            fpu = MatmulFpu()
+        else:
+            raise ValueError(f"Unsupported FPU type: {fpu_type}")
+
+        kwargs = {}
+
+        if "unpacker" in math_config:
+            kwargs["unpacker"] = UNPACKER_MAP[math_config["unpacker"]]
+        if "unpack_transpose_within_face" in math_config:
+            kwargs["unpack_transpose_within_face"] = TRANSPOSE_MAP[
+                math_config["unpack_transpose_within_face"]
+            ]
+        if "unpack_transpose_faces" in math_config:
+            kwargs["unpack_transpose_faces"] = TRANSPOSE_MAP[
+                math_config["unpack_transpose_faces"]
+            ]
+        if "broadcast_type" in math_config:
+            kwargs["broadcast_type"] = BROADCAST_TYPE_MAP[math_config["broadcast_type"]]
+
+        return FusedCompute(
+            fpu=fpu,
+            sfpu=None,
+            **kwargs,
+        )
+
+    elif type == "UnarySfpu":
+        operation = SFPU_UNARY_OPERATION_MAP[math_config["operation"]]
+        approx_mode = APPROXIMATION_MODE_MAP.get(
+            math_config.get("approximation_mode", "No"), ApproximationMode.No
+        )
+        iterations = math_config.get("iterations", 8)
+        dest_idx = math_config.get("dst_dest_tile_index", 0)
+        fill_const_value = math_config.get("fill_const_value", 1.0)
+
+        return FusedCompute(
+            unpacker=None,
+            fpu=None,
+            sfpu=UnarySfpu(
+                operation, approx_mode, iterations, dest_idx, fill_const_value
+            ),
+        )
+
+    elif type == "BinarySfpu":
+        operation = SFPU_BINARY_OPERATION_MAP[math_config["operation"]]
+        approx_mode = APPROXIMATION_MODE_MAP.get(
+            math_config.get("approximation_mode", "No"), ApproximationMode.No
+        )
+        iterations = math_config.get("iterations", 8)
+        src1_dest_tile_index = math_config.get("src1_dest_tile_index", 0)
+        src2_dest_tile_index = math_config.get("src2_dest_tile_index", 0)
+        dst_dest_tile_index = math_config.get("dst_dest_tile_index", 0)
+
+        return FusedCompute(
+            unpacker=None,
+            fpu=None,
+            sfpu=BinarySfpu(
+                operation,
+                approx_mode,
+                iterations,
+                src1_dest_tile_index,
+                src2_dest_tile_index,
+                dst_dest_tile_index,
+            ),
+        )
     else:
-        raise ValueError(f"Unsupported FPU type: {fpu_type}")
+        raise ValueError(f"Unsupported math type: {type}")
 
-    sfpu_ops = []
-    if "sfpu" in math_config:
-        for sfpu_config in math_config["sfpu"]:
-            sfpu_type = sfpu_config.get("type")
-
-            if sfpu_type == "UnarySfpu":
-                operation = SFPU_UNARY_OPERATION_MAP[sfpu_config["operation"]]
-                approx_mode = APPROXIMATION_MODE_MAP.get(
-                    sfpu_config.get("approximation_mode", "No"), ApproximationMode.No
-                )
-                iterations = sfpu_config.get("iterations", 8)
-                dest_idx = sfpu_config.get("dst_dest_tile_index", 0)
-                fill_const_value = sfpu_config.get("fill_const_value", 1.0)
-
-                sfpu_ops.append(
-                    UnarySfpu(
-                        operation, approx_mode, iterations, dest_idx, fill_const_value
-                    )
-                )
-
-            elif sfpu_type == "BinarySfpu":
-                operation = SFPU_BINARY_OPERATION_MAP[sfpu_config["operation"]]
-                approx_mode = APPROXIMATION_MODE_MAP.get(
-                    sfpu_config.get("approximation_mode", "No"), ApproximationMode.No
-                )
-                iterations = sfpu_config.get("iterations", 8)
-                src1_dest_tile_index = sfpu_config.get("src1_dest_tile_index", 0)
-                src2_dest_tile_index = sfpu_config.get("src2_dest_tile_index", 0)
-                dst_dest_tile_index = sfpu_config.get("dst_dest_tile_index", 0)
-
-                sfpu_ops.append(
-                    BinarySfpu(
-                        operation,
-                        approx_mode,
-                        iterations,
-                        src1_dest_tile_index,
-                        src2_dest_tile_index,
-                        dst_dest_tile_index,
-                    )
-                )
-            else:
-                raise ValueError(f"Unsupported SFPU type: {sfpu_type}")
-
-    return Math(fpu, sfpu_ops)
+    # return Math(fpu, sfpu_ops)
 
 
 def parse_operation(
@@ -260,16 +286,11 @@ def parse_operation(
         src_b_const_value=op_config.get("src_b_const_value"),
     )
 
-    unpacker_name = op_config.get("unpacker", "UnpackerA")
-    unpacker = UNPACKER_MAP.get(unpacker_name)
-    if unpacker is None:
-        valid_unpackers = ", ".join(UNPACKER_MAP.keys())
-        raise ValueError(
-            f"Invalid unpacker '{unpacker_name}' in operation config. "
-            f"Valid unpackers are: {valid_unpackers}"
-        )
+    math_operations = []
 
-    math = parse_math_operation(op_config.get("math", {}), operands)
+    if "math" in op_config:
+        for math_config in op_config["math"]:
+            math_operations.append(parse_math_operation(math_config, operands))
 
     packer_name = op_config.get("packer", "Packer")
     packer = PACKER_MAP.get(packer_name)
@@ -301,8 +322,9 @@ def parse_operation(
 
     return FusedOperation(
         operand_mapping=operand_mapping,
-        unpacker=unpacker,
-        math=math,
+        # unpacker=unpacker,
+        # math=math,
+        math=NewMath(math_operations),
         packer=packer,
         **kwargs,
     )

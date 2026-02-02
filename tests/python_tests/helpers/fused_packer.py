@@ -86,7 +86,7 @@ class Packer:
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
         batch_size = operation.batch_size
-        if isinstance(operation.math.fpu, MatmulFpu) and batch_size == 1:
+        if isinstance(operation.math.operations[0].fpu, MatmulFpu) and batch_size == 1:
             return self._matmul_tile_loop(operation, config)
         return self._batch_loop(operation, config)
 
@@ -210,7 +210,7 @@ class Packer:
         else:
             raise ValueError("Unsupported architecture for packer")
 
-        if isinstance(operation.math.fpu, ReduceFpu):
+        if isinstance(operation.math.operations[0].fpu, ReduceFpu):
             reduce_dim = operation.math.fpu.reduce_dim()
             code += f"    _llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
 
@@ -231,7 +231,7 @@ class Packer:
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         code = ""
 
-        if isinstance(operation.math.fpu, ReduceFpu):
+        if isinstance(operation.math.operations[0].fpu, ReduceFpu):
             code = "    _llk_pack_reduce_mask_clear_();\n"
 
         return code

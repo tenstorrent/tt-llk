@@ -20,9 +20,9 @@ class UnpackKernelGenerator:
     def generate(self) -> str:
         # Collect all unique headers from all operations
         all_headers = set()
-        for op in self.config.pipeline:
-            unpacker_instance = op.unpacker()
-            all_headers.update(unpacker_instance.get_headers())
+        # for op in self.config.pipeline:
+        #     unpacker_instance = op.unpacker()
+        #     all_headers.update(unpacker_instance.get_headers())
 
         # Generate include statements
         includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
@@ -57,8 +57,8 @@ class MathKernelGenerator:
     def generate(self) -> str:
         # Collect all unique headers from all operations
         all_headers = set()
-        for op in self.config.pipeline:
-            all_headers.update(op.math.get_headers())
+        # for op in self.config.pipeline:
+        #     all_headers.update(op.math.get_headers())
 
         # Generate include statements
         includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
