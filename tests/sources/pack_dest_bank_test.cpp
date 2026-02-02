@@ -123,7 +123,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #ifdef ARCH_BLACKHOLE
     // Pack all tiles at once - MOP handles everything
-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(params->DST_INDEX, L1_ADDRESS(buffer_Res[0]), params->TILE_CNT);
+    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(params->DST_INDEX, L1_ADDRESS(buffer_Res[0]));
 #else
     // Fallback to traditional packing for non-Blackhole architectures
     for (int i = 0; i < params->TILE_CNT; ++i)

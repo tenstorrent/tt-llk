@@ -181,7 +181,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         ZONE_SCOPED("INIT")
 #ifdef ARCH_BLACKHOLE
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT, FACE_R_DIM, TILE_C_DIM, 4);
-        _llk_pack_init_<false, false, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces, false, false, params->TILE_CNT);
+        _llk_pack_init_<false, false, false>(formats.pack_src, formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces, false, false, params->TILE_CNT);
         reconfigure_packer_l1_acc(0);
 #else
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT, FACE_R_DIM, 4);
@@ -206,7 +206,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 {
                     // Left in a loop here since perf measurements are dividing with this TILE_CNT also
 
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(tile, PERF_ADDRESS(PERF_OUTPUT, tile), 1);
+                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
                 }
             }
         }
