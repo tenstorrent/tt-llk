@@ -60,26 +60,6 @@ class FusedCompute:
         self.unpack_transpose_within_face = unpack_transpose_within_face
         self.broadcast_type = broadcast_type
 
-    def unpack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        if self.unpacker is None:
-            return ""
-        return self.unpacker.exec(operation, config)
-
-    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        code = ""
-
-        if self.fpu is not None:
-            code += self.fpu.init(operation, config)
-            code += self.fpu.calculate(operation, config)
-            code += self.fpu.uninit(operation, config)
-
-        if self.sfpu is not None:
-            code += self.sfpu.init(operation, config)
-            code += self.sfpu.calculate(operation, config)
-            code += self.sfpu.uninit(operation, config)
-
-        return code
-
     def golden():
         # TODO
         pass
