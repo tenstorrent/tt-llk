@@ -7,11 +7,16 @@
 
 #include "ckernel.h"
 #include "llk_defs.h"
+#include "tensor_shape.h"
 
 // Globals
 uint32_t unp_cfg_context          = 0;
 uint32_t pack_sync_tile_dst_ptr   = 0;
 uint32_t math_sync_tile_dst_index = 0;
+
+using namespace ckernel;
+// Default 32x32 tile shape
+static constexpr TensorShape DEFAULT_TENSOR_SHAPE = {FACE_R_DIM, FACE_C_DIM, MAX_NUM_FACES_R_DIM, MAX_NUM_FACES_C_DIM};
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -23,7 +28,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /*num_faces */, 4 /* num_faces */);
-    _llk_unpack_AB_init_<>();
+    _llk_unpack_AB_init_<>(DEFAULT_TENSOR_SHAPE);
     for (int i = 0; i < params->TILE_CNT; i++)
     {
         _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
@@ -42,18 +47,13 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0);
+    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE>(DEFAULT_TENSOR_SHAPE, 0 /* acc_to_dest */);
 
     for (int i = 0; i < params->TILE_CNT; i++)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        _llk_math_eltwise_binary_<
-            ELTWISE_BINARY_OP,
-            BroadcastType::NONE,
-            DstSync::SyncHalf,
-            is_fp32_dest_acc_en,
-            MATH_FIDELITY,
-            EltwiseBinaryReuseDestType::NONE>(4, 0, false);
+        _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en>(
+            DEFAULT_TENSOR_SHAPE, 0 /* dst_index */, false /* clear_fp32_dst_acc */);
         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
 }
