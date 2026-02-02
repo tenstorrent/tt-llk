@@ -86,7 +86,8 @@ inline void _llk_pack_mop_config_(
     const std::uint32_t tile_c_dim           = TILE_C_DIM,
     const std::uint32_t num_faces            = 4,
     [[maybe_unused]] const bool partial_face = false,
-    [[maybe_unused]] const bool narrow_tile  = false)
+    [[maybe_unused]] const bool narrow_tile  = false,
+    const std::uint32_t num_tiles            = 1)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(!partial_face, "partial_face: this parameter is unused");
@@ -408,7 +409,7 @@ inline void _llk_pack_mop_config_(
         const uint PACK_INTF_SEL = face_r_dim == 1 ? p_pacr::SINGLE_INTF_ACTIVE : (face_r_dim == 2 ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::ALL_INTF_ACTIVE);
 
         const uint MOP_INNER_LOOP = (face_r_dim < 4) ? 1 : face_r_dim >> 2;
-        const uint MOP_OUTER_LOOP = num_faces;
+        const uint MOP_OUTER_LOOP = num_faces * num_tiles;
 
         ckernel::ckernel_template tmp(
             MOP_OUTER_LOOP,
@@ -481,7 +482,7 @@ inline void _llk_pack_reconfig_data_format_(
 
     if constexpr (is_tile_dim_reconfig_en)
     {
-        _llk_pack_mop_config_<false, false>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+        _llk_pack_mop_config_<false, false>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, 1);
     }
 }
 
@@ -510,11 +511,12 @@ inline void _llk_pack_init_(
     const std::uint32_t tile_c_dim = TILE_C_DIM,
     const std::uint32_t num_faces  = 4,
     const bool partial_face        = false,
-    const bool narrow_tile         = false)
+    const bool narrow_tile         = false,
+    const std::uint32_t num_tiles  = 1)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     _llk_pack_configure_addrmod_<untilize, tilize>();
-    _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+    _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, num_tiles);
 }
 
 // TODO NC: Clean up as the part of tt-metal#34587
@@ -525,12 +527,13 @@ inline void _llk_pack_init_(
     const std::uint32_t face_r_dim,
     const std::uint32_t tile_c_dim,
     const std::uint32_t num_faces,
-    const bool partial_face = false,
-    const bool narrow_tile  = false)
+    const bool partial_face       = false,
+    const bool narrow_tile        = false,
+    const std::uint32_t num_tiles = 1)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     _llk_pack_configure_addrmod_<untilize, tilize>();
-    _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile);
+    _llk_pack_mop_config_<untilize, zero_output, tilize>(pack_dst_format, face_r_dim, tile_c_dim, num_faces, partial_face, narrow_tile, num_tiles);
     set_packer_strides<untilize, tilize>(pack_src_format, tile_c_dim);
     TT_SETADCXX(p_setadc::PAC, FACE_C_DIM - 1, 0x0);
 }
@@ -541,95 +544,23 @@ inline void _llk_pack_uninit_()
 }
 
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
-inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
+inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t num_tiles = 1)
 {
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
     program_packer_destination(address);
 
-    mop_run(1, 1);
+    if (num_tiles > 1)
+    {
+        // Run the MOP - handles all tiles in one go
+        ckernel::ckernel_template::run();
+    }
+    else
+    {
+        mop_run(1, 1);
+    }
 
     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); // reset z counters
-}
-
-inline void _llk_pack_dest_bank_mop_config_(const std::uint32_t num_tiles = 8, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
-{
-    const uint PACK_INTF_SEL        = face_r_dim == 1 ? p_pacr::SINGLE_INTF_ACTIVE : (face_r_dim == 2 ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::ALL_INTF_ACTIVE);
-    constexpr uint ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
-
-    const uint MOP_INNER_LOOP = (face_r_dim < 4) ? 1 : face_r_dim >> 2;
-    const uint MOP_OUTER_LOOP = num_faces * num_tiles;
-
-    ckernel::ckernel_template tmp(
-        MOP_OUTER_LOOP,
-        MOP_INNER_LOOP,
-        TT_OP_PACR(
-            p_pacr::CFG_CTXT_0,
-            p_pacr::NO_ROW_PAD_ZERO,
-            p_pacr::DST_ACCESS_NORMAL_MODE,
-            ADDR_MOD_0,
-            p_pacr::ADDR_CNT_CTXT_0,
-            ZERO_OUTPUT_FLAG,
-            PACK_INTF_SEL,
-            0,
-            0,
-            0,
-            0,
-            0));
-    tmp.set_last_inner_loop_instr(TT_OP_PACR(
-        p_pacr::CFG_CTXT_0,
-        p_pacr::NO_ROW_PAD_ZERO,
-        p_pacr::DST_ACCESS_NORMAL_MODE,
-        ADDR_MOD_2,
-        p_pacr::ADDR_CNT_CTXT_0,
-        ZERO_OUTPUT_FLAG,
-        PACK_INTF_SEL,
-        0,
-        0,
-        0,
-        0,
-        0));
-    tmp.set_last_outer_loop_instr(TT_OP_PACR(
-        p_pacr::CFG_CTXT_0,
-        p_pacr::NO_ROW_PAD_ZERO,
-        p_pacr::DST_ACCESS_NORMAL_MODE,
-        ADDR_MOD_1,
-        p_pacr::ADDR_CNT_CTXT_0,
-        ZERO_OUTPUT_FLAG,
-        PACK_INTF_SEL,
-        0,
-        0,
-        0,
-        0,
-        1));
-
-    tmp.program();
-}
-
-template <bool untilize = false, bool tilize = false>
-inline void _llk_pack_dest_bank_init_(const std::uint32_t num_tiles = 8, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
-{
-    // Configure address modifiers for multi-tile packing
-    _llk_pack_configure_addrmod_<untilize, tilize>();
-
-    // Configure custom MOP for multi-tile packing
-    _llk_pack_dest_bank_mop_config_(num_tiles, face_r_dim, num_faces);
-}
-
-template <DstSync Dst, bool is_fp32_dest_acc_en>
-inline void _llk_pack_dest_bank_(const std::uint32_t start_tile_index, const std::uint32_t base_address, const std::uint32_t num_tiles = 8)
-{
-    // Set initial tile index
-    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, start_tile_index);
-
-    // Program base address once without stall
-    program_packer_destination_nostall(base_address);
-
-    // Run the MOP - handles all tiles in one go
-    ckernel::ckernel_template::run();
-
-    // Reset z counters
-    TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101);
 }
 
 #include "llk_pack_untilize.h"

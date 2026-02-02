@@ -110,8 +110,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, tilize_en>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, params->num_faces);
 
-    // Initialize dest bank packing for all tiles at once
-    _llk_pack_dest_bank_init_<false, tilize_en>(params->TILE_CNT, FACE_R_DIM, params->num_faces);
+    // Initialize packing for all tiles at once
+    _llk_pack_init_<false, false, tilize_en>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces, false, false, params->TILE_CNT);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, params->num_faces);
@@ -122,8 +122,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_packer_wait_for_math_done_();
 
 #ifdef ARCH_BLACKHOLE
-    // Pack all tiles at once using the dest bank function - MOP handles everything
-    _llk_pack_dest_bank_<DstSync::SyncHalf, is_fp32_dest_acc_en>(params->DST_INDEX, L1_ADDRESS(buffer_Res[0]), params->TILE_CNT);
+    // Pack all tiles at once - MOP handles everything
+    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(params->DST_INDEX, L1_ADDRESS(buffer_Res[0]), params->TILE_CNT);
 #else
     // Fallback to traditional packing for non-Blackhole architectures
     for (int i = 0; i < params->TILE_CNT; ++i)

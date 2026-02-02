@@ -63,7 +63,7 @@ def get_valid_num_faces_datacopy(tilize):
     formats=input_output_formats(
         [
             # DataFormat.Float32,
-            # DataFormat.Float16,
+            DataFormat.Float16,
             DataFormat.Float16_b,
             # DataFormat.Bfp8_b,
         ]
@@ -72,12 +72,17 @@ def get_valid_num_faces_datacopy(tilize):
     num_faces=4,
     tilize=[Tilize.No],
     dest_index=0,
+    input_dimensions=[[32, 32], [32, 64], [128, 32], [128, 64]],
 )
 def test_pack_dest_bank(
-    formats, dest_acc, num_faces, tilize, dest_index, workers_tensix_coordinates
+    formats,
+    dest_acc,
+    num_faces,
+    tilize,
+    dest_index,
+    input_dimensions,
+    workers_tensix_coordinates,
 ):
-
-    input_dimensions = [64, 128]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -86,26 +91,6 @@ def test_pack_dest_bank(
         input_dimensions_B=input_dimensions,
     )
 
-    # # Calculate tile count: 64 rows / 32 = 2 tile rows, 128 cols / 32 = 4 tile cols
-    # tile_rows = input_dimensions[0] // 32
-    # tile_cols = input_dimensions[1] // 32
-    # tile_cnt_A = tile_rows * tile_cols  # Should be 8 tiles
-
-    # # Create custom stimuli: each tile filled with (tile_index + 1)
-    # # Each tile has 32x32 = 1024 values
-    # src_A = []
-    # for tile_idx in range(tile_cnt_A):
-    #     tile_value = float(tile_idx + 1)
-    #     src_A.extend([tile_value] * 1024)  # 1024 values per tile
-
-    # src_A = torch.tensor(src_A, dtype=torch.float32)
-
-    # # src_B is not used in this test but needed for StimuliConfig
-    # src_B = torch.zeros_like(src_A)
-    # tile_cnt_B = tile_cnt_A
-
-    # For datacopy, golden output should match input (converted to output format)
-    # Convert to torch tensor with the appropriate format
     torch_format = format_dict[formats.output_format]
     golden_tensor = src_A.to(torch_format)
 
