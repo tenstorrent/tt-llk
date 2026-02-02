@@ -50,6 +50,9 @@ inline void _llk_unpack_tilize_init_(
     const std::uint32_t face_r_dim        = FACE_R_DIM,
     const bool narrow_tile                = false)
 {
+    LLK_ASSERT(
+        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpack_src_format), static_cast<DataFormat>(unpack_dst_format)),
+        "Unsupported unpacker to register conversion");
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
     // In case of 32-bit numbers, we have to unpack into dest register
@@ -187,6 +190,9 @@ inline void _llk_unpack_tilize_(
     const bool narrow_tile          = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    LLK_ASSERT(
+        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpack_src_format), static_cast<DataFormat>(unpack_dst_format)),
+        "Unsupported unpacker to register conversion");
     // In case of 32-bit numbers, we have to unpack into dest register
     // For integers, always unpack to dest. For Float32, only if unpack_dst_format is Float32 (lossless tilize mode)
     const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
@@ -282,6 +288,9 @@ inline void _llk_unpack_tilizeA_B_init_(
     const std::uint32_t unpB_face_r_dim = FACE_R_DIM)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    LLK_ASSERT(
+        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpack_src_format), static_cast<DataFormat>(unpack_dst_format)),
+        "Unsupported unpacker to register conversion");
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
     const std::uint32_t block_c_dim = ct_dim * ((narrow_tile || (num_faces == 1)) ? FACE_C_DIM : TILE_C_DIM);

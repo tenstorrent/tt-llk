@@ -73,6 +73,9 @@ template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srca_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
 {
+    LLK_ASSERT(
+        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpack_src_format), static_cast<DataFormat>(unpack_dst_format)),
+        "Unsupported unpacker to register conversion");
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK0);
     if constexpr (to_from_int8)
     {
@@ -89,6 +92,9 @@ template <bool is_fp32_dest_acc_en, bool to_from_int8 = false>
 inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t tile_size)
 {
+    LLK_ASSERT(
+        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpack_src_format), static_cast<DataFormat>(unpack_dst_format)),
+        "Unsupported unpacker to register conversion");
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
     if constexpr (to_from_int8)
     {

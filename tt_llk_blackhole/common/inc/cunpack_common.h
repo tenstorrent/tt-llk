@@ -217,6 +217,14 @@ inline void configure_unpack_AB(
 {
     LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
+
+    LLK_ASSERT(
+        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpA_src_format), static_cast<DataFormat>(unpA_dst_format)),
+        "Unsupported unpacker to register conversion");
+    LLK_ASSERT(
+        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpB_src_format), static_cast<DataFormat>(unpB_dst_format)),
+        "Unsupported unpacker to register conversion");
+
     // Check that unpacker is done (all contexts freed up) before starting hw configuration
     wait_for_idle();
 
@@ -419,6 +427,128 @@ inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, cons
     const uint output_df = unpack_dst_format & 0xF;
     return ((input_df == (uint)DataFormat::Int32) || (input_df == (uint)DataFormat::Float32)) &&
            ((output_df == (uint)DataFormat::Int32) || (output_df == (uint)DataFormat::Float32));
+}
+
+// Returns true iff *some* Blackhole unpack mode (to SrcA/SrcB/Dest/SrcS)
+// can realize `out_reg` when L1 stores `in_l1`.
+//
+// This is a union across all targets; it does NOT enforce the
+// "not supported for Unpack-to-Dest/SrcS" caveats from Tensix Formats.
+// For LLK asserts, that matches the “possible at all?” question.
+//
+// Source: Tensix Formats – Unpacker Format Conversions for Trinity :llmCitationRef[6].
+inline bool is_unpacker_to_register_conversion_supported(DataFormat in_l1, DataFormat out_reg)
+{
+    switch (in_l1)
+    {
+        // -------------------------------------------------------------------------
+        // Float32 in L1
+        //
+        // Tensix Formats (Unpacker conversions): :llmCitationRef[7]
+        //   Float32 -> Float32
+        //   Float32 -> TF32
+        //   Float32 -> Float16
+        //   Float32 -> Float16_B
+        case DataFormat::Float32:
+            switch (out_reg)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // Tf32 in L1
+        //
+        // Tensix Formats: :llmCitationRef[8]
+        //   TF32 -> TF32
+        //   TF32 -> Float16
+        //   TF32 -> Float16_B
+        case DataFormat::Tf32:
+            switch (out_reg)
+            {
+                case DataFormat::Tf32:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // The big “Float16 / FP8 / MX* / MXINT* group” in L1
+        //
+        // Tensix Formats groups these inputs: :llmCitationRef[9]
+        //   Input formats:
+        //     Float16,
+        //     FP8R, FP8P,
+        //     MXFP8R, MXFP8P, MXFP6R, MXFP6P, MXINT8, MXINT4, MXINT2
+        //
+        //   Allowed outputs (to Src regs; TF32 not to Dest/SrcS):
+        //     Float16, TF32, Float16_B
+        //
+        // For “possible at all”, we take the union {FP16, TF32, BF16}.
+        case DataFormat::Float16:
+        case DataFormat::Lf8:
+        case DataFormat::Fp8_e4m3:
+        case DataFormat::Bfp8:
+        case DataFormat::Bfp8_b:
+        case DataFormat::Bfp4:
+        case DataFormat::Bfp4_b:
+        case DataFormat::Bfp2:
+        case DataFormat::Bfp2_b:
+            switch (out_reg)
+            {
+                case DataFormat::Float16:
+                case DataFormat::Tf32:
+                case DataFormat::Float16_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // Int32 in L1
+        //
+        // Tensix Formats: :llmCitationRef[11]
+        //   INT32 -> INT32 (unpack-to-Dest/srcS only)
+        //
+        // For “possible at all”, we allow INT32->INT32.
+        case DataFormat::Int32:
+            return out_reg == DataFormat::Int32;
+
+        // -------------------------------------------------------------------------
+        // Int8 / UInt8 in L1
+        //
+        // Tensix Formats (Trinity-only 2x formats): :llmCitationRef[12]
+        //   Int8 -> Int8 (INT8_2x not in DataFormat enum)
+        //   UInt8 -> UInt8 (UINT8_2x not in DataFormat enum)
+        //
+        case DataFormat::Int8:
+            return out_reg == DataFormat::Int8;
+
+        case DataFormat::UInt8:
+            return out_reg == DataFormat::UInt8;
+
+        // -------------------------------------------------------------------------
+        // UInt16 in L1 (DataFormat has UInt16; INT16 in docs maps here for Trinity)
+        //
+        // Tensix Formats: :llmCitationRef[13]
+        //   UInt16 -> UInt16 (also used for SFPU UINT16 input)
+        case DataFormat::UInt16:
+            return out_reg == DataFormat::UInt16;
+
+        // -------------------------------------------------------------------------
+        // 2x-packed formats (INT8_2x, UINT8_2x) are not in DataFormat enum;
+        // From an L1→reg convertibility perspective, we wouldn’t list them as inputs.
+        //
+        default:
+            return false;
+    }
 }
 
 inline void wait_for_dest_available()
