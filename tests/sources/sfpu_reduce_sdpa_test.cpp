@@ -33,6 +33,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // Unpack tiles from L1 to source register A
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
+        LLK_ASSERT(
+            is_unpacker_configured_correctly(formats.unpack_src, formats.unpack_dst, formats.unpack_src, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4, 4),
+            "Unpacker configuration does not match expected unpack_src/unpack_dst");
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }

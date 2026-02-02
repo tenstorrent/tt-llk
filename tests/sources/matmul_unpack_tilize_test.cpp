@@ -45,7 +45,17 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
     _llk_unpack_tilize_(L1_ADDRESS(buffer_B[0]), 0, formats_array[run].unpack_src, formats_array[run].unpack_dst, block_ct_dim, FACE_R_DIM, 4, false);
-
+    LLK_ASSERT(
+        is_unpacker_configured_correctly(
+            formats_array[run].unpack_src,
+            formats_array[run].unpack_dst,
+            formats_array[run].unpack_src,
+            formats_array[run].unpack_dst,
+            FACE_R_DIM,
+            FACE_R_DIM,
+            4,
+            4),
+        "Unpacker configuration does not match expected unpack_src/unpack_dst");
     t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(
         semaphore::PACK_DONE); // Unpacker waits on signal when packer will increment semaphore to 1 (waits while semaphore == 0), utilizing SEMWAIT.
     t6_semaphore_get<>(semaphore::PACK_DONE); // It will acquire the semaphore t6_semaphore_get (decrementing the semaphore back to 0) signalling it has begun
@@ -62,6 +72,17 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #else
     _llk_unpack_tilize_uninit_(formats_array[run].unpack_dst, FACE_R_DIM);
 #endif
+    LLK_ASSERT(
+        is_unpacker_configured_correctly(
+            formats_array[run].unpack_src,
+            formats_array[run].unpack_dst,
+            formats_array[run].unpack_src,
+            formats_array[run].unpack_dst,
+            FACE_R_DIM,
+            FACE_R_DIM,
+            4,
+            4),
+        "Unpacker configuration does not match expected unpack_src/unpack_dst");
     _llk_unpack_AB_matmul_init_<>();
     _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized), 0, 0, tile_size, tile_size);
 }

@@ -45,6 +45,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         for (std::uint32_t tile = 0; tile < params->TILE_CNT; tile++)
         {
+            LLK_ASSERT(
+                is_unpacker_configured_correctly(
+                    formats.unpack_src, formats.unpack_dst, formats.unpack_src, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, TILE_NUM_FACES, TILE_NUM_FACES),
+                "Unpacker configuration does not match expected unpack_src/unpack_dst");
             _llk_unpack_A_<>(PERF_ADDRESS(PERF_INPUT_A, tile), formats.unpack_src, formats.unpack_dst);
         }
         PROFILER_SYNC();

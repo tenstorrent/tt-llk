@@ -99,10 +99,20 @@ FLOAT_TEST_PARAMS = list(
 )
 
 
+def _float_test_id(params):
+    """Id for -k filtering: includes format, mathop name, approx, fast, dest (e.g. mathop-Atanh)."""
+    fmt, approx, mathop, fast, dest = params
+    return f"{fmt}-approx{approx.name}-mathop-{mathop.name}-fast{fast.name}-dest{dest.name}"
+
+
+FLOAT_TEST_PARAMS_IDS = [_float_test_id(p) for p in FLOAT_TEST_PARAMS]
+
+
 @pytest.mark.nightly
 @pytest.mark.parametrize(
     "formats,approx_mode,mathop,fast_mode,dest_acc",
     FLOAT_TEST_PARAMS,
+    ids=FLOAT_TEST_PARAMS_IDS,
 )
 def test_eltwise_unary_sfpu_float(
     formats: list[InputOutputFormat],
