@@ -221,6 +221,202 @@ inline void set_packer_strides(const uint pack_src_format)
     TTI_NOP;
 }
 
+inline bool is_bfp4_2_a(DataFormat f)
+{
+    return f == DataFormat::Bfp4_a || f == DataFormat::Bfp2_a;
+}
+
+inline bool is_bfp4_2_b(DataFormat f)
+{
+    return f == DataFormat::Bfp4_b || f == DataFormat::Bfp2_b;
+}
+
+/**
+ * \brief Checks whether Wormhole B0 hardware supports packing Dest register data into a given L1 format.
+ *
+ * Answers the question: "Can data in Dest register format \p dest_reg be packed by hardware
+ * into an L1 tile with format \p out_l1?" This is a logical view only: the function does not
+ * distinguish where the conversion is implemented (Packer vs Gasket) or how conversions are
+ * staged. If any path can produce \p out_l1 from \p dest_reg, the function returns true.
+ *
+ * Supported conversions are defined by the Wormhole B0 MAS (Microarchitecture Specification)
+ * Table 3. Use this to validate pack configs before programming the packer.
+ *
+ * \param dest_reg Data format in Dest register (packer input).
+ * \param out_l1   Desired data format of the L1 tile (packer output).
+ * \return true if the dest_reg -> out_l1 conversion is supported; false otherwise.
+ */
+inline bool is_packer_conversion_supported(DataFormat dest_reg, DataFormat out_l1)
+{
+    switch (dest_reg)
+    {
+        // ---------------------------------------------------------------------
+        // In-Format: FP32 (Dest register = Float32)
+        // MAS Table 3 rows for FP32: FP32, TF32, FP16A, FP16B, BFP8A, BFP8B, BFP4/2A, BFP4/2B, LF8.
+        case DataFormat::Float32:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Bfp8_a:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Lf8:
+                    return true;
+                default:
+                    if (is_bfp4_2_a(out_l1) || is_bfp4_2_b(out_l1))
+                    {
+                        return true;
+                    }
+                    return false;
+            }
+
+        // ---------------------------------------------------------------------
+        // In-Format: TF32
+        // MAS Table 3 TF32 rows: FP32, TF32, FP16A, FP16B, BFP8A/B, BFP4/2A/B, LF8.
+        case DataFormat::Tf32:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Bfp8_a:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Lf8:
+                    return true;
+                default:
+                    if (is_bfp4_2_a(out_l1) || is_bfp4_2_b(out_l1))
+                    {
+                        return true;
+                    }
+                    return false;
+            }
+
+        // ---------------------------------------------------------------------
+        // In-Format: FP16-A (Float16)
+        // MAS Table 3 FP16A rows: FP32, FP16A, FP16B, BFP8A, BFP4/2A, LF8. Not TF32, BFP8B, BFP4/2B, Integer.
+        case DataFormat::Float16:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Bfp8_a:
+                case DataFormat::Lf8:
+                    return true;
+                default:
+                    if (is_bfp4_2_a(out_l1))
+                    {
+                        return true;
+                    }
+                    return false;
+            }
+
+        // ---------------------------------------------------------------------
+        // In-Format: FP16-B (BF16)
+        // MAS Table 3 FP16B rows: FP32, FP16A, FP16B, BFP8B, BFP4/2B. Not TF32, BFP8A, BFP4/2A, LF8, Integer.
+        case DataFormat::Float16_b:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Bfp8_b:
+                    return true;
+                default:
+                    if (is_bfp4_2_b(out_l1))
+                    {
+                        return true;
+                    }
+                    return false;
+            }
+
+        // ---------------------------------------------------------------------
+        // In-Format: BFP8-A (L1-style A-exponent variant in Dest)
+        // MAS Table 3 BFP8A rows: FP32, FP16A, BFP8A, BFP4/2A.
+        case DataFormat::Bfp8_a:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Float16:
+                case DataFormat::Bfp8_a:
+                    return true;
+                default:
+                    if (is_bfp4_2_a(out_l1))
+                    {
+                        return true;
+                    }
+                    return false;
+            }
+
+        // ---------------------------------------------------------------------
+        // In-Format: BFP8-B
+        // MAS Table 3 BFP8B rows: FP32, FP16B, BFP8B, BFP4/2B.
+        case DataFormat::Bfp8_b:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Float16_b:
+                case DataFormat::Bfp8_b:
+                    return true;
+                default:
+                    if (is_bfp4_2_b(out_l1))
+                    {
+                        return true;
+                    }
+                    return false;
+            }
+
+        // ---------------------------------------------------------------------
+        // In-Format: BFP4/2-A or BFP4/2-B in Dest
+        // MAS Table 3: BFP4/2 A/B as Dest input -> no supported pack output. Packer cannot take Dest in BFP4/2 on Wormhole.
+        case DataFormat::Bfp4_a:
+        case DataFormat::Bfp2_a:
+        case DataFormat::Bfp4_b:
+        case DataFormat::Bfp2_b:
+            return false;
+
+        // ---------------------------------------------------------------------
+        // In-Format: LF8 (FP8 e5m2) in Dest
+        // MAS Table 3 LF8 rows: FP32, FP16A, LF8.
+        case DataFormat::Lf8:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Float16:
+                case DataFormat::Lf8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // ---------------------------------------------------------------------
+        // Integer Dest formats
+        // MAS Table 3: INT32 -> INT32, INT8; INT16 -> INT16 only; INT8 -> INT8 only.
+        case DataFormat::Int32:
+            switch (out_l1)
+            {
+                case DataFormat::Int32:
+                case DataFormat::Int8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        case DataFormat::Int16:
+            return out_l1 == DataFormat::Int16;
+
+        case DataFormat::Int8:
+            return out_l1 == DataFormat::Int8;
+
+        default:
+            // Any other dest_reg format is either not a legal Dest format on Wormhole or not documented as a valid pack source.
+            return false;
+    }
+}
+
 template <bool is_fp32_dest_acc_en>
 inline void set_packer_config(const uint pack_src_format, const uint pack_dst_format, const uint num_faces = 4, const bool partial_face = false)
 {
@@ -394,6 +590,9 @@ inline void reconfig_packer_data_format(
     const bool partial_face = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    LLK_ASSERT(
+        is_packer_conversion_supported(static_cast<DataFormat>(pack_src_format & 0xF), static_cast<DataFormat>(pack_dst_format & 0xF)),
+        "Unsupported packer conversion");
     // Configure packers
     pack_config_u config;
     config.val[2] = 0; // Only need to modify word[2][15:0]
@@ -536,6 +735,9 @@ inline void configure_pack(
     const uint relu_config  = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    LLK_ASSERT(
+        is_packer_conversion_supported(static_cast<DataFormat>(pack_src_format & 0xF), static_cast<DataFormat>(pack_dst_format & 0xF)),
+        "Unsupported packer conversion");
     // Get pointer to registers for current state ID
     volatile uint* cfg = get_cfg_pointer();
 

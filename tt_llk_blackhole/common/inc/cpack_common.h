@@ -198,6 +198,118 @@ inline void set_packer_strides(const uint pack_src_format, const uint tile_c_dim
     }
 }
 
+inline bool is_bfp4_2_a(DataFormat f)
+{
+    return f == DataFormat::Bfp4 || f == DataFormat::Bfp2;
+}
+
+inline bool is_bfp4_2_b(DataFormat f)
+{
+    return f == DataFormat::Bfp4_b || f == DataFormat::Bfp2_b;
+}
+
+/**
+ * \brief Checks whether Blackhole hardware supports packing Dest register data into a given L1 format.
+ *
+ * Answers the question: "Can data in Dest register format \p dest_reg be packed by hardware
+ * into an L1 tile with format \p out_l1?" Use this to validate pack configs before programming the packer.
+ *
+ * \param dest_reg Data format in Dest register (packer input).
+ * \param out_l1   Desired data format of the L1 tile (packer output).
+ * \return true if the dest_reg -> out_l1 conversion is supported; false otherwise.
+ */
+inline bool is_packer_conversion_supported(DataFormat dest_reg, DataFormat out_l1)
+{
+    switch (dest_reg)
+    {
+        // ---------------------------------------------------------------------
+        // Input: Float32 in Dest
+        // Tensix Formats packer table: Float32 -> Float32, TF32, Float16, Float16_b,
+        //   Lf8, Fp8_e4m3, Bfp8, Bfp8_b, Bfp4, Bfp4_b, Bfp2, Bfp2_b.
+        case DataFormat::Float32:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Lf8:
+                case DataFormat::Fp8_e4m3:
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2:
+                case DataFormat::Bfp2_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // ---------------------------------------------------------------------
+        // Input: Float16 or Float16_b (BF16) in Dest
+        // Tensix Formats packer table: Float16, Float16_b -> Float16, Float16_b,
+        //   Lf8, Fp8_e4m3, Bfp8, Bfp8_b, Bfp4, Bfp4_b, Bfp2, Bfp2_b.
+        case DataFormat::Float16:
+        case DataFormat::Float16_b:
+            switch (out_l1)
+            {
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Lf8:
+                case DataFormat::Fp8_e4m3:
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2:
+                case DataFormat::Bfp2_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // ---------------------------------------------------------------------
+        // Input: Int32 in Dest
+        // Tensix Formats packer table: Int32 -> Int32, Int8, UInt8.
+        case DataFormat::Int32:
+            switch (out_l1)
+            {
+                case DataFormat::Int32:
+                case DataFormat::Int8:
+                case DataFormat::UInt8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // ---------------------------------------------------------------------
+        // Input: Int8 in Dest
+        // Tensix Formats: Int8 -> Int8.
+        case DataFormat::Int8:
+            return out_l1 == DataFormat::Int8;
+
+        // ---------------------------------------------------------------------
+        // Input: UInt8 in Dest
+        // Tensix Formats: UInt8 -> UInt8.
+        case DataFormat::UInt8:
+            return out_l1 == DataFormat::UInt8;
+
+        // ---------------------------------------------------------------------
+        // Input: UInt16 in Dest (INT16 in Tensix Formats)
+        // Tensix Formats: Int16 -> Int16. Blackhole DataFormat uses UInt16 for 16-bit.
+        case DataFormat::UInt16:
+            return out_l1 == DataFormat::UInt16;
+
+        // ---------------------------------------------------------------------
+        // Anything else as Dest format (MX*, FP8 as dest, Tf32 as dest, etc.) is not
+        // documented as a legal packer input in the Tensix Formats packer table;
+        // MX formats are outputs only. For LLK sanity checks we treat those as unsupported.
+        default:
+            return false;
+    }
+}
+
 template <bool is_fp32_dest_acc_en>
 inline void set_packer_config(const uint pack_src_format, const uint pack_dst_format, const uint num_faces = 4, const bool partial_face = false)
 {
@@ -304,6 +416,9 @@ inline void reconfig_packer_data_format(
     const bool partial_face)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    LLK_ASSERT(
+        is_packer_conversion_supported(static_cast<DataFormat>(pack_src_format & 0xF), static_cast<DataFormat>(pack_dst_format & 0xF)),
+        "Unsupported packer conversion");
     const uint pack_output_src_format = (uint)pack_src_format & 0xF;
     const uint pack_output_dst_format = (uint)pack_dst_format & 0xF;
 
@@ -404,6 +519,9 @@ inline void configure_pack(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
+    LLK_ASSERT(
+        is_packer_conversion_supported(static_cast<DataFormat>(pack_src_format & 0xF), static_cast<DataFormat>(pack_dst_format & 0xF)),
+        "Unsupported packer conversion");
     // Get pointer to registers for current state ID
     volatile uint* cfg = get_cfg_pointer();
 
