@@ -516,6 +516,20 @@ inline void program_packer_destination(uint32_t addr)
     TTI_DMANOP; // One NOP should be enough for WRCFG due to SETDMAREG above.
 }
 
+inline void program_packer_destination_nostall(uint32_t addr)
+{
+    LLK_ASSERT(is_valid_L1_address(addr), "L1 address must be in valid L1 memory region");
+    uint32_t new_l1_addr = (1 << 31) | addr;
+    TT_SETDMAREG(0, LOWER_HALFWORD(addr), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
+    TT_SETDMAREG(0, UPPER_HALFWORD(new_l1_addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
+
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+    TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+
+    TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
+    TTI_DMANOP;
+}
+
 // RT: If multiple contexts are used, for issue #https://github.com/tenstorrent/tt-llk-bh/issues/20
 // then this function needs to be re-written
 template <uint32_t block_ct_dim, uint32_t full_ct_dim, bool diagonal = false>
