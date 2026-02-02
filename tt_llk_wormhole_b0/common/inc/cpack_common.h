@@ -549,6 +549,13 @@ inline void set_packer_config(
 
 inline void set_packer_l1_offset(const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM)
 {
+    // All packers share the same pack_config, taking the 1st.
+    const pack_config_t pack_config = read_pack_config()[0];
+    LLK_ASSERT(
+        is_packer_conversion_supported(static_cast<DataFormat>(pack_config.in_data_format), static_cast<DataFormat>(pack_dst_format & 0xf)),
+        "Unsupported packer conversion");
+    LLK_ASSERT(static_cast<DataFormat>(pack_config.out_data_format) == static_cast<DataFormat>(pack_dst_format), "Misconfigured dst format.");
+
     const std::uint32_t face_dim = face_r_dim * FACE_C_DIM;
 
     std::uint32_t l1_offset_1 = IS_BFP_FORMAT(pack_dst_format)
@@ -848,6 +855,12 @@ template <std::uint32_t block_ct_dim, std::uint32_t full_ct_dim, bool diagonal =
 inline void program_packer_untilized_destination(const std::uint32_t addr, const std::uint32_t pack_dst_format)
 {
     LLK_ASSERT(is_valid_L1_address(addr), "L1 address must be in valid L1 memory region");
+    // All packers share the same pack_config, taking the 1st.
+    const pack_config_t pack_config = read_pack_config()[0];
+    LLK_ASSERT(
+        is_packer_conversion_supported(static_cast<DataFormat>(pack_config.in_data_format), static_cast<DataFormat>(pack_dst_format & 0xf)),
+        "Unsupported packer conversion");
+    LLK_ASSERT(static_cast<DataFormat>(pack_config.out_data_format) == static_cast<DataFormat>(pack_dst_format), "Misconfigured dst format.");
 
     if constexpr (diagonal)
     {
