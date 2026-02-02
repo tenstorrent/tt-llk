@@ -669,4 +669,38 @@ inline alu_config_t read_alu_config()
     return config.f;
 }
 
+/**
+ * Checks whether the unpacker tile descriptor and config match the expected formats and dimensions.
+ *
+ * @param unpA_src_format   Expected input data format for unpacker A (context 0)
+ * @param unpA_dst_format   Expected output data format for unpacker A (context 0)
+ * @param unpB_src_format   Expected input data format for unpacker B (context 1)
+ * @param unpB_dst_format   Expected output data format for unpacker B (context 1)
+ * @param unpA_face_r_dim   Expected face row dimension for unpacker A (default FACE_R_DIM)
+ * @param unpB_face_r_dim   Expected face row dimension for unpacker B (default FACE_R_DIM)
+ * @param unpA_num_faces    Expected number of faces for unpacker A (default NUM_FACES)
+ * @param unpB_num_faces    Expected number of faces for unpacker B (default NUM_FACES)
+ * @return true if the current unpacker configuration matches all expected values, false otherwise
+ */
+inline bool is_unpacker_configured_correctly(
+    const uint unpA_src_format,
+    const uint unpA_dst_format,
+    const uint unpB_src_format,
+    const uint unpB_dst_format,
+    const uint unpA_face_r_dim = FACE_R_DIM,
+    const uint unpB_face_r_dim = FACE_R_DIM,
+    const uint unpA_num_faces  = NUM_FACES,
+    const uint unpB_num_faces  = NUM_FACES)
+{
+    LLK_ASSERT(unpA_face_r_dim == FACE_R_DIM, "unpA_face_r_dim currently not used.");
+    std::array<ckernel::unpacker::unpack_tile_descriptor_t, ckernel::unpacker::NUM_UNPACKERS> tile_descriptor_vec;
+    tile_descriptor_vec                                                      = read_unpack_tile_descriptor();
+    const ckernel::unpacker::unpack_tile_descriptor_t &tile_descriptor_cntx0 = tile_descriptor_vec[0];
+    const ckernel::unpacker::unpack_tile_descriptor_t &tile_descriptor_cntx1 = tile_descriptor_vec[1];
+    return tile_descriptor_cntx0.in_data_format == unpA_src_format && tile_descriptor_cntx0.out_data_format == unpA_dst_format &&
+           tile_descriptor_cntx1.in_data_format == unpB_src_format && tile_descriptor_cntx1.out_data_format == unpB_dst_format &&
+           tile_descriptor_cntx1.x_dim == unpB_face_r_dim * FACE_C_DIM && tile_descriptor_cntx0.z_dim == unpA_num_faces &&
+           tile_descriptor_cntx1.z_dim == unpB_num_faces;
+}
+
 } // namespace ckernel::unpacker
