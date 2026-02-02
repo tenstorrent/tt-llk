@@ -554,22 +554,20 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
 
 inline void _llk_pack_dest_bank_mop_config_(const std::uint32_t num_tiles = 8, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
-    const uint PACK_INTF_SEL    = face_r_dim == 1 ? p_pacr::SINGLE_INTF_ACTIVE : (face_r_dim == 2 ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::ALL_INTF_ACTIVE);
-    const uint ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
+    const uint PACK_INTF_SEL        = face_r_dim == 1 ? p_pacr::SINGLE_INTF_ACTIVE : (face_r_dim == 2 ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::ALL_INTF_ACTIVE);
+    constexpr uint ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
 
-    // Outer loop: num_tiles, Inner loop: pack one full tile (all faces and rows)
-    const uint MOP_INNER_LOOP = (face_r_dim < 4) ? 1 : face_r_dim >> 2; // Rows within each face
-    const uint MOP_OUTER_LOOP = num_tiles;                              // Number of tiles
+    const uint MOP_INNER_LOOP = (face_r_dim < 4) ? 1 : face_r_dim >> 2;
+    const uint MOP_OUTER_LOOP = num_faces * num_tiles;
 
-    // For each tile, pack all its faces using loop_op pattern
     ckernel::ckernel_template tmp(
-        MOP_OUTER_LOOP,             // Outer: tiles
-        MOP_INNER_LOOP * num_faces, // Inner: all rows of all faces in one tile
+        MOP_OUTER_LOOP,
+        MOP_INNER_LOOP,
         TT_OP_PACR(
             p_pacr::CFG_CTXT_0,
             p_pacr::NO_ROW_PAD_ZERO,
             p_pacr::DST_ACCESS_NORMAL_MODE,
-            ADDR_MOD_0, // Within face row iterations
+            ADDR_MOD_0,
             p_pacr::ADDR_CNT_CTXT_0,
             ZERO_OUTPUT_FLAG,
             PACK_INTF_SEL,
@@ -578,13 +576,11 @@ inline void _llk_pack_dest_bank_mop_config_(const std::uint32_t num_tiles = 8, c
             0,
             0,
             0));
-
-    // After each MOP_INNER_LOOP iteration (each face's rows), advance to next face using ADDR_MOD_2
-    tmp.set_loop_op0(TT_OP_PACR(
+    tmp.set_last_inner_loop_instr(TT_OP_PACR(
         p_pacr::CFG_CTXT_0,
         p_pacr::NO_ROW_PAD_ZERO,
         p_pacr::DST_ACCESS_NORMAL_MODE,
-        ADDR_MOD_2, // Advance to next face
+        ADDR_MOD_2,
         p_pacr::ADDR_CNT_CTXT_0,
         ZERO_OUTPUT_FLAG,
         PACK_INTF_SEL,
@@ -593,29 +589,11 @@ inline void _llk_pack_dest_bank_mop_config_(const std::uint32_t num_tiles = 8, c
         0,
         0,
         0));
-
-    // End of inner loop (all faces of one tile): close tile and increment L1 address
-    tmp.set_last_inner_loop_instr(TT_OP_PACR(
-        p_pacr::CFG_CTXT_0,
-        p_pacr::NO_ROW_PAD_ZERO,
-        p_pacr::DST_ACCESS_NORMAL_MODE,
-        ADDR_MOD_3, // Close tile and increment L1 destination by one tile
-        p_pacr::ADDR_CNT_CTXT_0,
-        ZERO_OUTPUT_FLAG,
-        PACK_INTF_SEL,
-        0,
-        0,
-        0,
-        0,
-        1 // Last=1 to close tile
-        ));
-
-    // End of final outer loop - close the last tile (ADDR_MOD_1 doesn't increment L1)
     tmp.set_last_outer_loop_instr(TT_OP_PACR(
         p_pacr::CFG_CTXT_0,
         p_pacr::NO_ROW_PAD_ZERO,
         p_pacr::DST_ACCESS_NORMAL_MODE,
-        ADDR_MOD_1, // Close the final tile without extra L1 increment
+        ADDR_MOD_1,
         p_pacr::ADDR_CNT_CTXT_0,
         ZERO_OUTPUT_FLAG,
         PACK_INTF_SEL,
@@ -623,8 +601,7 @@ inline void _llk_pack_dest_bank_mop_config_(const std::uint32_t num_tiles = 8, c
         0,
         0,
         0,
-        1 // Last=1
-        ));
+        1));
 
     tmp.program();
 }
