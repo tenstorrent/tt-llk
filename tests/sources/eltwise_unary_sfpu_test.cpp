@@ -105,9 +105,13 @@ void run_kernel(const volatile struct RuntimeParams *params)
             _llk_math_eltwise_unary_sfpu_start_<DST_SYNC>(block_tile);
             // calling sfpu function from ckernel
             // this part is where parametrization of operation takes part
+<<<<<<< HEAD
             test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE, false /* STABLE_SORT */, CLAMP_NEGATIVE>(
                 SFPU_UNARY_OPERATION, formats.math);
 
+=======
+            test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
+>>>>>>> f1b7304c (Fixed the mistakes discovered by copilot.)
             _llk_math_eltwise_unary_sfpu_done_();
         }
 
