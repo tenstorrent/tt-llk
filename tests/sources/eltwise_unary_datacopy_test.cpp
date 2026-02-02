@@ -50,7 +50,7 @@ void run_kernel(const struct RuntimeParams& params)
         {
             for (uint32_t j = 0; j < params.BLOCK_CT_DIM; j++)
             {
-                _llk_unpack_tilize_(L1_ADDRESS(params.buffer_A[read_offset]), j, formats.unpack_src, 0, FACE_R_DIM, 4, false);
+                _llk_unpack_tilize_(L1_ADDRESS(params.buffer_A[read_offset]), j, formats.unpack_src, formats.unpack_dst, 0, FACE_R_DIM, 4, false);
             }
             read_offset += params.BLOCK_RT_DIM;
         }

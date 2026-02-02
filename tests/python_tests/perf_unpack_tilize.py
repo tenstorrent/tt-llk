@@ -82,7 +82,7 @@ def _perf_unpack_tilize(
             tile_count_B=tile_count,
             tile_count_res=tile_count,
         ),
-        unpack_to_dest=formats.input_format == DataFormat.Int32,
+        unpack_to_dest=(formats.input_format == DataFormat.Int32),
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)

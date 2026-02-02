@@ -3,12 +3,12 @@
 
 import datetime
 import os
-import sys
 import time
 from enum import Enum, IntEnum
 from pathlib import Path
 from typing import List
 
+import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.hardware_controller import HardwareController
@@ -173,19 +173,6 @@ def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
     try:
         is_it = risc_debug.is_ebreak_hit()
     except:
-        soft_reset = get_register_store(core_loc, device_id).read_register(
-            "RISCV_DEBUG_REG_SOFT_RESET_0"
-        )
-
-        brisc_debug_pc = block.get_risc_debug("BRISC").get_pc()
-
-        crumbs = read_from_device(core_loc, 0x64FF0, 0, 8)
-        before = int.from_bytes(crumbs[0:4], byteorder="little")
-        after = int.from_bytes(crumbs[4:8], byteorder="little")
-        print(
-            f"{core_loc} Host-read reset register {hex(soft_reset)} | brisc pc: {hex(brisc_debug_pc)} | before {hex(before)} after {hex(after)}",
-            file=sys.stderr,
-        )
         raise Exception("WTF handler")
 
     return is_it
@@ -223,15 +210,17 @@ def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
             )
             assertion_hits.append(risc_name)
 
-    HardwareController().reset_card()
-
     if assertion_hits:
+        pytest.exit(1)
+        HardwareController().reset_card()
         raise AssertionError(
             f"Assert was hit on device on cores: {', '.join(assertion_hits)}"
         )
 
 
-def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=5, max_backoff=5):
+def wait_for_tensix_operations_finished(
+    elfs, core_loc="0,0", timeout=1, max_backoff=0.1
+):
     """
     Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
 
@@ -247,8 +236,10 @@ def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=5, max_bac
     test_target = TestTargetConfig()
     timeout = 600 if test_target.run_simulator else timeout
 
+    time.sleep(0.001)
+
     start_time = time.time()
-    backoff = 0.001  # Initial backoff time in seconds
+    backoff = 0.005  # Initial backoff time in seconds
 
     completed = set()
     end_time = start_time + timeout

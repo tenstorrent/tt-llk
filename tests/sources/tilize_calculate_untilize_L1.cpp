@@ -48,10 +48,10 @@ void run_kernel(const struct RuntimeParams &params)
         4 /* num_faces */);
 
     _llk_unpack_tilize_init_(formats[run].unpack_src, formats[run].unpack_dst, 1, FACE_R_DIM, false);
-    _llk_unpack_tilize_(L1_ADDRESS(params.buffer_A[0]), 0, formats[run].unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
+    _llk_unpack_tilize_(L1_ADDRESS(params.buffer_A[0]), 0, formats[run].unpack_src, formats[run].unpack_dst, block_ct_dim, FACE_R_DIM, 4, false);
 
     _llk_unpack_tilize_init_(formats[run].unpack_src, formats[run].unpack_dst, 1, FACE_R_DIM, false);
-    _llk_unpack_tilize_(L1_ADDRESS(params.buffer_B[0]), 0, formats[run].unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
+    _llk_unpack_tilize_(L1_ADDRESS(params.buffer_B[0]), 0, formats[run].unpack_src, formats[run].unpack_dst, block_ct_dim, FACE_R_DIM, 4, false);
 
     /*
     In this test we fuse two LLK pipeline runs, one is to unpack untilized buffers/operands from L1 (39-45) and pack them in tilized format(130-145).

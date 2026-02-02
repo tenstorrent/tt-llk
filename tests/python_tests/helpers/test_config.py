@@ -319,7 +319,11 @@ class TestConfig:
         )
 
     @staticmethod
-    def setup_mode(compile_consumer: bool = False, compile_producer: bool = False):
+    def setup_mode(
+        compile_consumer: bool = False,
+        compile_producer: bool = False,
+        non_default_build_dir=None,
+    ):
 
         if compile_consumer and compile_producer:
             raise ValueError(
@@ -378,10 +382,14 @@ class TestConfig:
         self.disable_format_inference = disable_format_inference
 
         if formats is not None:
-            if is_format_combination_outlier(
-                self.formats.input_format, self.formats.output_format, dest_acc
+            if (
+                is_format_combination_outlier(
+                    self.formats.input_format, self.formats.output_format, dest_acc
+                )
+                and TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR
             ):
                 dest_acc = DestAccumulation.Yes
+
             self.formats_config = data_formats(
                 input_format=formats.input_format,
                 output_format=formats.output_format,
@@ -617,6 +625,8 @@ class TestConfig:
                     for f in fields(param)
                 ]
             )
+
+        # print([hex(data) for data in argument_data])
 
         serialised_data = struct.pack(self.runtime_format, *argument_data)
 
