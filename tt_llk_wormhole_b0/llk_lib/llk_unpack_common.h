@@ -97,14 +97,7 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Out_data_format_RMW>(unpack_dst_format);
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_A)); // update gpr which holds tile size A
 
-    uint unpA_x_end = (unpack_face_r_dim == 0) ? 1 : (unpack_face_r_dim << 4) - 1;
-    TT_SETADCXX(p_setadc::UNP_A, unpA_x_end, 0x0);
-
-    // Program base address for all 2 sections (each section address is loaded to corresponding context)
-    // Load dummy data to unused location if face height is 0
-    const uint Dest_cntx0_address = unpack_face_r_dim == 0 ? 22 * 16 : 4 * 16;
-    const uint Dest_cntx1_address = unpack_face_r_dim == 0 ? 22 * 16 : 4 * 16;
-    cfg_reg_rmw_tensix<THCON_SEC0_REG5_Dest_cntx0_address_ADDR32, 0, 0xffffffff>(Dest_cntx0_address | (Dest_cntx1_address << 16));
+    TT_SETADCXX(p_setadc::UNP_A, (unpack_face_r_dim << 4) - 1, 0x0);
 
     // Program unpacker0 per context x_dim (face size in l1)
     // Overrides value set by tile descriptor when thread override bit is set in unpack instruction
