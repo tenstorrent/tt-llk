@@ -41,9 +41,15 @@ void run_kernel(const volatile struct RuntimeParams *params)
         false,      // narrow_tile
         transpose); // Enable face rearrangement for srcA
 
-    for (int i = 0; i < num_tiles_in_block * num_blocks; ++i)
+    for (int block = 0; block < num_blocks; block++)
     {
-        _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
+        const int num_tiles_in_current_block = (block == num_blocks - 1) ? num_tiles_in_last_block : num_tiles_in_standard_block;
+
+        for (int tile = 0; tile < num_tiles_in_current_block; tile++)
+        {
+            int src_tile_idx = (block * num_tiles_in_standard_block) + tile;
+            _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(buffer_A[src_tile_idx]), L1_ADDRESS(buffer_B[src_tile_idx]));
+        }
     }
 }
 
@@ -71,8 +77,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // Perform element-wise subtraction
     for (int block = 0; block < num_blocks; block++)
     {
+        const int num_tiles_in_current_block = (block == num_blocks - 1) ? num_tiles_in_last_block : num_tiles_in_standard_block;
+
         _llk_math_wait_for_dest_available_<dest_sync>();
-        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        for (int tile = 0; tile < num_tiles_in_current_block; tile++)
         {
             LLK_ASSERT(
                 (tile < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
@@ -117,8 +125,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     for (int block = 0; block < num_blocks; block++)
     {
+        const int num_tiles_in_current_block = (block == num_blocks - 1) ? num_tiles_in_last_block : num_tiles_in_standard_block;
+
         _llk_packer_wait_for_math_done_();
-        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        for (int tile = 0; tile < num_tiles_in_current_block; tile++)
         {
             int res_tile_idx = (block * num_tiles_in_block) + tile;
             LLK_ASSERT(
