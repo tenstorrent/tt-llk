@@ -66,6 +66,16 @@ inline void _llk_pack_configure_addrmod_()
             .z_src = {.incr = 1, .clr = 0},
         }
             .set(ADDR_MOD_2);
+
+        // ADDR_MOD_3 for dest_bank packing: increment L1 dest by one tile size (32 units of 4 bytes = 128 bytes)
+        // and close the current tile
+        addr_mod_pack_t {
+            .y_src = {.incr = 0, .clr = 1, .cr = 0},
+            .y_dst = {.incr = 32, .clr = 1, .cr = 0}, // Increment by 32*4 = 128 bytes (one tile)
+            .z_src = {.incr = 0, .clr = 1},
+            .z_dst = {.incr = 0, .clr = 0},
+        }
+            .set(ADDR_MOD_3);
     }
 }
 
@@ -540,6 +550,109 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
     mop_run(1, 1);
 
     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); // reset z counters
+}
+
+inline void _llk_pack_dest_bank_mop_config_(const std::uint32_t num_tiles = 8, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
+{
+    const uint PACK_INTF_SEL    = face_r_dim == 1 ? p_pacr::SINGLE_INTF_ACTIVE : (face_r_dim == 2 ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::ALL_INTF_ACTIVE);
+    const uint ZERO_OUTPUT_FLAG = p_pacr::P_ZERO_OUTPUT_DISABLED;
+
+    // Outer loop: num_tiles, Inner loop: pack one full tile (all faces and rows)
+    const uint MOP_INNER_LOOP = (face_r_dim < 4) ? 1 : face_r_dim >> 2; // Rows within each face
+    const uint MOP_OUTER_LOOP = num_tiles;                              // Number of tiles
+
+    // For each tile, pack all its faces using loop_op pattern
+    ckernel::ckernel_template tmp(
+        MOP_OUTER_LOOP,             // Outer: tiles
+        MOP_INNER_LOOP * num_faces, // Inner: all rows of all faces in one tile
+        TT_OP_PACR(
+            p_pacr::CFG_CTXT_0,
+            p_pacr::NO_ROW_PAD_ZERO,
+            p_pacr::DST_ACCESS_NORMAL_MODE,
+            ADDR_MOD_0, // Within face row iterations
+            p_pacr::ADDR_CNT_CTXT_0,
+            ZERO_OUTPUT_FLAG,
+            PACK_INTF_SEL,
+            0,
+            0,
+            0,
+            0,
+            0));
+
+    // After each MOP_INNER_LOOP iteration (each face's rows), advance to next face using ADDR_MOD_2
+    tmp.set_loop_op0(TT_OP_PACR(
+        p_pacr::CFG_CTXT_0,
+        p_pacr::NO_ROW_PAD_ZERO,
+        p_pacr::DST_ACCESS_NORMAL_MODE,
+        ADDR_MOD_2, // Advance to next face
+        p_pacr::ADDR_CNT_CTXT_0,
+        ZERO_OUTPUT_FLAG,
+        PACK_INTF_SEL,
+        0,
+        0,
+        0,
+        0,
+        0));
+
+    // End of inner loop (all faces of one tile): close tile and increment L1 address
+    tmp.set_last_inner_loop_instr(TT_OP_PACR(
+        p_pacr::CFG_CTXT_0,
+        p_pacr::NO_ROW_PAD_ZERO,
+        p_pacr::DST_ACCESS_NORMAL_MODE,
+        ADDR_MOD_3, // Close tile and increment L1 destination by one tile
+        p_pacr::ADDR_CNT_CTXT_0,
+        ZERO_OUTPUT_FLAG,
+        PACK_INTF_SEL,
+        0,
+        0,
+        0,
+        0,
+        1 // Last=1 to close tile
+        ));
+
+    // End of final outer loop - close the last tile (ADDR_MOD_1 doesn't increment L1)
+    tmp.set_last_outer_loop_instr(TT_OP_PACR(
+        p_pacr::CFG_CTXT_0,
+        p_pacr::NO_ROW_PAD_ZERO,
+        p_pacr::DST_ACCESS_NORMAL_MODE,
+        ADDR_MOD_1, // Close the final tile without extra L1 increment
+        p_pacr::ADDR_CNT_CTXT_0,
+        ZERO_OUTPUT_FLAG,
+        PACK_INTF_SEL,
+        0,
+        0,
+        0,
+        0,
+        1 // Last=1
+        ));
+
+    tmp.program();
+}
+
+template <bool untilize = false, bool tilize = false>
+inline void _llk_pack_dest_bank_init_(const std::uint32_t num_tiles = 8, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
+{
+    // Configure address modifiers for multi-tile packing
+    _llk_pack_configure_addrmod_<untilize, tilize>();
+
+    // Configure custom MOP for multi-tile packing
+    _llk_pack_dest_bank_mop_config_(num_tiles, face_r_dim, num_faces);
+}
+
+template <DstSync Dst, bool is_fp32_dest_acc_en>
+inline void _llk_pack_dest_bank_(const std::uint32_t start_tile_index, const std::uint32_t base_address, const std::uint32_t num_tiles = 8)
+{
+    // Set initial tile index
+    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, start_tile_index);
+
+    // Program base address once without stall
+    program_packer_destination_nostall(base_address);
+
+    // Run the MOP - handles all tiles in one go
+    ckernel::ckernel_template::run();
+
+    // Reset z counters
+    TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101);
 }
 
 #include "llk_pack_untilize.h"
