@@ -4,20 +4,22 @@ Asserts in LLK
 ## Purpose and scope
 This document defines the mandatory rules and guidelines for using assertions in the LLK/Compute API codebase.
 
-## Audience:
+## Audience
+
 LLK developers, reviewers, and maintainers.
 
-## Goal:
+## Goal
+
 To enforce correctness, prevent invalid hardware configurations, and detect misuse as early as possible through compile-time and runtime assertions.
 
-# What is an assert?
+## What is an assert?
 
 Asserts are **checks built into code** that verify whether a given condition holds true.
 
 * **If the condition is true** → the program continues normally.
 * **If the condition is false** → the program is terminated.
 
-## Types of Asserts in LLK
+## Types of asserts in LLK
 
 1. **Compile-Time Assert (`static_assert`)**
    * Validates conditions during compilation.
@@ -30,7 +32,7 @@ Asserts are **checks built into code** that verify whether a given condition hol
 
 # Assert role in LLK
 
-## **Failure scenario handling:**
+## Failure scenario handling
 
 LLK does not support recoverable error handling (no exceptions, no error codes).
 
@@ -42,11 +44,11 @@ In LLK, assertions are used for:
 2. Enforcement of hardware and configuration invariants
 3. Detection of internal logic bugs
 
-## **Defensive Guidance**
+## Defensive guidance
 
 Embedding assertions directly into the code provides **clear, enforceable guidance** on how the API is intended to be used. While comments can describe expected usage, they do not actively prevent or report violations — **assertions do**.
 
-## **🔑** Assertion–Test Relationship
+## 🔑 Assertion–test relationship
 
 **Assertions**
 
@@ -56,21 +58,21 @@ Embedding assertions directly into the code provides **clear, enforceable guidan
 
 * Validate that supported configurations behave as expected under real usage scenarios.
 
-## **Rule for assert-test coverage**
+## Rule for assert-test coverage
 
-Rule: Every parameter or operation must be protected by either an assertion or an automated test.
+**Rule:** Every parameter or operation that influences correctness or hardware configuration must be protected by either an assertion or an automated test.
 
 - **Assertions must** be used to enforce invariants at compile-time (`static_assert`) or at runtime (`LLK_ASSERT`) where appropriate.
 - **Tests must** validate supported configurations and catch regressions; if an assertion is omitted for a case, a test covering that case must exist and the omission must be documented.
 
 # Strategy for adding compile or runtime Asserts
 
-1\. **Use Compile-Time Asserts when possible**
+1\. **Use compile-time asserts when possible**
 
 - Use **static\_assert** whenever the condition depends only on compile-time information (e.g., template parameters, type traits, constant expressions).
 - Benefits: Faster feedback, easier debugging, prevents invalid builds.
 
-2\. **Fallback to Runtime Asserts When Necessary**
+2\. **Fallback to runtime asserts when necessary**
 
 - Use LLK\_ASSERT when conditions depend on runtime data (e.g., user input, file contents, dynamic state).
 - Benefits: Covers scenarios not knowable at compile time.
@@ -114,7 +116,7 @@ The key question then becomes:
 
 **Should every parameter be moved to compile time?**
 
-## **🛠️ Compile-Time Parameters (Template Parameters)**
+## 🛠️ Compile-time parameters (template parameters)
 
 **Pros**
 
@@ -131,7 +133,7 @@ The key question then becomes:
 * ❌ **Longer compile times**: More instantiations can slow down builds.
 * ❌ **Harder to generalize**: Not suitable for values that vary widely or depend on runtime input.
 
-## **⚙️ Runtime Parameters (Function Arguments)**
+## ⚙️ Runtime parameters (function arguments)
 
 **Pros**
 
@@ -147,14 +149,14 @@ The key question then becomes:
 * ❌ **Harder debugging**: Failures may depend on specific runtime paths or inputs.
 * ❌ **Less optimization**: Compiler cannot specialize code based on parameter values.
 
-## **📌** Strategy for compile/runtime parameters conclusion (Normative Rules):
+## 📌 Strategy for compile/runtime parameters conclusion (Normative rules)
 
-**RULE: If a parameter influences control flow or validity and can be known at compile time, it must be a compile-time parameter unless there is a documented reason not to.**
+**Rule:** If a parameter influences control flow or validity and can be known at compile time, it must be a compile-time parameter unless there is a documented reason not to.**
 
 * Use compile-time parameters when values are known during compilation and program logic branches based on them. This enables early validation and compiler optimizations.
 * Document any exceptions (e.g., "We use a runtime parameter here for flexibility despite it being determinable at compile time because X").
 
-**Use runtime parameters only when necessary**
+**Rule:** Use runtime parameters only when necessary.
 
 * Choose runtime parameters when values are truly dynamic or not available until execution. This keeps the code adaptable to varying inputs.
 * Document the reason if compile-time parameters would be impractical.
@@ -169,9 +171,10 @@ The key question then becomes:
 
 * Early error detection and clearer invariants at the type system level significantly improve code quality and reduce debugging time.
 
-## **📌** Strategy for assert placement in a Call Stack
+# 📌 Strategy for assert placement in the call stack
 
-#### **1\. Low in the Stack (deep inside helper functions)**
+**Rule:** The function that consumes a value is responsible for asserting its invariants, unless the function contract explicitly states otherwise. If this is not possible, leave a comment why.**
+#### 1. Low in the stack (deep inside helper functions)
 
 * **Add asserts close to the point where invariants are actually required (e.g., assumptions about parameters, internal states).**
 * **Ensures correctness directly at the source of the invariant.**
@@ -179,13 +182,14 @@ The key question then becomes:
 **Pros**
 
 * **✅ Precise: Catches violations exactly where assumptions break.**
+* **✅ Clear: Prevents “I assumed the caller checked it”.**
 * **✅ Simplicity: Easier to identify the root cause.**
 
 **Cons**
 
 * **❌ Clutter risk: Can make internal logic noisy if overused.**
 
-#### **2\. High in the Stack (entry points, public APIs)**
+#### 2. High in the stack (entry points, public APIs)
 
 * **Add asserts at the boundaries of your system (e.g., validating inputs at API entry).**
 * **Ensures external callers cannot pass invalid data deeper into the system.**
@@ -199,29 +203,35 @@ The key question then becomes:
 
 * **❌ Less precise: Failures may be reported far from the actual issue.**
 
-## **📌** Strategy for assert placement in Call Stack conclusion (Rules):
+## 📌 Strategy for assert placement in call stack conclusion (Normative rules)
 
-### **Cover all call stacks**
+### Cover all call stacks
 
 * Begin by ensuring that every call stack through which the asserted variable can propagate within the LLK library is accounted for.
 
-### **Identify the convergence point**
+### Identify the convergence point
 
-* Find the narrow point common to all relevant call stacks (whether higher or lower). Placing asserts at this convergence point typically provides full coverage with minimal duplication and helps ensure that future code paths remain protected automatically.
+* Find the narrowest point in the call stack through which all execution paths that rely on a given invariant must pass. Placing asserts at this convergence point provides full coverage with minimal duplication and helps ensure that future code paths remain protected automatically.
 * **LLK-specific considerations:**
   * In LLK, the lowest point in the call stack often corresponds to setting a configuration or register value. This makes LLK particularly well-suited to a low-in-the-stack assertion strategy, as invariants can be enforced precisely where they matter most.
   * In cases where a single API governs specific call stacks (e.g., SFPU), it can be more effective to place asserts higher in the stack, at the API boundary.
 
-### **Guideline - Balanced approach**
+### Duplicating asserts
+
+**Rule:** Duplicate asserts are allowed but discouraged. Prefer one authoritative assert at the convergence point.
+
+### Guideline: Balanced approach
 
 * Assertion placement should balance between low-level and high-level positions depending on the concrete case. In LLK, low-in-the-stack asserts are generally expected and favorable, but higher-level asserts may be appropriate when a single API naturally serves as the control point.
+
+## Assert message quality
+
+**Rule:** Ensure assert message is clear, helpful, and explains what the valid values are.
 
 # What asserts are NOT for
 
 **Asserts must not be used for:**
 
-* **Recoverable errors** — Use error codes or alternative control flow if the program can continue.
-* **User-facing validation** — Use dedicated validation layers and graceful error messages for user input.
 * **Performance-critical hot paths (when asserts are enabled)** — Excessive asserts in tight loops can impact performance when enabled.
 
 **Instead, asserts are for:**
@@ -232,7 +242,7 @@ The key question then becomes:
 
 **Key point:** Asserts are the sole mechanism in LLK for input sanitization. Code must not allow invalid configurations to silently execute or produce undefined behavior. Every unguarded assumption is a bug waiting to happen.
 
-# 📌 Performance Overhead and Runtime Assert Policy
+# 📌 Performance overhead and runtime assert policy
 
 **Nature of runtime asserts**
 
@@ -241,13 +251,13 @@ The key question then becomes:
 **Policy: Runtime asserts must always be written**
 
 * **Developers must write `LLK_ASSERT` statements** even though they may be disabled at build time.
-* **Code must not rely on undefined behavior when asserts are compiled out.** All invariants must hold logically, regardless of whether the assert fires.
+* **Code must behave correctly even when all runtime asserts are disabled.** Asserts must not be relied upon to prevent undefined behavior. All invariants must hold logically, regardless of whether the assert fires.
 * This ensures that enabling asserts on demand does not reveal latent bugs in the code.
 
 
 **Current status in tt-metal**
 
-* At present, `LLK_ASSERT`s are **disabled by default** in tt-metal release builds for performance.
+* At present, runtime asserts (`LLK_ASSERT`) are **disabled by default** in tt-metal release builds for performance.
 * Asserts can be **enabled on demand** for development and debugging. Refer to [the tt-metal LLK debugging guide](https://github.com/tenstorrent/tt-metal/blob/main/docs/source/tt-metalium/tools/llk_asserts.rst) for details on enabling and using runtime asserts.
 
 **When to enable asserts**
@@ -256,3 +266,23 @@ The key question then becomes:
 * When investigating bugs or unexpected behavior.
 * In pre-release validation to catch edge cases.
 * When asserts are enabled, the slight performance overhead is acceptable as a safeguard against incorrect hardware configurations.
+
+# Assert Culture
+## Development Mindset 💻
+* ✅ Consider assertions integral to API and kernel development
+* ✅ Every new parameter needs validation: CTA (compile-time assert), RTA (runtime assert), or dedicated test
+* ✅ Ask: "What can go wrong?" before "How do I implement?"
+* ✅ Make APIs self-validating - don't rely on documentation alone
+* ✅ Validation is not optional - it's part of the design
+
+### Result: Predictable, reliable, and user-friendly code
+
+## Code review mindset 🔍
+
+* ✅ Check if new parameters have appropriate assertions
+* ✅ Verify compile-time validation is used where possible (prioritize compile-time over runtime)
+* ✅ Ensure error messages are clear and actionable
+* ✅ Look for missing edge case validation
+* ✅ Question: "Is the assert at the convergence point? If not, why?"
+
+### Treat missing assertions as incomplete code - not just a nice-to-have
