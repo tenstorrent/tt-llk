@@ -544,18 +544,8 @@ inline void _llk_pack_uninit_()
 }
 
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
-inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t num_tiles = 1)
+inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
-    // INSERT_YOUR_CODE
-    if constexpr (is_fp32_dest_acc_en)
-    {
-        LLK_ASSERT(num_tiles <= 4, "When FP32 dest accumulation is enabled, num_tiles must be <= 4.");
-    }
-    else
-    {
-        LLK_ASSERT(num_tiles <= 8, "When FP32 dest accumulation is disabled, num_tiles must be <= 8.");
-    }
-
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
 
     program_packer_destination(address);
