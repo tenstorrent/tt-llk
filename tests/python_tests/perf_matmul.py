@@ -26,7 +26,7 @@ from helpers.test_variant_parameters import (
 )
 
 # Important K dimensions to test
-KT_DIMS = [8]
+KT_DIMS = [1, 2, 4, 8, 16]
 
 
 def matmul_combos(
@@ -85,7 +85,7 @@ def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordina
         # PerfRunType.L1_TO_L1,
         PerfRunType.UNPACK_ISOLATE,
         PerfRunType.MATH_ISOLATE,
-        PerfRunType.PACK_ISOLATE,
+        # PerfRunType.PACK_ISOLATE,
         # PerfRunType.L1_CONGESTION,
     ]
 

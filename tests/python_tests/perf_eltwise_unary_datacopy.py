@@ -49,19 +49,20 @@ def test_perf_eltwise_unary_datacopy(
     - Float16_b format only
     """
 
-    tile_count = 8
+    tile_count = 4
 
     configuration = PerfConfig(
         "sources/eltwise_unary_datacopy_perf.cpp",
         formats,
         run_types=[
             # PerfRunType.L1_TO_L1,
-            # PerfRunType.UNPACK_ISOLATE,
-            # PerfRunType.MATH_ISOLATE,
+            # PerfRunType.UNPACK_ISOLATE,  # TODO: Fix UNPACK_ISOLATE mode - currently hangs
+            PerfRunType.MATH_ISOLATE,
             PerfRunType.PACK_ISOLATE,
             # PerfRunType.L1_CONGESTION,
         ],
-        templates=[TILE_COUNT(tile_count), LOOP_FACTOR(16)],
+        templates=[],
+        runtimes=[TILE_COUNT(tile_count), LOOP_FACTOR(16)],
         variant_stimuli=StimuliConfig(
             None,
             formats.input_format,

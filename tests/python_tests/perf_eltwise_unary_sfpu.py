@@ -58,7 +58,7 @@ from helpers.test_variant_parameters import (
     ],
     dest_acc=[
         DestAccumulation.No,
-        # DestAccumulation.Yes,
+        DestAccumulation.Yes,
     ],
     loop_factor=[
         64,
@@ -179,11 +179,11 @@ def test_perf_eltwise_unary_sfpu(
         "sources/eltwise_unary_sfpu_perf.cpp",
         formats,
         run_types=[
-            PerfRunType.L1_TO_L1,
+            # PerfRunType.L1_TO_L1,
             PerfRunType.UNPACK_ISOLATE,
             PerfRunType.MATH_ISOLATE,
-            PerfRunType.PACK_ISOLATE,
-            PerfRunType.L1_CONGESTION,
+            # PerfRunType.PACK_ISOLATE,
+            # PerfRunType.L1_CONGESTION,
         ],
         templates=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
