@@ -256,6 +256,50 @@ inline bool is_packer_conversion_supported(DataFormat dest_reg, DataFormat out_l
             {
                 case DataFormat::Float16:
                 case DataFormat::Float16_b:
+                case DataFormat::Float32:
+                case DataFormat::Lf8:
+                case DataFormat::Fp8_e4m3:
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2:
+                case DataFormat::Bfp2_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // ---------------------------------------------------------------------
+        // Input: Bfp8 (BFP8-A) in Dest
+        // Inferred for Float16 L1 -> Bfp8_b L1 (gasket produces Bfp8, packer outputs Bfp8_b).
+        case DataFormat::Bfp8:
+            switch (out_l1)
+            {
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Lf8:
+                case DataFormat::Fp8_e4m3:
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2:
+                case DataFormat::Bfp2_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // ---------------------------------------------------------------------
+        // Input: Bfp8_b (BFP8-B) in Dest
+        // Allowed for pipeline (e.g. Bfp8_b L1 -> Bfp8_b reg -> pack to Float32 L1).
+        case DataFormat::Bfp8_b:
+            switch (out_l1)
+            {
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Float32:
                 case DataFormat::Lf8:
                 case DataFormat::Fp8_e4m3:
                 case DataFormat::Bfp8:

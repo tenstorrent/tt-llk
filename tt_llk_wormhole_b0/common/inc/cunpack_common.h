@@ -204,6 +204,163 @@ inline void enable_int8_fpu_math()
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, ALU_ACC_CTRL_INT8_math_enabled_MASK>(alu_payload.val);
 }
 
+/**
+ * \brief Checks whether Wormhole B0 hardware supports unpacking L1 tiles into a given register format.
+ *
+ * Answers the question: "Can tiles stored in L1 in format \p in_l1 be unpacked by hardware
+ * into SrcA/SrcB/Dest registers in format \p out_reg?" This is a logical view only: the
+ * function does not distinguish where the conversion is implemented (Unpacker vs Gasket)
+ * or which operand path (SrcA, SrcB, Dest) is used. If any path can produce \p out_reg
+ * from \p in_l1, the function returns true.
+ *
+ * Supported conversions are defined by the Wormhole B0 MAS (Microarchitecture Specification)
+ * and ISA format-conversion tables. Use this to validate unpack configs before programming
+ * the unpacker.
+ *
+ * \param in_l1   Data format of tiles in L1.
+ * \param out_reg Desired data format in SrcA/SrcB/Dest registers.
+ * \return true if the in_l1 -> out_reg conversion is supported; false otherwise.
+ */
+inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1, const DataFormat out_reg)
+{
+    switch (in_l1)
+    {
+        // -------------------------------------------------------------------------
+        // 1. Float32 in L1
+        // MAS Table 2 (FP32 row) + ISA FormatConversion:
+        //   Float32 -> Float32  (identity)
+        //   Float32 -> Tf32     (gasket: take 19 MSBs)
+        //   Float32 -> Float16  (FP16-A)
+        //   Float32 -> Float16_b (BF16)
+        case DataFormat::Float32:
+            switch (out_reg)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 2. Tf32 in L1
+        // On WH, TF32 is stored as Float32 in L1; unpacker/gasket can expose:
+        //   Tf32 -> Tf32 (Src regs)
+        //   Tf32 -> Float32 (Dest/SrcS)
+        // No Float16/Float16_b conversions are listed for Wormhole.
+        case DataFormat::Tf32:
+            switch (out_reg)
+            {
+                case DataFormat::Tf32:
+                case DataFormat::Float32:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 3. Float16 (FP16-A) in L1
+        // MAS Table 2 says only identity Float16->Float16 is supported on WH.
+        case DataFormat::Float16:
+            return out_reg == DataFormat::Float16;
+
+        // -------------------------------------------------------------------------
+        // 4. Float16_b (BF16) in L1
+        // MAS Table 2: only identity Float16_b->Float16_b supported.
+        case DataFormat::Float16_b:
+            return out_reg == DataFormat::Float16_b;
+
+        // -------------------------------------------------------------------------
+        // 5. Block-float Bfp8 (A-side shared exponent) in L1
+        // MAS Table 2:
+        //   Bfp8 -> Float16 (unpacker gasket)
+        // and it’s also legal to leave it as BFP8A pre-gasket, but registers
+        // don’t store BFP; compute uses FP16/TF32 only.
+        case DataFormat::Bfp8:
+            switch (out_reg)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Float16_b:
+                case DataFormat::Float16:
+                case DataFormat::Bfp8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // 6. Block-float Bfp8_b (B-side shared exponent) in L1
+        // MAS Table 2:
+        //   Bfp8_b -> Float16_b (unpacker gasket)
+        // Identity Bfp8_b->Bfp8_b allowed for pipeline (L1->reg same format).
+        case DataFormat::Bfp8_b:
+            switch (out_reg)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Bfp8_b:
+                    return true;
+                default:
+                    return false;
+            }
+        // -------------------------------------------------------------------------
+        // 7. Bfp4/Bfp2 A/B in L1
+        // MAS Table 2 shows:
+        //   Bfp4/2 -> Bfp8 (Unpacker-only), no direct FP target
+        //   Bfp4_b/Bfp2_b -> Bfp8_b (Unpacker-only), no direct FP target
+        // From a “can I get standard FP in Src/Dest?” perspective, Wormhole docs
+        // do *not* guarantee a direct Float16/Tf32 result here, so we conservatively
+        // treat them as unsupported for FP/INT register formats.
+        case DataFormat::Bfp4:
+        case DataFormat::Bfp4_b:
+        case DataFormat::Bfp2:
+        case DataFormat::Bfp2_b:
+            // If you later validate a Bfp4/2 -> Float16/Tf32 path in RTL/tests,
+            // add explicit allowed out_reg values here.
+            return false;
+
+        // -------------------------------------------------------------------------
+        // 8. Lf8 (FP8 e5m2) in L1
+        // MAS Table 2:
+        //   Lf8 -> Float16 via Unpacker Gasket
+        case DataFormat::Lf8:
+            return out_reg == DataFormat::Float16;
+
+        // -------------------------------------------------------------------------
+        // 9. Int32 in L1
+        // MAS Table 2:
+        //   Int32 -> Int32 only
+        case DataFormat::Int32:
+            return out_reg == DataFormat::Int32;
+
+        // 10. UInt16 in L1 (DataFormat has UInt16 only; no Int16 in Wormhole enum)
+        // MAS Table 2: UInt16 -> UInt16 only
+        case DataFormat::UInt16:
+            return out_reg == DataFormat::UInt16;
+
+        // 11. Int8 in L1
+        // MAS Table 2:
+        //   Int8 -> Int8 only
+        case DataFormat::Int8:
+            return out_reg == DataFormat::Int8;
+
+        // 12. UInt8 in L1
+        // ISA FormatConversion:
+        //   UInt8 -> Integer "8" (unsigned flag in ALU_FORMAT_SPEC)
+        // At the level of "does hardware support 8-bit integer here?", we treat
+        // that as conversion to Int8 registers with an unsignedness bit.
+        case DataFormat::UInt8:
+            return out_reg == DataFormat::Int8;
+
+        // -------------------------------------------------------------------------
+        // 13. Unknown or not-yet-encoded formats.
+        default:
+            return false;
+    }
+}
+
 template <bool is_fp32_dest_acc_en, bool row_pool = false, bool fpu_srnd_en = false, bool pack_srnd_en = false, bool disable_src_zero_flag = false>
 inline void configure_unpack_AB(
     const std::uint32_t unpA_src_format,
@@ -419,145 +576,6 @@ inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, cons
            ((output_df == to_underlying(DataFormat::Int32)) || (output_df == to_underlying(DataFormat::Float32)));
 }
 
-/**
- * \brief Checks whether Wormhole B0 hardware supports unpacking L1 tiles into a given register format.
- *
- * Answers the question: "Can tiles stored in L1 in format \p in_l1 be unpacked by hardware
- * into SrcA/SrcB/Dest registers in format \p out_reg?" This is a logical view only: the
- * function does not distinguish where the conversion is implemented (Unpacker vs Gasket)
- * or which operand path (SrcA, SrcB, Dest) is used. If any path can produce \p out_reg
- * from \p in_l1, the function returns true.
- *
- * Supported conversions are defined by the Wormhole B0 MAS (Microarchitecture Specification)
- * and ISA format-conversion tables. Use this to validate unpack configs before programming
- * the unpacker.
- *
- * \param in_l1   Data format of tiles in L1.
- * \param out_reg Desired data format in SrcA/SrcB/Dest registers.
- * \return true if the in_l1 -> out_reg conversion is supported; false otherwise.
- */
-inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1, const DataFormat out_reg)
-{
-    switch (in_l1)
-    {
-        // -------------------------------------------------------------------------
-        // 1. Float32 in L1
-        // MAS Table 2 (FP32 row) + ISA FormatConversion:
-        //   Float32 -> Float32  (identity)
-        //   Float32 -> Tf32     (gasket: take 19 MSBs)
-        //   Float32 -> Float16  (FP16-A)
-        //   Float32 -> Float16_b (BF16)
-        case DataFormat::Float32:
-            switch (out_reg)
-            {
-                case DataFormat::Float32:
-                case DataFormat::Tf32:
-                case DataFormat::Float16:
-                case DataFormat::Float16_b:
-                    return true;
-                default:
-                    return false;
-            }
-
-        // -------------------------------------------------------------------------
-        // 2. Tf32 in L1
-        // On WH, TF32 is stored as Float32 in L1; unpacker/gasket can expose:
-        //   Tf32 -> Tf32 (Src regs)
-        //   Tf32 -> Float32 (Dest/SrcS)
-        // No Float16/Float16_b conversions are listed for Wormhole.
-        case DataFormat::Tf32:
-            switch (out_reg)
-            {
-                case DataFormat::Tf32:
-                case DataFormat::Float32:
-                    return true;
-                default:
-                    return false;
-            }
-
-        // -------------------------------------------------------------------------
-        // 3. Float16 (FP16-A) in L1
-        // MAS Table 2 says only identity Float16->Float16 is supported on WH.
-        case DataFormat::Float16:
-            return out_reg == DataFormat::Float16;
-
-        // -------------------------------------------------------------------------
-        // 4. Float16_b (BF16) in L1
-        // MAS Table 2: only identity Float16_b->Float16_b supported.
-        case DataFormat::Float16_b:
-            return out_reg == DataFormat::Float16_b;
-
-        // -------------------------------------------------------------------------
-        // 5. Block-float Bfp8 (A-side shared exponent) in L1
-        // MAS Table 2:
-        //   Bfp8 -> Float16 (unpacker gasket)
-        // and it’s also legal to leave it as BFP8A pre-gasket, but registers
-        // don’t store BFP; compute uses FP16/TF32 only.
-        case DataFormat::Bfp8:
-            return out_reg == DataFormat::Float16;
-
-        // 6. Block-float Bfp8_b (B-side shared exponent) in L1
-        // MAS Table 2:
-        //   Bfp8_b -> Float16_b (unpacker gasket)
-        case DataFormat::Bfp8_b:
-            return out_reg == DataFormat::Float16_b;
-
-        // -------------------------------------------------------------------------
-        // 7. Bfp4/Bfp2 A/B in L1
-        // MAS Table 2 shows:
-        //   Bfp4/2 -> Bfp8 (Unpacker-only), no direct FP target
-        //   Bfp4_b/Bfp2_b -> Bfp8_b (Unpacker-only), no direct FP target
-        // From a “can I get standard FP in Src/Dest?” perspective, Wormhole docs
-        // do *not* guarantee a direct Float16/Tf32 result here, so we conservatively
-        // treat them as unsupported for FP/INT register formats.
-        case DataFormat::Bfp4:
-        case DataFormat::Bfp4_b:
-        case DataFormat::Bfp2:
-        case DataFormat::Bfp2_b:
-            // If you later validate a Bfp4/2 -> Float16/Tf32 path in RTL/tests,
-            // add explicit allowed out_reg values here.
-            return false;
-
-        // -------------------------------------------------------------------------
-        // 8. Lf8 (FP8 e5m2) in L1
-        // MAS Table 2:
-        //   Lf8 -> Float16 via Unpacker Gasket
-        case DataFormat::Lf8:
-            return out_reg == DataFormat::Float16;
-
-        // -------------------------------------------------------------------------
-        // 9. Int32 in L1
-        // MAS Table 2:
-        //   Int32 -> Int32 only
-        case DataFormat::Int32:
-            return out_reg == DataFormat::Int32;
-
-        // 10. UInt16 in L1 (DataFormat has UInt16 only; no Int16 in Wormhole enum)
-        // MAS Table 2: UInt16 -> UInt16 only
-        case DataFormat::UInt16:
-            return out_reg == DataFormat::UInt16;
-
-        // 11. Int8 in L1
-        // MAS Table 2:
-        //   Int8 -> Int8 only
-        case DataFormat::Int8:
-            return out_reg == DataFormat::Int8;
-
-        // 12. UInt8 in L1
-        // ISA FormatConversion:
-        //   UInt8 -> Integer "8" (unsigned flag in ALU_FORMAT_SPEC)
-        // At the level of "does hardware support 8-bit integer here?", we treat
-        // that as conversion to Int8 registers with an unsignedness bit.
-        case DataFormat::UInt8:
-            return out_reg == DataFormat::Int8;
-
-        // -------------------------------------------------------------------------
-        // 13. Unknown or not-yet-encoded formats.
-        default:
-            return false;
-    }
-}
-
 inline void wait_for_dest_available()
 {
     t6_semaphore_wait_on_max<p_stall::STALL_UNPACK>(semaphore::UNPACK_TO_DEST);
@@ -678,8 +696,8 @@ inline alu_config_t read_alu_config()
  * @param unpB_dst_format   Expected output data format for unpacker B (context 1)
  * @param unpA_face_r_dim   Expected face row dimension for unpacker A (default FACE_R_DIM)
  * @param unpB_face_r_dim   Expected face row dimension for unpacker B (default FACE_R_DIM)
- * @param unpA_num_faces    Expected number of faces for unpacker A (default NUM_FACES)
- * @param unpB_num_faces    Expected number of faces for unpacker B (default NUM_FACES)
+ * @param unpA_num_faces    Expected number of faces for unpacker A (default TILE_NUM_FACES)
+ * @param unpB_num_faces    Expected number of faces for unpacker B (default TILE_NUM_FACES)
  * @return true if the current unpacker configuration matches all expected values, false otherwise
  */
 inline bool is_unpacker_configured_correctly(
@@ -689,16 +707,18 @@ inline bool is_unpacker_configured_correctly(
     const uint unpB_dst_format,
     const uint unpA_face_r_dim = FACE_R_DIM,
     const uint unpB_face_r_dim = FACE_R_DIM,
-    const uint unpA_num_faces  = NUM_FACES,
-    const uint unpB_num_faces  = NUM_FACES)
+    const uint unpA_num_faces  = TILE_NUM_FACES,
+    const uint unpB_num_faces  = TILE_NUM_FACES)
 {
     LLK_ASSERT(unpA_face_r_dim == FACE_R_DIM, "unpA_face_r_dim currently not used.");
-    std::array<ckernel::unpacker::unpack_tile_descriptor_t, ckernel::unpacker::NUM_UNPACKERS> tile_descriptor_vec;
-    tile_descriptor_vec                                                      = read_unpack_tile_descriptor();
-    const ckernel::unpacker::unpack_tile_descriptor_t &tile_descriptor_cntx0 = tile_descriptor_vec[0];
-    const ckernel::unpacker::unpack_tile_descriptor_t &tile_descriptor_cntx1 = tile_descriptor_vec[1];
-    return tile_descriptor_cntx0.in_data_format == unpA_src_format && tile_descriptor_cntx0.out_data_format == unpA_dst_format &&
-           tile_descriptor_cntx1.in_data_format == unpB_src_format && tile_descriptor_cntx1.out_data_format == unpB_dst_format &&
+    std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec = read_unpack_tile_descriptor();
+    std::array<unpack_config_t, NUM_UNPACKERS> config_vec                   = read_unpack_config();
+
+    const unpack_tile_descriptor_t &tile_descriptor_cntx0 = tile_descriptor_vec[0];
+    const unpack_tile_descriptor_t &tile_descriptor_cntx1 = tile_descriptor_vec[1];
+
+    return tile_descriptor_cntx0.in_data_format == unpA_src_format && config_vec[0].out_data_format == unpA_dst_format &&
+           tile_descriptor_cntx1.in_data_format == unpB_src_format && config_vec[1].out_data_format == unpB_dst_format &&
            tile_descriptor_cntx1.x_dim == unpB_face_r_dim * FACE_C_DIM && tile_descriptor_cntx0.z_dim == unpA_num_faces &&
            tile_descriptor_cntx1.z_dim == unpB_num_faces;
 }

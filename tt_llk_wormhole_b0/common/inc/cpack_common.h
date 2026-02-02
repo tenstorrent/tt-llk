@@ -223,7 +223,7 @@ inline void set_packer_strides(const std::uint32_t pack_src_format)
 
 inline bool is_bfp4_2_a(DataFormat f)
 {
-    return f == DataFormat::Bfp4_a || f == DataFormat::Bfp2_a;
+    return f == DataFormat::Bfp4 || f == DataFormat::Bfp2;
 }
 
 inline bool is_bfp4_2_b(DataFormat f)
@@ -260,7 +260,7 @@ inline bool is_packer_conversion_supported(DataFormat dest_reg, DataFormat out_l
                 case DataFormat::Tf32:
                 case DataFormat::Float16:
                 case DataFormat::Float16_b:
-                case DataFormat::Bfp8_a:
+                case DataFormat::Bfp8:
                 case DataFormat::Bfp8_b:
                 case DataFormat::Lf8:
                     return true;
@@ -282,7 +282,7 @@ inline bool is_packer_conversion_supported(DataFormat dest_reg, DataFormat out_l
                 case DataFormat::Tf32:
                 case DataFormat::Float16:
                 case DataFormat::Float16_b:
-                case DataFormat::Bfp8_a:
+                case DataFormat::Bfp8:
                 case DataFormat::Bfp8_b:
                 case DataFormat::Lf8:
                     return true;
@@ -303,7 +303,7 @@ inline bool is_packer_conversion_supported(DataFormat dest_reg, DataFormat out_l
                 case DataFormat::Float32:
                 case DataFormat::Float16:
                 case DataFormat::Float16_b:
-                case DataFormat::Bfp8_a:
+                case DataFormat::Bfp8:
                 case DataFormat::Lf8:
                     return true;
                 default:
@@ -335,13 +335,14 @@ inline bool is_packer_conversion_supported(DataFormat dest_reg, DataFormat out_l
 
         // ---------------------------------------------------------------------
         // In-Format: BFP8-A (L1-style A-exponent variant in Dest)
-        // MAS Table 3 BFP8A rows: FP32, FP16A, BFP8A, BFP4/2A.
-        case DataFormat::Bfp8_a:
+        // MAS Table 3 BFP8A rows: FP32, FP16A, BFP8A/B, BFP4/2A.
+        case DataFormat::Bfp8:
             switch (out_l1)
             {
                 case DataFormat::Float32:
                 case DataFormat::Float16:
-                case DataFormat::Bfp8_a:
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp8_b:
                     return true;
                 default:
                     if (is_bfp4_2_a(out_l1))
@@ -372,8 +373,8 @@ inline bool is_packer_conversion_supported(DataFormat dest_reg, DataFormat out_l
         // ---------------------------------------------------------------------
         // In-Format: BFP4/2-A or BFP4/2-B in Dest
         // MAS Table 3: BFP4/2 A/B as Dest input -> no supported pack output. Packer cannot take Dest in BFP4/2 on Wormhole.
-        case DataFormat::Bfp4_a:
-        case DataFormat::Bfp2_a:
+        case DataFormat::Bfp4:
+        case DataFormat::Bfp2:
         case DataFormat::Bfp4_b:
         case DataFormat::Bfp2_b:
             return false;
@@ -405,8 +406,8 @@ inline bool is_packer_conversion_supported(DataFormat dest_reg, DataFormat out_l
                     return false;
             }
 
-        case DataFormat::Int16:
-            return out_l1 == DataFormat::Int16;
+        case DataFormat::UInt16:
+            return out_l1 == DataFormat::UInt16;
 
         case DataFormat::Int8:
             return out_l1 == DataFormat::Int8;
@@ -546,6 +547,10 @@ inline void set_packer_config(
 
     cache_exponential_section_sizes_in_gprs<false>(num_faces, partial_face);
 }
+
+inline std::array<pack_config_t, NUM_PACKERS> read_pack_config();
+
+inline std::array<pack_config_t, NUM_PACKERS> read_pack_config();
 
 inline void set_packer_l1_offset(const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM)
 {
