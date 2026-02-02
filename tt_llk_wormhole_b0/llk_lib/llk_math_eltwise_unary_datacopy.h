@@ -22,12 +22,12 @@ inline void eltwise_unary_configure_addrmod(const uint dst_format);
 template <DataCopyType type, DstSync Dst, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
 inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format)
 {
+
     if (unpack_to_dest && is_32bit_input(src_format, dst_format))
     {
         math_unpack_to_dest_math_ready();
         math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(dst_index);
         math::math_unpack_to_dest_tile_ready();
-
         if constexpr (src_b_bcast_type == BroadcastType::ROW)
         {
             // workarounds for hi/lo D2B/B2D on BH (Issue #449)
@@ -393,7 +393,7 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     eltwise_unary_configure_addrmod<type, src_b_bcast_type>(dst_format);
 
-    if (unpack_to_dest && (src_b_bcast_type != BroadcastType::NONE || is_32bit_input))
+    if (src_b_bcast_type != BroadcastType::NONE || is_32bit_input)
     {
         _llk_math_dbg_feature_disable_();
     }
@@ -416,7 +416,7 @@ template <BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_d
 inline void _llk_math_eltwise_unary_datacopy_uninit_(const bool is_32bit_input)
 {
     // clear debug feature disable
-    if (unpack_to_dest && (src_b_bcast_type != BroadcastType::NONE || is_32bit_input))
+    if (src_b_bcast_type != BroadcastType::NONE || is_32bit_input)
     {
         _llk_math_dbg_feature_enable_();
     }
