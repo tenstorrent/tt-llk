@@ -550,15 +550,7 @@ inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t addre
 
     program_packer_destination(address);
 
-    if (num_tiles > 1)
-    {
-        // Run the MOP - handles all tiles in one go
-        ckernel::ckernel_template::run();
-    }
-    else
-    {
-        mop_run(1, 1);
-    }
+    ckernel::ckernel_template::run();
 
     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); // reset z counters
 }
