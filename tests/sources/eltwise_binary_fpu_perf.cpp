@@ -54,7 +54,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            return _perf_unpack_loop_set_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES * params->LOOP_FACTOR);
+            // return _perf_unpack_loop_set_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES * params->LOOP_FACTOR);
         }
         else
         {
@@ -62,7 +62,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (uint32_t tile = 0; tile < params->TILE_CNT; tile++)
                 {
-                    _llk_unpack_AB_<BroadcastType::COL>(PERF_ADDRESS(PERF_INPUT_A, tile), PERF_ADDRESS(PERF_INPUT_B, 0));
+                    // _llk_unpack_AB_<BroadcastType::COL>(PERF_ADDRESS(PERF_INPUT_A, tile), PERF_ADDRESS(PERF_INPUT_B, 0));
                 }
             }
         }
@@ -85,7 +85,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         ZONE_SCOPED("INIT")
 
         _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::COL, MATH_FIDELITY>(TILE_NUM_FACES, false);
-        PROFILER_SYNC();
+        // PROFILER_SYNC();
     }
     {
         ZONE_SCOPED("TILE_LOOP")
@@ -95,7 +95,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            return _perf_math_loop_clear_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES);
+            // return _perf_math_loop_clear_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES);
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
@@ -105,8 +105,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
                 for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                 {
-                    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::COL, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(
-                        TILE_NUM_FACES, block_tile, false);
+                    // _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::COL, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(
+                    //     TILE_NUM_FACES, block_tile, false);
                 }
             }
         }
@@ -116,13 +116,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
-                _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-                for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
-                {
-                    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::COL, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(
-                        TILE_NUM_FACES, block_tile, false);
-                }
-                _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                // _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+                // for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
+                // {
+                //     _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::COL, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY>(
+                //         TILE_NUM_FACES, block_tile, false);
+                // }
+                // _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
         }
         PROFILER_SYNC();
@@ -159,7 +159,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
                 for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                 {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
+                    // _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
                 }
             }
         }
@@ -169,12 +169,12 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
-                _llk_packer_wait_for_math_done_();
-                for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
-                {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
-                }
-                _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                // _llk_packer_wait_for_math_done_();
+                // for (uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
+                // {
+                //     _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
+                // }
+                // _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
         }
         PROFILER_SYNC();

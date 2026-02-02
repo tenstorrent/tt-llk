@@ -262,14 +262,14 @@ inline void matmul_configure_addrmod(
     // }
     // else
     // {
-    addr_mod_t {
-        .srca = {.incr = 32, .clr = 0, .cr = 1},
-        //.srca = {.incr = srca_set, .clr = 0, .cr = 1},
-        .srcb = {.incr = 48, .clr = 0, .cr = 1}, // cr=32 before, cr+48=16 after wrapping
-        .dest = {.incr = 0, .clr = 0, .cr = 1},
-        // .bias = {.incr = 1},
-    }
-        .set(ADDR_MOD_4);
+    // addr_mod_t {
+    //     .srca = {.incr = 32, .clr = 0, .cr = 1},
+    //     //.srca = {.incr = srca_set, .clr = 0, .cr = 1},
+    //     .srcb = {.incr = 48, .clr = 0, .cr = 1}, // cr=32 before, cr+48=16 after wrapping
+    //     .dest = {.incr = 0, .clr = 0, .cr = 1},
+    //     // .bias = {.incr = 1},
+    // }
+    //     .set(ADDR_MOD_4);
     // }
     // }
 }

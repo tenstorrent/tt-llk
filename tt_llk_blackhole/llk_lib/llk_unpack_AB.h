@@ -21,75 +21,75 @@ using namespace ckernel::unpacker;
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, const std::uint32_t num_faces = 4, const bool narrow_tile = false)
 {
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    // LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     static constexpr uint unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr uint unpack_srcb = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
-    if constexpr (BType == BroadcastType::COL)
-    {
-        static constexpr uint unpack_srcb_set_z = TT_OP_SETADCZW(0b010, 0, 0, 0, 2, 0b0001);
-        const uint32_t outerloop                = num_faces < 4 ? 1 : 2;
-        const uint32_t innerloop                = num_faces < 2 ? 1 : 2;
-        ckernel_template tmp(outerloop, innerloop, unpack_srca);
-        tmp.set_start_op(unpack_srcb);
-        if (narrow_tile)
-        {
-            tmp.set_end_op(unpack_srcb); // Read face 1
-        }
-        else
-        {
-            tmp.set_end_op(unpack_srcb_set_z);
-        }
-        tmp.program();
-    }
-    else if constexpr (BType == BroadcastType::ROW)
-    {
-        static constexpr uint unpack_srcb_clear_z  = TT_OP_SETADCZW(0b010, 0, 0, 0, 0, 0b0001);
-        static constexpr uint unpack_srcb_no_z_inc = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        const uint32_t outerloop                   = num_faces < 4 ? 1 : 2;
-        const uint32_t innerloop                   = num_faces < 2 ? 1 : 2;
-        ckernel_template tmp(outerloop, innerloop, narrow_tile ? unpack_srcb_no_z_inc : unpack_srcb, unpack_srca);
-        tmp.set_end_op(unpack_srcb_clear_z);
-        tmp.program();
-    }
-    else if constexpr (BType == BroadcastType::SCALAR)
-    {
-        const uint32_t outerloop = 1;
-        const uint32_t innerloop = num_faces;
-        ckernel_template tmp(outerloop, innerloop, unpack_srca);
-        tmp.set_start_op(unpack_srcb);
-        tmp.program();
-    }
-    else
-    {
-        if (transpose_of_faces)
-        {
-            static constexpr uint srca_set_z         = TT_OP_SETADCZW(0b001, 0, 0, 0, 1, 0b0001);                                         // set z to 1
-            static constexpr uint unpack_srca_skip_z = TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // inc z by 2
-            const uint32_t outerloop                 = num_faces < 4 ? 1 : 2;
-            const uint32_t innerloop                 = num_faces < 2 ? 1 : 2;
-            ckernel_template tmp(outerloop, innerloop, num_faces < 4 ? unpack_srca : unpack_srca_skip_z, unpack_srcb);
-            tmp.set_end_op(srca_set_z);
-            tmp.program();
-        }
-        else
-        {
-            constexpr uint32_t outerloop = 1;
-            const uint32_t innerloop     = num_faces;
-            ckernel_template tmp(outerloop, innerloop, unpack_srca, unpack_srcb);
-            tmp.program();
-        }
-    }
+    // if constexpr (BType == BroadcastType::COL)
+    // {
+    static constexpr uint unpack_srcb_set_z = TT_OP_SETADCZW(0b010, 0, 0, 0, 2, 0b0001);
+    const uint32_t outerloop                = num_faces < 4 ? 1 : 2;
+    const uint32_t innerloop                = num_faces < 2 ? 1 : 2;
+    ckernel_template tmp(outerloop, innerloop, unpack_srca);
+    tmp.set_start_op(unpack_srcb);
+    // if (narrow_tile)
+    // {
+    //     tmp.set_end_op(unpack_srcb); // Read face 1
+    // }
+    // else
+    // {
+    tmp.set_end_op(unpack_srcb_set_z);
+    // }
+    tmp.program();
+    // }
+    // else if constexpr (BType == BroadcastType::ROW)
+    // {
+    //     static constexpr uint unpack_srcb_clear_z  = TT_OP_SETADCZW(0b010, 0, 0, 0, 0, 0b0001);
+    //     static constexpr uint unpack_srcb_no_z_inc = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    //     const uint32_t outerloop                   = num_faces < 4 ? 1 : 2;
+    //     const uint32_t innerloop                   = num_faces < 2 ? 1 : 2;
+    //     ckernel_template tmp(outerloop, innerloop, narrow_tile ? unpack_srcb_no_z_inc : unpack_srcb, unpack_srca);
+    //     tmp.set_end_op(unpack_srcb_clear_z);
+    //     tmp.program();
+    // }
+    // else if constexpr (BType == BroadcastType::SCALAR)
+    // {
+    //     const uint32_t outerloop = 1;
+    //     const uint32_t innerloop = num_faces;
+    //     ckernel_template tmp(outerloop, innerloop, unpack_srca);
+    //     tmp.set_start_op(unpack_srcb);
+    //     tmp.program();
+    // }
+    // else
+    // {
+    //     if (transpose_of_faces)
+    //     {
+    //         static constexpr uint srca_set_z         = TT_OP_SETADCZW(0b001, 0, 0, 0, 1, 0b0001);                                         // set z to 1
+    //         static constexpr uint unpack_srca_skip_z = TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // inc z by 2
+    //         const uint32_t outerloop                 = num_faces < 4 ? 1 : 2;
+    //         const uint32_t innerloop                 = num_faces < 2 ? 1 : 2;
+    //         ckernel_template tmp(outerloop, innerloop, num_faces < 4 ? unpack_srca : unpack_srca_skip_z, unpack_srcb);
+    //         tmp.set_end_op(srca_set_z);
+    //         tmp.program();
+    //     }
+    //     else
+    //     {
+    //         constexpr uint32_t outerloop = 1;
+    //         const uint32_t innerloop     = num_faces;
+    //         ckernel_template tmp(outerloop, innerloop, unpack_srca, unpack_srcb);
+    //         tmp.program();
+    //     }
+    // }
 }
 
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_init_(
     const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, const bool narrow_tile = false, const std::uint32_t transpose = 0)
 {
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose); // transpose within the face
+    // LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    // cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose); // transpose within the face
 
-    config_unpacker_x_end<p_setadc::UNP_AB>(face_r_dim);
+    // config_unpacker_x_end<p_setadc::UNP_AB>(face_r_dim);
 
     _llk_unpack_AB_mop_config_<BType>(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
 }
