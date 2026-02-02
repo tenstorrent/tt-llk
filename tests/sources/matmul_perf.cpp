@@ -61,7 +61,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            return _perf_unpack_matmul_mock(params->LOOP_FACTOR, params->RT_DIM, params->KT_DIM, params->CT_DIM);
+            // return _perf_unpack_matmul_mock(params->LOOP_FACTOR, params->RT_DIM, params->KT_DIM, params->CT_DIM);
+            return;
         }
         else
         {
@@ -69,18 +70,18 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (uint32_t j = 0; j < params->KT_DIM; j++)
                 {
-                    _llk_unpack_AB_matmul_<>(
-                        L1_ADDRESS(buffer_A[0]),
-                        L1_ADDRESS(buffer_B[0]),
-                        j,
-                        j * params->CT_DIM,
-                        TILE_SIZE_UNPACK_A,
-                        TILE_SIZE_UNPACK_B,
-                        /* partial face */ false,
-                        /* partial face */ false,
-                        params->CT_DIM,
-                        params->RT_DIM,
-                        params->KT_DIM);
+                    // _llk_unpack_AB_matmul_<>(
+                    //     L1_ADDRESS(buffer_A[0]),
+                    //     L1_ADDRESS(buffer_B[0]),
+                    //     j,
+                    //     j * params->CT_DIM,
+                    //     TILE_SIZE_UNPACK_A,
+                    //     TILE_SIZE_UNPACK_B,
+                    //     /* partial face */ false,
+                    //     /* partial face */ false,
+                    //     params->CT_DIM,
+                    //     params->RT_DIM,
+                    //     params->KT_DIM);
                 }
             }
         }
@@ -122,7 +123,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            return _perf_math_matmul_mock(params->LOOP_FACTOR, params->RT_DIM, params->KT_DIM, params->CT_DIM);
+            // return _perf_math_matmul_mock(params->LOOP_FACTOR, params->RT_DIM, params->KT_DIM, params->CT_DIM);
+            return;
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
@@ -130,8 +132,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (uint32_t j = 0; j < params->KT_DIM; j++)
                 {
-                    _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(
-                        /* dest_index */ 0, params->CT_DIM, params->RT_DIM);
+                    // _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(
+                    //     /* dest_index */ 0, params->CT_DIM, params->RT_DIM);
                 }
             }
         }

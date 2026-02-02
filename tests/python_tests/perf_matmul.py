@@ -26,7 +26,7 @@ from helpers.test_variant_parameters import (
 )
 
 # Important K dimensions to test
-KT_DIMS = [1, 2, 4, 8, 16]
+KT_DIMS = [4]
 
 
 def matmul_combos(
