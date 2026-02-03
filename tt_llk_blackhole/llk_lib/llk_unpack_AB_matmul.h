@@ -26,7 +26,7 @@ inline void _llk_unpack_AB_matmul_mop_config_(
     // in1/inB - loaded to SrcA
 
     const bool reuse_a                      = ct_dim >= rt_dim;
-    const std::uint32_t replay_buf_prog_len = (reuse_a && unpA_partial_face) ? 12 : ((!reuse_a && unpB_partial_face) ? 12 : 6);
+    const std::uint32_t replay_buf_prog_len = (reuse_a && unpA_partial_face) ? 13 : ((!reuse_a && unpB_partial_face) ? 13 : 7);
     const std::uint32_t replay_buf_run_len  = replay_buf_prog_len / 2;
 
     if (reuse_a)
@@ -54,6 +54,7 @@ inline void _llk_unpack_AB_matmul_mop_config_(
                 if constexpr (kernel_broadcast_b == 1)
                 {
                     TTI_NOP;
+                    TTI_NOP;
                 }
                 else
                 {
@@ -78,6 +79,7 @@ inline void _llk_unpack_AB_matmul_mop_config_(
                 }
                 if constexpr (kernel_broadcast_b == 1)
                 {
+                    TTI_NOP;
                     TTI_NOP;
                 }
                 else
@@ -114,6 +116,7 @@ inline void _llk_unpack_AB_matmul_mop_config_(
                 if constexpr (kernel_broadcast_a == 1)
                 {
                     TTI_NOP;
+                    TTI_NOP;
                 }
                 else
                 {
@@ -138,6 +141,7 @@ inline void _llk_unpack_AB_matmul_mop_config_(
                 }
                 if constexpr (kernel_broadcast_a == 1)
                 {
+                    TTI_NOP;
                     TTI_NOP;
                 }
                 else
