@@ -5,7 +5,7 @@ import torch
 from conftest import skip_for_wormhole
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
-from helpers.llk_params import DestAccumulation, Tilize, format_dict
+from helpers.llk_params import DestAccumulation, L1Accumulation, Tilize, format_dict
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -16,6 +16,7 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_INDEX,
     INPUT_DIMENSIONS,
+    L1_ACC,
     NUM_FACES,
     TILE_COUNT,
     TILIZE,
@@ -71,6 +72,7 @@ def get_valid_num_faces_datacopy(tilize):
         ]
     ),
     dest_acc=[DestAccumulation.No],
+    l1_acc=[L1Accumulation.No],
     num_faces=4,
     tilize=[Tilize.No],
     dest_index=0,
@@ -79,6 +81,7 @@ def get_valid_num_faces_datacopy(tilize):
 def test_pack_dest_bank(
     formats,
     dest_acc,
+    l1_acc,
     num_faces,
     tilize,
     dest_index,
@@ -109,7 +112,12 @@ def test_pack_dest_bank(
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             TILIZE(tilize),
         ],
-        runtimes=[DEST_INDEX(dest_index), TILE_COUNT(tile_cnt_A), NUM_FACES(num_faces)],
+        runtimes=[
+            DEST_INDEX(dest_index),
+            TILE_COUNT(tile_cnt_A),
+            NUM_FACES(num_faces),
+            L1_ACC(l1_acc),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
@@ -122,6 +130,7 @@ def test_pack_dest_bank(
             num_faces=num_faces,
         ),
         dest_acc=dest_acc,
+        l1_acc=l1_acc,
         unpack_to_dest=unpack_to_dest,
     )
 
