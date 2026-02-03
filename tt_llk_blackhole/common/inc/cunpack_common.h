@@ -282,6 +282,10 @@ inline bool is_unpacker_to_register_conversion_supported(DataFormat in_l1, DataF
                 case DataFormat::Float16_b:
                 case DataFormat::Bfp8:
                 case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2:
+                case DataFormat::Bfp2_b:
                     return true;
                 default:
                     return false;
@@ -296,6 +300,13 @@ inline bool is_unpacker_to_register_conversion_supported(DataFormat in_l1, DataF
         // For “possible at all”, we allow INT32->INT32.
         case DataFormat::Int32:
             return out_reg == DataFormat::Int32;
+
+        // -------------------------------------------------------------------------
+        // UInt32 in L1
+        //
+        // 32-bit unsigned; identity unpack for binary int32/uint32 ops (e.g. left/right shift).
+        case DataFormat::UInt32:
+            return out_reg == DataFormat::UInt32;
 
         // -------------------------------------------------------------------------
         // Int8 / UInt8 in L1

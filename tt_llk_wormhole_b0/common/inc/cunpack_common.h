@@ -310,23 +310,42 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
         // MAS Table 2 shows:
         //   Bfp4/2 -> Bfp8 (Unpacker-only), no direct FP target
         //   Bfp4_b/Bfp2_b -> Bfp8_b (Unpacker-only), no direct FP target
-        // From a “can I get standard FP in Src/Dest?” perspective, Wormhole docs
-        // do *not* guarantee a direct Float16/Tf32 result here, so we conservatively
-        // treat them as unsupported for FP/INT register formats.
+        // Identity unpack (e.g. Bfp4_b->Bfp4_b) allowed for pipelines that keep
+        // block-float in registers (e.g. MLA with Bfp8_b activations and Bfp4_b weights).
+        // Bfp4_b/Bfp4 -> Float16_b/Float16 allowed for typecast (unpacker path, no SFPU).
         case DataFormat::Bfp4:
         case DataFormat::Bfp4_b:
         case DataFormat::Bfp2:
         case DataFormat::Bfp2_b:
-            // If you later validate a Bfp4/2 -> Float16/Tf32 path in RTL/tests,
-            // add explicit allowed out_reg values here.
-            return false;
+            switch (out_reg)
+            {
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2:
+                case DataFormat::Bfp2_b:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                    return true;
+                default:
+                    return false;
+            }
 
         // -------------------------------------------------------------------------
         // 8. Lf8 (FP8 e5m2) in L1
         // MAS Table 2:
         //   Lf8 -> Float16 via Unpacker Gasket
+        //   Lf8 -> Float16_b allowed for pipelines that use BF16 conditional unpack dst.
         case DataFormat::Lf8:
-            return out_reg == DataFormat::Float16;
+            switch (out_reg)
+            {
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                    return true;
+                default:
+                    return false;
+            }
 
         // -------------------------------------------------------------------------
         // 9. Int32 in L1
@@ -334,6 +353,12 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
         //   Int32 -> Int32 only
         case DataFormat::Int32:
             return out_reg == DataFormat::Int32;
+
+        // -------------------------------------------------------------------------
+        // 9b. UInt32 in L1
+        // 32-bit unsigned; identity unpack for binary int32/uint32 ops (e.g. left/right shift).
+        case DataFormat::UInt32:
+            return out_reg == DataFormat::UInt32;
 
         // 10. UInt16 in L1 (DataFormat has UInt16 only; no Int16 in Wormhole enum)
         // MAS Table 2: UInt16 -> UInt16 only
