@@ -61,7 +61,12 @@ class Unpacker:
     def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         return ""
 
-    def unpack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def unpack(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        tile_idx_expr: str,
+    ) -> str:
         return ""
 
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
@@ -351,17 +356,26 @@ class UnpackerAB(Unpacker):
 
             return f"    _llk_unpack_AB_init_<{broadcast_type}>({face_r_dim}, {num_faces}, false, {transpose_faces});\n"
 
-    def unpack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        stage = operation.stage_id
-        tile_cnt = operation.output.tile_count
+    # def unpack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    #     stage = operation.stage_id
+    #     tile_cnt = operation.output.tile_count
+    #
+    #     return (
+    #         f"    for (int i = 0; i < {tile_cnt}; i++)\n"
+    #         f"    {{\n"
+    #         f"        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A{stage}[i]), L1_ADDRESS(buffer_B{stage}[i]));\n"
+    #         f"    }}\n"
+    #         f"\n"
+    #     )
 
-        return (
-            f"    for (int i = 0; i < {tile_cnt}; i++)\n"
-            f"    {{\n"
-            f"        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A{stage}[i]), L1_ADDRESS(buffer_B{stage}[i]));\n"
-            f"    }}\n"
-            f"\n"
-        )
+    def unpack(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        tile_idx_expr: str,
+    ) -> str:
+        stage = operation.stage_id
+        return f"_llk_unpack_AB_<>(L1_ADDRESS(buffer_A{stage}[{tile_idx_expr}]), L1_ADDRESS(buffer_B{stage}[{tile_idx_expr}]));\n"
 
 
 class UnpackerA(Unpacker):
@@ -441,22 +455,38 @@ class UnpackerA(Unpacker):
             f"    );\n"
         )
 
-    def unpack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    # def unpack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    #     stage = operation.stage_id
+    #     tile_cnt = operation.output.tile_count
+    #     unpack_to_dest = "true" if operation.unpack_to_dest else "false"
+    #     broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
+    #
+    #     code = (
+    #         f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
+    #         f"    {{\n"
+    #         f"        _llk_unpack_A_<{broadcast_type}, false, EltwiseBinaryReuseDestType::NONE, {unpack_to_dest}>(\n"
+    #         f"            L1_ADDRESS(buffer_A{stage}[i]), unpack_a_src_format{stage}, unpack_a_dst_format{stage}\n"
+    #         f"        );\n"
+    #         f"    }}\n\n"
+    #     )
+    #
+    #     return code
+
+    def unpack(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        tile_idx_expr: str,
+    ) -> str:
         stage = operation.stage_id
-        tile_cnt = operation.output.tile_count
         unpack_to_dest = "true" if operation.unpack_to_dest else "false"
         broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
 
-        code = (
-            f"    for (int i = 0; i < {tile_cnt}; ++i)\n"
-            f"    {{\n"
-            f"        _llk_unpack_A_<{broadcast_type}, false, EltwiseBinaryReuseDestType::NONE, {unpack_to_dest}>(\n"
-            f"            L1_ADDRESS(buffer_A{stage}[i]), unpack_a_src_format{stage}, unpack_a_dst_format{stage}\n"
-            f"        );\n"
-            f"    }}\n\n"
+        return (
+            f"_llk_unpack_A_<{broadcast_type}, false, EltwiseBinaryReuseDestType::NONE, {unpack_to_dest}>(\n"
+            f"    L1_ADDRESS(buffer_A{stage}[{tile_idx_expr}]), unpack_a_src_format{stage}, unpack_a_dst_format{stage}\n"
+            f");\n"
         )
-
-        return code
 
 
 class UnpackerTilizeA(Unpacker):
@@ -502,41 +532,71 @@ class UnpackerTilizeA(Unpacker):
 
         return f"    _llk_unpack_tilize_init_(unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, false);\n"
 
-    def unpack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    # def unpack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    #     stage = operation.stage_id
+    #     face_r_dim = operation.face_r_dim
+    #     num_faces = operation.num_faces
+    #     block_rt_dim = operation.dest_tiles_h
+    #     block_ct_dim = operation.dest_tiles_w
+    #
+    #     # Blackhole
+    #     if config.architecture == ChipArchitecture.BLACKHOLE:
+    #         return (
+    #             f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
+    #             f"    {{\n"
+    #             f"        for (uint32_t j = 0; j < {block_ct_dim}; j++)\n"
+    #             f"        {{\n"
+    #             f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_ct_dim}]), j, unpack_a_src_format{stage}, unpack_a_dst_format{stage});\n"
+    #             f"        }}\n"
+    #             f"    }}\n"
+    #         )
+    #
+    #     # Wormhole
+    #     elif config.architecture == ChipArchitecture.WORMHOLE:
+    #         return (
+    #             f"    for (uint32_t i = 0; i < {block_rt_dim}; i++)\n"
+    #             f"    {{\n"
+    #             f"        for (uint32_t j = 0; j < {block_ct_dim}; j++)\n"
+    #             f"        {{\n"
+    #             f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_ct_dim}]), j, unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
+    #             f"        }}\n"
+    #             f"    }}\n"
+    #         )
+    #
+    #     else:
+    #         raise ValueError("Architecture is not supported")
+
+    def unpack(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        tile_idx_expr: str,
+    ) -> str:
+        """Generate unpack code for a single tile."""
         stage = operation.stage_id
         face_r_dim = operation.face_r_dim
         num_faces = operation.num_faces
-        block_rt_dim = operation.dest_tiles_h
         block_ct_dim = operation.dest_tiles_w
-        # tile_cnt = operation.output.tile_count
 
+        # For tilize, we need to compute row/col from tile_idx
         # Blackhole
         if config.architecture == ChipArchitecture.BLACKHOLE:
             return (
-                f"    for (std::uint32_t i = 0; i < {block_rt_dim}; i++)\n"
-                f"    {{\n"
-                f"        for (std::uint32_t j = 0; j < {block_ct_dim}; j++)\n"
-                f"        {{\n"
-                f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage}, unpack_a_dst_format{stage});\n"
-                f"        }}\n"
-                f"    }}\n"
+                f"{{\n"
+                f"    uint32_t row = ({tile_idx_expr}) / {block_ct_dim};\n"
+                f"    uint32_t col = ({tile_idx_expr}) % {block_ct_dim};\n"
+                f"    _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[row * {block_ct_dim}]), col, unpack_a_src_format{stage}, unpack_a_dst_format{stage});\n"
+                f"}}\n"
             )
 
         # Wormhole
         elif config.architecture == ChipArchitecture.WORMHOLE:
-            # return (
-            #     f"    for (uint32_t i = 0; i < {tile_cnt}; i++)\n"
-            #     f"        _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
-            #     f"    }}\n"
-            # )
             return (
-                f"    for (std::uint32_t i = 0; i < {block_rt_dim}; i++)\n"
-                f"    {{\n"
-                f"        for (std::uint32_t j = 0; j < {block_ct_dim}; j++)\n"
-                f"        {{\n"
-                f"            _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[i * {block_rt_dim}]), j, unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
-                f"        }}\n"
-                f"    }}\n"
+                f"{{\n"
+                f"    uint32_t row = ({tile_idx_expr}) / {block_ct_dim};\n"
+                f"    uint32_t col = ({tile_idx_expr}) % {block_ct_dim};\n"
+                f"    _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[row * {block_ct_dim}]), col, unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
+                f"}}\n"
             )
 
         else:

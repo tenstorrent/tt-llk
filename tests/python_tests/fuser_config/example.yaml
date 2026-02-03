@@ -28,7 +28,7 @@ operations:
     math_fidelity: "LoFi"
     unpack_transpose_within_face: "No"
     unpack_transpose_faces: "No"
-    batch_size: 1
+    batch_size: 2
     broadcast_type: "Scalar"
 
   # - src_a: "datacopy_output"

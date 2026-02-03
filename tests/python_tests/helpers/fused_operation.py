@@ -171,7 +171,7 @@ class FusedOperation:
         tensor_a = self.src_a.raw_data.view(src_a_dims)
         tensor_b = self.src_b.raw_data.view(src_b_dims)
 
-        tensor_a, tensor_b = self.unpacker().golden(tensor_a, tensor_b, self, config)
+        # tensor_a, tensor_b = self.unpacker().golden(tensor_a, tensor_b, self, config)
         l1_golden_tensor = self.math.golden(tensor_a, tensor_b, self, config)
         l1_golden_tensor = self.packer().golden(l1_golden_tensor, self, config)
 

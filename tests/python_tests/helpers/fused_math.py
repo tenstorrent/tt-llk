@@ -19,12 +19,13 @@ from .golden_generators import (
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
-    from .fused_unpacker import Unpacker, MatmulUnpacker, UnpackerAB
+    from .fused_unpacker import Unpacker, UnpackerAB
 
 from .chip_architecture import ChipArchitecture
 from .llk_params import (
     ApproximationMode,
     BroadcastType,
+    DestSync,
     MathOperation,
     PerfRunType,
     ReduceDimension,
@@ -110,32 +111,143 @@ class NewMath:
 
         return math_units
 
-    def unpack_matmul_body(
-        self, unpackers, operation: "FusedOperation", config: "GlobalConfig"
+    def get_fused_compute_with_unpacker(self) -> List["FusedCompute"]:
+        return [op for op in self.operations if op.unpacker is not None]
+
+    def unpack_operand_constants(
+        self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
-        if unpackers.count() > 1:
-            raise ValueError("Only one matmul unpacker is supported")
+        stage = operation.stage_id
+        buffer_A_address = (
+            operation.src_a.l1_address or 0x1A000
+        )  # Default address if not set
+        buffer_B_address = (
+            operation.src_b.l1_address or 0x1C000
+        )  # Default address if not set
+        buffer_A_tile_size = operation.buffer_A_tile_size
+        buffer_B_tile_size = operation.buffer_B_tile_size
+        unpack_a_src = operation.unpack_a_in
+        unpack_a_dst = operation.unpack_a_out
+        unpack_b_src = operation.unpack_a_in
+        unpack_b_dst = operation.unpack_a_out
+
+        code = (
+            f"    // Operation {stage}: Fused Unpack\n"
+            f"    UNUSED const Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});\n"
+            f"    UNUSED const Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});\n"
+            f"    UNUSED const uint32_t unpack_a_src_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_a_src.name});\n"
+            f"    UNUSED const uint32_t unpack_a_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_a_dst.name});\n"
+            f"    UNUSED const uint32_t unpack_b_src_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_b_src.name});\n"
+            f"    UNUSED const uint32_t unpack_b_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_b_dst.name});\n"
+        )
+        return code
 
     def unpack_body(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        unpackers = self.get_unpackers()
         from .fused_unpacker import MatmulUnpacker
 
-        if isinstance(unpackers[0], MatmulUnpacker):
-            return self.unpack_matmul_body(unpackers, operation, config)
+        fused_ops_with_unpacker = self.get_fused_compute_with_unpacker()
 
+        if not fused_ops_with_unpacker:
+            return ""
+
+        has_matmul = any(
+            op.unpacker == MatmulUnpacker for op in fused_ops_with_unpacker
+        )
+        has_other = any(op.unpacker != MatmulUnpacker for op in fused_ops_with_unpacker)
+
+        if has_matmul and has_other:
+            raise ValueError(
+                "Cannot fuse MatmulUnpacker with other unpackers in the same L1-to-L1 run. "
+            )
+
+        if has_matmul:
+            return self._unpack_matmul_body(
+                operation, config, fused_ops_with_unpacker[0]
+            )
+
+        return self._unpack_batched_body(operation, config, fused_ops_with_unpacker)
+
+    def _unpack_matmul_body(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        fused_compute: "FusedCompute",
+    ) -> str:
+        unpacker_instance = fused_compute.unpacker()
+
+        code = self.unpack_operand_constants(operation, config)
+        code += unpacker_instance.hw_configure(operation, config)
+        code += unpacker_instance.init(operation, config)
+        code += unpacker_instance.packer_sync(operation)
+        code += unpacker_instance.unpack(operation, config)
+        code += unpacker_instance.uninit(operation, config)
+
+        return code
+
+    def _unpack_batched_body(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        fused_ops_with_unpacker: List["FusedCompute"],
+    ) -> str:
         batch_size = operation.batch_size
         tile_cnt = operation.output.tile_count
 
-        code = ""
-        for batch_start in range(0, tile_cnt, batch_size):
-            batch_end = min(batch_start + batch_size, tile_cnt)
-            batch_tile_cnt = batch_end - batch_start
+        first_unpacker = fused_ops_with_unpacker[0].unpacker()
 
-            for unpacker in unpackers:
-                if unpacker == MatmulUnpacker:
-                    raise ValueError("Matmul unpacker can not be here")
-                for i in range(batch_tile_cnt):
-                    code += unpacker().exec(operation, config)
+        code = self.unpack_operand_constants(operation, config)
+        code += first_unpacker.hw_configure(operation, config)
+
+        code += first_unpacker.packer_sync(operation)
+
+        num_full_batches = tile_cnt // batch_size
+        remaining_tiles = tile_cnt % batch_size
+
+        if num_full_batches > 0:
+            code += (
+                f"    for (uint32_t batch = 0; batch < {num_full_batches}; ++batch)\n"
+            )
+            code += "    {\n"
+            for fused_op in fused_ops_with_unpacker:
+                unpacker_instance = fused_op.unpacker()
+                code += unpacker_instance.init(operation, config)
+                code += f"        for (uint32_t i = 0; i < {batch_size}; ++i)\n"
+                code += "        {\n"
+                code += f"            uint32_t tile_idx = batch * {batch_size} + i;\n"
+                code += unpacker_instance.unpack(operation, config, "tile_idx")
+                code += "        }\n"
+                code += unpacker_instance.uninit(operation, config)
+            code += "    }\n"
+
+        if remaining_tiles > 0:
+            if num_full_batches > 0:
+                code += "    {\n"
+                code += f"        const uint32_t batch_offset = {num_full_batches * batch_size};\n"
+                for fused_op in fused_ops_with_unpacker:
+                    unpacker_instance = fused_op.unpacker()
+                    code += unpacker_instance.init(operation, config)
+                    code += (
+                        f"        for (uint32_t i = 0; i < {remaining_tiles}; ++i)\n"
+                    )
+                    code += "        {\n"
+                    code += "            uint32_t tile_idx = batch_offset + i;\n"
+                    code += unpacker_instance.unpack(operation, config, "tile_idx")
+                    code += "        }\n"
+                    code += unpacker_instance.uninit(operation, config)
+                code += "    }\n"
+            else:
+                for fused_op in fused_ops_with_unpacker:
+                    unpacker_instance = fused_op.unpacker()
+                    code += unpacker_instance.init(operation, config)
+                    code += f"    for (uint32_t i = 0; i < {remaining_tiles}; ++i)\n"
+                    code += "    {\n"
+                    code += unpacker_instance.unpack(operation, config, "i")
+                    code += "    }\n"
+                    code += unpacker_instance.uninit(operation, config)
+
+        for fused_op in fused_ops_with_unpacker:
+            unpacker_instance = fused_op.unpacker()
+            code += unpacker_instance.uninit(operation, config)
 
         return code
 
@@ -198,9 +310,29 @@ class NewMath:
 
         return code
 
+    def _math_constants(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        stage = operation.stage_id
+        math_format = operation.output.data_format
+        dest_sync = operation.dest_sync
+
+        dest_sync_map = {
+            DestSync.Half: "SyncHalf",
+            DestSync.Full: "SyncFull",
+        }
+        dest_sync_str = dest_sync_map.get(dest_sync, "SyncHalf")
+
+        code = f"// Operation {stage}: Math Setup\n"
+        code += f"const uint32_t math_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name});\n"
+        code += f"constexpr DstSync dest_sync{stage} = DstSync::{dest_sync_str};\n"
+
+        return code
+
     def math_body(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         batch_size = operation.batch_size
-        code = self.math_hw_configure(operation, config)
+        code = self._math_constants(operation, config)
+        code += self.math_hw_configure(operation, config)
 
         math_units = self.get_math_units()
         fpu_units = self.get_fpu_units()
@@ -221,10 +353,6 @@ class NewMath:
                 code += self._matmul_tile_loop(operation, config, matmul_body)
             else:
                 code += self._wait_for_dest(operation)
-                # code += self.fpu.init(operation, config)
-                # code += self.fpu.calculate(operation, config)
-                # code += self.fpu.uninit(operation, config)
-                # code += self._sfpu_code(operation, config)
                 for unit in math_units:
                     code += unit.init(operation, config)
                     if unit in fpu_units:
@@ -240,7 +368,9 @@ class NewMath:
                 for unit in math_units:
                     body += unit.init(operation, config)
                     if unit in fpu_units:
-                        body += unit.calculate(operation, config, 0)
+                        # FPU needs to be called batch_tile_cnt times
+                        for tile_idx in range(batch_tile_cnt):
+                            body += unit.calculate(operation, config, tile_idx)
                     if unit in sfpu_units:
                         body += unit.calculate(operation, config)
                     body += unit.uninit(operation, config)
@@ -291,6 +421,8 @@ class MatmulFpu(Fpu):
         ]
 
     def supported_unpackers(self) -> List["Unpacker"]:
+        from .fused_unpacker import MatmulUnpacker
+
         return [MatmulUnpacker]
 
     def golden(
