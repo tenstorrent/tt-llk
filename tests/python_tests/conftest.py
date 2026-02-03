@@ -214,10 +214,14 @@ def pytest_runtest_makereport(item, call):
 
                 stack_trace_str = "\n".join(stack_trace) if stack_trace else ""
 
-                if call.excinfo.type == LLKAssertException:
+                if exc_type == LLKAssertException:
                     # Pretty print
                     exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
                     error_message = f"LLK ASSERT HIT {test_file_and_func}{report.test_params} {exc_msg}"
+                    report.longrepr = error_message
+                elif exc_type == TimeoutError:
+                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
+                    error_message = f"TENSIX TIMED OUT {test_file_and_func}{report.test_params} {exc_msg}"
                     report.longrepr = error_message
                 elif exc_type == AssertionError:
                     # Handle assertion failures
