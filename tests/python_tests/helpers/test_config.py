@@ -978,6 +978,8 @@ class TestConfig:
         ):
             raise ValueError("Quasar only supports TRISC boot mode")
 
+        read_word_from_device(location, 0x0)
+
         # Perform soft reset
         set_tensix_soft_reset(1, location=location)
 
@@ -1020,7 +1022,7 @@ class TestConfig:
                     verify_write=True,
                 )
 
-        read_word_from_device(location, 0x0)
+            read_word_from_device(location, 0x0)
 
         match boot_mode:
             case BootMode.BRISC:
@@ -1051,6 +1053,7 @@ class TestConfig:
                             verify_write=True,
                         )
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
+                read_word_from_device(location, 0x0)
             case BootMode.TRISC:
                 set_tensix_soft_reset(
                     0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
