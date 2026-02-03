@@ -983,6 +983,8 @@ class TestConfig:
 
         reset_mailboxes(location)
 
+        read_word_from_device(location, 0x0)
+
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
         )
@@ -1018,10 +1020,7 @@ class TestConfig:
                     verify_write=False,
                 )
 
-        # Reset the profiler barrier
-        write_words_to_device(
-            location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
-        )
+        read_word_from_device(location, 0x0)
 
         match boot_mode:
             case BootMode.BRISC:

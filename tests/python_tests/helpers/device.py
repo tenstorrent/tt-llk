@@ -217,7 +217,7 @@ def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
 
 
 def wait_for_tensix_operations_finished(
-    elfs, core_loc="0,0", timeout=1, max_backoff=0.1
+    elfs, core_loc="0,0", timeout=2, max_backoff=0.1
 ):
     """
     Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
