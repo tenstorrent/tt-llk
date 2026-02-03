@@ -113,6 +113,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // Initialize packing for all tiles at once
     _llk_pack_init_<false, false, tilize_en>(formats.pack_src, formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces, false, false, params->TILE_CNT);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+
+    reconfigure_packer_l1_acc(params->L1_ACC);
+
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, params->num_faces);
     _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, params->num_faces);

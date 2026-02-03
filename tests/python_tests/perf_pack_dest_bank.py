@@ -6,7 +6,7 @@ import torch
 from conftest import skip_for_wormhole
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
-from helpers.llk_params import DestAccumulation, PerfRunType, Tilize
+from helpers.llk_params import DestAccumulation, L1Accumulation, PerfRunType, Tilize
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -15,6 +15,7 @@ from helpers.perf import PerfConfig
 from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
     DEST_INDEX,
+    L1_ACC,
     LOOP_FACTOR,
     NUM_FACES,
     TILE_COUNT,
@@ -71,17 +72,21 @@ def get_valid_num_faces_datacopy(tilize):
         ]
     ),
     dest_acc=[DestAccumulation.No],
+    l1_acc=[L1Accumulation.No, L1Accumulation.Yes],
     num_faces=4,
     tilize=[Tilize.No],
     dest_index=0,
+    loop_factor=[1, 16, 64],
 )
 def test_perf_pack_dest_bank(
     perf_report,
     formats,
     dest_acc,
+    l1_acc,
     num_faces,
     tilize,
     dest_index,
+    loop_factor,
     workers_tensix_coordinates,
 ):
     # Test packing 8 tiles
@@ -107,12 +112,13 @@ def test_perf_pack_dest_bank(
         ],
         templates=[
             TILIZE(tilize),
-            LOOP_FACTOR(16),
+            LOOP_FACTOR(loop_factor),
         ],
         runtimes=[
             DEST_INDEX(dest_index),
             TILE_COUNT(tile_cnt),
             NUM_FACES(num_faces),
+            L1_ACC(l1_acc),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
@@ -126,6 +132,7 @@ def test_perf_pack_dest_bank(
             num_faces=num_faces,
         ),
         dest_acc=dest_acc,
+        l1_acc=l1_acc,
         unpack_to_dest=unpack_to_dest,
     )
 
