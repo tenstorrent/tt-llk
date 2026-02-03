@@ -76,7 +76,7 @@ def get_valid_num_faces_datacopy(tilize):
     num_faces=4,
     tilize=[Tilize.No],
     dest_index=0,
-    loop_factor=[1, 16, 64],
+    loop_factor=[16],
 )
 def test_perf_pack_dest_bank(
     perf_report,

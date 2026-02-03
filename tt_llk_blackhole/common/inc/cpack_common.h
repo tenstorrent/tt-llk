@@ -506,14 +506,9 @@ inline void program_packer_destination(uint32_t addr)
        We just need to make sure we wait before issuing the WRCFG.
     */
     uint32_t new_l1_addr = (1 << 31) | addr;
-    TT_SETDMAREG(0, LOWER_HALFWORD(addr), 0, LO_16(p_gpr_pack::OUTPUT_ADDR));
-    TT_SETDMAREG(0, UPPER_HALFWORD(new_l1_addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
 
-    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-    TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
-
-    TT_SETDMAREG(0, UPPER_HALFWORD(addr), 0, HI_16(p_gpr_pack::OUTPUT_ADDR));
-    TTI_DMANOP; // One NOP should be enough for WRCFG due to SETDMAREG above.
+    volatile uint tt_reg_ptr* cfg            = get_cfg_pointer();
+    cfg[THCON_SEC0_REG1_L1_Dest_addr_ADDR32] = new_l1_addr;
 }
 
 // RT: If multiple contexts are used, for issue #https://github.com/tenstorrent/tt-llk-bh/issues/20
