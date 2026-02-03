@@ -97,17 +97,21 @@ def test_perf_math_matmul(
     Performance test for matmul operations.
 
     Includes both regular matmul (full 32x32 tiles) and tiny tiles matmul
-    (matrix A with rows: 1, 2, 4, 8, 16 and columns: 32, matrix B always 32x32).
+    (input 0 with rows: 1, 2, 4, 8, 16 and columns: 32, input 1 always 32x32).
     """
     formats = matmul_config.formats
-    input_A_dimensions = matmul_config.tile_dimensions.input_A_dimensions
-    input_B_dimensions = matmul_config.tile_dimensions.input_B_dimensions
+    in0_dimensions = matmul_config.tile_dimensions.in0_dimensions
+    in1_dimensions = matmul_config.tile_dimensions.in1_dimensions
     transpose = matmul_config.face_layout_config.unpack_transpose_faces
-    num_faces_A = matmul_config.face_layout_config.num_faces_A
-    num_faces_B = matmul_config.face_layout_config.num_faces_B
+    num_faces_in0 = matmul_config.face_layout_config.num_faces_in0
+    num_faces_in1 = matmul_config.face_layout_config.num_faces_in1
     num_faces = matmul_config.face_layout_config.num_faces
 
-    print(f"matmul_config: {matmul_config}")  # TODO: Remove this
+    # TODO: Remove this after debugging
+    # print(f"num_faces_in0: {num_faces_in0}, num_faces_in1: {num_faces_in1}, num_faces: {num_faces}")
+    # print(f"partial_face_in0: {matmul_config.face_layout_config.partial_face_in0}, partial_face_in1: {matmul_config.face_layout_config.partial_face_in1}")
+    # print(f"partial_face_math: {matmul_config.face_layout_config.partial_face_math}, partial_face_pack: {matmul_config.face_layout_config.partial_face_pack}")
+    # print(f"in0_tile_r_dim: {matmul_config.tile_dimensions.in0_tile_r_dim}, in0_tile_c_dim: {matmul_config.tile_dimensions.in0_tile_c_dim}")
 
     if is_dest_acc_needed(formats) and matmul_config.dest_acc == DestAccumulation.No:
         pytest.skip("Dest accumulation must be enabled for this format")
@@ -131,19 +135,21 @@ def test_perf_math_matmul(
         formats,
         run_types,
         templates=[
-            INPUT_DIMENSIONS(input_A_dimensions, input_B_dimensions),
+            INPUT_DIMENSIONS(in0_dimensions, in1_dimensions),
             MATH_FIDELITY(math_fidelity),
             DEST_SYNC(matmul_config.dest_sync),
             THROTTLE_LEVEL(throttle),
             TILE_COUNT(variant_tile_count),
-            NUM_FACES(num_faces, num_faces_A, num_faces_B),
+            NUM_FACES(
+                num_faces, num_faces_in1, num_faces_in0
+            ),  # In0 -> srcB, In1 -> srcA
             UNPACK_TRANS_FACES(transpose),
             UNPACK_TRANS_WITHIN_FACE(transpose),
-            PARTIAL_FACE(
-                partial_a=matmul_config.face_layout_config.partial_face_A,
-                partial_face_pack=matmul_config.face_layout_config.partial_face_A,
-                partial_b=matmul_config.face_layout_config.partial_face_B,
-                partial_face_math=matmul_config.face_layout_config.partial_face_B,
+            PARTIAL_FACE(  # In0 -> srcB, In1 -> srcA
+                partial_a=matmul_config.face_layout_config.partial_face_in1,
+                partial_face_pack=matmul_config.face_layout_config.partial_face_pack,
+                partial_b=matmul_config.face_layout_config.partial_face_in0,
+                partial_face_math=matmul_config.face_layout_config.partial_face_math,
             ),
             CRK_TILE_DIMM(
                 matmul_config.tile_dimensions.ct_dim,
@@ -157,7 +163,7 @@ def test_perf_math_matmul(
                 matmul_config.tile_dimensions.in1_tile_c_dim,
             ),
             DEST_INDEX(matmul_config.dst_index),
-            LOOP_FACTOR(16),
+            LOOP_FACTOR(1024),
         ],
         variant_stimuli=StimuliConfig(
             None,
@@ -165,8 +171,8 @@ def test_perf_math_matmul(
             None,
             formats.input_format,
             formats.output_format,
-            tile_count_A=matmul_config.tile_dimensions.tile_cnt_A,
-            tile_count_B=matmul_config.tile_dimensions.tile_cnt_B,
+            tile_count_A=matmul_config.tile_dimensions.tile_cnt_in0,
+            tile_count_B=matmul_config.tile_dimensions.tile_cnt_in1,
             tile_count_res=matmul_config.tile_dimensions.output_tile_cnt,
         ),
         dest_acc=matmul_config.dest_acc,

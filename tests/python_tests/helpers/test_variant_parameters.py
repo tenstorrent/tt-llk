@@ -492,12 +492,12 @@ class PARTIAL_FACE(RuntimeParameter):
 
         lines.append(f"constexpr bool PARTIAL_FACE_A = {str(self.partial_a).lower()};")
         lines.append(
-            f"constexpr bool PARTIAL_FACE_PACK = {str(self.partial_a).lower()};"
+            f"constexpr bool PARTIAL_FACE_PACK = {str(self.partial_face_pack).lower()};"
         )
 
         lines.append(f"constexpr bool PARTIAL_FACE_B = {str(self.partial_b).lower()};")
         lines.append(
-            f"constexpr bool PARTIAL_FACE_MATH = {str(self.partial_b).lower()};"
+            f"constexpr bool PARTIAL_FACE_MATH = {str(self.partial_face_math).lower()};"
         )
 
         return "\n".join(lines)

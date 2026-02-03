@@ -29,8 +29,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
         formats.unpack_B_dst,
         FACE_R_DIM,
         FACE_R_DIM,
-        params->num_faces_A,
-        params->num_faces_B,
+        params->num_faces_A, // in1
+        params->num_faces_B, // in0
         TILE_SIZE_UNPACK_A,
         TILE_SIZE_UNPACK_B);
     _llk_unpack_AB_matmul_init_<>(
@@ -40,10 +40,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
         params->KT_DIM,
         FACE_R_DIM,
         FACE_R_DIM,
-        params->num_faces_A,
-        params->num_faces_B,
-        params->PARTIAL_FACE_A,
-        params->PARTIAL_FACE_B);
+        params->num_faces_A,     // in1
+        params->num_faces_B,     // in0
+        params->PARTIAL_FACE_A,  // in1
+        params->PARTIAL_FACE_B); // in0
     for (std::uint32_t j = 0; j < params->KT_DIM; j++)
     {
         _llk_unpack_AB_matmul_<>(
@@ -53,8 +53,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
             j * params->CT_DIM,
             TILE_SIZE_UNPACK_A,
             TILE_SIZE_UNPACK_B,
-            params->PARTIAL_FACE_A,
-            params->PARTIAL_FACE_B,
+            params->PARTIAL_FACE_A, // in1
+            params->PARTIAL_FACE_B, // in0
             params->CT_DIM,
             params->RT_DIM,
             params->KT_DIM);

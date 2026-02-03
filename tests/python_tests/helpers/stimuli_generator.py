@@ -24,19 +24,27 @@ def flatten_list(sublists):
     return [item for sublist in sublists for item in sublist]
 
 
-def _mask_tile(tile: torch.Tensor, num_faces: int, is_matrix_A: bool) -> torch.Tensor:
+def _mask_tile(
+    tile: torch.Tensor, num_faces: int, is_matrix_A: bool, face_r_dim: int = 16
+) -> torch.Tensor:
     masked = tile.clone()
     if num_faces == 1:
         # Keep only f0
         masked[:16, 16:] = 0  # Zero f1
-        masked[16:, :] = 0  # Zero f2, f3
+        if face_r_dim < 16:
+            masked[face_r_dim:, :] = 0  # Zero f2, f3 and part of f0
+        else:
+            masked[16:, :] = 0  # Zero f2, f3
     elif num_faces == 2:
         if is_matrix_A:
-            # Matrix A: keep f0, f2
+            # matrix A (In0/SrcB): keep partial f0, f2
+            if face_r_dim < 16:
+                masked[face_r_dim:16, :16] = 0  # Zero part of f0
+                masked[16 + face_r_dim :, :16] = 0  # Zero part of f2
             masked[:16, 16:] = 0  # Zero f1
             masked[16:, 16:] = 0  # Zero f3
         else:
-            # Matrix B: keep f0, f1
+            # matrix B (In1/SrcA): keep f0, f1
             masked[16:, :] = 0  # Zero f2, f3
     return masked
 
@@ -119,6 +127,7 @@ def generate_face_matmul_data(
     stimuli_format: DataFormat,
     input_dimensions=[32, 32],  # Add input_dimensions parameter
     is_matrix_A=True,  # True for matrix A (SrcB), False for matrix B (SrcA)
+    face_r_dim=16,
 ) -> torch.Tensor:
 
     # Validate num_faces
@@ -141,6 +150,7 @@ def generate_face_matmul_data(
             torch.rand(32, 32, dtype=format_dict[stimuli_format]),
             num_faces,
             is_matrix_A,
+            face_r_dim,
         ).flatten()
         for _ in range(tile_cnt)
     ]
