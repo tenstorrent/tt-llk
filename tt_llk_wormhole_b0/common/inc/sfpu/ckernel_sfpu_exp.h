@@ -7,6 +7,7 @@
 #include <limits>
 
 #include "ckernel_sfpu_recip.h"
+#include "lltt.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
@@ -290,102 +291,51 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
     {
         // =======================================================================
         // Processes all 4 faces in one call to amortize startup/drain overhead.
-        //
-        // Timing:
-        //   - LM[n] at 2n (uniform 2-cycle spacing)
-        //   - MAD[n] at 2n+1 (delay 0)
-        //   - STOCHRND[n] at 2n+4 (delay 3)
-        //   - SHFT2[n] at 2n+5 (discrete)
-        //   - SETSGN[n] at 2n+6 (delay 5)
-        //   - STORE[n] at 2n+7 (delay 6)
-        //
-        // LREG index cycles: n % 4 -> 0,1,2,3,0,1,2,3,...
-        // dest_reg_addr: 2*n -> 0,2,4,6,...,62
-        //
         // Total: ~68 cycles for 32 elements = 2.125 cycles/element
+        //
+        // Uses 7 back-to-back replays of a 4-pair (8-instruction) pattern.
+        // LREG pattern cycles every 4 elements.
+        // Auto-increment via addr_mod=7.
+        //
+        // Structure:
+        //   - Reset Dst to 0
+        //   - Startup: LM[0-1] (Dst: 0 -> 4)
+        //   - 7 replays of 4 pairs each (Dst: 4 -> 60)
+        //     Covers LM[2-29] + SHFT2[0-27]
+        //   - Manual completion: LM[30], SHFT2[28], LM[31], SHFT2[29]
+        //   - Drain: SHFT2[30-31]
         // =======================================================================
 
-        // Phase 1: Startup (cycles 0-4)
-        TTI_SFPLOADMACRO(0, 0, 3, 0); // Cycle 0: LM[0]
-        TTI_SFPNOP;                   // Cycle 1: NOP (MAD[0] executes)
-        TTI_SFPLOADMACRO(1, 0, 3, 2); // Cycle 2: LM[1]
-        TTI_SFPNOP;                   // Cycle 3: NOP (MAD[1] executes)
-        TTI_SFPLOADMACRO(2, 0, 3, 4); // Cycle 4: LM[2] | STOCHRND[0]
+        // Reset Dst to 0.
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
-        // Phase 2: Steady state - alternating LM/SHFT2 (cycles 5-63)
-        // Elements 0-7 (face 0)
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 5: SHFT2[0]
-        TTI_SFPLOADMACRO(3, 0, 3, 6);                                  // Cycle 6: LM[3]
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 7: SHFT2[1]
-        TTI_SFPLOADMACRO(0, 0, 3, 8);                                  // Cycle 8: LM[4]
-        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 9: SHFT2[2]
-        TTI_SFPLOADMACRO(1, 0, 3, 10);                                 // Cycle 10: LM[5]
-        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 11: SHFT2[3]
-        TTI_SFPLOADMACRO(2, 0, 3, 12);                                 // Cycle 12: LM[6]
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 13: SHFT2[4]
-        TTI_SFPLOADMACRO(3, 0, 3, 14);                                 // Cycle 14: LM[7]
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 15: SHFT2[5]
+        // Startup: LM[0], NOP, LM[1], NOP.
+        TTI_SFPLOADMACRO(0, 0, 3, 0); // LM[0] lreg0, dest 0, Dst -> 2.
+        TTI_SFPNOP;
+        TTI_SFPLOADMACRO(1, 0, 3, 0); // LM[1] lreg1, dest 2, Dst -> 4.
+        TTI_SFPNOP;
 
-        // Elements 8-15 (face 1)
-        TTI_SFPLOADMACRO(0, 0, 3, 16);                                 // Cycle 16: LM[8]
-        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 17: SHFT2[6]
-        TTI_SFPLOADMACRO(1, 0, 3, 18);                                 // Cycle 18: LM[9]
-        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 19: SHFT2[7]
-        TTI_SFPLOADMACRO(2, 0, 3, 20);                                 // Cycle 20: LM[10]
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 21: SHFT2[8]
-        TTI_SFPLOADMACRO(3, 0, 3, 22);                                 // Cycle 22: LM[11]
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 23: SHFT2[9]
-        TTI_SFPLOADMACRO(0, 0, 3, 24);                                 // Cycle 24: LM[12]
-        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 25: SHFT2[10]
-        TTI_SFPLOADMACRO(1, 0, 3, 26);                                 // Cycle 26: LM[13]
-        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 27: SHFT2[11]
-        TTI_SFPLOADMACRO(2, 0, 3, 28);                                 // Cycle 28: LM[14]
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 29: SHFT2[12]
-        TTI_SFPLOADMACRO(3, 0, 3, 30);                                 // Cycle 30: LM[15]
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 31: SHFT2[13]
+        // 7 replays of 4 pairs.
+        // Each replay: 4x (LM + SHFT2), advances Dst by 8.
+        lltt::replay(0, 8); // LM[2-5]   + SHFT2[0-3],   Dst: 4 -> 12.
+        lltt::replay(0, 8); // LM[6-9]   + SHFT2[4-7],   Dst: 12 -> 20.
+        lltt::replay(0, 8); // LM[10-13] + SHFT2[8-11],  Dst: 20 -> 28.
+        lltt::replay(0, 8); // LM[14-17] + SHFT2[12-15], Dst: 28 -> 36.
+        lltt::replay(0, 8); // LM[18-21] + SHFT2[16-19], Dst: 36 -> 44.
+        lltt::replay(0, 8); // LM[22-25] + SHFT2[20-23], Dst: 44 -> 52.
+        lltt::replay(0, 8); // LM[26-29] + SHFT2[24-27], Dst: 52 -> 60.
 
-        // Elements 16-23 (face 2)
-        TTI_SFPLOADMACRO(0, 0, 3, 32);                                 // Cycle 32: LM[16]
-        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 33: SHFT2[14]
-        TTI_SFPLOADMACRO(1, 0, 3, 34);                                 // Cycle 34: LM[17]
-        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 35: SHFT2[15]
-        TTI_SFPLOADMACRO(2, 0, 3, 36);                                 // Cycle 36: LM[18]
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 37: SHFT2[16]
-        TTI_SFPLOADMACRO(3, 0, 3, 38);                                 // Cycle 38: LM[19]
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 39: SHFT2[17]
-        TTI_SFPLOADMACRO(0, 0, 3, 40);                                 // Cycle 40: LM[20]
-        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 41: SHFT2[18]
-        TTI_SFPLOADMACRO(1, 0, 3, 42);                                 // Cycle 42: LM[21]
-        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 43: SHFT2[19]
-        TTI_SFPLOADMACRO(2, 0, 3, 44);                                 // Cycle 44: LM[22]
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 45: SHFT2[20]
-        TTI_SFPLOADMACRO(3, 0, 3, 46);                                 // Cycle 46: LM[23]
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 47: SHFT2[21]
+        // Manual completion: LM[30], SHFT2[28], LM[31], SHFT2[29].
+        TTI_SFPLOADMACRO(2, 0, 3, 0);                                  // LM[30] lreg2, dest 60, Dst -> 62.
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[28].
+        TTI_SFPLOADMACRO(3, 0, 3, 0);                                  // LM[31] lreg3, dest 62, Dst -> 64.
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[29].
 
-        // Elements 24-31 (face 3)
-        TTI_SFPLOADMACRO(0, 0, 3, 48);                                 // Cycle 48: LM[24]
-        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 49: SHFT2[22]
-        TTI_SFPLOADMACRO(1, 0, 3, 50);                                 // Cycle 50: LM[25]
-        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 51: SHFT2[23]
-        TTI_SFPLOADMACRO(2, 0, 3, 52);                                 // Cycle 52: LM[26]
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 53: SHFT2[24]
-        TTI_SFPLOADMACRO(3, 0, 3, 54);                                 // Cycle 54: LM[27]
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 55: SHFT2[25]
-        TTI_SFPLOADMACRO(0, 0, 3, 56);                                 // Cycle 56: LM[28]
-        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 57: SHFT2[26]
-        TTI_SFPLOADMACRO(1, 0, 3, 58);                                 // Cycle 58: LM[29]
-        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 59: SHFT2[27]
-        TTI_SFPLOADMACRO(2, 0, 3, 60);                                 // Cycle 60: LM[30]
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 61: SHFT2[28]
-        TTI_SFPLOADMACRO(3, 0, 3, 62);                                 // Cycle 62: LM[31]
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 63: SHFT2[29]
-
-        // Phase 3: Drain (cycles 64-67)
-        TTI_SFPNOP;                                                    // Cycle 64: STOCHRND[30] | SETSGN[29]
-        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 65: SHFT2[30] | STORE[29]
-        TTI_SFPNOP;                                                    // Cycle 66: STOCHRND[31] | SETSGN[30]
-        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 67: SHFT2[31] | STORE[30]
-        // SETSGN[31] at cycle 68 and STORE[31] at cycle 69 complete after return
+        // Drain: SHFT2[30-31].
+        TTI_SFPNOP;
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[30]
+        TTI_SFPNOP;
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[31]
     }
     else if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
@@ -646,6 +596,53 @@ inline void _init_exponential_()
         // Reset LoadMacroConfig[Lane].Misc for all lanes
         // Sets StoreMod0=0 (SRCB), UsesLoadMod0ForStore=0, UnitDelayKind=0
         TTI_SFPCONFIG(0, 8, 1);
+
+        // ===================================================================
+        // Configure ADDR_MOD_7 for auto-increment (dest += 2 per LOADMACRO)
+        // ===================================================================
+        addr_mod_t {
+            .srca = {.incr = 0},
+            .srcb = {.incr = 0},
+            .dest = {.incr = 2},
+        }
+            .set(ADDR_MOD_7);
+
+        // ===================================================================
+        // Program Replay Buffer
+        // ===================================================================
+        // Record 8 instructions (4 LM+SHFT2 pairs) for replay buffer.
+        // Uses Imm10=0 and addr_mod=3 (which uses ADDR_MOD_7) for auto-increment.
+        // LREG pattern cycles every 4 elements, enabling back-to-back replays.
+        //
+        // Replay starts at LM[2], SHFT2[0] to maximize replay coverage.
+        // Pattern: LM(LREG[(n+2) mod 4]) + SHFT2(LREG[n mod 4])
+        //   Pair 0: LM(LREG2) + SHFT2(LREG0)
+        //   Pair 1: LM(LREG3) + SHFT2(LREG1)
+        //   Pair 2: LM(LREG0) + SHFT2(LREG2)
+        //   Pair 3: LM(LREG1) + SHFT2(LREG3)
+        //
+        // Reset Dst before recording.
+        // ===================================================================
+
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+
+        lltt::record(0, 8);
+
+        // Pair 0: LM(LREG2) + SHFT2(LREG0)
+        TTI_SFPLOADMACRO(2, 0, 3, 0); // lreg2, addr_mod=3, Imm10=0
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+
+        // Pair 1: LM(LREG3) + SHFT2(LREG1)
+        TTI_SFPLOADMACRO(3, 0, 3, 0); // lreg3, addr_mod=3, Imm10=0
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+
+        // Pair 2: LM(LREG0) + SHFT2(LREG2)
+        TTI_SFPLOADMACRO(0, 0, 3, 0); // lreg0, addr_mod=3, Imm10=0
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+
+        // Pair 3: LM(LREG1) + SHFT2(LREG3)
+        TTI_SFPLOADMACRO(1, 0, 3, 0); // lreg1, addr_mod=3, Imm10=0
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5);
 
         TTI_SFPNOP;
     }
