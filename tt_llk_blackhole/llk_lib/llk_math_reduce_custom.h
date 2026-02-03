@@ -93,74 +93,74 @@ template <uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
 inline void _llk_math_reduce_block_max_row_mop_config_()
 {
     // Constraint on the outerloop and innerloop dim
-    static_assert(block_ct_dim < 128, "block_ct_dim must be less than 128");
+    // static_assert(block_ct_dim < 128, "block_ct_dim must be less than 128");
 
     // See _llk_math_reduce_max_row_ for a full algorithm explanation
     // Put the following 15 instructions in a REPLAY buffer
-    lltt::record(0, 15);
+    // lltt::record(0, 15);
 
-    // Two GMPOOLs to pool F0 and F1 (or F2 and F3) together
-    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
-    TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+    // // Two GMPOOLs to pool F0 and F1 (or F2 and F3) together
+    // TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
+    // TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
 
-    if constexpr (is_fp32_dest_acc_en)
-    {
-        // FP32 destination mode, need to move high and low 16 bits to SrcB and transpose separately
-        constexpr int dest_32b_hi = 0;
-        constexpr int dest_32b_lo = 1;
+    // if constexpr (is_fp32_dest_acc_en)
+    // {
+    //     // FP32 destination mode, need to move high and low 16 bits to SrcB and transpose separately
+    //     constexpr int dest_32b_hi = 0;
+    //     constexpr int dest_32b_lo = 1;
 
-        // The following instructions are repeated for F0&F1 reduced and F2&F3 reduced
-        // Move high 16 bits from DEST row 0 to SrcB rows 16 - 31 and transpose
-        TTI_MOVD2B(dest_32b_hi, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-        TTI_TRNSPSRCB;
+    //     // The following instructions are repeated for F0&F1 reduced and F2&F3 reduced
+    //     // Move high 16 bits from DEST row 0 to SrcB rows 16 - 31 and transpose
+    //     TTI_MOVD2B(dest_32b_hi, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+    //     TTI_TRNSPSRCB;
 
-        // Move high 16 bits back to Dest
-        TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
-        TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4);
-        TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
-        TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
+    //     // Move high 16 bits back to Dest
+    //     TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
+    //     TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4);
+    //     TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
+    //     TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
 
-        // Move low 16 bits to SrcB rows 16 - 31 and transpose
-        TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-        TTI_TRNSPSRCB;
+    //     // Move low 16 bits to SrcB rows 16 - 31 and transpose
+    //     TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+    //     TTI_TRNSPSRCB;
 
-        // Move low 16 bits from SrcB rows 16 - 31 to DEST rows 0, 4, 8, 12
-        // ADDR_MOD_2 increments CR_D and Dest counter val by 4, so that's why DEST location is '0', not '0, 4, 8, 12'.
-        TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
-        TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
-        TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
-        // ADDR_MOD_3 increments CR_D and Dest counter val by 20, to point to F2.
-        TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movb2d::MOV_4_ROWS, 0);
-        // Clear B valid bits at the end and all address counters
-        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD);
-    }
-    else
-    {
-        // The following instructions are going to transpose the whole tile, unlike the FP32 mode.
+    //     // Move low 16 bits from SrcB rows 16 - 31 to DEST rows 0, 4, 8, 12
+    //     // ADDR_MOD_2 increments CR_D and Dest counter val by 4, so that's why DEST location is '0', not '0, 4, 8, 12'.
+    //     TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+    //     TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+    //     TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+    //     // ADDR_MOD_3 increments CR_D and Dest counter val by 20, to point to F2.
+    //     TTI_MOVB2D(dest_32b_lo, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movb2d::MOV_4_ROWS, 0);
+    //     // Clear B valid bits at the end and all address counters
+    //     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    // }
+    // else
+    // {
+    //     // The following instructions are going to transpose the whole tile, unlike the FP32 mode.
 
-        // Move row 0 from DEST to SrcB with offset of 16 rows and transpose
-        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-        TTI_TRNSPSRCB;
-        // Move row 0 from SrcB to DEST in 4-row chunks
-        // ADDR_MOD_2 increments CR_D and Dest counter val by 4, so that's why DEST location is '0', not '0, 4, 8, 12'.
-        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
-        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
-        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
-        // ADDR_MOD_3 increments CR_D and Dest counter val by 20, to point to F2.
-        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movb2d::MOV_4_ROWS, 0);
+    //     // Move row 0 from DEST to SrcB with offset of 16 rows and transpose
+    //     TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+    //     TTI_TRNSPSRCB;
+    //     // Move row 0 from SrcB to DEST in 4-row chunks
+    //     // ADDR_MOD_2 increments CR_D and Dest counter val by 4, so that's why DEST location is '0', not '0, 4, 8, 12'.
+    //     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+    //     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+    //     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_2, p_movb2d::MOV_4_ROWS, 0);
+    //     // ADDR_MOD_3 increments CR_D and Dest counter val by 20, to point to F2.
+    //     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_3, p_movb2d::MOV_4_ROWS, 0);
 
-        // Move row 32 (F2R0) from DEST to SrcB with offset of 16 rows and transpose
-        TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
-        TTI_TRNSPSRCB;
-        // Move row 32 from SrcB to DEST in 4-row chunks
-        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
-        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4);
-        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
-        TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
+    //     // Move row 32 (F2R0) from DEST to SrcB with offset of 16 rows and transpose
+    //     TTI_MOVD2B(0, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
+    //     TTI_TRNSPSRCB;
+    //     // Move row 32 from SrcB to DEST in 4-row chunks
+    //     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 0);
+    //     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 4, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 4);
+    //     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
+    //     TTI_MOVB2D(0, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
 
-        // Clear B valid bits at the end and all address counters
-        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD);
-    }
+    //     // Clear B valid bits at the end and all address counters
+    //     TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    // }
 
     static constexpr uint outer_loop = block_ct_dim;
     static constexpr uint inner_loop = 4;

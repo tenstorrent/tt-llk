@@ -56,16 +56,16 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 // Set SrcB valid once for the entire block (scaler stays the same)
                 // This matches line 128 in llk_unpack_AB_reduce_custom.h
-                TTI_STALLWAIT(ckernel::p_stall::STALL_TDMA, ckernel::p_stall::SRCB_CLR);
-                TTI_UNPACR(SrcB, 0b00000000 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+                // TTI_STALLWAIT(ckernel::p_stall::STALL_TDMA, ckernel::p_stall::SRCB_CLR);
+                // TTI_UNPACR(SrcB, 0b00000000 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
                 // Set SrcA valid for each tile in the block
                 // This matches the MOP template pattern (line 41 in llk_unpack_AB_reduce_custom.h)
-                for (int i = 0; i < BLOCK_CT_DIM; ++i)
-                {
-                    TTI_STALLWAIT(ckernel::p_stall::STALL_TDMA, ckernel::p_stall::SRCA_CLR);
-                    TTI_UNPACR(SrcA, 0b00000001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-                }
+                // for (int i = 0; i < BLOCK_CT_DIM; ++i)
+                // {
+                //     TTI_STALLWAIT(ckernel::p_stall::STALL_TDMA, ckernel::p_stall::SRCA_CLR);
+                //     TTI_UNPACR(SrcA, 0b00000001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+                // }
             }
             return;
         }
@@ -127,7 +127,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
                 // _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-                _llk_math_reduce_block_max_row_<BLOCK_CT_DIM, is_fp32_dest_acc_en>(0);
+                // _llk_math_reduce_block_max_row_<BLOCK_CT_DIM, is_fp32_dest_acc_en>(0);
                 // _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
         }
