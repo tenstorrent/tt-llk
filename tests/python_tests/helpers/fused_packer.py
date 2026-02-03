@@ -211,7 +211,7 @@ class Packer:
             raise ValueError("Unsupported architecture for packer")
 
         if operation.math.has_fpu(ReduceFpu):
-            reduce_dim = operation.math.operations[0].fpu.reduce_dim()
+            reduce_dim = operation.math.get_reduce_pack_mask()
             code += f"    _llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
 
         return code

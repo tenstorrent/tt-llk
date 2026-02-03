@@ -18,7 +18,6 @@ from .llk_params import (
     MathFidelity,
     StochasticRounding,
     Tilize,
-    Transpose,
     format_tile_sizes,
 )
 from .matmul_sweep import validate_tile_dimensions
@@ -33,7 +32,6 @@ class FusedOperation:
     num_stages: int = 1
     math_fidelity: MathFidelity = MathFidelity.HiFi4
     unpack_to_dest: bool = False
-    math_transpose_faces: Transpose = Transpose.No
     throttle: int = 0
     stochastic_rnd: StochasticRounding = StochasticRounding.No
     tiny_tiles: bool = False
@@ -106,7 +104,7 @@ class FusedOperation:
 
         if (
             get_chip_architecture() == ChipArchitecture.BLACKHOLE
-            and self.unpacker is UnpackerTilizeA
+            and self.math.has_unpacker(UnpackerTilizeA)
             and self.src_a.data_format != DataFormat.Bfp8_b
         ):
             self.bh_tilize = Tilize.Yes

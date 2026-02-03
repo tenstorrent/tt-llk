@@ -168,6 +168,18 @@ class NewMath:
     def get_fused_compute_with_unpacker(self) -> List["FusedCompute"]:
         return [op for op in self.operations if op.unpacker is not None]
 
+    def get_reduce_pack_mask(self) -> str:
+        # all_masks = set()
+        reduce_op = None
+        for operation in self.operations:
+            if isinstance(operation.fpu, ReduceFpu):
+                reduce_op = operation.fpu.operation
+
+        if reduce_op is None:
+            return None
+
+        return f"ReduceDim::{reduce_op.cpp_enum_value}"
+
     def unpack_operand_constants(
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
@@ -751,7 +763,7 @@ class ReduceFpu(Fpu):
         )
 
         if config.architecture == ChipArchitecture.WORMHOLE:
-            return f"    _llk_math_reduce_uninit_({unp_a_src_format});\n"
+            return f"_llk_math_reduce_uninit_({unp_a_src_format});\n"
 
         return ""
 
