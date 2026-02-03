@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import difflib
 import io
 from contextlib import redirect_stdout
 from importlib import import_module
@@ -50,3 +51,16 @@ class TensixDump:
             return result
 
         return None
+
+    @classmethod
+    def assert_equal(cls, lhs: str, rhs: str) -> bool:
+
+        if lhs != rhs:
+            lhs_lines = lhs.splitlines(keepends=True)
+            rhs_lines = rhs.splitlines(keepends=True)
+            diff = difflib.unified_diff(
+                lhs_lines, rhs_lines, fromfile="lhs", tofile="rhs", n=10
+            )
+            raise AssertionError(f"Dumps are not equal:\n{''.join(diff)}")
+
+        return True
