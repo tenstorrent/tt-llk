@@ -33,16 +33,19 @@ using namespace ckernel::unpacker;
  * @tparam pool_type The type of pooling operation (MAX, SUM, AVG)
  * @tparam reduce_dim The dimension along which to reduce (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR)
  *
- * @param face_r_dim The number of rows per face (default: FACE_R_DIM)
- * @param num_faces The number of faces to process (must be 1, 2, or 4; default: 4)
+ * @param face_r_dim The number of rows per face (must be either 1, 2, 4, 8, 16, or 32)
+ * @param num_faces The number of faces to process (must be 1, 2, or 4)
  *
  * @note For tiny tiles (face_r_dim < 16), padding is applied to prevent incorrect outputs
  * @note For REDUCE_SCALAR operations, SrcA is cleared before unpacking because SrcA is clobbered in the Math kernel.
  */
 template <PoolType pool_type, ReduceDim reduce_dim>
-inline void _llk_unpack_AB_reduce_mop_config_(const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
+inline void _llk_unpack_AB_reduce_mop_config_(const std::uint32_t face_r_dim, const std::uint32_t num_faces)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    LLK_ASSERT(
+        face_r_dim == 1 || face_r_dim == 2 || face_r_dim == 4 || face_r_dim == 8 || face_r_dim == 16 || face_r_dim == 32,
+        "face_r_dim must be either 1, 2, 4, 8, 16, or 32");
 
     // Configure unpacker instruction for Src{A,B}
     static constexpr uint unpack_srca = TT_OP_UNPACR(Srcs::SrcA, 0b01, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
@@ -64,15 +67,33 @@ inline void _llk_unpack_AB_reduce_mop_config_(const std::uint32_t face_r_dim = F
         // Fill SrcA with pool-type dependent padding value for tiny tiles before unpacking a face
         ckernel_template tmp(outerloop, innerloop, clear_pool_dep_srca, unpack_srca);
         tmp.set_start_op(unpack_srcb);
+
+        // For scalar-average reduction, we need to provide two SrcB vectors
+        // For initial face-by-face averages, SrcB needs to be 1/num_rows to properly do COL reduction on each face
+        // Once all faces have been reduced, SrcB needs to be 1/num_cols to do ROW reduction on the accumulated result
+        if constexpr (reduce_dim == ReduceDim::REDUCE_SCALAR && pool_type == PoolType::AVG)
+        {
+            tmp.set_end_op(unpack_srcb);
+        }
+
         tmp.program();
     }
-    else // Using standard faces (face_r_dim >= FACE_R_DIM)
+    else // Using standard faces (face_r_dim = FACE_R_DIM)
     {
         if constexpr (reduce_dim == ReduceDim::REDUCE_SCALAR)
         {
             // For scalar reduction, clear SrcA to zero before unpacking. SrcA is clobbered in Math kernel.
             ckernel_template tmp(outerloop, innerloop, clear_zero_srca, unpack_srca);
             tmp.set_start_op(unpack_srcb);
+
+            // For scalar-average reduction, we need to provide two SrcB vectors
+            // For initial face-by-face averages, SrcB needs to be 1/num_rows to properly do COL reduction on each face
+            // Once all faces have been reduced, SrcB needs to be 1/num_cols to do ROW reduction on the accumulated result
+            if constexpr (pool_type == PoolType::AVG)
+            {
+                tmp.set_end_op(unpack_srcb);
+            }
+
             tmp.program();
         }
         else
@@ -97,17 +118,20 @@ inline void _llk_unpack_AB_reduce_mop_config_(const std::uint32_t face_r_dim = F
  * @tparam pool_type The type of pooling operation (MAX, SUM, AVG)
  * @tparam reduce_dim The dimension along which to reduce (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR)
  *
- * @param face_r_dim The number of rows per face (default: FACE_R_DIM)
- * @param num_faces The number of faces to process (must be 1, 2, or 4; default: 4)
+ * @param face_r_dim The number of rows per face (must be either 1, 2, 4, 8, 16, or 32)
+ * @param num_faces The number of faces to process (must be 1, 2, or 4)
  *
  * @note For REDUCE_ROW operations, the face is transposed using haloize mode
  * @note Unpacker 0 (SrcA) reads face_r_dim*FACE_R_DIM datums
  * @note Unpacker 1 (SrcB) reads one row (FACE_R_DIM datums)
  */
 template <PoolType pool_type, ReduceDim reduce_dim>
-inline void _llk_unpack_AB_reduce_init_(const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
+inline void _llk_unpack_AB_reduce_init_(const std::uint32_t face_r_dim, const std::uint32_t num_faces)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    LLK_ASSERT(
+        face_r_dim == 1 || face_r_dim == 2 || face_r_dim == 4 || face_r_dim == 8 || face_r_dim == 16 || face_r_dim == 32,
+        "face_r_dim must be either 1, 2, 4, 8, 16, or 32");
 
     // Enable transpose (haloize mode) if reducing along rows
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(reduce_dim == ReduceDim::REDUCE_ROW);
