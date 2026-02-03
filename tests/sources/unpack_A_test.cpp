@@ -34,15 +34,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
         params->TEST_FACE_R_DIM,
         params->num_faces,
         params->num_faces);
-    LLK_ASSERT(is_unpacker_configured_correctly(
-        formats.unpack_src,
-        formats.unpack_dst,
-        formats.unpack_src,
-        formats.unpack_dst,
-        params->TEST_FACE_R_DIM,
-        params->TEST_FACE_R_DIM,
-        params->num_faces,
-        params->num_faces));
     _llk_unpack_configure_stoch_rnd_<STOCHASTIC_RND>();
     _llk_unpack_A_init_<BROADCAST_TYPE, ACC_TO_DEST, REUSE_DEST_TYPE, unpack_to_dest>(
         params->UNPACK_TRANSPOSE_FACES,

@@ -378,10 +378,10 @@ inline void configure_unpack_AB(
 
     LLK_ASSERT(
         is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpA_src_format), static_cast<DataFormat>(unpA_dst_format)),
-        "Unsupported unpacker to register conversion");
+        "Unsupported unpacker to register conversion " + std::to_string(unpA_src_format) + " -> " + std::to_string(unpA_dst_format) + " for unpacker A");
     LLK_ASSERT(
         is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpB_src_format), static_cast<DataFormat>(unpB_dst_format)),
-        "Unsupported unpacker to register conversion");
+        "Unsupported unpacker to register conversion " + std::to_string(unpB_src_format) + " -> " + std::to_string(unpB_dst_format) + " for unpacker B");
 
     // Check that unpacker is done (all contexts freed up) before starting hw configuration
     wait_for_idle();

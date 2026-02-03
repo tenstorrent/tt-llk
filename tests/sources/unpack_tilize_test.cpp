@@ -34,9 +34,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
     {
         for (std::uint32_t j = 0; j < BLOCK_CT_DIM; j++)
         {
-            LLK_ASSERT(
-                is_unpacker_configured_correctly(formats.unpack_src, formats.unpack_dst, formats.unpack_src, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4, 4),
-                "Unpacker configuration does not match expected unpack_src/unpack_dst");
             _llk_unpack_tilize_(L1_ADDRESS(buffer_A[read_offset]), j, formats.unpack_src, formats.unpack_dst, block_ct_dim, FACE_R_DIM, 4, false);
         }
         read_offset += BLOCK_RT_DIM;

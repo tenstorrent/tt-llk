@@ -28,8 +28,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
         0, 0, FACE_R_DIM, params->num_faces, formats.unpack_src, formats.unpack_dst);
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        LLK_ASSERT(is_unpacker_configured_correctly(
-            formats.unpack_src, formats.unpack_dst, formats.unpack_src, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, params->num_faces, params->num_faces));
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }

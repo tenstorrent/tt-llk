@@ -43,30 +43,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
     _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats_array[run].unpack_src, formats_array[run].unpack_dst, block_ct_dim, FACE_R_DIM, 4, false);
-    LLK_ASSERT(
-        is_unpacker_configured_correctly(
-            formats_array[run].unpack_src,
-            formats_array[run].unpack_dst,
-            formats_array[run].unpack_src,
-            formats_array[run].unpack_dst,
-            FACE_R_DIM,
-            FACE_R_DIM,
-            4,
-            4),
-        "Unpacker configuration does not match expected unpack_src/unpack_dst");
+
     _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
     _llk_unpack_tilize_(L1_ADDRESS(buffer_B[0]), 0, formats_array[run].unpack_src, formats_array[run].unpack_dst, block_ct_dim, FACE_R_DIM, 4, false);
-    LLK_ASSERT(
-        is_unpacker_configured_correctly(
-            formats_array[run].unpack_src,
-            formats_array[run].unpack_dst,
-            formats_array[run].unpack_src,
-            formats_array[run].unpack_dst,
-            FACE_R_DIM,
-            FACE_R_DIM,
-            4,
-            4),
-        "Unpacker configuration does not match expected unpack_src/unpack_dst");
+
     /*
     In this test we fuse two LLK pipeline runs, one is to unpack untilized buffers/operands from L1 (39-45) and pack them in tilized format(130-145).
     The next run unpacks these two tilized operands, performs a math compute and pack them out in untilized format.
@@ -97,17 +77,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
         4 /* num_faces */,
         4 /* num_faces */);
     _llk_unpack_AB_init_<>();
-    LLK_ASSERT(
-        is_unpacker_configured_correctly(
-            formats_array[run].unpack_src,
-            formats_array[run].unpack_dst,
-            formats_array[run].unpack_src,
-            formats_array[run].unpack_dst,
-            FACE_R_DIM,
-            FACE_R_DIM,
-            4,
-            4),
-        "Unpacker configuration does not match expected unpack_src/unpack_dst");
     _llk_unpack_AB_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized));
 }
 

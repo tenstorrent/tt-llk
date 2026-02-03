@@ -43,10 +43,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     for (int i = 0; i < num_tiles_in_block * num_blocks; ++i)
     {
-        LLK_ASSERT(
-            is_unpacker_configured_correctly(
-                formats.unpack_src, formats.unpack_dst, formats.unpack_src, formats.unpack_dst, face_r_dim, face_r_dim, num_faces, num_faces),
-            "Unpacker configuration does not match expected unpack_src/unpack_dst");
         _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
     }
 }

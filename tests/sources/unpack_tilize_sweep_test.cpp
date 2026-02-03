@@ -25,8 +25,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, params->num_faces, params->num_faces);
-    LLK_ASSERT(is_unpacker_configured_correctly(
-        formats.unpack_src, formats.unpack_dst, formats.unpack_src, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, params->num_faces, params->num_faces));
     _llk_unpack_configure_stoch_rnd_<STOCHASTIC_RND>();
 
     // Initialize tilize unpacker

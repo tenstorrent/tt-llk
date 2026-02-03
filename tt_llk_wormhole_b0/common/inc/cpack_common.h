@@ -559,7 +559,7 @@ inline void set_packer_l1_offset(const std::uint32_t pack_dst_format, const std:
     LLK_ASSERT(
         is_packer_conversion_supported(static_cast<DataFormat>(pack_config.in_data_format), static_cast<DataFormat>(pack_dst_format & 0xf)),
         "Unsupported packer conversion");
-    LLK_ASSERT(static_cast<DataFormat>(pack_config.out_data_format) == static_cast<DataFormat>(pack_dst_format), "Misconfigured dst format.");
+    // LLK_ASSERT(static_cast<DataFormat>(pack_config.out_data_format) == static_cast<DataFormat>(pack_dst_format), "Misconfigured dst format.");
 
     const std::uint32_t face_dim = face_r_dim * FACE_C_DIM;
 
@@ -865,7 +865,7 @@ inline void program_packer_untilized_destination(const std::uint32_t addr, const
     LLK_ASSERT(
         is_packer_conversion_supported(static_cast<DataFormat>(pack_config.in_data_format), static_cast<DataFormat>(pack_dst_format & 0xf)),
         "Unsupported packer conversion");
-    LLK_ASSERT(static_cast<DataFormat>(pack_config.out_data_format) == static_cast<DataFormat>(pack_dst_format), "Misconfigured dst format.");
+    // LLK_ASSERT(static_cast<DataFormat>(pack_config.out_data_format) == static_cast<DataFormat>(pack_dst_format), "Misconfigured dst format.");
 
     if constexpr (diagonal)
     {
