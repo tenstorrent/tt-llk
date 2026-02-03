@@ -238,6 +238,7 @@ def wait_for_tensix_operations_finished(
         timeout: Maximum time to wait (in seconds) before timing out. Default is 30 seconds. If running on a simulator it is 600 seconds.
         max_backoff: Maximum backoff time (in seconds) between polls. Default is 5 seconds.
     """
+    dumps = []
 
     mailboxes = {Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer}
 
@@ -256,9 +257,12 @@ def wait_for_tensix_operations_finished(
             if read_word_from_device(core_loc, mailbox.value) == KERNEL_COMPLETE:
                 completed.add(mailbox)
 
-        TensixDump.try_poll(core_loc)
+        dump = TensixDump.try_poll(core_loc)
+        if dump is not None:
+            dumps.append(dump)
+
         if completed == mailboxes:
-            return
+            return dumps
 
         # Disable any waiting if running on simulator
         # this makes simulator tests run ever so slightly faster

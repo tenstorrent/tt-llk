@@ -1036,7 +1036,7 @@ class TestConfig:
         self.variant_stimuli.write(location)
         self.write_runtimes_to_L1(location)
         elfs = self.run_elf_files(location)
-        wait_for_tensix_operations_finished(elfs, location)
+        dumps = wait_for_tensix_operations_finished(elfs, location)
 
         if self.coverage_build == CoverageBuild.Yes:
             self.read_coverage_data_from_device(location)
@@ -1044,7 +1044,7 @@ class TestConfig:
         if delete_artefacts:
             shutil.rmtree(TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id)
 
-        return self.variant_stimuli.collect_results(location)
+        return self.variant_stimuli.collect_results(location), dumps
 
 
 def process_coverage_run_artefacts() -> bool:
