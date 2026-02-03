@@ -71,7 +71,7 @@ def get_valid_num_faces_datacopy(tilize):
             # DataFormat.Bfp8_b,
         ]
     ),
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     l1_acc=[L1Accumulation.No],
     num_faces=4,
     tilize=[Tilize.No],
