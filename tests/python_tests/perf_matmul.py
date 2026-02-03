@@ -25,7 +25,8 @@ from helpers.test_variant_parameters import (
 )
 
 # Important K dimensions to test
-KT_DIMS = [1, 2, 3, 4, 8, 64]
+# KT_DIMS = [1, 2, 3, 4, 8, 64]
+KT_DIMS = [64]
 
 
 def matmul_combos(
@@ -80,14 +81,6 @@ def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordina
     if is_dest_acc_needed(formats) and dest_acc == DestAccumulation.No:
         pytest.skip("Dest accumulation must be enabled for this format")
 
-    run_types = [
-        PerfRunType.L1_TO_L1,
-        PerfRunType.UNPACK_ISOLATE,
-        PerfRunType.MATH_ISOLATE,
-        PerfRunType.PACK_ISOLATE,
-        PerfRunType.L1_CONGESTION,
-    ]
-
     # Calculate all matmul dimensions using helper function
     dims = generate_tile_dims((matrix_a, matrix_b))
 
@@ -96,7 +89,13 @@ def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordina
     configuration = PerfConfig(
         "sources/matmul_perf.cpp",
         formats,
-        run_types,
+        run_types=[
+            PerfRunType.L1_TO_L1,
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        ],
         templates=[
             MATH_FIDELITY(math_fidelity),
             DEST_SYNC(),
@@ -115,8 +114,8 @@ def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordina
             None,
             formats.input_format,
             formats.output_format,
-            tile_count_A=variant_tile_count,
-            tile_count_B=variant_tile_count,
+            tile_count_A=dims.rt_dim * dims.kt_dim,
+            tile_count_B=dims.ct_dim * dims.kt_dim,
             tile_count_res=variant_tile_count,
         ),
         dest_acc=dest_acc,

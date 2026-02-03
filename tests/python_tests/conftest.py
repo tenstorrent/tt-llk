@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.device import _send_arc_message
+from helpers.device import LLKAssertException, _send_arc_message
 from helpers.format_config import InputOutputFormat
 from helpers.perf import PerfConfig, PerfReport, combine_perf_reports
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
@@ -214,7 +214,12 @@ def pytest_runtest_makereport(item, call):
 
                 stack_trace_str = "\n".join(stack_trace) if stack_trace else ""
 
-                if exc_type == AssertionError:
+                if call.excinfo.type == LLKAssertException:
+                    # Pretty print
+                    exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
+                    error_message = f"LLK ASSERT HIT {test_file_and_func}{report.test_params} {exc_msg}"
+                    report.longrepr = error_message
+                elif exc_type == AssertionError:
                     # Handle assertion failures
                     exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
                     error_message = (

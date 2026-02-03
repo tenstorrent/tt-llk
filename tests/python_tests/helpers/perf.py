@@ -6,6 +6,7 @@ import glob
 import os
 import re
 from dataclasses import fields
+from hashlib import sha256
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -311,6 +312,33 @@ class PerfConfig(TestConfig):
             )
             for run_type in run_types
         ]
+
+    def generate_variant_hash(self):
+        # This function is the same as the one in test_config.py with the difference of added intermediate non compilation arguments
+
+        NON_COMPILATION_ARGUMENTS = [
+            "variant_stimuli",
+            "run_configs",
+            "variant_id",
+            "runtime_params_struct",
+            "runtime_format",
+            "runtimes",
+            "" if self.compile_time_formats else "formats",
+            "formats_config",
+            # These are Perf config specific flags that are used as intermediate values
+            # and don't influence any compilation per say
+            "passed_templates",
+            "passed_runtimes",
+            "run_configs",
+        ]
+
+        temp_str = [
+            str(value)
+            for field_name, value in self.__dict__.items()
+            if field_name not in NON_COMPILATION_ARGUMENTS
+        ]
+
+        self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
     @staticmethod
     def _dataclass_name_and_values(obj):

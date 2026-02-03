@@ -8,10 +8,8 @@ from enum import Enum, IntEnum
 from pathlib import Path
 from typing import List
 
-import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.hardware_controller import HardwareController
 from ttexalens.context import Context
 from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.debug_tensix import TensixDebug
@@ -46,6 +44,11 @@ from .pack import (
 from .target_config import TestTargetConfig
 from .tilize_untilize import untilize_block
 from .unpack import unpack_res_tiles
+
+
+class LLKAssertException(Exception):
+    pass
+
 
 # Constant - indicates the TRISC kernel run status
 KERNEL_COMPLETE = 1  # Kernel completed its run
@@ -178,44 +181,39 @@ def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
     return is_it
 
 
-def _print_callstack(risc_name: str, callstack: list[CallstackEntry]):
-    print(f"====== ASSERT HIT ON RISC CORE {risc_name.upper()} =======")
+def _print_callstack(risc_name: str, callstack: list[CallstackEntry]) -> str:
+    temp_str = f"\n====== {risc_name.upper()} STACK TRACE =======\n"
 
     LLK_HOME = Path(os.environ.get("LLK_HOME"))
     TESTS_DIR = LLK_HOME / "tests"
 
     for idx, entry in enumerate(callstack):
         # Format PC hex like Rust does
-
         pc = f"0x{entry.pc:016x}" if entry.pc is not None else "0x????????????????"
         file_path = (TESTS_DIR / Path(entry.file)).resolve()
-
         # first line: idx, pc, function
-        print(f"{idx:>4}: {pc} - {entry.function_name}")
-
+        temp_str += f"{idx:>4}: {pc} - {entry.function_name}\n"
         # second line: file, line, column
-        print(f"{' '*25}| at {file_path}:{entry.line}:{entry.column}")
+        temp_str += f"{' '*25}| at {file_path}:{entry.line}:{entry.column}\n"
+
+    return temp_str
 
 
 def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
     trisc_cores = [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2]
     assertion_hits = []
-
+    temp_stack_traces = ""
     for core in trisc_cores:
         risc_name = str(core)
         if is_assert_hit(risc_name, core_loc=core_loc, device_id=device_id):
-            _print_callstack(
+            temp_stack_traces += _print_callstack(
                 risc_name,
                 callstack(core_loc, elfs, risc_name=risc_name, device_id=device_id),
             )
             assertion_hits.append(risc_name)
 
     if assertion_hits:
-        pytest.exit(1)
-        HardwareController().reset_card()
-        raise AssertionError(
-            f"Assert was hit on device on cores: {', '.join(assertion_hits)}"
-        )
+        raise LLKAssertException(temp_stack_traces)
 
 
 def wait_for_tensix_operations_finished(
