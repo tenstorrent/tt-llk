@@ -384,14 +384,16 @@ inline void set_packer_l1_offset(const uint pack_dst_format, const uint face_r_d
     TTI_REG2FLOP(2, 0, 0, 0, THCON_SEC1_REG8_L1_Dest_addr_ADDR32 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_LO);
 }
 
-template <bool is_fp32_dest_acc_en>
+template <bool is_fp32_dest_acc_en, bool untilize = false>
 inline void reconfig_packer_data_format(
     const uint pack_src_format,
     const uint pack_dst_format,
     const uint tile_size    = 0,
     const uint face_r_dim   = FACE_R_DIM,
     const uint num_faces    = 4,
-    const bool partial_face = false)
+    const bool partial_face = false,
+    const bool narrow_tile  = false,
+    const uint relu_config  = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // Configure packers
@@ -520,8 +522,24 @@ inline void reconfig_packer_data_format(
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_src_format);
 
+    // Config RELU
+    relu_config_u hw_relu_config;
+    hw_relu_config.r.STACC_RELU_ApplyRelu     = relu_config & 0xffff;
+    hw_relu_config.r.STACC_RELU_ReluThreshold = (relu_config >> 16) & 0xffff;
+
+    constexpr uint hw_relu_mask = STACC_RELU_ApplyRelu_MASK | STACC_RELU_ReluThreshold_MASK;
+    cfg_reg_rmw_tensix<STACC_RELU_ApplyRelu_ADDR32, 0, hw_relu_mask>(hw_relu_config.val[0]);
+
     // Set packer strides
     set_packer_strides(pack_src_format);
+
+    const uint face_dim = face_r_dim * FACE_C_DIM;
+
+    // To untilize narrow tile (32x16) we just pack 2 faces back to back
+    // Number of datums to pack per row
+    const uint pack_x_dim = (narrow_tile || !untilize) ? face_dim : FACE_R_DIM;
+
+    TT_SETADCXX(p_setadc::PAC, pack_x_dim - 1, 0x0);
 }
 
 template <bool is_fp32_dest_acc_en, bool untilize>

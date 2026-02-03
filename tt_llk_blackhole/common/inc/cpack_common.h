@@ -293,7 +293,7 @@ inline void set_packer_config(const uint pack_src_format, const uint pack_dst_fo
     sync_regfile_write(p_gpr_pack::EXP0_SEC_SIZE_BFP);
 }
 
-template <bool is_fp32_dest_acc_en>
+template <bool is_fp32_dest_acc_en, bool untilize = false, bool tilize = false>
 inline void reconfig_packer_data_format(
     const uint pack_src_format,
     const uint pack_dst_format,
@@ -301,7 +301,8 @@ inline void reconfig_packer_data_format(
     [[maybe_unused]] const uint face_r_dim,
     const uint tile_c_dim,
     const uint num_faces,
-    const bool partial_face)
+    const bool partial_face,
+    const uint relu_config = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     const uint pack_output_src_format = (uint)pack_src_format & 0xF;
@@ -383,11 +384,21 @@ inline void reconfig_packer_data_format(
         uint exp_threshold_rmw_data = (exp_threshold_val << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (exp_threshold_en << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
         cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
     }
+    // Set Fp8 E4M3 mode for packer
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>((pack_dst_format & 0x1F) == static_cast<DataFormatType>(DataFormat::Fp8_e4m3) ? 1 : 0);
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_output_src_format);
 
+    // Config RELU
+    relu_config_u hw_relu_config;
+    hw_relu_config.r.STACC_RELU_ApplyRelu     = relu_config & 0xffff;
+    hw_relu_config.r.STACC_RELU_ReluThreshold = (relu_config >> 16) & 0xffff;
+
+    constexpr uint hw_relu_mask = STACC_RELU_ApplyRelu_MASK | STACC_RELU_ReluThreshold_MASK;
+    cfg_reg_rmw_tensix<STACC_RELU_ApplyRelu_ADDR32, 0, hw_relu_mask>(hw_relu_config.val[0]);
+
     // Set packer strides
-    set_packer_strides(pack_output_src_format, tile_c_dim);
+    set_packer_strides<untilize, tilize>(pack_output_src_format, tile_c_dim);
 }
 
 template <bool is_fp32_dest_acc_en, bool untilize = false, bool tilize = false>
