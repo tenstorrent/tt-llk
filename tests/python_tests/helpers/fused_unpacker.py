@@ -185,7 +185,7 @@ class MatmulUnpacker(Unpacker):
         rt_dim = operation.rt_dim
         kt_dim = operation.kt_dim
         ct_dim = operation.ct_dim
-        return f"    _perf_unpack_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
+        return f"_perf_unpack_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def golden(
         self,
@@ -193,6 +193,7 @@ class MatmulUnpacker(Unpacker):
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         t_matrix = get_golden_generator(TransposeGolden)
 
@@ -250,6 +251,7 @@ class MatmulUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "FusedCompute",
+        tile_idx_expr: str = None,
     ) -> str:
         stage = operation.stage_id
         ct_dim = operation.ct_dim
@@ -260,20 +262,22 @@ class MatmulUnpacker(Unpacker):
         unpack_tile_size_b = operation.tile_size_unpack_b
 
         if batch_size == 1:
+            # Single tile per batch - tile_idx maps to (mt, nt) pair
             code = (
-                f"    for (std::uint32_t mt = 0; mt < {rt_dim}; ++mt) {{\n"
-                f"        for (std::uint32_t nt = 0; nt < {ct_dim}; ++nt) {{\n"
-                f"            for (std::uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
-                f"                _llk_unpack_AB_matmul_<>(\n"
-                f"                    L1_ADDRESS(buffer_A{stage}[0]), L1_ADDRESS(buffer_B{stage}[0]),\n"
-                f"                    mt * {kt_dim} + kt, kt * {ct_dim} + nt,\n"
-                f"                    {unpack_tile_size_a}, {unpack_tile_size_b}, false, false, 1, 1, {kt_dim}\n"
-                f"                );\n"
-                f"            }}\n"
+                f"    {{\n"
+                f"        uint32_t mt = ({tile_idx_expr}) / {ct_dim};\n"
+                f"        uint32_t nt = ({tile_idx_expr}) % {ct_dim};\n"
+                f"        for (uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
+                f"            _llk_unpack_AB_matmul_<>(\n"
+                f"                L1_ADDRESS(buffer_A{stage}[0]), L1_ADDRESS(buffer_B{stage}[0]),\n"
+                f"                mt * {kt_dim} + kt, kt * {ct_dim} + nt,\n"
+                f"                {unpack_tile_size_a}, {unpack_tile_size_b}, false, false, 1, 1, {kt_dim}\n"
+                f"            );\n"
                 f"        }}\n"
                 f"    }}\n"
             )
         else:
+            # All tiles in one batch - no tile_idx needed, just kt loop
             code = (
                 f"    for (std::uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
                 f"        _llk_unpack_AB_matmul_<>(\n"
@@ -301,6 +305,7 @@ class UnpackerAB(Unpacker):
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         t_matrix = get_golden_generator(TransposeGolden)
         if compute_unit.broadcast_type != BroadcastType.None_:
@@ -409,6 +414,7 @@ class UnpackerA(Unpacker):
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         t_matrix = get_golden_generator(TransposeGolden)
 

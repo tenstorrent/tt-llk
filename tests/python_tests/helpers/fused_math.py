@@ -133,24 +133,6 @@ class NewMath:
 
         return math_units
 
-    def get_fpu_units(self) -> List["Unpacker"]:
-        math_units = []
-
-        for operation in self.operations:
-            if operation.fpu is not None:
-                math_units.append(operation.fpu)
-
-        return math_units
-
-    def get_sfpu_units(self) -> List["Unpacker"]:
-        math_units = []
-
-        for operation in self.operations:
-            if operation.sfpu is not None:
-                math_units.append(operation.sfpu)
-
-        return math_units
-
     def has_unpacker(self, unpacker) -> bool:
         for operation in self.operations:
             if isinstance(operation.unpacker, unpacker):
@@ -205,46 +187,12 @@ class NewMath:
         return code
 
     def unpack_body(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        from .fused_unpacker import MatmulUnpacker
-
         fused_ops_with_unpacker = self.get_fused_compute_with_unpacker()
 
         if not fused_ops_with_unpacker:
             return ""
 
-        has_matmul = any(
-            op.unpacker == MatmulUnpacker for op in fused_ops_with_unpacker
-        )
-        has_other = any(op.unpacker != MatmulUnpacker for op in fused_ops_with_unpacker)
-
-        if has_matmul and has_other:
-            raise ValueError(
-                "Cannot fuse MatmulUnpacker with other unpackers in the same L1-to-L1 run. "
-            )
-
-        if has_matmul:
-            return self._unpack_matmul_body(
-                operation, config, fused_ops_with_unpacker[0]
-            )
-
         return self._unpack_batched_body(operation, config, fused_ops_with_unpacker)
-
-    def _unpack_matmul_body(
-        self,
-        operation: "FusedOperation",
-        config: "GlobalConfig",
-        fused_compute: "FusedCompute",
-    ) -> str:
-        unpacker_instance = fused_compute.unpacker()
-
-        code = self.unpack_operand_constants(operation, config)
-        code += unpacker_instance.hw_configure(operation, config)
-        code += unpacker_instance.init(operation, config, fused_compute)
-        code += unpacker_instance.packer_sync(operation)
-        code += unpacker_instance.unpack(operation, config, fused_compute)
-        code += unpacker_instance.uninit(operation, config, fused_compute)
-
-        return code
 
     def _unpack_batched_body(
         self,
@@ -392,51 +340,19 @@ class NewMath:
         return code
 
     def math_body(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        batch_size = operation.batch_size
         code = self._math_constants(operation, config)
         code += self.math_hw_configure(operation, config)
 
-        math_units = self.get_math_units()
-        fpu_units = self.get_fpu_units()
-        sfpu_units = self.get_sfpu_units()
+        def batch_body(batch_tile_cnt):
+            body = self._wait_for_dest(operation)
+            for compute_unit in self.operations:
+                body += compute_unit.math_init(operation, config)
+                body += compute_unit.math_calculate(operation, config, batch_tile_cnt)
+                body += compute_unit.math_uninit(operation, config)
+            body += self._dest_section_done(operation, config)
+            return body
 
-        if isinstance(self.operations[0].fpu, MatmulFpu):
-            if batch_size == 1:
-
-                def matmul_body():
-                    body = self._wait_for_dest(operation)
-                    for unit in math_units:
-                        body += unit.init(operation, config)
-                        body += unit.calculate(operation, config)
-                        body += unit.uninit(operation, config)
-                    body += self._dest_section_done(operation, config)
-                    return body
-
-                code += self._matmul_tile_loop(operation, config, matmul_body)
-            else:
-                code += self._wait_for_dest(operation)
-                for unit in math_units:
-                    code += unit.init(operation, config)
-                    if unit in fpu_units:
-                        code += unit.calculate(operation, config, 0)
-                    if unit in sfpu_units:
-                        code += unit.calculate(operation, config)
-                    code += unit.uninit(operation, config)
-                code += self._dest_section_done(operation, config)
-        else:
-
-            def batch_body(batch_tile_cnt):
-                body = self._wait_for_dest(operation)
-                for compute_unit in self.operations:
-                    body += compute_unit.math_init(operation, config)
-                    body += compute_unit.math_calculate(
-                        operation, config, batch_tile_cnt
-                    )
-                    body += compute_unit.math_uninit(operation, config)
-                body += self._dest_section_done(operation, config)
-                return body
-
-            code += self._batch_loop(operation, config, batch_body)
+        code += self._batch_loop(operation, config, batch_body)
 
         return code
 
@@ -538,40 +454,55 @@ class MatmulFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "FusedCompute",
-        rt_dim: int = None,
-        ct_dim: int = None,
     ) -> str:
         stage = operation.stage_id
+        batch_size = operation.batch_size
         math_fidelity = operation.math_fidelity.value
-        ct = ct_dim if ct_dim is not None else operation.ct_dim
-        rt = rt_dim if rt_dim is not None else operation.rt_dim
-        transpose = "true" if operation.unpack_transpose_faces.value else "false"
+        ct_dim = operation.ct_dim
+        rt_dim = operation.rt_dim
+        transpose = "true" if compute_unit.unpack_transpose_faces.value else "false"
 
-        return (
-            f"    // Operation {stage}: Matmul FPU\n"
-            f"    _llk_math_matmul_init_<{math_fidelity}>(\n"
-            f"        TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, {transpose}, {ct}, {rt}\n"
-            f"    );\n"
-        )
+        if batch_size == 1:
+            return (
+                f"// Operation {stage}: Matmul FPU\n"
+                f"_llk_math_matmul_init_<{math_fidelity}>(\n"
+                f"    TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, {transpose}, 1, 1\n"
+                f");\n"
+            )
+        else:
+            return (
+                f"// Operation {stage}: Matmul FPU\n"
+                f"_llk_math_matmul_init_<{math_fidelity}>(\n"
+                f"    TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, {transpose}, {ct_dim}, {rt_dim}\n"
+                f");\n"
+            )
 
     def calculate(
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "FusedCompute",
-        rt_dim: int = None,
-        ct_dim: int = None,
+        tile_idx: int,
     ) -> str:
-        ct = ct_dim if ct_dim is not None else operation.ct_dim
-        rt = rt_dim if rt_dim is not None else operation.rt_dim
+        batch_size = operation.batch_size
+        ct_dim = operation.ct_dim
+        rt_dim = operation.rt_dim
         kt_dim = operation.kt_dim
         math_fidelity = operation.math_fidelity.value
-        return (
-            f"    for (std::uint32_t j = 0; j < {kt_dim}; j++)\n"
-            f"    {{\n"
-            f"        _llk_math_matmul_<{math_fidelity}>(0, {ct}, {rt});\n"
-            f"    }}\n"
-        )
+        if batch_size == 1:
+            return (
+                f"for (uint32_t j = 0; j < {kt_dim}; j++)\n"
+                f"{{\n"
+                f"    _llk_math_matmul_<{math_fidelity}>(0, 1, 1);\n"
+                f"}}\n"
+            )
+        else:
+            return (
+                f"for (uint32_t j = 0; j < {kt_dim}; j++)\n"
+                f"{{\n"
+                f"    _llk_math_matmul_<{math_fidelity}>(0, {ct_dim}, {rt_dim});\n"
+                f"}}\n"
+            )
 
 
 class EltwiseFpu(Fpu):
