@@ -73,41 +73,38 @@ void run_kernel(const volatile struct RuntimeParams *params)
 }
 #endif // LLK_TRISC_UNPACK
 
-// ============================================================================
-// MATH TRISC (TopK SFPU pipeline)
-// ============================================================================
-
 #ifdef LLK_TRISC_MATH
 #include "ckernel_sfpu.h"
-#include "ckernel_sfpu_topk.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
-#include "llk_math_eltwise_unary_sfpu.h"
-#include "params.h"
-#include "sfpu_operations.h" // test_utils::call_sfpu_operation, SfpuType
 
 using namespace ckernel;
-using namespace ckernel::sfpu;
 
-// We use 32 SFPU iterations (same as other unary SFPU tests).
-constexpr int TOPK_ITERATIONS = 32;
+// Define DST_SYNC_MODE so LLK SFPU params helpers compile in this TU.
+// This must be done BEFORE including the TopK LLK API header.
+#define DST_SYNC_MODE DstSync::SyncHalf
+#include "llk_math_eltwise_unary_sfpu_topk.h"
+#undef DST_SYNC_MODE
 
-// Template knobs are picked up from params/templates on the Python side
-// via APPROX_MODE, FAST_MODE, etc. Here we only care about APPROX_MODE and
-// is_fp32_dest_acc_en; FAST_MODE/STABLE_SORT are compile-time params to
-// call_sfpu_operation.
+#include "params.h"
+
+using namespace ckernel;
+
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    // 1) Copy SRC_A → DEST, like in eltwise_unary_sfpu_test.cpp
-    //    This gives us DEST initialized with the input payload that TopK
-    //    expects (values + indices encoded by the host test harness).
+    constexpr int GROUP_TILES = 4;
+
+    // --------------------------------------------------------------------
+    // 0) Generic math + datacopy setup
+    // --------------------------------------------------------------------
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<
         DataCopyType::A2D,
         is_fp32_dest_acc_en,
         BroadcastType::NONE,
-        false,  // tilize
-        false>( // is_int_fpu_en
+        false, // tilize
+        false  // is_int_fpu_en
+        >(
         /*num_rows_per_matrix=*/4,
         /*math_format=*/formats.math);
 #else
@@ -115,7 +112,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
         DataCopyType::A2D,
         is_fp32_dest_acc_en,
         BroadcastType::NONE,
-        false>( // is_int_fpu_en
+        false // is_int_fpu_en
+        >(
         /*num_rows_per_matrix=*/4,
         /*math_format=*/formats.math);
 #endif
@@ -123,47 +121,59 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
+    // --------------------------------------------------------------------
+    // 1) TopK LLK init (SFPU + TopK index tracking)
+    // --------------------------------------------------------------------
+    constexpr bool APPROX      = false;
+    constexpr bool STABLE_SORT = false;
+
+    constexpr int K      = 32;
+    constexpr int M_ITER = 0;
+    constexpr int LOGK   = 5;
+
+    // These two calls are essentially the same as calling ckernel::llk_math_eltwise_unary_sfpu_topk_init<APPROX>(); from metal.
+    _llk_math_eltwise_unary_sfpu_init_<SfpuType::topk_local_sort>();
+    ckernel::sfpu::_init_topk();
+
+    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+
+    // Copy all tiles in this group into DEST with matching indices
     for (int tile = 0; tile < params->TILE_CNT; ++tile)
     {
-        // Copy srcA tile → DEST
-        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-            tile, formats.math, formats.math);
-
-        constexpr bool APPROX_MODE = false; // override via template if needed
-        constexpr bool FAST_MODE   = false; // TopK ignores FAST_MODE
-        constexpr bool STABLE_SORT = false; // or true if you want to test it
-
-        // Initialize TopK (sets up SFPU control register for index tracking)
-        _init_topk();
-
-        // Start SFPU section for this tile
-        _llk_math_eltwise_unary_sfpu_init_<SfpuType::topk_local_sort>();
-        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(tile);
-
-        // // 2.1) Local sort
-        _bitonic_topk_phases_steps<APPROX_MODE, is_fp32_dest_acc_en, STABLE_SORT>(
-            /* idir */ 0,
-            /* i_end_phase */ 5,
-            /* i_start_phase */ 0,
-            /* i_end_step */ 10,
-            /* i_start_step */ 0);
-
-        // 2.2) Merge
-        _bitonic_topk_merge<APPROX_MODE, is_fp32_dest_acc_en, STABLE_SORT>(
-            /* m_iter */ 5,
-            /* k */ 10);
-
-        // 2.3) Rebuild (final top-k)
-        _bitonic_topk_rebuild<APPROX_MODE, is_fp32_dest_acc_en, STABLE_SORT>(
-            /* idir */ 0,
-            /* m_iter */ 5,
-            /* k */ 10,
-            /* logk */ 3,
-            /* skip_second */ 0);
-
-        _llk_math_eltwise_unary_sfpu_done_();
+            /*src_tile_index=*/tile, formats.math, formats.math);
     }
+
+    // --------------------------------------------------------------------
+    // 3) Run TopK pipeline ONCE over the group starting at dst_index = 0
+    // --------------------------------------------------------------------
+    const uint dst_index = 0;        // base DEST index for the 4-tile group
+    const int idir       = 0;        // 0 = ArgMax, 1 = ArgMin
+    const int end_phase  = LOGK - 1; // same as other TopK call sites
+
+    const int start_phase = 0;
+    const int end_step    = 0;
+    const int start_step  = 0;
+    const int vector_mode = (int)VectorMode::RC_custom;
+
+    // same as calling ckernel::llk_math_eltwise_unary_sfpu_topk_merge from metal.
+    _llk_math_eltwise_unary_sfpu_params_<APPROX>(
+        ckernel::sfpu::calculate_bitonic_topk_phases_steps<APPROX, is_fp32_dest_acc_en, STABLE_SORT>,
+        dst_index,
+        vector_mode,
+        idir,
+        end_phase,
+        start_phase,
+        end_step,
+        start_step);
+
+    // Same as calling ckernel::llk_math_eltwise_unary_sfpu_topk_merge from metal.
+    _llk_math_eltwise_unary_sfpu_params_<APPROX>(
+        ckernel::sfpu::calculate_bitonic_topk_merge<APPROX, is_fp32_dest_acc_en, idir, STABLE_SORT>, dst_index, vector_mode, M_ITER, K);
+
+    // Same as calling ckernel::llk_math_eltwise_unary_sfpu_topk_rebuild from metal.
+    _llk_math_eltwise_unary_sfpu_params_<APPROX>(
+        ckernel::sfpu::calculate_bitonic_topk_rebuild<APPROX, is_fp32_dest_acc_en, STABLE_SORT>, dst_index, vector_mode, idir, M_ITER, K, LOGK, 0);
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
