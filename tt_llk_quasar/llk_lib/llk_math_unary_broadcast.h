@@ -91,11 +91,8 @@ inline void _llk_math_eltwise_unary_broadcast_mop_config_(const TileShape& tile_
     }
     else if constexpr (BROADCAST_TYPE == BroadcastType::COL)
     {
-        // For COLUMN: Use ADDR_MOD_0 to increment srcB (reads column 0 from rows 0, 8, 16, 24)
-        // Clear srcB after each outer loop iteration to reset for the next face
         // This allows reading column 0 from all 16 rows (rows 0-7, then 8-15) per outer iteration
-        temp.set_last_inner_loop_instr(movb2d_func(ADDR_MOD_0));
-        temp.set_last_outer_loop_instr(movb2d_func(ADDR_MOD_2));
+        temp.set_last_inner_loop_instr(movb2d_func(ADDR_MOD_2));
     }
     else // ROW
     {

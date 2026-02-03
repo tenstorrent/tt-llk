@@ -9,12 +9,10 @@ using namespace ckernel;
 
 /**
  * @brief MOP configuration for unpack of unary operations with broadcasts
- * @tparam UNP_SEL Unpacker resource selector used only when unpack_to_dest=false; in that case it must be
- * p_unpacr::UNP_B (see static_assert). When unpack_to_dest=true, this function internally uses
- * p_unpacr::UNP_A regardless of the value of UNP_SEL.
+ * @tparam UNP_SEL Unpacker resource selector. When unpack_to_dest=false, must be p_unpacr::UNP_B (see static_assert).
+ *                 When unpack_to_dest=true, internally uses p_unpacr::UNP_A regardless of UNP_SEL value.
  * @tparam BROADCAST_TYPE Broadcast type, values = [SCALAR, COL, ROW]
- * @tparam unpack_to_dest If true, unpack to dest using UNPACKER0 (srcA / p_unpacr::UNP_A); otherwise unpack to
- * srcB using UNPACKER1 (p_unpacr::UNP_B).
+ * @tparam unpack_to_dest If true, unpack to dest using UNPACKER0 (p_unpacr::UNP_A); otherwise unpack to srcB using UNPACKER1 (p_unpacr::UNP_B)
  */
 template <uint32_t UNP_SEL, BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false>
 inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_desc_id, const uint32_t num_tiles)
@@ -26,29 +24,14 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
 
     const uint32_t MOP_OUTER_LOOP     = num_tiles;
     constexpr uint32_t MOP_INNER_LOOP = 1;
-    // Replay buffer length: SCALAR=1, ROW=4 (unpack_to_dest=false) or 2 (unpack_to_dest=true), COL=4 (unpack_to_dest=false) or 2 (unpack_to_dest=true)
+    // Replay buffer length: SCALAR=1, ROW/COL=4 (unpack_to_dest=false) or 2 (unpack_to_dest=true)
     constexpr static uint replay_buf_len =
         (BROADCAST_TYPE == BroadcastType::SCALAR)
             ? 1
             : ((BROADCAST_TYPE == BroadcastType::ROW && !unpack_to_dest) ? 4 : ((BROADCAST_TYPE == BroadcastType::COL && !unpack_to_dest) ? 4 : 2));
 
-    uint unpack_tile_inc;
-    if constexpr (unpack_to_dest)
-    {
-        unpack_tile_inc = TT_OP_UNPACR_DEST_TILE_INC(1, 1 /*Src Tile Idx*/, buf_desc_id, 0 /*Set Dvalid*/);
-    }
-    else
-    {
-        // For SCALAR, we only need face 0, so skip start_op and only use replay buffer
-        if constexpr (BROADCAST_TYPE == BroadcastType::SCALAR)
-        {
-            unpack_tile_inc = TT_OP_NOP;
-        }
-        else
-        {
-            unpack_tile_inc = TT_OP_UNPACR1_TILE_INC(0, 1 /*Src Tile Idx*/, buf_desc_id, 1 /*Set Dvalid*/);
-        }
-    }
+    constexpr uint unpack_tile_inc = TT_OP_NOP;
+
     if constexpr (BROADCAST_TYPE == BroadcastType::SCALAR)
     {
         load_replay_buf<0, replay_buf_len>(
@@ -76,12 +59,10 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
                 }
                 else
                 {
-                    // ROW: unpack F0 row, F1 row, F0 row, F1 row (like binary broadcast - all set dvalid)
-                    // Pattern: F0, F1, F0, F1 to match golden generator (output faces 0,1,2,3 use F0 row, F1 row, F0 row, F1 row)
-                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
-                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 1 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
-                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
-                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 1 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 1 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 1 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
                 }
             });
     }
@@ -97,7 +78,6 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
                 }
                 else
                 {
-                    // COL: unpack F0, F0, F2, F2 all to srcB Face 0 (like binary broadcast - all set dvalid)
                     TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
                     TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
                     TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 2 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
