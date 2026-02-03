@@ -10,6 +10,7 @@ from typing import List
 
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
+from helpers.tensix_dump import TensixDump
 from ttexalens.context import Context
 from ttexalens.coordinate import OnChipCoordinate
 from ttexalens.debug_tensix import TensixDebug
@@ -255,6 +256,7 @@ def wait_for_tensix_operations_finished(
             if read_word_from_device(core_loc, mailbox.value) == KERNEL_COMPLETE:
                 completed.add(mailbox)
 
+        TensixDump.try_poll(core_loc)
         if completed == mailboxes:
             return
 

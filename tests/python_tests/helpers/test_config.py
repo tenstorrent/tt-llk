@@ -18,6 +18,7 @@ from typing import ClassVar, List
 import numpy as np
 import pytest
 from filelock import FileLock
+from helpers.tensix_dump import TensixDump
 from ttexalens.tt_exalens_lib import (
     TTException,
     load_elf,
@@ -966,6 +967,10 @@ class TestConfig:
         # Reset the profiler barrier
         write_words_to_device(
             location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
+        )
+
+        write_words_to_device(
+            location, TensixDump.TRISC_CFG_DUMP_MAILBOX_ADDRESS, [0, 0, 0]
         )
 
         # soft_reset_value = (
