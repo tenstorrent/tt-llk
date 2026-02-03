@@ -6,6 +6,9 @@ import torch
 from helpers.constraints import get_valid_dest_accumulation_modes
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
+    FACE_DIM,
+    FACES_PER_TILE,
+    TILE_DIM,
     BroadcastGolden,
     get_golden_generator,
 )
@@ -62,16 +65,34 @@ def generate_unary_broadcast_combinations():
             # Skip 32-bit input formats with dest_acc=No (not supported)
             if fmt.input_format.is_32_bit() and dest_acc == DestAccumulation.No:
                 continue
+            # Skip non-32-bit input -> Float32 output with dest_acc=No (Quasar packer limitation)
+            # When dest register is in 16-bit mode, packer cannot convert Float16/16_b -> Float32
+            if (
+                not fmt.input_format.is_32_bit()
+                and fmt.output_format == DataFormat.Float32
+                and dest_acc == DestAccumulation.No
+            ):
+                continue
 
             for broadcast_type in broadcast_types:
                 for implied_math_format in implied_math_formats:
                     for input_dimensions in generate_unary_input_dimensions(dest_acc):
-                        # TODO: Comment out multiple tiles for now - SCALAR broadcast with multiple tiles is not working
-                        # Filter out multiple tile cases (keep only single tile: [32, 32])
-                        num_tiles = (input_dimensions[0] // 32) * (
-                            input_dimensions[1] // 32
+                        # TODO: Comment out multiple tiles for now
+                        # Filter out multiple tile cases (keep only single tile)
+                        num_tiles = (input_dimensions[0] // TILE_DIM) * (
+                            input_dimensions[1] // TILE_DIM
                         )
                         if num_tiles > 1:
+                            continue
+                        # Filter out specific combination: Float16_b -> Float32, DestAcc=Yes, Broadcast=Row, ImpliedMath=Yes, [32, 32]
+                        if (
+                            fmt.input_format == DataFormat.Float16_b
+                            and fmt.output_format == DataFormat.Float32
+                            and dest_acc == DestAccumulation.Yes
+                            and broadcast_type == BroadcastType.Row
+                            and implied_math_format == ImpliedMathFormat.Yes
+                            and input_dimensions == [32, 32]
+                        ):
                             continue
                         combinations.append(
                             (
@@ -117,9 +138,9 @@ def test_unary_broadcast_quasar(
         broadcast_type,
         src_B,
         formats.output_format,
-        num_faces=4,
+        num_faces=FACES_PER_TILE,
         tile_cnt=tile_cnt_B,
-        face_r_dim=16,
+        face_r_dim=FACE_DIM,
     )
 
     # Determine unpack_to_dest based on format
@@ -144,7 +165,7 @@ def test_unary_broadcast_quasar(
         ],
         runtimes=[
             TILE_COUNT(tile_cnt_B),
-            NUM_FACES(4),
+            NUM_FACES(FACES_PER_TILE),
             TEST_FACE_DIMS(),
         ],
         variant_stimuli=StimuliConfig(
@@ -156,7 +177,7 @@ def test_unary_broadcast_quasar(
             tile_count_A=tile_cnt_B,
             tile_count_B=tile_cnt_B,
             tile_count_res=tile_cnt_B,
-            num_faces=4,
+            num_faces=FACES_PER_TILE,
         ),
         unpack_to_dest=unpack_to_dest,
         dest_acc=dest_acc,

@@ -102,10 +102,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         _llk_unpack_unary_broadcast_operands_<p_unpacr::UNP_B, unpack_to_dest>(0);
     }
 
-    if (unpack_to_dest)
-    {
-        _llk_unpack_dest_dvalid_section_done_();
-    }
+    _llk_unpack_dest_dvalid_section_done_();
 }
 
 #endif
