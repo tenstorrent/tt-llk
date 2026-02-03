@@ -19,12 +19,13 @@ from .golden_generators import (
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
-    from .fused_unpacker import Unpacker, UnpackerAB
+    from .fused_unpacker import Unpacker
 
 from .chip_architecture import ChipArchitecture
 from .llk_params import (
     ApproximationMode,
     BroadcastType,
+    DataCopyType,
     DestSync,
     MathOperation,
     PerfRunType,
@@ -44,6 +45,7 @@ class FusedCompute:
         unpack_transpose_faces: Transpose = Transpose.No,
         unpack_transpose_within_face: Transpose = Transpose.No,
         broadcast_type: BroadcastType = BroadcastType.None_,
+        data_copy_type: DataCopyType = DataCopyType.A2D,
     ):
         if fpu is None and sfpu is None:
             raise ValueError("Compute unit need fpu or sfpu unit")
@@ -61,9 +63,47 @@ class FusedCompute:
         self.unpack_transpose_within_face = unpack_transpose_within_face
         self.broadcast_type = broadcast_type
 
-    def golden():
-        # TODO
-        pass
+        if (
+            self.broadcast_type != BroadcastType.None_
+            and data_copy_type == DataCopyType.A2D
+        ):
+            self.data_copy_type = DataCopyType.B2D
+        elif (
+            self.broadcast_type == BroadcastType.None_
+            and data_copy_type == DataCopyType.B2D
+        ):
+            self.data_copy_type = DataCopyType.A2D
+        else:
+            self.data_copy_type = data_copy_type
+
+    def math_init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        if self.fpu is not None:
+            return self.fpu.init(operation, config, self)
+        elif self.sfpu is not None:
+            return self.sfpu.init(operation, config, self)
+        else:
+            raise ValueError("fpu and sfpu are not defined")
+
+    def math_calculate(
+        self, operation: "FusedOperation", config: "GlobalConfig", batch_tile_cnt
+    ) -> str:
+        if self.fpu is not None:
+            code = ""
+            for tile_idx in range(batch_tile_cnt):
+                code += self.fpu.calculate(operation, config, self, tile_idx)
+            return code
+        elif self.sfpu is not None:
+            return self.sfpu.calculate(operation, config, self)
+        else:
+            raise ValueError("fpu and sfpu are not defined")
+
+    def math_uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        if self.fpu is not None:
+            return self.fpu.uninit(operation, config, self)
+        elif self.sfpu is not None:
+            return self.sfpu.uninit(operation, config, self)
+        else:
+            raise ValueError("fpu and sfpu are not defined")
 
 
 class NewMath:
@@ -111,6 +151,20 @@ class NewMath:
 
         return math_units
 
+    def has_unpacker(self, unpacker) -> bool:
+        for operation in self.operations:
+            if isinstance(operation.unpacker, unpacker):
+                return True
+
+        return False
+
+    def has_fpu(self, fpu) -> bool:
+        for operation in self.operations:
+            if isinstance(operation.fpu, fpu):
+                return True
+
+        return False
+
     def get_fused_compute_with_unpacker(self) -> List["FusedCompute"]:
         return [op for op in self.operations if op.unpacker is not None]
 
@@ -118,12 +172,8 @@ class NewMath:
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
         stage = operation.stage_id
-        buffer_A_address = (
-            operation.src_a.l1_address or 0x1A000
-        )  # Default address if not set
-        buffer_B_address = (
-            operation.src_b.l1_address or 0x1C000
-        )  # Default address if not set
+        buffer_A_address = operation.src_a.l1_address
+        buffer_B_address = operation.src_b.l1_address
         buffer_A_tile_size = operation.buffer_A_tile_size
         buffer_B_tile_size = operation.buffer_B_tile_size
         unpack_a_src = operation.unpack_a_in
@@ -177,10 +227,10 @@ class NewMath:
 
         code = self.unpack_operand_constants(operation, config)
         code += unpacker_instance.hw_configure(operation, config)
-        code += unpacker_instance.init(operation, config)
+        code += unpacker_instance.init(operation, config, fused_compute)
         code += unpacker_instance.packer_sync(operation)
-        code += unpacker_instance.unpack(operation, config)
-        code += unpacker_instance.uninit(operation, config)
+        code += unpacker_instance.unpack(operation, config, fused_compute)
+        code += unpacker_instance.uninit(operation, config, fused_compute)
 
         return code
 
@@ -210,13 +260,15 @@ class NewMath:
             code += "    {\n"
             for fused_op in fused_ops_with_unpacker:
                 unpacker_instance = fused_op.unpacker()
-                code += unpacker_instance.init(operation, config)
+                code += unpacker_instance.init(operation, config, fused_op)
                 code += f"        for (uint32_t i = 0; i < {batch_size}; ++i)\n"
                 code += "        {\n"
                 code += f"            uint32_t tile_idx = batch * {batch_size} + i;\n"
-                code += unpacker_instance.unpack(operation, config, "tile_idx")
+                code += unpacker_instance.unpack(
+                    operation, config, fused_op, "tile_idx"
+                )
                 code += "        }\n"
-                code += unpacker_instance.uninit(operation, config)
+                code += unpacker_instance.uninit(operation, config, fused_op)
             code += "    }\n"
 
         if remaining_tiles > 0:
@@ -225,29 +277,27 @@ class NewMath:
                 code += f"        const uint32_t batch_offset = {num_full_batches * batch_size};\n"
                 for fused_op in fused_ops_with_unpacker:
                     unpacker_instance = fused_op.unpacker()
-                    code += unpacker_instance.init(operation, config)
+                    code += unpacker_instance.init(operation, config, fused_op)
                     code += (
                         f"        for (uint32_t i = 0; i < {remaining_tiles}; ++i)\n"
                     )
                     code += "        {\n"
                     code += "            uint32_t tile_idx = batch_offset + i;\n"
-                    code += unpacker_instance.unpack(operation, config, "tile_idx")
+                    code += unpacker_instance.unpack(
+                        operation, config, fused_op, "tile_idx"
+                    )
                     code += "        }\n"
-                    code += unpacker_instance.uninit(operation, config)
+                    code += unpacker_instance.uninit(operation, config, fused_op)
                 code += "    }\n"
             else:
                 for fused_op in fused_ops_with_unpacker:
                     unpacker_instance = fused_op.unpacker()
-                    code += unpacker_instance.init(operation, config)
+                    code += unpacker_instance.init(operation, config, fused_op)
                     code += f"    for (uint32_t i = 0; i < {remaining_tiles}; ++i)\n"
                     code += "    {\n"
-                    code += unpacker_instance.unpack(operation, config, "i")
+                    code += unpacker_instance.unpack(operation, config, fused_op, "i")
                     code += "    }\n"
-                    code += unpacker_instance.uninit(operation, config)
-
-        for fused_op in fused_ops_with_unpacker:
-            unpacker_instance = fused_op.unpacker()
-            code += unpacker_instance.uninit(operation, config)
+                    code += unpacker_instance.uninit(operation, config, fused_op)
 
         return code
 
@@ -365,15 +415,12 @@ class NewMath:
 
             def batch_body(batch_tile_cnt):
                 body = self._wait_for_dest(operation)
-                for unit in math_units:
-                    body += unit.init(operation, config)
-                    if unit in fpu_units:
-                        # FPU needs to be called batch_tile_cnt times
-                        for tile_idx in range(batch_tile_cnt):
-                            body += unit.calculate(operation, config, tile_idx)
-                    if unit in sfpu_units:
-                        body += unit.calculate(operation, config)
-                    body += unit.uninit(operation, config)
+                for compute_unit in self.operations:
+                    body += compute_unit.math_init(operation, config)
+                    body += compute_unit.math_calculate(
+                        operation, config, batch_tile_cnt
+                    )
+                    body += compute_unit.math_uninit(operation, config)
                 body += self._dest_section_done(operation, config)
                 return body
 
@@ -381,20 +428,43 @@ class NewMath:
 
         return code
 
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+    ) -> torch.Tensor:
+        return torch.ones(operation.output.dimensions)
+
 
 class Fpu:
-    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def init(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+    ) -> str:
         return ""
 
     def supported_unpackers(self) -> List["Unpacker"]:
         return []
 
     def calculate(
-        self, operation: "FusedOperation", config: "GlobalConfig", tile_idx: int
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+        tile_idx: int,
     ) -> str:
         return ""
 
-    def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def uninit(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+    ) -> str:
         return ""
 
     def golden(
@@ -403,6 +473,7 @@ class Fpu:
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
     ) -> torch.Tensor:
         return torch.Tensor()
 
@@ -431,6 +502,7 @@ class MatmulFpu(Fpu):
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
     ) -> torch.Tensor:
         src_a = operation.src_a
         src_b = operation.src_b
@@ -453,6 +525,7 @@ class MatmulFpu(Fpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
         rt_dim: int = None,
         ct_dim: int = None,
     ) -> str:
@@ -473,6 +546,7 @@ class MatmulFpu(Fpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
         rt_dim: int = None,
         ct_dim: int = None,
     ) -> str:
@@ -513,6 +587,7 @@ class EltwiseFpu(Fpu):
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
     ) -> torch.Tensor:
         output_format = operation.output.data_format
         math_fidelity = operation.math_fidelity
@@ -524,12 +599,17 @@ class EltwiseFpu(Fpu):
 
         return golden_tensor
 
-    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def init(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+    ) -> str:
         stage = operation.stage_id
         math_fidelity = operation.math_fidelity.value
         op = self.operation.cpp_enum_value
         num_faces = operation.num_faces
-        broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
+        broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
 
         return (
             f"    // Operation {stage}: Eltwise {op} FPU\n"
@@ -537,14 +617,18 @@ class EltwiseFpu(Fpu):
         )
 
     def calculate(
-        self, operation: "FusedOperation", config: "GlobalConfig", tile_idx: int
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+        tile_idx: int,
     ) -> str:
         stage = operation.stage_id
         math_fidelity = operation.math_fidelity.value
         dest_acc = config.dest_acc.value
         op = self.operation.cpp_enum_value
         num_faces = operation.num_faces
-        broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
+        broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
 
         return (
             f"    _llk_math_eltwise_binary_<{op}, {broadcast_type}, dest_sync{stage},\n"
@@ -570,6 +654,8 @@ class ReduceFpu(Fpu):
         ]
 
     def supported_unpackers(self) -> List["Unpacker"]:
+        from .fused_unpacker import UnpackerAB
+
         return [UnpackerAB]
 
     def reduce_dim(self) -> str:
@@ -591,6 +677,7 @@ class ReduceFpu(Fpu):
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
     ) -> torch.Tensor:
         output_format = operation.output.data_format
         tile_cnt = operation.output.tile_count
@@ -617,7 +704,12 @@ class ReduceFpu(Fpu):
 
         return golden_tensor.flatten()
 
-    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def init(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+    ) -> str:
         stage = operation.stage_id
         math_fidelity = operation.math_fidelity.value
         dest_acc = config.dest_acc.value
@@ -630,7 +722,11 @@ class ReduceFpu(Fpu):
         )
 
     def calculate(
-        self, operation: "FusedOperation", config: "GlobalConfig", tile_idx: int
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+        tile_idx: int,
     ) -> str:
         math_fidelity = operation.math_fidelity.value
         dest_acc = config.dest_acc.value
@@ -644,7 +740,12 @@ class ReduceFpu(Fpu):
             f"    );\n"
         )
 
-    def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def uninit(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        fused_compute: "FusedCompute",
+    ) -> str:
         unp_a_src_format = (
             f"ckernel::to_underlying(DataFormat::{operation.src_a.data_format})"
         )
@@ -676,8 +777,9 @@ class DatacopyFpu(Fpu):
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
     ) -> torch.Tensor:
-        if operation.broadcast_type != BroadcastType.None_:
+        if compute_unit.broadcast_type != BroadcastType.None_:
             source_tensor = tensor_b
         else:
             source_tensor = tensor_a
@@ -693,12 +795,17 @@ class DatacopyFpu(Fpu):
 
         return golden_tensor
 
-    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def init(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+    ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
         tilize_en = "true" if operation.bh_tilize.value else "false"
-        broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
-        data_copy_type = f"DataCopyType::{operation.data_copy_type.name}"
+        broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
+        data_copy_type = f"DataCopyType::{compute_unit.data_copy_type.name}"
         num_faces = operation.num_faces
         is_int_fpu_en = dest_acc
 
@@ -721,13 +828,17 @@ class DatacopyFpu(Fpu):
         return code
 
     def calculate(
-        self, operation: "FusedOperation", config: "GlobalConfig", tile_idx: int
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+        tile_idx: int,
     ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
-        broadcast_type = f"BroadcastType::{operation.broadcast_type.value}"
+        broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
         unpack_to_dest = "true" if operation.unpack_to_dest else "false"
-        data_copy_type = f"DataCopyType::{operation.data_copy_type.name}"
+        data_copy_type = f"DataCopyType::{compute_unit.data_copy_type.name}"
         num_faces = operation.num_faces
 
         if config.architecture == ChipArchitecture.BLACKHOLE:
@@ -749,13 +860,28 @@ class DatacopyFpu(Fpu):
 
 
 class Sfpu:
-    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def init(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+    ) -> str:
         return ""
 
-    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def calculate(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+    ) -> str:
         return ""
 
-    def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def uninit(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+    ) -> str:
         return ""
 
     def golden(
@@ -763,6 +889,7 @@ class Sfpu:
         tensor: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
         batch_dims: tuple,
         batch_tile_cnt: int,
     ) -> torch.Tensor:
@@ -808,6 +935,7 @@ class UnarySfpu(Sfpu):
         tensor: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
         batch_dims: tuple,
         batch_tile_cnt: int,
     ) -> torch.Tensor:
@@ -830,7 +958,12 @@ class UnarySfpu(Sfpu):
             skip_tilize=True,
         )
 
-    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def init(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+    ) -> str:
         stage = operation.stage_id
 
         return (
@@ -838,7 +971,12 @@ class UnarySfpu(Sfpu):
             f"    _llk_math_eltwise_unary_sfpu_init_<SfpuType::{self.operation.cpp_enum_value}>();\n"
         )
 
-    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def calculate(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+    ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
         op = f"SfpuType::{self.operation.cpp_enum_value}"
@@ -889,6 +1027,7 @@ class BinarySfpu(Sfpu):
         tensor: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
         batch_dims: tuple,
         batch_tile_cnt: int,
     ) -> torch.Tensor:
@@ -909,7 +1048,12 @@ class BinarySfpu(Sfpu):
 
         return golden_tensor
 
-    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def init(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+    ) -> str:
         stage = operation.stage_id
 
         return (
@@ -917,7 +1061,12 @@ class BinarySfpu(Sfpu):
             f"    _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();\n"
         )
 
-    def calculate(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def calculate(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+    ) -> str:
         stage = operation.stage_id
         op = f"ckernel::BinaryOp::{self.operation.cpp_enum_value}"
         approx_mode = self.approx_mode.value

@@ -174,13 +174,7 @@ def parse_math_operation(
             fpu = EltwiseFpu(math_op)
         elif fpu_type in REDUCE_OPERATION_MAP:
             math_op = REDUCE_OPERATION_MAP[fpu_type]
-
-            pool_str = math_config.get("reduce_pool", "Max")
-            try:
-                pool = REDUCE_POOL_MAP[pool_str]
-            except KeyError:
-                raise ValueError(f"Unsupported reduce pool: {pool_str}")
-
+            pool = REDUCE_POOL_MAP[math_config.get("reduce_pool", "Max")]
             fpu = ReduceFpu(math_op, pool=pool)
 
         elif fpu_type == "Datacopy":
@@ -307,18 +301,8 @@ def parse_operation(
         kwargs["math_fidelity"] = MATH_FIDELITY_MAP[op_config["math_fidelity"]]
     if "dest_sync" in op_config:
         kwargs["dest_sync"] = DEST_SYNC_MAP[op_config["dest_sync"]]
-    if "unpack_transpose_within_face" in op_config:
-        kwargs["unpack_transpose_within_face"] = TRANSPOSE_MAP[
-            op_config["unpack_transpose_within_face"]
-        ]
-    if "unpack_transpose_faces" in op_config:
-        kwargs["unpack_transpose_faces"] = TRANSPOSE_MAP[
-            op_config["unpack_transpose_faces"]
-        ]
     if "batch_size" in op_config:
         kwargs["batch_size"] = op_config["batch_size"]
-    if "broadcast_type" in op_config:
-        kwargs["broadcast_type"] = BROADCAST_TYPE_MAP[op_config["broadcast_type"]]
 
     return FusedOperation(
         operand_mapping=operand_mapping,

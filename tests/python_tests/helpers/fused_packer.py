@@ -210,8 +210,8 @@ class Packer:
         else:
             raise ValueError("Unsupported architecture for packer")
 
-        if isinstance(operation.math.operations[0].fpu, ReduceFpu):
-            reduce_dim = operation.math.fpu.reduce_dim()
+        if operation.math.has_fpu(ReduceFpu):
+            reduce_dim = operation.math.operations[0].fpu.reduce_dim()
             code += f"    _llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
 
         return code
@@ -231,7 +231,7 @@ class Packer:
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         code = ""
 
-        if isinstance(operation.math.operations[0].fpu, ReduceFpu):
+        if operation.math.has_fpu(ReduceFpu):
             code = "    _llk_pack_reduce_mask_clear_();\n"
 
         return code
