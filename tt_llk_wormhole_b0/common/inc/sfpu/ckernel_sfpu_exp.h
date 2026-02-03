@@ -387,6 +387,10 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 67: SHFT2[31] | STORE[30]
         // SETSGN[31] at cycle 68 and STORE[31] at cycle 69 complete after return
     }
+    else if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    {
+        static_assert(ITERATIONS == 8 || ITERATIONS == 32, "This version of exponential only supports 8 or 32 iterations.");
+    }
     else
     {
         // Unroll 8 best for approx, unroll 0 for precise, compiler figures this out
