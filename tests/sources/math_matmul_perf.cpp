@@ -36,12 +36,21 @@ void run_kernel(const volatile struct RuntimeParams* params)
             formats.unpack_dst,
             FACE_R_DIM,
             FACE_R_DIM,
-            num_faces_A,
-            num_faces_B,
+            num_faces_A, // In1/SrcA
+            num_faces_B, // In0/SrcB
             TILE_SIZE_UNPACK_A,
             TILE_SIZE_UNPACK_B);
         _llk_unpack_AB_matmul_init_<>(
-            UNPACK_TRANSPOSE_FACES, CT_DIM, RT_DIM, KT_DIM, FACE_R_DIM, FACE_R_DIM, num_faces_A, num_faces_B, PARTIAL_FACE_A, PARTIAL_FACE_B);
+            UNPACK_TRANSPOSE_FACES,
+            CT_DIM,
+            RT_DIM,
+            KT_DIM,
+            FACE_R_DIM,
+            FACE_R_DIM,
+            num_faces_A,     // In1/SrcA
+            num_faces_B,     // In0/SrcB
+            PARTIAL_FACE_A,  // In1/SrcA
+            PARTIAL_FACE_B); // In0/SrcB
         PROFILER_SYNC();
     }
     {
@@ -67,8 +76,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
                         j * CT_DIM,
                         TILE_SIZE_UNPACK_A,
                         TILE_SIZE_UNPACK_B,
-                        PARTIAL_FACE_A,
-                        PARTIAL_FACE_B,
+                        PARTIAL_FACE_A, // In1/SrcA
+                        PARTIAL_FACE_B, // In0/SrcB
                         CT_DIM,
                         RT_DIM,
                         KT_DIM);
