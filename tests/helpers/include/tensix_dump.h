@@ -4,6 +4,8 @@
 
 #include <cstdint>
 
+#include "ckernel.h"
+
 namespace llk_t6_dump
 {
 
@@ -19,6 +21,8 @@ volatile dump_t* const CFG_DUMP_MAILBOX = reinterpret_cast<dump_t*>(TRISC_CFG_DU
 
 inline void wait()
 {
+    ckernel::tensix_sync(); // make sure all changes to tensix state are committed
+
     CFG_DUMP_MAILBOX[COMPILE_FOR_TRISC] = dump_t::WAIT; // signal host to start dumping cfg
 
     do
