@@ -104,15 +104,15 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
         uint unpack_ch1_z_stride = FACE_C_DIM * FACE_R_DIM * unpack_ch1_x_stride;
         cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(unpack_ch1_z_stride);
 
-        // Set Z-dim to number of faces
-        cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 0, 0xffff0000>(0 | (unpack_num_faces << 16));
-
-        TT_SETADCXX(p_setadc::UNP_A, (unpack_face_r_dim << 4) - 1, 0x0);
-
         // Program unpacker0 per context x_dim (face size in l1)
         // Overrides value set by tile descriptor when thread override bit is set in unpack instruction
         const uint face_dim = unpack_face_r_dim * FACE_C_DIM;
         cfg_reg_rmw_tensix<THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32, 0, 0xffffffff>(face_dim | (face_dim << 16));
+
+        // Set Z-dim to number of faces
+        cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 0, 0xffff0000>(0 | (unpack_num_faces << 16));
+
+        TT_SETADCXX(p_setadc::UNP_A, (unpack_face_r_dim << 4) - 1, 0x0);
     }
 }
 
@@ -132,6 +132,7 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
         static_assert(is_fp32_dest_acc_en, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcBUnsigned_RMW>(((uint)unpack_src_format == (uint)DataFormat::UInt8) ? 1 : 0);
     }
+
     cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32, 0, 0x0f>(unpack_src_format);
     cfg_reg_rmw_tensix<THCON_SEC1_REG2_Out_data_format_RMW>(unpack_dst_format);
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_B)); // update gpr which holds tile size B
@@ -146,6 +147,7 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
 
         // Set X-dim to face_r_dim * FACE_C_DIM
         cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32, 0, 0xffff0000>((unpack_face_r_dim * FACE_C_DIM) << 16);
+
         // Set Z-dim to number of faces
         cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32 + 1, 0, 0xffff0000>(0 | (unpack_num_faces << 16));
 
