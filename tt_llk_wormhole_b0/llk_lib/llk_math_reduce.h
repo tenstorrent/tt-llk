@@ -361,15 +361,7 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
         }
 
         // Need row in dest as column in src A
-        if constexpr (dim == ReduceDim::REDUCE_SCALAR && type == PoolType::AVG)
-        {
-            // Need to clear SrcB to read 1/num_col vector in SrcB to do final accumulation
-            TTI_SETRWC(p_setrwc::CLR_B, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
-        }
-        else
-        {
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
-        }
+        TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, 0, 0, p_setrwc::SET_AB);
 
         // copy over from dest to B and do transpose
         // use rows 16 - 31 in src B as scratch
