@@ -520,6 +520,62 @@ class NUM_BLOCKS(RuntimeParameter):
 
 
 @dataclass
+class NUM_FACES_R_DIM(RuntimeParameter):
+    num_faces_r_dim_A: int = 2  # Number of faces in row dimension for matrix A
+    num_faces_r_dim_B: int = 2  # Number of faces in row dimension for matrix B
+
+    def covert_to_cpp(self) -> str:
+        lines: list[str] = [
+            (
+                f"constexpr int num_faces_r_dim_A = {self.num_faces_r_dim_A};"
+                if self.num_faces_r_dim_A
+                else ""
+            ),
+            (
+                f"constexpr int num_faces_r_dim_B = {self.num_faces_r_dim_B};"
+                if self.num_faces_r_dim_B
+                else ""
+            ),
+        ]
+        return "\n".join(lines)
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        lines: list[str] = [
+            "int num_faces_r_dim_A;",
+            "int num_faces_r_dim_B;",
+        ]
+        return "\n".join(lines), "ii"
+
+
+@dataclass
+class NUM_FACES_C_DIM(RuntimeParameter):
+    num_faces_c_dim_A: int = 2  # Number of faces in column dimension for matrix A
+    num_faces_c_dim_B: int = 2  # Number of faces in column dimension for matrix B
+
+    def covert_to_cpp(self) -> str:
+        lines: list[str] = [
+            (
+                f"constexpr int num_faces_c_dim_A = {self.num_faces_c_dim_A};"
+                if self.num_faces_c_dim_A
+                else ""
+            ),
+            (
+                f"constexpr int num_faces_c_dim_B = {self.num_faces_c_dim_B};"
+                if self.num_faces_c_dim_B
+                else ""
+            ),
+        ]
+        return "\n".join(lines)
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        lines: list[str] = [
+            "int num_faces_c_dim_A;",
+            "int num_faces_c_dim_B;",
+        ]
+        return "\n".join(lines), "ii"
+
+
+@dataclass
 class NUM_FACES(RuntimeParameter):
     num_faces: int = 4  # Number of active faces for result matrix
     num_faces_A: int = 4  # Number of active faces for matrix A
@@ -564,6 +620,32 @@ class TEST_FACE_DIMS(RuntimeParameter):
             "int TEST_FACE_C_DIM;",
         ]
         return "\n".join(lines), "ii"
+
+
+@dataclass
+class IN_FACE_DIMS(RuntimeParameter):
+    in0_face_r_dim: int = 16
+    in0_face_c_dim: int = 16
+    in1_face_r_dim: int = 16
+    in1_face_c_dim: int = 16
+
+    def covert_to_cpp(self) -> str:
+        lines: list[str] = [
+            f"constexpr int in0_face_r_dim = {self.in0_face_r_dim};",
+            f"constexpr int in0_face_c_dim = {self.in0_face_c_dim};",
+            f"constexpr int in1_face_r_dim = {self.in1_face_r_dim};",
+            f"constexpr int in1_face_c_dim = {self.in1_face_c_dim};",
+        ]
+        return "\n".join(lines)
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        lines: list[str] = [
+            "int in0_face_r_dim;",
+            "int in0_face_c_dim;",
+            "int in1_face_r_dim;",
+            "int in1_face_c_dim;",
+        ]
+        return "\n".join(lines), "iiii"
 
 
 @dataclass
