@@ -70,10 +70,19 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
 
     ckernel::sfpu::_init_reduce_<POOL_TYPE, static_cast<DataFormat>(formats.math)>();
-    for (int i = 0; i < params->TILE_CNT; ++i)
+
+    if (REDUCE_DIM == ReduceDim::REDUCE_COL)
     {
-        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
-        ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>();
+        for (int i = 0; i < params->TILE_CNT; ++i)
+        {
+            _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
+            ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>();
+        }
+    }
+    else if (REDUCE_DIM == ReduceDim::REDUCE_ROW)
+    {
+        _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
+        ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(BLOCK_RT_DIM, BLOCK_CT_DIM);
     }
 
 #ifdef ADD_TOP_ROW
