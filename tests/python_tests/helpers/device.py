@@ -134,6 +134,15 @@ def set_tensix_soft_reset(
     )
 
 
+def assert_if_all_in_reset(location: str = "0,0", place: str = ""):
+    soft_reset = get_register_store(location, 0).read_register(
+        "RISCV_DEBUG_REG_SOFT_RESET_0"
+    )
+
+    if (soft_reset & get_soft_reset_mask(ALL_CORES)) != get_soft_reset_mask(ALL_CORES):
+        raise Exception(f"Not all cores are in reset! {place}")
+
+
 def exalens_device_setup(chip_arch, location="0,0", device_id=0):
     context = check_context()
     device = context.devices[device_id]

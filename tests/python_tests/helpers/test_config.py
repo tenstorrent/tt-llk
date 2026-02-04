@@ -34,6 +34,7 @@ from .device import (
     CHIP_DEFAULT_BOOT_MODES,
     BootMode,
     RiscCore,
+    assert_if_all_in_reset,
     exalens_device_setup,
     reset_mailboxes,
     set_tensix_soft_reset,
@@ -840,10 +841,8 @@ class TestConfig:
     def build_elfs(self):
 
         VARIANT_DIR = TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id
-        print("AAAA", self.skip_build_header)
         if not self.skip_build_header:
             header_content = self.generate_build_header()
-            print(header_content, file=sys.stderr)
         done_marker = VARIANT_DIR / ".build_complete"
 
         if TestConfig.INFRA_TESTING:
@@ -1001,6 +1000,8 @@ class TestConfig:
         set_tensix_soft_reset(1, location=location)
         self.run_membar(location)
 
+        assert_if_all_in_reset(location, "After they are put to reset")
+
         reset_mailboxes(location)
         self.run_membar(location)
 
@@ -1040,35 +1041,37 @@ class TestConfig:
                 )
 
             self.run_membar(location)
+            assert_if_all_in_reset(location, "After elf load")
 
         match boot_mode:
             case BootMode.BRISC:
                 # Use correct shared ELF directory and loading flag based on profiler build
                 is_profiler = self.profiler_build == ProfilerBuild.Yes
                 if is_profiler:
-                    if not TestConfig.PROFILER_BRISC_ELF_LOADED:
-                        TestConfig.PROFILER_BRISC_ELF_LOADED = True
-                        load_elf(
-                            elf_file=str(
-                                (
-                                    TestConfig.PROFILER_SHARED_ELF_DIR / "brisc.elf"
-                                ).absolute()
-                            ),
-                            location=location,
-                            risc_name="brisc",
-                            verify_write=True,
-                        )
+                    # if not TestConfig.PROFILER_BRISC_ELF_LOADED:
+                    #     TestConfig.PROFILER_BRISC_ELF_LOADED = True
+                    load_elf(
+                        elf_file=str(
+                            (
+                                TestConfig.PROFILER_SHARED_ELF_DIR / "brisc.elf"
+                            ).absolute()
+                        ),
+                        location=location,
+                        risc_name="brisc",
+                        verify_write=True,
+                    )
                 else:
-                    if not TestConfig.BRISC_ELF_LOADED:
-                        TestConfig.BRISC_ELF_LOADED = True
-                        load_elf(
-                            elf_file=str(
-                                (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
-                            ),
-                            location=location,
-                            risc_name="brisc",
-                            verify_write=True,
-                        )
+                    # if not TestConfig.BRISC_ELF_LOADED:
+                    #     TestConfig.BRISC_ELF_LOADED = True
+                    load_elf(
+                        elf_file=str(
+                            (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
+                        ),
+                        location=location,
+                        risc_name="brisc",
+                        verify_write=True,
+                    )
+                    assert_if_all_in_reset(location, "After brisc elf load")
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
                 self.run_membar(location)
             case BootMode.TRISC:
