@@ -97,7 +97,7 @@ inline void _llk_math_reduce_block_max_row_mop_config_()
 
     // See _llk_math_reduce_max_row_ for a full algorithm explanation
     // Put the following 15 instructions in a REPLAY buffer
-    lltt::record(0, 15);
+    lltt::record(0, 20);
 
     // Two GMPOOLs to pool F0 and F1 (or F2 and F3) together
     TTI_GMPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0);
@@ -105,6 +105,18 @@ inline void _llk_math_reduce_block_max_row_mop_config_()
 
     if constexpr (is_fp32_dest_acc_en)
     {
+        // Equivalent to cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(1);
+        TTI_RMWCIB0(
+            ALU_FORMAT_SPEC_REG_SrcA_override_MASK,
+            ALU_FORMAT_SPEC_REG_SrcA_override_MASK,
+            ALU_FORMAT_SPEC_REG_SrcA_override_ADDR32);
+
+        // Equivalent to cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Tf32));
+        TTI_RMWCIB0(
+            ALU_FORMAT_SPEC_REG_SrcA_val_MASK,
+            static_cast<std::uint32_t>(DataFormat::Tf32),
+                    ALU_FORMAT_SPEC_REG_SrcA_val_ADDR32);
+
         // FP32 destination mode, need to move high and low 16 bits to SrcB and transpose separately
         constexpr int dest_32b_hi = 0;
         constexpr int dest_32b_lo = 1;
@@ -120,9 +132,27 @@ inline void _llk_math_reduce_block_max_row_mop_config_()
         TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 8, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 8);
         TTI_MOVB2D(dest_32b_hi, p_movb2d::SRC_ROW16_OFFSET + 12, ADDR_MOD_0, p_movb2d::MOV_4_ROWS, 12);
 
+        // Equivalent to cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float16));
+        TTI_RMWCIB0(
+            ALU_FORMAT_SPEC_REG_SrcA_val_MASK,
+            static_cast<std::uint32_t>(DataFormat::Float16),
+            ALU_FORMAT_SPEC_REG_SrcA_val_ADDR32);
+
         // Move low 16 bits to SrcB rows 16 - 31 and transpose
         TTI_MOVD2B(dest_32b_lo, p_movd2b::SRC_ROW16_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0);
         TTI_TRNSPSRCB;
+
+        // Equivalent to cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_override_RMW>(0);
+        TTI_RMWCIB0(
+            ALU_FORMAT_SPEC_REG_SrcA_override_MASK,
+            0,
+            ALU_FORMAT_SPEC_REG_SrcA_override_ADDR32);
+
+        // Equivalent to cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG_SrcA_val_RMW>(static_cast<std::uint32_t>(DataFormat::Float32));
+        TTI_RMWCIB0(
+            ALU_FORMAT_SPEC_REG_SrcA_val_MASK,
+            static_cast<std::uint32_t>(DataFormat::Float32),
+            ALU_FORMAT_SPEC_REG_SrcA_val_ADDR32);  
 
         // Move low 16 bits from SrcB rows 16 - 31 to DEST rows 0, 4, 8, 12
         // ADDR_MOD_2 increments CR_D and Dest counter val by 4, so that's why DEST location is '0', not '0, 4, 8, 12'.
@@ -244,10 +274,10 @@ inline void _llk_math_reduce_block_max_row_(const uint dst_index)
         // needs to be disabled for MOVD2B/B2D on BH (Issue ##449)
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(0);
         // Replay the 12 instructions to transpose the reduced F0&F1 results
-        lltt::replay(2, 12);
+        lltt::replay(2, 17);
         // Replay the 13 instructions to transpose the reduced F2&F3 results
         // 13th instruction clears B valid bit to release SrcB bank and clears all address counters
-        lltt::replay(2, 13);
+        lltt::replay(2, 18);
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(1);
     }
     else

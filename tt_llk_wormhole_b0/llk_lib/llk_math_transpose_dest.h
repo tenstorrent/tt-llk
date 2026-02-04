@@ -228,6 +228,10 @@ inline void _llk_math_transpose_dest_init_()
 {
     transpose_dest_configure_addrmod<is_32bit>();
     transpose_dest_configure_mop<transpose_of_faces, is_32bit>();
+    if constexpr (is_32bit)
+    {
+        _llk_math_dbg_feature_disable_();
+    }
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 }

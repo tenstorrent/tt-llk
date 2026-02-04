@@ -27,7 +27,6 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
         math_unpack_to_dest_math_ready();
         math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::DestReg>(dst_index);
         math::math_unpack_to_dest_tile_ready();
-
         if constexpr (src_b_bcast_type == BroadcastType::ROW)
         {
             // workarounds for hi/lo D2B/B2D on BH (Issue #449)
@@ -140,7 +139,6 @@ inline void _llk_math_eltwise_unary_datacopy_(const std::uint32_t dst_index, con
             }
 
             // restore fp32 mode
-
             cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(0);
             TTI_CLEARDVALID(0b10, 0);
         }
@@ -255,26 +253,22 @@ inline void eltwise_unary_configure_addrmod(const uint dst_format)
     }
 }
 
-template <DataCopyType type, bool is_fp32_dest_acc_en, BroadcastType bcast_type = BroadcastType::NONE, bool is_int_fpu_en = false>
+template <DataCopyType type, bool is_fp32_dest_acc_en, BroadcastType bcast_type = BroadcastType::NONE, bool is_int_fpu_en = false, bool unpack_to_dest = false>
 inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, const uint num_faces, const uint dst_format)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // always move 32x32 tile, packed as 16x16x4
-
     if constexpr (type == A2D)
     {
         uint innerloop = (rows_per_inst == p_mova2d::MOV_1_ROW) ? total_rows : (total_rows >> 3);
         uint outerloop = num_faces;
 
-        if (((is_fp32_dest_acc_en || is_int_fpu_en) && !(dst_format == (uint)DataFormat::UInt16)) || (dst_format == (uint)DataFormat::UInt8))
-        {
-            // use elwadd to handle unpacking data into src A as fp16, but dest is in fp32 mode OR to handle uint8 datums
+        if(unpack_to_dest && is_fp32_dest_acc_en && !is_32bit_input(dst_format, dst_format) && dst_format != (uint)DataFormat::UInt16){
             ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB));
             tmp.program();
         }
-        else
-        {
+        else{
             ckernel_template tmp(outerloop, innerloop, TT_OP_MOVA2D(0, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB));
             tmp.program();
@@ -361,19 +355,23 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
     }
 }
 
-template <DataCopyType type, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool is_int_fpu_en = false>
-inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces = 4, const std::uint32_t dst_format = 255)
+template <DataCopyType type, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool is_int_fpu_en = false, bool unpack_to_dest = false>
+inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces = 4, const std::uint32_t dst_format = 255, const bool is_32bit_input = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     eltwise_unary_configure_addrmod<type, src_b_bcast_type>(dst_format);
+    if (is_fp32_dest_acc_en || (unpack_to_dest && is_32bit_input))
+    {
+        _llk_math_dbg_feature_disable_();
+    }
 
     if constexpr (type == A2D && src_b_bcast_type == BroadcastType::NONE)
     {
-        eltwise_unary_configure_mop<type, is_fp32_dest_acc_en, src_b_bcast_type, is_int_fpu_en>(p_mova2d::MOV_8_ROWS, 16, num_faces, dst_format);
+        eltwise_unary_configure_mop<type, is_fp32_dest_acc_en, src_b_bcast_type, is_int_fpu_en, unpack_to_dest>(p_mova2d::MOV_8_ROWS, 16, num_faces, dst_format);
     }
     else if constexpr (type == B2D)
     {
-        eltwise_unary_configure_mop<type, false, src_b_bcast_type>(p_movb2d::MOV_4_ROWS, 16, num_faces, dst_format);
+        eltwise_unary_configure_mop<type, false, src_b_bcast_type, false, unpack_to_dest>(p_movb2d::MOV_4_ROWS, 16, num_faces, dst_format);
     }
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
@@ -381,11 +379,11 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-template <BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
-inline void _llk_math_eltwise_unary_datacopy_uninit_()
+template <BroadcastType src_b_bcast_type = BroadcastType::NONE, bool is_fp32_dest_acc_en = false>
+inline void _llk_math_eltwise_unary_datacopy_uninit_(const bool is_32bit_input)
 {
     // clear debug feature disable
-    if constexpr (src_b_bcast_type != BroadcastType::NONE && unpack_to_dest)
+    if (is_fp32_dest_acc_en)
     {
         _llk_math_dbg_feature_enable_();
     }

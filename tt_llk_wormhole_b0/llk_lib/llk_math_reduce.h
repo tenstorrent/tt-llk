@@ -13,6 +13,7 @@
 #include "cmath_common.h"
 #include "llk_assert.h"
 #include "llk_math_common.h"
+#include "api/debug/dprint.h"
 
 using namespace ckernel;
 
@@ -36,6 +37,8 @@ inline void _llk_math_reduce_(const uint dst_index, bool narrow_tile = false, co
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
+
+    DPRINT<<"Reduce destination mode IN HELL\n";
     if constexpr (dim == ReduceDim::REDUCE_ROW)
     {
         // Transpose for each face in src A done at unpacker, and pool
@@ -447,6 +450,7 @@ inline void reduce_configure_mop()
 template <PoolType type, ReduceDim dim, bool is_fp32_dest_acc_en, int MATH_FIDELITY_DESC = 0, bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_init_()
 {
+    DPRINT<<"Reduce init destination mode\n";
     constexpr int MATH_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool HIGH_FIDELITY       = MATH_FIDELITY_PHASES > 0;
 
@@ -459,9 +463,11 @@ inline void _llk_math_reduce_init_()
     if constexpr (enforce_fp32_accumulation)
     {
         static_assert(is_fp32_dest_acc_en, "FP32 Dest must be enabled for FP32 accumulation");
+        DPRINT<<"Reduce init destination mode\n";
         // MOVB2D/D2B depends on SrcA ALU Format - Hi/Lo16 does not work with Tf32 (only on WH)
         // This is needed because FP32 data from L1 that is unpacked to Src registers is reduced to Tf32
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_RMW>((uint)DataFormat::Float32);
+        _llk_math_dbg_feature_disable_();
     }
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 

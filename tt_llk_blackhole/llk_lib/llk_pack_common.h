@@ -133,7 +133,7 @@ inline void _llk_pack_reconfig_l1_acc_(const std::uint32_t enable)
     reconfigure_packer_l1_acc(enable);
 }
 
-template <bool untilize = false, ReduceDim dim>
+template <bool untilize = false, ReduceDim dim, bool enforce_fp32_accumulation = false>
 inline void _llk_pack_reduce_mask_config_()
 {
     ckernel::packer::pck_edge_offset_u pack_edge_offset = {.val = 0};
@@ -217,8 +217,14 @@ inline void _llk_pack_reduce_mask_config_()
     TTI_NOP;
 }
 
+template <bool enforce_fp32_accumulation = false>
 inline void _llk_pack_reduce_mask_clear_()
 {
+    if constexpr (enforce_fp32_accumulation)
+    {
+        _llk_pack_dbg_feature_enable_();
+    }
+
     // By default, all packers are set to use TILE_ROW_SET_MAPPING_0 and
     // mask is configured to pass through all the datums
     pck_edge_offset_u pack_edge_offset = {.val = 0};
