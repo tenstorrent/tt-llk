@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List, Type
+from typing import TYPE_CHECKING, List, Tuple, Type
 
 import torch
 
@@ -105,6 +105,64 @@ class FusedCompute:
         else:
             raise ValueError("fpu and sfpu are not defined")
 
+    def golden(
+        self,
+        tensor_a,
+        tensor_b,
+        tensor_dst,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        if self.unpacker is not None:
+            tensor_a, tensor_b = self.unpacker().golden(
+                tensor_a, tensor_b, operation, config, self
+            )
+
+        if self.fpu is not None:
+            tensor_dst = self.fpu.golden(
+                tensor_a, tensor_b, tensor_dst, operation, config, self
+            )
+
+        if self.sfpu is not None:
+            tilized_dst = tilize_block(
+                tensor_dst,
+                operation.max_output_dimensions,
+                operation.output.data_format,
+            ).flatten()
+
+            batch_size = operation.batch_size
+            tile_cnt = operation.output.tile_count
+            tile_size = 1024
+
+            batch_start = 0
+            for batch_start in range(0, tile_cnt, batch_size):
+                batch_end = min(batch_start + batch_size, tile_cnt)
+                batch_tile_cnt = batch_end - batch_start
+
+                batch_start_elem = batch_start * tile_size
+                batch_end_elem = batch_end * tile_size
+                batch_tensor = tilized_dst[batch_start_elem:batch_end_elem].clone()
+
+                batch_dims = (batch_tile_cnt * 32, 32)
+
+                batch_tensor = self.sfpu.golden(
+                    batch_tensor, operation, config, self, batch_dims, batch_tile_cnt
+                )
+
+                tilized_dst[batch_start_elem:batch_end_elem] = batch_tensor.flatten()
+
+            tensor_dst = untilize_block(
+                tilized_dst.flatten(),
+                operation.output.data_format,
+                operation.max_output_dimensions,
+            ).reshape(operation.max_output_dimensions)
+
+        return (
+            tensor_a.reshape(operation.src_a.dimensions),
+            tensor_b.reshape(operation.src_b.dimensions),
+            tensor_dst.reshape(operation.max_output_dimensions),
+        )
+
 
 class NewMath:
     operations: List[FusedCompute]
@@ -151,7 +209,6 @@ class NewMath:
         return [op for op in self.operations if op.unpacker is not None]
 
     def get_reduce_pack_mask(self) -> str:
-        # all_masks = set()
         reduce_op = None
         for operation in self.operations:
             if isinstance(operation.fpu, ReduceFpu):
@@ -363,7 +420,16 @@ class NewMath:
         operation: "FusedOperation",
         config: "GlobalConfig",
     ) -> torch.Tensor:
-        return torch.ones(operation.output.dimensions)
+        tensor_dst = torch.zeros(operation.max_output_dimensions)
+        for op in self.operations:
+            tensor_a, tensor_b, tensor_dst = op.golden(
+                tensor_a, tensor_b, tensor_dst, operation, config
+            )
+
+        dimensions = operation.output.dimensions
+        num_elements = dimensions[0] * dimensions[1]
+
+        return tensor_dst.flatten()[:num_elements].reshape(dimensions)
 
 
 class Fpu:
@@ -399,6 +465,7 @@ class Fpu:
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
+        tensor_dst: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "FusedCompute",
@@ -428,12 +495,11 @@ class MatmulFpu(Fpu):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
+        tensor_dst: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "FusedCompute",
     ) -> torch.Tensor:
-        src_a = operation.src_a
-        src_b = operation.src_b
         output_format = operation.output.data_format
         math_fidelity = operation.math_fidelity
 
@@ -443,8 +509,8 @@ class MatmulFpu(Fpu):
             tensor_b,
             output_format,
             math_fidelity,
-            input_A_dimensions=src_a.dimensions,
-            input_B_dimensions=src_b.dimensions,
+            input_A_dimensions=operation.src_a.dimensions,
+            input_B_dimensions=operation.src_b.dimensions,
             tilize=False,
         )
         return golden
@@ -491,14 +557,14 @@ class MatmulFpu(Fpu):
         math_fidelity = operation.math_fidelity.value
         if batch_size == 1:
             return (
-                f"for (uint32_t j = 0; j < {kt_dim}; j++)\n"
+                f"for (uint32_t kt = 0; kt < {kt_dim}; kt++)\n"
                 f"{{\n"
                 f"    _llk_math_matmul_<{math_fidelity}>(0, 1, 1);\n"
                 f"}}\n"
             )
         else:
             return (
-                f"for (uint32_t j = 0; j < {kt_dim}; j++)\n"
+                f"for (uint32_t kt = 0; kt < {kt_dim}; kt++)\n"
                 f"{{\n"
                 f"    _llk_math_matmul_<{math_fidelity}>(0, {ct_dim}, {rt_dim});\n"
                 f"}}\n"
@@ -528,6 +594,7 @@ class EltwiseFpu(Fpu):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
+        tensor_dst: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "FusedCompute",
@@ -538,7 +605,13 @@ class EltwiseFpu(Fpu):
         generate_golden = get_golden_generator(EltwiseBinaryGolden)
         golden_tensor = generate_golden(
             self.operation, tensor_a, tensor_b, output_format, math_fidelity
-        ).flatten()
+        ).reshape(operation.max_output_dimensions)
+
+        if (
+            config.architecture == ChipArchitecture.WORMHOLE
+            and self.operation == MathOperation.Elwmul
+        ):
+            return tensor_dst + golden_tensor
 
         return golden_tensor
 
@@ -618,13 +691,14 @@ class ReduceFpu(Fpu):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
+        tensor_dst: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "FusedCompute",
     ) -> torch.Tensor:
         output_format = operation.output.data_format
-        tile_cnt = operation.output.tile_count
-        dimensions = operation.output.dimensions
+        dimensions = operation.max_output_dimensions
+        tile_cnt = (dimensions[0] * dimensions[1]) // 1024
         num_faces = operation.num_faces
 
         reduce_dim = self.reduce_dim_golden()
@@ -718,6 +792,7 @@ class DatacopyFpu(Fpu):
         self,
         tensor_a: torch.Tensor,
         tensor_b: torch.Tensor,
+        tensor_dst: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "FusedCompute",

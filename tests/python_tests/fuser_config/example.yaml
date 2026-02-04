@@ -22,9 +22,9 @@ operations:
         iterations: 32
         dst_dest_tile_index: 0
         fill_const_value: 1.0
-      - type: "Fpu"
-        operation: "Elwadd"
-        unpacker: "UnpackerAB"
+      # - type: "Fpu"
+      #   operation: "Elwadd"
+      #   unpacker: "UnpackerAB"
     packer: "Packer"
     math_fidelity: "LoFi"
     unpack_transpose_within_face: "No"

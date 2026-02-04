@@ -168,6 +168,7 @@ class Unpacker:
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute" = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         return tensor_a, tensor_b
 
@@ -522,6 +523,7 @@ class UnpackerTilizeA(Unpacker):
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: "FusedCompute",
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         tilized_a = tilize_block(
             tensor_a,
