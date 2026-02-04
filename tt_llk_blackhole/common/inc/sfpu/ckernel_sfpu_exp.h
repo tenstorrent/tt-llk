@@ -259,7 +259,7 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         // 8-element version using replay buffer.
         // Total: ~20 cycles for 8 elements = 2.5 cycles/element
         //
-        // Uses 2 replays of the 8-instruction pattern.
+        // Uses 1 replay of the 16-instruction pattern.
         // First 2 SHFT2s are dummy (timing placeholders), then 6 real SHFT2s.
         // Drain phase handles final 2 SHFT2s.
         // =======================================================================
@@ -287,7 +287,7 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         // 32-element version using replay buffer.
         // Total: ~68 cycles for 32 elements = 2.125 cycles/element
         //
-        // Uses 8 replays of the 8-instruction pattern.
+        // Uses 2 replays of the 32-instruction pattern.
         // First 2 SHFT2s are dummy (timing placeholders), then 30 real SHFT2s.
         // Drain phase handles final 2 SHFT2s.
         // =======================================================================
@@ -466,8 +466,15 @@ inline void _init_exponential_()
         // ===================================================================
         // Based on "A Fast, Compact Approximation of the Exponential Function" by Schraudolph.
         //
-        // For inputs <~ -88 (-(B-C)/A) output will be incorrect but will be guaranteed to be negative.
-        // For inputs >~ 0.72 (2^15-1-(B-C))/A output will be equal to Exp(0.7207).
+        // The Schraudolph algorithm computes exp(x) by exploiting the fact that IEEE 754 floats
+        // encode values as 2^(exponent) * (1 + mantissa), where the bit-pattern read as an integer
+        // is linear in log2(value). This allows exp(x) to be computed as i = A*x + (B-C)
+        // when reinterpreted as float.
+        // This implementation adds an explicit sign-setting step (SETSGN) to ensure outputs are
+        // negative for inputs below ~-88, where the algorithm would otherwise produce incorrect values.
+        // To get a correct result for inputs below ~-88 the output of this function must be ReLU'd.
+        // In this implementation, for inputs above 0.72 the output saturates to exp(0.72).
+        // Valid input range: [-88, 0.72] with no following ReLU, [-inf, 0.72] with ReLU.
         //
         // Constants:
         //   LREG[12] = A = 256.0 * (1/ln2) = 369.329925537109375
