@@ -295,7 +295,7 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         //
         // Uses 7 back-to-back replays of a 4-pair (8-instruction) pattern.
         // LREG pattern cycles every 4 elements.
-        // Auto-increment via addr_mod=7.
+        // Auto-increment via ADDR_MOD_3.
         //
         // Structure:
         //   - Reset Dst to 0
@@ -611,7 +611,7 @@ inline void _init_exponential_()
         // Program Replay Buffer
         // ===================================================================
         // Record 8 instructions (4 LM+SHFT2 pairs) for replay buffer.
-        // Uses Imm10=0 and addr_mod=3 (which uses ADDR_MOD_7) for auto-increment.
+        // Uses Imm10=0 and addr_mod=3 for auto-increment.
         // LREG pattern cycles every 4 elements, enabling back-to-back replays.
         //
         // Replay starts at LM[2], SHFT2[0] to maximize replay coverage.
