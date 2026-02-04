@@ -25,7 +25,7 @@ def flatten_list(sublists):
 
 
 def _mask_tile(
-    tile: torch.Tensor, num_faces: int, is_matrix_A: bool, face_r_dim: int = 16
+    tile: torch.Tensor, num_faces: int, is_matrix_B: bool, face_r_dim: int = 16
 ) -> torch.Tensor:
     masked = tile.clone()
     if num_faces == 1:
@@ -36,15 +36,17 @@ def _mask_tile(
         else:
             masked[16:, :] = 0  # Zero f2, f3
     elif num_faces == 2:
-        if is_matrix_A:
-            # matrix A (In0/SrcB): keep partial f0, f2
+        if is_matrix_B:
+            # matrix B (In1/SrcA): keep partial f0, f2
             if face_r_dim < 16:
                 masked[face_r_dim:16, :16] = 0  # Zero part of f0
                 masked[16 + face_r_dim :, :16] = 0  # Zero part of f2
             masked[:16, 16:] = 0  # Zero f1
             masked[16:, 16:] = 0  # Zero f3
         else:
-            # matrix B (In1/SrcA): keep f0, f1
+            # matrix A (In0/SrcB): keep f0, f1
+            if face_r_dim < 16:
+                masked[face_r_dim:, :] = 0  # Zero part of f0 and f1
             masked[16:, :] = 0  # Zero f2, f3
     return masked
 
@@ -122,6 +124,66 @@ def _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu):
     return face_data
 
 
+def generate_random_face(
+    stimuli_format: DataFormat,
+    rows: int,
+    cols: int,
+) -> torch.Tensor:
+    return torch.rand(rows, cols, dtype=format_dict[stimuli_format])
+
+
+def generate_identity_face(
+    stimuli_format: DataFormat, rows: int, cols: int
+) -> torch.Tensor:
+    assert rows % 16 == 0 and cols % 16 == 0, "Matrix size must be divisible by 16"
+
+    num_faces_row = rows // 16
+    num_faces_col = cols // 16
+    face_height, face_width = 16, 16
+
+    # Create output array in float32
+    matrix = torch.zeros((rows, cols), dtype=torch.float32)
+
+    # Fill each face with identity matrix
+    for face_r in range(num_faces_row):
+        for face_c in range(num_faces_col):
+            r_start = face_r * face_height
+            c_start = face_c * face_width
+
+            # Set diagonal elements within the face
+            for i in range(face_height):
+                matrix[r_start + i, c_start + i] = float(
+                    face_r * num_faces_col + face_c + 1
+                )
+
+    return matrix.to(dtype=format_dict[stimuli_format])
+
+
+def generate_incrementing_face(
+    stimuli_format: DataFormat, rows: int, cols: int
+) -> torch.Tensor:
+    assert rows % 16 == 0 and cols % 16 == 0, "Matrix size must be divisible by 16"
+
+    num_faces_row = rows // 16
+    num_faces_col = cols // 16
+    face_height, face_width = 16, 16
+
+    # Create output array in float32
+    matrix = torch.zeros((rows, cols), dtype=torch.float32)
+
+    # Fill each face with its index
+    for face_r in range(num_faces_row):
+        for face_c in range(num_faces_col):
+            face_val = float(face_r * num_faces_col + face_c + 1)
+            r_start = face_r * face_height
+            c_start = face_c * face_width
+            matrix[r_start : r_start + face_height, c_start : c_start + face_width] = (
+                face_val
+            )
+
+    return matrix.to(dtype=format_dict[stimuli_format])
+
+
 def generate_face_matmul_data(
     num_faces: int,
     stimuli_format: DataFormat,
@@ -147,9 +209,9 @@ def generate_face_matmul_data(
     # Create list to store tiles --> generate each tile with the right faces zeroed out
     tiles = [
         _mask_tile(
-            torch.rand(32, 32, dtype=format_dict[stimuli_format]),
+            generate_random_face(stimuli_format, rows=32, cols=32),
             num_faces,
-            is_matrix_A,
+            not is_matrix_A,
             face_r_dim,
         ).flatten()
         for _ in range(tile_cnt)
@@ -525,3 +587,81 @@ def generate_stimuli_w_tile_dimensions(
     )
 
     return srcA_tensor, tile_cnt_A, srcB_tensor, tile_cnt_B
+
+
+def convert_to_l1_view(
+    tilized_tensor: torch.Tensor,
+    num_faces: int,
+    input_dimensions: list,
+    is_matrix_A: bool = True,
+) -> torch.Tensor:
+    """
+    Convert a tilized tensor to its L1 memory view by rearranging faces.
+
+    This function rearranges the faces so that used faces come first, followed by
+    unused faces (zeroed out). The tile size is preserved (1024 elements per tile).
+
+    Face layout in a 32×32 tile (each face is 16×16 = 256 elements):
+    - f0: rows 0-15, cols 0-15  (top-left)     - index 0 in tilized order
+    - f1: rows 0-15, cols 16-31 (top-right)   - index 1 in tilized order
+    - f2: rows 16-31, cols 0-15 (bottom-left) - index 2 in tilized order
+    - f3: rows 16-31, cols 16-31 (bottom-right) - index 3 in tilized order
+
+    Face usage by configuration:
+    - 1 face: f0 only → output order: [f0, 0, 0, 0]
+    - 2 faces, matrix A (is_matrix_A=True):  f0, f1 → output order: [f0, f1, 0, 0]
+    - 2 faces, matrix B (is_matrix_A=False): f0, f2 → output order: [f0, f2, 0, 0]
+    - 4 faces: f0, f1, f2, f3 (no change)
+
+    Args:
+        tilized_tensor: Input tensor in tilized format (faces stored as [f0, f1, f2, f3] per tile)
+        num_faces: Number of faces used (1, 2, or 4)
+        input_dimensions: [rows, cols] of the input matrix
+        is_matrix_A: True for matrix A (In0/SrcB), False for matrix B (In1/SrcA).
+                    Only affects face selection in 2-face mode.
+
+    Returns:
+        Tensor with used faces first, unused faces zeroed, same total size as input
+    """
+    if num_faces not in [1, 2, 4]:
+        raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
+
+    rows, cols = input_dimensions
+    if rows % 32 != 0 or cols % 32 != 0:
+        raise ValueError(
+            f"Input dimensions must be multiples of 32, got {input_dimensions}"
+        )
+
+    # If using all 4 faces, no conversion needed
+    if num_faces == 4:
+        return tilized_tensor.flatten()
+
+    # Calculate number of tiles
+    tile_cnt = (rows // 32) * (cols // 32)
+    elements_per_face = 256  # 16 × 16
+    elements_per_tile = 4 * elements_per_face  # 1024
+
+    # Reshape to [num_tiles, 4, 256] for easier face manipulation
+    tensor_by_tiles = tilized_tensor.flatten().view(tile_cnt, 4, elements_per_face)
+
+    # Create output tensor with same shape, initialized to zeros
+    output = torch.zeros_like(tensor_by_tiles)
+
+    # Determine which faces to keep based on num_faces and matrix type
+    if num_faces == 1:
+        # Keep only f0 → output: [f0, 0, 0, 0]
+        face_indices = [0]
+    elif num_faces == 2:
+        if is_matrix_A:
+            # Matrix A (In0/SrcB): keep f0, f1 → output: [f0, f1, 0, 0]
+            face_indices = [0, 1]
+        else:
+            # Matrix B (In1/SrcA): keep f0, f2 → output: [f0, f2, 0, 0]
+            face_indices = [0, 2]
+
+    # Copy used faces to the beginning of each tile
+    for out_idx, src_idx in enumerate(face_indices):
+        output[:, out_idx, :] = tensor_by_tiles[:, src_idx, :]
+
+    # Flatten and return
+    return output.flatten()
