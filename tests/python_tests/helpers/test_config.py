@@ -1090,7 +1090,9 @@ class TestConfig:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
         self.write_runtimes_to_L1(location)
+        self.run_membar(location)
         self.variant_stimuli.write(location)
+        self.run_membar(location)
         elfs = self.run_elf_files(location)
         wait_for_tensix_operations_finished(elfs, location)
 

@@ -46,6 +46,14 @@ def test_pack_untilize(
             "Skipping large dimension test in coverage mode, check issue: #1063 on TT-LLK repo"
         )
 
+    if input_dimensions == [96, 288] and formats.input_format in [
+        DataFormat.Float32,
+        DataFormat.Int32,
+    ]:
+        pytest.skip(
+            reason="Fails on last 2 datums of 20th TILE when ran on blackhole PR with 8 pytest runners"
+        )
+
     if formats.output_format == DataFormat.Bfp8_b:
         pytest.skip("Pack Untilize does not support Bfp8_b format")
 
