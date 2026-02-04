@@ -134,7 +134,7 @@ def pytest_configure(config):
                 port=test_target.simulator_port, use_4B_mode=False
             )
         else:
-            tt_exalens_init.init_ttexalens(use_4B_mode=False)
+            tt_exalens_init.init_ttexalens(use_4B_mode=True)
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
