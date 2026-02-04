@@ -421,6 +421,7 @@ class UnpackerA(Unpacker):
 
         if compute_unit.broadcast_type != BroadcastType.None_:
             tensor_b = tensor_a
+            tensor_a = None
             tensor_b = tilize_block(
                 tensor_b, operation.src_a.dimensions, operation.src_a.data_format
             )
@@ -458,8 +459,9 @@ class UnpackerA(Unpacker):
                     untilize=True,
                     input_dimensions=operation.src_a.dimensions,
                 )
+            tensor_b = None
 
-        return tensor_a.flatten(), tensor_b.flatten()
+        return tensor_a, tensor_b
 
     def init(
         self,
@@ -532,7 +534,7 @@ class UnpackerTilizeA(Unpacker):
             operation.num_faces,
         )
 
-        return tilized_a, tensor_b
+        return tilized_a, None
 
     def init(
         self,

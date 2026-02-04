@@ -107,6 +107,8 @@ class FusedCompute:
 
     def golden(
         self,
+        input_tensor_a,
+        input_tensor_b,
         tensor_a,
         tensor_b,
         tensor_dst,
@@ -114,9 +116,15 @@ class FusedCompute:
         config: "GlobalConfig",
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if self.unpacker is not None:
-            tensor_a, tensor_b = self.unpacker().golden(
-                tensor_a, tensor_b, operation, config, self
+            unpacked_tensor_a, unpacked_tensor_b = self.unpacker().golden(
+                input_tensor_a, input_tensor_b, operation, config, self
             )
+
+            if unpacked_tensor_a is not None:
+                tensor_a = unpacked_tensor_a
+
+            if unpacked_tensor_b is not None:
+                tensor_b = unpacked_tensor_b
 
         if self.fpu is not None:
             tensor_a, tensor_b, tensor_dst = self.fpu.golden(
@@ -415,15 +423,23 @@ class NewMath:
 
     def golden(
         self,
-        tensor_a: torch.Tensor,
-        tensor_b: torch.Tensor,
+        input_tensor_a: torch.Tensor,
+        input_tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
     ) -> torch.Tensor:
+        tensor_a = torch.zeros(operation.src_a.dimensions)
+        tensor_b = torch.zeros(operation.src_a.dimensions)
         tensor_dst = torch.zeros(operation.max_output_dimensions)
         for op in self.operations:
             tensor_a, tensor_b, tensor_dst = op.golden(
-                tensor_a, tensor_b, tensor_dst, operation, config
+                input_tensor_a,
+                input_tensor_b,
+                tensor_a,
+                tensor_b,
+                tensor_dst,
+                operation,
+                config,
             )
 
         dimensions = operation.output.dimensions
@@ -612,7 +628,7 @@ class EltwiseFpu(Fpu):
             config.architecture == ChipArchitecture.WORMHOLE
             and self.operation == MathOperation.Elwmul
         ):
-            return tensor_dst + golden_tensor
+            golden_tensor = golden_tensor + tensor_dst
 
         return (tensor_a, tensor_b, golden_tensor)
 
@@ -901,6 +917,15 @@ class DatacopyFpu(Fpu):
             raise ValueError("Unsupported architecture for DatacopyFpu")
 
         return code
+
+    def uninit(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "FusedCompute",
+    ) -> str:
+        broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
+        return f"_llk_math_eltwise_unary_datacopy_uninit_<{broadcast_type}, false>();\n"
 
 
 class Sfpu:
