@@ -255,56 +255,12 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
     else if constexpr (FAST_APPROX && APPROXIMATION_MODE && ITERATIONS == 8)
     {
         // =======================================================================
-        // 8-element version (1 tile face)
+        // 8-element version using replay buffer.
         // Total: ~20 cycles for 8 elements = 2.5 cycles/element
-        // =======================================================================
-
-        // Phase 1: Startup - first 2 LOADMACROs with NOPs (cycles 0-4)
-        // Need NOPs because SHFT2[0] can't start until cycle 5
-        TTI_SFPLOADMACRO(0, 0, 3, 0); // Cycle 0: LM[0]
-        TTI_SFPNOP;                   // Cycle 1: NOP (MAD[0] executes)
-        TTI_SFPLOADMACRO(1, 0, 3, 2); // Cycle 2: LM[1]
-        TTI_SFPNOP;                   // Cycle 3: NOP (MAD[1] executes)
-        TTI_SFPLOADMACRO(2, 0, 3, 4); // Cycle 4: LM[2] | STOCHRND[0]
-
-        // Phase 2: Alternating LM/SHFT2 pattern (cycles 5-15)
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 5: SHFT2[0]
-        TTI_SFPLOADMACRO(3, 0, 3, 6);                                  // Cycle 6: LM[3] | STOCHRND[1] | SETSGN[0]
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 7: SHFT2[1] | STORE[0]
-        TTI_SFPLOADMACRO(0, 0, 3, 8);                                  // Cycle 8: LM[4] | STOCHRND[2] | SETSGN[1]
-        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 9: SHFT2[2] | STORE[1]
-        TTI_SFPLOADMACRO(1, 0, 3, 10);                                 // Cycle 10: LM[5] | STOCHRND[3] | SETSGN[2]
-        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 11: SHFT2[3] | STORE[2]
-        TTI_SFPLOADMACRO(2, 0, 3, 12);                                 // Cycle 12: LM[6] | STOCHRND[4] | SETSGN[3]
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 13: SHFT2[4] | STORE[3]
-        TTI_SFPLOADMACRO(3, 0, 3, 14);                                 // Cycle 14: LM[7] | STOCHRND[5] | SETSGN[4]
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 15: SHFT2[5] | STORE[4]
-
-        // Phase 3: Drain - remaining SHFT2s and scheduled ops (cycles 16-19)
-        TTI_SFPNOP;                                                    // Cycle 16: STOCHRND[6] | SETSGN[5]
-        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 17: SHFT2[6] | STORE[5]
-        TTI_SFPNOP;                                                    // Cycle 18: STOCHRND[7] | SETSGN[6]
-        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // Cycle 19: SHFT2[7] | STORE[6]
-        // SETSGN[7] at cycle 20 and STORE[7] at cycle 21 complete after return
-    }
-    else if constexpr (FAST_APPROX && APPROXIMATION_MODE && ITERATIONS == 32)
-    {
-        // =======================================================================
-        // Processes all 4 faces in one call to amortize startup/drain overhead.
-        // Total: ~68 cycles for 32 elements = 2.125 cycles/element
         //
-        // Uses 7 back-to-back replays of a 4-pair (8-instruction) pattern.
-        // LREG pattern cycles every 4 elements.
-        // Auto-increment via ADDR_MOD_7/3.
-        //
-        // Structure:
-        //   - Configure ADDR_MOD_7 for auto-increment
-        //   - Reset Dst to 0
-        //   - Startup: LM[0-1] (Dst: 0 -> 4)
-        //   - 7 replays of 4 pairs each (Dst: 4 -> 60)
-        //     Covers LM[2-29] + SHFT2[0-27]
-        //   - Manual completion: LM[30], SHFT2[28], LM[31], SHFT2[29]
-        //   - Drain: SHFT2[30-31]
+        // Uses 2 replays of the 8-instruction pattern.
+        // First 2 SHFT2s are dummy (timing placeholders), then 6 real SHFT2s.
+        // Drain phase handles final 2 SHFT2s.
         // =======================================================================
 
         // Configure ADDR_MOD_7 for auto-increment (dest += 2 per LOADMACRO).
@@ -318,27 +274,40 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         // Reset Dst to 0.
         TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
-        // Startup: LM[0], NOP, LM[1], NOP.
-        TTI_SFPLOADMACRO(0, 0, 3, 0); // LM[0] lreg0, dest 0, Dst -> 2.
-        TTI_SFPNOP;
-        TTI_SFPLOADMACRO(1, 0, 3, 0); // LM[1] lreg1, dest 2, Dst -> 4.
-        TTI_SFPNOP;
+        // Single replay of 16 instructions = 8 LM + 8 SHFT2 (2 dummy + 6 real).
+        lltt::replay(0, 16);
 
-        // 7 replays of 4 pairs.
-        // Each replay: 4x (LM + SHFT2), advances Dst by 8.
-        lltt::replay(0, 8); // LM[2-5]   + SHFT2[0-3],   Dst: 4 -> 12.
-        lltt::replay(0, 8); // LM[6-9]   + SHFT2[4-7],   Dst: 12 -> 20.
-        lltt::replay(0, 8); // LM[10-13] + SHFT2[8-11],  Dst: 20 -> 28.
-        lltt::replay(0, 8); // LM[14-17] + SHFT2[12-15], Dst: 28 -> 36.
-        lltt::replay(0, 8); // LM[18-21] + SHFT2[16-19], Dst: 36 -> 44.
-        lltt::replay(0, 8); // LM[22-25] + SHFT2[20-23], Dst: 44 -> 52.
-        lltt::replay(0, 8); // LM[26-29] + SHFT2[24-27], Dst: 52 -> 60.
+        // Drain: SHFT2[6-7].
+        TTI_SFPNOP;
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[6]
+        TTI_SFPNOP;
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[7]
+    }
+    else if constexpr (FAST_APPROX && APPROXIMATION_MODE && ITERATIONS == 32)
+    {
+        // =======================================================================
+        // 32-element version using replay buffer.
+        // Total: ~68 cycles for 32 elements = 2.125 cycles/element
+        //
+        // Uses 8 replays of the 8-instruction pattern.
+        // First 2 SHFT2s are dummy (timing placeholders), then 30 real SHFT2s.
+        // Drain phase handles final 2 SHFT2s.
+        // =======================================================================
 
-        // Manual completion: LM[30], SHFT2[28], LM[31], SHFT2[29].
-        TTI_SFPLOADMACRO(2, 0, 3, 0);                                  // LM[30] lreg2, dest 60, Dst -> 62.
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[28].
-        TTI_SFPLOADMACRO(3, 0, 3, 0);                                  // LM[31] lreg3, dest 62, Dst -> 64.
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[29].
+        // Configure ADDR_MOD_7 for auto-increment (dest += 2 per LOADMACRO).
+        addr_mod_t {
+            .srca = {.incr = 0},
+            .srcb = {.incr = 0},
+            .dest = {.incr = 2},
+        }
+            .set(ADDR_MOD_7);
+
+        // Reset Dst to 0.
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
+
+        // 2 replays of 32 instructions = 32 LM + 32 SHFT2 (2 dummy + 30 real).
+        lltt::replay(0, 32);
+        lltt::replay(0, 32);
 
         // Drain: SHFT2[30-31].
         TTI_SFPNOP;
@@ -609,34 +578,54 @@ inline void _init_exponential_()
         // ===================================================================
         // Program Replay Buffer
         // ===================================================================
-        // Record 8 instructions (4 LM+SHFT2 pairs) for replay buffer.
+        // Record 32 instructions (16 LM+SHFT2 pairs) into replay buffer.
         // ADDR_MOD_7/3 will be configured for auto-increment at replay time.
         //
-        // LREG pattern cycles every 4 elements.
-        // Pattern: LM(LREG[(n+2) mod 4]) + SHFT2(LREG[n mod 4])
-        //   Pair 0: LM(LREG2) + SHFT2(LREG0)
-        //   Pair 1: LM(LREG3) + SHFT2(LREG1)
-        //   Pair 2: LM(LREG0) + SHFT2(LREG2)
-        //   Pair 3: LM(LREG1) + SHFT2(LREG3)
+        // Pattern starts with LM(LREG0) so all LOADMACROs can be replayed.
+        // The first two SHFT2s are "dummy" (operate on not-yet-loaded LREGs)
+        // but provide correct pipeline timing for subsequent real SHFT2s.
+        //
+        // LREG pattern cycles every 4 elements:
+        //   LM uses:    LREG0, LREG1, LREG2, LREG3, LREG0, ...
+        //   SHFT2 uses: LREG2, LREG3, LREG0, LREG1, LREG2, ...
         // ===================================================================
 
-        lltt::record(0, 8);
+        lltt::record(0, 32);
 
-        // Pair 0: LM(LREG2) + SHFT2(LREG0)
-        TTI_SFPLOADMACRO(2, 0, 3, 0); // lreg2, addr_mod=3, Imm10=0
-        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5);
-
-        // Pair 1: LM(LREG3) + SHFT2(LREG1)
-        TTI_SFPLOADMACRO(3, 0, 3, 0); // lreg3, addr_mod=3, Imm10=0
-        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5);
-
-        // Pair 2: LM(LREG0) + SHFT2(LREG2)
-        TTI_SFPLOADMACRO(0, 0, 3, 0); // lreg0, addr_mod=3, Imm10=0
+        // 16 pairs of LM + SHFT2 (LREG pattern repeats every 4 pairs)
+        // Pairs 0-1: dummy SHFT2s, Pairs 2-15: real SHFT2s for elements 0-13
+        TTI_SFPLOADMACRO(0, 0, 3, 0);
         TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5);
-
-        // Pair 3: LM(LREG1) + SHFT2(LREG3)
-        TTI_SFPLOADMACRO(1, 0, 3, 0); // lreg1, addr_mod=3, Imm10=0
+        TTI_SFPLOADMACRO(1, 0, 3, 0);
         TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(2, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(3, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(0, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(1, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(2, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(3, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(0, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(1, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(2, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(3, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(0, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(1, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(2, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG0, p_sfpu::LREG14, p_sfpu::LREG4, 5);
+        TTI_SFPLOADMACRO(3, 0, 3, 0);
+        TTI_SFPSHFT2(p_sfpu::LREG1, p_sfpu::LREG14, p_sfpu::LREG4, 5);
 
         TTI_SFPNOP;
     }
