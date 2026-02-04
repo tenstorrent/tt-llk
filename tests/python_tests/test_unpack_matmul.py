@@ -82,7 +82,7 @@ TINY_TILES_MATMUL_COMBINATIONS = sweep_tiny_tiles_matmul(
     ],
     matmul_config=MATMUL_COMBINATIONS + TINY_TILES_MATMUL_COMBINATIONS,
 )
-def test_unpack_matmul(math_fidelity, matmul_config, workers_tensix_coordinates):
+def test_unpack_matmul(math_fidelity, matmul_config):
 
     formats = matmul_config.formats
     dest_acc = matmul_config.dest_acc
@@ -191,7 +191,7 @@ def test_unpack_matmul(math_fidelity, matmul_config, workers_tensix_coordinates)
         ),
         dest_acc=dest_acc,
     )
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     assert len(res_from_L1) == len(
         golden_tensor

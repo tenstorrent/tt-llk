@@ -96,9 +96,7 @@ ALL_TEST_PARAMS = list(
 
 @pytest.mark.nightly
 @pytest.mark.parametrize("math_fidelity,matmul_config,throttle", ALL_TEST_PARAMS)
-def test_math_matmul(
-    math_fidelity, matmul_config, throttle, workers_tensix_coordinates
-):
+def test_math_matmul(math_fidelity, matmul_config, throttle):
     formats = matmul_config.formats
     input_A_dimensions = matmul_config.tile_dimensions.input_A_dimensions
     input_B_dimensions = matmul_config.tile_dimensions.input_B_dimensions
@@ -207,7 +205,7 @@ def test_math_matmul(
         ),
         dest_acc=matmul_config.dest_acc,
     )
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     assert len(res_from_L1) == len(
         golden_tensor

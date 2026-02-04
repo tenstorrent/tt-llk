@@ -41,7 +41,7 @@ mathop_mapping = {
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )
-def test_reduce(formats, dest_acc, reduce_dim, pool_type, workers_tensix_coordinates):
+def test_reduce(formats, dest_acc, reduce_dim, pool_type):
     input_dimensions = [32, 32]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
@@ -80,7 +80,7 @@ def test_reduce(formats, dest_acc, reduce_dim, pool_type, workers_tensix_coordin
         dest_acc=dest_acc,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     assert len(res_from_L1) == len(
         golden_tensor

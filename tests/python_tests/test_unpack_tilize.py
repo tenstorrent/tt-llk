@@ -26,22 +26,21 @@ from helpers.utils import passed_test
         ]
     ),
 )
-def test_unpack_tilize_float(formats, workers_tensix_coordinates):
+def test_unpack_tilize_float(formats):
     formats = formats[0]
     if formats.input_format == DataFormat.Bfp8_b:
         pytest.skip("Unpack Tilize does not support Bfp8_b input format")
 
-    unpack_tilize(formats, workers_tensix_coordinates)
+    unpack_tilize(formats)
 
 
 @parametrize(
     formats=input_output_formats([DataFormat.Float32], same=True),
     dest_acc=[DestAccumulation.Yes],
 )
-def test_unpack_tilize_float32_lossless(formats, dest_acc, workers_tensix_coordinates):
+def test_unpack_tilize_float32_lossless(formats, dest_acc):
     unpack_tilize(
         formats,
-        workers_tensix_coordinates,
         unpack_to_dest=True,
         validate_lossless=True,
         dest_acc=dest_acc,
@@ -49,14 +48,13 @@ def test_unpack_tilize_float32_lossless(formats, dest_acc, workers_tensix_coordi
 
 
 @parametrize(formats=input_output_formats([DataFormat.Int32]))
-def test_unpack_tilize_int(formats, workers_tensix_coordinates):
+def test_unpack_tilize_int(formats):
     formats = formats[0]
-    unpack_tilize(formats, workers_tensix_coordinates, unpack_to_dest=True)
+    unpack_tilize(formats, unpack_to_dest=True)
 
 
 def unpack_tilize(
     formats,
-    workers_tensix_coordinates,
     unpack_to_dest=False,
     validate_lossless=False,
     dest_acc=None,
@@ -91,7 +89,7 @@ def unpack_tilize(
         **({"dest_acc": dest_acc} if dest_acc is not None else {}),
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     assert len(res_from_L1) == len(
         golden_tensor

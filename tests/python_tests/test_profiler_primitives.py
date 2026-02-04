@@ -31,7 +31,7 @@ def assert_marker(
 @skip_for_coverage
 @skip_for_blackhole
 @skip_for_wormhole
-def test_profiler_primitives(workers_tensix_coordinates):
+def test_profiler_primitives():
 
     # This is a test of the profiler itself and doesn't use configuration.run method at all,
     # therefore it can't levarege default producer-consumer separation of compile and execute phases.
@@ -44,10 +44,12 @@ def test_profiler_primitives(workers_tensix_coordinates):
 
     configuration.generate_variant_hash()
     configuration.build_elfs()
-    configuration.run_elf_files(workers_tensix_coordinates)
+    configuration.run_elf_files()
 
     runtime = Profiler.get_data(
-        configuration.test_name, configuration.variant_id, workers_tensix_coordinates
+        configuration.test_name,
+        configuration.variant_id,
+        TestConfig.CURRENT_WORKER_LOCATION,
     )
 
     # Get metadata to look up marker IDs (stable across build environments)

@@ -109,7 +109,6 @@ def test_eltwise_unary_sfpu_float(
     mathop: MathOperation,
     fast_mode: FastMode,
     dest_acc: DestAccumulation,
-    workers_tensix_coordinates: str,
 ):
     if TestConfig.WITH_COVERAGE and mathop in [
         MathOperation.Acosh,
@@ -173,7 +172,6 @@ def test_eltwise_unary_sfpu_float(
         approx_mode,
         mathop,
         fast_mode,
-        workers_tensix_coordinates,
     )
 
 
@@ -193,7 +191,6 @@ def test_eltwise_unary_sfpu_int(
     mathop: MathOperation,
     fast_mode: FastMode,
     dest_acc: DestAccumulation,
-    workers_tensix_coordinates: str,
 ):
     if formats.input_format == DataFormat.Int32:
         pytest.skip(reason=f"Int32 tests break fast tilize, tracked in #495")
@@ -205,7 +202,6 @@ def test_eltwise_unary_sfpu_int(
         approx_mode,
         mathop,
         fast_mode,
-        workers_tensix_coordinates,
     )
 
 
@@ -216,7 +212,6 @@ def eltwise_unary_sfpu(
     approx_mode,
     mathop,
     fast_mode: FastMode,
-    workers_tensix_coordinates,
 ):
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
@@ -266,7 +261,7 @@ def eltwise_unary_sfpu(
         ),
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     # res_from_L1 = res_from_L1[:1024]
     # golden_tensor = golden_tensor[:1024]

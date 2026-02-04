@@ -49,7 +49,6 @@ def test_multiple_tiles(
     dest_acc,
     math_fidelity,
     input_dimensions,
-    workers_tensix_coordinates,
 ):
 
     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
@@ -88,7 +87,7 @@ def test_multiple_tiles(
         ),
         dest_acc=dest_acc,
     )
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     assert len(res_from_L1) == len(
         golden_tensor

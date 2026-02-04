@@ -42,9 +42,7 @@ dimension_combinations = [
     num_rows_to_pack=[1, 16, 50, 64],
     dimensions=dimension_combinations,
 )
-def test_pack_rows(
-    formats, dest_acc, num_rows_to_pack, dimensions, workers_tensix_coordinates
-):
+def test_pack_rows(formats, dest_acc, num_rows_to_pack, dimensions):
     row_num_datums = 16
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
@@ -90,7 +88,7 @@ def test_pack_rows(
         unpack_to_dest=formats.input_format.is_32_bit(),
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 

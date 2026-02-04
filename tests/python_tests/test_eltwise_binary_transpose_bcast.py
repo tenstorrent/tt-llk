@@ -56,7 +56,6 @@ def test_eltwise_binary_transpose_bcast(
     math_fidelity,
     transpose_srca,
     input_dimensions,
-    workers_tensix_coordinates,
 ):
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -144,7 +143,7 @@ def test_eltwise_binary_transpose_bcast(
         unpack_to_dest=False,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     assert len(res_from_L1) == len(
         golden_tensor

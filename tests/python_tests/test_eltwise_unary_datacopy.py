@@ -80,9 +80,7 @@ def get_valid_num_faces_datacopy(tilize):
         dest_sync=DestSync.Half, dest_acc=dest_acc, tile_count=4
     ),
 )
-def test_unary_datacopy(
-    formats, dest_acc, num_faces, tilize, dest_index, workers_tensix_coordinates
-):
+def test_unary_datacopy(formats, dest_acc, num_faces, tilize, dest_index):
 
     input_dimensions = [64, 64]
 
@@ -131,7 +129,7 @@ def test_unary_datacopy(
         unpack_to_dest=unpack_to_dest,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     assert len(res_from_L1) == len(golden_tensor)
 

@@ -22,7 +22,7 @@ def get_expected_overhead():
 # Coverage uses different linker script, that doesn't utilize local data memory at all, only L1
 # Because of this, measured overhead is at 2.3k instead of ~23 cycles
 @skip_for_coverage
-def test_profiler_overhead(workers_tensix_coordinates):
+def test_profiler_overhead():
 
     # This is a test of the profiler itself and doesn't use configuration.run method at all,
     # therefore it can't leverage default producer-consumer separation of compile and execute phases.
@@ -35,10 +35,12 @@ def test_profiler_overhead(workers_tensix_coordinates):
 
     configuration.generate_variant_hash()
     configuration.build_elfs()
-    configuration.run_elf_files(workers_tensix_coordinates)
+    configuration.run_elf_files()
 
     runtime = Profiler.get_data(
-        configuration.test_name, configuration.variant_id, workers_tensix_coordinates
+        configuration.test_name,
+        configuration.variant_id,
+        TestConfig.CURRENT_WORKER_LOCATION,
     )
 
     # filter out all zones that don't have marker "OVERHEAD"

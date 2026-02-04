@@ -99,9 +99,7 @@ def generate_transpose_dest_float_combinations(formats_list):
         TRANSPOSE_DEST_FLOAT_FORMATS
     ),
 )
-def test_transpose_dest_float(
-    fmt_dest_acc_math_transp_unpack_to_dest, workers_tensix_coordinates
-):
+def test_transpose_dest_float(fmt_dest_acc_math_transp_unpack_to_dest):
 
     fmt_dest_acc_math_transp_unpack_to_dest = fmt_dest_acc_math_transp_unpack_to_dest[0]
 
@@ -110,7 +108,6 @@ def test_transpose_dest_float(
         dest_acc=fmt_dest_acc_math_transp_unpack_to_dest[1],
         math_transpose_faces=fmt_dest_acc_math_transp_unpack_to_dest[2],
         unpack_to_dest=fmt_dest_acc_math_transp_unpack_to_dest[3],
-        workers_tensix_coordinates=workers_tensix_coordinates,
     )
 
 
@@ -125,14 +122,12 @@ def test_transpose_dest_int(
     dest_acc,
     math_transpose_faces,
     unpack_to_dest,
-    workers_tensix_coordinates,
 ):
     transpose_dest(
         formats,
         dest_acc,
         math_transpose_faces,
         unpack_to_dest,
-        workers_tensix_coordinates,
     )
 
 
@@ -141,7 +136,6 @@ def transpose_dest(
     dest_acc,
     math_transpose_faces,
     unpack_to_dest,
-    workers_tensix_coordinates,
 ):
 
     if dest_acc == DestAccumulation.Yes and formats.input_format != DataFormat.Int32:
@@ -213,7 +207,7 @@ def transpose_dest(
         unpack_to_dest=unpack_to_dest,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     assert len(res_from_L1) == len(
         golden_tensor

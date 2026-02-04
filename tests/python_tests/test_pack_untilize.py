@@ -38,9 +38,7 @@ from helpers.utils import passed_test
     input_dimensions=[[96, 288], [64, 64], [32, 128], [128, 128], [32, 64]],
     dest_sync=[DestSync.Half, DestSync.Full],
 )
-def test_pack_untilize(
-    formats, dest_acc, input_dimensions, dest_sync, workers_tensix_coordinates
-):
+def test_pack_untilize(formats, dest_acc, input_dimensions, dest_sync):
     if TestConfig.WITH_COVERAGE and input_dimensions == [96, 288]:
         pytest.skip(
             "Skipping large dimension test in coverage mode, check issue: #1063 on TT-LLK repo"
@@ -124,7 +122,7 @@ def test_pack_untilize(
         unpack_to_dest=unpack_to_dest,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     assert len(res_from_L1) == len(
         golden_tensor

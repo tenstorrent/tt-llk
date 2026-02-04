@@ -246,7 +246,6 @@ def test_unpack_bcast(
     within_face_16x16_transpose,
     num_faces,
     face_r_dim,
-    workers_tensix_coordinates,
 ):
     # Note: All constraint validation has been done during parameter generation
     # No need for pytest.skip() calls - invalid combinations have been filtered out
@@ -404,7 +403,7 @@ def test_unpack_bcast(
         unpack_to_dest=(formats.input_format.is_32_bit()),
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     assert len(res_from_L1) == len(
         golden_tensor

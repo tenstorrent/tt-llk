@@ -141,7 +141,6 @@ def test_pack(
     relu_type,
     dest_sync,
     dest_index,
-    workers_tensix_coordinates,
 ):
 
     if (formats.input_format == DataFormat.Int32) ^ (
@@ -243,7 +242,7 @@ def test_pack(
         unpack_to_dest=unpack_to_dest,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     assert len(res_from_L1) == len(
         golden_tensor

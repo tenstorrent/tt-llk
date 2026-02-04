@@ -81,7 +81,6 @@ def test_eltwise_binary(
     transpose_srca,
     input_dimensions,
     tile_dimensions,
-    workers_tensix_coordinates,
 ):
     num_faces, face_r_dim = get_tile_params(tile_dimensions)
 
@@ -156,7 +155,7 @@ def test_eltwise_binary(
         unpack_to_dest=False,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run()
 
     assert len(res_from_L1) == len(
         golden_tensor
