@@ -294,8 +294,8 @@ class PerfConfig(TestConfig):
             disable_format_inference,
             dest_acc,
             compile_time_formats,
-            skip_build_header,
             l1_acc,
+            skip_build_header,
         )
 
         self.passed_templates = templates

@@ -840,9 +840,10 @@ class TestConfig:
     def build_elfs(self):
 
         VARIANT_DIR = TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id
+        print("AAAA", self.skip_build_header)
         if not self.skip_build_header:
-
             header_content = self.generate_build_header()
+            print(header_content, file=sys.stderr)
         done_marker = VARIANT_DIR / ".build_complete"
 
         if TestConfig.INFRA_TESTING:
@@ -998,8 +999,9 @@ class TestConfig:
             raise ValueError("Quasar only supports TRISC boot mode")
 
         set_tensix_soft_reset(1, location=location)
-        reset_mailboxes(location)
+        self.run_membar(location)
 
+        reset_mailboxes(location)
         self.run_membar(location)
 
         VARIANT_ELF_DIR = (
