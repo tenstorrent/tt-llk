@@ -962,6 +962,25 @@ class TestConfig:
         ) as fd:
             fd.write(coverage_stream)
 
+    CURRENT_MEMBAR_VALUE: ClassVar[int] = 0
+
+    def run_membar(self, location: str = "0,0"):
+        if TestConfig.WITH_COVERAGE:
+            membar_address = TestConfig.RUNTIME_ADDRESS_NON_COVERAGE - 4
+        else:
+            membar_address = TestConfig.RUNTIME_ADDRESS_COVERAGE - 4
+
+        write_words_to_device(location, membar_address, TestConfig.CURRENT_MEMBAR_VALUE)
+
+        while (
+            read_word_from_device(location, membar_address)
+            != TestConfig.CURRENT_MEMBAR_VALUE
+        ):
+            pass
+
+        TestConfig.CURRENT_MEMBAR_VALUE = (TestConfig.CURRENT_MEMBAR_VALUE + 1) % 10
+        return
+
     BRISC_ELF_LOADED: ClassVar[bool] = False
     PROFILER_BRISC_ELF_LOADED: ClassVar[bool] = False
 
@@ -978,14 +997,10 @@ class TestConfig:
         ):
             raise ValueError("Quasar only supports TRISC boot mode")
 
-        read_word_from_device(location, 0x0)
-
-        # Perform soft reset
         set_tensix_soft_reset(1, location=location)
-
         reset_mailboxes(location)
 
-        read_word_from_device(location, 0x0)
+        self.run_membar(location)
 
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
@@ -1022,7 +1037,7 @@ class TestConfig:
                     verify_write=True,
                 )
 
-            read_word_from_device(location, 0x0)
+            self.run_membar(location)
 
         match boot_mode:
             case BootMode.BRISC:
@@ -1053,7 +1068,7 @@ class TestConfig:
                             verify_write=True,
                         )
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
-                read_word_from_device(location, 0x0)
+                self.run_membar(location)
             case BootMode.TRISC:
                 set_tensix_soft_reset(
                     0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
