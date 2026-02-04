@@ -10,11 +10,11 @@ import yaml
 from helpers.format_config import DataFormat
 from helpers.fused_math import (
     BinarySfpu,
+    ComputeNode,
+    ComputePipeline,
     DatacopyFpu,
     EltwiseFpu,
-    FusedCompute,
     MatmulFpu,
-    NewMath,
     ReduceFpu,
     UnarySfpu,
 )
@@ -161,7 +161,7 @@ BROADCAST_TYPE_MAP: Dict[str, BroadcastType] = {
 
 def parse_math_operation(
     math_config: Dict[str, Any], operands: OperandRegistry
-) -> FusedCompute:
+) -> ComputeNode:
     type = math_config["type"]
 
     if type == "Fpu":
@@ -199,7 +199,7 @@ def parse_math_operation(
         if "broadcast_type" in math_config:
             kwargs["broadcast_type"] = BROADCAST_TYPE_MAP[math_config["broadcast_type"]]
 
-        return FusedCompute(
+        return ComputeNode(
             fpu=fpu,
             sfpu=None,
             **kwargs,
@@ -214,7 +214,7 @@ def parse_math_operation(
         dest_idx = math_config.get("dst_dest_tile_index", 0)
         fill_const_value = math_config.get("fill_const_value", 1.0)
 
-        return FusedCompute(
+        return ComputeNode(
             unpacker=None,
             fpu=None,
             sfpu=UnarySfpu(
@@ -232,7 +232,7 @@ def parse_math_operation(
         src2_dest_tile_index = math_config.get("src2_dest_tile_index", 0)
         dst_dest_tile_index = math_config.get("dst_dest_tile_index", 0)
 
-        return FusedCompute(
+        return ComputeNode(
             unpacker=None,
             fpu=None,
             sfpu=BinarySfpu(
@@ -246,8 +246,6 @@ def parse_math_operation(
         )
     else:
         raise ValueError(f"Unsupported math type: {type}")
-
-    # return Math(fpu, sfpu_ops)
 
 
 def parse_operation(
@@ -306,9 +304,7 @@ def parse_operation(
 
     return FusedOperation(
         operand_mapping=operand_mapping,
-        # unpacker=unpacker,
-        # math=math,
-        math=NewMath(math_operations),
+        math=ComputePipeline(math_operations),
         packer=packer,
         **kwargs,
     )

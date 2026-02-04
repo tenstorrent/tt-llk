@@ -9,7 +9,7 @@ import torch
 
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .format_config import DataFormat
-from .fused_math import MatmulFpu, NewMath
+from .fused_math import ComputePipeline, MatmulFpu
 from .fused_operand import Operand, OperandMapping
 from .fused_packer import Packer
 from .fused_unpacker import UnpackerTilizeA
@@ -25,7 +25,7 @@ from .matmul_sweep import validate_tile_dimensions
 
 @dataclass
 class FusedOperation:
-    math: NewMath
+    math: ComputePipeline
     packer: Type[Packer]
     operand_mapping: OperandMapping
     stage_id: int = 0

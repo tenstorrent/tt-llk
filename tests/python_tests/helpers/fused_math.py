@@ -36,7 +36,7 @@ from .llk_params import (
 from .tilize_untilize import tilize_block, untilize_block
 
 
-class FusedCompute:
+class ComputeNode:
     def __init__(
         self,
         unpacker=None,
@@ -172,10 +172,10 @@ class FusedCompute:
         )
 
 
-class NewMath:
-    operations: List[FusedCompute]
+class ComputePipeline:
+    operations: List[ComputeNode]
 
-    def __init__(self, operations: List[FusedCompute]):
+    def __init__(self, operations: List[ComputeNode]):
         self.operations = operations
 
     def get_unpackers(self) -> List["Unpacker"]:
@@ -228,7 +228,7 @@ class NewMath:
 
         return False
 
-    def get_fused_compute_with_unpacker(self) -> List["FusedCompute"]:
+    def get_fused_compute_with_unpacker(self) -> List["ComputeNode"]:
         return [op for op in self.operations if op.unpacker is not None]
 
     def get_reduce_pack_mask(self) -> str:
@@ -278,7 +278,7 @@ class NewMath:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        fused_ops_with_unpacker: List["FusedCompute"],
+        fused_ops_with_unpacker: List["ComputeNode"],
     ) -> str:
         batch_size = operation.batch_size
         tile_cnt = operation.output.tile_count
@@ -468,7 +468,7 @@ class Fpu:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         return ""
 
@@ -479,7 +479,7 @@ class Fpu:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
         tile_idx: int,
     ) -> str:
         return ""
@@ -488,7 +488,7 @@ class Fpu:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         return ""
 
@@ -499,7 +499,7 @@ class Fpu:
         tensor_dst: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         return (tensor_a, tensor_b, tensor_dst)
 
@@ -529,7 +529,7 @@ class MatmulFpu(Fpu):
         tensor_dst: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         output_format = operation.output.data_format
         math_fidelity = operation.math_fidelity
@@ -551,7 +551,7 @@ class MatmulFpu(Fpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
         batch_size = operation.batch_size
@@ -579,7 +579,7 @@ class MatmulFpu(Fpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
         tile_idx: int,
     ) -> str:
         batch_size = operation.batch_size
@@ -629,7 +629,7 @@ class EltwiseFpu(Fpu):
         tensor_dst: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         output_format = operation.output.data_format
         math_fidelity = operation.math_fidelity
@@ -651,7 +651,7 @@ class EltwiseFpu(Fpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
         math_fidelity = operation.math_fidelity.value
@@ -668,7 +668,7 @@ class EltwiseFpu(Fpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
         tile_idx: int,
     ) -> str:
         stage = operation.stage_id
@@ -726,7 +726,7 @@ class ReduceFpu(Fpu):
         tensor_dst: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         output_format = operation.output.data_format
         dimensions = operation.max_output_dimensions
@@ -782,7 +782,7 @@ class ReduceFpu(Fpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
         math_fidelity = operation.math_fidelity.value
@@ -799,7 +799,7 @@ class ReduceFpu(Fpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
         tile_idx: int,
     ) -> str:
         math_fidelity = operation.math_fidelity.value
@@ -818,7 +818,7 @@ class ReduceFpu(Fpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        fused_compute: "FusedCompute",
+        fused_compute: "ComputeNode",
     ) -> str:
         unp_a_src_format = (
             f"ckernel::to_underlying(DataFormat::{operation.src_a.data_format})"
@@ -852,7 +852,7 @@ class DatacopyFpu(Fpu):
         tensor_dst: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if compute_unit.broadcast_type != BroadcastType.None_:
             source_tensor = tensor_b
@@ -874,7 +874,7 @@ class DatacopyFpu(Fpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
@@ -906,7 +906,7 @@ class DatacopyFpu(Fpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
         tile_idx: int,
     ) -> str:
         stage = operation.stage_id
@@ -937,7 +937,7 @@ class DatacopyFpu(Fpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
         return f"_llk_math_eltwise_unary_datacopy_uninit_<{broadcast_type}, false>();\n"
@@ -948,7 +948,7 @@ class Sfpu:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         return ""
 
@@ -956,7 +956,7 @@ class Sfpu:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         return ""
 
@@ -964,7 +964,7 @@ class Sfpu:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         return ""
 
@@ -973,7 +973,7 @@ class Sfpu:
         tensor: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
         batch_dims: tuple,
         batch_tile_cnt: int,
     ) -> torch.Tensor:
@@ -1019,7 +1019,7 @@ class UnarySfpu(Sfpu):
         tensor: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
         batch_dims: tuple,
         batch_tile_cnt: int,
     ) -> torch.Tensor:
@@ -1046,7 +1046,7 @@ class UnarySfpu(Sfpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
 
@@ -1059,7 +1059,7 @@ class UnarySfpu(Sfpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
@@ -1111,7 +1111,7 @@ class BinarySfpu(Sfpu):
         tensor: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
         batch_dims: tuple,
         batch_tile_cnt: int,
     ) -> torch.Tensor:
@@ -1136,7 +1136,7 @@ class BinarySfpu(Sfpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
 
@@ -1149,7 +1149,7 @@ class BinarySfpu(Sfpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
         op = f"ckernel::BinaryOp::{self.operation.cpp_enum_value}"

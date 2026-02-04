@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from .fuser_config import GlobalConfig
 
 from .chip_architecture import ChipArchitecture
-from .fused_math import FusedCompute, ReduceFpu
+from .fused_math import ComputeNode, ReduceFpu
 from .golden_generators import BroadcastGolden, TransposeGolden, get_golden_generator
 from .llk_params import BroadcastType, PerfRunType, Transpose
 from .tilize_untilize import tilize_block, untilize_block
@@ -62,7 +62,7 @@ class Unpacker:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         return ""
 
@@ -70,7 +70,7 @@ class Unpacker:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
         tile_idx_expr: str,
     ) -> str:
         return ""
@@ -79,7 +79,7 @@ class Unpacker:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         return ""
 
@@ -168,7 +168,7 @@ class Unpacker:
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute" = None,
+        compute_unit: "ComputeNode" = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         return tensor_a, tensor_b
 
@@ -194,7 +194,7 @@ class MatmulUnpacker(Unpacker):
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         t_matrix = get_golden_generator(TransposeGolden)
 
@@ -222,7 +222,7 @@ class MatmulUnpacker(Unpacker):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         face_r_dim = operation.face_r_dim
         ct_dim = operation.ct_dim
@@ -251,7 +251,7 @@ class MatmulUnpacker(Unpacker):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
         tile_idx_expr: str = None,
     ) -> str:
         stage = operation.stage_id
@@ -306,7 +306,7 @@ class UnpackerAB(Unpacker):
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         t_matrix = get_golden_generator(TransposeGolden)
         if compute_unit.broadcast_type != BroadcastType.None_:
@@ -354,7 +354,7 @@ class UnpackerAB(Unpacker):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         face_r_dim = operation.face_r_dim
         num_faces = operation.num_faces
@@ -394,7 +394,7 @@ class UnpackerAB(Unpacker):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
         tile_idx_expr: str,
     ) -> str:
         stage = operation.stage_id
@@ -415,7 +415,7 @@ class UnpackerA(Unpacker):
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         t_matrix = get_golden_generator(TransposeGolden)
 
@@ -467,7 +467,7 @@ class UnpackerA(Unpacker):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
         unpack_to_dest = "true" if operation.unpack_to_dest else "false"
@@ -492,7 +492,7 @@ class UnpackerA(Unpacker):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
         tile_idx_expr: str,
     ) -> str:
         stage = operation.stage_id
@@ -525,7 +525,7 @@ class UnpackerTilizeA(Unpacker):
         tensor_b: torch.Tensor,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         tilized_a = tilize_block(
             tensor_a,
@@ -540,7 +540,7 @@ class UnpackerTilizeA(Unpacker):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
         face_r_dim = operation.face_r_dim
@@ -559,7 +559,7 @@ class UnpackerTilizeA(Unpacker):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
         tile_idx_expr: str,
     ) -> str:
         stage = operation.stage_id
@@ -595,7 +595,7 @@ class UnpackerTilizeA(Unpacker):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "FusedCompute",
+        compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
         face_r_dim = operation.face_r_dim
