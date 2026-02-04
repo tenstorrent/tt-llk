@@ -299,6 +299,7 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         // Auto-increment via ADDR_MOD_7.
         //
         // Structure:
+        //   - Configure ADDR_MOD_7 for auto-increment
         //   - Reset Dst to 0
         //   - Startup: LM[0-1] (Dst: 0 -> 4)
         //   - 7 replays of 4 pairs each (Dst: 4 -> 60)
@@ -306,6 +307,14 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         //   - Manual completion: LM[30], SHFT2[28], LM[31], SHFT2[29]
         //   - Drain: SHFT2[30-31]
         // =======================================================================
+
+        // Configure ADDR_MOD_7 for auto-increment (dest += 2 per LOADMACRO).
+        addr_mod_t {
+            .srca = {.incr = 0},
+            .srcb = {.incr = 0},
+            .dest = {.incr = 2},
+        }
+            .set(ADDR_MOD_7);
 
         // Reset Dst to 0.
         TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
@@ -599,33 +608,18 @@ inline void _init_exponential_()
         TTI_SFPCONFIG(0, 8, 1);
 
         // ===================================================================
-        // Configure ADDR_MOD_7 for auto-increment (dest += 2 per LOADMACRO)
-        // ===================================================================
-        addr_mod_t {
-            .srca = {.incr = 0},
-            .srcb = {.incr = 0},
-            .dest = {.incr = 2},
-        }
-            .set(ADDR_MOD_7);
-
-        // ===================================================================
         // Program Replay Buffer
         // ===================================================================
         // Record 8 instructions (4 LM+SHFT2 pairs) for replay buffer.
-        // Uses Imm10=0 and ADDR_MOD_7 for auto-increment.
-        // LREG pattern cycles every 4 elements, enabling back-to-back replays.
+        // ADDR_MOD_7 will be configured for auto-increment at replay time.
         //
-        // Replay starts at LM[2], SHFT2[0] to maximize replay coverage.
+        // LREG pattern cycles every 4 elements.
         // Pattern: LM(LREG[(n+2) mod 4]) + SHFT2(LREG[n mod 4])
         //   Pair 0: LM(LREG2) + SHFT2(LREG0)
         //   Pair 1: LM(LREG3) + SHFT2(LREG1)
         //   Pair 2: LM(LREG0) + SHFT2(LREG2)
         //   Pair 3: LM(LREG1) + SHFT2(LREG3)
-        //
-        // Reset Dst before recording.
         // ===================================================================
-
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
         lltt::record(0, 8);
 
