@@ -16,6 +16,7 @@ from helpers.param_config import input_output_formats, parametrize
 from helpers.perf import PerfConfig
 from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
+    LOOP_FACTOR,
     MATH_FIDELITY,
     MATH_OP,
     TILE_COUNT,
@@ -28,7 +29,8 @@ from helpers.test_variant_parameters import (
         [DataFormat.Bfp8_b, DataFormat.Float16, DataFormat.Float16_b]
     ),
     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
-    tile_count=16,
+    tile_count=1,
+    loop_factor=16,
     math_fidelity=lambda formats, mathop: get_valid_math_fidelities(
         formats, mathop, PERF_RUN=True
     ),
@@ -39,6 +41,7 @@ def test_perf_eltwise_binary_fpu(
     formats,
     mathop,
     tile_count,
+    loop_factor,
     math_fidelity,
     dest_acc,
     workers_tensix_coordinates,
@@ -57,7 +60,7 @@ def test_perf_eltwise_binary_fpu(
             PerfRunType.L1_CONGESTION,
         ],
         templates=[MATH_FIDELITY(math_fidelity), MATH_OP(mathop=mathop)],
-        runtimes=[TILE_COUNT(tile_count)],
+        runtimes=[TILE_COUNT(tile_count), LOOP_FACTOR(loop_factor)],
         variant_stimuli=StimuliConfig(
             None,
             formats.input_format,
