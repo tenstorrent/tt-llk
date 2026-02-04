@@ -271,9 +271,6 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
         }
             .set(ADDR_MOD_7);
 
-        // Reset Dst to 0.
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
-
         // Single replay of 16 instructions = 8 LM + 8 SHFT2 (2 dummy + 6 real).
         lltt::replay(0, 16);
 
@@ -301,9 +298,6 @@ void _calculate_exponential_(const uint16_t exp_base_scale_factor /* 1.0f in BF1
             .dest = {.incr = 2},
         }
             .set(ADDR_MOD_7);
-
-        // Reset Dst to 0.
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_D);
 
         // 2 replays of 32 instructions = 32 LM + 32 SHFT2 (2 dummy + 30 real).
         lltt::replay(0, 32);
