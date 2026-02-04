@@ -119,7 +119,7 @@ class FusedCompute:
             )
 
         if self.fpu is not None:
-            tensor_dst = self.fpu.golden(
+            tensor_a, tensor_b, tensor_dst = self.fpu.golden(
                 tensor_a, tensor_b, tensor_dst, operation, config, self
             )
 
@@ -469,8 +469,8 @@ class Fpu:
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "FusedCompute",
-    ) -> torch.Tensor:
-        return torch.Tensor()
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        return (tensor_a, tensor_b, tensor_dst)
 
     def get_headers(self) -> List[str]:
         return []
@@ -499,7 +499,7 @@ class MatmulFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "FusedCompute",
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         output_format = operation.output.data_format
         math_fidelity = operation.math_fidelity
 
@@ -513,7 +513,8 @@ class MatmulFpu(Fpu):
             input_B_dimensions=operation.src_b.dimensions,
             tilize=False,
         )
-        return golden
+
+        return (tensor_a, tensor_b, golden)
 
     def init(
         self,
@@ -598,7 +599,7 @@ class EltwiseFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "FusedCompute",
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         output_format = operation.output.data_format
         math_fidelity = operation.math_fidelity
 
@@ -613,7 +614,7 @@ class EltwiseFpu(Fpu):
         ):
             return tensor_dst + golden_tensor
 
-        return golden_tensor
+        return (tensor_a, tensor_b, golden_tensor)
 
     def init(
         self,
@@ -695,7 +696,7 @@ class ReduceFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "FusedCompute",
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         output_format = operation.output.data_format
         dimensions = operation.max_output_dimensions
         tile_cnt = (dimensions[0] * dimensions[1]) // 1024
@@ -704,22 +705,47 @@ class ReduceFpu(Fpu):
         reduce_dim = self.reduce_dim_golden()
         pool_type = self.pool
 
-        tensor_a = tilize_block(
+        src_a_reduced_tensor = tilize_block(
             tensor_a, dimensions, output_format, num_faces
         ).flatten()
 
         generate_golden = get_golden_generator(ReduceGolden)
-        golden_tensor = generate_golden(
-            tensor_a,
+        src_a_reduced_tensor = generate_golden(
+            src_a_reduced_tensor,
             reduce_dim,
             pool_type,
             output_format,
             tile_cnt=tile_cnt,
         ).flatten()
 
+        dest_golden_tensor = tilize_block(
+            tensor_dst, dimensions, output_format, num_faces
+        ).flatten()
+
+        generate_golden = get_golden_generator(ReduceGolden)
+        dest_golden_tensor = generate_golden(
+            dest_golden_tensor,
+            reduce_dim,
+            pool_type,
+            output_format,
+            tile_cnt=tile_cnt,
+        ).flatten()
+
+        golden_tensor = torch.zeros(tile_cnt * 1024)
+
+        for i in range(tile_cnt * 1024):
+            if self.pool == ReducePool.Max:
+                golden_tensor[i] = max(src_a_reduced_tensor[i], dest_golden_tensor[i])
+            if self.pool == ReducePool.Sum:
+                golden_tensor[i] = src_a_reduced_tensor[i] + dest_golden_tensor[i]
+            if self.pool == ReducePool.Average:
+                golden_tensor[i] = (
+                    src_a_reduced_tensor[i] * 32 + dest_golden_tensor[i]
+                ) / 32
+
         golden_tensor = untilize_block(golden_tensor, output_format, dimensions)
 
-        return golden_tensor.flatten()
+        return (tensor_a, tensor_b, golden_tensor)
 
     def init(
         self,
@@ -796,7 +822,7 @@ class DatacopyFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "FusedCompute",
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if compute_unit.broadcast_type != BroadcastType.None_:
             source_tensor = tensor_b
         else:
@@ -811,7 +837,7 @@ class DatacopyFpu(Fpu):
             face_r_dim=operation.face_r_dim,
         )
 
-        return golden_tensor
+        return (tensor_a, tensor_b, golden_tensor)
 
     def init(
         self,

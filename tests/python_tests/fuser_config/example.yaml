@@ -69,7 +69,7 @@ operations:
     src_a_dims: [64, 64]
     src_b_dims: [64, 64]
     output_dims: [64, 64]
-    src_b_const_value: 1.0
+    src_b_const_value: 1.0 # 0.03125 for Reduce Average
     input_format: "Float16_b"
     output_format: "Float16_b"
     unpacker: "UnpackerAB"
@@ -79,9 +79,13 @@ operations:
         reduce_pool: "Max"
         unpacker: "UnpackerAB"
       - type: "Fpu"
-        operation: "ReduceRow"
-        reduce_pool: "Max"
+        operation: "ReduceColumn"
+        reduce_pool: "Sum"
         unpacker: "UnpackerAB"
+      # - type: "Fpu"
+      #   operation: "ReduceColumn"
+      #   reduce_pool: "Average"
+      #   unpacker: "UnpackerAB"
       - type: "BinarySfpu"
         operation: "SfpuElwadd"
         approximation_mode: "No"
