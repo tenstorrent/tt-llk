@@ -99,8 +99,6 @@ def set_worker_location(workers_tensix_coordinates):
     """
     TestConfig.CURRENT_WORKER_LOCATION = workers_tensix_coordinates
     yield
-    # Reset to default after test (optional, for safety)
-    TestConfig.CURRENT_WORKER_LOCATION = "0,0"
 
 
 @pytest.fixture
