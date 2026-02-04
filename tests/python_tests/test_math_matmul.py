@@ -22,7 +22,7 @@ from helpers.llk_params import (
 from helpers.matmul_sweep import sweep_matmul, sweep_tiny_tiles_matmul
 from helpers.param_config import input_output_formats
 from helpers.stimuli_config import StimuliConfig
-from helpers.stimuli_generator import generate_face_matmul_data
+from helpers.stimuli_generator import convert_to_l1_view, generate_face_matmul_data
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     CRK_TILE_DIMM,
@@ -45,8 +45,8 @@ from helpers.utils import passed_test
 MATMUL_FORMATS = input_output_formats(
     [
         DataFormat.Float16_b,
-        # DataFormat.Float16,
-        # DataFormat.Float32,
+        DataFormat.Float16,
+        DataFormat.Float32,
     ]
 )
 DEST_ACC_MODES = [DestAccumulation.No]
@@ -54,9 +54,9 @@ DEST_SYNC_MODES = [DestSync.Full]
 STOCHASTIC_ROUNDING_MODES = [StochasticRounding.No]
 MATH_FIDELITIES = [
     MathFidelity.LoFi,
-    # MathFidelity.HiFi2,
-    # MathFidelity.HiFi3,
-    # MathFidelity.HiFi4,
+    MathFidelity.HiFi2,
+    MathFidelity.HiFi3,
+    MathFidelity.HiFi4,
 ]
 MATMUL_COMBINATIONS = sweep_matmul(
     MATMUL_FORMATS,
@@ -77,12 +77,12 @@ TINY_TILES_MATMUL_COMBINATIONS = sweep_tiny_tiles_matmul(
 ALL_TEST_PARAMS = list(
     chain(
         # Regular matmul with all throttle levels
-        # (
-        #     (fidelity, combinations, throttle)
-        #     for fidelity, combinations, throttle in product(
-        #         MATH_FIDELITIES, MATMUL_COMBINATIONS, [1, 2, 3, 4, 5]
-        #     )
-        # ),
+        (
+            (fidelity, combinations, throttle)
+            for fidelity, combinations, throttle in product(
+                MATH_FIDELITIES, MATMUL_COMBINATIONS, [1, 2, 3, 4, 5]
+            )
+        ),
         # Tiny tiles matmul with throttle level 1 only
         (
             (fidelity, combinations, 0)
@@ -114,7 +114,7 @@ def test_math_matmul(
         num_faces=num_faces_in0,
         stimuli_format=formats.input_format,
         input_dimensions=in0_dimensions,  # This will generate the right number of tiles
-        is_matrix_A=True,  # matrix A (In0/SrcB) uses f0,f2 for 2-face mode
+        is_matrix_A=True,  # matrix A (In0/SrcB) uses f0,f1 for 2-face mode
         face_r_dim=(
             matmul_config.tile_dimensions.in0_tile_r_dim
             if matmul_config.tile_dimensions.in0_tile_r_dim < 16
@@ -126,13 +126,8 @@ def test_math_matmul(
         num_faces=num_faces_in1,
         stimuli_format=formats.input_format,
         input_dimensions=in1_dimensions,  # This will generate the right number of tiles
-        is_matrix_A=False,  # matrix B (In1/SrcA) uses f0,f1 for 2-face mode
+        is_matrix_A=False,  # matrix B (In1/SrcA) uses f0,f2 for 2-face mode
     )
-
-    # print("in0:")
-    # print(in0.view(32, 32))
-    # print("in1:")
-    # print(in1.view(32, 32))
 
     in1_golden = in1
     if transpose == Transpose.Yes:
@@ -170,6 +165,10 @@ def test_math_matmul(
     tilized_in1 = tilize_block(
         in1, dimensions=in1_dimensions, stimuli_format=formats.input_format
     )
+    tilized_in0_l1_view = convert_to_l1_view(tilized_in0, num_faces_in0, in0_dimensions)
+    tilized_in1_l1_view = convert_to_l1_view(
+        tilized_in1, num_faces_in1, in1_dimensions, is_matrix_A=False
+    )
 
     configuration = TestConfig(
         "sources/math_matmul_test.cpp",
@@ -206,9 +205,9 @@ def test_math_matmul(
             DEST_INDEX(matmul_config.dst_index),
         ],
         variant_stimuli=StimuliConfig(
-            tilized_in0.flatten(),
+            tilized_in0_l1_view.flatten(),
             formats.input_format,
-            tilized_in1.flatten(),
+            tilized_in1_l1_view.flatten(),
             formats.input_format,
             formats.output_format,
             tile_count_A=matmul_config.tile_dimensions.tile_cnt_in0,
@@ -226,9 +225,9 @@ def test_math_matmul(
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     # print("golden_tensor:")
-    # print(golden_tensor.view(32, 32))
+    # print_faces(golden_tensor)
     # print("res_tensor:")
-    # print(res_tensor.view(32, 32))
+    # print_faces(res_tensor)
     if num_faces < 4:
         # Only compare the active faces in each tile since that's what the hardware processes
         num_elements_per_tile = num_faces * 256  # Each face is 16x16 = 256 elements
