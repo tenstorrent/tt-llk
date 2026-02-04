@@ -24,8 +24,8 @@ using namespace ckernel::unpacker;
 // Reconfig behaviour for dim and stride
 enum class p_dim_stride_target
 {
-    IGNORE,
-    FACE_ROW_MAJOR
+    IGNORE,        // Do not modify dim/stride
+    FACE_ROW_MAJOR // Set dim/stride for unpacking face in row major format
 };
 
 // This function stores a value to memory, and then immediately reads it back.
@@ -133,7 +133,7 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
         static_assert(is_fp32_dest_acc_en, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");
         cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcBUnsigned_RMW>((unpack_src_format == to_underlying(DataFormat::UInt8)) ? 1 : 0);
     }
-    cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32, 0, 0x0f>(unpack_src_format);
+    cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32, 0, 0x0f>(unpack_src_format);
     cfg_reg_rmw_tensix<THCON_SEC1_REG2_Out_data_format_RMW>(unpack_dst_format);
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_B)); // update gpr which holds tile size B
 
