@@ -282,6 +282,20 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr bool PARTIAL_FACE_PACK = {partial_face_A};")
     header_content.append(f"constexpr bool PARTIAL_FACE_MATH = {partial_face_B};")
 
+    # Packer/Out related configs
+    out_tile_r_dim = test_config.get("out_tile_r_dim", 32)
+    out_tile_c_dim = test_config.get("out_tile_c_dim", 32)
+    header_content.append(f"constexpr int OUT_TILE_R_DIM = {out_tile_r_dim};")
+    header_content.append(f"constexpr int OUT_TILE_C_DIM = {out_tile_c_dim};")
+    out_face_r_dim = test_config.get("out_face_r_dim", 16)
+    header_content.append(f"constexpr int OUT_FACE_R_DIM = {out_face_r_dim};")
+    num_faces_out = test_config.get("num_faces_out", 4)
+    header_content.append(f"constexpr int NUM_FACES_OUT = {num_faces_out};")
+    partial_face_out = str(test_config.get("partial_face_out", False)).lower()
+    header_content.append(f"constexpr bool PARTIAL_FACE_OUT = {partial_face_out};")
+    narrow_tile_out = str(test_config.get("narrow_tile_out", False)).lower()
+    header_content.append(f"constexpr bool NARROW_TILE_OUT = {narrow_tile_out};")
+
     # Number of faces - support separate configurations for A and B
     num_faces = test_config.get("num_faces", 4)
     num_faces_A = test_config.get("num_faces_A", test_config.get("num_faces", 4))
@@ -299,6 +313,14 @@ def generate_build_header(test_config):
     header_content.append(f"constexpr int in0_tile_c_dim = {in0_tile_c_dim};")
     header_content.append(f"constexpr int in1_tile_r_dim = {in1_tile_r_dim};")
     header_content.append(f"constexpr int in1_tile_c_dim = {in1_tile_c_dim};")
+
+    unpA_face_r_dim = test_config.get("unpack_A_face_r_dim", 16)
+    unpB_face_r_dim = test_config.get("unpack_B_face_r_dim", 16)
+    header_content.append(f"constexpr int UNP_A_FACE_R_DIM = {unpA_face_r_dim};")
+    header_content.append(f"constexpr int UNP_B_FACE_R_DIM = {unpB_face_r_dim};")
+
+    partial_face_math = str(test_config.get("partial_face_math", False)).lower()
+    header_content.append(f"constexpr bool PARTIAL_FACE_MATH_OP = {partial_face_math};")
 
     # face dimensions - use TEST_ prefix to avoid namespace collision with ckernel::FACE_R_DIM
     face_r_dim = test_config.get("face_r_dim", 16)
@@ -319,13 +341,30 @@ def generate_build_header(test_config):
         # face_r_dim is now generated directly as TEST_FACE_R_DIM above
 
         pack_size = TILE_SIZES.get(formats.output_format, 128)
-        unpack_size_a = TILE_SIZES.get(formats.input_format, 128)
-        unpack_size_b = TILE_SIZES.get(formats.input_format, 128)
+        unpack_size_a = TILE_SIZES.get(
+            (
+                formats.unpack_A_src
+                if hasattr(formats, "unpack_A_src")
+                else formats.input_format
+            ),
+            128,
+        )
+        unpack_size_b = TILE_SIZES.get(
+            (
+                formats.unpack_B_src
+                if hasattr(formats, "unpack_B_src")
+                else formats.input_format
+            ),
+            128,
+        )
 
         if tiny_tiles:
             pack_size = (pack_size // num_faces) * (in0_tile_r_dim // face_r_dim)
             unpack_size_a = (unpack_size_a // num_faces_A) * (
                 in0_tile_r_dim // face_r_dim
+            )
+            unpack_size_b = (unpack_size_b // num_faces_B) * (
+                in1_tile_r_dim // face_r_dim
             )
 
         header_content.append(f"constexpr std::uint32_t TILE_SIZE_PACK = {pack_size};")

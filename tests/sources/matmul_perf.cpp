@@ -37,14 +37,15 @@ void run_kernel()
             formats.unpack_A_src,
             formats.unpack_B_dst,
             formats.unpack_A_dst,
-            FACE_R_DIM,
-            FACE_R_DIM,
+            UNP_B_FACE_R_DIM,
+            UNP_A_FACE_R_DIM,
             /* transpose within face */ false,
-            TILE_NUM_FACES,
-            TILE_NUM_FACES,
-            TILE_SIZE_UNPACK_A,
-            TILE_SIZE_UNPACK_B);
-        _llk_unpack_AB_matmul_init_<>(UNPACK_TRANSPOSE_FACES, CT_DIM, RT_DIM, KT_DIM, FACE_R_DIM, FACE_R_DIM, TILE_NUM_FACES, TILE_NUM_FACES);
+            num_faces_B,
+            num_faces_A,
+            TILE_SIZE_UNPACK_B,
+            TILE_SIZE_UNPACK_A);
+        _llk_unpack_AB_matmul_init_<>(
+            UNPACK_TRANSPOSE_FACES, CT_DIM, RT_DIM, KT_DIM, UNP_B_FACE_R_DIM, UNP_A_FACE_R_DIM, num_faces_B, num_faces_A, PARTIAL_FACE_B, PARTIAL_FACE_A);
         PROFILER_SYNC();
     }
     {
@@ -70,8 +71,8 @@ void run_kernel()
                         j * CT_DIM,
                         TILE_SIZE_UNPACK_A,
                         TILE_SIZE_UNPACK_B,
-                        /* partial face */ false,
-                        /* partial face */ false,
+                        /* partial face */ PARTIAL_FACE_B,
+                        /* partial face */ PARTIAL_FACE_A,
                         CT_DIM,
                         RT_DIM,
                         KT_DIM);
@@ -93,14 +94,14 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_math_hw_configure_<false, false>(formats.unpack_B_dst, formats.unpack_A_dst);
+        _llk_math_hw_configure_<false, false>(formats.unpack_A_dst, formats.unpack_B_dst);
         _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
         _llk_math_matmul_init_<MATH_FIDELITY, DstTileFaceLayout::RowMajor, THROTTLE_LEVEL>(
-            /* tile A */ TILE_R_DIM,
-            /* tile A */ TILE_C_DIM,
-            /* tile B */ TILE_R_DIM,
-            /* tile B */ TILE_C_DIM,
-            /* partial face */ false,
+            /* tile A */ in0_tile_r_dim,
+            /* tile A */ in0_tile_c_dim,
+            /* tile B */ in1_tile_r_dim,
+            /* tile B */ in1_tile_c_dim,
+            /* partial face */ PARTIAL_FACE_MATH_OP,
             /* transpose */ false,
             CT_DIM,
             RT_DIM);
@@ -156,12 +157,24 @@ void run_kernel()
 {
     {
         ZONE_SCOPED("INIT")
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_C_DIM * TILE_R_DIM);
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(
+            /* pack_src_format */ formats.pack_src,
+            /* pack_dst_format */ formats.pack_dst,
+            /* tile_size */ OUT_TILE_R_DIM * OUT_TILE_C_DIM,
+            /* face_r_dim */ OUT_FACE_R_DIM,
+            /* num_faces */ NUM_FACES_OUT,
+            /* partial_face */ PARTIAL_FACE_OUT,
+            /* narrow_tile */ NARROW_TILE_OUT);
         _llk_pack_init_<
             /* untilize */ false,
             /* zero_output */ false,
             DstTileFaceLayout::RowMajor,
-            /* write_tile_header */ false>(formats.pack_dst);
+            /* write_tile_header */ false>(
+            /* pack_dst_format */ formats.pack_dst,
+            /* face_r_dim */ OUT_FACE_R_DIM,
+            /* num_faces */ NUM_FACES_OUT,
+            /* partial_face */ PARTIAL_FACE_OUT,
+            /* narrow_tile */ NARROW_TILE_OUT);
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         PROFILER_SYNC();
     }
