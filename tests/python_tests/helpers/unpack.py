@@ -8,7 +8,8 @@ import numpy as np
 import torch
 from helpers.format_config import MXFP8_BLOCK_SIZE, DataFormat
 
-from .llk_params import format_dict, format_tile_sizes
+from .llk_params import format_dict
+from .tile_constants import MIN_BFP_EXPONENTS
 
 
 def unpack_fp16(packed_list):
@@ -84,12 +85,20 @@ def bfp8_to_float_block(exponent, bfp8_mantissas, unpacked_bfp8):
     return bfloat16_values
 
 
-def unpack_bfp8_b(bfp8_block, sfpu=False, num_faces=4):
+def unpack_bfp8_b(bfp8_block, sfpu=False, num_faces=4, face_r_dim=16):
+    # Each BFP8 block is 16 elements with 1 shared exponent
+    # Elements per face = face_r_dim * 16, so blocks per face = face_r_dim
+    actual_exponents = face_r_dim * num_faces
 
-    exponents_per_face = 16
+    # Hardware requires minimum exponents for both unpacker and packer
+    exponents_in_packed = max(actual_exponents, MIN_BFP_EXPONENTS)
+
     if not sfpu:
-        exponents = bfp8_block[: exponents_per_face * num_faces]
-        mantissas = bfp8_block[exponents_per_face * num_faces :]
+        # Read all exponents (including any padding)
+        all_exponents = bfp8_block[:exponents_in_packed]
+        mantissas = bfp8_block[exponents_in_packed:]
+        # Only use the actual exponents (not padding)
+        exponents = all_exponents[:actual_exponents]
     else:
         exponents = bfp8_block[:16]
         mantissas = bfp8_block[16:272]
@@ -207,15 +216,18 @@ def unpack_res_tiles(
 ):
     output_dtype = format_dict[output_format]
 
-    # Calculate tile size and determine elements per tile needed
-    tile_size = format_tile_sizes[output_format]  # Full tile size in bytes
+    # Calculate actual tile size in bytes based on face dimensions
+    # For BFP formats, hardware requires minimum exponents for both unpacker and packer
+    tile_elements = num_faces * face_r_dim * 16
+    if output_format in (DataFormat.Bfp8, DataFormat.Bfp8_b):
+        actual_exponents = tile_elements // 16
+        total_exponents = max(actual_exponents, MIN_BFP_EXPONENTS)
+        tile_size_bytes = total_exponents + tile_elements
+    else:
+        tile_size_bytes = output_format.num_bytes_per_tile(tile_elements)
 
-    elements_per_tile_needed = output_format.num_bytes_per_tile(
-        num_faces * face_r_dim * 16
-    )
-
-    total_elements_needed = tile_count * elements_per_tile_needed
-    if total_elements_needed > len(packed_list):
+    total_bytes_needed = tile_count * tile_size_bytes
+    if total_bytes_needed > len(packed_list):
         raise IndexError("Buffer access out of bounds")
 
     if output_format == DataFormat.Bfp8_b:
@@ -229,15 +241,16 @@ def unpack_res_tiles(
 
     unpacked_data = []
 
-    # Write only values from the selected faces into unpacked_tile
+    # Unpack each tile - stride between tiles is tile_size_bytes
     for tile in range(tile_count):
-        # Both paths use byte-based indexing since tile_size and elements_per_tile_needed are in bytes
-        start_idx = tile * tile_size
-        end_idx = start_idx + elements_per_tile_needed
+        start_idx = tile * tile_size_bytes
+        end_idx = start_idx + tile_size_bytes
         tile_data = packed_list[start_idx:end_idx]
 
         if unpack_func == unpack_bfp8_b:
-            unpacked_tile = unpack_func(tile_data, sfpu=sfpu, num_faces=num_faces)
+            unpacked_tile = unpack_func(
+                tile_data, sfpu=sfpu, num_faces=num_faces, face_r_dim=face_r_dim
+            )
         elif unpack_func in [unpack_mxfp8r, unpack_mxfp8p]:
             unpacked_tile = unpack_func(tile_data, num_faces=num_faces)
         else:

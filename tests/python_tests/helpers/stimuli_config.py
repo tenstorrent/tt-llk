@@ -23,6 +23,7 @@ from .pack import (
     pack_uint16,
     pack_uint32,
 )
+from .tile_constants import FACE_C_DIM, MAX_TILE_ELEMENTS, calculate_tile_size_bytes
 from .unpack import (
     unpack_res_tiles,
 )
@@ -32,9 +33,6 @@ class StimuliConfig:
 
     # === STATIC VARIABLES ===
     STIMULI_L1_ADDRESS = 0x65000
-
-    # Full tile elements (always 1024 for a 32x32 tile)
-    TILE_ELEMENTS = 1024
 
     def __init__(
         self,
@@ -74,16 +72,22 @@ class StimuliConfig:
         self.sfpu = sfpu
         self.write_full_tiles = write_full_tiles
 
-        # Stimuli addresses calculation - ALWAYS use full tile sizes for address spacing
-        # Hardware expects full tile alignment regardless of num_faces
-        self.tile_size_A_bytes = format_tile_sizes[self.stimuli_A_format]
-        self.tile_size_B_bytes = format_tile_sizes[self.stimuli_B_format]
+        # Stimuli addresses calculation
+        # Use actual tile size based on tile_dimensions for memory-efficient allocation
+        self.tile_size_A_bytes = calculate_tile_size_bytes(
+            self.stimuli_A_format, self.tile_dimensions, format_tile_sizes
+        )
+        self.tile_size_B_bytes = calculate_tile_size_bytes(
+            self.stimuli_B_format, self.tile_dimensions, format_tile_sizes
+        )
 
         self.buf_a_addr = StimuliConfig.STIMULI_L1_ADDRESS
         self.buf_b_addr = self.buf_a_addr + self.tile_size_A_bytes * self.tile_count_A
 
         if self.buffer_C is not None:
-            self.tile_size_C_bytes = format_tile_sizes[self.stimuli_C_format]
+            self.tile_size_C_bytes = calculate_tile_size_bytes(
+                self.stimuli_C_format, self.tile_dimensions, format_tile_sizes
+            )
             self.buf_c_addr = (
                 self.buf_b_addr + self.tile_size_B_bytes * self.tile_count_B
             )
@@ -96,29 +100,35 @@ class StimuliConfig:
             )
 
     def generate_stimuli_header_addresses(self, formats) -> list[str]:
-        buf_a_format = format_tile_sizes[
-            DataFormat.Float16_b if formats is None else formats.input_format
-        ]
-        buf_b_format = format_tile_sizes[
-            DataFormat.Float16_b if formats is None else formats.input_format
-        ]
-        buf_res_format = format_tile_sizes[
+        # Use actual tile sizes based on tile_dimensions
+        input_format = DataFormat.Float16_b if formats is None else formats.input_format
+        output_format = (
             DataFormat.Float16_b if formats is None else formats.output_format
-        ]
+        )
+
+        buf_a_tile_size = calculate_tile_size_bytes(
+            input_format, self.tile_dimensions, format_tile_sizes
+        )
+        buf_b_tile_size = calculate_tile_size_bytes(
+            input_format, self.tile_dimensions, format_tile_sizes
+        )
+        buf_res_tile_size = calculate_tile_size_bytes(
+            output_format, self.tile_dimensions, format_tile_sizes
+        )
 
         lines: list[str] = [
-            f"constexpr Operand buffer_A({hex(self.buf_a_addr)}, {buf_a_format});",
-            f"constexpr Operand buffer_B({hex(self.buf_b_addr)}, {buf_b_format});",
-            f"constexpr Operand buffer_Res({hex(self.buf_res_addr)}, {buf_res_format});",
+            f"constexpr Operand buffer_A({hex(self.buf_a_addr)}, {buf_a_tile_size});",
+            f"constexpr Operand buffer_B({hex(self.buf_b_addr)}, {buf_b_tile_size});",
+            f"constexpr Operand buffer_Res({hex(self.buf_res_addr)}, {buf_res_tile_size});",
         ]
 
         if self.buffer_C is not None:
-            buf_c_format = format_tile_sizes[
-                DataFormat.Float16_b if formats is None else formats.input_format
-            ]
+            buf_c_tile_size = calculate_tile_size_bytes(
+                input_format, self.tile_dimensions, format_tile_sizes
+            )
 
             lines.append(
-                f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {buf_c_format});"
+                f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {buf_c_tile_size});"
             )
 
         return lines
@@ -155,25 +165,24 @@ class StimuliConfig:
         addresses = []
         packed_data_list = []
 
-        # Full tile size (1024 elements for 32x32 tiles)
-        FULL_TILE_ELEMENTS = StimuliConfig.TILE_ELEMENTS
-
         # Elements to pack per tile:
-        # - For tilize tests (write_full_tiles=True): write all 1024 elements
+        # - For tilize tests (write_full_tiles=True): write all MAX_TILE_ELEMENTS (1024)
         # - For other tests: write only the faces we care about
         if write_full_tiles:
-            tile_elements = FULL_TILE_ELEMENTS
+            tile_elements = MAX_TILE_ELEMENTS
         else:
-            tile_elements = num_faces * face_r_dim * 16
+            tile_elements = num_faces * face_r_dim * FACE_C_DIM
 
         pack_function_lambda = lambda buffer_tile: (
-            pack_function(buffer_tile, num_faces=num_faces)
+            pack_function(buffer_tile, num_faces=num_faces, face_r_dim=face_r_dim)
             if pack_function in [pack_bfp8_b, pack_mxfp8r, pack_mxfp8p]
             else pack_function(buffer_tile)
         )
 
         for ind in range(tile_count):
-            start_idx = FULL_TILE_ELEMENTS * ind
+            # Stride through buffer by tile_elements (not hardcoded 1024)
+            # This allows proper handling of non-32x32 tiles
+            start_idx = tile_elements * ind
             tile_data = buffer[start_idx : start_idx + tile_elements]
             packed_data = pack_function_lambda(tile_data)
             addresses.append(base_address + ind * tile_size)
@@ -234,11 +243,11 @@ class StimuliConfig:
             )
 
     def collect_results(self, location="0,0"):
-        # Always read full tiles - hardware still outputs full tile data
-        # but with variable face dimensions, only part of it is valid
-        read_bytes_cnt = (
-            format_tile_sizes[self.stimuli_res_format] * self.tile_count_res
+        # Read tiles based on actual tile dimensions
+        tile_size_res_bytes = calculate_tile_size_bytes(
+            self.stimuli_res_format, self.tile_dimensions, format_tile_sizes
         )
+        read_bytes_cnt = tile_size_res_bytes * self.tile_count_res
 
         read_data = read_from_device(
             location, self.buf_res_addr, num_bytes=read_bytes_cnt
