@@ -562,7 +562,6 @@ class UnpackerTilizeA(Unpacker):
         compute_unit: "FusedCompute",
         tile_idx_expr: str,
     ) -> str:
-        """Generate unpack code for a single tile."""
         stage = operation.stage_id
         face_r_dim = operation.face_r_dim
         num_faces = operation.num_faces

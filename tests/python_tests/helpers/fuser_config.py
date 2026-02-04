@@ -92,6 +92,14 @@ class FuserConfig:
 
             operation.batch_size = min(operation.batch_size, output_tile_count)
 
+            if (
+                self.global_config.architecture == ChipArchitecture.BLACKHOLE
+                and operation.math.bh_unpack_tilize_check()
+            ):
+                raise ValueError(
+                    "Cannot fuse UnpackerTilizeA and other unpackers inside one l1-to-l1 run on Blackhole"
+                )
+
     def run(self, worker_id="master", location="0,0", run_count=2):
         from .fused_generator import FUSED_TESTS_DIR, FusedKernelGenerator
         from .fused_golden import FusedGolden

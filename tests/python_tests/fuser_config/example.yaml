@@ -39,7 +39,6 @@ operations:
     output_dims: [64, 64]
     input_format: "Float16_b"
     output_format: "Float16_b"
-    unpacker: "UnpackerTilizeA"
     math:
       - type: "Fpu"
         operation: "Datacopy"
@@ -72,7 +71,6 @@ operations:
     src_b_const_value: 1.0 # 0.03125 for Reduce Average
     input_format: "Float16_b"
     output_format: "Float16_b"
-    unpacker: "UnpackerAB"
     math:
       - type: "Fpu"
         operation: "ReduceColumn"
@@ -105,7 +103,6 @@ operations:
     output_dims: [64, 64]
     input_format: "Float16_b"
     output_format: "Float16_b"
-    unpacker: "UnpackerAB"
     math:
       - type: "Fpu"
         operation: "Elwadd"
