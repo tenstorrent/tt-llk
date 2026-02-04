@@ -263,7 +263,7 @@ inline void eltwise_unary_configure_mop(uint rows_per_inst, uint total_rows, con
         uint innerloop = (rows_per_inst == p_mova2d::MOV_1_ROW) ? total_rows : (total_rows >> 3);
         uint outerloop = num_faces;
 
-        if(unpack_to_dest && is_fp32_dest_acc_en && !is_32bit_input(dst_format, dst_format) && !(dst_format == (uint)DataFormat::UInt16)){
+        if(unpack_to_dest && is_fp32_dest_acc_en && !is_32bit_input(dst_format, dst_format) && dst_format != (uint)DataFormat::UInt16){
             ckernel_template tmp(outerloop, innerloop, TT_OP_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0));
             tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB));
             tmp.program();
@@ -360,7 +360,7 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     eltwise_unary_configure_addrmod<type, src_b_bcast_type>(dst_format);
-    if (is_fp32_dest_acc_en)
+    if (is_fp32_dest_acc_en || unpack_to_dest)
     {
         _llk_math_dbg_feature_disable_();
     }
