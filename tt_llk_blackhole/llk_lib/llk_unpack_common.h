@@ -103,7 +103,7 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
         uint unpack_ch1_x_stride = (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
                                    : (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
                                                                                                   : 1;
-        uint unpack_ch1_z_stride = FACE_C_DIM * unpack_face_r_dim * unpack_ch1_x_stride;
+        uint unpack_ch1_z_stride = FACE_C_DIM * FACE_R_DIM * unpack_ch1_x_stride;
         cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(unpack_ch1_z_stride);
 
         // Set Z-dim to number of faces
@@ -147,7 +147,7 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
         uint unpack_ch1_x_stride = (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
                                    : (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
                                                                                                   : 1;
-        uint unpack_ch1_z_stride = FACE_C_DIM * unpack_face_r_dim * unpack_ch1_x_stride;
+        uint unpack_ch1_z_stride = FACE_C_DIM * FACE_R_DIM * unpack_ch1_x_stride;
         cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(unpack_ch1_z_stride);
 
         // Set X-dim to face_r_dim * FACE_C_DIM
