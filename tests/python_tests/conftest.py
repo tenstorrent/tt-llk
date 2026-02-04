@@ -90,6 +90,19 @@ def workers_tensix_coordinates(worker_id):
     return f"{row},{col}"
 
 
+@pytest.fixture(autouse=True)
+def set_worker_location(workers_tensix_coordinates):
+    """Auto-inject worker location into TestConfig for all tests.
+
+    This ensures each pytest-xdist worker uses its assigned tensix core,
+    even if tests don't explicitly pass workers_tensix_coordinates.
+    """
+    TestConfig.CURRENT_WORKER_LOCATION = workers_tensix_coordinates
+    yield
+    # Reset to default after test (optional, for safety)
+    TestConfig.CURRENT_WORKER_LOCATION = "0,0"
+
+
 @pytest.fixture
 def regenerate_cpp(request):
     return not request.config.getoption("--skip-codegen")

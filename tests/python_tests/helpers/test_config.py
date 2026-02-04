@@ -885,7 +885,12 @@ class TestConfig:
     BRISC_ELF_LOADED: ClassVar[bool] = False
     PROFILER_BRISC_ELF_LOADED: ClassVar[bool] = False
 
-    def run_elf_files(self, location="0,0") -> list:
+    # Worker location for parallel test execution - set by autouse fixture
+    CURRENT_WORKER_LOCATION: ClassVar[str] = "0,0"
+
+    def run_elf_files(self, location: str = None) -> list:
+        if location is None:
+            location = TestConfig.CURRENT_WORKER_LOCATION
         boot_mode = (
             CHIP_DEFAULT_BOOT_MODES[TestConfig.CHIP_ARCH]
             if self.boot_mode == BootMode.DEFAULT
@@ -1005,7 +1010,10 @@ class TestConfig:
 
         return elfs
 
-    def run(self, location="0,0", delete_artefacts: bool = False):
+    def run(self, location: str = None, delete_artefacts: bool = False):
+        if location is None:
+            location = TestConfig.CURRENT_WORKER_LOCATION
+
         self.generate_variant_hash()
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
             self.build_elfs()

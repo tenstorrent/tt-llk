@@ -92,9 +92,12 @@ class FuserConfig:
 
             operation.batch_size = min(operation.batch_size, output_tile_count)
 
-    def run(self, worker_id="master", location="0,0", run_count=2):
+    def run(self, worker_id="master", location: str = None, run_count=2):
         from .fused_generator import FUSED_TESTS_DIR, FusedKernelGenerator
         from .fused_golden import FusedGolden
+
+        if location is None:
+            location = TestConfig.CURRENT_WORKER_LOCATION
 
         write_pipeline_operands_to_l1(self.pipeline)
 
