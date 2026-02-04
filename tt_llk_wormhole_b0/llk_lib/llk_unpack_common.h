@@ -88,7 +88,7 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
     uint unpack_ch1_x_stride = (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
                                : (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
                                                                                               : 1;
-    uint unpack_ch1_z_stride = FACE_C_DIM * FACE_R_DIM * unpack_ch1_x_stride;
+    uint unpack_ch1_z_stride = unpack_face_r_dim * FACE_C_DIM * unpack_ch1_x_stride;
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(unpack_ch1_z_stride);
 
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32, 0, 0x0f>(unpack_src_format);
@@ -96,8 +96,6 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 0, 0xffff0000>(0 | (unpack_num_faces << 16));
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Out_data_format_RMW>(unpack_dst_format);
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_A)); // update gpr which holds tile size A
-
-    TT_SETADCXX(p_setadc::UNP_A, (unpack_face_r_dim << 4) - 1, 0x0);
 
     // Program unpacker0 per context x_dim (face size in l1)
     // Overrides value set by tile descriptor when thread override bit is set in unpack instruction
@@ -125,7 +123,7 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     uint unpack_ch1_x_stride = (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
                                : (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
                                                                                               : 1;
-    uint unpack_ch1_z_stride = FACE_C_DIM * FACE_R_DIM * unpack_ch1_x_stride;
+    uint unpack_ch1_z_stride = unpack_face_r_dim * FACE_C_DIM * unpack_ch1_x_stride;
     cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(unpack_ch1_z_stride);
 
     // Set source format and set X-dim to face_r_dim * FACE_C_DIM
@@ -135,8 +133,6 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
 
     cfg_reg_rmw_tensix<THCON_SEC1_REG2_Out_data_format_RMW>(unpack_dst_format);
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_B)); // update gpr which holds tile size B
-
-    TT_SETADCXX(p_setadc::UNP_B, (unpack_face_r_dim << 4) - 1, 0x0);
 }
 
 // TODO NC: Remove as a part of tt-metal#36411
