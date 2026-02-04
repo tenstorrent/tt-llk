@@ -44,34 +44,49 @@ uint32_t math_sync_tile_dst_index = 0;
 #ifdef LLK_TRISC_UNPACK
 #include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
+#include "llk_unpack_tilize.h"
 #include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    // We treat input as generic unary SFPU stimuli: tiles in L1 → SRC_A.
-    // Format selection comes from `formats` / params, same as other SFPU tests.
-    //
-    // This does *not* know anything about TopK indices; it just moves raw data.
-
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
 
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-        /* src_index_base */ 0,
-        /* dst_index_base */ 0,
+        /* transpose_of_faces */ 1,
+        /* within_face_16x16_transpose */ 1,
         /* face_r_dim     */ FACE_R_DIM,
         /* num_faces      */ 4,
         formats.unpack_src,
         formats.unpack_dst);
 
-    // Unpack all tiles from L1 buffer_A[i] to SRC_A (or DEST if unpack_to_dest)
+    // Unpack all tiles from L1 buffer_A[i] to SRC_A (or DEST if unpack_to_dest) with transpose
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
     }
+
+    // _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+    //     formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
+    // _llk_unpack_tilize_init_(formats.unpack_src, formats.unpack_dst, BLOCK_CT_DIM, FACE_R_DIM, false);
+
+    // uint32_t read_offset = 0;
+
+    // const std::uint32_t block_ct_dim = is_blackhole ? 0 : BLOCK_CT_DIM;
+
+    // for (uint32_t i = 0; i < BLOCK_RT_DIM; i++)
+    // {
+    //     for (uint32_t j = 0; j < BLOCK_CT_DIM; j++)
+    //     {
+    //         _llk_unpack_tilize_(L1_ADDRESS(buffer_A[read_offset]), j, formats.unpack_src, formats.unpack_dst, block_ct_dim, FACE_R_DIM, 4, false);
+    //     }
+    //     read_offset += BLOCK_RT_DIM;
+    // }
 }
 #endif // LLK_TRISC_UNPACK
+
+// const bool TILIZE = true;
 
 #ifdef LLK_TRISC_MATH
 #include "ckernel_sfpu.h"
@@ -93,6 +108,7 @@ using namespace ckernel;
 void run_kernel(const volatile struct RuntimeParams *params)
 {
     constexpr int GROUP_TILES = 4;
+    // const bool is_int_fpu_en = false;
 
     // --------------------------------------------------------------------
     // 0) Generic math + datacopy setup
@@ -117,6 +133,14 @@ void run_kernel(const volatile struct RuntimeParams *params)
         /*num_rows_per_matrix=*/4,
         /*math_format=*/formats.math);
 #endif
+
+    // copy srca to dest
+    // #ifdef ARCH_BLACKHOLE
+    //     // set tilize flag to true
+    //     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(4, formats.math);
+    // #else
+    //     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats.math);
+    // #endif
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
