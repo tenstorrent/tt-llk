@@ -86,10 +86,14 @@ def test_unpack_matmul(math_fidelity, matmul_config, workers_tensix_coordinates)
 
     formats = matmul_config.formats
     dest_acc = matmul_config.dest_acc
-    input_A_dimensions = matmul_config.tile_dimensions.input_A_dimensions
-    input_B_dimensions = matmul_config.tile_dimensions.input_B_dimensions
-    num_faces_A = matmul_config.face_layout_config.num_faces_A
-    num_faces_B = matmul_config.face_layout_config.num_faces_B
+    in0_dimensions = matmul_config.tile_dimensions.in0_dimensions
+    in1_dimensions = matmul_config.tile_dimensions.in1_dimensions
+    in0_tile_r_dim = matmul_config.tile_dimensions.in0_tile_r_dim
+    in0_tile_c_dim = matmul_config.tile_dimensions.in0_tile_c_dim
+    in1_tile_r_dim = matmul_config.tile_dimensions.in1_tile_r_dim
+    in1_tile_c_dim = matmul_config.tile_dimensions.in1_tile_c_dim
+    num_faces_in0 = matmul_config.face_layout_config.num_faces_in0
+    num_faces_in1 = matmul_config.face_layout_config.num_faces_in1
     num_faces = matmul_config.face_layout_config.num_faces
     partial_face_A = matmul_config.face_layout_config.partial_face_A
     partial_face_B = matmul_config.face_layout_config.partial_face_B
@@ -144,8 +148,14 @@ def test_unpack_matmul(math_fidelity, matmul_config, workers_tensix_coordinates)
     tilized_A = tilize_block(
         src_A, dimensions=input_A_dimensions, stimuli_format=formats.input_format
     )
-    tilized_B = tilize_block(
-        src_B, dimensions=input_B_dimensions, stimuli_format=formats.input_format
+    tilized_in1 = tilize_block(
+        in1, dimensions=in1_dimensions, stimuli_format=formats.input_format
+    )
+    tilized_in0_l1_view = convert_to_l1_view(
+        tilized_in0, in0_dimensions, tile_dimensions=[in0_tile_r_dim, in0_tile_c_dim]
+    )
+    tilized_in1_l1_view = convert_to_l1_view(
+        tilized_in1, in1_dimensions, tile_dimensions=[in1_tile_r_dim, in1_tile_c_dim]
     )
 
     configuration = TestConfig(
@@ -197,22 +207,33 @@ def test_unpack_matmul(math_fidelity, matmul_config, workers_tensix_coordinates)
         golden_tensor
     ), "Result tensor and golden tensor are not of the same length"
 
-    # Only compare the active faces in each tile since that's what the hardware processes
-    num_elements_per_tile = num_faces * 256  # Each face is 16x16 = 256 elements
-    tile_cnt = matmul_config.tile_dimensions.output_tile_cnt
-
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    # Compare each tile separately
-    for i in range(tile_cnt):
-        start = i * 1024  # Each tile is 1024 elements
+    # Convert golden tensor to L1 memory view for comparison
+    golden_tensor = convert_to_l1_view(
+        golden_tensor,
+        (in0_dimensions[0], in1_dimensions[1]),
+        tile_dimensions=[in0_tile_r_dim, in1_tile_c_dim],
+    )
+
+    if num_faces < 4:
+        num_elements_per_tile = in0_tile_r_dim * in1_tile_c_dim
+        tile_cnt = matmul_config.tile_dimensions.output_tile_cnt
+
+        # Compare each tile separately
+        for i in range(tile_cnt):
+            start = i * num_elements_per_tile
+            assert passed_test(
+                golden_tensor[
+                    start : start + num_elements_per_tile
+                ],  # Only compare active faces in this tile
+                res_tensor[
+                    start : start + num_elements_per_tile
+                ],  # Only compare active faces in this tile
+                formats.output_format,
+            ), f"Assert on tile {i}/{tile_cnt} against golden failed"
+    else:
         assert passed_test(
-            golden_tensor[
-                start : start + num_elements_per_tile
-            ],  # Only compare active faces in this tile
-            res_tensor[
-                start : start + num_elements_per_tile
-            ],  # Only compare active faces in this tile
-            formats.output_format,
-        ), f"Assert on tile {i}/{tile_cnt} against golden failed"
+            golden_tensor, res_tensor, formats.output_format
+        ), "Assert against golden failed"
