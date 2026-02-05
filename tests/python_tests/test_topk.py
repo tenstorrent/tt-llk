@@ -197,7 +197,7 @@ def test_topk_sfpu(
           - Merge: Extract top K values from sorted sequence
           - Rebuild: Organize top K values with their indices
 
-       c) PACK: Write result tiles back to L1 memorys
+       c) PACK: Write result tiles back to L1 memory
 
     4. Result Transformation:
        - Transpose faces (undo face-level transpose from unpack)

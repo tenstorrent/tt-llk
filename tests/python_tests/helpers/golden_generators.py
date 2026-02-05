@@ -2229,9 +2229,8 @@ class TopKGolden:
             operand: Input tensor (flattened or shaped).
             data_format: Data format for the result.
             k: Number of top elements to extract per row (default: 32).
+            sort_direction: Direction to sort top-k values (default: Descending).
             input_dimensions: Input dimensions [rows, cols] (default: [32, 128]).
-            tilize_output: Whether to tilize the output (default: False).
-
         Returns:
             Tensor with topk applied per row, maintaining the structure.
         """
@@ -2250,7 +2249,7 @@ class TopKGolden:
                 f"Expected input dimensions [32, 128] for TopK, got {input_dimensions}"
             )
 
-            # Set columns 64-127 to 1, 2, 3, ..., 64 for each row.
+        # Set columns 64-127 to 1, 2, 3, ..., 64 for each row.
         for row in range(rows):
             indices_start = row * cols + cols // 2
             indices_end = indices_start + cols // 2

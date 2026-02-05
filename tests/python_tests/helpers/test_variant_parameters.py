@@ -296,17 +296,17 @@ class TOPK(TemplateParameter):
 
     def covert_to_cpp(self) -> str:
         lines: list[str] = [
-            f"constexpr uint32_t TOPK_K = {self.topk_k};",
-            f"constexpr uint32_t TOPK_LOGK = {self.topk_logk};",
-            f"constexpr uint32_t TOPK_SORT_DIRECTION = {self.topk_sort_direction.value};",
+            f"constexpr std::uint32_t TOPK_K = {self.topk_k};",
+            f"constexpr std::uint32_t TOPK_LOGK = {self.topk_logk};",
+            f"constexpr std::uint32_t TOPK_SORT_DIRECTION = {self.topk_sort_direction.value};",
         ]
         return "\n".join(lines)
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         lines: list[str] = [
-            "uint32_t TOPK_K;",
-            "uint32_t TOPK_LOGK;",
-            "uint32_t TOPK_SORT_DIRECTION;",
+            "std::uint32_t TOPK_K;",
+            "std::uint32_t TOPK_LOGK;",
+            "std::uint32_t TOPK_SORT_DIRECTION;",
         ]
         return "\n".join(lines), "III"
 
