@@ -10,9 +10,9 @@
 #include "llk_defs.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -29,7 +29,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_unpack_tilize_init_(formats.unpack_src, formats.unpack_dst, BLOCK_CT_DIM, FACE_R_DIM, false);
 
     // Unpack and tilize single tile A (stored in src A register - index 0)
-    _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats.unpack_src, BLOCK_CT_DIM, FACE_R_DIM, 4, false);
+    _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats.unpack_src, formats.unpack_dst, BLOCK_CT_DIM, FACE_R_DIM, 4, false);
 }
 
 #endif

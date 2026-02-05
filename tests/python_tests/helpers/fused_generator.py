@@ -158,9 +158,9 @@ class FusedKernelGenerator:
             f'#include "operand.h"\n'
             f"{profiler_include}"
             f"\n"
-            f"uint32_t unp_cfg_context          = 0;\n"
-            f"uint32_t pack_sync_tile_dst_ptr   = 0;\n"
-            f"uint32_t math_sync_tile_dst_index = 0;\n"
+            f"std::uint32_t unp_cfg_context          = 0;\n"
+            f"std::uint32_t pack_sync_tile_dst_ptr   = 0;\n"
+            f"std::uint32_t math_sync_tile_dst_index = 0;\n"
             f"\n"
             f"#define UNUSED __attribute__((unused))\n"
             f"\n"
@@ -174,5 +174,9 @@ class FusedKernelGenerator:
         fused_test_cpp_dir = test_cpp_dir / FUSED_TESTS_DIR
         fused_test_cpp_dir.mkdir(parents=True, exist_ok=True)
 
-        with open(test_cpp_dir / f"{test_name}", "w") as f:
+        cpp_path = test_cpp_dir / f"{test_name}"
+
+        with open(cpp_path, "w") as f:
             f.write(combined)
+
+        os.system(f'clang-format -i "{cpp_path}"')

@@ -21,14 +21,14 @@ using namespace ckernel::unpacker;
 inline void _llk_unpack_tilize_mop_config_([[maybe_unused]] const bool narrow_tile = false, const bool unpack_to_dest = false)
 {
     LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
-    static constexpr uint unpack_srca =
+    static constexpr std::uint32_t unpack_srca =
         TT_OP_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint unpack_srca_to_dest =
+    static constexpr std::uint32_t unpack_srca_to_dest =
         TT_OP_UNPACR(0, 0b00010001 /*Z inc*/, 0, 0, 0, 1 /* Set OvrdThreadId*/, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr uint unpack_srcb_set_dvalid = TT_OP_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
+    static constexpr std::uint32_t unpack_srcb_set_dvalid = TT_OP_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
 
-    const uint32_t outerloop = 1;
-    const uint32_t innerloop = 1;
+    const std::uint32_t outerloop = 1;
+    const std::uint32_t innerloop = 1;
 
     ckernel_template tmp(outerloop, innerloop, unpack_to_dest ? unpack_srca_to_dest : unpack_srcb_set_dvalid);
 
@@ -51,9 +51,11 @@ inline void _llk_unpack_tilize_init_(
 
     const std::uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
 
-    // In case of 32-bit integer numbers, we have to unpack into dest register
+    // In case of 32-bit numbers, we have to unpack into dest register
+    // For integers, always unpack to dest. For Float32, only if unpack_dst_format is Float32 (lossless tilize mode)
     const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
-                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32));
+                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32)) ||
+                                (unpack_dst_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32));
 
     // Set face dim
     TT_SETADCXX(p_setadc::UNP_A, face_r_dim * FACE_C_DIM - 1, 0x0);
@@ -73,8 +75,8 @@ inline void _llk_unpack_tilize_init_(
     // 16)
 
     // below is the configuration for 64-row unpack for srca
-    const uint Tile_x_dim = 1024;
-    const uint Tile_z_dim = 1;
+    const std::uint32_t Tile_x_dim = 1024;
+    const std::uint32_t Tile_z_dim = 1;
     cfg_reg_rmw_tensix<THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32, 0, 0xffffffff>(Tile_x_dim | (Tile_x_dim << 16));
     // Force x-dim to 1024
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32, 0, 0xffff0000>(0 | (Tile_x_dim << 16));
@@ -91,6 +93,7 @@ inline void _llk_unpack_tilize_(
     const std::uint32_t base_address,
     const std::uint32_t tile_index,
     std::uint32_t unpack_src_format                 = 0,
+    std::uint32_t unpack_dst_format                 = 0,
     [[maybe_unused]] std::uint32_t block_ct_dim     = 0,
     [[maybe_unused]] const std::uint32_t face_r_dim = FACE_R_DIM,
     [[maybe_unused]] const std::uint32_t num_faces  = 4,
@@ -99,11 +102,13 @@ inline void _llk_unpack_tilize_(
     LLK_ASSERT(block_ct_dim == 0, "block_ct_dim: this parameter is unused");
     LLK_ASSERT(face_r_dim == FACE_R_DIM, "face_r_dim: this parameter is unused");
     LLK_ASSERT(num_faces == 4, "num_faces: this parameter is unused");
-    volatile uint tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
-    // In case of 32-bit integer numbers, we have to unpack into dest register
+    // In case of 32-bit numbers, we have to unpack into dest register
+    // For integers, always unpack to dest. For Float32, only if unpack_dst_format is Float32 (lossless tilize mode)
     const bool unpack_to_dest = (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::UInt32)) ||
-                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32));
+                                (unpack_src_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32)) ||
+                                (unpack_dst_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Float32));
 
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << (narrow_tile ? 0 : 1);
 
@@ -168,7 +173,7 @@ inline void _llk_unpack_tilize_uninit_(const std::uint32_t unpack_dst_format, co
     TT_SETADCXX(p_setadc::UNP_B, face_r_dim * FACE_C_DIM - 1, 0x0);
 
     // Revert Z dim value back to default.
-    const uint Tile_z_dim = num_faces;
+    const std::uint32_t Tile_z_dim = num_faces;
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1, 16, 0xffff0000>(Tile_z_dim);
 
     unpack_config_u config = {0};
@@ -258,7 +263,7 @@ inline void _llk_unpack_tilizeA_B_init_(
     config_unpacker_x_end<p_setadc::UNP_B>(unpB_face_r_dim);
 
     // Set Y stride for SrcA to be one 1x16 row of datums
-    uint unpA_ch1_y_stride = SCALE_DATUM_SIZE(unpack_dst_format, FACE_C_DIM);
+    std::uint32_t unpA_ch1_y_stride = SCALE_DATUM_SIZE(unpack_dst_format, FACE_C_DIM);
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(unpA_ch1_y_stride);
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
@@ -284,7 +289,7 @@ inline void _llk_unpack_tilizeA_B_(
     const std::uint32_t block_c_dim = block_ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM) * face_r_dim;
     const bool run_r_dim_loop       = (face_r_dim > 1);
 
-    volatile uint tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
     // Clear z/w start counters for SrcA/B
     TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, 0b1111);
