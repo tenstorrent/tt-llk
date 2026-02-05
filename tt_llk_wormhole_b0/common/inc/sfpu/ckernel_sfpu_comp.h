@@ -631,13 +631,8 @@ inline void apply_unary_comp_float<SfpuType::unary_le>(sfpi::vFloat& val, const 
     v_endif;
 }
 
-<<<<<<< HEAD
-template <bool APPROXIMATION_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
-inline void _calculate_comp_unary_(std::uint32_t value)
-=======
 template <ApproximationMode APPROX_MODE, SfpuType COMP_MODE, int ITERATIONS = 8>
-inline void _calculate_comp_unary_(uint value)
->>>>>>> a12c829f (changes for tt_llk)
+inline void _calculate_comp_unary_(std::uint32_t value)
 {
     sfpi::vFloat s = value;
 
@@ -656,3 +651,4 @@ inline void _calculate_comp_unary_(uint value)
 
 } // namespace sfpu
 } // namespace ckernel
+
