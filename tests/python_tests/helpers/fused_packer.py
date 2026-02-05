@@ -102,7 +102,7 @@ class Packer:
             PerfRunType.PACK_ISOLATE,
             PerfRunType.L1_CONGESTION,
         ):
-            return self.pack(operation, config)
+            return self.pack(operation, config, 0, 0)
         return self._generate_tile_loop(operation, config)
 
     def exec_perf(self, operation: "FusedOperation", config: "GlobalConfig") -> str:

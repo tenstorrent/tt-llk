@@ -1,5 +1,5 @@
 dest_acc: "Yes"
-# profiler_enabled: true
+profiler_enabled: true
 loop_factor: 16
 
 operations:
@@ -114,7 +114,6 @@ operations:
     packer: "Packer"
     math_fidelity: "HiFi3"
     dest_sync: "Full"
-    broadcast_type: "Column"
     unpack_transpose_within_face: "Yes"
     unpack_transpose_faces: "Yes"
 

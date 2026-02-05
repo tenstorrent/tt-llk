@@ -45,11 +45,22 @@ class Unpacker:
         return ""
 
     def perf_set_valid(
-        self, operation: "FusedOperation", config: "GlobalConfig"
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
     ) -> str:
-        tile_cnt = operation.output.tile_count
         num_faces = operation.num_faces
-        return f"_perf_unpack_loop_set_valid<true, true>({tile_cnt} * {num_faces});\n"
+        return f"_perf_unpack_loop_set_valid<true, true>({num_faces});\n"
+
+    def perf_clear_valid(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
+    ) -> str:
+        num_faces = operation.num_faces
+        return f"_perf_math_loop_clear_valid<true, true>({num_faces});\n"
 
     def unpack_with_perf(
         self, operation: "FusedOperation", config: "GlobalConfig"
@@ -142,12 +153,36 @@ class MatmulUnpacker(Unpacker):
         ]
 
     def perf_set_valid(
-        self, operation: "FusedOperation", config: "GlobalConfig"
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
     ) -> str:
-        rt_dim = operation.rt_dim
-        kt_dim = operation.kt_dim
-        ct_dim = operation.ct_dim
+        if operation.batch_size == 1:
+            rt_dim = 1
+            kt_dim = operation.kt_dim
+            ct_dim = 1
+        else:
+            rt_dim = operation.rt_dim
+            kt_dim = operation.kt_dim
+            ct_dim = operation.ct_dim
         return f"_perf_unpack_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
+
+    def perf_clear_valid(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
+    ) -> str:
+        if operation.batch_size == 1:
+            rt_dim = 1
+            kt_dim = operation.kt_dim
+            ct_dim = 1
+        else:
+            rt_dim = operation.rt_dim
+            kt_dim = operation.kt_dim
+            ct_dim = operation.ct_dim
+        return f"_perf_math_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def golden(
         self,
@@ -424,6 +459,50 @@ class UnpackerA(Unpacker):
 
         return tensor_a, tensor_b
 
+    def perf_set_valid(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
+    ) -> str:
+        if compute_unit.broadcast_type == BroadcastType.Scalar:
+            if config.architecture == ChipArchitecture.WORMHOLE:
+                return "_perf_unpack_loop_set_valid<true, true>(1);\n"
+            else:
+                return "_perf_unpack_loop_set_valid<false, true>(1);\n"
+        elif compute_unit.broadcast_type == BroadcastType.Column:
+            return (
+                "_perf_unpack_loop_set_valid<false, true>(2);\n"
+                "_perf_unpack_loop_set_valid<true, false>(1);\n"
+            )
+        elif compute_unit.broadcast_type == BroadcastType.Row:
+            return "_perf_unpack_loop_set_valid<false, true>(4);\n"
+        else:
+            num_faces = operation.num_faces
+            return f"_perf_unpack_loop_set_valid<true, true>({num_faces});\n"
+
+    def perf_clear_valid(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
+    ) -> str:
+        if compute_unit.broadcast_type == BroadcastType.Scalar:
+            if config.architecture == ChipArchitecture.WORMHOLE:
+                return "_perf_math_loop_clear_valid<true, true>(1);\n"
+            else:
+                return "_perf_math_loop_clear_valid<false, true>(1);\n"
+        elif compute_unit.broadcast_type == BroadcastType.Column:
+            return (
+                "_perf_math_loop_clear_valid<false, true>(2);\n"
+                "_perf_math_loop_clear_valid<true, false>(1);\n"
+            )
+        elif compute_unit.broadcast_type == BroadcastType.Row:
+            return "_perf_math_loop_clear_valid<false, true>(4);\n"
+        else:
+            num_faces = operation.num_faces
+            return f"_perf_math_loop_clear_valid<true, true>({num_faces});\n"
+
     def init(
         self,
         operation: "FusedOperation",
@@ -475,10 +554,20 @@ class UnpackerTilizeA(Unpacker):
         ]
 
     def perf_set_valid(
-        self, operation: "FusedOperation", config: "GlobalConfig"
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
     ) -> str:
-        tile_cnt = operation.output.tile_count
-        return f"    _perf_unpack_loop_set_valid<true, true>({tile_cnt});\n"
+        return "_perf_unpack_loop_set_valid<true, true>(4);\n"
+
+    def perf_clear_valid(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
+    ) -> str:
+        return "_perf_math_loop_clear_valid<true, true>(4);\n"
 
     def golden(
         self,
