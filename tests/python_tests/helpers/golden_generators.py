@@ -2226,14 +2226,14 @@ class TopKGolden:
         Perform per-row topk on a 32x128 tensor.
 
         Args:
-            operand: Input tensor (flattened or shaped)
-            data_format: Data format for the result
-            k: Number of top elements to extract per row (default: 32)
-            input_dimensions: Input dimensions [rows, cols] (default: [32, 128])
-            tilize_output: Whether to tilize the output (default: False)
+            operand: Input tensor (flattened or shaped).
+            data_format: Data format for the result.
+            k: Number of top elements to extract per row (default: 32).
+            input_dimensions: Input dimensions [rows, cols] (default: [32, 128]).
+            tilize_output: Whether to tilize the output (default: False).
 
         Returns:
-            Tensor with topk applied per row, maintaining the structure
+            Tensor with topk applied per row, maintaining the structure.
         """
         torch_format = format_dict[data_format]
 
@@ -2250,7 +2250,7 @@ class TopKGolden:
                 f"Expected input dimensions [32, 128] for TopK, got {input_dimensions}"
             )
 
-            # Set columns 64-127 to 1, 2, 3, ..., 64 for each row
+            # Set columns 64-127 to 1, 2, 3, ..., 64 for each row.
         for row in range(rows):
             indices_start = row * cols + cols // 2
             indices_end = indices_start + cols // 2
@@ -2270,9 +2270,9 @@ class TopKGolden:
             values = operand[values_start:values_end]
             indices = operand[indices_start:indices_end]
 
-            # Get top-k values and their positions in the original array
-            # largest=True means we want the largest k values
-            # sorted=True means results are sorted in descending order
+            # Get top-k values and their positions in the original array.
+            # largest=True means we want the largest k values.
+            # sorted=True means results are sorted in descending order.
             topk_values, topk_positions = torch.topk(
                 values,
                 k,
@@ -2280,7 +2280,7 @@ class TopKGolden:
                 sorted=True,
             )
 
-            # Reorder indices based on the topk positions
+            # Reorder indices based on the topk positions.
             topk_indices = indices[topk_positions]
 
             operand[values_start : values_start + k] = topk_values
