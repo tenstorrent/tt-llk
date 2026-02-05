@@ -105,6 +105,56 @@ def _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu):
     return face_data
 
 
+def generate_identity_face(
+    stimuli_format: DataFormat, rows: int, cols: int
+) -> torch.Tensor:
+    assert rows % 16 == 0 and cols % 16 == 0, "Matrix size must be divisible by 16"
+
+    num_faces_row = rows // 16
+    num_faces_col = cols // 16
+    face_height, face_width = 16, 16
+
+    # Create output array in float32
+    matrix = torch.zeros((rows, cols), dtype=torch.float32)
+
+    # Fill each face with identity matrix
+    for face_r in range(num_faces_row):
+        for face_c in range(num_faces_col):
+            r_start = face_r * face_height
+            c_start = face_c * face_width
+
+            # Set diagonal elements within the face
+            for i in range(face_height):
+                matrix[r_start + i, c_start + i] = 1
+
+    return matrix.to(dtype=format_dict[stimuli_format])
+
+
+def generate_incrementing_face(
+    stimuli_format: DataFormat, rows: int, cols: int
+) -> torch.Tensor:
+    assert rows % 16 == 0 and cols % 16 == 0, "Matrix size must be divisible by 16"
+
+    num_faces_row = rows // 16
+    num_faces_col = cols // 16
+    face_height, face_width = 16, 16
+
+    # Create output array in float32
+    matrix = torch.zeros((rows, cols), dtype=torch.float32)
+
+    # Fill each face with its index
+    for face_r in range(num_faces_row):
+        for face_c in range(num_faces_col):
+            face_val = float(face_r * num_faces_col + face_c + 1)
+            r_start = face_r * face_height
+            c_start = face_c * face_width
+            matrix[r_start : r_start + face_height, c_start : c_start + face_width] = (
+                face_val
+            )
+
+    return matrix.to(dtype=format_dict[stimuli_format])
+
+
 def generate_face_matmul_data(
     num_faces: int,
     stimuli_format: DataFormat,

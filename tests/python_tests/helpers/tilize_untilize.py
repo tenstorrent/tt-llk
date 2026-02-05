@@ -22,23 +22,27 @@ def tilize_block(
         )
 
     rows, cols = input_reshaped.shape
-    if rows % 32 != 0 or cols % 32 != 0:
+    if rows % 16 != 0 or cols % 32 != 0:
         raise ValueError(
             f"Input tensor dimensions must be divisible by 32. Got shape: {input_tensor.shape}"
         )
 
+    row_dim = 32
+    if num_faces == 2:
+        row_dim = 16
+
     # Calculate number of blocks in each dimension
-    row_blocks = rows // 32
+    row_blocks = rows // row_dim
     col_blocks = cols // 32
     total_blocks = row_blocks * col_blocks
 
-    blocked_tensor = input_reshaped.reshape(row_blocks, 32, col_blocks, 32)
+    blocked_tensor = input_reshaped.reshape(row_blocks, row_dim, col_blocks, 32)
 
     # Permute to get blocks in the right order: (row_blocks, col_blocks, 32, 32)
     blocked_tensor = blocked_tensor.permute(0, 2, 1, 3)
 
     # Reshape to get all blocks as sequential entities: (total_blocks, 32, 32)
-    all_blocks = blocked_tensor.reshape(total_blocks, 32, 32)
+    all_blocks = blocked_tensor.reshape(total_blocks, row_dim, 32)
 
     flat_blocks = all_blocks.reshape(total_blocks, -1)
 
@@ -69,10 +73,11 @@ def tilize(original_tensor, stimuli_format=DataFormat.Float16_b, num_faces=4):
     if num_faces not in (1, 2, 4):
         raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
 
-    if original_tensor.size(0) != 1024:
-        raise ValueError("Input tensor must have 1024 elements.")
+    row_dim = 32
+    if num_faces == 2:
+        row_dim = 16
 
-    matrix = original_tensor.view(32, 32)
+    matrix = original_tensor.view(row_dim, 32)
 
     # Define all face slices
     face_slices = [
