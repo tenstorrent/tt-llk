@@ -173,7 +173,7 @@ class StimuliConfig:
         )
 
         for ind in range(tile_count):
-            start_idx = FULL_TILE_ELEMENTS * ind
+            start_idx = tile_elements * ind
             tile_data = buffer[start_idx : start_idx + tile_elements]
             packed_data = pack_function_lambda(tile_data)
             addresses.append(base_address + ind * tile_size)

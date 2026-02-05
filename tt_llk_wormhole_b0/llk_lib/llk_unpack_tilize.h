@@ -476,7 +476,7 @@ inline void _llk_unpack_tilizeA_B_uninit_(const std::uint32_t unpack_dst_format,
  * supported input formats are: FP32 (via FP16 or TF32) or FP16_B
  *************************************************************************/
 
-inline void _llk_unpack_fast_tilize_mop_config_()
+inline void _llk_unpack_fast_tilize_mop_config_(const std::uint32_t num_faces = 2)
 {
     // Y moves to the next tile, Z moves to the next row (both ch0 and ch1)
     // constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00;
@@ -573,7 +573,8 @@ inline void _llk_unpack_fast_tilize_block_(
     // for unit_dim 2 UNPA reads top faces and UNPB reads bottom faces
     // for unit_dim 3 UNPA reads top 8 rows of top then bottom faces, UNPB reads bottom 8 rows of top then bottom faces
     uint32_t unpB_row_offset = unit_dim == 2 ? FACE_R_DIM : (FACE_R_DIM / 2);
-    uint32_t unpB_address    = address + (SCALE_DATUM_SIZE(unpack_src_format, full_dim * TILE_C_DIM * unpB_row_offset) >> 4);
+    // uint32_t unpB_row_offset = FACE_R_DIM / 2; //TODO pgardner: densely packed L1 input
+    uint32_t unpB_address = address + (SCALE_DATUM_SIZE(unpack_src_format, full_dim * TILE_C_DIM * unpB_row_offset) >> 4);
 
     // reset all counters since X start and end are set after this
     TTI_SETADCXY(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::XY));
@@ -614,6 +615,7 @@ inline void _llk_unpack_fast_tilize_block_(
     constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1 = 0b00'11'00'01;
     constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_3_CH0Z_0 = 0b00'00'11'00;
 
+    uint32_t num_faces = 2;
     for (std::uint32_t i = 0; i < num_units; i++)
     {
         if (unit_dim == 1)
@@ -624,6 +626,7 @@ inline void _llk_unpack_fast_tilize_block_(
         }
         else if (unit_dim == 2)
         {
+            const uint8_t loop_ctrl = num_faces == 4 ? FACE_R_DIM - 1 : FACE_R_DIM / 2 - 1;
             // read top(A)/bottom(B) faces of two tiles in a row (4 faces each), switch bank,
             // then move to the next two tiles (CH0Y += 2) and back to the top of a tile (CH01Z = 0)
             // inside mop:
@@ -632,7 +635,7 @@ inline void _llk_unpack_fast_tilize_block_(
             //     TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_2_CH0Y_0_CH0Z_1, 0);
             //     TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_2_CH0Y_0_CH0Z_1, 0);
             // }
-            TTI_MOP(p_mop::MASK_LOOP, (FACE_R_DIM - 1) - 1, 0x0);
+            TTI_MOP(p_mop::MASK_LOOP, loop_ctrl - 1, 0x0);
             TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_2_CH0Z_0, 1);
             TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_2_CH0Z_0, 1);
             TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
@@ -650,7 +653,7 @@ inline void _llk_unpack_fast_tilize_block_(
             TTI_MOP(p_mop::MASK_LOOP, ((FACE_R_DIM / 2) - 1) - 1, 0xFFFF);
             TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 1);
             TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 1);
-            TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 1, 0, SETADC_CH01(p_setadc::ZW));
+            TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
 
             // read top 8(A)/bottom 8(B) rows of bottom faces of three tiles in a row (6 halves of a face each), switch bank,
             // then move to the top faces of the next three tiles (CH0Y += 3) and back to top of a tile (CH01Z = 0, CH0W = 0)

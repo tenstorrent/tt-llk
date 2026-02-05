@@ -414,6 +414,7 @@ inline void _llk_math_fast_tilize_addrmod_config_(const std::uint32_t unpack_dst
     // standard addrmod that follows MOVA2D
     addr_mod_t {
         .srca = {.incr = 8},
+        .srcb = {.incr = 0},
         .dest = {.incr = 8},
     }
         .set(ADDR_MOD_2);
@@ -509,6 +510,7 @@ inline void _llk_math_fast_tilize_block_(
     // make life easier by lying to set_dst_write_addr that tile shape is 32x16 so correct stride is obtained for dst_index
     math::set_dst_write_addr<DstTileShape::Tile32x16, UnpackDestination::SrcRegs>(dst_index);
 
+    uint32_t num_faces = 2;
     for (uint i = 0; i < num_units; i++)
     {
         if (unit_dim == 1)
@@ -534,7 +536,7 @@ inline void _llk_math_fast_tilize_block_(
             // clear just srcA dvalid since it's the only one set by the unpacker for unit_dim 1 and src RWCs
             TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB);
         }
-        else if (unit_dim == 2)
+        else if (unit_dim == 2 && num_faces == 4)
         {
             // srcA has the top faces (4 of them), copy them
             // inside mop:
@@ -557,6 +559,26 @@ inline void _llk_math_fast_tilize_block_(
             // clear both dvalids and src RWCs
             TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
         }
+        else if (unit_dim == 2 && num_faces == 2)
+        {
+            // srcA has the top 8 rows of the top faces (6 of them), copy them
+            // inside mop:
+            // for (uint j = 0; j < 4; j++)
+            // {
+            //     TTI_MOVA2D(p_mov::DEST_NORM, 0, ADDR_MOD_2, p_mova2d::MOV_8_ROWS, 0);
+            // }
+            TTI_MOP(p_mop::MASK_LOOP, 4 - 1, 0x0);
+            // srcB has the bottom 8 rows of the top faces (6 of them), copy them
+            // inside mop:
+            // for (uint j = 0; j < 8; j++)
+            // {
+            //     TTI_MOVB2D(p_mov::DEST_NORM, 0, ADDR_MOD_1, p_movb2d::MOV_4_ROWS, 0);
+            // }
+            TTI_MOP(p_mop::MASK_LOOP, 8 - 1, 0xFFFF);
+            // done with the top faces, clear dvalids and src RWCs, next banks contain bottom faces
+            // also clear dest RWC since we use dest offset for forward jump here
+            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
+        }
         else if (unit_dim == 3)
         {
             // srcA has the top 8 rows of the top faces (6 of them), copy them
@@ -577,10 +599,10 @@ inline void _llk_math_fast_tilize_block_(
             // also clear dest RWC since we use dest offset for forward jump here
             TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
             // don't have enough address mods to have unit_dim 3 forward jump so dest offset is used here
-            uint32_t top_face_offset = dst_index + i * 3; // copy 3 tiles per iteration
+            std::uint32_t top_face_offset = dst_index + i * 3; // copy 3 tiles per iteration
             // offset to the bottom is the number of tiles that fit into the dest bank
             // since half size faces are specified, this gets into the correct position in the second half
-            uint32_t bottom_face_offset = top_face_offset + (unpack_dst_format == (uint)DataFormat::Tf32 ? 4 : 8);
+            std::uint32_t bottom_face_offset = top_face_offset + (unpack_dst_format == (std::uint32_t)DataFormat::Tf32 ? 4 : 8);
             math::set_dst_write_addr<DstTileShape::Tile32x16, UnpackDestination::SrcRegs>(bottom_face_offset);
             // srcA has the top 8 rows of the bottom faces (6 of them), copy them
             // inside mop:

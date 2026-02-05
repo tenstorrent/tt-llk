@@ -216,7 +216,7 @@ inline void _llk_pack_fast_tilize_addrmod_config_(const std::uint32_t unit_dim)
     // first two address mods move to the next row, the stride depends on the number of contiguous faces loaded in the single unpacker instruction
     // for unit_dim 1, that is 2 so the stride is 2, and analogously for unit_dims 2 and 3 its 4 and 6
     addr_mod_pack_t {
-        .y_src = {.incr = (uint8_t)(unit_dim == 1 ? 2 : 4)},
+        .y_src = {.incr = 4},
     }
         .set(ADDR_MOD_0);
 
@@ -291,27 +291,30 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, cons
     // difference between 16 bit dest and 32 bit dest is where the half of the active bank is (256 rows vs 128 rows)
     // stallwait and select_packer_dest_registers just replicate what _llk_init_packer_dest_offset_registers_ does
     TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK);
+
+    uint32_t dst_offset = true ? 0x02 : 0x100; // TODO pgardner: 32bit
     if (!use_32bit_dest)
     {
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x000, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
-        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x100, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
-        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x101, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
+        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + dst_offset, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
+        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + dst_offset + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x000, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
-        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x100, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
-        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x101, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
+        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + dst_offset, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
+        TTI_SETDMAREG(
+            p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + dst_offset + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
     }
     else
     {
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x000, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
-        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x080, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
-        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x081, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
+        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x002, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
+        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x003, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x000, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
-        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x080, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
-        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x081, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
+        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x002, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
+        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x003, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
     }
     select_packer_dest_registers<Dst>();
 
@@ -365,6 +368,7 @@ inline void _llk_pack_fast_tilize_block_(
     // so only move 2 faces per tile_index
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_Z, tile_index << 1);
 
+    uint32_t num_faces = 2;
     for (uint i = 0; i < num_units; i++)
     {
         if (unit_dim == 1)
@@ -398,27 +402,30 @@ inline void _llk_pack_fast_tilize_block_(
             TTI_MOP(p_mop::MASK_LOOP, (FACE_R_DIM - 1) - 1, 0x0);
             TTI_PACR_COMMON(ADDR_MOD_0, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 1);
             // move to the next tile in L1
-            TTI_ADDDMAREG(p_adddmareg::REG_PLUS_REG, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
-            TTI_REG2FLOP_COMMON(p_reg2flop::WRITE_4B, REG2FLOP_FLOP_INDEX(THCON_SEC0_REG1_L1_Dest_addr_ADDR32), p_gpr_pack::OUTPUT_ADDR);
-            // same notes for the flush bit as above
-            // address mod here moves to the next tile in the same unit
-            TTI_PACR_COMMON(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 1, 0);
-            // pack a single tile
-            // inside mop:
-            // for (uint j = 0; j < 15; j++)
-            // {
-            //     TTI_PACR_COMMON(ADDR_MOD_0, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 0);
-            // }
-            TTI_MOP(p_mop::MASK_LOOP, (FACE_R_DIM - 1) - 1, 0x0);
-            TTI_PACR_COMMON(ADDR_MOD_0, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 1);
-            // move to the next unit in dest (2 * 2 faces, same thing as tile_index)
-            TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 4); // CH0Z += 4
-            // move to the next tile in L1
-            TTI_ADDDMAREG(p_adddmareg::REG_PLUS_REG, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
-            TTI_REG2FLOP_COMMON(p_reg2flop::WRITE_4B, REG2FLOP_FLOP_INDEX(THCON_SEC0_REG1_L1_Dest_addr_ADDR32), p_gpr_pack::OUTPUT_ADDR);
-            // same notes for the flush bit as above
-            // address mod here resets to the beginning of the unit
-            TTI_PACR_COMMON(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 1, 0);
+            if (num_faces == 4)
+            {
+                TTI_ADDDMAREG(p_adddmareg::REG_PLUS_REG, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+                TTI_REG2FLOP_COMMON(p_reg2flop::WRITE_4B, REG2FLOP_FLOP_INDEX(THCON_SEC0_REG1_L1_Dest_addr_ADDR32), p_gpr_pack::OUTPUT_ADDR);
+                // same notes for the flush bit as above
+                // address mod here moves to the next tile in the same unit
+                TTI_PACR_COMMON(ADDR_MOD_1, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 1, 0);
+                // pack a single tile
+                // inside mop:
+                // for (uint j = 0; j < 15; j++)
+                // {
+                //     TTI_PACR_COMMON(ADDR_MOD_0, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 0);
+                // }
+                TTI_MOP(p_mop::MASK_LOOP, (FACE_R_DIM - 1) - 1, 0x0);
+                TTI_PACR_COMMON(ADDR_MOD_0, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 1);
+                // move to the next unit in dest (2 * 2 faces, same thing as tile_index)
+                TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 4); // CH0Z += 4
+                // move to the next tile in L1
+                TTI_ADDDMAREG(p_adddmareg::REG_PLUS_REG, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+                TTI_REG2FLOP_COMMON(p_reg2flop::WRITE_4B, REG2FLOP_FLOP_INDEX(THCON_SEC0_REG1_L1_Dest_addr_ADDR32), p_gpr_pack::OUTPUT_ADDR);
+                // same notes for the flush bit as above
+                // address mod here resets to the beginning of the unit
+                TTI_PACR_COMMON(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 1, 0);
+            }
         }
         else if (unit_dim == 3)
         {
