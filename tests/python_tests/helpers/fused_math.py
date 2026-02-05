@@ -70,7 +70,8 @@ class ComputeNode:
             return ""
         code = self.unpacker().init(operation, config, self)
         for tile_idx in range(batch_tile_cnt):
-            code += self.unpacker().unpack(operation, config, self, tile_idx)
+            tile_idx_expr = f"batch * {batch_tile_cnt} + {tile_idx}"
+            code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
         code += self.unpacker().uninit(operation, config, self)
         return code
 
@@ -457,6 +458,10 @@ class ComputePipeline:
             code += "}\n"
             code += "{\n"
             code += 'ZONE_SCOPED("TILE_LOOP")\n'
+
+        code += self.unpacker_sync_with_packer(operation, config)
+
+        if config.profiler_enabled:
             code += f"for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
             code += "{\n"
 
