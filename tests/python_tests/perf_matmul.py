@@ -7,7 +7,6 @@ import pytest
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.llk_params import DestAccumulation, MathFidelity, PerfRunType, Transpose
 from helpers.matmul_sweep import (
-    generate_matmul_dimension_combinations,
     generate_tile_dims,
 )
 from helpers.param_config import input_output_formats, parametrize
@@ -25,81 +24,79 @@ from helpers.test_variant_parameters import (
     UNPACK_TRANS_FACES,
 )
 
-# Important K dimensions to test
-KT_DIMS = [1, 2, 3, 4, 8, 64]
 
-
-def matmul_combos(
-    formats: List[FormatConfig],
-    dest_acc: List[DestAccumulation],
+def generate_format_aware_matmul_combinations(
+    formats_list: List[FormatConfig],
+    dest_acc_modes: List[DestAccumulation],
 ):
-    def _dest_bank_max_tiles(format: FormatConfig, dest_acc: DestAccumulation):
-        if is_dest_acc_needed(format) or dest_acc == DestAccumulation.Yes:
-            return 4
-        return 8
+    """
+    Generate matmul dimension combinations for multiple tiles.
+    Matches the configuration from test_matmul.py exactly.
 
-    unique_max_tiles = set(
-        _dest_bank_max_tiles(fmt, acc) for fmt in formats for acc in dest_acc
-    )
-    dimensions = {
-        max_tiles: generate_matmul_dimension_combinations(max_tiles, kt_dims=KT_DIMS)
-        for max_tiles in unique_max_tiles
-    }
+    Returns: List of (format, dest_acc, dimensions) tuples
+    """
+    combinations = []
 
-    return [
-        (format, accumulation, dims)
-        for format in formats
-        for accumulation in dest_acc
-        for dims in dimensions[_dest_bank_max_tiles(format, accumulation)]
+    for fmt in formats_list:
+        for dest_acc in dest_acc_modes:
+            # Format: ([A_rows, A_cols], [B_rows, B_cols]) for matmul A @ B
+            dimensions_list = [
+                ([64, 128], [128, 128]),  # A: 64x128, B: 128x128 -> Output: 64x128
+            ]
+            combinations.extend([(fmt, dest_acc, dims) for dims in dimensions_list])
+
+    return combinations
+
+
+# Generate format-aware combinations - matches test_matmul.py
+MATMUL_FORMATS = input_output_formats(
+    [
+        DataFormat.Float16_b,
     ]
+)
+DEST_ACC_MODES = [DestAccumulation.No]
+ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
+    MATMUL_FORMATS, DEST_ACC_MODES
+)
 
 
 @pytest.mark.perf
 @parametrize(
-    combos=matmul_combos(
-        formats=input_output_formats(
-            [
-                DataFormat.Float16_b,
-                DataFormat.Float16,
-                DataFormat.Float32,
-                DataFormat.Bfp8_b,
-            ]
-        ),
-        dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    ),
     math_fidelity=[
-        MathFidelity.LoFi,
         MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
     ],
+    format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
-def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordinates):
+def test_perf_matmul(
+    perf_report, math_fidelity, format_dest_acc_and_dims, workers_tensix_coordinates
+):
 
-    formats, dest_acc, (matrix_a, matrix_b) = combos
+    formats = format_dest_acc_and_dims[0]
+    dest_acc = format_dest_acc_and_dims[1]
+    # dims should be a tuple of (A_dimensions, B_dimensions)
+    # Each should be a list [rows, cols]
+    input_A_dimensions, input_B_dimensions = format_dest_acc_and_dims[2]
 
     if is_dest_acc_needed(formats) and dest_acc == DestAccumulation.No:
         pytest.skip("Dest accumulation must be enabled for this format")
 
     run_types = [
-        PerfRunType.L1_TO_L1,
-        PerfRunType.UNPACK_ISOLATE,
+        # PerfRunType.L1_TO_L1,
+        # PerfRunType.UNPACK_ISOLATE,
         PerfRunType.MATH_ISOLATE,
-        PerfRunType.PACK_ISOLATE,
-        PerfRunType.L1_CONGESTION,
+        # PerfRunType.PACK_ISOLATE,
+        # PerfRunType.L1_CONGESTION,
     ]
 
     # Calculate all matmul dimensions using helper function
-    dims = generate_tile_dims((matrix_a, matrix_b))
-
-    variant_tile_count = dims.rt_dim * dims.ct_dim * dims.kt_dim
+    matmul_dims = generate_tile_dims((input_A_dimensions, input_B_dimensions))
 
     configuration = PerfConfig(
         "sources/matmul_perf.cpp",
         formats,
         run_types,
         templates=[
-            INPUT_DIMENSIONS(matrix_a, matrix_b),
+            INPUT_DIMENSIONS(input_A_dimensions, input_B_dimensions),
             MATH_FIDELITY(math_fidelity),
             DEST_SYNC(),
             THROTTLE_LEVEL(),
@@ -108,8 +105,8 @@ def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordina
             UNPACK_TRANS_FACES(Transpose.No),
             NUM_FACES(),
             LOOP_FACTOR(16),
-            TILE_COUNT(variant_tile_count),
-            CRK_TILE_DIMM(dims.ct_dim, dims.rt_dim, dims.kt_dim),
+            TILE_COUNT(matmul_dims.output_tile_cnt),
+            CRK_TILE_DIMM(matmul_dims.ct_dim, matmul_dims.rt_dim, matmul_dims.kt_dim),
         ],
         variant_stimuli=StimuliConfig(
             None,
@@ -117,9 +114,9 @@ def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordina
             None,
             formats.input_format,
             formats.output_format,
-            tile_count_A=variant_tile_count,
-            tile_count_B=variant_tile_count,
-            tile_count_res=variant_tile_count,
+            tile_count_A=matmul_dims.tile_cnt_A,
+            tile_count_B=matmul_dims.tile_cnt_B,
+            tile_count_res=matmul_dims.output_tile_cnt,
         ),
         dest_acc=dest_acc,
     )

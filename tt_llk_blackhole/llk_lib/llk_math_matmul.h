@@ -396,22 +396,7 @@ inline void matmul_configure_mop(
             }
         });
 
-    // TODO: can we commonize this?
-    constexpr std::uint32_t inner_loops = high_fidelity ? NUM_FIDELITY_PHASES : 1;
-    ckernel_template tmp(1 /* outer loop */, inner_loops, lltt::replay_insn(ckernel::math::replay_buf_offset, replay_buf_len));
-
-    if constexpr (high_fidelity)
-    {
-        if (reuse_a)
-        {
-            tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_ABD_F));
-        }
-        else
-        {
-            tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD_F));
-        }
-    }
-    tmp.program();
+    // MOP template programming removed - will use direct replay calls
 }
 
 template <int Level>
@@ -558,38 +543,7 @@ inline void matmul_configure_mop_throttled(
             }
         });
 
-    constexpr std::uint32_t outer_loops        = (THROTTLE_LEVEL > 3) ? 2 : (high_fidelity ? NUM_FIDELITY_PHASES : 1);
-    const std::uint32_t inner_loops            = (!is_in1_16x32) ? 2 : 1;
-    constexpr std::uint8_t addr_mod_inner_loop = (THROTTLE_LEVEL > 3) ? ADDR_MOD_2 : ADDR_MOD_4;
-    ckernel_template tmp(
-        outer_loops,
-        inner_loops,
-        lltt::replay_insn(ckernel::math::replay_buf_offset, replay_buf_len),
-        TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, addr_mod_inner_loop, 0));
-
-    if (!is_in1_32x16 && !is_in1_16x32 && !is_in0_32x16 && !is_in0_16x32)
-    {
-        if constexpr (high_fidelity && THROTTLE_LEVEL > 3)
-        {
-            tmp.set_last_inner_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0));
-            tmp.set_last_outer_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_5, 0));
-        }
-        else if constexpr (high_fidelity)
-        {
-            tmp.set_last_inner_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_5, 0));
-            tmp.set_last_outer_loop_instr(TT_OP_MVMUL(reuse_a ? p_setrwc::CLR_A : p_setrwc::CLR_B, 0, ADDR_MOD_6, 0));
-        }
-        else
-        {
-            if constexpr (THROTTLE_LEVEL > 3)
-            {
-                tmp.set_last_inner_loop_instr(TT_OP_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0));
-            }
-            tmp.set_last_outer_loop_instr(TT_OP_MVMUL(reuse_a ? p_setrwc::CLR_A : p_setrwc::CLR_B, 0, ADDR_MOD_5, 0));
-        }
-    }
-
-    tmp.program();
+    // MOP template programming removed - will use direct replay calls
 }
 
 template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0>
@@ -624,7 +578,15 @@ inline void _llk_math_matmul_uninit_()
 }
 
 template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0>
-inline void _llk_math_matmul_(std::uint32_t dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
+inline void _llk_math_matmul_(
+    std::uint32_t dst_index,
+    const std::uint32_t ct_dim         = 1,
+    const std::uint32_t rt_dim         = 1,
+    const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
+    const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
+    const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
+    const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
+    const bool partial_face            = false)
 {
     const bool reuse_a                = ct_dim >= rt_dim;
     const std::uint32_t t_dim         = reuse_a ? rt_dim : ct_dim;
@@ -632,30 +594,173 @@ inline void _llk_math_matmul_(std::uint32_t dst_index, const std::uint32_t ct_di
     constexpr int NUM_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool high_fidelity      = NUM_FIDELITY_PHASES > 0;
 
+    // Compute replay buffer length based on tile dimensions (same logic as in matmul_configure_mop)
+    const bool is_in0_16x32 = (in0_tile_r_dim <= FACE_R_DIM) && (in0_tile_c_dim > FACE_C_DIM);
+    const bool is_in1_32x16 = (in1_tile_r_dim > FACE_R_DIM) && (in1_tile_c_dim <= FACE_C_DIM);
+    const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
+    const bool is_in1_16x32 = (in1_tile_r_dim <= FACE_R_DIM) && (in1_tile_c_dim > FACE_C_DIM);
+
+    std::uint32_t replay_buf_len;
+    if constexpr (THROTTLE_LEVEL > 0)
+    {
+        constexpr std::uint32_t replay_buff_len_throttle =
+            (THROTTLE_LEVEL > 3) ? (1 + THROTTLE_LEVEL * 2) : ((THROTTLE_LEVEL > 1) ? (3 + THROTTLE_LEVEL * 4) : 10);
+        replay_buf_len = (is_in0_16x32 && is_in1_32x16)
+                             ? 4
+                             : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : replay_buff_len_throttle);
+    }
+    else
+    {
+        replay_buf_len = (is_in0_16x32 && is_in1_32x16) ? 4 : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : 16);
+    }
+
     for (std::uint32_t t = 0; t < t_dim; t++)
     {
         for (std::uint32_t rut = 0; rut < rut_dim; rut++)
         {
             math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index + (reuse_a ? ct_dim * t + rut : t + rut * ct_dim));
 
-            if constexpr (THROTTLE_LEVEL > 3 && high_fidelity)
+            if constexpr (THROTTLE_LEVEL > 0)
             {
-                for (std::uint32_t phase = 0; phase < NUM_FIDELITY_PHASES; phase++)
+                // Throttled execution
+                if constexpr (THROTTLE_LEVEL > 3)
                 {
-                    ckernel_template::run();
-                }
-                if (reuse_a)
-                {
-                    TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
+                    // THROTTLE_LEVEL 4 or 5: outer_loops = 2
+                    if constexpr (high_fidelity)
+                    {
+                        // outer loop for fidelity phases
+                        for (std::uint32_t phase = 0; phase < NUM_FIDELITY_PHASES; phase++)
+                        {
+                            // inner loop (2 iterations for standard tiles)
+                            const std::uint32_t inner_loops = (!is_in1_16x32) ? 2 : 1;
+                            for (std::uint32_t inner = 0; inner < inner_loops; inner++)
+                            {
+                                lltt::replay(ckernel::math::replay_buf_offset, replay_buf_len);
+                                if (inner < inner_loops - 1)
+                                {
+                                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // inner loop continuation
+                                }
+                                else if (phase < NUM_FIDELITY_PHASES - 1)
+                                {
+                                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0); // last inner, not last outer
+                                }
+                                else
+                                {
+                                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_5, 0); // last inner, last outer
+                                }
+                            }
+                        }
+                        // Final clear
+                        if (reuse_a)
+                        {
+                            TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
+                        }
+                        else
+                        {
+                            TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
+                        }
+                    }
+                    else
+                    {
+                        // Not high fidelity, outer_loops = 2
+                        const std::uint32_t inner_loops = (!is_in1_16x32) ? 2 : 1;
+                        for (std::uint32_t inner = 0; inner < inner_loops; inner++)
+                        {
+                            lltt::replay(ckernel::math::replay_buf_offset, replay_buf_len);
+                            if (inner < inner_loops - 1)
+                            {
+                                TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0);
+                            }
+                            else
+                            {
+                                TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0);
+                            }
+                        }
+                        for (std::uint32_t inner = 0; inner < inner_loops; inner++)
+                        {
+                            lltt::replay(ckernel::math::replay_buf_offset, replay_buf_len);
+                            if (inner < inner_loops - 1)
+                            {
+                                TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0);
+                            }
+                            else
+                            {
+                                TTI_MVMUL(reuse_a ? p_setrwc::CLR_A : p_setrwc::CLR_B, 0, ADDR_MOD_5, 0);
+                            }
+                        }
+                    }
                 }
                 else
                 {
-                    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
+                    // THROTTLE_LEVEL 1, 2, or 3
+                    if constexpr (high_fidelity)
+                    {
+                        // outer loop is NUM_FIDELITY_PHASES
+                        for (std::uint32_t phase = 0; phase < NUM_FIDELITY_PHASES; phase++)
+                        {
+                            const std::uint32_t inner_loops = (!is_in1_16x32) ? 2 : 1;
+                            for (std::uint32_t inner = 0; inner < inner_loops; inner++)
+                            {
+                                lltt::replay(ckernel::math::replay_buf_offset, replay_buf_len);
+                                if (inner < inner_loops - 1)
+                                {
+                                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0); // inner loop continuation
+                                }
+                                else if (phase < NUM_FIDELITY_PHASES - 1)
+                                {
+                                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_5, 0); // last inner, not last outer
+                                }
+                                else
+                                {
+                                    TTI_MVMUL(reuse_a ? p_setrwc::CLR_A : p_setrwc::CLR_B, 0, ADDR_MOD_6, 0); // last inner, last outer
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Not high fidelity, outer_loops = 1
+                        const std::uint32_t inner_loops = (!is_in1_16x32) ? 2 : 1;
+                        for (std::uint32_t inner = 0; inner < inner_loops; inner++)
+                        {
+                            lltt::replay(ckernel::math::replay_buf_offset, replay_buf_len);
+                            if (inner < inner_loops - 1)
+                            {
+                                TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0);
+                            }
+                            else
+                            {
+                                TTI_MVMUL(reuse_a ? p_setrwc::CLR_A : p_setrwc::CLR_B, 0, ADDR_MOD_5, 0);
+                            }
+                        }
+                    }
                 }
             }
             else
             {
-                ckernel_template::run();
+                // Non-throttled execution - use replay
+                if constexpr (high_fidelity)
+                {
+                    // Replay NUM_FIDELITY_PHASES times
+                    for (std::uint32_t phase = 0; phase < NUM_FIDELITY_PHASES; phase++)
+                    {
+                        lltt::replay(ckernel::math::replay_buf_offset, replay_buf_len);
+                    }
+                    // Final clear after all fidelity phases
+                    if (reuse_a)
+                    {
+                        TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
+                    }
+                    else
+                    {
+                        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
+                    }
+                }
+                else
+                {
+                    // Just replay once
+                    lltt::replay(ckernel::math::replay_buf_offset, replay_buf_len);
+                }
             }
 
             // Clear srcB or srcA at end of reuse (once per u block row)

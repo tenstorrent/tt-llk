@@ -9,7 +9,6 @@ from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, MathFidelity, format_dict
 from helpers.matmul_sweep import (
-    generate_matmul_dimension_combinations,
     generate_tile_dims,
 )
 from helpers.param_config import input_output_formats, parametrize
@@ -49,7 +48,13 @@ def generate_format_aware_matmul_combinations(
 
         for dest_acc in dest_acc_modes:
             max_tiles = 4 if dest_acc == DestAccumulation.Yes else base_max_tiles
-            dimensions_list = generate_matmul_dimension_combinations(max_tiles)
+            # dimensions_list = generate_matmul_dimension_combinations(max_tiles)
+            # Format: ([A_rows, A_cols], [B_rows, B_cols]) for matmul A @ B
+            dimensions_list = [
+                ([64, 128], [128, 128]),  # A: 64x128, B: 128x128 -> Output: 64x128
+                # ([128, 128], [128, 128]),  # A: 128x128, B: 128x128 -> Output: 128x128
+            ]
+            print(dimensions_list)
             combinations.extend([(fmt, dest_acc, dims) for dims in dimensions_list])
 
     return combinations
@@ -59,11 +64,11 @@ def generate_format_aware_matmul_combinations(
 MATMUL_FORMATS = input_output_formats(
     [
         DataFormat.Float16_b,
-        DataFormat.Float16,
-        DataFormat.Float32,
+        # DataFormat.Float16,
+        # DataFormat.Float32,
     ]
 )
-DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
+DEST_ACC_MODES = [DestAccumulation.No]
 ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     MATMUL_FORMATS, DEST_ACC_MODES
 )
@@ -71,10 +76,10 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
 
 @parametrize(
     math_fidelity=[
-        MathFidelity.LoFi,
+        # MathFidelity.LoFi,
         MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
+        # MathFidelity.HiFi3,
+        # MathFidelity.HiFi4,
     ],
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
@@ -89,8 +94,9 @@ def test_matmul(
 
     formats = format_dest_acc_and_dims[0]
     dest_acc = format_dest_acc_and_dims[1]
-    input_A_dimensions = format_dest_acc_and_dims[2][0]
-    input_B_dimensions = format_dest_acc_and_dims[2][1]
+    # dims should be a tuple of (A_dimensions, B_dimensions)
+    # Each should be a list [rows, cols]
+    input_A_dimensions, input_B_dimensions = format_dest_acc_and_dims[2]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,

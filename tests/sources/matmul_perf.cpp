@@ -98,18 +98,23 @@ void run_kernel(const volatile struct RuntimeParams* params)
 void run_kernel(const volatile struct RuntimeParams* params)
 {
     {
-        ZONE_SCOPED("INIT")
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
         _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
-        _llk_math_matmul_init_<MATH_FIDELITY, THROTTLE_LEVEL>(
-            /* tile A */ TILE_R_DIM,
-            /* tile A */ TILE_C_DIM,
-            /* tile B */ TILE_R_DIM,
-            /* tile B */ TILE_C_DIM,
-            /* partial face */ false,
-            /* transpose */ false,
-            params->CT_DIM,
-            params->RT_DIM);
+
+        ZONE_SCOPED("INIT")
+
+        for (int i = 0; i < 32; i++)
+        {
+            _llk_math_matmul_init_<MATH_FIDELITY, THROTTLE_LEVEL>(
+                /* tile A */ TILE_R_DIM,
+                /* tile A */ TILE_C_DIM,
+                /* tile B */ TILE_R_DIM,
+                /* tile B */ TILE_C_DIM,
+                /* partial face */ false,
+                /* transpose */ false,
+                params->CT_DIM,
+                params->RT_DIM);
+        }
 
         PROFILER_SYNC();
     }
