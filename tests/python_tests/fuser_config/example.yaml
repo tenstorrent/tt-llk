@@ -1,5 +1,5 @@
 dest_acc: "Yes"
-profiler_enabled: true
+# profiler_enabled: true
 loop_factor: 16
 
 operations:
@@ -8,6 +8,7 @@ operations:
     output: "datacopy_output"
     src_a_dims: [64, 64]
     src_b_dims: [64, 64]
+    output_dims: [64, 64]
     input_format: "Float16_b"
     output_format: "Float16_b"
     unpacker: "UnpackerA"
@@ -18,18 +19,21 @@ operations:
           operation: "Fill"
           approximation_mode: "No"
           iterations: 32
-          dst_dest_tile_index: 2
+          dst_dest_tile_index: 0
           fill_const_value: 1.0
     packer: "Packer"
     math_fidelity: "LoFi"
-    unpack_transpose_within_face: "Yes"
+    unpack_transpose_within_face: "No"
     unpack_transpose_faces: "No"
+    batch_size: 1
+    broadcast_type: "Scalar"
 
   - src_a: "datacopy_output"
     src_b: "input_B"
     output: "tilized_output"
     src_a_dims: [64, 64]
     src_b_dims: [64, 64]
+    output_dims: [64, 64]
     input_format: "Float16_b"
     output_format: "Float16_b"
     unpacker: "UnpackerTilizeA"
@@ -53,12 +57,14 @@ operations:
           dst_dest_tile_index: 1
     packer: "Packer"
     math_fidelity: "LoFi"
+    batch_size: 2
 
   - src_a: "tilized_output"
     src_b: "X"
     output: "reduced_output"
     src_a_dims: [64, 64]
     src_b_dims: [64, 64]
+    output_dims: [64, 64]
     src_b_const_value: 1.0
     input_format: "Float16_b"
     output_format: "Float16_b"
@@ -72,16 +78,18 @@ operations:
           approximation_mode: "No"
           iterations: 8
           src1_dest_tile_index: 0
-          src2_dest_tile_index: 1
-          dst_dest_tile_index: 2
+          src2_dest_tile_index: 0
+          dst_dest_tile_index: 0
     packer: "Packer"
     math_fidelity: "HiFi4"
+    batch_size: 1
 
   - src_a: "reduced_output"
     src_b: "input_B"
     output: "elwadd1"
     src_a_dims: [64, 64]
     src_b_dims: [64, 64]
+    output_dims: [64, 64]
     input_format: "Float16_b"
     output_format: "Float16_b"
     unpacker: "UnpackerAB"
@@ -95,6 +103,7 @@ operations:
     packer: "Packer"
     math_fidelity: "HiFi3"
     dest_sync: "Full"
+    broadcast_type: "Column"
     unpack_transpose_within_face: "Yes"
     unpack_transpose_faces: "Yes"
 
@@ -103,6 +112,7 @@ operations:
     output: "matmul_result"
     src_a_dims: [64, 64]
     src_b_dims: [64, 64]
+    output_dims: [32, 64]
     input_format: "Float16_b"
     output_format: "Float32"
     unpacker: "MatmulUnpacker"
@@ -119,13 +129,14 @@ operations:
           iterations: 128
     packer: "Packer"
     math_fidelity: "HiFi2"
-    output_pack_dims: [32, 64]
+    batch_size: 1
 
   - src_a: "matmul_result"
     src_b: "input_C"
     output: "final_output"
     src_a_dims: [32, 64]
     src_b_dims: [64, 32]
+    output_dims: [32, 32]
     input_format: "Float32"
     output_format: "Float32"
     unpacker: "MatmulUnpacker"
