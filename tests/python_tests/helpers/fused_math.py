@@ -252,29 +252,63 @@ class ComputePipeline:
         )
         return code
 
-    def unpack_body(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        fused_ops_with_unpacker = self.get_fused_compute_with_unpacker()
+    def unpack_hw_configure(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        stage = operation.stage_id
+        unpa_tile_size = operation.tile_size_unpack_a
+        unpb_tile_size = operation.tile_size_unpack_b
+        dest_acc = config.dest_acc.value
+        unpa_face_r_dim = operation.face_r_dim
+        unpb_face_r_dim = operation.face_r_dim
+        unpa_num_faces = operation.num_faces_A
+        unpb_num_faces = operation.num_faces_B
 
-        if not fused_ops_with_unpacker:
-            return ""
+        if stage == 0:
+            code = (
+                f"    _llk_unpack_hw_configure_<{dest_acc}, false>(\n"
+                f"        unpack_a_src_format{stage}, unpack_b_src_format{stage}, unpack_a_dst_format{stage}, unpack_b_dst_format{stage},\n"
+                f"        {unpa_face_r_dim}, {unpb_face_r_dim}, {unpa_num_faces}, {unpb_num_faces}, {unpa_tile_size}, {unpb_tile_size}\n"
+                f"    );\n"
+            )
+        else:
+            code = (
+                f"    _llk_unpack_reconfig_data_format_srca_impl_<{dest_acc}, false>(\n"
+                f"        unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {unpa_tile_size}\n"
+                f"    );\n"
+                f"    _llk_unpack_reconfig_data_format_srcb_impl_<{dest_acc}, false>(\n"
+                f"        unpack_b_src_format{stage}, unpack_b_dst_format{stage}, {unpb_tile_size}\n"
+                f"    );\n"
+            )
+        return code
 
-        return self._unpack_batched_body(operation, config, fused_ops_with_unpacker)
-
-    def _unpack_batched_body(
+    def unpacker_sync_with_packer(
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        fused_ops_with_unpacker: List["ComputeNode"],
+    ) -> str:
+        if operation.stage_id > 0:
+            return (
+                "    t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(semaphore::PACK_DONE);\n"
+                "    t6_semaphore_get<>(semaphore::PACK_DONE);\n"
+            )
+
+        return ""
+
+    def unpack_body(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
     ) -> str:
         batch_size = operation.batch_size
         tile_cnt = operation.output.tile_count
 
-        first_unpacker = fused_ops_with_unpacker[0].unpacker()
+        fused_ops_with_unpacker = self.get_fused_compute_with_unpacker()
 
         code = self.unpack_operand_constants(operation, config)
-        code += first_unpacker.hw_configure(operation, config)
+        code += self.unpack_hw_configure(operation, config)
 
-        code += first_unpacker.packer_sync(operation)
+        code += self.unpacker_sync_with_packer(operation, config)
 
         num_full_batches = tile_cnt // batch_size
         remaining_tiles = tile_cnt % batch_size
@@ -348,18 +382,6 @@ class ComputePipeline:
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
         return f"_llk_math_dest_section_done_<dest_sync{operation.stage_id}, {config.dest_acc.value}>();\n"
-
-    def _matmul_tile_loop(
-        self, operation: "FusedOperation", config: "GlobalConfig", body_fn
-    ) -> str:
-        rt_dim = operation.rt_dim
-        ct_dim = operation.ct_dim
-        code = f"for (uint32_t mt = 0; mt < {rt_dim}; ++mt) {{\n"
-        code += f"for (uint32_t nt = 0; nt < {ct_dim}; ++nt) {{\n"
-        code += body_fn()
-        code += "}\n"
-        code += "}\n"
-        return code
 
     def _batch_loop(
         self, operation: "FusedOperation", config: "GlobalConfig", body_fn

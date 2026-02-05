@@ -19,46 +19,6 @@ from .tilize_untilize import tilize_block, untilize_block
 
 
 class Unpacker:
-    def packer_sync(self, operation: "FusedOperation") -> str:
-        stage = operation.stage_id
-
-        code = ""
-        if stage > 0:
-            code = (
-                "    t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(semaphore::PACK_DONE);\n"
-                "    t6_semaphore_get<>(semaphore::PACK_DONE);\n\n"
-            )
-
-        return code
-
-    def hw_configure(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        stage = operation.stage_id
-        unpa_tile_size = operation.tile_size_unpack_a
-        unpb_tile_size = operation.tile_size_unpack_b
-        dest_acc = config.dest_acc.value
-        unpa_face_r_dim = operation.face_r_dim
-        unpb_face_r_dim = operation.face_r_dim
-        unpa_num_faces = operation.num_faces_A
-        unpb_num_faces = operation.num_faces_B
-
-        if stage == 0:
-            code = (
-                f"    _llk_unpack_hw_configure_<{dest_acc}, false>(\n"
-                f"        unpack_a_src_format{stage}, unpack_b_src_format{stage}, unpack_a_dst_format{stage}, unpack_b_dst_format{stage},\n"
-                f"        {unpa_face_r_dim}, {unpb_face_r_dim}, {unpa_num_faces}, {unpb_num_faces}, {unpa_tile_size}, {unpb_tile_size}\n"
-                f"    );\n"
-            )
-        else:
-            code = (
-                f"    _llk_unpack_reconfig_data_format_srca_impl_<{dest_acc}, false>(\n"
-                f"        unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {unpa_tile_size}\n"
-                f"    );\n"
-                f"    _llk_unpack_reconfig_data_format_srcb_impl_<{dest_acc}, false>(\n"
-                f"        unpack_b_src_format{stage}, unpack_b_dst_format{stage}, {unpb_tile_size}\n"
-                f"    );\n"
-            )
-        return code
-
     def init(
         self,
         operation: "FusedOperation",
