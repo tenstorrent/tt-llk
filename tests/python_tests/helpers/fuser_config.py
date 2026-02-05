@@ -16,7 +16,7 @@ from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import wait_for_tensix_operations_finished
 from .format_config import DataFormat, FormatConfig
-from .fused_math import MatmulFpu
+from .fused_fpu import MatmulFpu
 from .fused_operation import FusedOperation
 from .llk_params import DestAccumulation, DestSync, PerfRunType
 from .perf import PerfReport

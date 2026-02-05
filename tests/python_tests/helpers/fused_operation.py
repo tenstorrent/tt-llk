@@ -9,7 +9,8 @@ import torch
 
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .format_config import DataFormat
-from .fused_math import ComputePipeline, MatmulFpu
+from .fused_fpu import MatmulFpu
+from .fused_math import ComputePipeline
 from .fused_operand import Operand, OperandMapping
 from .fused_packer import Packer
 from .fused_unpacker import UnpackerTilizeA

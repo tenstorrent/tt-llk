@@ -9,9 +9,10 @@ import torch
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
+    from .fused_math import ComputeNode
 
 from .chip_architecture import ChipArchitecture
-from .fused_math import ComputeNode, ReduceFpu
+from .fused_fpu import ReduceFpu
 from .golden_generators import BroadcastGolden, TransposeGolden, get_golden_generator
 from .llk_params import BroadcastType, PerfRunType, Transpose
 from .tilize_untilize import tilize_block, untilize_block

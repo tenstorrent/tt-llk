@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
 
-from .fused_math import MatmulFpu, ReduceFpu
+from .fused_fpu import MatmulFpu, ReduceFpu
 from .llk_params import PerfRunType
 
 

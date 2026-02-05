@@ -8,19 +8,12 @@ from typing import Any, Dict, Type
 
 import yaml
 from helpers.format_config import DataFormat
-from helpers.fused_math import (
-    BinarySfpu,
-    ComputeNode,
-    ComputePipeline,
-    DatacopyFpu,
-    EltwiseFpu,
-    MatmulFpu,
-    ReduceFpu,
-    UnarySfpu,
-)
+from helpers.fused_fpu import DatacopyFpu, EltwiseFpu, MatmulFpu, ReduceFpu
+from helpers.fused_math import ComputeNode, ComputePipeline
 from helpers.fused_operand import OperandRegistry
 from helpers.fused_operation import FusedOperation
 from helpers.fused_packer import Packer
+from helpers.fused_sfpu import BinarySfpu, UnarySfpu
 from helpers.fused_unpacker import (
     MatmulUnpacker,
     Unpacker,
