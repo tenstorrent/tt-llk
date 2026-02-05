@@ -49,8 +49,8 @@ MATMUL_FORMATS = input_output_formats(
         DataFormat.Float32,
     ]
 )
-DEST_ACC_MODES = [DestAccumulation.No]
-DEST_SYNC_MODES = [DestSync.Full]
+DEST_ACC_MODES = [DestAccumulation.No]  # TODO: Enable full coverage
+DEST_SYNC_MODES = [DestSync.Full]  # TODO: Enable full coverage
 STOCHASTIC_ROUNDING_MODES = [StochasticRounding.No]
 MATH_FIDELITIES = [
     MathFidelity.LoFi,
@@ -102,6 +102,10 @@ def test_math_matmul(
     formats = matmul_config.formats
     in0_dimensions = matmul_config.tile_dimensions.in0_dimensions
     in1_dimensions = matmul_config.tile_dimensions.in1_dimensions
+    in0_tile_r_dim = matmul_config.tile_dimensions.in0_tile_r_dim
+    in0_tile_c_dim = matmul_config.tile_dimensions.in0_tile_c_dim
+    in1_tile_r_dim = matmul_config.tile_dimensions.in1_tile_r_dim
+    in1_tile_c_dim = matmul_config.tile_dimensions.in1_tile_c_dim
     transpose = matmul_config.face_layout_config.unpack_transpose_faces
     tile_cnt_in1 = matmul_config.tile_dimensions.tile_cnt_in1
     num_faces_in0 = matmul_config.face_layout_config.num_faces_in0
@@ -165,9 +169,11 @@ def test_math_matmul(
     tilized_in1 = tilize_block(
         in1, dimensions=in1_dimensions, stimuli_format=formats.input_format
     )
-    tilized_in0_l1_view = convert_to_l1_view(tilized_in0, num_faces_in0, in0_dimensions)
+    tilized_in0_l1_view = convert_to_l1_view(
+        tilized_in0, in0_dimensions, tile_dimensions=[in0_tile_r_dim, in0_tile_c_dim]
+    )
     tilized_in1_l1_view = convert_to_l1_view(
-        tilized_in1, num_faces_in1, in1_dimensions, is_matrix_A=False
+        tilized_in1, in1_dimensions, tile_dimensions=[in1_tile_r_dim, in1_tile_c_dim]
     )
 
     configuration = TestConfig(
@@ -224,18 +230,20 @@ def test_math_matmul(
 
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    # print("golden_tensor:")
-    # print_faces(golden_tensor)
-    # print("res_tensor:")
-    # print_faces(res_tensor)
+    # Convert golden tensor to L1 memory view for comparison
+    golden_tensor = convert_to_l1_view(
+        golden_tensor,
+        (in0_dimensions[0], in1_dimensions[1]),
+        tile_dimensions=[in0_tile_r_dim, in1_tile_c_dim],
+    )
+
     if num_faces < 4:
-        # Only compare the active faces in each tile since that's what the hardware processes
-        num_elements_per_tile = num_faces * 256  # Each face is 16x16 = 256 elements
+        num_elements_per_tile = in0_tile_r_dim * in1_tile_c_dim
         tile_cnt = matmul_config.tile_dimensions.output_tile_cnt
 
         # Compare each tile separately
         for i in range(tile_cnt):
-            start = i * 1024  # Each tile is 1024 elements
+            start = i * num_elements_per_tile
             assert passed_test(
                 golden_tensor[
                     start : start + num_elements_per_tile

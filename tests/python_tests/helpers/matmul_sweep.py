@@ -290,18 +290,18 @@ def generate_face_layout_config(num_faces: int) -> List[FaceLayoutConfig]:
         raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
 
     # Configuration parameters for each num_faces
-    config_params = {  # TODO: These can be removed when tiny tiles support for both in0 and in1
+    config_params = {  # TODO: These can be removed when tiny tiles are supported for both in0 and in1
         1: [
-            FaceLayoutParameters(
-                transpose_faces=Transpose.No,
-                transpose_within=Transpose.No,
-                partial_face=True,
-            ),
-            FaceLayoutParameters(
-                transpose_faces=Transpose.Yes,
-                transpose_within=Transpose.Yes,
-                partial_face=True,
-            ),
+            # FaceLayoutParameters(
+            #     transpose_faces=Transpose.No,
+            #     transpose_within=Transpose.No,
+            #     partial_face=True,
+            # ),
+            # FaceLayoutParameters(
+            #     transpose_faces=Transpose.Yes,
+            #     transpose_within=Transpose.Yes,
+            #     partial_face=True,
+            # ),
         ],
         2: [  # TODO: Re-enable once 32x16 in1 tiles are supported - might be redundant after tiny tiles support
             # FaceLayoutParameters(
@@ -503,7 +503,7 @@ def sweep_tiny_tiles_matmul(
                 partial_face_in0=True,  # SrcB
                 partial_face_in1=False,  # SrcA
                 partial_face_math=input0_dims[0] < 16,
-                partial_face_pack=input0_dims[0] < 16,
+                partial_face_pack=True,
             )
 
             max_dst_index = get_max_dst_index(

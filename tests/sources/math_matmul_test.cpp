@@ -27,8 +27,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
         formats.unpack_B_src,
         formats.unpack_A_dst,
         formats.unpack_B_dst,
-        FACE_R_DIM,
-        FACE_R_DIM,
+        params->in1_tile_r_dim < FACE_R_DIM ? params->in1_tile_r_dim : FACE_R_DIM,
+        params->in0_tile_r_dim < FACE_R_DIM ? params->in0_tile_r_dim : FACE_R_DIM,
         params->num_faces_A, // in1
         params->num_faces_B, // in0
         TILE_SIZE_UNPACK_A,
@@ -38,8 +38,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
         params->CT_DIM,
         params->RT_DIM,
         params->KT_DIM,
-        FACE_R_DIM,
-        FACE_R_DIM,
+        params->in1_tile_r_dim < FACE_R_DIM ? params->in1_tile_r_dim : FACE_R_DIM,
+        params->in0_tile_r_dim < FACE_R_DIM ? params->in0_tile_r_dim : FACE_R_DIM,
         params->num_faces_A,     // in1
         params->num_faces_B,     // in0
         params->PARTIAL_FACE_A,  // in1
@@ -107,13 +107,30 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
-        formats.pack_src, formats.pack_dst, TILE_SIZE_PACK, FACE_R_DIM, TILE_C_DIM, params->num_faces, params->PARTIAL_FACE_PACK);
-    _llk_pack_init_<false, false, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces, false /* partial_face parameter is unused on BH */);
+        formats.pack_src,
+        formats.pack_dst,
+        TILE_SIZE_PACK,
+        params->in0_tile_r_dim < FACE_R_DIM ? params->in0_tile_r_dim : FACE_R_DIM,
+        TILE_C_DIM,
+        params->num_faces,
+        params->PARTIAL_FACE_PACK);
+    _llk_pack_init_<false, false, false>(
+        formats.pack_dst,
+        params->in0_tile_r_dim < FACE_R_DIM ? params->in0_tile_r_dim : FACE_R_DIM,
+        TILE_C_DIM,
+        params->num_faces,
+        false /* partial_face parameter is unused on BH */);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(
-        formats.pack_src, formats.pack_dst, TILE_SIZE_PACK, FACE_R_DIM, params->num_faces, params->PARTIAL_FACE_PACK);
-    _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, params->num_faces, params->PARTIAL_FACE_PACK);
+        formats.pack_src,
+        formats.pack_dst,
+        TILE_SIZE_PACK,
+        params->in0_tile_r_dim < FACE_R_DIM ? params->in0_tile_r_dim : FACE_R_DIM,
+        params->num_faces,
+        params->PARTIAL_FACE_PACK);
+    _llk_pack_init_<false, false>(
+        formats.pack_dst, params->in0_tile_r_dim < FACE_R_DIM ? params->in0_tile_r_dim : FACE_R_DIM, params->num_faces, params->PARTIAL_FACE_PACK);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, false>();
 #endif
     _llk_packer_wait_for_math_done_();

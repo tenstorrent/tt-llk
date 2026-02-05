@@ -152,9 +152,7 @@ def generate_identity_face(
 
             # Set diagonal elements within the face
             for i in range(face_height):
-                matrix[r_start + i, c_start + i] = float(
-                    face_r * num_faces_col + face_c + 1
-                )
+                matrix[r_start + i, c_start + i] = 1
 
     return matrix.to(dtype=format_dict[stimuli_format])
 
@@ -591,40 +589,58 @@ def generate_stimuli_w_tile_dimensions(
 
 def convert_to_l1_view(
     tilized_tensor: torch.Tensor,
-    num_faces: int,
     input_dimensions: list,
-    is_matrix_A: bool = True,
+    tile_dimensions: list = None,
 ) -> torch.Tensor:
     """
-    Convert a tilized tensor to its L1 memory view by rearranging faces.
+    Convert a tilized tensor to its L1 memory view by condensing data based on tile dimensions.
 
-    This function rearranges the faces so that used faces come first, followed by
-    unused faces (zeroed out). The tile size is preserved (1024 elements per tile).
+    This function extracts only the data that corresponds to the specified tile dimensions
+    and places it at the beginning of each tile, with the remaining space zeroed out.
+    The full tile size (1024 elements) is preserved.
 
-    Face layout in a 32×32 tile (each face is 16×16 = 256 elements):
-    - f0: rows 0-15, cols 0-15  (top-left)     - index 0 in tilized order
-    - f1: rows 0-15, cols 16-31 (top-right)   - index 1 in tilized order
-    - f2: rows 16-31, cols 0-15 (bottom-left) - index 2 in tilized order
-    - f3: rows 16-31, cols 16-31 (bottom-right) - index 3 in tilized order
+    Tilized format: faces are stored sequentially [f0 (256), f1 (256), f2 (256), f3 (256)]
+    Within each face, data is stored row-major (16 rows × 16 cols).
 
-    Face usage by configuration:
-    - 1 face: f0 only → output order: [f0, 0, 0, 0]
-    - 2 faces, matrix A (is_matrix_A=True):  f0, f1 → output order: [f0, f1, 0, 0]
-    - 2 faces, matrix B (is_matrix_A=False): f0, f2 → output order: [f0, f2, 0, 0]
-    - 4 faces: f0, f1, f2, f3 (no change)
+    Face layout in a 32×32 tile:
+    - f0: rows 0-15, cols 0-15  (top-left)
+    - f1: rows 0-15, cols 16-31 (top-right)
+    - f2: rows 16-31, cols 0-15 (bottom-left)
+    - f3: rows 16-31, cols 16-31 (bottom-right)
+
+    Examples:
+    - tile_dimensions=[32, 32]: full tile, no change [f0, f1, f2, f3]
+    - tile_dimensions=[16, 32]: top half [f0, f1, 0, 0]
+    - tile_dimensions=[32, 16]: left half [f0, f2, 0, 0]
+    - tile_dimensions=[16, 16]: top-left only [f0, 0, 0, 0]
+    - tile_dimensions=[8, 32]: first 8 rows [f0_rows0-7, f1_rows0-7, 0, ...]
 
     Args:
-        tilized_tensor: Input tensor in tilized format (faces stored as [f0, f1, f2, f3] per tile)
-        num_faces: Number of faces used (1, 2, or 4)
-        input_dimensions: [rows, cols] of the input matrix
-        is_matrix_A: True for matrix A (In0/SrcB), False for matrix B (In1/SrcA).
-                    Only affects face selection in 2-face mode.
+        tilized_tensor: Input tensor in tilized format (faces stored sequentially per tile)
+        input_dimensions: [rows, cols] of the full input matrix
+        tile_dimensions: [rows, cols] to keep per tile (default [32, 32])
+                        rows must be one of: 1, 2, 4, 8, 16, 32
+                        cols must be one of: 16, 32
 
     Returns:
-        Tensor with used faces first, unused faces zeroed, same total size as input
+        Tensor with condensed data at the beginning (face by face), zeros at the end
     """
-    if num_faces not in [1, 2, 4]:
-        raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
+    if tile_dimensions is None:
+        tile_dimensions = [32, 32]
+
+    tile_rows, tile_cols = tile_dimensions
+
+    valid_rows = {1, 2, 4, 8, 16, 32}
+    valid_cols = {16, 32}
+
+    if tile_rows not in valid_rows:
+        raise ValueError(
+            f"tile_dimensions[0] (rows) must be one of {sorted(valid_rows)}, got {tile_rows}"
+        )
+    if tile_cols not in valid_cols:
+        raise ValueError(
+            f"tile_dimensions[1] (cols) must be one of {sorted(valid_cols)}, got {tile_cols}"
+        )
 
     rows, cols = input_dimensions
     if rows % 32 != 0 or cols % 32 != 0:
@@ -632,36 +648,60 @@ def convert_to_l1_view(
             f"Input dimensions must be multiples of 32, got {input_dimensions}"
         )
 
-    # If using all 4 faces, no conversion needed
-    if num_faces == 4:
+    # If using full tile dimensions, no conversion needed
+    if tile_rows == 32 and tile_cols == 32:
         return tilized_tensor.flatten()
 
     # Calculate number of tiles
     tile_cnt = (rows // 32) * (cols // 32)
-    elements_per_face = 256  # 16 × 16
-    elements_per_tile = 4 * elements_per_face  # 1024
+    face_rows = 16
+    face_cols = 16
+    elements_per_face = face_rows * face_cols  # 256
 
-    # Reshape to [num_tiles, 4, 256] for easier face manipulation
-    tensor_by_tiles = tilized_tensor.flatten().view(tile_cnt, 4, elements_per_face)
+    # Reshape to [num_tiles, 4, 16, 16] for easier face/row manipulation
+    # Face order in tilized format: [f0, f1, f2, f3]
+    tensor_by_tiles = tilized_tensor.flatten().view(tile_cnt, 4, face_rows, face_cols)
 
     # Create output tensor with same shape, initialized to zeros
     output = torch.zeros_like(tensor_by_tiles)
 
-    # Determine which faces to keep based on num_faces and matrix type
-    if num_faces == 1:
-        # Keep only f0 → output: [f0, 0, 0, 0]
-        face_indices = [0]
-    elif num_faces == 2:
-        if is_matrix_A:
-            # Matrix A (In0/SrcB): keep f0, f1 → output: [f0, f1, 0, 0]
-            face_indices = [0, 1]
-        else:
-            # Matrix B (In1/SrcA): keep f0, f2 → output: [f0, f2, 0, 0]
-            face_indices = [0, 2]
+    # Determine which faces to use and how many rows from each
+    # tile_rows <= 16: only top faces (f0, f1), take tile_rows from each
+    # tile_rows == 32: all faces, take all 16 rows from each
+    # tile_cols == 16: only left faces (f0, f2)
+    # tile_cols == 32: both left and right faces
+    use_bottom_faces = tile_rows == 32
+    use_right_faces = tile_cols == 32
+    rows_per_face = tile_rows if tile_rows <= 16 else 16
 
-    # Copy used faces to the beginning of each tile
-    for out_idx, src_idx in enumerate(face_indices):
-        output[:, out_idx, :] = tensor_by_tiles[:, src_idx, :]
+    # Extract data face by face (not interleaved)
+    for tile_idx in range(tile_cnt):
+        out_flat = []
+
+        # f0: always used - extract rows_per_face rows
+        for row in range(rows_per_face):
+            out_flat.extend(tensor_by_tiles[tile_idx, 0, row, :].tolist())
+
+        # f1: used if tile_cols == 32 - extract rows_per_face rows
+        if use_right_faces:
+            for row in range(rows_per_face):
+                out_flat.extend(tensor_by_tiles[tile_idx, 1, row, :].tolist())
+
+        # f2: used if tile_rows == 32 - extract all 16 rows
+        if use_bottom_faces:
+            for row in range(16):
+                out_flat.extend(tensor_by_tiles[tile_idx, 2, row, :].tolist())
+
+        # f3: used if tile_rows == 32 and tile_cols == 32 - extract all 16 rows
+        if use_bottom_faces and use_right_faces:
+            for row in range(16):
+                out_flat.extend(tensor_by_tiles[tile_idx, 3, row, :].tolist())
+
+        # Place condensed data at the beginning of the tile
+        out_flat_tensor = torch.tensor(out_flat, dtype=tilized_tensor.dtype)
+        output_flat = output[tile_idx].flatten()
+        output_flat[: len(out_flat)] = out_flat_tensor
+        output[tile_idx] = output_flat.view(4, face_rows, face_cols)
 
     # Flatten and return
     return output.flatten()
