@@ -58,14 +58,24 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #include "llk_math_common.h"
 #include "llk_math_matmul.h"
+#include "llk_math_reduce_custom.h"
 #include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    // Insert a block-based reduce_max_row initialization that is in reduce_custom.h that is in the llk_math_reduce_custom.h file
+    // This will try to prove that init can go in between matmul and the loop
+    _llk_math_reduce_block_max_row_init_<1>();
+
+    // => conclusion: setting of addrmod is not allowed in between matmul and the loop
+    // that's why it goes here
+
     _llk_math_matmul_init_<MATH_FIDELITY>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, params->CT_DIM, params->RT_DIM);
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
+
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+
     for (std::uint32_t j = 0; j < params->KT_DIM; j++)
     {
         _llk_math_matmul_<MATH_FIDELITY>(0, params->CT_DIM, params->RT_DIM);
