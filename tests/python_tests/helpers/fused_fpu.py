@@ -157,14 +157,14 @@ class MatmulFpu(Fpu):
 
         if batch_size == 1:
             return (
-                f"for (uint32_t kt = 0; kt < {kt_dim}; kt++)\n"
+                f"for (std::uint32_t kt = 0; kt < {kt_dim}; kt++)\n"
                 f"{{\n"
                 f"    _llk_math_matmul_<{math_fidelity}>(0, 1, 1);\n"
                 f"}}\n"
             )
         else:
             return (
-                f"for (uint32_t kt = 0; kt < {kt_dim}; kt++)\n"
+                f"for (std::uint32_t kt = 0; kt < {kt_dim}; kt++)\n"
                 f"{{\n"
                 f"    _llk_math_matmul_<{math_fidelity}>(0, {ct_dim}, {rt_dim});\n"
                 f"}}\n"

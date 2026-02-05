@@ -245,10 +245,10 @@ class ComputePipeline:
             f"    // Operation {stage}: Fused Unpack\n"
             f"    UNUSED const Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});\n"
             f"    UNUSED const Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});\n"
-            f"    UNUSED const uint32_t unpack_a_src_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_a_src.name});\n"
-            f"    UNUSED const uint32_t unpack_a_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_a_dst.name});\n"
-            f"    UNUSED const uint32_t unpack_b_src_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_b_src.name});\n"
-            f"    UNUSED const uint32_t unpack_b_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_b_dst.name});\n"
+            f"    UNUSED const std::uint32_t unpack_a_src_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_a_src.name});\n"
+            f"    UNUSED const std::uint32_t unpack_a_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_a_dst.name});\n"
+            f"    UNUSED const std::uint32_t unpack_b_src_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_b_src.name});\n"
+            f"    UNUSED const std::uint32_t unpack_b_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{unpack_b_dst.name});\n"
         )
         return code
 
@@ -314,16 +314,16 @@ class ComputePipeline:
         remaining_tiles = tile_cnt % batch_size
 
         if num_full_batches > 0:
-            code += (
-                f"    for (uint32_t batch = 0; batch < {num_full_batches}; ++batch)\n"
-            )
+            code += f"    for (std::uint32_t batch = 0; batch < {num_full_batches}; ++batch)\n"
             code += "    {\n"
             for fused_op in fused_ops_with_unpacker:
                 unpacker_instance = fused_op.unpacker()
                 code += unpacker_instance.init(operation, config, fused_op)
-                code += f"        for (uint32_t i = 0; i < {batch_size}; ++i)\n"
+                code += f"        for (std::uint32_t i = 0; i < {batch_size}; ++i)\n"
                 code += "        {\n"
-                code += f"            uint32_t tile_idx = batch * {batch_size} + i;\n"
+                code += (
+                    f"            std::uint32_t tile_idx = batch * {batch_size} + i;\n"
+                )
                 code += unpacker_instance.unpack(
                     operation, config, fused_op, "tile_idx"
                 )
@@ -334,15 +334,13 @@ class ComputePipeline:
         if remaining_tiles > 0:
             if num_full_batches > 0:
                 code += "    {\n"
-                code += f"        const uint32_t batch_offset = {num_full_batches * batch_size};\n"
+                code += f"        const std::uint32_t batch_offset = {num_full_batches * batch_size};\n"
                 for fused_op in fused_ops_with_unpacker:
                     unpacker_instance = fused_op.unpacker()
                     code += unpacker_instance.init(operation, config, fused_op)
-                    code += (
-                        f"        for (uint32_t i = 0; i < {remaining_tiles}; ++i)\n"
-                    )
+                    code += f"        for (std::uint32_t i = 0; i < {remaining_tiles}; ++i)\n"
                     code += "        {\n"
-                    code += "            uint32_t tile_idx = batch_offset + i;\n"
+                    code += "            std::uint32_t tile_idx = batch_offset + i;\n"
                     code += unpacker_instance.unpack(
                         operation, config, fused_op, "tile_idx"
                     )
@@ -353,7 +351,9 @@ class ComputePipeline:
                 for fused_op in fused_ops_with_unpacker:
                     unpacker_instance = fused_op.unpacker()
                     code += unpacker_instance.init(operation, config, fused_op)
-                    code += f"    for (uint32_t i = 0; i < {remaining_tiles}; ++i)\n"
+                    code += (
+                        f"    for (std::uint32_t i = 0; i < {remaining_tiles}; ++i)\n"
+                    )
                     code += "    {\n"
                     code += unpacker_instance.unpack(operation, config, fused_op, "i")
                     code += "    }\n"
@@ -395,9 +395,7 @@ class ComputePipeline:
         code = ""
 
         if num_full_batches > 0:
-            code += (
-                f"for (uint32_t batch = 0; batch < {num_full_batches}; ++batch) {{\n"
-            )
+            code += f"for (std::uint32_t batch = 0; batch < {num_full_batches}; ++batch) {{\n"
             code += body_fn(batch_size)
             code += "}\n"
 
@@ -422,7 +420,7 @@ class ComputePipeline:
         dest_sync_str = dest_sync_map.get(dest_sync, "SyncHalf")
 
         code = f"// Operation {stage}: Math Setup\n"
-        code += f"const uint32_t math_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name});\n"
+        code += f"const std::uint32_t math_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{math_format.name});\n"
         code += f"constexpr DstSync dest_sync{stage} = DstSync::{dest_sync_str};\n"
 
         return code

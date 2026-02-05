@@ -227,9 +227,9 @@ class MatmulUnpacker(Unpacker):
             # Single tile per batch - tile_idx maps to (mt, nt) pair
             code = (
                 f"    {{\n"
-                f"        uint32_t mt = ({tile_idx_expr}) / {ct_dim};\n"
-                f"        uint32_t nt = ({tile_idx_expr}) % {ct_dim};\n"
-                f"        for (uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
+                f"        std::uint32_t mt = ({tile_idx_expr}) / {ct_dim};\n"
+                f"        std::uint32_t nt = ({tile_idx_expr}) % {ct_dim};\n"
+                f"        for (std::uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
                 f"            _llk_unpack_AB_matmul_<>(\n"
                 f"                L1_ADDRESS(buffer_A{stage}[0]), L1_ADDRESS(buffer_B{stage}[0]),\n"
                 f"                mt * {kt_dim} + kt, kt * {ct_dim} + nt,\n"
@@ -533,8 +533,8 @@ class UnpackerTilizeA(Unpacker):
         if config.architecture == ChipArchitecture.BLACKHOLE:
             return (
                 f"{{\n"
-                f"    uint32_t row = ({tile_idx_expr}) / {block_ct_dim};\n"
-                f"    uint32_t col = ({tile_idx_expr}) % {block_ct_dim};\n"
+                f"    std::uint32_t row = ({tile_idx_expr}) / {block_ct_dim};\n"
+                f"    std::uint32_t col = ({tile_idx_expr}) % {block_ct_dim};\n"
                 f"    _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[row * {block_ct_dim}]), col, unpack_a_src_format{stage}, unpack_a_dst_format{stage});\n"
                 f"}}\n"
             )
@@ -543,8 +543,8 @@ class UnpackerTilizeA(Unpacker):
         elif config.architecture == ChipArchitecture.WORMHOLE:
             return (
                 f"{{\n"
-                f"    uint32_t row = ({tile_idx_expr}) / {block_ct_dim};\n"
-                f"    uint32_t col = ({tile_idx_expr}) % {block_ct_dim};\n"
+                f"    std::uint32_t row = ({tile_idx_expr}) / {block_ct_dim};\n"
+                f"    std::uint32_t col = ({tile_idx_expr}) % {block_ct_dim};\n"
                 f"    _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[row * {block_ct_dim}]), col, unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
                 f"}}\n"
             )
