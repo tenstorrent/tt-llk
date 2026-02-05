@@ -46,13 +46,8 @@ inline void _quant_int32_(const std::uint32_t dst_index_in0, const std::uint32_t
     }
 }
 
-<<<<<<< HEAD
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
-inline void _requant_int32_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
-=======
 template <ApproximationMode APPROX_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
-inline void _requant_int32_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
->>>>>>> a12c829f (changes for tt_llk)
+inline void _requant_int32_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 {
     // Operand A is input to requant (int32)
     // Operand B is scaling factor (fp32)
@@ -83,13 +78,8 @@ inline void _requant_int32_(const uint dst_index_in0, const uint dst_index_in1, 
     }
 }
 
-<<<<<<< HEAD
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
-inline void _dequant_int32_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
-=======
 template <ApproximationMode APPROX_MODE, int ITERATIONS, bool SIGN_MAGNITUDE_FORMAT>
-inline void _dequant_int32_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_out)
->>>>>>> a12c829f (changes for tt_llk)
+inline void _dequant_int32_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 {
     // Operand A[LREG0] is input to dequant (int32)
     // Operand B[LREG1] is scaling factor (fp32)
@@ -120,16 +110,12 @@ inline void _dequant_int32_(const uint dst_index_in0, const uint dst_index_in1, 
     }
 }
 
-<<<<<<< HEAD
-template <bool APPROXIMATION_MODE /*unused*/>
-inline void _init_quant_zero_point_(const std::uint32_t zero_point)
-=======
 template <ApproximationMode APPROX_MODE /*unused*/>
-inline void _init_quant_zero_point_(const uint zero_point)
->>>>>>> a12c829f (changes for tt_llk)
+inline void _init_quant_zero_point_(const std::uint32_t zero_point)
 {
     _sfpu_load_imm32_(2, zero_point);
 }
 
 } // namespace sfpu
 } // namespace ckernel
+
