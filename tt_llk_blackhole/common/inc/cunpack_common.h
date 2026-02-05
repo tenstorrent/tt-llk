@@ -553,14 +553,14 @@ enum class UnpackerProgramType
  */
 template <UnpackerProgramType program_type = UnpackerProgramType::ProgramByTile>
 inline bool is_unpacker_configured_correctly(
-    const uint unpA_src_format,
-    const uint unpA_dst_format,
-    const uint unpB_src_format,
-    const uint unpB_dst_format,
-    const uint unpA_face_r_dim = FACE_R_DIM,
-    const uint unpB_face_r_dim = FACE_R_DIM,
-    const uint unpA_num_faces  = TILE_NUM_FACES,
-    const uint unpB_num_faces  = TILE_NUM_FACES)
+    const std::uint32_t unpA_src_format,
+    const std::uint32_t unpA_dst_format,
+    const std::uint32_t unpB_src_format,
+    const std::uint32_t unpB_dst_format,
+    const std::uint32_t unpA_face_r_dim = FACE_R_DIM,
+    const std::uint32_t unpB_face_r_dim = FACE_R_DIM,
+    const std::uint32_t unpA_num_faces  = TILE_NUM_FACES,
+    const std::uint32_t unpB_num_faces  = TILE_NUM_FACES)
 {
     std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec = read_unpack_tile_descriptor();
     std::array<unpack_config_t, NUM_UNPACKERS> config_vec                   = read_unpack_config();
@@ -573,10 +573,10 @@ inline bool is_unpacker_configured_correctly(
 
     if constexpr (program_type == UnpackerProgramType::ProgramByTile)
     {
-        volatile uint tt_reg_ptr *cfg       = get_cfg_pointer();
-        const uint face_dim                 = unpA_face_r_dim * FACE_C_DIM;
-        const bool isUnpAFaceRDimCorrect    = (cfg[THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32] == (face_dim | (face_dim << 16)));
-        const bool areFaceDimensionsCorrect = tile_descriptor_cntx1.x_dim == unpB_face_r_dim * FACE_C_DIM;
+        volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer();
+        const std::uint32_t face_dim           = unpA_face_r_dim * FACE_C_DIM;
+        const bool isUnpAFaceRDimCorrect       = (cfg[THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32] == (face_dim | (face_dim << 16)));
+        const bool areFaceDimensionsCorrect    = tile_descriptor_cntx1.x_dim == unpB_face_r_dim * FACE_C_DIM;
         return areDataFormatsCorrect && isUnpAFaceRDimCorrect && areFaceDimensionsCorrect;
     }
     else
