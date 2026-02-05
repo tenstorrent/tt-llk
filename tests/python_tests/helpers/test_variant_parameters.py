@@ -28,6 +28,7 @@ from .llk_params import (
     StableSort,
     StochasticRounding,
     Tilize,
+    TopKSortDirection,
     Transpose,
     UnpackerEngine,
 )
@@ -279,6 +280,29 @@ class REDUCE_POOL_TYPE(TemplateParameter):
 
     def covert_to_cpp(self) -> str:
         return f"constexpr auto POOL_TYPE = ckernel::PoolType::{self.reduce_pool_type.value};"
+
+
+@dataclass
+class TOPK(TemplateParameter):
+    topk_k: int = 0
+    topk_logk: int = 0
+    topk_sort_direction: TopKSortDirection = TopKSortDirection.Descending
+
+    def covert_to_cpp(self) -> str:
+        lines: list[str] = [
+            f"constexpr uint32_t TOPK_K = {self.topk_k};",
+            f"constexpr uint32_t TOPK_LOGK = {self.topk_logk};",
+            f"constexpr uint32_t TOPK_SORT_DIRECTION = {self.topk_sort_direction.value};",
+        ]
+        return "\n".join(lines)
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        lines: list[str] = [
+            "uint32_t TOPK_K;",
+            "uint32_t TOPK_LOGK;",
+            "uint32_t TOPK_SORT_DIRECTION;",
+        ]
+        return "\n".join(lines), "III"
 
 
 @dataclass
