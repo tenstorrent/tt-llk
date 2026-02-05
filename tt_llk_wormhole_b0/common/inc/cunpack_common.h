@@ -541,30 +541,33 @@ enum class UnpackerProgramType
  * @param unpB_num_faces    Expected number of faces for unpacker B (default TILE_NUM_FACES)
  * @return true if the current unpacker configuration matches all expected values, false otherwise
  */
+template <UnpackerProgramType program_type = UnpackerProgramType::ProgramByTile>
 inline bool is_unpacker_configured_correctly(
     const uint unpA_src_format,
     const uint unpA_dst_format,
     const uint unpB_src_format,
     const uint unpB_dst_format,
-    const UnpackerProgramType program_type,
     const uint unpA_face_r_dim = FACE_R_DIM,
     const uint unpB_face_r_dim = FACE_R_DIM,
     const uint unpA_num_faces  = TILE_NUM_FACES,
     const uint unpB_num_faces  = TILE_NUM_FACES)
 {
-    LLK_ASSERT(unpA_face_r_dim == FACE_R_DIM, "unpA_face_r_dim currently not used.");
     std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec = read_unpack_tile_descriptor();
     std::array<unpack_config_t, NUM_UNPACKERS> config_vec                   = read_unpack_config();
 
     const unpack_tile_descriptor_t &tile_descriptor_cntx0 = tile_descriptor_vec[0];
     const unpack_tile_descriptor_t &tile_descriptor_cntx1 = tile_descriptor_vec[1];
-    const bool areDataFormatsCorrect = (tile_descriptor_cntx0.in_data_format == unpA_src_format && config_vec[0].out_data_format == unpA_dst_format) &&
-                                       (tile_descriptor_cntx1.in_data_format == unpB_src_format && config_vec[1].out_data_format == unpB_dst_format);
+    const bool areDataFormatsCorrect =
+        (tile_descriptor_cntx0.in_data_format == (unpA_src_format & 0x0F) && config_vec[0].out_data_format == (unpA_dst_format & 0x0F)) &&
+        (tile_descriptor_cntx1.in_data_format == (unpB_src_format & 0x0F) && config_vec[1].out_data_format == (unpB_dst_format & 0x0F));
 
-    if (program_type == UnpackerProgramType::ProgramByTile)
+    if constexpr (program_type == UnpackerProgramType::ProgramByTile)
     {
+        volatile uint tt_reg_ptr *cfg       = get_cfg_pointer();
+        const uint face_dim                 = unpA_face_r_dim * FACE_C_DIM;
+        const bool isUnpAFaceRDimCorrect    = (cfg[THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32] == (face_dim | (face_dim << 16)));
         const bool areFaceDimensionsCorrect = tile_descriptor_cntx1.x_dim == unpB_face_r_dim * FACE_C_DIM;
-        return areDataFormatsCorrect && areFaceDimensionsCorrect;
+        return areDataFormatsCorrect && isUnpAFaceRDimCorrect && areFaceDimensionsCorrect;
     }
     else
     {
