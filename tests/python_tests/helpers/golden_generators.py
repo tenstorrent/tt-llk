@@ -15,6 +15,7 @@ from helpers.llk_params import (
     PackerReluType,
     ReduceDimension,
     ReducePool,
+    TopKSortDirection,
     format_dict,
 )
 from helpers.pack import pack_mxfp8p, pack_mxfp8r
@@ -2199,3 +2200,96 @@ class PackRowsGolden:
         result = extracted_elements.flatten()
 
         return result.to(format_dict[data_format])
+
+
+@register_golden
+class TopKGolden:
+    """
+    Golden generator for TopK operation on 32x128 tensors.
+
+    For each of the 32 rows:
+    - First 64 elements: values to find top-k from
+    - Second 64 elements: indices (1-64) that follow the sort order
+
+    The operation sorts the first 64 elements and reorders the indices accordingly.
+    """
+
+    def __call__(
+        self,
+        operand,
+        data_format,
+        k=32,
+        sort_direction: TopKSortDirection = TopKSortDirection.Descending,
+        input_dimensions=[32, 128],
+    ):
+        """
+        Perform per-row topk on a 32x128 tensor.
+
+        Args:
+            operand: Input tensor (flattened or shaped)
+            data_format: Data format for the result
+            k: Number of top elements to extract per row (default: 32)
+            input_dimensions: Input dimensions [rows, cols] (default: [32, 128])
+            tilize_output: Whether to tilize the output (default: False)
+
+        Returns:
+            Tensor with topk applied per row, maintaining the structure
+        """
+        torch_format = format_dict[data_format]
+
+        # Convert to tensor if needed and clone to avoid modifying input
+        if not isinstance(operand, torch.Tensor):
+            operand = torch.tensor(operand, dtype=torch_format)
+        else:
+            operand = operand.clone().to(torch_format)
+
+        rows, cols = input_dimensions
+
+        if input_dimensions != [32, 128]:
+            raise ValueError(
+                f"Expected input dimensions [32, 128] for TopK, got {input_dimensions}"
+            )
+
+            # Set columns 64-127 to 1, 2, 3, ..., 64 for each row
+        for row in range(rows):
+            indices_start = row * cols + cols // 2
+            indices_end = indices_start + cols // 2
+            operand[indices_start:indices_end] = torch.arange(
+                1, 65, dtype=operand.dtype
+            )
+
+        for row_idx in range(rows):
+            # Extract values and indices.
+
+            values_start = row_idx * cols
+            values_end = values_start + cols // 2
+
+            indices_start = values_end
+            indices_end = indices_start + cols // 2
+
+            values = operand[values_start:values_end]
+            indices = operand[indices_start:indices_end]
+
+            # Get top-k values and their positions in the original array
+            # largest=True means we want the largest k values
+            # sorted=True means results are sorted in descending order
+            topk_values, topk_positions = torch.topk(
+                values,
+                k,
+                largest=(sort_direction == TopKSortDirection.Descending),
+                sorted=True,
+            )
+
+            # Reorder indices based on the topk positions
+            topk_indices = indices[topk_positions]
+
+            operand[values_start : values_start + k] = topk_values
+            operand[indices_start : indices_start + k] = topk_indices
+
+        # Tilize to match hardware layout.
+        operand_tilizer = TilizeGolden()
+        operand = operand_tilizer(
+            operand, dimensions=input_dimensions, data_format=data_format
+        )
+
+        return operand
