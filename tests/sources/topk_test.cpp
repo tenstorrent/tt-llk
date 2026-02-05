@@ -15,29 +15,29 @@
 //    - Copies transposed tiles from L1 to SRC_A or DEST registers
 //
 // 2. MATH (TopK Pipeline):
-//    a) Local Sort (topk_local_sort): Initialize TopK SFPU state
-//    b) Phases/Steps (bitonic_topk_phases_steps): Perform bitonic sort phases
-//       - Uses bitonic merge network to sort across the 4-tile group
-//       - end_phase = LOGK-1 = 4 (for K=32, log2(32) = 5)
-//    c) Merge (bitonic_topk_merge): Extract top K values from sorted sequence
-//       - TOPK_SORT_DIRECTION=0 means ArgMax mode (descending order, largest values first)
-//    d) Rebuild (bitonic_topk_rebuild): Reconstruct final TopK output
-//       - Organizes top K values and their corresponding indices
+//    a) Local Sort (topk_local_sort): Initialize TopK SFPU state.
+//    b) Phases/Steps (bitonic_topk_phases_steps): Perform bitonic sort phases.
+//       - Uses bitonic merge network to sort across the 4-tile group.
+//       - end_phase = LOGK-1 = 4 (for K=32, log2(32) = 5).
+//    c) Merge (bitonic_topk_merge): Extract top K values from sorted sequence.
+//       - TOPK_SORT_DIRECTION=0 means ArgMax mode (descending order, largest values first).
+//    d) Rebuild (bitonic_topk_rebuild): Reconstruct final TopK output.
+//       - Organizes top K values and their corresponding indices.
 //
-// 3. PACK: Write result tiles from DEST back to L1 buffer
+// 3. PACK: Write result tiles from DEST back to L1 buffer.
 //
 // Example:
 //
 // Input Format (32x128 tensor, 4 tiles):
-//  - First 64 columns: Values to search for top K
-//  - Second 64 columns: Indices (1-64) that track original positions
+//  - First 64 columns: Values to search for top K.
+//  - Second 64 columns: Indices (1-64) that track original positions.
 //
 // Output Format:
-//  - First K values: Top K values in descending order
-//  - Corresponding K indices: Original positions of those top K values
+//  - First K values: Top K values in descending order.
+//  - Corresponding K indices: Original positions of those top K values.
 //
-// Sort Direction: Descending (TOPK_SORT_DIRECTION=0 → ArgMax → largest values first)
-//                 Ascending (TOPK_SORT_DIRECTION=1 → ArgMin → smallest values first)
+// Sort Direction: Descending (TOPK_SORT_DIRECTION=0 → ArgMax → largest values first).
+//                 Ascending (TOPK_SORT_DIRECTION=1 → ArgMin → smallest values first).
 
 #include <algorithm>
 #include <cstdint>
@@ -46,10 +46,10 @@
 #include "ckernel.h"
 #include "llk_defs.h"
 
-// Globals required by the test framework
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
+// Globals required by the test framework.
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
 
 // ============================================================================
 // UNPACK TRISC
@@ -75,7 +75,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         formats.unpack_src,
         formats.unpack_dst);
 
-    // Unpack all tiles from L1 buffer_A[i] to SRC_A (or DEST if unpack_to_dest) with transpose
+    // Unpack all tiles from L1 buffer_A[i] to SRC_A (or DEST if unpack_to_dest) with transpose.
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
@@ -142,15 +142,15 @@ void run_kernel(const volatile struct RuntimeParams *params)
             /*src_tile_index=*/tile, formats.math, formats.math);
     }
 
-    constexpr bool APPROX      = false;
-    constexpr bool STABLE_SORT = false;
-    constexpr int M_ITER       = 0;
-    constexpr uint dst_index   = 0;             // base DEST index for the 4-tile group
-    const int end_phase        = TOPK_LOGK - 1; // same as other TopK call sites
-    constexpr int start_phase  = 0;
-    constexpr int end_step     = 0;
-    constexpr int start_step   = 0;
-    constexpr int vector_mode  = (int)VectorMode::RC_custom;
+    constexpr bool APPROX             = false;
+    constexpr bool STABLE_SORT        = false;
+    constexpr int M_ITER              = 0;
+    constexpr std::uint32_t dst_index = 0;             // base DEST index for the 4-tile group.
+    const int end_phase               = TOPK_LOGK - 1; // same as other TopK call sites.
+    constexpr int start_phase         = 0;
+    constexpr int end_step            = 0;
+    constexpr int start_step          = 0;
+    constexpr int vector_mode         = (int)VectorMode::RC_custom;
 
     // These two calls are essentially the same as calling ckernel::llk_math_eltwise_unary_sfpu_topk_init<APPROX>(); from metal.
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::topk_local_sort>();

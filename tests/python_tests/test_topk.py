@@ -33,7 +33,7 @@ def transform_result_tensor_to_right_form(
 
     transpose_util = get_golden_generator(TransposeGolden)
 
-    # First: transpose faces (swap face positions)
+    # First: transpose faces (swap face positions).
     res_tensor = transpose_util.transpose_faces_multi_tile(
         res_tensor,
         formats.output_format,
@@ -43,7 +43,7 @@ def transform_result_tensor_to_right_form(
         input_dimensions=input_dimensions,
     )
 
-    # Then: transpose within each face
+    # Then: transpose within each face.
     res_tensor = transpose_util.transpose_within_faces_multi_tile(
         res_tensor,
         formats.output_format,
@@ -63,7 +63,7 @@ def prepare_input_tensor_for_topk(src_A, formats, input_dimensions=[32, 128]):
             "This function is specifically designed for input dimensions [32, 128]."
         )
 
-    # Clone to avoid modifying the original tensor
+    # Clone to avoid modifying the original tensor.
     src_A = src_A.clone()
 
     num_rows, num_cols = input_dimensions
@@ -112,10 +112,10 @@ def validate_topk_indices(
         )
 
     values_offset = 0
-    indices_offset = input_dimensions[1] // 2  # Indices stored in second half of row
+    indices_offset = input_dimensions[1] // 2  # Indices stored in second half of row.
 
     for row_idx in range(input_dimensions[0]):
-        for datum in range(K):  # Check top K values/indices for each row
+        for datum in range(K):  # Check top K values/indices for each row.
             value_idx = row_idx * input_dimensions[1] + values_offset + datum
             indice_idx = row_idx * input_dimensions[1] + indices_offset + datum
 
