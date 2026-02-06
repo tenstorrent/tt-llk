@@ -182,10 +182,6 @@ def generate_matmul_dimension_combinations(
     """
 
     return [
-        ([32, 32], [32, 32])
-    ]  # TODO: remove this once we have a proper matmul dimension generator
-
-    return [
         ([mt_dim * TILE_DIM, kt_dim * TILE_DIM], [kt_dim * TILE_DIM, nt_dim * TILE_DIM])
         for mt_dim in range(1, max_tiles + 1)
         for nt_dim in range(1, max_tiles // mt_dim + 1)
@@ -198,8 +194,7 @@ def generate_matmul_tiny_tiles_combinations(max_tiles: int) -> List[tuple]:
     tile_in0_rows = [1, 2, 4, 8, 16]
     tile_in0_columns = 32
     tile_in1_rows = 32
-    tile_in1_columns = [32]
-    # tile_in1_columns = list(range(32, (max_tiles + 1) * 32, 32)) # TODO: uncomment this
+    tile_in1_columns = list(range(32, (max_tiles + 1) * 32, 32))
 
     return [
         ((tile_in0_row, tile_in0_columns), (tile_in1_rows, tile_in1_column))
@@ -441,7 +436,7 @@ def sweep_matmul(
                                     dest_sync=dest_sync,
                                     dest_acc=dest_acc,
                                 )
-                                # combinations.append(edge_case_dims) # TODO: uncomment this once we have a proper matmul dimension generator
+                                combinations.append(edge_case_dims)
 
     return combinations
 
@@ -512,11 +507,10 @@ def sweep_tiny_tiles_matmul(
                 tile_dims.tile_cnt,
             )
             max_dst_indices = [0]
-            # if math_matmul and max_dst_index != 0:
-            #     max_dst_indices.append(max_dst_index)
+            if math_matmul and max_dst_index != 0:
+                max_dst_indices.append(max_dst_index)
 
             for max_dst_idx in max_dst_indices:
-                # if max_dst_idx == 0: continue # TODO: remove this once we have a proper matmul dimension generator
                 combinations.append(
                     MatmulConfig(
                         tile_dimensions=tile_dims,
