@@ -274,6 +274,24 @@ inline void matmul_configure_addrmod(
     }
 }
 
+inline void matmul_configure_addrmod_reinit()
+{
+    addr_mod_t {
+        //.srca = {.incr = srca_increment, .clr = 0, .cr = 0},
+        .srca = {.incr = 16, .clr = 0, .cr = 0},
+        .srcb = {.incr = 0, .clr = 0, .cr = 1},
+        .dest = {.incr = 8, .clr = 0, .cr = 0},
+    }
+        .set(ADDR_MOD_1);
+
+    addr_mod_t {
+        .srca = {.incr = 0, .clr = 0, .cr = 1},
+        .srcb = {.incr = 32, .clr = 0, .cr = 1},
+        .dest = {.incr = 8, .clr = 0, .cr = 0},
+    }
+        .set(ADDR_MOD_2);
+}
+
 template <int NUM_FIDELITY_PHASES>
 inline void matmul_configure_mop(
     const std::uint32_t ct_dim,
