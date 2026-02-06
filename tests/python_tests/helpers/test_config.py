@@ -1012,7 +1012,7 @@ class TestConfig:
             if is_profiler:
                 if not TestConfig.PROFILER_BRISC_ELF_LOADED:
                     set_tensix_soft_reset(1, location=location)
-                    make_sure_core_in_reset(location, "Brisc init", [RiscCore.BRISC])
+                    make_sure_core_in_reset(location, "Brisc init")
                     TestConfig.PROFILER_BRISC_ELF_LOADED = True
                     load_elf(
                         elf_file=str(

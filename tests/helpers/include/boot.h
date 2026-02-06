@@ -92,10 +92,11 @@ inline void set_triscs_soft_reset()
     uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
     soft_reset |= TRISC_SOFT_RESET_MASK;
 
-    if (cfg_initial_state != 0)
-    {
-        soft_reset = cfg_initial_state;
-    }
+    uint32_t temp_reset_reg = 0;
 
-    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
+    do
+    {
+        ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
+        temp_reset_reg = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+    } while (temp_reset_reg != soft_reset);
 }

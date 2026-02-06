@@ -34,9 +34,19 @@ int main()
         switch (static_cast<enum CommandState>(*state_command))
         {
             case CommandState::START_TRISCS:
-                *mailbox_unpack = 0;
-                *mailbox_math   = 0;
-                *mailbox_pack   = 0;
+                while (*mailbox_unpack != 0)
+                {
+                    *mailbox_unpack = 0;
+                }
+                while (*mailbox_math != 0)
+                {
+                    *mailbox_math = 0;
+                }
+                while (*mailbox_pack != 0)
+                {
+                    *mailbox_pack = 0;
+                }
+
                 device_setup();
                 clear_trisc_soft_reset();
 
@@ -45,6 +55,19 @@ int main()
                 break;
             case CommandState::RESET_TRISCS:
                 set_triscs_soft_reset();
+
+                while (*mailbox_unpack != 0)
+                {
+                    *mailbox_unpack = 0;
+                }
+                while (*mailbox_math != 0)
+                {
+                    *mailbox_math = 0;
+                }
+                while (*mailbox_pack != 0)
+                {
+                    *mailbox_pack = 0;
+                }
 
                 *state_command = static_cast<uint32_t>(CommandState::IDLE_STATE);
                 *state_brisc   = static_cast<uint32_t>(CommandState::RESET_TRISCS);

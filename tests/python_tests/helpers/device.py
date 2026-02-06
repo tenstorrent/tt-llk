@@ -242,16 +242,15 @@ def make_sure_core_in_reset(
 ):
     full_mask = get_soft_reset_mask(cores)
     end_time = time.time() + backoff
-    while True:
+    while time.time() < end_time:
         soft_reset = get_register_store(location, 0).read_register(
             "RISCV_DEBUG_REG_SOFT_RESET_0"
         )
 
         if (soft_reset & full_mask) == get_soft_reset_mask(cores):
-            break
+            return
 
-        if time.time() > end_time:
-            raise Exception(f"Not all in reset within {backoff}s at {place}")
+    raise Exception(f"Not all in reset within {backoff}s at {place}")
 
 
 def commit_brisc_command(
@@ -317,6 +316,13 @@ def wait_for_tensix_operations_finished(
     )
 
     trisc_hangs = [mailbox.name for mailbox in (mailboxes - completed)]
+
+    soft_reset = get_register_store(location, 0).read_register(
+        "RISCV_DEBUG_REG_SOFT_RESET_0"
+    )
+
+    print(hex(soft_reset))
+
     raise TimeoutError(
         f"Timeout reached: waited {timeout} seconds for {', '.join(trisc_hangs)}"
     )
