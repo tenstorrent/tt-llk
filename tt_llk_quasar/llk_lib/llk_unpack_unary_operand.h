@@ -71,7 +71,7 @@ inline void _llk_unpack_unary_operand_mop_config_(const std::uint32_t buf_desc_i
  * @param num_tiles: number of tiles to unpack at a time for a single operand, default 1 tile of 32x32
  */
 template <std::uint32_t UNP_SEL, bool IS_32b_DEST_EN>
-inline void _llk_unpack_unary_operand_transpose_mop_config_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles)
+inline void _llk_unpack_unary_operand_transpose_mop_config_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles = NUM_TILES_PER_UNPACK)
 {
     static_assert((UNP_SEL == p_unpacr::UNP_A) || (UNP_SEL == p_unpacr::UNP_B), "UNP_SEL can only be p_unpacr::UNP_A or p_unpacr::UNP_B for unpack transpose");
 

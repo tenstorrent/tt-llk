@@ -24,7 +24,7 @@ using namespace ckernel;
  */
 template <ReduceDim REDUCE_DIM>
 inline void _llk_unpack_reduce_mop_config_(
-    const std::uint32_t buf_desc_id_0, const std::uint32_t buf_desc_id_1, const std::uint32_t num_tiles, const TileShape& tile_shape)
+    const std::uint32_t buf_desc_id_0, const std::uint32_t buf_desc_id_1, const TileShape& tile_shape, const std::uint32_t num_tiles)
 {
     const std::uint32_t MOP_OUTER_LOOP = num_tiles;
     const std::uint32_t MOP_INNER_LOOP = tile_shape.num_faces;
@@ -60,7 +60,7 @@ inline void _llk_unpack_reduce_mop_config_(
  */
 template <ReduceDim REDUCE_DIM>
 inline void _llk_unpack_reduce_init_(
-    const std::uint32_t buf_desc_id_0, const std::uint32_t buf_desc_id_1, const std::uint32_t num_tiles, const TileShape& tile_shape)
+    const std::uint32_t buf_desc_id_0, const std::uint32_t buf_desc_id_1, const TileShape& tile_shape, const std::uint32_t num_tiles = NUM_TILES_PER_UNPACK)
 {
     cfg_rmw(THCON_UNPACKER0_REG0_TRANSPOSE_RMW, (REDUCE_DIM == ReduceDim::REDUCE_ROW));
 
