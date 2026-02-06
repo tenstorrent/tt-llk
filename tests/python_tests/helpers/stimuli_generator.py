@@ -124,15 +124,7 @@ def _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu):
     return face_data
 
 
-def generate_random_face(
-    stimuli_format: DataFormat,
-    rows: int,
-    cols: int,
-) -> torch.Tensor:
-    return torch.rand(rows, cols, dtype=format_dict[stimuli_format])
-
-
-def generate_identity_face(
+def generate_identity_face_tensor(
     stimuli_format: DataFormat, rows: int, cols: int
 ) -> torch.Tensor:
     assert rows % 16 == 0 and cols % 16 == 0, "Matrix size must be divisible by 16"
@@ -157,7 +149,7 @@ def generate_identity_face(
     return matrix.to(dtype=format_dict[stimuli_format])
 
 
-def generate_incrementing_face(
+def generate_incrementing_face_tensor(
     stimuli_format: DataFormat, rows: int, cols: int
 ) -> torch.Tensor:
     assert rows % 16 == 0 and cols % 16 == 0, "Matrix size must be divisible by 16"
@@ -207,7 +199,7 @@ def generate_face_matmul_data(
     # Create list to store tiles --> generate each tile with the right faces zeroed out
     tiles = [
         _mask_tile(
-            generate_random_face(stimuli_format, rows=32, cols=32),
+            torch.rand(32, 32, dtype=format_dict[stimuli_format]),
             num_faces,
             not is_matrix_A,
             face_r_dim,
@@ -656,7 +648,6 @@ def convert_to_l1_view(
     tile_cnt = (rows // 32) * (cols // 32)
     face_rows = 16
     face_cols = 16
-    elements_per_face = face_rows * face_cols  # 256
 
     # Reshape to [num_tiles, 4, 16, 16] for easier face/row manipulation
     # Face order in tilized format: [f0, f1, f2, f3]

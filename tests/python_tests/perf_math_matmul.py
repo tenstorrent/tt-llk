@@ -35,20 +35,18 @@ from helpers.test_variant_parameters import (
 MATMUL_FORMATS = input_output_formats(
     [
         DataFormat.Float16_b,
-        # DataFormat.Float16,
-        # DataFormat.Float32,
+        DataFormat.Float16,
+        DataFormat.Float32,
     ]
 )
-# DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes] # TODO: Uncomment full coverage
-DEST_ACC_MODES = [DestAccumulation.No]
-DEST_SYNC_MODES = [DestSync.Full]
-# DEST_SYNC_MODES = [DestSync.Half, DestSync.Full]
+DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
+DEST_SYNC_MODES = [DestSync.Half, DestSync.Full]
 STOCHASTIC_ROUNDING_MODES = [StochasticRounding.No]
 MATH_FIDELITIES = [
     MathFidelity.LoFi,
-    # MathFidelity.HiFi2,
-    # MathFidelity.HiFi3,
-    # MathFidelity.HiFi4,
+    MathFidelity.HiFi2,
+    MathFidelity.HiFi3,
+    MathFidelity.HiFi4,
 ]
 
 MATMUL_COMBINATIONS = sweep_matmul(
@@ -73,9 +71,8 @@ ALL_TEST_PARAMS = list(
         (
             (fidelity, combinations, throttle)
             for fidelity, combinations, throttle in product(
-                MATH_FIDELITIES, MATMUL_COMBINATIONS, [0]
+                MATH_FIDELITIES, MATMUL_COMBINATIONS, [1, 2, 3, 4, 5]
             )
-            # for fidelity, combinations, throttle in product(MATH_FIDELITIES, MATMUL_COMBINATIONS, [1, 2, 3, 4, 5]) # TODO: Uncomment full coverage
         ),
         # Tiny tiles matmul combinations with throttle level 1 only
         (
@@ -106,12 +103,6 @@ def test_perf_math_matmul(
     num_faces_in0 = matmul_config.face_layout_config.num_faces_in0
     num_faces_in1 = matmul_config.face_layout_config.num_faces_in1
     num_faces = matmul_config.face_layout_config.num_faces
-
-    # TODO: Remove this after debugging
-    # print(f"num_faces_in0: {num_faces_in0}, num_faces_in1: {num_faces_in1}, num_faces: {num_faces}")
-    # print(f"partial_face_in0: {matmul_config.face_layout_config.partial_face_in0}, partial_face_in1: {matmul_config.face_layout_config.partial_face_in1}")
-    # print(f"partial_face_math: {matmul_config.face_layout_config.partial_face_math}, partial_face_pack: {matmul_config.face_layout_config.partial_face_pack}")
-    # print(f"in0_tile_r_dim: {matmul_config.tile_dimensions.in0_tile_r_dim}, in0_tile_c_dim: {matmul_config.tile_dimensions.in0_tile_c_dim}")
 
     if is_dest_acc_needed(formats) and matmul_config.dest_acc == DestAccumulation.No:
         pytest.skip("Dest accumulation must be enabled for this format")
