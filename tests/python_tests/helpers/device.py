@@ -192,7 +192,9 @@ def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
 
 
 def _print_callstack(risc_name: str, callstack: list[CallstackEntry]):
-    print(f"====== ASSERT HIT ON RISC CORE {risc_name.upper()} =======")
+    print(
+        f"====== ASSERT HIT ON RISC CORE {risc_name.upper()} =======", file=sys.stderr
+    )
 
     LLK_HOME = Path(os.environ.get("LLK_HOME"))
     TESTS_DIR = LLK_HOME / "tests"
@@ -204,10 +206,10 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]):
         file_path = (TESTS_DIR / Path(entry.file)).resolve()
 
         # first line: idx, pc, function
-        print(f"{idx:>4}: {pc} - {entry.function_name}")
+        print(f"{idx:>4}: {pc} - {entry.function_name}", file=sys.stderr)
 
         # second line: file, line, column
-        print(f"{' '*25}| at {file_path}:{entry.line}:{entry.column}")
+        print(f"{' '*25}| at {file_path}:{entry.line}:{entry.column}", file=sys.stderr)
 
 
 def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
