@@ -63,23 +63,43 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
+    // We use 2 stages, one for unpacking value tiles and one for unpacking index tiles, because they have different source and destination formats.
+    constexpr int num_stages = 2;
 
-    // Do transpose.
-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-        /* transpose_of_faces */ 1,
-        /* within_face_16x16_transpose */ 1,
-        /* face_r_dim     */ FACE_R_DIM,
-        /* num_faces      */ 4,
-        formats.unpack_src,
-        formats.unpack_dst);
+    // For this test, we want to run the same unpack kernel twice with different source/destination formats:
+    // Stage 0: Unpack value tiles
+    // Stage 1: Unpack index tiles (which are in uint16 format.
 
-    // Unpack all tiles from L1 buffer_A[i] to SRC_A (or DEST if unpack_to_dest) with transpose.
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    const std::uint32_t unpack_src_data_types[num_stages] = {formats.unpack_src, ckernel::to_underlying(DataFormat::UInt16)};
+    const std::uint32_t unpack_dst_data_types[num_stages] = {formats.unpack_dst, ckernel::to_underlying(DataFormat::UInt16)};
+
+    const int num_of_tiles_per_stage = params->TILE_CNT / num_stages; // First half of tiles are values, second half are indices.
+
+    for (int stage = 0; stage < num_stages; ++stage)
     {
-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
+        const std::uint32_t unpack_src_format = unpack_src_data_types[stage];
+        const std::uint32_t unpack_dst_format = unpack_dst_data_types[stage];
+
+        _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+            unpack_src_format, unpack_src_format, unpack_dst_format, unpack_dst_format, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
+
+        // Do transpose.
+        _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+            /* transpose_of_faces */ 1,
+            /* within_face_16x16_transpose */ 1,
+            /* face_r_dim     */ FACE_R_DIM,
+            /* num_faces      */ 4,
+            unpack_src_format,
+            unpack_dst_format);
+
+        const int tile_start_index = stage * num_of_tiles_per_stage;
+        const int tile_end_index   = tile_start_index + num_of_tiles_per_stage;
+
+        for (int tile_index = tile_start_index; tile_index < tile_end_index; ++tile_index)
+        {
+            _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+                L1_ADDRESS(buffer_A[tile_index]), unpack_src_format, unpack_dst_format);
+        }
     }
 }
 #endif // LLK_TRISC_UNPACK
@@ -106,8 +126,57 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     const bool is_int_fpu_en = false;
 
+    // We use 2 stages, one for unpacking value tiles and one for unpacking index tiles, because they have different source and destination formats.
+    constexpr int num_stages_datacopy = 2;
+    const int num_of_tiles_per_stage  = params->TILE_CNT / num_stages_datacopy; // First half of tiles are values, second half are indices.
+
+    const std::uint32_t math_data_types[num_stages_datacopy] = {formats.math, ckernel::to_underlying(DataFormat::UInt16)};
+
+    // Datacopy Initialization.
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
-    _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
+
+    _llk_math_wait_for_dest_available_<dest_sync>();
+
+    // Datacopy phase.
+    for (int stage = 0; stage < num_stages_datacopy; ++stage)
+    {
+        const std::uint32_t math_format = math_data_types[stage];
+
+        _llk_math_hw_configure_<is_fp32_dest_acc_en>(math_format, math_format);
+
+#ifdef ARCH_BLACKHOLE
+        _llk_math_eltwise_unary_datacopy_init_<
+            DataCopyType::A2D,
+            is_fp32_dest_acc_en,
+            BroadcastType::NONE,
+            false, // tilize
+            false  // is_int_fpu_en
+            >(
+            /*num_rows_per_matrix=*/4,
+            /*math_format=*/math_format);
+#else
+        _llk_math_eltwise_unary_datacopy_init_<
+            DataCopyType::A2D,
+            is_fp32_dest_acc_en,
+            BroadcastType::NONE,
+            false // is_int_fpu_en
+            >(
+            /*num_rows_per_matrix=*/4,
+            /*math_format=*/math_format);
+#endif
+
+        const int tile_start_index = stage * num_of_tiles_per_stage;
+        const int tile_end_index   = tile_start_index + num_of_tiles_per_stage;
+
+        for (int tile_index = tile_start_index; tile_index < tile_end_index; ++tile_index)
+        {
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                /*src_tile_index=*/tile_index, math_format, math_format);
+        }
+    }
+
+    // Reconfigure data formats for TopK SFPU phases.
+    _llk_math_hw_configure_<is_fp32_dest_acc_en>(math_data_types[0], math_data_types[0]);
 
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<
@@ -118,7 +187,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         false  // is_int_fpu_en
         >(
         /*num_rows_per_matrix=*/4,
-        /*math_format=*/formats.math);
+        /*math_format=*/math_data_types[0] /* values are always in the first format */);
 #else
     _llk_math_eltwise_unary_datacopy_init_<
         DataCopyType::A2D,
@@ -127,17 +196,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
         false // is_int_fpu_en
         >(
         /*num_rows_per_matrix=*/4,
-        /*math_format=*/formats.math);
+        /*math_format=*/math_data_types[0] /* values are always in the first format */);
 #endif
 
-    _llk_math_wait_for_dest_available_<dest_sync>();
-
-    for (int tile = 0; tile < params->TILE_CNT; ++tile)
-    {
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-            /*src_tile_index=*/tile, formats.math, formats.math);
-    }
-
+    // TopK phase.
     constexpr bool APPROX             = false;
     constexpr bool STABLE_SORT        = false;
     constexpr int M_ITER              = 0;
@@ -152,7 +214,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::topk_local_sort>();
     ckernel::sfpu::_init_topk();
 
-    // same as calling ckernel::llk_math_eltwise_unary_sfpu_topk_merge from metal.
+    // same as calling ckernel::llk_math_eltwise_unary_sfpu_topk_local_sort from metal.
     _llk_math_eltwise_unary_sfpu_params_<APPROX>(
         ckernel::sfpu::calculate_bitonic_topk_phases_steps<APPROX, is_fp32_dest_acc_en, STABLE_SORT>,
         dst_index,
@@ -193,39 +255,53 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    // Standard pack path: pack DEST tiles back to L1 buffer_Res[i].
-#ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<
-        is_fp32_dest_acc_en,
-        false,  // untilize
-        false>( // tilize
-        formats.pack_src,
-        formats.pack_dst,
-        16 * 16 * 4);
-#else
-    _llk_pack_hw_configure_<
-        is_fp32_dest_acc_en,
-        false>( // untilize
-        formats.pack_src,
-        formats.pack_dst,
-        16 * 16 * 4);
-#endif
+    constexpr int num_stages = 2;
 
-    _llk_pack_init_<false, false>(formats.pack_dst);
+    const std::uint32_t pack_src_data_types[num_stages] = {formats.pack_src, ckernel::to_underlying(DataFormat::UInt16)};
+    const std::uint32_t pack_dst_data_types[num_stages] = {formats.pack_dst, ckernel::to_underlying(DataFormat::UInt16)};
 
-#ifdef ARCH_BLACKHOLE
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-#else
-    _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
-#endif
+    const int num_of_tiles_per_stage = params->TILE_CNT / num_stages; // First half of tiles are values, second half are indices
 
     _llk_packer_wait_for_math_done_();
 
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    // Standard pack path: pack DEST tiles back to L1 buffer_Res[i].
+    for (int stage = 0; stage < num_stages; ++stage)
     {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        const std::uint32_t pack_src_format = pack_src_data_types[stage];
+        const std::uint32_t pack_dst_format = pack_dst_data_types[stage];
+
+#ifdef ARCH_BLACKHOLE
+        _llk_pack_hw_configure_<
+            is_fp32_dest_acc_en,
+            false,  // untilize
+            false>( // tilize
+            pack_src_format,
+            pack_dst_format,
+            16 * 16 * 4);
+#else
+        _llk_pack_hw_configure_<
+            is_fp32_dest_acc_en,
+            false>( // untilize
+            pack_src_format,
+            pack_dst_format,
+            16 * 16 * 4);
+#endif
+        _llk_pack_init_<false, false>(pack_dst_format);
+
+#ifdef ARCH_BLACKHOLE
+        _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
+#else
+        _llk_pack_dest_init_<dest_sync, false, false>();
+#endif
+        const int tile_start_index = stage * num_of_tiles_per_stage;
+        const int tile_end_index   = tile_start_index + num_of_tiles_per_stage;
+
+        for (int tile_index = tile_start_index; tile_index < tile_end_index; ++tile_index)
+        {
+            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(tile_index, L1_ADDRESS(buffer_Res[tile_index]));
+        }
     }
 
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 #endif // LLK_TRISC_PACK
