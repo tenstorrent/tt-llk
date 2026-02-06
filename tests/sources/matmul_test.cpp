@@ -57,6 +57,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #ifdef LLK_TRISC_MATH
 
 #include "llk_math_common.h"
+#include "llk_math_eltwise_binary.h"
 #include "llk_math_matmul.h"
 #include "llk_math_reduce_custom.h"
 #include "params.h"
@@ -74,8 +75,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     for (std::uint32_t j = 0; j < params->KT_DIM; j++)
     {
-        reduce_max_row_configure_addrmod_reinit();
+        reduce_max_row_configure_addrmod_reinit(); // reduce reinit
+        _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWSUB, BroadcastType::NONE, MATH_FIDELITY>(
+            4, 0);                         // eltwise binary init to see if there are any init conflicts with matmul
         matmul_configure_addrmod_reinit(); // Remove this and test will fail thus proving that this is minimal needed reinit
+
         _llk_math_matmul_<MATH_FIDELITY>(0, params->CT_DIM, params->RT_DIM);
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
