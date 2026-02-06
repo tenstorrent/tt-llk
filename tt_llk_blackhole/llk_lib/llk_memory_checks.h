@@ -103,7 +103,7 @@ constexpr std::uint32_t L1_REGION_END = L1_ADDRESS(MEM_L1_BASE + MEM_L1_SIZE);
  */
 inline static bool is_valid_L1_address(const std::uint32_t address)
 {
-    return true;
+    return (address >= ckernel::L1_REGION_START && address < ckernel::L1_REGION_END);
 }
 
 } // namespace ckernel
