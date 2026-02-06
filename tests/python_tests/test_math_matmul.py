@@ -49,8 +49,8 @@ MATMUL_FORMATS = input_output_formats(
         DataFormat.Float32,
     ]
 )
-DEST_ACC_MODES = [DestAccumulation.No]  # TODO: Enable full coverage
-DEST_SYNC_MODES = [DestSync.Full]  # TODO: Enable full coverage
+DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
+DEST_SYNC_MODES = [DestSync.Half, DestSync.Full]
 STOCHASTIC_ROUNDING_MODES = [StochasticRounding.No]
 MATH_FIDELITIES = [
     MathFidelity.LoFi,
