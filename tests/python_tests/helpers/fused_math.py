@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, List, Tuple, Union
 
 import torch
 
@@ -233,7 +233,7 @@ class ComputePipeline:
 
         return unpackers
 
-    def get_math_units(self) -> List["Unpacker"]:
+    def get_math_units(self) -> List[Union["Fpu", "Sfpu"]]:
         math_units = []
 
         for operation in self.operations:
