@@ -319,7 +319,8 @@ class UnpackerAB(Unpacker):
         tile_idx_expr: str,
     ) -> str:
         stage = operation.stage_id
-        return f"_llk_unpack_AB_<>(L1_ADDRESS(buffer_A{stage}[{tile_idx_expr}]), L1_ADDRESS(buffer_B{stage}[{tile_idx_expr}]));\n"
+        broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
+        return f"_llk_unpack_AB_<{broadcast_type}>(L1_ADDRESS(buffer_A{stage}[{tile_idx_expr}]), L1_ADDRESS(buffer_B{stage}[{tile_idx_expr}]));\n"
 
 
 class UnpackerA(Unpacker):
