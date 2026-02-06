@@ -40,7 +40,11 @@ class ComputeNode:
             raise ValueError("Compute unit can be only fpu or sfpu")
         if sfpu is not None and unpacker is not None:
             raise ValueError("Sfpu unit does not support unpacker")
-        if fpu is not None and unpacker not in fpu.supported_unpackers():
+        if (
+            fpu is not None
+            and unpacker is not None
+            and unpacker not in fpu.supported_unpackers()
+        ):
             raise ValueError(f"{fpu} does not support {unpacker}")
 
         self.unpacker = unpacker
