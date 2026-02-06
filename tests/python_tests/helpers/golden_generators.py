@@ -1663,6 +1663,47 @@ class EltwiseBinaryGolden(FidelityMasking):
 
 
 @register_golden
+class EltwiseBinaryBcastGolden(EltwiseBinaryGolden):
+    """
+    Golden generator for element-wise binary operations with broadcast support.
+
+    Applies broadcast on operand2 (srcB) before performing the element-wise operation.
+    """
+
+    def __call__(
+        self,
+        op,
+        operand1,
+        operand2,
+        data_format,
+        math_fidelity,
+        broadcast_type: BroadcastType = BroadcastType.None_,
+        tile_cnt: int = 1,
+        input_format=None,
+    ):
+        if op not in self.ops:
+            raise ValueError(f"Unsupported Eltwise operation: {op}")
+
+        # If broadcast is needed, apply it to operand2 (srcB)
+        if broadcast_type != BroadcastType.None_:
+            broadcast_golden = get_golden_generator(BroadcastGolden)
+            # Apply broadcast to srcB to match srcA's size
+            operand2 = broadcast_golden(
+                broadcast_type,
+                operand2,
+                data_format,
+                num_faces=4,
+                tile_cnt=tile_cnt,
+                face_r_dim=16,
+            )
+
+        # Now call the parent class to perform the element-wise operation
+        return super().__call__(
+            op, operand1, operand2, data_format, math_fidelity, input_format
+        )
+
+
+@register_golden
 class BinarySFPUGolden(EltwiseBinaryGolden):
     def __init__(self):
         super().__init__()

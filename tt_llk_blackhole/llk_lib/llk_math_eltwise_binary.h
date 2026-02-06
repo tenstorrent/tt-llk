@@ -24,7 +24,7 @@ inline void eltwise_binary_configure_addrmod()
         .srcb = {.incr = srcb_incr},
         .dest = {.incr = 8},
     }
-        .set(ADDR_MOD_0);
+        .set(ADDR_MOD_7);
 
     addr_mod_t {
         .srca = {.incr = 0},
@@ -202,7 +202,7 @@ inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, co
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     constexpr bool high_fidelity      = (NUM_FIDELITY_PHASES > 0);
-    const std::uint32_t addr_mod      = ADDR_MOD_0;
+    const std::uint32_t addr_mod      = ADDR_MOD_7;
     constexpr std::uint32_t innerloop = 16 >> 3; // 8 rows per eltwise op at a time.
 
     // The mop only runs for 2 outer loops and mop is called twice for col broadcast
