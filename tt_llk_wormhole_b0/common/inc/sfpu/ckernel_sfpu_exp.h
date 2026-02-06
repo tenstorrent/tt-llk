@@ -280,6 +280,8 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
         TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[6]
         TTI_SFPNOP;
         TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[7]
+        TTI_SFPNOP;
+        TTI_SFPNOP;
     }
     else if constexpr (FAST_APPROX && APPROXIMATION_MODE && ITERATIONS == 32)
     {
@@ -309,6 +311,8 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
         TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[30]
         TTI_SFPNOP;
         TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[31]
+        TTI_SFPNOP;
+        TTI_SFPNOP;
     }
     else if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
@@ -574,8 +578,10 @@ inline void _init_exponential_()
         TTI_SFPCONFIG(0, 4, 0);       // Load into Macro Sequence Register 0 (dest=4)
 
         // Reset LoadMacroConfig[Lane].Misc for all lanes
-        // Sets StoreMod0=0 (SRCB), UsesLoadMod0ForStore=0, UnitDelayKind=0
-        TTI_SFPCONFIG(0, 8, 1);
+        // Sets StoreMod0=0 (SRCB), UsesLoadMod0ForStore=0, UnitDelayKind=0xF
+        // UnitDelayKind prevents pipeline advancement when not seeing new instructions,
+        // avoiding race conditions from dest bank conflicts or other pipeline hiccups.
+        TTI_SFPCONFIG(0, 8, 0xF01);
 
         // ===================================================================
         // Program Replay Buffer
