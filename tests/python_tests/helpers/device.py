@@ -248,7 +248,7 @@ def wait_for_tensix_operations_finished(elfs, core_loc="0,0", timeout=5, max_bac
     timeout = 600 if test_target.run_simulator else timeout
 
     start_time = time.time()
-    backoff = 0.001  # Initial backoff time in seconds
+    backoff = 0.1  # Initial backoff time in seconds
 
     completed = set()
     end_time = start_time + timeout
