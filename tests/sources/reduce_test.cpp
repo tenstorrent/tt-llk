@@ -63,7 +63,14 @@ void run_kernel(const volatile struct RuntimeParams *params)
         // Reduce all tiles in one go
         for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
         {
-            _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en, enforce_fp32_accumulation>(0);
+            _llk_math_reduce_<
+                POOL_TYPE,
+                REDUCE_DIM,
+                is_fp32_dest_acc_en,
+                MATH_FIDELITY,
+                is_int_fpu_en,
+                enforce_fp32_accumulation,
+                false /* tilize_AB_support_en */>(0);
         }
         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
@@ -72,11 +79,18 @@ void run_kernel(const volatile struct RuntimeParams *params)
         int remaining_tiles = params->INPUT_TILE_CNT;
         while (remaining_tiles)
         {
-            int tiles_to_dest = std::min(remaining_tiles, static_cast<int>(params->MAX_TILES_IN_DEST));
+            int tiles_to_dest = std::min(remaining_tiles, static_cast<int>(params->NUM_TILES_IN_BLOCK));
             _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
             for (int i = 0; i < tiles_to_dest; ++i)
             {
-                _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en, enforce_fp32_accumulation>(i);
+                _llk_math_reduce_<
+                    POOL_TYPE,
+                    REDUCE_DIM,
+                    is_fp32_dest_acc_en,
+                    MATH_FIDELITY,
+                    is_int_fpu_en,
+                    enforce_fp32_accumulation,
+                    false /* tilize_AB_support_en */>(i);
             }
             _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             remaining_tiles -= tiles_to_dest;
@@ -112,7 +126,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     int remaining_tiles = params->OUTPUT_TILE_CNT;
     while (remaining_tiles)
     {
-        int tiles_from_dest = std::min(remaining_tiles, static_cast<int>(params->MAX_TILES_IN_DEST));
+        int tiles_from_dest = std::min(remaining_tiles, static_cast<int>(params->NUM_TILES_IN_BLOCK));
         _llk_packer_wait_for_math_done_();
         for (int i = 0; i < tiles_from_dest; ++i)
         {

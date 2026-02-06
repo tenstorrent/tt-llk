@@ -436,14 +436,14 @@ class REDUCE_TO_ONE(RuntimeParameter):
 
 
 @dataclass
-class MAX_TILES_IN_DEST(RuntimeParameter):
-    max_tiles_in_dest: int = 0
+class NUM_TILES_IN_BLOCK(RuntimeParameter):
+    num_tiles_in_block: int = 0
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr int MAX_TILES_IN_DEST = {self.max_tiles_in_dest};"
+        return f"constexpr int NUM_TILES_IN_BLOCK = {self.num_tiles_in_block};"
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int MAX_TILES_IN_DEST;", "i"
+        return "int NUM_TILES_IN_BLOCK;", "i"
 
 
 @dataclass

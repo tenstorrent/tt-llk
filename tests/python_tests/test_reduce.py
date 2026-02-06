@@ -21,8 +21,8 @@ from helpers.test_variant_parameters import (
     INPUT_TILE_CNT,
     MATH_FIDELITY,
     MATH_OP,
-    MAX_TILES_IN_DEST,
     NUM_FACES,
+    NUM_TILES_IN_BLOCK,
     OUTPUT_TILE_CNT,
     REDUCE_TO_ONE,
     TEST_FACE_DIMS,
@@ -118,7 +118,7 @@ def test_reduce(
             TEST_FACE_DIMS(),
             INPUT_TILE_CNT(tile_cnt_A),
             OUTPUT_TILE_CNT(output_tile_count),
-            MAX_TILES_IN_DEST(max_tiles_in_dest),
+            NUM_TILES_IN_BLOCK(max_tiles_in_dest),
             REDUCE_TO_ONE(is_reduce_to_one),
             NUM_FACES(),
         ],
@@ -139,7 +139,7 @@ def test_reduce(
 
     assert len(res_from_L1) == len(
         golden_tensor
-    ), "Result tensor and golder tensor are not of the same length"
+    ), "Result tensor and golden tensor are not of the same length"
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 

@@ -45,7 +45,7 @@ inline void _llk_unpack_AB_reduce_mop_config_(const std::uint32_t face_r_dim, co
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(face_r_dim == 1 || face_r_dim == 2 || face_r_dim == 4 || face_r_dim == 8 || face_r_dim == 16, "face_r_dim must be either 1, 2, 4, 8, or 16");
 
-    // Configure unpacker instruction for Src{A,B}
+    // Configure unpacker instruction for Src{A,B}. These instructions always increment L1 by 1 face.
     static constexpr std::uint32_t unpack_srca = TT_OP_UNPACR(Srcs::SrcA, 0b01, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr std::uint32_t unpack_srcb = TT_OP_UNPACR(Srcs::SrcB, 0b01, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
