@@ -137,9 +137,9 @@ class FuserConfig:
             run_types = [
                 PerfRunType.L1_TO_L1,
                 PerfRunType.UNPACK_ISOLATE,
-                # PerfRunType.MATH_ISOLATE,
-                # PerfRunType.PACK_ISOLATE,
-                # PerfRunType.L1_CONGESTION,
+                PerfRunType.MATH_ISOLATE,
+                PerfRunType.PACK_ISOLATE,
+                PerfRunType.L1_CONGESTION,
             ]
 
             perf_report = PerfReport()

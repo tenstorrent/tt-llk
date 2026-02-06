@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 from .chip_architecture import ChipArchitecture
 from .fused_fpu import ReduceFpu
 from .golden_generators import BroadcastGolden, TransposeGolden, get_golden_generator
-from .llk_params import BroadcastType, PerfRunType, Transpose
+from .llk_params import BroadcastType, Transpose
 from .tilize_untilize import tilize_block, untilize_block
 
 
@@ -61,75 +61,6 @@ class Unpacker:
     ) -> str:
         num_faces = operation.num_faces
         return f"_perf_math_loop_clear_valid<true, true>({num_faces});\n"
-
-    def unpack_with_perf(
-        self, operation: "FusedOperation", config: "GlobalConfig"
-    ) -> str:
-        if config.perf_run_type == PerfRunType.PACK_ISOLATE:
-            return ""
-        elif config.perf_run_type == PerfRunType.MATH_ISOLATE:
-            return self.perf_set_valid(operation, config)
-        else:
-            return self.unpack(operation, config)
-
-    def exec_perf(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        code = "{\n"
-        code += '    ZONE_SCOPED("INIT")\n'
-        code += self.hw_configure(operation, config)
-        code += self.init(operation, config)
-        code += "    PROFILER_SYNC();\n"
-        code += "}\n"
-
-        code += "{\n"
-        code += '    ZONE_SCOPED("TILE_LOOP")\n'
-
-        code += self.packer_sync(operation)
-        code += f"    for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
-        code += "    {\n"
-        code += self.unpack_with_perf(operation, config)
-        code += "    }\n"
-        code += "    PROFILER_SYNC();\n"
-        code += "}\n"
-
-        code += "{\n"
-        code += '    ZONE_SCOPED("INIT")\n'
-        code += self.uninit(operation, config)
-        code += "    PROFILER_SYNC();\n"
-        code += "}\n"
-
-        return code
-
-    def exec(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        stage = operation.stage_id
-        buffer_A_address = operation.src_a.l1_address
-        buffer_B_address = operation.src_b.l1_address
-        buffer_A_tile_size = operation.buffer_A_tile_size
-        buffer_B_tile_size = operation.buffer_B_tile_size
-        unpack_a_src = operation.unpack_a_in
-        unpack_a_dst = operation.unpack_a_out
-        unpack_b_src = operation.unpack_a_in
-        unpack_b_dst = operation.unpack_a_out
-
-        code = (
-            f"    // Operation {stage}: {self.__class__.__name__}\n"
-            f"    UNUSED const Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});\n"
-            f"    UNUSED const Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});\n"
-            f"    UNUSED const std::uint32_t unpack_a_src_format{stage} = ckernel::to_underlying(DataFormat::{unpack_a_src.name});\n"
-            f"    UNUSED const std::uint32_t unpack_a_dst_format{stage} = ckernel::to_underlying(DataFormat::{unpack_a_dst.name});\n"
-            f"    UNUSED const std::uint32_t unpack_b_src_format{stage} = ckernel::to_underlying(DataFormat::{unpack_b_src.name});\n"
-            f"    UNUSED const std::uint32_t unpack_b_dst_format{stage} = ckernel::to_underlying(DataFormat::{unpack_b_dst.name});\n"
-        )
-
-        if config.profiler_enabled:
-            code += self.exec_perf(operation, config)
-        else:
-            code += self.hw_configure(operation, config)
-            code += self.init(operation, config)
-            code += self.packer_sync(operation)
-            code += self.unpack_with_perf(operation, config)
-            code += self.uninit(operation, config)
-
-        return code
 
     def get_headers(self) -> List[str]:
         return ["perf.h"]

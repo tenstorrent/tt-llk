@@ -66,8 +66,15 @@ class ComputeNode:
     def unpack(
         self, operation: "FusedOperation", config: "GlobalConfig", batch_tile_cnt
     ):
-        if self.fpu is None:
+        if self.unpacker is None:
             return ""
+
+        if config.perf_run_type == PerfRunType.PACK_ISOLATE:
+            return ""
+
+        if config.perf_run_type == PerfRunType.MATH_ISOLATE:
+            return self.unpacker().perf_set_valid(operation, config, self)
+
         code = self.unpacker().init(operation, config, self)
         if isinstance(self.unpacker, MatmulUnpacker) or self.unpacker == MatmulUnpacker:
             tile_idx_expr = f"batch * {batch_tile_cnt}"
