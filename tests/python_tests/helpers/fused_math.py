@@ -35,7 +35,7 @@ class ComputeNode:
         data_copy_type: DataCopyType = DataCopyType.A2D,
     ):
         if fpu is None and sfpu is None:
-            raise ValueError("Compute unit need fpu or sfpu unit")
+            raise ValueError("Compute unit needs an fpu or sfpu unit")
         if fpu is not None and sfpu is not None:
             raise ValueError("Compute unit can be only fpu or sfpu")
         if sfpu is not None and unpacker is not None:
