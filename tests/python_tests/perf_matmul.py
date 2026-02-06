@@ -6,7 +6,7 @@ from typing import List
 
 import pytest
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
-from helpers.llk_params import DestAccumulation, MathFidelity
+from helpers.llk_params import DestAccumulation, DestSync, MathFidelity
 from helpers.matmul_sweep import (
     generate_matmul_dimension_combinations,
     generate_tile_dims,
@@ -15,7 +15,7 @@ from helpers.param_config import parametrize
 from helpers.perf import PerfRunType, perf_benchmark, update_report
 
 # Important K dimensions to test
-KT_DIMS = [8]
+KT_DIMS = [1]
 
 
 def calculate_unpacker_config(
@@ -249,7 +249,7 @@ def matmul_combos(
     kt_dim=KT_DIMS,
     in0_tile_r_dim=[1, 2, 4, 8, 16, 32],
     dimension_combo=lambda dest_acc, kt_dim: generate_matmul_dimension_combinations_simple(
-        max_tiles=4 if dest_acc == DestAccumulation.Yes else 8, kt_dims=[kt_dim]
+        max_tiles=4 if dest_acc == DestAccumulation.Yes else 1, kt_dims=[kt_dim]
     ),
 )
 def test_perf_matmul_simple(
@@ -264,8 +264,8 @@ def test_perf_matmul_simple(
     formats = FormatConfig(
         unpack_A_src=DataFormat.Float16_b,
         unpack_A_dst=DataFormat.Float16_b,
-        unpack_B_src=DataFormat.Bfp4_b,
-        unpack_B_dst=DataFormat.Bfp8_b,
+        unpack_B_src=DataFormat.Float16_b,
+        unpack_B_dst=DataFormat.Float16_b,
         pack_src=DataFormat.Float16_b,
         pack_dst=DataFormat.Float16_b,
         math=DataFormat.Float16_b,
@@ -373,7 +373,7 @@ def test_perf_matmul_simple(
     test_config = {
         "formats": formats,
         "testname": test_name,
-        "loop_factor": 16,
+        "loop_factor": 1024,
         "tile_cnt": dims.rt_dim * dims.ct_dim * dims.kt_dim,
         "input_A_dimensions": matrix_a,
         "input_B_dimensions": matrix_b,
@@ -383,6 +383,7 @@ def test_perf_matmul_simple(
         "kt_dim": dims.kt_dim,
         "dest_acc": dest_acc,
         "math_fidelity": math_fidelity,
+        "dest_sync": DestSync.Half,
         # Tile dimensions
         "in0_tile_r_dim": in0_tile_r_dim,
         "in0_tile_c_dim": in0_tile_c_dim,

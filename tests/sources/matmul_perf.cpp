@@ -175,7 +175,7 @@ void run_kernel()
             /* num_faces */ NUM_FACES_OUT,
             /* partial_face */ PARTIAL_FACE_OUT,
             /* narrow_tile */ NARROW_TILE_OUT);
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+        _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
         PROFILER_SYNC();
     }
     {
@@ -190,7 +190,7 @@ void run_kernel()
             {
                 for (uint32_t tile = 0; tile < CT_DIM * RT_DIM; tile++)
                 {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
+                    _llk_pack_<dest_sync, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
                 }
             }
         }
@@ -201,9 +201,9 @@ void run_kernel()
                 _llk_packer_wait_for_math_done_();
                 for (uint32_t tile = 0; tile < CT_DIM * RT_DIM; tile++)
                 {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
+                    _llk_pack_<dest_sync, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
                 }
-                _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
             }
         }
         PROFILER_SYNC();
