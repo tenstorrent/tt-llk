@@ -181,7 +181,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (std::uint32_t tile = 0; tile < params->CT_DIM * params->RT_DIM; tile++)
                 {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
+                    const std::uint32_t tile_index = tile % MAX_TILES_DEST;
+                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile_index));
                 }
             }
         }
@@ -192,7 +193,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 _llk_packer_wait_for_math_done_();
                 for (std::uint32_t tile = 0; tile < params->CT_DIM * params->RT_DIM; tile++)
                 {
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
+                    const std::uint32_t tile_index = tile % MAX_TILES_DEST;
+                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile_index));
                 }
                 _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
