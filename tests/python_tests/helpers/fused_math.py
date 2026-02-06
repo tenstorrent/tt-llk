@@ -64,7 +64,11 @@ class ComputeNode:
             self.data_copy_type = data_copy_type
 
     def unpack(
-        self, operation: "FusedOperation", config: "GlobalConfig", batch_tile_cnt
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        batch_start,
+        batch_tile_cnt,
     ):
         if self.unpacker is None:
             return ""
@@ -77,11 +81,11 @@ class ComputeNode:
 
         code = self.unpacker().init(operation, config, self)
         if isinstance(self.unpacker, MatmulUnpacker) or self.unpacker == MatmulUnpacker:
-            tile_idx_expr = f"batch * {batch_tile_cnt}"
+            tile_idx_expr = f"{batch_start}"
             code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
         else:
             for tile_idx in range(batch_tile_cnt):
-                tile_idx_expr = f"batch * {batch_tile_cnt} + {tile_idx}"
+                tile_idx_expr = f"{batch_start} + {tile_idx}"
                 code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
         code += self.unpacker().uninit(operation, config, self)
         return code
@@ -404,12 +408,12 @@ class ComputePipeline:
 
         if num_full_batches > 0:
             code += f"for (std::uint32_t batch = 0; batch < {num_full_batches}; ++batch) {{\n"
-            code += body_fn(batch_size)
+            code += body_fn(f"batch * {batch_size}", batch_size)
             code += "}\n"
 
         if remaining_tiles > 0:
             code += "{\n"
-            code += body_fn(remaining_tiles)
+            code += body_fn(f"{num_full_batches * batch_size}", remaining_tiles)
             code += "}\n"
 
         return code
@@ -450,7 +454,7 @@ class ComputePipeline:
             code += f"for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
             code += "{\n"
 
-        def batch_body(batch_tile_cnt):
+        def batch_body(batch_start, batch_tile_cnt):
             body = self._wait_for_dest(operation, config)
             for compute_unit in self.operations:
                 body += compute_unit.math_calculate(operation, config, batch_tile_cnt)
@@ -487,10 +491,12 @@ class ComputePipeline:
             code += f"for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
             code += "{\n"
 
-        def batch_body(batch_tile_cnt):
+        def batch_body(batch_start, batch_tile_cnt):
             body = ""
             for compute_unit in self.operations:
-                body += compute_unit.unpack(operation, config, batch_tile_cnt)
+                body += compute_unit.unpack(
+                    operation, config, batch_start, batch_tile_cnt
+                )
             return body
 
         code += self._batch_loop(operation, config, batch_body)
