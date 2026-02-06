@@ -520,7 +520,7 @@ class ComputePipeline:
         config: "GlobalConfig",
     ) -> torch.Tensor:
         tensor_a = torch.zeros(operation.src_a.dimensions)
-        tensor_b = torch.zeros(operation.src_a.dimensions)
+        tensor_b = torch.zeros(operation.src_b.dimensions)
         tensor_dst = torch.zeros(operation.max_output_dimensions)
         for op in self.operations:
             tensor_a, tensor_b, tensor_dst = op.golden(
