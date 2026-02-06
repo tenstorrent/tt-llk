@@ -529,6 +529,51 @@ enum class UnpackerProgramType
 };
 
 /**
+ * Checks whether unpacker A tile descriptor and config match the expected formats and dimensions.
+ *
+ * @param unpA_src_format   Expected input data format for unpacker A (context 0)
+ * @param unpA_dst_format   Expected output data format for unpacker A (context 0)
+ * @param unpA_face_r_dim   Expected face row dimension for unpacker A (default FACE_R_DIM)
+ * @param unpA_num_faces    Expected number of faces for unpacker A (default TILE_NUM_FACES)
+ * @param nop_count         Number of nop operations to ensure configuration writes complete (default 10)
+ * @return true if unpacker A configuration matches all expected values, false otherwise
+ */
+template <UnpackerProgramType program_type = UnpackerProgramType::ProgramByTile>
+inline bool is_unpacker_A_configured_correctly(
+    const std::uint32_t unpA_src_format,
+    const std::uint32_t unpA_dst_format,
+    const std::uint32_t unpA_face_r_dim = FACE_R_DIM,
+    const std::uint32_t unpA_num_faces  = TILE_NUM_FACES,
+    const std::uint32_t nop_count       = 10)
+{
+    // Ensure configuration writes complete before subsequent operations
+    for (std::uint32_t i = 0; i < nop_count; i++)
+    {
+        asm volatile("nop");
+    }
+
+    std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec = read_unpack_tile_descriptor();
+    std::array<unpack_config_t, NUM_UNPACKERS> config_vec                   = read_unpack_config();
+
+    const unpack_tile_descriptor_t &tile_descriptor_cntx0 = tile_descriptor_vec[0];
+    const bool isDataFormatCorrect =
+        (tile_descriptor_cntx0.in_data_format == (unpA_src_format & 0x0F) && config_vec[0].out_data_format == (unpA_dst_format & 0x0F));
+
+    if constexpr (program_type == UnpackerProgramType::ProgramByTile)
+    {
+        volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer();
+        const std::uint32_t face_dim           = unpA_face_r_dim * FACE_C_DIM;
+        const bool isUnpAFaceRDimCorrect       = (cfg[THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32] == (face_dim | (face_dim << 16)));
+        return isDataFormatCorrect && isUnpAFaceRDimCorrect;
+    }
+    else
+    {
+        const bool isNumFacesCorrect = tile_descriptor_cntx0.z_dim == unpA_num_faces;
+        return isDataFormatCorrect && isNumFacesCorrect;
+    }
+}
+
+/**
  * Checks whether the unpacker tile descriptor and config match the expected formats and dimensions.
  *
  * @param unpA_src_format   Expected input data format for unpacker A (context 0)
@@ -543,7 +588,7 @@ enum class UnpackerProgramType
  * @return true if the current unpacker configuration matches all expected values, false otherwise
  */
 template <UnpackerProgramType program_type = UnpackerProgramType::ProgramByTile>
-inline bool is_unpacker_configured_correctly(
+inline bool are_unpacker_AB_configured_correctly(
     const std::uint32_t unpA_src_format,
     const std::uint32_t unpA_dst_format,
     const std::uint32_t unpB_src_format,
