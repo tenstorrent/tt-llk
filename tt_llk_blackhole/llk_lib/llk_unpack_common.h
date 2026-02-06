@@ -103,17 +103,17 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
 
     if constexpr (dim_stride_target == p_dim_stride_target::FACE_ROW_MAJOR)
     {
-        uint unpack_ch1_x_stride = (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
-                                   : (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
-                                                                                                  : 1;
+        std::uint32_t unpack_ch1_x_stride = (std::uint32_t)(unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float32   ? 4
+                                            : (std::uint32_t)(unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float16 ? 2
+                                                                                                                             : 1;
         // FACE_R_DIM constant is used here because data is not stored densely in src/dest registers
         // so we want to keep standard stride for one face
-        uint unpack_ch1_z_stride = FACE_C_DIM * FACE_R_DIM * unpack_ch1_x_stride;
+        std::uint32_t unpack_ch1_z_stride = FACE_C_DIM * FACE_R_DIM * unpack_ch1_x_stride;
         cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(unpack_ch1_z_stride);
 
         // Program unpacker0 per context x_dim (face size in l1)
         // Overrides value set by tile descriptor when thread override bit is set in unpack instruction
-        const uint face_dim = unpack_face_r_dim * FACE_C_DIM;
+        const std::uint32_t face_dim = unpack_face_r_dim * FACE_C_DIM;
         cfg_reg_rmw_tensix<THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32, 0, 0xffffffff>(face_dim | (face_dim << 16));
 
         // Set Z-dim to number of faces
@@ -151,10 +151,10 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
 
     if constexpr (dim_stride_target == p_dim_stride_target::FACE_ROW_MAJOR)
     {
-        uint unpack_ch1_x_stride = (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float32   ? 4
-                                   : (uint)(unpack_dst_format & 0x3) == (uint)DataFormat::Float16 ? 2
-                                                                                                  : 1;
-        uint unpack_ch1_z_stride = FACE_C_DIM * FACE_R_DIM * unpack_ch1_x_stride;
+        std::uint32_t unpack_ch1_x_stride = (std::uint32_t)(unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float32   ? 4
+                                            : (std::uint32_t)(unpack_dst_format & 0x3) == (std::uint32_t)DataFormat::Float16 ? 2
+                                                                                                                             : 1;
+        std::uint32_t unpack_ch1_z_stride = FACE_C_DIM * FACE_R_DIM * unpack_ch1_x_stride;
         cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_ZW_REG_1_Zstride_RMW>(unpack_ch1_z_stride);
 
         // Set X-dim to face_r_dim * FACE_C_DIM
