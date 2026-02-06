@@ -69,12 +69,14 @@ def prepare_input_tensor_for_topk(src_A, formats, input_dimensions=[32, 128]):
 
     # Set columns 64-127 to 1, 2, 3, ..., 64 for each row.
     # These will be used as indices for the topk operation, and we want them to be in a known order for easier validation.
+    # Create indices as uint16 and preserve bit representation when assigning to float tensor.
     for row in range(num_rows):
         indices_start = row * num_cols + num_cols // 2
         indices_end = indices_start + num_cols // 2
-        src_A[indices_start:indices_end] = torch.arange(
-            1, num_cols // 2 + 1, dtype=src_A.dtype
+        uint16_indices = torch.arange(1, num_cols // 2 + 1, dtype=torch.int16).to(
+            torch.uint16
         )
+        src_A[indices_start:indices_end] = uint16_indices.view(src_A.dtype)
 
     src_tilizer = get_golden_generator(TilizeGolden)
     src_A = src_tilizer(src_A, input_dimensions, formats.input_format)
@@ -116,30 +118,40 @@ def validate_topk_indices(
     for row_idx in range(input_dimensions[0]):
         for datum in range(K):  # Check top K values/indices for each row.
             value_idx = row_idx * input_dimensions[1] + values_offset + datum
-            indice_idx = row_idx * input_dimensions[1] + indices_offset + datum
+            index_idx = row_idx * input_dimensions[1] + indices_offset + datum
 
+            # Values: interpret as float
             result_value = res_tensor_untilized[value_idx].item()
-            result_indice = res_tensor_untilized[indice_idx].item()
-
             golden_value = golden_tensor_untilized[value_idx].item()
-            golden_indice = golden_tensor_untilized[indice_idx].item()
 
-            if result_indice != golden_indice:
+            # Indices: reinterpret float bits as uint16 as that's how we encoded them in the input tensor.
+            result_index = (
+                res_tensor_untilized[index_idx : index_idx + 1]
+                .view(torch.uint16)
+                .item()
+            )
+            golden_index = (
+                golden_tensor_untilized[index_idx : index_idx + 1]
+                .view(torch.uint16)
+                .item()
+            )
+
+            if result_index != golden_index:
                 if torch.isclose(
                     torch.tensor(result_value), torch.tensor(golden_value), atol=atol
                 ):
                     # When doing topk, we can encounter cases where the values are extremely close/same.
-                    # in those cases golden has its own way of deciding which indice to pick first, and hardware might pick a different one.
+                    # in those cases golden has its own way of deciding which index to pick first, and hardware might pick a different one.
                     # What we get in the end is that the same values are in the topk, but maybe in a different order, which means different indices.
                     # This is not an issue, just the difference between golden and hardware when handling ties in values.
                     continue
                 else:
                     print(f"Mismatch at row {row_idx}, datum {datum}:")
                     print(
-                        f"  Result value: {result_value}, Result indice: {result_indice}"
+                        f"  Result value: {result_value}, Result index: {result_index}"
                     )
                     print(
-                        f"  Golden value: {golden_value}, Golden indice: {golden_indice}"
+                        f"  Golden value: {golden_value}, Golden index: {golden_index}"
                     )
                     return False
     return True
@@ -177,6 +189,11 @@ def test_topk_sfpu(
        - Generate a 32x128 tensor (4 tiles of 32x32)
        - First 64 columns: Random values to search for top K
        - Second 64 columns: Indices (1-64) tracking original positions
+            Since hardware expects one format, we will pass indices as ints but hardware will look at their bits as float.
+            This doesn't matter for hardware since it just moves indices around without comparing them.
+            Why don't we use float indices? If we did, let's say values are bfloat16. Then we would be limited by
+            8 bit mantissa for indices which ultimately leads to being exactly precise to up to index 256. Everything after that
+            loses precision.
        - Tilize the input (convert row-major to tile-major layout)
 
     2. Golden Reference:
@@ -190,9 +207,9 @@ def test_topk_sfpu(
           - Face-level transpose (swap face positions within tiles)
           - Within-face transpose (transpose 16x16 elements within each face)
 
-       b) MATH: Bitonic TopK Pipeline
-          - Local Sort: Initialize TopK SFPU state
-          - Phases/Steps: Perform bitonic merge network sorting
+       b) MATH: Actual TopK sort Pipeline
+          - TopK_Init: Initialize TopK SFPU state
+          - Local sort: Perform bitonic sort.
           - Merge: Extract top K values from sorted sequence
           - Rebuild: Organize top K values with their indices
 

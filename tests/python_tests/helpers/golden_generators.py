@@ -2250,12 +2250,13 @@ class TopKGolden:
             )
 
         # Set columns 64-127 to 1, 2, 3, ..., 64 for each row.
+        # Create indices as uint16 and preserve bit representation when assigning to float tensor.
         for row in range(rows):
             indices_start = row * cols + cols // 2
             indices_end = indices_start + cols // 2
-            operand[indices_start:indices_end] = torch.arange(
-                1, 65, dtype=operand.dtype
-            )
+            # Create uint16 indices and view as the operand's dtype to preserve bits.
+            uint16_indices = torch.arange(1, 65, dtype=torch.int16).to(torch.uint16)
+            operand[indices_start:indices_end] = uint16_indices.view(operand.dtype)
 
         for row_idx in range(rows):
             # Extract values and indices.
