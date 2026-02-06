@@ -26,19 +26,20 @@ inline void eltwise_binary_configure_addrmod()
     }
         .set(ADDR_MOD_7);
 
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 0},
-    }
-        .set(ADDR_MOD_1);
+    // addr_mod_t {
+    //     .srca = {.incr = 0},
+    //     .srcb = {.incr = 0},
+    //     .dest = {.incr = 0},
+    // }
+    //     .set(ADDR_MOD_1);
 
-    addr_mod_t {.srca = {.incr = 0, .clr = 1}, .srcb = {.incr = 0, .clr = 1}, .dest = {.incr = 0, .clr = 0, .cr = 1}, .fidelity = {.incr = FIDELITY_INCREMENT}}
-        .set(ADDR_MOD_2);
+    // addr_mod_t {.srca = {.incr = 0, .clr = 1}, .srcb = {.incr = 0, .clr = 1}, .dest = {.incr = 0, .clr = 0, .cr = 1}, .fidelity = {.incr =
+    // FIDELITY_INCREMENT}}
+    //     .set(ADDR_MOD_2);
 
-    addr_mod_t {
-        .srca = {.incr = 0, .clr = 1}, .srcb = {.incr = 0, .clr = 1}, .dest = {.incr = 8, .clr = 0, .cr = 0, .c_to_cr = 1}, .fidelity = {.incr = 0, .clr = 1}}
-        .set(ADDR_MOD_3);
+    // addr_mod_t {
+    //     .srca = {.incr = 0, .clr = 1}, .srcb = {.incr = 0, .clr = 1}, .dest = {.incr = 8, .clr = 0, .cr = 0, .c_to_cr = 1}, .fidelity = {.incr = 0, .clr =
+    //     1}} .set(ADDR_MOD_3);
 }
 
 // Helper template to select the appropriate eltwise binary operation

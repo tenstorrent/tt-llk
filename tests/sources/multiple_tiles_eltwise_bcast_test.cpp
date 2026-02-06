@@ -36,6 +36,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary.h"
+#include "llk_math_matmul.h"
+#include "llk_math_reduce_custom.h"
 #include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams *params)
@@ -43,6 +45,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BROADCAST_TYPE, MATH_FIDELITY>(4, 0);
+
+    reduce_max_row_configure_addrmod_reinit(); // reduce reinit
+    matmul_configure_addrmod_reinit();         // Remove this and test will fail thus proving that this is minimal needed reinit
 
     for (int i = 0; i < params->TILE_CNT; i++)
     {
