@@ -378,7 +378,7 @@ class ReduceFpu(Fpu):
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        fused_compute: "ComputeNode",
+        compute_unit: "ComputeNode",
     ) -> str:
         unp_a_src_format = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{operation.src_a.data_format})"
 
