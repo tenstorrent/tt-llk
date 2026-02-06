@@ -10,9 +10,9 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
 
-from .fused_fpu import Fpu, ReduceFpu
+from .fused_fpu import Fpu, MatmulFpu, ReduceFpu
 from .fused_sfpu import Sfpu
-from .fused_unpacker import Unpacker
+from .fused_unpacker import MatmulUnpacker, Unpacker
 from .llk_params import (
     BroadcastType,
     DataCopyType,
@@ -69,9 +69,13 @@ class ComputeNode:
         if self.fpu is None:
             return ""
         code = self.unpacker().init(operation, config, self)
-        for tile_idx in range(batch_tile_cnt):
-            tile_idx_expr = f"batch * {batch_tile_cnt} + {tile_idx}"
+        if isinstance(self.unpacker, MatmulUnpacker) or self.unpacker == MatmulUnpacker:
+            tile_idx_expr = f"batch * {batch_tile_cnt}"
             code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
+        else:
+            for tile_idx in range(batch_tile_cnt):
+                tile_idx_expr = f"batch * {batch_tile_cnt} + {tile_idx}"
+                code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
         code += self.unpacker().uninit(operation, config, self)
         return code
 
@@ -94,8 +98,11 @@ class ComputeNode:
             return code
 
         code = self.fpu.init(operation, config, self)
-        for tile_idx in range(batch_tile_cnt):
-            code += self.fpu.calculate(operation, config, self, tile_idx)
+        if isinstance(self.fpu, MatmulFpu):
+            code += self.fpu.calculate(operation, config, self, 0)
+        else:
+            for tile_idx in range(batch_tile_cnt):
+                code += self.fpu.calculate(operation, config, self, tile_idx)
         code += self.fpu.uninit(operation, config, self)
         return code
 

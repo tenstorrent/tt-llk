@@ -117,7 +117,7 @@ class FusedOperation:
 
         if self.math.has_fpu(MatmulFpu):
             tile_count = self.output.tile_count
-            if self.batch_size != 1 and self.batch_size != tile_count:
+            if self.batch_size != self.ct_dim and self.batch_size != tile_count:
                 self.batch_size = tile_count
 
     @property

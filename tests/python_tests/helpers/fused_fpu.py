@@ -124,23 +124,19 @@ class MatmulFpu(Fpu):
         batch_size = operation.batch_size
         math_fidelity = operation.math_fidelity.value
         ct_dim = operation.ct_dim
-        rt_dim = operation.rt_dim
         transpose = "true" if compute_unit.unpack_transpose_faces.value else "false"
 
-        if batch_size == 1:
-            return (
-                f"// Operation {stage}: Matmul FPU\n"
-                f"_llk_math_matmul_init_<{math_fidelity}>(\n"
-                f"    TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, {transpose}, 1, 1\n"
-                f");\n"
-            )
+        if batch_size == ct_dim:
+            rt_dim = 1
         else:
-            return (
-                f"// Operation {stage}: Matmul FPU\n"
-                f"_llk_math_matmul_init_<{math_fidelity}>(\n"
-                f"    TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, {transpose}, {ct_dim}, {rt_dim}\n"
-                f");\n"
-            )
+            rt_dim = operation.rt_dim
+
+        return (
+            f"// Operation {stage}: Matmul FPU\n"
+            f"_llk_math_matmul_init_<{math_fidelity}>(\n"
+            f"    TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, {transpose}, {ct_dim}, {rt_dim}\n"
+            f");\n"
+        )
 
     def calculate(
         self,
@@ -151,24 +147,20 @@ class MatmulFpu(Fpu):
     ) -> str:
         batch_size = operation.batch_size
         ct_dim = operation.ct_dim
-        rt_dim = operation.rt_dim
         kt_dim = operation.kt_dim
         math_fidelity = operation.math_fidelity.value
 
-        if batch_size == 1:
-            return (
-                f"for (std::uint32_t kt = 0; kt < {kt_dim}; kt++)\n"
-                f"{{\n"
-                f"    _llk_math_matmul_<{math_fidelity}>(0, 1, 1);\n"
-                f"}}\n"
-            )
+        if batch_size == ct_dim:
+            rt_dim = 1
         else:
-            return (
-                f"for (std::uint32_t kt = 0; kt < {kt_dim}; kt++)\n"
-                f"{{\n"
-                f"    _llk_math_matmul_<{math_fidelity}>(0, {ct_dim}, {rt_dim});\n"
-                f"}}\n"
-            )
+            rt_dim = operation.rt_dim
+
+        return (
+            f"for (std::uint32_t kt = 0; kt < {kt_dim}; kt++)\n"
+            f"{{\n"
+            f"    _llk_math_matmul_<{math_fidelity}>(0, {ct_dim}, {rt_dim});\n"
+            f"}}\n"
+        )
 
 
 class EltwiseFpu(Fpu):

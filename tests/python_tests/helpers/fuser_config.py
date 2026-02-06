@@ -85,8 +85,12 @@ class FuserConfig:
             output_tile_count = operation.output.tile_count
 
             if output_tile_count > dest_capacity:
-                if isinstance(operation.math.fpu, MatmulFpu):
-                    operation.batch_size = 1
+                if operation.math.has_fpu(MatmulFpu):
+                    if operation.ct_dim > dest_capacity:
+                        raise ValueError(
+                            f"Matmul ct_dim ({operation.ct_dim}) exceeds dest capacity ({dest_capacity}). "
+                        )
+                    operation.batch_size = operation.ct_dim
                 else:
                     operation.batch_size = min(operation.batch_size, dest_capacity)
 

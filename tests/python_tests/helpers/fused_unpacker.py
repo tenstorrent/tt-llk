@@ -158,14 +158,12 @@ class MatmulUnpacker(Unpacker):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
     ) -> str:
-        if operation.batch_size == 1:
+        kt_dim = operation.kt_dim
+        ct_dim = operation.ct_dim
+        if operation.batch_size == ct_dim:
             rt_dim = 1
-            kt_dim = operation.kt_dim
-            ct_dim = 1
         else:
             rt_dim = operation.rt_dim
-            kt_dim = operation.kt_dim
-            ct_dim = operation.ct_dim
         return f"_perf_unpack_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def perf_clear_valid(
@@ -174,14 +172,12 @@ class MatmulUnpacker(Unpacker):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
     ) -> str:
-        if operation.batch_size == 1:
+        kt_dim = operation.kt_dim
+        ct_dim = operation.ct_dim
+        if operation.batch_size == ct_dim:
             rt_dim = 1
-            kt_dim = operation.kt_dim
-            ct_dim = 1
         else:
             rt_dim = operation.rt_dim
-            kt_dim = operation.kt_dim
-            ct_dim = operation.ct_dim
         return f"_perf_math_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def golden(
@@ -222,7 +218,6 @@ class MatmulUnpacker(Unpacker):
     ) -> str:
         face_r_dim = operation.face_r_dim
         ct_dim = operation.ct_dim
-        rt_dim = operation.rt_dim
         kt_dim = operation.kt_dim
         batch_size = operation.batch_size
 
@@ -238,10 +233,12 @@ class MatmulUnpacker(Unpacker):
                 "MatmulUnpacker does not support different values for transpose_faces and transpose_within_face"
             )
 
-        if batch_size == 1:
-            return f"    _llk_unpack_AB_matmul_init_<>({transpose_faces}, 1, 1, {kt_dim}, {face_r_dim}, {face_r_dim});\n"
+        if batch_size == ct_dim:
+            rt_dim = 1
         else:
-            return f"    _llk_unpack_AB_matmul_init_<>({transpose_faces}, {ct_dim}, {rt_dim}, {kt_dim}, {face_r_dim}, {face_r_dim});\n"
+            rt_dim = operation.rt_dim
+
+        return f"    _llk_unpack_AB_matmul_init_<>({transpose_faces}, {ct_dim}, {rt_dim}, {kt_dim}, {face_r_dim}, {face_r_dim});\n"
 
     def unpack(
         self,
@@ -258,23 +255,20 @@ class MatmulUnpacker(Unpacker):
         unpack_tile_size_a = operation.tile_size_unpack_a
         unpack_tile_size_b = operation.tile_size_unpack_b
 
-        if batch_size == 1:
-            # Single tile per batch - tile_idx maps to (mt, nt) pair
+        if batch_size == ct_dim:
             code = (
                 f"    {{\n"
-                f"        std::uint32_t mt = ({tile_idx_expr}) / {ct_dim};\n"
-                f"        std::uint32_t nt = ({tile_idx_expr}) % {ct_dim};\n"
+                f"        std::uint32_t mt = batch;\n"
                 f"        for (std::uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
                 f"            _llk_unpack_AB_matmul_<>(\n"
                 f"                L1_ADDRESS(buffer_A{stage}[0]), L1_ADDRESS(buffer_B{stage}[0]),\n"
-                f"                mt * {kt_dim} + kt, kt * {ct_dim} + nt,\n"
-                f"                {unpack_tile_size_a}, {unpack_tile_size_b}, false, false, 1, 1, {kt_dim}\n"
+                f"                mt * {kt_dim} + kt, kt * {ct_dim},\n"
+                f"                {unpack_tile_size_a}, {unpack_tile_size_b}, false, false, {ct_dim}, 1, {kt_dim}\n"
                 f"            );\n"
                 f"        }}\n"
                 f"    }}\n"
             )
         else:
-            # All tiles in one batch - no tile_idx needed, just kt loop
             code = (
                 f"    for (std::uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
                 f"        _llk_unpack_AB_matmul_<>(\n"
