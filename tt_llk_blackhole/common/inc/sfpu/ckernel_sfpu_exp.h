@@ -582,7 +582,7 @@ inline void _init_exponential_()
         // Sets StoreMod0=0 (SRCB), UsesLoadMod0ForStore=0, UnitDelayKind=0xF
         // UnitDelayKind prevents pipeline advancement when not seeing new instructions,
         // avoiding race conditions from dest bank conflicts or other pipeline hiccups.
-        TTI_SFPCONFIG(0, 8, 0xF01);
+        TTI_SFPCONFIG(0xF00, 0x8, 0x1);
 
         // ===================================================================
         // Program Replay Buffer
