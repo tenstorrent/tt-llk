@@ -539,6 +539,7 @@ enum class UnpackerProgramType
  * @param unpB_face_r_dim   Expected face row dimension for unpacker B (default FACE_R_DIM)
  * @param unpA_num_faces    Expected number of faces for unpacker A (default TILE_NUM_FACES)
  * @param unpB_num_faces    Expected number of faces for unpacker B (default TILE_NUM_FACES)
+ * @param nop_count         Number of nop operations to ensure configuration writes complete (default 80)
  * @return true if the current unpacker configuration matches all expected values, false otherwise
  */
 template <UnpackerProgramType program_type = UnpackerProgramType::ProgramByTile>
@@ -550,8 +551,15 @@ inline bool is_unpacker_configured_correctly(
     const std::uint32_t unpA_face_r_dim = FACE_R_DIM,
     const std::uint32_t unpB_face_r_dim = FACE_R_DIM,
     const std::uint32_t unpA_num_faces  = TILE_NUM_FACES,
-    const std::uint32_t unpB_num_faces  = TILE_NUM_FACES)
+    const std::uint32_t unpB_num_faces  = TILE_NUM_FACES,
+    const std::uint32_t nop_count       = 0)
 {
+    // Ensure configuration writes complete before subsequent operations
+    for (std::uint32_t i = 0; i < nop_count; i++)
+    {
+        asm volatile("nop");
+    }
+
     std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec = read_unpack_tile_descriptor();
     std::array<unpack_config_t, NUM_UNPACKERS> config_vec                   = read_unpack_config();
 
