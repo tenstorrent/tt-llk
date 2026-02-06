@@ -222,7 +222,7 @@ inline void _llk_unpack_tilize_(
  *************************************************************************/
 
 template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false>
-inline void _llk_unpack_tilizeA_B_mop_config_(const bool narrow_tile = false, const std::uint32_t num_faces = 4)
+inline void _llk_unpack_tilizeA_B_mop_config_(const bool narrow_tile = false, const std::uint32_t num_faces = 2)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     static constexpr uint unpack_srca =
@@ -322,7 +322,7 @@ inline void _llk_unpack_tilizeA_B_(
     std::uint32_t tile_index_a,
     std::uint32_t tile_index_b,
     std::uint32_t block_ct_dim,
-    std::uint32_t num_faces = 4)
+    std::uint32_t num_faces = 2)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     std::uint32_t top_face_offset_address = SCALE_DATUM_SIZE(unpA_src_format, tile_index_a) << (narrow_tile ? 0 : 1);
@@ -476,7 +476,7 @@ inline void _llk_unpack_tilizeA_B_uninit_(const std::uint32_t unpack_dst_format,
  * supported input formats are: FP32 (via FP16 or TF32) or FP16_B
  *************************************************************************/
 
-inline void _llk_unpack_fast_tilize_mop_config_(const std::uint32_t num_faces = 2)
+inline void _llk_unpack_fast_tilize_mop_config_(const std::uint32_t num_faces = 4)
 {
     // Y moves to the next tile, Z moves to the next row (both ch0 and ch1)
     // constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00;
@@ -653,7 +653,7 @@ inline void _llk_unpack_fast_tilize_block_(
             TTI_MOP(p_mop::MASK_LOOP, ((FACE_R_DIM / 2) - 1) - 1, 0xFFFF);
             TTI_UNPACR_COMMON(SrcA, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 1);
             TTI_UNPACR_COMMON(SrcB, ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1, 1);
-            TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 0, 0, SETADC_CH01(p_setadc::ZW));
+            TTI_SETADCZW(p_setadc::UNP_AB, 0, 0, 1, 0, SETADC_CH01(p_setadc::ZW));
 
             // read top 8(A)/bottom 8(B) rows of bottom faces of three tiles in a row (6 halves of a face each), switch bank,
             // then move to the top faces of the next three tiles (CH0Y += 3) and back to top of a tile (CH01Z = 0, CH0W = 0)

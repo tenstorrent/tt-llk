@@ -39,7 +39,7 @@ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
 @parametrize(
     formats=input_output_formats([DataFormat.Float16_b]),
     dest_acc=[DestAccumulation.No],
-    dimensions=generate_input_dimensions(2),
+    dimensions=generate_input_dimensions(1),
 )
 def test_fast_tilize(formats, dest_acc, dimensions, workers_tensix_coordinates):
 

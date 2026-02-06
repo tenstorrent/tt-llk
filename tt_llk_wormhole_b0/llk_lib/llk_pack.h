@@ -216,7 +216,7 @@ inline void _llk_pack_fast_tilize_addrmod_config_(const std::uint32_t unit_dim)
     // first two address mods move to the next row, the stride depends on the number of contiguous faces loaded in the single unpacker instruction
     // for unit_dim 1, that is 2 so the stride is 2, and analogously for unit_dims 2 and 3 its 4 and 6
     addr_mod_pack_t {
-        .y_src = {.incr = 4},
+        .y_src = {.incr = (uint8_t)(unit_dim == 1 ? 2 : 4)},
     }
         .set(ADDR_MOD_0);
 
@@ -292,9 +292,10 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, cons
     // stallwait and select_packer_dest_registers just replicate what _llk_init_packer_dest_offset_registers_ does
     TTI_STALLWAIT(p_stall::STALL_TDMA | p_stall::STALL_THCON, p_stall::PACK);
 
-    uint32_t dst_offset = true ? 0x02 : 0x100; // TODO pgardner: 32bit
+    const uint32_t num_faces = 2;
     if (!use_32bit_dest)
     {
+        uint32_t dst_offset = (num_faces == 2) ? 0x02 : 0x100;
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x000, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + dst_offset, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
@@ -307,14 +308,16 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, cons
     }
     else
     {
+        uint32_t dst_offset = (num_faces == 2) ? 0x02 : 0x80;
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x000, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 0));
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 1));
-        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x002, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
-        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + 0x003, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
+        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + dst_offset, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 2));
+        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, 0x000 + dst_offset + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_LO + 3));
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x000, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 0));
         TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 1));
-        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x002, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
-        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + 0x003, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
+        TTI_SETDMAREG(p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + dst_offset, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 2));
+        TTI_SETDMAREG(
+            p_setdmareg::PAYLOAD_IMMEDIATE, DEST_REGISTER_HALF_SIZE + dst_offset + 0x001, p_setdmareg::MODE_IMMEDIATE, LO_16(p_gpr_pack::DEST_OFFSET_HI + 3));
     }
     select_packer_dest_registers<Dst>();
 
