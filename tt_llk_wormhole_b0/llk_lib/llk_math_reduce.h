@@ -326,9 +326,9 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = 
             // Reset Dest Counter
             TTI_SETRWC(SRCS_TO_CLEAR, 0, 0, 0, 0, p_setrwc::SET_AD);
         }
-        if constexpr (tilize_AB_support_en)
+        if constexpr (!tilize_AB_support_en)
         {
-            TTI_CLEARDVALID(SRCS_TO_CLEAR, 0);
+            TTI_CLEARDVALID(p_setrwc::CLR_B, 0);
         }
     }
     else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
