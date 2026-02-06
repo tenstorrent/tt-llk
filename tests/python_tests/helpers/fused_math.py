@@ -205,6 +205,14 @@ class ComputeNode:
             tensor_dst.reshape(operation.max_output_dimensions),
         )
 
+    def __str__(self):
+        if self.fpu is not None:
+            return f"{self.unpacker.__name__}, {self.fpu}"
+        elif self.sfpu:
+            return f"{self.sfpu}"
+        else:
+            return ""
+
 
 class ComputePipeline:
     operations: List[ComputeNode]
@@ -523,3 +531,11 @@ class ComputePipeline:
         num_elements = dimensions[0] * dimensions[1]
 
         return tensor_dst.flatten()[:num_elements].reshape(dimensions)
+
+    def __str__(self):
+        str = ""
+        for op in self.operations:
+            str += "\n  "
+            str += op.__str__()
+
+        return str
