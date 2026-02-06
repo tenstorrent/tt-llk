@@ -50,7 +50,7 @@ class ComputeNode:
             raise ValueError(f"{fpu} does not support {unpacker}")
 
         if reuse_dest != EltwiseBinaryReuseDestType.NONE and unpacker != UnpackerA:
-            raise ValueError("Reuse dest is noly supported with UnpackerA")
+            raise ValueError("Reuse dest is only supported with UnpackerA")
 
         self.unpacker = unpacker
         self.fpu = fpu
