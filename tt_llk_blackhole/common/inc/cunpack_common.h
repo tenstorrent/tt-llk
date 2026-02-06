@@ -562,7 +562,7 @@ inline bool is_unpacker_configured_correctly(
     const std::uint32_t unpB_face_r_dim = FACE_R_DIM,
     const std::uint32_t unpA_num_faces  = TILE_NUM_FACES,
     const std::uint32_t unpB_num_faces  = TILE_NUM_FACES,
-    const std::uint32_t nop_count       = 0)
+    const std::uint32_t nop_count       = 10)
 {
     // Ensure configuration writes complete before subsequent operations
     for (std::uint32_t i = 0; i < nop_count; i++)
