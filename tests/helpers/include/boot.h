@@ -59,6 +59,8 @@ inline void device_setup()
 #endif
 }
 
+static uint32_t cfg_initial_state = 0;
+
 inline void clear_trisc_soft_reset()
 {
 #ifdef ARCH_QUASAR
@@ -68,6 +70,32 @@ inline void clear_trisc_soft_reset()
 #endif
 
     uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+
+    if (cfg_initial_state == 0)
+    {
+        cfg_initial_state = soft_reset;
+    }
+
     soft_reset &= ~TRISC_SOFT_RESET_MASK;
+
+    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
+}
+
+inline void set_triscs_soft_reset()
+{
+#ifdef ARCH_QUASAR
+    constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x3000;
+#else
+    constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
+#endif
+
+    uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+    soft_reset |= TRISC_SOFT_RESET_MASK;
+
+    if (cfg_initial_state != 0)
+    {
+        soft_reset = cfg_initial_state;
+    }
+
     ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
 }

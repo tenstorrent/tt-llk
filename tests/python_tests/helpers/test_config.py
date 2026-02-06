@@ -34,17 +34,14 @@ from .device import (
     CHIP_DEFAULT_BOOT_MODES,
     BootMode,
     RiscCore,
-    assert_if_all_in_reset,
+    commit_brisc_command,
     exalens_device_setup,
-    reset_mailboxes,
+    make_sure_core_in_reset,
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
 )
 from .format_config import DataFormat, FormatConfig
-from .llk_params import (
-    DestAccumulation,
-    L1Accumulation,
-)
+from .llk_params import BriscCmd, DestAccumulation, L1Accumulation, Mailbox
 from .stimuli_config import StimuliConfig
 from .test_variant_parameters import RuntimeParameter, TemplateParameter
 
@@ -627,8 +624,6 @@ class TestConfig:
                 ]
             )
 
-        # print([hex(data) for data in argument_data])
-
         serialised_data = struct.pack(self.runtime_format, *argument_data)
 
         if len(serialised_data) != 0:
@@ -640,6 +635,21 @@ class TestConfig:
                 write_to_device(
                     location, TestConfig.RUNTIME_ADDRESS_NON_COVERAGE, serialised_data
                 )
+
+        read_runtime_data = []
+        if TestConfig.WITH_COVERAGE:
+            read_runtime_data = read_from_device(
+                location, TestConfig.RUNTIME_ADDRESS_COVERAGE, 0, len(serialised_data)
+            )
+        else:
+            read_runtime_data = read_from_device(
+                location,
+                TestConfig.RUNTIME_ADDRESS_NON_COVERAGE,
+                0,
+                len(serialised_data),
+            )
+
+        assert read_runtime_data == serialised_data
 
     def collect_hash(self):
         lock_file = Path("/tmp/tt-llk-build-print.lock")
@@ -965,21 +975,21 @@ class TestConfig:
     CURRENT_MEMBAR_VALUE: ClassVar[int] = 0
 
     def run_membar(self, location: str = "0,0"):
-        if TestConfig.WITH_COVERAGE:
-            membar_address = TestConfig.RUNTIME_ADDRESS_NON_COVERAGE - 4
-        else:
-            membar_address = TestConfig.RUNTIME_ADDRESS_COVERAGE - 4
+        write_words_to_device(
+            location, Mailbox.MemBar.value, TestConfig.CURRENT_MEMBAR_VALUE
+        )
 
-        write_words_to_device(location, membar_address, TestConfig.CURRENT_MEMBAR_VALUE)
+        end_time = time.time() + 0.01
 
-        while (
-            read_word_from_device(location, membar_address)
-            != TestConfig.CURRENT_MEMBAR_VALUE
-        ):
-            pass
+        while time.time() < end_time:
+            temp_value = read_word_from_device(location, Mailbox.MemBar.value)
+            if temp_value == TestConfig.CURRENT_MEMBAR_VALUE:
+                TestConfig.CURRENT_MEMBAR_VALUE = (
+                    TestConfig.CURRENT_MEMBAR_VALUE + 1
+                ) % 10
+                return
 
-        TestConfig.CURRENT_MEMBAR_VALUE = (TestConfig.CURRENT_MEMBAR_VALUE + 1) % 10
-        return
+        raise Exception("Membar timeout!")
 
     BRISC_ELF_LOADED: ClassVar[bool] = False
     PROFILER_BRISC_ELF_LOADED: ClassVar[bool] = False
@@ -997,13 +1007,38 @@ class TestConfig:
         ):
             raise ValueError("Quasar only supports TRISC boot mode")
 
-        set_tensix_soft_reset(1, location=location)
-        self.run_membar(location)
+        if boot_mode == BootMode.BRISC:
+            is_profiler = self.profiler_build == ProfilerBuild.Yes
+            if is_profiler:
+                if not TestConfig.PROFILER_BRISC_ELF_LOADED:
+                    set_tensix_soft_reset(1, location=location)
+                    make_sure_core_in_reset(location, "Brisc init", [RiscCore.BRISC])
+                    TestConfig.PROFILER_BRISC_ELF_LOADED = True
+                    load_elf(
+                        elf_file=str(
+                            (
+                                TestConfig.PROFILER_SHARED_ELF_DIR / "brisc.elf"
+                            ).absolute()
+                        ),
+                        location=location,
+                        risc_name="brisc",
+                    )
+                    self.run_membar(location)
+                    set_tensix_soft_reset(0, [RiscCore.BRISC], location)
 
-        assert_if_all_in_reset(location, "After they are put to reset")
-
-        reset_mailboxes(location)
-        self.run_membar(location)
+            else:
+                if not TestConfig.BRISC_ELF_LOADED:
+                    set_tensix_soft_reset(1, location=location)
+                    make_sure_core_in_reset(location, "Brisc init", [RiscCore.BRISC])
+                    TestConfig.BRISC_ELF_LOADED = True
+                    load_elf(
+                        elf_file=str(
+                            (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
+                        ),
+                        location=location,
+                        risc_name="brisc",
+                    )
+                    set_tensix_soft_reset(0, [RiscCore.BRISC], location)
 
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
@@ -1024,7 +1059,6 @@ class TestConfig:
                         0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
                     ),
                     return_start_address=True,
-                    verify_write=True,
                 )
                 write_words_to_device(
                     location, TestConfig.TRISC_START_ADDRS[i], [start_address]
@@ -1037,43 +1071,13 @@ class TestConfig:
                     neo_id=(
                         0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
                     ),
-                    verify_write=True,
                 )
 
             self.run_membar(location)
-            assert_if_all_in_reset(location, "After elf load")
 
         match boot_mode:
             case BootMode.BRISC:
-                # Use correct shared ELF directory and loading flag based on profiler build
-                is_profiler = self.profiler_build == ProfilerBuild.Yes
-                if is_profiler:
-                    # if not TestConfig.PROFILER_BRISC_ELF_LOADED:
-                    #     TestConfig.PROFILER_BRISC_ELF_LOADED = True
-                    load_elf(
-                        elf_file=str(
-                            (
-                                TestConfig.PROFILER_SHARED_ELF_DIR / "brisc.elf"
-                            ).absolute()
-                        ),
-                        location=location,
-                        risc_name="brisc",
-                        verify_write=True,
-                    )
-                else:
-                    # if not TestConfig.BRISC_ELF_LOADED:
-                    #     TestConfig.BRISC_ELF_LOADED = True
-                    load_elf(
-                        elf_file=str(
-                            (TestConfig.SHARED_ELF_DIR / "brisc.elf").absolute()
-                        ),
-                        location=location,
-                        risc_name="brisc",
-                        verify_write=True,
-                    )
-                    assert_if_all_in_reset(location, "After brisc elf load")
-                set_tensix_soft_reset(0, [RiscCore.BRISC], location)
-                self.run_membar(location)
+                commit_brisc_command(location, BriscCmd.START_TRISCS)
             case BootMode.TRISC:
                 set_tensix_soft_reset(
                     0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
