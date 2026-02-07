@@ -152,6 +152,9 @@ inline void math_unpack_to_dest_tile_ready()
 template <DstTileShape tile_shape, UnpackDestination unpack_destination>
 inline void set_dst_write_addr(std::uint32_t tile_index)
 {
+    static_assert(
+        tile_shape == DstTileShape::Tile32x32 || tile_shape == DstTileShape::Tile32x16 || tile_shape == DstTileShape::Tile16x16, "Invalid tile shape");
+
     std::uint32_t dst_index = tile_index << DstTileSizeLog2[tile_shape];
     dst_index               = dst_index + get_dest_buffer_base();
     if constexpr (unpack_destination == UnpackDestination::DestReg)
@@ -225,7 +228,68 @@ inline std::uint32_t get_dest_index_in_faces(const std::uint32_t dst_index, cons
     // dst_index << 2 gives a tile idex in faces, because there are 4 faces in a tile.
     // face_index should normally take values from {0, 1, 2, 3}, although if it's greater
     // than 3 faces from next tiles can be accessed.
+    LLK_ASSERT(face_index < 4, "face_index out of range");
     return (dst_index << 2) + face_index;
+}
+
+/**
+ * @brief Calculates the maximum destination index for a matmul operation.
+ *
+ * Given the starting destination index and the dimensions ct_dim and rt_dim,
+ * this function computes the maximum destination index accessed by the matmul kernel,
+ * according to the addressing formula:
+ *   dst_index + (reuse_a ? ct_dim * t + rut : t + rut * ct_dim)
+ * where reuse_a = (ct_dim >= rt_dim), t in [0, t_dim), rut in [0, rut_dim),
+ * t_dim = reuse_a ? rt_dim : ct_dim, rut_dim = reuse_a ? ct_dim : rt_dim.
+ *
+ * @param dst_index  Starting destination index
+ * @param ct_dim     Column tile dimension (default 1)
+ * @param rt_dim     Row tile dimension (default 1)
+ * @return           Maximum destination index accessed
+ */
+inline std::uint32_t get_max_dst_index_for_matmul(std::uint32_t dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
+{
+    const bool reuse_a          = ct_dim >= rt_dim;
+    const std::uint32_t t_dim   = reuse_a ? rt_dim : ct_dim;
+    const std::uint32_t rut_dim = reuse_a ? ct_dim : rt_dim;
+
+    std::uint32_t max_index = dst_index;
+    for (std::uint32_t t = 0; t < t_dim; ++t)
+    {
+        for (std::uint32_t rut = 0; rut < rut_dim; ++rut)
+        {
+            std::uint32_t idx = dst_index + (reuse_a ? ct_dim * t + rut : t + rut * ct_dim);
+            if (idx > max_index)
+            {
+                max_index = idx;
+            }
+        }
+    }
+    return max_index;
+}
+
+/**
+ * @brief Calculates the maximum number of destination tiles that can fit in the destination register.
+ *
+ * @tparam SYNC_MODE   Destination synchronization mode (SyncHalf or SyncFull)
+ * @tparam ACCUM_MODE Accumulation mode: true for 32-bit (FP32), false for 16-bit
+ * @tparam TILE_SHAPE      Tile shape enum value (e.g., 32x32, 16x16, etc.)
+ * @return constexpr std::uint32_t   Maximum number of destination tiles
+ *
+ * The calculation is based on the destination register size and the tile shape.
+ *
+ * Formula:
+ *   DEST_REGISTER_SIZE >> DstTileSizeLog2[static_cast<int>(TILE_SHAPE)]
+ *
+ * Where DEST_REGISTER_SIZE is selected based on SYNC_MODE and ACCUM_MODE.
+ */
+template <DstSync SYNC_MODE, bool ACCUM_MODE, DstTileShape TILE_SHAPE>
+constexpr std::uint32_t get_dest_max_tiles()
+{
+    constexpr std::uint32_t DEST_REGISTER_SIZE = SYNC_MODE == DstSync::SyncHalf ? (ACCUM_MODE ? DEST_REGISTER_HALF_SIZE >> 1 : DEST_REGISTER_HALF_SIZE)
+                                                                                : (ACCUM_MODE ? DEST_REGISTER_FULL_SIZE >> 1 : DEST_REGISTER_FULL_SIZE);
+
+    return DEST_REGISTER_SIZE >> DstTileSizeLog2[static_cast<int>(TILE_SHAPE)];
 }
 
 } // namespace ckernel::math

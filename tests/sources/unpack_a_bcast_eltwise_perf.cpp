@@ -86,6 +86,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             _llk_math_wait_for_dest_available_<dest_sync>();
             for (std::uint32_t i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
             {
+                LLK_ASSERT((i < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "i exceeds max dest tiles");
                 _llk_math_eltwise_binary_(i * params->SRCA_REUSE_COUNT /* dst_index */);
             }
         }
@@ -94,6 +95,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             _llk_math_wait_for_dest_available_<dest_sync>();
             for (std::uint32_t i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
             {
+                LLK_ASSERT((i < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "i exceeds max dest tiles");
                 _llk_math_eltwise_binary_(i * params->SRCA_REUSE_COUNT /* dst_index */);
             }
         }
@@ -129,6 +131,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             for (std::uint32_t tile = 0; tile < params->TILE_CNT; tile++)
             {
+                LLK_ASSERT(
+                    (tile < ckernel::packer::get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                    "tile exceeds max dest tiles");
                 _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
             }
         }
@@ -136,6 +141,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             for (std::uint32_t tile = 0; tile < params->TILE_CNT; tile++)
             {
+                LLK_ASSERT(
+                    (tile < ckernel::packer::get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                    "tile exceeds max dest tiles");
                 _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
             }
         }

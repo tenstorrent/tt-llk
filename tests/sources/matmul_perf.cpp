@@ -182,7 +182,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 for (std::uint32_t tile = 0; tile < params->CT_DIM * params->RT_DIM; tile++)
                 {
                     const std::uint32_t tile_index = tile % MAX_TILES_DEST;
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile_index));
+                    LLK_ASSERT(
+                        (tile_index < ckernel::packer::get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                        "tile_index exceeds max dest tiles");
+                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile_index, PERF_ADDRESS(PERF_OUTPUT, tile_index));
                 }
             }
         }
@@ -194,7 +197,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 for (std::uint32_t tile = 0; tile < params->CT_DIM * params->RT_DIM; tile++)
                 {
                     const std::uint32_t tile_index = tile % MAX_TILES_DEST;
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile_index));
+                    LLK_ASSERT(
+                        (tile_index < ckernel::packer::get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                        "tile_index exceeds max dest tiles");
+                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile_index, PERF_ADDRESS(PERF_OUTPUT, tile_index));
                 }
                 _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }

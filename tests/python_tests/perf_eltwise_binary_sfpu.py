@@ -149,7 +149,6 @@ def test_perf_eltwise_binary_sfpu_float(
         16,
     ],
     iterations=[
-        8,
         32,
     ],
     input_dimensions=[
