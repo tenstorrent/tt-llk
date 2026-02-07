@@ -70,10 +70,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 for (std::uint32_t j = 0; j < params->KT_DIM; j++)
                 {
                     _llk_unpack_AB_matmul_<>(
-                        PERF_ADDRESS(PERF_INPUT_A, j),
-                        PERF_ADDRESS(PERF_INPUT_B, j),
-                        j,
-                        j * params->CT_DIM,
+                        PERF_ADDRESS(PERF_INPUT_A, 0),
+                        PERF_ADDRESS(PERF_INPUT_B, 0),
+                        0 /* tile_index_a */,
+                        0 /* tile_index_b */,
                         TILE_SIZE_UNPACK_A,
                         TILE_SIZE_UNPACK_B,
                         /* partial face */ false,
