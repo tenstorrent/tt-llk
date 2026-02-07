@@ -197,11 +197,11 @@ class EltwiseFpu(Fpu):
 
         if compute_unit.reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCA:
             tensor_a = tensor_dst
-            tensor_dst = torch.zeros(tensor_dst.shape)
+            tensor_dst = torch.zeros_like(tensor_dst)
 
         if compute_unit.reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCB:
             tensor_b = tensor_dst
-            tensor_dst = torch.zeros(tensor_dst.shape)
+            tensor_dst = torch.zeros_like(tensor_dst)
 
         generate_golden = get_golden_generator(EltwiseBinaryGolden)
         golden_tensor = generate_golden(
