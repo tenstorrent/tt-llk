@@ -73,7 +73,9 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
             _init_exponential_<APPROX_MODE, FAST_MODE, 0x3F800000 /* exp_base_scale_factor */, CLAMP_NEGATIVE>();
             if constexpr (FAST_MODE && APPROX_MODE && CLAMP_NEGATIVE)
             {
-                static_assert(ITERATIONS == 32); // In this case _calculate_exponential_ always processes 8 iterations.
+                // In this case each call to _calculate_exponential_ processes 8 iterations
+                // and we iterate over 4 faces, so we process 32 iterations overall.
+                static_assert(ITERATIONS == 32);
                 for (int i = 0; i < 4; i++)
                 {
                     _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */, CLAMP_NEGATIVE>(
@@ -84,7 +86,8 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
             }
             else if constexpr (FAST_MODE && APPROX_MODE)
             {
-                static_assert(ITERATIONS == 8 || ITERATIONS == 32); // In this case _calculate_exponential_ can process 8 or 32 iterations.
+                // In this case each call to _calculate_exponential_ can process either 8 or 32 iterations.
+                static_assert(ITERATIONS == 8 || ITERATIONS == 32);
                 _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */, CLAMP_NEGATIVE>(
                     p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
             }
