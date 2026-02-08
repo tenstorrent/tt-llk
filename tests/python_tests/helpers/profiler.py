@@ -436,7 +436,21 @@ class Profiler:
                     )
 
                 case EntryType.ZONE_END:
-                    rows.append(zone_stack.pop())  # Pop the ZONE_START pair
+                    if not zone_stack:
+                        raise ValueError(
+                            f"ZONE_END for marker '{marker.marker}' (id={marker_id}) "
+                            f"on thread '{thread}' at timestamp {timestamp} has no "
+                            f"matching ZONE_START. Possible buffer corruption."
+                        )
+                    start_row = zone_stack.pop()
+                    if start_row["marker_id"] != marker.id:
+                        raise ValueError(
+                            f"ZONE_END marker '{marker.marker}' (id={marker.id}) "
+                            f"does not match ZONE_START marker "
+                            f"'{start_row['marker']}' (id={start_row['marker_id']}) "
+                            f"on thread '{thread}'. Possible nested zone mismatch."
+                        )
+                    rows.append(start_row)
                     rows.append(
                         Profiler._row(thread, "ZONE_END", marker, timestamp, pd.NA)
                     )

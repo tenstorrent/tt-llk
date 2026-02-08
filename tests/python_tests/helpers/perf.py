@@ -6,6 +6,7 @@ import glob
 import os
 import re
 from dataclasses import fields
+from functools import reduce
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, ClassVar
@@ -373,8 +374,12 @@ class PerfConfig(TestConfig):
             get_stats = Profiler.STATS_FUNCTION[run_type]
             results.append(get_stats(ProfilerData.concat(variant_raw_data)))
 
-        results = pd.concat(results, ignore_index=True)
-        run_results = results.groupby("marker").first().reset_index()
+        run_results = reduce(
+            lambda left, right: pd.merge(
+                left, right, on="marker", how="outer", validate="1:1"
+            ),
+            results,
+        )
 
         # Setting header fields that are always there
         names = ["formats.input", "formats.output"] if self.formats else []
