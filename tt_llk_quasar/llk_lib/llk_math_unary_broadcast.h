@@ -40,6 +40,19 @@ inline void _llk_math_eltwise_unary_broadcast_addrmod_()
         }
             .set(ADDR_MOD_2);
     }
+    else if constexpr (BROADCAST_TYPE == BroadcastType::ROW)
+    {
+        addr_mod_t {
+            .srcb = {.clr = 1},
+            .dest = {.incr = ELTWISE_MATH_ROWS},
+        }
+            .set(ADDR_MOD_1);
+        addr_mod_t {
+            .srcb = {.incr = FACE_R_DIM},
+            .dest = {.incr = ELTWISE_MATH_ROWS},
+        }
+            .set(ADDR_MOD_2);
+    }
 }
 
 /**
@@ -79,24 +92,18 @@ inline void _llk_math_eltwise_unary_broadcast_mop_config_(const TileShape& tile_
 
     temp.set_end_op(TT_OP_CLEARDVALID(p_cleardvalid::CLR_SRCB_VLD, 0, 0, 0, 0, 0));
 
-    // Only need to clear per face for ROW/COL, since SCALAR only has 1 face from the unpacker
-    // For SCALAR, use set_last_outer_loop_instr with ADDR_MOD_1 to clear srcB counter at end of outer loop
-    // For COLUMN: Use ADDR_MOD_0 to allow srcB counter to increment (srcb.incr = ELTWISE_MATH_ROWS = 8 rows)
-    //   This allows reading column 0 from different rows: rows 0-7, then 8-15, then 16-23, then 24-31
-    //   Without clearing, the counter naturally progresses through all rows for proper column broadcast
-    // For ROW: Use ADDR_MOD_0 (no clear, just increment) to read the same row repeatedly
     if constexpr (BROADCAST_TYPE == BroadcastType::SCALAR)
     {
         temp.set_last_outer_loop_instr(movb2d_func(ADDR_MOD_1));
     }
     else if constexpr (BROADCAST_TYPE == BroadcastType::COL)
     {
-        // This allows reading column 0 from all 16 rows (rows 0-7, then 8-15) per outer iteration
         temp.set_last_inner_loop_instr(movb2d_func(ADDR_MOD_2));
     }
     else // ROW
     {
         temp.set_last_inner_loop_instr(movb2d_func(ADDR_MOD_0));
+        temp.set_last_outer_loop_instr(movb2d_func(ADDR_MOD_2));
     }
 
     temp.program_bank0_sw_cntl(instrn_buffer);
