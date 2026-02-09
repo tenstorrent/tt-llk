@@ -54,7 +54,7 @@ class FuserConfig:
 
         num_stages = len(self.pipeline)
 
-        for i, operation in enumerate(self.pipeline):
+        for i, operation in enumerate(self.pipeline, start=1):
             formats_config = data_formats(
                 input_format=operation.src_a.data_format,
                 output_format=operation.output.data_format,
