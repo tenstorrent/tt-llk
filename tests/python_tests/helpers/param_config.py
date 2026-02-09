@@ -470,7 +470,7 @@ def get_num_blocks_and_num_tiles_in_block(
     input_dimensions: List[int],
     tile_dimensions: List[int] = None,
     blocks_algorithm: BlocksCalculationAlgorithm = BlocksCalculationAlgorithm.Standard,
-) -> int:
+) -> Tuple[int, int]:
     """
     Calculate the number of blocks and tiles per block needed to process an input matrix.
 
