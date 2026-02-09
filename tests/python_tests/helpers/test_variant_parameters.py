@@ -7,6 +7,8 @@ from ctypes import c_uint32
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
+from helpers.format_config import DataFormat
+
 from .llk_params import (
     FPU_BINARY_OPERATIONS,
     REDUCE_OPERATIONS,
@@ -596,3 +598,202 @@ class NUM_ROWS_TO_PACK(RuntimeParameter):
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         return "std::uint32_t NUM_ROWS_TO_PACK;", "I"
+
+
+# HACK! HACK! HACK! UNPACK RECONFIGURE TEST DO NOT TOUCH!
+
+
+@dataclass
+class SRC_FORMAT_A(TemplateParameter):
+    src_format_a: DataFormat
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr auto SRC_FORMAT_A =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.src_format_a});"
+
+
+@dataclass
+class SRC_FORMAT_B(TemplateParameter):
+    src_format_b: DataFormat
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr auto SRC_FORMAT_B =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.src_format_b});"
+
+
+@dataclass
+class DST_FORMAT_A(TemplateParameter):
+    dst_format_a: DataFormat
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr auto DST_FORMAT_A =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.dst_format_a});"
+
+
+@dataclass
+class DST_FORMAT_B(TemplateParameter):
+    dst_format_b: DataFormat
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr auto DST_FORMAT_B =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.dst_format_b});"
+
+
+@dataclass
+class SRC_FORMAT_A_NEXT(TemplateParameter):
+    src_format_a_next: DataFormat
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr auto SRC_FORMAT_A_NEXT =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.src_format_a_next});"
+
+
+@dataclass
+class SRC_FORMAT_B_NEXT(TemplateParameter):
+    src_format_b_next: DataFormat
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr auto SRC_FORMAT_B_NEXT =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.src_format_b_next});"
+
+
+@dataclass
+class DST_FORMAT_A_NEXT(TemplateParameter):
+    dst_format_a_next: DataFormat
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr auto DST_FORMAT_A_NEXT =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.dst_format_a_next});"
+
+
+@dataclass
+class DST_FORMAT_B_NEXT(TemplateParameter):
+    dst_format_b_next: DataFormat
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr auto DST_FORMAT_B_NEXT =  static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{self.dst_format_b_next});"
+
+
+@dataclass
+class FACE_R_DIM_A(RuntimeParameter):
+    face_r_dim_a: int = 16
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int FACE_R_DIM_A = {self.face_r_dim_a};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int FACE_R_DIM_A;", "i"
+
+
+@dataclass
+class FACE_R_DIM_B(RuntimeParameter):
+    face_r_dim_b: int = 16
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int FACE_R_DIM_B = {self.face_r_dim_b};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int FACE_R_DIM_B;", "i"
+
+
+@dataclass
+class FACE_R_DIM_A_NEXT(RuntimeParameter):
+    face_r_dim_a_next: int = 16
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int FACE_R_DIM_A_NEXT = {self.face_r_dim_a_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int FACE_R_DIM_A_NEXT;", "i"
+
+
+@dataclass
+class FACE_R_DIM_B_NEXT(RuntimeParameter):
+    face_r_dim_b_next: int = 16
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int FACE_R_DIM_B_NEXT = {self.face_r_dim_b_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int FACE_R_DIM_B_NEXT;", "i"
+
+
+@dataclass
+class NUM_FACES_A(RuntimeParameter):
+    num_faces_a: int = 4
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int NUM_FACES_A = {self.num_faces_a};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int NUM_FACES_A;", "i"
+
+
+@dataclass
+class NUM_FACES_B(RuntimeParameter):
+    num_faces_b: int = 4
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int NUM_FACES_B = {self.num_faces_b};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int NUM_FACES_B;", "i"
+
+
+@dataclass
+class NUM_FACES_A_NEXT(RuntimeParameter):
+    num_faces_next: int = 4
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int NUM_FACES_A_NEXT = {self.num_faces_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int NUM_FACES_A_NEXT;", "i"
+
+
+@dataclass
+class NUM_FACES_B_NEXT(RuntimeParameter):
+    num_faces_b_next: int = 4
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int NUM_FACES_B_NEXT = {self.num_faces_b_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int NUM_FACES_B_NEXT;", "i"
+
+
+@dataclass
+class TILE_SIZE_A(RuntimeParameter):
+    tile_size_a: int = 4
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int TILE_SIZE_A = {self.tile_size_a};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int TILE_SIZE_A;", "i"
+
+
+@dataclass
+class TILE_SIZE_B(RuntimeParameter):
+    tile_size_b: int = 4
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int TILE_SIZE_B = {self.tile_size_b};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int TILE_SIZE_B;", "i"
+
+
+@dataclass
+class TILE_SIZE_A_NEXT(RuntimeParameter):
+    tile_size_a_next: int = 4
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int TILE_SIZE_A_NEXT = {self.tile_size_a_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int TILE_SIZE_A_NEXT;", "i"
+
+
+@dataclass
+class TILE_SIZE_B_NEXT(RuntimeParameter):
+    tile_size_b_next: int = 4
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int TILE_SIZE_B_NEXT = {self.tile_size_b_next};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int TILE_SIZE_B_NEXT;", "i"
