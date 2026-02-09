@@ -16,7 +16,6 @@ operations:
     math_fidelity: "LoFi"
     unpack_transpose_within_face: "No"
     unpack_transpose_faces: "No"
-    batch_size: 1
   - src_a: "input_A"
     src_b: "input_B"
     output: "output2"
@@ -34,7 +33,6 @@ operations:
     math_fidelity: "LoFi"
     unpack_transpose_within_face: "No"
     unpack_transpose_faces: "No"
-    batch_size: 1
   - src_a: "input_A"
     src_b: "input_B"
     output: "output3"
@@ -53,4 +51,3 @@ operations:
     math_fidelity: "LoFi"
     unpack_transpose_within_face: "No"
     unpack_transpose_faces: "No"
-    batch_size: 1
