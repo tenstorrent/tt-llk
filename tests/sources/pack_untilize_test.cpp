@@ -121,9 +121,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const std::uint32_t block_stride_16B =
         (BLOCK_CT_DIM * ((params->num_faces > 2) ? params->num_faces / 2 : params->num_faces) * FACE_C_DIM * format_size_in_bytes(formats.pack_dst)) /
         L1_ACCESS_ADDRESS_GRANULARITY;
-    const uint32_t base_addr_16B = L1_ADDRESS(buffer_Res[0]);
-    const bool narrow_row        = ROW_NUM_DATUMS < 32;
-    const bool diagonal          = false;
+    const std::uint32_t base_addr_16B = L1_ADDRESS(buffer_Res[0]);
+    const bool narrow_row             = ROW_NUM_DATUMS < 32;
+    const bool diagonal               = false;
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, NUM_DATUMS_IN_TILE /* tile_size */);
@@ -133,10 +133,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, NUM_DATUMS_IN_TILE /* tile_size */);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, UNTILIZE>();
-    _llk_pack_untilize_init_<BLOCK_CT_DIM, FULL_CT_DIM, diagonal, narrow_row, ROW_NUM_DATUMS>(formats.pack_dst, FACE_R_DIM, params->num_faces, narrow_row);
+    _llk_pack_untilize_init_<BLOCK_CT_DIM, FULL_CT_DIM, diagonal, narrow_row, ROW_NUM_DATUMS>(formats.pack_dst, FACE_R_DIM, params->num_faces);
 #endif
-    const uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM;
-    uint32_t pack_addr_16B            = 0;
+    const std::uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM;
+    std::uint32_t pack_addr_16B            = 0;
 
     for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
     {
@@ -145,7 +145,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             if (narrow_row)
             {
                 // In this case TILE_C_DIM is 32.
-                uint32_t num_of_processed_datums_per_tile =
+                std::uint32_t num_of_processed_datums_per_tile =
                     ((params->num_faces == 1) ? params->num_faces : params->num_faces / 2) * FACE_C_DIM * ROW_NUM_DATUMS;
 
                 // narrow_row case only processes FULL_CT_DIM = BLOCK_CT_DIM = 1. So rt tells us which tile we are processing.
