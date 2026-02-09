@@ -1033,7 +1033,10 @@ class TestConfig:
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-        self.variant_stimuli.write(location)
+
+        if self.variant_stimuli:
+            self.variant_stimuli.write(location)
+
         self.write_runtimes_to_L1(location)
         elfs = self.run_elf_files(location)
         dumps = wait_for_tensix_operations_finished(elfs, location)
@@ -1044,7 +1047,14 @@ class TestConfig:
         if delete_artefacts:
             shutil.rmtree(TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id)
 
-        return self.variant_stimuli.collect_results(location), dumps
+        return (
+            (
+                self.variant_stimuli.collect_results(location)
+                if self.variant_stimuli
+                else None
+            ),
+            dumps,
+        )
 
 
 def process_coverage_run_artefacts() -> bool:
