@@ -248,36 +248,17 @@ inline constexpr int get_math_fidelity_increment(const int math_fidelity_desc)
  * @brief Calculates the maximum destination index for a matmul operation.
  *
  * Given the starting destination index and the dimensions ct_dim and rt_dim,
- * this function computes the maximum destination index accessed by the matmul kernel,
- * according to the addressing formula:
- *   dst_index + (reuse_a ? ct_dim * t + rut : t + rut * ct_dim)
- * where reuse_a = (ct_dim >= rt_dim), t in [0, t_dim), rut in [0, rut_dim),
- * t_dim = reuse_a ? rt_dim : ct_dim, rut_dim = reuse_a ? ct_dim : rt_dim.
+ * this function computes the maximum destination index accessed by the matmul kernel.
+ * The addressing pattern always results in a maximum offset of ct_dim * rt_dim - 1.
  *
  * @param dst_index  Starting destination index
  * @param ct_dim     Column tile dimension (default 1)
  * @param rt_dim     Row tile dimension (default 1)
- * @return           Maximum destination index accessed
+ * @return           Maximum destination index accessed (dst_index + ct_dim * rt_dim - 1)
  */
 inline std::uint32_t get_max_dst_index_for_matmul(std::uint32_t dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
 {
-    const bool reuse_a          = ct_dim >= rt_dim;
-    const std::uint32_t t_dim   = reuse_a ? rt_dim : ct_dim;
-    const std::uint32_t rut_dim = reuse_a ? ct_dim : rt_dim;
-
-    std::uint32_t max_index = dst_index;
-    for (std::uint32_t t = 0; t < t_dim; ++t)
-    {
-        for (std::uint32_t rut = 0; rut < rut_dim; ++rut)
-        {
-            std::uint32_t idx = dst_index + (reuse_a ? ct_dim * t + rut : t + rut * ct_dim);
-            if (idx > max_index)
-            {
-                max_index = idx;
-            }
-        }
-    }
-    return max_index;
+    return dst_index + ct_dim * rt_dim - 1;
 }
 
 /**

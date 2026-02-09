@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <utility>
 
+#include "llk_assert.h"
 #include "llk_math_eltwise_unary_sfpu.h"
 #include "llk_sfpu_types.h"
 
