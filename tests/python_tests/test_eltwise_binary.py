@@ -4,7 +4,9 @@
 import torch
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
+    BroadcastGolden,
     EltwiseBinaryGolden,
+    TransposeGolden,
     get_golden_generator,
 )
 from helpers.llk_params import (
@@ -17,7 +19,7 @@ from helpers.llk_params import (
 )
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_config import StimuliConfig
-from helpers.stimuli_generator import generate_stimuli
+from helpers.stimuli_generator import generate_stimuli_w_tile_dimensions
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     BROADCAST_TYPE,
@@ -25,53 +27,77 @@ from helpers.test_variant_parameters import (
     MATH_FIDELITY,
     MATH_OP,
     NUM_BLOCKS,
-    NUM_FACES,
+    NUM_FACES_C_DIM,
+    NUM_FACES_R_DIM,
     NUM_TILES_IN_BLOCK,
     TEST_FACE_DIMS,
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
 )
+from helpers.tile_constants import SUPPORTED_TILE_SIZES, get_tile_params
+from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
+ALL_TILE_DIMENSIONS = [list(td) for td in SUPPORTED_TILE_SIZES]
 
-def get_tile_params(tile_dimensions):
+
+def _get_valid_math_ops(math_fidelity):
+    """High fidelity operations are only supported for Elwmul."""
+    if math_fidelity != MathFidelity.LoFi:
+        return [MathOperation.Elwmul]
+    return [MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul]
+
+
+def _get_valid_transpose(broadcast_type):
+    """Transpose does not work for Scalar broadcast."""
+    if broadcast_type == BroadcastType.Scalar:
+        return [Transpose.No]
+    return [Transpose.No, Transpose.Yes]
+
+
+def _get_valid_tile_dimensions(transpose_srca, broadcast_type):
     """
-    Calculate num_faces and face_r_dim from tile dimensions.
-
-    Supported tile dimensions:
-    - [1, 32]  -> face_r_dim=1,  num_faces=2
-    - [2, 32]  -> face_r_dim=2,  num_faces=2
-    - [4, 32]  -> face_r_dim=4,  num_faces=2
-    - [8, 32]  -> face_r_dim=8,  num_faces=2
-    - [16, 32] -> face_r_dim=16, num_faces=2
-    - [32, 32] -> face_r_dim=16, num_faces=4
-
-    Returns:
-        tuple: (num_faces, face_r_dim)
+    Filter tile dimensions based on transpose and broadcast constraints:
+    - Transpose only works for 32x32 tiles
+    - 32x16 tiles are not supported for Column or Row broadcast
     """
-    tile_rows, tile_cols = tile_dimensions
+    if transpose_srca == Transpose.Yes:
+        return [[32, 32]]
 
-    # face_r_dim is the number of rows per face, capped at 16
-    face_r_dim = min(tile_rows, 16)
+    if broadcast_type in (BroadcastType.Column, BroadcastType.Row):
+        return [td for td in ALL_TILE_DIMENSIONS if td != [32, 16]]
 
-    # num_faces: 2 for partial tiles (rows < 32), 4 for full 32x32 tiles
-    num_faces = (tile_cols // 16) * ((tile_rows + 15) // 16)
-
-    return num_faces, face_r_dim
+    return ALL_TILE_DIMENSIONS
 
 
 @parametrize(
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
-        ]
+            DataFormat.Float32,
+            DataFormat.Bfp8_b,
+        ],
+        same=False,
     ),
-    broadcast_type=[BroadcastType.None_],
+    broadcast_type=[
+        BroadcastType.None_,
+        BroadcastType.Row,
+        BroadcastType.Column,
+        BroadcastType.Scalar,
+    ],
     dest_acc=[DestAccumulation.No],
-    math_fidelity=[MathFidelity.LoFi],
-    transpose_srca=[Transpose.No],
-    input_dimensions=[[32, 32], [64, 64]],
-    tile_dimensions=[[32, 32]],  # More dimensions coming soon....
+    math_fidelity=[
+        MathFidelity.LoFi,
+        MathFidelity.HiFi2,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
+    ],
+    transpose_srca=lambda broadcast_type: _get_valid_transpose(broadcast_type),
+    math_op=lambda math_fidelity: _get_valid_math_ops(math_fidelity),
+    input_dimensions=[[512, 32]],
+    tile_dimensions=lambda transpose_srca, broadcast_type: _get_valid_tile_dimensions(
+        transpose_srca, broadcast_type
+    ),
 )
 def test_eltwise_binary(
     formats,
@@ -79,26 +105,28 @@ def test_eltwise_binary(
     dest_acc,
     math_fidelity,
     transpose_srca,
+    math_op,
     input_dimensions,
     tile_dimensions,
     workers_tensix_coordinates,
 ):
-    num_faces, face_r_dim = get_tile_params(tile_dimensions)
+
+    face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(tile_dimensions)
+    num_faces = num_faces_r_dim * num_faces_c_dim
 
     # Calculate tile count based on tile_dimensions (not hardcoded 32x32)
     tile_rows, tile_cols = tile_dimensions
     tile_cnt_A = (input_dimensions[0] // tile_rows) * (input_dimensions[1] // tile_cols)
     tile_cnt_B = tile_cnt_A
 
-    # Generate stimuli has hardcoded tile dims of 32x32
-    src_A, _, src_B, _ = generate_stimuli(
+    # Generate stimuli with correct face dimensions for smaller tiles
+    # Uses generate_stimuli_w_tile_dimensions which computes face_r_dim and num_faces from tile_dimensions
+    src_A, _, src_B, _ = generate_stimuli_w_tile_dimensions(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
-        # sequential_A=True,
-        # const_face=True,
-        # const_value_B=2
+        tile_dimensions=tile_dimensions,
     )
 
     MAX_TILES_IN_BLOCK = (
@@ -111,13 +139,77 @@ def test_eltwise_binary(
     num_blocks = (tile_cnt_A + MAX_TILES_IN_BLOCK - 1) // MAX_TILES_IN_BLOCK
     num_tiles_in_block = tile_cnt_A % MAX_TILES_IN_BLOCK or MAX_TILES_IN_BLOCK
 
-    # Compute element-wise subtraction in tilized format
+    # Compute element-wise operation
     binary_golden = get_golden_generator(EltwiseBinaryGolden)
 
-    golden_tensor = binary_golden(
-        MathOperation.Elwsub,
+    # Tilize inputs for device and golden calculation
+    src_A_tilized = tilize_block(
         src_A,
+        dimensions=input_dimensions,
+        stimuli_format=formats.input_format,
+        num_faces=num_faces,
+        tile_dimensions=tile_dimensions,
+        face_r_dim=face_r_dim,
+    )
+    src_B_tilized = tilize_block(
         src_B,
+        dimensions=input_dimensions,
+        stimuli_format=formats.input_format,
+        num_faces=num_faces,
+        tile_dimensions=tile_dimensions,
+        face_r_dim=face_r_dim,
+    )
+
+    # Flatten tilized tensors
+    src_A_tilized_flat = src_A_tilized.flatten()
+    src_B_tilized_flat = src_B_tilized.flatten()
+
+    # Send tilized data to device (device handles transpose during unpack)
+    stimuli_A = src_A_tilized_flat
+    stimuli_B = src_B_tilized_flat
+
+    # Prepare golden src_A: apply tile-level transpose if enabled
+    # Hardware does transpose_faces then transpose_within_faces during unpack
+    golden_src_A = src_A_tilized_flat
+    if transpose_srca == Transpose.Yes:
+        transpose_golden = get_golden_generator(TransposeGolden)
+        # Apply face transpose (f0,f1,f2,f3 -> f0,f2,f1,f3)
+        golden_src_A = transpose_golden.transpose_faces_multi_tile(
+            src_A,
+            formats.input_format,
+            num_tiles=tile_cnt_A,
+            tilize=True,
+            untilize=False,  # Keep tilized
+            input_dimensions=tuple(input_dimensions),
+        )
+        # Apply within-face transpose (transpose each 16x16 face)
+        golden_src_A = transpose_golden.transpose_within_faces_multi_tile(
+            golden_src_A,
+            formats.input_format,
+            num_tiles=tile_cnt_A,
+            tilize=False,  # Already tilized
+            untilize=False,  # Keep tilized for golden comparison
+            input_dimensions=tuple(input_dimensions),
+        )
+
+    # Prepare golden src_B: apply broadcast if enabled
+    golden_src_B = src_B_tilized_flat
+    if broadcast_type != BroadcastType.None_:
+        broadcast_golden = get_golden_generator(BroadcastGolden)
+        golden_src_B = broadcast_golden(
+            broadcast_type,
+            src_B_tilized_flat,
+            formats.input_format,
+            num_faces=num_faces,
+            tile_cnt=tile_cnt_A,
+            face_r_dim=face_r_dim,
+        )
+
+    # Compute golden on tilized data
+    golden_tensor = binary_golden(
+        math_op,
+        golden_src_A,
+        golden_src_B,
         formats.output_format,
         math_fidelity,
     )
@@ -128,7 +220,7 @@ def test_eltwise_binary(
         templates=[
             MATH_FIDELITY(math_fidelity),
             BROADCAST_TYPE(broadcast_type),
-            MATH_OP(mathop=MathOperation.Elwsub),
+            MATH_OP(mathop=math_op),
             DEST_SYNC(),
         ],
         runtimes=[
@@ -136,13 +228,14 @@ def test_eltwise_binary(
             UNPACK_TRANS_WITHIN_FACE(transpose_srca),
             NUM_TILES_IN_BLOCK(num_tiles_in_block),
             NUM_BLOCKS(num_blocks),
-            NUM_FACES(num_faces),
+            NUM_FACES_R_DIM(num_faces_r_dim),
+            NUM_FACES_C_DIM(num_faces_c_dim),
             TEST_FACE_DIMS(face_r_dim=face_r_dim),
         ],
         variant_stimuli=StimuliConfig(
-            src_A,
+            stimuli_A,
             formats.input_format,
-            src_B,
+            stimuli_B,
             formats.input_format,
             formats.output_format,
             tile_count_A=tile_cnt_A,
@@ -151,6 +244,7 @@ def test_eltwise_binary(
             num_faces=num_faces,
             face_r_dim=face_r_dim,
             tile_dimensions=tile_dimensions,
+            use_dense_tile_dimensions=True,
         ),
         dest_acc=dest_acc,
         unpack_to_dest=False,

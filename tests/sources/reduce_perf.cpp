@@ -12,11 +12,16 @@
 #include "params.h"
 #include "perf.h"
 #include "profiler.h"
+#include "tensor_shape.h"
 
 // Globals
 std::uint32_t unp_cfg_context          = 0;
 std::uint32_t pack_sync_tile_dst_ptr   = 0;
 std::uint32_t math_sync_tile_dst_index = 0;
+
+using namespace ckernel;
+// Default 32x32 tile shape
+static constexpr ckernel::TensorShape DEFAULT_TENSOR_SHAPE = {FACE_R_DIM, FACE_C_DIM, MAX_NUM_FACES_R_DIM, MAX_NUM_FACES_C_DIM};
 
 static constexpr std::uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
@@ -40,11 +45,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             FACE_R_DIM,
             /* num_faces */ 4,
             /* num_faces */ 4);
-        _llk_unpack_AB_init_<>(
-            FACE_R_DIM,
-            TILE_NUM_FACES,
-            /* narrow tile */ false,
-            /* transpose within face */ IS_REDUCE_ROW);
+        _llk_unpack_AB_init_<>(DEFAULT_TENSOR_SHAPE, /* transpose */ IS_REDUCE_ROW);
         PROFILER_SYNC();
     }
     {

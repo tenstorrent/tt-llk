@@ -8,11 +8,16 @@
 #include "ckernel.h"
 #include "llk_defs.h"
 #include "llk_sfpu_types.h"
+#include "tensor_shape.h"
 
 // Globals
 std::uint32_t unp_cfg_context          = 0;
 std::uint32_t pack_sync_tile_dst_ptr   = 0;
 std::uint32_t math_sync_tile_dst_index = 0;
+
+using namespace ckernel;
+// Default 32x32 tile shape
+static constexpr ckernel::TensorShape DEFAULT_TENSOR_SHAPE = {FACE_R_DIM, FACE_C_DIM, MAX_NUM_FACES_R_DIM, MAX_NUM_FACES_C_DIM};
 
 // Constants for packer configuration
 const std::uint32_t ct_dim    = 1; // Only one column tile (32×32 tensor)
@@ -30,7 +35,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // Configure unpacker for two-input AB operation (single tile each)
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
-    _llk_unpack_AB_init_<>();
+    _llk_unpack_AB_init_<>(DEFAULT_TENSOR_SHAPE);
 
     // Unpack one tile from each input buffer (A and B)
     _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]));
@@ -54,11 +59,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
     // Binary element-wise (FPU)
-    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0);
+    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE>(DEFAULT_TENSOR_SHAPE, 0 /* acc_to_dest */);
 
     _llk_math_wait_for_dest_available_<DST_SYNC>();
-    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DST_SYNC, is_fp32_dest_acc_en, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(
-        4, 0, false);
+    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DST_SYNC, is_fp32_dest_acc_en>(
+        DEFAULT_TENSOR_SHAPE, 0 /* dst_index */, false /* clear_fp32_dst_acc */);
 
     // SFPU unary on result in dest
     _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
