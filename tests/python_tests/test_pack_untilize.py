@@ -36,9 +36,7 @@ from helpers.utils import passed_test
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     input_dimensions=[[96, 288], [64, 64], [32, 128], [128, 128], [32, 64]],
-    dest_sync=[
-        DestSync.Half
-    ],  # TODO: Update to include DestSync.Full when supported. Currently there's an assert that prevents running with DestSync.Full.
+    dest_sync=[DestSync.Half, DestSync.Full],
 )
 def test_pack_untilize(
     formats, dest_acc, input_dimensions, dest_sync, workers_tensix_coordinates

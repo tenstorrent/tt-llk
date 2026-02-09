@@ -8,6 +8,7 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
+    BlocksCalculationAlgorithm,
     BroadcastType,
     DestAccumulation,
     DestSync,
@@ -17,8 +18,7 @@ from helpers.llk_params import (
     format_dict,
 )
 from helpers.param_config import (
-    get_num_blocks,
-    get_num_tiles_in_block,
+    get_num_blocks_and_num_tiles_in_block,
     input_output_formats,
     parametrize,
 )
@@ -107,19 +107,13 @@ def test_eltwise_binary(
         # const_value_B=2
     )
 
-    num_blocks = get_num_blocks(
-        dest_sync=DestSync.Half,
-        dest_acc=dest_acc,
-        formats=formats,
-        input_dimensions=input_dimensions,
-        tile_dimensions=tile_dimensions,
-    )
-    num_tiles_in_block = get_num_tiles_in_block(
-        dest_sync=DestSync.Half,
-        dest_acc=dest_acc,
-        formats=formats,
-        input_dimensions=input_dimensions,
-        tile_dimensions=tile_dimensions,
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half,
+        dest_acc,
+        formats,
+        input_dimensions,
+        [32, 32],
+        BlocksCalculationAlgorithm.Standard,
     )
 
     # Compute element-wise subtraction in tilized format

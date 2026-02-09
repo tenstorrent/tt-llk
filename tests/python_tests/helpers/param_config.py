@@ -2,22 +2,23 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 
 import inspect
+import math
 from itertools import product
 from typing import Iterator, List, Tuple
 
 import pytest
 from typing_extensions import deprecated
 
+from .data_format_inference import is_format_combination_outlier
 from .format_config import (
     DataFormat,
     FormatConfig,
     InputOutputFormat,
 )
-from .llk_params import DestAccumulation, DestSync
+from .llk_params import BlocksCalculationAlgorithm, DestAccumulation, DestSync
 
 checked_formats_and_dest_acc = {}
 
-# Maximum number of [32,32] tiles that can fit in dest register based on DestSync mode
 DEST_SYNC_TILE_LIMITS = {
     DestSync.Half: 8,
     DestSync.Full: 16,
@@ -404,6 +405,7 @@ def calculate_edgecase_dest_indices(
     """
 
     combinations = []
+
     capacity_divisor = 2 if dest_acc else 1
 
     for dest_sync in dest_sync_modes:
@@ -447,6 +449,7 @@ def generate_unary_input_dimensions(dest_acc, dest_sync=DestSync.Half):
     Returns:
         List of input dimensions
     """
+
     capacity_divisor = 2 if dest_acc == DestAccumulation.Yes else 1
     max_tiles_in_dest = DEST_SYNC_TILE_LIMITS[dest_sync] // capacity_divisor
 
@@ -460,95 +463,91 @@ def generate_unary_input_dimensions(dest_acc, dest_sync=DestSync.Half):
     ]
 
 
-def get_max_tiles_num_in_dest(
+def get_num_blocks_and_num_tiles_in_block(
     dest_sync: DestSync,
     dest_acc: DestAccumulation,
     formats: InputOutputFormat,
+    input_dimensions: List[int],
     tile_dimensions: List[int] = None,
+    blocks_algorithm: BlocksCalculationAlgorithm = BlocksCalculationAlgorithm.Standard,
 ) -> int:
     """
-    Compute the maximum number of tiles that fit into the destination register.
-    This helper computes how many tiles of the given size can be stored in the
-    destination register without exceeding the hardware capacity for a given
-    `dest_sync` mode and destination accumulation / output format configuration.
-    The effective capacity is reduced when either destination accumulation is
-    enabled or the output format is 32-bit. In those cases, each tile consumes
-    twice as much capacity, so the maximum tile count is divided by a capacity
-    divisor of 2 instead of 1.
+    Calculate the number of blocks and tiles per block needed to process an input matrix.
+
+    This function partitions an input matrix into blocks, where each block contains the maximum
+    number of tiles that can fit into the destination register given the constraints of dest_sync
+    mode, accumulation mode, and data formats.
+
+    Args:
+        dest_sync: Destination synchronization mode (Half or Full) that determines register capacity.
+        dest_acc: Destination datum width extension mode. (16-bit or 32-bit) affecting available space.
+        formats: Input and output data formats, which impact destination register capacity
+        input_dimensions: Input matrix dimensions in elements [rows, cols]
+        tile_dimensions: Tile dimensions in elements [rows, cols]. Defaults to [32, 32]
+        blocks_algorithm: Algorithm for block calculation. Standard uses total tiles,
+                         while other algorithms (e.g., for untilize/tilize) may use only one tile-row
+
+    Returns:
+        Tuple of (num_blocks, num_tiles_in_block):
+            - num_blocks: Number of blocks needed to process the entire input
+            - num_tiles_in_block: Number of tiles in each block
+    Note:
+        It is suggested to create tests with input dimensions such that all data can be
+        processed with blocks of the same size. Opposite is possible but not recommended.
+        tile_dimensions = [32, 32]
     """
+
+    num_rows_tensor, num_cols_tensor = input_dimensions
+    num_rows_tile, num_cols_tile = tile_dimensions
 
     if tile_dimensions is None:
         tile_dimensions = [32, 32]
 
-    # TODO: Once we start thoroughly testing tiles with non-default sizes, this function
-    #       will need to be updated to take tile size into account.
-    if tile_dimensions != [32, 32]:
-        raise NotImplementedError(
-            f"Non-default tile dimensions {tile_dimensions} are not yet supported. "
-            "Only [32, 32] tiles are currently implemented."
-        )
+    is_outlier = is_format_combination_outlier(
+        formats.input_format, formats.output_format, dest_acc
+    )
 
     capacity_divisor = (
         2
-        if (dest_acc == DestAccumulation.Yes or formats.input_format.is_32_bit())
+        if (
+            dest_acc == DestAccumulation.Yes
+            or formats.input_format.is_32_bit()
+            or is_outlier
+        )
         else 1
     )
-    return DEST_SYNC_TILE_LIMITS[dest_sync] // capacity_divisor
+    max_tiles_in_dest = DEST_SYNC_TILE_LIMITS[dest_sync] // capacity_divisor
 
-
-# Returns the number of blocks in the input matrix.
-# A block is defined as a maximum matrix size that can fit in dest register.
-def get_num_blocks(
-    dest_sync: DestSync,
-    dest_acc: DestAccumulation,
-    formats: InputOutputFormat,
-    input_dimensions: List[int],
-    tile_dimensions: List[int] = None,
-) -> int:
-    """
-    Compute how many destination-register-sized blocks are needed to store an input matrix.
-    A *block* is the largest contiguous group of tiles that can fit into the destination
-    register for a given ``dest_sync`` mode, accumulation mode, and output format. The
-    function partitions the input matrix (expressed in tiles) into such blocks and returns
-    how many blocks are required.
-    """
-
-    if tile_dimensions is None:
-        tile_dimensions = [32, 32]
-
-    num_tiles_in_input = (input_dimensions[0] // tile_dimensions[0]) * (
-        input_dimensions[1] // tile_dimensions[1]
-    )
-    max_tiles_in_dest = get_max_tiles_num_in_dest(
-        dest_sync, dest_acc, formats, tile_dimensions
+    # Here we make an assumption that dense tiling is used,
+    # meaning that the input matrix is fully covered by tiles without any padding or partial tiles.
+    num_tiles_in_input = (num_rows_tensor // num_rows_tile) * (
+        num_cols_tensor // num_cols_tile
     )
 
-    return (num_tiles_in_input + max_tiles_in_dest - 1) // max_tiles_in_dest
-
-
-def get_num_tiles_in_block(
-    dest_sync: DestSync,
-    dest_acc: DestAccumulation,
-    formats: InputOutputFormat,
-    input_dimensions: List[int],
-    tile_dimensions: List[int] = None,
-) -> int:
-    """
-    Return the number of tiles contained in a single logical block.
-    A *block* is the largest contiguous portion of the input matrix (expressed in
-    tiles) that can fit into the destination register given the current
-    synchronization and accumulation settings. Conceptually, the input matrix is
-    partitioned into ``get_num_blocks(...)`` such blocks.
-    """
-
-    if tile_dimensions is None:
-        tile_dimensions = [32, 32]
-
-    num_tiles_in_input = (input_dimensions[0] // tile_dimensions[0]) * (
-        input_dimensions[1] // tile_dimensions[1]
-    )
-    max_tiles_in_dest = get_max_tiles_num_in_dest(
-        dest_sync, dest_acc, formats, tile_dimensions
+    # For untilize and tilize we use only one tile-row for calculating block parameters.
+    # This is because untilize and tilize only operate on one tile-row at a time,
+    # so the number of tiles in a block is determined by how many tiles can fit in one tile-row of the input matrix,
+    # rather than the total number of tiles in the input matrix.
+    num_tiles_for_calculation = (
+        num_tiles_in_input
+        if blocks_algorithm == BlocksCalculationAlgorithm.Standard
+        else num_tiles_in_input // (num_rows_tensor // num_rows_tile)
     )
 
-    return num_tiles_in_input % max_tiles_in_dest or max_tiles_in_dest
+    # Our LLK api contract is bounded to always iterate over blocks of same size.
+    # It is possible to use blocks of different sizes, but it's not recommended.
+    if (
+        num_tiles_for_calculation > max_tiles_in_dest
+        and num_tiles_for_calculation % max_tiles_in_dest != 0
+    ):
+        raise ValueError(
+            f"Input dimensions {input_dimensions} with tile size {tile_dimensions} "
+            f"and {blocks_algorithm.name} block calculation algorithm result in {num_tiles_in_input} tiles, "
+            f"which cannot be evenly divided into blocks of size {max_tiles_in_dest} tiles."
+        )
+
+    num_blocks = math.ceil(num_tiles_for_calculation / max_tiles_in_dest)
+
+    num_tiles_in_block = math.ceil(num_tiles_for_calculation / num_blocks)
+
+    return num_blocks, num_tiles_in_block
