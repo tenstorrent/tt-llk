@@ -185,9 +185,18 @@ def _stats_timings(perf_data: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def _stats_l1_to_l1(data: ProfilerData) -> pd.Series:
+def _stats_l1_to_l1(data: ProfilerData) -> pd.DataFrame:
+    raw_data = data.zones().raw()
+
+    # Validate that run_index has been explicitly set
+    if raw_data["run_index"].isna().any():
+        raise ValueError(
+            "run_index must be explicitly set before computing L1-to-L1 stats. "
+            "Set profiler_data.df['run_index'] = <run_number> after collecting data."
+        )
+
     # Group by both marker and run_index to ensure events from the same run are paired
-    groups = data.zones().raw().groupby(["marker", "run_index"])
+    groups = raw_data.groupby(["marker", "run_index"])
 
     timings = []
     for (marker, run_index), group in groups:
@@ -374,6 +383,7 @@ class Profiler:
     def _dataframe(rows: list[dict] | None = None) -> pd.DataFrame:
         # Define the schema
         schema = {
+            "run_index": "Int32",  # nullable int for multi-run L1-to-L1 pairing
             "thread": pd.CategoricalDtype(categories=TestConfig.KERNEL_COMPONENTS),
             "type": pd.CategoricalDtype(
                 categories=["TIMESTAMP", "ZONE_START", "ZONE_END"]
