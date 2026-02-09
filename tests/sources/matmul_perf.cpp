@@ -70,10 +70,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 for (std::uint32_t j = 0; j < params->KT_DIM; j++)
                 {
                     _llk_unpack_AB_matmul_<>(
-                        PERF_ADDRESS(PERF_INPUT_A, 0),
-                        PERF_ADDRESS(PERF_INPUT_B, 0),
-                        0 /* tile_index_a */,
-                        0 /* tile_index_b */,
+                        PERF_ADDRESS(PERF_INPUT_A, j),
+                        PERF_ADDRESS(PERF_INPUT_B, j),
+                        j,
+                        j * params->CT_DIM,
                         TILE_SIZE_UNPACK_A,
                         TILE_SIZE_UNPACK_B,
                         /* partial face */ false,
@@ -182,10 +182,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 for (std::uint32_t tile = 0; tile < params->CT_DIM * params->RT_DIM; tile++)
                 {
                     const std::uint32_t tile_index = tile % MAX_TILES_DEST;
-                    LLK_ASSERT(
-                        (tile_index < ckernel::packer::get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
-                        "tile_index exceeds max dest tiles");
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile_index, PERF_ADDRESS(PERF_OUTPUT, tile_index));
+                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile_index));
                 }
             }
         }
@@ -197,10 +194,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 for (std::uint32_t tile = 0; tile < params->CT_DIM * params->RT_DIM; tile++)
                 {
                     const std::uint32_t tile_index = tile % MAX_TILES_DEST;
-                    LLK_ASSERT(
-                        (tile_index < ckernel::packer::get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
-                        "tile_index exceeds max dest tiles");
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile_index, PERF_ADDRESS(PERF_OUTPUT, tile_index));
+                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile_index));
                 }
                 _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
