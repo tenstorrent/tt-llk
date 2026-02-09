@@ -576,7 +576,7 @@ inline void _llk_math_fast_tilize_block_(
             TTI_MOP(p_mop::MASK_LOOP, 8 - 1, 0xFFFF);
             // done with the top faces, clear dvalids and src RWCs, next banks contain bottom faces
             // also clear dest RWC since we use dest offset for forward jump here
-            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_ABD);
+            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB);
         }
         else if (unit_dim == 3)
         {

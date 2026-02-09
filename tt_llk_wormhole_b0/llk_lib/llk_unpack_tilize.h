@@ -567,12 +567,13 @@ inline void _llk_unpack_fast_tilize_block_(
     const std::uint32_t num_units,
     const std::uint32_t full_dim)
 {
+    uint32_t num_faces            = 2;
     volatile uint tt_reg_ptr* cfg = get_cfg_pointer();
 
     uint32_t address = base_address + (SCALE_DATUM_SIZE(unpack_src_format, tile_index * TILE_C_DIM) >> 4); // move by tile width in 16B words
     // for unit_dim 2 UNPA reads top faces and UNPB reads bottom faces
     // for unit_dim 3 UNPA reads top 8 rows of top then bottom faces, UNPB reads bottom 8 rows of top then bottom faces
-    uint32_t unpB_row_offset = unit_dim == 2 ? FACE_R_DIM : (FACE_R_DIM / 2);
+    uint32_t unpB_row_offset = unit_dim == 2 && num_faces == 4 ? FACE_R_DIM : (FACE_R_DIM / 2);
     // uint32_t unpB_row_offset = FACE_R_DIM / 2; //TODO pgardner: densely packed L1 input
     uint32_t unpB_address = address + (SCALE_DATUM_SIZE(unpack_src_format, full_dim * TILE_C_DIM * unpB_row_offset) >> 4);
 
@@ -615,7 +616,6 @@ inline void _llk_unpack_fast_tilize_block_(
     constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_3_CH0Y_0_CH0Z_1 = 0b00'11'00'01;
     constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_3_CH0Z_0 = 0b00'00'11'00;
 
-    uint32_t num_faces = 2;
     for (std::uint32_t i = 0; i < num_units; i++)
     {
         if (unit_dim == 1)

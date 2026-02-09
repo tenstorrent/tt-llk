@@ -420,15 +420,15 @@ inline void _llk_pack_fast_tilize_block_(
                 // }
                 TTI_MOP(p_mop::MASK_LOOP, (FACE_R_DIM - 1) - 1, 0x0);
                 TTI_PACR_COMMON(ADDR_MOD_0, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 0, 1);
-                // move to the next unit in dest (2 * 2 faces, same thing as tile_index)
-                TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 4); // CH0Z += 4
-                // move to the next tile in L1
-                TTI_ADDDMAREG(p_adddmareg::REG_PLUS_REG, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
-                TTI_REG2FLOP_COMMON(p_reg2flop::WRITE_4B, REG2FLOP_FLOP_INDEX(THCON_SEC0_REG1_L1_Dest_addr_ADDR32), p_gpr_pack::OUTPUT_ADDR);
-                // same notes for the flush bit as above
-                // address mod here resets to the beginning of the unit
-                TTI_PACR_COMMON(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 1, 0);
             }
+            // move to the next unit in dest (2 * 2 faces, same thing as tile_index)
+            TTI_INCADCZW(p_setadc::PAC, 0, 0, 0, 4); // CH0Z += 4
+            // move to the next tile in L1
+            TTI_ADDDMAREG(p_adddmareg::REG_PLUS_REG, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+            TTI_REG2FLOP_COMMON(p_reg2flop::WRITE_4B, REG2FLOP_FLOP_INDEX(THCON_SEC0_REG1_L1_Dest_addr_ADDR32), p_gpr_pack::OUTPUT_ADDR);
+            // same notes for the flush bit as above
+            // address mod here resets to the beginning of the unit
+            TTI_PACR_COMMON(ADDR_MOD_3, p_pacr::P_ZERO_OUTPUT_DISABLED, PACK_SEL(NUM_PACKERS), 1, 0);
         }
         else if (unit_dim == 3)
         {

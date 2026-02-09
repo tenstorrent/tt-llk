@@ -270,6 +270,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
                             _llk_pack_fast_tilize_block_(remaining_tiles - 3, L1_ADDRESS(buffer_Res[tile_index + remaining_tiles - 3]), 3, 1);
                         }
                         packed_tiles += remaining_tiles;
+                        if (true)
+                        {
+                            packed_tiles /= 2;
+                        }
                         remaining_tiles = 0;
                     }
 
