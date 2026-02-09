@@ -51,3 +51,20 @@ operations:
     math_fidelity: "LoFi"
     unpack_transpose_within_face: "No"
     unpack_transpose_faces: "No"
+  - src_a: "input_A"
+    src_b: "input_B"
+    output: "output4"
+    src_b_const_value: 1.0
+    src_a_dims: [32, 32]
+    src_b_dims: [32, 32]
+    output_dims: [32, 32]
+    input_format: "Float16_b"
+    output_format: "Float16_b"
+    math:
+      - type: "Fpu"
+        operation: "Matmul"
+        unpacker: "MatmulUnpacker"
+    packer: "Packer"
+    math_fidelity: "LoFi"
+    unpack_transpose_within_face: "No"
+    unpack_transpose_faces: "No"
