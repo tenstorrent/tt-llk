@@ -53,6 +53,33 @@ def _postprocess_tile_loop(frame: pd.DataFrame) -> pd.DataFrame:
     return frame
 
 
+def _validate_marker_consistency(
+    dataframes: list[pd.DataFrame], run_type_names: list[str]
+) -> None:
+    """Validate that all DataFrames have identical marker sets.
+    Raises ValueError with detailed diagnostics if markers don't match.
+    """
+    marker_sets = [set(df["marker"]) for df in dataframes]
+
+    # Fast path: all identical
+    if len(set(frozenset(s) for s in marker_sets)) == 1:
+        return
+
+    # Find and report discrepancies
+    all_markers = set.union(*marker_sets)
+    error_lines = ["Marker set mismatch across run types:"]
+
+    for run_type_name, markers in zip(run_type_names, marker_sets):
+        missing = all_markers - markers
+        extra = markers - all_markers
+        if missing:
+            error_lines.append(f"  {run_type_name} is missing: {sorted(missing)}")
+        if extra:
+            error_lines.append(f"  {run_type_name} has extra: {sorted(extra)}")
+
+    raise ValueError("\n".join(error_lines))
+
+
 class PerfReport:
     """
     Lazy evaluation container for performance benchmark data.
@@ -376,9 +403,15 @@ class PerfConfig(TestConfig):
             get_stats = Profiler.STATS_FUNCTION[run_type]
             results.append(get_stats(ProfilerData.concat(variant_raw_data)))
 
+        # Validate marker consistency across all run types
+        _validate_marker_consistency(
+            results, [run_config[2].name for run_config in self.run_configs]
+        )
+
+        # Merge results with validation (how="inner" since all have same markers)
         run_results = reduce(
             lambda left, right: pd.merge(
-                left, right, on="marker", how="outer", validate="1:1"
+                left, right, on="marker", how="inner", validate="1:1"
             ),
             results,
         )
