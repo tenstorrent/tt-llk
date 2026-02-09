@@ -155,7 +155,7 @@ class FuserConfig:
                 test_config.generate_variant_hash()
                 test_config.build_elfs()
 
-                for run_idx in range(run_count):
+                for run_index in range(run_count):
                     elfs = test_config.run_elf_files(location)
                     wait_for_tensix_operations_finished(elfs, location)
 
@@ -172,7 +172,7 @@ class FuserConfig:
                     ]
                     profiler_data = Profiler._parse_buffers(buffer_data, meta)
                     # Tag profiler data with run index for proper L1-to-L1 pairing
-                    profiler_data.df["run_index"] = run_idx
+                    profiler_data.df["run_index"] = run_index
                     runs.append(profiler_data)
 
                 get_stats = Profiler.STATS_FUNCTION[run_type]
