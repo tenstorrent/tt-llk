@@ -25,6 +25,24 @@ inline void device_setup()
     }
     cfg_regs[TRISC_RESET_PC_OVERRIDE_Reset_PC_Override_en_ADDR32] = 0b111;
 #endif
+
+#if defined(ARCH_BLACKHOLE)
+    // Use array-based initialization for consecutive TRISC addresses, using BH debug registers
+    constexpr std::uint32_t TRISC_START_BASE = 0x16DFF0;
+    constexpr std::uint32_t TRISC_PC_REGS[]  = {RISCV_DEBUG_REG_TRISC0_RESET_PC, RISCV_DEBUG_REG_TRISC1_RESET_PC, RISCV_DEBUG_REG_TRISC2_RESET_PC};
+
+    volatile std::uint32_t* const trisc_start_addresses = reinterpret_cast<volatile std::uint32_t*>(TRISC_START_BASE);
+
+    for (unsigned int i = 0; i < std::size(TRISC_PC_REGS); ++i)
+    {
+        asm volatile("fence");
+        ckernel::reg_write(TRISC_PC_REGS[i], trisc_start_addresses[i]);
+        asm volatile("fence");
+    }
+
+    ckernel::reg_write(RISCV_DEBUG_REG_TRISC_RESET_PC_OVERRIDE, 0x7);
+#endif
+
 #if defined(ARCH_BLACKHOLE) && !defined(ARCH_QUASAR) // Ugly hack for now
     ckernel::reg_write(RISCV_DEBUG_REG_DEST_CG_CTRL, 0);
 #endif
@@ -59,8 +77,6 @@ inline void device_setup()
 #endif
 }
 
-static uint32_t cfg_initial_state = 0;
-
 inline void clear_trisc_soft_reset()
 {
 #ifdef ARCH_QUASAR
@@ -69,34 +85,29 @@ inline void clear_trisc_soft_reset()
     constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
 #endif
 
-    uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+    volatile std::uint32_t* const REG_SOFT_RESET = reinterpret_cast<volatile std::uint32_t*>(RISCV_DEBUG_REG_SOFT_RESET_0);
 
-    if (cfg_initial_state == 0)
-    {
-        cfg_initial_state = soft_reset;
-    }
+    uint32_t soft_reset = ckernel::load_blocking(REG_SOFT_RESET);
 
     soft_reset &= ~TRISC_SOFT_RESET_MASK;
 
-    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
+    ckernel::store_blocking(REG_SOFT_RESET, soft_reset);
 }
 
-inline void set_triscs_soft_reset()
-{
-#ifdef ARCH_QUASAR
-    constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x3000;
-#else
-    constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
-#endif
+// inline void set_triscs_soft_reset()
+// {
+// #ifdef ARCH_QUASAR
+//     constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x3000;
+// #else
+//     constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
+// #endif
 
-    uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
-    soft_reset |= TRISC_SOFT_RESET_MASK;
+// volatile std::uint32_t* const REG_SOFT_RESET = reinterpret_cast<volatile std::uint32_t*>(RISCV_DEBUG_REG_SOFT_RESET_0);
 
-    uint32_t temp_reset_reg = 0;
+// uint32_t soft_reset = ckernel::load_blocking(REG_SOFT_RESET);
 
-    do
-    {
-        ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
-        temp_reset_reg = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
-    } while (temp_reset_reg != soft_reset);
-}
+// soft_reset |= TRISC_SOFT_RESET_MASK;
+
+// ckernel::store_blocking(REG_SOFT_RESET, soft_reset);
+
+// }

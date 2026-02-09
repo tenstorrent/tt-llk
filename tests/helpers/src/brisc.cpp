@@ -4,6 +4,9 @@
 
 #include <cstdint>
 
+#include "ckernel.h"
+#include "llk_assert.h"
+
 #ifdef LLK_BOOT_MODE_BRISC
 #include "boot.h"
 #endif
@@ -19,63 +22,31 @@ int main()
 {
 #ifdef LLK_BOOT_MODE_BRISC
 
-    volatile uint32_t* const state_command = reinterpret_cast<volatile uint32_t*>(0x1FFEC);
-    volatile uint32_t* const state_brisc   = reinterpret_cast<volatile uint32_t*>(0x1FFF0);
-
-    volatile std::uint32_t* const mailbox_unpack = reinterpret_cast<volatile std::uint32_t*>(0x1FFFC);
+    volatile std::uint32_t* const mailbox_brisc  = reinterpret_cast<volatile std::uint32_t*>(0x1FFF0);
+    volatile std::uint32_t* const mailbox_unpack = reinterpret_cast<volatile std::uint32_t*>(0x1FFF4);
     volatile std::uint32_t* const mailbox_math   = reinterpret_cast<volatile std::uint32_t*>(0x1FFF8);
-    volatile std::uint32_t* const mailbox_pack   = reinterpret_cast<volatile std::uint32_t*>(0x1FFF4);
+    volatile std::uint32_t* const mailbox_pack   = reinterpret_cast<volatile std::uint32_t*>(0x1FFFC);
 
-    *state_command = 0;
-    *state_brisc   = 0;
+    LLK_ASSERT(ckernel::load_blocking(mailbox_brisc) == 0, "BRISC is not zero initialized");
+    LLK_ASSERT(ckernel::load_blocking(mailbox_unpack) == 0, "UNPACK is not zero initialized");
+    LLK_ASSERT(ckernel::load_blocking(mailbox_math) == 0, "MATH is not zero initialized");
+    LLK_ASSERT(ckernel::load_blocking(mailbox_pack) == 0, "PACK is not zero initialized");
 
-    while (true)
-    {
-        switch (static_cast<enum CommandState>(*state_command))
-        {
-            case CommandState::START_TRISCS:
-                while (*mailbox_unpack != 0)
-                {
-                    *mailbox_unpack = 0;
-                }
-                while (*mailbox_math != 0)
-                {
-                    *mailbox_math = 0;
-                }
-                while (*mailbox_pack != 0)
-                {
-                    *mailbox_pack = 0;
-                }
+    device_setup();
+    clear_trisc_soft_reset();
 
-                device_setup();
-                clear_trisc_soft_reset();
+    while (ckernel::load_blocking(mailbox_unpack) != 0xFF)
+        ;
+    while (ckernel::load_blocking(mailbox_math) != 0xFF)
+        ;
+    while (ckernel::load_blocking(mailbox_pack) != 0xFF)
+        ;
 
-                *state_command = static_cast<uint32_t>(CommandState::IDLE_STATE);
-                *state_brisc   = static_cast<uint32_t>(CommandState::START_TRISCS);
-                break;
-            case CommandState::RESET_TRISCS:
-                set_triscs_soft_reset();
+    LLK_ASSERT(ckernel::load_blocking(mailbox_unpack) == 0xFF, "UNPACK is not done");
+    LLK_ASSERT(ckernel::load_blocking(mailbox_math) == 0xFF, "MATH is not done");
+    LLK_ASSERT(ckernel::load_blocking(mailbox_pack) == 0xFF, "PACK is not done");
 
-                while (*mailbox_unpack != 0)
-                {
-                    *mailbox_unpack = 0;
-                }
-                while (*mailbox_math != 0)
-                {
-                    *mailbox_math = 0;
-                }
-                while (*mailbox_pack != 0)
-                {
-                    *mailbox_pack = 0;
-                }
-
-                *state_command = static_cast<uint32_t>(CommandState::IDLE_STATE);
-                *state_brisc   = static_cast<uint32_t>(CommandState::RESET_TRISCS);
-                break;
-            default:
-                break;
-        }
-    }
+    ckernel::store_blocking(mailbox_brisc, 1);
 
 #endif
 }

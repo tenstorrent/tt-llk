@@ -34,14 +34,13 @@ from .device import (
     CHIP_DEFAULT_BOOT_MODES,
     BootMode,
     RiscCore,
-    commit_brisc_command,
     exalens_device_setup,
-    make_sure_core_in_reset,
+    reset_mailboxes,
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
 )
 from .format_config import DataFormat, FormatConfig
-from .llk_params import BriscCmd, DestAccumulation, L1Accumulation, Mailbox
+from .llk_params import DestAccumulation, L1Accumulation, Mailbox
 from .stimuli_config import StimuliConfig
 from .test_variant_parameters import RuntimeParameter, TemplateParameter
 
@@ -290,7 +289,7 @@ class TestConfig:
             )
 
         TestConfig.OPTIONS_LINK = "-fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace"
-        TestConfig.INITIAL_OPTIONS_COMPILE = f"-nostdlib -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Wunused-parameter -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -Wmaybe-uninitialized -DTENSIX_FIRMWARE -DENV_LLK_INFRA -DENABLE_LLK_ASSERT {TestConfig.ARCH_DEFINE}"
+        TestConfig.INITIAL_OPTIONS_COMPILE = f"-nostdlib -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Wunused-parameter -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -Wmaybe-uninitialized -DTENSIX_FIRMWARE -DENV_LLK_INFRA {TestConfig.ARCH_DEFINE}"
         TestConfig.INCLUDES = [
             "-Isfpi/include",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/llk_lib",
@@ -1007,12 +1006,14 @@ class TestConfig:
         ):
             raise ValueError("Quasar only supports TRISC boot mode")
 
+        # Reset all RISCs before loading ELFs
+        set_tensix_soft_reset(1, location=location)
+
+        # Load BRISC ELF (only first time — memory persists across resets)
         if boot_mode == BootMode.BRISC:
             is_profiler = self.profiler_build == ProfilerBuild.Yes
             if is_profiler:
                 if not TestConfig.PROFILER_BRISC_ELF_LOADED:
-                    set_tensix_soft_reset(1, location=location)
-                    make_sure_core_in_reset(location, "Brisc init")
                     TestConfig.PROFILER_BRISC_ELF_LOADED = True
                     load_elf(
                         elf_file=str(
@@ -1023,13 +1024,8 @@ class TestConfig:
                         location=location,
                         risc_name="brisc",
                     )
-                    self.run_membar(location)
-                    set_tensix_soft_reset(0, [RiscCore.BRISC], location)
-
             else:
                 if not TestConfig.BRISC_ELF_LOADED:
-                    set_tensix_soft_reset(1, location=location)
-                    make_sure_core_in_reset(location, "Brisc init", [RiscCore.BRISC])
                     TestConfig.BRISC_ELF_LOADED = True
                     load_elf(
                         elf_file=str(
@@ -1038,8 +1034,8 @@ class TestConfig:
                         location=location,
                         risc_name="brisc",
                     )
-                    set_tensix_soft_reset(0, [RiscCore.BRISC], location)
 
+        # Load TRISC ELFs
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
         )
@@ -1050,34 +1046,33 @@ class TestConfig:
         ]
 
         for i, elf in enumerate(elfs):
-            if TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE:
+            if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR:
+                load_elf(
+                    elf_file=elf,
+                    location=location,
+                    risc_name=f"trisc{i}",
+                    neo_id=0,
+                )
+            else:
                 start_address = load_elf(
                     elf_file=elf,
                     location=location,
                     risc_name=f"trisc{i}",
-                    neo_id=(
-                        0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
-                    ),
                     return_start_address=True,
                 )
                 write_words_to_device(
                     location, TestConfig.TRISC_START_ADDRS[i], [start_address]
                 )
-            else:
-                load_elf(
-                    elf_file=elf,
-                    location=location,
-                    risc_name=f"trisc{i}",
-                    neo_id=(
-                        0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
-                    ),
-                )
 
             self.run_membar(location)
 
+        # Unreset cores based on boot mode:
+        # - BRISC mode: only unreset BRISC; it handles TRISCs internally
+        #   (device_setup + clear_trisc_soft_reset in brisc.cpp)
+        # - TRISC/EXALENS mode: unreset TRISCs directly from host
         match boot_mode:
             case BootMode.BRISC:
-                commit_brisc_command(location, BriscCmd.START_TRISCS)
+                set_tensix_soft_reset(0, [RiscCore.BRISC], location)
             case BootMode.TRISC:
                 set_tensix_soft_reset(
                     0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
@@ -1098,6 +1093,8 @@ class TestConfig:
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
+        # Reset mailboxes, load params/stimuli, then run ELFs and wait for BRISC done
+        reset_mailboxes(location)
         self.write_runtimes_to_L1(location)
         self.run_membar(location)
         self.variant_stimuli.write(location)

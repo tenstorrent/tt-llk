@@ -271,18 +271,11 @@ class StableSort(Enum):
 
 
 class Mailbox(Enum):
-    Unpacker = 0x1FFFC
+    Brisc = 0x1FFF0
+    Unpacker = 0x1FFF4
     Math = 0x1FFF8
-    Packer = 0x1FFF4
-    BriscCommand = 0x1FFEC
-    BriscState = 0x1FFF0
+    Packer = 0x1FFFC
     MemBar = 0x1FFE4
-
-
-class BriscCmd(Enum):
-    IDLE_STATE = 0
-    START_TRISCS = 1
-    RESET_TRISCS = 2
 
 
 format_tile_sizes = {

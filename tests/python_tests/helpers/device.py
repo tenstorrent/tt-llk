@@ -24,13 +24,12 @@ from ttexalens.tt_exalens_lib import (
     parse_elf,
     read_from_device,
     read_word_from_device,
-    read_words_from_device,
     write_to_device,
     write_words_to_device,
 )
 
 from .fused_operation import FusedOperation
-from .llk_params import BriscCmd, DataFormat, Mailbox, format_dict
+from .llk_params import DataFormat, Mailbox, format_dict
 from .pack import (
     pack_bfp8_b,
     pack_bfp16,
@@ -51,8 +50,8 @@ class LLKAssertException(Exception):
     pass
 
 
-# Constant - indicates the TRISC kernel run status
-KERNEL_COMPLETE = 1  # Kernel completed its run
+# Constant - indicates BRISC has finished orchestrating the test
+BRISC_DONE = 1  # BRISC writes 1 to mailbox_brisc when all TRISCs are done
 
 
 class BootMode(Enum):
@@ -253,37 +252,22 @@ def make_sure_core_in_reset(
     raise Exception(f"Not all in reset within {backoff}s at {place}")
 
 
-def commit_brisc_command(
-    location="0,0", command: BriscCmd = BriscCmd.IDLE_STATE, timeout=0.1
-):
-    write_words_to_device(location, Mailbox.BriscCommand.value, [command.value])
-
-    end_time = time.time() + timeout
-
-    while time.time() < end_time:
-        if read_words_from_device(location, Mailbox.BriscCommand.value, 0, 2) == [
-            0,
-            command.value,
-        ]:
-            return
-
-    raise TimeoutError("Polling brisc command timed out")
-
-
 def wait_for_tensix_operations_finished(
     elfs, location="0,0", timeout=2, max_backoff=0.1
 ):
     """
-    Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
+    Waits for BRISC to signal that all TRISC kernels have completed.
+
+    BRISC orchestrates the TRISCs internally: it unresets them, waits for each
+    TRISC mailbox to reach 0xFF, then writes 1 to mailbox_brisc to signal the
+    host that everything is done.
 
     Args:
+        elfs: List of ELF file paths (used for assert diagnostics).
         location: The location of the core to poll.
-        mailbox_addr: The mailbox address to read from.
-        timeout: Maximum time to wait (in seconds) before timing out. Default is 30 seconds. If running on a simulator it is 600 seconds.
-        max_backoff: Maximum backoff time (in seconds) between polls. Default is 5 seconds.
+        timeout: Maximum time to wait (in seconds) before timing out.
+        max_backoff: Maximum backoff time (in seconds) between polls.
     """
-
-    mailboxes = {Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer}
 
     test_target = TestTargetConfig()
     timeout = 600 if test_target.run_simulator else timeout
@@ -293,15 +277,9 @@ def wait_for_tensix_operations_finished(
     start_time = time.time()
     backoff = 0.001  # Initial backoff time in seconds
 
-    completed = set()
     end_time = start_time + timeout
     while time.time() < end_time:
-        for mailbox in mailboxes - completed:
-            if read_word_from_device(location, mailbox.value) == KERNEL_COMPLETE:
-                completed.add(mailbox)
-
-        if completed == mailboxes:
-            commit_brisc_command(location, BriscCmd.RESET_TRISCS)
+        if read_word_from_device(location, Mailbox.Brisc.value) == BRISC_DONE:
             return
 
         # Disable any waiting if running on simulator
@@ -315,8 +293,6 @@ def wait_for_tensix_operations_finished(
         core_loc=location,
     )
 
-    trisc_hangs = [mailbox.name for mailbox in (mailboxes - completed)]
-
     soft_reset = get_register_store(location, 0).read_register(
         "RISCV_DEBUG_REG_SOFT_RESET_0"
     )
@@ -324,16 +300,16 @@ def wait_for_tensix_operations_finished(
     print(hex(soft_reset))
 
     raise TimeoutError(
-        f"Timeout reached: waited {timeout} seconds for {', '.join(trisc_hangs)}"
+        f"Timeout reached: waited {timeout} seconds for BRISC done signal"
     )
 
 
 def reset_mailboxes(location: str = "0,0"):
-    """Reset all core mailboxes before each test."""
-    reset_value = 0  # Constant - indicates the TRISC kernel run status
+    """Reset all core mailboxes (Brisc, Unpacker, Math, Packer) before each test.
 
-    target_addr = min(Mailbox.Packer.value, Mailbox.Math.value, Mailbox.Unpacker.value)
-    write_words_to_device(location=location, addr=target_addr, data=3 * [reset_value])
+    BRISC checks that all 4 mailboxes are zero-initialized on startup.
+    """
+    write_words_to_device(location=location, addr=Mailbox.Brisc.value, data=4 * [0])
 
 
 def pull_coverage_stream_from_tensix(
