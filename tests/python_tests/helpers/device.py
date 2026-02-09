@@ -268,7 +268,7 @@ def wait_for_tensix_operations_finished(
         # this makes simulator tests run ever so slightly faster
         if not test_target.run_simulator:
             time.sleep(backoff)
-            backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
+            # backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
     handle_if_assert_hit(
         elfs,
