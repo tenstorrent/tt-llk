@@ -19,8 +19,8 @@ using namespace ckernel;
  * buf_desc_id_1 will be used for UNPACKER1 -> SRCB
  * @param buf_desc_id_0/1: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 0 - 16
- * @param num_tiles: number of tiles to unpack at a time for SrcA, SrcB will only have first face unpacked
  * @param tile_shape: Contains all the information of the tile shape: num faces, face row/col dim, etc
+ * @param num_tiles: number of tiles to unpack at a time for SrcA, SrcB will only have first face unpacked
  */
 template <ReduceDim REDUCE_DIM>
 inline void _llk_unpack_reduce_mop_config_(
@@ -55,8 +55,8 @@ inline void _llk_unpack_reduce_mop_config_(
  * buf_desc_id_1 will be used for UNPACKER1 -> SRCB
  * @param buf_desc_id_0/1: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 0 - 16
- * @param num_tiles: number of tiles to unpack at a time for SrcA, SrcB will only have first face unpacked
  * @param tile_shape: Contains all the information of the tile shape: num faces, face row/col dim, etc
+ * @param num_tiles: number of tiles to unpack at a time for SrcA, SrcB will only have first face unpacked
  */
 template <ReduceDim REDUCE_DIM>
 inline void _llk_unpack_reduce_init_(
@@ -64,7 +64,7 @@ inline void _llk_unpack_reduce_init_(
 {
     cfg_rmw(THCON_UNPACKER0_REG0_TRANSPOSE_RMW, (REDUCE_DIM == ReduceDim::REDUCE_ROW));
 
-    _llk_unpack_reduce_mop_config_<REDUCE_DIM>(buf_desc_id_0, buf_desc_id_1, num_tiles, tile_shape);
+    _llk_unpack_reduce_mop_config_<REDUCE_DIM>(buf_desc_id_0, buf_desc_id_1, tile_shape, num_tiles);
 }
 
 /**
