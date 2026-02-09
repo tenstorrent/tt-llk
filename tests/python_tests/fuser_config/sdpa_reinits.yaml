@@ -48,6 +48,7 @@ operations:
       - type: "Fpu"
         operation: "Elwsub"
         unpacker: "UnpackerAB"
+        broadcast_type: "Column"
     packer: "Packer"
     math_fidelity: "LoFi"
     unpack_transpose_within_face: "No"
