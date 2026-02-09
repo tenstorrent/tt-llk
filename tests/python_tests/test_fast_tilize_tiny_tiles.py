@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+
 import pytest
 import torch
 from conftest import skip_for_blackhole
@@ -17,33 +18,25 @@ from helpers.test_variant_parameters import (
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
-
-def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
-    """
-    Generates a list of tuples representing width and height in tiles for input tensors,
-    up to the specified maximum size in tiles.
-    For tiny tiles (16x32), width is in units of 32 columns and height is in units of 16 rows.
-    Parameters:
-    max_size (int): Maximum number of tiles the resulting tensor can have.
-    Returns:
-    List[tuple[int, int]]: A list of tuples representing the width and height of the input tensor in tiles.
-    """
-    dimensions = []
-    for width in range(1, max_size + 1):
-        dimensions.append((width * 2, 1))
-    return dimensions
+# Width in tiles (16x32); height fixed at 1 row of tiles
+WIDTHS = [
+    2,
+    10,
+    18,
+    56,
+    224,
+]  # base case, two banks, three banks, and Deepseek model sizes
 
 
 @skip_for_blackhole
 @parametrize(
     formats=input_output_formats([DataFormat.Float16_b]),
     dest_acc=[DestAccumulation.No],
-    dimensions=generate_input_dimensions(20),
+    dimensions=[(w, 1) for w in WIDTHS],
 )
 def test_fast_tilize_tiny_tiles(
     formats, dest_acc, dimensions, workers_tensix_coordinates
 ):
-
     input_width, input_height = dimensions
 
     if formats.input == DataFormat.Bfp8_b:
@@ -93,8 +86,10 @@ def test_fast_tilize_tiny_tiles(
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
+    # Force full tensor print even when very large (no truncation)
+    # torch.set_printoptions(threshold=sys.maxsize)
     # print(res_from_L1)
-    # print(golden_tensor)
+    # torch.set_printoptions(threshold=1000)  # restore default
 
     assert len(res_from_L1) == len(golden_tensor)
 

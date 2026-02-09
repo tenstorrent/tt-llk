@@ -258,7 +258,11 @@ inline void _llk_pack_fast_tilize_mop_config_([[maybe_unused]] const std::uint32
 }
 
 template <DstSync Dst>
-inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, const std::uint32_t pack_dst_format, const std::uint32_t unit_dim)
+inline void _llk_pack_fast_tilize_init_(
+    const std::uint32_t use_32bit_dest,
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t unit_dim,
+    const std::uint32_t l1_tile_elements = TILE_C_DIM * TILE_R_DIM)
 {
     // instead of using the actual is_fp32_dest_acc_en flag dest 32 bit mode is enabled if unpack_dst_format is TF32
     // this is due to a hw quirk with MOVA2D and MOVB2D

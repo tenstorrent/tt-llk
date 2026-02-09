@@ -61,7 +61,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-            formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
+            formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 2 /* num_faces */, 2 /* num_faces */);
         _llk_unpack_fast_tilize_init_(formats.unpack_dst, BLOCK_CT_DIM);
         PROFILER_SYNC();
     }
@@ -75,7 +75,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
                 uint32_t packed_tiles    = 0;
                 uint32_t remaining_tiles = BLOCK_CT_DIM;
-                uint32_t dest_size       = is_fp32_dest_acc_en ? 4 : 8;
+                uint32_t bank_density    = true ? 2 : 1;
+                uint32_t dest_size       = is_fp32_dest_acc_en ? 4 * bank_density : 8 * bank_density;
                 uint32_t unit_dim        = BLOCK_CT_DIM == 1 ? 1 : 2;
                 uint32_t num_units       = dest_size / unit_dim;
 
@@ -149,7 +150,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
             {
                 uint32_t packed_tiles    = 0;
                 uint32_t remaining_tiles = BLOCK_CT_DIM;
-                uint32_t dest_size       = is_fp32_dest_acc_en ? 4 : 8;
+                uint32_t bank_density    = true ? 2 : 1;
+                uint32_t dest_size       = is_fp32_dest_acc_en ? 4 * bank_density : 8 * bank_density;
                 uint32_t unit_dim        = BLOCK_CT_DIM == 1 ? 1 : 2;
                 uint32_t num_units       = dest_size / unit_dim;
 
@@ -229,7 +231,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
                 uint32_t packed_tiles    = 0;
                 uint32_t remaining_tiles = BLOCK_CT_DIM;
-                uint32_t dest_size       = is_fp32_dest_acc_en ? 4 : 8;
+                uint32_t bank_density    = true ? 2 : 1;
+                uint32_t dest_size       = is_fp32_dest_acc_en ? 4 * bank_density : 8 * bank_density;
                 uint32_t unit_dim        = BLOCK_CT_DIM == 1 ? 1 : 2;
                 uint32_t num_units       = dest_size / unit_dim;
 
@@ -237,7 +240,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
                 {
                     _llk_packer_wait_for_math_done_();
 
-                    uint32_t tile_index = write_offset + packed_tiles;
+                    uint32_t tile_index = write_offset + packed_tiles / bank_density;
                     if (remaining_tiles > 2 * dest_size)
                     {
                         _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units);
@@ -270,10 +273,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
                             _llk_pack_fast_tilize_block_(remaining_tiles - 3, L1_ADDRESS(buffer_Res[tile_index + remaining_tiles - 3]), 3, 1);
                         }
                         packed_tiles += remaining_tiles;
-                        if (true)
-                        {
-                            packed_tiles /= 2;
-                        }
                         remaining_tiles = 0;
                     }
 
