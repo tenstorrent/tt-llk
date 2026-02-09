@@ -6,7 +6,6 @@ import glob
 import os
 import shutil
 import struct
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import fields
@@ -58,6 +57,7 @@ class CoverageBuild(Enum):
     No = "false"
 
 
+from .logger import logger
 from .test_variant_parameters import (
     IN_TILE_DIMS,
     NUM_FACES,
@@ -404,7 +404,7 @@ class TestConfig:
         with open(lock_file, "w") as lock:
             fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
             try:
-                print(self.variant_id, file=sys.stderr)
+                logger.debug("Variant hash: {}", self.variant_id)
             finally:
                 fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
@@ -792,6 +792,7 @@ class TestConfig:
 
         # Fast path: if build is already complete, skip entirely
         if done_marker.exists():
+            logger.debug("Build already complete for {}", self.variant_id[:12])
             return
 
         # Acquire lock for this variant to prevent concurrent builds
@@ -1022,6 +1023,12 @@ class TestConfig:
 
     def run(self, location="0,0", delete_artefacts: bool = False):
         self.generate_variant_hash()
+        logger.info(
+            "Running variant={} | location={}",
+            self.variant_id[:12],
+            location,
+        )
+
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
             self.build_elfs()
 
@@ -1076,7 +1083,7 @@ def process_coverage_run_artefacts() -> bool:
 
     worker_num = 20
 
-    print(f"Processing code coverage data")
+    logger.info("Processing code coverage data")
     with ThreadPoolExecutor(max_workers=worker_num) as executor:
         futures = [
             executor.submit(process_variants, work)
@@ -1088,12 +1095,14 @@ def process_coverage_run_artefacts() -> bool:
     end = time.time()
 
     if not Path(TestConfig.COVERAGE_INFO_DIR).is_dir():
-        print(f"{TestConfig.COVERAGE_INFO_DIR} does not exist. Early exit.")
+        logger.warning("{} does not exist. Early exit.", TestConfig.COVERAGE_INFO_DIR)
         return
 
     info_files = glob.glob(os.path.join(TestConfig.COVERAGE_INFO_DIR, "*.info"))
-    print(
-        f"Generated {len(info_files)} coverage .info files from streams in {end - start:.2f}s, unifying"
+    logger.info(
+        "Generated {} coverage .info files from streams in {:.2f}s, unifying",
+        len(info_files),
+        end - start,
     )
 
     # Reduce worker count to avoid workers having no files to process
@@ -1107,7 +1116,7 @@ def process_coverage_run_artefacts() -> bool:
         try:
             shutil.copyfile(str(info_files[0]), merged_path)
         except IndexError:
-            print("No worker files to be merged, exiting")
+            logger.warning("No worker files to be merged, exiting")
             return
         info_files.pop(0)
 
@@ -1118,8 +1127,9 @@ def process_coverage_run_artefacts() -> bool:
             result = run_shell_command(cmd, TestConfig.ARTEFACTS_DIR)
 
             if result.returncode:
-                print(f"Warning: Failed to merge {info_file}, skipping")
-                print(f"Error: {result.stderr}")
+                logger.warning(
+                    "Failed to merge {}, skipping: {}", info_file, result.stderr
+                )
 
     with ThreadPoolExecutor(max_workers=worker_num) as executor:
         futures = [
@@ -1138,8 +1148,9 @@ def process_coverage_run_artefacts() -> bool:
         result = run_shell_command(cmd, TestConfig.ARTEFACTS_DIR)
 
         if result.returncode:
-            print(f"Warning: Failed to merge {info_file}, skipping")
-            print(f"Error: {result.stderr}")
+            logger.warning(
+                "Failed to merge {}, skipping. Error: {}", info_file, result.stderr
+            )
 
     end = time.time()
-    print(f"Combined {len(info_files)} in {end - start:.2f}s")
+    logger.info("Combined {} coverage files in {:.2f}s", len(info_files), end - start)
