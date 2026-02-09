@@ -6,6 +6,7 @@
 
 #include <cstdint>
 
+#include "../../common/tensor_shape.h"
 #include "ckernel_include.h"
 #include "ckernel_ops.h"
 #include "ckernel_template.h"
@@ -18,11 +19,11 @@ using namespace ckernel;
 template <EltwiseBinaryType eltwise_binary_type, BroadcastType bcast_type, std::uint32_t FIDELITY_INCREMENT>
 inline void eltwise_binary_configure_addrmod()
 {
-    constexpr std::uint32_t srcb_incr = (bcast_type == BroadcastType::NONE || bcast_type == BroadcastType::COL) ? 8 : 0;
+    constexpr std::uint8_t srcb_incr = (bcast_type == BroadcastType::NONE || bcast_type == BroadcastType::COL) ? MAX_FPU_ROWS : 0;
     addr_mod_t {
-        .srca = {.incr = 8},
+        .srca = {.incr = MAX_FPU_ROWS},
         .srcb = {.incr = srcb_incr},
-        .dest = {.incr = 8},
+        .dest = {.incr = MAX_FPU_ROWS},
     }
         .set(ADDR_MOD_0);
 
@@ -37,7 +38,10 @@ inline void eltwise_binary_configure_addrmod()
         .set(ADDR_MOD_2);
 
     addr_mod_t {
-        .srca = {.incr = 0, .clr = 1}, .srcb = {.incr = 0, .clr = 1}, .dest = {.incr = 8, .clr = 0, .cr = 0, .c_to_cr = 1}, .fidelity = {.incr = 0, .clr = 1}}
+        .srca     = {.incr = 0, .clr = 1},
+        .srcb     = {.incr = 0, .clr = 1},
+        .dest     = {.incr = MAX_FPU_ROWS, .clr = 0, .cr = 0, .c_to_cr = 1},
+        .fidelity = {.incr = 0, .clr = 1}}
         .set(ADDR_MOD_3);
 }
 
@@ -75,7 +79,11 @@ inline void eltwise_binary_reuse_dest_as_src()
 // Helper to run the eltwise binary loop with optional dest reuse and face clearing
 template <bool is_fp32_dest_acc_en, EltwiseBinaryReuseDestType binary_reuse_dest>
 inline void eltwise_binary_reuse_dest_helper_func(
-    const std::uint32_t loop_count, const std::uint32_t face_base_offset, const bool clear_fp32_dst_acc, const std::uint32_t dst_index)
+    const std::uint32_t loop_count,
+    const std::uint32_t face_base_offset,
+    const bool clear_fp32_dst_acc,
+    const std::uint32_t dst_index,
+    const TensorShape &tensor_shape)
 {
 #pragma GCC unroll 0
     for (std::uint32_t face_num = 0; face_num < loop_count; face_num++)
@@ -101,13 +109,13 @@ inline void eltwise_binary_reuse_dest_helper_func(
  * SrcA/SrcB contain 1 tile each, and output is 1 tile in destination register
  * @tparam eltwise_binary_type: Type of eltwise binary op, values = <ELWADD/ELWSUB/ELWMUL>
  * @tparam src_b_bcast_type: Broadcast type for source B, values = <NONE/COL/ROW/SCALAR>
- * @tparam Dst: Destination sync mode
- * @tparam is_fp32_dest_acc_en: Enable FP32 destination accumulator
- * @tparam NUM_FIDELITY_PHASES: Number of fidelity phases for high-fidelity math
- * @tparam binary_reuse_dest: Reuse destination as source type
- * @param num_faces: Number of faces to process (1, 2, or 4)
+ * @tparam Dst: Destination sync mode, values = <Half, Full>
+ * @tparam is_fp32_dest_acc_en: Enable FP32 mode in destination register
+ * @tparam NUM_FIDELITY_PHASES: Number of fidelity phases for high-fidelity math, values = <LoFi, HiFi2, HiFi3, HiFi4>
+ * @tparam binary_reuse_dest: Reuse destination as source type, values = <NONE, DEST_TO_SRCA, DEST_TO_SRCB>
+ * @param shape: Tensor shape describing tile dimensions
  * @param dst_index: Tile index into the destination register
- * @param clear_fp32_dst_acc: Whether to clear FP32 destination accumulator
+ * @param clear_fp32_dst_acc: Clears index in destination register when float32 mode is enabled
  */
 template <
     EltwiseBinaryType eltwise_binary_type,
@@ -116,9 +124,11 @@ template <
     bool is_fp32_dest_acc_en,
     int NUM_FIDELITY_PHASES                      = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, std::uint32_t dst_index, const bool clear_fp32_dst_acc)
+inline void _llk_math_eltwise_binary_(const ckernel::TensorShape &tensor_shape, std::uint32_t dst_index, const bool clear_fp32_dst_acc)
 {
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    validate_tensor_shape_tile_dependent_ops_(tensor_shape);
+    const std::uint32_t num_faces = tensor_shape.total_num_faces();
+    LLK_ASSERT(NUM_FIDELITY_PHASES == 0 || eltwise_binary_type == ELWMUL, "Math fidelity larger than LoFi only works with Eltwise multiply");
     constexpr bool high_fidelity = (NUM_FIDELITY_PHASES > 0);
 
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
@@ -130,7 +140,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, std::uint32
             // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice for full tile size
             constexpr std::uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1;
 #pragma GCC unroll 0
-            for (std::uint32_t face_num = 0; face_num < outerloop; face_num++)
+            for (std::uint32_t n = 0; n < outerloop; n++)
             {
                 eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
                 ckernel_template::run();
@@ -139,7 +149,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, std::uint32
             if (num_faces == 4)
             {
 #pragma GCC unroll 0
-                for (std::uint32_t face_num = 0; face_num < outerloop; face_num++)
+                for (std::uint32_t n = 0; n < outerloop; n++)
                 {
                     eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
                     ckernel_template::run();
@@ -151,7 +161,7 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, std::uint32
         {
             const std::uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? num_faces : 1;
 #pragma GCC unroll 0
-            for (std::uint32_t face_num = 0; face_num < outerloop; face_num++)
+            for (std::uint32_t n = 0; n < outerloop; n++)
             {
                 eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
                 ckernel_template::run();
@@ -169,12 +179,14 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, std::uint32
         {
             // Mop for col broadcast only does 2 outerloops.  Needs to clear B manually and call twice for full tile size
             constexpr std::uint32_t outerloop = (high_fidelity) ? 2 : ((binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 2 : 1);
-            eltwise_binary_reuse_dest_helper_func<is_fp32_dest_acc_en, binary_reuse_dest>(outerloop, 0 /*face_base_offset*/, clear_fp32_dst_acc, dst_index);
+            eltwise_binary_reuse_dest_helper_func<is_fp32_dest_acc_en, binary_reuse_dest>(
+                outerloop, 0 /*face_base_offset*/, clear_fp32_dst_acc, dst_index, tensor_shape);
             TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
 
             if (num_faces == 4)
             {
-                eltwise_binary_reuse_dest_helper_func<is_fp32_dest_acc_en, binary_reuse_dest>(outerloop, 2 /*face_base_offset*/, clear_fp32_dst_acc, dst_index);
+                eltwise_binary_reuse_dest_helper_func<is_fp32_dest_acc_en, binary_reuse_dest>(
+                    outerloop, 2 /*face_base_offset*/, clear_fp32_dst_acc, dst_index, tensor_shape);
                 TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
             }
         }
@@ -182,7 +194,8 @@ inline void _llk_math_eltwise_binary_(const std::uint32_t num_faces, std::uint32
         {
             // Row and no broadcasted behaves similarly
             const std::uint32_t outerloop = (high_fidelity) ? num_faces : ((binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? num_faces : 1);
-            eltwise_binary_reuse_dest_helper_func<is_fp32_dest_acc_en, binary_reuse_dest>(outerloop, 0 /*face_base_offset*/, clear_fp32_dst_acc, dst_index);
+            eltwise_binary_reuse_dest_helper_func<is_fp32_dest_acc_en, binary_reuse_dest>(
+                outerloop, 0 /*face_base_offset*/, clear_fp32_dst_acc, dst_index, tensor_shape);
 
             if constexpr (src_b_bcast_type == BroadcastType::SCALAR)
             {
@@ -198,12 +211,14 @@ template <
     BroadcastType bcast_type,
     int NUM_FIDELITY_PHASES                      = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, const std::uint32_t num_faces = 4)
+inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest, const ckernel::TensorShape tensor_shape)
 {
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    constexpr bool high_fidelity      = (NUM_FIDELITY_PHASES > 0);
-    const std::uint32_t addr_mod      = ADDR_MOD_0;
-    constexpr std::uint32_t innerloop = 16 >> 3; // 8 rows per eltwise op at a time.
+    validate_tensor_shape_tile_dependent_ops_(tensor_shape);
+    const std::uint32_t num_faces   = tensor_shape.total_num_faces();
+    constexpr bool high_fidelity    = (NUM_FIDELITY_PHASES > 0);
+    constexpr std::uint8_t addr_mod = ADDR_MOD_0;
+    const std::uint8_t innerloop =
+        tensor_shape.face_r_dim > MAX_FPU_ROWS ? (tensor_shape.face_r_dim >> MAX_FPU_ROWS_LOG2) : 1; // 8 rows per eltwise op at a time.
 
     // The mop only runs for 2 outer loops and mop is called twice for col broadcast
     const std::uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 1 : (bcast_type == BroadcastType::COL) ? 2 : num_faces;
@@ -219,6 +234,10 @@ inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, co
     if constexpr ((eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB))
     {
         ckernel_template tmp(outerloop, innerloop, eltwise_binary_func<eltwise_binary_type>(0, acc_to_dest, broadcast_type, addr_mod));
+        if (tensor_shape.face_r_dim <= MAX_FPU_ROWS)
+        {
+            tmp.set_loop_op1(TT_OP_INCRWC(0, MAX_FPU_ROWS, MAX_FPU_ROWS, MAX_FPU_ROWS));
+        }
         tmp.set_end_op(TT_OP_SETRWC(CLR_SRC, p_setrwc::CR_AB, 0, 0, 0, p_setrwc::SET_AB));
         tmp.program();
     }
@@ -229,10 +248,22 @@ inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, co
         {
             tmp.set_last_inner_loop_instr(eltwise_binary_func<ELWMUL>(0, 0, broadcast_type, ADDR_MOD_2)); // Incr fidelity last inst of inner loop
             tmp.set_last_outer_loop_instr(eltwise_binary_func<ELWMUL>(CLR_SRC, 0, broadcast_type, ADDR_MOD_3));
+
+            if (tensor_shape.face_r_dim <= MAX_FPU_ROWS)
+            {
+                tmp.set_end_op(TT_OP_INCRWC(0, MAX_FPU_ROWS, MAX_FPU_ROWS, MAX_FPU_ROWS));
+            }
         }
         else
         {
-            tmp.set_end_op(TT_OP_SETRWC(CLR_SRC, p_setrwc::CR_AB, 0, 0, 0, p_setrwc::SET_AB));
+            if (tensor_shape.face_r_dim <= MAX_FPU_ROWS)
+            {
+                tmp.set_end_ops(TT_OP_INCRWC(0, MAX_FPU_ROWS, MAX_FPU_ROWS, MAX_FPU_ROWS), TT_OP_SETRWC(CLR_SRC, p_setrwc::CR_AB, 0, 0, 0, p_setrwc::SET_AB));
+            }
+            else
+            {
+                tmp.set_end_op(TT_OP_SETRWC(CLR_SRC, p_setrwc::CR_AB, 0, 0, 0, p_setrwc::SET_AB));
+            }
         }
         tmp.program();
     }
@@ -243,19 +274,20 @@ inline void eltwise_binary_configure_mop(const std::uint32_t acc_to_dest = 0, co
  * SrcA/SrcB contain 1 tile each, and output is 1 tile in destination register
  * @tparam eltwise_binary_type: Type of eltwise binary op, values = <ELWADD/ELWSUB/ELWMUL>
  * @tparam src_b_bcast_type: Broadcast type for source B, values = <NONE/COL/ROW/SCALAR>
- * @tparam MATH_FIDELITY_DESC: Math fidelity descriptor for controlling precision
- * @tparam binary_reuse_dest: Reuse destination as source type
- * @param num_faces: Number of faces to process (1, 2, or 4)
- * @param acc_to_dest: Accumulate to destination flag
+ * @tparam MATH_FIDELITY_DESC: Math fidelity descriptor for controlling precision, values = <LoFi, HiFi2, HiFi3, HiFi4>
+ * @tparam binary_reuse_dest: Reuse destination as source type, values = <NONE, DEST_TO_SRCA, DEST_TO_SRCB>
+ * @param tensor_shape: Tensor shape describing tile dimensions
+ * @param acc_to_dest: Accumulate result to destination register instead of overwriting
  */
 template <
     EltwiseBinaryType eltwise_binary_type,
     BroadcastType src_b_bcast_type,
     int MATH_FIDELITY_DESC                       = 0,
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, const std::uint32_t acc_to_dest)
+inline void _llk_math_eltwise_binary_init_(const ckernel::TensorShape &tensor_shape, const std::uint32_t acc_to_dest)
 {
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    validate_tensor_shape_tile_dependent_ops_(tensor_shape);
+    LLK_ASSERT(MATH_FIDELITY_DESC == 0 || eltwise_binary_type == ELWMUL, "Math fidelity larger than LoFi only works with Eltwise multiply");
     LLK_ASSERT(
         (eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB) || (eltwise_binary_type == ELWMUL),
         "eltwise_binary_type must be ELWADD, ELWSUB, or ELWMUL");
@@ -263,7 +295,7 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, const 
     constexpr int MATH_FIDELITY_INCREMENT = get_math_fidelity_increment(MATH_FIDELITY_DESC);
 
     eltwise_binary_configure_addrmod<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_INCREMENT>();
-    eltwise_binary_configure_mop<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_PHASES, binary_reuse_dest>(acc_to_dest, num_faces);
+    eltwise_binary_configure_mop<eltwise_binary_type, src_b_bcast_type, MATH_FIDELITY_PHASES, binary_reuse_dest>(acc_to_dest, tensor_shape);
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
 
