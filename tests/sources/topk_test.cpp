@@ -97,10 +97,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
             _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
                 unpack_src_format, unpack_src_format, unpack_dst_format, unpack_dst_format, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
         }
-        else
+        else // Stage::Indices
         {
-            // Stage::Indices we need to use reconfigure API to avoid race condition between hardware configuration in the second stage and unpacking in the
-            // first stage.
+            // We need to use reconfigure API to avoid race condition between hardware configuration in the second stage and unpacking in the first stage.
             _llk_unpack_reconfig_data_format_srca_impl_<is_fp32_dest_acc_en, false /* to_from_int8 */>(
                 unpack_src_format, unpack_dst_format, 16 * 16 * 4 /* tile_size */);
         }
@@ -168,10 +167,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
         {
             _llk_math_hw_configure_<is_fp32_dest_acc_en>(math_format, math_format);
         }
-        else
+        else // Stage::Indices
         {
-            // Stage::Indices we need to use reconfigure API to avoid race condition between hardware configuration in the second stage and math in the first
-            // stage.
+            // We need to use reconfigure API to avoid race condition between hardware configuration in the second stage and math in the first stage.
             _llk_math_reconfig_data_format_srca_<is_fp32_dest_acc_en, false /* to_from_int8 */>(math_format);
         }
 
@@ -319,10 +317,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
                 16 * 16 * 4);
 #endif
         }
-        else
+        else // Stage::Indices
         {
-            // Stage::Indices we need to use reconfigure API to avoid race condition between hardware configuration in the second stage and pack in the first
-            // stage.
+            // We need to use reconfigure API to avoid race condition between hardware configuration in the second stage and pack in the first stage.
 #ifdef ARCH_BLACKHOLE
             _llk_pack_reconfig_data_format_<is_fp32_dest_acc_en, false /* is_tile_dim_reconfig_en */>(
                 pack_src_format,
