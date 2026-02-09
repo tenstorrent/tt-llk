@@ -186,10 +186,11 @@ def _stats_timings(perf_data: pd.DataFrame) -> pd.DataFrame:
 
 
 def _stats_l1_to_l1(data: ProfilerData) -> pd.Series:
-    groups = data.zones().raw().groupby(["marker"])
+    # Group by both marker and run_index to ensure events from the same run are paired
+    groups = data.zones().raw().groupby(["marker", "run_index"])
 
     timings = []
-    for (marker,), group in groups:
+    for (marker, run_index), group in groups:
         unpack_start = group[
             (group["thread"] == "unpack") & (group["type"] == "ZONE_START")
         ].reset_index(drop=True)
@@ -200,12 +201,15 @@ def _stats_l1_to_l1(data: ProfilerData) -> pd.Series:
 
         if len(unpack_start) == 0 or len(pack_end) == 0:
             raise ValueError(
-                "Zone must be captured on both unpack and pack for L1_TO_L1 to work properly"
+                f"Zone must be captured on both unpack and pack for L1_TO_L1 to work properly "
+                f"(marker={marker}, run_index={run_index})"
             )
 
         if len(unpack_start) != len(pack_end):
             raise ValueError(
-                f"Unpack and pack must be paired properly for L1_TO_L1 to work properly"
+                f"Unpack and pack must be paired properly for L1_TO_L1 to work properly "
+                f"(marker={marker}, run_index={run_index}, "
+                f"unpack_count={len(unpack_start)}, pack_count={len(pack_end)})"
             )
 
         durations = pack_end["timestamp"] - unpack_start["timestamp"]

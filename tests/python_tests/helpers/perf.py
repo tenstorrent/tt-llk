@@ -93,7 +93,7 @@ class PerfReport:
             mask & (frame[column] == value)
             for frame, mask in zip(self._frames, self._masks)
         ]
-        return PerfReport(frames=self._frames, masks=mask_chain)
+        return PerfReport(frames=self._frames.copy(), masks=mask_chain)
 
     def marker(self, marker: str) -> "PerfReport":
         """Filter: Marker"""
@@ -359,7 +359,7 @@ class PerfConfig(TestConfig):
             self.runtimes = runtimes
             self.generate_variant_hash()
             variant_raw_data = []
-            for _ in range(run_count):
+            for run_idx in range(run_count):
                 self.write_runtimes_to_L1(location)
                 elfs = self.run_elf_files(location)
                 wait_for_tensix_operations_finished(elfs, location)
@@ -369,6 +369,8 @@ class PerfConfig(TestConfig):
                 )
                 # TODO You add additional data collections you want here
 
+                # Tag profiler data with run index for proper L1-to-L1 pairing
+                profiler_data.df["run_index"] = run_idx
                 variant_raw_data.append(profiler_data)
 
             get_stats = Profiler.STATS_FUNCTION[run_type]
