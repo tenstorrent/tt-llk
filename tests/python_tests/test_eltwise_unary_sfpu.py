@@ -324,7 +324,7 @@ def test_exponential_clamp_negative(
         formats,
         templates=[
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
-            APPROX_MODE(ApproximationMode.Yes),
+            APPROX_MODE(ApproximationMode.Fast),
             FAST_MODE(FastMode.Yes),
             CLAMP_NEGATIVE(clamp_negative),
             MATH_OP(mathop=MathOperation.Exp),
