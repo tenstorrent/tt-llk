@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 from .fused_fpu import Fpu, MatmulFpu, ReduceFpu
 from .fused_sfpu import Sfpu
-from .fused_unpacker import MatmulUnpacker, Unpacker, UnpackerA
+from .fused_unpacker import MatmulUnpacker, Unpacker
 from .llk_params import (
     BroadcastType,
     DataCopyType,
@@ -42,15 +42,6 @@ class ComputeNode:
             raise ValueError("Compute unit can be only fpu or sfpu")
         if sfpu is not None and unpacker is not None:
             raise ValueError("Sfpu unit does not support unpacker")
-        if (
-            fpu is not None
-            and unpacker is not None
-            and unpacker not in fpu.supported_unpackers()
-        ):
-            raise ValueError(f"{fpu} does not support {unpacker}")
-
-        if reuse_dest != EltwiseBinaryReuseDestType.NONE and unpacker != UnpackerA:
-            raise ValueError("Reuse dest is only supported with UnpackerA")
 
         self.unpacker = unpacker
         self.fpu = fpu

@@ -17,7 +17,6 @@ from .golden_generators import (
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
-    from .fused_unpacker import Unpacker
     from .fused_math import ComputeNode
 
 from .chip_architecture import ChipArchitecture
@@ -39,9 +38,6 @@ class Fpu:
         compute_unit: "ComputeNode",
     ) -> str:
         return ""
-
-    def supported_unpackers(self) -> List["Unpacker"]:
-        return []
 
     def calculate(
         self,
@@ -84,11 +80,6 @@ class MatmulFpu(Fpu):
             "llk_math_common.h",
             "llk_math_matmul.h",
         ]
-
-    def supported_unpackers(self) -> List["Unpacker"]:
-        from .fused_unpacker import MatmulUnpacker
-
-        return [MatmulUnpacker]
 
     def golden(
         self,
@@ -178,11 +169,6 @@ class EltwiseFpu(Fpu):
             "llk_math_eltwise_binary.h",
         ]
 
-    def supported_unpackers(self) -> List["Unpacker"]:
-        from .fused_unpacker import UnpackerA, UnpackerAB
-
-        return [UnpackerAB, UnpackerA]
-
     def golden(
         self,
         tensor_a: torch.Tensor,
@@ -271,11 +257,6 @@ class ReduceFpu(Fpu):
             "llk_math_common.h",
             "llk_math_reduce.h",
         ]
-
-    def supported_unpackers(self) -> List["Unpacker"]:
-        from .fused_unpacker import UnpackerAB
-
-        return [UnpackerAB]
 
     def reduce_dim(self) -> str:
         return f"ReduceDim::{self.operation.cpp_enum_value}"
@@ -408,11 +389,6 @@ class DatacopyFpu(Fpu):
             "llk_math_common.h",
             "llk_math_eltwise_unary_datacopy.h",
         ]
-
-    def supported_unpackers(self) -> List["Unpacker"]:
-        from .fused_unpacker import UnpackerA, UnpackerTilizeA
-
-        return [UnpackerA, UnpackerTilizeA]
 
     def golden(
         self,
