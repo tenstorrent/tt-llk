@@ -22,22 +22,19 @@ void run_kernel(const volatile struct RuntimeParams* params)
     std::int32_t* B = reinterpret_cast<std::int32_t*>(buffer_B[0]);
     std::int32_t* C = reinterpret_cast<std::int32_t*>(buffer_Res[0]);
 
-    const int num_tiles_in_standard_block = params->NUM_TILES_IN_STANDARD_BLOCK;
-    const int num_tiles_in_last_block     = params->NUM_TILES_IN_LAST_BLOCK;
-    const int num_blocks                  = params->NUM_BLOCKS;
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
 
     for (int block = 0; block < num_blocks; block++)
     {
-        const int num_tiles_in_current_block = (block == num_blocks - 1) ? num_tiles_in_last_block : num_tiles_in_standard_block;
-
-        for (int tile = 0; tile < num_tiles_in_current_block; tile++)
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
         {
-            int tile_idx = (block * num_tiles_in_standard_block) + tile;
-            int32_t* A   = (int32_t*)buffer_A[tile_idx];
-            int32_t* B   = (int32_t*)buffer_B[tile_idx];
-            int32_t* C   = (int32_t*)buffer_Res[tile_idx];
+            int tile_idx    = (block * num_tiles_in_block) + tile;
+            std::int32_t* A = (std::int32_t*)buffer_A[tile_idx];
+            std::int32_t* B = (std::int32_t*)buffer_B[tile_idx];
+            std::int32_t* C = (std::int32_t*)buffer_Res[tile_idx];
 
-            std::transform(A, A + 1024, B, C, std::plus<int32_t>());
+            std::transform(A, A + 1024, B, C, std::plus<std::int32_t>());
         }
     }
 }
@@ -52,22 +49,19 @@ void run_kernel(const volatile struct RuntimeParams* params)
     std::int32_t* B = reinterpret_cast<std::int32_t*>(buffer_B[1]);
     std::int32_t* C = reinterpret_cast<std::int32_t*>(buffer_Res[1]);
 
-    const int num_tiles_in_standard_block = params->NUM_TILES_IN_STANDARD_BLOCK;
-    const int num_tiles_in_last_block     = params->NUM_TILES_IN_LAST_BLOCK;
-    const int num_blocks                  = params->NUM_BLOCKS;
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
 
     for (int block = 0; block < num_blocks; block++)
     {
-        const int num_tiles_in_current_block = (block == num_blocks - 1) ? num_tiles_in_last_block : num_tiles_in_standard_block;
-
-        for (int tile = 0; tile < num_tiles_in_current_block; tile++)
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
         {
-            int tile_idx = (block * num_tiles_in_standard_block) + tile;
-            int32_t* A   = (int32_t*)buffer_A[tile_idx];
-            int32_t* B   = (int32_t*)buffer_B[tile_idx];
-            int32_t* C   = (int32_t*)buffer_Res[tile_idx];
+            int tile_idx    = (block * num_tiles_in_block) + tile;
+            std::int32_t* A = (std::int32_t*)buffer_A[tile_idx];
+            std::int32_t* B = (std::int32_t*)buffer_B[tile_idx];
+            std::int32_t* C = (std::int32_t*)buffer_Res[tile_idx];
 
-            std::transform(A, A + 1024, B, C, std::plus<int32_t>());
+            std::transform(A, A + 1024, B, C, std::plus<std::int32_t>());
         }
     }
 }
@@ -82,22 +76,19 @@ void run_kernel(const volatile struct RuntimeParams* params)
     std::int32_t* B = reinterpret_cast<std::int32_t*>(buffer_B[2]);
     std::int32_t* C = reinterpret_cast<std::int32_t*>(buffer_Res[2]);
 
-    const int num_tiles_in_standard_block = params->NUM_TILES_IN_STANDARD_BLOCK;
-    const int num_tiles_in_last_block     = params->NUM_TILES_IN_LAST_BLOCK;
-    const int num_blocks                  = params->NUM_BLOCKS;
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
 
     for (int block = 0; block < num_blocks; block++)
     {
-        const int num_tiles_in_current_block = (block == num_blocks - 1) ? num_tiles_in_last_block : num_tiles_in_standard_block;
-
-        for (int tile = 0; tile < num_tiles_in_current_block; tile++)
+        for (int tile = 0; tile < num_tiles_in_block; tile++)
         {
-            int tile_idx = (block * num_tiles_in_standard_block) + tile;
-            int32_t* A   = (int32_t*)buffer_A[tile_idx];
-            int32_t* B   = (int32_t*)buffer_B[tile_idx];
-            int32_t* C   = (int32_t*)buffer_Res[tile_idx];
+            int tile_idx    = (block * num_tiles_in_block) + tile;
+            std::int32_t* A = (std::int32_t*)buffer_A[tile_idx];
+            std::int32_t* B = (std::int32_t*)buffer_B[tile_idx];
+            std::int32_t* C = (std::int32_t*)buffer_Res[tile_idx];
 
-            std::transform(A, A + 1024, B, C, std::plus<int32_t>());
+            std::transform(A, A + 1024, B, C, std::plus<std::int32_t>());
         }
     }
 }

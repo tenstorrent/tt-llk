@@ -5,6 +5,7 @@ import torch
 from helpers.format_config import DataFormat
 from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
 from helpers.llk_params import (
+    BlocksCalculationAlgorithm,
     DestAccumulation,
     DestSync,
     MathFidelity,
@@ -12,8 +13,7 @@ from helpers.llk_params import (
     format_dict,
 )
 from helpers.param_config import (
-    get_num_blocks,
-    get_num_tiles_in_block,
+    get_num_blocks_and_num_tiles_in_block,
     input_output_formats,
     parametrize,
 )
@@ -21,9 +21,9 @@ from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
+    INPUT_DIMENSIONS,
     NUM_BLOCKS,
-    NUM_TILES_IN_LAST_BLOCK,
-    NUM_TILES_IN_STANDARD_BLOCK,
+    NUM_TILES_IN_BLOCK,
 )
 from helpers.utils import passed_test
 
@@ -47,38 +47,23 @@ def test_risc_compute(formats, input_dimensions, workers_tensix_coordinates):
     )
 
     # Calculate block parameters for destination register banking
-    num_blocks = get_num_blocks(
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
         dest_sync=DestSync.Half,
         dest_acc=DestAccumulation.No,
         formats=formats,
         input_dimensions=input_dimensions,
         tile_dimensions=[32, 32],
-    )
-
-    num_tiles_in_standard_block = get_num_tiles_in_block(
-        dest_sync=DestSync.Half,
-        dest_acc=DestAccumulation.No,
-        formats=formats,
-        input_dimensions=input_dimensions,
-        tile_dimensions=[32, 32],
-        last_block=False,
-    )
-
-    num_tiles_in_last_block = get_num_tiles_in_block(
-        dest_sync=DestSync.Half,
-        dest_acc=DestAccumulation.No,
-        formats=formats,
-        input_dimensions=input_dimensions,
-        tile_dimensions=[32, 32],
-        last_block=True,
+        blocks_calculation_algorithm=BlocksCalculationAlgorithm.Standard,
     )
 
     configuration = TestConfig(
         "sources/risc_compute_test.cpp",
         formats,
+        templates=[
+            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+        ],
         runtimes=[
-            NUM_TILES_IN_STANDARD_BLOCK(num_tiles_in_standard_block),
-            NUM_TILES_IN_LAST_BLOCK(num_tiles_in_last_block),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
             NUM_BLOCKS(num_blocks),
         ],
         variant_stimuli=StimuliConfig(

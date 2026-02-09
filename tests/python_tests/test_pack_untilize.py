@@ -9,7 +9,6 @@ from helpers.format_config import DataFormat
 from helpers.golden_generators import UntilizeGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, DestSync, format_dict
 from helpers.param_config import (
-    get_num_tiles_in_block_pack_untilize,
     input_output_formats,
     parametrize,
 )
@@ -37,14 +36,11 @@ from helpers.utils import passed_test
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     input_dimensions=[[96, 288], [64, 64], [32, 128], [128, 128], [32, 64]],
-    # _llk_pack_untilize_init_ has a static_assert that checks if block_ct_dim is less or equal to 8.
-    # TODO: Update this logic to accept more than 8 tiles per block if the static_assert changes in the future.
-    dest_sync=[DestSync.Half],
+    dest_sync=[DestSync.Half, DestSync.Full],
 )
 def test_pack_untilize(
     formats, dest_acc, input_dimensions, dest_sync, workers_tensix_coordinates
 ):
-
     if TestConfig.WITH_COVERAGE and input_dimensions == [96, 288]:
         pytest.skip(
             "Skipping large dimension test in coverage mode, check issue: #1063 on TT-LLK repo"
@@ -57,8 +53,6 @@ def test_pack_untilize(
         formats.output_format == DataFormat.Int32
     ):
         pytest.skip("Pack Untilize does not support mixing Int32 with other formats")
-
-    tile_dimensions = [32, 32]  # Pack Untilize only supports 32x32 tiles for now.
 
     data_formats = infer_data_formats(
         formats.input_format,
@@ -95,12 +89,12 @@ def test_pack_untilize(
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
     )
 
-    block_ct_dim = get_num_tiles_in_block_pack_untilize(
-        dest_sync=dest_sync,
-        dest_acc=dest_acc,
-        formats=formats,
-        input_dimensions=input_dimensions,
-        tile_dimensions=tile_dimensions,
+    # _llk_pack_untilize_init_ has a static_assert that checks if block_ct_dim is less or equal to 8.
+    # TODO: Update this logic to accept more than 8 tiles per block if the static_assert changes in the future.
+    max_bct_dim = 8 if dest_acc == DestAccumulation.No else 4
+    full_ct_dim = input_dimensions[1] // 32
+    block_ct_dim = next(
+        (bct for bct in range(max_bct_dim, 0, -1) if full_ct_dim % bct == 0), 1
     )
 
     configuration = TestConfig(
@@ -139,5 +133,5 @@ def test_pack_untilize(
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
     assert passed_test(
-        golden_tensor, res_tensor, formats.output_format, print_erros=True
+        golden_tensor, res_tensor, formats.output_format
     ), "Assert against golden failed"

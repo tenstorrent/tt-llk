@@ -32,8 +32,7 @@ from helpers.test_variant_parameters import (
     MATH_OP,
     NUM_BLOCKS,
     NUM_FACES,
-    NUM_TILES_IN_LAST_BLOCK,
-    NUM_TILES_IN_STANDARD_BLOCK,
+    NUM_TILES_IN_BLOCK,
     TEST_FACE_DIMS,
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
@@ -108,6 +107,7 @@ def test_eltwise_binary(
         # const_value_B=2
     )
 
+<<<<<<< HEAD
     num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
         DestSync.Half,
         dest_acc,
@@ -115,6 +115,25 @@ def test_eltwise_binary(
         input_dimensions,
         [32, 32],
         BlocksCalculationAlgorithm.Standard,
+=======
+    MAX_TILES_IN_BLOCK = (
+        4
+        if (formats.input_format == DataFormat.Float32)
+        or (formats.input_format == DataFormat.Int32)
+        else 8
+    )
+
+    num_blocks = (tile_cnt_A + MAX_TILES_IN_BLOCK - 1) // MAX_TILES_IN_BLOCK
+    num_tiles_in_block = tile_cnt_A % MAX_TILES_IN_BLOCK or MAX_TILES_IN_BLOCK
+
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        dest_sync=DestSync.Half,
+        dest_acc=dest_acc,
+        formats=formats,
+        input_dimensions=input_dimensions,
+        tile_dimensions=tile_dimensions,
+        blocks_calculation_algorithm=BlocksCalculationAlgorithm.Standard,
+>>>>>>> e3df8c49 (Changed the blocks algorithm helper and reverted sfpu test refactors.)
     )
 
     # Compute element-wise subtraction in tilized format
@@ -140,9 +159,8 @@ def test_eltwise_binary(
         runtimes=[
             UNPACK_TRANS_FACES(transpose_srca),
             UNPACK_TRANS_WITHIN_FACE(transpose_srca),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
             NUM_BLOCKS(num_blocks),
-            NUM_TILES_IN_STANDARD_BLOCK(num_tiles_in_standard_block),
-            NUM_TILES_IN_LAST_BLOCK(num_tiles_in_last_block),
             NUM_FACES(num_faces),
             TEST_FACE_DIMS(face_r_dim=face_r_dim),
         ],

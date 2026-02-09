@@ -25,36 +25,19 @@ static constexpr ckernel::DstSync DST_SYNC = ckernel::DstSync::SyncHalf;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-<<<<<<< HEAD
     const int MAX_TILES_DEST =
         is_fp32_dest_acc_en ? (BIT32_DEST_REGISTER_HALF_SIZE / (TILE_NUM_FACES * FACE_R_DIM)) : (DEST_REGISTER_HALF_SIZE / (TILE_NUM_FACES * FACE_R_DIM));
 
-=======
-    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params->NUM_BLOCKS;
-
-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-        0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
->>>>>>> 63482767 (Refactored test_eltwise_unary_sfpu to support multiple tiles.)
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, TILE_NUM_FACES, TILE_NUM_FACES);
 
     _llk_unpack_A_init_<BroadcastType::NONE, false /* is_fp32_dest_acc_en - why true does not work? */, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0 /* transpose_of_faces */, 0 /* within_face_16x16_transpose */, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_src, formats.unpack_dst);
 
-    for (int block = 0; block < num_blocks; block++)
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
-<<<<<<< HEAD
         _llk_unpack_A_<BroadcastType::NONE, false /* is_fp32_dest_acc_en - why true does not work? */, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
-=======
-        for (int tile = 0; tile < num_tiles_in_block; tile++)
-        {
-            int src_tile_idx = (block * num_tiles_in_standard_block) + tile;
-            _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-                L1_ADDRESS(buffer_A[src_tile_idx]), formats.unpack_src, formats.unpack_dst);
-        }
->>>>>>> 63482767 (Refactored test_eltwise_unary_sfpu to support multiple tiles.)
     }
 }
 
@@ -105,13 +88,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
             _llk_math_eltwise_unary_sfpu_start_<DST_SYNC>(block_tile);
             // calling sfpu function from ckernel
             // this part is where parametrization of operation takes part
-<<<<<<< HEAD
             test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE, false /* STABLE_SORT */, CLAMP_NEGATIVE>(
                 SFPU_UNARY_OPERATION, formats.math);
 
-=======
-            test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, FAST_MODE>(SFPU_UNARY_OPERATION, formats.math);
->>>>>>> f1b7304c (Fixed the mistakes discovered by copilot.)
             _llk_math_eltwise_unary_sfpu_done_();
         }
 

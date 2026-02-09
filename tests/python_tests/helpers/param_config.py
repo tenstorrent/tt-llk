@@ -15,7 +15,10 @@ from .format_config import (
     FormatConfig,
     InputOutputFormat,
 )
+<<<<<<< HEAD
 from .golden_generators import TILE_DIMENSIONS
+=======
+>>>>>>> e3df8c49 (Changed the blocks algorithm helper and reverted sfpu test refactors.)
 from .llk_params import BlocksCalculationAlgorithm, DestAccumulation, DestSync
 
 checked_formats_and_dest_acc = {}
