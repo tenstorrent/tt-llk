@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from dataclasses import dataclass
+from functools import reduce
 from typing import List
 
 import pandas as pd
@@ -174,11 +175,11 @@ class FuserConfig:
                 get_stats = Profiler.STATS_FUNCTION[run_type]
                 all_results.append(get_stats(ProfilerData.concat(runs)))
 
-            results = (
-                pd.concat(all_results, ignore_index=True)
-                .groupby("marker")
-                .first()
-                .reset_index()
+            results = reduce(
+                lambda left, right: pd.merge(
+                    left, right, on="marker", how="outer", validate="1:1"
+                ),
+                all_results,
             )
             results["test_name"] = self.global_config.test_name
             results["loop_factor"] = self.global_config.loop_factor

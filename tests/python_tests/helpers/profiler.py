@@ -263,7 +263,7 @@ def _stats_l1_congestion(data: ProfilerData) -> pd.DataFrame:
         f"{PerfRunType.L1_CONGESTION.name}[PACK]", data.pack().raw()
     )
 
-    return pd.merge(unpack_stats, pack_stats, on="marker", how="outer")
+    return pd.merge(unpack_stats, pack_stats, on="marker", how="outer", validate="1:1")
 
 
 class EntryType(Enum):
