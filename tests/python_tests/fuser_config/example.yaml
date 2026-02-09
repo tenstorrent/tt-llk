@@ -25,8 +25,6 @@ operations:
         unpacker: "UnpackerAB"
     packer: "Packer"
     math_fidelity: "LoFi"
-    unpack_transpose_within_face: "No"
-    unpack_transpose_faces: "No"
     batch_size: 3
 
   - src_a: "datacopy_output"
@@ -105,15 +103,15 @@ operations:
       - type: "Fpu"
         operation: "Elwadd"
         unpacker: "UnpackerAB"
+        unpack_transpose_within_face: "Yes"
+        unpack_transpose_faces: "Yes"
       - type: "UnarySfpu"
         operation: "Neg"
         approximation_mode: "No"
         iterations: 128
     packer: "Packer"
     math_fidelity: "HiFi3"
-    dest_sync: "Full"
-    unpack_transpose_within_face: "Yes"
-    unpack_transpose_faces: "Yes"
+    # dest_sync: "Full"
 
   - src_a: "elwadd1"
     src_b: "datacopy_output"
@@ -164,5 +162,3 @@ operations:
         dst_dest_tile_index: 0
     packer: "Packer"
     math_fidelity: "LoFi"
-    unpack_transpose_within_face: "Yes"
-    unpack_transpose_faces: "Yes"
