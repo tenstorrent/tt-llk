@@ -24,7 +24,6 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
 
     const uint32_t MOP_OUTER_LOOP     = num_tiles;
     constexpr uint32_t MOP_INNER_LOOP = 1;
-    // Replay buffer length: SCALAR=1, ROW/COL=4 (unpack_to_dest=false) or 2 (unpack_to_dest=true)
     constexpr static uint replay_buf_len =
         (BROADCAST_TYPE == BroadcastType::SCALAR)
             ? 1
@@ -43,7 +42,7 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const uint32_t buf_
                 }
                 else
                 {
-                    TT_UNPACR1_FACE(0 /*Dst Face Idx*/, 0 /*Src Face Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+                    TT_UNPACR1_ROW(0 /*Dst_Row_Idx*/, 0 /*Src_Row_Idx*/, 0 /*Dst_Face_Idx*/, 0 /*Src_Face_Idx*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
                 }
             });
     }

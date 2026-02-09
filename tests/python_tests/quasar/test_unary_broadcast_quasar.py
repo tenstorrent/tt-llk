@@ -23,7 +23,6 @@ from helpers.param_config import (
     input_output_formats,
 )
 from helpers.stimuli_config import StimuliConfig
-from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import BootMode, TestConfig
 from helpers.test_variant_parameters import (
     BROADCAST_TYPE,
@@ -77,23 +76,6 @@ def generate_unary_broadcast_combinations():
             for broadcast_type in broadcast_types:
                 for implied_math_format in implied_math_formats:
                     for input_dimensions in generate_unary_input_dimensions(dest_acc):
-                        # TODO: Comment out multiple tiles for now
-                        # Filter out multiple tile cases (keep only single tile)
-                        num_tiles = (input_dimensions[0] // TILE_DIM) * (
-                            input_dimensions[1] // TILE_DIM
-                        )
-                        if num_tiles > 1:
-                            continue
-                        # Filter out specific combination: Float16_b -> Float32, DestAcc=Yes, Broadcast=Row, ImpliedMath=Yes, [32, 32]
-                        if (
-                            fmt.input_format == DataFormat.Float16_b
-                            and fmt.output_format == DataFormat.Float32
-                            and dest_acc == DestAccumulation.Yes
-                            and broadcast_type == BroadcastType.Row
-                            and implied_math_format == ImpliedMathFormat.Yes
-                            and input_dimensions == [32, 32]
-                        ):
-                            continue
                         combinations.append(
                             (
                                 fmt,
@@ -124,15 +106,27 @@ def test_unary_broadcast_quasar(
     boot_mode=BootMode.DEFAULT,
 ):
 
-    # Generate input stimuli
-    src_B, tile_cnt_B, _, _ = generate_stimuli(
-        stimuli_format_A=formats.input_format,
-        input_dimensions_A=input_dimensions,
-        stimuli_format_B=formats.input_format,
-        input_dimensions_B=input_dimensions,
-    )
+    # Generate input stimuli with face-specific values: face 0=1s, face 1=2s, face 2=3s, face 3=4s
+    torch_format = format_dict[formats.input_format]
+    rows, cols = input_dimensions
+    num_elements = rows * cols
+    tile_cnt_B = (rows // TILE_DIM) * (cols // TILE_DIM)
 
-    # Generate golden tensor with broadcast
+    # Create tilized tensor: each tile has 4 faces, each face has 256 elements (16x16)
+    # Face 0 = 1s, Face 1 = 2s, Face 2 = 3s, Face 3 = 4s
+    elements_per_face = FACE_DIM * FACE_DIM  # 256
+    elements_per_tile = elements_per_face * FACES_PER_TILE  # 1024
+
+    src_B_list = []
+    for tile_idx in range(tile_cnt_B):
+        for face_idx in range(FACES_PER_TILE):
+            face_value = float(face_idx + 1)  # 1, 2, 3, 4
+            face_data = torch.full((elements_per_face,), face_value, dtype=torch_format)
+            src_B_list.append(face_data)
+
+    src_B = torch.cat(src_B_list)[:num_elements]
+
+    # Generate golden tensor with broadcast (returns tilized)
     generate_broadcast_golden = get_golden_generator(BroadcastGolden)
     golden_tensor = generate_broadcast_golden(
         broadcast_type,
@@ -195,6 +189,16 @@ def test_unary_broadcast_quasar(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
+    # Untilize both for correct display in passed_test (which does .view(32, 32) assuming untilized format)
+    from helpers.tilize_untilize import untilize_block
+
+    golden_untilized = untilize_block(
+        golden_tensor.flatten(), formats.output_format, input_dimensions
+    )
+    res_untilized = untilize_block(
+        res_tensor.flatten(), formats.output_format, input_dimensions
+    )
+
     assert passed_test(
-        golden_tensor, res_tensor, formats.output_format
+        golden_untilized.flatten(), res_untilized.flatten(), formats.output_format
     ), "Assert against golden failed"
