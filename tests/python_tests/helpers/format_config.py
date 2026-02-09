@@ -101,6 +101,17 @@ class DataFormat(Enum):
             DataFormat.Float32,
         }
 
+    def is_exponent_A(self) -> bool:
+        """Checks if the data format is an exponent A format."""
+
+        # sstanisic: TODO: are these all the formats??????
+        return self in {
+            DataFormat.Float16,
+            DataFormat.Bfp8,
+            # DataFormat.Bfp4,
+            # DataFormat.Bfp2,
+        }
+
     def num_bytes_per_tile(self, num_datums: int = 1024) -> int:
         """Returns the number of bytes per tile for the data format."""
         num_exponents = 0
