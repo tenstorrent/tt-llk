@@ -26,8 +26,11 @@ int main()
     volatile std::uint32_t* const mailbox_math   = reinterpret_cast<volatile std::uint32_t*>(0x1FFF8);
     volatile std::uint32_t* const mailbox_pack   = reinterpret_cast<volatile std::uint32_t*>(0x1FFF4);
 
+    asm volatile("fence");
     *state_command = 0;
-    *state_brisc   = 0;
+    asm volatile("fence");
+    *state_brisc = 0;
+    asm volatile("fence");
 
     while (true)
     {
@@ -36,41 +39,38 @@ int main()
             case CommandState::START_TRISCS:
                 while (*mailbox_unpack != 0)
                 {
+                    asm volatile("fence");
                     *mailbox_unpack = 0;
+                    asm volatile("fence");
                 }
                 while (*mailbox_math != 0)
                 {
+                    asm volatile("fence");
                     *mailbox_math = 0;
+                    asm volatile("fence");
                 }
                 while (*mailbox_pack != 0)
                 {
+                    asm volatile("fence");
                     *mailbox_pack = 0;
+                    asm volatile("fence");
                 }
 
                 device_setup();
                 clear_trisc_soft_reset();
 
                 *state_command = static_cast<uint32_t>(CommandState::IDLE_STATE);
-                *state_brisc   = static_cast<uint32_t>(CommandState::START_TRISCS);
+                asm volatile("fence");
+                *state_brisc = static_cast<uint32_t>(CommandState::START_TRISCS);
+                asm volatile("fence");
                 break;
             case CommandState::RESET_TRISCS:
                 set_triscs_soft_reset();
 
-                while (*mailbox_unpack != 0)
-                {
-                    *mailbox_unpack = 0;
-                }
-                while (*mailbox_math != 0)
-                {
-                    *mailbox_math = 0;
-                }
-                while (*mailbox_pack != 0)
-                {
-                    *mailbox_pack = 0;
-                }
-
                 *state_command = static_cast<uint32_t>(CommandState::IDLE_STATE);
-                *state_brisc   = static_cast<uint32_t>(CommandState::RESET_TRISCS);
+                asm volatile("fence");
+                *state_brisc = static_cast<uint32_t>(CommandState::RESET_TRISCS);
+                asm volatile("fence");
                 break;
             default:
                 break;

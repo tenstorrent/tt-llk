@@ -52,7 +52,7 @@ class LLKAssertException(Exception):
 
 
 # Constant - indicates the TRISC kernel run status
-KERNEL_COMPLETE = 1  # Kernel completed its run
+KERNEL_COMPLETE = 0xF  # Kernel completed its run
 
 
 class BootMode(Enum):

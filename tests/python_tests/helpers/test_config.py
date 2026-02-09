@@ -290,7 +290,7 @@ class TestConfig:
             )
 
         TestConfig.OPTIONS_LINK = "-fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace"
-        TestConfig.INITIAL_OPTIONS_COMPILE = f"-nostdlib -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Wunused-parameter -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -Wmaybe-uninitialized -DTENSIX_FIRMWARE -DENV_LLK_INFRA -DENABLE_LLK_ASSERT {TestConfig.ARCH_DEFINE}"
+        TestConfig.INITIAL_OPTIONS_COMPILE = f"-nostdlib -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Wunused-parameter -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -Wmaybe-uninitialized -DTENSIX_FIRMWARE -DENV_LLK_INFRA {TestConfig.ARCH_DEFINE}"
         TestConfig.INCLUDES = [
             "-Isfpi/include",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/llk_lib",
@@ -1050,27 +1050,22 @@ class TestConfig:
         ]
 
         for i, elf in enumerate(elfs):
-            if TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE:
-                start_address = load_elf(
-                    elf_file=elf,
-                    location=location,
-                    risc_name=f"trisc{i}",
-                    neo_id=(
-                        0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
-                    ),
-                    return_start_address=True,
-                )
-                write_words_to_device(
-                    location, TestConfig.TRISC_START_ADDRS[i], [start_address]
-                )
-            else:
+            if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR:
                 load_elf(
                     elf_file=elf,
                     location=location,
                     risc_name=f"trisc{i}",
-                    neo_id=(
-                        0 if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR else None
-                    ),
+                    neo_id=0,
+                )
+            else:
+                start_address = load_elf(
+                    elf_file=elf,
+                    location=location,
+                    risc_name=f"trisc{i}",
+                    return_start_address=True,
+                )
+                write_words_to_device(
+                    location, TestConfig.TRISC_START_ADDRS[i], [start_address]
                 )
 
             self.run_membar(location)

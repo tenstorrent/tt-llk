@@ -25,6 +25,24 @@ inline void device_setup()
     }
     cfg_regs[TRISC_RESET_PC_OVERRIDE_Reset_PC_Override_en_ADDR32] = 0b111;
 #endif
+
+#if defined(ARCH_BLACKHOLE)
+    // Use array-based initialization for consecutive TRISC addresses, using BH debug registers
+    constexpr std::uint32_t TRISC_START_BASE = 0x16DFF0;
+    constexpr std::uint32_t TRISC_PC_REGS[]  = {RISCV_DEBUG_REG_TRISC0_RESET_PC, RISCV_DEBUG_REG_TRISC1_RESET_PC, RISCV_DEBUG_REG_TRISC2_RESET_PC};
+
+    volatile std::uint32_t* const trisc_start_addresses = reinterpret_cast<volatile std::uint32_t*>(TRISC_START_BASE);
+
+    for (unsigned int i = 0; i < std::size(TRISC_PC_REGS); ++i)
+    {
+        asm volatile("fence");
+        ckernel::reg_write(TRISC_PC_REGS[i], trisc_start_addresses[i]);
+        asm volatile("fence");
+    }
+
+    ckernel::reg_write(RISCV_DEBUG_REG_TRISC_RESET_PC_OVERRIDE, 0x7);
+#endif
+
 #if defined(ARCH_BLACKHOLE) && !defined(ARCH_QUASAR) // Ugly hack for now
     ckernel::reg_write(RISCV_DEBUG_REG_DEST_CG_CTRL, 0);
 #endif
