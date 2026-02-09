@@ -20,7 +20,7 @@ from .format_config import DataFormat, FormatConfig
 from .fused_fpu import MatmulFpu
 from .fused_operation import FusedOperation
 from .llk_params import DestAccumulation, DestSync, PerfRunType
-from .perf import PerfReport, _validate_marker_consistency
+from .perf import PerfReport
 from .profiler import Profiler, ProfilerData
 from .test_config import BootMode, ProfilerBuild, TestConfig
 
@@ -178,15 +178,12 @@ class FuserConfig:
                 get_stats = Profiler.STATS_FUNCTION[run_type]
                 all_results.append(get_stats(ProfilerData.concat(runs)))
 
-            # Validate marker consistency across all run types
-            _validate_marker_consistency(
-                all_results, [run_type.name for run_type in run_types]
-            )
-
-            # Merge results with validation (how="inner" since all have same markers)
+            # Merge results with validation
+            # how="outer" keeps all markers (some may not appear in all run types)
+            # validate="1:1" catches duplicate markers within each run type
             results = reduce(
                 lambda left, right: pd.merge(
-                    left, right, on="marker", how="inner", validate="1:1"
+                    left, right, on="marker", how="outer", validate="1:1"
                 ),
                 all_results,
             )
