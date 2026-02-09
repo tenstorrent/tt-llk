@@ -15,20 +15,18 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
-#include "llk_unpack_A.h"
+#include "llk_unpack_AB.h"
 #include "llk_unpack_common.h"
 #include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-        0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
+        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /*num_faces */, 4 /* num_faces */);
+    _llk_unpack_AB_init_<>();
     for (int i = 0; i < params->TILE_CNT; i++)
     {
-        _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            L1_ADDRESS(params->buffer_A[i]), formats.unpack_src, formats.unpack_dst);
+        _llk_unpack_AB_<>(L1_ADDRESS(params->buffer_A[i]), L1_ADDRESS(params->buffer_B[i]));
     }
 }
 
@@ -36,47 +34,29 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #ifdef LLK_TRISC_MATH
 
-#include "ckernel_defs.h"
-#include "ckernel_sfpu.h"
 #include "llk_math_common.h"
-#include "llk_math_eltwise_binary_sfpu.h"
-#include "llk_math_eltwise_unary_datacopy.h"
+#include "llk_math_eltwise_binary.h"
 #include "params.h"
-#include "sfpu_operations.h"
-
-using namespace ckernel::sfpu;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const bool is_int_fpu_en = false;
-
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-
-#ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(4, formats.math);
-#else
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats.math);
-#endif
+    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE, MATH_FIDELITY>(4, 0);
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     for (int i = 0; i < params->TILE_CNT; i++)
     {
         LLK_ASSERT(
             (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-            i, formats.math, formats.math);
+        _llk_math_eltwise_binary_<
+            ELTWISE_BINARY_OP,
+            BroadcastType::NONE,
+            DstSync::SyncHalf,
+            is_fp32_dest_acc_en,
+            MATH_FIDELITY,
+            EltwiseBinaryReuseDestType::NONE>(4, i, false);
     }
-
-    _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
-
-    // Note: argument passed to _llk_math_eltwise_binary_sfpu_start_ is dest index of first operand, and
-    // argument passed of _calculate_sfpu_binary_ is dest index of the second operand
-
-    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
-    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, 32, formats.math>(0, 1, 0);
-
-    _llk_math_eltwise_binary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -91,9 +71,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 void run_kernel(const volatile struct RuntimeParams *params)
 {
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #endif
 
     _llk_pack_init_<false, false>(formats.pack_dst);
@@ -101,7 +81,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>();
 #endif
 
     _llk_packer_wait_for_math_done_();

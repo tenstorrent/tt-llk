@@ -95,7 +95,6 @@ def test_perf_eltwise_binary_sfpu_float(
             PerfRunType.L1_CONGESTION,
         ],
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
             APPROX_MODE(approx_mode),
             ITERATIONS(iterations),

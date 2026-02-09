@@ -29,7 +29,7 @@ from ttexalens.tt_exalens_lib import (
 )
 
 from .fused_operation import FusedOperation
-from .llk_params import DataFormat, Mailbox, format_dict
+from .llk_params import DataFormat, MailboxesPerf, format_dict
 from .pack import (
     pack_bfp8_b,
     pack_bfp16,
@@ -45,13 +45,15 @@ from .target_config import TestTargetConfig
 from .tilize_untilize import untilize_block
 from .unpack import unpack_res_tiles
 
+Mailbox = MailboxesPerf
+
 
 class LLKAssertException(Exception):
     pass
 
 
-# Constant - indicates the TRISC kernel run status
-KERNEL_COMPLETE = 1  # Kernel completed its run
+# Constant - indicates BRISC has finished orchestrating the test
+BRISC_DONE = 1  # BRISC writes 1 to mailbox_brisc when all TRISCs are done
 
 
 class BootMode(Enum):
@@ -209,7 +211,7 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]) -> str:
 
 
 def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
-    trisc_cores = [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2]
+    trisc_cores = [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2, RiscCore.BRISC]
     assertion_hits = []
     temp_stack_traces = ""
     for core in trisc_cores:
@@ -225,20 +227,58 @@ def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
         raise LLKAssertException(temp_stack_traces)
 
 
+def make_sure_all_out_of_reset(location: str = "0,0", backoff=0.01):
+    full_mask = get_soft_reset_mask(ALL_CORES)
+    end_time = time.time() + backoff
+    while True:
+        soft_reset = get_register_store(location, 0).read_register(
+            "RISCV_DEBUG_REG_SOFT_RESET_0"
+        )
+
+        if soft_reset & full_mask == 0:
+            break
+
+        if time.time() > end_time:
+            raise Exception(
+                f"Triscs not started within {backoff}s! BRSIC ebreak: {is_assert_hit('BRISC', location)}. Reset reg: {hex(soft_reset)} "
+            )
+
+
+def make_sure_core_in_reset(
+    location: str = "0,0",
+    place: str = "",
+    cores: list[RiscCore] = ALL_CORES,
+    backoff=0.01,
+):
+    full_mask = get_soft_reset_mask(cores)
+    end_time = time.time() + backoff
+    while time.time() < end_time:
+        soft_reset = get_register_store(location, 0).read_register(
+            "RISCV_DEBUG_REG_SOFT_RESET_0"
+        )
+
+        if (soft_reset & full_mask) == get_soft_reset_mask(cores):
+            return
+
+    raise Exception(f"Not all in reset within {backoff}s at {place}")
+
+
 def wait_for_tensix_operations_finished(
     elfs, core_loc="0,0", timeout=2, max_backoff=0.1
 ):
     """
-    Polls a value from the device with an exponential backoff timer and fails if it doesn't read 1 within the timeout.
+    Waits for BRISC to signal that all TRISC kernels have completed.
+
+    BRISC orchestrates the TRISCs internally: it unresets them, waits for each
+    TRISC mailbox to reach 0xFF, then writes 1 to mailbox_brisc to signal the
+    host that everything is done.
 
     Args:
+        elfs: List of ELF file paths (used for assert diagnostics).
         location: The location of the core to poll.
-        mailbox_addr: The mailbox address to read from.
-        timeout: Maximum time to wait (in seconds) before timing out. Default is 30 seconds. If running on a simulator it is 600 seconds.
-        max_backoff: Maximum backoff time (in seconds) between polls. Default is 5 seconds.
+        timeout: Maximum time to wait (in seconds) before timing out.
+        max_backoff: Maximum backoff time (in seconds) between polls.
     """
-
-    mailboxes = {Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer}
 
     test_target = TestTargetConfig()
     timeout = 600 if test_target.run_simulator else timeout
@@ -248,14 +288,9 @@ def wait_for_tensix_operations_finished(
     start_time = time.time()
     backoff = 0.005  # Initial backoff time in seconds
 
-    completed = set()
     end_time = start_time + timeout
     while time.time() < end_time:
-        for mailbox in mailboxes - completed:
-            if read_word_from_device(core_loc, mailbox.value) == KERNEL_COMPLETE:
-                completed.add(mailbox)
-
-        if completed == mailboxes:
+        if read_word_from_device(core_loc, Mailbox.Brisc.value) == BRISC_DONE:
             return
 
         # Disable any waiting if running on simulator
@@ -269,18 +304,21 @@ def wait_for_tensix_operations_finished(
         core_loc=core_loc,
     )
 
-    trisc_hangs = [mailbox.name for mailbox in (mailboxes - completed)]
     raise TimeoutError(
-        f"Timeout reached: waited {timeout} seconds for {', '.join(trisc_hangs)}"
+        f"Timeout reached: waited {timeout} seconds for BRISC done signal"
     )
 
 
 def reset_mailboxes(location: str = "0,0"):
-    """Reset all core mailboxes before each test."""
-    reset_value = 0  # Constant - indicates the TRISC kernel run status
+    """Reset all core mailboxes (Brisc, Unpacker, Math, Packer) before each test.
 
-    target_addr = min(Mailbox.Packer.value, Mailbox.Math.value, Mailbox.Unpacker.value)
-    write_words_to_device(location=location, addr=target_addr, data=3 * [reset_value])
+    BRISC checks that all 4 mailboxes are zero-initialized on startup.
+    """
+
+    mailboxes_start_value = min([core.value for core in Mailbox])
+    write_words_to_device(
+        location=location, addr=mailboxes_start_value, data=len(Mailbox) * [0xA3]
+    )
 
 
 def pull_coverage_stream_from_tensix(
@@ -328,7 +366,7 @@ def write_pipeline_operands_to_l1(
     location: str = "0,0",
 ):
     TILE_ELEMENTS = 1024
-    current_address = 0x1A000
+    current_address = 0x21000
 
     def calculate_size(data_format: DataFormat, tile_count: int) -> int:
         return data_format.num_bytes_per_tile(TILE_ELEMENTS) * tile_count

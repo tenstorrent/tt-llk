@@ -39,7 +39,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
-        _llk_unpack_tilize_init_(formats.unpack_src, formats.unpack_dst, BLOCK_CT_DIM, FACE_R_DIM, false);
+        _llk_unpack_tilize_init_(formats.unpack_src, formats.unpack_dst, params->BLOCK_CT_DIM, FACE_R_DIM, false);
         PROFILER_SYNC();
     }
 
@@ -52,10 +52,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
         {
-            for (std::uint32_t i = 0; i < BLOCK_RT_DIM; i++)
+            for (std::uint32_t i = 0; i < params->BLOCK_RT_DIM; i++)
             {
                 const std::uint32_t tile_row_addr = L1_ADDRESS(src + (i % 8) * 0x1000); // TODO SS<-LP use PERF_ADDRESS here
-                for (std::uint32_t j = 0; j < BLOCK_CT_DIM; j++)
+                for (std::uint32_t j = 0; j < params->BLOCK_CT_DIM; j++)
                 {
                     _llk_unpack_tilize_(tile_row_addr, j, formats.unpack_src, formats.unpack_dst, 0, FACE_R_DIM, 4, false);
                 }

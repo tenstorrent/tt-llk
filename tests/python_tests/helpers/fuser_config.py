@@ -7,6 +7,7 @@ from functools import reduce
 from typing import List
 
 import pandas as pd
+import pytest
 from helpers.device import (
     collect_pipeline_results,
     write_pipeline_operands_to_l1,
@@ -207,7 +208,7 @@ class FuserConfig:
         from .fused_generator import FUSED_TESTS_DIR
         from .fused_golden import FusedGolden
 
-        write_pipeline_operands_to_l1(self.pipeline)
+        
 
         cpp_path = FUSED_TESTS_DIR / f"{self.global_config.test_name}.cpp"
 
@@ -216,6 +217,8 @@ class FuserConfig:
 
         if TestConfig.MODE == TestMode.PRODUCE:
             return
+
+        write_pipeline_operands_to_l1(self.pipeline, location)
 
         elfs = test_config.run_elf_files(location)
         wait_for_tensix_operations_finished(elfs, location)

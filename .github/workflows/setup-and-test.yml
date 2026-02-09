@@ -135,6 +135,8 @@ jobs:
                 --override-ini="addopts=-v" --timeout=60 \
                 --junitxml=pytest-report-${CHIP_ARCH}-${{ matrix.test_group }}-compile.xml .
 
+          tt-smi -r
+
           echo "Running tests"
           pytest $COVERAGE_FLAG --compile-consumer -x \
                 -m "${{ inputs.pytest_markers }}" \
