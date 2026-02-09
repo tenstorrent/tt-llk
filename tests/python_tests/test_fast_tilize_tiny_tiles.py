@@ -13,6 +13,7 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     INPUT_DIMENSIONS,
     LOOP_FACTOR,
+    NUM_FACES,
     TILE_COUNT,
 )
 from helpers.tilize_untilize import tilize_block
@@ -69,7 +70,7 @@ def test_fast_tilize_tiny_tiles(
         "sources/fast_tilize_test.cpp",
         formats,
         templates=[INPUT_DIMENSIONS(input_dimensions, input_dimensions)],
-        runtimes=[TILE_COUNT(tile_cnt_A), LOOP_FACTOR(1)],
+        runtimes=[TILE_COUNT(tile_cnt_A), LOOP_FACTOR(1), NUM_FACES(2)],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

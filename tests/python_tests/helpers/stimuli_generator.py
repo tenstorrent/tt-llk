@@ -105,14 +105,6 @@ def _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu):
     return face_data
 
 
-def generate_random_face(
-    stimuli_format: DataFormat,
-    rows: int,
-    cols: int,
-) -> torch.Tensor:
-    return torch.rand(rows, cols, dtype=format_dict[stimuli_format])
-
-
 def generate_identity_face(
     stimuli_format: DataFormat, rows: int, cols: int
 ) -> torch.Tensor:

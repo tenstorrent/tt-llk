@@ -503,13 +503,16 @@ inline void _llk_math_fast_tilize_uninit_(const std::uint32_t unpack_dst_format)
 }
 
 inline void _llk_math_fast_tilize_block_(
-    const std::uint32_t dst_index, const std::uint32_t unpack_dst_format, const std::uint32_t unit_dim, const std::uint32_t num_units)
+    const std::uint32_t dst_index,
+    const std::uint32_t unpack_dst_format,
+    const std::uint32_t unit_dim,
+    const std::uint32_t num_units,
+    const std::uint32_t num_faces = 4)
 {
     // split dest and write the top faces in the first half and the bottom faces in the second half (or more precisely quarter, since dest sync half)
     // make life easier by lying to set_dst_write_addr that tile shape is 32x16 so correct stride is obtained for dst_index
     math::set_dst_write_addr<DstTileShape::Tile32x16, UnpackDestination::SrcRegs>(dst_index);
 
-    uint32_t num_faces = 2;
     for (uint i = 0; i < num_units; i++)
     {
         if (unit_dim == 1)

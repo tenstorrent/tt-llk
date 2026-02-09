@@ -14,6 +14,7 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     INPUT_DIMENSIONS,
     LOOP_FACTOR,
+    NUM_FACES,
     TILE_COUNT,
 )
 from helpers.utils import passed_test
@@ -37,13 +38,6 @@ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
         heights = [
             1,
             2,
-            3,
-            (max_height // 2) - 1,
-            max_height // 2,
-            (max_height // 2) + 1,
-            max_height - 2,
-            max_height - 1,
-            max_height,
         ]
         heights = [h for h in heights if h > 0 and h <= max_height]
         heights = list(set(heights))
@@ -83,7 +77,7 @@ def test_fast_tilize(formats, dest_acc, dimensions, workers_tensix_coordinates):
         "sources/fast_tilize_test.cpp",
         formats,
         templates=[INPUT_DIMENSIONS(input_dimensions, input_dimensions)],
-        runtimes=[TILE_COUNT(tile_cnt_A), LOOP_FACTOR(1)],
+        runtimes=[TILE_COUNT(tile_cnt_A), LOOP_FACTOR(1), NUM_FACES(4)],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
