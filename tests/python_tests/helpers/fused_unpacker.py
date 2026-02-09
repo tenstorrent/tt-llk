@@ -590,3 +590,65 @@ class UnpackerTilizeA(Unpacker):
             raise ValueError("Architecture is not supported")
 
         return code
+
+
+class ReduceBlockMaxUnpacker:
+    def init(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
+    ) -> str:
+        ct_dim = operation.ct_dim
+        dest_acc = config.dest_acc.value
+        return f"_llk_unpack_AB_reduce_block_max_row_init_<{ct_dim}, {dest_acc}>();\n"
+
+    def unpack(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
+        tile_idx_expr: str,
+    ) -> str:
+        stage = operation.stage_id
+        return f"_llk_unpack_AB_reduce_block_max_row_(L1_ADDRESS(buffer_A{stage}[{tile_idx_expr}]), L1_ADDRESS(buffer_B{stage}[{tile_idx_expr}]));\n"
+
+    def uninit(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
+    ) -> str:
+        face_r_dim = operation.face_r_dim
+        return f"_llk_unpack_AB_reduce_block_max_row_uninit_({face_r_dim}, {face_r_dim});\n"
+
+    def perf_set_valid(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
+    ) -> str:
+        num_faces = operation.num_faces
+        return f"_perf_unpack_loop_set_valid<true, true>({num_faces});\n"
+
+    def perf_clear_valid(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
+    ) -> str:
+        num_faces = operation.num_faces
+        return f"_perf_math_loop_clear_valid<true, true>({num_faces});\n"
+
+    def get_headers(self) -> List[str]:
+        return ["llk_unpack_AB_reduce_custom.h"]
+
+    def golden(
+        self,
+        tensor_a: torch.Tensor,
+        tensor_b: torch.Tensor,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode" = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        return tensor_a, tensor_b

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
 
-from .fused_fpu import ReduceFpu
+from .fused_fpu import ReduceBlockMaxFpu, ReduceFpu
 from .llk_params import PerfRunType
 
 
@@ -191,6 +191,10 @@ class Packer:
             reduce_dim = operation.math.get_reduce_pack_mask()
             code += f"    _llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
 
+        elif operation.math.has_fpu(ReduceBlockMaxFpu):
+            reduce_dim = "ckernel::ReduceDim::REDUCE_ROW"
+            code += f"    _llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
+
         return code
 
     def pack(
@@ -208,7 +212,9 @@ class Packer:
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         code = ""
 
-        if operation.math.has_fpu(ReduceFpu):
+        if operation.math.has_fpu(ReduceFpu) or operation.math.has_fpu(
+            ReduceBlockMaxFpu
+        ):
             code = "    _llk_pack_reduce_mask_clear_();\n"
 
         return code
