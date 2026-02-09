@@ -184,7 +184,7 @@ inline void _llk_pack_uninit_(const std::uint32_t face_r_dim)
 template <DstSync Dst, bool is_fp32_dest_acc_en, bool untilize = false>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address)
 {
-    TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, tile_index);
+    set_dst_write_addr(tile_index);
 
     program_packer_destination(address);
 
@@ -282,11 +282,11 @@ inline void _llk_pack_fast_tilize_init_(const std::uint32_t use_32bit_dest, cons
     // set the address offset to the size of the tile in 16B words
     std::uint32_t tile_size = SCALE_DATUM_SIZE(pack_dst_format, TILE_C_DIM * TILE_R_DIM);
     // Not sure why BFP formats are not included SCALE_DATUM_SIZE but too scared to change that.
-    if (pack_dst_format == (std::uint32_t)DataFormat::Bfp4 || pack_dst_format == (std::uint32_t)DataFormat::Bfp4_b)
+    if (pack_dst_format == to_underlying(DataFormat::Bfp4) || pack_dst_format == to_underlying(DataFormat::Bfp4_b))
     {
         tile_size = tile_size / 2; // 2 BFP4 datums per byte
     }
-    else if (pack_dst_format == (std::uint32_t)DataFormat::Bfp2 || pack_dst_format == (std::uint32_t)DataFormat::Bfp2_b)
+    else if (pack_dst_format == to_underlying(DataFormat::Bfp2) || pack_dst_format == to_underlying(DataFormat::Bfp2_b))
     {
         tile_size = tile_size / 4; // 4 BFP2 datums per byte
     }

@@ -10,7 +10,7 @@
 #include "ckernel.h"
 
 // FIXME: this shouldn't be statically allocated
-constexpr std::uint32_t PERF_INPUT_A = 0x1A000;
+constexpr std::uint32_t PERF_INPUT_A = 0x21000;
 constexpr std::uint32_t PERF_INPUT_B = PERF_INPUT_A + 16 * 4096;
 constexpr std::uint32_t PERF_INPUT_C = PERF_INPUT_B + 16 * 4096;
 constexpr std::uint32_t PERF_OUTPUT  = PERF_INPUT_C + 16 * 4096;
@@ -130,7 +130,7 @@ inline void _perf_unpack_matmul_mock(std::uint32_t loop_factor, std::uint32_t rt
             std::uint32_t reuse_iter = 0;
             while (reuse_iter < reuse_loop)
             {
-                const std::uint32_t reuse_burst = std::min((std::uint32_t)2, reuse_loop - reuse_iter);
+                const std::uint32_t reuse_burst = std::min(static_cast<std::uint32_t>(2), reuse_loop - reuse_iter);
 
                 for (std::uint32_t i = 0; i < reuse_burst; i++)
                 {
@@ -199,7 +199,7 @@ inline void _perf_math_matmul_mock(std::uint32_t loop_factor, std::uint32_t rt_d
             std::uint32_t reuse_iter = 0;
             while (reuse_iter < reuse_loop)
             {
-                const std::uint32_t reuse_burst = std::min((std::uint32_t)2, reuse_loop - reuse_iter);
+                const std::uint32_t reuse_burst = std::min(static_cast<std::uint32_t>(2), reuse_loop - reuse_iter);
 
                 for (std::uint32_t i = 0; i < reload_loop; i++)
                 {
