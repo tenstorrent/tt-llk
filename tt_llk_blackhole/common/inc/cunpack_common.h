@@ -565,20 +565,24 @@ inline bool is_unpacker_A_configured_correctly(
     std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec = read_unpack_tile_descriptor();
     std::array<unpack_config_t, NUM_UNPACKERS> config_vec                   = read_unpack_config();
 
-    const unpack_tile_descriptor_t &tile_descriptor_cntx0 = tile_descriptor_vec[0];
+    const unpack_tile_descriptor_t &tile_descriptor_cntx0     = tile_descriptor_vec[0];
+    const std::uint32_t tile_descriptor_cntx0_in_data_format  = tile_descriptor_cntx0.in_data_format;
+    const std::uint32_t tile_descriptor_cntx0_out_data_format = config_vec[0].out_data_format;
+    const std::uint32_t tile_descriptor_cntx0_z_dim           = tile_descriptor_cntx0.z_dim;
     const bool isDataFormatCorrect =
-        (tile_descriptor_cntx0.in_data_format == (unpA_src_format & 0x0F) && config_vec[0].out_data_format == (unpA_dst_format & 0x0F));
+        (tile_descriptor_cntx0_in_data_format == (unpA_src_format & 0x0F) && tile_descriptor_cntx0_out_data_format == (unpA_dst_format & 0x0F));
 
     if constexpr (program_type == UnpackerProgramType::ProgramByTile)
     {
-        volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer();
-        const std::uint32_t face_dim           = unpA_face_r_dim * FACE_C_DIM;
-        const bool isUnpAFaceRDimCorrect       = (cfg[THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32] == (face_dim | (face_dim << 16)));
+        volatile std::uint32_t tt_reg_ptr *cfg     = get_cfg_pointer();
+        const std::uint32_t face_dim               = unpA_face_r_dim * FACE_C_DIM;
+        const std::uint32_t tile_x_dim_cntx0_value = cfg[THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32];
+        const bool isUnpAFaceRDimCorrect           = (tile_x_dim_cntx0_value == (face_dim | (face_dim << 16)));
         return isDataFormatCorrect && isUnpAFaceRDimCorrect;
     }
     else
     {
-        const bool isNumFacesCorrect = tile_descriptor_cntx0.z_dim == unpA_num_faces;
+        const bool isNumFacesCorrect = tile_descriptor_cntx0_z_dim == unpA_num_faces;
         return isDataFormatCorrect && isNumFacesCorrect;
     }
 }
@@ -618,23 +622,33 @@ inline bool are_unpacker_AB_configured_correctly(
     std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec = read_unpack_tile_descriptor();
     std::array<unpack_config_t, NUM_UNPACKERS> config_vec                   = read_unpack_config();
 
-    const unpack_tile_descriptor_t &tile_descriptor_cntx0 = tile_descriptor_vec[0];
-    const unpack_tile_descriptor_t &tile_descriptor_cntx1 = tile_descriptor_vec[1];
+    const unpack_tile_descriptor_t &tile_descriptor_cntx0    = tile_descriptor_vec[0];
+    const unpack_tile_descriptor_t &tile_descriptor_cntx1    = tile_descriptor_vec[1];
+    const std::uint32_t config_cntx0_out_data_format         = config_vec[0].out_data_format;
+    const std::uint32_t config_cntx1_out_data_format         = config_vec[1].out_data_format;
+    const std::uint32_t tile_descriptor_cntx0_in_data_format = tile_descriptor_cntx0.in_data_format;
+    const std::uint32_t tile_descriptor_cntx1_in_data_format = tile_descriptor_cntx1.in_data_format;
     const bool areDataFormatsCorrect =
-        (tile_descriptor_cntx0.in_data_format == (unpA_src_format & 0x0F) && config_vec[0].out_data_format == (unpA_dst_format & 0x0F)) &&
-        (tile_descriptor_cntx1.in_data_format == (unpB_src_format & 0x0F) && config_vec[1].out_data_format == (unpB_dst_format & 0x0F));
+        (tile_descriptor_cntx0_in_data_format == (unpA_src_format & 0x0F) && config_cntx0_out_data_format == (unpA_dst_format & 0x0F)) &&
+        (tile_descriptor_cntx1_in_data_format == (unpB_src_format & 0x0F) && config_cntx1_out_data_format == (unpB_dst_format & 0x0F));
 
     if constexpr (program_type == UnpackerProgramType::ProgramByTile)
     {
-        volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer();
-        const std::uint32_t face_dim           = unpA_face_r_dim * FACE_C_DIM;
-        const bool isUnpAFaceRDimCorrect       = (cfg[THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32] == (face_dim | (face_dim << 16)));
-        const bool areFaceDimensionsCorrect    = tile_descriptor_cntx1.x_dim == unpB_face_r_dim * FACE_C_DIM;
+        volatile std::uint32_t tt_reg_ptr *cfg     = get_cfg_pointer();
+        const std::uint32_t tile_x_dim_cntx0_value = cfg[THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32];
+        const std::uint32_t face_dim               = unpA_face_r_dim * FACE_C_DIM;
+        const bool isUnpAFaceRDimCorrect           = (tile_x_dim_cntx0_value == (face_dim | (face_dim << 16)));
+
+        const std::uint32_t tile_x_dim_cntx1_value = tile_descriptor_cntx1.x_dim;
+        const bool areFaceDimensionsCorrect        = tile_x_dim_cntx1_value == unpB_face_r_dim * FACE_C_DIM;
+
         return areDataFormatsCorrect && isUnpAFaceRDimCorrect && areFaceDimensionsCorrect;
     }
     else
     {
-        const bool areNumFacesCorrect = tile_descriptor_cntx0.z_dim == unpA_num_faces && tile_descriptor_cntx1.z_dim == unpB_num_faces;
+        const std::uint32_t tile_descriptor_cntx0_z_dim = tile_descriptor_cntx0.z_dim;
+        const std::uint32_t tile_descriptor_cntx1_z_dim = tile_descriptor_cntx1.z_dim;
+        const bool areNumFacesCorrect                   = tile_descriptor_cntx0_z_dim == unpA_num_faces && tile_descriptor_cntx1_z_dim == unpB_num_faces;
         return areDataFormatsCorrect && areNumFacesCorrect;
     }
 }

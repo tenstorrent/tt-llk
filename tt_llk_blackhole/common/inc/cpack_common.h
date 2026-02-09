@@ -693,13 +693,16 @@ inline bool are_packers_configured_correctly(
         asm volatile("nop");
     }
 
-    std::array<pack_config_t, NUM_PACKERS> config_vec     = read_pack_config();
-    std::array<pack_counters_t, NUM_PACKERS> counters_vec = read_pack_counters();
+    const std::array<pack_config_t, NUM_PACKERS> config_vec     = read_pack_config();
+    const std::array<pack_counters_t, NUM_PACKERS> counters_vec = read_pack_counters();
 
     for (std::uint32_t i = 0; i < NUM_PACKERS; i++)
     {
-        const bool isDataFormatCorrect = (config_vec[i].in_data_format == pack_src_format && config_vec[i].out_data_format == pack_dst_format);
-        const bool isFaceRDimCorrect   = (program_type == PackerProgramType::ProgramByTile) ? true : (counters_vec[i].pack_reads_per_xy_plane == face_r_dim);
+        const std::uint32_t pack_src_format_i         = config_vec[i].in_data_format;
+        const std::uint32_t pack_dst_format_i         = config_vec[i].out_data_format;
+        const std::uint32_t pack_reads_per_xy_plane_i = counters_vec[i].pack_reads_per_xy_plane;
+        const bool isDataFormatCorrect                = (pack_src_format_i == pack_src_format && pack_dst_format_i == pack_dst_format);
+        const bool isFaceRDimCorrect                  = (program_type == PackerProgramType::ProgramByTile) ? true : (pack_reads_per_xy_plane_i == face_r_dim);
         if (!isDataFormatCorrect || !isFaceRDimCorrect)
         {
             return false;
