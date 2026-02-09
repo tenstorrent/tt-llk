@@ -35,8 +35,13 @@ class Packer:
     def _wait_for_math(self) -> str:
         return "_llk_packer_wait_for_math_done_();\n"
 
-    def _dest_section_done(self, config: "GlobalConfig") -> str:
-        return f"_llk_pack_dest_section_done_<DstSync::SyncHalf, {config.dest_acc.value}>();\n"
+    def _dest_section_done(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        dest_sync = f"DstSync::Sync{operation.dest_sync.name}"
+        return (
+            f"_llk_pack_dest_section_done_<{dest_sync}, {config.dest_acc.value}>();\n"
+        )
 
     def _batch_loop(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         batch_size = operation.batch_size
@@ -54,7 +59,7 @@ class Packer:
             code += f"std::uint32_t tile_idx = batch * {batch_size} + i;\n"
             code += self.pack(operation, config, "i", "tile_idx")
             code += "}\n"
-            code += self._dest_section_done(config)
+            code += self._dest_section_done(operation, config)
             code += "}\n"
 
         if remaining_tiles > 0:
@@ -63,7 +68,7 @@ class Packer:
             code += f"std::uint32_t tile_idx = {num_full_batches * batch_size} + i;\n"
             code += self.pack(operation, config, "i", "tile_idx")
             code += "}\n"
-            code += self._dest_section_done(config)
+            code += self._dest_section_done(operation, config)
 
         return code
 

@@ -178,7 +178,7 @@ class FusedOperation:
 
     def __str__(self):
         return (
-            f"\n{'='*60}\n"
+            f"{'='*60}\n"
             f"Operation {self.stage_id}\n"
             f"{'='*60}\n"
             f"  {self.math}\n"
@@ -188,4 +188,5 @@ class FusedOperation:
             f"  Output: {self.output}\n"
             f"  Math Fidelity: {self.math_fidelity}\n"
             f"  Batch Size: {self.batch_size}\n"
+            f"  Dest Sync: {self.dest_sync}"
         )
