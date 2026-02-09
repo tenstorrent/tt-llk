@@ -256,12 +256,14 @@ def _stats_pack_isolate(data: ProfilerData) -> pd.DataFrame:
 
 
 def _stats_l1_congestion(data: ProfilerData) -> pd.DataFrame:
-    stats = [
-        _stats_thread(f"{PerfRunType.L1_CONGESTION.name}[UNPACK]", data.unpack().raw()),
-        _stats_thread(f"{PerfRunType.L1_CONGESTION.name}[PACK]", data.pack().raw()),
-    ]
+    unpack_stats = _stats_thread(
+        f"{PerfRunType.L1_CONGESTION.name}[UNPACK]", data.unpack().raw()
+    )
+    pack_stats = _stats_thread(
+        f"{PerfRunType.L1_CONGESTION.name}[PACK]", data.pack().raw()
+    )
 
-    return pd.concat(stats, ignore_index=True)
+    return pd.merge(unpack_stats, pack_stats, on="marker", how="outer")
 
 
 class EntryType(Enum):
