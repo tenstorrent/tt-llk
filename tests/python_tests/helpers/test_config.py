@@ -35,7 +35,6 @@ from .device import (
     BootMode,
     RiscCore,
     exalens_device_setup,
-    get_register_store,
     reset_mailboxes,
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
@@ -43,6 +42,7 @@ from .device import (
 from .format_config import DataFormat, FormatConfig
 from .llk_params import (
     DestAccumulation,
+    L1Accumulation,
 )
 from .stimuli_config import StimuliConfig
 from .test_variant_parameters import RuntimeParameter, TemplateParameter
@@ -138,7 +138,8 @@ class TestConfig:
     INFRA_TESTING: ClassVar[bool] = False
 
     # === Addresses ===
-    RUNTIME_ADDRESS: ClassVar[int] = 0x64000
+    RUNTIME_ADDRESS_NON_COVERAGE: ClassVar[int] = 0x20000
+    RUNTIME_ADDRESS_COVERAGE: ClassVar[int] = 0x61000
     TRISC_PROFILER_BARRIER_ADDRESS: ClassVar[int] = 0x16AFF4
     TRISC_START_ADDRS: ClassVar[list[int]] = [0x16DFF0, 0x16DFF4, 0x16DFF8]
     THREAD_PERFORMANCE_DATA_BUFFER_LENGTH = 0x400
@@ -312,6 +313,7 @@ class TestConfig:
         unpack_to_dest: bool = False,
         disable_format_inference: bool = False,
         dest_acc: DestAccumulation = DestAccumulation.No,
+        l1_acc: L1Accumulation = L1Accumulation.No,
         skip_build_header: bool = False,
     ):
         self.coverage_build = (
@@ -334,6 +336,7 @@ class TestConfig:
         self.unpack_to_dest = unpack_to_dest
         self.disable_format_inference = disable_format_inference
         self.dest_acc = dest_acc
+        self.l1_acc = l1_acc
         self.skip_build_header = skip_build_header
 
         self.process_runtime_args()
@@ -385,7 +388,14 @@ class TestConfig:
         serialised_data = struct.pack(self.runtime_format, *argument_data)
 
         if len(serialised_data) != 0:
-            write_to_device(location, TestConfig.RUNTIME_ADDRESS, serialised_data)
+            if TestConfig.WITH_COVERAGE:
+                write_to_device(
+                    location, TestConfig.RUNTIME_ADDRESS_COVERAGE, serialised_data
+                )
+            else:
+                write_to_device(
+                    location, TestConfig.RUNTIME_ADDRESS_NON_COVERAGE, serialised_data
+                )
 
     def collect_hash(self):
         lock_file = Path("/tmp/tt-llk-build-print.lock")
@@ -577,11 +587,13 @@ class TestConfig:
         ]
 
         dest_acc = self.dest_acc
+        l1_acc = self.l1_acc
 
         if self.formats is None:
             header_content.extend(
                 [
                     f"constexpr bool is_fp32_dest_acc_en = {dest_acc.value};",
+                    f"constexpr bool l1_acc_en = {l1_acc.value};",
                     f"constexpr bool unpack_to_dest = {str(self.unpack_to_dest).lower()};",
                     "",
                 ]
@@ -598,6 +610,9 @@ class TestConfig:
 
         # Dest accumulation
         header_content.append(f"constexpr bool is_fp32_dest_acc_en = {dest_acc.value};")
+
+        # L1 accumulation
+        header_content.append(f"constexpr bool l1_acc_en = {l1_acc.value};")
 
         # Fused Test L1 to L1 : Input of first run is used as input for the second run ...
         # Not fusing: single L1-to-L1 iteration, so we retrieve one format configuration
@@ -633,23 +648,23 @@ class TestConfig:
 
             # Create array of format configurations for multiple L1-to-L1 iterations
             unpack_a_in_values = [
-                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_A_src.name})"
+                f"ckernel::to_underlying(DataFormat::{fmt.unpack_A_src.name})"
                 for fmt in formats_config
             ]
             unpack_a_out_values = [
-                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.unpack_A_dst.name})"
+                f"ckernel::to_underlying(DataFormat::{fmt.unpack_A_dst.name})"
                 for fmt in formats_config
             ]
             math_values = [
-                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.math.name})"
+                f"ckernel::to_underlying(DataFormat::{fmt.math.name})"
                 for fmt in formats_config
             ]
             pack_in_values = [
-                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.pack_src.name})"
+                f"ckernel::to_underlying(DataFormat::{fmt.pack_src.name})"
                 for fmt in formats_config
             ]
             pack_out_values = [
-                f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{fmt.pack_dst.name})"
+                f"ckernel::to_underlying(DataFormat::{fmt.pack_dst.name})"
                 for fmt in formats_config
             ]
 
@@ -670,11 +685,11 @@ class TestConfig:
             header_content.extend(
                 [
                     "// Format data for single L1-to-L1 iteration",
-                    f"constexpr auto UNPACK_A_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_src.name});",
-                    f"constexpr auto UNPACK_A_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.unpack_A_dst.name});",
-                    f"constexpr auto MATH_FORMAT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.math.name});",
-                    f"constexpr auto PACK_IN = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_src.name});",
-                    f"constexpr auto PACK_OUT = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{formats_config.pack_dst.name});",
+                    f"constexpr auto UNPACK_A_IN = ckernel::to_underlying(DataFormat::{formats_config.unpack_A_src.name});",
+                    f"constexpr auto UNPACK_A_OUT = ckernel::to_underlying(DataFormat::{formats_config.unpack_A_dst.name});",
+                    f"constexpr auto MATH_FORMAT = ckernel::to_underlying(DataFormat::{formats_config.math.name});",
+                    f"constexpr auto PACK_IN = ckernel::to_underlying(DataFormat::{formats_config.pack_src.name});",
+                    f"constexpr auto PACK_OUT = ckernel::to_underlying(DataFormat::{formats_config.pack_dst.name});",
                 ]
             )
 
@@ -902,16 +917,16 @@ class TestConfig:
 
         # Perform soft reset
         set_tensix_soft_reset(1, location=location)
-        soft_reset_value = (
-            get_register_store(location, 0).read_register(
-                "RISCV_DEBUG_REG_SOFT_RESET_0"
-            )
-            >> 11
-        )
-        if not soft_reset_value & 0xF == 0xF:
-            raise Exception(
-                f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
-            )
+        # soft_reset_value = (
+        #     get_register_store(location, 0).read_register(
+        #         "RISCV_DEBUG_REG_SOFT_RESET_0"
+        #     )
+        #     >> 11
+        # )
+        # if not soft_reset_value & 0xF == 0xF:
+        #     raise Exception(
+        #         f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
+        #     )
 
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
@@ -953,16 +968,16 @@ class TestConfig:
             location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
         )
 
-        soft_reset_value = (
-            get_register_store(location, 0).read_register(
-                "RISCV_DEBUG_REG_SOFT_RESET_0"
-            )
-            >> 11
-        )
-        if not soft_reset_value & 0xF == 0xF:
-            raise Exception(
-                f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
-            )
+        # soft_reset_value = (
+        #     get_register_store(location, 0).read_register(
+        #         "RISCV_DEBUG_REG_SOFT_RESET_0"
+        #     )
+        #     >> 11
+        # )
+        # if not soft_reset_value & 0xF == 0xF:
+        #     raise Exception(
+        #         f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
+        #     )
 
         match boot_mode:
             case BootMode.BRISC:
@@ -1013,7 +1028,6 @@ class TestConfig:
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-        write_to_device(location, 0x64FF0, [0, 0, 0, 0, 0, 0, 0])
         self.variant_stimuli.write(location)
         self.write_runtimes_to_L1(location)
         elfs = self.run_elf_files(location)

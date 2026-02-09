@@ -12,11 +12,10 @@ from typing import Any, ClassVar
 
 import pandas as pd
 import pytest
-from ttexalens.tt_exalens_lib import write_to_device
 
 from .device import BootMode, wait_for_tensix_operations_finished
 from .format_config import FormatConfig
-from .llk_params import DestAccumulation, PerfRunType
+from .llk_params import DestAccumulation, L1Accumulation, PerfRunType
 from .profiler import Profiler, ProfilerData
 from .stimuli_config import StimuliConfig
 from .test_config import ProfilerBuild, TestConfig, TestMode
@@ -280,6 +279,7 @@ class PerfConfig(TestConfig):
         unpack_to_dest=False,
         disable_format_inference=False,
         dest_acc=DestAccumulation.No,
+        l1_acc=L1Accumulation.No,
     ):
         super().__init__(
             test_name,
@@ -293,6 +293,7 @@ class PerfConfig(TestConfig):
             unpack_to_dest,
             disable_format_inference,
             dest_acc,
+            l1_acc,
         )
 
         self.passed_templates = templates
@@ -318,6 +319,9 @@ class PerfConfig(TestConfig):
             "runtime_params_struct",
             "runtime_format",
             "runtimes",
+            "passed_templates",
+            "passed_runtimes",
+            "current_run_type",
         ]
         temp_str = [
             str(value)
@@ -332,7 +336,7 @@ class PerfConfig(TestConfig):
         """Return (name, value) pairs for dataclass fields, used as columns for the report."""
         return [(f.name, getattr(obj, f.name)) for f in fields(obj)]
 
-    def run(self, perf_report: PerfReport, run_count=5, location="0,0"):
+    def run(self, perf_report: PerfReport, run_count=2, location="0,0"):
         results = []
 
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
@@ -355,7 +359,6 @@ class PerfConfig(TestConfig):
             self.generate_variant_hash()
             variant_raw_data = []
             for _ in range(run_count):
-                write_to_device(location, 0x64FF0, [0, 0, 0, 0, 0, 0, 0])
                 self.write_runtimes_to_L1(location)
                 elfs = self.run_elf_files(location)
                 wait_for_tensix_operations_finished(elfs, location)

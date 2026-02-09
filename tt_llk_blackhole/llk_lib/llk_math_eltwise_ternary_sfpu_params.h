@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #pragma once
+#include <cstdint>
 #include <utility>
 
 #include "llk_math_eltwise_ternary_sfpu.h"
@@ -10,11 +11,17 @@
 
 template <bool APPROXIMATE, typename Callable, typename... Args>
 inline void _llk_math_eltwise_ternary_sfpu_params_(
-    Callable&& sfpu_func, uint dst_index_in0, uint dst_index_in1, uint dst_index_in2, uint dst_index_out, int vector_mode = (int)VectorMode::RC, Args&&... args)
+    Callable&& sfpu_func,
+    std::uint32_t dst_index_in0,
+    std::uint32_t dst_index_in1,
+    std::uint32_t dst_index_in2,
+    std::uint32_t dst_index_out,
+    int vector_mode = static_cast<int>(VectorMode::RC),
+    Args&&... args)
 {
     _llk_math_eltwise_ternary_sfpu_start_<DST_SYNC_MODE>(0); // Reuse same sync primitive
 
-    if (vector_mode == (int)VectorMode::R)
+    if (vector_mode == static_cast<int>(VectorMode::R))
     {
         // Row vector - Face0 + Face1
         for (int face = 0; face < 2; face++)
@@ -29,7 +36,7 @@ inline void _llk_math_eltwise_ternary_sfpu_params_(
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
         }
     }
-    else if (vector_mode == (int)VectorMode::C)
+    else if (vector_mode == static_cast<int>(VectorMode::C))
     {
         // Column vector - Face0 + Face2
         for (int face = 0; face < 2; face++)
@@ -41,7 +48,7 @@ inline void _llk_math_eltwise_ternary_sfpu_params_(
             }
         }
     }
-    else if (vector_mode == (int)VectorMode::RC)
+    else if (vector_mode == static_cast<int>(VectorMode::RC))
     {
         // All 4 faces
         for (int face = 0; face < 4; face++)

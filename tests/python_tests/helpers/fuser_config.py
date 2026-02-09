@@ -16,8 +16,9 @@ from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import wait_for_tensix_operations_finished
 from .format_config import DataFormat, FormatConfig
+from .fused_fpu import MatmulFpu
 from .fused_operation import FusedOperation
-from .llk_params import DestAccumulation, PerfRunType
+from .llk_params import DestAccumulation, DestSync, PerfRunType
 from .perf import PerfReport
 from .profiler import Profiler, ProfilerData
 from .test_config import BootMode, ProfilerBuild, TestConfig
@@ -71,6 +72,37 @@ class FuserConfig:
             operation.pack_out = formats_config.pack_dst
             operation.stage_id = i
             operation.num_stages = num_stages
+
+            if operation.dest_sync == DestSync.Half:
+                dest_capacity = (
+                    4 if self.global_config.dest_acc == DestAccumulation.Yes else 8
+                )
+            else:
+                dest_capacity = (
+                    8 if self.global_config.dest_acc == DestAccumulation.Yes else 16
+                )
+
+            output_tile_count = operation.output.tile_count
+
+            if output_tile_count > dest_capacity:
+                if operation.math.has_fpu(MatmulFpu):
+                    if operation.ct_dim > dest_capacity:
+                        raise ValueError(
+                            f"Matmul ct_dim ({operation.ct_dim}) exceeds dest capacity ({dest_capacity}). "
+                        )
+                    operation.batch_size = operation.ct_dim
+                else:
+                    operation.batch_size = min(operation.batch_size, dest_capacity)
+
+            operation.batch_size = min(operation.batch_size, output_tile_count)
+
+            if (
+                self.global_config.architecture == ChipArchitecture.BLACKHOLE
+                and operation.math.bh_unpack_tilize_check()
+            ):
+                raise ValueError(
+                    "Cannot fuse UnpackerTilizeA and other unpackers inside one l1-to-l1 run on Blackhole"
+                )
 
     def run(self, worker_id="master", location="0,0", run_count=2):
         from .fused_generator import FUSED_TESTS_DIR, FusedKernelGenerator

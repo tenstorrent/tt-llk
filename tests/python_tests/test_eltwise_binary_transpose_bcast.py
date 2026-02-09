@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
-from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     BroadcastGolden,
@@ -36,7 +35,6 @@ from helpers.tilize_untilize import tilize, tilize_block
 from helpers.utils import passed_test
 
 
-@skip_for_blackhole
 @parametrize(
     formats=input_output_formats(
         [
@@ -148,7 +146,7 @@ def test_eltwise_binary_transpose_bcast(
 
     assert len(res_from_L1) == len(
         golden_tensor
-    ), "Result tensor and golder tensor are not of the same length"
+    ), "Result tensor and golden tensor are not of the same length"
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)

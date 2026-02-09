@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
 
-from .fused_math import ReduceFpu
+from .fused_fpu import ReduceFpu
 from .llk_params import PerfRunType
 
 
@@ -30,34 +30,57 @@ class Packer:
         operation: "FusedOperation",
         config: "GlobalConfig",
     ) -> torch.Tensor:
-        tensor = tensor.reshape(operation.output.dimensions)
-        return tensor[
-            : operation.output_pack_dims[0],
-            : operation.output_pack_dims[1],
-        ]
+        return tensor
+
+    def _wait_for_math(self) -> str:
+        return "_llk_packer_wait_for_math_done_();\n"
+
+    def _dest_section_done(self, config: "GlobalConfig") -> str:
+        return f"_llk_pack_dest_section_done_<DstSync::SyncHalf, {config.dest_acc.value}>();\n"
+
+    def _batch_loop(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        batch_size = operation.batch_size
+        tile_cnt = operation.output.tile_count
+
+        num_full_batches = tile_cnt // batch_size
+        remaining_tiles = tile_cnt % batch_size
+
+        code = ""
+
+        if num_full_batches > 0:
+            code += f"for (std::uint32_t batch = 0; batch < {num_full_batches}; ++batch) {{\n"
+            code += self._wait_for_math()
+            code += f"for (std::uint32_t i = 0; i < {batch_size}; ++i) {{\n"
+            code += f"std::uint32_t tile_idx = batch * {batch_size} + i;\n"
+            code += self.pack(operation, config, "i", "tile_idx")
+            code += "}\n"
+            code += self._dest_section_done(config)
+            code += "}\n"
+
+        if remaining_tiles > 0:
+            code += self._wait_for_math()
+            code += f"for (std::uint32_t i = 0; i < {remaining_tiles}; ++i) {{\n"
+            code += f"std::uint32_t tile_idx = {num_full_batches * batch_size} + i;\n"
+            code += self.pack(operation, config, "i", "tile_idx")
+            code += "}\n"
+            code += self._dest_section_done(config)
+
+        return code
 
     def pack_with_perf(
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
-        dest_acc = config.dest_acc.value
-
-        if (
-            config.perf_run_type == PerfRunType.UNPACK_ISOLATE
-            or config.perf_run_type == PerfRunType.MATH_ISOLATE
+        if config.perf_run_type in (
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.MATH_ISOLATE,
         ):
             return ""
-        elif (
-            config.perf_run_type == PerfRunType.PACK_ISOLATE
-            or config.perf_run_type == PerfRunType.L1_CONGESTION
+        if config.perf_run_type in (
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
         ):
-            return self.pack(operation, config)
-        else:
-            code = "    _llk_packer_wait_for_math_done_();\n"
-            code += self.pack(operation, config)
-            code += (
-                f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();\n"
-            )
-            return code
+            return self.pack(operation, config, 0, 0)
+        return self._batch_loop(operation, config)
 
     def exec_perf(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         code = "{\n"
@@ -93,13 +116,12 @@ class Packer:
         pack_src = operation.pack_in
         pack_dst = operation.pack_out
         result_buffer_address = operation.output.l1_address
-        dest_acc = config.dest_acc.value
 
         code = (
             f"    // Operation {stage}: Packer\n"
             f"    const Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});\n"
-            f"    const uint32_t pack_src_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_src.name});\n"
-            f"    const uint32_t pack_dst_format{stage} = static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{pack_dst.name});\n"
+            f"    const std::uint32_t pack_src_format{stage} = ckernel::to_underlying(DataFormat::{pack_src.name});\n"
+            f"    const std::uint32_t pack_dst_format{stage} = ckernel::to_underlying(DataFormat::{pack_dst.name});\n"
         )
 
         if config.profiler_enabled:
@@ -107,11 +129,7 @@ class Packer:
         else:
             code += self.hw_configure(operation, config)
             code += self.init(operation, config)
-            code += "    _llk_packer_wait_for_math_done_();\n"
-            code += self.pack(operation, config)
-            code += (
-                f"    _llk_pack_dest_section_done_<DstSync::SyncHalf, {dest_acc}>();\n"
-            )
+            code += self._batch_loop(operation, config)
             code += self.unpacker_sync(operation, config)
             code += self.uninit(operation, config)
 
@@ -169,33 +187,28 @@ class Packer:
         else:
             raise ValueError("Unsupported architecture for packer")
 
-        if isinstance(operation.math.fpu, ReduceFpu):
-            reduce_dim = operation.math.fpu.reduce_dim()
+        if operation.math.has_fpu(ReduceFpu):
+            reduce_dim = operation.math.get_reduce_pack_mask()
             code += f"    _llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
 
         return code
 
-    def pack(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def pack(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        dest_idx,
+        l1_idx,
+    ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
         dest_sync = f"DstSync::Sync{operation.dest_sync.name}"
-
-        return (
-            f"    for (int tr = 0; tr < {operation.output_tiles_h}; tr++)\n"
-            f"    {{\n"
-            f"        for (int tc = 0; tc < {operation.output_tiles_w}; tc++)\n"
-            f"        {{\n"
-            f"            uint32_t dest_idx = tr * {operation.dest_tiles_w} + tc;\n"
-            f"            uint32_t l1_idx = tr * {operation.output_tiles_w} + tc;\n"
-            f"            _llk_pack_<{dest_sync}, {dest_acc}, false>(dest_idx, L1_ADDRESS(buffer_Res{stage}[l1_idx]));\n"
-            f"        }}\n"
-            f"    }}\n"
-        )
+        return f"_llk_pack_<{dest_sync}, {dest_acc}, false>({dest_idx}, L1_ADDRESS(buffer_Res{stage}[{l1_idx}]));\n"
 
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         code = ""
 
-        if isinstance(operation.math.fpu, ReduceFpu):
+        if operation.math.has_fpu(ReduceFpu):
             code = "    _llk_pack_reduce_mask_clear_();\n"
 
         return code

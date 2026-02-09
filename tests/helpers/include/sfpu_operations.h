@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "ckernel_sfpu.h"
 #include "ckernel_sfpu_add_top_row.h"
 #include "ckernel_sfpu_binary.h"
@@ -33,8 +35,8 @@ using namespace ckernel::sfpu;
  * @param operation The SFPU operation type to execute
  * @param math_format Optional math format for operations that need format-specific behavior
  */
-template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false>
-void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0, float fill_const_value = 5.0f)
+template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false, bool CLAMP_NEGATIVE = true>
+void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, float fill_const_value = 5.0f)
 {
     switch (operation)
     {
@@ -68,25 +70,35 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0, float fil
             _calculate_exp2_<APPROX_MODE, ITERATIONS>();
             break;
         case SfpuType::exponential:
-            _init_exponential_<APPROX_MODE, FAST_MODE, 0x3F800000 /* exp_base_scale_factor */>();
-            if (FAST_MODE && APPROX_MODE)
+            _init_exponential_<APPROX_MODE, FAST_MODE, 0x3F800000 /* exp_base_scale_factor */, CLAMP_NEGATIVE>();
+            if constexpr (FAST_MODE && APPROX_MODE && CLAMP_NEGATIVE)
             {
+                // In this case each call to _calculate_exponential_ processes 8 iterations
+                // and we iterate over 4 faces, so we process 32 iterations overall.
+                static_assert(ITERATIONS == 32);
                 for (int i = 0; i < 4; i++)
                 {
-                    _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */>(
+                    _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */, CLAMP_NEGATIVE>(
                         p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
                     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
                     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
                 }
             }
+            else if constexpr (FAST_MODE && APPROX_MODE)
+            {
+                // In this case each call to _calculate_exponential_ can process either 8 or 32 iterations.
+                static_assert(ITERATIONS == 8 || ITERATIONS == 32);
+                _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */, CLAMP_NEGATIVE>(
+                    p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
+            }
             else
             {
-                _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */>(
+                _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */, CLAMP_NEGATIVE>(
                     p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
             }
             break;
         case SfpuType::fill:
-            if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
+            if (math_format == ckernel::to_underlying(DataFormat::Int32))
             {
                 _calculate_fill_int_<APPROX_MODE, ITERATIONS>(fill_const_value);
             }
@@ -113,7 +125,7 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0, float fil
             break;
         case SfpuType::neg:
         case SfpuType::negative:
-            if (math_format == static_cast<std::underlying_type_t<DataFormat>>(DataFormat::Int32))
+            if (math_format == ckernel::to_underlying(DataFormat::Int32))
             {
                 _calculate_negative_int_<APPROX_MODE, ITERATIONS>();
             }
@@ -182,8 +194,8 @@ void call_sfpu_operation(SfpuType operation, uint32_t math_format = 0, float fil
     }
 }
 
-template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, uint32_t MATH_FORMAT = 0>
-void call_binary_sfpu_operation(const uint dst_index_in0 = 0, const uint dst_index_in1 = 1, const uint dst_index_out = 0)
+template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, std::uint32_t MATH_FORMAT = 0>
+void call_binary_sfpu_operation(const std::uint32_t dst_index_in0 = 0, const std::uint32_t dst_index_in1 = 1, const std::uint32_t dst_index_out = 0)
 {
     switch (BINOP)
     {

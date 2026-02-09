@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <type_traits>
 
 #include "ckernel_globals.h"
@@ -32,7 +33,9 @@ inline void eltwise_binary_sfpu_configure_addrmod()
     }
         .set(ADDR_MOD_7);
 
-    if constexpr (sfpu_op == SfpuType::mul_int32)
+    if constexpr (
+        sfpu_op == SfpuType::mul_int32 || sfpu_op == SfpuType::mul_uint16 || sfpu_op == SfpuType::max || sfpu_op == SfpuType::min ||
+        sfpu_op == SfpuType::max_int32 || sfpu_op == SfpuType::min_int32 || sfpu_op == SfpuType::max_uint32 || sfpu_op == SfpuType::min_uint32)
     {
         addr_mod_t {
             .srca = {.incr = 0},
@@ -46,7 +49,7 @@ inline void eltwise_binary_sfpu_configure_addrmod()
 inline void eltwise_binary_sfpu_configure_mop();
 
 template <DstSync Dst>
-inline void _llk_math_eltwise_binary_sfpu_start_(const uint dst_index)
+inline void _llk_math_eltwise_binary_sfpu_start_(const std::uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     TTI_STALLWAIT(p_stall::STALL_SFPU, p_stall::MATH);
