@@ -318,6 +318,14 @@ class ADD_TOP_ROW(TemplateParameter):
         return f"constexpr bool ADD_TOP_ROW = {str(self.add_top_row).lower()};"
 
 
+@dataclass
+class TO_FROM_INT8(TemplateParameter):
+    to_from_int8: bool
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr bool TO_FROM_INT8 = {str(self.to_from_int8).lower()};"
+
+
 # === RUNTIME PARAMETER IMPLEMENTATIONS ===
 
 
