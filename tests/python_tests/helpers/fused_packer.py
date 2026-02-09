@@ -148,7 +148,7 @@ class Packer:
         face_r_dim = operation.face_r_dim
         num_faces = operation.num_faces
 
-        if stage == 0:
+        if stage == 1:
             if config.architecture == ChipArchitecture.BLACKHOLE:
                 code = (
                     f"    _llk_pack_hw_configure_<{dest_acc}, false, {bh_tilize}>(\n"
@@ -230,7 +230,7 @@ class Packer:
         num_stages = operation.num_stages
         code = ""
 
-        if stage < num_stages - 1:
+        if stage < num_stages:
             code += "    t6_semaphore_post<>(semaphore::PACK_DONE);\n\n"
 
         return code

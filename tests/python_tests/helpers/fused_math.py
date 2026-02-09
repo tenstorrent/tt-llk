@@ -345,7 +345,7 @@ class ComputePipeline:
         unpa_num_faces = operation.num_faces_A
         unpb_num_faces = operation.num_faces_B
 
-        if stage == 0:
+        if stage == 1:
             code = (
                 f"_llk_unpack_hw_configure_<{dest_acc}, false>(\n"
                 f"    unpack_a_src_format{stage}, unpack_b_src_format{stage}, unpack_a_dst_format{stage}, unpack_b_dst_format{stage},\n"
@@ -368,7 +368,7 @@ class ComputePipeline:
         operation: "FusedOperation",
         config: "GlobalConfig",
     ) -> str:
-        if operation.stage_id > 0:
+        if operation.stage_id > 1:
             return (
                 "t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(semaphore::PACK_DONE);\n"
                 "t6_semaphore_get<>(semaphore::PACK_DONE);\n"
@@ -381,7 +381,7 @@ class ComputePipeline:
     ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.value
-        if stage == 0:
+        if stage == 1:
             code = f"_llk_math_hw_configure_<{dest_acc}>(math_format{stage}, math_format{stage});\n"
         else:
             code = f"_llk_math_reconfig_data_format_<{dest_acc}, false>(math_format{stage}, math_format{stage});\n"
@@ -560,9 +560,9 @@ class ComputePipeline:
         ]
 
     def __str__(self):
-        str = ""
+        str = "Math:"
         for op in self.operations:
-            str += "\n  "
+            str += "\n    "
             str += op.__str__()
 
         return str
