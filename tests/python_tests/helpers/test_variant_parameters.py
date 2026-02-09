@@ -324,7 +324,7 @@ class ROW_NUM_DATUMS(TemplateParameter):
     row_size: int = 0
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr uint32_t ROW_NUM_DATUMS = {self.row_size};"
+        return f"constexpr std::uint32_t ROW_NUM_DATUMS = {self.row_size};"
 
 
 # === RUNTIME PARAMETER IMPLEMENTATIONS ===
