@@ -214,7 +214,7 @@ def parse_math_operation(
     elif type == "UnarySfpu":
         operation = SFPU_UNARY_OPERATION_MAP[math_config["operation"]]
         approx_mode = APPROXIMATION_MODE_MAP.get(
-            math_config.get("approximation_mode", "No"), ApproximationMode.No
+            math_config.get("approximation_mode", "Preicse"), ApproximationMode.Precise
         )
         iterations = math_config.get("iterations", 8)
         dest_idx = math_config.get("dst_dest_tile_index", 0)
@@ -231,7 +231,7 @@ def parse_math_operation(
     elif type == "BinarySfpu":
         operation = SFPU_BINARY_OPERATION_MAP[math_config["operation"]]
         approx_mode = APPROXIMATION_MODE_MAP.get(
-            math_config.get("approximation_mode", "No"), ApproximationMode.No
+            math_config.get("approximation_mode", "Preicse"), ApproximationMode.Preicse
         )
         iterations = math_config.get("iterations", 8)
         src1_dest_tile_index = math_config.get("src1_dest_tile_index", 0)
