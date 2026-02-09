@@ -142,110 +142,42 @@ inline void _llk_pack_mop_config_(
         const std::uint32_t PACK_INTF_SEL_0 = 0b0101;
         const std::uint32_t PACK_INTF_SEL_1 = 0b1010;
         const std::uint32_t MOP_INNER_LOOP  = 1;
-        const std::uint32_t MOP_OUTER_LOOP  = 2;
-
+        const std::uint32_t MOP_OUTER_LOOP  = num_faces >> 1;
+        LLK_ASSERT(num_faces != 1, "num_faces == 1 is not supported for tilize");
         // Last row of half-tile (16 rows) is different between halves, so can't be replayed.
-        const std::uint32_t replay_buf_len = 15;
+        // For face_r_dim = 8, we need 4 PACR instructions per face (8 total, 7 in replay buffer)
+        // For face_r_dim = 16, we need 8 PACR instructions per face (16 total, 15 in replay buffer)
+        const std::uint32_t replay_buf_len = (face_r_dim < FACE_R_DIM) ? 7 : 15;
 
         // This replay buffer finishes 2 faces
         load_replay_buf(
             0,
             replay_buf_len,
             // Lambda function to set up replay buffer
-            []
+            [PACK_INTF_SEL_0, PACK_INTF_SEL_1, ZERO_OUTPUT_FLAG, MEGAROW, face_r_dim]
             {
+                // Number of instructions per face (minus 1 for the last special instruction)
+                const std::uint32_t num_instrs_per_face = (face_r_dim < FACE_R_DIM) ? 4 : 8;
+
                 // Face 0 -> mask rows 1010
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_0,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_0,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_0,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_0,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_0,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_0,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_0,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
+                // First (num_instrs_per_face - 1) instructions use ADDR_MOD_0
+                for (std::uint32_t i = 0; i < num_instrs_per_face - 1; i++)
+                {
+                    TTI_PACR(
+                        p_pacr::CFG_CTXT_0,
+                        p_pacr::NO_ROW_PAD_ZERO,
+                        p_pacr::DST_ACCESS_NORMAL_MODE,
+                        ADDR_MOD_0,
+                        p_pacr::ADDR_CNT_CTXT_0,
+                        ZERO_OUTPUT_FLAG,
+                        PACK_INTF_SEL_0,
+                        0,
+                        MEGAROW,
+                        p_pacr::NO_CTXT_CTRL,
+                        0,
+                        0);
+                }
+                // Last instruction for Face 0 uses ADDR_MOD_1
                 TTI_PACR(
                     p_pacr::CFG_CTXT_0,
                     p_pacr::NO_ROW_PAD_ZERO,
@@ -261,97 +193,24 @@ inline void _llk_pack_mop_config_(
                     0);
 
                 // Face 1 -> mask rows 0101
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_1,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_1,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_1,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_1,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_1,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_1,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
-                TTI_PACR(
-                    p_pacr::CFG_CTXT_0,
-                    p_pacr::NO_ROW_PAD_ZERO,
-                    p_pacr::DST_ACCESS_NORMAL_MODE,
-                    ADDR_MOD_0,
-                    p_pacr::ADDR_CNT_CTXT_0,
-                    ZERO_OUTPUT_FLAG,
-                    PACK_INTF_SEL_1,
-                    0,
-                    MEGAROW,
-                    p_pacr::NO_CTXT_CTRL,
-                    0,
-                    0);
+                // (num_instrs_per_face - 1) instructions use ADDR_MOD_0
+                // The last instruction is handled separately outside the replay buffer
+                for (std::uint32_t i = 0; i < num_instrs_per_face - 1; i++)
+                {
+                    TTI_PACR(
+                        p_pacr::CFG_CTXT_0,
+                        p_pacr::NO_ROW_PAD_ZERO,
+                        p_pacr::DST_ACCESS_NORMAL_MODE,
+                        ADDR_MOD_0,
+                        p_pacr::ADDR_CNT_CTXT_0,
+                        ZERO_OUTPUT_FLAG,
+                        PACK_INTF_SEL_1,
+                        0,
+                        MEGAROW,
+                        p_pacr::NO_CTXT_CTRL,
+                        0,
+                        0);
+                }
                 // Last PACR instruction of the half-tile must go separately in the MOP. This is to be able to override it, to ensure that for the second half
                 // the tile is closed correctly.
             });
@@ -390,7 +249,7 @@ inline void _llk_pack_mop_config_(
             0,
             1));
 
-        tmp.set_end_op(TT_OP_SETADCZW(p_setadc::PAC, 0, 2, 0, 0, 0b0100)); // ch0_z = 0, ch1_z = 2;
+        tmp.set_end_op(TT_OP_SETADCZW(p_setadc::PAC, 0, num_faces >> 1, 0, 0, 0b0100)); // ch0_z = 0, ch1_z = 2;
 
         tmp.program();
     }
