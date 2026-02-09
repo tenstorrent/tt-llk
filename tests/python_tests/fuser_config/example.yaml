@@ -111,7 +111,7 @@ operations:
         iterations: 128
     packer: "Packer"
     math_fidelity: "HiFi3"
-    # dest_sync: "Full"
+    dest_sync: "Full"
 
   - src_a: "elwadd1"
     src_b: "datacopy_output"
