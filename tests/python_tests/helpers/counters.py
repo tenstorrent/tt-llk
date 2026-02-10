@@ -40,52 +40,90 @@ _BANK_NAME_TO_ID = {v: k for k, v in COUNTER_BANK_NAMES.items()}
 
 COUNTER_NAMES = {
     "INSTRN_THREAD": {
-        0: "INST_CFG",
-        1: "INST_SYNC",
-        2: "INST_THCON",
-        3: "INST_XSEARCH",
-        4: "INST_MOVE",
-        5: "INST_MATH",
-        6: "INST_UNPACK",
-        7: "INST_PACK",
-        8: "STALLED",
-        9: "SRCA_CLEARED_0",
-        10: "SRCA_CLEARED_1",
-        11: "SRCA_CLEARED_2",
-        12: "SRCB_CLEARED_0",
-        13: "SRCB_CLEARED_1",
-        14: "SRCB_CLEARED_2",
-        15: "SRCA_VALID_0",
-        16: "SRCA_VALID_1",
-        17: "SRCA_VALID_2",
-        18: "SRCB_VALID_0",
-        19: "SRCB_VALID_1",
-        20: "SRCB_VALID_2",
-        21: "STALL_THCON",
-        22: "STALL_PACK0",
-        23: "STALL_MATH",
-        24: "STALL_SEM_ZERO",
-        25: "STALL_SEM_MAX",
-        26: "STALL_MOVE",
-        27: "STALL_TRISC_REG_ACCESS",
-        28: "STALL_SFPU",
+        # Instruction availability counters (per-thread)
+        0: "CFG_INSTRN_AVAILABLE_0",
+        1: "CFG_INSTRN_AVAILABLE_1",
+        2: "CFG_INSTRN_AVAILABLE_2",
+        3: "SYNC_INSTRN_AVAILABLE_0",
+        4: "SYNC_INSTRN_AVAILABLE_1",
+        5: "SYNC_INSTRN_AVAILABLE_2",
+        6: "THCON_INSTRN_AVAILABLE_0",
+        7: "THCON_INSTRN_AVAILABLE_1",
+        8: "THCON_INSTRN_AVAILABLE_2",
+        9: "XSEARCH_INSTRN_AVAILABLE_0",
+        10: "XSEARCH_INSTRN_AVAILABLE_1",
+        11: "XSEARCH_INSTRN_AVAILABLE_2",
+        12: "MOVE_INSTRN_AVAILABLE_0",
+        13: "MOVE_INSTRN_AVAILABLE_1",
+        14: "MOVE_INSTRN_AVAILABLE_2",
+        15: "FPU_INSTRN_AVAILABLE_0",
+        16: "FPU_INSTRN_AVAILABLE_1",
+        17: "FPU_INSTRN_AVAILABLE_2",
+        18: "UNPACK_INSTRN_AVAILABLE_0",
+        19: "UNPACK_INSTRN_AVAILABLE_1",
+        20: "UNPACK_INSTRN_AVAILABLE_2",
+        21: "PACK_INSTRN_AVAILABLE_0",
+        22: "PACK_INSTRN_AVAILABLE_1",
+        23: "PACK_INSTRN_AVAILABLE_2",
+        # Thread stalls
+        24: "THREAD_STALLS_0",
+        25: "THREAD_STALLS_1",
+        26: "THREAD_STALLS_2",
+        # Wait counters (shared across threads)
+        27: "WAITING_FOR_SRCA_CLEAR",
+        28: "WAITING_FOR_SRCB_CLEAR",
+        29: "WAITING_FOR_SRCA_VALID",
+        30: "WAITING_FOR_SRCB_VALID",
+        # Per-thread wait counters
+        31: "WAITING_FOR_THCON_IDLE_0",
+        32: "WAITING_FOR_THCON_IDLE_1",
+        33: "WAITING_FOR_THCON_IDLE_2",
+        34: "WAITING_FOR_UNPACK_IDLE_0",
+        35: "WAITING_FOR_UNPACK_IDLE_1",
+        36: "WAITING_FOR_UNPACK_IDLE_2",
+        37: "WAITING_FOR_PACK_IDLE_0",
+        38: "WAITING_FOR_PACK_IDLE_1",
+        39: "WAITING_FOR_PACK_IDLE_2",
+        40: "WAITING_FOR_MATH_IDLE_0",
+        41: "WAITING_FOR_MATH_IDLE_1",
+        42: "WAITING_FOR_MATH_IDLE_2",
+        43: "WAITING_FOR_NONZERO_SEM_0",
+        44: "WAITING_FOR_NONZERO_SEM_1",
+        45: "WAITING_FOR_NONZERO_SEM_2",
+        46: "WAITING_FOR_NONFULL_SEM_0",
+        47: "WAITING_FOR_NONFULL_SEM_1",
+        48: "WAITING_FOR_NONFULL_SEM_2",
+        49: "WAITING_FOR_MOVE_IDLE_0",
+        50: "WAITING_FOR_MOVE_IDLE_1",
+        51: "WAITING_FOR_MOVE_IDLE_2",
+        52: "WAITING_FOR_MMIO_IDLE_0",
+        53: "WAITING_FOR_MMIO_IDLE_1",
+        54: "WAITING_FOR_MMIO_IDLE_2",
+        55: "WAITING_FOR_SFPU_IDLE_0",
+        56: "WAITING_FOR_SFPU_IDLE_1",
+        57: "WAITING_FOR_SFPU_IDLE_2",
+        # Thread instruction counts (bit 8 set = ID 256+n)
+        256: "THREAD_INSTRUCTIONS_0",
+        257: "THREAD_INSTRUCTIONS_1",
+        258: "THREAD_INSTRUCTIONS_2",
     },
     "FPU": {
-        0: "FPU_OP_VALID",
-        1: "SFPU_OP_VALID",
+        0: "FPU_INSTRUCTION",
+        1: "SFPU_INSTRUCTION",
+        257: "FPU_OR_SFPU_INSTRN",  # Combined FPU/SFPU
     },
     "TDMA_UNPACK": {
-        0: "MATH_INSTR_SRC_READY",
-        1: "MATH_NOT_D2A_STALL",
-        2: "MATH_FIDELITY_PHASES",
-        3: "MATH_INSTR_BUF_RDEN",
-        4: "MATH_INSTR_VALID",
-        5: "TDMA_SRCB_REGIF_WREN",
-        6: "TDMA_SRCA_REGIF_WREN",
-        7: "UNPACK_BUSY_0",
-        8: "UNPACK_BUSY_1",
-        9: "UNPACK_BUSY_2",
-        10: "UNPACK_BUSY_3",
+        1: "DATA_HAZARD_STALLS_MOVD2A",
+        3: "MATH_INSTRN_STARTED",
+        4: "MATH_INSTRN_AVAILABLE",
+        5: "SRCB_WRITE_AVAILABLE",
+        6: "SRCA_WRITE_AVAILABLE",
+        7: "UNPACK0_BUSY_THREAD0",
+        8: "UNPACK1_BUSY_THREAD0",
+        9: "UNPACK0_BUSY_THREAD1",
+        10: "UNPACK1_BUSY_THREAD1",
+        259: "SRCB_WRITE",  # Bit 8 set
+        261: "SRCA_WRITE",  # Bit 8 set
     },
     "L1": {
         # Format: (counter_id, l1_mux) -> name
@@ -107,14 +145,9 @@ COUNTER_NAMES = {
         (7, 1): "TDMA_PACKER_2_WR",
     },
     "TDMA_PACK": {
-        0: "DSTAC_RDEN_RAW_0",
-        1: "DSTAC_RDEN_RAW_1",
-        2: "DSTAC_RDEN_RAW_2",
-        3: "DSTAC_RDEN_RAW_3",
-        4: "PACK_NOT_DEST_STALL",
-        5: "PACK_NOT_SB_STALL",
-        6: "PACK_BUSY_10",
-        7: "PACK_BUSY_11",
+        11: "PACKER_DEST_READ_AVAILABLE",
+        18: "PACKER_BUSY",
+        272: "AVAILABLE_MATH",  # Bit 8 set
     },
 }
 
@@ -129,36 +162,24 @@ _COUNTER_NAME_TO_ID = {
 
 
 def _build_all_counters() -> List[Dict]:
-    """Build the complete list of all 66 performance counters across all banks."""
+    """Build the complete list of performance counters across all banks."""
     counters = []
 
-    # INSTRN_THREAD bank (29 counters)
-    for name in COUNTER_NAMES["INSTRN_THREAD"].values():
-        counters.append(
-            {
-                "bank": "INSTRN_THREAD",
-                "counter_id": _COUNTER_NAME_TO_ID["INSTRN_THREAD"][name],
-            }
-        )
+    # INSTRN_THREAD bank (61 counters)
+    for counter_id in COUNTER_NAMES["INSTRN_THREAD"].keys():
+        counters.append({"bank": "INSTRN_THREAD", "counter_id": counter_id})
 
-    # FPU bank (2 counters)
-    for name in COUNTER_NAMES["FPU"].values():
-        counters.append({"bank": "FPU", "counter_id": _COUNTER_NAME_TO_ID["FPU"][name]})
+    # FPU bank (3 counters)
+    for counter_id in COUNTER_NAMES["FPU"].keys():
+        counters.append({"bank": "FPU", "counter_id": counter_id})
 
     # TDMA_UNPACK bank (11 counters)
-    for name in COUNTER_NAMES["TDMA_UNPACK"].values():
-        counters.append(
-            {
-                "bank": "TDMA_UNPACK",
-                "counter_id": _COUNTER_NAME_TO_ID["TDMA_UNPACK"][name],
-            }
-        )
+    for counter_id in COUNTER_NAMES["TDMA_UNPACK"].keys():
+        counters.append({"bank": "TDMA_UNPACK", "counter_id": counter_id})
 
-    # TDMA_PACK bank (8 counters)
-    for name in COUNTER_NAMES["TDMA_PACK"].values():
-        counters.append(
-            {"bank": "TDMA_PACK", "counter_id": _COUNTER_NAME_TO_ID["TDMA_PACK"][name]}
-        )
+    # TDMA_PACK bank (3 counters)
+    for counter_id in COUNTER_NAMES["TDMA_PACK"].keys():
+        counters.append({"bank": "TDMA_PACK", "counter_id": counter_id})
 
     # L1 bank with l1_mux=0 (8 counters)
     for (counter_id, l1_mux), name in COUNTER_NAMES["L1"].items():
@@ -170,7 +191,6 @@ def _build_all_counters() -> List[Dict]:
         if l1_mux == 1:
             counters.append({"bank": "L1", "counter_id": counter_id, "l1_mux": 1})
 
-    # Total: 29 + 2 + 11 + 8 + 8 + 8 = 66 counters
     return counters
 
 
@@ -181,27 +201,22 @@ ALL_COUNTERS = _build_all_counters()
 ALL_THREADS = ["UNPACK", "MATH", "PACK"]
 
 
-def configure_counters(location: str = "0,0", mode: str = "GRANTS") -> None:
+def configure_counters(location: str = "0,0") -> None:
     """
-    Configure all 66 performance counters on all threads (UNPACK, MATH, PACK).
+    Configure all performance counters on all threads (UNPACK, MATH, PACK).
 
     Args:
         location: Tensix core coordinates (e.g., "0,0").
-        mode: Counter mode - "GRANTS" for actual work done, "REQUESTS" for attempted work.
     """
-    mode_bit = 1 if mode.upper() == "GRANTS" else 0
-
     # Encode counter configurations
     config_words = []
     for counter in ALL_COUNTERS:
         bank_id = _BANK_NAME_TO_ID[counter["bank"]]
         l1_mux = counter.get("l1_mux", 0)
+        counter_id = counter["counter_id"]
+        # Config word format: [valid(31), l1_mux(17), counter_sel(8-16), bank_id(0-7)]
         config_word = (
-            (1 << 31)  # Valid bit
-            | (l1_mux << 17)
-            | (mode_bit << 16)
-            | (counter["counter_id"] << 8)
-            | bank_id
+            (1 << 31) | (l1_mux << 17) | (counter_id << 8) | bank_id  # Valid bit
         )
         config_words.append(config_word)
 
@@ -223,7 +238,7 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
         location: Tensix core coordinates (e.g., "0,0").
 
     Returns:
-        DataFrame with columns: thread, bank, counter_name, counter_id, cycles, count, mode, l1_mux
+        DataFrame with columns: thread, bank, counter_name, counter_id, cycles, count, l1_mux
     """
     all_results = []
 
@@ -258,15 +273,12 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
             if (config_word & 0x80000000) == 0:  # Check valid bit
                 continue  # Unused slot
 
-            # Decode metadata: [l1_mux(17), mode(16), counter_id(8-15), bank(0-7)]
+            # Decode metadata: [valid(31), l1_mux(17), counter_id(8-16), bank(0-7)]
             bank_id = config_word & 0xFF
-            counter_id = (config_word >> 8) & 0xFF
-            mode_bit = (config_word >> 16) & 0x1
+            counter_id = (config_word >> 8) & 0x1FF  # 9 bits for counter_id
             l1_mux = (config_word >> 17) & 0x1
 
             bank_name = COUNTER_BANK_NAMES.get(bank_id, f"UNKNOWN_{bank_id}")
-            # Hardware doc: bit16 = 1 -> GRANTS, 0 -> REQUESTS
-            mode = "GRANTS" if mode_bit == 1 else "REQUESTS"
 
             # Get counter name
             if bank_name == "L1":
@@ -291,7 +303,6 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
                     "counter_id": counter_id,
                     "cycles": cycles,
                     "count": count,
-                    "mode": mode,
                     "l1_mux": l1_mux if bank_name == "L1" else None,
                 }
             )
@@ -322,10 +333,8 @@ def print_counters(results: pd.DataFrame) -> None:
         if thread_df.empty:
             continue
 
-        mode = thread_df["mode"].iloc[0] if len(thread_df) > 0 else "UNKNOWN"
-
         print(f"\n{'─' * 100}")
-        print(f"  THREAD: {thread}   |   MODE: {mode}")
+        print(f"  THREAD: {thread}")
         print(f"{'─' * 100}")
 
         for bank in ["INSTRN_THREAD", "FPU", "TDMA_UNPACK", "L1", "TDMA_PACK"]:

@@ -61,7 +61,8 @@ namespace llk_perf
 #define PERF_COUNTER_PACK_CONFIG_ADDR   (PERF_COUNTERS_BASE_ADDR + 2 * PERF_COUNTERS_THREAD_SIZE)
 #define PERF_COUNTER_PACK_DATA_ADDR     (PERF_COUNTERS_BASE_ADDR + 2 * PERF_COUNTERS_THREAD_SIZE + PERF_COUNTERS_CONFIG_WORDS * 4)
 
-// Configuration word format: [mode_bit(16), counter_sel(8-15), bank_id(0-7)]
+// Configuration word format: [valid(31), l1_mux(17), counter_sel(8-16), bank_id(0-7)]
+// Note: counter_sel uses 9 bits (bits 8-16) to support counter IDs up to 511
 // Use compact underlying type to reduce memory footprint
 enum class CounterBank : std::uint8_t
 {
@@ -119,12 +120,7 @@ inline constexpr std::uint32_t get_counter_output_high_addr(CounterBank bank)
     return idx < COUNTER_BANK_COUNT ? high_addrs[idx] : 0u;
 }
 
-// Compact underlying type for mode as well
-enum class CounterMode : std::uint8_t
-{
-    REQUESTS = 0,
-    GRANTS   = 1,
-};
+// Note: Request/grant mode bit was removed - counter_sel now uses all 9 bits (8-16)
 
 // Helper functions for direct register access
 namespace detail
@@ -153,56 +149,94 @@ namespace counter_id
 
 namespace instrn_thread
 {
-constexpr std::uint32_t INST_CFG               = 0;
-constexpr std::uint32_t INST_SYNC              = 1;
-constexpr std::uint32_t INST_THCON             = 2;
-constexpr std::uint32_t INST_XSEARCH           = 3;
-constexpr std::uint32_t INST_MOVE              = 4;
-constexpr std::uint32_t INST_MATH              = 5;
-constexpr std::uint32_t INST_UNPACK            = 6;
-constexpr std::uint32_t INST_PACK              = 7;
-constexpr std::uint32_t STALLED                = 8;
-constexpr std::uint32_t SRCA_CLEARED_0         = 9;
-constexpr std::uint32_t SRCA_CLEARED_1         = 10;
-constexpr std::uint32_t SRCA_CLEARED_2         = 11;
-constexpr std::uint32_t SRCB_CLEARED_0         = 12;
-constexpr std::uint32_t SRCB_CLEARED_1         = 13;
-constexpr std::uint32_t SRCB_CLEARED_2         = 14;
-constexpr std::uint32_t SRCA_VALID_0           = 15;
-constexpr std::uint32_t SRCA_VALID_1           = 16;
-constexpr std::uint32_t SRCA_VALID_2           = 17;
-constexpr std::uint32_t SRCB_VALID_0           = 18;
-constexpr std::uint32_t SRCB_VALID_1           = 19;
-constexpr std::uint32_t SRCB_VALID_2           = 20;
-constexpr std::uint32_t STALL_THCON            = 21;
-constexpr std::uint32_t STALL_PACK0            = 22;
-constexpr std::uint32_t STALL_MATH             = 23;
-constexpr std::uint32_t STALL_SEM_ZERO         = 24;
-constexpr std::uint32_t STALL_SEM_MAX          = 25;
-constexpr std::uint32_t STALL_MOVE             = 26;
-constexpr std::uint32_t STALL_TRISC_REG_ACCESS = 27;
-constexpr std::uint32_t STALL_SFPU             = 28;
+// Instruction availability counters (per-thread: add thread offset 0, 1, or 2)
+constexpr std::uint32_t CFG_INSTRN_AVAILABLE_0     = 0;
+constexpr std::uint32_t CFG_INSTRN_AVAILABLE_1     = 1;
+constexpr std::uint32_t CFG_INSTRN_AVAILABLE_2     = 2;
+constexpr std::uint32_t SYNC_INSTRN_AVAILABLE_0    = 3;
+constexpr std::uint32_t SYNC_INSTRN_AVAILABLE_1    = 4;
+constexpr std::uint32_t SYNC_INSTRN_AVAILABLE_2    = 5;
+constexpr std::uint32_t THCON_INSTRN_AVAILABLE_0   = 6;
+constexpr std::uint32_t THCON_INSTRN_AVAILABLE_1   = 7;
+constexpr std::uint32_t THCON_INSTRN_AVAILABLE_2   = 8;
+constexpr std::uint32_t XSEARCH_INSTRN_AVAILABLE_0 = 9;
+constexpr std::uint32_t XSEARCH_INSTRN_AVAILABLE_1 = 10;
+constexpr std::uint32_t XSEARCH_INSTRN_AVAILABLE_2 = 11;
+constexpr std::uint32_t MOVE_INSTRN_AVAILABLE_0    = 12;
+constexpr std::uint32_t MOVE_INSTRN_AVAILABLE_1    = 13;
+constexpr std::uint32_t MOVE_INSTRN_AVAILABLE_2    = 14;
+constexpr std::uint32_t FPU_INSTRN_AVAILABLE_0     = 15;
+constexpr std::uint32_t FPU_INSTRN_AVAILABLE_1     = 16;
+constexpr std::uint32_t FPU_INSTRN_AVAILABLE_2     = 17;
+constexpr std::uint32_t UNPACK_INSTRN_AVAILABLE_0  = 18;
+constexpr std::uint32_t UNPACK_INSTRN_AVAILABLE_1  = 19;
+constexpr std::uint32_t UNPACK_INSTRN_AVAILABLE_2  = 20;
+constexpr std::uint32_t PACK_INSTRN_AVAILABLE_0    = 21;
+constexpr std::uint32_t PACK_INSTRN_AVAILABLE_1    = 22;
+constexpr std::uint32_t PACK_INSTRN_AVAILABLE_2    = 23;
+// Thread stalls
+constexpr std::uint32_t THREAD_STALLS_0 = 24;
+constexpr std::uint32_t THREAD_STALLS_1 = 25;
+constexpr std::uint32_t THREAD_STALLS_2 = 26;
+// Wait counters (shared across threads)
+constexpr std::uint32_t WAITING_FOR_SRCA_CLEAR = 27;
+constexpr std::uint32_t WAITING_FOR_SRCB_CLEAR = 28;
+constexpr std::uint32_t WAITING_FOR_SRCA_VALID = 29;
+constexpr std::uint32_t WAITING_FOR_SRCB_VALID = 30;
+// Per-thread wait counters
+constexpr std::uint32_t WAITING_FOR_THCON_IDLE_0  = 31;
+constexpr std::uint32_t WAITING_FOR_THCON_IDLE_1  = 32;
+constexpr std::uint32_t WAITING_FOR_THCON_IDLE_2  = 33;
+constexpr std::uint32_t WAITING_FOR_UNPACK_IDLE_0 = 34;
+constexpr std::uint32_t WAITING_FOR_UNPACK_IDLE_1 = 35;
+constexpr std::uint32_t WAITING_FOR_UNPACK_IDLE_2 = 36;
+constexpr std::uint32_t WAITING_FOR_PACK_IDLE_0   = 37;
+constexpr std::uint32_t WAITING_FOR_PACK_IDLE_1   = 38;
+constexpr std::uint32_t WAITING_FOR_PACK_IDLE_2   = 39;
+constexpr std::uint32_t WAITING_FOR_MATH_IDLE_0   = 40;
+constexpr std::uint32_t WAITING_FOR_MATH_IDLE_1   = 41;
+constexpr std::uint32_t WAITING_FOR_MATH_IDLE_2   = 42;
+constexpr std::uint32_t WAITING_FOR_NONZERO_SEM_0 = 43;
+constexpr std::uint32_t WAITING_FOR_NONZERO_SEM_1 = 44;
+constexpr std::uint32_t WAITING_FOR_NONZERO_SEM_2 = 45;
+constexpr std::uint32_t WAITING_FOR_NONFULL_SEM_0 = 46;
+constexpr std::uint32_t WAITING_FOR_NONFULL_SEM_1 = 47;
+constexpr std::uint32_t WAITING_FOR_NONFULL_SEM_2 = 48;
+constexpr std::uint32_t WAITING_FOR_MOVE_IDLE_0   = 49;
+constexpr std::uint32_t WAITING_FOR_MOVE_IDLE_1   = 50;
+constexpr std::uint32_t WAITING_FOR_MOVE_IDLE_2   = 51;
+constexpr std::uint32_t WAITING_FOR_MMIO_IDLE_0   = 52;
+constexpr std::uint32_t WAITING_FOR_MMIO_IDLE_1   = 53;
+constexpr std::uint32_t WAITING_FOR_MMIO_IDLE_2   = 54;
+constexpr std::uint32_t WAITING_FOR_SFPU_IDLE_0   = 55;
+constexpr std::uint32_t WAITING_FOR_SFPU_IDLE_1   = 56;
+constexpr std::uint32_t WAITING_FOR_SFPU_IDLE_2   = 57;
+// Thread instruction counts (bit 8 set = ID 256+n)
+constexpr std::uint32_t THREAD_INSTRUCTIONS_0 = 256;
+constexpr std::uint32_t THREAD_INSTRUCTIONS_1 = 257;
+constexpr std::uint32_t THREAD_INSTRUCTIONS_2 = 258;
 } // namespace instrn_thread
 
 namespace fpu
 {
-constexpr std::uint32_t FPU_OP_VALID  = 0;
-constexpr std::uint32_t SFPU_OP_VALID = 1;
+constexpr std::uint32_t FPU_INSTRUCTION    = 0;
+constexpr std::uint32_t SFPU_INSTRUCTION   = 1;
+constexpr std::uint32_t FPU_OR_SFPU_INSTRN = 257; // Combined FPU/SFPU
 } // namespace fpu
 
 namespace tdma_unpack
 {
-constexpr std::uint32_t MATH_INSTR_SRC_READY = 0;
-constexpr std::uint32_t MATH_NOT_D2A_STALL   = 1;
-constexpr std::uint32_t MATH_FIDELITY_PHASES = 2;
-constexpr std::uint32_t MATH_INSTR_BUF_RDEN  = 3;
-constexpr std::uint32_t MATH_INSTR_VALID     = 4;
-constexpr std::uint32_t TDMA_SRCB_REGIF_WREN = 5;
-constexpr std::uint32_t TDMA_SRCA_REGIF_WREN = 6;
-constexpr std::uint32_t UNPACK_BUSY_0        = 7;
-constexpr std::uint32_t UNPACK_BUSY_1        = 8;
-constexpr std::uint32_t UNPACK_BUSY_2        = 9;
-constexpr std::uint32_t UNPACK_BUSY_3        = 10;
+constexpr std::uint32_t DATA_HAZARD_STALLS_MOVD2A = 1;
+constexpr std::uint32_t MATH_INSTRN_STARTED       = 3;
+constexpr std::uint32_t MATH_INSTRN_AVAILABLE     = 4;
+constexpr std::uint32_t SRCB_WRITE_AVAILABLE      = 5;
+constexpr std::uint32_t SRCA_WRITE_AVAILABLE      = 6;
+constexpr std::uint32_t UNPACK0_BUSY_THREAD0      = 7;
+constexpr std::uint32_t UNPACK1_BUSY_THREAD0      = 8;
+constexpr std::uint32_t UNPACK0_BUSY_THREAD1      = 9;
+constexpr std::uint32_t UNPACK1_BUSY_THREAD1      = 10;
+constexpr std::uint32_t SRCB_WRITE                = 259; // Bit 8 set
+constexpr std::uint32_t SRCA_WRITE                = 261; // Bit 8 set
 } // namespace tdma_unpack
 
 namespace l1
@@ -230,14 +264,9 @@ constexpr std::uint32_t TDMA_PACKER_2_WR     = 7;
 
 namespace tdma_pack
 {
-constexpr std::uint32_t DSTAC_RDEN_RAW_0    = 0;
-constexpr std::uint32_t DSTAC_RDEN_RAW_1    = 1;
-constexpr std::uint32_t DSTAC_RDEN_RAW_2    = 2;
-constexpr std::uint32_t DSTAC_RDEN_RAW_3    = 3;
-constexpr std::uint32_t PACK_NOT_DEST_STALL = 4;
-constexpr std::uint32_t PACK_NOT_SB_STALL   = 5;
-constexpr std::uint32_t PACK_BUSY_10        = 6;
-constexpr std::uint32_t PACK_BUSY_11        = 7;
+constexpr std::uint32_t PACKER_DEST_READ_AVAILABLE = 11;
+constexpr std::uint32_t PACKER_BUSY                = 18;
+constexpr std::uint32_t AVAILABLE_MATH             = 272; // Bit 8 set
 } // namespace tdma_pack
 } // namespace counter_id
 
@@ -245,7 +274,6 @@ class PerfCounters
 {
 private:
     std::uint32_t num_counters {0};
-    CounterMode mode {CounterMode::GRANTS};
 
     static inline volatile std::uint32_t* get_config_mem()
     {
@@ -295,12 +323,6 @@ public:
 
             const std::uint8_t bank_id   = metadata & 0xFF;
             const std::uint32_t bank_bit = 1u << bank_id;
-
-            // Set mode from first valid counter
-            if (num_counters == 0)
-            {
-                mode = ((metadata >> 16) & 0x1) ? CounterMode::GRANTS : CounterMode::REQUESTS;
-            }
             num_counters++;
 
             // Skip if bank already started
@@ -336,9 +358,8 @@ public:
         volatile std::uint32_t* config_mem = get_config_mem();
         volatile std::uint32_t* data_mem   = get_data_mem();
 
-        const std::uint32_t mode_value = (static_cast<std::uint32_t>(mode) & 0x1u) << 16;
-        std::uint32_t stopped_mask     = 0;
-        std::uint32_t result_idx       = 0;
+        std::uint32_t stopped_mask = 0;
+        std::uint32_t result_idx   = 0;
 
         // Single pass: stop each bank once and read all counters
         for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
@@ -349,10 +370,11 @@ public:
                 continue;
             }
 
-            const std::uint8_t bank_id    = metadata & 0xFF;
-            const std::uint8_t counter_id = (metadata >> 8) & 0xFF;
-            const std::uint8_t l1_mux     = (metadata >> 17) & 0x1;
-            const std::uint32_t bank_bit  = 1u << bank_id;
+            const std::uint8_t bank_id = metadata & 0xFF;
+            // Counter ID uses 9 bits: bits 8-16 (values 0-511)
+            const std::uint16_t counter_id = (metadata >> 8) & 0x1FF;
+            const std::uint8_t l1_mux      = (metadata >> 17) & 0x1;
+            const std::uint32_t bank_bit   = 1u << bank_id;
 
             CounterBank bank = static_cast<CounterBank>(bank_id);
 
@@ -374,8 +396,8 @@ public:
 
             std::uint32_t counter_base = get_counter_base_addr(bank);
 
-            // Select the desired counter and req/grant output in mode register
-            detail::write_reg(counter_base + 4, (static_cast<std::uint32_t>(counter_id) << 8) | mode_value);
+            // Select the desired counter in mode register (counter_id in bits 8-16)
+            detail::write_reg(counter_base + 4, static_cast<std::uint32_t>(counter_id) << 8);
 
             // Allow selection/mux to settle: perform a dummy read sequence
             std::uint32_t output_low_addr  = get_counter_output_low_addr(bank);

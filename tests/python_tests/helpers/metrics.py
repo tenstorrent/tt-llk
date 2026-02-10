@@ -66,39 +66,35 @@ def _compute_thread_metrics(df: pd.DataFrame) -> dict:
 
     wall_cycles = max(cycles_instrn, cycles_fpu, cycles_unpack, cycles_pack, cycles_l1)
 
-    # Instruction issue and stalls
-    stalled = _sum_counts(df, "INSTRN_THREAD", ["STALLED"])
-    instr_issue = _sum_counts(
-        df,
-        "INSTRN_THREAD",
-        [
-            "INST_CFG",
-            "INST_SYNC",
-            "INST_THCON",
-            "INST_XSEARCH",
-            "INST_MOVE",
-            "INST_MATH",
-            "INST_UNPACK",
-            "INST_PACK",
-        ],
-    )
+    # Instruction counts (per-thread)
+    instr_count_0 = _sum_counts(df, "INSTRN_THREAD", ["THREAD_INSTRUCTIONS_0"])
+    instr_count_1 = _sum_counts(df, "INSTRN_THREAD", ["THREAD_INSTRUCTIONS_1"])
+    instr_count_2 = _sum_counts(df, "INSTRN_THREAD", ["THREAD_INSTRUCTIONS_2"])
+    total_instructions = instr_count_0 + instr_count_1 + instr_count_2
+
+    # Thread stalls (per-thread)
+    stalls_0 = _sum_counts(df, "INSTRN_THREAD", ["THREAD_STALLS_0"])
+    stalls_1 = _sum_counts(df, "INSTRN_THREAD", ["THREAD_STALLS_1"])
+    stalls_2 = _sum_counts(df, "INSTRN_THREAD", ["THREAD_STALLS_2"])
+    total_stalls = stalls_0 + stalls_1 + stalls_2
 
     # Compute engine utilization
-    fpu_valid = _sum_counts(df, "FPU", ["FPU_OP_VALID"])
-    sfpu_valid = _sum_counts(df, "FPU", ["SFPU_OP_VALID"])
-    compute_util = _rate(fpu_valid + sfpu_valid, cycles_fpu)
-    fpu_rate = _rate(fpu_valid, cycles_fpu)
-    sfpu_rate = _rate(sfpu_valid, cycles_fpu)
+    fpu_instrn = _sum_counts(df, "FPU", ["FPU_INSTRUCTION"])
+    sfpu_instrn = _sum_counts(df, "FPU", ["SFPU_INSTRUCTION"])
+    compute_util = _rate(fpu_instrn + sfpu_instrn, cycles_fpu)
+    fpu_rate = _rate(fpu_instrn, cycles_fpu)
+    sfpu_rate = _rate(sfpu_instrn, cycles_fpu)
 
     # Unpacker/Packer utilization
-    unpack_busy = sum(
-        _sum_counts(df, "TDMA_UNPACK", [f"UNPACK_BUSY_{i}"]) for i in range(4)
+    unpack_busy = (
+        _sum_counts(df, "TDMA_UNPACK", ["UNPACK0_BUSY_THREAD0"])
+        + _sum_counts(df, "TDMA_UNPACK", ["UNPACK1_BUSY_THREAD0"])
+        + _sum_counts(df, "TDMA_UNPACK", ["UNPACK0_BUSY_THREAD1"])
+        + _sum_counts(df, "TDMA_UNPACK", ["UNPACK1_BUSY_THREAD1"])
     )
-    pack_busy = _sum_counts(df, "TDMA_PACK", ["PACK_BUSY_10"]) + _sum_counts(
-        df, "TDMA_PACK", ["PACK_BUSY_11"]
-    )
+    pack_busy = _sum_counts(df, "TDMA_PACK", ["PACKER_BUSY"])
     unpack_util = _rate(unpack_busy, cycles_unpack * 4) if cycles_unpack else None
-    pack_util = _rate(pack_busy, cycles_pack * 2) if cycles_pack else None
+    pack_util = _rate(pack_busy, cycles_pack) if cycles_pack else None
 
     # NoC activity
     noc_in = _sum_counts(
@@ -155,8 +151,8 @@ def _compute_thread_metrics(df: pd.DataFrame) -> dict:
     )
 
     # Rates
-    stall_rate = _rate(stalled, cycles_instrn)
-    issue_rate = _rate(instr_issue, cycles_instrn)
+    stall_rate = _rate(total_stalls, cycles_instrn)
+    issue_rate = _rate(total_instructions, cycles_instrn)
 
     # Bound scores (None if underlying metrics are None)
     risc_bound_score = (
@@ -190,45 +186,24 @@ def _compute_thread_metrics(df: pd.DataFrame) -> dict:
     }
 
 
-def _aggregate_metrics(
-    results_requests: pd.DataFrame,
-    results_grants: pd.DataFrame,
-) -> dict:
+def _aggregate_metrics(results: pd.DataFrame) -> dict:
     """Aggregate thread metrics into kernel-level metrics."""
     hw = _get_platform_bandwidth()
 
-    grants_metrics = []
-    requests_metrics = []
+    thread_metrics = []
 
-    # Get unique threads from both DataFrames
-    threads_grants = (
-        set(results_grants["thread"].unique()) if not results_grants.empty else set()
-    )
-    threads_requests = (
-        set(results_requests["thread"].unique())
-        if not results_requests.empty
-        else set()
-    )
-    all_threads = sorted(threads_grants | threads_requests)
+    if results.empty:
+        return {}
+
+    # Get unique threads
+    all_threads = sorted(results["thread"].unique())
 
     for thread in all_threads:
-        grants_df = (
-            results_grants[results_grants["thread"] == thread]
-            if not results_grants.empty
-            else pd.DataFrame()
-        )
-        requests_df = (
-            results_requests[results_requests["thread"] == thread]
-            if not results_requests.empty
-            else pd.DataFrame()
-        )
+        thread_df = results[results["thread"] == thread]
+        if not thread_df.empty:
+            thread_metrics.append(_compute_thread_metrics(thread_df))
 
-        if not grants_df.empty:
-            grants_metrics.append(_compute_thread_metrics(grants_df))
-        if not requests_df.empty:
-            requests_metrics.append(_compute_thread_metrics(requests_df))
-
-    if not grants_metrics:
+    if not thread_metrics:
         return {}
 
     def avg(xs):
@@ -237,17 +212,17 @@ def _aggregate_metrics(
         return (sum(valid) / len(valid)) if valid else None
 
     metrics = {
-        "compute_util": avg([m["compute_util"] for m in grants_metrics]),
-        "fpu_rate": avg([m["fpu_rate"] for m in grants_metrics]),
-        "sfpu_rate": avg([m["sfpu_rate"] for m in grants_metrics]),
-        "unpack_util": avg([m["unpack_util"] for m in grants_metrics]),
-        "pack_util": avg([m["pack_util"] for m in grants_metrics]),
-        "l1_congestion_index": avg([m["l1_congestion_index"] for m in grants_metrics]),
-        "noc_txn_per_cycle": avg([m["noc_txn_per_cycle"] for m in grants_metrics]),
-        "noc_bytes_per_cycle": avg([m["noc_bytes_per_cycle"] for m in grants_metrics]),
-        "risc_stall_rate": avg([m["stall_rate"] for m in grants_metrics]),
-        "risc_issue_rate": avg([m["issue_rate"] for m in grants_metrics]),
-        "wall_cycles": max([m["wall_cycles"] for m in grants_metrics]),
+        "compute_util": avg([m["compute_util"] for m in thread_metrics]),
+        "fpu_rate": avg([m["fpu_rate"] for m in thread_metrics]),
+        "sfpu_rate": avg([m["sfpu_rate"] for m in thread_metrics]),
+        "unpack_util": avg([m["unpack_util"] for m in thread_metrics]),
+        "pack_util": avg([m["pack_util"] for m in thread_metrics]),
+        "l1_congestion_index": avg([m["l1_congestion_index"] for m in thread_metrics]),
+        "noc_txn_per_cycle": avg([m["noc_txn_per_cycle"] for m in thread_metrics]),
+        "noc_bytes_per_cycle": avg([m["noc_bytes_per_cycle"] for m in thread_metrics]),
+        "risc_stall_rate": avg([m["stall_rate"] for m in thread_metrics]),
+        "risc_issue_rate": avg([m["issue_rate"] for m in thread_metrics]),
+        "wall_cycles": max([m["wall_cycles"] for m in thread_metrics]),
     }
 
     # Bandwidth estimates (None if utilization is None)
@@ -317,48 +292,12 @@ def _aggregate_metrics(
         metrics["dominant_bound"] = None
         metrics["dominant_bound_score"] = None
 
-    # Acceptance ratios (None if no requests data)
-    def sum_values(metrics_list, key):
-        """Sum values, treating None as 0."""
-        return sum(m[key] or 0 for m in metrics_list)
-
-    total_noc_grants = sum_values(grants_metrics, "noc_in") + sum_values(
-        grants_metrics, "noc_out"
-    )
-    total_noc_requests = (
-        sum_values(requests_metrics, "noc_in") + sum_values(requests_metrics, "noc_out")
-        if requests_metrics
-        else 0
-    )
-    metrics["noc_acceptance"] = (
-        (total_noc_grants / total_noc_requests) if total_noc_requests else None
-    )
-
-    total_unpack_grants = sum_values(grants_metrics, "unpack_busy")
-    total_unpack_requests = (
-        sum_values(requests_metrics, "unpack_busy") if requests_metrics else 0
-    )
-    metrics["unpack_acceptance"] = (
-        (total_unpack_grants / total_unpack_requests) if total_unpack_requests else None
-    )
-
-    total_pack_grants = sum_values(grants_metrics, "pack_busy")
-    total_pack_requests = (
-        sum_values(requests_metrics, "pack_busy") if requests_metrics else 0
-    )
-    metrics["pack_acceptance"] = (
-        (total_pack_grants / total_pack_requests) if total_pack_requests else None
-    )
-
     return metrics
 
 
-def print_metrics(
-    results_requests: pd.DataFrame,
-    results_grants: pd.DataFrame,
-) -> None:
+def print_metrics(results: pd.DataFrame) -> None:
     """Print kernel metrics to console."""
-    metrics = _aggregate_metrics(results_requests, results_grants)
+    metrics = _aggregate_metrics(results)
 
     if not metrics:
         print("No metrics to display.")
@@ -465,23 +404,6 @@ def print_metrics(
     )
     print(f"└{'─' * 78}┘")
 
-    # Acceptance ratios
-    print(f"\n┌{'─' * 78}┐")
-    print(f"│ {'ACCEPTANCE RATIOS (REQUESTS → GRANTS)':^76} │")
-    print(f"├{'─' * 78}┤")
-    print(f"│  {'Metric':<30} {'Value':>15} {'Description':<28} │")
-    print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
-    print(
-        f"│  {'NoC Acceptance':<30} {fmt_or_na(metrics.get('noc_acceptance'))} {'1.0 = no backpressure':<28} │"
-    )
-    print(
-        f"│  {'Unpack Acceptance':<30} {fmt_or_na(metrics.get('unpack_acceptance'))} {'1.0 = no backpressure':<28} │"
-    )
-    print(
-        f"│  {'Pack Acceptance':<30} {fmt_or_na(metrics.get('pack_acceptance'))} {'1.0 = no backpressure':<28} │"
-    )
-    print(f"└{'─' * 78}┘")
-
     # Bound scores
     print(f"\n┌{'─' * 78}┐")
     print(f"│ {'BOUND SCORES':^76} │")
@@ -512,8 +434,7 @@ def print_metrics(
 
 
 def export_metrics(
-    results_requests: pd.DataFrame,
-    results_grants: pd.DataFrame,
+    results: pd.DataFrame,
     filename: str,
     test_params: dict = None,
     worker_id: str = "gw0",
@@ -522,7 +443,7 @@ def export_metrics(
     perf_dir = TestConfig.LLK_ROOT / "perf_data"
     perf_dir.mkdir(parents=True, exist_ok=True)
 
-    metrics = _aggregate_metrics(results_requests, results_grants)
+    metrics = _aggregate_metrics(results)
 
     if not metrics:
         return
