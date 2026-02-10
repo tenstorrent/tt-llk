@@ -151,14 +151,14 @@ class TestConfig:
 
     # Performance counter L1 memory addresses
     # NOTE: These addresses must match the values in tests/helpers/include/counters.h
-    # Layout: 66 config words (264 bytes) + 132 data words (528 bytes) = 792 (0x318) bytes per thread
+    # Layout: 86 config words (344 bytes) + 172 data words (688 bytes) = 1032 (0x408) bytes per thread
     PERF_COUNTERS_BASE_ADDR: ClassVar[int] = 0x16A000
-    PERF_COUNTERS_SIZE: ClassVar[int] = 0xA00  # 2560 bytes for all 3 threads
-    _PERF_COUNTERS_CONFIG_WORDS: ClassVar[int] = 66
-    _PERF_COUNTERS_DATA_WORDS: ClassVar[int] = 132
+    PERF_COUNTERS_SIZE: ClassVar[int] = 0xC18  # 3096 bytes for all 3 threads
+    _PERF_COUNTERS_CONFIG_WORDS: ClassVar[int] = 86
+    _PERF_COUNTERS_DATA_WORDS: ClassVar[int] = 172
     _PERF_COUNTERS_THREAD_SIZE: ClassVar[int] = (
         _PERF_COUNTERS_CONFIG_WORDS + _PERF_COUNTERS_DATA_WORDS
-    ) * 4  # 792 bytes
+    ) * 4  # 1032 bytes
     # Computed addresses (UNPACK=thread 0, MATH=thread 1, PACK=thread 2)
     PERF_COUNTER_UNPACK_CONFIG_ADDR: ClassVar[int] = PERF_COUNTERS_BASE_ADDR
     PERF_COUNTER_UNPACK_DATA_ADDR: ClassVar[int] = (

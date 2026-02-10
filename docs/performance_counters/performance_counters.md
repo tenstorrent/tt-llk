@@ -269,31 +269,25 @@ Location: `tests/python_tests/helpers/counters.py`
 
 | Function | Description |
 |----------|-------------|
-| `configure_counters(location, mode)` | Configure all 66 counters on all threads (UNPACK, MATH, PACK) |
+| `configure_counters(location)` | Configure all 66 counters on all threads (UNPACK, MATH, PACK) |
 | `read_counters(location)` | Read counter results from all threads |
-| `print_counters(results_by_thread)` | Display formatted results |
-| `export_counters(results_requests, results_grants, filename, test_params, worker_id)` | Export counter results to CSV |
+| `print_counters(results)` | Display formatted results |
+| `export_counters(results, filename, test_params, worker_id)` | Export counter results to CSV |
 
 **Example:**
 ```python
 from helpers.counters import configure_counters, read_counters, print_counters, export_counters
 
-# Configure all 66 counters in REQUESTS mode
-configure_counters(location="0,0", mode="REQUESTS")
+# Configure and run with performance counters
+configure_counters(location="0,0")
 # ... run kernel ...
-results_requests = read_counters(location="0,0")
-
-# Configure all 66 counters in GRANTS mode
-configure_counters(location="0,0", mode="GRANTS")
-# ... run kernel again ...
-results_grants = read_counters(location="0,0")
+results = read_counters(location="0,0")
 
 # Display results
-print_counters(results_requests)
-print_counters(results_grants)
+print_counters(results)
 
 # Export to CSV
-export_counters(results_requests, results_grants, "my_test_counters")
+export_counters(results, "my_test_counters")
 ```
 
 ## Derived Metrics
@@ -309,20 +303,20 @@ The metrics functions automatically detect the chip architecture and apply appro
 ```python
 from helpers.metrics import print_metrics, export_metrics
 
-# Platform is auto-detected - no configuration needed
 # Print formatted metrics to console
-print_metrics(results_requests, results_grants)
+print_metrics(results)
 
 # Export metrics to CSV
-export_metrics(results_requests, results_grants, "my_test_metrics")
+export_metrics(results, "my_test_metrics")
 ```
 
 **Functions:**
 
 | Function | Description |
 |----------|-------------|
-| `print_metrics(results_requests, results_grants)` | Print kernel metrics to console |
-| `export_metrics(results_requests, results_grants, filename, test_params, worker_id)` | Export kernel metrics to CSV |
+| `compute_metrics(results)` | Compute utilization metrics from counter data |
+| `print_metrics(results)` | Print kernel metrics to console |
+| `export_metrics(results, filename, test_params, worker_id)` | Export kernel metrics to CSV |
 
 ### Platform Bandwidth Parameters
 

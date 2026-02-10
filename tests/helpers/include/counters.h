@@ -47,12 +47,12 @@ namespace llk_perf
 // SOURCE OF TRUTH: tests/python_tests/helpers/test_config.py (TestConfig class)
 // These values MUST match TestConfig.PERF_COUNTERS_* addresses.
 // Must be below profiler buffers which start at 0x16B000
-// Layout: 66 config words (264 bytes) + 132 data words (528 bytes) = 792 bytes per thread
+// Layout: 86 config words (344 bytes) + 172 data words (688 bytes) = 1032 bytes per thread
 #define PERF_COUNTERS_BASE_ADDR    0x16A000
-#define PERF_COUNTERS_SIZE         0xA00 // 2560 bytes for all 3 threads
-#define PERF_COUNTERS_CONFIG_WORDS 66
-#define PERF_COUNTERS_DATA_WORDS   132
-#define PERF_COUNTERS_THREAD_SIZE  ((PERF_COUNTERS_CONFIG_WORDS + PERF_COUNTERS_DATA_WORDS) * 4) // 792 bytes
+#define PERF_COUNTERS_SIZE         0xC18 // 3096 bytes for all 3 threads
+#define PERF_COUNTERS_CONFIG_WORDS 86
+#define PERF_COUNTERS_DATA_WORDS   172
+#define PERF_COUNTERS_THREAD_SIZE  ((PERF_COUNTERS_CONFIG_WORDS + PERF_COUNTERS_DATA_WORDS) * 4) // 1032 bytes
 // Computed addresses (UNPACK=thread 0, MATH=thread 1, PACK=thread 2)
 #define PERF_COUNTER_UNPACK_CONFIG_ADDR (PERF_COUNTERS_BASE_ADDR)
 #define PERF_COUNTER_UNPACK_DATA_ADDR   (PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_CONFIG_WORDS * 4)
@@ -76,7 +76,7 @@ enum class CounterBank : std::uint8_t
 // Number of counter banks represented by CounterBank enum
 inline constexpr std::uint32_t COUNTER_BANK_COUNT = 5;
 // Number of counter slots supported per thread (config words and data pairs)
-inline constexpr std::uint32_t COUNTER_SLOT_COUNT = 66;
+inline constexpr std::uint32_t COUNTER_SLOT_COUNT = 86;
 
 inline constexpr std::uint32_t get_counter_base_addr(CounterBank bank)
 {

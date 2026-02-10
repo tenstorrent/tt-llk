@@ -1,436 +1,210 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+"""
+Performance metrics calculation from hardware counter data.
+
+Metrics calculated:
+- FPU Utilization: FPU_INSTRUCTION / cycles
+- SFPU Utilization: SFPU_INSTRUCTION / cycles
+- Math Utilization: FPU_OR_SFPU_INSTRN / cycles (combined FPU+SFPU)
+- Unpacker0 Utilization: SRCA_WRITE / UNPACK0_BUSY_THREAD0
+- Unpacker1 Utilization: SRCB_WRITE / UNPACK1_BUSY_THREAD0
+- Packer Utilization: PACKER_BUSY / cycles
+"""
+
 import pandas as pd
-from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.test_config import TestConfig
 
-# Platform-specific bandwidth parameters for metrics calculations.
-_PLATFORM_BANDWIDTH = {
-    ChipArchitecture.WORMHOLE: {
-        "noc_word_bytes": 32,
-        "unpack_max_bytes_per_cycle": 80.0,
-        "pack_max_bytes_per_cycle": 80.0,
-    },
-    ChipArchitecture.BLACKHOLE: {
-        "noc_word_bytes": 256,
-        "unpack_max_bytes_per_cycle": 120.0,
-        "pack_max_bytes_per_cycle": 120.0,
-    },
-    ChipArchitecture.QUASAR: {
-        "noc_word_bytes": 32,
-        "unpack_max_bytes_per_cycle": 80.0,
-        "pack_max_bytes_per_cycle": 80.0,
-    },
-}
 
-
-def _get_platform_bandwidth() -> dict:
-    """Get bandwidth parameters for the current chip architecture."""
-    arch = get_chip_architecture()
-    if arch not in _PLATFORM_BANDWIDTH:
-        raise ValueError(f"No bandwidth config for architecture: {arch}")
-    return _PLATFORM_BANDWIDTH[arch]
-
-
-def _sum_counts(df: pd.DataFrame, bank: str, names: list, mux: int = None) -> int:
-    """Sum counter counts for given bank and counter names."""
-    mask = (df["bank"] == bank) & (df["counter_name"].isin(names))
-    if mux is not None:
-        mask = mask & (df["l1_mux"] == mux)
+def _sum_count(df: pd.DataFrame, bank: str, counter_name: str) -> int:
+    """Sum count for a specific counter across all threads."""
+    mask = (df["bank"] == bank) & (df["counter_name"] == counter_name)
     return int(df.loc[mask, "count"].sum())
 
 
-def _get_cycles(df: pd.DataFrame, bank: str) -> int:
-    """Get cycles for a specific bank."""
+def _avg_count(df: pd.DataFrame, bank: str, counter_name: str) -> float:
+    """Average count for a specific counter across all threads."""
+    mask = (df["bank"] == bank) & (df["counter_name"] == counter_name)
+    result = df.loc[mask, "count"]
+    return float(result.mean()) if len(result) > 0 else 0.0
+
+
+def _max_cycles(df: pd.DataFrame, bank: str) -> int:
+    """Get max cycles for a specific bank across all threads."""
     bank_df = df[df["bank"] == bank]
     if bank_df.empty:
         return 0
-    return int(bank_df["cycles"].iloc[0])
+    return int(bank_df["cycles"].max())
 
 
-def _rate(count: int, cycles: int) -> float | None:
-    """Calculate rate as count/cycles, returning None if cycles is 0."""
-    return (count / cycles) if cycles else None
+def _safe_div(numerator: float, denominator: float) -> float | None:
+    """Safe division returning None if denominator is 0."""
+    return (numerator / denominator) if denominator > 0 else None
 
 
-def _compute_thread_metrics(df: pd.DataFrame) -> dict:
-    """Compute metrics for a single thread's counter data."""
-    hw = _get_platform_bandwidth()
+def _pct(value: float | None) -> float | None:
+    """Convert ratio to percentage."""
+    return (value * 100.0) if value is not None else None
 
-    cycles_instrn = _get_cycles(df, "INSTRN_THREAD")
-    cycles_fpu = _get_cycles(df, "FPU")
-    cycles_unpack = _get_cycles(df, "TDMA_UNPACK")
-    cycles_pack = _get_cycles(df, "TDMA_PACK")
-    cycles_l1 = _get_cycles(df, "L1")
 
-    wall_cycles = max(cycles_instrn, cycles_fpu, cycles_unpack, cycles_pack, cycles_l1)
+def compute_metrics(df: pd.DataFrame) -> dict:
+    """
+    Compute performance metrics from counter DataFrame.
 
-    # Instruction counts (per-thread)
-    instr_count_0 = _sum_counts(df, "INSTRN_THREAD", ["THREAD_INSTRUCTIONS_0"])
-    instr_count_1 = _sum_counts(df, "INSTRN_THREAD", ["THREAD_INSTRUCTIONS_1"])
-    instr_count_2 = _sum_counts(df, "INSTRN_THREAD", ["THREAD_INSTRUCTIONS_2"])
-    total_instructions = instr_count_0 + instr_count_1 + instr_count_2
+    Args:
+        df: DataFrame from read_counters() with columns:
+            thread, bank, counter_name, counter_id, cycles, count, l1_mux
 
-    # Thread stalls (per-thread)
-    stalls_0 = _sum_counts(df, "INSTRN_THREAD", ["THREAD_STALLS_0"])
-    stalls_1 = _sum_counts(df, "INSTRN_THREAD", ["THREAD_STALLS_1"])
-    stalls_2 = _sum_counts(df, "INSTRN_THREAD", ["THREAD_STALLS_2"])
-    total_stalls = stalls_0 + stalls_1 + stalls_2
+    Returns:
+        Dictionary of computed metrics.
+    """
+    if df.empty:
+        return {}
 
-    # Compute engine utilization
-    fpu_instrn = _sum_counts(df, "FPU", ["FPU_INSTRUCTION"])
-    sfpu_instrn = _sum_counts(df, "FPU", ["SFPU_INSTRUCTION"])
-    compute_util = _rate(fpu_instrn + sfpu_instrn, cycles_fpu)
-    fpu_rate = _rate(fpu_instrn, cycles_fpu)
-    sfpu_rate = _rate(sfpu_instrn, cycles_fpu)
+    # Get max cycle counts from each bank (wall clock)
+    cycles_fpu = _max_cycles(df, "FPU")
+    cycles_unpack = _max_cycles(df, "TDMA_UNPACK")
+    cycles_pack = _max_cycles(df, "TDMA_PACK")
 
-    # Unpacker/Packer utilization
-    unpack_busy = (
-        _sum_counts(df, "TDMA_UNPACK", ["UNPACK0_BUSY_THREAD0"])
-        + _sum_counts(df, "TDMA_UNPACK", ["UNPACK1_BUSY_THREAD0"])
-        + _sum_counts(df, "TDMA_UNPACK", ["UNPACK0_BUSY_THREAD1"])
-        + _sum_counts(df, "TDMA_UNPACK", ["UNPACK1_BUSY_THREAD1"])
-    )
-    pack_busy = _sum_counts(df, "TDMA_PACK", ["PACKER_BUSY"])
-    unpack_util = _rate(unpack_busy, cycles_unpack * 4) if cycles_unpack else None
-    pack_util = _rate(pack_busy, cycles_pack) if cycles_pack else None
+    # Use max cycles as wall clock reference
+    wall_cycles = max(cycles_fpu, cycles_unpack, cycles_pack, 1)
 
-    # NoC activity
-    noc_in = _sum_counts(
-        df,
-        "L1",
-        [
-            "NOC_RING0_INCOMING_1",
-            "NOC_RING0_INCOMING_0",
-            "NOC_RING1_INCOMING_1",
-            "NOC_RING1_INCOMING_0",
-        ],
-    )
-    noc_out = _sum_counts(
-        df,
-        "L1",
-        [
-            "NOC_RING0_OUTGOING_1",
-            "NOC_RING0_OUTGOING_0",
-            "NOC_RING1_OUTGOING_1",
-            "NOC_RING1_OUTGOING_0",
-        ],
-    )
-    noc_txn_per_cycle = _rate(noc_in + noc_out, cycles_l1)
-    noc_bytes_per_cycle = (
-        noc_txn_per_cycle * hw["noc_word_bytes"]
-        if noc_txn_per_cycle is not None
-        else None
-    )
+    # === FPU/SFPU/Math Utilization ===
+    # Average instruction counts across threads / cycles
+    fpu_count = _avg_count(df, "FPU", "FPU_INSTRUCTION")
+    sfpu_count = _avg_count(df, "FPU", "SFPU_INSTRUCTION")
+    math_count = _avg_count(df, "FPU", "FPU_OR_SFPU_INSTRN")
 
-    # L1 arbitration/congestion
-    l1_arb = _sum_counts(
-        df,
-        "L1",
-        [
-            "L1_ARB_TDMA_BUNDLE_1",
-            "L1_ARB_TDMA_BUNDLE_0",
-            "L1_ARB_UNPACKER",
-            "TDMA_BUNDLE_1_ARB",
-            "TDMA_BUNDLE_0_ARB",
-        ],
-    )
-    l1_no_arb = _sum_counts(df, "L1", ["L1_NO_ARB_UNPACKER"], mux=0)
-    l1_total = l1_arb + l1_no_arb
-    l1_congestion_index = (l1_arb / l1_total) if l1_total else None
+    fpu_util = _safe_div(fpu_count, cycles_fpu)
+    sfpu_util = _safe_div(sfpu_count, cycles_fpu)
+    math_util = _safe_div(math_count, cycles_fpu)
 
-    # Bandwidth estimates
-    unpack_bw = (
-        unpack_util * hw["unpack_max_bytes_per_cycle"]
-        if unpack_util is not None
-        else None
-    )
-    pack_bw = (
-        pack_util * hw["pack_max_bytes_per_cycle"] if pack_util is not None else None
-    )
+    # === Unpacker Utilization ===
+    # Average writes and busy cycles across all threads, then compute ratio
+    srca_write = _avg_count(df, "TDMA_UNPACK", "SRCA_WRITE")
+    srcb_write = _avg_count(df, "TDMA_UNPACK", "SRCB_WRITE")
+    unpack0_busy = _avg_count(df, "TDMA_UNPACK", "UNPACK0_BUSY_THREAD0")
+    unpack1_busy = _avg_count(df, "TDMA_UNPACK", "UNPACK1_BUSY_THREAD0")
 
-    # Rates
-    stall_rate = _rate(total_stalls, cycles_instrn)
-    issue_rate = _rate(total_instructions, cycles_instrn)
+    unpack0_util = _safe_div(srca_write, unpack0_busy)
+    unpack1_util = _safe_div(srcb_write, unpack1_busy)
 
-    # Bound scores (None if underlying metrics are None)
-    risc_bound_score = (
-        stall_rate - (issue_rate * 0.5)
-        if stall_rate is not None and issue_rate is not None
-        else None
-    )
+    # Combined unpacker utilization (average of both)
+    if unpack0_util is not None and unpack1_util is not None:
+        unpack_util = (unpack0_util + unpack1_util) / 2.0
+    elif unpack0_util is not None:
+        unpack_util = unpack0_util
+    elif unpack1_util is not None:
+        unpack_util = unpack1_util
+    else:
+        unpack_util = None
+
+    # === Packer Utilization ===
+    # Average PACKER_BUSY / cycles
+    packer_busy = _avg_count(df, "TDMA_PACK", "PACKER_BUSY")
+    pack_util = _safe_div(packer_busy, cycles_pack)
 
     return {
+        # Cycle counts
         "wall_cycles": wall_cycles,
-        "compute_util": compute_util,
-        "fpu_rate": fpu_rate,
-        "sfpu_rate": sfpu_rate,
+        "fpu_cycles": cycles_fpu,
+        "unpack_cycles": cycles_unpack,
+        "pack_cycles": cycles_pack,
+        # Raw counts
+        "fpu_count": fpu_count,
+        "sfpu_count": sfpu_count,
+        "math_count": math_count,
+        "srca_write_count": srca_write,
+        "srcb_write_count": srcb_write,
+        "unpack0_busy_count": unpack0_busy,
+        "unpack1_busy_count": unpack1_busy,
+        "packer_busy_count": packer_busy,
+        # Utilization ratios (0.0 - 1.0+)
+        "fpu_util": fpu_util,
+        "sfpu_util": sfpu_util,
+        "math_util": math_util,
+        "unpack0_util": unpack0_util,
+        "unpack1_util": unpack1_util,
         "unpack_util": unpack_util,
         "pack_util": pack_util,
-        "unpack_busy": unpack_busy,
-        "pack_busy": pack_busy,
-        "unpack_bw": unpack_bw,
-        "pack_bw": pack_bw,
-        "l1_congestion_index": l1_congestion_index,
-        "noc_txn_per_cycle": noc_txn_per_cycle,
-        "noc_bytes_per_cycle": noc_bytes_per_cycle,
-        "noc_in": noc_in,
-        "noc_out": noc_out,
-        "stall_rate": stall_rate,
-        "issue_rate": issue_rate,
-        "math_bound_score": compute_util,
-        "unpack_bound_score": unpack_util,
-        "pack_bound_score": pack_util,
-        "risc_bound_score": risc_bound_score,
+        # Utilization percentages (0.0 - 100.0+)
+        "fpu_util_pct": _pct(fpu_util),
+        "sfpu_util_pct": _pct(sfpu_util),
+        "math_util_pct": _pct(math_util),
+        "unpack0_util_pct": _pct(unpack0_util),
+        "unpack1_util_pct": _pct(unpack1_util),
+        "unpack_util_pct": _pct(unpack_util),
+        "pack_util_pct": _pct(pack_util),
     }
-
-
-def _aggregate_metrics(results: pd.DataFrame) -> dict:
-    """Aggregate thread metrics into kernel-level metrics."""
-    hw = _get_platform_bandwidth()
-
-    thread_metrics = []
-
-    if results.empty:
-        return {}
-
-    # Get unique threads
-    all_threads = sorted(results["thread"].unique())
-
-    for thread in all_threads:
-        thread_df = results[results["thread"] == thread]
-        if not thread_df.empty:
-            thread_metrics.append(_compute_thread_metrics(thread_df))
-
-    if not thread_metrics:
-        return {}
-
-    def avg(xs):
-        """Average of non-None values, or None if all are None."""
-        valid = [x for x in xs if x is not None]
-        return (sum(valid) / len(valid)) if valid else None
-
-    metrics = {
-        "compute_util": avg([m["compute_util"] for m in thread_metrics]),
-        "fpu_rate": avg([m["fpu_rate"] for m in thread_metrics]),
-        "sfpu_rate": avg([m["sfpu_rate"] for m in thread_metrics]),
-        "unpack_util": avg([m["unpack_util"] for m in thread_metrics]),
-        "pack_util": avg([m["pack_util"] for m in thread_metrics]),
-        "l1_congestion_index": avg([m["l1_congestion_index"] for m in thread_metrics]),
-        "noc_txn_per_cycle": avg([m["noc_txn_per_cycle"] for m in thread_metrics]),
-        "noc_bytes_per_cycle": avg([m["noc_bytes_per_cycle"] for m in thread_metrics]),
-        "risc_stall_rate": avg([m["stall_rate"] for m in thread_metrics]),
-        "risc_issue_rate": avg([m["issue_rate"] for m in thread_metrics]),
-        "wall_cycles": max([m["wall_cycles"] for m in thread_metrics]),
-    }
-
-    # Bandwidth estimates (None if utilization is None)
-    metrics["unpack_bw_bytes_per_cycle"] = (
-        metrics["unpack_util"] * hw["unpack_max_bytes_per_cycle"]
-        if metrics["unpack_util"] is not None
-        else None
-    )
-    metrics["pack_bw_bytes_per_cycle"] = (
-        metrics["pack_util"] * hw["pack_max_bytes_per_cycle"]
-        if metrics["pack_util"] is not None
-        else None
-    )
-
-    # Bound scores
-    metrics["math_bound_score"] = metrics["compute_util"]
-    metrics["unpack_bound_score"] = metrics["unpack_util"]
-    metrics["pack_bound_score"] = metrics["pack_util"]
-    metrics["risc_bound_score"] = (
-        metrics["risc_stall_rate"] - (metrics["risc_issue_rate"] * 0.5)
-        if metrics["risc_stall_rate"] is not None
-        and metrics["risc_issue_rate"] is not None
-        else None
-    )
-
-    # Kernel bound classification (only if we have the required metrics)
-    kernel_compute_score = metrics["compute_util"]
-    if (
-        metrics["unpack_util"] is not None
-        and metrics["pack_util"] is not None
-        and metrics["l1_congestion_index"] is not None
-        and metrics["noc_txn_per_cycle"] is not None
-    ):
-        kernel_data_score = (
-            (metrics["unpack_util"] + metrics["pack_util"]) / 2.0
-            + metrics["l1_congestion_index"]
-            + metrics["noc_txn_per_cycle"]
-        )
-    else:
-        kernel_data_score = None
-
-    metrics["kernel_compute_score"] = kernel_compute_score
-    metrics["kernel_data_score"] = kernel_data_score
-
-    if kernel_compute_score is not None and kernel_data_score is not None:
-        metrics["kernel_bound"] = (
-            "compute-bound"
-            if kernel_compute_score >= kernel_data_score
-            else "data-movement-bound"
-        )
-    else:
-        metrics["kernel_bound"] = None
-
-    # Dominant component (filter out None scores)
-    bound_scores = [
-        ("math-bound", metrics["math_bound_score"]),
-        ("unpack-bound", metrics["unpack_bound_score"]),
-        ("pack-bound", metrics["pack_bound_score"]),
-        ("risc-bound", metrics["risc_bound_score"]),
-    ]
-    valid_scores = [(name, score) for name, score in bound_scores if score is not None]
-    if valid_scores:
-        dominant = max(valid_scores, key=lambda x: x[1])
-        metrics["dominant_bound"] = dominant[0]
-        metrics["dominant_bound_score"] = dominant[1]
-    else:
-        metrics["dominant_bound"] = None
-        metrics["dominant_bound_score"] = None
-
-    return metrics
 
 
 def print_metrics(results: pd.DataFrame) -> None:
-    """Print kernel metrics to console."""
-    metrics = _aggregate_metrics(results)
+    """Print performance metrics to console."""
+    metrics = compute_metrics(results)
 
     if not metrics:
         print("No metrics to display.")
         return
 
-    def fmt(value, decimals=4):
+    def fmt(value, decimals=2):
         """Format a value, returning 'N/A' for None."""
         if value is None:
             return "N/A"
         return f"{value:.{decimals}f}"
 
-    def fmt_or_na(value, decimals=4, width=15):
-        """Format value right-aligned, or 'N/A' centered."""
-        if value is None:
-            return f"{'N/A':>{width}}"
-        return f"{value:>{width}.{decimals}f}"
+    print("\n" + "=" * 70)
+    print("PERFORMANCE METRICS")
+    print("=" * 70)
 
-    print("\n" + "=" * 80)
-    print("KERNEL PERFORMANCE METRICS")
-    print("=" * 80)
+    print(f"\n{'─' * 70}")
+    print("  CYCLE COUNTS")
+    print(f"{'─' * 70}")
+    print(f"  {'Wall Cycles:':<30} {metrics['wall_cycles']:>15,}")
+    print(f"  {'FPU Bank Cycles:':<30} {metrics['fpu_cycles']:>15,}")
+    print(f"  {'Unpack Bank Cycles:':<30} {metrics['unpack_cycles']:>15,}")
+    print(f"  {'Pack Bank Cycles:':<30} {metrics['pack_cycles']:>15,}")
 
-    # Bound classification
-    kernel_bound = metrics.get("kernel_bound") or "N/A"
-    dominant_bound = metrics.get("dominant_bound") or "N/A"
-    dominant_score = metrics.get("dominant_bound_score")
-    dominant_score_str = (
-        f"(score: {dominant_score:.3f})"
-        if dominant_score is not None
-        else "(score: N/A)"
+    print(f"\n{'─' * 70}")
+    print("  COMPUTE UTILIZATION (instructions / cycles)")
+    print(f"{'─' * 70}")
+    print(f"  {'Metric':<30} {'Count':>12} {'Util %':>12}")
+    print(f"  {'─' * 30} {'─' * 12} {'─' * 12}")
+    print(
+        f"  {'FPU Utilization:':<30} {metrics['fpu_count']:>12.1f} {fmt(metrics['fpu_util_pct']):>11}%"
+    )
+    print(
+        f"  {'SFPU Utilization:':<30} {metrics['sfpu_count']:>12.1f} {fmt(metrics['sfpu_util_pct']):>11}%"
+    )
+    print(
+        f"  {'Math Utilization (FPU+SFPU):':<30} {metrics['math_count']:>12.1f} {fmt(metrics['math_util_pct']):>11}%"
     )
 
-    print(f"\n┌{'─' * 78}┐")
-    print(f"│ {'BOUND CLASSIFICATION':^76} │")
-    print(f"├{'─' * 78}┤")
-    print(f"│  Kernel Bound:    {kernel_bound:<56} │")
-    print(f"│  Dominant:        {dominant_bound:<40} {dominant_score_str:<15} │")
-    print(f"└{'─' * 78}┘")
+    print(f"\n{'─' * 70}")
+    print("  UNPACKER UTILIZATION (writes / busy cycles)")
+    print(f"{'─' * 70}")
+    print(f"  {'Metric':<30} {'Writes':>12} {'Busy':>12} {'Ratio':>12}")
+    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
+    print(
+        f"  {'Unpacker0 (SRCA):':<30} {metrics['srca_write_count']:>12.1f} {metrics['unpack0_busy_count']:>12.1f} {fmt(metrics['unpack0_util']):>12}"
+    )
+    print(
+        f"  {'Unpacker1 (SRCB):':<30} {metrics['srcb_write_count']:>12.1f} {metrics['unpack1_busy_count']:>12.1f} {fmt(metrics['unpack1_util']):>12}"
+    )
+    print(
+        f"  {'Combined Unpacker:':<30} {'':<12} {'':<12} {fmt(metrics['unpack_util']):>12}"
+    )
 
-    # Utilization metrics
-    print(f"\n┌{'─' * 78}┐")
-    print(f"│ {'UTILIZATION METRICS':^76} │")
-    print(f"├{'─' * 78}┤")
-    print(f"│  {'Metric':<30} {'Value':>15} {'Description':<28} │")
-    print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
+    print(f"\n{'─' * 70}")
+    print("  PACKER UTILIZATION (busy / cycles)")
+    print(f"{'─' * 70}")
+    print(f"  {'Metric':<30} {'Busy':>12} {'Util %':>12}")
+    print(f"  {'─' * 30} {'─' * 12} {'─' * 12}")
     print(
-        f"│  {'Compute Utilization':<30} {fmt_or_na(metrics.get('compute_util'))} {'FPU + SFPU activity':<28} │"
+        f"  {'Packer:':<30} {metrics['packer_busy_count']:>12.1f} {fmt(metrics['pack_util_pct']):>11}%"
     )
-    print(
-        f"│  {'FPU Rate':<30} {fmt_or_na(metrics.get('fpu_rate'))} {'FPU ops per cycle':<28} │"
-    )
-    print(
-        f"│  {'SFPU Rate':<30} {fmt_or_na(metrics.get('sfpu_rate'))} {'SFPU ops per cycle':<28} │"
-    )
-    print(
-        f"│  {'Unpack Utilization':<30} {fmt_or_na(metrics.get('unpack_util'))} {'TDMA unpack activity':<28} │"
-    )
-    print(
-        f"│  {'Pack Utilization':<30} {fmt_or_na(metrics.get('pack_util'))} {'TDMA pack activity':<28} │"
-    )
-    print(f"└{'─' * 78}┘")
 
-    # Bandwidth metrics
-    print(f"\n┌{'─' * 78}┐")
-    print(f"│ {'BANDWIDTH ESTIMATES':^76} │")
-    print(f"├{'─' * 78}┤")
-    print(f"│  {'Metric':<30} {'Value':>15} {'Unit':<28} │")
-    print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
-    print(
-        f"│  {'Unpack BW':<30} {fmt_or_na(metrics.get('unpack_bw_bytes_per_cycle'), 2)} {'bytes/cycle':<28} │"
-    )
-    print(
-        f"│  {'Pack BW':<30} {fmt_or_na(metrics.get('pack_bw_bytes_per_cycle'), 2)} {'bytes/cycle':<28} │"
-    )
-    print(
-        f"│  {'NoC BW':<30} {fmt_or_na(metrics.get('noc_bytes_per_cycle'), 2)} {'bytes/cycle':<28} │"
-    )
-    print(
-        f"│  {'NoC Transactions':<30} {fmt_or_na(metrics.get('noc_txn_per_cycle'))} {'txn/cycle':<28} │"
-    )
-    print(f"└{'─' * 78}┘")
-
-    # L1/NoC metrics
-    print(f"\n┌{'─' * 78}┐")
-    print(f"│ {'L1/NOC METRICS':^76} │")
-    print(f"├{'─' * 78}┤")
-    print(f"│  {'Metric':<30} {'Value':>15} {'Description':<28} │")
-    print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
-    print(
-        f"│  {'L1 Congestion Index':<30} {fmt_or_na(metrics.get('l1_congestion_index'))} {'Higher = more contention':<28} │"
-    )
-    print(f"└{'─' * 78}┘")
-
-    # RISC metrics
-    print(f"\n┌{'─' * 78}┐")
-    print(f"│ {'RISC THREAD METRICS':^76} │")
-    print(f"├{'─' * 78}┤")
-    print(f"│  {'Metric':<30} {'Value':>15} {'Description':<28} │")
-    print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
-    print(
-        f"│  {'RISC Stall Rate':<30} {fmt_or_na(metrics.get('risc_stall_rate'))} {'Fraction of time stalled':<28} │"
-    )
-    print(
-        f"│  {'RISC Issue Rate':<30} {fmt_or_na(metrics.get('risc_issue_rate'))} {'Instructions per cycle':<28} │"
-    )
-    print(f"└{'─' * 78}┘")
-
-    # Bound scores
-    print(f"\n┌{'─' * 78}┐")
-    print(f"│ {'BOUND SCORES':^76} │")
-    print(f"├{'─' * 78}┤")
-    print(f"│  {'Component':<30} {'Score':>15} {'Rank':<28} │")
-    print(f"│  {'─' * 30} {'─' * 15} {'─' * 28} │")
-    scores = [
-        ("Math", metrics.get("math_bound_score")),
-        ("Unpack", metrics.get("unpack_bound_score")),
-        ("Pack", metrics.get("pack_bound_score")),
-        ("RISC", metrics.get("risc_bound_score")),
-    ]
-    # Sort with None values at the end
-    valid_scores = [(n, s) for n, s in scores if s is not None]
-    na_scores = [(n, s) for n, s in scores if s is None]
-    sorted_scores = sorted(valid_scores, key=lambda x: x[1], reverse=True) + na_scores
-
-    for i, (name, score) in enumerate(sorted_scores, 1):
-        if score is not None:
-            rank_str = f"#{i}" + (" (dominant)" if i == 1 else "")
-            print(f"│  {name:<30} {score:>15.4f} {rank_str:<28} │")
-        else:
-            print(f"│  {name:<30} {'N/A':>15} {'':<28} │")
-    print(f"└{'─' * 78}┘")
-
-    print(f"\n  Wall Cycles: {int(metrics.get('wall_cycles', 0)):,}")
-    print("\n" + "=" * 80 + "\n")
+    print("\n" + "=" * 70 + "\n")
 
 
 def export_metrics(
@@ -439,11 +213,11 @@ def export_metrics(
     test_params: dict = None,
     worker_id: str = "gw0",
 ) -> None:
-    """Export kernel metrics to CSV file."""
+    """Export metrics to CSV file in perf_data directory."""
     perf_dir = TestConfig.LLK_ROOT / "perf_data"
     perf_dir.mkdir(parents=True, exist_ok=True)
 
-    metrics = _aggregate_metrics(results)
+    metrics = compute_metrics(results)
 
     if not metrics:
         return

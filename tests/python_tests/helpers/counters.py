@@ -9,7 +9,7 @@ from ttexalens.tt_exalens_lib import read_words_from_device, write_words_to_devi
 
 from .test_config import TestConfig
 
-COUNTER_SLOT_COUNT = 66  # Max counters per thread
+COUNTER_SLOT_COUNT = 86  # Max counters per thread
 COUNTER_DATA_WORD_COUNT = COUNTER_SLOT_COUNT * 2  # 2 words per counter (cycles + count)
 
 _THREAD_ADDRESSES = {
