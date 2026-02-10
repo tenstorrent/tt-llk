@@ -16,7 +16,7 @@ Tensix cores contain five hardware performance counter banks (also referred to a
 
 Each category has debug registers for control and two output registers:
 - `PERF_CNT_*0`: Reference period (optional, only used in mode 1)
-- `PERF_CNT_*1`: Mode + counter select + request/grant select
+- `PERF_CNT_*1`: Mode + counter select
 - `PERF_CNT_*2`: Start/stop (rising-edge triggered)
 - `PERF_CNT_OUT_L_*`: Cycles counted in the measurement window
 - `PERF_CNT_OUT_H_*`: Event-specific count for the selected counter
@@ -34,17 +34,16 @@ The L1 bank has 8 counter IDs (0–7), but the hardware provides 16 different si
 | 0 | NOC Ring 0 transactions, L1 arbitration bundles, unpacker arbitration |
 | 1 | NOC Ring 1 transactions, TDMA bundle arbitration, extended unpacker/packer signals |
 
-You must set this mux bit before reading L1 counters to ensure you're reading the intended signals.
+You must set this mux bit **before starting** the L1 counters to ensure you're measuring the intended signals. The L1 mux setting is latched at measurement start time. Changing `PERF_CNT_MUX_CTRL` while counters are running results in undefined measurements.
 
 ### Mode Register Bits
 
-The mode register (`PERF_CNT_*1`) controls several aspects:
+The mode register (`PERF_CNT_*1`) controls counter selection:
 
 | Bits | Field | Description |
 |------|-------|-------------|
 | 7:0 | mode | Counting behavior (see below) |
-| 15:8 | counter_sel | Selects which counter event to read via `OUT_H` (does not affect what is counted; actual counting is controlled by the per-slot L1 configuration buffer) |
-| 16 | req/grant | 0 = read request count, 1 = read grant count |
+| 16:8 | counter_sel | Selects which counter event to read via `OUT_H` (9 bits, supports counter IDs 0–511) |
 | 31:17 | reserved | Reserved for future use |
 
 **Counting modes:**
@@ -59,21 +58,9 @@ The mode register (`PERF_CNT_*1`) controls several aspects:
 
 **Note:** The reference period register is ignored in modes 0 and 2.
 
-### Requests vs Grants
-
-Bit 16 of the mode register selects which tally to expose when reading `OUT_H`:
-- **Requests (bit 16 = 0):** Number of cycles the hardware signal was asserted (attempted operations)
-- **Grants (bit 16 = 1):** Number of cycles the operation was actually delivered/completed
-
-This distinction is meaningful for:
-- TDMA unpack/pack busy signals (request = attempted, grant = completed transfers)
-- NoC NIU ring transactions (request = initiated, grant = accepted)
-
-For instruction issue, stall, and arbitration counters, the requests/grants distinction must be ignored—both expose the same semantic.
-
 ### Counter Slots
 
-A "counter slot" refers to one entry in the per-thread L1 configuration buffer. Each slot specifies which bank/counter/mux combination to read out after measurement. The interface supports up to 66 slots per thread, allowing you to capture multiple events in a single measurement window. Slots are processed in increasing index order; invalid slots (valid bit = 0) are skipped and produce no output entry.
+A "counter slot" is a single 32-bit configuration word in the per-thread L1 configuration buffer. Each slot (one config word) specifies which bank/counter/mux combination to read out after measurement. The interface supports up to 86 slots per thread, allowing you to capture multiple events in a single measurement window. Slots are processed in increasing index order; invalid slots (valid bit = 0) are skipped and produce no output entry.
 
 ## Register Map
 
@@ -113,70 +100,81 @@ Implementation details are in `tests/helpers/include/counters.h`.
 
 ## Events and Counters
 
-### FPU Bank (2 counters)
+### FPU Bank (3 counters)
 
 | ID | Name | Description |
 |----|------|-------------|
-| 0 | FPU_OP_VALID | Cycles that FPU instructions were issued to the math engine |
-| 1 | SFPU_OP_VALID | Cycles that SFPU instructions were issued to the math engine |
+| 0 | FPU_INSTRUCTION | Cycles that FPU instructions were executed |
+| 1 | SFPU_INSTRUCTION | Cycles that SFPU instructions were executed |
+| 257 | FPU_OR_SFPU_INSTRN | Cycles that either FPU or SFPU instructions were executed (combined) |
 
-Use these to measure compute utilization: `(FPU_OP_VALID + SFPU_OP_VALID) / cycles`. Note that all utilization metrics are cycle-based, not instruction-based—they represent the fraction of active cycles, not work completed.
+Use these to measure compute utilization: `FPU_OR_SFPU_INSTRN / cycles`. Note that all utilization metrics are cycle-based, not instruction-based—they represent the fraction of active cycles, not work completed.
 
-### INSTRN_THREAD Bank (29 counters)
+### INSTRN_THREAD Bank (61 counters)
 
-**Instruction issue counters (IDs 0–7):** Count cycles that specific instruction types were available/issued.
-
-| ID | Name | Description |
-|----|------|-------------|
-| 0 | INST_CFG | CFG instruction availability |
-| 1 | INST_SYNC | SYNC instruction availability |
-| 2 | INST_THCON | THCON instruction availability |
-| 3 | INST_XSEARCH | XSEARCH instruction availability |
-| 4 | INST_MOVE | MOVE instruction availability |
-| 5 | INST_MATH | MATH instruction availability (includes FPU/SFPU) |
-| 6 | INST_UNPACK | UNPACK instruction availability |
-| 7 | INST_PACK | PACK instruction availability |
-| 8 | STALLED | Cycles the thread was stalled |
-
-**Stall reason counters (IDs 9–28):** Identify why the thread stalled.
+**Instruction availability counters:** These counters measure cycles where an instruction of a given type was available in the instruction buffer and ready to issue. A high count means the thread frequently had that instruction type queued; a low count (relative to total cycles) suggests the thread was idle or blocked waiting for other work. These are useful for understanding instruction mix and identifying pipeline bottlenecks.
 
 | ID | Name | Description |
 |----|------|-------------|
-| 9–11 | SRCA_CLEARED_[0-2] | Cycles waiting for srcA cleared per thread |
-| 12–14 | SRCB_CLEARED_[0-2] | Cycles waiting for srcB cleared per thread |
-| 15–17 | SRCA_VALID_[0-2] | Cycles srcA was valid per thread |
-| 18–20 | SRCB_VALID_[0-2] | Cycles srcB was valid per thread |
-| 21 | STALL_THCON | Cycles stalled on THCON |
-| 22 | STALL_PACK0 | Cycles stalled on packer |
-| 23 | STALL_MATH | Cycles stalled on math |
-| 24 | STALL_SEM_ZERO | Cycles stalled on semaphore at zero |
-| 25 | STALL_SEM_MAX | Cycles stalled on semaphore at max |
-| 26 | STALL_MOVE | Cycles stalled on MOVE instruction |
-| 27 | STALL_TRISC_REG_ACCESS | Cycles stalled on TRISC register access |
-| 28 | STALL_SFPU | Cycles stalled on SFPU |
+| 0–2 | CFG_INSTRN_AVAILABLE_[0-2] | CFG instruction available per thread |
+| 3–5 | SYNC_INSTRN_AVAILABLE_[0-2] | SYNC instruction available per thread |
+| 6–8 | THCON_INSTRN_AVAILABLE_[0-2] | THCON instruction available per thread |
+| 9–11 | XSEARCH_INSTRN_AVAILABLE_[0-2] | XSEARCH instruction available per thread |
+| 12–14 | MOVE_INSTRN_AVAILABLE_[0-2] | MOVE instruction available per thread |
+| 15–17 | FPU_INSTRN_AVAILABLE_[0-2] | FPU/SFPU instruction available per thread |
+| 18–20 | UNPACK_INSTRN_AVAILABLE_[0-2] | UNPACK instruction available per thread |
+| 21–23 | PACK_INSTRN_AVAILABLE_[0-2] | PACK instruction available per thread |
+| 24–26 | THREAD_STALLS_[0-2] | Cycles the thread was stalled per thread |
+
+**Wait reason counters:** Identify why the thread was waiting.
+
+| ID | Name | Description |
+|----|------|-------------|
+| 27 | WAITING_FOR_SRCA_CLEAR | Cycles waiting for srcA to be cleared |
+| 28 | WAITING_FOR_SRCB_CLEAR | Cycles waiting for srcB to be cleared |
+| 29 | WAITING_FOR_SRCA_VALID | Cycles waiting for srcA data to be valid |
+| 30 | WAITING_FOR_SRCB_VALID | Cycles waiting for srcB data to be valid |
+| 31–33 | WAITING_FOR_THCON_IDLE_[0-2] | Cycles waiting for THCON idle per thread |
+| 34–36 | WAITING_FOR_UNPACK_IDLE_[0-2] | Cycles waiting for unpack idle per thread |
+| 37–39 | WAITING_FOR_PACK_IDLE_[0-2] | Cycles waiting for pack idle per thread |
+| 40–42 | WAITING_FOR_MATH_IDLE_[0-2] | Cycles waiting for math idle per thread |
+| 43–45 | WAITING_FOR_NONZERO_SEM_[0-2] | Cycles waiting for semaphore > 0 per thread |
+| 46–48 | WAITING_FOR_NONFULL_SEM_[0-2] | Cycles waiting for semaphore < max per thread |
+| 49–51 | WAITING_FOR_MOVE_IDLE_[0-2] | Cycles waiting for MOVE idle per thread |
+| 52–54 | WAITING_FOR_MMIO_IDLE_[0-2] | Cycles waiting for MMIO idle per thread |
+| 55–57 | WAITING_FOR_SFPU_IDLE_[0-2] | Cycles waiting for SFPU idle per thread |
+
+**Thread instruction counts:** (Counter IDs 256–258, using bit 8 set)
+
+| ID | Name | Description |
+|----|------|-------------|
+| 256–258 | THREAD_INSTRUCTIONS_[0-2] | Total instructions executed per thread |
 
 ### TDMA_UNPACK Bank (11 counters)
 
-| ID | Name | Requests Meaning | Grants Meaning |
-|----|------|------------------|----------------|
-| 0 | MATH_INSTR_SRC_READY | Inst issue not blocked by src_data_ready | Instruction took 4 HF cycles |
-| 1 | MATH_NOT_D2A_STALL | Inst issue not stalled by D2A stall | Instruction took 2 HF cycles |
-| 2 | MATH_FIDELITY_PHASES | Pipeline stalled due to fidelity cycles | Instruction took 1 HF cycle |
-| 3 | MATH_INSTR_BUF_RDEN | Instruction buffer read enable | DMA to SrcB write not blocked |
-| 4 | MATH_INSTR_VALID | Instruction valid | DMA to SrcB write not blocked by wr port |
-| 5 | TDMA_SRCB_REGIF_WREN | SrcB register write enable | DMA to SrcA write not blocked |
-| 6 | TDMA_SRCA_REGIF_WREN | SrcA register write enable | DMA to SrcA write not blocked by wr port |
-| 7–10 | UNPACK_BUSY_[0-3] | Unpacker lane busy | Unpacker lane completed transfer |
+**Note on HF cycles:** "HF" refers to "Half-Fidelity" cycles. In Tensix math operations, fidelity settings control precision vs speed tradeoffs. Higher fidelity (HiFi) uses more cycles per operation for better precision; lower fidelity (LoFi) uses fewer cycles. The HF cycle counts indicate how many half-fidelity-equivalent cycles the instruction consumed.
 
-### TDMA_PACK Bank (8 counters)
+| ID | Name | Description |
+|----|------|-------------|
+| 1 | DATA_HAZARD_STALLS_MOVD2A | Cycles stalled due to data hazards on MOVD2A |
+| 3 | MATH_INSTRN_STARTED | Math instructions started |
+| 4 | MATH_INSTRN_AVAILABLE | Math instructions available in buffer |
+| 5 | SRCB_WRITE_AVAILABLE | Cycles SRCB write port was available |
+| 6 | SRCA_WRITE_AVAILABLE | Cycles SRCA write port was available |
+| 7 | UNPACK0_BUSY_THREAD0 | Unpacker 0 busy cycles (thread 0) |
+| 8 | UNPACK1_BUSY_THREAD0 | Unpacker 1 busy cycles (thread 0) |
+| 9 | UNPACK0_BUSY_THREAD1 | Unpacker 0 busy cycles (thread 1) |
+| 10 | UNPACK1_BUSY_THREAD1 | Unpacker 1 busy cycles (thread 1) |
+| 259 | SRCB_WRITE | Actual SRCB writes completed |
+| 261 | SRCA_WRITE | Actual SRCA writes completed |
 
-| ID | Name | Requests Meaning | Grants Meaning |
-|----|------|------------------|----------------|
-| 0–3 | DSTAC_RDEN_RAW_[0-3] | Destination register read attempt | Read granted (ready signal high) |
-| 4 | PACK_NOT_DEST_STALL | Pack not stalled by dest | Pack instruction not stalled by dest write port |
-| 5 | PACK_NOT_SB_STALL | Pack not stalled by scoreboard | Pack instruction not stalled by scoreboard |
-| 6 | PACK_BUSY_10 | Packer lane 10 busy | (Grant always 0) |
-| 7 | PACK_BUSY_11 | Packer lane 11 busy | (Grant always 0) |
+### TDMA_PACK Bank (3 counters)
+
+| ID | Name | Description |
+|----|------|-------------|
+| 11 | PACKER_DEST_READ_AVAILABLE | Cycles destination data was available for packer to read |
+| 18 | PACKER_BUSY | Cycles packer was actively working |
+| 272 | AVAILABLE_MATH | Cycles math results were available for packing |
 
 ### L1 Bank (16 counters via mux)
 
@@ -208,25 +206,24 @@ Use these to measure compute utilization: `(FPU_OP_VALID + SFPU_OP_VALID) / cycl
 
 ## Memory Layout (per TRISC thread)
 
-Configuration and data buffers in L1 (per thread):
+Configuration and data buffers in L1 (per thread). Layout: 86 config words (344 bytes) + 172 data words (688 bytes) = 1032 bytes per thread.
 
 | Thread | Config Address | Data Address |
 |--------|----------------|--------------|
-| UNPACK | 0x2F7D0 (66 words) | 0x2F8D8 (132 words) |
-| MATH | 0x2FAE8 (66 words) | 0x2FBF0 (132 words) |
-| PACK | 0x2FE00 (66 words) | 0x2FF08 (132 words) |
+| UNPACK | 0x16A000 (86 words) | 0x16A158 (172 words) |
+| MATH | 0x16A408 (86 words) | 0x16A560 (172 words) |
+| PACK | 0x16A810 (86 words) | 0x16A968 (172 words) |
 
-**Config word encoding (per counter slot):**
+**Config word encoding:** Each counter slot is a single 32-bit config word with the following format:
 
 | Bit(s) | Field | Description |
 |--------|-------|-------------|
 | 31 | valid | 1 if this slot is active |
-| 17 | l1_mux | L1 mux bit 4 value (only for L1 bank) |
-| 16 | mode | 0 = REQUESTS, 1 = GRANTS |
-| 15:8 | counter_id | Counter ID within the bank |
+| 17 | l1_mux | L1 mux bit 4 value (only meaningful for L1 bank) |
+| 16:8 | counter_id | Counter ID within the bank (9 bits, supports IDs 0–511) |
 | 7:0 | bank_id | Bank ID (0=INSTRN_THREAD, 1=FPU, 2=TDMA_UNPACK, 3=L1, 4=TDMA_PACK) |
 
-**Data area:** After measurement, contains interleaved `(cycles, count)` pairs for each valid slot.
+**Data area:** After measurement, contains interleaved `(cycles, count)` pairs (2 words each) for each valid slot.
 
 ## Interfaces
 
@@ -236,7 +233,6 @@ Location: `tests/helpers/include/counters.h`
 
 **Types:**
 - `llk_perf::CounterBank`: Enum with values `INSTRN_THREAD`, `FPU`, `TDMA_UNPACK`, `L1`, `TDMA_PACK`
-- `llk_perf::CounterMode`: Enum with values `REQUESTS`, `GRANTS`
 - `llk_perf::CounterResult`: Struct with `cycles`, `count`, `bank`, `counter_id`
 
 **Class: `llk_perf::PerfCounters`**
@@ -269,7 +265,7 @@ Location: `tests/python_tests/helpers/counters.py`
 
 | Function | Description |
 |----------|-------------|
-| `configure_counters(location)` | Configure all 66 counters on all threads (UNPACK, MATH, PACK) |
+| `configure_counters(location)` | Configure all 86 counters on all threads (UNPACK, MATH, PACK) |
 | `read_counters(location)` | Read counter results from all threads |
 | `print_counters(results)` | Display formatted results |
 | `export_counters(results, filename, test_params, worker_id)` | Export counter results to CSV |
@@ -348,12 +344,17 @@ The metrics output shows both utilization and estimated bandwidth:
 
 | Metric | Formula | Description |
 |--------|---------|-------------|
-| Compute utilization | `(FPU_OP_VALID + SFPU_OP_VALID) / cycles_fpu` | FPU/SFPU activity rate |
-| Unpack utilization | `sum(UNPACK_BUSY_[0-3]) / (4 * cycles_unpack)` | Average unpacker lane activity |
-| Pack utilization | `(PACK_BUSY_10 + PACK_BUSY_11) / (2 * cycles_pack)` | Average packer lane activity |
-| NoC transactions/cycle | `(noc_in + noc_out) / cycles_l1` | L1-NoC interface activity |
-| L1 congestion index | `arb_pulses / (arb_pulses + no_arb_pulses)` | Arbitration contention ratio |
-| RISC stall rate | `STALLED / cycles_instrn` | Thread stall fraction |
+| FPU Utilization | `FPU_INSTRUCTION / cycles_fpu` | FPU activity rate |
+| SFPU Utilization | `SFPU_INSTRUCTION / cycles_fpu` | SFPU activity rate |
+| Math Utilization | `FPU_OR_SFPU_INSTRN / cycles_fpu` | Combined FPU+SFPU activity rate |
+| Unpacker0 Utilization | `SRCA_WRITE / UNPACK0_BUSY_THREAD0` | Unpacker 0 efficiency (writes per busy cycle) |
+| Unpacker1 Utilization | `SRCB_WRITE / UNPACK1_BUSY_THREAD0` | Unpacker 1 efficiency (writes per busy cycle) |
+| Packer Utilization | `PACKER_BUSY / cycles_pack` | Packer activity rate |
+
+**Interpretation:**
+- **Compute utilization** (FPU/SFPU/Math): Values 0.0–1.0 indicate fraction of cycles actively computing
+- **Unpacker utilization**: Ratio of writes to busy cycles; values near 1.0 indicate efficient data flow with minimal stalls
+- **Packer utilization**: Fraction of cycles the packer was busy; low values may indicate the kernel is compute-bound
 
 ### Bound Classification
 
@@ -369,13 +370,3 @@ The metrics module provides a heuristic classification of the performance bottle
 The classification with the highest score is reported as the likely bottleneck.
 
 **Note:** Bound classification is heuristic and intended for guidance, not definitive performance assessment. The "compute vs data-movement bound" classification is more relevant for tt-metal where data movement is a significant factor. In the LLK repository context, focus on the individual component bounds (math/unpack/pack/risc).
-
-### Acceptance Ratios
-
-For counters where requests/grants distinction is meaningful:
-
-```
-acceptance_ratio = GRANTS / REQUESTS  (or N/A if REQUESTS = 0)
-```
-
-This indicates delivery efficiency for TDMA transfers and NoC transactions. A value of 1.0 means no backpressure; values below 1.0 indicate some requests were not granted. If no requests were made, the metric displays as N/A rather than an artificial value. Acceptance ratios are computed per measurement window and are dimensionless.
