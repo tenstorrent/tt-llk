@@ -142,8 +142,8 @@ inline void _llk_pack_mop_config_(
         const std::uint32_t PACK_INTF_SEL_0 = 0b0101;
         const std::uint32_t PACK_INTF_SEL_1 = 0b1010;
         const std::uint32_t MOP_INNER_LOOP  = 1;
-        const std::uint32_t MOP_OUTER_LOOP  = num_faces >> 1;
-        LLK_ASSERT(num_faces != 1, "num_faces == 1 is not supported for tilize");
+        const std::uint32_t MOP_OUTER_LOOP  = (num_faces > 1) ? (num_faces >> 1) : 1;
+
         // Last row of half-tile (16 rows) is different between halves, so can't be replayed.
         // For face_r_dim = 8, we need 4 PACR instructions per face (8 total, 7 in replay buffer)
         // For face_r_dim = 16, we need 8 PACR instructions per face (16 total, 15 in replay buffer)
