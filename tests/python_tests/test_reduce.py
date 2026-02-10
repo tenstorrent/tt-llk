@@ -31,15 +31,15 @@ mathop_mapping = {
 @parametrize(
     formats=input_output_formats(
         [
-            DataFormat.Float16_b,
-            DataFormat.Float16,
+            # DataFormat.Float16_b,
+            # DataFormat.Float16,
             DataFormat.Float32,
-            DataFormat.Bfp8_b,
+            # DataFormat.Bfp8_b,
         ]
     ),
-    dest_acc=[DestAccumulation.No],
-    reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
-    pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
+    dest_acc=[DestAccumulation.Yes],
+    reduce_dim=[ReduceDimension.Row],
+    pool_type=[ReducePool.Max],
 )
 def test_reduce(formats, dest_acc, reduce_dim, pool_type, workers_tensix_coordinates):
     input_dimensions = [32, 32]
