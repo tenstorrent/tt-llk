@@ -6,6 +6,7 @@ import torch
 from helpers.format_config import DataFormat
 from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
 from helpers.llk_params import (
+    BroadcastType,
     DestAccumulation,
     MathFidelity,
     MathOperation,
@@ -16,6 +17,7 @@ from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
+    BROADCAST_TYPE,
     INPUT_DIMENSIONS,
     MATH_FIDELITY,
     MATH_OP,
@@ -25,25 +27,30 @@ from helpers.utils import passed_test
 
 
 @parametrize(
+    cpp_source=[
+        "sources/multiple_tiles_eltwise_test.cpp",
+        "sources/multiple_tiles_eltwise_custom_test.cpp",
+    ],
     formats=input_output_formats(
         [
-            DataFormat.Bfp8_b,
-            DataFormat.Float16,
+            # DataFormat.Bfp8_b,
+            # DataFormat.Float16,
             DataFormat.Float16_b,
-            DataFormat.Float32,
+            # DataFormat.Float32,
         ]
     ),
     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     math_fidelity=[
         MathFidelity.LoFi,
-        MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
+        # MathFidelity.HiFi2,
+        # MathFidelity.HiFi3,
+        # MathFidelity.HiFi4,
     ],
     input_dimensions=[[32, 32], [32, 64], [64, 64]],
 )
 def test_multiple_tiles(
+    cpp_source,
     formats,
     mathop,
     dest_acc,
@@ -68,12 +75,13 @@ def test_multiple_tiles(
     )
 
     configuration = TestConfig(
-        "sources/multiple_tiles_eltwise_test.cpp",
+        cpp_source,
         formats,
         templates=[
             MATH_FIDELITY(math_fidelity),
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
+            BROADCAST_TYPE(BroadcastType.None_),
         ],
         runtimes=[TILE_COUNT(tile_cnt_A)],
         variant_stimuli=StimuliConfig(

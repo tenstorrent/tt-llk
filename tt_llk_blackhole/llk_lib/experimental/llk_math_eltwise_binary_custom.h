@@ -53,6 +53,43 @@ inline auto eltwise_binary_func(std::uint8_t clr_src, std::uint8_t acc_to_dest, 
     }
 }
 
+template <EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
+inline void eltwise_binary_reuse_dest_as_src()
+{
+    if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA)
+    {
+        move_d2a_fixed_face(ADDR_MOD_1);
+    }
+    else if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB)
+    {
+        move_d2b_fixed_face(ADDR_MOD_1);
+    }
+}
+
+// Helper to run the eltwise binary loop with optional dest reuse and face clearing
+template <bool is_fp32_dest_acc_en, EltwiseBinaryReuseDestType binary_reuse_dest>
+inline void eltwise_binary_reuse_dest_helper_func(
+    const std::uint32_t loop_count, const std::uint32_t face_base_offset, const bool clear_fp32_dst_acc, const std::uint32_t dst_index)
+{
+#pragma GCC unroll 0
+    for (std::uint32_t face_num = 0; face_num < loop_count; face_num++)
+    {
+        eltwise_binary_reuse_dest_as_src<binary_reuse_dest>();
+
+        // Clear DEST face-by-face when reusing dest as source
+        if constexpr (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE)
+        {
+            constexpr std::uint32_t ZERO_ACC_MODE = p_zeroacc::CLR_16;
+            int clear_fp32                        = is_fp32_dest_acc_en && clear_fp32_dst_acc ? 1 : 0;
+            const std::uint32_t tiles_per_bank    = clear_fp32 ? 4 : 8;
+            const std::uint32_t local_tile        = dst_index & (tiles_per_bank - 1);
+            TT_ZEROACC(ZERO_ACC_MODE, clear_fp32, 0, ADDR_MOD_1, get_dest_index_in_faces(local_tile, face_base_offset + face_num));
+        }
+
+        ckernel_template::run();
+    }
+}
+
 /**
  * @brief Perform an elementwise binary operation where Output = SrcA [+, -, *] SrcB
  * SrcA/SrcB contain 1 tile each, and output is 1 tile in destination register
