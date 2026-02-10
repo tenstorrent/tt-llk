@@ -547,6 +547,7 @@ inline bool is_unpacker_A_configured_correctly(
     const std::uint32_t nop_count       = 10)
 {
     // Ensure configuration writes complete before subsequent operations
+    tensix_sync();
     for (std::uint32_t i = 0; i < nop_count; i++)
     {
         asm volatile("nop");
@@ -604,6 +605,7 @@ inline bool are_unpacker_AB_configured_correctly(
     const std::uint32_t nop_count       = 10)
 {
     // Ensure configuration writes complete before subsequent operations
+    tensix_sync();
     for (std::uint32_t i = 0; i < nop_count; i++)
     {
         asm volatile("nop");

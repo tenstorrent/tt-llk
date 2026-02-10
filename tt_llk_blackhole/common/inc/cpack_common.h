@@ -688,6 +688,7 @@ inline bool are_packers_configured_correctly(
     const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t nop_count = 10)
 {
     // Ensure configuration writes complete before subsequent operations
+    tensix_sync();
     for (std::uint32_t i = 0; i < nop_count; i++)
     {
         asm volatile("nop");
