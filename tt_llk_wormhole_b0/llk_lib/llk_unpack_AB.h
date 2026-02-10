@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+// SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -72,16 +72,30 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const cker
     if constexpr (BType == BroadcastType::COL)
     {
         // COL broadcast: First col in Src B face is broadcast across A faces in the same row
-        static const std::uint32_t unpack_srcb_set_z =
-            TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 2 /*This is an inc of 2, which is meant to be num_faces_c_dim*/, 0b0001);
-
+        LLK_ASSERT(
+            num_faces_c_dim >= num_faces_r_dim,
+            "If num_faces_c_dim is less than num_faces_r_dim (i.e 32x16), then BROADCAST_TYPE::COL is not supported, Can be fixed in the future");
         ckernel_template tmp(outerloop, innerloop, srca_op);
         tmp.set_start_op(unpack_srcb);
-        set_end_op_with_transpose(tmp, unpack_srcb_set_z);
+
+        if (num_faces_c_dim < MAX_NUM_FACES_C_DIM)
+        {
+            set_end_op_with_transpose(
+                tmp, TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 1 /*this should be num_faces_c_dim, but can't pass it here until its compile time*/, 0b0001));
+        }
+        else
+        {
+            set_end_op_with_transpose(
+                tmp, TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 2 /*this should be num_faces_c_dim, but can't pass it here until its compile time*/, 0b0001));
+        }
+
         tmp.program();
     }
     else if constexpr (BType == BroadcastType::ROW)
     {
+        LLK_ASSERT(
+            num_faces_c_dim >= num_faces_r_dim,
+            "If num_faces_c_dim is less than num_faces_r_dim (i.e 32x16), then BROADCAST_TYPE::ROW is not supported, Can be fixed in the future");
         // ROW broadcast: First row in Src B face is broadcast across A faces in the same column
         static constexpr std::uint32_t unpack_srcb_clear_z = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001);
 
