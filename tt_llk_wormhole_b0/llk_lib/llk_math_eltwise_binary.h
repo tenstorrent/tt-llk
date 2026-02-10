@@ -116,7 +116,7 @@ inline void eltwise_binary_reuse_dest_helper_func(
  * @tparam src_b_bcast_type: Broadcast type for source B, values = <NONE/COL/ROW/SCALAR>
  * @tparam Dst: Destination sync mode
  * @tparam is_fp32_dest_acc_en: Enable FP32 destination accumulator
- * @tparam NUM_FIDELITY_PHASES: Number of fidelity phases for high-fidelity math
+ * @tparam math_fidelity: Number of fidelity phases for high-fidelity math
  * @tparam binary_reuse_dest: Reuse destination as source type
  * @param num_faces: Number of faces to process (1, 2, or 4)
  * @param dst_index: Tile index into the destination register
