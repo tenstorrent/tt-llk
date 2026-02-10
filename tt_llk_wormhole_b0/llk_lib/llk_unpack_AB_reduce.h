@@ -105,11 +105,17 @@ inline void _llk_unpack_AB_reduce_mop_config_(const std::uint32_t face_r_dim, co
  * @note Unpacker 0 (SrcA) reads face_r_dim*FACE_R_DIM datums
  * @note Unpacker 1 (SrcB) reads one row (FACE_R_DIM datums)
  */
-template <PoolType pool_type, ReduceDim reduce_dim>
+template <PoolType pool_type, ReduceDim reduce_dim, bool enforce_fp32_accumulation = false>
 inline void _llk_unpack_AB_reduce_init_(const std::uint32_t face_r_dim, const std::uint32_t num_faces)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(face_r_dim == 1 || face_r_dim == 2 || face_r_dim == 4 || face_r_dim == 8 || face_r_dim == 16, "face_r_dim must be either 1, 2, 4, 8, or 16");
+
+    if constexpr (enforce_fp32_accumulation)
+    {
+        // Set necessary config regs for MOVB2D hi16/lo16 to work
+        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1);
+    }
 
     // Enable transpose (haloize mode) if reducing along rows
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(reduce_dim == ReduceDim::REDUCE_ROW);
