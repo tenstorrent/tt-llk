@@ -151,14 +151,35 @@ class TestConfig:
 
     # Performance counter L1 memory addresses
     # NOTE: These addresses must match the values in tests/helpers/include/counters.h
+    # Layout: 66 config words (264 bytes) + 132 data words (528 bytes) = 792 (0x318) bytes per thread
     PERF_COUNTERS_BASE_ADDR: ClassVar[int] = 0x16A000
-    PERF_COUNTERS_SIZE: ClassVar[int] = 0xA00
-    PERF_COUNTER_UNPACK_CONFIG_ADDR: ClassVar[int] = 0x16A000
-    PERF_COUNTER_UNPACK_DATA_ADDR: ClassVar[int] = 0x16A108
-    PERF_COUNTER_MATH_CONFIG_ADDR: ClassVar[int] = 0x16A318
-    PERF_COUNTER_MATH_DATA_ADDR: ClassVar[int] = 0x16A420
-    PERF_COUNTER_PACK_CONFIG_ADDR: ClassVar[int] = 0x16A630
-    PERF_COUNTER_PACK_DATA_ADDR: ClassVar[int] = 0x16A738
+    PERF_COUNTERS_SIZE: ClassVar[int] = 0xA00  # 2560 bytes for all 3 threads
+    _PERF_COUNTERS_CONFIG_WORDS: ClassVar[int] = 66
+    _PERF_COUNTERS_DATA_WORDS: ClassVar[int] = 132
+    _PERF_COUNTERS_THREAD_SIZE: ClassVar[int] = (
+        _PERF_COUNTERS_CONFIG_WORDS + _PERF_COUNTERS_DATA_WORDS
+    ) * 4  # 792 bytes
+    # Computed addresses (UNPACK=thread 0, MATH=thread 1, PACK=thread 2)
+    PERF_COUNTER_UNPACK_CONFIG_ADDR: ClassVar[int] = PERF_COUNTERS_BASE_ADDR
+    PERF_COUNTER_UNPACK_DATA_ADDR: ClassVar[int] = (
+        PERF_COUNTERS_BASE_ADDR + _PERF_COUNTERS_CONFIG_WORDS * 4
+    )
+    PERF_COUNTER_MATH_CONFIG_ADDR: ClassVar[int] = (
+        PERF_COUNTERS_BASE_ADDR + _PERF_COUNTERS_THREAD_SIZE
+    )
+    PERF_COUNTER_MATH_DATA_ADDR: ClassVar[int] = (
+        PERF_COUNTERS_BASE_ADDR
+        + _PERF_COUNTERS_THREAD_SIZE
+        + _PERF_COUNTERS_CONFIG_WORDS * 4
+    )
+    PERF_COUNTER_PACK_CONFIG_ADDR: ClassVar[int] = (
+        PERF_COUNTERS_BASE_ADDR + 2 * _PERF_COUNTERS_THREAD_SIZE
+    )
+    PERF_COUNTER_PACK_DATA_ADDR: ClassVar[int] = (
+        PERF_COUNTERS_BASE_ADDR
+        + 2 * _PERF_COUNTERS_THREAD_SIZE
+        + _PERF_COUNTERS_CONFIG_WORDS * 4
+    )
 
     @staticmethod
     def setup_arch():

@@ -48,22 +48,22 @@ namespace llk_perf
 // These values MUST match TestConfig.PERF_COUNTERS_* addresses.
 // Must be below profiler buffers which start at 0x16B000
 // Layout: 66 config words (264 bytes) + 132 data words (528 bytes) = 792 bytes per thread
-// Thread blocks (0x318 = 792 bytes spacing):
-// UNPACK: CONFIG 0x16A000, DATA 0x16A108
-// MATH:   CONFIG 0x16A318, DATA 0x16A420
-// PACK:   CONFIG 0x16A630, DATA 0x16A738
-#define PERF_COUNTERS_BASE_ADDR         0x16A000
-#define PERF_COUNTERS_SIZE              0xA00    // 2560 bytes for all 3 threads
-#define PERF_COUNTER_UNPACK_CONFIG_ADDR 0x16A000 // 66 words: UNPACK metadata
-#define PERF_COUNTER_UNPACK_DATA_ADDR   0x16A108 // 132 words: UNPACK results
-#define PERF_COUNTER_MATH_CONFIG_ADDR   0x16A318 // 66 words: MATH metadata
-#define PERF_COUNTER_MATH_DATA_ADDR     0x16A420 // 132 words: MATH results
-#define PERF_COUNTER_PACK_CONFIG_ADDR   0x16A630 // 66 words: PACK metadata
-#define PERF_COUNTER_PACK_DATA_ADDR     0x16A738 // 132 words: PACK results
+#define PERF_COUNTERS_BASE_ADDR    0x16A000
+#define PERF_COUNTERS_SIZE         0xA00 // 2560 bytes for all 3 threads
+#define PERF_COUNTERS_CONFIG_WORDS 66
+#define PERF_COUNTERS_DATA_WORDS   132
+#define PERF_COUNTERS_THREAD_SIZE  ((PERF_COUNTERS_CONFIG_WORDS + PERF_COUNTERS_DATA_WORDS) * 4) // 792 bytes
+// Computed addresses (UNPACK=thread 0, MATH=thread 1, PACK=thread 2)
+#define PERF_COUNTER_UNPACK_CONFIG_ADDR (PERF_COUNTERS_BASE_ADDR)
+#define PERF_COUNTER_UNPACK_DATA_ADDR   (PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_CONFIG_WORDS * 4)
+#define PERF_COUNTER_MATH_CONFIG_ADDR   (PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_THREAD_SIZE)
+#define PERF_COUNTER_MATH_DATA_ADDR     (PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_THREAD_SIZE + PERF_COUNTERS_CONFIG_WORDS * 4)
+#define PERF_COUNTER_PACK_CONFIG_ADDR   (PERF_COUNTERS_BASE_ADDR + 2 * PERF_COUNTERS_THREAD_SIZE)
+#define PERF_COUNTER_PACK_DATA_ADDR     (PERF_COUNTERS_BASE_ADDR + 2 * PERF_COUNTERS_THREAD_SIZE + PERF_COUNTERS_CONFIG_WORDS * 4)
 
 // Configuration word format: [mode_bit(16), counter_sel(8-15), bank_id(0-7)]
 // Use compact underlying type to reduce memory footprint
-enum class CounterBank : uint8_t
+enum class CounterBank : std::uint8_t
 {
     INSTRN_THREAD = 0,
     FPU           = 1,
@@ -73,13 +73,13 @@ enum class CounterBank : uint8_t
 };
 
 // Number of counter banks represented by CounterBank enum
-inline constexpr uint32_t COUNTER_BANK_COUNT = 5;
+inline constexpr std::uint32_t COUNTER_BANK_COUNT = 5;
 // Number of counter slots supported per thread (config words and data pairs)
-inline constexpr uint32_t COUNTER_SLOT_COUNT = 66;
+inline constexpr std::uint32_t COUNTER_SLOT_COUNT = 66;
 
-inline constexpr uint32_t get_counter_base_addr(CounterBank bank)
+inline constexpr std::uint32_t get_counter_base_addr(CounterBank bank)
 {
-    constexpr uint32_t base_addrs[COUNTER_BANK_COUNT] = {
+    constexpr std::uint32_t base_addrs[COUNTER_BANK_COUNT] = {
         RISCV_DEBUG_REG_PERF_CNT_INSTRN_THREAD0, // INSTRN_THREAD
         RISCV_DEBUG_REG_PERF_CNT_FPU0,           // FPU
         RISCV_DEBUG_REG_PERF_CNT_TDMA_UNPACK0,   // TDMA_UNPACK
@@ -87,13 +87,13 @@ inline constexpr uint32_t get_counter_base_addr(CounterBank bank)
         RISCV_DEBUG_REG_PERF_CNT_TDMA_PACK0,     // TDMA_PACK
     };
 
-    const uint32_t idx = static_cast<uint32_t>(bank);
+    const std::uint32_t idx = static_cast<std::uint32_t>(bank);
     return idx < COUNTER_BANK_COUNT ? base_addrs[idx] : 0u;
 }
 
-inline constexpr uint32_t get_counter_output_low_addr(CounterBank bank)
+inline constexpr std::uint32_t get_counter_output_low_addr(CounterBank bank)
 {
-    constexpr uint32_t low_addrs[COUNTER_BANK_COUNT] = {
+    constexpr std::uint32_t low_addrs[COUNTER_BANK_COUNT] = {
         RISCV_DEBUG_REG_PERF_CNT_OUT_L_INSTRN_THREAD, // INSTRN_THREAD
         RISCV_DEBUG_REG_PERF_CNT_OUT_L_FPU,           // FPU
         RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_UNPACK,   // TDMA_UNPACK
@@ -101,13 +101,13 @@ inline constexpr uint32_t get_counter_output_low_addr(CounterBank bank)
         RISCV_DEBUG_REG_PERF_CNT_OUT_L_TDMA_PACK,     // TDMA_PACK
     };
 
-    const uint32_t idx = static_cast<uint32_t>(bank);
+    const std::uint32_t idx = static_cast<std::uint32_t>(bank);
     return idx < COUNTER_BANK_COUNT ? low_addrs[idx] : 0u;
 }
 
-inline constexpr uint32_t get_counter_output_high_addr(CounterBank bank)
+inline constexpr std::uint32_t get_counter_output_high_addr(CounterBank bank)
 {
-    constexpr uint32_t high_addrs[COUNTER_BANK_COUNT] = {
+    constexpr std::uint32_t high_addrs[COUNTER_BANK_COUNT] = {
         RISCV_DEBUG_REG_PERF_CNT_OUT_H_INSTRN_THREAD, // INSTRN_THREAD
         RISCV_DEBUG_REG_PERF_CNT_OUT_H_FPU,           // FPU
         RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_UNPACK,   // TDMA_UNPACK
@@ -115,12 +115,12 @@ inline constexpr uint32_t get_counter_output_high_addr(CounterBank bank)
         RISCV_DEBUG_REG_PERF_CNT_OUT_H_TDMA_PACK,     // TDMA_PACK
     };
 
-    const uint32_t idx = static_cast<uint32_t>(bank);
+    const std::uint32_t idx = static_cast<std::uint32_t>(bank);
     return idx < COUNTER_BANK_COUNT ? high_addrs[idx] : 0u;
 }
 
 // Compact underlying type for mode as well
-enum class CounterMode : uint8_t
+enum class CounterMode : std::uint8_t
 {
     REQUESTS = 0,
     GRANTS   = 1,
@@ -129,23 +129,23 @@ enum class CounterMode : uint8_t
 // Helper functions for direct register access
 namespace detail
 {
-inline void write_reg(uint32_t addr, uint32_t value)
+inline void write_reg(std::uint32_t addr, std::uint32_t value)
 {
-    *reinterpret_cast<volatile uint32_t*>(addr) = value;
+    *reinterpret_cast<volatile std::uint32_t*>(addr) = value;
 }
 
-inline uint32_t read_reg(uint32_t addr)
+inline std::uint32_t read_reg(std::uint32_t addr)
 {
-    return *reinterpret_cast<volatile uint32_t*>(addr);
+    return *reinterpret_cast<volatile std::uint32_t*>(addr);
 }
 } // namespace detail
 
 struct CounterResult
 {
-    uint32_t cycles;
-    uint32_t count;
+    std::uint32_t cycles;
+    std::uint32_t count;
     CounterBank bank;
-    uint32_t counter_id;
+    std::uint32_t counter_id;
 };
 
 namespace counter_id
@@ -153,130 +153,130 @@ namespace counter_id
 
 namespace instrn_thread
 {
-constexpr uint32_t INST_CFG               = 0;
-constexpr uint32_t INST_SYNC              = 1;
-constexpr uint32_t INST_THCON             = 2;
-constexpr uint32_t INST_XSEARCH           = 3;
-constexpr uint32_t INST_MOVE              = 4;
-constexpr uint32_t INST_MATH              = 5;
-constexpr uint32_t INST_UNPACK            = 6;
-constexpr uint32_t INST_PACK              = 7;
-constexpr uint32_t STALLED                = 8;
-constexpr uint32_t SRCA_CLEARED_0         = 9;
-constexpr uint32_t SRCA_CLEARED_1         = 10;
-constexpr uint32_t SRCA_CLEARED_2         = 11;
-constexpr uint32_t SRCB_CLEARED_0         = 12;
-constexpr uint32_t SRCB_CLEARED_1         = 13;
-constexpr uint32_t SRCB_CLEARED_2         = 14;
-constexpr uint32_t SRCA_VALID_0           = 15;
-constexpr uint32_t SRCA_VALID_1           = 16;
-constexpr uint32_t SRCA_VALID_2           = 17;
-constexpr uint32_t SRCB_VALID_0           = 18;
-constexpr uint32_t SRCB_VALID_1           = 19;
-constexpr uint32_t SRCB_VALID_2           = 20;
-constexpr uint32_t STALL_THCON            = 21;
-constexpr uint32_t STALL_PACK0            = 22;
-constexpr uint32_t STALL_MATH             = 23;
-constexpr uint32_t STALL_SEM_ZERO         = 24;
-constexpr uint32_t STALL_SEM_MAX          = 25;
-constexpr uint32_t STALL_MOVE             = 26;
-constexpr uint32_t STALL_TRISC_REG_ACCESS = 27;
-constexpr uint32_t STALL_SFPU             = 28;
+constexpr std::uint32_t INST_CFG               = 0;
+constexpr std::uint32_t INST_SYNC              = 1;
+constexpr std::uint32_t INST_THCON             = 2;
+constexpr std::uint32_t INST_XSEARCH           = 3;
+constexpr std::uint32_t INST_MOVE              = 4;
+constexpr std::uint32_t INST_MATH              = 5;
+constexpr std::uint32_t INST_UNPACK            = 6;
+constexpr std::uint32_t INST_PACK              = 7;
+constexpr std::uint32_t STALLED                = 8;
+constexpr std::uint32_t SRCA_CLEARED_0         = 9;
+constexpr std::uint32_t SRCA_CLEARED_1         = 10;
+constexpr std::uint32_t SRCA_CLEARED_2         = 11;
+constexpr std::uint32_t SRCB_CLEARED_0         = 12;
+constexpr std::uint32_t SRCB_CLEARED_1         = 13;
+constexpr std::uint32_t SRCB_CLEARED_2         = 14;
+constexpr std::uint32_t SRCA_VALID_0           = 15;
+constexpr std::uint32_t SRCA_VALID_1           = 16;
+constexpr std::uint32_t SRCA_VALID_2           = 17;
+constexpr std::uint32_t SRCB_VALID_0           = 18;
+constexpr std::uint32_t SRCB_VALID_1           = 19;
+constexpr std::uint32_t SRCB_VALID_2           = 20;
+constexpr std::uint32_t STALL_THCON            = 21;
+constexpr std::uint32_t STALL_PACK0            = 22;
+constexpr std::uint32_t STALL_MATH             = 23;
+constexpr std::uint32_t STALL_SEM_ZERO         = 24;
+constexpr std::uint32_t STALL_SEM_MAX          = 25;
+constexpr std::uint32_t STALL_MOVE             = 26;
+constexpr std::uint32_t STALL_TRISC_REG_ACCESS = 27;
+constexpr std::uint32_t STALL_SFPU             = 28;
 } // namespace instrn_thread
 
 namespace fpu
 {
-constexpr uint32_t FPU_OP_VALID  = 0;
-constexpr uint32_t SFPU_OP_VALID = 1;
+constexpr std::uint32_t FPU_OP_VALID  = 0;
+constexpr std::uint32_t SFPU_OP_VALID = 1;
 } // namespace fpu
 
 namespace tdma_unpack
 {
-constexpr uint32_t MATH_INSTR_SRC_READY = 0;
-constexpr uint32_t MATH_NOT_D2A_STALL   = 1;
-constexpr uint32_t MATH_FIDELITY_PHASES = 2;
-constexpr uint32_t MATH_INSTR_BUF_RDEN  = 3;
-constexpr uint32_t MATH_INSTR_VALID     = 4;
-constexpr uint32_t TDMA_SRCB_REGIF_WREN = 5;
-constexpr uint32_t TDMA_SRCA_REGIF_WREN = 6;
-constexpr uint32_t UNPACK_BUSY_0        = 7;
-constexpr uint32_t UNPACK_BUSY_1        = 8;
-constexpr uint32_t UNPACK_BUSY_2        = 9;
-constexpr uint32_t UNPACK_BUSY_3        = 10;
+constexpr std::uint32_t MATH_INSTR_SRC_READY = 0;
+constexpr std::uint32_t MATH_NOT_D2A_STALL   = 1;
+constexpr std::uint32_t MATH_FIDELITY_PHASES = 2;
+constexpr std::uint32_t MATH_INSTR_BUF_RDEN  = 3;
+constexpr std::uint32_t MATH_INSTR_VALID     = 4;
+constexpr std::uint32_t TDMA_SRCB_REGIF_WREN = 5;
+constexpr std::uint32_t TDMA_SRCA_REGIF_WREN = 6;
+constexpr std::uint32_t UNPACK_BUSY_0        = 7;
+constexpr std::uint32_t UNPACK_BUSY_1        = 8;
+constexpr std::uint32_t UNPACK_BUSY_2        = 9;
+constexpr std::uint32_t UNPACK_BUSY_3        = 10;
 } // namespace tdma_unpack
 
 namespace l1
 {
 // l1_mux = 0
-constexpr uint32_t NOC_RING0_INCOMING_1 = 0;
-constexpr uint32_t NOC_RING0_INCOMING_0 = 1;
-constexpr uint32_t NOC_RING0_OUTGOING_1 = 2;
-constexpr uint32_t NOC_RING0_OUTGOING_0 = 3;
-constexpr uint32_t L1_ARB_TDMA_BUNDLE_1 = 4;
-constexpr uint32_t L1_ARB_TDMA_BUNDLE_0 = 5;
-constexpr uint32_t L1_ARB_UNPACKER      = 6;
-constexpr uint32_t L1_NO_ARB_UNPACKER   = 7;
+constexpr std::uint32_t NOC_RING0_INCOMING_1 = 0;
+constexpr std::uint32_t NOC_RING0_INCOMING_0 = 1;
+constexpr std::uint32_t NOC_RING0_OUTGOING_1 = 2;
+constexpr std::uint32_t NOC_RING0_OUTGOING_0 = 3;
+constexpr std::uint32_t L1_ARB_TDMA_BUNDLE_1 = 4;
+constexpr std::uint32_t L1_ARB_TDMA_BUNDLE_0 = 5;
+constexpr std::uint32_t L1_ARB_UNPACKER      = 6;
+constexpr std::uint32_t L1_NO_ARB_UNPACKER   = 7;
 
 // l1_mux = 1 (same IDs, different mux setting)
-constexpr uint32_t NOC_RING1_INCOMING_1 = 0;
-constexpr uint32_t NOC_RING1_INCOMING_0 = 1;
-constexpr uint32_t NOC_RING1_OUTGOING_1 = 2;
-constexpr uint32_t NOC_RING1_OUTGOING_0 = 3;
-constexpr uint32_t TDMA_BUNDLE_1_ARB    = 4;
-constexpr uint32_t TDMA_BUNDLE_0_ARB    = 5;
-constexpr uint32_t TDMA_EXT_UNPACK_9_10 = 6;
-constexpr uint32_t TDMA_PACKER_2_WR     = 7;
+constexpr std::uint32_t NOC_RING1_INCOMING_1 = 0;
+constexpr std::uint32_t NOC_RING1_INCOMING_0 = 1;
+constexpr std::uint32_t NOC_RING1_OUTGOING_1 = 2;
+constexpr std::uint32_t NOC_RING1_OUTGOING_0 = 3;
+constexpr std::uint32_t TDMA_BUNDLE_1_ARB    = 4;
+constexpr std::uint32_t TDMA_BUNDLE_0_ARB    = 5;
+constexpr std::uint32_t TDMA_EXT_UNPACK_9_10 = 6;
+constexpr std::uint32_t TDMA_PACKER_2_WR     = 7;
 } // namespace l1
 
 namespace tdma_pack
 {
-constexpr uint32_t DSTAC_RDEN_RAW_0    = 0;
-constexpr uint32_t DSTAC_RDEN_RAW_1    = 1;
-constexpr uint32_t DSTAC_RDEN_RAW_2    = 2;
-constexpr uint32_t DSTAC_RDEN_RAW_3    = 3;
-constexpr uint32_t PACK_NOT_DEST_STALL = 4;
-constexpr uint32_t PACK_NOT_SB_STALL   = 5;
-constexpr uint32_t PACK_BUSY_10        = 6;
-constexpr uint32_t PACK_BUSY_11        = 7;
+constexpr std::uint32_t DSTAC_RDEN_RAW_0    = 0;
+constexpr std::uint32_t DSTAC_RDEN_RAW_1    = 1;
+constexpr std::uint32_t DSTAC_RDEN_RAW_2    = 2;
+constexpr std::uint32_t DSTAC_RDEN_RAW_3    = 3;
+constexpr std::uint32_t PACK_NOT_DEST_STALL = 4;
+constexpr std::uint32_t PACK_NOT_SB_STALL   = 5;
+constexpr std::uint32_t PACK_BUSY_10        = 6;
+constexpr std::uint32_t PACK_BUSY_11        = 7;
 } // namespace tdma_pack
 } // namespace counter_id
 
 class PerfCounters
 {
 private:
-    uint32_t num_counters {0};
+    std::uint32_t num_counters {0};
     CounterMode mode {CounterMode::GRANTS};
 
-    static inline volatile uint32_t* get_config_mem()
+    static inline volatile std::uint32_t* get_config_mem()
     {
 #if defined(LLK_TRISC_UNPACK)
-        constexpr uint32_t addr = PERF_COUNTER_UNPACK_CONFIG_ADDR;
+        constexpr std::uint32_t addr = PERF_COUNTER_UNPACK_CONFIG_ADDR;
 #elif defined(LLK_TRISC_MATH)
-        constexpr uint32_t addr = PERF_COUNTER_MATH_CONFIG_ADDR;
+        constexpr std::uint32_t addr = PERF_COUNTER_MATH_CONFIG_ADDR;
 #elif defined(LLK_TRISC_PACK)
-        constexpr uint32_t addr = PERF_COUNTER_PACK_CONFIG_ADDR;
+        constexpr std::uint32_t addr = PERF_COUNTER_PACK_CONFIG_ADDR;
 #else
-        constexpr uint32_t addr = PERF_COUNTER_MATH_CONFIG_ADDR;
+        constexpr std::uint32_t addr = PERF_COUNTER_MATH_CONFIG_ADDR;
 #endif
-        return reinterpret_cast<volatile uint32_t*>(addr);
+        return reinterpret_cast<volatile std::uint32_t*>(addr);
     }
 
-    static inline volatile uint32_t* get_data_mem()
+    static inline volatile std::uint32_t* get_data_mem()
     {
 #if defined(LLK_TRISC_UNPACK)
-        constexpr uint32_t addr = PERF_COUNTER_UNPACK_DATA_ADDR;
+        constexpr std::uint32_t addr = PERF_COUNTER_UNPACK_DATA_ADDR;
 #elif defined(LLK_TRISC_MATH)
-        constexpr uint32_t addr = PERF_COUNTER_MATH_DATA_ADDR;
+        constexpr std::uint32_t addr = PERF_COUNTER_MATH_DATA_ADDR;
 #elif defined(LLK_TRISC_PACK)
-        constexpr uint32_t addr = PERF_COUNTER_PACK_DATA_ADDR;
+        constexpr std::uint32_t addr = PERF_COUNTER_PACK_DATA_ADDR;
 #else
-        constexpr uint32_t addr = PERF_COUNTER_MATH_DATA_ADDR;
+        constexpr std::uint32_t addr = PERF_COUNTER_MATH_DATA_ADDR;
 #endif
-        return reinterpret_cast<volatile uint32_t*>(addr);
+        return reinterpret_cast<volatile std::uint32_t*>(addr);
     }
 
     // Helper to extract fields from config word
-    static inline void unpack_config(uint32_t metadata, uint8_t& bank_id, uint8_t& counter_id, uint8_t& mode_bit, uint8_t& l1_mux)
+    static inline void unpack_config(std::uint32_t metadata, std::uint8_t& bank_id, std::uint8_t& counter_id, std::uint8_t& mode_bit, std::uint8_t& l1_mux)
     {
         bank_id    = metadata & 0xFF;
         counter_id = (metadata >> 8) & 0xFF;
@@ -289,21 +289,21 @@ public:
 
     void start()
     {
-        volatile uint32_t* config_mem = get_config_mem();
+        volatile std::uint32_t* config_mem = get_config_mem();
 
         // First pass: count valid configs, determine mode, and build bank present mask
-        uint32_t present_mask = 0;
-        num_counters          = 0;
+        std::uint32_t present_mask = 0;
+        num_counters               = 0;
 
-        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
+        for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
         {
-            uint32_t metadata = config_mem[i];
+            std::uint32_t metadata = config_mem[i];
             if ((metadata & 0x80000000u) == 0)
             {
                 continue;
             }
 
-            uint8_t bank_id, counter_id, mode_bit, l1_mux;
+            std::uint8_t bank_id, counter_id, mode_bit, l1_mux;
             unpack_config(metadata, bank_id, counter_id, mode_bit, l1_mux);
 
             if (num_counters == 0)
@@ -321,19 +321,19 @@ public:
         }
 
         // Second pass: start each bank once
-        uint32_t started_mask = 0;
-        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT && started_mask != present_mask; i++)
+        std::uint32_t started_mask = 0;
+        for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT && started_mask != present_mask; i++)
         {
-            uint32_t metadata = config_mem[i];
+            std::uint32_t metadata = config_mem[i];
             if ((metadata & 0x80000000u) == 0)
             {
                 continue;
             }
 
-            uint8_t bank_id, counter_id, mode_bit, l1_mux;
+            std::uint8_t bank_id, counter_id, mode_bit, l1_mux;
             unpack_config(metadata, bank_id, counter_id, mode_bit, l1_mux);
 
-            uint32_t bank_bit = 1u << bank_id;
+            std::uint32_t bank_bit = 1u << bank_id;
             if (started_mask & bank_bit)
             {
                 continue;
@@ -344,12 +344,12 @@ public:
             // Configure L1 MUX if needed
             if (bank == CounterBank::L1)
             {
-                uint32_t cur = detail::read_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL);
+                std::uint32_t cur = detail::read_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL);
                 detail::write_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL, (cur & ~(1u << 4)) | ((l1_mux & 0x1u) << 4));
             }
 
             // Start the bank
-            uint32_t counter_base = get_counter_base_addr(bank);
+            std::uint32_t counter_base = get_counter_base_addr(bank);
             detail::write_reg(counter_base, 0xFFFFFFFF); // Reference period
             detail::write_reg(counter_base + 4, 0);      // Mode register
             detail::write_reg(counter_base + 8, 0);      // Clear start/stop
@@ -362,29 +362,29 @@ public:
     std::array<CounterResult, COUNTER_SLOT_COUNT> stop()
     {
         std::array<CounterResult, COUNTER_SLOT_COUNT> results;
-        volatile uint32_t* config_mem = get_config_mem();
-        volatile uint32_t* data_mem   = get_data_mem();
+        volatile std::uint32_t* config_mem = get_config_mem();
+        volatile std::uint32_t* data_mem   = get_data_mem();
 
         // First pass: stop all banks
-        uint32_t stopped_mask = 0;
-        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
+        std::uint32_t stopped_mask = 0;
+        for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
         {
-            uint32_t metadata = config_mem[i];
+            std::uint32_t metadata = config_mem[i];
             if ((metadata & 0x80000000u) == 0)
             {
                 continue;
             }
 
-            uint8_t bank_id   = metadata & 0xFF;
-            uint32_t bank_bit = 1u << bank_id;
+            std::uint8_t bank_id   = metadata & 0xFF;
+            std::uint32_t bank_bit = 1u << bank_id;
 
             if (stopped_mask & bank_bit)
             {
                 continue;
             }
 
-            CounterBank bank = static_cast<CounterBank>(bank_id);
-            uint32_t base    = get_counter_base_addr(bank);
+            CounterBank bank   = static_cast<CounterBank>(bank_id);
+            std::uint32_t base = get_counter_base_addr(bank);
 
             detail::write_reg(base + 8, 0); // Clear
             detail::write_reg(base + 8, 2); // Stop (bit1 0->1)
@@ -393,18 +393,18 @@ public:
         }
 
         // Second pass: read all counters
-        uint32_t mode_value = (static_cast<uint32_t>(mode) & 0x1u) << 16;
-        uint32_t result_idx = 0;
+        std::uint32_t mode_value = (static_cast<std::uint32_t>(mode) & 0x1u) << 16;
+        std::uint32_t result_idx = 0;
 
-        for (uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
+        for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
         {
-            uint32_t metadata = config_mem[i];
+            std::uint32_t metadata = config_mem[i];
             if ((metadata & 0x80000000u) == 0)
             {
                 continue;
             }
 
-            uint8_t bank_id, counter_id, mode_bit, l1_mux;
+            std::uint8_t bank_id, counter_id, mode_bit, l1_mux;
             unpack_config(metadata, bank_id, counter_id, mode_bit, l1_mux);
 
             CounterBank bank = static_cast<CounterBank>(bank_id);
@@ -412,18 +412,18 @@ public:
             // Configure L1 MUX if needed before reading
             if (bank == CounterBank::L1)
             {
-                uint32_t cur = detail::read_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL);
+                std::uint32_t cur = detail::read_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL);
                 detail::write_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL, (cur & ~(1u << 4)) | ((l1_mux & 0x1u) << 4));
             }
 
-            uint32_t counter_base = get_counter_base_addr(bank);
+            std::uint32_t counter_base = get_counter_base_addr(bank);
 
             // Select the desired counter and req/grant output in mode register
-            detail::write_reg(counter_base + 4, (static_cast<uint32_t>(counter_id) << 8) | mode_value);
+            detail::write_reg(counter_base + 4, (static_cast<std::uint32_t>(counter_id) << 8) | mode_value);
 
             // Allow selection/mux to settle: perform a dummy read sequence
-            uint32_t output_low_addr  = get_counter_output_low_addr(bank);
-            uint32_t output_high_addr = get_counter_output_high_addr(bank);
+            std::uint32_t output_low_addr  = get_counter_output_low_addr(bank);
+            std::uint32_t output_high_addr = get_counter_output_high_addr(bank);
             (void)detail::read_reg(output_low_addr);
             (void)detail::read_reg(output_high_addr);
 
