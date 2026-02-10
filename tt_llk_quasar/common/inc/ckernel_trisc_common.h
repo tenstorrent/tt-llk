@@ -11,6 +11,7 @@
 #include "ckernel_instr_params.h"
 #include "ckernel_proj_params.h"
 #include "ckernel_template.h"
+#include "llk_defs.h"
 #include "tensix_types.h"
 
 namespace ckernel::trisc
@@ -91,14 +92,6 @@ inline void _configure_buf_desc_table_(const std::uint32_t buf_desc_id, const bu
     {
         bd_table[buf_desc_id].words[i] = buf_desc.words[i];
     }
-}
-
-/**
- * @brief Zero source registers A&B, usually done at unpack start
- */
-inline void _zerosrc_()
-{
-    TTI_ZEROSRC(0, 0, 0, 0, 0, p_zerosrc::ALL_BANKS, p_zerosrc::CLR_AB);
 }
 
 enum class DstTileShape : std::uint8_t
@@ -231,11 +224,11 @@ inline void t6_semaphore_get(const std::uint8_t index)
 /**
  * @brief Flip packer dest register offset to 0 or DEST_REGISTER_HALF_SIZE, flip-flopping between two halves
  */
-template <std::uint32_t PACK_SEL, DstSync DST>
+template <std::uint32_t PACK_SEL, ckernel::DstSync DST>
 inline void _set_packer_dest_registers_()
 {
-    static_assert(DST == DstSync::SyncHalf || DST == DstSync::SyncFull);
-    std::uint32_t dest_buffer_base_offset = (DST == DstSync::SyncFull) ? 0 : _get_dest_buffer_base_();
+    static_assert(DST == ckernel::DstSync::SyncHalf || DST == ckernel::DstSync::SyncFull);
+    std::uint32_t dest_buffer_base_offset = (DST == ckernel::DstSync::SyncFull) ? 0 : _get_dest_buffer_base_();
 
     if constexpr (PACK_SEL == p_pacr::PACK0)
     {
