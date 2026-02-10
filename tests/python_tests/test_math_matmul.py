@@ -241,7 +241,7 @@ def test_math_matmul(
 
         # Compare each tile separately
         for i in range(tile_cnt):
-            start = i * num_elements_per_tile
+            start = i * 1024
             assert passed_test(
                 golden_tensor[
                     start : start + num_elements_per_tile

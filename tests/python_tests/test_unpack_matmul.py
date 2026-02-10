@@ -229,7 +229,7 @@ def test_unpack_matmul(math_fidelity, matmul_config, workers_tensix_coordinates)
 
         # Compare each tile separately
         for i in range(tile_cnt):
-            start = i * num_elements_per_tile
+            start = i * 1024
             assert passed_test(
                 golden_tensor[
                     start : start + num_elements_per_tile
