@@ -35,6 +35,8 @@ class FusedGolden:
         l1_golden = l1_golden.flatten()
         master_golden = master_golden.flatten()
 
+        print(operation.src_a.raw_data)
+
         print("L1 golden check:")
         l1_passed = passed_test(
             l1_golden, res_tensor, output.data_format, print_pcc=True

@@ -13,6 +13,12 @@ operations:
     input_format: "Float16_b"
     output_format: "Float16_b"
     math:
+      - type: "UnarySfpu"
+        operation: "Fill"
+        approximation_mode: "No"
+        iterations: 32
+        dst_dest_tile_index: 0
+        fill_const_value: 5.0
       - type: "Fpu"
         operation: "ReduceBlockMax"
         unpacker: "ReduceBlockMaxUnpacker"

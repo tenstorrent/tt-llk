@@ -563,18 +563,37 @@ class ReduceBlockMaxFpu:
         dimensions = operation.max_output_dimensions
         num_faces = operation.num_faces
 
-        dest_golden_tensor = tilize_block(
+        src_a_reduced_tensor = tilize_block(
             tensor_a, dimensions, output_format, num_faces
         ).flatten()
 
         generate_golden = get_golden_generator(ReduceBlockMaxRowGolden)
-        dest_golden_tensor = generate_golden(dest_golden_tensor, ct_dim, data_format)
-
-        dest_golden_tensor = untilize_block(
-            dest_golden_tensor, output_format, dimensions
+        src_a_reduced_tensor = generate_golden(
+            src_a_reduced_tensor,
+            ct_dim,
+            output_format,
         ).flatten()
 
-        return (tensor_a, tensor_b, dest_golden_tensor)
+        dest_golden_tensor = tilize_block(
+            tensor_dst, dimensions, output_format, num_faces
+        ).flatten()
+
+        generate_golden = get_golden_generator(ReduceBlockMaxRowGolden)
+        dest_golden_tensor = generate_golden(
+            dest_golden_tensor, ct_dim, data_format
+        ).flatten()
+
+        numel = min(tensor_a.numel(), tensor_dst.numel())
+        golden_tensor = torch.zeros(numel)
+
+        for i in range(numel):
+            golden_tensor[i] = max(src_a_reduced_tensor[i], dest_golden_tensor[i])
+
+        golden_tensor = untilize_block(
+            golden_tensor, output_format, dimensions
+        ).flatten()
+
+        return (tensor_a, tensor_b, golden_tensor)
 
     def get_headers(self) -> List[str]:
         return ["llk_math_reduce_custom.h"]
