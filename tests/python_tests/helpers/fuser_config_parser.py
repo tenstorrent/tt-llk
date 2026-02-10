@@ -470,7 +470,7 @@ class OperationSchema(BaseModel):
     packer: PackerEnum = PackerEnum.Packer
     math_fidelity: MathFidelityEnum = MathFidelityEnum.LoFi
     dest_sync: Optional[DestSyncEnum] = None
-    batch_size: Annotated[int, Field(ge=1)] = 1
+    batch_size: Annotated[int, Field(ge=1)] = 0
 
     unpack_transpose_within_face: Optional[YesNo] = None
     unpack_transpose_faces: Optional[YesNo] = None
@@ -604,6 +604,3 @@ class FuserConfigSchema(BaseModel):
         yaml_path = FUSER_CONFIG_DIR / f"{test_name}.yaml"
         schema = cls.validate_file(yaml_path)
         return schema.to_fuser_config(test_name)
-
-
-load_fuser_config = FuserConfigSchema.load
