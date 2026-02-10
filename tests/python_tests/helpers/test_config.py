@@ -1033,7 +1033,6 @@ class TestConfig:
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-
         if self.variant_stimuli:
             self.variant_stimuli.write(location)
 
