@@ -147,7 +147,7 @@ template <PoolType pool_type, ReduceDim reduce_dim>
 inline void _llk_unpack_AB_reduce_(const std::uint32_t address_a, const std::uint32_t address_b)
 {
     // Reset address counters for both unpackers
-    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1011);
+    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
 
     // Program srcA and srcB base addresses
     // Get pointer to configuration registers for current state ID
