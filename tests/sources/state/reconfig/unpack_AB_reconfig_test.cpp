@@ -12,9 +12,9 @@
 #include "tensix_dump.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -55,12 +55,16 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_unpack_reconfig_data_format_srca_impl_<is_fp32_dest_acc_en>(
         /* unpack_src_format */ SRC_FORMAT_A_NEXT,
         /* unpack_dst_format */ DST_FORMAT_A_NEXT,
-        /* tile_size */ params->TILE_SIZE_A_NEXT);
+        /* tile_size */ params->TILE_SIZE_A_NEXT,
+        /* unpack_face_r_dim */ params->FACE_R_DIM_A_NEXT,
+        /* unpack_num_faces */ params->NUM_FACES_A_NEXT);
 
     _llk_unpack_reconfig_data_format_srcb_impl_<is_fp32_dest_acc_en>(
         /* unpack_src_format */ SRC_FORMAT_B_NEXT,
         /* unpack_dst_format */ DST_FORMAT_B_NEXT,
-        /* tile_size */ params->TILE_SIZE_B_NEXT);
+        /* tile_size */ params->TILE_SIZE_B_NEXT,
+        /* unpack_face_r_dim */ params->FACE_R_DIM_B_NEXT,
+        /* unpack_num_faces */ params->NUM_FACES_B_NEXT);
 
     llk_t6_dump::wait();
 }

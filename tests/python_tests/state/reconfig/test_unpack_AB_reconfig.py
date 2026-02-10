@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-import pytest
 from helpers.format_config import DataFormat, FormatConfig
 from helpers.llk_params import (
     DestAccumulation,
@@ -111,8 +110,6 @@ def test_unpack_AB_reconfig(
     workers_tensix_coordinates,
 ):
 
-    print(format_from, format_to, to_from_int8)
-
     configuration = TestConfig(
         "sources/state/reconfig/unpack_AB_reconfig_test.cpp",
         formats=FormatConfig(
@@ -151,17 +148,5 @@ def test_unpack_AB_reconfig(
     )
 
     _, dumps = configuration.run(workers_tensix_coordinates)
-
-    if num_faces_a != num_faces_a_next:
-        pytest.xfail("NUM_FACES_A != NUM_FACES_A_NEXT")
-
-    if num_faces_b != num_faces_b_next:
-        pytest.xfail("NUM_FACES_B != NUM_FACES_B_NEXT")
-
-    if row_dim_a != row_dim_a_next:
-        pytest.xfail("FACE_R_DIM_A != FACE_R_DIM_A_NEXT")
-
-    if row_dim_b != row_dim_b_next:
-        pytest.xfail("FACE_R_DIM_B != FACE_R_DIM_B_NEXT")
 
     TensixDump.assert_equal(dumps[0], dumps[1])
