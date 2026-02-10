@@ -127,8 +127,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
     const bool narrow_tile        = (tensor_shape.num_faces_c_dim == 1);
 
 #ifdef ARCH_BLACKHOLE
+    // BH configure_pack uses partial_face for BFP exp_section_size, but narrow_tile is unused (defaults to false)
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(
-        formats.pack_src, formats.pack_dst, tile_size, tensor_shape.face_r_dim, tensor_shape.total_col_dim(), num_faces, partial_face, narrow_tile);
+        formats.pack_src, formats.pack_dst, tile_size, tensor_shape.face_r_dim, tensor_shape.total_col_dim(), num_faces, partial_face);
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(
         formats.pack_src, formats.pack_dst, tile_size, tensor_shape.face_r_dim, num_faces, partial_face, narrow_tile);

@@ -22,8 +22,9 @@ constexpr std::uint8_t MAX_NUM_FACES_R_DIM = 2;
 constexpr std::uint8_t MAX_NUM_FACES_C_DIM = 2;
 constexpr std::uint8_t MAX_NUM_FACES       = MAX_NUM_FACES_R_DIM * MAX_NUM_FACES_C_DIM;
 
-constexpr std::uint8_t MAX_FPU_ROWS      = 8;
-constexpr std::uint8_t MAX_FPU_ROWS_LOG2 = 3;
+constexpr std::uint8_t MAX_FPU_ROWS           = 8;
+constexpr std::uint8_t MAX_FPU_ROWS_LOG2      = 3;
+constexpr std::uint8_t MAX_TILES_IN_HALF_DEST = 8;
 
 /**
  * @brief Standardized tensor shape representation for LLK operations.

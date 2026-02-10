@@ -32,27 +32,35 @@ using namespace ckernel::unpacker;
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const ckernel::TensorShape tensor_shape)
 {
-    const std::uint32_t num_faces = tensor_shape.total_num_faces();
-    const bool narrow_tile        = (tensor_shape.num_faces_c_dim == 1);
+    const std::uint32_t num_faces_r_dim = tensor_shape.num_faces_r_dim;
+    const std::uint32_t num_faces_c_dim = tensor_shape.num_faces_c_dim;
     // TODO: Remove this assert after testing >4 num_faces because there is no reason to limit this for non-broadcast versions
     validate_tensor_shape_tile_dependent_ops_(tensor_shape);
 
     if (transpose_of_faces)
     {
-        LLK_ASSERT(num_faces == MAX_NUM_FACES, "num_faces must be 4 when transpose_of_faces is true");
+        LLK_ASSERT(num_faces_r_dim == num_faces_c_dim, "num_faces_r_dim must be equal to num_faces_c_dim when transpose_of_faces is true");
+        LLK_ASSERT(
+            num_faces_c_dim == 2,
+            "num_faces_c_dim has to be 2 with transpose due to stride limitations in UNPACR instruction, this limitation can be removed when TensorShapes are "
+            "passed compile time");
     }
 
-    static constexpr std::uint32_t unpack_srca           = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr std::uint32_t unpack_srcb           = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    static constexpr std::uint32_t unpack_srca_transpose = TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    const std::uint32_t srca_op                          = transpose_of_faces ? unpack_srca_transpose : unpack_srca;
-    const std::uint32_t srca_end_op                      = TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001);
+    static constexpr std::uint32_t unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr std::uint32_t unpack_srcb = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    static constexpr std::uint32_t unpack_srca_transpose =
+        TT_OP_UNPACR(SrcA, 0b10 /*This is an inc of 2, which is meant to be num_faces_c_dim*/, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
+    const std::uint32_t outerloop = transpose_of_faces ? num_faces_c_dim : num_faces_r_dim;
+    const std::uint32_t innerloop = transpose_of_faces ? num_faces_r_dim : num_faces_c_dim;
+    const std::uint32_t srca_op   = transpose_of_faces ? unpack_srca_transpose : unpack_srca;
+
+    // Helper to set end op(s) based on transpose mode
     auto set_end_op_with_transpose = [&](ckernel_template &tmp, std::uint32_t primary_end_op)
     {
         if (transpose_of_faces)
         {
-            tmp.set_end_ops(primary_end_op, srca_end_op);
+            tmp.set_end_ops(primary_end_op, TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001));
         }
         else
         {
@@ -62,49 +70,47 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const cker
 
     if constexpr (BType == BroadcastType::COL)
     {
-        static constexpr std::uint32_t unpack_srcb_set_z = TT_OP_SETADCZW(0b010, 0, 0, 0, 2, 0b0001);
-        const std::uint32_t outerloop                    = num_faces < 4 ? 1 : 2;
-        const std::uint32_t innerloop                    = num_faces < 2 ? 1 : 2;
+        // COL broadcast: First col in Src B face is broadcast across A faces in the same row
+        static const std::uint32_t unpack_srcb_set_z =
+            TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 2 /*This is an inc of 2, which is meant to be num_faces_c_dim*/, 0b0001);
+
         ckernel_template tmp(outerloop, innerloop, srca_op);
         tmp.set_start_op(unpack_srcb);
-        set_end_op_with_transpose(tmp, narrow_tile ? unpack_srcb : unpack_srcb_set_z);
+        set_end_op_with_transpose(tmp, unpack_srcb_set_z);
         tmp.program();
     }
     else if constexpr (BType == BroadcastType::ROW)
     {
-        static constexpr std::uint32_t unpack_srcb_clear_z  = TT_OP_SETADCZW(0b010, 0, 0, 0, 0, 0b0001);
-        static constexpr std::uint32_t unpack_srcb_no_z_inc = TT_OP_UNPACR(SrcB, 0b0, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-        const std::uint32_t outerloop                       = num_faces < 4 ? 1 : 2;
-        const std::uint32_t innerloop                       = num_faces < 2 ? 1 : 2;
-        ckernel_template tmp(outerloop, innerloop, narrow_tile ? unpack_srcb_no_z_inc : unpack_srcb, srca_op);
+        // ROW broadcast: First row in Src B face is broadcast across A faces in the same column
+        static constexpr std::uint32_t unpack_srcb_clear_z = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001);
+
+        ckernel_template tmp(outerloop, innerloop, unpack_srcb, srca_op);
         set_end_op_with_transpose(tmp, unpack_srcb_clear_z);
         tmp.program();
     }
     else if constexpr (BType == BroadcastType::SCALAR)
     {
-        const std::uint32_t outerloop = 1;
-        const std::uint32_t innerloop = num_faces;
-        ckernel_template tmp(outerloop, innerloop, unpack_srca);
+        // SCALAR broadcast: single B value broadcast to all A faces
+        LLK_ASSERT(!transpose_of_faces, "SrcA transpose is not supported with scalar broadcast");
+
+        ckernel_template tmp(1, tensor_shape.total_num_faces(), unpack_srca);
         tmp.set_start_op(unpack_srcb);
         tmp.program();
     }
-    else
+    else // BType == BroadcastType::NONE
     {
+        // NONE: no broadcast, A and B faces are paired 1:1
         if (transpose_of_faces)
         {
-            static constexpr std::uint32_t srca_set_z         = TT_OP_SETADCZW(0b001, 0, 0, 0, 1, 0b0001);                                         // set z to 1
-            static constexpr std::uint32_t unpack_srca_skip_z = TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1); // inc z by 2
-            const std::uint32_t outerloop                     = num_faces < 4 ? 1 : 2;
-            const std::uint32_t innerloop                     = num_faces < 2 ? 1 : 2;
-            ckernel_template tmp(outerloop, innerloop, num_faces < 4 ? unpack_srca : unpack_srca_skip_z, unpack_srcb);
+            static constexpr std::uint32_t srca_set_z = TT_OP_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 1, 0b0001);
+            // Flip r & c dimension due to transpose of SrcA, SrcA unpack increments L1 pointer by num_faces_c_dim
+            ckernel_template tmp(num_faces_c_dim, num_faces_r_dim, unpack_srca_transpose, unpack_srcb);
             tmp.set_end_op(srca_set_z);
             tmp.program();
         }
         else
         {
-            constexpr std::uint32_t outerloop = 1;
-            const std::uint32_t innerloop     = num_faces;
-            ckernel_template tmp(outerloop, innerloop, unpack_srca, unpack_srcb);
+            ckernel_template tmp(num_faces_r_dim, num_faces_c_dim, unpack_srca, unpack_srcb);
             tmp.program();
         }
     }
@@ -123,7 +129,6 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const cker
 template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_init_(const ckernel::TensorShape tensor_shape, const std::uint32_t transpose = 0)
 {
-    const std::uint32_t num_faces = tensor_shape.total_num_faces();
     // TODO: Remove this assert after testing >4 num_faces because there is no reason to limit this for non-broadcast versions
     validate_tensor_shape_tile_dependent_ops_(tensor_shape);
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose); // transpose within the face
@@ -156,7 +161,11 @@ inline void _llk_unpack_AB_reduce_init_(
     constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;
     config_unpacker_x_end<UNP_SEL>(face_r_dim);
 
-    _llk_unpack_AB_mop_config_<BType>(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
+    // Create TensorShape from individual parameters
+    const std::uint8_t num_faces_c_dim = narrow_tile ? 1 : 2;
+    const std::uint8_t num_faces_r_dim = (num_faces > 2 && !narrow_tile) ? 2 : 1;
+    const ckernel::TensorShape tensor_shape(face_r_dim, FACE_C_DIM, num_faces_r_dim, num_faces_c_dim);
+    _llk_unpack_AB_mop_config_<BType>(transpose > 0, tensor_shape); // transpose of faces 0,2,1,3
 }
 
 /**
