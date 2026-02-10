@@ -21,8 +21,10 @@ class UnpackKernelGenerator:
         # Collect all unique headers from all operations
         all_headers = set()
         for op in self.config.pipeline:
-            unpacker_instance = op.unpacker()
-            all_headers.update(unpacker_instance.get_headers())
+            for fused_compute in op.math.operations:
+                if fused_compute.unpacker is not None:
+                    unpacker_instance = fused_compute.unpacker()
+                    all_headers.update(unpacker_instance.get_headers())
 
         # Generate include statements
         includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
@@ -58,7 +60,8 @@ class MathKernelGenerator:
         # Collect all unique headers from all operations
         all_headers = set()
         for op in self.config.pipeline:
-            all_headers.update(op.math.get_headers())
+            for unit in op.math.get_math_units():
+                all_headers.update(unit.get_headers())
 
         # Generate include statements
         includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
@@ -158,9 +161,9 @@ class FusedKernelGenerator:
             f'#include "operand.h"\n'
             f"{profiler_include}"
             f"\n"
-            f"uint32_t unp_cfg_context          = 0;\n"
-            f"uint32_t pack_sync_tile_dst_ptr   = 0;\n"
-            f"uint32_t math_sync_tile_dst_index = 0;\n"
+            f"std::uint32_t unp_cfg_context          = 0;\n"
+            f"std::uint32_t pack_sync_tile_dst_ptr   = 0;\n"
+            f"std::uint32_t math_sync_tile_dst_index = 0;\n"
             f"\n"
             f"#define UNUSED __attribute__((unused))\n"
             f"\n"
@@ -174,5 +177,9 @@ class FusedKernelGenerator:
         fused_test_cpp_dir = test_cpp_dir / FUSED_TESTS_DIR
         fused_test_cpp_dir.mkdir(parents=True, exist_ok=True)
 
-        with open(test_cpp_dir / f"{test_name}", "w") as f:
+        cpp_path = test_cpp_dir / f"{test_name}"
+
+        with open(cpp_path, "w") as f:
             f.write(combined)
+
+        os.system(f'clang-format -i "{cpp_path}"')

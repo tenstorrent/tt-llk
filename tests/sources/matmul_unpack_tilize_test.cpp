@@ -10,14 +10,14 @@
 #include "llk_defs.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
-uint32_t tile_size                = 128;
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t tile_size                = 128;
 
 // Remove later
-constexpr uint32_t buffer_A_tilized = 0x1e000;
-constexpr uint32_t buffer_B_tilized = 0x1f000;
+constexpr std::uint32_t buffer_A_tilized = 0x1e000;
+constexpr std::uint32_t buffer_B_tilized = 0x1f000;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -41,10 +41,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
         4 /* num_faces */);
 
     _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
-    _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats_array[run].unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
+    _llk_unpack_tilize_(L1_ADDRESS(buffer_A[0]), 0, formats_array[run].unpack_src, formats_array[run].unpack_dst, block_ct_dim, FACE_R_DIM, 4, false);
 
     _llk_unpack_tilize_init_(formats_array[run].unpack_src, formats_array[run].unpack_dst, 1, FACE_R_DIM, false);
-    _llk_unpack_tilize_(L1_ADDRESS(buffer_B[0]), 0, formats_array[run].unpack_src, block_ct_dim, FACE_R_DIM, 4, false);
+    _llk_unpack_tilize_(L1_ADDRESS(buffer_B[0]), 0, formats_array[run].unpack_src, formats_array[run].unpack_dst, block_ct_dim, FACE_R_DIM, 4, false);
 
     t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(
         semaphore::PACK_DONE); // Unpacker waits on signal when packer will increment semaphore to 1 (waits while semaphore == 0), utilizing SEMWAIT.

@@ -29,22 +29,23 @@ inline void _llk_math_dbg_feature_enable_()
 template <bool is_fp32_dest_acc_en = false>
 inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)
 {
-    // Legacy mode for ZEROACC
-    cfg_reg_rmw_tensix<DEST_ACCESS_CFG_zeroacc_absolute_tile_mode_RMW>(1);
+    // Configure ZEROACC to auto-detect destination bank (non-legacy mode).
+    cfg_reg_rmw_tensix<DEST_ACCESS_CFG_zeroacc_absolute_tile_mode_RMW>(0);
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
-    uint int8_math_enabled = ((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) ||
-                             ((uint)srca_data_format == (uint)DataFormat::Int32) || ((uint)srcb_data_format == (uint)DataFormat::Int32);
+    std::uint32_t int8_math_enabled =
+        ((srca_data_format & 0xF) == ckernel::to_underlying(DataFormat::Int8)) || ((srcb_data_format & 0xF) == ckernel::to_underlying(DataFormat::Int8)) ||
+        (srca_data_format == ckernel::to_underlying(DataFormat::Int32)) || (srcb_data_format == ckernel::to_underlying(DataFormat::Int32));
     cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
 
-    uint32_t fp32_dest_acc_en = is_fp32_dest_acc_en ? 1 : 0;
+    std::uint32_t fp32_dest_acc_en = is_fp32_dest_acc_en ? 1 : 0;
     cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(fp32_dest_acc_en);
     cfg_reg_rmw_tensix<ALU_ACC_CTRL_SFPU_Fp32_enabled_RMW>(fp32_dest_acc_en);
 
     // Workaround for HW bugs:
     // budabackend#1948: int32 dest and movd2a/b with int8 srcA/B
     // budabackend#1948: fp32 dest and movd2a/b with UInt16 srcA/B
-    bool uint16_with_fp32_dest =
-        is_fp32_dest_acc_en && (((uint)srca_data_format == (uint)DataFormat::UInt16) || ((uint)srcb_data_format == (uint)DataFormat::UInt16));
+    bool uint16_with_fp32_dest = is_fp32_dest_acc_en && ((srca_data_format == ckernel::to_underlying(DataFormat::UInt16)) ||
+                                                         (srcb_data_format == ckernel::to_underlying(DataFormat::UInt16)));
 
     if (int8_math_enabled || uint16_with_fp32_dest)
     {
@@ -149,7 +150,8 @@ inline void _llk_math_reconfig_data_format_srca_(const std::uint32_t srca_data_f
     {
         static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
         TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
-        uint int8_math_enabled = ((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)srca_data_format == (uint)DataFormat::Int32);
+        std::uint32_t int8_math_enabled =
+            ((srca_data_format & 0xF) == ckernel::to_underlying(DataFormat::Int8)) || (srca_data_format == ckernel::to_underlying(DataFormat::Int32));
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
     }
 }
@@ -161,7 +163,8 @@ inline void _llk_math_reconfig_data_format_srcb_(const std::uint32_t srcb_data_f
     {
         static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
         TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
-        uint int8_math_enabled = ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)srcb_data_format == (uint)DataFormat::Int32);
+        std::uint32_t int8_math_enabled =
+            ((srcb_data_format & 0xF) == ckernel::to_underlying(DataFormat::Int8)) || (srcb_data_format == ckernel::to_underlying(DataFormat::Int32));
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
     }
 }
@@ -173,8 +176,9 @@ inline void _llk_math_reconfig_data_format_(const std::uint32_t srca_data_format
     {
         static_assert(is_fp32_dest_acc_en, "Reconfiguring math to/from Int8 formats requires FP32 Dest mode enabled");
         TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
-        uint int8_math_enabled = ((uint)(srca_data_format & 0xF) == (uint)DataFormat::Int8) || ((uint)(srcb_data_format & 0xF) == (uint)DataFormat::Int8) ||
-                                 ((uint)srca_data_format == (uint)DataFormat::Int32) || ((uint)srcb_data_format == (uint)DataFormat::Int32);
+        std::uint32_t int8_math_enabled =
+            ((srca_data_format & 0xF) == ckernel::to_underlying(DataFormat::Int8)) || ((srcb_data_format & 0xF) == ckernel::to_underlying(DataFormat::Int8)) ||
+            (srca_data_format == ckernel::to_underlying(DataFormat::Int32)) || (srcb_data_format == ckernel::to_underlying(DataFormat::Int32));
         cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
     }
 }

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "llk_defs.h"
 #include "lltt.h"
 #include "sfpi.h"
@@ -13,7 +15,8 @@ namespace ckernel::sfpu
 {
 
 template <bool APPROXIMATION_MODE, DataFormat data_format, int ITERATIONS>
-inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1, const uint dst_index_in2, const uint dst_index_out)
+inline void _calculate_where_(
+    const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_in2, const std::uint32_t dst_index_out)
 {
     static_assert(
         data_format == DataFormat::Float32 || data_format == DataFormat::Float16_b || data_format == DataFormat::Int32 || data_format == DataFormat::UInt32,
@@ -23,8 +26,25 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
     int offset1 = (dst_index_in1 * 32) << 1;
     int offset2 = (dst_index_in2 * 32) << 1;
 
-    constexpr uint mod0 = data_format == DataFormat::Float16_b ? InstrModLoadStore::LO16 : InstrModLoadStore::INT32;
+    constexpr std::uint32_t mod0 = data_format == DataFormat::Float16_b ? InstrModLoadStore::LO16 : InstrModLoadStore::INT32;
 
+#ifdef DISABLE_SFPLOADMACRO
+    int offset3 = (dst_index_out * 32) << 1;
+
+    lltt::record(0, 6);
+    TT_SFPLOAD(p_sfpu::LREG0, mod0, ADDR_MOD_3, offset0);
+    TT_SFPLOAD(p_sfpu::LREG1, mod0, ADDR_MOD_3, offset1);
+    TTI_SFPSETCC(0, p_sfpu::LREG0, 0, sfpi::SFPSETCC_MOD1_LREG_EQ0);
+    TT_SFPLOAD(p_sfpu::LREG1, mod0, ADDR_MOD_3, offset2);
+    TTI_SFPENCC(0, 0, 0, sfpi::SFPENCC_MOD1_EU_R1);
+    TT_SFPSTORE(p_sfpu::LREG1, mod0, ADDR_MOD_2, offset3);
+
+#pragma GCC unroll 8
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        lltt::replay(0, 6);
+    }
+#else
     if (dst_index_out == dst_index_in0)
     {
         // We use macros 0 and 2 to schedule the following, which achieves 3 cycles per input row of 32 values:
@@ -71,11 +91,13 @@ inline void _calculate_where_(const uint dst_index_in0, const uint dst_index_in1
             lltt::replay(0, 4);
         }
     }
+#endif
 }
 
 template <bool APPROXIMATION_MODE>
 inline void _init_where_()
 {
+#ifndef DISABLE_SFPLOADMACRO
     // InstructionTemplate[0]
     TTI_SFPSETCC(0, 0, 12, 6); // SFPSETCC_MOD1_LREG_EQ0
 
@@ -84,10 +106,10 @@ inline void _init_where_()
 
     // Macro 0: special case handling for where(a, b, c, a), i.e. write the output to the first input.
     {
-        constexpr uint simple_bits = 0x00 | 0x00 | (0 << 3) | 4;
-        constexpr uint mad_bits    = 0;
-        constexpr uint round_bits  = 0;
-        constexpr uint store_bits  = 0x00 | 0x00 | (2 << 3) | 3;
+        constexpr std::uint32_t simple_bits = 0x00 | 0x00 | (0 << 3) | 4;
+        constexpr std::uint32_t mad_bits    = 0;
+        constexpr std::uint32_t round_bits  = 0;
+        constexpr std::uint32_t store_bits  = 0x00 | 0x00 | (2 << 3) | 3;
 
         TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_LOWER, (mad_bits << 8) | simple_bits);
         TTI_SFPLOADI(0, sfpi::SFPLOADI_MOD0_UPPER, (store_bits << 8) | round_bits);
@@ -96,22 +118,23 @@ inline void _init_where_()
 
     // Macro 1: otherwise, handle where(a, b, c, d).
     {
-        constexpr uint simple_bits = 0x00 | 0x00 | (0 << 3) | 4;
-        constexpr uint mad_bits    = 0;
+        constexpr std::uint32_t simple_bits = 0x00 | 0x00 | (0 << 3) | 4;
+        constexpr std::uint32_t mad_bits    = 0;
 
         TTI_SFPCONFIG((mad_bits << 8) | simple_bits, 4 + 1, 1);
     }
 
     // Macro 2:
     {
-        constexpr uint simple_bits = 0x00 | 0x00 | (0 << 3) | 5;
-        constexpr uint mad_bits    = 0;
+        constexpr std::uint32_t simple_bits = 0x00 | 0x00 | (0 << 3) | 5;
+        constexpr std::uint32_t mad_bits    = 0;
 
         TTI_SFPCONFIG((mad_bits << 8) | simple_bits, 4 + 2, 1);
     }
 
     // Misc: {UsesLoadMod0ForStore=1, WaitForElapsedInstructions=1} for all macros.
     TTI_SFPCONFIG(0x770, 8, 1);
+#endif
 }
 
 } // namespace ckernel::sfpu

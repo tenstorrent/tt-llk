@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <cstdint>
+#include <type_traits>
+
 #include "tensix.h"
 
 // #include "tensix_types.h"
@@ -13,6 +16,14 @@
 
 namespace ckernel
 {
+
+// Helper function to convert to underlying type
+// e.g. to_underlying(MathFidelity::HiFi4) -> 4 (underlying type of MathFidelity is std::uint8_t)
+template <typename T>
+constexpr auto to_underlying(T t) noexcept
+{
+    return static_cast<std::underlying_type_t<T>>(t);
+}
 
 enum register_space_e
 {
@@ -29,9 +40,9 @@ enum register_space_e
 //  narrow_tile = 0;
 struct TileShape
 {
-    uint32_t num_faces;
-    uint32_t face_r_dim;
-    uint32_t face_c_dim;
+    std::uint32_t num_faces;
+    std::uint32_t face_r_dim;
+    std::uint32_t face_c_dim;
     bool narrow_tile;
 };
 
