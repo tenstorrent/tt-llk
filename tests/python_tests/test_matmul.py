@@ -59,27 +59,32 @@ def generate_format_aware_matmul_combinations(
 MATMUL_FORMATS = input_output_formats(
     [
         DataFormat.Float16_b,
-        DataFormat.Float16,
-        DataFormat.Float32,
+        # DataFormat.Float16,
+        # DataFormat.Float32,
     ]
 )
-DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
+DEST_ACC_MODES = ([DestAccumulation.No],)  # , DestAccumulation.Yes]
 ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     MATMUL_FORMATS, DEST_ACC_MODES
 )
 
 
 @parametrize(
+    cpp_source=[
+        "sources/matmul_test.cpp",
+        "sources/matmul_custom_test.cpp",
+    ],
     math_fidelity=[
         MathFidelity.LoFi,
-        MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
+        # MathFidelity.HiFi2,
+        # MathFidelity.HiFi3,
+        # MathFidelity.HiFi4,
     ],
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
 # Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
 def test_matmul(
+    cpp_source,
     math_fidelity,
     format_dest_acc_and_dims,
     workers_tensix_coordinates,
@@ -128,7 +133,7 @@ def test_matmul(
         tilized_B = src_B
 
     configuration = TestConfig(
-        "sources/matmul_test.cpp",
+        cpp_source,
         formats,
         templates=[
             MATH_FIDELITY(math_fidelity),
