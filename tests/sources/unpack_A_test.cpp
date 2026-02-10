@@ -121,9 +121,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        LLK_ASSERT(
-            (i < ckernel::packer::get_dest_max_tiles<sync_mode, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
-            "Block tile index exceeds maximum destination tiles");
+        LLK_ASSERT((i < get_dest_max_tiles<sync_mode, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
         _llk_pack_<sync_mode, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<sync_mode, is_fp32_dest_acc_en>();

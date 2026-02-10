@@ -27,17 +27,6 @@ using namespace ckernel;
 namespace ckernel::math
 {
 
-constexpr std::uint32_t DstTileSize[3] = {
-    64, // 32x32 tile shape
-    32, // 32x16, 16x32 tile shape
-    16  // 16x16 tile shape
-};
-constexpr std::uint32_t DstTileSizeLog2[3] = {
-    6, // 32x32 tile shape
-    5, // 32x16, 16x32 tile shape
-    4  // 16x16 tile shape
-};
-
 constexpr std::uint32_t replay_buf_offset = 16; // split replay buffer usage between fpu/sfpu
                                                 // first 16 for sfpu, next 16 for fpu
 
@@ -259,30 +248,6 @@ inline constexpr int get_math_fidelity_increment(const int math_fidelity_desc)
 inline std::uint32_t get_max_dst_index_for_matmul(std::uint32_t dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
 {
     return dst_index + ct_dim * rt_dim - 1;
-}
-
-/**
- * @brief Calculates the maximum number of destination tiles that can fit in the destination register.
- *
- * @tparam SYNC_MODE   Destination synchronization mode (SyncHalf or SyncFull)
- * @tparam ACCUM_MODE Accumulation mode: true for 32-bit (FP32), false for 16-bit
- * @tparam TILE_SHAPE      Tile shape enum value (e.g., 32x32, 16x16, etc.)
- * @return constexpr std::uint32_t   Maximum number of destination tiles
- *
- * The calculation is based on the destination register size and the tile shape.
- *
- * Formula:
- *   DEST_REGISTER_SIZE >> DstTileSizeLog2[static_cast<int>(TILE_SHAPE)]
- *
- * Where DEST_REGISTER_SIZE is selected based on SYNC_MODE and ACCUM_MODE.
- */
-template <DstSync SYNC_MODE, bool ACCUM_MODE, DstTileShape TILE_SHAPE>
-constexpr std::uint32_t get_dest_max_tiles()
-{
-    constexpr std::uint32_t DEST_REGISTER_SIZE = SYNC_MODE == DstSync::SyncHalf ? (ACCUM_MODE ? DEST_REGISTER_HALF_SIZE >> 1 : DEST_REGISTER_HALF_SIZE)
-                                                                                : (ACCUM_MODE ? DEST_REGISTER_FULL_SIZE >> 1 : DEST_REGISTER_FULL_SIZE);
-
-    return DEST_REGISTER_SIZE >> DstTileSizeLog2[static_cast<int>(TILE_SHAPE)];
 }
 
 } // namespace ckernel::math
