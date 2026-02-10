@@ -279,9 +279,7 @@ def generate_tile_dims(
         tile_cnt=output_tile_cnt,
         tile_cnt_in0=(input0_dims[0] * input0_dims[1]) // (32 * 32),
         tile_cnt_in1=(input1_dims[0] * input1_dims[1]) // (32 * 32),
-        output_tile_cnt=(
-            output_tile_cnt if not tiny_tiles else 1
-        ),  # matmul with input 0 tiny tile does not work on multiple tiles for input 1 https://github.com/tenstorrent/tt-llk/issues/697
+        output_tile_cnt=output_tile_cnt,
         in0_tile_r_dim=in0_tile_r_dim,
         in0_tile_c_dim=32,
         in1_tile_r_dim=32,
@@ -452,18 +450,18 @@ def sweep_matmul(
 
                             combinations.append(base_matmul_dims)
 
-                            if max_dst_index != 0 and math_matmul:
-                                # Create a new object with different dst_index since dataclass is immutable
-                                edge_case_dims = MatmulConfig(
-                                    tile_dimensions=tile_dims,
-                                    face_layout_config=face_layout_config,
-                                    formats=fmt,
-                                    stochastic_rnd=stochastic_mode,
-                                    dst_index=max_dst_index,
-                                    dest_sync=dest_sync,
-                                    dest_acc=dest_acc,
-                                )
-                                combinations.append(edge_case_dims)
+                            # if max_dst_index != 0 and math_matmul: # Issue #873: Double acc bug https://github.com/tenstorrent/tt-llk/issues/873
+                            #     # Create a new object with different dst_index since dataclass is immutable
+                            #     edge_case_dims = MatmulConfig(
+                            #         tile_dimensions=tile_dims,
+                            #         face_layout_config=face_layout_config,
+                            #         formats=fmt,
+                            #         stochastic_rnd=stochastic_mode,
+                            #         dst_index=max_dst_index,
+                            #         dest_sync=dest_sync,
+                            #         dest_acc=dest_acc,
+                            #     )
+                            #     combinations.append(edge_case_dims)
 
     return combinations
 
@@ -537,8 +535,8 @@ def sweep_tiny_tiles_matmul(
                 tile_dims.tile_cnt,
             )
             max_dst_indices = [0]
-            if math_matmul and max_dst_index != 0:
-                max_dst_indices.append(max_dst_index)
+            # if math_matmul and max_dst_index != 0: # Issue #873: Double acc bug https://github.com/tenstorrent/tt-llk/issues/873
+            #     max_dst_indices.append(max_dst_index)
 
             for max_dst_idx in max_dst_indices:
                 # Don't add invalid variants. If these variants are added LLK_ASSERTs are hit in math_matmul and unpack_matmul tests.
@@ -557,9 +555,7 @@ def sweep_tiny_tiles_matmul(
                         face_layout_config=face,
                         formats=config["fmt"],
                         stochastic_rnd=config["stochastic_mode"],
-                        dst_index=(
-                            min(max_dst_idx, 3) if math_matmul else max_dst_idx
-                        ),  # multi-matmul with input 0 tiny tile does not work when dst_index > 3 https://github.com/tenstorrent/tt-llk/issues/697
+                        dst_index=max_dst_idx,
                         dest_sync=config["dest_sync"],
                         dest_acc=config["dest_acc"],
                     )
