@@ -13,10 +13,6 @@
 #include "llk_assert.h"
 #include "llk_math_common.h"
 
-#ifndef HF
-#define HF 0
-#endif
-
 using namespace ckernel;
 
 template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL>
@@ -31,10 +27,6 @@ inline void matmul_configure_addrmod(
     constexpr int NUM_FIDELITY_PHASES = get_math_num_fidelity_phases(MATH_FIDELITY_DESC);
     constexpr bool high_fidelity      = (NUM_FIDELITY_PHASES > 0);
     constexpr int FIDELITY_INCREMENT  = high_fidelity ? get_math_fidelity_increment(MATH_FIDELITY_DESC) : 0;
-
-    const bool is_in0_16x32 = (in0_tile_r_dim <= FACE_R_DIM) && (in0_tile_c_dim > FACE_C_DIM);
-    const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
-    const bool is_in1_32x16 = (in1_tile_r_dim > FACE_R_DIM) && (in1_tile_c_dim <= FACE_C_DIM);
 
     // MVMUL does D = B*A
 
@@ -71,206 +63,53 @@ inline void matmul_configure_addrmod(
             .set(ADDR_MOD_6);
     }
 
-    if ((is_in0_16x32 && (!is_in1_32x16)) || is_in0_32x16)
-    {
-        if (transpose)
-        {
-            addr_mod_t {
-                .srca = {.incr = 32, .clr = 0, .cr = 0},
-                .srcb = {.incr = 0, .clr = 0, .cr = 1}, // cr=16 before
-                .dest = {.incr = 8, .clr = 0, .cr = 0},
-            }
-                .set(ADDR_MOD_1);
-        }
-        else
-        {
-            addr_mod_t {
-                .srca = {.incr = 16, .clr = 0, .cr = 0},
-                .srcb = {.incr = 0, .clr = 0, .cr = 1}, // cr=16 before
-                .dest = {.incr = 8, .clr = 0, .cr = 0},
-            }
-                .set(ADDR_MOD_1);
-        }
-    }
-    else
-    {
-        if (is_in1_32x16)
-        {
-            addr_mod_t {
-                .srca = {.incr = 16, .clr = 0, .cr = 0},
-                .srcb = {.incr = 8, .clr = 0, .cr = 0},
-                .dest = {.incr = 0, .clr = 0, .cr = 1},
-            }
-                .set(ADDR_MOD_1);
-        }
-        else
-        {
-            if (transpose)
-            {
-                addr_mod_t {
-                    .srca = {.incr = 32, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 1},
-                    .dest = {.incr = 8, .clr = 0, .cr = 0},
-                }
-                    .set(ADDR_MOD_1);
-            }
-            else
-            {
-                addr_mod_t {
-                    //.srca = {.incr = srca_increment, .clr = 0, .cr = 0},
-                    .srca = {.incr = 16, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 1},
-                    .dest = {.incr = 8, .clr = 0, .cr = 0},
-                }
-                    .set(ADDR_MOD_1);
-            }
-        }
-    }
-
-    if (is_in1_32x16)
+    if (transpose)
     {
         addr_mod_t {
-            .srca = {.incr = 16, .clr = 0, .cr = 0}, .srcb = {.incr = 8, .clr = 0, .cr = 0}, .dest = {.incr = 0, .clr = 0, .cr = 1}, // cr=16
-        }
-            .set(ADDR_MOD_2);
-    }
-    else if (is_in0_16x32 || is_in0_32x16)
-    {
-        if (partial_face)
-        {
-            if (transpose)
-            {
-                addr_mod_t {
-                    .srca = {.incr = 32, .clr = 0, .cr = 0}, .srcb = {.incr = 0, .clr = 0, .cr = 0}, .dest = {.incr = 16, .clr = 0, .cr = 0},
-                    // .bias = {.incr = 1},
-                }
-                    .set(ADDR_MOD_2);
-            }
-            else
-            {
-                addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 0}, .srcb = {.incr = 0, .clr = 0, .cr = 0}, .dest = {.incr = 16, .clr = 0, .cr = 0},
-                    // .bias = {.incr = 1},
-                }
-                    .set(ADDR_MOD_2);
-            }
-        }
-        else
-        {
-            if (transpose)
-            {
-                addr_mod_t {
-                    .srca = {.incr = 32, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 1},
-                    .dest = {.incr = 8, .clr = 0, .cr = 0},
-                }
-                    .set(ADDR_MOD_2);
-            }
-            else
-            {
-                addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 0},
-                    .srcb = {.incr = 0, .clr = 0, .cr = 1},
-                    .dest = {.incr = 8, .clr = 0, .cr = 0},
-                }
-                    .set(ADDR_MOD_2);
-            }
-        }
-    }
-    else
-    {
-        addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 1},
-            .srcb = {.incr = 32, .clr = 0, .cr = 1},
+            .srca = {.incr = 32, .clr = 0, .cr = 0},
+            .srcb = {.incr = 0, .clr = 0, .cr = 1},
             .dest = {.incr = 8, .clr = 0, .cr = 0},
         }
-            .set(ADDR_MOD_2);
+            .set(ADDR_MOD_1);
+    }
+    else
+    {
+        addr_mod_t {
+            //.srca = {.incr = srca_increment, .clr = 0, .cr = 0},
+            .srca = {.incr = 16, .clr = 0, .cr = 0},
+            .srcb = {.incr = 0, .clr = 0, .cr = 1},
+            .dest = {.incr = 8, .clr = 0, .cr = 0},
+        }
+            .set(ADDR_MOD_1);
     }
 
-    if (is_in0_16x32)
-    {
-        if (partial_face)
-        {
-            if (transpose)
-            {
-                addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 1}, // srca=16
-                    .srcb = {.incr = 16, .clr = 0, .cr = 0},
-                    .dest = {.incr = 0, .clr = 1, .cr = 0},
-                    // .bias = {.incr = 1},
-                }
-                    .set(ADDR_MOD_4);
-            }
-            else
-            {
-                addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 0}, .srcb = {.incr = 16, .clr = 0, .cr = 0}, .dest = {.incr = 0, .clr = 1, .cr = 0},
-                    // .bias = {.incr = 1},
-                }
-                    .set(ADDR_MOD_4);
-            }
-        }
-        else
-        {
-            if (transpose)
-            {
-                addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 1}, // srca=16
-                    .srcb = {.incr = 16, .clr = 0, .cr = 1},
-                    .dest = {.incr = 0, .clr = 0, .cr = 1},
-                    // .bias = {.incr = 1},
-                }
-                    .set(ADDR_MOD_4);
-            }
-            else
-            {
-                addr_mod_t {
-                    .srca = {.incr = 16, .clr = 0, .cr = 0}, .srcb = {.incr = 16, .clr = 0, .cr = 1}, .dest = {.incr = 0, .clr = 0, .cr = 1},
-                    // .bias = {.incr = 1},
-                }
-                    .set(ADDR_MOD_4);
-            }
-        }
+    addr_mod_t {
+        .srca = {.incr = 0, .clr = 0, .cr = 1},
+        .srcb = {.incr = 32, .clr = 0, .cr = 1},
+        .dest = {.incr = 8, .clr = 0, .cr = 0},
     }
-    else if (is_in0_32x16)
+        .set(ADDR_MOD_2);
+
+    if (transpose)
     {
         addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 1}, .srcb = {.incr = 16, .clr = 0, .cr = 1}, .dest = {.incr = 8, .clr = 0, .cr = 0},
-            // .bias = {.incr = 1},
-        }
-            .set(ADDR_MOD_4);
-    }
-    else if (is_in1_32x16)
-    {
-        addr_mod_t {
-            .srca = {.incr = 0, .clr = 0, .cr = 1}, .srcb = {.incr = 8, .clr = 0, .cr = 0}, .dest = {.incr = 16, .clr = 0, .cr = 1},
+            .srca = {.incr = 16, .clr = 0, .cr = 1},
+            .srcb = {.incr = 48, .clr = 0, .cr = 1}, // cr=32 before, cr+48=16 after wrapping
+            .dest = {.incr = 0, .clr = 0, .cr = 1},
             // .bias = {.incr = 1},
         }
             .set(ADDR_MOD_4);
     }
     else
     {
-        if (transpose)
-        {
-            addr_mod_t {
-                .srca = {.incr = 16, .clr = 0, .cr = 1},
-                .srcb = {.incr = 48, .clr = 0, .cr = 1}, // cr=32 before, cr+48=16 after wrapping
-                .dest = {.incr = 0, .clr = 0, .cr = 1},
-                // .bias = {.incr = 1},
-            }
-                .set(ADDR_MOD_4);
+        addr_mod_t {
+            .srca = {.incr = 32, .clr = 0, .cr = 1},
+            //.srca = {.incr = srca_set, .clr = 0, .cr = 1},
+            .srcb = {.incr = 48, .clr = 0, .cr = 1}, // cr=32 before, cr+48=16 after wrapping
+            .dest = {.incr = 0, .clr = 0, .cr = 1},
+            // .bias = {.incr = 1},
         }
-        else
-        {
-            addr_mod_t {
-                .srca = {.incr = 32, .clr = 0, .cr = 1},
-                //.srca = {.incr = srca_set, .clr = 0, .cr = 1},
-                .srcb = {.incr = 48, .clr = 0, .cr = 1}, // cr=32 before, cr+48=16 after wrapping
-                .dest = {.incr = 0, .clr = 0, .cr = 1},
-                // .bias = {.incr = 1},
-            }
-                .set(ADDR_MOD_4);
-        }
+            .set(ADDR_MOD_4);
     }
 }
 
@@ -315,86 +154,32 @@ inline void matmul_configure_mop(
     const bool reuse_a        = ct_dim >= rt_dim;
     const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
 
-    const bool is_in0_16x32 = (in0_tile_r_dim <= FACE_R_DIM) && (in0_tile_c_dim > FACE_C_DIM);
-    const bool is_in1_32x16 = (in1_tile_r_dim > FACE_R_DIM) && (in1_tile_c_dim <= FACE_C_DIM);
-    const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
-    const bool is_in1_16x32 = (in1_tile_r_dim <= FACE_R_DIM) && (in1_tile_c_dim > FACE_C_DIM);
-
-    const std::uint32_t replay_buf_len =
-        (is_in0_16x32 && is_in1_32x16) ? 4 : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : 16);
+    const std::uint32_t replay_buf_len = 16;
 
     load_replay_buf(
         ckernel::math::replay_buf_offset,
         replay_buf_len,
         // Lambda function to load reply buffer
-        [high_fidelity, reuse_a, partial_face, is_in1_32x16, is_in0_16x32, is_in0_32x16, is_in1_16x32, t_dim]
+        [high_fidelity, reuse_a]
         {
-            if (is_in1_32x16)
-            {
-                if (is_in0_16x32)
-                {
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A0 // srca=srca, srcb+=8,  dest+=8
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B0A0 // srca+=16,  srcb+=8,  dest=0
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B1A1 // srca=srca, srcb+=8,  dest=+8, bias=1
-                }
-                else
-                {
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A0 // srca=srca, srcb+=8,  dest+=8
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B0A0 // srca+=16,  srcb+=8,  dest=0
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B1A1 // srca=srca, srcb+=8,  dest=+8
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0); // B1A1 // srca=0,    srcb+=8,  dest=16 (addr_mod_4), bias=0
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A0 // srca=srca, srcb+=8,  dest+=8
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B0A0 // srca+=16/32, srcb=0, dest+=8  // srca+=32 if transposed
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A1 // srca=srca, srcb+=8,  dest+=8  // A1 -> A2 if transposed
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B0A1 // srca=0,    srcb=32,  dest+=8  // A1 -> A2 if transposed
 
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A0 // srca=srca, srcb+=8,  dest+=8
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B2A0 // srca+=16,  srcb+=8,  dest=16
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B3A1 // srca=srca, srcb+=8,  dest+=8
-                }
-            }
-            else if (is_in0_16x32 || is_in0_32x16)
-            {
-                if (partial_face)
-                {
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B0A0 // srca+=16,  srcb=0,   dest=+16
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0); // B0A1 // srca+=16,  srcb+=16,  dest=0 (addr_mod_4), bias=0
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B1A2 // srca+=16,  srcb=0,  dest=+16
-                }
-                else
-                {
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A0 // srca=srca, srcb+=8,  dest+=8
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B0A0 // srca+=16,  srcb=0,   dest+=8
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A1 // srca=srca, srcb+=8,  dest+=8
-                    TTI_MVMUL(
-                        p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0); // B0A1 // srca+=16/=0,  srcb=16,  dest=0/+=8 (addr_mod_4), bias=0 // srca=0 dest+=8 if in0_32x16
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A0 // srca=srca, srcb+=8,  dest+=8
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B2A0 // srca+=16/32, srcb=0, dest+=8 // srca+=32 if transposed
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A1 // srca=srca, srcb+=8,  dest+=8 // A1 -> A2 if transposed
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
 
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B1A2 // srca=srca, srcb+=8,  dest+=8
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B1A2 // srca+=16,  srcb=16,  dest+=8/24 // dest+=24 if transposed
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B1A3 // srca=srca, srcb+=8,  dest+=8
-                }
-            }
-            else
-            {
-                TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A0 // srca=srca, srcb+=8,  dest+=8
-                TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B0A0 // srca+=16/32, srcb=0, dest+=8  // srca+=32 if transposed
-                TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B0A1 // srca=srca, srcb+=8,  dest+=8  // A1 -> A2 if transposed
-                TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B0A1 // srca=0,    srcb=32,  dest+=8  // A1 -> A2 if transposed
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B1A2 // srca=srca, srcb+=8,  dest+=8 // A2 -> A1 if transposed
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B1A2 // srca+=16,  srcb=16,  dest+=8 // A2 -> A1 if transposed
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B1A3 // srca=srca, srcb+=8,  dest+=8
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B1A3 // srca=32,   srcb=48,  dest+=8
 
-                TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A0 // srca=srca, srcb+=8,  dest+=8
-                TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B2A0 // srca+=16/32, srcb=0, dest+=8 // srca+=32 if transposed
-                TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A1 // srca=srca, srcb+=8,  dest+=8 // A1 -> A2 if transposed
-                if (!is_in1_16x32)
-                {
-                    // TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0); // B2A1 // srca=32/16,srcb=16,  dest=0 (addr_mod_4) // A1 -> A2 && srca=16 if transposed
-
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B1A2 // srca=srca, srcb+=8,  dest+=8 // A2 -> A1 if transposed
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B1A2 // srca+=16,  srcb=16,  dest+=8 // A2 -> A1 if transposed
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B1A3 // srca=srca, srcb+=8,  dest+=8
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // B1A3 // srca=32,   srcb=48,  dest+=8
-
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B3A2 // srca=srca, srcb+=8,  dest+=8 // A2 -> A1 if transposed
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B3A2 // srca+=16,  srcb=0,   dest+=8 // A2 -> A1 if transposed
-                    TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B3A3 // srca=srca, srcb+=8,  dest+=8
-                }
-            }
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B3A2 // srca=srca, srcb+=8,  dest+=8 // A2 -> A1 if transposed
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_1, 0); // B3A2 // srca+=16,  srcb=0,   dest+=8 // A2 -> A1 if transposed
+            TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0); // B3A3 // srca=srca, srcb+=8,  dest+=8
 
             if constexpr (high_fidelity)
             {
@@ -539,27 +324,13 @@ inline void matmul_configure_mop_throttled(
 
     const bool reuse_a = ct_dim >= rt_dim;
 
-    const bool is_in0_16x32 = (in0_tile_r_dim <= FACE_R_DIM) && (in0_tile_c_dim > FACE_C_DIM);
-    const bool is_in1_32x16 = (in1_tile_r_dim > FACE_R_DIM) && (in1_tile_c_dim <= FACE_C_DIM);
-    const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
-    const bool is_in1_16x32 = (in1_tile_r_dim <= FACE_R_DIM) && (in1_tile_c_dim > FACE_C_DIM);
-
-    constexpr std::uint32_t replay_buff_len_throttle = (THROTTLE_LEVEL > 3) ? (1 + THROTTLE_LEVEL * 2) : ((THROTTLE_LEVEL > 1) ? (3 + THROTTLE_LEVEL * 4) : 10);
-    const std::uint32_t replay_buf_len =
-        (is_in0_16x32 && is_in1_32x16) ? 4
-                                       : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : replay_buff_len_throttle);
+    constexpr std::uint32_t replay_buf_len = (THROTTLE_LEVEL > 3) ? (1 + THROTTLE_LEVEL * 2) : ((THROTTLE_LEVEL > 1) ? (3 + THROTTLE_LEVEL * 4) : 10);
 
     load_replay_buf(
         ckernel::math::replay_buf_offset,
         replay_buf_len,
         // Lambda function to load reply buffer
-        [is_in1_32x16, is_in1_16x32, is_in0_32x16, is_in0_16x32]
-        {
-            if (!is_in1_32x16 && !is_in1_16x32 && !is_in0_32x16 && !is_in0_16x32)
-            {
-                run_throttled_sequence<THROTTLE_LEVEL>();
-            }
-        });
+        [] { run_throttled_sequence<THROTTLE_LEVEL>(); });
 
     // MOP template programming removed - will use direct replay calls
 }
@@ -613,23 +384,14 @@ inline void _llk_math_matmul_(
     constexpr bool high_fidelity      = NUM_FIDELITY_PHASES > 0;
 
     // Compute replay buffer length based on tile dimensions (same logic as in matmul_configure_mop)
-    const bool is_in0_16x32 = (in0_tile_r_dim <= FACE_R_DIM) && (in0_tile_c_dim > FACE_C_DIM);
-    const bool is_in1_32x16 = (in1_tile_r_dim > FACE_R_DIM) && (in1_tile_c_dim <= FACE_C_DIM);
-    const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
-    const bool is_in1_16x32 = (in1_tile_r_dim <= FACE_R_DIM) && (in1_tile_c_dim > FACE_C_DIM);
-
     std::uint32_t replay_buf_len;
     if constexpr (THROTTLE_LEVEL > 0)
     {
-        constexpr std::uint32_t replay_buff_len_throttle =
-            (THROTTLE_LEVEL > 3) ? (1 + THROTTLE_LEVEL * 2) : ((THROTTLE_LEVEL > 1) ? (3 + THROTTLE_LEVEL * 4) : 10);
-        replay_buf_len = (is_in0_16x32 && is_in1_32x16)
-                             ? 4
-                             : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : replay_buff_len_throttle);
+        replay_buf_len = (THROTTLE_LEVEL > 3) ? (1 + THROTTLE_LEVEL * 2) : ((THROTTLE_LEVEL > 1) ? (3 + THROTTLE_LEVEL * 4) : 10);
     }
     else
     {
-        replay_buf_len = (is_in0_16x32 && is_in1_32x16) ? 4 : ((is_in0_16x32 || is_in1_32x16 || is_in0_32x16 || is_in1_16x32) ? (partial_face ? 4 : 8) : 16);
+        replay_buf_len = 16;
     }
 
     for (std::uint32_t t = 0; t < t_dim; t++)
@@ -650,11 +412,10 @@ inline void _llk_math_matmul_(
                         for (std::uint32_t phase = 0; phase < NUM_FIDELITY_PHASES; phase++)
                         {
                             // inner loop (2 iterations for standard tiles)
-                            const std::uint32_t inner_loops = (!is_in1_16x32) ? 2 : 1;
-                            for (std::uint32_t inner = 0; inner < inner_loops; inner++)
+                            for (std::uint32_t inner = 0; inner < 2; inner++)
                             {
                                 lltt::replay(ckernel::math::replay_buf_offset, replay_buf_len);
-                                if (inner < inner_loops - 1)
+                                if (inner < 1)
                                 {
                                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0); // inner loop continuation
                                 }
@@ -681,11 +442,10 @@ inline void _llk_math_matmul_(
                     else
                     {
                         // Not high fidelity, outer_loops = 2
-                        const std::uint32_t inner_loops = (!is_in1_16x32) ? 2 : 1;
-                        for (std::uint32_t inner = 0; inner < inner_loops; inner++)
+                        for (std::uint32_t inner = 0; inner < 2; inner++)
                         {
                             lltt::replay(ckernel::math::replay_buf_offset, replay_buf_len);
-                            if (inner < inner_loops - 1)
+                            if (inner < 1)
                             {
                                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0);
                             }
@@ -694,10 +454,10 @@ inline void _llk_math_matmul_(
                                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0);
                             }
                         }
-                        for (std::uint32_t inner = 0; inner < inner_loops; inner++)
+                        for (std::uint32_t inner = 0; inner < 2; inner++)
                         {
                             lltt::replay(ckernel::math::replay_buf_offset, replay_buf_len);
-                            if (inner < inner_loops - 1)
+                            if (inner < 1)
                             {
                                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_2, 0);
                             }
@@ -716,11 +476,10 @@ inline void _llk_math_matmul_(
                         // outer loop is NUM_FIDELITY_PHASES
                         for (std::uint32_t phase = 0; phase < NUM_FIDELITY_PHASES; phase++)
                         {
-                            const std::uint32_t inner_loops = (!is_in1_16x32) ? 2 : 1;
-                            for (std::uint32_t inner = 0; inner < inner_loops; inner++)
+                            for (std::uint32_t inner = 0; inner < 2; inner++)
                             {
                                 lltt::replay(ckernel::math::replay_buf_offset, replay_buf_len);
-                                if (inner < inner_loops - 1)
+                                if (inner < 1)
                                 {
                                     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0); // inner loop continuation
                                 }
@@ -738,11 +497,10 @@ inline void _llk_math_matmul_(
                     else
                     {
                         // Not high fidelity, outer_loops = 1
-                        const std::uint32_t inner_loops = (!is_in1_16x32) ? 2 : 1;
-                        for (std::uint32_t inner = 0; inner < inner_loops; inner++)
+                        for (std::uint32_t inner = 0; inner < 2; inner++)
                         {
                             lltt::replay(ckernel::math::replay_buf_offset, replay_buf_len);
-                            if (inner < inner_loops - 1)
+                            if (inner < 1)
                             {
                                 TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_4, 0);
                             }
