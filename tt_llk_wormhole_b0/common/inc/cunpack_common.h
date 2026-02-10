@@ -221,7 +221,7 @@ inline void enable_int8_fpu_math()
  * \param out_reg Desired data format in SrcA/SrcB/Dest registers.
  * \return true if the in_l1 -> out_reg conversion is supported; false otherwise.
  */
-inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1, const DataFormat out_reg)
+inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1, const DataFormat out_reg, bool is_fp32_dest_acc_en)
 {
     switch (in_l1)
     {
@@ -256,6 +256,8 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
                 case DataFormat::Tf32:
                 case DataFormat::Float32:
                     return true;
+                case DataFormat::Float16:
+                    return is_fp32_dest_acc_en;
                 default:
                     return false;
             }
@@ -270,7 +272,16 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
         // 4. Float16_b (BF16) in L1
         // MAS Table 2: only identity Float16_b->Float16_b supported.
         case DataFormat::Float16_b:
-            return out_reg == DataFormat::Float16_b;
+            switch (out_reg)
+            {
+                // case DataFormat::Float16_b:
+                case DataFormat::Float16_b:
+                    return true;
+                case DataFormat::Float16:
+                    return is_fp32_dest_acc_en;
+                default:
+                    return false;
+            }
 
         // -------------------------------------------------------------------------
         // 5. Block-float Bfp8 (A-side shared exponent) in L1
@@ -281,8 +292,8 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
         case DataFormat::Bfp8:
             switch (out_reg)
             {
-                case DataFormat::Float32:
-                case DataFormat::Float16_b:
+                // case DataFormat::Float32:
+                // case DataFormat::Float16_b:
                 case DataFormat::Float16:
                 case DataFormat::Bfp8:
                     return true;
@@ -297,14 +308,17 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
         case DataFormat::Bfp8_b:
             switch (out_reg)
             {
-                case DataFormat::Float32:
-                case DataFormat::Float16:
+                // case DataFormat::Float32:
+                // case DataFormat::Float16:
                 case DataFormat::Float16_b:
                 case DataFormat::Bfp8_b:
                     return true;
+                case DataFormat::Float16:
+                    return is_fp32_dest_acc_en;
                 default:
                     return false;
             }
+
         // -------------------------------------------------------------------------
         // 7. Bfp4/Bfp2 A/B in L1
         // MAS Table 2 shows:
@@ -314,19 +328,28 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
         // block-float in registers (e.g. MLA with Bfp8_b activations and Bfp4_b weights).
         // Bfp4_b/Bfp4 -> Float16_b/Float16 allowed for typecast (unpacker path, no SFPU).
         case DataFormat::Bfp4:
-        case DataFormat::Bfp4_b:
         case DataFormat::Bfp2:
-        case DataFormat::Bfp2_b:
             switch (out_reg)
             {
                 case DataFormat::Bfp8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 7. Bfp4/Bfp2 A/B in L1
+        // MAS Table 2 shows:
+        //   Bfp4/2 -> Bfp8 (Unpacker-only), no direct FP target
+        //   Bfp4_b/Bfp2_b -> Bfp8_b (Unpacker-only), no direct FP target
+        // Identity unpack (e.g. Bfp4_b->Bfp4_b) allowed for pipelines that keep
+        // block-float in registers (e.g. MLA with Bfp8_b activations and Bfp4_b weights).
+        // Bfp4_b/Bfp4 -> Float16_b/Float16 allowed for typecast (unpacker path, no SFPU).
+        case DataFormat::Bfp4_b:
+        case DataFormat::Bfp2_b:
+            switch (out_reg)
+            {
                 case DataFormat::Bfp8_b:
-                case DataFormat::Bfp4:
-                case DataFormat::Bfp4_b:
-                case DataFormat::Bfp2:
-                case DataFormat::Bfp2_b:
-                case DataFormat::Float16:
-                case DataFormat::Float16_b:
                     return true;
                 default:
                     return false;
@@ -341,7 +364,7 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
             switch (out_reg)
             {
                 case DataFormat::Float16:
-                case DataFormat::Float16_b:
+                case DataFormat::Lf8:
                     return true;
                 default:
                     return false;
