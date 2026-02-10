@@ -86,17 +86,18 @@ void run_kernel(const volatile struct RuntimeParams* params)
             _llk_math_wait_for_dest_available_<dest_sync>();
             for (std::uint32_t i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
             {
-                LLK_ASSERT((i < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "i exceeds max dest tiles");
-                _llk_math_eltwise_binary_(i * params->SRCA_REUSE_COUNT /* dst_index */);
+                const std::uint32_t tile_index = i * params->SRCA_REUSE_COUNT;
+                LLK_ASSERT((tile_index < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "tile_index exceeds max dest tiles");
+                _llk_math_eltwise_binary_(tile_index /* dst_index */);
             }
         }
         else
         {
             _llk_math_wait_for_dest_available_<dest_sync>();
-            for (std::uint32_t i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
             {
-                LLK_ASSERT((i < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "i exceeds max dest tiles");
-                _llk_math_eltwise_binary_(i * params->SRCA_REUSE_COUNT /* dst_index */);
+                const std::uint32_t tile_index = i * params->SRCA_REUSE_COUNT;
+                LLK_ASSERT((tile_index < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "tile_index exceeds max dest tiles");
+                _llk_math_eltwise_binary_(tile_index /* dst_index */);
             }
         }
         PROFILER_SYNC();

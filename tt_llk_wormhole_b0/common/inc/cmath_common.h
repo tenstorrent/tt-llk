@@ -245,7 +245,7 @@ inline constexpr int get_math_fidelity_increment(const int math_fidelity_desc)
  * @param rt_dim     Row tile dimension (default 1)
  * @return           Maximum destination index accessed (dst_index + ct_dim * rt_dim - 1)
  */
-inline std::uint32_t get_max_dst_index_for_matmul(std::uint32_t dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
+inline std::uint32_t get_dest_max_matmul_tiles(std::uint32_t dst_index, const std::uint32_t ct_dim = 1, const std::uint32_t rt_dim = 1)
 {
     return dst_index + ct_dim * rt_dim - 1;
 }

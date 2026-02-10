@@ -65,6 +65,7 @@ from helpers.test_variant_parameters import (
         16,
     ],  # Number of iterations to run the test in order to minimize profiler overhead in measurement
     iterations=[
+        8,
         32,
     ],  # Number of SFPU iterations
     fast_mode=[
