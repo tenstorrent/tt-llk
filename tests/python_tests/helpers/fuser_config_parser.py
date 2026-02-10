@@ -10,6 +10,31 @@ from pathlib import Path
 from typing import Annotated, List, Literal, Optional, Type, Union
 
 import yaml
+from helpers.format_config import DataFormat
+from helpers.fused_fpu import DatacopyFpu, EltwiseFpu, MatmulFpu, ReduceFpu
+from helpers.fused_math import ComputeNode, ComputePipeline
+from helpers.fused_operand import OperandRegistry
+from helpers.fused_operation import FusedOperation
+from helpers.fused_packer import Packer
+from helpers.fused_sfpu import BinarySfpu, UnarySfpu
+from helpers.fused_unpacker import (
+    MatmulUnpacker,
+    UnpackerA,
+    UnpackerAB,
+    UnpackerTilizeA,
+)
+from helpers.fuser_config import FuserConfig, GlobalConfig
+from helpers.llk_params import (
+    ApproximationMode,
+    BroadcastType,
+    DestAccumulation,
+    DestSync,
+    EltwiseBinaryReuseDestType,
+    MathFidelity,
+    MathOperation,
+    ReducePool,
+    Transpose,
+)
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -25,32 +50,6 @@ FUSER_CONFIG_DIR = (
 
 
 def _get_runtime_types():
-    from helpers.format_config import DataFormat
-    from helpers.fused_fpu import DatacopyFpu, EltwiseFpu, MatmulFpu, ReduceFpu
-    from helpers.fused_math import ComputeNode, ComputePipeline
-    from helpers.fused_operand import OperandRegistry
-    from helpers.fused_operation import FusedOperation
-    from helpers.fused_packer import Packer
-    from helpers.fused_sfpu import BinarySfpu, UnarySfpu
-    from helpers.fused_unpacker import (
-        MatmulUnpacker,
-        UnpackerA,
-        UnpackerAB,
-        UnpackerTilizeA,
-    )
-    from helpers.fuser_config import FuserConfig, GlobalConfig
-    from helpers.llk_params import (
-        ApproximationMode,
-        BroadcastType,
-        DestAccumulation,
-        DestSync,
-        EltwiseBinaryReuseDestType,
-        MathFidelity,
-        MathOperation,
-        ReducePool,
-        Transpose,
-    )
-
     return {
         "DataFormat": DataFormat,
         "DatacopyFpu": DatacopyFpu,
