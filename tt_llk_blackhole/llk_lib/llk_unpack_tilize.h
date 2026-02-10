@@ -100,7 +100,7 @@ inline void _llk_unpack_tilize_(
     const bool narrow_tile                          = false)
 {
     LLK_ASSERT(block_ct_dim == 0, "block_ct_dim: this parameter is unused");
-    LLK_ASSERT(face_r_dim == 16 || face_r_dim == 8, "face_r_dim must be 16 or 8 for tilize");
+    LLK_ASSERT(face_r_dim > 1, "face_r_dim must be greater than 1 for tilize");
     LLK_ASSERT(num_faces == 2 || num_faces == 4, "num_faces must be 2 or 4 for tilize");
     volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
 
