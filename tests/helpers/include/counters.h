@@ -275,65 +275,35 @@ private:
         return reinterpret_cast<volatile std::uint32_t*>(addr);
     }
 
-    // Helper to extract fields from config word
-    static inline void unpack_config(std::uint32_t metadata, std::uint8_t& bank_id, std::uint8_t& counter_id, std::uint8_t& mode_bit, std::uint8_t& l1_mux)
-    {
-        bank_id    = metadata & 0xFF;
-        counter_id = (metadata >> 8) & 0xFF;
-        mode_bit   = (metadata >> 16) & 0x1;
-        l1_mux     = (metadata >> 17) & 0x1;
-    }
-
 public:
     PerfCounters() = default;
 
     void start()
     {
         volatile std::uint32_t* config_mem = get_config_mem();
+        std::uint32_t started_mask         = 0;
+        num_counters                       = 0;
 
-        // First pass: count valid configs, determine mode, and build bank present mask
-        std::uint32_t present_mask = 0;
-        num_counters               = 0;
-
+        // Single pass: count counters and start each bank once
         for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
         {
-            std::uint32_t metadata = config_mem[i];
+            const std::uint32_t metadata = config_mem[i];
             if ((metadata & 0x80000000u) == 0)
             {
                 continue;
             }
 
-            std::uint8_t bank_id, counter_id, mode_bit, l1_mux;
-            unpack_config(metadata, bank_id, counter_id, mode_bit, l1_mux);
+            const std::uint8_t bank_id   = metadata & 0xFF;
+            const std::uint32_t bank_bit = 1u << bank_id;
 
+            // Set mode from first valid counter
             if (num_counters == 0)
             {
-                mode = mode_bit ? CounterMode::GRANTS : CounterMode::REQUESTS;
+                mode = ((metadata >> 16) & 0x1) ? CounterMode::GRANTS : CounterMode::REQUESTS;
             }
-
-            present_mask |= 1u << bank_id;
             num_counters++;
-        }
 
-        if (num_counters == 0)
-        {
-            return;
-        }
-
-        // Second pass: start each bank once
-        std::uint32_t started_mask = 0;
-        for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT && started_mask != present_mask; i++)
-        {
-            std::uint32_t metadata = config_mem[i];
-            if ((metadata & 0x80000000u) == 0)
-            {
-                continue;
-            }
-
-            std::uint8_t bank_id, counter_id, mode_bit, l1_mux;
-            unpack_config(metadata, bank_id, counter_id, mode_bit, l1_mux);
-
-            std::uint32_t bank_bit = 1u << bank_id;
+            // Skip if bank already started
             if (started_mask & bank_bit)
             {
                 continue;
@@ -344,7 +314,8 @@ public:
             // Configure L1 MUX if needed
             if (bank == CounterBank::L1)
             {
-                std::uint32_t cur = detail::read_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL);
+                const std::uint8_t l1_mux = (metadata >> 17) & 0x1;
+                std::uint32_t cur         = detail::read_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL);
                 detail::write_reg(RISCV_DEBUG_REG_PERF_CNT_MUX_CTRL, (cur & ~(1u << 4)) | ((l1_mux & 0x1u) << 4));
             }
 
@@ -365,49 +336,34 @@ public:
         volatile std::uint32_t* config_mem = get_config_mem();
         volatile std::uint32_t* data_mem   = get_data_mem();
 
-        // First pass: stop all banks
-        std::uint32_t stopped_mask = 0;
+        const std::uint32_t mode_value = (static_cast<std::uint32_t>(mode) & 0x1u) << 16;
+        std::uint32_t stopped_mask     = 0;
+        std::uint32_t result_idx       = 0;
+
+        // Single pass: stop each bank once and read all counters
         for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
         {
-            std::uint32_t metadata = config_mem[i];
+            const std::uint32_t metadata = config_mem[i];
             if ((metadata & 0x80000000u) == 0)
             {
                 continue;
             }
 
-            std::uint8_t bank_id   = metadata & 0xFF;
-            std::uint32_t bank_bit = 1u << bank_id;
-
-            if (stopped_mask & bank_bit)
-            {
-                continue;
-            }
-
-            CounterBank bank   = static_cast<CounterBank>(bank_id);
-            std::uint32_t base = get_counter_base_addr(bank);
-
-            detail::write_reg(base + 8, 0); // Clear
-            detail::write_reg(base + 8, 2); // Stop (bit1 0->1)
-
-            stopped_mask |= bank_bit;
-        }
-
-        // Second pass: read all counters
-        std::uint32_t mode_value = (static_cast<std::uint32_t>(mode) & 0x1u) << 16;
-        std::uint32_t result_idx = 0;
-
-        for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
-        {
-            std::uint32_t metadata = config_mem[i];
-            if ((metadata & 0x80000000u) == 0)
-            {
-                continue;
-            }
-
-            std::uint8_t bank_id, counter_id, mode_bit, l1_mux;
-            unpack_config(metadata, bank_id, counter_id, mode_bit, l1_mux);
+            const std::uint8_t bank_id    = metadata & 0xFF;
+            const std::uint8_t counter_id = (metadata >> 8) & 0xFF;
+            const std::uint8_t l1_mux     = (metadata >> 17) & 0x1;
+            const std::uint32_t bank_bit  = 1u << bank_id;
 
             CounterBank bank = static_cast<CounterBank>(bank_id);
+
+            // Stop bank on first encounter
+            if (!(stopped_mask & bank_bit))
+            {
+                std::uint32_t counter_base = get_counter_base_addr(bank);
+                detail::write_reg(counter_base + 8, 0); // Clear
+                detail::write_reg(counter_base + 8, 2); // Stop (bit1 0->1)
+                stopped_mask |= bank_bit;
+            }
 
             // Configure L1 MUX if needed before reading
             if (bank == CounterBank::L1)

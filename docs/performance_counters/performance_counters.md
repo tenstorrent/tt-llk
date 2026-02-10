@@ -4,7 +4,7 @@ This guide documents the interface for controlling and reading Tensix hardware p
 
 ## Overview
 
-Tensix cores contain hardware performance counters organized into five categories (also called "banks" or "groups"):
+Tensix cores contain five hardware performance counter banks (also referred to as "groups" in some hardware documentation). This guide consistently uses the term "bank".
 
 | Bank | Description |
 |------|-------------|
@@ -43,7 +43,7 @@ The mode register (`PERF_CNT_*1`) controls several aspects:
 | Bits | Field | Description |
 |------|-------|-------------|
 | 7:0 | mode | Counting behavior (see below) |
-| 15:8 | counter_sel | Selects which counter event to read (does not affect what is counted) |
+| 15:8 | counter_sel | Selects which counter event to read via `OUT_H` (does not affect what is counted; actual counting is controlled by the per-slot L1 configuration buffer) |
 | 16 | req/grant | 0 = read request count, 1 = read grant count |
 | 31:17 | reserved | Reserved for future use |
 
@@ -55,7 +55,7 @@ The mode register (`PERF_CNT_*1`) controls several aspects:
 | 1 (Reference period) | Counter automatically stops after the number of cycles specified in `PERF_CNT_*0`. |
 | 2 (Continuous, no ref) | Same as mode 0, but does NOT maintain the reference cycle count. |
 
-**Mode 0 vs Mode 2:** Both run continuously until stopped. The difference is that mode 0 tracks elapsed cycles in `OUT_L` (needed for rate calculations), while mode 2 does not. Mode 2 offers slightly less hardware overhead but loses cycle tracking. **Use mode 0 for most cases** since you typically need both event counts and cycle counts.
+**Mode 0 vs Mode 2:** Both run continuously until stopped. Mode 0 tracks elapsed cycles in `OUT_L` (needed for rate calculations), while mode 2 omits reference cycle tracking. **Use mode 0 for most cases** since you typically need both event counts and cycle counts. Mode 2 should only be used when cycle counts are not required.
 
 **Note:** The reference period register is ignored in modes 0 and 2.
 
@@ -69,11 +69,11 @@ This distinction is meaningful for:
 - TDMA unpack/pack busy signals (request = attempted, grant = completed transfers)
 - NoC NIU ring transactions (request = initiated, grant = accepted)
 
-For counters like instruction issue, stalls, and arbitration pulses, the requests/grants distinction is typically not meaningful—treat those as mode-independent.
+For instruction issue, stall, and arbitration counters, the requests/grants distinction must be ignored—both expose the same semantic.
 
 ### Counter Slots
 
-A "counter slot" refers to one entry in the per-thread L1 configuration buffer. Each slot specifies which bank/counter/mux combination to read out after measurement. The interface supports up to 66 slots per thread, allowing you to capture multiple events in a single measurement window.
+A "counter slot" refers to one entry in the per-thread L1 configuration buffer. Each slot specifies which bank/counter/mux combination to read out after measurement. The interface supports up to 66 slots per thread, allowing you to capture multiple events in a single measurement window. Slots are processed in increasing index order; invalid slots (valid bit = 0) are skipped and produce no output entry.
 
 ## Register Map
 
@@ -120,7 +120,7 @@ Implementation details are in `tests/helpers/include/counters.h`.
 | 0 | FPU_OP_VALID | Cycles that FPU instructions were issued to the math engine |
 | 1 | SFPU_OP_VALID | Cycles that SFPU instructions were issued to the math engine |
 
-Use these to measure compute utilization: `(FPU_OP_VALID + SFPU_OP_VALID) / cycles`.
+Use these to measure compute utilization: `(FPU_OP_VALID + SFPU_OP_VALID) / cycles`. Note that all utilization metrics are cycle-based, not instruction-based—they represent the fraction of active cycles, not work completed.
 
 ### INSTRN_THREAD Bank (29 counters)
 
@@ -243,7 +243,7 @@ Location: `tests/helpers/include/counters.h`
 
 | Method | Description |
 |--------|-------------|
-| `start()` | Read config from L1 (written by Python) and start all counters |
+| `start()` | Read config from L1 and start all configured banks. Configuration buffers must be initialized before calling `start()`. |
 | `stop()` | Stop counters, scan all slots, write results to L1, return results array |
 
 **RAII wrapper: `llk_perf::ScopedPerfCounters`**
@@ -374,7 +374,7 @@ The metrics module provides a heuristic classification of the performance bottle
 
 The classification with the highest score is reported as the likely bottleneck.
 
-**Note:** The "compute vs data-movement bound" classification is more relevant for tt-metal where data movement is a significant factor. In the LLK repository context, focus on the individual component bounds (math/unpack/pack/risc).
+**Note:** Bound classification is heuristic and intended for guidance, not definitive performance assessment. The "compute vs data-movement bound" classification is more relevant for tt-metal where data movement is a significant factor. In the LLK repository context, focus on the individual component bounds (math/unpack/pack/risc).
 
 ### Acceptance Ratios
 
@@ -384,4 +384,4 @@ For counters where requests/grants distinction is meaningful:
 acceptance_ratio = GRANTS / REQUESTS  (or N/A if REQUESTS = 0)
 ```
 
-This indicates delivery efficiency for TDMA transfers and NoC transactions. A value of 1.0 means no backpressure; values below 1.0 indicate some requests were not granted. If no requests were made, the metric displays as N/A rather than an artificial value.
+This indicates delivery efficiency for TDMA transfers and NoC transactions. A value of 1.0 means no backpressure; values below 1.0 indicate some requests were not granted. If no requests were made, the metric displays as N/A rather than an artificial value. Acceptance ratios are computed per measurement window and are dimensionless.
