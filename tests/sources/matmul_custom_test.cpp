@@ -56,8 +56,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #ifdef LLK_TRISC_MATH
 
+#include "experimental/llk_math_matmul_custom_no_mop.h"
 #include "llk_math_common.h"
-#include "llk_math_matmul_custom_no_mop.h"
 #include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams *params)

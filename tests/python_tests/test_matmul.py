@@ -59,11 +59,11 @@ def generate_format_aware_matmul_combinations(
 MATMUL_FORMATS = input_output_formats(
     [
         DataFormat.Float16_b,
-        # DataFormat.Float16,
-        # DataFormat.Float32,
+        DataFormat.Float16,
+        DataFormat.Float32,
     ]
 )
-DEST_ACC_MODES = ([DestAccumulation.No],)  # , DestAccumulation.Yes]
+DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
 ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     MATMUL_FORMATS, DEST_ACC_MODES
 )
@@ -76,9 +76,9 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     ],
     math_fidelity=[
         MathFidelity.LoFi,
-        # MathFidelity.HiFi2,
-        # MathFidelity.HiFi3,
-        # MathFidelity.HiFi4,
+        MathFidelity.HiFi2,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
     ],
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
