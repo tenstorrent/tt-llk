@@ -68,12 +68,12 @@ TINY_TILES_MATMUL_COMBINATIONS = sweep_tiny_tiles_matmul(
 ALL_TEST_PARAMS = list(
     chain(
         # Regular matmul combinations with all throttle levels
-        (
-            (fidelity, combinations, throttle)
-            for fidelity, combinations, throttle in product(
-                MATH_FIDELITIES, MATMUL_COMBINATIONS, [1, 2, 3, 4, 5]
-            )
-        ),
+        # ( Commented to reduce number of tests since CI fails with no free space left on device
+        #     (fidelity, combinations, throttle)
+        #     for fidelity, combinations, throttle in product(
+        #         MATH_FIDELITIES, MATMUL_COMBINATIONS, [1, 2, 3, 4, 5]
+        #     )
+        # ),
         # Tiny tiles matmul combinations with throttle level 1 only
         (
             (fidelity, combinations, 0)
