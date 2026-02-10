@@ -668,10 +668,4 @@ inline std::array<pack_counters_t, NUM_PACKERS> read_pack_counters()
     return config_vec;
 }
 
-constexpr std::uint32_t DstTileSizeLog2[3] = {
-    6, // 32x32 tile shape
-    5, // 32x16, 16x32 tile shape
-    4  // 16x16 tile shape
-};
-
 } // namespace ckernel::packer
