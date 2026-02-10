@@ -3,6 +3,7 @@
 
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture
 from helpers.format_config import DataFormat
 from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
 from helpers.llk_params import (
@@ -33,19 +34,19 @@ from helpers.utils import passed_test
     ],
     formats=input_output_formats(
         [
-            # DataFormat.Bfp8_b,
-            # DataFormat.Float16,
+            DataFormat.Bfp8_b,
+            DataFormat.Float16,
             DataFormat.Float16_b,
-            # DataFormat.Float32,
+            DataFormat.Float32,
         ]
     ),
     mathop=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     math_fidelity=[
         MathFidelity.LoFi,
-        # MathFidelity.HiFi2,
-        # MathFidelity.HiFi3,
-        # MathFidelity.HiFi4,
+        MathFidelity.HiFi2,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
     ],
     input_dimensions=[[32, 32], [32, 64], [64, 64]],
 )
@@ -58,6 +59,11 @@ def test_multiple_tiles(
     input_dimensions,
     workers_tensix_coordinates,
 ):
+    if (
+        TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE
+        and cpp_source == "sources/multiple_tiles_eltwise_custom_test.cpp"
+    ):
+        pytest.skip("Custom test not supported on Wormhole")
 
     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
         pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
