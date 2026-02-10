@@ -145,9 +145,8 @@ inline void _llk_pack_mop_config_(
         const std::uint32_t MOP_OUTER_LOOP  = (num_faces > 1) ? (num_faces >> 1) : 1;
 
         // Last row of half-tile (16 rows) is different between halves, so can't be replayed.
-        // For face_r_dim = 8, we need 4 PACR instructions per face (8 total, 7 in replay buffer)
-        // For face_r_dim = 16, we need 8 PACR instructions per face (16 total, 15 in replay buffer)
-        const std::uint32_t replay_buf_len = (face_r_dim < FACE_R_DIM) ? 7 : 15;
+        LLK_ASSERT(face_r_dim > 1, "face_r_dim must be greater than 1 for tilize");
+        const std::uint32_t replay_buf_len = face_r_dim - 1;
 
         // This replay buffer finishes 2 faces
         load_replay_buf(
@@ -157,11 +156,11 @@ inline void _llk_pack_mop_config_(
             [PACK_INTF_SEL_0, PACK_INTF_SEL_1, ZERO_OUTPUT_FLAG, MEGAROW, face_r_dim]
             {
                 // Number of instructions per face (minus 1 for the last special instruction)
-                const std::uint32_t num_instrs_per_face = (face_r_dim < FACE_R_DIM) ? 4 : 8;
+                const std::uint32_t num_instrs_per_face = (face_r_dim >> 1) - 1;
 
                 // Face 0 -> mask rows 1010
                 // First (num_instrs_per_face - 1) instructions use ADDR_MOD_0
-                for (std::uint32_t i = 0; i < num_instrs_per_face - 1; i++)
+                for (std::uint32_t i = 0; i < num_instrs_per_face; i++)
                 {
                     TTI_PACR(
                         p_pacr::CFG_CTXT_0,
@@ -195,7 +194,7 @@ inline void _llk_pack_mop_config_(
                 // Face 1 -> mask rows 0101
                 // (num_instrs_per_face - 1) instructions use ADDR_MOD_0
                 // The last instruction is handled separately outside the replay buffer
-                for (std::uint32_t i = 0; i < num_instrs_per_face - 1; i++)
+                for (std::uint32_t i = 0; i < num_instrs_per_face; i++)
                 {
                     TTI_PACR(
                         p_pacr::CFG_CTXT_0,
@@ -249,7 +248,7 @@ inline void _llk_pack_mop_config_(
             0,
             1));
 
-        tmp.set_end_op(TT_OP_SETADCZW(p_setadc::PAC, 0, num_faces >> 1, 0, 0, 0b0100)); // ch0_z = 0, ch1_z = 2;
+        tmp.set_end_op(TT_OP_SETADCZW(p_setadc::PAC, 0, num_faces >> 1, 0, 0, 0b0100)); // ch0_z = 0, ch1_z = num_faces >> 1;
 
         tmp.program();
     }
