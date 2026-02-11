@@ -1922,51 +1922,13 @@ class ReduceGolden:
 
 @register_golden
 class ReduceBlockMaxRowGolden:
-    """Golden for reduce_block_max_row operation.
-    This operation performs a block-based max row reduction across multiple tiles
-    in the width dimension. It processes block_ct_dim tiles horizontally and
-    reduces each row across all tiles, placing the result in the first column.
-    Args:
-        operand: Input tensor containing block_ct_dim tiles worth of data
-        block_ct_dim: Number of tiles in the width dimension to process as a block
-        data_format: Output data format
-    Returns:
-        Single tile with max values in first column of each row
-    """
+    def __call__(self, operand, ct_dim, data_format, dimensions):
+        operand = operand.reshape(dimensions)
+        output = torch.zeros(dimensions)
+        for i in range(dimensions[0]):
+            output[i, 0] = torch.max(operand[i, : ct_dim * 32])
 
-    def __call__(self, operand, block_ct_dim, data_format):
-        # Input is block_ct_dim tiles arranged horizontally (32 rows x (32*block_ct_dim) cols)
-        num_rows = 32
-        num_cols = 32 * block_ct_dim
-
-        # Reshape to 2D matrix
-        matrix = operand[: num_rows * num_cols].view(num_rows, num_cols)
-
-        # Find max along each row (across all block_ct_dim tiles)
-        row_max = torch.max(matrix, dim=1).values  # Shape: [32]
-
-        # Create output tile (32x32) initialized to zeros
-        result = torch.zeros(ELEMENTS_PER_TILE, dtype=format_dict[data_format])
-
-        # Place row max values in first column of each row
-        # For a 32x32 tile stored as 4 faces of 16x16:
-        # - F0 contains rows 0-15, cols 0-15
-        # - F1 contains rows 0-15, cols 16-31
-        # - F2 contains rows 16-31, cols 0-15
-        # - F3 contains rows 16-31, cols 16-31
-        # First column means: F0 col 0 (rows 0-15) and F2 col 0 (rows 16-31)
-
-        # Place upper half (rows 0-15) in F0 column 0
-        for row in range(16):
-            result[row * 16] = row_max[row]  # F0: row * 16 + col, where col=0
-
-        # Place lower half (rows 16-31) in F2 column 0
-        for row in range(16):
-            result[2 * ELEMENTS_PER_FACE + row * 16] = row_max[
-                16 + row
-            ]  # F2 offset + row * 16 + col
-
-        return result
+        return output
 
 
 @register_golden

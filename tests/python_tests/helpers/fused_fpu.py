@@ -538,6 +538,8 @@ class ReduceBlockMaxFpu:
     ) -> str:
         ct_dim = operation.ct_dim
         dest_acc = config.dest_acc.value
+        if tile_idx % ct_dim != 0:
+            return ""
         return f"_llk_math_reduce_block_max_row_<{ct_dim}, {dest_acc}>({tile_idx});\n"
 
     def uninit(
@@ -558,40 +560,24 @@ class ReduceBlockMaxFpu:
         compute_unit: "ComputeNode",
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         ct_dim = operation.ct_dim
-        data_format = operation.output.data_format
         output_format = operation.output.data_format
         dimensions = operation.max_output_dimensions
-        num_faces = operation.num_faces
-
-        src_a_reduced_tensor = tilize_block(
-            tensor_a, dimensions, output_format, num_faces
-        ).flatten()
 
         generate_golden = get_golden_generator(ReduceBlockMaxRowGolden)
         src_a_reduced_tensor = generate_golden(
-            src_a_reduced_tensor,
-            ct_dim,
-            output_format,
-        ).flatten()
-
-        dest_golden_tensor = tilize_block(
-            tensor_dst, dimensions, output_format, num_faces
+            tensor_a, ct_dim, output_format, dimensions
         ).flatten()
 
         generate_golden = get_golden_generator(ReduceBlockMaxRowGolden)
         dest_golden_tensor = generate_golden(
-            dest_golden_tensor, ct_dim, data_format
+            tensor_dst, ct_dim, output_format, dimensions
         ).flatten()
 
-        numel = min(tensor_a.numel(), tensor_dst.numel())
+        numel = min(src_a_reduced_tensor.numel(), dest_golden_tensor.numel())
         golden_tensor = torch.zeros(numel)
 
         for i in range(numel):
             golden_tensor[i] = max(src_a_reduced_tensor[i], dest_golden_tensor[i])
-
-        golden_tensor = untilize_block(
-            golden_tensor, output_format, dimensions
-        ).flatten()
 
         return (tensor_a, tensor_b, golden_tensor)
 
