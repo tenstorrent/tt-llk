@@ -74,7 +74,7 @@ ALL_TEST_PARAMS = list(
         #         MATH_FIDELITIES, MATMUL_COMBINATIONS, [1, 2, 3, 4, 5]
         #     )
         # ),
-        # Tiny tiles matmul combinations with throttle level 1 only
+        # Tiny tiles matmul combinations with throttle level 0 only
         (
             (fidelity, combinations, 0)
             for fidelity, combinations in product(

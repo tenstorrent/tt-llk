@@ -145,7 +145,7 @@ def generate_identity_face_tensor(
 
 
 def generate_incrementing_face_tensor(
-    stimuli_format: DataFormat, rows: int, cols: int
+    stimuli_format: DataFormat, rows: int, cols: int, offset: int = 0
 ) -> torch.Tensor:
     assert rows % 16 == 0 and cols % 16 == 0, "Matrix size must be divisible by 16"
 
@@ -159,7 +159,7 @@ def generate_incrementing_face_tensor(
     # Fill each face with its index
     for face_r in range(num_faces_row):
         for face_c in range(num_faces_col):
-            face_val = float(face_r * num_faces_col + face_c + 1)
+            face_val = float(face_r * num_faces_col + face_c + 1 + offset)
             r_start = face_r * face_height
             c_start = face_c * face_width
             matrix[r_start : r_start + face_height, c_start : c_start + face_width] = (
@@ -196,11 +196,7 @@ def generate_face_matmul_data(
 
     for i in range(rt):
         for j in range(ct):
-            tile_32x32 = (
-                generate_identity_face_tensor(stimuli_format, 32, 32)
-                if is_matrix_A
-                else generate_incrementing_face_tensor(stimuli_format, 32, 32)
-            )
+            tile_32x32 = torch.rand(32, 32, dtype=dtype)
             masked = _mask_tile(tile_32x32, num_faces, not is_matrix_A, face_r_dim)
             tilized[i, j, 0] = masked[0:16, 0:16]
             tilized[i, j, 1] = masked[0:16, 16:32]
