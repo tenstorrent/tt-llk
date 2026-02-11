@@ -1,11 +1,33 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
+"""
+TopK SFPU Test
 
-import math
+Tests the hardware TopK operation using iterative bitonic merge algorithm.
+Validates extraction of top K values from input tensors across multiple rows,
+verifying both sorted values and corresponding index tracking.
+
+Input Layout:
+- First half of columns: Value tiles to search for top K elements
+- Second half of columns: Index tiles (integer format) tracking original positions
+
+Algorithm:
+- Processes each row independently through TOPK_NUM_ITERATIONS of pairwise merges
+- First iteration transposes to column-major and performs local sort
+- Subsequent iterations merge sorted pairs, halving tile count each time
+- Final output contains K values and K indices per row in specified sort order
+
+Validation:
+- Compares hardware results against PyTorch topk golden reference
+- Handles tie-breaking differences between hardware and PyTorch
+- Validates both value accuracy and index correctness
+"""
 
 import torch
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
+    ELEMENTS_PER_TILE,
+    TILE_DIMENSIONS,
     TilizeGolden,
     TopKGolden,
     TransposeGolden,
@@ -25,31 +47,49 @@ from helpers.test_variant_parameters import (
 )
 from helpers.utils import passed_test
 
+NUM_STAGES = 2  # Values and Indices stage
+
 
 def transform_result_tensor_to_right_form(
-    res_tensor, formats, tile_cnt_A, input_dimensions
+    res_tensor, formats, K=32, input_dimensions=[32, 64]
 ):
 
+    # Cut the result tensor to the actual expected golden size. Ignore the rest.
+    num_rows_tensor, num_cols_tensor = (
+        input_dimensions[0],
+        K * NUM_STAGES,
+    )  # K values + K indices
+
+    res_tensor = res_tensor[0 : num_rows_tensor * num_cols_tensor]
+
+    num_tiles_in_input = (num_rows_tensor * num_cols_tensor) // ELEMENTS_PER_TILE
+
+    if num_tiles_in_input < NUM_STAGES:
+        raise ValueError(
+            f"Expected at least 1 tile for values and 1 tile for indices (total 2 tiles), but got {num_tiles_in_input} tiles."
+        )
+
+    # We need to transpose the result to return it to the original row-wise order.
     transpose_util = get_golden_generator(TransposeGolden)
 
     # First: transpose faces (swap face positions).
     res_tensor = transpose_util.transpose_faces_multi_tile(
         res_tensor,
         formats.output_format,
-        num_tiles=tile_cnt_A,
+        num_tiles=num_tiles_in_input,
         tilize=False,
         untilize=False,
-        input_dimensions=input_dimensions,
+        input_dimensions=[num_rows_tensor, num_cols_tensor],
     )
 
     # Then: transpose within each face.
     res_tensor = transpose_util.transpose_within_faces_multi_tile(
         res_tensor,
         formats.output_format,
-        num_tiles=tile_cnt_A,
+        num_tiles=num_tiles_in_input,
         tilize=False,
         untilize=False,
-        input_dimensions=input_dimensions,
+        input_dimensions=[num_rows_tensor, num_cols_tensor],
     )
 
     return res_tensor
@@ -57,26 +97,28 @@ def transform_result_tensor_to_right_form(
 
 def prepare_input_tensor_for_topk(src_A, formats, input_dimensions=[32, 128]):
 
-    if input_dimensions != [32, 128]:
+    num_rows_tensor, num_cols_tensor = input_dimensions
+    num_tiles_in_input = (num_rows_tensor * num_cols_tensor) // ELEMENTS_PER_TILE
+
+    if num_tiles_in_input < NUM_STAGES * 2:
         raise ValueError(
-            "This function is specifically designed for input dimensions [32, 128]."
+            f"Expected at least 2 tiles for values and 2 tiles for indices (total 4 tiles), but got {num_tiles_in_input} tiles."
         )
 
     # Clone to avoid modifying the original tensor.
     src_A = src_A.clone()
 
-    num_rows, num_cols = input_dimensions
-
-    # Set columns 64-127 to 1, 2, 3, ..., 64 for each row.
     # These will be used as indices for the topk operation, and we want them to be in a known order for easier validation.
     # Create indices as uint16 and preserve bit representation when assigning to float tensor.
-    for row in range(num_rows):
-        indices_start = row * num_cols + num_cols // 2
-        indices_end = indices_start + num_cols // 2
-        uint16_indices = torch.arange(1, num_cols // 2 + 1, dtype=torch.int16).to(
-            torch.uint16
-        )
-        src_A[indices_start:indices_end] = uint16_indices.view(src_A.dtype)
+    for row in range(num_rows_tensor):
+        indices_start_idx = row * num_cols_tensor + num_cols_tensor // NUM_STAGES
+        indices_end_idx = indices_start_idx + num_cols_tensor // NUM_STAGES
+
+        uint16_indices = torch.arange(
+            0, num_cols_tensor // NUM_STAGES, dtype=torch.int16
+        ).to(torch.uint16)
+
+        src_A[indices_start_idx:indices_end_idx] = uint16_indices.view(src_A.dtype)
 
     src_tilizer = get_golden_generator(TilizeGolden)
     src_A = src_tilizer(src_A, input_dimensions, formats.input_format)
@@ -85,56 +127,81 @@ def prepare_input_tensor_for_topk(src_A, formats, input_dimensions=[32, 128]):
 
 
 def validate_topk_indices(
-    res_tensor, golden_tensor, formats, input_dimensions=[32, 128], K=32, atol=0.01
+    res_tensor,
+    golden_tensor,
+    original_input_tensor,
+    formats,
+    input_dimensions=[32, 128],
+    K=32,
+    atol=0.01,
 ):
-    """
-    Validate TopK indices by comparing indices and values with golden reference.
+    num_rows_tensor, num_cols_tensor = (
+        input_dimensions[0],
+        K * NUM_STAGES,
+    )  # K values + K indices
+    num_tiles_in_input = (num_rows_tensor * num_cols_tensor) // ELEMENTS_PER_TILE
 
-    Args:
-        res_tensor: Result tensor from hardware
-        golden_tensor: Golden reference tensor
-        input_dimensions: Input dimensions [rows, cols]
-        K: Number of top elements
-        atol: Absolute tolerance for considering values as ties (default: 0.01)
-    """
+    if num_tiles_in_input < NUM_STAGES:
+        raise ValueError(
+            f"Expected at least 1 tile for values and 1 tile for indices (total 2 tiles), but got {num_tiles_in_input} tiles."
+        )
 
     # Untilize both result and golden tensors to get them back to the original layout for easier(cleaner) comparison
     untilizer = get_golden_generator(UntilizeGolden)
     res_tensor_untilized = untilizer(
-        res_tensor, formats.output_format, input_dimensions
+        res_tensor, formats.output_format, [num_rows_tensor, num_cols_tensor]
     )
     golden_tensor_untilized = untilizer(
-        golden_tensor, formats.output_format, input_dimensions
+        golden_tensor, formats.output_format, [num_rows_tensor, num_cols_tensor]
+    )
+    original_input_tensor_untilized = untilizer(
+        original_input_tensor, formats.input_format, input_dimensions
     )
 
-    if input_dimensions != [32, 128]:
-        raise ValueError(
-            "This function is specifically designed for input dimensions [32, 128]."
-        )
-
     values_offset = 0
-    indices_offset = input_dimensions[1] // 2  # Indices stored in second half of row.
+    indices_offset = num_cols_tensor // 2  # Indices stored in second half of row.
 
     for row_idx in range(input_dimensions[0]):
         for datum in range(K):  # Check top K values/indices for each row.
-            value_idx = row_idx * input_dimensions[1] + values_offset + datum
-            index_idx = row_idx * input_dimensions[1] + indices_offset + datum
+            result_and_golden_value_idx = (
+                row_idx * num_cols_tensor + values_offset + datum
+            )
+            result_and_golden_index_idx = (
+                row_idx * num_cols_tensor + indices_offset + datum
+            )
 
             # Values: interpret as float
-            result_value = res_tensor_untilized[value_idx].item()
-            golden_value = golden_tensor_untilized[value_idx].item()
+            result_value = res_tensor_untilized[result_and_golden_value_idx].item()
+            golden_value = golden_tensor_untilized[result_and_golden_value_idx].item()
 
             # Indices: reinterpret float bits as uint16 as that's how we encoded them in the input tensor.
             result_index = (
-                res_tensor_untilized[index_idx : index_idx + 1]
+                res_tensor_untilized[
+                    result_and_golden_index_idx : result_and_golden_index_idx + 1
+                ]
                 .view(torch.uint16)
                 .item()
             )
             golden_index = (
-                golden_tensor_untilized[index_idx : index_idx + 1]
+                golden_tensor_untilized[
+                    result_and_golden_index_idx : result_and_golden_index_idx + 1
+                ]
                 .view(torch.uint16)
                 .item()
             )
+
+            original_input_value_idx = row_idx * input_dimensions[1] + result_index
+            original_input_value = original_input_tensor_untilized[
+                original_input_value_idx
+            ].item()
+
+            # Check if the result index actually points to the same value in the result tensor as in the input tensor.
+            if result_value != original_input_value:
+                print(f"Index-value mismatch at row {row_idx}, datum {datum}:")
+                print(
+                    f"  Result value: {result_value} with index {result_index} does not match original input value: {original_input_value} at the same index."
+                )
+                return False
 
             if result_index != golden_index:
                 if torch.isclose(
@@ -157,13 +224,43 @@ def validate_topk_indices(
     return True
 
 
+def get_value_tiles_from_topk_tensor(
+    tensor: torch.Tensor, K: int = 32, input_dimensions=[32, 128]
+):
+    # Get the value tiles from the topk result tensor. This is useful for validating the topk values separately from the indices,
+    # since indices can differ in tie cases but values should still match.
+
+    num_rows, num_cols = input_dimensions[0], K * NUM_STAGES  # K values + K indices
+    num_tile_rows = num_rows // TILE_DIMENSIONS[0]
+    num_tile_cols = num_cols // TILE_DIMENSIONS[1]
+    num_value_tiles_per_row = (
+        K // TILE_DIMENSIONS[1]
+    )  # Number of tiles that contain the top K values in each row.
+
+    tiles = []
+
+    for tile_row in range(num_tile_rows):
+        for tile_col in range(num_value_tiles_per_row):
+            # In tilized format, tiles are stored in row-major order
+            tile_index = tile_row * num_tile_cols + tile_col
+            start_idx = tile_index * ELEMENTS_PER_TILE
+            end_idx = start_idx + ELEMENTS_PER_TILE
+            tiles.append(tensor[start_idx:end_idx])
+
+    return torch.cat(tiles)
+
+
 @parametrize(
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
         ]
     ),
-    input_dimensions=[[32, 128]],  # More dimensions coming soon....
+    input_dimensions=[
+        [32, 128],
+        [64, 128],
+        [256, 128],
+    ],  # TODO: Fix to work with wider matrices
     K=[32],  # More K values coming soon.... By definition K >= 32.
     sort_direction=[TopKSortDirection.Descending, TopKSortDirection.Ascending],
 )
@@ -174,74 +271,6 @@ def test_topk_sfpu(
     sort_direction: TopKSortDirection,
     workers_tensix_coordinates: str,
 ):
-    """
-    Test the hardware TopK SFPU operation using a bitonic sort algorithm.
-
-    TopK Algorithm Overview:
-    =======================
-    This test validates a hardware implementation that extracts the top K values from a tensor
-    using a bitonic sorting network. The base example is processing 4 tiles (4096 elements total) to
-    extract K=32 top values in descending order (largest first).
-
-    Test Pipeline Example:
-    =============
-    1. Input Preparation:
-       - Generate a 32x128 tensor (4 tiles of 32x32)
-       - First 64 columns: Random values to search for top K
-       - Second 64 columns: Indices (1-64) tracking original positions
-            Since hardware expects one format, we will pass indices as ints but hardware will look at their bits as float.
-            This doesn't matter for hardware since it just moves indices around without comparing them.
-            Why don't we use float indices? If we did, let's say values are bfloat16. Then we would be limited by
-            8 bit mantissa for indices which ultimately leads to being exactly precise to up to index 256. Everything after that
-            loses precision.
-       - Tilize the input (convert row-major to tile-major layout)
-
-    2. Golden Reference:
-       - TopKGolden performs per-row topk on the input tensor
-       - For each of 32 rows: extracts top K values from first 64 elements
-       - Reorders corresponding indices from second 64 elements
-       - Returns reference output for validation
-
-    3. Hardware Execution (C++ kernel):
-       a) UNPACK: Transpose input tiles
-          - Face-level transpose (swap face positions within tiles)
-          - Within-face transpose (transpose 16x16 elements within each face)
-
-       b) MATH: Actual TopK sort Pipeline
-          - TopK_Init: Initialize TopK SFPU state
-          - Local sort: Perform bitonic sort.
-          - Merge: Extract top K values from sorted sequence
-          - Rebuild: Organize top K values with their indices
-
-       c) PACK: Write result tiles back to L1 memory
-
-    4. Result Transformation:
-       - Transpose faces (undo face-level transpose from unpack)
-       - Transpose within faces (undo within-face transpose)
-       - Results now match golden's untilized layout
-
-    5. Validation:
-       - Compare indices: Hardware vs golden reference
-       - Handle ties gracefully (when values are very close, index order may differ)
-       - Compare values: First K values should match golden within tolerance
-
-    Data Layout:
-    ===========
-    - Tilized: Data organized in 32x32 tiles, each tile has 4 faces of 16x16
-    - Untilized: Standard row-major layout (easier for validation)
-
-    Sort Direction:
-    ==============
-    - Descending (default): Largest values first (ArgMax mode)
-    - Hardware uses TOPK_SORT_DIRECTION=0 for descending
-
-    Parameters:
-        formats: Input/output data formats (Float16_b)
-        input_dimensions: Tensor dimensions [32, 128]
-        K: Number of top elements to extract (32)
-        sort_direction: Sorting direction (Descending)
-        workers_tensix_coordinates: Hardware worker coordinates
-    """
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -270,7 +299,7 @@ def test_topk_sfpu(
             DEST_SYNC(),
             TOPK(
                 topk_k=K,
-                topk_logk=int(math.log2(K)),
+                topk_matrix_width=input_dimensions[1],
                 topk_sort_direction=sort_direction,
             ),
         ],
@@ -294,24 +323,23 @@ def test_topk_sfpu(
     res_from_L1 = configuration.run(workers_tensix_coordinates)
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
-    assert len(res_from_L1) == len(
+    res_tensor = transform_result_tensor_to_right_form(
+        res_tensor, formats, K, input_dimensions
+    )
+
+    assert len(res_tensor) == len(
         golden_tensor
     ), "Result tensor and golden tensor are not of the same length"
 
-    res_tensor = transform_result_tensor_to_right_form(
-        res_tensor, formats, tile_cnt_A, input_dimensions
-    )
-
     assert validate_topk_indices(
-        res_tensor, golden_tensor, formats, input_dimensions, K
+        res_tensor, golden_tensor, src_A, formats, input_dimensions, K
     )
 
-    # Extracting values for the specific K = 32 case. TODO: test more in the future.
-    tile_size = 1024  # Each tile has 1024 elements (32x32).
-    res_values_tile = res_tensor[0:tile_size]
-    golden_values_tile = golden_tensor[0:tile_size]
+    # Get value tiles from result and golden tensors
+    res_values = get_value_tiles_from_topk_tensor(res_tensor, K, input_dimensions)
+    golden_values = get_value_tiles_from_topk_tensor(golden_tensor, K, input_dimensions)
 
     # Validate topk values
     assert passed_test(
-        golden_values_tile, res_values_tile, formats.output_format, print_erros=True
+        golden_values, res_values, formats.output_format, print_erros=True
     )
