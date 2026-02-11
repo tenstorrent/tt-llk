@@ -265,14 +265,23 @@ class InputOutputFormat:
     A data class that holds configuration details for formats passed to LLKs.
     This class is used to hold input and output DataFormat that the client wants to test.
     They are used for format inference model to infer the rest of the formats for the LLk pipeline, instead of the user.
+
+    If input_B is not specified, it defaults to the same as input (input_A).
     """
 
-    input: DataFormat
+    input_A: DataFormat
     output: DataFormat
+    input_B: Optional[DataFormat] = None
 
-    def __init__(self, input_format: DataFormat, output_format: DataFormat):
-        self.input = input_format
+    def __init__(
+        self,
+        input_format_A: DataFormat,
+        output_format: DataFormat,
+        input_format_B: Optional[DataFormat] = None,
+    ):
+        self.input_A = input_format_A
         self.output = output_format
+        self.input_B = input_format_B if input_format_B is not None else input_format_A
 
     @property
     def output_format(self) -> DataFormat:
@@ -280,7 +289,11 @@ class InputOutputFormat:
 
     @property
     def input_format(self) -> DataFormat:
-        return self.input
+        return self.input_A
+
+    @property
+    def input_format_B(self) -> DataFormat:
+        return self.input_B
 
     def __str__(self):
         return f"InputOutputFormat[{self.input},{self.output}]"
