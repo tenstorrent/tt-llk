@@ -49,7 +49,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    constexpr MathFidelity math_fid      = MathFidelity::HiFi4;
     const bool is_int_fpu_en             = false;
     const bool enforce_fp32_accumulation = false;
 
