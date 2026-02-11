@@ -144,8 +144,8 @@ inline void _llk_pack_mop_config_(
         const std::uint32_t MOP_INNER_LOOP  = 1;
         const std::uint32_t MOP_OUTER_LOOP  = (num_faces > 1) ? (num_faces >> 1) : 1;
 
-        // Last row of half-tile (16 rows) is different between halves, so can't be replayed.
-        LLK_ASSERT(face_r_dim > 1, "face_r_dim must be greater than 1 for tilize");
+        // Last row of half-tile (face_r_dim rows) is different between halves, so can't be replayed.
+        LLK_ASSERT(face_r_dim == 2 || face_r_dim == 4 || face_r_dim == 8 || face_r_dim == 16, "face_r_dim must be 2, 4, 8, or 16 for tilize");
         const std::uint32_t replay_buf_len = face_r_dim - 1;
 
         // This replay buffer finishes 2 faces
@@ -159,7 +159,7 @@ inline void _llk_pack_mop_config_(
                 const std::uint32_t num_instrs_per_face = (face_r_dim >> 1) - 1;
 
                 // Face 0 -> mask rows 1010
-                // First (num_instrs_per_face - 1) instructions use ADDR_MOD_0
+                // First num_instrs_per_face instructions use ADDR_MOD_0
                 for (std::uint32_t i = 0; i < num_instrs_per_face; i++)
                 {
                     TTI_PACR(
@@ -192,7 +192,7 @@ inline void _llk_pack_mop_config_(
                     0);
 
                 // Face 1 -> mask rows 0101
-                // (num_instrs_per_face - 1) instructions use ADDR_MOD_0
+                // num_instrs_per_face instructions use ADDR_MOD_0
                 // The last instruction is handled separately outside the replay buffer
                 for (std::uint32_t i = 0; i < num_instrs_per_face; i++)
                 {
