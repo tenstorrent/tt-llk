@@ -31,6 +31,7 @@ from ttexalens.tt_exalens_lib import (
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
+    BRISC_DONE_ADDR,
     CHIP_DEFAULT_BOOT_MODES,
     BootMode,
     RiscCore,
@@ -962,7 +963,7 @@ class TestConfig:
         ) as fd:
             fd.write(coverage_stream)
 
-    CURRENT_MEMBAR_VALUE: ClassVar[int] = 0
+    CURRENT_MEMBAR_VALUE: ClassVar[int] = 1
 
     def run_membar(self, location: str = "0,0"):
         if TestConfig.WITH_COVERAGE:
@@ -970,7 +971,11 @@ class TestConfig:
         else:
             membar_address = TestConfig.RUNTIME_ADDRESS_COVERAGE - 4
 
-        write_words_to_device(location, membar_address, TestConfig.CURRENT_MEMBAR_VALUE)
+        # data must be a list – every other call site passes a list; a bare int
+        # may be silently misinterpreted by the ttexalens write_words_to_device API.
+        write_words_to_device(
+            location, membar_address, [TestConfig.CURRENT_MEMBAR_VALUE]
+        )
 
         while (
             read_word_from_device(location, membar_address)
@@ -978,7 +983,13 @@ class TestConfig:
         ):
             pass
 
-        TestConfig.CURRENT_MEMBAR_VALUE = (TestConfig.CURRENT_MEMBAR_VALUE + 1) % 10
+        # Use a large modulus so the counter virtually never wraps back to a
+        # stale value that is already sitting in L1 (the old mod-10 counter
+        # could match a leftover value after just two test variants, making
+        # the membar a silent no-op).
+        TestConfig.CURRENT_MEMBAR_VALUE = (TestConfig.CURRENT_MEMBAR_VALUE + 1) % (
+            2**31
+        )
         return
 
     BRISC_ELF_LOADED: ClassVar[bool] = False
@@ -998,12 +1009,37 @@ class TestConfig:
             raise ValueError("Quasar only supports TRISC boot mode")
 
         set_tensix_soft_reset(1, location=location)
+
+        # Hardware settling: the register write travels through exalens -> NOC ->
+        # debug register bus.  That path is asynchronous; the Python call may return
+        # before the write physically lands on the hardware register.  A 1 ms sleep
+        # gives the NOC enough time to deliver the write AND lets the core's
+        # instruction-fetch pipeline drain and its store buffer flush.
+        time.sleep(0.001)
+
         self.run_membar(location)
 
-        assert_if_all_in_reset(location, "After they are put to reset")
+        # Poll the reset register multiple times with small gaps to defeat any
+        # write-forwarding / caching inside the exalens register store layer.
+        for _attempt in range(3):
+            assert_if_all_in_reset(location, "After they are put to reset")
+            time.sleep(0.0005)
 
         reset_mailboxes(location)
         self.run_membar(location)
+
+        # Pre-initialize Tensix hardware via debug instruction injection.
+        # Soft reset only resets the RISC-V cores; it does NOT reset the shared
+        # Tensix pipeline (PCBuffer, semaphores, execution units).  If the
+        # previous kernel was interrupted mid-execution, hung instructions
+        # (e.g. a semaphore wait whose matching post will never come) may still
+        # be sitting in the pipeline.  When BRISC later pushes device_setup()
+        # TTI instructions they queue *behind* the stuck ones and never execute,
+        # causing the whole run to hang.
+        #
+        # Debug instruction injection bypasses the PCBuffer and executes
+        # directly on the hardware, clearing the deadlock.
+        exalens_device_setup(TestConfig.CHIP_ARCH, location)
 
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
@@ -1071,9 +1107,40 @@ class TestConfig:
                         risc_name="brisc",
                         verify_write=True,
                     )
-                    assert_if_all_in_reset(location, "After brisc elf load")
+
+                # Verify ALL cores are still in reset before releasing BRISC
+                # (applies to both profiler and non-profiler paths).
+                assert_if_all_in_reset(location, "Before BRISC release")
+
+                # ── Two-phase release: BRISC first, then TRISCs ──
+                #
+                # BRISC's device_setup() pushes TTI instructions (ZEROACC,
+                # SEMINIT, …) into the Tensix PCBuffer which execute
+                # asynchronously.  The old approach had BRISC release TRISCs
+                # via clear_trisc_soft_reset() (debug register write) which
+                # could complete *before* the TTI instructions finished,
+                # letting TRISCs start with uninitialised hardware.
+                #
+                # Now BRISC only signals completion through an L1 mailbox
+                # (BRISC_DONE_ADDR).  The host waits for that signal and then
+                # releases TRISCs, guaranteeing device_setup() is done.
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
-                self.run_membar(location)
+
+                # Wait for BRISC to finish device_setup().
+                brisc_timeout = time.time() + 2.0
+                while read_word_from_device(location, BRISC_DONE_ADDR) != 1:
+                    if time.time() > brisc_timeout:
+                        raise TimeoutError(
+                            "BRISC did not signal device_setup() completion"
+                        )
+                    time.sleep(0.0001)
+
+                # Now release TRISCs – hardware is guaranteed initialised.
+                set_tensix_soft_reset(
+                    0,
+                    [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2],
+                    location,
+                )
             case BootMode.TRISC:
                 set_tensix_soft_reset(
                     0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location

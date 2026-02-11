@@ -121,17 +121,32 @@ def get_soft_reset_mask(cores: list[RiscCore]):
 def set_tensix_soft_reset(
     value, cores: list[RiscCore] = ALL_CORES, location="0,0", device_id=0
 ):
-    soft_reset = get_register_store(location, device_id).read_register(
-        "RISCV_DEBUG_REG_SOFT_RESET_0"
-    )
-    if value:
-        soft_reset |= get_soft_reset_mask(cores)
-    else:
-        soft_reset &= ~get_soft_reset_mask(cores)
+    mask = get_soft_reset_mask(cores)
+    reg_store = get_register_store(location, device_id)
 
-    get_register_store(location, device_id).write_register(
-        "RISCV_DEBUG_REG_SOFT_RESET_0", soft_reset
-    )
+    soft_reset = reg_store.read_register("RISCV_DEBUG_REG_SOFT_RESET_0")
+    if value:
+        soft_reset |= mask
+    else:
+        soft_reset &= ~mask
+
+    reg_store.write_register("RISCV_DEBUG_REG_SOFT_RESET_0", soft_reset)
+
+    # Read-back verification: confirm the write landed correctly.
+    # Exalens writes are asynchronous through the NOC; a single RMW with two
+    # independent register-store objects could race.  Re-read the register and
+    # retry up to a few times if the target bits don't match.
+    for _retry in range(5):
+        readback = reg_store.read_register("RISCV_DEBUG_REG_SOFT_RESET_0")
+        if value:
+            if (readback & mask) == mask:
+                return
+        else:
+            if (readback & mask) == 0:
+                return
+        # Write did not stick – re-apply.
+        time.sleep(0.0005)
+        reg_store.write_register("RISCV_DEBUG_REG_SOFT_RESET_0", soft_reset)
 
 
 def assert_if_all_in_reset(location: str = "0,0", place: str = ""):
@@ -275,12 +290,27 @@ def wait_for_tensix_operations_finished(
     )
 
 
-def reset_mailboxes(location: str = "0,0"):
-    """Reset all core mailboxes before each test."""
-    reset_value = 0  # Constant - indicates the TRISC kernel run status
+# BRISC writes 1 here after device_setup() completes.
+BRISC_DONE_ADDR = 0x19FF0
 
-    target_addr = min(Mailbox.Packer.value, Mailbox.Math.value, Mailbox.Unpacker.value)
-    write_words_to_device(location=location, addr=target_addr, data=3 * [reset_value])
+
+def reset_mailboxes(location: str = "0,0"):
+    """Reset all core mailboxes (including BRISC done flag) before each test.
+
+    After clearing, we wait briefly and re-check each mailbox.  A TRISC that
+    was mid-store when soft-reset landed may have its store buffer drain
+    *after* we wrote zeros, silently restoring the old KERNEL_COMPLETE value.
+    Re-clearing catches this race.
+    """
+    # 4 words: BRISC_DONE (0x19FF0), Packer (0x19FF4), Math (0x19FF8), Unpacker (0x19FFC)
+    write_words_to_device(location=location, addr=BRISC_DONE_ADDR, data=4 * [0])
+
+    # Give any in-flight TRISC stores time to drain, then verify.
+    time.sleep(0.001)
+
+    for mailbox in (Mailbox.Packer, Mailbox.Math, Mailbox.Unpacker):
+        if read_word_from_device(location, mailbox.value) != 0:
+            write_words_to_device(location=location, addr=mailbox.value, data=[0])
 
 
 def pull_coverage_stream_from_tensix(
