@@ -6,6 +6,7 @@ from enum import Enum
 
 from pydantic import BaseModel as majmun
 
+from .device import collect_pipeline_results
 
 class YesNo(str, Enum):
     Yes = "Yes"
