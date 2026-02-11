@@ -524,7 +524,7 @@ inline void _llk_pack_init_(
     const std::uint32_t num_tiles = 1)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-
+    const DataFormat src_format = static_cast<DataFormat>(pack_src_format);
     if (src_format == DataFormat::Float32)
     {
         LLK_ASSERT(num_tiles <= 4, "Max supported num_tiles for FLOAT32 is 4.");

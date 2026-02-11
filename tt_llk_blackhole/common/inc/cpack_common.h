@@ -305,7 +305,6 @@ inline void reconfig_packer_data_format(
     const bool partial_face)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-
     const std::uint32_t pack_output_src_format = static_cast<std::uint32_t>(pack_src_format) & 0xF;
     const std::uint32_t pack_output_dst_format = static_cast<std::uint32_t>(pack_dst_format) & 0xF;
 
@@ -405,7 +404,6 @@ inline void configure_pack(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
-
     // Get pointer to registers for current state ID
     volatile std::uint32_t* cfg = get_cfg_pointer();
 

@@ -351,17 +351,8 @@ inline void set_packer_config(
     cache_exponential_section_sizes_in_gprs<false>(num_faces, partial_face);
 }
 
-inline std::array<pack_config_t, NUM_PACKERS> read_pack_config();
-
-inline std::array<pack_config_t, NUM_PACKERS> read_pack_config();
-
 inline void set_packer_l1_offset(const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM)
 {
-    // All packers share the same pack_config, taking the 1st.
-    const pack_config_t pack_config = read_pack_config()[0];
-
-    // LLK_ASSERT(static_cast<DataFormat>(pack_config.out_data_format) == static_cast<DataFormat>(pack_dst_format), "Misconfigured dst format.");
-
     const std::uint32_t face_dim = face_r_dim * FACE_C_DIM;
 
     std::uint32_t l1_offset_1 = IS_BFP_FORMAT(pack_dst_format)
@@ -398,7 +389,6 @@ inline void reconfig_packer_data_format(
     const bool partial_face        = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-
     // Configure packers
     pack_config_u config;
     config.val[2] = 0; // Only need to modify word[2][15:0]
@@ -535,7 +525,6 @@ inline void configure_pack(
     const std::uint32_t relu_config = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-
     // Get pointer to registers for current state ID
     volatile std::uint32_t* cfg = get_cfg_pointer();
 
@@ -657,10 +646,6 @@ template <std::uint32_t block_ct_dim, std::uint32_t full_ct_dim, bool diagonal =
 inline void program_packer_untilized_destination(const std::uint32_t addr, const std::uint32_t pack_dst_format)
 {
     LLK_ASSERT(is_valid_L1_address(addr), "L1 address must be in valid L1 memory region");
-    // All packers share the same pack_config, taking the 1st.
-    const pack_config_t pack_config = read_pack_config()[0];
-
-    // LLK_ASSERT(static_cast<DataFormat>(pack_config.out_data_format) == static_cast<DataFormat>(pack_dst_format), "Misconfigured dst format.");
 
     if constexpr (diagonal)
     {
