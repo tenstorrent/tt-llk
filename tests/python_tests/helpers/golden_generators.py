@@ -2205,91 +2205,106 @@ class PackRowsGolden:
 @register_golden
 class TopKGolden:
     """
-    Golden generator for TopK operation on 32x128 tensors.
+    Golden generator for TopK operation.
 
-    For each of the 32 rows:
-    - First 64 elements: values to find top-k from
-    - Second 64 elements: indices (1-64) that follow the sort order
-
-    The operation sorts the first 64 elements and reorders the indices accordingly.
     """
 
     def __call__(
         self,
         operand,
         data_format,
-        k=32,
+        K=32,
         sort_direction: TopKSortDirection = TopKSortDirection.Descending,
         input_dimensions=[32, 128],
     ):
         """
-        Perform per-row topk on a 32x128 tensor.
+        Perform per-row topk on a tensor.
 
         Args:
-            operand: Input tensor (flattened or shaped).
+            operand: Input tensor (flattened).
             data_format: Data format for the result.
             k: Number of top elements to extract per row (default: 32).
             sort_direction: Direction to sort top-k values (default: Descending).
             input_dimensions: Input dimensions [rows, cols] (default: [32, 128]).
+        Constraint:
+            In LLK api, we perform topk with k >= 32, so input tensor must always have at least 2 tiles for values and
+            of course 2 tiles for indices since we need to reorder them based on the topk results.
+            Therefore input_dimensions must contain at least 4 tiles.
         Returns:
-            Tensor with topk applied per row, maintaining the structure.
+            Tensor with topk applied per row. One Tile of values followed by one tile of indices.
         """
         torch_format = format_dict[data_format]
 
-        # Convert to tensor if needed and clone to avoid modifying input
+        num_stages = 2  # One stage for values and one stage for indices.
+
+        minimal_number_of_tiles_required = 4
+
+        # Convert to tensor if needed.
         if not isinstance(operand, torch.Tensor):
             operand = torch.tensor(operand, dtype=torch_format)
         else:
-            operand = operand.clone().to(torch_format)
+            operand = operand.to(torch_format)
 
-        rows, cols = input_dimensions
+        num_rows_tensor, num_cols_tensor = input_dimensions
+        num_tiles_in_input = (num_rows_tensor * num_cols_tensor) // ELEMENTS_PER_TILE
 
-        if input_dimensions != [32, 128]:
+        if num_tiles_in_input < minimal_number_of_tiles_required:
             raise ValueError(
-                f"Expected input dimensions [32, 128] for TopK, got {input_dimensions}"
+                f"Expected at least 2 tiles for values and 2 tiles for indices (total 4 tiles), but got {num_tiles_in_input} tiles."
             )
 
-        # Set columns 64-127 to 1, 2, 3, ..., 64 for each row.
-        # Create indices as uint16 and preserve bit representation when assigning to float tensor.
-        for row in range(rows):
-            indices_start = row * cols + cols // 2
-            indices_end = indices_start + cols // 2
+        # Create a new zeroed tensor with dimensions [num_rows_tensor, num_stages * K cols].
+        result_num_cols = num_stages * K
+        result_num_rows = num_rows_tensor
+
+        result = torch.zeros(result_num_rows * result_num_cols, dtype=torch_format)
+
+        for row in range(num_rows_tensor):
             # Create uint16 indices and view as the operand's dtype to preserve bits.
-            uint16_indices = torch.arange(1, 65, dtype=torch.int16).to(torch.uint16)
-            operand[indices_start:indices_end] = uint16_indices.view(operand.dtype)
+            uint16_indices = torch.arange(
+                0, num_cols_tensor // num_stages, dtype=torch.int16
+            ).to(torch.uint16)
 
-        for row_idx in range(rows):
-            # Extract values and indices.
+            # Perform Topk On Row - use operand indices
+            operand_values_start_idx = row * num_cols_tensor
+            operand_values_end_idx = (
+                operand_values_start_idx + num_cols_tensor // num_stages
+            )
 
-            values_start = row_idx * cols
-            values_end = values_start + cols // 2
-
-            indices_start = values_end
-            indices_end = indices_start + cols // 2
-
-            values = operand[values_start:values_end]
-            indices = operand[indices_start:indices_end]
+            values = operand[operand_values_start_idx:operand_values_end_idx]
 
             # Get top-k values and their positions in the original array.
             # largest=True means we want the largest k values.
             # sorted=True means results are sorted in descending order.
             topk_values, topk_positions = torch.topk(
                 values,
-                k,
+                K,
                 largest=(sort_direction == TopKSortDirection.Descending),
                 sorted=True,
             )
 
-            # Reorder indices based on the topk positions.
-            topk_indices = indices[topk_positions]
+            # Convert uint16 to int32 for indexing (PyTorch doesn't support uint16 indexing)
+            topk_indices = uint16_indices.to(torch.int32)[topk_positions].to(
+                torch.uint16
+            )
 
-            operand[values_start : values_start + k] = topk_values
-            operand[indices_start : indices_start + k] = topk_indices
+            # Write to result tensor - use result indices
+            result_values_start_idx = row * result_num_cols
+            result_indices_start_idx = (
+                result_values_start_idx + result_num_cols // num_stages
+            )
+
+            result[result_values_start_idx : result_values_start_idx + K] = topk_values
+            result[result_indices_start_idx : result_indices_start_idx + K] = (
+                topk_indices.view(operand.dtype)
+            )
 
         # Tilize to match hardware layout.
-        operand_tilizer = TilizeGolden()
-        operand = operand_tilizer(
-            operand, dimensions=input_dimensions, data_format=data_format
+        result_tilizer = TilizeGolden()
+        result = result_tilizer(
+            result,
+            dimensions=[result_num_rows, result_num_cols],
+            data_format=data_format,
         )
 
-        return operand
+        return result
