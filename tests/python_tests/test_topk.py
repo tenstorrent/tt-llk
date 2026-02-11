@@ -261,7 +261,7 @@ def get_value_tiles_from_topk_tensor(
         [64, 128],
         [256, 128],
     ],  # TODO: Fix to work with wider matrices
-    K=[32],  # More K values coming soon.... By definition K >= 32.
+    K=[32],  # TODO: Add more K values (like 16, 64).
     sort_direction=[TopKSortDirection.Descending, TopKSortDirection.Ascending],
 )
 def test_topk_sfpu(
