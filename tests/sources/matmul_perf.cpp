@@ -192,6 +192,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 for (std::uint32_t tile = 0; tile < params->CT_DIM * params->RT_DIM; tile++)
                 {
                     const std::uint32_t tile_index = tile % MAX_TILES_DEST;
+                    LLK_ASSERT(
+                        tile_index < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>(),
+                        "Block tile index exceeds maximum destination tiles for matmul");
                     _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile_index, PERF_ADDRESS(PERF_OUTPUT, tile_index));
                 }
             }
@@ -204,6 +207,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 for (std::uint32_t tile = 0; tile < params->CT_DIM * params->RT_DIM; tile++)
                 {
                     const std::uint32_t tile_index = tile % MAX_TILES_DEST;
+                    LLK_ASSERT(
+                        tile_index < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>(),
+                        "Block tile index exceeds maximum destination tiles for matmul");
                     _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile_index, PERF_ADDRESS(PERF_OUTPUT, tile_index));
                 }
                 _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

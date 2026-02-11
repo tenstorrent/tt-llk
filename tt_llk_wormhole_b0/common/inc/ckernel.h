@@ -468,11 +468,6 @@ inline constexpr bool is_valid_instruction_mode(InstrModLoadStore mode)
     return mode == InstrModLoadStore::INT32_2S_COMP || mode == InstrModLoadStore::INT32 || mode == InstrModLoadStore::LO16;
 }
 
-constexpr std::uint32_t DstTileSize[3] = {
-    64, // 32x32 tile shape
-    32, // 32x16, 16x32 tile shape
-    16  // 16x16 tile shape
-};
 constexpr std::uint32_t DstTileSizeLog2[3] = {
     6, // 32x32 tile shape
     5, // 32x16, 16x32 tile shape

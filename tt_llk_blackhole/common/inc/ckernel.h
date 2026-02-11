@@ -683,11 +683,6 @@ inline void apply_sign_magnitude_conversion(std::uint32_t src, std::uint32_t dst
     TTI_SFPSETSGN(0 /* imm */, dst /*lreg_c*/, src /*ldest*/, 0 /*imod*/);
 }
 
-constexpr std::uint32_t DstTileSize[3] = {
-    64, // 32x32 tile shape
-    32, // 32x16, 16x32 tile shape
-    16  // 16x16 tile shape
-};
 constexpr std::uint32_t DstTileSizeLog2[3] = {
     6, // 32x32 tile shape
     5, // 32x16, 16x32 tile shape
