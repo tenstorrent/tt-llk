@@ -386,7 +386,8 @@ inline void reconfig_packer_data_format(
     const std::uint32_t tile_size  = 0,
     const std::uint32_t face_r_dim = FACE_R_DIM,
     const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false)
+    const bool partial_face        = false,
+    const bool narrow_tile         = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // Configure packers
