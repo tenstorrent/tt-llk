@@ -15,6 +15,7 @@ from .format_config import (
     FormatConfig,
     InputOutputFormat,
 )
+from .golden_generators import TILE_DIMENSIONS
 from .llk_params import BlocksCalculationAlgorithm, DestAccumulation, DestSync
 
 checked_formats_and_dest_acc = {}
@@ -494,14 +495,13 @@ def get_num_blocks_and_num_tiles_in_block(
     Note:
         It is suggested to create tests with input dimensions such that all data can be
         processed with blocks of the same size. Opposite is possible but not recommended.
-        tile_dimensions = [32, 32]
     """
 
     num_rows_tensor, num_cols_tensor = input_dimensions
     num_rows_tile, num_cols_tile = tile_dimensions
 
     if tile_dimensions is None:
-        tile_dimensions = [32, 32]
+        tile_dimensions = TILE_DIMENSIONS
 
     is_outlier = is_format_combination_outlier(
         formats.input_format, formats.output_format, dest_acc
