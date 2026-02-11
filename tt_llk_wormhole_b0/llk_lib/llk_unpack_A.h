@@ -203,7 +203,7 @@ inline void _llk_unpack_A_init_(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(
-        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpack_src_format), static_cast<DataFormat>(unpack_dst_format)),
+        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpack_src_format), static_cast<DataFormat>(unpack_dst_format), acc_to_dest),
         "Unsupported unpacker to register conversion");
 
     // Set transpose register to prevent state pollution
@@ -240,7 +240,7 @@ inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpa
 {
     LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
     LLK_ASSERT(
-        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpack_src_format), static_cast<DataFormat>(unpack_dst_format)),
+        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpack_src_format), static_cast<DataFormat>(unpack_dst_format), acc_to_dest),
         "Unsupported unpacker to register conversion");
     // Clear z/w start counters
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);

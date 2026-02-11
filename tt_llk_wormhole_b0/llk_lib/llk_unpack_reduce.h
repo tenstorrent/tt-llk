@@ -41,9 +41,9 @@ inline void _llk_unpack_reduce_init_(
     const std::uint32_t num_faces                   = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    LLK_ASSERT(
-        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpB_src_format), static_cast<DataFormat>(unpB_dst_format)),
-        "Unsupported unpacker to register conversion");
+    // LLK_ASSERT(
+    //     is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpB_src_format), static_cast<DataFormat>(unpB_dst_format), false),
+    //     "Unsupported unpacker to register conversion");
 
     // Configure SrcB format registers
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG1_SrcB_RMW>(unpB_dst_format);

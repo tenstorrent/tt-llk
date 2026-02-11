@@ -391,10 +391,10 @@ inline void configure_unpack_AB(
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
 
     LLK_ASSERT(
-        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpA_src_format), static_cast<DataFormat>(unpA_dst_format)),
+        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpA_src_format), static_cast<DataFormat>(unpA_dst_format), is_fp32_dest_acc_en),
         "Unsupported unpacker to register conversion");
     LLK_ASSERT(
-        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpB_src_format), static_cast<DataFormat>(unpB_dst_format)),
+        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpB_src_format), static_cast<DataFormat>(unpB_dst_format), is_fp32_dest_acc_en),
         "Unsupported unpacker to register conversion");
 
     // Check that unpacker is done (all contexts freed up) before starting hw configuration
@@ -726,14 +726,14 @@ inline alu_config_t read_alu_config()
  * @return true if the current unpacker configuration matches all expected values, false otherwise
  */
 inline bool is_unpacker_configured_correctly(
-    const uint unpA_src_format,
-    const uint unpA_dst_format,
-    const uint unpB_src_format,
-    const uint unpB_dst_format,
-    const uint unpA_face_r_dim = FACE_R_DIM,
-    const uint unpB_face_r_dim = FACE_R_DIM,
-    const uint unpA_num_faces  = TILE_NUM_FACES,
-    const uint unpB_num_faces  = TILE_NUM_FACES)
+    const std::uint32_t unpA_src_format,
+    const std::uint32_t unpA_dst_format,
+    const std::uint32_t unpB_src_format,
+    const std::uint32_t unpB_dst_format,
+    const std::uint32_t unpA_face_r_dim = FACE_R_DIM,
+    const std::uint32_t unpB_face_r_dim = FACE_R_DIM,
+    const std::uint32_t unpA_num_faces  = TILE_NUM_FACES,
+    const std::uint32_t unpB_num_faces  = TILE_NUM_FACES)
 {
     LLK_ASSERT(unpA_face_r_dim == FACE_R_DIM, "unpA_face_r_dim currently not used.");
     std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec = read_unpack_tile_descriptor();
