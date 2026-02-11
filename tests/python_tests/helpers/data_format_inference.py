@@ -267,6 +267,7 @@ def data_formats(
     unpacking_to_dest: bool = False,
     chip_arch: Optional[ChipArchitecture] = None,
     disable_format_inference: bool = False,
+    input_format_B: Optional[DataFormat] = None,
 ) -> List[FormatConfig]:
     """
     Entry point for computing a list of FormatConfig objects.
@@ -275,7 +276,7 @@ def data_formats(
     a specific L1-to-L1 compute run across all 3 cores: unpack, math, and pack.
 
     Args:
-        input_format: The input data format for all pipeline runs
+        input_format: The input data format for src_A for all pipeline runs
         output_format: The output data format for the final pipeline run
         is_fp32_dest_acc_en: Whether FP32 accumulation is enabled
         num_iterations: The number of pipeline runs (iterations), determines list length
@@ -283,38 +284,87 @@ def data_formats(
         chip_arch: The chip architecture (Wormhole or Blackhole). If None, will be detected automatically.
         disable_format_inference: When True, disables automatic data format inference and conversions, ensuring input formats are the same in dest.
                                   Used for testing specific math kernels with explicit format requirements.
+        input_format_B: The input data format for src_B. If None, defaults to input_format (same as src_A).
 
     Returns:
         A list of FormatConfig objects of length num_iterations
     """
 
+    # Default input_format_B to input_format if not specified
+    if input_format_B is None:
+        input_format_B = input_format
+
     if disable_format_inference:
         # Return a single FormatConfig where all formats are the same if format inference is disabled or not supported for the architecture
         # MX formats can only exist in L1, not in registers. Hardware unpacks MX to bfloat16 for math.
         if input_format.is_mx_format():
-            unpack_dst = DataFormat.Float16_b
+            unpack_A_dst = DataFormat.Float16_b
             math_format = DataFormat.Float16_b
             pack_src_format = DataFormat.Float16_b
         else:
-            unpack_dst = input_format
+            unpack_A_dst = input_format
             math_format = input_format
             pack_src_format = input_format
+
+        if input_format_B.is_mx_format():
+            unpack_B_dst = DataFormat.Float16_b
+        else:
+            unpack_B_dst = input_format_B
 
         return [
             FormatConfig(
                 unpack_A_src=input_format,
-                unpack_A_dst=unpack_dst,
+                unpack_A_dst=unpack_A_dst,
                 math=math_format,
                 pack_src=pack_src_format,
                 pack_dst=output_format,
+                same_src_format=(input_format == input_format_B),
+                unpack_B_src=input_format_B,
+                unpack_B_dst=unpack_B_dst,
             )
         ]  # No final config for single iteration
 
-    intermediate_config = infer_data_formats(
-        input_format, input_format, is_fp32_dest_acc_en, unpacking_to_dest, chip_arch
-    )
-    final_config = infer_data_formats(
-        input_format, output_format, is_fp32_dest_acc_en, unpacking_to_dest, chip_arch
-    )
+    # Infer intermediate and final output formats for the pipeline
+    # For intermediate iterations: input->input (no conversion, keep same format)
+    # For final iteration: input->output (convert to desired output format)
 
-    return build_data_formats(num_iterations, intermediate_config, final_config)
+    configs = []
+    for i in range(num_iterations):
+        # Determine the target output format for this iteration
+        iteration_output = input_format if i < num_iterations - 1 else output_format
+
+        # Infer unpack_out formats for src_A and src_B independently
+        unpack_A_out = infer_unpack_out(
+            input_format, iteration_output, is_fp32_dest_acc_en, unpacking_to_dest
+        )
+        unpack_B_out = infer_unpack_out(
+            input_format_B, iteration_output, is_fp32_dest_acc_en, unpacking_to_dest
+        )
+
+        # Math format is determined by src_A (primary operand)
+        math_format = unpack_A_out
+
+        # Packer input format based on src_A's unpack output
+        pack_in = infer_pack_in(
+            input_format,
+            iteration_output,
+            unpack_A_out,
+            is_fp32_dest_acc_en,
+            unpacking_to_dest,
+            chip_arch,
+        )
+
+        configs.append(
+            FormatConfig(
+                unpack_A_src=input_format,
+                unpack_A_dst=unpack_A_out,
+                unpack_B_src=input_format_B,
+                unpack_B_dst=unpack_B_out,
+                math=math_format,
+                pack_src=pack_in,
+                pack_dst=iteration_output,
+                same_src_format=(input_format == input_format_B),
+            )
+        )
+
+    return configs
