@@ -244,6 +244,7 @@ inline bool is_packer_to_L1_conversion_supported(const DataFormat in_reg, const 
                 case DataFormat::Bfp4:
                 case DataFormat::Bfp2:
                 case DataFormat::Lf8:
+                case DataFormat::Int32:
                     return true;
                 default:
                     return false;
@@ -278,6 +279,7 @@ inline bool is_packer_to_L1_conversion_supported(const DataFormat in_reg, const 
         //   Bfp8_b/Bfp4_b/Bfp2_b -> Bfp8_b/Bfp4_b/Bfp2_b (unpack identity)
         //   Bfp8_b/Bfp4_b/Bfp2_b -> Float16_b (unpack Bfp8_b->Float16_b)
         //   Bfp8_b/Bfp4_b/Bfp2_b -> Float32/Tf32 (packer conversion)
+        //   Bfp8_b/Bfp4_b/Bfp2_b -> Int32 (packer conversion)
         case DataFormat::Bfp8_b:
         case DataFormat::Bfp4_b:
         case DataFormat::Bfp2_b:
@@ -286,6 +288,7 @@ inline bool is_packer_to_L1_conversion_supported(const DataFormat in_reg, const 
                 case DataFormat::Float32:
                 case DataFormat::Tf32:
                 case DataFormat::Float16_b:
+                case DataFormat::Int32:
                     return true;
                 default:
                     return in_reg == out_l1;
@@ -294,8 +297,21 @@ inline bool is_packer_to_L1_conversion_supported(const DataFormat in_reg, const 
         // -------------------------------------------------------------------------
         // 6. Int32 in register (reverse of unpacker Int32 in L1)
         //   Int32 -> Int32
+        //   Int32 -> Bfp8_b/Bfp4_b/Bfp2_b (packer conversion)
+        //   Int32 -> Float16/Float16_b (packer conversion)
         case DataFormat::Int32:
-            return out_l1 == DataFormat::Int32;
+            switch (out_l1)
+            {
+                case DataFormat::Int32:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2_b:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                    return true;
+                default:
+                    return false;
+            }
 
         // -------------------------------------------------------------------------
         // 7. UInt32 in register (reverse of unpacker UInt32 in L1)
