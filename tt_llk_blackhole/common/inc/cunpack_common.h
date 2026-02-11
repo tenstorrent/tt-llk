@@ -247,7 +247,7 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
 
         // -------------------------------------------------------------------------
         // 2. Tf32 in L1
-        // On WH, TF32 is stored as Float32 in L1; unpacker/gasket can expose:
+        // Tf32 is stored as Float32 in L1; unpacker/gasket can expose:
         //   Tf32 -> Tf32      (when FP32 dest acc disabled)
         //   Tf32 -> Float32   (when FP32 dest acc enabled)
         //   Tf32 -> Float16   (always supported)
@@ -300,7 +300,7 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
         case DataFormat::Lf8:
             switch (out_reg)
             {
-                case DataFormat::TF32:
+                case DataFormat::Tf32:
                     return !is_fp32_dest_acc_en;
                 case DataFormat::Float16:
                     return true;
@@ -319,7 +319,7 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
         case DataFormat::Bfp2_b:
             switch (out_reg)
             {
-                case DataFormat::TF32:
+                case DataFormat::Tf32:
                     return !is_fp32_dest_acc_en;
                 case DataFormat::Float16_b:
                     return true;
@@ -359,7 +359,7 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
         case DataFormat::Int8:
             switch (out_reg)
             {
-                case DataFormat::TF32:
+                case DataFormat::Tf32:
                     return !is_fp32_dest_acc_en;
                 case DataFormat::Float16_b:
                 case DataFormat::Int8:
