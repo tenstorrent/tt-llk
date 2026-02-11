@@ -190,7 +190,6 @@ def generate_matmul_dimension_combinations(
 
 
 def generate_matmul_tiny_tiles_combinations(max_tiles: int) -> List[tuple]:
-    valid_combinations = []
     tile_in0_rows = [1, 2, 4, 8, 16]
     tile_in0_columns = 32
     tile_in1_rows = 32
@@ -223,7 +222,6 @@ def skip_matmul_combination(
 
 def generate_tile_dims(
     dimension: Tuple[list, list],
-    tiny_tiles: bool = False,
     in0_tile_r_dim: int = 32,
     in1_tile_c_dim: int = 32,  # TODO: generate tile dimensions based on input dimensions
 ) -> TileDimensions:
@@ -477,7 +475,7 @@ def sweep_tiny_tiles_matmul(
             # Generate tile dimensions for the tiny tiles
             input0_dims, input1_dims = dims
             tile_dims = generate_tile_dims(
-                ([32, 32], input1_dims), tiny_tiles=True, in0_tile_r_dim=input0_dims[0]
+                ([32, 32], input1_dims), in0_tile_r_dim=input0_dims[0]
             )
 
             # generate face layout for tiny tiles
