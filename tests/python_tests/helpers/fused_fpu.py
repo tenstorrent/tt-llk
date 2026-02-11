@@ -513,7 +513,7 @@ class DatacopyFpu(Fpu):
         return f"_llk_math_eltwise_unary_datacopy_uninit_<{broadcast_type}, false>();\n"
 
 
-class ReduceBlockMaxFpu:
+class ReduceBlockMaxFpu(Fpu):
     def supported_unpackers(self) -> List["Unpacker"]:
         from .fused_unpacker import ReduceBlockMaxUnpacker
 
@@ -568,7 +568,6 @@ class ReduceBlockMaxFpu:
             tensor_a, ct_dim, output_format, dimensions
         ).flatten()
 
-        generate_golden = get_golden_generator(ReduceBlockMaxRowGolden)
         dest_golden_tensor = generate_golden(
             tensor_dst, ct_dim, output_format, dimensions
         ).flatten()

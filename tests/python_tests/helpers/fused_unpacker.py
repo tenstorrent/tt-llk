@@ -592,7 +592,7 @@ class UnpackerTilizeA(Unpacker):
         return code
 
 
-class ReduceBlockMaxUnpacker:
+class ReduceBlockMaxUnpacker(Unpacker):
     def init(
         self,
         operation: "FusedOperation",
@@ -602,9 +602,7 @@ class ReduceBlockMaxUnpacker:
         ct_dim = operation.ct_dim
         dest_acc = config.dest_acc.value
         if ct_dim > 4:
-            raise ValueError(
-                "ct_dim can't be bigger than 4 when using Reduce Block Max"
-            )
+            raise ValueError("ct_dim must be at most 4 when using Reduce Block Max")
         return f"_llk_unpack_AB_reduce_block_max_row_init_<{ct_dim}, {dest_acc}>();\n"
 
     def unpack(
