@@ -17,6 +17,47 @@ from helpers.perf import PerfRunType, perf_benchmark, update_report
 # Important K dimensions to test
 KT_DIMS = [1]
 
+# Parameter set definitions
+PARAM_SET_1 = {
+    "max_tiles": 8,
+    "kt_dims": [8],
+    "loop_factor": 16,
+    "formats": [
+        FormatConfig(
+            unpack_A_src=DataFormat.Float16_b,
+            unpack_A_dst=DataFormat.Float16_b,
+            unpack_B_src=DataFormat.Bfp4_b,
+            unpack_B_dst=DataFormat.Bfp8_b,
+            pack_src=DataFormat.Float16_b,
+            pack_dst=DataFormat.Float16_b,
+            math=DataFormat.Float16_b,
+            same_src_format=False,
+        )
+    ],
+}
+
+PARAM_SET_2 = {
+    "max_tiles": 1,
+    "kt_dims": [1],
+    "loop_factor": 1024,
+    "formats": [
+        FormatConfig(
+            unpack_A_src=fmt,
+            unpack_A_dst=fmt,
+            unpack_B_src=fmt,
+            unpack_B_dst=fmt,
+            pack_src=fmt,
+            pack_dst=fmt,
+            math=fmt,
+            same_src_format=True,
+        )
+        for fmt in [DataFormat.Float16_b, DataFormat.Bfp8]
+    ],
+}
+
+# Select which parameter set to use
+ACTIVE_PARAM_SET = PARAM_SET_1  # Change to PARAM_SET_2 as needed
+
 
 def calculate_unpacker_config(
     in0_tile_r_dim: int, in0_tile_c_dim: int, in1_tile_r_dim: int, in1_tile_c_dim: int
@@ -245,32 +286,21 @@ def matmul_combos(
 @pytest.mark.perf
 @parametrize(
     test_name="matmul_perf",
-    dest_acc=[DestAccumulation.No],
-    kt_dim=KT_DIMS,
     in0_tile_r_dim=[1, 2, 4, 8, 16, 32],
-    dimension_combo=lambda dest_acc, kt_dim: generate_matmul_dimension_combinations_simple(
-        max_tiles=4 if dest_acc == DestAccumulation.Yes else 1, kt_dims=[kt_dim]
+    kt_dim=ACTIVE_PARAM_SET["kt_dims"],
+    formats=ACTIVE_PARAM_SET["formats"],
+    dimension_combo=lambda kt_dim: generate_matmul_dimension_combinations_simple(
+        max_tiles=ACTIVE_PARAM_SET["max_tiles"], kt_dims=[kt_dim]
     ),
 )
 def test_perf_matmul_simple(
-    perf_report, test_name, dest_acc, kt_dim, in0_tile_r_dim, dimension_combo
+    perf_report, test_name, in0_tile_r_dim, kt_dim, formats, dimension_combo
 ):
     """
-    Simplified matmul performance test with fixed format (Float16_b) and LoFi fidelity.
-    Fixed rt_dim=1, sweeps over dest_acc (No/Yes), kt_dim, and all possible ct_dim values.
-    Tests different formats for unpack A (Float16_b) and unpack B (Bfp8_b).
+    Simplified matmul performance test with configurable tile dimensions and formats.
+    Sweeps over in0_tile_r_dim, formats, and all dimension combinations from the active parameter set.
     """
-    # Fixed parameters with different formats for A and B
-    formats = FormatConfig(
-        unpack_A_src=DataFormat.Float16_b,
-        unpack_A_dst=DataFormat.Float16_b,
-        unpack_B_src=DataFormat.Float16_b,
-        unpack_B_dst=DataFormat.Float16_b,
-        pack_src=DataFormat.Float16_b,
-        pack_dst=DataFormat.Float16_b,
-        math=DataFormat.Float16_b,
-        same_src_format=False,
-    )
+    dest_acc = DestAccumulation.No  # Fixed for both parameter sets
     math_fidelity = MathFidelity.LoFi
 
     matrix_a, matrix_b = dimension_combo
@@ -373,7 +403,7 @@ def test_perf_matmul_simple(
     test_config = {
         "formats": formats,
         "testname": test_name,
-        "loop_factor": 1024,
+        "loop_factor": ACTIVE_PARAM_SET["loop_factor"],
         "tile_cnt": dims.rt_dim * dims.ct_dim * dims.kt_dim,
         "input_A_dimensions": matrix_a,
         "input_B_dimensions": matrix_b,
@@ -401,7 +431,6 @@ def test_perf_matmul_simple(
     update_report(perf_report, test_config, results)
 
 
-# @pytest.mark.perf
 # @parametrize(
 #     test_name="matmul_perf",
 #     combos=matmul_combos(

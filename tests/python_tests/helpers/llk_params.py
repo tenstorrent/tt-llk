@@ -245,6 +245,7 @@ class Mailbox(Enum):
 
 format_tile_sizes = {
     DataFormat.Bfp8_b: 1088,
+    DataFormat.Bfp8: 1024,
     DataFormat.Float16: 2048,
     DataFormat.Float16_b: 2048,
     DataFormat.Float32: 4096,
