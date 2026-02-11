@@ -161,6 +161,188 @@ inline void packer_addr_counter_init()
     TTI_SETADCZW(0b100, 0, 0, 0, 0, 0b1111);
 }
 
+/**
+ * \brief Returns true if the packer supports in_reg -> out_l1 conversion.
+ *
+ * This is the inverse of is_unpacker_to_register_conversion_supported: if unpacker
+ * supports L1->register, packer supports register->L1.
+ *
+ * \param in_reg  Packer input (register) data format.
+ * \param out_l1  Packer output (L1) data format.
+ * \return true if the in_reg -> out_l1 conversion is supported; false otherwise.
+ */
+inline bool is_packer_to_L1_conversion_supported(const DataFormat in_reg, const DataFormat out_l1)
+{
+    switch (in_reg)
+    {
+        // -------------------------------------------------------------------------
+        // 1. Float32 in register (reverse of unpacker Float32/Tf32 in L1)
+        //   Float32 -> Float32 (unpack Float32->Float32)
+        //   Float32 -> Tf32    (unpack Tf32->Float32)
+        //   Float32 -> Float16 (packer conversion when dest_acc; gasket cannot convert, packer must)
+        case DataFormat::Float32:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 2. Tf32 in register (reverse of unpacker Float32/Tf32/Float16_b/Bfp*/Int8 in L1)
+        //   Tf32 -> Float32    (unpack Float32->Tf32)
+        //   Tf32 -> Tf32      (unpack Tf32->Tf32)
+        //   Tf32 -> Float16_b (unpack Float16_b->Tf32)
+        //   Tf32 -> Bfp8/Bfp4/Bfp2/Lf8 (unpack Bfp8->Tf32)
+        //   Tf32 -> Bfp8_b/Bfp4_b/Bfp2_b (unpack Bfp8_b->Tf32)
+        //   Tf32 -> Int8      (unpack Int8->Tf32)
+        case DataFormat::Tf32:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16_b:
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp2:
+                case DataFormat::Lf8:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2_b:
+                case DataFormat::Int8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 3. Float16 in register (reverse of unpacker Float32/Tf32/Float16/Bfp8 in L1)
+        //   Float16 -> Float32 (unpack Float32->Float16)
+        //   Float16 -> Tf32    (unpack Tf32->Float16)
+        //   Float16 -> Float16 (unpack Float16->Float16)
+        //   Float16 -> Bfp8/Bfp4/Bfp2/Lf8 (unpack Bfp8->Float16)
+        //   Float16 -> Float16_b (packer conversion; no unpacker reverse)
+        case DataFormat::Float16:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp2:
+                case DataFormat::Lf8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 4. Float16_b in register (reverse of unpacker Float32/Tf32/Float16_b/Bfp8_b/Int8 in L1)
+        //   Float16_b -> Float32 (unpack Float32->Float16_b)
+        //   Float16_b -> Tf32    (unpack Tf32->Float16_b)
+        //   Float16_b -> Float16_b (unpack Float16_b->Float16_b)
+        //   Float16_b -> Bfp8_b/Bfp4_b/Bfp2_b (unpack Bfp8_b->Float16_b)
+        //   Float16_b -> Int8   (unpack Int8->Float16_b)
+        //   Float16_b -> Float16 (packer conversion; no unpacker reverse)
+        case DataFormat::Float16_b:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2_b:
+                case DataFormat::Int8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 5. Block-float (B-side) in register (reverse of unpacker Bfp8_b in L1)
+        //   Bfp8_b/Bfp4_b/Bfp2_b -> Bfp8_b/Bfp4_b/Bfp2_b (unpack identity)
+        //   Bfp8_b/Bfp4_b/Bfp2_b -> Float16_b (unpack Bfp8_b->Float16_b)
+        //   Bfp8_b/Bfp4_b/Bfp2_b -> Float32/Tf32 (packer conversion)
+        case DataFormat::Bfp8_b:
+        case DataFormat::Bfp4_b:
+        case DataFormat::Bfp2_b:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16_b:
+                    return true;
+                default:
+                    return in_reg == out_l1;
+            }
+
+        // -------------------------------------------------------------------------
+        // 6. Int32 in register (reverse of unpacker Int32 in L1)
+        //   Int32 -> Int32
+        case DataFormat::Int32:
+            return out_l1 == DataFormat::Int32;
+
+        // -------------------------------------------------------------------------
+        // 7. UInt32 in register (reverse of unpacker UInt32 in L1)
+        //   UInt32 -> UInt32
+        case DataFormat::UInt32:
+            return out_l1 == DataFormat::UInt32;
+
+        // -------------------------------------------------------------------------
+        // 8. UInt16 in register (reverse of unpacker UInt16 in L1)
+        //   UInt16 -> UInt16
+        case DataFormat::UInt16:
+            return out_l1 == DataFormat::UInt16;
+
+        // -------------------------------------------------------------------------
+        // 9. Int8 in register (reverse of unpacker UInt8/Int8 in L1)
+        //   Int8 -> UInt8 (unpack UInt8->Int8)
+        //   Int8 -> Int8 (unpack Int8->Int8)
+        //   Int8 -> Float16_b (unpack Int8->Float16_b)
+        //   Int8 -> Tf32 (unpack Int8->Tf32)
+        case DataFormat::Int8:
+            switch (out_l1)
+            {
+                case DataFormat::UInt8:
+                case DataFormat::Int8:
+                case DataFormat::Float16_b:
+                case DataFormat::Tf32:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 10. Bfp8/Bfp4/Bfp2/Lf8 in register (packer conversion; Float16->Bfp8_b path uses Bfp8)
+        //   Bfp8 -> Bfp8_b, Bfp4 -> Bfp4_b, Bfp2 -> Bfp2_b, Lf8 -> Bfp8_b
+        case DataFormat::Bfp8:
+        case DataFormat::Bfp4:
+        case DataFormat::Bfp2:
+        case DataFormat::Lf8:
+            switch (out_l1)
+            {
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 11. Unknown or not-yet-encoded formats
+        default:
+            return false;
+    }
+}
+
 // This function saves the exponential section size/required offsets to GPR for reconfiguring
 // of data format for packer. These registers are not explicitly used by the packer during
 // operation, thus we do not need to use a semaphore to wait for the packer to finish before
@@ -389,6 +571,9 @@ inline void reconfig_packer_data_format(
     const bool partial_face        = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    LLK_ASSERT(
+        is_packer_to_L1_conversion_supported(static_cast<DataFormat>(pack_src_format), static_cast<DataFormat>(pack_dst_format)),
+        "Unsupported packer to L1 conversion.");
     // Configure packers
     pack_config_u config;
     config.val[2] = 0; // Only need to modify word[2][15:0]
@@ -525,6 +710,9 @@ inline void configure_pack(
     const std::uint32_t relu_config = 0)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
+    LLK_ASSERT(
+        is_packer_to_L1_conversion_supported(static_cast<DataFormat>(pack_src_format), static_cast<DataFormat>(pack_dst_format)),
+        "Unsupported packer to L1 conversion.");
     // Get pointer to registers for current state ID
     volatile std::uint32_t* cfg = get_cfg_pointer();
 
