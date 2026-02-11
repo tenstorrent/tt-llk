@@ -182,12 +182,18 @@ inline bool is_packer_to_L1_conversion_supported(const DataFormat in_reg, const 
         //   Float32 -> Float32 (unpack Float32->Float32)
         //   Float32 -> Tf32    (unpack Tf32->Float32)
         //   Float32 -> Float16 (packer conversion when dest_acc; gasket cannot convert, packer must)
+        //   Float32 -> Float16_b (packer conversion; Float32->Float16_b when unpack_to_dest)
+        //   Float32 -> Bfp8_b/Bfp4_b/Bfp2_b (packer conversion; Float32->Bfp when unpack_to_dest)
         case DataFormat::Float32:
             switch (out_l1)
             {
                 case DataFormat::Float32:
                 case DataFormat::Tf32:
                 case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2_b:
                     return true;
                 default:
                     return false;
