@@ -28,17 +28,11 @@ template <
     bool is_fp32_dest_acc_en,
     MathFidelity math_fidelity,
     bool is_int_fpu_en             = false,
-    bool enforce_fp32_accumulation = false,
-    bool tilize_AB_support_en      = true>
+    bool enforce_fp32_accumulation = false>
 inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = false, const std::uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     constexpr bool high_fidelity = is_high_fidelity(math_fidelity);
-
-    // tilize_AB_support_en determines whether both SrcA/B are cleared or just SrcA during intermediate steps.
-    // If the unpacker supplies a SrcB vector for every face, tilize_AB_support_en should be true to avoid hangs
-    // If the unpacker only supplies SrcB once, tilize_AB_support_en should be false to avoid hangs
-    constexpr std::uint32_t SRCS_TO_CLEAR = (tilize_AB_support_en) ? p_setrwc::CLR_AB : p_setrwc::CLR_A;
 
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     if constexpr (dim == ReduceDim::REDUCE_ROW)
@@ -46,16 +40,16 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = 
         // Transpose for each face in src A done at unpacker, and pool
         if constexpr (type == PoolType::MAX)
         {
-            TTI_GMPOOL(SRCS_TO_CLEAR, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+            TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
         else if constexpr (high_fidelity)
         {
             ckernel_template::run();
-            TTI_CLEARDVALID(SRCS_TO_CLEAR, 0);
+            TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
         }
         else
         {
-            TTI_GAPOOL(SRCS_TO_CLEAR, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+            TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
         if (num_faces > 1)
         {
@@ -167,7 +161,7 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = 
                     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
                 }
                 TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-                TTI_SETRWC(SRCS_TO_CLEAR, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_BD);
+                TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_BD);
 
                 /////////////////////
                 // Second Tile Row //
@@ -176,16 +170,16 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = 
                 // Transpose for each face in src A done at unpacker, and pool
                 if constexpr (type == PoolType::MAX)
                 {
-                    TTI_GMPOOL(SRCS_TO_CLEAR, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+                    TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
                 }
                 else if constexpr (high_fidelity)
                 {
                     ckernel_template::run();
-                    TTI_CLEARDVALID(SRCS_TO_CLEAR, 0);
+                    TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
                 }
                 else
                 {
-                    TTI_GAPOOL(SRCS_TO_CLEAR, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
+                    TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
                 }
 
                 if constexpr (type == PoolType::MAX)
@@ -311,7 +305,7 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = 
             if ((!narrow_tile) && (num_faces > 1))
             {
                 TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-                TTI_SETRWC(SRCS_TO_CLEAR, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+                TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
 
                 if constexpr (type == PoolType::MAX)
                 {
@@ -330,11 +324,7 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = 
                 }
             }
             // Reset Dest Counter
-            TTI_SETRWC(SRCS_TO_CLEAR, 0, 0, 0, 0, p_setrwc::SET_AD);
-        }
-        if constexpr (!tilize_AB_support_en)
-        {
-            TTI_CLEARDVALID(p_setrwc::CLR_B, 0);
+            TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AD);
         }
     }
     else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
@@ -344,18 +334,18 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = 
             // Wait and pool
             if constexpr (type == PoolType::MAX)
             {
-                TTI_GMPOOL(SRCS_TO_CLEAR, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4);
+                TTI_GMPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4);
             }
             else
             {
                 if constexpr (high_fidelity)
                 {
                     ckernel_template::run();
-                    TTI_CLEARDVALID(SRCS_TO_CLEAR, 0);
+                    TTI_CLEARDVALID(p_setrwc::CLR_AB, 0);
                 }
                 else
                 {
-                    TTI_GAPOOL(SRCS_TO_CLEAR, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4);
+                    TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 4);
                 }
             }
         }
