@@ -42,9 +42,6 @@ template <PoolType type, ReduceDim dim>
 inline void _llk_unpack_reduce_init_(
     const std::uint32_t unpB_src_format, const std::uint32_t unpB_dst_format, const std::uint32_t within_face_16x16_transpose = 0)
 {
-    // LLK_ASSERT(
-    //     is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpB_src_format), static_cast<DataFormat>(unpB_dst_format), false),
-    //     "Unsupported unpacker to register conversion");
     // Configure SrcB format registers
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG1_SrcB_RMW>(unpB_dst_format);
     cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32, 0, 0xf>(unpB_src_format);

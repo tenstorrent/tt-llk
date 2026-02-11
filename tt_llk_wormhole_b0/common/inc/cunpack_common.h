@@ -205,6 +205,24 @@ inline void enable_int8_fpu_math()
 }
 
 /**
+ * \brief Returns true if unpacker I/O uses 32-bit formats (Int32 or Float32).
+ *
+ * Used to determine unpack-to-dest mode and related configuration when both
+ * input and output are 32-bit. Masks low nibble of format codes for comparison.
+ *
+ * \param unpack_src_format Unpacker input (L1) data format.
+ * \param unpack_dst_format Unpacker output (register) data format.
+ * \return true if both formats are Int32 or Float32; false otherwise.
+ */
+inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
+{
+    const std::uint32_t input_df  = unpack_src_format & 0xF;
+    const std::uint32_t output_df = unpack_dst_format & 0xF;
+    return ((input_df == to_underlying(DataFormat::Int32)) || (input_df == to_underlying(DataFormat::Float32))) &&
+           ((output_df == to_underlying(DataFormat::Int32)) || (output_df == to_underlying(DataFormat::Float32)));
+}
+
+/**
  * \brief Checks whether hardware supports unpacking L1 tiles into a given register format.
  *
  * Answers the question: "Can tiles stored in L1 in format \p in_l1 be unpacked by hardware
@@ -217,28 +235,33 @@ inline void enable_int8_fpu_math()
  * and ISA format-conversion tables. Use this to validate unpack configs before programming
  * the unpacker.
  *
- * \param in_l1   Data format of tiles in L1.
- * \param out_reg Desired data format in SrcA/SrcB/Dest registers.
+ * \param in_l1           Data format of tiles in L1.
+ * \param out_reg         Desired data format in SrcA/SrcB/Dest registers.
+ * \param acc_to_dest     When true, unpacker writes to dest accumulator (FP32-style).
+ *                        When false, writes to SrcA/SrcB. Block-float identity
+ *                        (Bfp8_b->Bfp8_b etc.) is only supported when false.
+ * \param unpack_to_dest  When true, FP32 dest accumulation is enabled (unpacker outputs
+ *                        to dest). When false, outputs to Tf32/SrcA/SrcB. Affects
+ *                        Float32/Tf32/Int32/UInt32 conversion support.
  * \return true if the in_l1 -> out_reg conversion is supported; false otherwise.
  */
-inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1, const DataFormat out_reg, bool is_fp32_dest_acc_en)
+inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1, const DataFormat out_reg, bool acc_to_dest, bool unpack_to_dest)
 {
     switch (in_l1)
     {
         // -------------------------------------------------------------------------
-        // 1. Float32 in L1
-        // MAS Table 2 (FP32 row) + ISA FormatConversion:
-        //   Float32 -> Float32   (when FP32 dest acc enabled)
-        //   Float32 -> Tf32      (when FP32 dest acc disabled)
-        //   Float32 -> Float16   (always supported)
-        //   Float32 -> Float16_b (always supported)
+        // 1. Float32 in L1 (ISA FormatConversion)
+        //   Float32 -> Float32   (when unpack_to_dest)
+        //   Float32 -> Tf32      (when !unpack_to_dest)
+        //   Float32 -> Float16   (always)
+        //   Float32 -> Float16_b (always)
         case DataFormat::Float32:
             switch (out_reg)
             {
                 case DataFormat::Float32:
-                    return is_fp32_dest_acc_en;
+                    return unpack_to_dest;
                 case DataFormat::Tf32:
-                    return !is_fp32_dest_acc_en;
+                    return !unpack_to_dest;
                 case DataFormat::Float16:
                 case DataFormat::Float16_b:
                     return true;
@@ -247,19 +270,18 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
             }
 
         // -------------------------------------------------------------------------
-        // 2. Tf32 in L1
-        // Tf32 is stored as Float32 in L1; unpacker/gasket can expose:
-        //   Tf32 -> Tf32      (when FP32 dest acc disabled)
-        //   Tf32 -> Float32   (when FP32 dest acc enabled)
-        //   Tf32 -> Float16   (always supported)
-        //   Tf32 -> Float16_b (always supported)
+        // 2. Tf32 in L1 is stored as Float32. (ISA FormatConversion)
+        //   Tf32 -> Tf32      (when !unpack_to_dest)
+        //   Tf32 -> Float32   (when unpack_to_dest)
+        //   Tf32 -> Float16   (always)
+        //   Tf32 -> Float16_b (always)
         case DataFormat::Tf32:
             switch (out_reg)
             {
                 case DataFormat::Tf32:
-                    return !is_fp32_dest_acc_en;
+                    return !unpack_to_dest;
                 case DataFormat::Float32:
-                    return is_fp32_dest_acc_en;
+                    return unpack_to_dest;
                 case DataFormat::Float16:
                 case DataFormat::Float16_b:
                     return true;
@@ -268,21 +290,20 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
             }
 
         // -------------------------------------------------------------------------
-        // 3. Float16 (FP16-A) in L1
-        // MAS Table 2 says only identity Float16->Float16 is supported.
+        // 3. Float16 (FP16-A) in L1 (ISA FormatConversion)
+        //   Float16 -> Float16 (identity only)
         case DataFormat::Float16:
             return out_reg == DataFormat::Float16;
 
         // -------------------------------------------------------------------------
-        // 4. Float16_b (BF16) in L1
-        // MAS Table 2:
-        //   Float16_b -> Float16_b (always supported)
-        //   Float16_b -> Tf32      (when FP32 dest acc disabled)
+        // 4. Float16_b (BF16) in L1 (ISA FormatConversion)
+        //   Float16_b -> Float16_b (always)
+        //   Float16_b -> Tf32      (when !unpack_to_dest)
         case DataFormat::Float16_b:
             switch (out_reg)
             {
                 case DataFormat::Tf32:
-                    return !is_fp32_dest_acc_en;
+                    return !unpack_to_dest;
                 case DataFormat::Float16_b:
                     return true;
                 default:
@@ -290,11 +311,9 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
             }
 
         // -------------------------------------------------------------------------
-        // 5. Block-float formats (A-side) and FP8 in L1
-        // Includes: Bfp8, Bfp4, Bfp2, Lf8
-        // MAS Table 2:
-        //   Bfp8/Bfp4/Bfp2/Lf8 -> Float16 (always supported)
-        //   Bfp8/Bfp4/Bfp2/Lf8 -> Tf32    (when FP32 dest acc disabled)
+        // 5. Block-float (A-side) and FP8 in L1 (ISA FormatConversion): Bfp8, Bfp4, Bfp2, Lf8
+        //   Bfp8/Bfp4/Bfp2/Lf8 -> Float16 (always)
+        //   Bfp8/Bfp4/Bfp2/Lf8 -> Tf32    (when !unpack_to_dest)
         case DataFormat::Bfp8:
         case DataFormat::Bfp4:
         case DataFormat::Bfp2:
@@ -302,7 +321,7 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
             switch (out_reg)
             {
                 case DataFormat::Tf32:
-                    return !is_fp32_dest_acc_en;
+                    return !unpack_to_dest;
                 case DataFormat::Float16:
                     return true;
                 default:
@@ -310,58 +329,61 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
             }
 
         // -------------------------------------------------------------------------
-        // 6. Block-float formats (B-side) in L1
-        // Includes: Bfp8_b, Bfp4_b, Bfp2_b
-        // MAS Table 2:
-        //   Bfp8_b/Bfp4_b/Bfp2_b -> Float16_b (always supported)
-        //   Bfp8_b/Bfp4_b/Bfp2_b -> Tf32      (when FP32 dest acc disabled)
+        // 6. Block-float (B-side) in L1 (ISA FormatConversion): Bfp8_b, Bfp4_b, Bfp2_b
+        //   Bfp8_b/Bfp4_b/Bfp2_b -> Float16_b (always)
+        //   Bfp8_b/Bfp4_b/Bfp2_b -> Tf32      (when !unpack_to_dest)
+        //   Bfp8_b/Bfp4_b/Bfp2_b -> identity  (when !acc_to_dest)
         case DataFormat::Bfp8_b:
         case DataFormat::Bfp4_b:
         case DataFormat::Bfp2_b:
             switch (out_reg)
             {
                 case DataFormat::Tf32:
-                    return !is_fp32_dest_acc_en;
+                    return !unpack_to_dest;
                 case DataFormat::Float16_b:
                     return true;
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2_b:
+                    return !acc_to_dest;
                 default:
                     return false;
             }
 
         // -------------------------------------------------------------------------
-        // 7. Int32 in L1
-        // MAS Table 2:
-        //   Int32 -> Int32 (when FP32 dest acc enabled)
+        // 7. Int32 in L1 (ISA FormatConversion)
+        //   Int32 -> Int32 (when unpack_to_dest)
         case DataFormat::Int32:
-            return out_reg == DataFormat::Int32 && is_fp32_dest_acc_en;
+            return out_reg == DataFormat::Int32 && unpack_to_dest;
 
         // -------------------------------------------------------------------------
-        // 8. UInt16 in L1
-        // MAS Table 2:
+        // 8. UInt32 in L1 (ISA FormatConversion)
+        //   UInt32 -> UInt32 (when unpack_to_dest)
+        case DataFormat::UInt32:
+            return out_reg == DataFormat::UInt32 && unpack_to_dest;
+
+        // -------------------------------------------------------------------------
+        // 9. UInt16 in L1 (ISA FormatConversion)
         //   UInt16 -> UInt16 (identity)
         case DataFormat::UInt16:
             return out_reg == DataFormat::UInt16;
 
         // -------------------------------------------------------------------------
-        // 9. UInt8 in L1
-        // ISA FormatConversion:
+        // 10. UInt8 in L1 (ISA FormatConversion)
         //   UInt8 -> Int8 (with unsigned flag in ALU_FORMAT_SPEC)
-        // At the level of "does hardware support 8-bit integer here?", we treat
-        // this as conversion to Int8 registers with an unsignedness bit.
         case DataFormat::UInt8:
             return out_reg == DataFormat::Int8;
 
         // -------------------------------------------------------------------------
-        // 10. Int8 in L1
-        // MAS Table 2:
-        //   Int8 -> Int8      (always supported)
-        //   Int8 -> Float16_b (always supported)
-        //   Int8 -> Tf32      (when FP32 dest acc disabled)
+        // 11. Int8 in L1 (ISA FormatConversion)
+        //   Int8 -> Int8      (always)
+        //   Int8 -> Float16_b (always)
+        //   Int8 -> Tf32      (when !unpack_to_dest)
         case DataFormat::Int8:
             switch (out_reg)
             {
                 case DataFormat::Tf32:
-                    return !is_fp32_dest_acc_en;
+                    return !unpack_to_dest;
                 case DataFormat::Float16_b:
                 case DataFormat::Int8:
                     return true;
@@ -370,7 +392,7 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
             }
 
         // -------------------------------------------------------------------------
-        // 11. Unknown or not-yet-encoded formats.
+        // 12. Unknown or not-yet-encoded formats
         default:
             return false;
     }
@@ -392,11 +414,19 @@ inline void configure_unpack_AB(
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
 
     LLK_ASSERT(
-        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpA_src_format), static_cast<DataFormat>(unpA_dst_format), is_fp32_dest_acc_en),
-        "Unsupported unpacker to register conversion " + std::to_string(unpA_src_format) + " -> " + std::to_string(unpA_dst_format) + " for unpacker A");
+        is_unpacker_to_register_conversion_supported(
+            static_cast<DataFormat>(unpA_src_format),
+            static_cast<DataFormat>(unpA_dst_format),
+            is_fp32_dest_acc_en,
+            is_32bit_input(unpA_src_format, unpA_dst_format)),
+        "Unsupported unpacker to register conversion.");
     LLK_ASSERT(
-        is_unpacker_to_register_conversion_supported(static_cast<DataFormat>(unpB_src_format), static_cast<DataFormat>(unpB_dst_format), is_fp32_dest_acc_en),
-        "Unsupported unpacker to register conversion " + std::to_string(unpB_src_format) + " -> " + std::to_string(unpB_dst_format) + " for unpacker B");
+        is_unpacker_to_register_conversion_supported(
+            static_cast<DataFormat>(unpB_src_format),
+            static_cast<DataFormat>(unpB_dst_format),
+            is_fp32_dest_acc_en,
+            is_32bit_input(unpB_src_format, unpB_dst_format)),
+        "Unsupported unpacker to register conversion.");
 
     // Check that unpacker is done (all contexts freed up) before starting hw configuration
     wait_for_idle();
@@ -583,14 +613,6 @@ inline void config_unpacker_x_end(const std::uint32_t face_r_dim)
     }
 }
 
-inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
-{
-    const std::uint32_t input_df  = unpack_src_format & 0xF;
-    const std::uint32_t output_df = unpack_dst_format & 0xF;
-    return ((input_df == to_underlying(DataFormat::Int32)) || (input_df == to_underlying(DataFormat::Float32))) &&
-           ((output_df == to_underlying(DataFormat::Int32)) || (output_df == to_underlying(DataFormat::Float32)));
-}
-
 inline void wait_for_dest_available()
 {
     t6_semaphore_wait_on_max<p_stall::STALL_UNPACK>(semaphore::UNPACK_TO_DEST);
@@ -700,42 +722,6 @@ inline alu_config_t read_alu_config()
     config.val = cfg[ALU_ROUNDING_MODE_Fpu_srnd_en_ADDR32];
 
     return config.f;
-}
-
-/**
- * Checks whether the unpacker tile descriptor and config match the expected formats and dimensions.
- *
- * @param unpA_src_format   Expected input data format for unpacker A (context 0)
- * @param unpA_dst_format   Expected output data format for unpacker A (context 0)
- * @param unpB_src_format   Expected input data format for unpacker B (context 1)
- * @param unpB_dst_format   Expected output data format for unpacker B (context 1)
- * @param unpA_face_r_dim   Expected face row dimension for unpacker A (default FACE_R_DIM)
- * @param unpB_face_r_dim   Expected face row dimension for unpacker B (default FACE_R_DIM)
- * @param unpA_num_faces    Expected number of faces for unpacker A (default TILE_NUM_FACES)
- * @param unpB_num_faces    Expected number of faces for unpacker B (default TILE_NUM_FACES)
- * @return true if the current unpacker configuration matches all expected values, false otherwise
- */
-inline bool is_unpacker_configured_correctly(
-    const std::uint32_t unpA_src_format,
-    const std::uint32_t unpA_dst_format,
-    const std::uint32_t unpB_src_format,
-    const std::uint32_t unpB_dst_format,
-    const std::uint32_t unpA_face_r_dim = FACE_R_DIM,
-    const std::uint32_t unpB_face_r_dim = FACE_R_DIM,
-    const std::uint32_t unpA_num_faces  = TILE_NUM_FACES,
-    const std::uint32_t unpB_num_faces  = TILE_NUM_FACES)
-{
-    LLK_ASSERT(unpA_face_r_dim == FACE_R_DIM, "unpA_face_r_dim currently not used.");
-    std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> tile_descriptor_vec = read_unpack_tile_descriptor();
-    std::array<unpack_config_t, NUM_UNPACKERS> config_vec                   = read_unpack_config();
-
-    const unpack_tile_descriptor_t &tile_descriptor_cntx0 = tile_descriptor_vec[0];
-    const unpack_tile_descriptor_t &tile_descriptor_cntx1 = tile_descriptor_vec[1];
-
-    return tile_descriptor_cntx0.in_data_format == unpA_src_format && config_vec[0].out_data_format == unpA_dst_format &&
-           tile_descriptor_cntx1.in_data_format == unpB_src_format && config_vec[1].out_data_format == unpB_dst_format &&
-           tile_descriptor_cntx1.x_dim == unpB_face_r_dim * FACE_C_DIM && tile_descriptor_cntx0.z_dim == unpA_num_faces &&
-           tile_descriptor_cntx1.z_dim == unpB_num_faces;
 }
 
 } // namespace ckernel::unpacker
