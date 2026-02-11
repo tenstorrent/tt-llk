@@ -20,8 +20,10 @@ Algorithm:
 Validation:
 - Compares hardware results against PyTorch topk golden reference
 - Handles tie-breaking differences between hardware and PyTorch
-- Validates both value accuracy and index correctness
+# Validates both value accuracy and index correctness
 """
+
+import sys
 
 import torch
 from helpers.format_config import DataFormat, InputOutputFormat
@@ -197,9 +199,13 @@ def validate_topk_indices(
 
             # Check if the result index actually points to the same value in the result tensor as in the input tensor.
             if result_value != original_input_value:
-                print(f"Index-value mismatch at row {row_idx}, datum {datum}:")
                 print(
-                    f"  Result value: {result_value} with index {result_index} does not match original input value: {original_input_value} at the same index."
+                    f"Index-value mismatch at row {row_idx}, datum {datum}:",
+                    file=sys.stderr,
+                )
+                print(
+                    f"  Result value: {result_value} with index {result_index} does not match original input value: {original_input_value} at the same index.",
+                    file=sys.stderr,
                 )
                 return False
 
@@ -213,12 +219,14 @@ def validate_topk_indices(
                     # This is not an issue, just the difference between golden and hardware when handling ties in values.
                     continue
                 else:
-                    print(f"Mismatch at row {row_idx}, datum {datum}:")
+                    print(f"Mismatch at row {row_idx}, datum {datum}:", file=sys.stderr)
                     print(
-                        f"  Result value: {result_value}, Result index: {result_index}"
+                        f"  Result value: {result_value}, Result index: {result_index}",
+                        file=sys.stderr,
                     )
                     print(
-                        f"  Golden value: {golden_value}, Golden index: {golden_index}"
+                        f"  Golden value: {golden_value}, Golden index: {golden_index}",
+                        file=sys.stderr,
                     )
                     return False
     return True
