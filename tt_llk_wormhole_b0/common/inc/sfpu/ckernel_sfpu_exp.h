@@ -10,7 +10,6 @@
 #include "ckernel_sfpu_recip.h"
 #include "llk_defs.h"
 #include "lltt.h"
-
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 

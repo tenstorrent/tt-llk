@@ -651,4 +651,3 @@ inline void _calculate_comp_unary_(std::uint32_t value)
 
 } // namespace sfpu
 } // namespace ckernel
-

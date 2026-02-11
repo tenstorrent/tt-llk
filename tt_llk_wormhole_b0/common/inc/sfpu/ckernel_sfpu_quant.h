@@ -118,4 +118,3 @@ inline void _init_quant_zero_point_(const std::uint32_t zero_point)
 
 } // namespace sfpu
 } // namespace ckernel
-

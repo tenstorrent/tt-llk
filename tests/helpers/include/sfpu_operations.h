@@ -36,7 +36,13 @@ using namespace ckernel::sfpu;
  * @param operation The SFPU operation type to execute
  * @param math_format Optional math format for operations that need format-specific behavior
  */
-template <ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false, bool CLAMP_NEGATIVE = false>
+template <
+    ApproximationMode APPROX_MODE,
+    bool is_fp32_dest_acc_en,
+    int ITERATIONS,
+    bool FAST_MODE      = false,
+    bool STABLE_SORT    = false,
+    bool CLAMP_NEGATIVE = false>
 void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, float fill_const_value = 5.0f)
 {
     switch (operation)
