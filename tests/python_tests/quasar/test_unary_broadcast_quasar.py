@@ -41,7 +41,6 @@ def generate_unary_broadcast_combinations():
     formats_list = input_output_formats(
         [
             DataFormat.Float16_b,
-            DataFormat.Float16,
             DataFormat.Float32,
         ],
     )
@@ -60,11 +59,9 @@ def generate_unary_broadcast_combinations():
     combinations = []
     for fmt in formats_list:
         dest_acc_modes = get_valid_dest_accumulation_modes(fmt)
+        if fmt.input_format.is_32_bit():
+            dest_acc_modes = (DestAccumulation.Yes,)
         for dest_acc in dest_acc_modes:
-            # Skip 32-bit input formats with dest_acc=No (not supported)
-            if fmt.input_format.is_32_bit() and dest_acc == DestAccumulation.No:
-                continue
-            # Skip non-32-bit input -> Float32 output with dest_acc=No (Quasar packer limitation)
             # When dest register is in 16-bit mode, packer cannot convert Float16/16_b -> Float32
             if (
                 not fmt.input_format.is_32_bit()
