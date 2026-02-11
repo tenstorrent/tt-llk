@@ -719,6 +719,8 @@ inline void _llk_math_matmul_init_(
 
 inline void _llk_math_matmul_uninit_()
 {
+    // Stall SETC16 done by CFG until MATH/SFPU are done
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH | p_stall::WAIT_SFPU);
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
     TTI_SETC16(CLR_DVALID_SrcB_Disable_ADDR32, 0);
 }
