@@ -203,31 +203,41 @@ inline void enable_int8_fpu_math()
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG0_SrcA_ADDR32, 0, ALU_ACC_CTRL_INT8_math_enabled_MASK>(alu_payload.val);
 }
 
-// Returns true iff *some* Blackhole unpack mode (to SrcA/SrcB/Dest/SrcS)
-// can realize `out_reg` when L1 stores `in_l1`.
-//
-// This is a union across all targets; it does NOT enforce the
-// "not supported for Unpack-to-Dest/SrcS" caveats from Tensix Formats.
-// For LLK asserts, that matches the “possible at all?” question.
-//
-// Source: Tensix Formats – Unpacker Format Conversions for Trinity :llmCitationRef[6].
-inline bool is_unpacker_to_register_conversion_supported(DataFormat in_l1, DataFormat out_reg)
+/**
+ * \brief Checks whether hardware supports unpacking L1 tiles into a given register format.
+ *
+ * Answers the question: "Can tiles stored in L1 in format \p in_l1 be unpacked by hardware
+ * into SrcA/SrcB/Dest registers in format \p out_reg?" This is a logical view only: the
+ * function does not distinguish where the conversion is implemented (Unpacker vs Gasket)
+ * or which operand path (SrcA, SrcB, Dest) is used. If any path can produce \p out_reg
+ * from \p in_l1, the function returns true.
+ *
+ * Supported conversions are defined by the MAS (Microarchitecture Specification)
+ * and ISA format-conversion tables. Use this to validate unpack configs before programming
+ * the unpacker.
+ *
+ * \param in_l1   Data format of tiles in L1.
+ * \param out_reg Desired data format in SrcA/SrcB/Dest registers.
+ * \return true if the in_l1 -> out_reg conversion is supported; false otherwise.
+ */
+inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1, const DataFormat out_reg, bool is_fp32_dest_acc_en)
 {
     switch (in_l1)
     {
         // -------------------------------------------------------------------------
-        // Float32 in L1
-        //
-        // Tensix Formats (Unpacker conversions): :llmCitationRef[7]
-        //   Float32 -> Float32
-        //   Float32 -> TF32
-        //   Float32 -> Float16
-        //   Float32 -> Float16_B
+        // 1. Float32 in L1
+        // MAS Table 2 (FP32 row) + ISA FormatConversion:
+        //   Float32 -> Float32   (when FP32 dest acc enabled)
+        //   Float32 -> Tf32      (when FP32 dest acc disabled)
+        //   Float32 -> Float16   (always supported)
+        //   Float32 -> Float16_b (always supported)
         case DataFormat::Float32:
             switch (out_reg)
             {
                 case DataFormat::Float32:
+                    return is_fp32_dest_acc_en;
                 case DataFormat::Tf32:
+                    return !is_fp32_dest_acc_en;
                 case DataFormat::Float16:
                 case DataFormat::Float16_b:
                     return true;
@@ -236,16 +246,19 @@ inline bool is_unpacker_to_register_conversion_supported(DataFormat in_l1, DataF
             }
 
         // -------------------------------------------------------------------------
-        // Tf32 in L1
-        //
-        // Tensix Formats: :llmCitationRef[8]
-        //   TF32 -> TF32
-        //   TF32 -> Float16
-        //   TF32 -> Float16_B
+        // 2. Tf32 in L1
+        // On WH, TF32 is stored as Float32 in L1; unpacker/gasket can expose:
+        //   Tf32 -> Tf32      (when FP32 dest acc disabled)
+        //   Tf32 -> Float32   (when FP32 dest acc enabled)
+        //   Tf32 -> Float16   (always supported)
+        //   Tf32 -> Float16_b (always supported)
         case DataFormat::Tf32:
             switch (out_reg)
             {
                 case DataFormat::Tf32:
+                    return !is_fp32_dest_acc_en;
+                case DataFormat::Float32:
+                    return is_fp32_dest_acc_en;
                 case DataFormat::Float16:
                 case DataFormat::Float16_b:
                     return true;
@@ -254,85 +267,109 @@ inline bool is_unpacker_to_register_conversion_supported(DataFormat in_l1, DataF
             }
 
         // -------------------------------------------------------------------------
-        // The big “Float16 / FP8 / MX* / MXINT* group” in L1
-        //
-        // Tensix Formats groups these inputs: :llmCitationRef[9]
-        //   Input formats:
-        //     Float16,
-        //     FP8R, FP8P,
-        //     MXFP8R, MXFP8P, MXFP6R, MXFP6P, MXINT8, MXINT4, MXINT2
-        //
-        //   Allowed outputs (to Src regs; TF32 not to Dest/SrcS):
-        //     Float16, TF32, Float16_B
-        //
-        // For “possible at all”, we take the union {FP16, TF32, BF16}.
+        // 3. Float16 (FP16-A) in L1
+        // MAS Table 2 says only identity Float16->Float16 is supported on WH.
         case DataFormat::Float16:
-        case DataFormat::Lf8:
-        case DataFormat::Fp8_e4m3:
+            return out_reg == DataFormat::Float16;
+
+        // -------------------------------------------------------------------------
+        // 4. Float16_b (BF16) in L1
+        // MAS Table 2:
+        //   Float16_b -> Float16_b (always supported)
+        //   Float16_b -> Tf32      (when FP32 dest acc disabled)
+        case DataFormat::Float16_b:
+            switch (out_reg)
+            {
+                case DataFormat::Tf32:
+                    return !is_fp32_dest_acc_en;
+                case DataFormat::Float16_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 5. Block-float formats (A-side) and FP8 in L1
+        // Includes: Bfp8, Bfp4, Bfp2, Lf8
+        // MAS Table 2:
+        //   Bfp8/Bfp4/Bfp2/Lf8 -> Float16 (always supported)
+        //   Bfp8/Bfp4/Bfp2/Lf8 -> Tf32    (when FP32 dest acc disabled)
         case DataFormat::Bfp8:
-        case DataFormat::Bfp8_b:
         case DataFormat::Bfp4:
-        case DataFormat::Bfp4_b:
         case DataFormat::Bfp2:
+        case DataFormat::Lf8:
+            switch (out_reg)
+            {
+                case DataFormat::TF32:
+                    return !is_fp32_dest_acc_en;
+                case DataFormat::Float16:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 6. Block-float formats (B-side) in L1
+        // Includes: Bfp8_b, Bfp4_b, Bfp2_b
+        // MAS Table 2:
+        //   Bfp8_b/Bfp4_b/Bfp2_b -> Float16_b (always supported)
+        //   Bfp8_b/Bfp4_b/Bfp2_b -> Tf32      (when FP32 dest acc disabled)
+        case DataFormat::Bfp8_b:
+        case DataFormat::Bfp4_b:
         case DataFormat::Bfp2_b:
             switch (out_reg)
             {
-                case DataFormat::Float16:
-                case DataFormat::Tf32:
+                case DataFormat::TF32:
+                    return !is_fp32_dest_acc_en;
                 case DataFormat::Float16_b:
-                case DataFormat::Bfp8:
-                case DataFormat::Bfp8_b:
-                case DataFormat::Bfp4:
-                case DataFormat::Bfp4_b:
-                case DataFormat::Bfp2:
-                case DataFormat::Bfp2_b:
                     return true;
                 default:
                     return false;
             }
 
         // -------------------------------------------------------------------------
-        // Int32 in L1
-        //
-        // Tensix Formats: :llmCitationRef[11]
-        //   INT32 -> INT32 (unpack-to-Dest/srcS only)
-        //
-        // For “possible at all”, we allow INT32->INT32.
+        // 7. Int32 in L1
+        // MAS Table 2:
+        //   Int32 -> Int32 (when FP32 dest acc enabled)
         case DataFormat::Int32:
-            return out_reg == DataFormat::Int32;
+            return out_reg == DataFormat::Int32 && is_fp32_dest_acc_en;
 
         // -------------------------------------------------------------------------
-        // UInt32 in L1
-        //
-        // 32-bit unsigned; identity unpack for binary int32/uint32 ops (e.g. left/right shift).
-        case DataFormat::UInt32:
-            return out_reg == DataFormat::UInt32;
-
-        // -------------------------------------------------------------------------
-        // Int8 / UInt8 in L1
-        //
-        // Tensix Formats (Trinity-only 2x formats): :llmCitationRef[12]
-        //   Int8 -> Int8 (INT8_2x not in DataFormat enum)
-        //   UInt8 -> UInt8 (UINT8_2x not in DataFormat enum)
-        //
-        case DataFormat::Int8:
-            return out_reg == DataFormat::Int8;
-
-        case DataFormat::UInt8:
-            return out_reg == DataFormat::UInt8;
-
-        // -------------------------------------------------------------------------
-        // UInt16 in L1 (DataFormat has UInt16; INT16 in docs maps here for Trinity)
-        //
-        // Tensix Formats: :llmCitationRef[13]
-        //   UInt16 -> UInt16 (also used for SFPU UINT16 input)
+        // 8. UInt16 in L1
+        // MAS Table 2:
+        //   UInt16 -> UInt16 (identity)
         case DataFormat::UInt16:
             return out_reg == DataFormat::UInt16;
 
         // -------------------------------------------------------------------------
-        // 2x-packed formats (INT8_2x, UINT8_2x) are not in DataFormat enum;
-        // From an L1→reg convertibility perspective, we wouldn’t list them as inputs.
-        //
+        // 9. UInt8 in L1
+        // ISA FormatConversion:
+        //   UInt8 -> Int8 (with unsigned flag in ALU_FORMAT_SPEC)
+        // At the level of "does hardware support 8-bit integer here?", we treat
+        // this as conversion to Int8 registers with an unsignedness bit.
+        case DataFormat::UInt8:
+            return out_reg == DataFormat::Int8;
+
+        // -------------------------------------------------------------------------
+        // 10. Int8 in L1
+        // MAS Table 2:
+        //   Int8 -> Int8      (always supported)
+        //   Int8 -> Float16_b (always supported)
+        //   Int8 -> Tf32      (when FP32 dest acc disabled)
+        case DataFormat::Int8:
+            switch (out_reg)
+            {
+                case DataFormat::TF32:
+                    return !is_fp32_dest_acc_en;
+                case DataFormat::Float16_b:
+                case DataFormat::Int8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 11. Unknown or not-yet-encoded formats.
         default:
             return false;
     }

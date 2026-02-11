@@ -205,7 +205,7 @@ inline void enable_int8_fpu_math()
 }
 
 /**
- * \brief Checks whether Wormhole B0 hardware supports unpacking L1 tiles into a given register format.
+ * \brief Checks whether hardware supports unpacking L1 tiles into a given register format.
  *
  * Answers the question: "Can tiles stored in L1 in format \p in_l1 be unpacked by hardware
  * into SrcA/SrcB/Dest registers in format \p out_reg?" This is a logical view only: the
@@ -213,7 +213,7 @@ inline void enable_int8_fpu_math()
  * or which operand path (SrcA, SrcB, Dest) is used. If any path can produce \p out_reg
  * from \p in_l1, the function returns true.
  *
- * Supported conversions are defined by the Wormhole B0 MAS (Microarchitecture Specification)
+ * Supported conversions are defined by the MAS (Microarchitecture Specification)
  * and ISA format-conversion tables. Use this to validate unpack configs before programming
  * the unpacker.
  *
@@ -228,15 +228,17 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
         // -------------------------------------------------------------------------
         // 1. Float32 in L1
         // MAS Table 2 (FP32 row) + ISA FormatConversion:
-        //   Float32 -> Float32  (identity)
-        //   Float32 -> Tf32     (gasket: take 19 MSBs)
-        //   Float32 -> Float16  (FP16-A)
-        //   Float32 -> Float16_b (BF16)
+        //   Float32 -> Float32   (when FP32 dest acc enabled)
+        //   Float32 -> Tf32      (when FP32 dest acc disabled)
+        //   Float32 -> Float16   (always supported)
+        //   Float32 -> Float16_b (always supported)
         case DataFormat::Float32:
             switch (out_reg)
             {
                 case DataFormat::Float32:
+                    return is_fp32_dest_acc_en;
                 case DataFormat::Tf32:
+                    return !is_fp32_dest_acc_en;
                 case DataFormat::Float16:
                 case DataFormat::Float16_b:
                     return true;
@@ -246,164 +248,129 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
 
         // -------------------------------------------------------------------------
         // 2. Tf32 in L1
-        // On WH, TF32 is stored as Float32 in L1; unpacker/gasket can expose:
-        //   Tf32 -> Tf32 (Src regs)
-        //   Tf32 -> Float32 (Dest/SrcS)
-        // No Float16/Float16_b conversions are listed for Wormhole.
+        // TF32 is stored as Float32 in L1; unpacker/gasket can expose:
+        //   Tf32 -> Tf32      (when FP32 dest acc disabled)
+        //   Tf32 -> Float32   (when FP32 dest acc enabled)
+        //   Tf32 -> Float16   (always supported)
+        //   Tf32 -> Float16_b (always supported)
         case DataFormat::Tf32:
             switch (out_reg)
             {
                 case DataFormat::Tf32:
+                    return !is_fp32_dest_acc_en;
                 case DataFormat::Float32:
-                    return true;
-                case DataFormat::Float16:
                     return is_fp32_dest_acc_en;
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                    return true;
                 default:
                     return false;
             }
 
         // -------------------------------------------------------------------------
         // 3. Float16 (FP16-A) in L1
-        // MAS Table 2 says only identity Float16->Float16 is supported on WH.
+        // MAS Table 2 says only identity Float16->Float16 is supported.
         case DataFormat::Float16:
             return out_reg == DataFormat::Float16;
 
         // -------------------------------------------------------------------------
         // 4. Float16_b (BF16) in L1
-        // MAS Table 2: only identity Float16_b->Float16_b supported.
+        // MAS Table 2:
+        //   Float16_b -> Float16_b (always supported)
+        //   Float16_b -> Tf32      (when FP32 dest acc disabled)
         case DataFormat::Float16_b:
             switch (out_reg)
             {
-                // case DataFormat::Float16_b:
+                case DataFormat::Tf32:
+                    return !is_fp32_dest_acc_en;
                 case DataFormat::Float16_b:
                     return true;
-                case DataFormat::Float16:
-                    return is_fp32_dest_acc_en;
                 default:
                     return false;
             }
 
         // -------------------------------------------------------------------------
-        // 5. Block-float Bfp8 (A-side shared exponent) in L1
+        // 5. Block-float formats (A-side) and FP8 in L1
+        // Includes: Bfp8, Bfp4, Bfp2, Lf8
         // MAS Table 2:
-        //   Bfp8 -> Float16 (unpacker gasket)
-        // and it’s also legal to leave it as BFP8A pre-gasket, but registers
-        // don’t store BFP; compute uses FP16/TF32 only.
+        //   Bfp8/Bfp4/Bfp2/Lf8 -> Float16 (always supported)
+        //   Bfp8/Bfp4/Bfp2/Lf8 -> Tf32    (when FP32 dest acc disabled)
         case DataFormat::Bfp8:
-            switch (out_reg)
-            {
-                // case DataFormat::Float32:
-                // case DataFormat::Float16_b:
-                case DataFormat::Float16:
-                case DataFormat::Bfp8:
-                    return true;
-                default:
-                    return false;
-            }
-
-        // 6. Block-float Bfp8_b (B-side shared exponent) in L1
-        // MAS Table 2:
-        //   Bfp8_b -> Float16_b (unpacker gasket)
-        // Identity Bfp8_b->Bfp8_b allowed for pipeline (L1->reg same format).
-        case DataFormat::Bfp8_b:
-            switch (out_reg)
-            {
-                // case DataFormat::Float32:
-                // case DataFormat::Float16:
-                case DataFormat::Float16_b:
-                case DataFormat::Bfp8_b:
-                    return true;
-                case DataFormat::Float16:
-                    return is_fp32_dest_acc_en;
-                default:
-                    return false;
-            }
-
-        // -------------------------------------------------------------------------
-        // 7. Bfp4/Bfp2 A/B in L1
-        // MAS Table 2 shows:
-        //   Bfp4/2 -> Bfp8 (Unpacker-only), no direct FP target
-        //   Bfp4_b/Bfp2_b -> Bfp8_b (Unpacker-only), no direct FP target
-        // Identity unpack (e.g. Bfp4_b->Bfp4_b) allowed for pipelines that keep
-        // block-float in registers (e.g. MLA with Bfp8_b activations and Bfp4_b weights).
-        // Bfp4_b/Bfp4 -> Float16_b/Float16 allowed for typecast (unpacker path, no SFPU).
         case DataFormat::Bfp4:
         case DataFormat::Bfp2:
+        case DataFormat::Lf8:
             switch (out_reg)
             {
-                case DataFormat::Bfp8:
+                case DataFormat::TF32:
+                    return !is_fp32_dest_acc_en;
+                case DataFormat::Float16:
                     return true;
                 default:
                     return false;
             }
 
         // -------------------------------------------------------------------------
-        // 7. Bfp4/Bfp2 A/B in L1
-        // MAS Table 2 shows:
-        //   Bfp4/2 -> Bfp8 (Unpacker-only), no direct FP target
-        //   Bfp4_b/Bfp2_b -> Bfp8_b (Unpacker-only), no direct FP target
-        // Identity unpack (e.g. Bfp4_b->Bfp4_b) allowed for pipelines that keep
-        // block-float in registers (e.g. MLA with Bfp8_b activations and Bfp4_b weights).
-        // Bfp4_b/Bfp4 -> Float16_b/Float16 allowed for typecast (unpacker path, no SFPU).
+        // 6. Block-float formats (B-side) in L1
+        // Includes: Bfp8_b, Bfp4_b, Bfp2_b
+        // MAS Table 2:
+        //   Bfp8_b/Bfp4_b/Bfp2_b -> Float16_b (always supported)
+        //   Bfp8_b/Bfp4_b/Bfp2_b -> Tf32      (when FP32 dest acc disabled)
+        case DataFormat::Bfp8_b:
         case DataFormat::Bfp4_b:
         case DataFormat::Bfp2_b:
             switch (out_reg)
             {
-                case DataFormat::Bfp8_b:
+                case DataFormat::TF32:
+                    return !is_fp32_dest_acc_en;
+                case DataFormat::Float16_b:
                     return true;
                 default:
                     return false;
             }
 
         // -------------------------------------------------------------------------
-        // 8. Lf8 (FP8 e5m2) in L1
+        // 7. Int32 in L1
         // MAS Table 2:
-        //   Lf8 -> Float16 via Unpacker Gasket
-        //   Lf8 -> Float16_b allowed for pipelines that use BF16 conditional unpack dst.
-        case DataFormat::Lf8:
-            switch (out_reg)
-            {
-                case DataFormat::Float16:
-                case DataFormat::Lf8:
-                    return true;
-                default:
-                    return false;
-            }
-
-        // -------------------------------------------------------------------------
-        // 9. Int32 in L1
-        // MAS Table 2:
-        //   Int32 -> Int32 only
+        //   Int32 -> Int32 (when FP32 dest acc enabled)
         case DataFormat::Int32:
-            return out_reg == DataFormat::Int32;
+            return out_reg == DataFormat::Int32 && is_fp32_dest_acc_en;
 
         // -------------------------------------------------------------------------
-        // 9b. UInt32 in L1
-        // 32-bit unsigned; identity unpack for binary int32/uint32 ops (e.g. left/right shift).
-        case DataFormat::UInt32:
-            return out_reg == DataFormat::UInt32;
-
-        // 10. UInt16 in L1 (DataFormat has UInt16 only; no Int16 in Wormhole enum)
-        // MAS Table 2: UInt16 -> UInt16 only
+        // 8. UInt16 in L1
+        // MAS Table 2:
+        //   UInt16 -> UInt16 (identity)
         case DataFormat::UInt16:
             return out_reg == DataFormat::UInt16;
 
-        // 11. Int8 in L1
-        // MAS Table 2:
-        //   Int8 -> Int8 only
-        case DataFormat::Int8:
-            return out_reg == DataFormat::Int8;
-
-        // 12. UInt8 in L1
+        // -------------------------------------------------------------------------
+        // 9. UInt8 in L1
         // ISA FormatConversion:
-        //   UInt8 -> Integer "8" (unsigned flag in ALU_FORMAT_SPEC)
+        //   UInt8 -> Int8 (with unsigned flag in ALU_FORMAT_SPEC)
         // At the level of "does hardware support 8-bit integer here?", we treat
-        // that as conversion to Int8 registers with an unsignedness bit.
+        // this as conversion to Int8 registers with an unsignedness bit.
         case DataFormat::UInt8:
             return out_reg == DataFormat::Int8;
 
         // -------------------------------------------------------------------------
-        // 13. Unknown or not-yet-encoded formats.
+        // 10. Int8 in L1
+        // MAS Table 2:
+        //   Int8 -> Int8      (always supported)
+        //   Int8 -> Float16_b (always supported)
+        //   Int8 -> Tf32      (when FP32 dest acc disabled)
+        case DataFormat::Int8:
+            switch (out_reg)
+            {
+                case DataFormat::TF32:
+                    return !is_fp32_dest_acc_en;
+                case DataFormat::Float16_b:
+                case DataFormat::Int8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 11. Unknown or not-yet-encoded formats.
         default:
             return false;
     }
