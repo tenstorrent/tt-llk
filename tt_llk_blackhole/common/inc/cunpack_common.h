@@ -341,12 +341,8 @@ inline bool is_unpacker_to_register_conversion_supported(const DataFormat in_l1,
                     return !unpack_to_dest;
                 case DataFormat::Float16_b:
                     return true;
-                case DataFormat::Bfp8_b:
-                case DataFormat::Bfp4_b:
-                case DataFormat::Bfp2_b:
-                    return !acc_to_dest;
                 default:
-                    return false;
+                    return in_l1 == out_reg;
             }
 
         // -------------------------------------------------------------------------
