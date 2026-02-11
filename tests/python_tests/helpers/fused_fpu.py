@@ -103,7 +103,7 @@ class MatmulFpu(Fpu):
         math_fidelity = operation.math_fidelity
 
         generate_golden = get_golden_generator(MatmulGolden)
-        golden = generate_golden(
+        matmul_golden = generate_golden(
             tensor_a,
             tensor_b,
             output_format,
@@ -113,7 +113,11 @@ class MatmulFpu(Fpu):
             tilize=False,
         )
 
-        return (tensor_a, tensor_b, golden)
+        golden_tensor = tensor_dst + matmul_golden.reshape(
+            operation.max_output_dimensions
+        )
+
+        return (tensor_a, tensor_b, golden_tensor)
 
     def init(
         self,
