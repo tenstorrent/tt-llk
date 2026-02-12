@@ -22,7 +22,7 @@ from .fused_operation import FusedOperation
 from .llk_params import DestAccumulation, DestSync, PerfRunType
 from .perf import PerfReport
 from .profiler import Profiler, ProfilerData
-from .test_config import BootMode, ProfilerBuild, TestConfig
+from .test_config import BootMode, ProfilerBuild, TestConfig, TestMode
 
 
 @dataclass
@@ -111,29 +111,6 @@ class FuserConfig:
 
         write_pipeline_operands_to_l1(self.pipeline)
 
-        cpp_path = FUSED_TESTS_DIR / f"{self.global_config.test_name}.cpp"
-
-        test_config = TestConfig(
-            test_name=cpp_path,
-            formats=FormatConfig(
-                unpack_A_src=DataFormat.Float16,
-                unpack_A_dst=DataFormat.Float16,
-                pack_src=DataFormat.Float16,
-                pack_dst=DataFormat.Float16,
-                math=DataFormat.Float16,
-            ),
-            templates=set(),
-            runtimes=set(),
-            variant_stimuli=None,
-            boot_mode=BootMode.DEFAULT,
-            profiler_build=(
-                ProfilerBuild.Yes
-                if self.global_config.profiler_enabled
-                else ProfilerBuild.No
-            ),
-            skip_build_header=True,
-        )
-
         if self.global_config.profiler_enabled:
             run_types = [
                 PerfRunType.L1_TO_L1,
@@ -149,11 +126,37 @@ class FuserConfig:
             for run_type in run_types:
                 runs = []
                 self.global_config.perf_run_type = run_type
+
+                cpp_path = (
+                    FUSED_TESTS_DIR
+                    / f"{self.global_config.test_name}_{run_type.name}.cpp"
+                )
+
                 code_generator = FusedKernelGenerator(self)
                 code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
 
+                test_config = TestConfig(
+                    test_name=cpp_path,
+                    formats=FormatConfig(
+                        unpack_A_src=DataFormat.Float16,
+                        unpack_A_dst=DataFormat.Float16,
+                        pack_src=DataFormat.Float16,
+                        pack_dst=DataFormat.Float16,
+                        math=DataFormat.Float16,
+                    ),
+                    templates=set(),
+                    runtimes=set(),
+                    variant_stimuli=None,
+                    boot_mode=BootMode.DEFAULT,
+                    profiler_build=ProfilerBuild.Yes,
+                    skip_build_header=True,
+                )
+
                 test_config.generate_variant_hash()
                 test_config.build_elfs()
+
+                if TestConfig.MODE == TestMode.PRODUCE:
+                    continue
 
                 for run_index in range(run_count):
                     elfs = test_config.run_elf_files(location)
@@ -178,30 +181,53 @@ class FuserConfig:
                 get_stats = Profiler.STATS_FUNCTION[run_type]
                 all_results.append(get_stats(ProfilerData.concat(runs)))
 
-            # Merge results with validation
-            # how="outer" keeps all markers (some may not appear in all run types)
-            # validate="1:1" catches duplicate markers within each run type
-            results = reduce(
-                lambda left, right: pd.merge(
-                    left, right, on="marker", how="outer", validate="1:1"
-                ),
-                all_results,
-            )
-            results["test_name"] = self.global_config.test_name
-            results["loop_factor"] = self.global_config.loop_factor
-            perf_report.append(results)
-            print(results)
+            if TestConfig.MODE != TestMode.PRODUCE and all_results:
+                # Merge results with validation
+                # how="outer" keeps all markers (some may not appear in all run types)
+                # validate="1:1" catches duplicate markers within each run type
+                results = reduce(
+                    lambda left, right: pd.merge(
+                        left, right, on="marker", how="outer", validate="1:1"
+                    ),
+                    all_results,
+                )
+                results["test_name"] = self.global_config.test_name
+                results["loop_factor"] = self.global_config.loop_factor
+                perf_report.append(results)
+                print(results)
 
-            csv_prefix = f"{self.global_config.test_name}_fused_test"
-            perf_report.dump_csv(f"{csv_prefix}.{worker_id}.csv")
-            perf_report.post_process()
-            perf_report.dump_csv(f"{csv_prefix}.{worker_id}.post.csv")
+                csv_prefix = f"{self.global_config.test_name}_fused_test"
+                perf_report.dump_csv(f"{csv_prefix}.{worker_id}.csv")
+                perf_report.post_process()
+                perf_report.dump_csv(f"{csv_prefix}.{worker_id}.post.csv")
         else:
+            cpp_path = FUSED_TESTS_DIR / f"{self.global_config.test_name}.cpp"
+
             code_generator = FusedKernelGenerator(self)
             code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
 
+            test_config = TestConfig(
+                test_name=cpp_path,
+                formats=FormatConfig(
+                    unpack_A_src=DataFormat.Float16,
+                    unpack_A_dst=DataFormat.Float16,
+                    pack_src=DataFormat.Float16,
+                    pack_dst=DataFormat.Float16,
+                    math=DataFormat.Float16,
+                ),
+                templates=set(),
+                runtimes=set(),
+                variant_stimuli=None,
+                boot_mode=BootMode.DEFAULT,
+                profiler_build=ProfilerBuild.No,
+                skip_build_header=True,
+            )
+
             test_config.generate_variant_hash()
             test_config.build_elfs()
+
+            if TestConfig.MODE == TestMode.PRODUCE:
+                return
 
             elfs = test_config.run_elf_files(location)
             wait_for_tensix_operations_finished(elfs, location)
