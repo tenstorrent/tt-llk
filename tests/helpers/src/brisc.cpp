@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include <ckernel.h>
+
 #include <cstdint>
 
 #ifdef LLK_BOOT_MODE_BRISC
@@ -37,41 +39,45 @@ int main()
         switch (static_cast<enum CommandState>(*state_command))
         {
             case CommandState::START_TRISCS:
-                while (*mailbox_unpack != 0)
+                while (*mailbox_unpack != ckernel::RESET_VAL)
                 {
                     asm volatile("fence");
-                    *mailbox_unpack = 0;
+                    *mailbox_unpack = ckernel::RESET_VAL;
                     asm volatile("fence");
                 }
-                while (*mailbox_math != 0)
+                while (*mailbox_math != ckernel::RESET_VAL)
                 {
                     asm volatile("fence");
-                    *mailbox_math = 0;
+                    *mailbox_math = ckernel::RESET_VAL;
                     asm volatile("fence");
                 }
-                while (*mailbox_pack != 0)
+                while (*mailbox_pack != ckernel::RESET_VAL)
                 {
                     asm volatile("fence");
-                    *mailbox_pack = 0;
+                    *mailbox_pack = ckernel::RESET_VAL;
                     asm volatile("fence");
                 }
 
                 device_setup();
                 clear_trisc_soft_reset();
 
+                asm volatile("fence");
                 *state_command = static_cast<uint32_t>(CommandState::IDLE_STATE);
                 asm volatile("fence");
                 *state_brisc = static_cast<uint32_t>(CommandState::START_TRISCS);
                 asm volatile("fence");
                 break;
+
             case CommandState::RESET_TRISCS:
                 set_triscs_soft_reset();
 
+                asm volatile("fence");
                 *state_command = static_cast<uint32_t>(CommandState::IDLE_STATE);
                 asm volatile("fence");
                 *state_brisc = static_cast<uint32_t>(CommandState::RESET_TRISCS);
                 asm volatile("fence");
                 break;
+
             default:
                 break;
         }

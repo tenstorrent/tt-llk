@@ -8,6 +8,7 @@
 
 #include "cfg_defines.h"
 #include "ckernel.h"
+#include "ckernel_helper.h"
 
 inline void device_setup()
 {
@@ -40,7 +41,7 @@ inline void device_setup()
         asm volatile("fence");
     }
 
-    ckernel::reg_write(RISCV_DEBUG_REG_TRISC_RESET_PC_OVERRIDE, 0x7);
+    ckernel::reg_write(RISCV_DEBUG_REG_TRISC_RESET_PC_OVERRIDE, 0b111);
 #endif
 
 #if defined(ARCH_BLACKHOLE) && !defined(ARCH_QUASAR) // Ugly hack for now
@@ -75,6 +76,8 @@ inline void device_setup()
     ckernel::t6_semaphore_init(ckernel::semaphore::MATH_DONE, 0, 1);
     ckernel::t6_semaphore_init(ckernel::semaphore::PACK_DONE, 0, 1);
 #endif
+
+    // ckernel::tensix_sync();
 }
 
 static uint32_t cfg_initial_state = 0;
@@ -93,10 +96,17 @@ inline void clear_trisc_soft_reset()
     {
         cfg_initial_state = soft_reset;
     }
+    uint32_t temp_reset = soft_reset & ~TRISC_SOFT_RESET_MASK;
 
-    soft_reset &= ~TRISC_SOFT_RESET_MASK;
-
-    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
+    while (true)
+    {
+        ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, temp_reset);
+        soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+        if (temp_reset == soft_reset)
+        {
+            break;
+        }
+    }
 }
 
 inline void set_triscs_soft_reset()
@@ -111,10 +121,12 @@ inline void set_triscs_soft_reset()
     soft_reset |= TRISC_SOFT_RESET_MASK;
 
     uint32_t temp_reset_reg = 0;
-
-    do
+    while (temp_reset_reg != soft_reset)
     {
+        asm volatile("fence");
         ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
+        asm volatile("fence");
         temp_reset_reg = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
-    } while (temp_reset_reg != soft_reset);
+        asm volatile("fence");
+    }
 }

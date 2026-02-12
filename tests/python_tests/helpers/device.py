@@ -316,13 +316,6 @@ def wait_for_tensix_operations_finished(
     )
 
     trisc_hangs = [mailbox.name for mailbox in (mailboxes - completed)]
-
-    soft_reset = get_register_store(location, 0).read_register(
-        "RISCV_DEBUG_REG_SOFT_RESET_0"
-    )
-
-    print(hex(soft_reset))
-
     raise TimeoutError(
         f"Timeout reached: waited {timeout} seconds for {', '.join(trisc_hangs)}"
     )

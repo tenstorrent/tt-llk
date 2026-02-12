@@ -87,7 +87,9 @@ int main()
     {
         ZONE_SCOPED("KERNEL")
         run_kernel(temp_args);
+        asm volatile("fence");
         ckernel::tensix_sync();
+        asm volatile("fence");
     }
 
     asm volatile("fence");

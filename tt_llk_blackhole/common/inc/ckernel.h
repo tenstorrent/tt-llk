@@ -54,17 +54,17 @@
 namespace ckernel
 {
 
-constexpr uint PACK_FLUSH_COUNTERS = // counters flush
+constexpr std::uint32_t PACK_FLUSH_COUNTERS = // counters flush
     (1 << PACK_COUNTERS_SEC2_pack_per_xy_plane_SHAMT) | (1 << PACK_COUNTERS_SEC2_pack_reads_per_xy_plane_SHAMT) |
     (1 << PACK_COUNTERS_SEC2_pack_xys_per_tile_SHAMT);
 
-constexpr uint RESET_VAL                    = 0;
-constexpr uint KERNEL_IN_PROGRESS           = 15;
-constexpr uint KERNEL_START_RUNTIME_LOADING = 0x1;
-constexpr uint KERNEL_LOADED_RUNTIMES       = 0x2;
-constexpr uint KERNEL_STARTED_MAIN          = 0x3;
-constexpr uint KERNEL_FINNISHED_MAIN        = 0x4;
-constexpr uint KERNEL_COMPLETE              = 0xF;
+constexpr std::uint32_t RESET_VAL                    = 0xA3;
+constexpr std::uint32_t KERNEL_IN_PROGRESS           = 15;
+constexpr std::uint32_t KERNEL_START_RUNTIME_LOADING = 0x1;
+constexpr std::uint32_t KERNEL_LOADED_RUNTIMES       = 0x2;
+constexpr std::uint32_t KERNEL_STARTED_MAIN          = 0x3;
+constexpr std::uint32_t KERNEL_FINNISHED_MAIN        = 0x4;
+constexpr std::uint32_t KERNEL_COMPLETE              = 0xF;
 
 extern volatile uint tt_reg_ptr *reg_base;
 extern volatile uint tt_reg_ptr *pc_buf_base;
@@ -100,7 +100,7 @@ inline void tensix_sync()
     pc_buf_base[1] = foo;
 
     // Now read -- this read will block until we're idle
-    *fooptr = pc_buf_base[1];
+    *fooptr = pc_buf_base[1] & 1;
 }
 
 inline void mop_sync()
@@ -111,7 +111,7 @@ inline void mop_sync()
     pc_buf_base[2] = foo;
 
     // Now read -- this read will block until mops are done
-    *fooptr = pc_buf_base[2];
+    *fooptr = pc_buf_base[2] & 1;
 }
 
 inline void sync_regfile_write(const uint index);
