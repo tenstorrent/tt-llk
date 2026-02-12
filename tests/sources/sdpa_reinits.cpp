@@ -160,6 +160,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_pack_sync_init_<dest_sync2, false>();
 
     // Operation 2: Eltwise ELWSUB FPU
+    // REDUCE -> SUB TRANSITION REINIT NEEDS TO BE DONE MOSTLY FULL BECAUSE OF MOP RECONFIG
     _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::ELWSUB, BroadcastType::COL, ckernel::MathFidelity::LoFi, EltwiseBinaryReuseDestType::NONE>(4, 0);
 
     for (std::uint32_t batch = 0; batch < 1; ++batch)
@@ -175,7 +176,12 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_pack_sync_init_<dest_sync3, false>();
 
     // Operation 3: Matmul FPU - Using experimental custom no-mop API
-    _llk_math_matmul_init_<0, 0>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, 1, 1);
+    // _llk_math_matmul_init_<0, 0>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, 1, 1);
+
+    x
+    // TEST MATMUL REINIT FOR JUST 2 ADDR_MODS AFTER ELTWISE BINARY
+    // SO THIS ELWSUB BINARY -> MATMUL REINIT STEP§
+    matmul_configure_addrmod_reinit();
 
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
