@@ -293,27 +293,31 @@ inline void _llk_math_eltwise_binary_bcast_reuse_()
     }
         .set(ADDR_MOD_5);
 
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB); // reset both src counters to 0
+
     for (std::uint32_t i = 0; i < ct_dim; i++)
     {
         // F0 - F0
-        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_7, 0);
-        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_5, 0);
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_7, 0); // 0 -> 8
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_5, 0); // 8 -> 0
 
         // F1 - F0
-        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_7, 0);
-        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_6, 0);
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_7, 0); // 0 -> 8
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_6, 0); // 8 -> 32
 
         // F2 - F2
-        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_7, 0);
-        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_5, 0);
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_7, 0); // 32 -> 40
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_5, 0); // 40 -> 32
 
-        // F3 - F3
-        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_7, 0);
-        TTI_ELWSUB(p_setrwc::CLR_A, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_6, 0);
+        // F3 - F2
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_7, 0); // 32 -> 40
+        TTI_ELWSUB(p_setrwc::CLR_A, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_6, 0);    // 40 -> 0
+
+        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB); // reset both src counters to 0
 
         if (i == ct_dim - 1)
         {
-            TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+            TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB);
         }
     }
 }
