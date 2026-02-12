@@ -258,6 +258,10 @@ class FormatConfig:
     def input_format(self) -> DataFormat:
         return self.unpack_A_src
 
+    @property
+    def input_format_B(self) -> DataFormat:
+        return self.unpack_B_src
+
 
 @dataclass
 class InputOutputFormat:

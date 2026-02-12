@@ -116,6 +116,7 @@ class StimuliConfig:
     def generate_runtime_operands_values(self, formats) -> list:
         # Use actual tile sizes based on tile_dimensions
         input_format = DataFormat.Float16_b if formats is None else formats.input_format
+        input_format_B = DataFormat.Float16_b if formats is None else formats.input_format_B
         output_format = (
             DataFormat.Float16_b if formats is None else formats.output_format
         )
@@ -124,7 +125,7 @@ class StimuliConfig:
             input_format, self.tile_dimensions, format_tile_sizes
         )
         buf_b_tile_size = calculate_tile_size_bytes(
-            input_format, self.tile_dimensions, format_tile_sizes
+            input_format_B, self.tile_dimensions, format_tile_sizes
         )
         buf_res_tile_size = calculate_tile_size_bytes(
             output_format, self.tile_dimensions, format_tile_sizes
