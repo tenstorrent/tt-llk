@@ -167,6 +167,7 @@ class StimuliConfig:
     def generate_stimuli_header_addresses(self, formats) -> list[str]:
         # Use actual tile sizes based on tile_dimensions
         input_format = DataFormat.Float16_b if formats is None else formats.input_format
+        input_format_B = DataFormat.Float16_b if formats is None else formats.input_format_B
         output_format = (
             DataFormat.Float16_b if formats is None else formats.output_format
         )
