@@ -85,11 +85,11 @@ def test_eltwise_bcast_col_custom(
     )
 
     # Override stimuli: srcA = all 3s, srcB = all 2s with first column = 1s
-    src_A = torch.full_like(src_A, 3.0)
-    src_B = torch.full_like(src_B, 2.0)
-    src_B_2d_override = src_B.view(input_dimensions_B[0], input_dimensions_B[1])
-    src_B_2d_override[:, 0] = 1.0  # First column filled with 1s
-    src_B = src_B_2d_override.flatten()
+    # src_A = torch.full_like(src_A, 3.0)
+    # src_B = torch.full_like(src_B, 2.0)
+    # src_B_2d_override = src_B.view(input_dimensions_B[0], input_dimensions_B[1])
+    # src_B_2d_override[:, 0] = 1.0  # First column filled with 1s
+    # src_B = src_B_2d_override.flatten()
 
     print(f"src_A: {src_A.view(input_dimensions_A[0], input_dimensions_A[1])}")
     print(f"src_B: {src_B.view(input_dimensions_B[0], input_dimensions_B[1])}")
@@ -101,6 +101,8 @@ def test_eltwise_bcast_col_custom(
     src_B_tilized = tilize_block(
         src_B, input_dimensions_B, formats.input_format
     ).flatten()
+
+    print(src_B_tilized.view(input_dimensions_B[0], input_dimensions_B[1]))
 
     # For broadcast: hardware broadcasts in tilized space, so we need to simulate that for golden
     # Step 1: Broadcast column - replicate first column of srcB to all columns within each tile

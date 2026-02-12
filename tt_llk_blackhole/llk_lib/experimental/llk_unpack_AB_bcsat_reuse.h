@@ -80,12 +80,15 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
     // Run MOP
     // ckernel::ckernel_template::run();
 
+    constexpr std::uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00;
+
     // unpack srcB with dvalid set, and no advancement of counters
-    TTI_UNPACR(SrcB, 0b0, 0, 0, 0, 0, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-    // unpack srcA with dvalid set, and no advancement of counters
+    TTI_UNPACR(SrcB, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    // unpack srcA with dvalid set, advancing through column tiles (CH0_Z+=1 each iteration)
     for (std::uint32_t i = 0; i < ct_dim; i++)
     {
-        TTI_UNPACR(SrcA, 0b0, 0, 0, 0, 0, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_UNPACR(SrcA, ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0, 0, 0, 0, 1, 1 /* dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        TTI_INCADCZW(p_setadc::UNP_A, 0, 0, 1, 0);
     }
 
     // T6::SEMGET for context release
