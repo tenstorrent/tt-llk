@@ -48,9 +48,9 @@ inline void _llk_unpack_AB_reduce_mop_config_(const std::uint32_t face_r_dim, co
     // Data valid for clear instructions is set to 0 since the MATH kernel should not process this data.
     // pool_type == PoolType::MAX sets the clear value to neginf if the pool-type is MAX and 0 if the pool-type is AVG/SUM
     static constexpr std::uint32_t clear_pool_dep_srca =
-        TT_OP_UNPACR_NOP(Srcs::SrcA, 0, 0, 0, 0, 1, 0 /* dvalid */, pool_type == PoolType::MAX /* 0 or neginf */, p_unpacr_nop::CLR_SRC);
+        TT_OP_UNPACR_NOP(Srcs::SrcA, 0, 0, 0 /* dvalid */, 0, 0 /* Stall_Clr_Cntrl */, 0, pool_type == PoolType::MAX /* 0 or neginf */, p_unpacr_nop::CLR_SRC);
     static constexpr std::uint32_t clear_zero_srca =
-        TT_OP_UNPACR_NOP(Srcs::SrcA, 0, 0, 0, 0, 1, 0 /* dvalid */, p_unpacr_nop::CLR_SRC_0, p_unpacr_nop::CLR_SRC);
+        TT_OP_UNPACR_NOP(Srcs::SrcA, 0, 0, 0 /* dvalid */, 0, 0 /* Stall_Clr_Cntrl */, 0, p_unpacr_nop::CLR_SRC_0, p_unpacr_nop::CLR_SRC);
 
     constexpr std::uint32_t REPLAY_BUF_LEN = 2;
 
