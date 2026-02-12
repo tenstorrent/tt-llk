@@ -21,10 +21,8 @@ class UnpackKernelGenerator:
         # Collect all unique headers from all operations
         all_headers = set()
         for op in self.config.pipeline:
-            for fused_compute in op.math.operations:
-                if fused_compute.unpacker is not None:
-                    unpacker_instance = fused_compute.unpacker()
-                    all_headers.update(unpacker_instance.get_headers())
+            unpacker_instance = op.unpacker()
+            all_headers.update(unpacker_instance.get_headers())
 
         # Generate include statements
         includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
@@ -40,7 +38,7 @@ class UnpackKernelGenerator:
             f"\n"
             f"{includes}\n"
             f"\n"
-            f"void run_kernel(const struct RuntimeParams& params)\n"
+            f"void run_kernel(const volatile struct RuntimeParams* params)\n"
             f"{{\n"
             f"{unpack_calls}"
             f"}}\n"
@@ -60,8 +58,7 @@ class MathKernelGenerator:
         # Collect all unique headers from all operations
         all_headers = set()
         for op in self.config.pipeline:
-            for unit in op.math.get_math_units():
-                all_headers.update(unit.get_headers())
+            all_headers.update(op.math.get_headers())
 
         # Generate include statements
         includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
@@ -77,7 +74,7 @@ class MathKernelGenerator:
             f"\n"
             f"{includes}\n"
             f"\n"
-            f"void run_kernel(const struct RuntimeParams& params)\n"
+            f"void run_kernel(const volatile struct RuntimeParams* params)\n"
             f"{{\n"
             f"{math_calls}"
             f"}}\n"
@@ -114,7 +111,7 @@ class PackKernelGenerator:
             f"\n"
             f"{includes}\n"
             f"\n"
-            f"void run_kernel(const struct RuntimeParams& params)\n"
+            f"void run_kernel(const volatile struct RuntimeParams* params)\n"
             f"{{\n"
             f"{pack_calls}"
             f"}}\n"
@@ -177,9 +174,5 @@ class FusedKernelGenerator:
         fused_test_cpp_dir = test_cpp_dir / FUSED_TESTS_DIR
         fused_test_cpp_dir.mkdir(parents=True, exist_ok=True)
 
-        cpp_path = test_cpp_dir / f"{test_name}"
-
-        with open(cpp_path, "w") as f:
+        with open(test_cpp_dir / f"{test_name}", "w") as f:
             f.write(combined)
-
-        os.system(f'clang-format -i "{cpp_path}"')
