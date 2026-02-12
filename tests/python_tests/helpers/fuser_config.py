@@ -132,8 +132,11 @@ class FuserConfig:
                     / f"{self.global_config.test_name}_{run_type.name}.cpp"
                 )
 
-                code_generator = FusedKernelGenerator(self)
-                code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
+                if TestConfig.MODE != TestMode.CONSUME:
+                    code_generator = FusedKernelGenerator(self)
+                    code_generator.write_kernel(
+                        cpp_path, self.global_config.regenerate_cpp
+                    )
 
                 test_config = TestConfig(
                     test_name=cpp_path,
@@ -153,7 +156,9 @@ class FuserConfig:
                 )
 
                 test_config.generate_variant_hash()
-                test_config.build_elfs()
+
+                if TestConfig.MODE != TestMode.CONSUME:
+                    test_config.build_elfs()
 
                 if TestConfig.MODE == TestMode.PRODUCE:
                     continue
@@ -203,8 +208,9 @@ class FuserConfig:
         else:
             cpp_path = FUSED_TESTS_DIR / f"{self.global_config.test_name}.cpp"
 
-            code_generator = FusedKernelGenerator(self)
-            code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
+            if TestConfig.MODE != TestMode.CONSUME:
+                code_generator = FusedKernelGenerator(self)
+                code_generator.write_kernel(cpp_path, self.global_config.regenerate_cpp)
 
             test_config = TestConfig(
                 test_name=cpp_path,
@@ -224,7 +230,9 @@ class FuserConfig:
             )
 
             test_config.generate_variant_hash()
-            test_config.build_elfs()
+
+            if TestConfig.MODE != TestMode.CONSUME:
+                test_config.build_elfs()
 
             if TestConfig.MODE == TestMode.PRODUCE:
                 return
