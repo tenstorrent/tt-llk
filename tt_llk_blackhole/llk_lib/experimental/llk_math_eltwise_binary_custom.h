@@ -268,3 +268,52 @@ inline void _llk_math_eltwise_binary_uninit_()
 {
     // No state to restore - all states are transient or default
 }
+
+template <std::uint32_t ct_dim = 1>
+inline void _llk_math_eltwise_binary_bcast_reuse_()
+{
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .srcb = {.incr = 8},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_7);
+
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .srcb = {.incr = 24},
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_6);
+
+    addr_mod_t {
+        .srca = {.incr = 8},
+        .srcb = {.incr = 0x3F & -8}, // decrement srcB by 8
+        .dest = {.incr = 8},
+    }
+        .set(ADDR_MOD_5);
+
+    for (std::uint32_t i = 0; i < ct_dim; i++)
+    {
+        // F0 - F0
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_7, 0);
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_5, 0);
+
+        // F1 - F0
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_7, 0);
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_6, 0);
+
+        // F2 - F2
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_7, 0);
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_5, 0);
+
+        // F3 - F3
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_7, 0);
+        TTI_ELWSUB(p_setrwc::CLR_A, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_6, 0);
+
+        if (i == ct_dim - 1)
+        {
+            TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, 0);
+        }
+    }
+}

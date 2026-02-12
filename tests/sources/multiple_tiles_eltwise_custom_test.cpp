@@ -15,9 +15,12 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
-#include "llk_unpack_AB.h"
+#include "experimental/llk_unpack_AB_bcsat_reuse.h"
 #include "llk_unpack_common.h"
 #include "params.h"
+
+// Define CT_DIM as the number of tiles to process (8 tiles for 256/32)
+constexpr std::uint32_t CT_DIM = 8;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
@@ -25,7 +28,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /*num_faces */, 4 /* num_faces */);
     _llk_unpack_AB_init_<BROADCAST_TYPE, CT_DIM>();
 
-    _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]));
+    _llk_unpack_AB_<BROADCAST_TYPE, CT_DIM>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]));
 }
 
 #endif
@@ -36,19 +39,21 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_math_common.h"
 #include "params.h"
 
+// Define CT_DIM as the number of tiles to process (8 tiles for 256/32)
+constexpr std::uint32_t CT_DIM = 8;
+
 void run_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BROADCAST_TYPE, MATH_FIDELITY>(4, 0);
 
-    for (int i = 0; i < params->TILE_CNT; i++)
-    {
-        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BROADCAST_TYPE, DstSync::SyncHalf, is_fp32_dest_acc_en, MATH_FIDELITY, EltwiseBinaryReuseDestType::NONE>(
-            4, 0, false);
-        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    }
+    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+
+    // call custom LLK
+    _llk_math_eltwise_binary_bcast_reuse_<CT_DIM>();
+
+    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif
@@ -75,12 +80,15 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
 #endif
 
+    // wait for math to finish
+    _llk_packer_wait_for_math_done_();
+
+    // pack the result
     for (int i = 0; i < params->TILE_CNT; i++)
     {
-        _llk_packer_wait_for_math_done_();
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[i]));
-        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif
