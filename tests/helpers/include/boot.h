@@ -5,6 +5,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 
 #include "cfg_defines.h"
 #include "ckernel.h"
@@ -17,7 +18,7 @@ inline void device_setup()
     constexpr std::uint32_t TRISC_CONFIG_REGS[] = {TRISC_RESET_PC_SEC0_PC_ADDR32, TRISC_RESET_PC_SEC1_PC_ADDR32, TRISC_RESET_PC_SEC2_PC_ADDR32};
 
     volatile std::uint32_t* const trisc_start_addresses = reinterpret_cast<volatile std::uint32_t*>(TRISC_START_BASE);
-    volatile uint tt_reg_ptr* cfg_regs                  = reinterpret_cast<volatile uint tt_reg_ptr*>(TENSIX_CFG_BASE);
+    volatile std::uint32_t tt_reg_ptr* cfg_regs         = reinterpret_cast<volatile std::uint32_t tt_reg_ptr*>(TENSIX_CFG_BASE);
 
     for (unsigned int i = 0; i < std::size(TRISC_CONFIG_REGS); ++i)
     {
@@ -80,14 +81,14 @@ inline void device_setup()
 inline void clear_trisc_soft_reset()
 {
 #ifdef ARCH_QUASAR
-    constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x3000;
+    constexpr std::uint32_t TRISC_SOFT_RESET_MASK = 0x3000;
 #else
-    constexpr uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
+    constexpr std::uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
 #endif
 
     volatile std::uint32_t* const REG_SOFT_RESET = reinterpret_cast<volatile std::uint32_t*>(RISCV_DEBUG_REG_SOFT_RESET_0);
 
-    uint32_t soft_reset = ckernel::load_blocking(REG_SOFT_RESET);
+    std::uint32_t soft_reset = ckernel::load_blocking(REG_SOFT_RESET);
 
     soft_reset &= ~TRISC_SOFT_RESET_MASK;
 

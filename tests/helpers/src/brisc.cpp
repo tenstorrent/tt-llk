@@ -11,7 +11,7 @@
 #include "boot.h"
 #endif
 
-enum class CommandState : uint32_t
+enum class CommandState : std::uint32_t
 {
     IDLE_STATE   = 0,
     START_TRISCS = 1,

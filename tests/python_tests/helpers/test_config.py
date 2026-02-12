@@ -421,9 +421,9 @@ class TestConfig:
         lines = [
             "// Struct containing runtime parameter layout",
             "struct RuntimeParams {",
-            "uint32_t TILE_SIZE_PACK;",
-            "uint32_t TILE_SIZE_UNPACK_A;",
-            "uint32_t TILE_SIZE_UNPACK_B;",
+            "std::uint32_t TILE_SIZE_PACK;",
+            "std::uint32_t TILE_SIZE_UNPACK_A;",
+            "std::uint32_t TILE_SIZE_UNPACK_B;",
         ]
 
         self.runtime_format = "@III"  # tile size types for formatter
@@ -431,11 +431,11 @@ class TestConfig:
         if not self.compile_time_formats and self.formats:
             lines = [
                 "struct FormatConfig{",
-                "uint32_t unpack_src;",
-                "uint32_t unpack_dst;",
-                "uint32_t math;",
-                "uint32_t pack_src;",
-                "uint32_t pack_dst;",
+                "std::uint32_t unpack_src;",
+                "std::uint32_t unpack_dst;",
+                "std::uint32_t math;",
+                "std::uint32_t pack_src;",
+                "std::uint32_t pack_dst;",
                 "};",
             ] + lines
             if self.L1_to_L1_iterations == 1:
@@ -471,12 +471,12 @@ class TestConfig:
 
         header_content = [
             "struct FormatConfig{",
-            "const uint32_t unpack_src;",
-            "const uint32_t unpack_dst;",
-            "const uint32_t math;",
-            "const uint32_t pack_src;",
-            "const uint32_t pack_dst;",
-            "constexpr FormatConfig(uint32_t unpack_src_, uint32_t unpack_dst_, uint32_t math_, uint32_t pack_src_, uint32_t pack_dst_) : unpack_src(unpack_src_), unpack_dst(unpack_dst_), math(math_), pack_src(pack_src_), pack_dst(pack_dst_) {}",
+            "const std::uint32_t unpack_src;",
+            "const std::uint32_t unpack_dst;",
+            "const std::uint32_t math;",
+            "const std::uint32_t pack_src;",
+            "const std::uint32_t pack_dst;",
+            "constexpr FormatConfig(std::uint32_t unpack_src_, std::uint32_t unpack_dst_, std::uint32_t math_, std::uint32_t pack_src_, std::uint32_t pack_dst_) : unpack_src(unpack_src_), unpack_dst(unpack_dst_), math(math_), pack_src(pack_src_), pack_dst(pack_dst_) {}",
             "};",
         ]
         if self.L1_to_L1_iterations > 1:
