@@ -153,6 +153,7 @@ def passed_test(
     L1_to_L1_iterations: int = 1,
     print_erros: bool = True,
     print_pcc: bool = False,
+    tile_size=1024,
 ):
     Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
 
@@ -232,14 +233,14 @@ def passed_test(
 
                 for tile_no in range(num_tiles):
                     result_tile = res_tensor[
-                        tile_no * 1024 : (tile_no + 1) * 1024
+                        tile_no * tile_size : (tile_no + 1) * tile_size
                     ].view(tile_shape)
                     golden_tile = golden_tensor[
-                        tile_no * 1024 : (tile_no + 1) * 1024
+                        tile_no * tile_size : (tile_no + 1) * tile_size
                     ].view(tile_shape)
-                    error_tile = ~is_valid[tile_no * 1024 : (tile_no + 1) * 1024].view(
-                        tile_shape
-                    )
+                    error_tile = ~is_valid[
+                        tile_no * tile_size : (tile_no + 1) * tile_size
+                    ].view(tile_shape)
 
                     lines = format_tile(result_tile, error_tile, tile_no)
                     if not lines:

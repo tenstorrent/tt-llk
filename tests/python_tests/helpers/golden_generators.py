@@ -2079,7 +2079,7 @@ class TilizeGolden:
             raise ValueError(f"`num_faces` must be between 1 and 4, got {num_faces}")
 
         # Always do full tilization first
-        result = tilize_block(operand, dimensions, data_format)
+        result = tilize_block(operand, dimensions, data_format, num_faces)
         torch_format = format_dict[data_format]
 
         # Then select the appropriate number of faces from the tilized result

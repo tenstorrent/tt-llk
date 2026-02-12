@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from helpers.format_config import MXFP8_BLOCK_SIZE, DataFormat
 
-from .llk_params import format_dict, format_tile_sizes
+from .llk_params import format_dict
 
 
 def unpack_fp16(packed_list):
@@ -207,15 +207,12 @@ def unpack_res_tiles(
 ):
     output_dtype = format_dict[output_format]
 
-    # Calculate tile size and determine elements per tile needed
-    tile_size = format_tile_sizes[output_format]  # Full tile size in bytes
+    # Calculate tile size in bytes (for tiny tiles, use actual size not full tile size)
+    actual_tile_elements = num_faces * face_r_dim * 16
+    tile_size_bytes = output_format.num_bytes_per_tile(actual_tile_elements)
 
-    elements_per_tile_needed = output_format.num_bytes_per_tile(
-        num_faces * face_r_dim * 16
-    )
-
-    total_elements_needed = tile_count * elements_per_tile_needed
-    if total_elements_needed > len(packed_list):
+    total_bytes_needed = tile_count * tile_size_bytes
+    if total_bytes_needed > len(packed_list):
         raise IndexError("Buffer access out of bounds")
 
     if output_format == DataFormat.Bfp8_b:
@@ -231,9 +228,9 @@ def unpack_res_tiles(
 
     # Write only values from the selected faces into unpacked_tile
     for tile in range(tile_count):
-        # Both paths use byte-based indexing since tile_size and elements_per_tile_needed are in bytes
-        start_idx = tile * tile_size
-        end_idx = start_idx + elements_per_tile_needed
+        # All indexing is byte-based
+        start_idx = tile * tile_size_bytes
+        end_idx = start_idx + tile_size_bytes
         tile_data = packed_list[start_idx:end_idx]
 
         if unpack_func == unpack_bfp8_b:
