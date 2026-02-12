@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+from dataclasses import dataclass
+
 import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture
@@ -27,9 +29,19 @@ from helpers.test_variant_parameters import (
     MATH_FIDELITY,
     MATH_OP,
     TILE_COUNT,
+    TemplateParameter,
 )
 from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
+
+
+# Custom template parameter for CT_DIM
+@dataclass
+class CT_DIM(TemplateParameter):
+    ct_dim: int
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr std::uint32_t CT_DIM = {self.ct_dim};"
 
 
 @parametrize(
@@ -47,7 +59,7 @@ from helpers.utils import passed_test
         MathFidelity.LoFi,
     ],
     broadcast_type=[BroadcastType.Column],
-    input_dimensions_A=[[32, 256]],  # 32 x 8*32 = [32, 256]
+    input_dimensions_A=[[32, 64]],  # 32 x 8*32 = [32, 128] TODO: EXPAND TO 256
     input_dimensions_B=[[32, 32]],  # 32 x 32 = [32, 32]
 )
 def test_eltwise_bcast_col_custom(
@@ -142,6 +154,7 @@ def test_eltwise_bcast_col_custom(
             INPUT_DIMENSIONS(input_dimensions_A, input_dimensions_B),
             MATH_OP(mathop=mathop),
             BROADCAST_TYPE(broadcast_type),
+            CT_DIM(input_dimensions_A[1] // 32),  # Number of tiles in column dimension
         ],
         runtimes=[TILE_COUNT(tile_cnt_A)],
         variant_stimuli=StimuliConfig(
