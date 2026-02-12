@@ -151,12 +151,24 @@ inline void store_blocking(volatile std::uint32_t *ptr, std::uint32_t val)
 
 inline void tensix_sync()
 {
-    store_blocking(&pc_buf_base[1], 0);
+    volatile std::uint32_t foo     = 0x0;
+    volatile std::uint32_t *fooptr = &foo;
+    // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
+    pc_buf_base[1] = foo;
+
+    // Now read -- this read will block until we're idle
+    *fooptr = pc_buf_base[1];
 }
 
 inline void mop_sync()
 {
-    store_blocking(&pc_buf_base[2], 0);
+    volatile std::uint32_t foo     = 0x0;
+    volatile std::uint32_t *fooptr = &foo;
+    // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
+    pc_buf_base[2] = foo;
+
+    // Now read -- this read will block until mops are done
+    *fooptr = pc_buf_base[2];
 }
 
 inline void sync_regfile_write(const std::uint32_t index);

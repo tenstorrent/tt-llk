@@ -11,13 +11,6 @@
 #include "boot.h"
 #endif
 
-enum class CommandState : std::uint32_t
-{
-    IDLE_STATE   = 0,
-    START_TRISCS = 1,
-    RESET_TRISCS = 2,
-};
-
 int main()
 {
 #ifdef LLK_BOOT_MODE_BRISC
