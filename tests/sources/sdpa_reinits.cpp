@@ -123,11 +123,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr DstSync dest_sync0     = DstSync::SyncHalf;
     _llk_math_hw_configure_<false>(math_format0, math_format0);
     _llk_math_pack_sync_init_<dest_sync0, false>();
+
+    // Operation 0: Matmul FPU
+    _llk_math_matmul_init_<ckernel::MathFidelity::LoFi>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, false, 1, 1);
+
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
         _llk_math_wait_for_dest_available_<dest_sync0>();
-        // Operation 0: Matmul FPU
-        _llk_math_matmul_init_<ckernel::MathFidelity::LoFi>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, false, 1, 1);
         for (std::uint32_t kt = 0; kt < 1; kt++)
         {
             _llk_math_matmul_<ckernel::MathFidelity::LoFi>(0, 1, 1);
@@ -139,25 +141,30 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr DstSync dest_sync1     = DstSync::SyncHalf;
     _llk_math_reconfig_data_format_<false, false>(math_format1, math_format1);
     _llk_math_pack_sync_init_<dest_sync1, false>();
+
+    _llk_math_reduce_block_max_row_init_<1, false>();
+
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
         _llk_math_wait_for_dest_available_<dest_sync1>();
-        _llk_math_reduce_block_max_row_init_<1, false>();
         _llk_math_reduce_block_max_row_<1, false>(0);
-        _llk_math_reduce_block_max_row_uninit_();
         _llk_math_dest_section_done_<dest_sync1, false>();
     }
+
+    _llk_math_reduce_block_max_row_uninit_();
+
     // Operation 2: Math Setup
     const std::uint32_t math_format2 = ckernel::to_underlying(DataFormat::Float16_b);
     constexpr DstSync dest_sync2     = DstSync::SyncHalf;
     _llk_math_reconfig_data_format_<false, false>(math_format2, math_format2);
     _llk_math_pack_sync_init_<dest_sync2, false>();
+
+    // Operation 2: Eltwise ELWSUB FPU
+    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::ELWSUB, BroadcastType::COL, ckernel::MathFidelity::LoFi, EltwiseBinaryReuseDestType::NONE>(4, 0);
+
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
         _llk_math_wait_for_dest_available_<dest_sync2>();
-        // Operation 2: Eltwise ELWSUB FPU
-        _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::ELWSUB, BroadcastType::COL, ckernel::MathFidelity::LoFi, EltwiseBinaryReuseDestType::NONE>(
-            4, 0);
         _llk_math_eltwise_binary_<ELWSUB, BroadcastType::COL, dest_sync2, false, ckernel::MathFidelity::LoFi, EltwiseBinaryReuseDestType::NONE>(4, 0, false);
         _llk_math_dest_section_done_<dest_sync2, false>();
     }
@@ -166,11 +173,14 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr DstSync dest_sync3     = DstSync::SyncHalf;
     _llk_math_reconfig_data_format_<false, false>(math_format3, math_format3);
     _llk_math_pack_sync_init_<dest_sync3, false>();
+
+    // Operation 3: Matmul FPU
+    _llk_math_matmul_init_<ckernel::MathFidelity::LoFi>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, false, 1, 1);
+
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
         _llk_math_wait_for_dest_available_<dest_sync3>();
-        // Operation 3: Matmul FPU
-        _llk_math_matmul_init_<ckernel::MathFidelity::LoFi>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, false, 1, 1);
+
         for (std::uint32_t kt = 0; kt < 1; kt++)
         {
             _llk_math_matmul_<ckernel::MathFidelity::LoFi>(0, 1, 1);
