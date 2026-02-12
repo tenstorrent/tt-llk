@@ -306,7 +306,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         PROFILER_SYNC();
     }
 
-    _llk_pack_fast_tilize_uninit_<DstSync::SyncHalf, is_fp32_dest_acc_en>(formats.pack_dst, params->num_faces);
+    _llk_pack_fast_tilize_uninit_<DstSync::SyncHalf, is_fp32_dest_acc_en>(formats.pack_dst, FACE_R_DIM, params->num_faces);
 }
 
 #endif

@@ -275,6 +275,7 @@ inline void _llk_pack_fast_tilize_init_(
     const std::uint32_t num_faces        = 4,
     const std::uint32_t l1_tile_elements = TILE_C_DIM * TILE_R_DIM)
 {
+    LLK_ASSERT(num_faces == 2 || num_faces == 4, "num_faces must be 2 or 4");
     LLK_ASSERT(
         pack_dst_format == to_underlying(DataFormat::Float16_b) || pack_dst_format == to_underlying(DataFormat::Float32) || num_faces == 4,
         "16x32 tiny tiles are only supported with float16_b or float32 output formats");
@@ -402,6 +403,7 @@ inline void _llk_pack_fast_tilize_uninit_(
 inline void _llk_pack_fast_tilize_block_(
     const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t unit_dim, const std::uint32_t num_units, const std::uint32_t num_faces = 4)
 {
+    LLK_ASSERT(num_faces == 2 || num_faces == 4, "num_faces must be 2 or 4");
     // use false here so that the 31st bit of the address remains set as the offset addresses for the other packers continue to be used
     // while the address for the first packer is manipulated using ADDDMAREG and REG2FLOP
     program_packer_destination(address, false);
