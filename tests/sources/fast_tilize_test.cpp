@@ -199,16 +199,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
                         else
                         {
                             num_units = (remaining_tiles - 3) / unit_dim;
-<<<<<<< HEAD
-                            _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units);
+                            _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units, params->num_faces);
                             LLK_ASSERT(
                                 (remaining_tiles - 3 < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                                 "remaining_tiles - 3 exceeds max dest tiles");
-                            _llk_math_fast_tilize_block_(remaining_tiles - 3, formats.math, 3, 1);
-=======
-                            _llk_math_fast_tilize_block_(0, formats.math, unit_dim, num_units, params->num_faces);
                             _llk_math_fast_tilize_block_(remaining_tiles - 3, formats.math, 3, 1, params->num_faces);
->>>>>>> 67661ba2 (add functional changes for 16x32 fast tilize)
                         }
                         packed_tiles += remaining_tiles;
                         remaining_tiles = 0;
@@ -287,13 +282,14 @@ void run_kernel(const volatile struct RuntimeParams *params)
                             _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_index]), 3, 1, params->num_faces);
                         }
                         else
-                        {   
+                        {
                             num_units = (remaining_tiles - 3) / unit_dim;
                             _llk_pack_fast_tilize_block_(0, L1_ADDRESS(buffer_Res[tile_index]), unit_dim, num_units, params->num_faces);
                             LLK_ASSERT(
                                 (remaining_tiles - 3 < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                                 "remaining_tiles - 3 exceeds max dest tiles");
-                            _llk_pack_fast_tilize_block_(remaining_tiles - 3, L1_ADDRESS(buffer_Res[tile_index + remaining_tiles - 3]), 3, 1, params->num_faces);
+                            _llk_pack_fast_tilize_block_(
+                                remaining_tiles - 3, L1_ADDRESS(buffer_Res[tile_index + remaining_tiles - 3]), 3, 1, params->num_faces);
                         }
                         packed_tiles += remaining_tiles;
                         remaining_tiles = 0;
