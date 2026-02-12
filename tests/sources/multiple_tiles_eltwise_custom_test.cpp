@@ -23,11 +23,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /*num_faces */, 4 /* num_faces */);
-    _llk_unpack_AB_init_<>();
-    for (int i = 0; i < params->TILE_CNT; i++)
-    {
-        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
-    }
+    _llk_unpack_AB_init_<BROADCAST_TYPE, CT_DIM>();
+
+    _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]));
 }
 
 #endif
