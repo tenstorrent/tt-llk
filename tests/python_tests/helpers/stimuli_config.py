@@ -96,14 +96,21 @@ class StimuliConfig:
             )
 
     def generate_stimuli_header_addresses(self, formats) -> list[str]:
+        def get_format(format_override, stimuli_default):
+            if format_override is not None:
+                return format_override
+            if stimuli_default is not None:
+                return stimuli_default
+            return DataFormat.Float16_b
+
         buf_a_format = format_tile_sizes[
-            DataFormat.Float16_b if formats is None else formats.input_format
+            get_format(formats.input_format, self.stimuli_A_format)
         ]
         buf_b_format = format_tile_sizes[
-            DataFormat.Float16_b if formats is None else formats.input_format
+            get_format(formats.input_format_B, self.stimuli_B_format)
         ]
         buf_res_format = format_tile_sizes[
-            DataFormat.Float16_b if formats is None else formats.output_format
+            get_format(formats.output_format, self.stimuli_res_format)
         ]
 
         lines: list[str] = [
@@ -114,9 +121,8 @@ class StimuliConfig:
 
         if self.buffer_C is not None:
             buf_c_format = format_tile_sizes[
-                DataFormat.Float16_b if formats is None else formats.input_format
+                self.stimuli_C_format if self.stimuli_C_format else DataFormat.Float16_b
             ]
-
             lines.append(
                 f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {buf_c_format});"
             )

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
-from helpers.format_config import DataFormat
+from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
     EltwiseBinaryGolden,
     get_golden_generator,
@@ -15,7 +15,7 @@ from helpers.llk_params import (
     Transpose,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import parametrize
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -61,11 +61,6 @@ def get_tile_params(tile_dimensions):
 
 
 @parametrize(
-    formats=input_output_formats(
-        [
-            DataFormat.Float16_b,
-        ]
-    ),
     broadcast_type=[BroadcastType.None_],
     dest_acc=[DestAccumulation.No],
     math_fidelity=[MathFidelity.LoFi],
@@ -74,7 +69,6 @@ def get_tile_params(tile_dimensions):
     tile_dimensions=[[32, 32]],  # More dimensions coming soon....
 )
 def test_eltwise_binary(
-    formats,
     broadcast_type,
     dest_acc,
     math_fidelity,
@@ -83,6 +77,12 @@ def test_eltwise_binary(
     tile_dimensions,
     workers_tensix_coordinates,
 ):
+    # Test with different formats for src_A and src_B
+    formats = InputOutputFormat(
+        input_format=DataFormat.Float16_b,  # src_A format
+        output_format=DataFormat.Float16_b,
+        input_format_B=DataFormat.Float32,  # src_B format (different from src_A)
+    )
     num_faces, face_r_dim = get_tile_params(tile_dimensions)
 
     # Calculate tile count based on tile_dimensions (not hardcoded 32x32)
@@ -94,7 +94,7 @@ def test_eltwise_binary(
     src_A, _, src_B, _ = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
-        stimuli_format_B=formats.input_format,
+        stimuli_format_B=formats.input_format_B,  # Use different format for src_B
         input_dimensions_B=input_dimensions,
         # sequential_A=True,
         # const_face=True,
@@ -143,7 +143,7 @@ def test_eltwise_binary(
             src_A,
             formats.input_format,
             src_B,
-            formats.input_format,
+            formats.input_format_B,  # Use different format for src_B
             formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,

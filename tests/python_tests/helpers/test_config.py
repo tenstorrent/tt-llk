@@ -39,7 +39,7 @@ from .device import (
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
 )
-from .format_config import DataFormat, FormatConfig
+from .format_config import DataFormat, InputOutputFormat
 from .llk_params import (
     DestAccumulation,
     L1Accumulation,
@@ -303,7 +303,7 @@ class TestConfig:
     def __init__(
         self,
         test_name: str,
-        formats: FormatConfig = None,
+        formats: InputOutputFormat = None,
         templates: list[TemplateParameter] = [],
         runtimes: list[RuntimeParameter] = [],
         variant_stimuli: StimuliConfig = None,
@@ -603,12 +603,12 @@ class TestConfig:
 
         # Check if this is an outlier format combination that requires dest_acc to be enabled
         # Automatically enable dest_acc for outlier combinations
-        if (
-            is_format_combination_outlier(
-                self.formats.input_format, self.formats.output_format, self.dest_acc
-            )
-            and TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR
-        ):
+        if is_format_combination_outlier(
+            self.formats.input_format,
+            self.formats.output_format,
+            self.dest_acc,
+            self.formats.input_format_B,
+        ) and TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
             dest_acc = DestAccumulation.Yes
 
         # Dest accumulation
