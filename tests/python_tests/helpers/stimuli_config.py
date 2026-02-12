@@ -104,13 +104,17 @@ class StimuliConfig:
             return DataFormat.Float16_b
 
         buf_a_format = format_tile_sizes[
-            get_format(formats.input_format, self.stimuli_A_format)
+            get_format(formats.input_format if formats else None, self.stimuli_A_format)
         ]
         buf_b_format = format_tile_sizes[
-            get_format(formats.input_format_B, self.stimuli_B_format)
+            get_format(
+                formats.input_format_B if formats else None, self.stimuli_B_format
+            )
         ]
         buf_res_format = format_tile_sizes[
-            get_format(formats.output_format, self.stimuli_res_format)
+            get_format(
+                formats.output_format if formats else None, self.stimuli_res_format
+            )
         ]
 
         lines: list[str] = [
