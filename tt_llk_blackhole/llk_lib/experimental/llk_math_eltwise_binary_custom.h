@@ -311,13 +311,12 @@ inline void _llk_math_eltwise_binary_bcast_reuse_()
 
         // F3 - F2
         TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_7, 0); // 32 -> 40
-        TTI_ELWSUB(p_setrwc::CLR_A, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_6, 0);    // 40 -> 0
+        TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_6, 0); // 40 -> 64, no CLR_A
 
-        TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB); // reset both src counters to 0
-
-        if (i == ct_dim - 1)
-        {
-            TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB);
-        }
+        // Reset srcB to 0 for next tile, but keep srcA advancing
+        TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB); // reset only srcB counter to 0
     }
+
+    // Final cleanup: reset both counters
+    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB);
 }

@@ -19,9 +19,6 @@ std::uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-// Define CT_DIM as the number of tiles to process (8 tiles for 256/32)
-constexpr std::uint32_t CT_DIM = 8;
-
 void run_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -38,9 +35,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "experimental/llk_math_eltwise_binary_custom.h"
 #include "llk_math_common.h"
 #include "params.h"
-
-// Define CT_DIM as the number of tiles to process (8 tiles for 256/32)
-constexpr std::uint32_t CT_DIM = 8;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
