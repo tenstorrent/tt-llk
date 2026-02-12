@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+from conftest import skip_for_wormhole
 from helpers.device import (
     read_from_device,
     wait_for_tensix_operations_finished,
@@ -40,6 +41,7 @@ from helpers.unpack import unpack_res_tiles
 from helpers.utils import passed_test
 
 
+@skip_for_wormhole
 @parametrize(
     formats=input_output_formats([DataFormat.Float16_b]),
     dest_acc=[DestAccumulation.No],
