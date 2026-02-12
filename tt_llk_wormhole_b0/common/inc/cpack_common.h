@@ -517,7 +517,7 @@ inline void reconfig_packer_data_format(
 
     // To untilize narrow tile (32x16) we just pack 2 faces back to back
     // Number of datums to pack per row
-    const std::uint32_t pack_x_dim = (narrow_tile) ? face_dim : FACE_R_DIM;
+    const std::uint32_t pack_x_dim = (narrow_tile) ? face_dim : FACE_C_DIM;
 
     TT_SETADCXX(p_setadc::PAC, pack_x_dim - 1, 0x0);
 }
