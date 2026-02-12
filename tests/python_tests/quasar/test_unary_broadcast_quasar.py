@@ -59,9 +59,11 @@ def generate_unary_broadcast_combinations():
     combinations = []
     for fmt in formats_list:
         dest_acc_modes = get_valid_dest_accumulation_modes(fmt)
-        if fmt.input_format.is_32_bit():
-            dest_acc_modes = (DestAccumulation.Yes,)
         for dest_acc in dest_acc_modes:
+            # On Quasar, 32-bit input requires unpack_to_dest which needs dest_acc=Yes
+            if fmt.input_format.is_32_bit() and dest_acc == DestAccumulation.No:
+                continue
+
             # When dest register is in 16-bit mode, packer cannot convert Float16/16_b -> Float32
             if (
                 not fmt.input_format.is_32_bit()
@@ -103,25 +105,13 @@ def test_unary_broadcast_quasar(
     boot_mode=BootMode.DEFAULT,
 ):
 
-    # Generate input stimuli with face-specific values: face 0=1s, face 1=2s, face 2=3s, face 3=4s
+    # Generate random input stimuli
     torch_format = format_dict[formats.input_format]
     rows, cols = input_dimensions
     num_elements = rows * cols
     tile_cnt_B = (rows // TILE_DIM) * (cols // TILE_DIM)
 
-    # Create tilized tensor: each tile has 4 faces, each face has 256 elements (16x16)
-    # Face 0 = 1s, Face 1 = 2s, Face 2 = 3s, Face 3 = 4s
-    elements_per_face = FACE_DIM * FACE_DIM  # 256
-    elements_per_tile = elements_per_face * FACES_PER_TILE  # 1024
-
-    src_B_list = []
-    for tile_idx in range(tile_cnt_B):
-        for face_idx in range(FACES_PER_TILE):
-            face_value = float(face_idx + 1)  # 1, 2, 3, 4
-            face_data = torch.full((elements_per_face,), face_value, dtype=torch_format)
-            src_B_list.append(face_data)
-
-    src_B = torch.cat(src_B_list)[:num_elements]
+    src_B = torch.randn(num_elements, dtype=torch_format)
 
     # Generate golden tensor with broadcast (returns tilized)
     generate_broadcast_golden = get_golden_generator(BroadcastGolden)
