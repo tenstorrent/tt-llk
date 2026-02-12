@@ -17,9 +17,9 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_SYNC,
+    INPUT_DIMENSIONS,
     NUM_FACES,
     TILE_COUNT,
-    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -44,14 +44,6 @@ def test_pack_untilize(
     if TestConfig.WITH_COVERAGE and input_dimensions == [96, 288]:
         pytest.skip(
             "Skipping large dimension test in coverage mode, check issue: #1063 on TT-LLK repo"
-        )
-
-    if input_dimensions == [96, 288] and formats.input_format in [
-        DataFormat.Float32,
-        DataFormat.Int32,
-    ]:
-        pytest.skip(
-            reason="Fails on last 2 datums of 20th TILE when ran on blackhole PR with 8 pytest runners"
         )
 
     if formats.output_format == DataFormat.Bfp8_b:
@@ -109,17 +101,14 @@ def test_pack_untilize(
         "sources/pack_untilize_test.cpp",
         formats,
         templates=[
-            DEST_SYNC(dest_sync),
-            generate_input_dim(
+            INPUT_DIMENSIONS(
                 input_dimensions,
                 input_dimensions,
-                block_ct_dim=block_ct_dim,
+                block_ct_dim,
             ),
+            DEST_SYNC(dest_sync),
         ],
-        runtimes=[
-            TILE_COUNT(tile_cnt_A),
-            NUM_FACES(),
-        ],
+        runtimes=[TILE_COUNT(tile_cnt_A), NUM_FACES(4)],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

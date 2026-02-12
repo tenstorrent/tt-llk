@@ -31,6 +31,7 @@ from helpers.test_variant_parameters import (
     BROADCAST_TYPE,
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
+    INPUT_DIMENSIONS,
     MATH_FIDELITY,
     MATH_OP,
     NUM_FACES,
@@ -108,6 +109,7 @@ def test_eltwise_binary_broadcast_quasar(
         formats,
         templates=[
             MATH_FIDELITY(math_fidelity),
+            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
             IMPLIED_MATH_FORMAT(implied_math_format),
             BROADCAST_TYPE(broadcast_type),
@@ -132,7 +134,6 @@ def test_eltwise_binary_broadcast_quasar(
         unpack_to_dest=False,
         dest_acc=dest_acc,
         boot_mode=boot_mode,
-        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()

@@ -22,6 +22,7 @@ from helpers.test_config import BootMode, TestConfig
 from helpers.test_variant_parameters import (
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
+    INPUT_DIMENSIONS,
     NUM_FACES,
     TEST_FACE_DIMS,
     TILE_COUNT,
@@ -109,6 +110,7 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
         "sources/quasar/pack_quasar_test.cpp",
         formats,
         templates=[
+            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             IMPLIED_MATH_FORMAT(ImpliedMathFormat.Yes),
             DEST_SYNC(),
         ],
@@ -133,7 +135,6 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
         ),
         dest_acc=dest_acc,
         boot_mode=boot_mode,
-        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()

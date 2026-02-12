@@ -18,10 +18,10 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     CRK_TILE_DIMM,
+    INPUT_DIMENSIONS,
     MATH_FIDELITY,
     NUM_FACES,
     TILE_COUNT,
-    generate_input_dim,
 )
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
@@ -130,12 +130,14 @@ def test_matmul(
     configuration = TestConfig(
         "sources/matmul_test.cpp",
         formats,
-        templates=[MATH_FIDELITY(math_fidelity)],
+        templates=[
+            MATH_FIDELITY(math_fidelity),
+            INPUT_DIMENSIONS(input_A_dimensions, input_B_dimensions),
+        ],
         runtimes=[
             NUM_FACES(),
             TILE_COUNT(matmul_dims.output_tile_cnt),
             CRK_TILE_DIMM(matmul_dims.ct_dim, matmul_dims.rt_dim, matmul_dims.kt_dim),
-            generate_input_dim(input_A_dimensions, input_B_dimensions),
         ],
         variant_stimuli=StimuliConfig(
             tilized_A.flatten(),
@@ -160,5 +162,5 @@ def test_matmul(
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     assert passed_test(
-        golden_tensor, res_tensor, formats.output_format, print_erros=False
+        golden_tensor, res_tensor, formats.output_format
     ), "Assert against golden failed"

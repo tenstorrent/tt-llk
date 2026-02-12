@@ -24,6 +24,7 @@ from helpers.test_variant_parameters import (
     DEST_INDEX,
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
+    INPUT_DIMENSIONS,
     MATH_OP,
     NUM_FACES,
     TEST_FACE_DIMS,
@@ -323,6 +324,7 @@ def test_sfpu_nonlinear_quasar(formats_dest_acc_implied_math_input_dims_mathop):
         "sources/quasar/sfpu_nonlinear_quasar_test.cpp",
         formats,
         templates=[
+            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
             IMPLIED_MATH_FORMAT(implied_math_format),
             DATA_COPY_TYPE(DataCopyType.A2D),
@@ -350,7 +352,6 @@ def test_sfpu_nonlinear_quasar(formats_dest_acc_implied_math_input_dims_mathop):
         ),
         unpack_to_dest=unpack_to_dest,
         dest_acc=dest_acc,
-        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()

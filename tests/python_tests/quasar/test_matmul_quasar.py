@@ -32,6 +32,7 @@ from helpers.test_variant_parameters import (
     CRK_TILE_DIMM,
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
+    INPUT_DIMENSIONS,
     MATH_FIDELITY,
     NUM_FACES,
     TILE_COUNT,
@@ -153,6 +154,7 @@ def test_matmul(
         format,
         templates=[
             MATH_FIDELITY(math_fidelity),
+            INPUT_DIMENSIONS(input_A_dimensions, input_B_dimensions),
             IMPLIED_MATH_FORMAT(implied_math_format),
             DEST_SYNC(dest_sync_mode),
             UNPACK_TRANS_FACES(transpose),

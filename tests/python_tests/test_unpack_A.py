@@ -6,6 +6,7 @@ from itertools import product
 
 import pytest
 import torch
+from conftest import skip_for_blackhole
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
@@ -307,7 +308,7 @@ param_ids = create_simple_ids(all_params)
 
 
 # When tests are randomised, they fail in various ways: https://github.com/tenstorrent/tt-llk/issues/1108
-# @skip_for_blackhole
+@skip_for_blackhole
 @pytest.mark.parametrize(
     "testname, formats, broadcast_type, disable_src_zero, acc_to_dest, "
     "stochastic_rnd, reuse_dest, transpose_of_faces, "
@@ -329,6 +330,7 @@ def test_unpack_comprehensive(
     face_r_dim,
     workers_tensix_coordinates,
 ):
+
     # torch.manual_seed(0.0)
     # Configure input dimensions based on face_r_dim
     # For partial faces (face_r_dim < 16), use [face_r_dim x 32] input tensors
