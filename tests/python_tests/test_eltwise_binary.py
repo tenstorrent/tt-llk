@@ -41,6 +41,42 @@ from helpers.utils import passed_test
 ALL_TILE_DIMENSIONS = [list(td) for td in SUPPORTED_TILE_SIZES]
 
 
+def _get_valid_formats(dest_acc):
+    """
+    Filter formats based on dest accumulation:
+    - If dest accumulation is enabled, input must be Float32
+    """
+    all_formats = input_output_formats(
+        [DataFormat.Float16_b, DataFormat.Float32, DataFormat.Bfp8_b],
+        same=False,
+    )
+    if dest_acc == DestAccumulation.Yes:
+        return [f for f in all_formats if f.input_format == DataFormat.Float32]
+    return all_formats
+
+
+def _get_valid_math_fidelity(formats):
+    """
+    Filter math fidelity based on input data format:
+    - Bfp8_b: LoFi only
+    - Float16_b: LoFi or HiFi2
+    - Float32: HiFi3 and HiFi4
+    """
+    input_format = formats.input_format
+    if input_format == DataFormat.Bfp8_b:
+        return [MathFidelity.LoFi]
+    elif input_format == DataFormat.Float16_b:
+        return [MathFidelity.LoFi, MathFidelity.HiFi2]
+    elif input_format == DataFormat.Float32:
+        return [MathFidelity.HiFi3, MathFidelity.HiFi4]
+    return [
+        MathFidelity.LoFi,
+        MathFidelity.HiFi2,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
+    ]
+
+
 def _get_valid_math_ops(math_fidelity):
     """High fidelity operations are only supported for Elwmul."""
     if math_fidelity != MathFidelity.LoFi:
@@ -71,27 +107,15 @@ def _get_valid_tile_dimensions(transpose_srca, broadcast_type):
 
 
 @parametrize(
-    formats=input_output_formats(
-        [
-            DataFormat.Float16_b,
-            DataFormat.Float32,
-            DataFormat.Bfp8_b,
-        ],
-        same=False,
-    ),
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
+    formats=lambda dest_acc: _get_valid_formats(dest_acc),
     broadcast_type=[
         BroadcastType.None_,
         BroadcastType.Row,
         BroadcastType.Column,
         BroadcastType.Scalar,
     ],
-    dest_acc=[DestAccumulation.No],
-    math_fidelity=[
-        MathFidelity.LoFi,
-        MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
-    ],
+    math_fidelity=lambda formats: _get_valid_math_fidelity(formats),
     transpose_srca=lambda broadcast_type: _get_valid_transpose(broadcast_type),
     math_op=lambda math_fidelity: _get_valid_math_ops(math_fidelity),
     input_dimensions=[[512, 32]],
@@ -100,9 +124,9 @@ def _get_valid_tile_dimensions(transpose_srca, broadcast_type):
     ),
 )
 def test_eltwise_binary(
+    dest_acc,
     formats,
     broadcast_type,
-    dest_acc,
     math_fidelity,
     transpose_srca,
     math_op,
