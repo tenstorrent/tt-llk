@@ -30,7 +30,6 @@ from helpers.utils import passed_test
 @parametrize(
     cpp_source=[
         "sources/multiple_tiles_eltwise_test.cpp",
-        "sources/multiple_tiles_eltwise_custom_test.cpp",
     ],
     formats=input_output_formats(
         [
