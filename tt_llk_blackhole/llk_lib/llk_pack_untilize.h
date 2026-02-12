@@ -33,7 +33,7 @@ inline void _llk_pack_untilize_configure_addrmod_()
 block_ct_dim represents the number of input tiles in a block.
 full_ct_dim represents the total number of input tiles.
 */
-template <std::uint32_t block_ct_dim, std::uint32_t full_ct_dim = block_ct_dim, bool diagonal = false>
+template <std::uint32_t block_ct_dim, std::uint32_t full_ct_dim = block_ct_dim, bool diagonal = false, bool dense = false>
 inline void _llk_pack_untilize_mop_config_(
     const std::uint32_t face_r_dim                = FACE_R_DIM,
     const std::uint32_t num_faces                 = 4,
@@ -46,11 +46,13 @@ inline void _llk_pack_untilize_mop_config_(
     Outer loop iterates over the rows in the block, while the inner loop iterates
     over each tile in the block.
     */
-    constexpr std::uint32_t MOP_INNER_LOOP = block_ct_dim;
+    constexpr std::uint32_t MOP_INNER_LOOP = dense ? block_ct_dim / 2 : block_ct_dim;
     const std::uint32_t MOP_OUTER_LOOP     = face_r_dim;
 
     // For narrow row, the faces are stored in the first column of the tile, therefore requiring only one packer interface.
-    const std::uint32_t PACK_INTF_SEL = (narrow_row) ? p_pacr::SINGLE_INTF_ACTIVE : ((num_faces > 1) ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::SINGLE_INTF_ACTIVE);
+    const std::uint32_t PACK_INTF_SEL =
+        (dense) ? p_pacr::ALL_INTF_ACTIVE
+                : ((narrow_row) ? p_pacr::SINGLE_INTF_ACTIVE : ((num_faces > 1) ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::SINGLE_INTF_ACTIVE));
     /*
     When using DST_STRIDED_MODE, each packer interface has a stride of 16*block_size,
     where block_size is set to be the size of a row within face.
@@ -139,12 +141,20 @@ template <
     std::uint32_t full_ct_dim    = block_ct_dim,
     bool diagonal                = false,
     bool narrow_row              = false,
-    std::uint32_t row_num_datums = TILE_C_DIM>
+    std::uint32_t row_num_datums = TILE_C_DIM,
+    bool dense                   = false>
 inline void _llk_pack_untilize_init_(
     const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
     static_assert(!diagonal, "Diagonal not supported");
-    static_assert(block_ct_dim <= 8, "block_ct_dim must be less than or equal to 8");
+    if constexpr (!dense)
+    {
+        static_assert(block_ct_dim <= 8, "block_ct_dim must be less than or equal to 8");
+    }
+    else
+    {
+        static_assert(block_ct_dim == 16, "block_ct_dim must be 16 for dense packing");
+    }
     static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
 
     if constexpr (narrow_row)
@@ -156,7 +166,7 @@ inline void _llk_pack_untilize_init_(
 
     _llk_pack_untilize_configure_addrmod_<diagonal>();
 
-    _llk_pack_untilize_mop_config_<block_ct_dim, full_ct_dim, diagonal>(face_r_dim, num_faces, narrow_row, row_num_datums, 0);
+    _llk_pack_untilize_mop_config_<block_ct_dim, full_ct_dim, diagonal, dense>(face_r_dim, num_faces, narrow_row, row_num_datums, 0);
     tile_dst_offset_state = 0;
 
     // Set CH0 Zstride = 2x16x16 faces, .z_src = {.incr = 1} jumps 2 faces
@@ -174,7 +184,7 @@ inline void _llk_pack_untilize_init_(
     }
     else
     {
-        output_addr_offset = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * ((num_faces > 1) ? (num_faces >> 1) : 1) * FACE_C_DIM);
+        output_addr_offset = SCALE_DATUM_SIZE(pack_dst_format, full_ct_dim * ((num_faces == 1) ? 1 : 2) * FACE_C_DIM);
     }
 
     // Store 16B aligned row offset address
@@ -198,7 +208,8 @@ template <
     bool diagonal                    = false,
     bool narrow_row                  = false,
     std::uint32_t row_num_datums     = TILE_C_DIM,
-    std::uint32_t tile_dst_ct_offset = 0>
+    std::uint32_t tile_dst_ct_offset = 0,
+    bool dense                       = false>
 inline void _llk_pack_untilize_(
     const std::uint32_t address,
     [[maybe_unused]] const std::uint32_t pack_dst_format,
@@ -226,7 +237,7 @@ inline void _llk_pack_untilize_(
     // If starting_tile_dst_offset is non-zero, reconfigure the template with the correct offset
     if (tile_dst_offset != tile_dst_offset_state)
     {
-        _llk_pack_untilize_mop_config_<block_ct_dim, full_ct_dim, diagonal>(face_r_dim, num_faces, narrow_row, row_num_datums, tile_dst_offset);
+        _llk_pack_untilize_mop_config_<block_ct_dim, full_ct_dim, diagonal, dense>(face_r_dim, num_faces, narrow_row, row_num_datums, tile_dst_offset);
         tile_dst_offset_state = tile_dst_offset;
     }
 
