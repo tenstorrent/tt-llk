@@ -96,6 +96,8 @@ inline std::uint32_t load_blocking(volatile std::uint32_t *ptr)
     // this code provides a full barrier for a load transaction by doing the following:
     // - memory clobber
     //     - prevent reordering of transactions that occur before the barrier after the barrier by the COMPILER
+    // - issue a FENCE instruction
+    //     - FENCE has a side-effect of flushing the L0 (DCACHE), ensuring the subsequent LOAD will read from L1 memory
     // - issue a LOAD transaction to the address
     //     - actual load that was requested
     // - issue an instruction that requires the data from the LOAD transaction
@@ -104,6 +106,7 @@ inline std::uint32_t load_blocking(volatile std::uint32_t *ptr)
     //     - prevent reordering of transactions that occur after the barrier before the barrier by the COMPILER
 
     asm volatile(
+        "fence\n\t"
         "lw %[val], (%[ptr])\n\t"
         "and x0, x0, %[val]"
         : [val] "=r"(val)
@@ -128,6 +131,7 @@ inline void store_blocking(volatile std::uint32_t *ptr, std::uint32_t val)
     // this code provides a full barrier for a store transaction by doing the following:
     // - issue a STORE transaction to the address
     //     - actual store that was requested
+    //     - STORE to L1 will also flush the L0 (DCACHE), ensuring the subsequent LOAD will read from L1 memory
     // - issue a LOAD transaction to the address
     //     - must complete after the STORE transaction
     // - issue an instruction that requires the data from the LOAD transaction
