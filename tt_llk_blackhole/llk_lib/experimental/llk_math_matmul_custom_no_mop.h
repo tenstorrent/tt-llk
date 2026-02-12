@@ -15,6 +15,20 @@
 
 using namespace ckernel;
 
+// Helper functions for math fidelity
+constexpr int get_math_num_fidelity_phases(int math_fidelity_desc)
+{
+    // LoFi = 0 has 0 fidelity phases
+    // HiFi2 = 1 has 1 phase, HiFi3 = 2 has 2 phases, HiFi4 = 3 has 3 phases
+    return math_fidelity_desc;
+}
+
+constexpr int get_math_fidelity_increment(int math_fidelity_desc)
+{
+    // For high fidelity modes, increment by 1
+    return 1;
+}
+
 template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL>
 inline void matmul_configure_addrmod(
     const bool transpose,

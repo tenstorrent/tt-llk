@@ -111,9 +111,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 #ifdef LLK_TRISC_MATH
 
+#include "experimental/llk_math_matmul_custom_no_mop.h"
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary.h"
-#include "llk_math_matmul.h"
 #include "llk_math_reduce_custom.h"
 
 void run_kernel(const volatile struct RuntimeParams* params)
@@ -124,15 +124,15 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_hw_configure_<false>(math_format0, math_format0);
     _llk_math_pack_sync_init_<dest_sync0, false>();
 
-    // Operation 0: Matmul FPU
-    _llk_math_matmul_init_<ckernel::MathFidelity::LoFi>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, false, 1, 1);
+    // Operation 0: Matmul FPU - Using experimental custom no-mop API
+    _llk_math_matmul_init_<0, 0>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, 1, 1);
 
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
         _llk_math_wait_for_dest_available_<dest_sync0>();
         for (std::uint32_t kt = 0; kt < 1; kt++)
         {
-            _llk_math_matmul_<ckernel::MathFidelity::LoFi>(0, 1, 1);
+            _llk_math_matmul_<0, 0>(0, 1, 1);
         }
         _llk_math_dest_section_done_<dest_sync0, false>();
     }
@@ -174,8 +174,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_reconfig_data_format_<false, false>(math_format3, math_format3);
     _llk_math_pack_sync_init_<dest_sync3, false>();
 
-    // Operation 3: Matmul FPU
-    _llk_math_matmul_init_<ckernel::MathFidelity::LoFi>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, false, 1, 1);
+    // Operation 3: Matmul FPU - Using experimental custom no-mop API
+    _llk_math_matmul_init_<0, 0>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, 1, 1);
 
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
@@ -183,7 +183,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         for (std::uint32_t kt = 0; kt < 1; kt++)
         {
-            _llk_math_matmul_<ckernel::MathFidelity::LoFi>(0, 1, 1);
+            _llk_math_matmul_<0, 0>(0, 1, 1);
         }
         _llk_math_dest_section_done_<dest_sync3, false>();
     }
