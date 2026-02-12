@@ -15,6 +15,7 @@ from helpers.param_config import (
     parametrize,
 )
 from helpers.perf import PerfConfig
+from helpers.stimuli_config import StimuliConfig
 from helpers.test_variant_parameters import (
     MATH_OP,
     REDUCE_POOL_TYPE,
@@ -50,6 +51,8 @@ def test_perf_reduce(
     pool_type,
     workers_tensix_coordinates,
 ):
+
+    tile_count = 16
     configuration = PerfConfig(
         "sources/reduce_perf.cpp",
         formats,
@@ -64,7 +67,17 @@ def test_perf_reduce(
             MATH_OP(mathop=REDUCE_MATHOP[reduce_dim]),
             REDUCE_POOL_TYPE(pool_type),
         ],
-        runtimes=[TILE_COUNT(16)],
+        runtimes=[TILE_COUNT(tile_count)],
+        variant_stimuli=StimuliConfig(
+            None,
+            formats.input_format,
+            None,
+            formats.input_format,
+            formats.output_format,
+            tile_count_A=tile_count,
+            tile_count_B=tile_count,
+            tile_count_res=tile_count,
+        ),
         unpack_to_dest=False,
         dest_acc=dest_acc,
     )

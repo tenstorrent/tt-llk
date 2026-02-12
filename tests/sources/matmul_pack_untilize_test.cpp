@@ -25,13 +25,12 @@ const ckernel::DstSync sync            = ckernel::DstSync::SyncHalf;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const struct FormatConfig& formats = params.formats;
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
     _llk_unpack_AB_matmul_init_<>();
-    _llk_unpack_AB_matmul_<>(L1_ADDRESS(params.buffer_A[0]), L1_ADDRESS(params.buffer_B[0]), 0, 0, face_size, face_size);
+    _llk_unpack_AB_matmul_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]), 0, 0, face_size, face_size);
 }
 
 #endif
@@ -42,9 +41,8 @@ void run_kernel(const struct RuntimeParams& params)
 #include "llk_math_matmul.h"
 #include "params.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const struct FormatConfig& formats = params.formats;
     _llk_math_matmul_init_<MATH_FIDELITY>();
     _llk_math_pack_sync_init_<sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
@@ -64,9 +62,8 @@ void run_kernel(const struct RuntimeParams& params)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const struct FormatConfig& formats = params.formats;
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, tile_size);
     _llk_pack_dest_init_<sync, is_fp32_dest_acc_en>();
@@ -77,7 +74,7 @@ void run_kernel(const struct RuntimeParams& params)
     _llk_pack_untilize_init_<ct_dim>(formats.pack_dst, FACE_R_DIM, 4);
 #endif
     _llk_packer_wait_for_math_done_();
-    _llk_pack_untilize_<ct_dim>(L1_ADDRESS(params.buffer_Res[0]), formats.pack_dst, FACE_R_DIM, 4, 0);
+    _llk_pack_untilize_<ct_dim>(L1_ADDRESS(buffer_Res[0]), formats.pack_dst, FACE_R_DIM, 4, 0);
     _llk_pack_dest_section_done_<sync, is_fp32_dest_acc_en>();
 }
 

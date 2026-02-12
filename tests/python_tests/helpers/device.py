@@ -29,7 +29,7 @@ from ttexalens.tt_exalens_lib import (
 )
 
 from .fused_operation import FusedOperation
-from .llk_params import DataFormat, Mailbox, format_dict
+from .llk_params import DataFormat, MailboxesPerf, format_dict
 from .pack import (
     pack_bfp8_b,
     pack_bfp16,
@@ -44,6 +44,8 @@ from .pack import (
 from .target_config import TestTargetConfig
 from .tilize_untilize import untilize_block
 from .unpack import unpack_res_tiles
+
+Mailbox = MailboxesPerf
 
 
 class LLKAssertException(Exception):
@@ -200,7 +202,7 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]) -> str:
 
 
 def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
-    trisc_cores = [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2]
+    trisc_cores = [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2, RiscCore.BRISC]
     assertion_hits = []
     temp_stack_traces = ""
     for core in trisc_cores:
@@ -293,12 +295,6 @@ def wait_for_tensix_operations_finished(
         core_loc=location,
     )
 
-    soft_reset = get_register_store(location, 0).read_register(
-        "RISCV_DEBUG_REG_SOFT_RESET_0"
-    )
-
-    print(hex(soft_reset))
-
     raise TimeoutError(
         f"Timeout reached: waited {timeout} seconds for BRISC done signal"
     )
@@ -309,7 +305,11 @@ def reset_mailboxes(location: str = "0,0"):
 
     BRISC checks that all 4 mailboxes are zero-initialized on startup.
     """
-    write_words_to_device(location=location, addr=Mailbox.Brisc.value, data=4 * [0])
+
+    mailboxes_start_value = min([core.value for core in Mailbox])
+    write_words_to_device(
+        location=location, addr=mailboxes_start_value, data=len(Mailbox) * [0xA3]
+    )
 
 
 def pull_coverage_stream_from_tensix(

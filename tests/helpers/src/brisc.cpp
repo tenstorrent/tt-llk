@@ -11,42 +11,31 @@
 #include "boot.h"
 #endif
 
-enum class CommandState : uint32_t
-{
-    IDLE_STATE   = 0,
-    START_TRISCS = 1,
-    RESET_TRISCS = 2,
-};
-
 int main()
 {
 #ifdef LLK_BOOT_MODE_BRISC
 
-    volatile std::uint32_t* const mailbox_brisc  = reinterpret_cast<volatile std::uint32_t*>(0x1FFF0);
-    volatile std::uint32_t* const mailbox_unpack = reinterpret_cast<volatile std::uint32_t*>(0x1FFF4);
-    volatile std::uint32_t* const mailbox_math   = reinterpret_cast<volatile std::uint32_t*>(0x1FFF8);
-    volatile std::uint32_t* const mailbox_pack   = reinterpret_cast<volatile std::uint32_t*>(0x1FFFC);
+#ifdef COVERAGE
+    constexpr std::uint32_t mailboxes_start = 0x63FC0;
+#else
+    constexpr std::uint32_t mailboxes_start = 0x1FFC0;
+#endif
 
-    LLK_ASSERT(ckernel::load_blocking(mailbox_brisc) == 0, "BRISC is not zero initialized");
-    LLK_ASSERT(ckernel::load_blocking(mailbox_unpack) == 0, "UNPACK is not zero initialized");
-    LLK_ASSERT(ckernel::load_blocking(mailbox_math) == 0, "MATH is not zero initialized");
-    LLK_ASSERT(ckernel::load_blocking(mailbox_pack) == 0, "PACK is not zero initialized");
+    volatile std::uint32_t* const mailbox_brisc  = reinterpret_cast<volatile std::uint32_t*>(mailboxes_start);
+    volatile std::uint32_t* const mailbox_unpack = reinterpret_cast<volatile std::uint32_t*>(mailboxes_start + sizeof(std::uint32_t));
+    volatile std::uint32_t* const mailbox_math   = reinterpret_cast<volatile std::uint32_t*>(mailboxes_start + 2 * sizeof(std::uint32_t));
+    volatile std::uint32_t* const mailbox_pack   = reinterpret_cast<volatile std::uint32_t*>(mailboxes_start + 3 * sizeof(std::uint32_t));
 
     device_setup();
     clear_trisc_soft_reset();
 
-    while (ckernel::load_blocking(mailbox_unpack) != 0xFF)
+    while (*mailbox_unpack != 0xFF)
         ;
-    while (ckernel::load_blocking(mailbox_math) != 0xFF)
+    while (*mailbox_math != 0xFF)
         ;
-    while (ckernel::load_blocking(mailbox_pack) != 0xFF)
+    while (*mailbox_pack != 0xFF)
         ;
 
-    LLK_ASSERT(ckernel::load_blocking(mailbox_unpack) == 0xFF, "UNPACK is not done");
-    LLK_ASSERT(ckernel::load_blocking(mailbox_math) == 0xFF, "MATH is not done");
-    LLK_ASSERT(ckernel::load_blocking(mailbox_pack) == 0xFF, "PACK is not done");
-
-    ckernel::store_blocking(mailbox_brisc, 1);
-
+    *mailbox_brisc = 0x1;
 #endif
 }

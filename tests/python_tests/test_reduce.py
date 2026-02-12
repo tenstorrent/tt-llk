@@ -78,7 +78,6 @@ def test_reduce(formats, dest_acc, reduce_dim, pool_type, workers_tensix_coordin
             tile_count_res=tile_cnt_A,
         ),
         dest_acc=dest_acc,
-        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)

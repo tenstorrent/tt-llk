@@ -3,6 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
+import sys
+from typing import ClassVar
+
 from ttexalens.tt_exalens_lib import (
     read_from_device,
     write_to_device,
@@ -32,10 +35,12 @@ class StimuliConfig:
 
     # === STATIC VARIABLES ===
     STIMULI_L1_ADDRESS_PERF = 0x21000
-    STIMULI_L1_ADDRESS_COVERAGE = 0x62000
+    STIMULI_L1_ADDRESS_DEBUG = 0x65000
 
     # Full tile elements (always 1024 for a 32x32 tile)
     TILE_ELEMENTS = 1024
+
+    WITH_COVERAGE: ClassVar[bool] = False
 
     def __init__(
         self,
@@ -74,20 +79,18 @@ class StimuliConfig:
         self.tile_dimensions = tile_dimensions
         self.sfpu = sfpu
         self.write_full_tiles = write_full_tiles
-        self.coverage_addresses = False
 
         # Stimuli addresses calculation - ALWAYS use full tile sizes for address spacing
         # Hardware expects full tile alignment regardless of num_faces
         self.tile_size_A_bytes = format_tile_sizes[self.stimuli_A_format]
         self.tile_size_B_bytes = format_tile_sizes[self.stimuli_B_format]
 
-    def generate_runtime_operands_values(self, formats) -> list:
+        self.buf_a_addr = 0
+        if StimuliConfig.WITH_COVERAGE:
+            self.buf_a_addr = StimuliConfig.STIMULI_L1_ADDRESS_DEBUG
+        else:
+            self.buf_a_addr = StimuliConfig.STIMULI_L1_ADDRESS_PERF
 
-        self.buf_a_addr = (
-            StimuliConfig.STIMULI_L1_ADDRESS_COVERAGE
-            if self.coverage_addresses
-            else StimuliConfig.STIMULI_L1_ADDRESS_PERF
-        )
         self.buf_b_addr = self.buf_a_addr + self.tile_size_A_bytes * self.tile_count_A
 
         if self.buffer_C is not None:
@@ -103,6 +106,14 @@ class StimuliConfig:
                 self.buf_b_addr + self.tile_size_B_bytes * self.tile_count_B
             )
 
+        print(
+            hex(self.buf_a_addr),
+            hex(self.buf_b_addr),
+            hex(self.buf_res_addr),
+            file=sys.stderr,
+        )
+
+    def generate_stimuli_header_addresses(self, formats) -> list[str]:
         buf_a_format = format_tile_sizes[
             DataFormat.Float16_b if formats is None else formats.input_format
         ]
@@ -113,13 +124,10 @@ class StimuliConfig:
             DataFormat.Float16_b if formats is None else formats.output_format
         ]
 
-        values = [
-            self.buf_a_addr,
-            buf_a_format,
-            self.buf_b_addr,
-            buf_b_format,
-            self.buf_res_addr,
-            buf_res_format,
+        lines: list[str] = [
+            f"constexpr Operand buffer_A({hex(self.buf_a_addr)}, {buf_a_format});",
+            f"constexpr Operand buffer_B({hex(self.buf_b_addr)}, {buf_b_format});",
+            f"constexpr Operand buffer_Res({hex(self.buf_res_addr)}, {buf_res_format});",
         ]
 
         if self.buffer_C is not None:
@@ -127,23 +135,11 @@ class StimuliConfig:
                 DataFormat.Float16_b if formats is None else formats.input_format
             ]
 
-            values.extend([self.buf_c_addr, buf_c_format])
+            lines.append(
+                f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {buf_c_format});"
+            )
 
-        return values
-
-    def generate_runtime_struct_fields(self) -> tuple[list[str], str]:
-        lines: list[str] = [
-            "Operand buffer_A;",
-            "Operand buffer_B;",
-            "Operand buffer_Res;",
-        ]
-        pack_formats = "IIIIII"
-
-        if self.buffer_C is not None:
-            lines.append("Operand buffer_C;")
-            pack_formats += "II"
-
-        return lines, pack_formats
+        return lines
 
     @staticmethod
     def get_packer(data_format):
@@ -212,11 +208,6 @@ class StimuliConfig:
         if not pack_function_A or not pack_function_B:
             raise ValueError(
                 f"Unsupported data formats: srcA({self.stimuli_A_format.name}), srcB({self.stimuli_B_format.name})"
-            )
-
-        if not self.buf_a_addr:
-            raise ValueError(
-                "You need to [ def generate_runtime_operands_values(self, formats) -> list ] before you write stimuli. This needs to be done to calculate the addresses"
             )
 
         StimuliConfig.write_matrix(

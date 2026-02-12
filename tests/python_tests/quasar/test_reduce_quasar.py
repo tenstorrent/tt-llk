@@ -27,6 +27,7 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
+    INPUT_DIMENSIONS,
     MATH_FIDELITY,
     MATH_OP,
     NUM_FACES,
@@ -126,6 +127,7 @@ def test_reduce_quasar(
         "sources/quasar/reduce_quasar_test.cpp",
         formats,
         templates=[
+            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_FIDELITY(math_fidelity),
             MATH_OP(mathop=mathop, pool_type=pool_type),
             UNPACKER_ENGINE_SEL(),
@@ -151,7 +153,6 @@ def test_reduce_quasar(
             formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
         ),
         dest_acc=dest_acc,
-        compile_time_formats=True,
     )
 
     res_from_L1 = configuration.run()
