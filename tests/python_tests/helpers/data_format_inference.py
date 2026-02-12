@@ -240,6 +240,7 @@ def infer_data_formats(
         input_format, output_format, is_fp32_dest_acc_en, unpacking_to_dest
     )
 
+    # Infer unpack_out_B based on input_format_buf_B separately.
     unpack_out_B = (
         None
         if input_format_buf_B is None
