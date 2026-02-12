@@ -7,38 +7,36 @@
 #include <cstdio>
 
 #include "ckernel.h"
-#include "llk_assert.h"
 #include "llk_defs.h"
 #include "params.h"
 #include "perf.h"
 #include "profiler.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
 
 // Only modes supported are L1_TO_L1, PACK_ISOLATE and L1_CONGESTION
 static_assert(PERF_RUN_TYPE != PerfRunType::MATH_ISOLATE, "Math isolation not supported for this benchmark");
 static_assert(PERF_RUN_TYPE != PerfRunType::UNPACK_ISOLATE, "Unpack isolation not supported for this benchmark");
 
-static constexpr uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
+static constexpr std::uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 // Algorithm invariants
 static_assert(BLOCK_CT_DIM <= MAX_TILES_DEST, "Block must fit in Dest register");
 static_assert(FULL_CT_DIM % BLOCK_CT_DIM == 0, "FULL_CT_DIM must be divisible by BLOCK_CT_DIM");
+
+// Test assumptions
+// static_assert(FULL_RT_DIM * FULL_CT_DIM == params->TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to params->TILE_CNT");
 
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    // Test assumptions
-    LLK_ASSERT(FULL_RT_DIM * FULL_CT_DIM == params.TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to TILE_CNT");
-
-    const struct FormatConfig& formats = params.formats;
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
@@ -55,9 +53,9 @@ void run_kernel(const struct RuntimeParams& params)
             return;
         }
 
-        for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
+        for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
         {
-            for (int i = 0; i < params.TILE_CNT; ++i)
+            for (int i = 0; i < params->TILE_CNT; ++i)
             {
                 _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
                     PERF_ADDRESS(PERF_INPUT_A, i), formats.unpack_src, formats.unpack_dst);
@@ -76,10 +74,9 @@ void run_kernel(const struct RuntimeParams& params)
 
 using namespace ckernel;
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const struct FormatConfig& formats = params.formats;
-    constexpr bool is_int_fpu_en       = false;
+    constexpr bool is_int_fpu_en = false;
 
     {
         ZONE_SCOPED("INIT")
@@ -108,17 +105,23 @@ void run_kernel(const struct RuntimeParams& params)
         {
             if constexpr (!unpack_to_dest)
             {
-                _perf_math_loop_clear_valid<true, true>(params.LOOP_FACTOR * params.TILE_CNT * TILE_NUM_FACES);
+                _perf_math_loop_clear_valid<true, true>(params->LOOP_FACTOR * params->TILE_CNT * TILE_NUM_FACES);
                 return;
             }
 
-            // FIXME: Currently have no way to mock math for unpack to dest
-            for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
+            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
             {
-                for (uint32_t block = 0; block < params.TILE_CNT / BLOCK_CT_DIM; block++)
+                for (std::uint32_t block = 0; block < params->TILE_CNT / BLOCK_CT_DIM; block++)
                 {
-                    for (uint32_t block_tile = 0; block_tile < BLOCK_CT_DIM; block_tile++)
+                    for (std::uint32_t block_tile = 0; block_tile < BLOCK_CT_DIM; block_tile++)
                     {
+                        LLK_ASSERT(
+                            (block_tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                            "Block tile index exceeds maximum destination tiles");
+                        // In this case, unpacker needs software synchronization from math - to acknowledge that destination register is
+                        // "consumed" and can be overwritten with new data.
+                        // Due to the fact that BROADCAST_TYPE is always NONE in the test and combination of unpack_to_dest and 32b data is always set,
+                        // this method will perform synchronization only and no actual data copy.
                         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                             block_tile, formats.math, formats.math);
                     }
@@ -127,13 +130,16 @@ void run_kernel(const struct RuntimeParams& params)
             return;
         }
 
-        for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
+        for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
         {
-            for (uint32_t block = 0; block < params.TILE_CNT / BLOCK_CT_DIM; block++)
+            for (std::uint32_t block = 0; block < params->TILE_CNT / BLOCK_CT_DIM; block++)
             {
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-                for (uint32_t block_tile = 0; block_tile < BLOCK_CT_DIM; block_tile++)
+                for (std::uint32_t block_tile = 0; block_tile < BLOCK_CT_DIM; block_tile++)
                 {
+                    LLK_ASSERT(
+                        (block_tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                        "Block tile index exceeds maximum destination tiles");
                     _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                         block_tile, formats.math, formats.math);
                 }
@@ -151,10 +157,9 @@ void run_kernel(const struct RuntimeParams& params)
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const struct FormatConfig& formats = params.formats;
-    constexpr bool UNTILIZE            = true;
+    constexpr bool UNTILIZE = true;
 
     {
         ZONE_SCOPED("INIT")
@@ -176,9 +181,9 @@ void run_kernel(const struct RuntimeParams& params)
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
+            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
             {
-                for (uint32_t tile = 0; tile < params.TILE_CNT; tile += BLOCK_CT_DIM)
+                for (std::uint32_t tile = 0; tile < params->TILE_CNT; tile += BLOCK_CT_DIM)
                 {
                     _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM>(PERF_ADDRESS(PERF_OUTPUT, tile), formats.pack_dst, FACE_R_DIM, 4, 0);
                 }
@@ -187,9 +192,9 @@ void run_kernel(const struct RuntimeParams& params)
             return;
         }
 
-        for (uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
+        for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
         {
-            for (uint32_t i = 0; i < params.TILE_CNT; i += BLOCK_CT_DIM)
+            for (std::uint32_t i = 0; i < params->TILE_CNT; i += BLOCK_CT_DIM)
             {
                 _llk_packer_wait_for_math_done_();
                 _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM>(PERF_ADDRESS(PERF_OUTPUT, i), formats.pack_dst, FACE_R_DIM, 4, 0);

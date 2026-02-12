@@ -11,9 +11,9 @@
 #include "llk_defs.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -22,17 +22,16 @@ uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_untilize.h"
 #include "params.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const struct FormatConfig& formats = params.formats;
-    constexpr std::uint32_t tile_size  = 128;
+    constexpr std::uint32_t tile_size = 128;
 
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
     _llk_unpack_untilize_init_(formats.unpack_dst, tile_size, FACE_R_DIM);
 
-    _llk_unpack_untilize_pass_<true>(L1_ADDRESS(params.buffer_A[0]), params.BLOCK_CT_DIM);
-    _llk_unpack_untilize_pass_<false>(L1_ADDRESS(params.buffer_A[0]), params.BLOCK_CT_DIM);
+    _llk_unpack_untilize_pass_<true>(L1_ADDRESS(buffer_A[0]), BLOCK_CT_DIM);
+    _llk_unpack_untilize_pass_<false>(L1_ADDRESS(buffer_A[0]), BLOCK_CT_DIM);
 }
 
 #endif
@@ -47,9 +46,8 @@ const bool is_int_fpu_en = false;
 
 using namespace ckernel;
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const struct FormatConfig& formats = params.formats;
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(4, formats.math);
@@ -60,8 +58,10 @@ void run_kernel(const struct RuntimeParams& params)
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
+        LLK_ASSERT(
+            (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(i, formats.math, formats.math);
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -75,10 +75,9 @@ void run_kernel(const struct RuntimeParams& params)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const struct FormatConfig& formats = params.formats;
-    const bool UNTILIZE                = false;
+    const bool UNTILIZE = false;
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -95,9 +94,11 @@ void run_kernel(const struct RuntimeParams& params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(params.buffer_Res[i]));
+        LLK_ASSERT(
+            (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
+        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

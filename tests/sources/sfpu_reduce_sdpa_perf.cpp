@@ -15,9 +15,9 @@
 #include "profiler.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
 
 static constexpr int MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
@@ -26,9 +26,8 @@ static constexpr int MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 #include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const struct FormatConfig& formats = params.formats;
     {
         ZONE_SCOPED("INIT")
         // Configure unpacker for Float16_b format
@@ -38,7 +37,6 @@ void run_kernel(const struct RuntimeParams& params)
             0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
         PROFILER_SYNC();
     }
-
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
@@ -48,13 +46,13 @@ void run_kernel(const struct RuntimeParams& params)
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             // Set valid for source A only (B is not used in this operation)
-            return _perf_unpack_loop_set_valid<true, false>(params.TILE_CNT * params.LOOP_FACTOR);
+            return _perf_unpack_loop_set_valid<true, false>(params->TILE_CNT * params->LOOP_FACTOR);
         }
         else
         {
-            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int i = 0; i < params.TILE_CNT; ++i)
+                for (int i = 0; i < params->TILE_CNT; ++i)
                 {
                     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
                         PERF_ADDRESS(PERF_INPUT_A, i), formats.unpack_src, formats.unpack_dst);
@@ -77,10 +75,9 @@ void run_kernel(const struct RuntimeParams& params)
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const struct FormatConfig& formats = params.formats;
-    const uint32_t block_height        = BLOCK_RT_DIM;
+    constexpr std::uint32_t block_height = BLOCK_RT_DIM;
 
     {
         ZONE_SCOPED("INIT")
@@ -110,16 +107,16 @@ void run_kernel(const struct RuntimeParams& params)
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             // Clear valid for source A only (B is not used)
-            return _perf_math_loop_clear_valid<true, false>(params.TILE_CNT * params.LOOP_FACTOR);
+            return _perf_math_loop_clear_valid<true, false>(params->TILE_CNT * params->LOOP_FACTOR);
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
             // For MATH_ISOLATE, we need to properly handle data valid flags
             // The unpack thread sets valid flags, and we need to clear them
-            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int i = 0; i < params.TILE_CNT; ++i)
+                for (int i = 0; i < params->TILE_CNT; ++i)
                 {
                     // Assume data is already in dest registers (skipping A2D copy)
                     // Run the SFPU reduce SDPA calculation
@@ -137,27 +134,30 @@ void run_kernel(const struct RuntimeParams& params)
         else
         {
             // Full L1-to-L1 operation
-            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    uint32_t block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
+                    std::uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
                     // Wait for destination to be available
                     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
                     // Copy from srcA to dest
-                    for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (std::uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
+                        LLK_ASSERT(
+                            (block_tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                            "Block tile index exceeds maximum destination tiles");
                         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                            block_start + block_tile, formats.math, formats.math);
+                            block_tile, formats.math, formats.math);
                     }
 
                     // Start SFPU operation
                     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 
                     // Call the SFPU SDPA reduce function
-                    const uint32_t block_height = BLOCK_RT_DIM;
+                    constexpr std::uint32_t block_height = BLOCK_RT_DIM;
                     _calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
 
                     _llk_math_eltwise_unary_sfpu_done_();
@@ -176,9 +176,8 @@ void run_kernel(const struct RuntimeParams& params)
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const struct FormatConfig& formats = params.formats;
     {
         ZONE_SCOPED("INIT")
         // Configure packer hardware
@@ -198,7 +197,6 @@ void run_kernel(const struct RuntimeParams& params)
 #endif
         PROFILER_SYNC();
     }
-
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
@@ -207,14 +205,17 @@ void run_kernel(const struct RuntimeParams& params)
         }
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    uint32_t block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
+                    std::uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
-                    for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (std::uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
+                        LLK_ASSERT(
+                            (block_tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                            "Block tile index exceeds maximum destination tiles");
                         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
                     }
                 }
@@ -223,15 +224,18 @@ void run_kernel(const struct RuntimeParams& params)
         else
         {
             // Full L1-to-L1 operation
-            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    uint32_t block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
+                    std::uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
 
                     _llk_packer_wait_for_math_done_();
-                    for (uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (std::uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
+                        LLK_ASSERT(
+                            (block_tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                            "Block tile index exceeds maximum destination tiles");
                         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(block_tile, PERF_ADDRESS(PERF_OUTPUT, block_start + block_tile));
                     }
                     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

@@ -24,7 +24,7 @@ constexpr bool row_pool                             = (REDUCE_DIM == ckernel::Re
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
@@ -38,7 +38,7 @@ void run_kernel(const struct RuntimeParams& params)
     config_unpacker_x_end<UNP_SEL>(FACE_R_DIM);
     _llk_unpack_AB_mop_config_<BroadcastType::NONE>(false /* transpose_of_faces */, 4 /* num_faces */, false /* narrow_tile */);
 
-    _llk_unpack_AB_<>(L1_ADDRESS(params.buffer_A[0]), L1_ADDRESS(params.buffer_B[0]));
+    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]));
 }
 
 #endif
@@ -49,7 +49,7 @@ void run_kernel(const struct RuntimeParams& params)
 #include "llk_math_reduce.h"
 #include "params.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     constexpr MathFidelity math_fid      = MathFidelity::HiFi4;
     const bool is_int_fpu_en             = false;
@@ -70,7 +70,7 @@ void run_kernel(const struct RuntimeParams& params)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_pack_init_<false, false>(formats.pack_dst);
 
@@ -89,7 +89,7 @@ void run_kernel(const struct RuntimeParams& params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(params.buffer_Res[0]));
+    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 
     _llk_pack_reduce_mask_clear_();

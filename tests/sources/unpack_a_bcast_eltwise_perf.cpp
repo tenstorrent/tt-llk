@@ -15,18 +15,17 @@
 #include "profiler.h"
 
 // Globals
-uint32_t unp_cfg_context          = 0;
-uint32_t pack_sync_tile_dst_ptr   = 0;
-uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t unp_cfg_context          = 0;
+std::uint32_t pack_sync_tile_dst_ptr   = 0;
+std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_AB.h"
 #include "llk_unpack_common.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const struct FormatConfig& formats = params.formats;
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<false>(
@@ -34,7 +33,6 @@ void run_kernel(const struct RuntimeParams& params)
         _llk_unpack_bcastA_B_init_();
         PROFILER_SYNC();
     }
-
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
@@ -43,13 +41,13 @@ void run_kernel(const struct RuntimeParams& params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            return _perf_unpack_loop_set_valid<true, true>(params.TILE_CNT * TILE_NUM_FACES);
+            return _perf_unpack_loop_set_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES);
         }
         else
         {
-            for (uint32_t i = 0; i < params.TILE_CNT / params.SRCA_REUSE_COUNT; i++)
+            for (std::uint32_t i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
             {
-                _llk_unpack_bcastA_B_(L1_ADDRESS(params.buffer_A[i]), L1_ADDRESS(params.buffer_B[i * params.SRCA_REUSE_COUNT]), params.SRCA_REUSE_COUNT);
+                _llk_unpack_bcastA_B_(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i * params->SRCA_REUSE_COUNT]), params->SRCA_REUSE_COUNT);
             }
         }
         PROFILER_SYNC();
@@ -63,17 +61,15 @@ void run_kernel(const struct RuntimeParams& params)
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const struct FormatConfig& formats = params.formats;
     {
         ZONE_SCOPED("INIT")
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-        _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, 0>(params.SRCA_REUSE_COUNT);
+        _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, ckernel::MathFidelity::LoFi>(params->SRCA_REUSE_COUNT);
         PROFILER_SYNC();
     }
-
     {
         ZONE_SCOPED("TILE_LOOP")
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
@@ -83,22 +79,26 @@ void run_kernel(const struct RuntimeParams& params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            return _perf_math_loop_clear_valid<true, true>(params.TILE_CNT * TILE_NUM_FACES);
+            return _perf_math_loop_clear_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES);
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             _llk_math_wait_for_dest_available_<dest_sync>();
-            for (uint32_t i = 0; i < params.TILE_CNT / params.SRCA_REUSE_COUNT; i++)
+            for (std::uint32_t i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
             {
-                _llk_math_eltwise_binary_(i * params.SRCA_REUSE_COUNT /* dst_index */);
+                const std::uint32_t tile_index = i * params->SRCA_REUSE_COUNT;
+                LLK_ASSERT((tile_index < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "tile_index exceeds max dest tiles");
+                _llk_math_eltwise_binary_(tile_index /* dst_index */);
             }
         }
         else
         {
             _llk_math_wait_for_dest_available_<dest_sync>();
-            for (uint32_t i = 0; i < params.TILE_CNT / params.SRCA_REUSE_COUNT; i++)
+            for (std::uint32_t i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
             {
-                _llk_math_eltwise_binary_(i * params.SRCA_REUSE_COUNT /* dst_index */);
+                const std::uint32_t tile_index = i * params->SRCA_REUSE_COUNT;
+                LLK_ASSERT((tile_index < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "tile_index exceeds max dest tiles");
+                _llk_math_eltwise_binary_(tile_index /* dst_index */);
             }
         }
         PROFILER_SYNC();
@@ -113,9 +113,8 @@ void run_kernel(const struct RuntimeParams& params)
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
-void run_kernel(const struct RuntimeParams& params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    const struct FormatConfig& formats = params.formats;
     {
         ZONE_SCOPED("INIT")
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
@@ -123,7 +122,6 @@ void run_kernel(const struct RuntimeParams& params)
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         PROFILER_SYNC();
     }
-
     {
         _llk_packer_wait_for_math_done_();
         ZONE_SCOPED("TILE_LOOP")
@@ -133,15 +131,17 @@ void run_kernel(const struct RuntimeParams& params)
         }
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (uint32_t tile = 0; tile < params.TILE_CNT; tile++)
+            for (std::uint32_t tile = 0; tile < params->TILE_CNT; tile++)
             {
+                LLK_ASSERT((tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "tile exceeds max dest tiles");
                 _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
             }
         }
         else
         {
-            for (uint32_t tile = 0; tile < params.TILE_CNT; tile++)
+            for (std::uint32_t tile = 0; tile < params->TILE_CNT; tile++)
             {
+                LLK_ASSERT((tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "tile exceeds max dest tiles");
                 _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile, PERF_ADDRESS(PERF_OUTPUT, tile));
             }
         }
