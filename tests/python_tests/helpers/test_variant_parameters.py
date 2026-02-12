@@ -19,6 +19,7 @@ from .llk_params import (
     EltwiseBinaryReuseDestType,
     FastMode,
     ImpliedMathFormat,
+    L1Accumulation,
     MathFidelity,
     MathOperation,
     NarrowTile,
@@ -185,7 +186,7 @@ class MATH_FIDELITY(TemplateParameter):
     math_fidelity: MathFidelity
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr std::uint32_t MATH_FIDELITY = {self.math_fidelity.value};"
+        return f"constexpr ckernel::MathFidelity MATH_FIDELITY = {self.math_fidelity.cpp_enum_value};"
 
 
 @dataclass
@@ -210,6 +211,14 @@ class FAST_MODE(TemplateParameter):
 
     def covert_to_cpp(self) -> str:
         return f"constexpr bool FAST_MODE = {str(self.fast_mode.value).lower()};"
+
+
+@dataclass
+class CLAMP_NEGATIVE(TemplateParameter):
+    clamp_negative: bool = True
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr bool CLAMP_NEGATIVE = {str(self.clamp_negative).lower()};"
 
 
 @dataclass
@@ -365,6 +374,19 @@ class DEST_INDEX(RuntimeParameter):
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         return f"int DST_INDEX;", "i"
+
+
+@dataclass
+class L1_ACC(RuntimeParameter):
+    l1_acc: L1Accumulation = L1Accumulation.No
+
+    def covert_to_cpp(self) -> str:
+        return (
+            f"constexpr int L1_ACC = {1 if self.l1_acc == L1Accumulation.Yes else 0};"
+        )
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return f"int L1_ACC;", "i"
 
 
 @dataclass

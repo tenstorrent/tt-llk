@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <cstring>
 
 #include "ckernel.h"
 #ifndef ARCH_QUASAR
@@ -12,7 +11,6 @@
 // Necessary for ckernel variables
 #include "ckernel_helper.h" // Only for WH/BH
 #endif
-#include "params.h"
 #include "profiler.h"
 
 #if defined(LLK_TRISC_UNPACK) && defined(LLK_BOOT_MODE_TRISC)
@@ -33,14 +31,7 @@ std::uint32_t open_zone_cnt = 0;
 #endif
 
 extern const volatile struct RuntimeParams __runtime_args_start[];
-extern void run_kernel(const struct RuntimeParams& params);
-
-void copy_runtimes_from_L1(struct RuntimeParams* temp_args)
-{
-    struct RuntimeParams* src = (struct RuntimeParams*)__runtime_args_start;
-    asm volatile("" : "=m"(*src));
-    memcpy(temp_args, src, sizeof(struct RuntimeParams));
-}
+extern void run_kernel(const volatile struct RuntimeParams* params);
 
 int main()
 {
@@ -61,11 +52,6 @@ int main()
 
     ckernel::store_blocking(mailbox, 0x01);
 
-    struct RuntimeParams temp_args;
-    copy_runtimes_from_L1(&temp_args);
-
-    ckernel::store_blocking(mailbox, 0x02);
-
     std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
 #ifndef ARCH_QUASAR
     ckernel::reset_cfg_state_id();
@@ -77,15 +63,15 @@ int main()
     llk_profiler::sync_threads();
 #endif
 
-    ckernel::store_blocking(mailbox, 0x03);
+    ckernel::store_blocking(mailbox, 0x02);
 
     {
         ZONE_SCOPED("KERNEL")
-        run_kernel(temp_args);
+        run_kernel(__runtime_args_start);
         ckernel::tensix_sync();
     }
 
-    ckernel::store_blocking(mailbox, 0x04);
+    ckernel::store_blocking(mailbox, 0x03);
 
     ckernel::store_blocking(mailbox, 0xFF);
 }

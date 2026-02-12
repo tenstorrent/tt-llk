@@ -340,11 +340,11 @@ inline void wait(std::uint32_t cycles)
 {
     volatile std::uint32_t tt_reg_ptr *clock_lo = reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_L);
     volatile std::uint32_t tt_reg_ptr *clock_hi = reinterpret_cast<volatile std::uint32_t tt_reg_ptr *>(RISCV_DEBUG_REG_WALL_CLOCK_H);
-    std::uint64_t wall_clock_timestamp          = clock_lo[0] | ((std::uint64_t)clock_hi[0] << 32);
+    std::uint64_t wall_clock_timestamp          = clock_lo[0] | (static_cast<std::uint64_t>(clock_hi[0]) << 32);
     std::uint64_t wall_clock                    = 0;
     do
     {
-        wall_clock = clock_lo[0] | ((std::uint64_t)clock_hi[0] << 32);
+        wall_clock = clock_lo[0] | (static_cast<std::uint64_t>(clock_hi[0]) << 32);
     } while (wall_clock < (wall_clock_timestamp + cycles));
 }
 
@@ -495,7 +495,7 @@ inline std::uint64_t read_wall_clock()
 {
     std::uint32_t timestamp_low  = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_L);
     std::uint32_t timestamp_high = reg_read(RISCV_DEBUG_REG_WALL_CLOCK_H);
-    return ((std::uint64_t)timestamp_high << 32) | timestamp_low;
+    return (static_cast<std::uint64_t>(timestamp_high) << 32) | timestamp_low;
 }
 
 inline void record_kernel_runtime(std::uint64_t kernel_runtime)
@@ -732,6 +732,36 @@ inline void apply_sign_magnitude_conversion(std::uint32_t src, std::uint32_t dst
     TTI_SFPCAST(src /*lreg*/, dst /*ldest*/, cast_mode);
     // Required after cast due to a bug in Blackhole RTL (Refer tenstorrent/tt-llk-bh#16)
     TTI_SFPSETSGN(0 /* imm */, dst /*lreg_c*/, src /*ldest*/, 0 /*imod*/);
+}
+
+constexpr std::uint32_t DstTileSizeLog2[3] = {
+    6, // 32x32 tile shape
+    5, // 32x16, 16x32 tile shape
+    4  // 16x16 tile shape
+};
+
+/**
+ * @brief Calculates the maximum number of destination tiles that can fit in the destination register.
+ *
+ * @tparam SYNC_MODE   Destination synchronization mode (SyncHalf or SyncFull)
+ * @tparam ACCUM_MODE Accumulation mode: true for 32-bit (FP32), false for 16-bit
+ * @tparam TILE_SHAPE      Tile shape enum value (e.g., 32x32, 16x16, etc.)
+ * @return constexpr std::uint32_t   Maximum number of destination tiles
+ *
+ * The calculation is based on the destination register size and the tile shape.
+ *
+ * Formula:
+ *   DEST_REGISTER_SIZE >> DstTileSizeLog2[static_cast<int>(TILE_SHAPE)]
+ *
+ * Where DEST_REGISTER_SIZE is selected based on SYNC_MODE and ACCUM_MODE.
+ */
+template <DstSync SYNC_MODE, bool ACCUM_MODE, DstTileShape TILE_SHAPE>
+constexpr std::uint32_t get_dest_max_tiles()
+{
+    constexpr std::uint32_t DEST_REGISTER_SIZE = SYNC_MODE == DstSync::SyncHalf ? (ACCUM_MODE ? DEST_REGISTER_HALF_SIZE >> 1 : DEST_REGISTER_HALF_SIZE)
+                                                                                : (ACCUM_MODE ? DEST_REGISTER_FULL_SIZE >> 1 : DEST_REGISTER_FULL_SIZE);
+
+    return DEST_REGISTER_SIZE >> DstTileSizeLog2[static_cast<int>(TILE_SHAPE)];
 }
 
 } // namespace ckernel
