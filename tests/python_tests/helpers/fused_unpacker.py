@@ -185,6 +185,7 @@ class MatmulUnpacker(Unpacker):
         batch_size = operation.batch_size
         unpack_tile_size_a = operation.tile_size_unpack_a
         unpack_tile_size_b = operation.tile_size_unpack_b
+        full_ct_dim = operation.src_b.dimensions[1] // 32
 
         if batch_size == ct_dim:
             code = (
@@ -193,7 +194,7 @@ class MatmulUnpacker(Unpacker):
                 f"        for (std::uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
                 f"            _llk_unpack_AB_matmul_<>(\n"
                 f"                L1_ADDRESS(buffer_A{stage}[0]), L1_ADDRESS(buffer_B{stage}[0]),\n"
-                f"                mt * {kt_dim} + kt, kt * {ct_dim},\n"
+                f"                mt * {kt_dim} + kt, kt * {full_ct_dim},\n"
                 f"                {unpack_tile_size_a}, {unpack_tile_size_b}, false, false, {ct_dim}, 1, {kt_dim}\n"
                 f"            );\n"
                 f"        }}\n"
@@ -204,7 +205,7 @@ class MatmulUnpacker(Unpacker):
                 f"    for (std::uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
                 f"        _llk_unpack_AB_matmul_<>(\n"
                 f"            L1_ADDRESS(buffer_A{stage}[0]), L1_ADDRESS(buffer_B{stage}[0]),\n"
-                f"            kt, kt * {ct_dim},\n"
+                f"            kt, kt * {full_ct_dim},\n"
                 f"            {unpack_tile_size_a}, {unpack_tile_size_b}, false, false, {ct_dim}, {rt_dim}, {kt_dim}\n"
                 f"        );\n"
                 f"    }}\n"
