@@ -36,8 +36,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
             formats.unpack_dst,
             in1_tile_r_dim < FACE_R_DIM ? in1_tile_r_dim : FACE_R_DIM,
             in0_tile_r_dim < FACE_R_DIM ? in0_tile_r_dim : FACE_R_DIM,
-            num_faces_A, // In1/SrcA
-            num_faces_B, // In0/SrcB
+            num_faces_B, // In1
+            num_faces_A, // In0
             TILE_SIZE_UNPACK_A,
             TILE_SIZE_UNPACK_B);
         _llk_unpack_AB_matmul_init_<>(
@@ -47,10 +47,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
             KT_DIM,
             in1_tile_r_dim < FACE_R_DIM ? in1_tile_r_dim : FACE_R_DIM,
             in0_tile_r_dim < FACE_R_DIM ? in0_tile_r_dim : FACE_R_DIM,
-            num_faces_A,     // In1/SrcA
-            num_faces_B,     // In0/SrcB
-            PARTIAL_FACE_A,  // In1/SrcA
-            PARTIAL_FACE_B); // In0/SrcB
+            num_faces_B,     // In1
+            num_faces_A,     // In0
+            PARTIAL_FACE_B,  // In1
+            PARTIAL_FACE_A); // In0
         PROFILER_SYNC();
     }
     {
@@ -76,8 +76,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
                         j * CT_DIM,
                         TILE_SIZE_UNPACK_A,
                         TILE_SIZE_UNPACK_B,
-                        PARTIAL_FACE_A, // In1/SrcA
-                        PARTIAL_FACE_B, // In0/SrcB
+                        PARTIAL_FACE_B, // In1
+                        PARTIAL_FACE_A, // In0
                         CT_DIM,
                         RT_DIM,
                         KT_DIM);
