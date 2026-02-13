@@ -107,7 +107,6 @@ def test_eltwise_binary(
         # const_value_B=2
     )
 
-<<<<<<< HEAD
     num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
         DestSync.Half,
         dest_acc,
@@ -115,25 +114,6 @@ def test_eltwise_binary(
         input_dimensions,
         [32, 32],
         BlocksCalculationAlgorithm.Standard,
-=======
-    MAX_TILES_IN_BLOCK = (
-        4
-        if (formats.input_format == DataFormat.Float32)
-        or (formats.input_format == DataFormat.Int32)
-        else 8
-    )
-
-    num_blocks = (tile_cnt_A + MAX_TILES_IN_BLOCK - 1) // MAX_TILES_IN_BLOCK
-    num_tiles_in_block = tile_cnt_A % MAX_TILES_IN_BLOCK or MAX_TILES_IN_BLOCK
-
-    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
-        dest_sync=DestSync.Half,
-        dest_acc=dest_acc,
-        formats=formats,
-        input_dimensions=input_dimensions,
-        tile_dimensions=tile_dimensions,
-        blocks_calculation_algorithm=BlocksCalculationAlgorithm.Standard,
->>>>>>> e3df8c49 (Changed the blocks algorithm helper and reverted sfpu test refactors.)
     )
 
     # Compute element-wise subtraction in tilized format
