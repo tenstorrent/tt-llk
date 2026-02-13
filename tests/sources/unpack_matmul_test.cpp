@@ -29,8 +29,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
         formats.unpack_B_dst,
         params->in1_tile_r_dim < FACE_R_DIM ? params->in1_tile_r_dim : FACE_R_DIM,
         params->in0_tile_r_dim < FACE_R_DIM ? params->in0_tile_r_dim : FACE_R_DIM,
-        params->num_faces_A, // in1
-        params->num_faces_B, // in0
+        params->num_faces_B, // in1
+        params->num_faces_A, // in0
         TILE_SIZE_UNPACK_A,
         TILE_SIZE_UNPACK_B);
     _llk_unpack_configure_stoch_rnd_<STOCHASTIC_RND>();
@@ -41,10 +41,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
         params->KT_DIM,
         params->in1_tile_r_dim < FACE_R_DIM ? params->in1_tile_r_dim : FACE_R_DIM,
         params->in0_tile_r_dim < FACE_R_DIM ? params->in0_tile_r_dim : FACE_R_DIM,
-        params->num_faces_A,     // in1
-        params->num_faces_B,     // in0
-        params->PARTIAL_FACE_A,  // in1
-        params->PARTIAL_FACE_B); // in0
+        params->num_faces_B,     // in1
+        params->num_faces_A,     // in0
+        params->PARTIAL_FACE_B,  // in1
+        params->PARTIAL_FACE_A); // in0
     for (std::uint32_t j = 0; j < params->KT_DIM; j++)
     {
         _llk_unpack_AB_matmul_<>(
@@ -54,8 +54,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
             j * params->CT_DIM,
             TILE_SIZE_UNPACK_A,
             TILE_SIZE_UNPACK_B,
-            params->PARTIAL_FACE_A, // in1
-            params->PARTIAL_FACE_B, // in0
+            params->PARTIAL_FACE_B, // in1
+            params->PARTIAL_FACE_A, // in0
             params->CT_DIM,
             params->RT_DIM,
             params->KT_DIM);

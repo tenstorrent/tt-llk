@@ -175,13 +175,13 @@ def test_unpack_matmul(math_fidelity, matmul_config, workers_tensix_coordinates)
         ],
         runtimes=[
             TILE_COUNT(matmul_config.tile_dimensions.tile_cnt),
-            NUM_FACES(num_faces, num_faces_in1, num_faces_in0),
+            NUM_FACES(num_faces, num_faces_in0, num_faces_in1),
             UNPACK_TRANS_FACES(transpose),
             UNPACK_TRANS_WITHIN_FACE(transpose),
             PARTIAL_FACE(
-                partial_a=partial_face_in1,
+                partial_a=partial_face_in0,
                 partial_face_pack=partial_face_pack,
-                partial_b=partial_face_in0,
+                partial_b=partial_face_in1,
                 partial_face_math=partial_face_math,
             ),
             CRK_TILE_DIMM(

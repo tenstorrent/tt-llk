@@ -31,10 +31,7 @@ def _mask_tile(
     if num_faces == 1:
         # Keep only f0
         masked[:16, 16:] = 0  # Zero f1
-        if face_r_dim < 16:
-            masked[face_r_dim:, :] = 0  # Zero f2, f3 and part of f0
-        else:
-            masked[16:, :] = 0  # Zero f2, f3
+        masked[face_r_dim:, :] = 0  # Zero f2, f3 and part of f0
     elif num_faces == 2:
         if is_matrix_B:
             # matrix B (In1/SrcA): keep partial f0, f2
@@ -45,9 +42,7 @@ def _mask_tile(
             masked[16:, 16:] = 0  # Zero f3
         else:
             # matrix A (In0/SrcB): keep f0, f1
-            if face_r_dim < 16:
-                masked[face_r_dim:, :] = 0  # Zero part of f0 and f1
-            masked[16:, :] = 0  # Zero f2, f3
+            masked[face_r_dim:, :] = 0  # Zero part of f0 and f1
     return masked
 
 

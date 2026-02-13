@@ -118,28 +118,28 @@ def calculate_matmul_output_faces(
     """
     Calculate the number of output faces for matmul based on input face configurations.
 
-    For matmul A(M×K) × B(K×N) = C(M×N):
-    - Output rows (M) = A's rows
-    - Output cols (N) = B's cols
+    For matmul in0(M×K) × in1(K×N) = output(M×N):
+    - Output rows (M) = in0's rows
+    - Output cols (N) = in1's cols
     - Output elements = M × N
     - Output faces = min(output_elements / 256, 4)
 
-    In 2-face mode, matrix A and B use opposite layouts:
-    - If A uses horizontal (f0,f1), B uses vertical (f0,f2)
-    - If A uses vertical (f0,f2), B uses horizontal (f0,f1)
+    In 2-face mode, in0 and in1 use opposite layouts:
+    - If in0 uses horizontal (f0,f1), in1 uses vertical (f0,f2)
+    - If in0 uses vertical (f0,f2), in1 uses horizontal (f0,f1)
 
     Args:
-        num_faces_in0: Number of faces for matrix A (In0/SrcB)
-        num_faces_in1: Number of faces for matrix B (In1/SrcA)
-        is_in0_horizontal: For 2-face mode, whether matrix A uses horizontal layout (f0,f1)
+        num_faces_in0: Number of faces for in0 (SrcB)
+        num_faces_in1: Number of faces for in1 (SrcA)
+        is_in0_horizontal: For 2-face mode, whether in0 uses horizontal layout (f0,f1)
 
     Returns:
         Number of output faces (1, 2, or 4)
     """
-    # Get dimensions for matrix A (In0/SrcB)
+    # Get dimensions for in0
     a_rows, _ = get_face_dimensions(num_faces_in0, is_horizontal=is_in0_horizontal)
 
-    # For 2-face mode, B uses opposite layout of A
+    # For 2-face mode, in1 uses opposite layout of in0
     is_in1_horizontal = not is_in0_horizontal if num_faces_in1 == 2 else True
     _, b_cols = get_face_dimensions(num_faces_in1, is_horizontal=is_in1_horizontal)
 
@@ -168,6 +168,9 @@ def generate_matmul_dimension_combinations(
     """
     Generate valid matmul dimension pairs where result matrix size <= max_tiles.
 
+    Produces in0(M×K) and in1(K×N) dimension pairs in elements (TILE_DIM multiples),
+    constrained so the output M×N tile count does not exceed max_tiles.
+
     Args:
         max_tiles: Maximum size of result matrix in tiles (M×N tiles)
         kt_dims: K dimension sizes to test (in tiles)
@@ -190,6 +193,18 @@ def generate_matmul_dimension_combinations(
 
 
 def generate_matmul_tiny_tiles_combinations(max_tiles: int) -> List[tuple]:
+    """
+    Generate matmul dimension combinations for tiny (sub-32) tile configurations.
+
+    Uses non-standard tile sizes where in0 has variable row heights (1, 2, 4, 8, 16)
+    and in1 has variable column widths, for testing matmul with partial tiles.
+
+    Args:
+        max_tiles: Maximum number of tiles; determines in1 column range (32 to max_tiles*32)
+
+    Returns:
+        List[((in0_rows, in0_cols), (in1_rows, in1_cols))] of valid tiny-tile dimension pairs
+    """
     valid_combinations = []
     tile_in0_rows = [1, 2, 4, 8, 16]
     tile_in0_columns = 32
