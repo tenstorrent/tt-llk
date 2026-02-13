@@ -70,6 +70,10 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
 
 
 @parametrize(
+    cpp_test_source=[
+        "sources/matmul_custom_test.cpp",
+        "sources/matmul_test.cpp",
+    ],
     math_fidelity=[
         MathFidelity.LoFi,
         MathFidelity.HiFi2,
@@ -80,6 +84,7 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
 )
 # Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
 def test_matmul(
+    cpp_test_source,
     math_fidelity,
     format_dest_acc_and_dims,
     workers_tensix_coordinates,
@@ -128,7 +133,7 @@ def test_matmul(
         tilized_B = src_B
 
     configuration = TestConfig(
-        "sources/matmul_test.cpp",
+        cpp_test_source,
         formats,
         templates=[
             MATH_FIDELITY(math_fidelity),

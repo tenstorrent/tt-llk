@@ -350,7 +350,7 @@ inline void matmul_configure_mop_throttled(
 }
 
 template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0>
-inline void _llk_math_matmul_init_(
+inline void _llk_math_matmul_init_no_mop_(
     const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
     const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
     const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
@@ -375,13 +375,13 @@ inline void _llk_math_matmul_init_(
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-inline void _llk_math_matmul_uninit_()
+inline void _llk_math_matmul_uninit_no_mop_()
 {
     // No state to restore - all states are transient or default
 }
 
 template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0>
-inline void _llk_math_matmul_(
+inline void _llk_math_matmul_no_mop_(
     std::uint32_t dst_index,
     const std::uint32_t ct_dim         = 1,
     const std::uint32_t rt_dim         = 1,
