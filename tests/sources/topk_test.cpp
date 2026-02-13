@@ -7,7 +7,7 @@
 // row-by-row to find the top-K values and their corresponding indices.
 //
 // Algorithm Overview:
-// ------------------:
+// ------------------
 //
 // 1. Initial Setup:
 //    - Matrix is split into value tiles and index tiles
@@ -28,34 +28,51 @@
 //       - Load based on current distance calculation
 //
 //    b) MATH (SFPU operations):
-//       - Iteration 0 only: local_sort - bitonic sort on adjacent tile pairs
-//       - All iterations: merge(m_iter) - bitonic merge with m_iter = current_iteration
-//       - All iterations: rebuild(m_iter) - rebuild sorted topk with m_iter = current_iteration
+//       Iteration 0:
+//         * local_sort - bitonic sort on adjacent tile pairs
+//         * merge(m_iter=0) - bitonic merge
+//       Iterations 1 through N-2:
+//         * rebuild(m_iter, skip_second=0) - rebuild merged tiles from previous iteration
+//         * merge(m_iter) - bitonic merge
+//       Last iteration (N-1):
+//         * rebuild(m_iter, skip_second=0) - rebuild merged tiles from previous iteration
+//         * merge(m_iter) - bitonic merge
+//         * rebuild(m_iter, skip_second=1) - final rebuild to extract top-K
 //
 //    c) PACK: Write results back to L1
-//       - Final iteration writes to output buffer
-//       - Intermediate iterations write back for next iteration
+//       - Final iteration: writes only first tile (top-K) to output buffer
+//       - Non-final iterations: writes both tiles in pair back to L1 for next iteration
 //
-// 4. Example for 32x128 matrix (4 value tiles, TOPK_NUM_ITERATIONS=1):
+// 4. Example for 32x256 matrix (4 value tiles, Wt=4, TOPK_NUM_ITERATIONS=2):
 //    - Iteration 0:
 //      * Unpack pairs (0,1) and (2,3) with transpose
-//      * local_sort + merge(m=0) + rebuild(m=0)
-//      * Pack results back
-//
-// 5. Example for 32x256 matrix (4 value tiles, TOPK_NUM_ITERATIONS=2):
-//    - Iteration 0:
-//      * Unpack pairs (0,1) and (2,3) with transpose
-//      * local_sort + merge(m=0) + rebuild(m=0)
-//      * Pack results back
-//    - Iteration 1:
+//      * local_sort → merge(m=0)
+//      * Pack both tiles in each pair back to L1
+//    - Iteration 1 (last):
 //      * Unpack pairs (0,2) [no transpose]
-//      * merge(m=1) + rebuild(m=1)
-//      * Pack final results
+//      * rebuild(m=1, skip_second=0) → merge(m=1) → rebuild(m=1, skip_second=1)
+//      * Pack only first tile (top-K result) to output buffer
+//
+// 5. Example for 32x256 matrix (8 value tiles, Wt=8, TOPK_NUM_ITERATIONS=3):
+//    - Iteration 0:
+//      * Unpack pairs (0,1), (2,3), (4,5), (6,7) with transpose
+//      * local_sort → merge(m=0)
+//      * Pack both tiles in each pair back to L1
+//    - Iteration 1:
+//      * Unpack pairs (0,2), (4,6) [no transpose]
+//      * rebuild(m=1, skip_second=0) → merge(m=1)
+//      * Pack both tiles in each pair back to L1
+//    - Iteration 2 (last):
+//      * Unpack pair (0,4) [no transpose]
+//      * rebuild(m=2, skip_second=0) → merge(m=2) → rebuild(m=2, skip_second=1)
+//      * Pack only first tile (top-K result) to output buffer
 //
 // Key Design Points:
 // -----------------
-// - Combines local_sort with first merge/rebuild in iteration 0 to avoid extra pack/unpack
-// - Uses m_iter = current_iteration for merge/rebuild parameters
+// - Iteration 0 uses local_sort instead of rebuild (tiles not yet merged)
+// - Iterations 1+ begin with rebuild to process merged tiles from previous iteration
+// - Final iteration adds extra rebuild(skip_second=1) to extract top-K values
+// - Non-final iterations pack both tiles; final iteration packs only first tile of values and indices to output buffer
 // - Processes value and index tiles as separate stages with same operations
 // - Each row (tile height elements high) is processed independently
 
@@ -210,11 +227,13 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 using namespace ckernel;
 
-// Define DST_SYNC_MODE so LLK SFPU params helpers compile in this TU.
+// Define DST_SYNC_MODE and DST_ACCUM_MODE so LLK SFPU params helpers compile in this TU.
 // This must be done BEFORE including the TopK LLK API header.
-#define DST_SYNC_MODE dest_sync
+#define DST_SYNC_MODE  dest_sync
+#define DST_ACCUM_MODE is_fp32_dest_acc_en
 #include "llk_math_eltwise_unary_sfpu_topk.h"
 #undef DST_SYNC_MODE
+#undef DST_ACCUM_MODE
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
@@ -246,6 +265,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
         {
             const int distance_between_corresponding_tiles      = (1 << current_iteration);
             const int number_of_tile_pairs_in_current_iteration = (NUM_VALUE_TILES_PER_ROW / (distance_between_corresponding_tiles * NUM_TILES_PER_STAGE));
+            const bool last_iteration                           = (current_iteration == (TOPK_NUM_ITERATIONS - 1));
+            const bool first_iteration                          = (current_iteration == 0);
 
             for (int current_tile_pair_idx = 0; current_tile_pair_idx < number_of_tile_pairs_in_current_iteration;
                  ++current_tile_pair_idx) // Iterates over tiles in current topk pipeline operation.
@@ -308,8 +329,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
                 } // Stage loop.
 
-                // We do local sort only in the first iteration.
-                if (current_iteration == 0)
+                // Pick the first operation.
+                if (first_iteration)
                 {
                     // same as calling ckernel::llk_math_eltwise_unary_sfpu_topk_local_sort from metal.
                     _llk_math_eltwise_unary_sfpu_params_<APPROX>(
@@ -322,9 +343,21 @@ void run_kernel(const volatile struct RuntimeParams *params)
                         end_step,
                         start_step);
                 }
+                else
+                {
+                    // Same as calling ckernel::llk_math_eltwise_unary_sfpu_topk_rebuild from metal.
+                    _llk_math_eltwise_unary_sfpu_params_<APPROX>(
+                        ckernel::sfpu::calculate_bitonic_topk_rebuild<APPROX, is_fp32_dest_acc_en, STABLE_SORT>,
+                        dst_index,
+                        vector_mode,
+                        TOPK_SORT_DIRECTION,
+                        current_iteration,
+                        TOPK_K,
+                        TOPK_LOGK,
+                        0 /* skip_second */);
+                }
 
-                // Merge and rebuild on all iterations (including iteration 0 for the first merge on same pairs)
-                // Same as calling ckernel::llk_math_eltwise_unary_sfpu_topk_merge from metal.
+                // Always a second operation.
                 _llk_math_eltwise_unary_sfpu_params_<APPROX>(
                     ckernel::sfpu::calculate_bitonic_topk_merge<APPROX, is_fp32_dest_acc_en, TOPK_SORT_DIRECTION, STABLE_SORT>,
                     dst_index,
@@ -332,16 +365,20 @@ void run_kernel(const volatile struct RuntimeParams *params)
                     current_iteration,
                     TOPK_K);
 
-                // Same as calling ckernel::llk_math_eltwise_unary_sfpu_topk_rebuild from metal.
-                _llk_math_eltwise_unary_sfpu_params_<APPROX>(
-                    ckernel::sfpu::calculate_bitonic_topk_rebuild<APPROX, is_fp32_dest_acc_en, STABLE_SORT>,
-                    dst_index,
-                    vector_mode,
-                    TOPK_SORT_DIRECTION,
-                    current_iteration,
-                    TOPK_K,
-                    TOPK_LOGK,
-                    0);
+                // Additional last operation.
+                if (last_iteration)
+                {
+                    // Same as calling ckernel::llk_math_eltwise_unary_sfpu_topk_rebuild from metal.
+                    _llk_math_eltwise_unary_sfpu_params_<APPROX>(
+                        ckernel::sfpu::calculate_bitonic_topk_rebuild<APPROX, is_fp32_dest_acc_en, STABLE_SORT>,
+                        dst_index,
+                        vector_mode,
+                        TOPK_SORT_DIRECTION,
+                        current_iteration,
+                        TOPK_K,
+                        TOPK_LOGK,
+                        1 /* skip_second */);
+                }
 
                 _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
             } // Within pipeline loop.
@@ -373,9 +410,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
     {
         for (std::uint32_t current_iteration = 0; current_iteration < TOPK_NUM_ITERATIONS; ++current_iteration) // Iterates over topk pipelines.
         {
-            const int distance_between_corresponding_tiles      = (1 << current_iteration);
-            const int number_of_tile_pairs_in_current_iteration = (NUM_VALUE_TILES_PER_ROW / (distance_between_corresponding_tiles * NUM_TILES_PER_STAGE));
-            const bool last_iteration                           = (current_iteration == (TOPK_NUM_ITERATIONS - 1));
+            const int distance_between_corresponding_tiles_in_current_math = (1 << current_iteration);
+            const int number_of_tile_pairs_in_current_iteration =
+                (NUM_VALUE_TILES_PER_ROW / (distance_between_corresponding_tiles_in_current_math * NUM_TILES_PER_STAGE));
+            const bool last_iteration = (current_iteration == (TOPK_NUM_ITERATIONS - 1));
 
             for (int current_tile_pair_idx = 0; current_tile_pair_idx < number_of_tile_pairs_in_current_iteration;
                  ++current_tile_pair_idx) // Iterates over tiles in current topk pipeline operation.
@@ -440,18 +478,21 @@ void run_kernel(const volatile struct RuntimeParams *params)
                         const int tile_row_offset = current_tile_row * NUM_TILES_IN_RESULT_BUFFER_PER_ROW;
                         const int tile_L1_offset  = tile_row_offset + stage_index;
 
+                        // Pack only the first tile from the pair in the last iteration since after final merge/rebuild,
+                        // the result is in the first tile of each pair (DEST indices 0 and 2 for values and indices respectively).
                         _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(tile_dest_offset, L1_ADDRESS(buffer_Res[tile_L1_offset]));
                     }
                     else
                     {
                         const int tile_row_offset = current_tile_row * FULL_CT_DIM;
                         const int tile_pair_offset =
-                            current_tile_pair_idx * (distance_between_corresponding_tiles *
+                            current_tile_pair_idx * (distance_between_corresponding_tiles_in_current_math *
                                                      NUM_TILES_PER_STAGE); // offset to get to the correct tile pair we are processing in current iteration.
                         const int stage_offset =
                             stage_index * NUM_VALUE_TILES_PER_ROW; // since first half of the tiles are value tiles and second half are index tiles.
                         const int tile_L1_offset = tile_row_offset + stage_offset + tile_pair_offset;
 
+                        // Pack both tiles in the pair back to L1 for next iteration.
                         _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(tile_dest_offset, L1_ADDRESS(buffer_A[tile_L1_offset]));
                     }
 
