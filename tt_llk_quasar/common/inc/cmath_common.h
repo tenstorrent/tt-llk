@@ -166,31 +166,34 @@ inline void _set_dst_write_addr_by_rows_(const std::uint32_t num_rows_per_tile, 
     ckernel::trisc::_set_dest_section_base_<TRISC_ID>(dst_index);
 }
 
-inline void move_d2a_fixed_face(const std::uint8_t addrmod, const std::uint32_t face_offset = 0)
+inline void move_d2a_fixed_face(const std::uint8_t addrmod)
 {
+    // MOVD2A src is relative to dest_section_base + dest_counter.
+    // Use fixed offsets (0, 8) — the dest counter handles face progression.
     TTI_STALLWAIT(p_stall::STALL_MATH, 0, 0, p_stall::SRCA_VLD);
-    TTI_MOVD2A(0, face_offset + 0, addrmod, p_movd2a::MOV_8_ROWS, 0);
-    TTI_MOVD2A(0, face_offset + 8, addrmod, p_movd2a::MOV_8_ROWS, 8);
+    TTI_MOVD2A(0, 0, addrmod, p_movd2a::MOV_8_ROWS, 0);
+    TTI_MOVD2A(0, 8, addrmod, p_movd2a::MOV_8_ROWS, 8);
 }
 
-inline void move_d2b_fixed_face(const std::uint8_t addrmod, const std::uint32_t face_offset = 0)
+inline void move_d2b_fixed_face(const std::uint8_t addrmod)
 {
+    // MOVD2B src is relative to dest_section_base + dest_counter.
+    // Use fixed offsets (0, 8) — the dest counter handles face progression.
     TTI_STALLWAIT(p_stall::STALL_MATH, 0, 0, p_stall::SRCB_VLD);
-    TTI_MOVD2B(0, face_offset + 0, addrmod, p_movd2b::MOV_8_ROWS, 0, 0);
-    TTI_MOVD2B(0, face_offset + 8, addrmod, p_movd2b::MOV_8_ROWS, 0, 8);
+    TTI_MOVD2B(0, 0, addrmod, p_movd2b::MOV_8_ROWS, 0, 0);
+    TTI_MOVD2B(0, 8, addrmod, p_movd2b::MOV_8_ROWS, 0, 8);
 }
 
 template <EltwiseBinaryReuseDestType binary_reuse_dest>
-inline void eltwise_binary_reuse_dest_as_src(const std::uint32_t face_idx = 0)
+inline void eltwise_binary_reuse_dest_as_src()
 {
-    const std::uint32_t face_offset = face_idx * ckernel::trisc::FACE_R_DIM;
     if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA)
     {
-        move_d2a_fixed_face(ADDR_MOD_3, face_offset);
+        move_d2a_fixed_face(ADDR_MOD_3);
     }
     else if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCB)
     {
-        move_d2b_fixed_face(ADDR_MOD_3, face_offset);
+        move_d2b_fixed_face(ADDR_MOD_3);
     }
 }
 
