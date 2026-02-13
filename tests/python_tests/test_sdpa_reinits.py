@@ -212,7 +212,6 @@ def test_sdpa_reinits(
     torch_format = format_dict[formats.output_format]
 
     # Validate Operation 0: Matmul
-    print("\n[DEBUG] Validating Operation 0: Matmul")
     read_data0 = read_from_device(
         workers_tensix_coordinates, BUFFER_RES0_ADDR, num_bytes=read_bytes_cnt
     )
@@ -220,16 +219,10 @@ def test_sdpa_reinits(
         read_data0, formats.output_format, output_tile_cnt, False, 4, 16
     )
     res_tensor_0 = torch.tensor(res_from_L1_0, dtype=torch_format)
-    print(f"[DEBUG] Op0 - First 10 golden: {golden_output1[:10]}")
-    print(f"[DEBUG] Op0 - First 10 result: {res_tensor_0[:10]}")
-    if passed_test(golden_output1, res_tensor_0, formats.output_format):
-        print("[DEBUG] ✓ Operation 0 (Matmul) passed")
-    else:
-        print("[DEBUG] ✗ Operation 0 (Matmul) failed")
+    if not passed_test(golden_output1, res_tensor_0, formats.output_format):
         assert False, "Operation 0 (Matmul) failed"
 
     # Validate Operation 1: ReduceBlockMax
-    print("\n[DEBUG] Validating Operation 1: ReduceBlockMax")
     read_data1 = read_from_device(
         workers_tensix_coordinates, BUFFER_RES1_ADDR, num_bytes=read_bytes_cnt
     )
@@ -237,16 +230,10 @@ def test_sdpa_reinits(
         read_data1, formats.output_format, output_tile_cnt, False, 4, 16
     )
     res_tensor_1 = torch.tensor(res_from_L1_1, dtype=torch_format)
-    print(f"[DEBUG] Op1 - First 20 golden: {golden_output2[:20]}")
-    print(f"[DEBUG] Op1 - First 20 result: {res_tensor_1[:20]}")
-    if passed_test(golden_output2, res_tensor_1, formats.output_format):
-        print("[DEBUG] ✓ Operation 1 (ReduceBlockMax) passed")
-    else:
-        print("[DEBUG] ✗ Operation 1 (ReduceBlockMax) failed")
+    if not passed_test(golden_output2, res_tensor_1, formats.output_format):
         assert False, "Operation 1 (ReduceBlockMax) failed"
 
     # Validate Operation 2: Elwsub with column broadcast
-    print("\n[DEBUG] Validating Operation 2: Elwsub")
     read_data2 = read_from_device(
         workers_tensix_coordinates, BUFFER_RES2_ADDR, num_bytes=read_bytes_cnt
     )
@@ -254,16 +241,10 @@ def test_sdpa_reinits(
         read_data2, formats.output_format, output_tile_cnt, False, 4, 16
     )
     res_tensor_2 = torch.tensor(res_from_L1_2, dtype=torch_format)
-    print(f"[DEBUG] Op2 - First 10 golden: {golden_output3[:10]}")
-    print(f"[DEBUG] Op2 - First 10 result: {res_tensor_2[:10]}")
-    if passed_test(golden_output3, res_tensor_2, formats.output_format):
-        print("[DEBUG] ✓ Operation 2 (Elwsub) passed")
-    else:
-        print("[DEBUG] ✗ Operation 2 (Elwsub) failed")
+    if not passed_test(golden_output3, res_tensor_2, formats.output_format):
         assert False, "Operation 2 (Elwsub) failed"
 
     # Validate Operation 3: Matmul (final operation after all reinits)
-    print("\n[DEBUG] Validating Operation 3: Matmul")
     read_data3 = read_from_device(
         workers_tensix_coordinates, BUFFER_RES3_ADDR, num_bytes=read_bytes_cnt
     )
@@ -271,12 +252,5 @@ def test_sdpa_reinits(
         read_data3, formats.output_format, output_tile_cnt, False, 4, 16
     )
     res_tensor_3 = torch.tensor(res_from_L1_3, dtype=torch_format)
-    print(f"[DEBUG] Op3 - First 10 golden: {golden_output4[:10]}")
-    print(f"[DEBUG] Op3 - First 10 result: {res_tensor_3[:10]}")
-    if passed_test(golden_output4, res_tensor_3, formats.output_format):
-        print("[DEBUG] ✓ Operation 3 (Matmul) passed")
-    else:
-        print("[DEBUG] ✗ Operation 3 (Matmul) failed")
+    if not passed_test(golden_output4, res_tensor_3, formats.output_format):
         assert False, "Operation 3 (Matmul) failed"
-
-    print("\n✓ All 4 operations passed: Matmul -> ReduceBlockMax -> Elwsub -> Matmul")
