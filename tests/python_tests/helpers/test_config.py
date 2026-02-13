@@ -340,10 +340,9 @@ class TestConfig:
         self.l1_acc = l1_acc
         self.skip_build_header = skip_build_header
 
-        if self.variant_stimuli is not None:
-            self.variant_stimuli.with_coverage = TestConfig.WITH_COVERAGE
-
-        self.process_runtime_args()
+        # We need to call this here because this function generates serialisation format need for writing RTs to L1,
+        # Which is needed by execution part of test infra
+        self.generate_runtime_args_struct()
 
         if (
             self.coverage_build == CoverageBuild.Yes
@@ -353,15 +352,26 @@ class TestConfig:
                 "You can't build profiler and coverage build at the same time, profiling tests will fail."
             )
 
-    def process_runtime_args(self):
-
+    def generate_runtime_args_struct(self):
         # Generate runtime parameter struct
         lines = [
-            "// Struct that has a runtme parameter layout",
+            "// Struct containing runtime parameter layout",
             "struct RuntimeParams {",
+            "std::uint32_t TILE_SIZE_PACK;",
+            "std::uint32_t TILE_SIZE_UNPACK_A;",
+            "std::uint32_t TILE_SIZE_UNPACK_B;",
         ]
 
-        self.runtime_format = "@"
+        self.runtime_format = "@III"  # tile size types for formatter
+
+        if self.variant_stimuli:
+            if TestConfig.WITH_COVERAGE:
+                self.variant_stimuli.coverage_addresses = True
+            stimuli_fields, stimuli_pack_format = (
+                self.variant_stimuli.generate_runtime_struct_fields()
+            )
+            lines.extend(stimuli_fields)
+            self.runtime_format += stimuli_pack_format
 
         for parameter in self.runtimes:
             field_str, param_field_types = parameter.convert_to_struct_fields()
@@ -370,13 +380,54 @@ class TestConfig:
 
         lines.append("};")
 
-        self.runtime_params_struct = lines
+        self.runtime_arguments_struct = lines
 
     def write_runtimes_to_L1(self, location: str = "0,0"):
-        if len(self.runtimes) == 0:
-            return
+        TILE_SIZES = {
+            DataFormat.Bfp8_b: 68,
+            DataFormat.Float32: 256,
+        }
 
-        argument_data = []
+        if self.formats is None:
+            pack_size, unpack_size_a, unpack_size_b = 128, 128, 128
+        else:
+            pack_size = TILE_SIZES.get(self.formats.output_format, 128)
+            unpack_size_a = TILE_SIZES.get(self.formats.input_format, 128)
+            unpack_size_b = TILE_SIZES.get(self.formats.input_format, 128)
+
+        if len(self.runtimes) > 0:
+            itd_param = next(
+                (param for param in self.runtimes if isinstance(param, IN_TILE_DIMS)),
+                None,
+            )
+            faces_param = next(
+                (param for param in self.runtimes if isinstance(param, NUM_FACES)), None
+            )
+            if itd_param and faces_param:
+                temp_num_faces_A = (
+                    faces_param.num_faces_A
+                    if faces_param.num_faces_A
+                    else faces_param.num_faces
+                )
+                if itd_param.in0_r_dim <= 16:
+                    pack_size = (pack_size // faces_param.num_faces) * (
+                        itd_param.in0_r_dim // self.variant_stimuli.face_r_dim
+                    )
+                    unpack_size_a = (unpack_size_a // temp_num_faces_A) * (
+                        itd_param.in0_r_dim // self.variant_stimuli.face_r_dim
+                    )
+
+        argument_data = [
+            pack_size,  # uint32_t TILE_SIZE_PACK;
+            unpack_size_a,  # uint32_t TILE_SIZE_UNPACK_A;
+            unpack_size_b,  # uint32_t TILE_SIZE_UNPACK_B;
+        ]
+
+        if self.variant_stimuli:
+            argument_data.extend(
+                self.variant_stimuli.generate_runtime_operands_values(self.formats)
+            )
+
         for param in self.runtimes:
             argument_data.extend(
                 [
@@ -419,7 +470,7 @@ class TestConfig:
             "variant_stimuli",
             "run_configs",
             "variant_id",
-            "runtime_params_struct",
+            "runtime_arguments_struct",
             "runtime_format",
             "runtimes",
         ]
@@ -687,8 +738,6 @@ class TestConfig:
                 ]
             )
 
-        header_content.append("")
-
         return header_content
 
     def generate_build_header(self) -> str:
@@ -716,11 +765,6 @@ class TestConfig:
             "// Basic configuration",
             "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
         ]
-
-        if self.variant_stimuli:
-            header_content.extend(
-                self.variant_stimuli.generate_stimuli_header_addresses(self.formats)
-            )
 
         TILE_SIZES = {
             DataFormat.Bfp8_b: 68,
@@ -768,7 +812,7 @@ class TestConfig:
             header_content.append(parameter.covert_to_cpp())
 
         header_content.extend(self.infer_data_formats())
-        header_content.extend(self.runtime_params_struct)
+        header_content.extend(self.runtime_arguments_struct)
 
         return "\n".join(header_content)
 
