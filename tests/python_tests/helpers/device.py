@@ -51,7 +51,7 @@ class LLKAssertException(Exception):
 
 
 # Constant - indicates BRISC has finished orchestrating the test
-BRISC_DONE = 1  # BRISC writes 1 to mailbox_brisc when all TRISCs are done
+BRISC_DONE = 0xFF  # BRISC writes 0xFF to mailbox_brisc when all TRISCs are done
 
 
 class BootMode(Enum):
@@ -253,7 +253,7 @@ def make_sure_core_in_reset(
 
 
 def wait_for_tensix_operations_finished(
-    elfs, location="0,0", timeout=2, max_backoff=0.1
+    elfs, location="0,0", timeout=2, max_backoff=0.2
 ):
     """
     Waits for BRISC to signal that all TRISC kernels have completed.
@@ -272,10 +272,10 @@ def wait_for_tensix_operations_finished(
     test_target = TestTargetConfig()
     timeout = 600 if test_target.run_simulator else timeout
 
-    time.sleep(0.001)
+    time.sleep(0.005)
 
     start_time = time.time()
-    backoff = 0.001  # Initial backoff time in seconds
+    backoff = 0.002  # Initial backoff time in seconds
 
     end_time = start_time + timeout
     while time.time() < end_time:
@@ -297,8 +297,6 @@ def wait_for_tensix_operations_finished(
         "RISCV_DEBUG_REG_SOFT_RESET_0"
     )
 
-    print(hex(soft_reset))
-
     raise TimeoutError(
         f"Timeout reached: waited {timeout} seconds for BRISC done signal"
     )
@@ -309,7 +307,18 @@ def reset_mailboxes(location: str = "0,0"):
 
     BRISC checks that all 4 mailboxes are zero-initialized on startup.
     """
-    write_words_to_device(location=location, addr=Mailbox.Brisc.value, data=4 * [0])
+    write_words_to_device(location=location, addr=Mailbox.Brisc.value, data=[0])
+    write_words_to_device(location=location, addr=Mailbox.Unpacker.value, data=[0])
+    write_words_to_device(location=location, addr=Mailbox.Math.value, data=[0])
+    write_words_to_device(location=location, addr=Mailbox.Packer.value, data=[0])
+
+    for mailbox in [Mailbox.Brisc, Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer]:
+        val = read_word_from_device(location, mailbox.value)
+        if val != 0:
+            raise Exception(
+                f"Mailbox {mailbox.name} at {location} failed to reset: "
+                f"expected 0, got {val:#x}"
+            )
 
 
 def pull_coverage_stream_from_tensix(

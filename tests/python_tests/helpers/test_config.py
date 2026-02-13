@@ -35,6 +35,7 @@ from .device import (
     BootMode,
     RiscCore,
     exalens_device_setup,
+    get_register_store,
     reset_mailboxes,
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
@@ -920,16 +921,18 @@ class TestConfig:
 
         # Perform soft reset
         set_tensix_soft_reset(1, location=location)
-        # soft_reset_value = (
-        #     get_register_store(location, 0).read_register(
-        #         "RISCV_DEBUG_REG_SOFT_RESET_0"
-        #     )
-        #     >> 11
-        # )
-        # if not soft_reset_value & 0xF == 0xF:
-        #     raise Exception(
-        #         f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
-        #     )
+        time.sleep(0.001)
+        soft_reset_value = (
+            get_register_store(location, 0).read_register(
+                "RISCV_DEBUG_REG_SOFT_RESET_0"
+            )
+            >> 11
+        )
+        if not soft_reset_value & 0xF == 0xF:
+            raise Exception(
+                f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
+            )
+        time.sleep(0.001)
 
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
