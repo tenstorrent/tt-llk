@@ -134,7 +134,7 @@ def _get_valid_tile_dimensions(transpose_srca, broadcast_type):
     math_fidelity=lambda formats: _get_valid_math_fidelity(formats),
     transpose_srca=lambda broadcast_type: _get_valid_transpose(broadcast_type),
     math_op=lambda math_fidelity: _get_valid_math_ops(math_fidelity),
-    input_dimensions=[[256, 32]],
+    input_dimensions=[[256, 64]],
     tile_dimensions=lambda transpose_srca, broadcast_type: _get_valid_tile_dimensions(
         transpose_srca, broadcast_type
     ),
