@@ -9,6 +9,7 @@ yaml_files = sorted(FUSER_CONFIG_DIR.glob("*.yaml"))
 test_names = [f.stem for f in yaml_files]
 
 
+@pytest.mark.perf
 @pytest.mark.parametrize("test_name", test_names, ids=test_names)
 def test(test_name, regenerate_cpp, worker_id, workers_tensix_coordinates):
     config = load_fuser_config(test_name)
