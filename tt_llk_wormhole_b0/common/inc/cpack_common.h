@@ -257,12 +257,7 @@ inline bool is_packer_to_L1_conversion_supported(const DataFormat in_reg, const 
             return out_l1 == DataFormat::UInt16;
 
         // -------------------------------------------------------------------------
-        // 6. Int16 in register: early → INT16; late → INT16 (identity)
-        case DataFormat::Int16:
-            return out_l1 == DataFormat::Int16;
-
-        // -------------------------------------------------------------------------
-        // 7. Int32 in register: early → FP32|INT32|TF32|BF16|E8M6|INT8|UINT8
+        // 6. Int32 in register: early → FP32|INT32|TF32|BF16|E8M6|INT8|UINT8
         case DataFormat::Int32:
             switch (out_l1)
             {
@@ -279,7 +274,7 @@ inline bool is_packer_to_L1_conversion_supported(const DataFormat in_reg, const 
             }
 
         // -------------------------------------------------------------------------
-        // 8. Int8 / UInt8 in register: late → INT8|UINT8 (identity or bitcast); also Float16_b, Tf32
+        // 7. Int8 / UInt8 in register: late → INT8|UINT8 (identity or bitcast); also Float16_b, Tf32
         case DataFormat::Int8:
         case DataFormat::UInt8:
             switch (out_l1)
@@ -294,7 +289,7 @@ inline bool is_packer_to_L1_conversion_supported(const DataFormat in_reg, const 
             }
 
         // -------------------------------------------------------------------------
-        // 9. Unknown or not-yet-encoded formats
+        // 8. Unknown or not-yet-encoded formats
         default:
             return false;
     }

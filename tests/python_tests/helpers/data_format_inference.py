@@ -119,6 +119,15 @@ def infer_pack_in(
     # Packer operates on register data, so use unpack_out (what's in registers) not input_format (what's in L1).
     # For MX formats, unpack_out is already Float16_b (handled in infer_unpack_out).
 
+    # B-side block float (Bfp8_b; Bfp4_b/Bfp2_b when present in DataFormat) in unpack_out is a TDMA/unpacker
+    # format code for the L1 tile. The unpacker + gasket always convert BFP8/BFP4/BFP2 (B-side) to BF16 before
+    # writing to SrcA/SrcB/Dest, so the actual numeric format in the registers is Float16_b (BF16).
+    b_side_block_float = (
+        DataFormat.Bfp8_b,
+    )  # add Bfp4_b, Bfp2_b if/when added to DataFormat enum
+    if unpack_out in b_side_block_float:
+        return DataFormat.Float16_b
+
     if is_quasar:
         if (
             unpack_out in (DataFormat.Float16, DataFormat.Float16_b)
