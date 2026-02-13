@@ -530,7 +530,8 @@ class UnpackerTilizeA(Unpacker):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
     ) -> str:
-        return "_perf_unpack_loop_set_valid<true, true>(4);\n"
+        valid_cnt = 4 if config.architecture == ChipArchitecture.WORMHOLE else 1
+        return f"_perf_unpack_loop_set_valid<true, true>({valid_cnt});\n"
 
     def perf_clear_valid(
         self,
@@ -538,7 +539,8 @@ class UnpackerTilizeA(Unpacker):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
     ) -> str:
-        return "_perf_math_loop_clear_valid<true, true>(4);\n"
+        valid_cnt = 4 if config.architecture == ChipArchitecture.WORMHOLE else 1
+        return f"_perf_math_loop_clear_valid<true, true>({valid_cnt});\n"
 
     def golden(
         self,
