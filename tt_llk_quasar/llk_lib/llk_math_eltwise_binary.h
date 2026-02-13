@@ -63,13 +63,17 @@ inline std::uint32_t eltwise_di_binary_func(
  * @tparam MATH_FIDELITY: 0 = LoFi, 2 = HiFi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when input is Tf32 format
  * @param tile_shape: Contains all the information of the tile shape: num faces, face row/col dim, etc
  */
-template <EltwiseBinaryType ELTWISE_BINARY_TYPE, ckernel::MathFidelity MATH_FIDELITY_TYPE>
+template <
+    EltwiseBinaryType ELTWISE_BINARY_TYPE,
+    ckernel::MathFidelity MATH_FIDELITY_TYPE,
+    EltwiseBinaryReuseDestType reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void _llk_math_eltwise_binary_mop_config_(const TileShape& tile_shape)
 {
-    const std::uint32_t total_num_rows_per_tile = tile_shape.num_faces * tile_shape.face_r_dim;
-    const std::uint32_t MOP_OUTER_LOOP          = (total_num_rows_per_tile >> math_rows_log2(ELTWISE_MATH_ROWS));
-    constexpr std::uint32_t MOP_INNER_LOOP      = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 1 : to_underlying(MATH_FIDELITY_TYPE);
-    constexpr bool math_fidelity_enable         = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
+    const std::uint32_t rows_per_mop_run =
+        (reuse_dest != EltwiseBinaryReuseDestType::NONE) ? tile_shape.face_r_dim : (tile_shape.num_faces * tile_shape.face_r_dim);
+    const std::uint32_t MOP_OUTER_LOOP     = (rows_per_mop_run >> math_rows_log2(ELTWISE_MATH_ROWS));
+    constexpr std::uint32_t MOP_INNER_LOOP = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 1 : to_underlying(MATH_FIDELITY_TYPE);
+    constexpr bool math_fidelity_enable    = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
     static_assert(!(math_fidelity_enable && ELTWISE_BINARY_TYPE != EltwiseBinaryType::ELWMUL), "Math fidelity larger than LoFi only works with Eltwise MUL");
     const std::uint32_t EN_DST_ACC_EN = math_fidelity_enable;
 
@@ -212,7 +216,11 @@ inline void _llk_math_eltwise_di_binary_addrmod_()
  * @tparam MATH_FIDELITY: 0 = LoFi, 2 = HiFi2, 3 = HiFi3, 4 = HiFi4 - controls precision of multiplication when input is Tf32 format
  * @param tile_shape: Contains all the information of the tile shape: num faces, face row/col dim, etc
  */
-template <EltwiseBinaryType ELTWISE_BINARY_TYPE, ckernel::MathFidelity MATH_FIDELITY_TYPE, bool EN_DI = false>
+template <
+    EltwiseBinaryType ELTWISE_BINARY_TYPE,
+    ckernel::MathFidelity MATH_FIDELITY_TYPE,
+    bool EN_DI                            = false,
+    EltwiseBinaryReuseDestType reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void _llk_math_eltwise_binary_init_(const TileShape& tile_shape)
 {
     if constexpr (EN_DI)
@@ -223,7 +231,12 @@ inline void _llk_math_eltwise_binary_init_(const TileShape& tile_shape)
     else
     {
         _llk_math_eltwise_binary_addrmod_<MATH_FIDELITY_TYPE>();
-        _llk_math_eltwise_binary_mop_config_<ELTWISE_BINARY_TYPE, MATH_FIDELITY_TYPE>(tile_shape);
+        _llk_math_eltwise_binary_mop_config_<ELTWISE_BINARY_TYPE, MATH_FIDELITY_TYPE, reuse_dest>(tile_shape);
+    }
+
+    if constexpr (reuse_dest != EltwiseBinaryReuseDestType::NONE)
+    {
+        addr_mod_t {}.set(ADDR_MOD_3);
     }
 
     // Reset all counters
@@ -233,16 +246,30 @@ inline void _llk_math_eltwise_binary_init_(const TileShape& tile_shape)
 /**
  * @brief Perform an elementwise binary operation where Output = SrcA [+, -, *] SrcB
  * SrcA/SrcB contain 1 tile each, and output is 1 tile in destination register
+ * @tparam reuse_dest: When not NONE, reuses the destination register as SrcA or SrcB.
+ * The MOVD2A/B instruction copies a face from dest to the source register before each MOP run.
  * @param tile_idx: Tile index into the destination register.
  * If dest reg in float16 mode -> values = [0 - 8] in double buffering mode, values = [0 - 16] in full mode
  * If dest reg in float32 mode -> values = [0 - 4] in double buffering mode, values = [0 - 8] in full mode
  */
+template <EltwiseBinaryReuseDestType reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void _llk_math_eltwise_binary_(const std::uint32_t tile_idx)
 {
     _set_dst_write_addr_<DstTileShape::Tile32x32>(tile_idx);
 
-    // Run MOP
-    ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+    if constexpr (reuse_dest != EltwiseBinaryReuseDestType::NONE)
+    {
+        for (std::uint32_t face_num = 0; face_num < NUM_FACES; face_num++)
+        {
+            eltwise_binary_reuse_dest_as_src<reuse_dest>(face_num);
+            ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+        }
+    }
+    else
+    {
+        // Run MOP for the entire tile
+        ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
+    }
 
     // Reset all counters
     _reset_counters_<p_setrwc::SET_ABD_F>();
