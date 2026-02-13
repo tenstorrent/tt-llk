@@ -89,7 +89,7 @@ def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordina
         PerfRunType.L1_CONGESTION,
     ]
 
-    # Calculate all matmul dimensions using helper function
+    # Calculate all of matmul dimensions using helper function
     dims = generate_tile_dims((matrix_a, matrix_b))
 
     variant_tile_count = dims.rt_dim * dims.ct_dim * dims.kt_dim
