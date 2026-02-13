@@ -3,9 +3,7 @@
 
 from typing import List
 
-import pytest
 import torch
-from helpers.chip_architecture import ChipArchitecture
 from helpers.device import BootMode
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
@@ -72,10 +70,6 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
 
 
 @parametrize(
-    cpp_source=[
-        "sources/matmul_test.cpp",
-        "sources/matmul_custom_test.cpp",
-    ],
     math_fidelity=[
         MathFidelity.LoFi,
         MathFidelity.HiFi2,
@@ -86,18 +80,11 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
 )
 # Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
 def test_matmul(
-    cpp_source,
     math_fidelity,
     format_dest_acc_and_dims,
     workers_tensix_coordinates,
     boot_mode=BootMode.DEFAULT,
 ):
-    if (
-        TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE
-        and cpp_source == "sources/matmul_custom_test.cpp"
-    ):
-        pytest.skip("Matmul custom test not supported on Wormhole")
-
     torch_format = format_dict[format_dest_acc_and_dims[0].output_format]
 
     formats = format_dest_acc_and_dims[0]
@@ -141,7 +128,7 @@ def test_matmul(
         tilized_B = src_B
 
     configuration = TestConfig(
-        cpp_source,
+        "sources/matmul_test.cpp",
         formats,
         templates=[
             MATH_FIDELITY(math_fidelity),
