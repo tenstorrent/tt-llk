@@ -271,6 +271,50 @@ class UnpackerAB(Unpacker):
 
         return tensor_a.flatten(), tensor_b.flatten()
 
+    def perf_set_valid(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
+    ) -> str:
+        num_faces = operation.num_faces
+        if compute_unit.broadcast_type == BroadcastType.Scalar:
+            return (
+                f"_perf_unpack_loop_set_valid<false, true>(1);\n"
+                f"_perf_unpack_loop_set_valid<true, false>({num_faces});\n"
+            )
+        elif compute_unit.broadcast_type == BroadcastType.Column:
+            return (
+                f"_perf_unpack_loop_set_valid<false, true>(2);\n"
+                f"_perf_unpack_loop_set_valid<true, false>({num_faces});\n"
+            )
+        elif compute_unit.broadcast_type == BroadcastType.Row:
+            return f"_perf_unpack_loop_set_valid<true, true>({num_faces});\n"
+        else:
+            return f"_perf_unpack_loop_set_valid<true, true>({num_faces});\n"
+
+    def perf_clear_valid(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: "ComputeNode",
+    ) -> str:
+        num_faces = operation.num_faces
+        if compute_unit.broadcast_type == BroadcastType.Scalar:
+            return (
+                f"_perf_math_loop_clear_valid<false, true>(1);\n"
+                f"_perf_math_loop_clear_valid<true, false>({num_faces});\n"
+            )
+        elif compute_unit.broadcast_type == BroadcastType.Column:
+            return (
+                f"_perf_math_loop_clear_valid<false, true>(2);\n"
+                f"_perf_math_loop_clear_valid<true, false>({num_faces});\n"
+            )
+        elif compute_unit.broadcast_type == BroadcastType.Row:
+            return f"_perf_math_loop_clear_valid<true, true>({num_faces});\n"
+        else:
+            return f"_perf_math_loop_clear_valid<true, true>({num_faces});\n"
+
     def init(
         self,
         operation: "FusedOperation",
@@ -636,8 +680,11 @@ class ReduceBlockMaxUnpacker(Unpacker):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
     ) -> str:
-        num_faces = operation.num_faces
-        return f"_perf_unpack_loop_set_valid<true, true>({num_faces});\n"
+        ct_dim = operation.ct_dim
+        return (
+            f"_perf_unpack_loop_set_valid<true, false>({ct_dim});\n"
+            f"_perf_unpack_loop_set_valid<false, true>(1);\n"
+        )
 
     def perf_clear_valid(
         self,
@@ -645,8 +692,11 @@ class ReduceBlockMaxUnpacker(Unpacker):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
     ) -> str:
-        num_faces = operation.num_faces
-        return f"_perf_math_loop_clear_valid<true, true>({num_faces});\n"
+        ct_dim = operation.ct_dim
+        return (
+            f"_perf_math_loop_clear_valid<true, false>({ct_dim});\n"
+            f"_perf_math_loop_clear_valid<false, true>(1);\n"
+        )
 
     def get_headers(self) -> List[str]:
         return ["llk_unpack_AB_reduce_custom.h"]

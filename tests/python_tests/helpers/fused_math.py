@@ -86,22 +86,25 @@ class ComputeNode:
         if config.perf_run_type == PerfRunType.PACK_ISOLATE:
             return ""
 
+        if config.perf_run_type == PerfRunType.MATH_ISOLATE:
+            if (
+                isinstance(self.unpacker, MatmulUnpacker)
+                or self.unpacker == MatmulUnpacker
+            ):
+                return self.unpacker().perf_set_valid(operation, config, self)
+            code = ""
+            for tile_idx in range(batch_tile_cnt):
+                code += self.unpacker().perf_set_valid(operation, config, self)
+            return code
+
         code = self.unpacker().init(operation, config, self)
         if isinstance(self.unpacker, MatmulUnpacker) or self.unpacker == MatmulUnpacker:
             tile_idx_expr = f"{batch_start}"
-            if config.perf_run_type == PerfRunType.MATH_ISOLATE:
-                code += self.unpacker().perf_set_valid(operation, config, self)
-            else:
-                code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
+            code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
         else:
             for tile_idx in range(batch_tile_cnt):
                 tile_idx_expr = f"{batch_start} + {tile_idx}"
-                if config.perf_run_type == PerfRunType.MATH_ISOLATE:
-                    code += self.unpacker().perf_set_valid(operation, config, self)
-                else:
-                    code += self.unpacker().unpack(
-                        operation, config, self, tile_idx_expr
-                    )
+                code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
         code += self.unpacker().uninit(operation, config, self)
         return code
 
