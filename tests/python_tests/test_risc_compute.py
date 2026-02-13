@@ -53,7 +53,7 @@ def test_risc_compute(formats, input_dimensions, workers_tensix_coordinates):
         formats=formats,
         input_dimensions=input_dimensions,
         tile_dimensions=[32, 32],
-        blocks_calculation_algorithm=BlocksCalculationAlgorithm.Standard,
+        blocks_algorithm=BlocksCalculationAlgorithm.Standard,
     )
 
     configuration = TestConfig(
