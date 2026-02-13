@@ -135,8 +135,11 @@ class FuserConfig:
         if TestConfig.MODE != TestMode.CONSUME:
             test_config.build_elfs()
 
-    def run_perf_test(self, worker_id: str, location: str, run_count: int):
+    def run_perf_test(self, worker_id: str, location: str, run_count: int = 2):
         from .fused_generator import FUSED_TESTS_DIR
+
+        self.global_config.profiler_enabled = True
+        write_pipeline_operands_to_l1(self.pipeline)
 
         run_types = [
             PerfRunType.L1_TO_L1,
@@ -204,6 +207,8 @@ class FuserConfig:
         from .fused_generator import FUSED_TESTS_DIR
         from .fused_golden import FusedGolden
 
+        write_pipeline_operands_to_l1(self.pipeline)
+
         cpp_path = FUSED_TESTS_DIR / f"{self.global_config.test_name}.cpp"
 
         test_config = self.create_test_config(cpp_path, profiler_enabled=False)
@@ -217,11 +222,3 @@ class FuserConfig:
         collect_pipeline_results(self.pipeline)
         golden = FusedGolden()
         assert golden.check_pipeline(self)
-
-    def run(self, worker_id="master", location="0,0", run_count=2):
-        write_pipeline_operands_to_l1(self.pipeline)
-
-        if self.global_config.profiler_enabled:
-            self.run_perf_test(worker_id, location, run_count)
-        else:
-            self.run_regular_test(location)
