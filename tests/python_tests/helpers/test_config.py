@@ -339,7 +339,9 @@ class TestConfig:
         self.dest_acc = dest_acc
         self.l1_acc = l1_acc
         self.skip_build_header = skip_build_header
-        self.variant_stimuli.with_coverage = TestConfig.WITH_COVERAGE
+
+        if self.variant_stimuli is not None:
+            self.variant_stimuli.with_coverage = TestConfig.WITH_COVERAGE
 
         self.process_runtime_args()
 
