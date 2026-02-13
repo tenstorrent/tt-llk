@@ -132,7 +132,7 @@ inline void _llk_unpack_unary_operand_transpose_mop_config_(const std::uint32_t 
  * @param num_tiles: number of tiles to unpack
  */
 template <std::uint32_t UNP_SEL, EltwiseBinaryReuseDestType reuse_dest>
-inline void _llk_unpack_unary_operand_reuse_dest_mop_config_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles)
+inline void _llk_unpack_unary_operand_reuse_dest_mop_config_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles, const std::uint32_t num_faces)
 {
     static_assert(reuse_dest != EltwiseBinaryReuseDestType::NONE, "reuse_dest must be DEST_TO_SRCA or DEST_TO_SRCB");
 
@@ -141,8 +141,8 @@ inline void _llk_unpack_unary_operand_reuse_dest_mop_config_(const std::uint32_t
     constexpr std::uint32_t CB_UNP    = (reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA) ? p_unpacr::UNP_B : p_unpacr::UNP_A;
     constexpr std::uint32_t DUMMY_UNP = (reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA) ? p_unpacr::UNP_A : p_unpacr::UNP_B;
 
-    // Dummy dvalid NOP for the source register filled by MOVD2A/B (Nop_type=2 = UNP_NOP_SETDVALID)
-    const std::uint32_t nop_op = TT_OP_UNPACR_NOP(DUMMY_UNP, 0, 0, 0, 0, 2 /*UNP_NOP_SETDVALID*/);
+    // Dummy dvalid NOP for the source register filled by MOVD2A/B
+    const std::uint32_t nop_op = TT_OP_UNPACR_NOP(DUMMY_UNP, 0, 0, 0, 0, p_unpacr::UNP_NOP);
 
     // Unpack one face from CB with auto-increment of src face index.
     // Dst_Face_Idx_Inc=0: always write to face 0 position (FPU reads from 0 after CLR_AB).
@@ -151,10 +151,10 @@ inline void _llk_unpack_unary_operand_reuse_dest_mop_config_(const std::uint32_t
                                           ? TT_OP_UNPACR0_FACE_INC(0 /*Dst_Face_Inc*/, 1 /*Src_Face_Inc*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/)
                                           : TT_OP_UNPACR1_FACE_INC(0 /*Dst_Face_Inc*/, 1 /*Src_Face_Inc*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
 
-    // MOP: outer=num_tiles, inner=NUM_FACES (4 faces per tile)
+    // MOP: outer=num_tiles, inner=num_faces
     // Each inner iteration: NOP (dvalid for dummy src) + FACE_INC (unpack face + inc src face)
     // END_OP: increment CB tile counter after all faces of a tile are processed
-    ckernel_template temp(num_tiles, NUM_FACES, nop_op, face_inc_op);
+    ckernel_template temp(num_tiles, num_faces, nop_op, face_inc_op);
     temp.set_end_op(TT_OP_INC_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, CB_UNP, 1));
 
     temp.program_bank0_sw_cntl(instrn_buffer);
@@ -172,8 +172,11 @@ inline void _llk_unpack_unary_operand_reuse_dest_mop_config_(const std::uint32_t
  * @param num_tiles: number of tiles to unpack at a time for a single operand, default 1 tile of 32x32
  */
 template <std::uint32_t UNP_SEL, bool TRANSPOSE_EN, bool IS_32b_DEST_EN, EltwiseBinaryReuseDestType reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_unpack_unary_operand_init_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles = NUM_TILES)
+inline void _llk_unpack_unary_operand_init_(
+    const std::uint32_t buf_desc_id, const std::uint32_t num_tiles = NUM_TILES, const std::uint32_t num_faces = NUM_FACES)
 {
+    static_assert(!(TRANSPOSE_EN && reuse_dest != EltwiseBinaryReuseDestType::NONE), "Transpose is not supported with reuse_dest");
+
     if constexpr (UNP_SEL == p_unpacr::UNP_A || UNP_SEL == p_unpacr::UNP_DEST)
     {
         cfg_rmw(THCON_UNPACKER0_REG0_TRANSPOSE_RMW, TRANSPOSE_EN);
@@ -185,7 +188,7 @@ inline void _llk_unpack_unary_operand_init_(const std::uint32_t buf_desc_id, con
 
     if constexpr (reuse_dest != EltwiseBinaryReuseDestType::NONE)
     {
-        _llk_unpack_unary_operand_reuse_dest_mop_config_<UNP_SEL, reuse_dest>(buf_desc_id, num_tiles);
+        _llk_unpack_unary_operand_reuse_dest_mop_config_<UNP_SEL, reuse_dest>(buf_desc_id, num_tiles, num_faces);
     }
     else if constexpr (TRANSPOSE_EN)
     {

@@ -70,7 +70,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // The reuse_dest MOP internally determines which unpacker reads from CB and which gets dummy dvalid:
     //   DEST_TO_SRCA: UNP_B reads from CB (src_B), UNP_A gets dummy dvalid (filled by MOVD2A)
     //   DEST_TO_SRCB: UNP_A reads from CB (src_B), UNP_B gets dummy dvalid (filled by MOVD2B)
-    _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, false /*transpose*/, false /*32b_dest*/, REUSE_DEST_TYPE>(buf_desc_id_b, 1);
+    _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, false /*transpose*/, false /*32b_dest*/, REUSE_DEST_TYPE>(buf_desc_id_b, 1, params->num_faces);
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_unary_operand_<p_unpacr::UNP_A, REUSE_DEST_TYPE>(i);
@@ -111,7 +111,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, MATH_FIDELITY, false /*EN_DI*/, REUSE_DEST_TYPE>(tile_shape);
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_math_eltwise_binary_<REUSE_DEST_TYPE>(i);
+        _llk_math_eltwise_binary_<REUSE_DEST_TYPE>(i, params->num_faces);
     }
 
     _llk_math_set_dvalid_<p_cleardvalid::FPU>();

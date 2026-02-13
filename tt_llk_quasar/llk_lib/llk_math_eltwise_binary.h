@@ -253,13 +253,13 @@ inline void _llk_math_eltwise_binary_init_(const TileShape& tile_shape)
  * If dest reg in float32 mode -> values = [0 - 4] in double buffering mode, values = [0 - 8] in full mode
  */
 template <EltwiseBinaryReuseDestType reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_math_eltwise_binary_(const std::uint32_t tile_idx)
+inline void _llk_math_eltwise_binary_(const std::uint32_t tile_idx, const std::uint32_t num_faces = NUM_FACES)
 {
     _set_dst_write_addr_<DstTileShape::Tile32x32>(tile_idx);
 
     if constexpr (reuse_dest != EltwiseBinaryReuseDestType::NONE)
     {
-        for (std::uint32_t face_num = 0; face_num < NUM_FACES; face_num++)
+        for (std::uint32_t face_num = 0; face_num < num_faces; face_num++)
         {
             eltwise_binary_reuse_dest_as_src<reuse_dest>(face_num);
             ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
