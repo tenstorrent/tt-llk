@@ -132,14 +132,14 @@ def test_perf_math_matmul(
             THROTTLE_LEVEL(throttle),
             TILE_COUNT(variant_tile_count),
             NUM_FACES(
-                num_faces, num_faces_in1, num_faces_in0
-            ),  # In0 -> srcB, In1 -> srcA
+                num_faces, num_faces_in0, num_faces_in1
+            ),  # In0 -> Input A, In1 -> Input B
             UNPACK_TRANS_FACES(transpose),
             UNPACK_TRANS_WITHIN_FACE(transpose),
-            PARTIAL_FACE(  # In0 -> srcB, In1 -> srcA
-                partial_a=matmul_config.face_layout_config.partial_face_in1,
+            PARTIAL_FACE(  # In0 -> Input A, In1 -> Input B
+                partial_a=matmul_config.face_layout_config.partial_face_in0,
                 partial_face_pack=matmul_config.face_layout_config.partial_face_pack,
-                partial_b=matmul_config.face_layout_config.partial_face_in0,
+                partial_b=matmul_config.face_layout_config.partial_face_in1,
                 partial_face_math=matmul_config.face_layout_config.partial_face_math,
             ),
             CRK_TILE_DIMM(

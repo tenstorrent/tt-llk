@@ -188,13 +188,13 @@ def test_math_matmul(
         ],
         runtimes=[
             TILE_COUNT(matmul_config.tile_dimensions.tile_cnt),
-            NUM_FACES(num_faces, num_faces_in1, num_faces_in0),
+            NUM_FACES(num_faces, num_faces_in0, num_faces_in1),
             UNPACK_TRANS_FACES(transpose),
             UNPACK_TRANS_WITHIN_FACE(transpose),
             PARTIAL_FACE(
-                partial_a=matmul_config.face_layout_config.partial_face_in1,
+                partial_a=matmul_config.face_layout_config.partial_face_in0,
                 partial_face_pack=matmul_config.face_layout_config.partial_face_pack,
-                partial_b=matmul_config.face_layout_config.partial_face_in0,
+                partial_b=matmul_config.face_layout_config.partial_face_in1,
                 partial_face_math=matmul_config.face_layout_config.partial_face_math,
             ),
             CRK_TILE_DIMM(
