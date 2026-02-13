@@ -75,12 +75,13 @@ def test_eltwise_bcast_col_custom(
 ):
     """
     Test eltwise broadcast column operation with custom inputs:
-    - srcA: [32, 256] filled with 3s
+    - srcA: [32, 64] with first tile (32x32) filled with 3s, second tile (32x32) filled with 4s
     - srcB: [32, 32] filled with 2s, but first column filled with 1s
     - Operation: srcA - broadcast_column(srcB)
     - Golden calculation:
       1. Broadcast srcB's first column to all columns (within each tile)
       2. Subtract the broadcasted srcB from every tile of srcA
+    - Expected result: First tile all 2s (3-1), second tile all 3s (4-1)
     """
     if (
         TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE
@@ -96,12 +97,15 @@ def test_eltwise_bcast_col_custom(
         input_dimensions_B=input_dimensions_B,
     )
 
-    # Override stimuli: srcA = all 3s, srcB = all 2s with first column = 1s
-    # src_A = torch.full_like(src_A, 3.0)
-    # src_B = torch.full_like(src_B, 2.0)
-    # src_B_2d_override = src_B.view(input_dimensions_B[0], input_dimensions_B[1])
-    # src_B_2d_override[:, 0] = 1.0  # First column filled with 1s
-    # src_B = src_B_2d_override.flatten()
+    # Override stimuli: srcA = left tile all 3s, right tile all 4s; srcB = all 2s with first column = 1s
+    src_A_2d = src_A.view(input_dimensions_A[0], input_dimensions_A[1])
+    src_A_2d[:, :32] = 3.0  # Left tile (first 32 columns) filled with 3s
+    src_A_2d[:, 32:] = 4.0  # Right tile (next 32 columns) filled with 4s
+    src_A = src_A_2d.flatten()
+    src_B = torch.full_like(src_B, 2.0)
+    src_B_2d_override = src_B.view(input_dimensions_B[0], input_dimensions_B[1])
+    src_B_2d_override[:, 0] = 1.0  # First column filled with 1s
+    src_B = src_B_2d_override.flatten()
 
     print(f"src_A: {src_A.view(input_dimensions_A[0], input_dimensions_A[1])}")
     print(f"src_B: {src_B.view(input_dimensions_B[0], input_dimensions_B[1])}")
@@ -141,6 +145,9 @@ def test_eltwise_bcast_col_custom(
 
     # Step 2: Compute golden - subtract broadcasted srcB from srcA
     # Golden: srcA - src_B_golden_expanded
+    print(f"src_A before golden (first 10 elements): {src_A[:10]}")
+    print(f"src_A before golden (elements 32*32 to 32*32+10): {src_A[1024:1034]}")
+    print(f"src_B_golden_expanded (first 10 elements): {src_B_golden_expanded[:10]}")
     generate_golden = get_golden_generator(EltwiseBinaryGolden)
     golden_tensor = generate_golden(
         mathop, src_A, src_B_golden_expanded, formats.output_format, math_fidelity
