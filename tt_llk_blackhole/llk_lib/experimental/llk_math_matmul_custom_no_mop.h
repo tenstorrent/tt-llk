@@ -327,7 +327,7 @@ inline void matmul_configure_mop_throttled(
     // Unpacker will always load faces in f0,f1,f2,f3 order
     // if in1 is transposed then faces 1&2 need to be swapped during read
     // by changing address increment amount via addr_mods
-    // Col major layout in dest only impacs destination address increment
+    // Col major layout in dest only impacts destination address increment
     // if col major layout faces are ordered as f0,f2,f1,f3
 
     constexpr bool high_fidelity = NUM_FIDELITY_PHASES > 0;
