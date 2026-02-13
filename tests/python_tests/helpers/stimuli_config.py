@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-import sys
 from typing import ClassVar
 
 from ttexalens.tt_exalens_lib import (
@@ -106,12 +105,48 @@ class StimuliConfig:
                 self.buf_b_addr + self.tile_size_B_bytes * self.tile_count_B
             )
 
-        print(
-            hex(self.buf_a_addr),
-            hex(self.buf_b_addr),
-            hex(self.buf_res_addr),
-            file=sys.stderr,
-        )
+    def generate_runtime_operands_values(self, formats) -> list:
+        buf_a_format = format_tile_sizes[
+            DataFormat.Float16_b if formats is None else formats.input_format
+        ]
+        buf_b_format = format_tile_sizes[
+            DataFormat.Float16_b if formats is None else formats.input_format
+        ]
+        buf_res_format = format_tile_sizes[
+            DataFormat.Float16_b if formats is None else formats.output_format
+        ]
+
+        values = [
+            self.buf_a_addr,
+            buf_a_format,
+            self.buf_b_addr,
+            buf_b_format,
+            self.buf_res_addr,
+            buf_res_format,
+        ]
+
+        if self.buffer_C is not None:
+            buf_c_format = format_tile_sizes[
+                DataFormat.Float16_b if formats is None else formats.input_format
+            ]
+
+            values.extend([self.buf_c_addr, buf_c_format])
+
+        return values
+
+    def generate_runtime_struct_fields(self) -> tuple[list[str], str]:
+        lines: list[str] = [
+            "Operand buffer_A;",
+            "Operand buffer_B;",
+            "Operand buffer_Res;",
+        ]
+        pack_formats = "IIIIII"
+
+        if self.buffer_C is not None:
+            lines.append("Operand buffer_C;")
+            pack_formats += "II"
+
+        return lines, pack_formats
 
     def generate_stimuli_header_addresses(self, formats) -> list[str]:
         buf_a_format = format_tile_sizes[
