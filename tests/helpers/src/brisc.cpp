@@ -39,7 +39,7 @@ int main()
     LLK_ASSERT(ckernel::load_blocking(mailbox_math) == 0xFF, "MATH is not done");
     LLK_ASSERT(ckernel::load_blocking(mailbox_pack) == 0xFF, "PACK is not done");
 
-    ckernel::store_blocking(mailbox_brisc, 1);
+    ckernel::store_blocking(mailbox_brisc, 0xFF);
 
 #endif
 }
