@@ -3,7 +3,6 @@
 
 from typing import List
 
-import pytest
 import torch
 from helpers.device import BootMode
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
@@ -71,10 +70,6 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
 
 
 @parametrize(
-    cpp_test_source=[
-        "sources/matmul_custom_test.cpp",
-        "sources/matmul_test.cpp",
-    ],
     math_fidelity=[
         MathFidelity.LoFi,
         MathFidelity.HiFi2,
@@ -85,16 +80,11 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
 )
 # Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
 def test_matmul(
-    cpp_test_source,
     math_fidelity,
     format_dest_acc_and_dims,
     workers_tensix_coordinates,
     boot_mode=BootMode.DEFAULT,
 ):
-    # Temporarily disabled for CI - experimental custom matmul test
-    if cpp_test_source == "sources/matmul_custom_test.cpp":
-        pytest.skip("Temporarily disabled for CI - experimental custom matmul test")
-
     torch_format = format_dict[format_dest_acc_and_dims[0].output_format]
 
     formats = format_dest_acc_and_dims[0]
@@ -138,7 +128,7 @@ def test_matmul(
         tilized_B = src_B
 
     configuration = TestConfig(
-        cpp_test_source,
+        "sources/matmul_test.cpp",
         formats,
         templates=[
             MATH_FIDELITY(math_fidelity),
