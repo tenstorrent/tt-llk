@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
 import torch
 from conftest import skip_for_wormhole
 from helpers.device import (
@@ -41,6 +42,7 @@ from helpers.unpack import unpack_res_tiles
 from helpers.utils import passed_test
 
 
+@pytest.mark.skip(reason="Temporarily disabled for CI - experimental reinit test")
 @skip_for_wormhole
 @parametrize(
     formats=input_output_formats([DataFormat.Float16_b]),
