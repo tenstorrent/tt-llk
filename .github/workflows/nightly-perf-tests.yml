@@ -24,7 +24,7 @@ jobs:
     if: always()
     needs: nightly-performance-tests
     steps:
-     - name: Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
