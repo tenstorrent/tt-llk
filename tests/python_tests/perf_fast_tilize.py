@@ -75,7 +75,7 @@ def test_fast_tilize_perf(
         formats,
         run_types=[PerfRunType.L1_TO_L1],
         templates=[INPUT_DIMENSIONS(input_dimensions, input_dimensions)],
-        runtimes=[TILE_COUNT(tile_count), LOOP_FACTOR(1024), NUM_FACES()],
+        runtimes=[TILE_COUNT(tile_count), LOOP_FACTOR(1024), NUM_FACES(4)],
         variant_stimuli=StimuliConfig(
             None,
             formats.input_format,
