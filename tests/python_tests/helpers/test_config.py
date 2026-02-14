@@ -36,6 +36,7 @@ from .device import (
     RiscCore,
     exalens_device_setup,
     get_register_store,
+    make_sure_all_out_of_reset,
     reset_mailboxes,
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
@@ -44,6 +45,7 @@ from .format_config import DataFormat, FormatConfig
 from .llk_params import (
     DestAccumulation,
     L1Accumulation,
+    Mailbox,
 )
 from .stimuli_config import StimuliConfig
 from .test_variant_parameters import RuntimeParameter, TemplateParameter
@@ -983,16 +985,18 @@ class TestConfig:
             location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
         )
 
-        # soft_reset_value = (
-        #     get_register_store(location, 0).read_register(
-        #         "RISCV_DEBUG_REG_SOFT_RESET_0"
-        #     )
-        #     >> 11
-        # )
-        # if not soft_reset_value & 0xF == 0xF:
-        #     raise Exception(
-        #         f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
-        #     )
+        # NOC read-back barrier: read from L1 to ensure all prior NOC writes
+        # (mailbox clears, stimuli, ELFs, runtime params) have been committed
+        # to L1 before we release any core from reset. Without this, the
+        # register write that unresets a core could arrive at the tile before
+        # L1 data writes if they travel through different NOC paths.
+        for mailbox in [Mailbox.Brisc, Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer]:
+            val = read_word_from_device(location, mailbox.value)
+            if val != 0:
+                raise Exception(
+                    f"Mailbox {mailbox.name} at {location} is {val:#x} before unreset "
+                    f"(expected 0) -- NOC write ordering issue or stale data"
+                )
 
         match boot_mode:
             case BootMode.BRISC:
@@ -1023,6 +1027,10 @@ class TestConfig:
                             verify_write=False,
                         )
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
+                # Verify BRISC (and subsequently TRISCs) actually come out of reset.
+                # BRISC will call clear_trisc_soft_reset() internally, so all cores
+                # should be out of reset shortly after BRISC starts.
+                make_sure_all_out_of_reset(location)
             case BootMode.TRISC:
                 set_tensix_soft_reset(
                     0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
