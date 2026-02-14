@@ -8,6 +8,12 @@
 
 #include "tensix_types.h"
 
+enum class ApproximationMode
+{
+    Precise = 0,
+    Fast    = 1
+};
+
 namespace ckernel
 {
 

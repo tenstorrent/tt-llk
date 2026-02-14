@@ -8,6 +8,7 @@
 #include <limits>
 
 #include "ckernel_sfpu_recip.h"
+#include "llk_defs.h"
 #include "lltt.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
@@ -45,12 +46,12 @@ sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
     return val;
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 sfpi_inline sfpi::vFloat _calculate_exponential_body_(sfpi::vFloat in)
 {
     sfpi::vFloat out;
 
-    if constexpr (APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         constexpr int FRAC_BITS         = 3;
         constexpr std::uint32_t SP_BIAS = 127 << FRAC_BITS;
@@ -100,7 +101,7 @@ inline sfpi::vFloat _calculate_exponential_approx_(sfpi::vFloat in)
     return sfpi::reinterpret<sfpi::vFloat>(in_short);
 }
 
-template <bool APPROXIMATION_MODE, bool SCALE_EN, bool SKIP_POSITIVE_CHECK>
+template <ApproximationMode APPROX_MODE, bool SCALE_EN, bool SKIP_POSITIVE_CHECK>
 inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const std::uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
     // This function is used to calculate the exponential of a value in a more accurate manner.
@@ -109,7 +110,7 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const std
     {
         in = in * sfpi::s2vFloat16b(exp_base_scale_factor);
     }
-    if constexpr (APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         if constexpr (!SKIP_POSITIVE_CHECK)
         {
@@ -158,10 +159,10 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const std
     return result;
 }
 
-template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK, bool CLAMP_NEGATIVE = true>
+template <ApproximationMode APPROX_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK, bool CLAMP_NEGATIVE = true>
 void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
-    if constexpr (FAST_APPROX && APPROXIMATION_MODE && CLAMP_NEGATIVE)
+    if constexpr (FAST_APPROX && APPROX_MODE == ApproximationMode::Fast && CLAMP_NEGATIVE)
     {
         // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is more negative than that, swap the input
         // value with -88.5 and store back to DEST
@@ -253,7 +254,7 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
         // TTI_SFPNOP;
         // TTI_SFPNOP;
     }
-    else if constexpr (FAST_APPROX && APPROXIMATION_MODE && ITERATIONS == 8)
+    else if constexpr (FAST_APPROX && APPROX_MODE == ApproximationMode::Fast && ITERATIONS == 8)
     {
         // =======================================================================
         // 8-element version using replay buffer.
@@ -283,7 +284,7 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
         TTI_SFPNOP;
         TTI_SFPNOP;
     }
-    else if constexpr (FAST_APPROX && APPROXIMATION_MODE && ITERATIONS == 32)
+    else if constexpr (FAST_APPROX && APPROX_MODE == ApproximationMode::Fast && ITERATIONS == 32)
     {
         // =======================================================================
         // 32-element version using replay buffer.
@@ -314,7 +315,7 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
         TTI_SFPNOP;
         TTI_SFPNOP;
     }
-    else if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    else if constexpr (FAST_APPROX && APPROX_MODE == ApproximationMode::Fast)
     {
         static_assert(ITERATIONS == 8 || ITERATIONS == 32, "This version of exponential only supports 8 or 32 iterations.");
     }
@@ -324,7 +325,7 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
         for (int d = 0; d < ITERATIONS; d++)
         {
             sfpi::vFloat val    = sfpi::dst_reg[0];
-            sfpi::vFloat result = _calculate_exponential_piecewise_<APPROXIMATION_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(val, exp_base_scale_factor);
+            sfpi::vFloat result = _calculate_exponential_piecewise_<APPROX_MODE, SCALE_EN, SKIP_POSITIVE_CHECK>(val, exp_base_scale_factor);
             sfpi::dst_reg[0]    = result;
             sfpi::dst_reg++;
         }
@@ -335,10 +336,10 @@ constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uin
 constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
 constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
 
-template <bool APPROXIMATION_MODE, bool FAST_APPROX, std::uint32_t scale /* 1.0f in FP32 */, bool CLAMP_NEGATIVE = true>
+template <ApproximationMode APPROX_MODE, bool FAST_APPROX, std::uint32_t scale /* 1.0f in FP32 */, bool CLAMP_NEGATIVE = true>
 inline void _init_exponential_()
 {
-    if constexpr (FAST_APPROX && APPROXIMATION_MODE && CLAMP_NEGATIVE)
+    if constexpr (FAST_APPROX && APPROX_MODE == ApproximationMode::Fast && CLAMP_NEGATIVE)
     {
         // Algorithm is adapted from:
         //      A Fast, Compact Approximation of the Exponential Function
@@ -465,7 +466,7 @@ inline void _init_exponential_()
         // Reset LoadMacroConfig[Lane].Misc for all lanes, in case it has been previously set by another use of macros.
         TTI_SFPCONFIG(0, 8, 1);
     }
-    else if constexpr (FAST_APPROX && APPROXIMATION_MODE)
+    else if constexpr (FAST_APPROX && APPROX_MODE == ApproximationMode::Fast)
     {
         // ===================================================================
         // Based on "A Fast, Compact Approximation of the Exponential Function" by Schraudolph.
@@ -637,7 +638,7 @@ inline void _init_exponential_()
 
         TTI_SFPNOP;
     }
-    else if constexpr (APPROXIMATION_MODE)
+    else if constexpr (APPROX_MODE == ApproximationMode::Fast)
     {
         sfpi::vConstFloatPrgm0 = 1.442695f; // ln2_recip
         sfpi::vConstFloatPrgm1 = sfpi::s2vFloat16b(p_exp::C23_73);
@@ -645,8 +646,8 @@ inline void _init_exponential_()
     }
     else
     {
-        // Initialisation for use of _sfpu_reciprocal_<2> in _calculate_exponential_<APPROXIMATION_MODE=false>.
-        _init_sfpu_reciprocal_<false>();
+        // Initialisation for use of _sfpu_reciprocal_<2> in _calculate_exponential_<ApproximationMode::Precise>.
+        _init_sfpu_reciprocal_<ApproximationMode::Precise>();
     }
 }
 

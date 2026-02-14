@@ -17,7 +17,7 @@ infinity, so '1' is written in the location of the DEST
 where the number was stored. Otherwise, `0` is written instead
 of the number.
 */
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline sfpi::vFloat _calculate_isinf_(const sfpi::vFloat& in)
 {
     // SFPU microcode
@@ -39,7 +39,7 @@ positive infinity, so '1' is written in the location of the DEST
 where the number was stored. Otherwise, `0` is written instead
 of the number.
 */
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline sfpi::vFloat _calculate_isposinf_(const sfpi::vFloat& in)
 {
     // SFPU microcode
@@ -62,7 +62,7 @@ negative infinity, so '1' is written in the location of the DEST
 where the number was stored. Otherwise, `0` is written instead
 of the number.
 */
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline sfpi::vFloat _calculate_isneginf_(const sfpi::vFloat& in)
 {
     // SFPU microcode
@@ -84,7 +84,7 @@ nan, so '1' is written in the location of the DEST
 where the number was stored. Otherwise, `0` is written instead
 of the number.
 */
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline sfpi::vFloat _calculate_isnan_(const sfpi::vFloat& in)
 {
     // SFPU microcode
@@ -99,7 +99,7 @@ inline sfpi::vFloat _calculate_isnan_(const sfpi::vFloat& in)
     return out;
 }
 
-template <bool APPROXIMATION_MODE>
+template <ApproximationMode APPROX_MODE>
 inline sfpi::vFloat _calculate_isfinite_(const sfpi::vFloat& v)
 {
     // SFPU microcode
@@ -117,7 +117,7 @@ inline sfpi::vFloat _calculate_isfinite_(const sfpi::vFloat& v)
     return result;
 }
 
-template <SfpuType operation, bool APPROXIMATION_MODE, int ITERATIONS>
+template <SfpuType operation, ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_sfpu_isinf_isnan_()
 {
     // SFPU microcode
@@ -127,23 +127,23 @@ inline void _calculate_sfpu_isinf_isnan_()
 
         if constexpr (operation == SfpuType::isinf)
         {
-            sfpi::dst_reg[0] = _calculate_isinf_<APPROXIMATION_MODE>(in);
+            sfpi::dst_reg[0] = _calculate_isinf_<APPROX_MODE>(in);
         }
         else if constexpr (operation == SfpuType::isposinf)
         {
-            sfpi::dst_reg[0] = _calculate_isposinf_<APPROXIMATION_MODE>(in);
+            sfpi::dst_reg[0] = _calculate_isposinf_<APPROX_MODE>(in);
         }
         else if constexpr (operation == SfpuType::isneginf)
         {
-            sfpi::dst_reg[0] = _calculate_isneginf_<APPROXIMATION_MODE>(in);
+            sfpi::dst_reg[0] = _calculate_isneginf_<APPROX_MODE>(in);
         }
         else if constexpr (operation == SfpuType::isnan)
         {
-            sfpi::dst_reg[0] = _calculate_isnan_<APPROXIMATION_MODE>(in);
+            sfpi::dst_reg[0] = _calculate_isnan_<APPROX_MODE>(in);
         }
         else if constexpr (operation == SfpuType::isfinite)
         {
-            sfpi::dst_reg[0] = _calculate_isfinite_<APPROXIMATION_MODE>(in);
+            sfpi::dst_reg[0] = _calculate_isfinite_<APPROX_MODE>(in);
         }
 
         sfpi::dst_reg++;
