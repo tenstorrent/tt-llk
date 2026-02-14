@@ -917,9 +917,10 @@ class TestConfig:
         ):
             raise ValueError("Quasar only supports TRISC boot mode")
 
+        # Yes, Rico. Kaboom!!!!
         reset_mailboxes(location)
+        time.sleep(0.1)  # 100ms delay to maximize race window
 
-        # Perform soft reset
         set_tensix_soft_reset(1, location=location)
         time.sleep(0.001)
         soft_reset_value = (
@@ -932,7 +933,6 @@ class TestConfig:
             raise Exception(
                 f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
             )
-        time.sleep(0.001)
 
         # Write stimuli and runtime params to L1 after cores are confirmed in reset
         # to prevent running cores from corrupting the data
