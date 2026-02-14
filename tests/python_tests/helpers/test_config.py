@@ -934,6 +934,15 @@ class TestConfig:
             )
         time.sleep(0.001)
 
+        # Write stimuli and runtime params to L1 after cores are confirmed in reset
+        # to prevent running cores from corrupting the data
+        if (
+            self.variant_stimuli is not None
+            and self.variant_stimuli.buffer_A is not None
+        ):
+            self.variant_stimuli.write(location)
+        self.write_runtimes_to_L1(location)
+
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
         )
@@ -1034,8 +1043,6 @@ class TestConfig:
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-        self.variant_stimuli.write(location)
-        self.write_runtimes_to_L1(location)
         elfs = self.run_elf_files(location)
         wait_for_tensix_operations_finished(elfs, location)
 

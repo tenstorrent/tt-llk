@@ -175,8 +175,10 @@ def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
 
     try:
         is_it = risc_debug.is_ebreak_hit()
-    except:
-        raise Exception("WTF handler")
+    except Exception as e:
+        raise Exception(
+            f"WTF - Handler Failed to check ebreak on {risc_name} at {core_loc}: {type(e).__name__}: {e}"
+        ) from e
 
     return is_it
 
