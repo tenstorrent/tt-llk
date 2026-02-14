@@ -235,6 +235,8 @@ def combine_perf_reports():
         if regular_files:
             dfs_regular = []
             for file in sorted(regular_files):
+                if os.path.getsize(file) == 0:
+                    continue
                 df = pd.read_csv(file)
                 dfs_regular.append(df)
 
@@ -248,6 +250,8 @@ def combine_perf_reports():
         if post_files:
             dfs_post = []
             for file in sorted(post_files):
+                if os.path.getsize(file) == 0:
+                    continue
                 df = pd.read_csv(file)
                 dfs_post.append(df)
 
