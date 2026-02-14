@@ -26,6 +26,9 @@ from .test_variant_parameters import PERF_RUN_TYPE, RuntimeParameter, TemplatePa
 
 
 def _postprocess_tile_loop(frame: pd.DataFrame) -> pd.DataFrame:
+    if frame.empty:
+        return frame
+
     mask = frame["marker"] == "TILE_LOOP"
 
     if not mask.any():

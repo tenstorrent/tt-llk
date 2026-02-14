@@ -159,9 +159,25 @@ def exalens_device_setup(chip_arch, location="0,0", device_id=0):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
 
 
+def is_risc_in_reset(risc_name, core_loc="0,0", device_id=0):
+    # check if the core is stuck on an EBREAK instruction
+    CHIP_ARCH = get_chip_architecture()
+    context = check_context()
+    device = context.devices[device_id]
+    coordinate = convert_coordinate(core_loc, device_id, context)
+    block = device.get_block(coordinate)
+    risc_debug = block.get_risc_debug(
+        risc_name, neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None
+    )
+
+    # If core is in reset, it cannot be sitting on an ebreak for our kernel.
+    # Treat as "no assert" instead of blowing up WTF handler.
+    return risc_debug.is_in_reset()
+
+
+# Use this when we want to check if the core is stuck on an EBREAK instruction for our kernel.
 def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
     # check if the core is stuck on an EBREAK instruction
-
     CHIP_ARCH = get_chip_architecture()
     context = check_context()
     device = context.devices[device_id]
@@ -172,13 +188,11 @@ def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
     )
 
     is_it = True
-
     try:
         is_it = risc_debug.is_ebreak_hit()
     except Exception as e:
-        raise Exception(
-            f"WTF - Handler Failed to check ebreak on {risc_name} at {core_loc}: {type(e).__name__}: {e}"
-        ) from e
+        # Optional: keep WTF handler for truly unexpected cases, but with context
+        raise Exception(f"WTF handler: {risc_name} debug failed: {e}") from e
 
     return is_it
 
@@ -207,11 +221,12 @@ def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
     temp_stack_traces = ""
     for core in trisc_cores:
         risc_name = str(core)
-        if is_assert_hit(risc_name, core_loc=core_loc, device_id=device_id):
+        if not is_risc_in_reset(risc_name, core_loc=core_loc, device_id=device_id):
             temp_stack_traces += _print_callstack(
                 risc_name,
                 callstack(core_loc, elfs, risc_name=risc_name, device_id=device_id),
             )
+            print(f"REAL WTF Handler - NOT IN RESET on {risc_name} at {core_loc}")
             assertion_hits.append(risc_name)
 
     if assertion_hits:

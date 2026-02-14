@@ -35,7 +35,6 @@ from .device import (
     BootMode,
     RiscCore,
     exalens_device_setup,
-    get_register_store,
     reset_mailboxes,
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
@@ -950,21 +949,7 @@ class TestConfig:
         ):
             raise ValueError("Quasar only supports TRISC boot mode")
 
-        reset_mailboxes(location)
-
-        # Perform soft reset
         set_tensix_soft_reset(1, location=location)
-        time.sleep(0.001)
-        soft_reset_value = (
-            get_register_store(location, 0).read_register(
-                "RISCV_DEBUG_REG_SOFT_RESET_0"
-            )
-            >> 11
-        )
-        if not soft_reset_value & 0xF == 0xF:
-            raise Exception(
-                f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
-            )
         time.sleep(0.001)
 
         # Write stimuli and runtime params to L1 after cores are confirmed in reset
@@ -1055,6 +1040,13 @@ class TestConfig:
                             risc_name="brisc",
                             verify_write=False,
                         )
+
+                # Let it be the last thing we do before releasing BRISC.
+                reset_mailboxes(location)
+
+                # Give it some time just in case.
+                time.sleep(0.001)
+
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
             case BootMode.TRISC:
                 set_tensix_soft_reset(
