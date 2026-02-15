@@ -240,6 +240,8 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
 
 inline void _llk_unpack_AB_matmul_uninit_(const std::uint32_t unpA_face_r_dim, const std::uint32_t unpB_face_r_dim)
 {
+    // Stalling SETADCXX done by THCON until UNPACK finished
+    TTI_STALLWAIT(p_stall::STALL_THCON, p_stall::UNPACK);
     // TODO NC: Issue tt-llk#1036 will make this transient
     TT_SETADCXX(p_setadc::UNP_A, unpA_face_r_dim * FACE_C_DIM - 1, 0x0);
     TT_SETADCXX(p_setadc::UNP_B, unpB_face_r_dim * FACE_C_DIM - 1, 0x0);
