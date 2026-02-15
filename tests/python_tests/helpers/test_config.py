@@ -916,20 +916,17 @@ class TestConfig:
         ):
             raise ValueError("Quasar only supports TRISC boot mode")
 
-        reset_mailboxes(location)
-
-        # Perform soft reset
         set_tensix_soft_reset(1, location=location)
-        # soft_reset_value = (
-        #     get_register_store(location, 0).read_register(
-        #         "RISCV_DEBUG_REG_SOFT_RESET_0"
-        #     )
-        #     >> 11
-        # )
-        # if not soft_reset_value & 0xF == 0xF:
-        #     raise Exception(
-        #         f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
-        #     )
+        time.sleep(0.001)
+
+        # Write stimuli and runtime params to L1 after cores are confirmed in reset
+        # to prevent running cores from corrupting the data
+        if (
+            self.variant_stimuli is not None
+            and self.variant_stimuli.buffer_A is not None
+        ):
+            self.variant_stimuli.write(location)
+        self.write_runtimes_to_L1(location)
 
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
@@ -1010,6 +1007,13 @@ class TestConfig:
                             risc_name="brisc",
                             verify_write=False,
                         )
+
+                # Let it be the last thing we do before releasing BRISC.
+                reset_mailboxes(location)
+
+                # Give it some time just in case.
+                time.sleep(0.001)
+
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
             case BootMode.TRISC:
                 set_tensix_soft_reset(
@@ -1031,8 +1035,6 @@ class TestConfig:
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-        self.variant_stimuli.write(location)
-        self.write_runtimes_to_L1(location)
         elfs = self.run_elf_files(location)
         wait_for_tensix_operations_finished(elfs, location)
 

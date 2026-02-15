@@ -26,6 +26,9 @@ from .test_variant_parameters import PERF_RUN_TYPE, RuntimeParameter, TemplatePa
 
 
 def _postprocess_tile_loop(frame: pd.DataFrame) -> pd.DataFrame:
+    if frame.empty:
+        return frame
+
     mask = frame["marker"] == "TILE_LOOP"
 
     if not mask.any():
@@ -235,28 +238,36 @@ def combine_perf_reports():
         if regular_files:
             dfs_regular = []
             for file in sorted(regular_files):
-                df = pd.read_csv(file)
+                try:
+                    df = pd.read_csv(file)
+                except pd.errors.EmptyDataError:
+                    continue
                 dfs_regular.append(df)
 
-            combined_regular = pd.concat(dfs_regular, ignore_index=True)
-            combined_regular = combined_regular.sort_values(
-                by=combined_regular.columns.tolist()
-            ).reset_index(drop=True)
-            output_regular = os.path.join(temp_output_dir, f"{base_name}.csv")
-            combined_regular.to_csv(output_regular, index=False)
+            if dfs_regular:
+                combined_regular = pd.concat(dfs_regular, ignore_index=True)
+                combined_regular = combined_regular.sort_values(
+                    by=combined_regular.columns.tolist()
+                ).reset_index(drop=True)
+                output_regular = os.path.join(temp_output_dir, f"{base_name}.csv")
+                combined_regular.to_csv(output_regular, index=False)
 
         if post_files:
             dfs_post = []
             for file in sorted(post_files):
-                df = pd.read_csv(file)
+                try:
+                    df = pd.read_csv(file)
+                except pd.errors.EmptyDataError:
+                    continue
                 dfs_post.append(df)
 
-            combined_post = pd.concat(dfs_post, ignore_index=True)
-            combined_post = combined_post.sort_values(
-                by=combined_post.columns.tolist()
-            ).reset_index(drop=True)
-            output_post = os.path.join(temp_output_dir, f"{base_name}.post.csv")
-            combined_post.to_csv(output_post, index=False)
+            if dfs_post:
+                combined_post = pd.concat(dfs_post, ignore_index=True)
+                combined_post = combined_post.sort_values(
+                    by=combined_post.columns.tolist()
+                ).reset_index(drop=True)
+                output_post = os.path.join(temp_output_dir, f"{base_name}.post.csv")
+                combined_post.to_csv(output_post, index=False)
 
         for file in regular_files:
             Path(file).unlink()
@@ -360,7 +371,6 @@ class PerfConfig(TestConfig):
             self.generate_variant_hash()
             variant_raw_data = []
             for run_index in range(run_count):
-                self.write_runtimes_to_L1(location)
                 elfs = self.run_elf_files(location)
                 wait_for_tensix_operations_finished(elfs, location)
 
