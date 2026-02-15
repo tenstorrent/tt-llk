@@ -123,6 +123,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr DstSync dest_sync0     = DstSync::SyncHalf;
     _llk_math_hw_configure_<false>(math_format0, math_format0);
     _llk_math_pack_sync_init_<dest_sync0, false>();
+    _llk_math_reduce_block_max_row_init_<1, false>();
 
     // Operation 0: Matmul FPU - Using experimental custom no-mop API
     _llk_math_matmul_init_no_mop_<0, 0>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, 1, 1);
@@ -142,7 +143,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_reconfig_data_format_<false, false>(math_format1, math_format1);
     _llk_math_pack_sync_init_<dest_sync1, false>();
 
-    _llk_math_reduce_block_max_row_init_<1, false>();
+    // Custom addr_mod reinit for reduce_block_max_row (full init done in Operation 0)
+    reduce_max_row_configure_addrmod_reinit();
 
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {

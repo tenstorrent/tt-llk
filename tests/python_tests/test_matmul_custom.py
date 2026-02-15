@@ -1,9 +1,11 @@
-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+# SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
 from typing import List
 
+import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.device import BootMode
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
@@ -78,13 +80,15 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     ],
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,
 )
-# Note: this test is used to test boot modes, that is why it has them piped as default arguments to the test itself
-def test_matmul(
+def test_matmul_custom(
     math_fidelity,
     format_dest_acc_and_dims,
     workers_tensix_coordinates,
     boot_mode=BootMode.DEFAULT,
 ):
+    if get_chip_architecture() == ChipArchitecture.WORMHOLE:
+        pytest.skip("Skipping matmul_custom_test.cpp for wormhole")
+
     torch_format = format_dict[format_dest_acc_and_dims[0].output_format]
 
     formats = format_dest_acc_and_dims[0]
@@ -128,7 +132,7 @@ def test_matmul(
         tilized_B = src_B
 
     configuration = TestConfig(
-        "sources/matmul_test.cpp",
+        "sources/matmul_custom_test.cpp",
         formats,
         templates=[
             MATH_FIDELITY(math_fidelity),
