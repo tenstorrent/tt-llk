@@ -7,6 +7,7 @@
 
 #include "ckernel_sfpu_rsqrt_compat.h"
 #include "sfpi.h"
+#include "vconst_verifier.h"
 
 namespace ckernel
 {
@@ -19,7 +20,7 @@ namespace sfpu
 // max_iter = 1: sufficient for bfloat16/float16 precision (≤0.5 ulps).
 // max_iter = 0: this has the same effect as max_iter=1 at the moment;
 //               it may be replaced with a cheaper approximation in future.
-template <int max_iter = 2>
+template <int max_iter = 2, typename vConstVerifier = vconst_verifier::disable>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
 {
     // Combines the sign and exponent of -1.0 with the mantissa of `in`.
@@ -29,6 +30,8 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     // Then negative_x = -x.
     sfpi::vFloat negative_x = sfpi::setman(sfpi::vConstNeg1, sfpi::reinterpret<sfpi::vInt>(in));
 
+    vconst_verifier::assert_vconst_0<vConstVerifier>();
+    vconst_verifier::assert_vconst_1<vConstVerifier>();
     // Quadratic initial estimate: y = k2 - k1*x + k0*x**2.
     sfpi::vFloat y = sfpi::vConstFloatPrgm1 + sfpi::vConstFloatPrgm0 * negative_x;
 
@@ -43,6 +46,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     // See the scale factor adjustment via scale*0.5 below for further details.
     sfpi::vInt scale_bits = ~sfpi::reinterpret<sfpi::vUInt>(in);
 
+    vconst_verifier::assert_vconst_2<vConstVerifier>();
     // Continue with quadratic estimate.
     y = sfpi::vConstFloatPrgm2 + y * negative_x;
 
@@ -117,22 +121,27 @@ inline void _calculate_reciprocal_(const int iterations)
     }
 }
 
-template <bool APPROXIMATION_MODE>
-inline void _init_sfpu_reciprocal_()
+template <bool APPROXIMATION_MODE, typename vConstVerifier = vconst_verifier::disable>
+inline auto _init_sfpu_reciprocal_()
 {
     // The polynomial y = k2 - k1*x + k0*x**2 minimises the maximum
     // relative error for 1/x over the interval [1,2), via Sollya.
     sfpi::vConstFloatPrgm0 = 0.3232325017452239990234375f;
     sfpi::vConstFloatPrgm1 = 1.4545459747314453125f;
     sfpi::vConstFloatPrgm2 = 2.121212482452392578125f;
+    return vconst_verifier::use_vconst0<vconst_verifier::use_vconst1<vconst_verifier::use_vconst2<vConstVerifier>>>();
 }
 
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, bool legacy_compat = false>
-inline void _init_reciprocal_()
+template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, bool legacy_compat = false, typename vConstVerifier = vconst_verifier::disable>
+inline auto _init_reciprocal_()
 {
     if constexpr (!legacy_compat)
     {
-        _init_sfpu_reciprocal_<APPROXIMATION_MODE>();
+        return _init_sfpu_reciprocal_<APPROXIMATION_MODE, vConstVerifier>();
+    }
+    else
+    {
+        return vconst_verifier::no_used_regs();
     }
 }
 

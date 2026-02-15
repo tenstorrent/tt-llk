@@ -10,6 +10,7 @@
 #include "ckernel_sfpu_rsqrt_compat.h"
 #include "lltt.h"
 #include "sfpi.h"
+#include "vconst_verifier.h"
 
 namespace ckernel
 {
@@ -17,7 +18,7 @@ namespace sfpu
 {
 
 // Computes the reciprocal of a floating point value x.
-template <int max_iter = 2>
+template <int max_iter = 2, typename vConstVerifier = vconst_verifier::disable>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
 {
     // sfpi::approx_recip(x) will return ±0 for x = ±inf or x ≥ ±2**126, and ±inf for x = ±0.
@@ -30,6 +31,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
         // On Blackhole, when x=0 and y=infinity (and vice versa), t=+NaN regardless of the operand signs.
         // Negating the meaning of t makes it easier to detect NaN using a trivial sign check t>=0.
         // Equivalently, we could use v_if (t >= 2.0) instead, but SFPI doesn't support SFPLE/SFPGT at the moment.
+        vconst_verifier::assert_vconst_0<vConstVerifier>();
         sfpi::vFloat t = x * y - sfpi::vConstFloatPrgm0;
 
         if constexpr (max_iter > 1)
@@ -409,12 +411,17 @@ inline void _init_reciprocal_fast_24b_5c_()
         });
 }
 
-template <bool APPROXIMATION_MODE>
-inline void _init_sfpu_reciprocal_()
+template <bool APPROXIMATION_MODE, typename vConstVerifier = vconst_verifier::disable>
+inline auto _init_sfpu_reciprocal_()
 {
     if constexpr (!APPROXIMATION_MODE)
     {
         sfpi::vConstFloatPrgm0 = 2.0f;
+        return vconst_verifier::use_vconst0<vConstVerifier>();
+    }
+    else
+    {
+        return vConstVerifier();
     }
 }
 
