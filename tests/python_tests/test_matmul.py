@@ -4,6 +4,12 @@
 from typing import List
 
 import torch
+from helpers.counters import (
+    configure_counters,
+    export_counters,
+    print_counters,
+    read_counters,
+)
 from helpers.device import BootMode
 from helpers.format_config import DataFormat, FormatConfig, is_dest_acc_needed
 from helpers.golden_generators import MatmulGolden, get_golden_generator
@@ -12,6 +18,7 @@ from helpers.matmul_sweep import (
     generate_matmul_dimension_combinations,
     generate_tile_dims,
 )
+from helpers.metrics import export_metrics, print_metrics
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
@@ -83,6 +90,7 @@ def test_matmul(
     math_fidelity,
     format_dest_acc_and_dims,
     workers_tensix_coordinates,
+    worker_id,
     boot_mode=BootMode.DEFAULT,
 ):
     torch_format = format_dict[format_dest_acc_and_dims[0].output_format]
@@ -153,8 +161,54 @@ def test_matmul(
         boot_mode=boot_mode,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    # Get location string for counter configuration
+    location = (
+        workers_tensix_coordinates
+        if isinstance(workers_tensix_coordinates, str)
+        else f"{workers_tensix_coordinates[0][0]},{workers_tensix_coordinates[0][1]}"
+    )
 
+    # Configure and run with performance counters
+    configure_counters(location=location)
+    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    results = read_counters(location=location)
+
+    # Export counters and metrics to CSV
+    test_params = {
+        "math_fidelity": str(math_fidelity),
+        "input_format": str(formats.input_format),
+        "output_format": str(formats.output_format),
+        "dest_acc": str(dest_acc),
+        "input_A_rows": input_A_dimensions[0],
+        "input_A_cols": input_A_dimensions[1],
+        "input_B_rows": input_B_dimensions[0],
+        "input_B_cols": input_B_dimensions[1],
+        "ct_dim": matmul_dims.ct_dim,
+        "rt_dim": matmul_dims.rt_dim,
+        "kt_dim": matmul_dims.kt_dim,
+        "output_tile_cnt": matmul_dims.output_tile_cnt,
+    }
+
+    if not results.empty:
+        # Print results to console for insight
+        print_counters(results)
+        print_metrics(results)
+
+        # Export to CSV
+        export_counters(
+            results,
+            "test_matmul_counters",
+            test_params=test_params,
+            worker_id=worker_id,
+        )
+        export_metrics(
+            results,
+            "test_matmul_metrics",
+            test_params=test_params,
+            worker_id=worker_id,
+        )
+
+    # Validate results
     assert len(res_from_L1) == len(
         golden_tensor
     ), "Result tensor and golden tensor are not of the same length"
