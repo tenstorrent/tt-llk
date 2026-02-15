@@ -208,6 +208,8 @@ __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_init_(
 
 inline void _llk_unpack_AB_matmul_uninit_(const std::uint32_t face_r_dim)
 {
+    // Stalling SETADCXX done by THCON until UNPACK finished
+    TTI_STALLWAIT(p_stall::STALL_THCON, p_stall::UNPACK);
     TT_SETADCXX(p_setadc::UNP_AB, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
 

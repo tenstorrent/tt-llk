@@ -139,5 +139,8 @@ inline void _llk_pack_rows_(const std::uint32_t tile_index, const std::uint32_t 
  */
 inline void _llk_pack_rows_uninit_()
 {
+    // Stalling SETADCXX done by THCON until PACK finishes
+    TTI_STALLWAIT(p_stall::STALL_THCON, p_stall::PACK);
+    // Restore X counter to default
     TTI_SETADCXX(p_setadc::PAC, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
 }
