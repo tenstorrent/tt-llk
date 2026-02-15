@@ -28,9 +28,9 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_INDEX,
     DEST_SYNC,
-    INPUT_DIMENSIONS,
     NUM_FACES,
     RELU_CONFIG,
+    TEST_FACE_DIMS,
     TILE_COUNT,
     TILIZE,
 )
@@ -120,7 +120,15 @@ def is_relu_threshold_tolerance_issue(
         ]
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
-    input_dimensions=[[32, 32], [64, 64], [32, 64], [64, 32]],
+    face_r_dim=[1, 2, 4, 8, 16],
+    num_faces=lambda face_r_dim: (
+        [1, 2, 4] if face_r_dim == 16 else [2]
+    ),  # Current limitation.
+    input_dimensions=lambda face_r_dim: (
+        [[face_r_dim, 32]]
+        if face_r_dim < 16
+        else [[32, 32], [64, 64], [32, 64], [64, 32]]
+    ),  # For partial faces, use single tile with face_r_dim < 16.
     relu_type=[
         PackerReluType.NoRelu,
         PackerReluType.ZeroRelu,
@@ -128,21 +136,35 @@ def is_relu_threshold_tolerance_issue(
         PackerReluType.MaxThresholdRelu,
     ],
     dest_sync=[DestSync.Half, DestSync.Full],
-    dest_index=lambda dest_acc, dest_sync, input_dimensions: get_valid_dest_indices(
+    dest_index=lambda dest_acc, dest_sync, input_dimensions, face_r_dim: get_valid_dest_indices(
         dest_sync=dest_sync,
         dest_acc=dest_acc,
-        tile_count=(input_dimensions[0] * input_dimensions[1]) // (32 * 32),
+        tile_count=(
+            1
+            if face_r_dim < 16
+            else (input_dimensions[0] * input_dimensions[1]) // (32 * 32)
+        ),
     ),
 )
 def test_pack(
     formats,
     dest_acc,
+    num_faces,
+    face_r_dim,
     input_dimensions,
     relu_type,
     dest_sync,
     dest_index,
     workers_tensix_coordinates,
 ):
+
+    if face_r_dim < 16 and (
+        formats.input_format == DataFormat.Bfp8_b
+        or formats.output_format == DataFormat.Bfp8_b
+    ):
+        pytest.skip(
+            "Bfp8_b format is not supported for partial faces (face_r_dim < 16)."
+        )
 
     if (formats.input_format == DataFormat.Int32) ^ (
         formats.output_format == DataFormat.Int32
@@ -156,6 +178,8 @@ def test_pack(
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
+        num_faces=num_faces,
+        face_r_dim=face_r_dim,
     )
 
     # Generate golden output
@@ -164,6 +188,8 @@ def test_pack(
         src_A,
         formats.output_format,
         input_dimensions=input_dimensions,
+        num_faces=num_faces,
+        face_r_dim=face_r_dim,
     )
 
     unpack_to_dest = (
@@ -219,7 +245,6 @@ def test_pack(
         "sources/pack_test.cpp",
         formats,
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             TILIZE(),
             DEST_SYNC(dest_sync),
         ],
@@ -227,7 +252,8 @@ def test_pack(
             TILE_COUNT(tile_cnt_A),
             DEST_INDEX(dest_index),
             RELU_CONFIG(relu_config),
-            NUM_FACES(num_faces=4),
+            NUM_FACES(num_faces=num_faces),
+            TEST_FACE_DIMS(face_r_dim=face_r_dim),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
@@ -238,6 +264,8 @@ def test_pack(
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,
             tile_count_res=tile_cnt_A,
+            num_faces=num_faces,
+            face_r_dim=face_r_dim,
         ),
         dest_acc=dest_acc,
         unpack_to_dest=unpack_to_dest,
