@@ -3,9 +3,11 @@
 
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture
 from helpers.format_config import DataFormat
 from helpers.golden_generators import EltwiseBinaryGolden, get_golden_generator
 from helpers.llk_params import (
+    BroadcastType,
     DestAccumulation,
     MathFidelity,
     MathOperation,
@@ -16,6 +18,7 @@ from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
+    BROADCAST_TYPE,
     INPUT_DIMENSIONS,
     MATH_FIDELITY,
     MATH_OP,
@@ -25,6 +28,9 @@ from helpers.utils import passed_test
 
 
 @parametrize(
+    cpp_source=[
+        "sources/multiple_tiles_eltwise_test.cpp",
+    ],
     formats=input_output_formats(
         [
             DataFormat.Bfp8_b,
@@ -44,6 +50,7 @@ from helpers.utils import passed_test
     input_dimensions=[[32, 32], [32, 64], [64, 64]],
 )
 def test_multiple_tiles(
+    cpp_source,
     formats,
     mathop,
     dest_acc,
@@ -51,6 +58,11 @@ def test_multiple_tiles(
     input_dimensions,
     workers_tensix_coordinates,
 ):
+    if (
+        TestConfig.CHIP_ARCH == ChipArchitecture.WORMHOLE
+        and cpp_source == "sources/multiple_tiles_eltwise_custom_test.cpp"
+    ):
+        pytest.skip("Custom test not supported on Wormhole")
 
     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
         pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
@@ -68,12 +80,13 @@ def test_multiple_tiles(
     )
 
     configuration = TestConfig(
-        "sources/multiple_tiles_eltwise_test.cpp",
+        cpp_source,
         formats,
         templates=[
             MATH_FIDELITY(math_fidelity),
             INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
+            BROADCAST_TYPE(BroadcastType.None_),
         ],
         runtimes=[TILE_COUNT(tile_cnt_A)],
         variant_stimuli=StimuliConfig(
