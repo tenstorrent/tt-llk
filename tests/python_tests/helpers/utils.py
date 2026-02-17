@@ -36,7 +36,6 @@ tolerances = {
     DataFormat.MxFp8P: Tolerance(atol=0.2, rtol=0.3),
 }
 
-
 def print_faces(operand1, tile_shape=None):
     if tile_shape is None:
         tile_shape = construct_tile_shape((DEFAULT_TILE_R_DIM, DEFAULT_TILE_C_DIM))
@@ -78,6 +77,7 @@ def print_faces(operand1, tile_shape=None):
             )
 
     logger.debug("Tile faces:\n{}", "\n".join(lines))
+
 
 
 def run_shell_command(
@@ -260,11 +260,7 @@ def passed_test(
                             row_values.append(
                                 f"{colour}{tile_data[row, col]:7.2f}{RESET}{' ' if col == tile_shape.face_c_dim - 1 else '' }"
                             )
-
                         tile_lines.append(f"{(row+1):02d}. {''.join(row_values)}")
-
-                        if row == (tile_shape.face_r_dim - 1):
-                            tile_lines.append("")
                     return tile_lines
 
                 formatted_error = []
