@@ -10,7 +10,6 @@
 #include "llk_defs.h"
 #include "params.h"
 
-// Globals
 std::uint32_t unp_cfg_context          = 0;
 std::uint32_t pack_sync_tile_dst_ptr   = 0;
 std::uint32_t math_sync_tile_dst_index = 0;
@@ -28,11 +27,13 @@ void run_kernel(const volatile struct RuntimeParams *params)
         formats.unpack_src,
         formats.unpack_dst,
         formats.unpack_dst,
-        params->TEST_FACE_R_DIM,
-        params->TEST_FACE_R_DIM,
-        params->num_faces,
-        params->num_faces);
-    _llk_unpack_AB_reduce_init_<POOL_TYPE, REDUCE_DIM, false /* enforce_fp32_accumulation */>(params->TEST_FACE_R_DIM, params->num_faces);
+        params->in0_face_r_dim,
+        params->in0_face_r_dim,
+        params->num_faces_A,
+        params->num_faces_A,
+        buffer_A.get_tile_size(),
+        buffer_A.get_tile_size());
+    _llk_unpack_AB_reduce_init_<POOL_TYPE, REDUCE_DIM>(params->in0_face_r_dim, params->num_faces_A);
     for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
     {
         _llk_unpack_AB_reduce_<POOL_TYPE, REDUCE_DIM>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[0]));
@@ -51,18 +52,19 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     const bool is_int_fpu_en             = false;
     const bool enforce_fp32_accumulation = false;
+    bool is_narrow_tile                  = (params->num_faces_c_dim_A < params->num_faces_r_dim_A);
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, enforce_fp32_accumulation>();
+    _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, false>();
 
     if (params->IS_REDUCE_TO_ONE)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        // Reduce all tiles in one go
         for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
         {
-            _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en, enforce_fp32_accumulation>(0);
+            _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en, enforce_fp32_accumulation>(
+                0, is_narrow_tile, params->num_faces_A);
         }
         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
@@ -75,7 +77,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
             _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
             for (int i = 0; i < tiles_to_dest; ++i)
             {
-                _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en, enforce_fp32_accumulation>(i);
+                _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en, enforce_fp32_accumulation>(
+                    i, is_narrow_tile, params->num_faces_A);
             }
             _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             remaining_tiles -= tiles_to_dest;
@@ -93,20 +96,27 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    _llk_pack_init_<false, false>(formats.pack_dst);
+    bool is_narrow_tile     = (params->num_faces_c_dim_A < params->num_faces_r_dim_A);
+    std::uint32_t tile_size = params->in0_tile_r_dim * params->in0_tile_c_dim;
+    const bool partial_face = params->in0_face_r_dim < FACE_R_DIM;
+
+    _llk_pack_init_<false, false>(
+        formats.pack_dst, params->in0_face_r_dim, params->in0_tile_c_dim, params->num_faces_A, false /* partial_face [unused] */, is_narrow_tile);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
+        formats.pack_src, formats.pack_dst, tile_size, params->in0_face_r_dim, params->in0_tile_c_dim, params->num_faces_A, partial_face, is_narrow_tile);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(
+        formats.pack_src, formats.pack_dst, tile_size, params->in0_face_r_dim, params->in0_tile_c_dim, params->num_faces_A, partial_face, is_narrow_tile);
 #endif
 
-    _llk_pack_reduce_mask_config_<false /* untilize */, REDUCE_DIM>();
+    _llk_pack_reduce_mask_config_<false, REDUCE_DIM>();
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, false /* untilize */>();
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(params->in0_face_r_dim, is_narrow_tile);
 #endif
     int remaining_tiles = params->OUTPUT_TILE_CNT;
     while (remaining_tiles)
@@ -115,7 +125,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         _llk_packer_wait_for_math_done_();
         for (int i = 0; i < tiles_from_dest; ++i)
         {
-            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false /* untilize */>(i, L1_ADDRESS(buffer_Res[params->OUTPUT_TILE_CNT - remaining_tiles + i]));
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[params->OUTPUT_TILE_CNT - remaining_tiles + i]));
         }
         _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         remaining_tiles -= tiles_from_dest;

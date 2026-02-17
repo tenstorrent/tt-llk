@@ -13,33 +13,66 @@ from filelock import FileLock
 
 from .format_config import DataFormat, FormatConfig
 from .llk_params import format_dict
+from .tile_constants import (
+    DEFAULT_TILE_C_DIM,
+    DEFAULT_TILE_R_DIM,
+)
+from .tile_shape import construct_tile_shape
 
 torch.set_printoptions(linewidth=500, sci_mode=False, precision=2, threshold=10000)
 
+Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
+tolerances = {
+    DataFormat.Float16: Tolerance(atol=0.05, rtol=0.05),
+    DataFormat.Float16_b: Tolerance(atol=0.05, rtol=0.05),
+    DataFormat.Float32: Tolerance(atol=0.05, rtol=0.05),
+    DataFormat.Int32: Tolerance(atol=0, rtol=0),
+    DataFormat.UInt32: Tolerance(atol=0, rtol=0),
+    DataFormat.UInt16: Tolerance(atol=0, rtol=0),
+    DataFormat.Int8: Tolerance(atol=0, rtol=0),
+    DataFormat.UInt8: Tolerance(atol=0, rtol=0),
+    DataFormat.Bfp8_b: Tolerance(atol=0.1, rtol=0.2),
+    DataFormat.MxFp8R: Tolerance(atol=0.2, rtol=0.3),
+    DataFormat.MxFp8P: Tolerance(atol=0.2, rtol=0.3),
+}
 
-def print_faces(operand1):
-    f0 = operand1[:256].view(16, 16)
-    f1 = operand1[256:512].view(16, 16)
-    f2 = operand1[512:768].view(16, 16)
-    f3 = operand1[768:].view(16, 16)
 
-    # Print the first set with proper alignment
-    for i in range(16):
-        print(
-            " ".join(f"{x:6.2f}" for x in f0[i].tolist()),
-            " | ",
-            " ".join(f"{x:6.2f}" for x in f1[i].tolist()),
+def print_faces(operand1, tile_shape=None):
+    if tile_shape is None:
+        tile_shape = construct_tile_shape((DEFAULT_TILE_R_DIM, DEFAULT_TILE_C_DIM))
+
+    face_size = tile_shape.face_r_dim * tile_shape.face_c_dim
+    total_size = operand1.size(0)
+    num_faces = total_size // face_size
+
+    faces = []
+    for i in range(num_faces):
+        start_idx = i * face_size
+        end_idx = start_idx + face_size
+        face_data = operand1[start_idx:end_idx].view(
+            tile_shape.face_r_dim, tile_shape.face_c_dim
         )
+        faces.append(face_data)
 
-    print("-" * 250)
+    # Print faces in pairs (maintaining original 2x2 layout style)
+    for row_of_faces in range(0, num_faces, 2):
+        current_faces = faces[row_of_faces : row_of_faces + 2]
 
-    # Print the second set with proper alignment
-    for i in range(16):
-        print(
-            " ".join(f"{x:6.2f}" for x in f2[i].tolist()),
-            " | ",
-            " ".join(f"{x:6.2f}" for x in f3[i].tolist()),
-        )
+        # Print each row within these faces
+        for row in range(tile_shape.face_r_dim):
+            parts = []
+            for face in current_faces:
+                parts.append(" ".join(f"{x:6.2f}" for x in face[row].tolist()))
+            print(" | ".join(parts))
+
+        # Separator between rows of faces (if not the last row)
+        if row_of_faces + 2 < num_faces:
+            # Calculate separator width dynamically based on face dimensions
+            chars_per_face = tile_shape.face_c_dim * 7 + (tile_shape.face_c_dim - 1)
+            separator_width = (
+                len(current_faces) * chars_per_face + (len(current_faces) - 1) * 3
+            )
+            print("-" * separator_width)
 
     print("\n" * 3)
 
@@ -151,32 +184,29 @@ def passed_test(
     res_tensor,
     output_data_format: DataFormat = DataFormat.Float16_b,
     L1_to_L1_iterations: int = 1,
-    print_erros: bool = True,
+    print_errors: bool = True,
     print_pcc: bool = False,
+    custom_atol=None,
+    custom_rtol=None,
+    custom_pcc_threshold=None,
+    tile_shape=None,
 ):
-    Tolerance = namedtuple("Tolerance", ["atol", "rtol"])
+
+    if tile_shape is None:
+        tile_shape = construct_tile_shape((DEFAULT_TILE_R_DIM, DEFAULT_TILE_C_DIM))
 
     def get_tolerance(output_data_format):
-        tolerances = {
-            DataFormat.Float16: Tolerance(atol=0.05, rtol=0.05),
-            DataFormat.Float16_b: Tolerance(atol=0.05, rtol=0.05),
-            DataFormat.Float32: Tolerance(atol=0.05, rtol=0.05),
-            DataFormat.Int32: Tolerance(atol=0, rtol=0),
-            DataFormat.UInt32: Tolerance(atol=0, rtol=0),
-            DataFormat.UInt16: Tolerance(atol=0, rtol=0),
-            DataFormat.Int8: Tolerance(atol=0, rtol=0),
-            DataFormat.UInt8: Tolerance(atol=0, rtol=0),
-            DataFormat.Bfp8_b: Tolerance(atol=0.1, rtol=0.2),
-            DataFormat.MxFp8R: Tolerance(atol=0.2, rtol=0.3),
-            DataFormat.MxFp8P: Tolerance(atol=0.2, rtol=0.3),
-        }
-
         try:
             return tolerances[output_data_format]
         except KeyError:
             raise ValueError(f"Unsupported output data format: {output_data_format}")
 
     tolerance = get_tolerance(output_data_format)
+
+    if custom_atol:
+        tolerance = tolerance._replace(atol=custom_atol)
+    if custom_rtol:
+        tolerance = tolerance._replace(rtol=custom_rtol)
 
     golden_tensor = golden_tensor.type(format_dict[output_data_format])
     res_tensor = res_tensor.type(format_dict[output_data_format])
@@ -189,20 +219,19 @@ def passed_test(
     is_valid = is_close | is_nan
     is_within_tolerance = torch.all(is_valid)
 
-    if print_erros:
+    if print_errors:
         try:
             if not is_within_tolerance:
                 diff_indices = torch.where(~is_valid)[0]
-                num_tiles = (res_tensor.size()[0]) // 1024
-                tile_shape = (32, 32)
+                num_tiles = (res_tensor.size()[0]) // (tile_shape.total_tile_size())
+                tile_shape_for_torch = (
+                    tile_shape.total_row_dim(),
+                    tile_shape.total_col_dim(),
+                )
 
-                def bg(r, g, b):
-                    return f"\033[48;2;{r};{g};{b}m"
-
-                BLUE = bg(0, 0, 100)
-                RED = bg(160, 0, 0)
-                PURPLE = bg(50, 0, 50)
-
+                GREEN = "\033[42m"
+                YELLOW = "\033[43m"
+                RED = "\033[41m"
                 RESET = "\033[0m"
 
                 def format_tile(
@@ -212,19 +241,19 @@ def passed_test(
                         return []
 
                     label = "Golden tile" if golden else "Result tile"
-                    background = PURPLE if golden else BLUE
+                    background = YELLOW if golden else GREEN
                     tile_lines = [f"Row\t === {label} {tile_no+1} ==="]
-                    for row in range(32):
+                    for row in range(tile_shape.total_row_dim()):
                         row_values = []
-                        for col in range(32):
+                        for col in range(tile_shape.total_col_dim()):
                             colour = RED if error_tile[row, col] else background
                             row_values.append(
-                                f"{colour}{tile_data[row, col]:7.2f}{RESET}{' ' if col == 15 else '' }"
+                                f"{colour}{tile_data[row, col]:7.2f}{RESET}{' ' if col == (DEFAULT_TILE_C_DIM // 2) - 1 else '' }"
                             )
 
                         tile_lines.append(f"{(row+1):02d}. {''.join(row_values)}")
 
-                        if row == 15:
+                        if row == (tile_shape.face_r_dim - 1):
                             tile_lines.append("")
                     return tile_lines
 
@@ -232,14 +261,20 @@ def passed_test(
 
                 for tile_no in range(num_tiles):
                     result_tile = res_tensor[
-                        tile_no * 1024 : (tile_no + 1) * 1024
-                    ].view(tile_shape)
+                        tile_no
+                        * tile_shape.total_tile_size() : (tile_no + 1)
+                        * tile_shape.total_tile_size()
+                    ].view(tile_shape_for_torch)
                     golden_tile = golden_tensor[
-                        tile_no * 1024 : (tile_no + 1) * 1024
-                    ].view(tile_shape)
-                    error_tile = ~is_valid[tile_no * 1024 : (tile_no + 1) * 1024].view(
-                        tile_shape
-                    )
+                        tile_no
+                        * tile_shape.total_tile_size() : (tile_no + 1)
+                        * tile_shape.total_tile_size()
+                    ].view(tile_shape_for_torch)
+                    error_tile = ~is_valid[
+                        tile_no
+                        * tile_shape.total_tile_size() : (tile_no + 1)
+                        * tile_shape.total_tile_size()
+                    ].view(tile_shape_for_torch)
 
                     lines = format_tile(result_tile, error_tile, tile_no)
                     if not lines:
@@ -274,6 +309,9 @@ def passed_test(
     #     values with less precision (Bfp8_b) and drops below 99% in that case
     if output_data_format == DataFormat.Bfp8_b:
         target_pcc = pow(0.99, L1_to_L1_iterations)
+
+    target_pcc = custom_pcc_threshold if custom_pcc_threshold else target_pcc
+
     return is_within_tolerance and (pcc > target_pcc)
 
 
