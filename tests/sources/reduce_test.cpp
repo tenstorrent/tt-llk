@@ -120,7 +120,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(formats.pack_src, formats.pack_dst, tile_size, params->in0_face_r_dim, params->in0_tile_c_dim, params->num_faces_A, partial_face, is_narrow_tile);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(formats.pack_src, formats.pack_dst, tile_size, params->in0_face_r_dim, params->in0_tile_c_dim, params->num_faces_A, partial_face, is_narrow_tile);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(formats.pack_src, formats.pack_dst, tile_size, params->in0_face_r_dim, params->num_faces_A, partial_face, is_narrow_tile);
 #endif
 
 #ifdef ARCH_BLACKHOLE
