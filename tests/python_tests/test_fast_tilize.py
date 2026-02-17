@@ -42,7 +42,7 @@ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
         heights = [h for h in heights if h > 0 and h <= max_height]
         heights = list(set(heights))
         for height in heights:
-            dimensions.append((width, height))
+            dimensions.append((height, width))
     return dimensions
 
 
