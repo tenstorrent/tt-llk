@@ -270,7 +270,7 @@ inline void _llk_math_eltwise_binary_init_(const std::uint32_t num_faces, const 
     // Broadcast Column: x16 tiles not supported (num_faces=1 implies 16x16)
     if constexpr (src_b_bcast_type == BroadcastType::COL)
     {
-        LLK_ASSERT(num_faces != 1, "Broadcast Column: narrow tiles not supported in Blackhole");
+        LLK_ASSERT(num_faces != 1, "Broadcast Column: 16x16 tiles not supported in Blackhole");
     }
 
     constexpr std::uint32_t math_fidelity_increment = 1;
