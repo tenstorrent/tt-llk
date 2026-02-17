@@ -28,11 +28,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
         formats.unpack_dst,
         formats.unpack_dst,
         params->in0_face_r_dim,
-        params->in1_face_r_dim,
+        params->in0_face_r_dim,
         params->num_faces_A,
-        params->num_faces_B,
+        params->num_faces_A,
         buffer_A.get_tile_size(),
-        buffer_B.get_tile_size());
+        buffer_A.get_tile_size());
     _llk_unpack_AB_reduce_init_<POOL_TYPE, REDUCE_DIM>(params->in0_face_r_dim, params->num_faces_A);
     for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
     {

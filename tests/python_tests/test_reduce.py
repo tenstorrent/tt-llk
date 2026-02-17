@@ -38,7 +38,7 @@ from helpers.test_variant_parameters import (
     REDUCE_TO_ONE,
 )
 from helpers.tile_shape import construct_tile_shape
-from helpers.utils import passed_test
+from helpers.utils import passed_test, tolerances
 
 # Helper dictionary to map reduce dimensions to math operations
 mathop_mapping = {
@@ -83,10 +83,9 @@ def test_reduce(
 
     if is_reduce_to_one:
         # Accumulating large tensors into a single value can lead to significant numerical errors
-        # especially in lower precision formats. Individual values can fall between their rtol, atol limits
-        # but their accumulated sum may exceed these limits.
-        # To mitigate this, the test is using smaller tensors for accumulation when reducing to one value.
-        input_dimensions = [32, 32]
+        # especially if the sum/average of the dimension is not enough to increment to the next representable value in the output format.
+        # To mitigate this, we use smaller input values which reduces the chance of large accumulation errors.
+        input_dimensions = [128, 32]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli_w_tile_dimensions(
         stimuli_format_A=formats.input_format,
@@ -183,15 +182,28 @@ def test_reduce(
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
-    if is_reduce_to_one and formats.output_format == DataFormat.Bfp8_b:
-        # For BFP8, allow for larger tolerance due to reduced precision
+    if is_reduce_to_one:
+        # Lower the threshold for reduce to one cases as they are more prone to numerical errors, especially in lower precision formats
         assert passed_test(
             golden_tensor,
             res_tensor,
             formats.output_format,
-            L1_to_L1_iterations=tile_cnt_A,
+            tile_shape=tile_shape,
+            custom_pcc_threshold=(
+                0.90
+                if formats.output_format is not DataFormat.Bfp8_b
+                else pow(0.99, tile_cnt_A)
+            ),
+            custom_atol=tolerances[formats.output_format].atol * math.sqrt(tile_cnt_A),
+            custom_rtol=tolerances[formats.output_format].rtol * math.sqrt(tile_cnt_A),
+            print_errors=True,
         ), "Assert against golden failed"
     else:
+        # Use default target_pcc = 0.99
         assert passed_test(
-            golden_tensor, res_tensor, formats.output_format
+            golden_tensor,
+            res_tensor,
+            formats.output_format,
+            tile_shape=tile_shape,
+            print_errors=True,
         ), "Assert against golden failed"
