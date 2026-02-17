@@ -625,6 +625,32 @@ class NUM_FACES_C_DIM(RuntimeParameter):
 
 
 @dataclass
+class IN_FACE_DIMS(RuntimeParameter):
+    in0_face_r_dim: int = 16
+    in0_face_c_dim: int = 16
+    in1_face_r_dim: int = 16
+    in1_face_c_dim: int = 16
+
+    def covert_to_cpp(self) -> str:
+        lines: list[str] = [
+            f"constexpr int in0_face_r_dim = {self.in0_face_r_dim};",
+            f"constexpr int in0_face_c_dim = {self.in0_face_c_dim};",
+            f"constexpr int in1_face_r_dim = {self.in1_face_r_dim};",
+            f"constexpr int in1_face_c_dim = {self.in1_face_c_dim};",
+        ]
+        return "\n".join(lines)
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        lines: list[str] = [
+            "int in0_face_r_dim;",
+            "int in0_face_c_dim;",
+            "int in1_face_r_dim;",
+            "int in1_face_c_dim;",
+        ]
+        return "\n".join(lines), "iiii"
+
+
+@dataclass
 class TEST_FACE_DIMS(RuntimeParameter):
     face_r_dim: int = 16
     face_c_dim: int = 16
