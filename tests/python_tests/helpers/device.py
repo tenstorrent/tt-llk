@@ -159,7 +159,7 @@ def exalens_device_setup(chip_arch, location="0,0", device_id=0):
     debug_tensix.inject_instruction(ops.TT_OP_SEMINIT(1, 0, 4), 0)
 
 
-def is_risc_in_reset(risc_name, core_loc="0,0", device_id=0):
+def is_risc_in_reset(risc_name: str, core_loc="0,0", device_id=0):
     # check if the core is stuck on an EBREAK instruction
     CHIP_ARCH = get_chip_architecture()
     context = check_context()
@@ -215,22 +215,15 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]) -> str:
     return temp_str
 
 
-def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
-    trisc_cores = [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2]
-    assertion_hits = []
-    temp_stack_traces = ""
-    for core in trisc_cores:
-        risc_name = str(core)
-        if not is_risc_in_reset(risc_name, core_loc=core_loc, device_id=device_id):
-            temp_stack_traces += _print_callstack(
-                risc_name,
-                callstack(core_loc, elfs, risc_name=risc_name, device_id=device_id),
-            )
-            print(f"REAL WTF Handler - NOT IN RESET on {risc_name} at {core_loc}")
-            assertion_hits.append(risc_name)
-
-    if assertion_hits:
-        raise LLKAssertException(temp_stack_traces)
+def check_if_brisc_is_in_reset(elfs: list[str], core_loc="0,0", device_id=0):
+    risc_name = "brisc"
+    if not is_risc_in_reset(risc_name, core_loc=core_loc, device_id=device_id):
+        stack_trace = _print_callstack(
+            risc_name,
+            callstack(core_loc, elfs, risc_name=risc_name, device_id=device_id),
+        )
+        print(f"REAL WTF Handler - NOT IN RESET on {risc_name} at {core_loc}")
+        raise LLKAssertException(stack_trace)
 
 
 def make_sure_all_out_of_reset(location: str = "0,0", backoff=0.01):
@@ -269,9 +262,7 @@ def make_sure_core_in_reset(
     raise Exception(f"Not all in reset within {backoff}s at {place}")
 
 
-def wait_for_tensix_operations_finished(
-    elfs, location="0,0", timeout=2, max_backoff=0.2
-):
+def wait_for_operations_to_finish(elfs, location="0,0", timeout=2, max_backoff=0.5):
     """
     Waits for BRISC to signal that all TRISC kernels have completed.
 
@@ -297,6 +288,7 @@ def wait_for_tensix_operations_finished(
     end_time = start_time + timeout
     while time.time() < end_time:
         if read_word_from_device(location, Mailbox.Brisc.value) == BRISC_DONE:
+            set_tensix_soft_reset(1, [RiscCore.BRISC], location)
             return
 
         # Disable any waiting if running on simulator
@@ -305,7 +297,7 @@ def wait_for_tensix_operations_finished(
             time.sleep(backoff)
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
-    handle_if_assert_hit(
+    check_if_brisc_is_in_reset(
         elfs,
         core_loc=location,
     )
@@ -319,23 +311,14 @@ def wait_for_tensix_operations_finished(
     )
 
 
-def reset_mailboxes(location: str = "0,0"):
-    """Reset all core mailboxes (Brisc, Unpacker, Math, Packer) before each test.
-
-    BRISC checks that all 4 mailboxes are zero-initialized on startup.
-    """
-    write_words_to_device(location=location, addr=Mailbox.Brisc.value, data=[0])
-    write_words_to_device(location=location, addr=Mailbox.Unpacker.value, data=[0])
-    write_words_to_device(location=location, addr=Mailbox.Math.value, data=[0])
-    write_words_to_device(location=location, addr=Mailbox.Packer.value, data=[0])
-
-    for mailbox in [Mailbox.Brisc, Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer]:
-        val = read_word_from_device(location, mailbox.value)
-        if val != 0:
-            raise Exception(
-                f"Mailbox {mailbox.name} at {location} failed to reset: "
-                f"expected 0, got {val:#x}"
-            )
+def reset_mailbox(location: str = "0,0", mailbox: Mailbox = Mailbox.Brisc):
+    write_words_to_device(location=location, addr=mailbox.value, data=[0])
+    val = read_word_from_device(location, mailbox.value)
+    if val != 0:
+        raise Exception(
+            f"Mailbox {mailbox.name} at {location} failed to reset: "
+            f"expected 0, got {val:#x}"
+        )
 
 
 def pull_coverage_stream_from_tensix(

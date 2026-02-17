@@ -35,14 +35,16 @@ from .device import (
     BootMode,
     RiscCore,
     exalens_device_setup,
-    reset_mailboxes,
+    is_risc_in_reset,
+    reset_mailbox,
     set_tensix_soft_reset,
-    wait_for_tensix_operations_finished,
+    wait_for_operations_to_finish,
 )
 from .format_config import DataFormat, FormatConfig
 from .llk_params import (
     DestAccumulation,
     L1Accumulation,
+    Mailbox,
 )
 from .stimuli_config import StimuliConfig
 from .test_variant_parameters import RuntimeParameter, TemplateParameter
@@ -949,11 +951,23 @@ class TestConfig:
         ):
             raise ValueError("Quasar only supports TRISC boot mode")
 
-        set_tensix_soft_reset(1, location=location)
-        time.sleep(0.001)
+        # Sanity check: make sure TRISC cores are in reset before L1 writes.
+        trisc_names = (
+            ["trisc0", "trisc1", "trisc2", "trisc3"]
+            if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR
+            else ["trisc0", "trisc1", "trisc2"]
+        )
+        not_in_reset = [
+            risc_name
+            for risc_name in trisc_names
+            if not is_risc_in_reset(risc_name, core_loc=location)
+        ]
+        if not_in_reset:
+            raise Exception(
+                "TRISC cores not in reset before L1 writes: " + ", ".join(not_in_reset)
+            )
 
-        # Write stimuli and runtime params to L1 after cores are confirmed in reset
-        # to prevent running cores from corrupting the data
+        # Write stimuli and runtime params to L1
         if (
             self.variant_stimuli is not None
             and self.variant_stimuli.buffer_A is not None
@@ -1001,17 +1015,6 @@ class TestConfig:
             location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
         )
 
-        # soft_reset_value = (
-        #     get_register_store(location, 0).read_register(
-        #         "RISCV_DEBUG_REG_SOFT_RESET_0"
-        #     )
-        #     >> 11
-        # )
-        # if not soft_reset_value & 0xF == 0xF:
-        #     raise Exception(
-        #         f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
-        #     )
-
         match boot_mode:
             case BootMode.BRISC:
                 # Use correct shared ELF directory and loading flag based on profiler build
@@ -1042,11 +1045,12 @@ class TestConfig:
                         )
 
                 # Let it be the last thing we do before releasing BRISC.
-                reset_mailboxes(location)
+                reset_mailbox(location, Mailbox.Brisc)
 
                 # Give it some time just in case.
                 time.sleep(0.001)
 
+                # Release BRISC from soft reset.
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
             case BootMode.TRISC:
                 set_tensix_soft_reset(
@@ -1069,7 +1073,7 @@ class TestConfig:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
         elfs = self.run_elf_files(location)
-        wait_for_tensix_operations_finished(elfs, location)
+        wait_for_operations_to_finish(elfs, location)
 
         if self.coverage_build == CoverageBuild.Yes:
             self.read_coverage_data_from_device(location)

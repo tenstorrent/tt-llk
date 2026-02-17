@@ -8,8 +8,16 @@ from pathlib import Path
 
 import pytest
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.device import LLKAssertException, _send_arc_message
+from helpers.device import (
+    ALL_CORES,
+    LLKAssertException,
+    _send_arc_message,
+    make_sure_core_in_reset,
+    reset_mailbox,
+    set_tensix_soft_reset,
+)
 from helpers.format_config import InputOutputFormat
+from helpers.llk_params import Mailbox
 from helpers.perf import PerfConfig, PerfReport, combine_perf_reports
 from helpers.target_config import TestTargetConfig, initialize_test_target_from_pytest
 from helpers.test_config import TestConfig, TestMode, process_coverage_run_artefacts
@@ -82,12 +90,39 @@ def check_hardware_headers():
         )
 
 
-@pytest.fixture()
-def workers_tensix_coordinates(worker_id):
+def _workers_tensix_coordinates(worker_id):
     if worker_id == "master":
         return "0,0"
     row, col = divmod(int(worker_id[2:]), 8)
     return f"{row},{col}"
+
+
+@pytest.fixture()
+def workers_tensix_coordinates(worker_id):
+    return _workers_tensix_coordinates(worker_id)
+
+
+# This should be done once per worker for the first test in the session
+# Idea is for brisc to handle reset state of other triscs and leave as little work as possible for the host
+@pytest.fixture(scope="session", autouse=True)
+def reset_cores_per_worker(worker_id):
+    # Skip if we are compiling
+    if TestConfig.MODE == TestMode.PRODUCE:
+        yield
+        return
+
+    location = _workers_tensix_coordinates(worker_id)
+
+    set_tensix_soft_reset(1, cores=ALL_CORES, location=location)
+
+    # Reset mailboxes for trisc communication
+    for mailbox in [Mailbox.Brisc, Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer]:
+        reset_mailbox(location, mailbox)
+
+    make_sure_core_in_reset(
+        location=location, place=f"session init ({worker_id})", cores=ALL_CORES
+    )
+    yield
 
 
 @pytest.fixture

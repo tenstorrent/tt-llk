@@ -15,7 +15,7 @@ from ttexalens.tt_exalens_lib import read_words_from_device
 
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
-from .device import wait_for_tensix_operations_finished
+from .device import wait_for_operations_to_finish
 from .format_config import DataFormat, FormatConfig
 from .fused_fpu import MatmulFpu
 from .fused_operation import FusedOperation
@@ -168,7 +168,7 @@ class FuserConfig:
 
             for run_index in range(run_count):
                 elfs = test_config.run_elf_files(location)
-                wait_for_tensix_operations_finished(elfs, location)
+                wait_for_operations_to_finish(elfs, location)
 
                 meta = Profiler._get_meta(test_config.test_name, test_config.variant_id)
                 buffer_data = [
@@ -218,7 +218,13 @@ class FuserConfig:
             return
 
         elfs = test_config.run_elf_files(location)
-        wait_for_tensix_operations_finished(elfs, location)
+        wait_for_operations_to_finish(elfs, location)
         collect_pipeline_results(self.pipeline)
         golden = FusedGolden()
         assert golden.check_pipeline(self)
+
+    def run(self, worker_id="master", location="0,0", run_count=2):
+        if self.global_config.profiler_enabled:
+            self.run_perf_test(worker_id, location, run_count)
+        else:
+            self.run_regular_test(location)

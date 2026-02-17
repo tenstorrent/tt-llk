@@ -80,3 +80,16 @@ inline void clear_trisc_soft_reset()
     soft_reset   = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
     *reset_after = soft_reset;
 }
+
+inline void set_trisc_soft_reset()
+{
+#ifdef ARCH_QUASAR
+    constexpr std::uint32_t TRISC_SOFT_RESET_MASK = 0x3000;
+#else
+    constexpr std::uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
+#endif
+
+    std::uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+    soft_reset |= TRISC_SOFT_RESET_MASK;
+    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
+}
