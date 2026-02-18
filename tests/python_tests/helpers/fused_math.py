@@ -419,23 +419,24 @@ class ComputePipeline:
     def _batch_loop(
         self, operation: "FusedOperation", config: "GlobalConfig", body_fn
     ) -> str:
-        batch_size = operation.batch_size
-        tile_cnt = operation.output.tile_count
-
-        num_full_batches = tile_cnt // batch_size
-        remaining_tiles = tile_cnt % batch_size
-
         code = ""
 
-        if num_full_batches > 0:
-            code += f"for (std::uint32_t batch = 0; batch < {num_full_batches}; ++batch) {{\n"
-            code += body_fn(f"batch * {batch_size}", batch_size)
-            code += "}\n"
+        remaning_tiles_x = operation.output.tile_count_x % operation.block_tiles_x
+        remaning_tiles_y = operation.output.tile_count_y % operation.block_tiles_y
+        for x in range(0, operation.output.tile_count_x, operation.block_tiles_x):
+            for y in range(0, operation.output.tile_count_y, operation.block_tiles_y):
+                code += body_fn(x, y, operation.block_tiles_x, operation.block_tiles_y)
+            if remaning_tiles_y > 0:
+                y = operation.output.tile_count_y // operation.block_tiles_y
+                code += body_fn(x, y, operation.block_tiles_x, remaning_tiles_y)
 
-        if remaining_tiles > 0:
-            code += "{\n"
-            code += body_fn(f"{num_full_batches * batch_size}", remaining_tiles)
-            code += "}\n"
+        if remaning_tiles_x > 0:
+            x = operation.output.tile_count_x // operation.block_tiles_x
+            for y in range(0, operation.output.tile_count_y, operation.block_tiles_y):
+                code += body_fn(x, y, remaning_tiles_x, operation.block_tiles_y)
+            if remaning_tiles_y > 0:
+                y = operation.output.tile_count_y // operation.block_tiles_y
+                code += body_fn(x, y, remaning_tiles_x, remaning_tiles_y)
 
         return code
 
@@ -475,10 +476,12 @@ class ComputePipeline:
             code += f"for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
             code += "{\n"
 
-        def batch_body(batch_start, batch_tile_cnt):
+        def batch_body(x, y, block_size_x, block_size_y):
             body = self._wait_for_dest(operation, config)
             for compute_unit in self.operations:
-                body += compute_unit.math_calculate(operation, config, batch_tile_cnt)
+                body += compute_unit.math_calculate(
+                    operation, config, block_size_x, block_size_y
+                )
             body += self._dest_section_done(operation, config)
             return body
 

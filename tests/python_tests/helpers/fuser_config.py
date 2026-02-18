@@ -17,7 +17,6 @@ from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import wait_for_tensix_operations_finished
 from .format_config import DataFormat, FormatConfig
-from .fused_fpu import MatmulFpu
 from .fused_operation import FusedOperation
 from .llk_params import DestAccumulation, DestSync, PerfRunType
 from .perf import PerfReport
@@ -83,19 +82,10 @@ class FuserConfig:
                     8 if self.global_config.dest_acc == DestAccumulation.Yes else 16
                 )
 
-            output_tile_count = operation.output.tile_count
-
-            if output_tile_count > dest_capacity:
-                if operation.math.has_fpu(MatmulFpu):
-                    if operation.ct_dim > dest_capacity:
-                        raise ValueError(
-                            f"Matmul ct_dim ({operation.ct_dim}) exceeds dest capacity ({dest_capacity}). "
-                        )
-                    operation.batch_size = operation.ct_dim
-                else:
-                    operation.batch_size = min(operation.batch_size, dest_capacity)
-
-            operation.batch_size = min(operation.batch_size, output_tile_count)
+            if operation.block_tiles_x * operation.block_tiles_y > dest_capacity:
+                raise ValueError(
+                    f"Block size ({operation.block_size}) is bigger than dest capacity ({dest_capacity})"
+                )
 
             if (
                 self.global_config.architecture == ChipArchitecture.BLACKHOLE

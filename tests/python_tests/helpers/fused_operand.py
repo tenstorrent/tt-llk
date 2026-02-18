@@ -24,12 +24,17 @@ class Operand:
     _master_golden: Optional[torch.Tensor] = None
     l1_golden: Optional[torch.Tensor] = None
     _tile_count: Optional[int] = None
+    tile_count_x: Optional[int] = None
+    tile_count_y: Optional[int] = None
 
     def __post_init__(self):
         if not self.is_output and (self.dimensions is None or self.data_format is None):
             raise ValueError(
                 f"Input operand '{self.name}' must have dimensions and data_format"
             )
+
+        self.tile_count_x = self.dimensions[0] // 32
+        self.tile_count_y = self.dimensions[1] // 32
 
     def is_input(self) -> bool:
         return not self.is_output

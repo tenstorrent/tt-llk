@@ -315,8 +315,8 @@ def parse_operation(
         kwargs["math_fidelity"] = MATH_FIDELITY_MAP[op_config["math_fidelity"]]
     if "dest_sync" in op_config:
         kwargs["dest_sync"] = DEST_SYNC_MAP[op_config["dest_sync"]]
-    if "batch_size" in op_config:
-        kwargs["batch_size"] = op_config["batch_size"]
+    if "block_size" in op_config:
+        kwargs["block_size"] = op_config["block_size"]
 
     return FusedOperation(
         operand_mapping=operand_mapping,
