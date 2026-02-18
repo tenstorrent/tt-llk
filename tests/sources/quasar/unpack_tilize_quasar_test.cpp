@@ -15,7 +15,7 @@
 #include "llk_unpack_tilize.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams*)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
     tdma_descriptor_t td_val;
     const std::uint32_t buf_desc_id = 0;
@@ -112,7 +112,7 @@ void run_kernel(const volatile struct RuntimeParams*)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams*)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
     std::uint32_t const buf_desc_id        = 8;
     const std::uint32_t num_tiles_per_pack = TILE_CNT;
