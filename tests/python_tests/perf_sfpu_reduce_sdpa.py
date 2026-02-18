@@ -72,9 +72,9 @@ def test_perf_sfpu_reduce_sdpa(
         templates=[
             MATH_OP(mathop=mathop),
             REDUCE_POOL_TYPE(reduce_pool),
+            generate_input_dim(input_dimensions, input_dimensions),
         ],
         runtimes=[
-            generate_input_dim(input_dimensions, input_dimensions),
             TILE_COUNT(tile_count),
             LOOP_FACTOR(loop_factor),  # Used to minimize profiler overhead
         ],

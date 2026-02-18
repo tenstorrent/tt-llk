@@ -37,9 +37,6 @@ class StimuliConfig:
     STIMULI_L1_ADDRESS_PERF = 0x21000
     STIMULI_L1_ADDRESS_DEBUG = 0x65000
 
-    # Full tile elements (always 1024 for a 32x32 tile)
-    TILE_ELEMENTS = 1024
-
     WITH_COVERAGE: ClassVar[bool] = False
 
     def __init__(
@@ -82,10 +79,14 @@ class StimuliConfig:
         self.write_full_tiles = write_full_tiles
         self.use_dense_tile_dimensions = use_dense_tile_dimensions
 
-        # Stimuli addresses calculation - ALWAYS use full tile sizes for address spacing
-        # Hardware expects full tile alignment regardless of num_faces
-        self.tile_size_A_bytes = format_tile_sizes[self.stimuli_A_format]
-        self.tile_size_B_bytes = format_tile_sizes[self.stimuli_B_format]
+        # Stimuli addresses calculation
+        # Use actual tile size based on tile_dimensions for memory-efficient allocation
+        self.tile_size_A_bytes = calculate_tile_size_bytes(
+            self.stimuli_A_format, self.tile_dimensions, format_tile_sizes
+        )
+        self.tile_size_B_bytes = calculate_tile_size_bytes(
+            self.stimuli_B_format, self.tile_dimensions, format_tile_sizes
+        )
 
         self.buf_a_addr = 0
         if StimuliConfig.WITH_COVERAGE:
@@ -111,31 +112,37 @@ class StimuliConfig:
             )
 
     def generate_runtime_operands_values(self, formats) -> list:
-        buf_a_format = format_tile_sizes[
-            DataFormat.Float16_b if formats is None else formats.input_format
-        ]
-        buf_b_format = format_tile_sizes[
-            DataFormat.Float16_b if formats is None else formats.input_format
-        ]
-        buf_res_format = format_tile_sizes[
+        # Use actual tile sizes based on tile_dimensions
+        input_format = DataFormat.Float16_b if formats is None else formats.input_format
+        output_format = (
             DataFormat.Float16_b if formats is None else formats.output_format
-        ]
+        )
+
+        buf_a_tile_size = calculate_tile_size_bytes(
+            input_format, self.tile_dimensions, format_tile_sizes
+        )
+        buf_b_tile_size = calculate_tile_size_bytes(
+            input_format, self.tile_dimensions, format_tile_sizes
+        )
+        buf_res_tile_size = calculate_tile_size_bytes(
+            output_format, self.tile_dimensions, format_tile_sizes
+        )
 
         values = [
             self.buf_a_addr,
-            buf_a_format,
+            buf_a_tile_size,
             self.buf_b_addr,
-            buf_b_format,
+            buf_b_tile_size,
             self.buf_res_addr,
-            buf_res_format,
+            buf_res_tile_size,
         ]
 
         if self.buffer_C is not None:
-            buf_c_format = format_tile_sizes[
-                DataFormat.Float16_b if formats is None else formats.input_format
-            ]
+            buf_c_tile_size = calculate_tile_size_bytes(
+                input_format, self.tile_dimensions, format_tile_sizes
+            )
 
-            values.extend([self.buf_c_addr, buf_c_format])
+            values.extend([self.buf_c_addr, buf_c_tile_size])
 
         return values
 
@@ -154,29 +161,35 @@ class StimuliConfig:
         return lines, pack_formats
 
     def generate_stimuli_header_addresses(self, formats) -> list[str]:
-        buf_a_format = format_tile_sizes[
-            DataFormat.Float16_b if formats is None else formats.input_format
-        ]
-        buf_b_format = format_tile_sizes[
-            DataFormat.Float16_b if formats is None else formats.input_format
-        ]
-        buf_res_format = format_tile_sizes[
+        # Use actual tile sizes based on tile_dimensions
+        input_format = DataFormat.Float16_b if formats is None else formats.input_format
+        output_format = (
             DataFormat.Float16_b if formats is None else formats.output_format
-        ]
+        )
+
+        buf_a_tile_size = calculate_tile_size_bytes(
+            input_format, self.tile_dimensions, format_tile_sizes
+        )
+        buf_b_tile_size = calculate_tile_size_bytes(
+            input_format, self.tile_dimensions, format_tile_sizes
+        )
+        buf_res_tile_size = calculate_tile_size_bytes(
+            output_format, self.tile_dimensions, format_tile_sizes
+        )
 
         lines: list[str] = [
-            f"constexpr Operand buffer_A({hex(self.buf_a_addr)}, {buf_a_format});",
-            f"constexpr Operand buffer_B({hex(self.buf_b_addr)}, {buf_b_format});",
-            f"constexpr Operand buffer_Res({hex(self.buf_res_addr)}, {buf_res_format});",
+            f"constexpr Operand buffer_A({hex(self.buf_a_addr)}, {buf_a_tile_size});",
+            f"constexpr Operand buffer_B({hex(self.buf_b_addr)}, {buf_b_tile_size});",
+            f"constexpr Operand buffer_Res({hex(self.buf_res_addr)}, {buf_res_tile_size});",
         ]
 
         if self.buffer_C is not None:
-            buf_c_format = format_tile_sizes[
-                DataFormat.Float16_b if formats is None else formats.input_format
-            ]
+            buf_c_tile_size = calculate_tile_size_bytes(
+                input_format, self.tile_dimensions, format_tile_sizes
+            )
 
             lines.append(
-                f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {buf_c_format});"
+                f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {buf_c_tile_size});"
             )
 
         return lines

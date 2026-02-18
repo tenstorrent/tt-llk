@@ -1072,8 +1072,8 @@ class TestConfig:
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-        self.variant_stimuli.write(location)
         self.write_runtimes_to_L1(location)
+        self.variant_stimuli.write(location)
         elfs = self.run_elf_files(location)
         wait_for_tensix_operations_finished(elfs, location)
 
