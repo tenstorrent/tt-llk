@@ -7,7 +7,7 @@ import torch
 from conftest import skip_for_wormhole
 from helpers.device import (
     read_from_device,
-    wait_for_tensix_operations_finished,
+    wait_for_operations_to_finish,
     write_to_device,
 )
 from helpers.format_config import DataFormat
@@ -209,7 +209,7 @@ def test_sdpa_reinits(
 
     # Run the test - all 4 operations execute in sequence with reinits
     elfs = configuration.run_elf_files(workers_tensix_coordinates)
-    wait_for_tensix_operations_finished(elfs, workers_tensix_coordinates)
+    wait_for_operations_to_finish(elfs, workers_tensix_coordinates)
 
     # Read and validate all 4 outputs
     tile_size = 2048  # Float16_b tile size
