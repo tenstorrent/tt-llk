@@ -240,6 +240,10 @@ class MathFidelity(Enum):
     HiFi3 = 3
     HiFi4 = 4
 
+    @property
+    def cpp_enum_value(self):
+        return f"ckernel::MathFidelity::{self.name}"
+
 
 class NarrowTile(Enum):
     Yes = True
@@ -321,6 +325,16 @@ class EltwiseBinaryReuseDestType(Enum):
 class DataCopyType(Enum):
     A2D = "A2D"
     B2D = "B2D"
+
+
+class BlocksCalculationAlgorithm(Enum):
+    """
+    Enum for block processing algorithms in LLK kernels.
+    """
+
+    Standard = "STANDARD"
+    Tilize = "TILIZE"
+    Untilize = "UNTILIZE"
 
 
 class PerfRunType(Enum):

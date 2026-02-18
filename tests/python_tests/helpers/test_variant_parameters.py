@@ -186,7 +186,7 @@ class MATH_FIDELITY(TemplateParameter):
     math_fidelity: MathFidelity
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr std::uint32_t MATH_FIDELITY = {self.math_fidelity.value};"
+        return f"constexpr ckernel::MathFidelity MATH_FIDELITY = {self.math_fidelity.cpp_enum_value};"
 
 
 @dataclass
@@ -401,6 +401,52 @@ class TILE_COUNT(RuntimeParameter):
 
 
 @dataclass
+class INPUT_TILE_CNT(RuntimeParameter):
+    tile_cnt: int = 0
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int INPUT_TILE_CNT = {self.tile_cnt};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int INPUT_TILE_CNT;", "i"
+
+
+@dataclass
+class OUTPUT_TILE_CNT(RuntimeParameter):
+    tile_cnt: int = 0
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int OUTPUT_TILE_CNT = {self.tile_cnt};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int OUTPUT_TILE_CNT;", "i"
+
+
+@dataclass
+class REDUCE_TO_ONE(RuntimeParameter):
+    is_reduce_to_one: bool = False
+
+    def covert_to_cpp(self) -> str:
+        return (
+            f"constexpr bool IS_REDUCE_TO_ONE = {str(self.is_reduce_to_one).lower()};"
+        )
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "bool IS_REDUCE_TO_ONE;", "?"
+
+
+@dataclass
+class NUM_TILES_IN_BLOCK(RuntimeParameter):
+    num_tiles_in_block: int = 0
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int NUM_TILES_IN_BLOCK = {self.num_tiles_in_block};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int NUM_TILES_IN_BLOCK;", "i"
+
+
+@dataclass
 class SRCA_REUSE_COUNT(RuntimeParameter):
     srca_reuse_count: int = 0
 
@@ -520,6 +566,62 @@ class NUM_FACES(RuntimeParameter):
     def convert_to_struct_fields(self) -> tuple[str, str]:
         lines: list[str] = ["int num_faces;", "int num_faces_A;", "int num_faces_B;"]
         return "\n".join(lines), "iii"
+
+
+@dataclass
+class NUM_FACES_R_DIM(RuntimeParameter):
+    num_faces_r_dim_A: int = 2  # Number of faces in row dimension for matrix A
+    num_faces_r_dim_B: int = 2  # Number of faces in row dimension for matrix B
+
+    def covert_to_cpp(self) -> str:
+        lines: list[str] = [
+            (
+                f"constexpr int num_faces_r_dim_A = {self.num_faces_r_dim_A};"
+                if self.num_faces_r_dim_A
+                else ""
+            ),
+            (
+                f"constexpr int num_faces_r_dim_B = {self.num_faces_r_dim_B};"
+                if self.num_faces_r_dim_B
+                else ""
+            ),
+        ]
+        return "\n".join(lines)
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        lines: list[str] = [
+            "int num_faces_r_dim_A;",
+            "int num_faces_r_dim_B;",
+        ]
+        return "\n".join(lines), "ii"
+
+
+@dataclass
+class NUM_FACES_C_DIM(RuntimeParameter):
+    num_faces_c_dim_A: int = 2  # Number of faces in column dimension for matrix A
+    num_faces_c_dim_B: int = 2  # Number of faces in column dimension for matrix B
+
+    def covert_to_cpp(self) -> str:
+        lines: list[str] = [
+            (
+                f"constexpr int num_faces_c_dim_A = {self.num_faces_c_dim_A};"
+                if self.num_faces_c_dim_A
+                else ""
+            ),
+            (
+                f"constexpr int num_faces_c_dim_B = {self.num_faces_c_dim_B};"
+                if self.num_faces_c_dim_B
+                else ""
+            ),
+        ]
+        return "\n".join(lines)
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        lines: list[str] = [
+            "int num_faces_c_dim_A;",
+            "int num_faces_c_dim_B;",
+        ]
+        return "\n".join(lines), "ii"
 
 
 @dataclass

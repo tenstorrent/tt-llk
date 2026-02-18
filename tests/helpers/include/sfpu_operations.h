@@ -35,7 +35,7 @@ using namespace ckernel::sfpu;
  * @param operation The SFPU operation type to execute
  * @param math_format Optional math format for operations that need format-specific behavior
  */
-template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false, bool CLAMP_NEGATIVE = true>
+template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false, bool CLAMP_NEGATIVE = false>
 void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, float fill_const_value = 5.0f)
 {
     switch (operation)
@@ -100,7 +100,15 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
         case SfpuType::fill:
             if (math_format == ckernel::to_underlying(DataFormat::Int32))
             {
-                _calculate_fill_int_<APPROX_MODE, ITERATIONS>(fill_const_value);
+                _calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::INT32, ITERATIONS>(static_cast<std::uint32_t>(fill_const_value));
+            }
+            else if (math_format == ckernel::to_underlying(DataFormat::UInt16))
+            {
+                _calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::LO16, ITERATIONS>(static_cast<std::uint32_t>(fill_const_value));
+            }
+            else if (math_format == ckernel::to_underlying(DataFormat::UInt32))
+            {
+                _calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::INT32, ITERATIONS>(static_cast<std::uint32_t>(fill_const_value));
             }
             else
             {

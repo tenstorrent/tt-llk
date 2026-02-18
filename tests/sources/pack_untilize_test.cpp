@@ -7,6 +7,7 @@
 #include <cstdio>
 
 #include "ckernel.h"
+#include "llk_assert.h"
 #include "llk_defs.h"
 
 // Globals
@@ -49,7 +50,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
     {
-        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the column (dst reg)
+        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
         {
             for (std::uint32_t tile_index_within_block = 0; tile_index_within_block < BLOCK_CT_DIM; ++tile_index_within_block) // Loop over tiles in the block
             {
@@ -90,11 +91,14 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
     {
-        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the column (dst reg)
+        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
         {
             _llk_math_wait_for_dest_available_<dest_sync>();
             for (std::uint32_t tile_index_within_block = 0; tile_index_within_block < BLOCK_CT_DIM; ++tile_index_within_block) // Loop over tiles in the block
             {
+                LLK_ASSERT(
+                    (tile_index_within_block < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                    "Block tile index exceeds maximum destination tiles");
                 _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                     tile_index_within_block, formats.math, formats.math);
             }
@@ -136,7 +140,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
     {
-        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the column (dst reg)
+        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
         {
             std::uint32_t pack_addr_16B = base_addr_16B + rt * row_stride_16B + block_num * block_stride_16B;
 

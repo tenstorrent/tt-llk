@@ -1006,10 +1006,8 @@ class DataCopyGolden:
         # Handle partial faces (face_r_dim < 16) as single tiles
         if face_r_dim < 16:
             tile_cnt = 1
-            tile_size = height * width
         else:
             tile_cnt = (height // 32) * (width // 32)
-            tile_size = height * width // tile_cnt
 
         # Calculate elements based on variable face dimensions
         # Each face is face_r_dim × 16, and we have num_faces
@@ -1018,6 +1016,19 @@ class DataCopyGolden:
         # Convert input to tensor if needed
         if not isinstance(operand1, torch.Tensor):
             operand1 = torch.tensor(operand1, dtype=torch_format)
+
+        # Determine actual tile size from input:
+        # If input is sized for partial faces (num_faces < 4), use elements_per_tile_needed
+        # Otherwise use full tile size
+        total_elements = operand1.numel()
+        expected_partial_size = tile_cnt * elements_per_tile_needed
+
+        if total_elements == expected_partial_size:
+            # Input is already sized for num_faces, just pass through
+            tile_size = elements_per_tile_needed
+        else:
+            # Input has full tiles, need to select elements
+            tile_size = height * width // tile_cnt if tile_cnt > 0 else height * width
 
         reshaped = operand1.view(tile_cnt, tile_size)
         selected = reshaped[:, :elements_per_tile_needed]
@@ -1859,16 +1870,60 @@ class ReduceGolden:
             ReduceDimension.Scalar: self._reduce_scalar,
         }
 
-    def __call__(self, operand, reduce_dim, pool_type, data_format, tile_cnt=1):
+    def __call__(
+        self,
+        operand,
+        reduce_dim,
+        pool_type,
+        data_format,
+        tile_cnt=1,
+        reduce_to_one=False,
+    ):
         if reduce_dim not in self.dim_handlers:
             raise ValueError(f"Unsupported reduce dimension: {reduce_dim}")
 
-        return torch.cat(
-            [
-                self._process_tile(operand, reduce_dim, pool_type, data_format, tile)
-                for tile in range(tile_cnt)
-            ]
-        )
+        if reduce_to_one:
+            # Accumulate all tiles into a single result
+            return self._reduce_all_tiles(
+                operand, reduce_dim, pool_type, data_format, tile_cnt
+            )
+        else:
+            # Process each tile independently
+            return torch.cat(
+                [
+                    self._process_tile(
+                        operand, reduce_dim, pool_type, data_format, tile
+                    )
+                    for tile in range(tile_cnt)
+                ]
+            )
+
+    def _reduce_all_tiles(self, operand, reduce_dim, pool_type, data_format, tile_cnt):
+        """Accumulate reduction across all tiles into a single result."""
+        accumulated = None
+
+        for tile_idx in range(tile_cnt):
+            tile_result = self._process_tile(
+                operand, reduce_dim, pool_type, data_format, tile_idx
+            )
+
+            if accumulated is None:
+                # First tile - just store it
+                accumulated = tile_result
+            else:
+                # Subsequent tiles - pool with previous accumulation
+                if pool_type == ReducePool.Max:
+                    accumulated = torch.maximum(accumulated, tile_result)
+                elif pool_type == ReducePool.Sum:
+                    accumulated = accumulated + tile_result
+                elif pool_type == ReducePool.Average:
+                    # Average reduce operation performs dest += avg(curr_tile) when reducing to populated dest locations.
+                    # Result should simply be the accumulation of averages.
+                    accumulated = accumulated + tile_result
+                else:
+                    raise ValueError(f"Unsupported pool type: {pool_type}")
+
+        return accumulated
 
     def _process_tile(self, operand, reduce_dim, pool_type, data_format, tile_idx):
         tile_start = tile_idx * ELEMENTS_PER_TILE
@@ -1918,6 +1973,17 @@ class ReduceGolden:
             return torch.sum(tensor, dim=dim)
         else:
             raise ValueError(f"Unsupported pool type: {pool_type}")
+
+
+@register_golden
+class ReduceBlockMaxRowGolden:
+    def __call__(self, operand, ct_dim, data_format, dimensions):
+        operand = operand.reshape(dimensions)
+        output = torch.zeros(dimensions)
+        for i in range(dimensions[0]):
+            output[i, 0] = torch.max(operand[i, : ct_dim * 32])
+
+        return output
 
 
 @register_golden
