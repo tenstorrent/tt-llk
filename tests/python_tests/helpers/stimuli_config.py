@@ -176,7 +176,7 @@ class StimuliConfig:
             ]
 
             lines.append(
-                f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {buf_c_tile_size});"
+                f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {buf_c_format});"
             )
 
         return lines

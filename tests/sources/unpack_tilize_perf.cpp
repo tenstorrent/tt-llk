@@ -33,7 +33,7 @@ static constexpr std::uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    LLK_ASSERT(FULL_RT_DIM * FULL_CT_DIM == params->TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to params->TILE_CNT");
+    LLK_ASSERT(params->FULL_RT_DIM * params->FULL_CT_DIM == params->TILE_CNT, "FULL_RT_DIM * FULL_CT_DIM must be equal to params->TILE_CNT");
     constexpr std::uint32_t src = 0x65000;
     {
         ZONE_SCOPED("INIT")
