@@ -187,14 +187,46 @@ def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
         risc_name, neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None
     )
 
-    is_it = True
-    try:
-        is_it = risc_debug.is_ebreak_hit()
-    except Exception as e:
-        # Optional: keep WTF handler for truly unexpected cases, but with context
-        raise Exception(f"WTF handler: {risc_name} debug failed: {e}") from e
+    risc_name_upper = risc_name.upper()
+    soft_reset_reg = "RISCV_DEBUG_REG_SOFT_RESET_0"
+    core = RiscCore[risc_name_upper]
+    if core == INVALID_CORE:
+        return False
+    reset_mask = 1 << core.value
+    reset_wait_timeout = 0.05
+    ebreak_check_timeout = 0.05
 
-    return is_it
+    reset_wait_end = time.time() + reset_wait_timeout
+    soft_reset = get_register_store(core_loc, device_id).read_register(soft_reset_reg)
+    while (soft_reset & reset_mask) != 0 and time.time() < reset_wait_end:
+        time.sleep(0.001)
+        soft_reset = get_register_store(core_loc, device_id).read_register(
+            soft_reset_reg
+        )
+
+    # If core never came out of reset, it cannot be at an ebreak.
+    if (soft_reset & reset_mask) != 0:
+        return False
+
+    check_end = time.time() + ebreak_check_timeout
+    last_error = None
+    while time.time() < check_end:
+        try:
+            return risc_debug.is_ebreak_hit()
+        except Exception as e:
+            last_error = e
+            soft_reset = get_register_store(core_loc, device_id).read_register(
+                soft_reset_reg
+            )
+            if (soft_reset & reset_mask) != 0:
+                return False
+            time.sleep(0.001)
+
+    raise Exception(
+        f"Failed to check ebreak on {risc_name} at {core_loc}: "
+        f"last error {type(last_error).__name__}: {last_error}; "
+        f"{soft_reset_reg}={hex(soft_reset)}"
+    ) from last_error
 
 
 def _print_callstack(risc_name: str, callstack: list[CallstackEntry]) -> str:
@@ -215,31 +247,52 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]) -> str:
     return temp_str
 
 
-def check_if_brisc_is_in_reset(elfs: list[str], core_loc="0,0", device_id=0):
-    risc_name = "brisc"
-    if not is_risc_in_reset(risc_name, core_loc=core_loc, device_id=device_id):
-        soft_reset = get_register_store(core_loc, device_id).read_register(
-            "RISCV_DEBUG_REG_SOFT_RESET_0"
-        )
-        mailbox_val = read_word_from_device(core_loc, Mailbox.Brisc.value)
+def get_risc_assert_hits(core_loc="0,0", device_id=0) -> dict[str, bool | str]:
+    results: dict[str, bool | str] = {}
+    for risc_name in ["BRISC", "TRISC0", "TRISC1", "TRISC2"]:
         try:
-            assert_hit = is_assert_hit("BRISC", core_loc=core_loc, device_id=device_id)
+            results[risc_name.lower()] = is_assert_hit(
+                risc_name, core_loc=core_loc, device_id=device_id
+            )
         except Exception as e:
-            assert_hit = f"error: {e}"
+            results[risc_name.lower()] = f"error: {e}"
+    return results
 
-        print(
-            "BRISC status at timeout: "
-            f"mailbox={mailbox_val:#x}, "
-            f"soft_reset={soft_reset:#x}, "
-            f"assert_hit={assert_hit}, "
-            f"location={core_loc}"
-        )
-        stack_trace = _print_callstack(
-            risc_name,
-            callstack(core_loc, elfs, risc_name=risc_name, device_id=device_id),
-        )
-        print(f"REAL WTF Handler - NOT IN RESET on {risc_name} at {core_loc}")
-        raise LLKAssertException(stack_trace)
+
+CORE_MAILBOX = {
+    "brisc": Mailbox.Brisc,
+    "trisc0": Mailbox.Unpacker,
+    "trisc1": Mailbox.Math,
+    "trisc2": Mailbox.Packer,
+}
+
+
+def dump_tensix_state(elfs: list[str], location="0,0", device_id=0) -> str:
+    """Build a diagnostic summary of all cores: mailbox, reset state, assert hits, and callstacks."""
+    assert_hits = get_risc_assert_hits(core_loc=location, device_id=device_id)
+
+    header = f"{'Core':<10} {'Mailbox':>10} {'In Reset':>10} {'Assert Hit':>12}"
+    separator = "-" * len(header)
+    rows = []
+    stack_traces = ""
+    for core, mb in CORE_MAILBOX.items():
+        mb_val = read_word_from_device(location, mb.value)
+        reset = is_risc_in_reset(core, core_loc=location, device_id=device_id)
+        assert_hit = assert_hits.get(core, "n/a")
+        rows.append(f"{core:<10} {mb_val:#10x} {str(reset):>10} {str(assert_hit):>12}")
+
+        # If this core hit an LLK_ASSERT (ebreak), dump its callstack
+        # so we can see exactly which assert fired and its message.
+        if assert_hit is True:
+            try:
+                stack_traces += _print_callstack(
+                    core,
+                    callstack(location, elfs, risc_name=core, device_id=device_id),
+                )
+            except Exception as e:
+                stack_traces += f"\n[Failed to get {core} callstack: {e}]\n"
+
+    return "\n".join([header, separator] + rows) + stack_traces
 
 
 def make_sure_all_out_of_reset(location: str = "0,0", backoff=0.01):
@@ -313,20 +366,10 @@ def wait_for_operations_to_finish(elfs, location="0,0", timeout=5, max_backoff=0
             time.sleep(backoff)
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
-    mailbox_val = read_word_from_device(location, Mailbox.Brisc.value)
-    mailbox_unpack = read_word_from_device(location, Mailbox.Unpacker.value)
-    mailbox_math = read_word_from_device(location, Mailbox.Math.value)
-    mailbox_pack = read_word_from_device(location, Mailbox.Packer.value)
-    soft_reset = get_register_store(location, 0).read_register(
-        "RISCV_DEBUG_REG_SOFT_RESET_0"
-    )
-
-    raise TimeoutError(
-        "Timeout reached: waited "
-        f"{timeout} seconds for BRISC done signal "
-        f"(mailbox={mailbox_val:#x}, "
-        f"unpack={mailbox_unpack:#x}, math={mailbox_math:#x}, pack={mailbox_pack:#x}, "
-        f"soft_reset={soft_reset:#x})"
+    state = dump_tensix_state(elfs, location=location, device_id=0)
+    raise LLKAssertException(
+        f"Timeout reached: waited {timeout}s for BRISC done signal at {location}\n"
+        f"{state}"
     )
 
 
