@@ -13,17 +13,17 @@ operations:
         unpacker: "UnpackerA"
       - type: "UnarySfpu"
         operation: "Exp"
-        approximation_mode: "No"
+        approximation_mode: false
         iterations: 32
         dst_dest_tile_index: 0
       - type: "UnarySfpu"
         operation: "Log1p"
-        approximation_mode: "No"
+        approximation_mode: false
         iterations: 32
         dst_dest_tile_index: 0
       - type: "UnarySfpu"
         operation: "Tanh"
-        approximation_mode: "No"
+        approximation_mode: false
         iterations: 32
         dst_dest_tile_index: 0
       - type: "Fpu"

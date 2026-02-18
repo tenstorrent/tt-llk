@@ -89,7 +89,7 @@ def _get_runtime_types():
 
 
 def _enum_values(enum_cls: type) -> str:
-    return ", ".join(e.value for e in enum_cls)
+    return ", ".join(e.name for e in enum_cls)
 
 
 def format_validation_error(error: ValidationError) -> str:
@@ -119,45 +119,6 @@ def format_validation_error(error: ValidationError) -> str:
     return "\n".join(messages)
 
 
-class YesNo(str, Enum):
-    Yes = "Yes"
-    No = "No"
-
-    def to_bool(self) -> bool:
-        return self == YesNo.Yes
-
-
-class DataFormatEnum(str, Enum):
-    Float16_b = "Float16_b"
-    Float16 = "Float16"
-    Float32 = "Float32"
-    Bfp8_b = "Bfp8_b"
-
-    def to_runtime(self):
-        rt = _get_runtime_types()
-        return getattr(rt["DataFormat"], self.value)
-
-
-class MathFidelityEnum(str, Enum):
-    LoFi = "LoFi"
-    HiFi2 = "HiFi2"
-    HiFi3 = "HiFi3"
-    HiFi4 = "HiFi4"
-
-    def to_runtime(self):
-        rt = _get_runtime_types()
-        return getattr(rt["MathFidelity"], self.value)
-
-
-class DestSyncEnum(str, Enum):
-    Full = "Full"
-    Half = "Half"
-
-    def to_runtime(self):
-        rt = _get_runtime_types()
-        return getattr(rt["DestSync"], self.value)
-
-
 class UnpackerEnum(str, Enum):
     UnpackerA = "UnpackerA"
     UnpackerAB = "UnpackerAB"
@@ -176,39 +137,6 @@ class PackerEnum(str, Enum):
     def to_runtime(self) -> Type:
         rt = _get_runtime_types()
         return rt[self.value]
-
-
-class BroadcastTypeEnum(str, Enum):
-    None_ = "None"
-    Row = "Row"
-    Column = "Column"
-    Scalar = "Scalar"
-
-    def to_runtime(self):
-        rt = _get_runtime_types()
-        name = "None_" if self.value == "None" else self.value
-        return getattr(rt["BroadcastType"], name)
-
-
-class ReuseDestEnum(str, Enum):
-    NONE = "NONE"
-    DEST_TO_SRCA = "DEST_TO_SRCA"
-    DEST_TO_SRCB = "DEST_TO_SRCB"
-
-    def to_runtime(self):
-        rt = _get_runtime_types()
-        return getattr(rt["EltwiseBinaryReuseDestType"], self.value)
-
-
-class ReducePoolEnum(str, Enum):
-    Sum = "Sum"
-    Min = "Min"
-    Max = "Max"
-    Average = "Average"
-
-    def to_runtime(self):
-        rt = _get_runtime_types()
-        return getattr(rt["ReducePool"], self.value)
 
 
 class FpuOperationEnum(str, Enum):
@@ -294,17 +222,17 @@ class FpuMathSchema(BaseModel):
     type: Literal["Fpu"]
     operation: FpuOperationEnum
     unpacker: Optional[UnpackerEnum] = None
-    broadcast_type: Optional[BroadcastTypeEnum] = None
-    reuse_dest: Optional[ReuseDestEnum] = None
-    reduce_pool: Optional[ReducePoolEnum] = None
-    unpack_transpose_within_face: Optional[YesNo] = None
-    unpack_transpose_faces: Optional[YesNo] = None
+    broadcast_type: Optional[BroadcastType] = None
+    reuse_dest: Optional[EltwiseBinaryReuseDestType] = None
+    reduce_pool: Optional[ReducePool] = None
+    unpack_transpose_within_face: Optional[Transpose] = None
+    unpack_transpose_faces: Optional[Transpose] = None
 
     @model_validator(mode="after")
     def validate_fpu_config(self) -> "FpuMathSchema":
         if self.operation.is_reduce() and self.reduce_pool is None:
             raise ValueError(
-                f"Reduce operations require reduce_pool: {_enum_values(ReducePoolEnum)}"
+                f"Reduce operations require reduce_pool: {_enum_values(ReducePool)}"
             )
 
         if not self.operation.is_reduce() and self.reduce_pool is not None:
@@ -334,7 +262,7 @@ class FpuMathSchema(BaseModel):
             elif self.operation.is_eltwise():
                 if (
                     self.reuse_dest is not None
-                    and self.reuse_dest != ReuseDestEnum.NONE
+                    and self.reuse_dest != EltwiseBinaryReuseDestType.NONE
                 ):
                     if self.unpacker != UnpackerEnum.UnpackerA:
                         raise ValueError(
@@ -350,7 +278,10 @@ class FpuMathSchema(BaseModel):
                         f"ReduceBlockMax: unpacker must be ReduceBlockMaxUnpacker, got '{self.unpacker.value}'"
                     )
 
-        if self.reuse_dest is not None and self.reuse_dest != ReuseDestEnum.NONE:
+        if (
+            self.reuse_dest is not None
+            and self.reuse_dest != EltwiseBinaryReuseDestType.NONE
+        ):
             if not self.operation.is_eltwise():
                 raise ValueError(
                     f"reuse_dest: only for Eltwise operations, not '{self.operation.value}'"
@@ -365,7 +296,7 @@ class FpuMathSchema(BaseModel):
             fpu = rt["EltwiseFpu"](self.operation.to_math_operation())
         elif self.operation.is_reduce():
             fpu = rt["ReduceFpu"](
-                self.operation.to_math_operation(), pool=self.reduce_pool.to_runtime()
+                self.operation.to_math_operation(), pool=self.reduce_pool
             )
         elif self.operation == FpuOperationEnum.Datacopy:
             fpu = rt["DatacopyFpu"]()
@@ -380,21 +311,13 @@ class FpuMathSchema(BaseModel):
         if self.unpacker:
             kwargs["unpacker"] = self.unpacker.to_runtime()
         if self.unpack_transpose_within_face:
-            kwargs["unpack_transpose_within_face"] = (
-                rt["Transpose"].Yes
-                if self.unpack_transpose_within_face == YesNo.Yes
-                else rt["Transpose"].No
-            )
+            kwargs["unpack_transpose_within_face"] = self.unpack_transpose_within_face
         if self.unpack_transpose_faces:
-            kwargs["unpack_transpose_faces"] = (
-                rt["Transpose"].Yes
-                if self.unpack_transpose_faces == YesNo.Yes
-                else rt["Transpose"].No
-            )
+            kwargs["unpack_transpose_faces"] = self.unpack_transpose_faces
         if self.broadcast_type:
-            kwargs["broadcast_type"] = self.broadcast_type.to_runtime()
+            kwargs["broadcast_type"] = self.broadcast_type
         if self.reuse_dest:
-            kwargs["reuse_dest"] = self.reuse_dest.to_runtime()
+            kwargs["reuse_dest"] = self.reuse_dest
 
         return rt["ComputeNode"](fpu=fpu, sfpu=None, **kwargs)
 
@@ -404,22 +327,17 @@ class UnarySfpuMathSchema(BaseModel):
 
     type: Literal["UnarySfpu"]
     operation: UnaryOperationEnum
-    approximation_mode: YesNo = YesNo.No
+    approximation_mode: ApproximationMode = ApproximationMode.No
     iterations: Annotated[int, Field(ge=1)] = 8
     dst_dest_tile_index: Annotated[int, Field(ge=0)] = 0
     fill_const_value: float = 1.0
 
     def to_compute_node(self):
         rt = _get_runtime_types()
-        approx = (
-            rt["ApproximationMode"].Yes
-            if self.approximation_mode == YesNo.Yes
-            else rt["ApproximationMode"].No
-        )
 
         sfpu = rt["UnarySfpu"](
             self.operation.to_math_operation(),
-            approx,
+            self.approximation_mode,
             self.iterations,
             self.dst_dest_tile_index,
             self.fill_const_value,
@@ -432,7 +350,7 @@ class BinarySfpuMathSchema(BaseModel):
 
     type: Literal["BinarySfpu"]
     operation: BinaryOperationEnum
-    approximation_mode: YesNo = YesNo.No
+    approximation_mode: ApproximationMode = ApproximationMode.No
     iterations: Annotated[int, Field(ge=1)] = 8
     src1_dest_tile_index: Annotated[int, Field(ge=0)] = 0
     src2_dest_tile_index: Annotated[int, Field(ge=0)] = 0
@@ -440,15 +358,10 @@ class BinarySfpuMathSchema(BaseModel):
 
     def to_compute_node(self):
         rt = _get_runtime_types()
-        approx = (
-            rt["ApproximationMode"].Yes
-            if self.approximation_mode == YesNo.Yes
-            else rt["ApproximationMode"].No
-        )
 
         sfpu = rt["BinarySfpu"](
             self.operation.to_math_operation(),
-            approx,
+            self.approximation_mode,
             self.iterations,
             self.src1_dest_tile_index,
             self.src2_dest_tile_index,
@@ -474,8 +387,8 @@ class OperationSchema(BaseModel):
     src_b_dims: Annotated[List[int], Field(min_length=2, max_length=2)] = [32, 32]
     output_dims: Annotated[List[int], Field(min_length=2, max_length=2)] = [32, 32]
 
-    input_format: DataFormatEnum = DataFormatEnum.Float16_b
-    output_format: DataFormatEnum = DataFormatEnum.Float16_b
+    input_format: DataFormat = Field(default_factory=lambda: DataFormat.Float16_b)
+    output_format: DataFormat = Field(default_factory=lambda: DataFormat.Float16_b)
 
     src_a_const_value: Optional[float] = None
     src_b_const_value: Optional[float] = None
@@ -483,8 +396,8 @@ class OperationSchema(BaseModel):
     math: List[MathSchema] = Field(..., min_length=1)
 
     packer: PackerEnum = PackerEnum.Packer
-    math_fidelity: MathFidelityEnum = MathFidelityEnum.LoFi
-    dest_sync: Optional[DestSyncEnum] = None
+    math_fidelity: MathFidelity = MathFidelity.LoFi
+    dest_sync: Optional[DestSync] = None
     batch_size: Annotated[int, Field(ge=0)] = 0
 
     @field_validator("src_a_dims", "src_b_dims", "output_dims")
@@ -495,6 +408,30 @@ class OperationSchema(BaseModel):
                 raise ValueError(f"must be positive, got {dim}")
             if dim % 32 != 0:
                 raise ValueError(f"must be multiple of 32, got {dim}")
+        return v
+
+    @field_validator("input_format", "output_format", mode="before")
+    @classmethod
+    def parse_data_format(cls, v):
+        if isinstance(v, DataFormat):
+            return v
+        if isinstance(v, str):
+            try:
+                return DataFormat[v]
+            except KeyError:
+                pass
+        return v
+
+    @field_validator("math_fidelity", mode="before")
+    @classmethod
+    def parse_math_fidelity(cls, v):
+        if isinstance(v, MathFidelity):
+            return v
+        if isinstance(v, str):
+            try:
+                return MathFidelity[v]
+            except KeyError:
+                pass
         return v
 
     @model_validator(mode="after")
@@ -522,8 +459,8 @@ class OperationSchema(BaseModel):
             src_a_dims=self.src_a_dims,
             src_b_dims=self.src_b_dims,
             output_dims=self.output_dims,
-            input_format=self.input_format.to_runtime(),
-            output_format=self.output_format.to_runtime(),
+            input_format=self.input_format,
+            output_format=self.output_format,
             src_a_const_value=self.src_a_const_value,
             src_b_const_value=self.src_b_const_value,
         )
@@ -531,10 +468,10 @@ class OperationSchema(BaseModel):
         math_ops = [m.to_compute_node() for m in self.math]
 
         kwargs = {
-            "math_fidelity": self.math_fidelity.to_runtime(),
+            "math_fidelity": self.math_fidelity,
         }
         if self.dest_sync:
-            kwargs["dest_sync"] = self.dest_sync.to_runtime()
+            kwargs["dest_sync"] = self.dest_sync
         if self.batch_size:
             kwargs["batch_size"] = self.batch_size
 
@@ -549,7 +486,7 @@ class OperationSchema(BaseModel):
 class FuserConfigSchema(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    dest_acc: YesNo = YesNo.No
+    dest_acc: DestAccumulation = DestAccumulation.No
     loop_factor: Annotated[int, Field(ge=1)] = 16
     operations: List[OperationSchema] = Field(..., min_length=1)
 
@@ -565,19 +502,13 @@ class FuserConfigSchema(BaseModel):
     def to_fuser_config(self, test_name: str):
         rt = _get_runtime_types()
 
-        dest_acc = (
-            rt["DestAccumulation"].Yes
-            if self.dest_acc == YesNo.Yes
-            else rt["DestAccumulation"].No
-        )
-
         operands = rt["OperandRegistry"]()
         pipeline = [op.to_fused_operation(operands) for op in self.operations]
 
         return rt["FuserConfig"](
             pipeline=pipeline,
             global_config=rt["GlobalConfig"](
-                dest_acc=dest_acc,
+                dest_acc=self.dest_acc,
                 test_name=test_name,
                 loop_factor=self.loop_factor,
             ),

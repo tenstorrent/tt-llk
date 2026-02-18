@@ -117,7 +117,7 @@ class MatmulFpu(Fpu):
         batch_size = operation.batch_size
         math_fidelity = operation.math_fidelity.cpp_enum_value
         ct_dim = operation.ct_dim
-        transpose = "true" if compute_unit.unpack_transpose_faces.value else "false"
+        transpose = compute_unit.unpack_transpose_faces.cpp_enum_value
 
         if batch_size == ct_dim:
             rt_dim = 1
@@ -213,8 +213,8 @@ class EltwiseFpu(Fpu):
         math_fidelity = operation.math_fidelity.cpp_enum_value
         op = self.operation.cpp_enum_value
         num_faces = operation.num_faces
-        broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
-        reuse_dest = f"EltwiseBinaryReuseDestType::{compute_unit.reuse_dest.value}"
+        broadcast_type = compute_unit.broadcast_type.cpp_enum_value
+        reuse_dest = compute_unit.reuse_dest.cpp_enum_value
 
         return (
             f"    // Operation {stage}: Eltwise {op} FPU\n"
@@ -230,11 +230,11 @@ class EltwiseFpu(Fpu):
     ) -> str:
         stage = operation.stage_id
         math_fidelity = operation.math_fidelity.cpp_enum_value
-        dest_acc = config.dest_acc.value
+        dest_acc = config.dest_acc.cpp_enum_value
         op = self.operation.cpp_enum_value
         num_faces = operation.num_faces
-        broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
-        reuse_dest = f"EltwiseBinaryReuseDestType::{compute_unit.reuse_dest.value}"
+        broadcast_type = compute_unit.broadcast_type.cpp_enum_value
+        reuse_dest = compute_unit.reuse_dest.cpp_enum_value
 
         return (
             f"    _llk_math_eltwise_binary_<{op}, {broadcast_type}, dest_sync{stage},\n"
@@ -339,8 +339,8 @@ class ReduceFpu(Fpu):
     ) -> str:
         stage = operation.stage_id
         math_fidelity = operation.math_fidelity.cpp_enum_value
-        dest_acc = config.dest_acc.value
-        pool_type_cpp = f"PoolType::{self.pool.value}"
+        dest_acc = config.dest_acc.cpp_enum_value
+        pool_type_cpp = self.pool.cpp_enum_value
         reduce_dim_cpp = self.reduce_dim()
 
         return (
@@ -356,9 +356,9 @@ class ReduceFpu(Fpu):
         tile_idx: int,
     ) -> str:
         math_fidelity = operation.math_fidelity.cpp_enum_value
-        dest_acc = config.dest_acc.value
+        dest_acc = config.dest_acc.cpp_enum_value
         num_faces = operation.num_faces
-        pool_type_cpp = f"PoolType::{self.pool.value}"
+        pool_type_cpp = self.pool.cpp_enum_value
         reduce_dim_cpp = self.reduce_dim()
 
         return (
@@ -423,10 +423,10 @@ class DatacopyFpu(Fpu):
         compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
-        dest_acc = config.dest_acc.value
-        tilize_en = "true" if operation.bh_tilize.value else "false"
-        broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
-        data_copy_type = f"DataCopyType::{compute_unit.data_copy_type.name}"
+        dest_acc = config.dest_acc.cpp_enum_value
+        tilize_en = operation.bh_tilize.cpp_enum_value
+        broadcast_type = compute_unit.broadcast_type.cpp_enum_value
+        data_copy_type = compute_unit.data_copy_type.cpp_enum_value
         num_faces = operation.num_faces
         is_int_fpu_en = dest_acc
 
@@ -456,8 +456,8 @@ class DatacopyFpu(Fpu):
         tile_idx: int,
     ) -> str:
         stage = operation.stage_id
-        dest_acc = config.dest_acc.value
-        broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
+        dest_acc = config.dest_acc.cpp_enum_value
+        broadcast_type = compute_unit.broadcast_type.cpp_enum_value
         unpack_to_dest = "true" if operation.unpack_to_dest else "false"
         data_copy_type = f"DataCopyType::{compute_unit.data_copy_type.name}"
         num_faces = operation.num_faces
@@ -485,16 +485,11 @@ class DatacopyFpu(Fpu):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
     ) -> str:
-        broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
+        broadcast_type = compute_unit.broadcast_type.cpp_enum_value
         return f"_llk_math_eltwise_unary_datacopy_uninit_<{broadcast_type}, false>();\n"
 
 
 class ReduceBlockMaxFpu(Fpu):
-    def supported_unpackers(self) -> List["Unpacker"]:
-        from .fused_unpacker import ReduceBlockMaxUnpacker
-
-        return [ReduceBlockMaxUnpacker]
-
     def init(
         self,
         operation: "FusedOperation",
@@ -502,7 +497,7 @@ class ReduceBlockMaxFpu(Fpu):
         compute_unit: "ComputeNode",
     ) -> str:
         ct_dim = operation.ct_dim
-        dest_acc = config.dest_acc.value
+        dest_acc = config.dest_acc.cpp_enum_value
         return f"_llk_math_reduce_block_max_row_init_<{ct_dim}, {dest_acc}>();\n"
 
     def calculate(
@@ -513,7 +508,7 @@ class ReduceBlockMaxFpu(Fpu):
         tile_idx: int,
     ) -> str:
         ct_dim = operation.ct_dim
-        dest_acc = config.dest_acc.value
+        dest_acc = config.dest_acc.cpp_enum_value
         if tile_idx % ct_dim != 0:
             return ""
         return f"_llk_math_reduce_block_max_row_<{ct_dim}, {dest_acc}>({tile_idx});\n"
