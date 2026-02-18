@@ -171,16 +171,46 @@ def is_assert_hit(risc_name, core_loc="0,0", device_id=0):
         risc_name, neo_id=0 if CHIP_ARCH == ChipArchitecture.QUASAR else None
     )
 
-    is_it = True
+    risc_name_upper = risc_name.upper()
+    soft_reset_reg = "RISCV_DEBUG_REG_SOFT_RESET_0"
+    core = RiscCore[risc_name_upper]
+    if core == INVALID_CORE:
+        return False
+    reset_mask = 1 << core.value
+    reset_wait_timeout = 0.05
+    ebreak_check_timeout = 0.05
 
-    try:
-        is_it = risc_debug.is_ebreak_hit()
-    except Exception as e:
-        raise Exception(
-            f"WTF - Handler Failed to check ebreak on {risc_name} at {core_loc}: {type(e).__name__}: {e}"
-        ) from e
+    reset_wait_end = time.time() + reset_wait_timeout
+    soft_reset = get_register_store(core_loc, device_id).read_register(soft_reset_reg)
+    while (soft_reset & reset_mask) != 0 and time.time() < reset_wait_end:
+        time.sleep(0.001)
+        soft_reset = get_register_store(core_loc, device_id).read_register(
+            soft_reset_reg
+        )
 
-    return is_it
+    # If core never came out of reset, it cannot be at an ebreak.
+    if (soft_reset & reset_mask) != 0:
+        return False
+
+    check_end = time.time() + ebreak_check_timeout
+    last_error = None
+    while time.time() < check_end:
+        try:
+            return risc_debug.is_ebreak_hit()
+        except Exception as e:
+            last_error = e
+            soft_reset = get_register_store(core_loc, device_id).read_register(
+                soft_reset_reg
+            )
+            if (soft_reset & reset_mask) != 0:
+                return False
+            time.sleep(0.001)
+
+    raise Exception(
+        f"Failed to check ebreak on {risc_name} at {core_loc}: "
+        f"last error {type(last_error).__name__}: {last_error}; "
+        f"{soft_reset_reg}={hex(soft_reset)}"
+    ) from last_error
 
 
 def _print_callstack(risc_name: str, callstack: list[CallstackEntry]) -> str:

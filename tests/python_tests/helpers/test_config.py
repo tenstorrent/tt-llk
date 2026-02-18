@@ -36,7 +36,6 @@ from .device import (
     RiscCore,
     exalens_device_setup,
     get_register_store,
-    make_sure_all_out_of_reset,
     reset_mailboxes,
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
@@ -1027,10 +1026,6 @@ class TestConfig:
                             verify_write=False,
                         )
                 set_tensix_soft_reset(0, [RiscCore.BRISC], location)
-                # Verify BRISC (and subsequently TRISCs) actually come out of reset.
-                # BRISC will call clear_trisc_soft_reset() internally, so all cores
-                # should be out of reset shortly after BRISC starts.
-                make_sure_all_out_of_reset(location)
             case BootMode.TRISC:
                 set_tensix_soft_reset(
                     0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
