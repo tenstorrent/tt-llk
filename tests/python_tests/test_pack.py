@@ -21,7 +21,6 @@ from helpers.data_format_inference import infer_data_formats
 from helpers.format_config import DataFormat
 from helpers.golden_generators import PackGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, DestSync, PackerReluType, format_dict
-from helpers.logger import logger
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
