@@ -290,6 +290,7 @@ class TestConfig:
             f"-I../{TestConfig.ARCH_LLK_ROOT}/llk_lib",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/common/inc",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/common/inc/sfpu",
+            "-I../common",
             f"-I{TestConfig.HEADER_DIR}",
             f"-Ihw_specific/{TestConfig.ARCH.value}",
             f"-Ihw_specific/{TestConfig.ARCH.value}/metal_sfpu",
@@ -635,8 +636,11 @@ class TestConfig:
 
         # Check if this is an outlier format combination that requires dest_acc to be enabled
         # Automatically enable dest_acc for outlier combinations
-        if is_format_combination_outlier(
-            self.formats.input_format, self.formats.output_format, self.dest_acc
+        if (
+            is_format_combination_outlier(
+                self.formats.input_format, self.formats.output_format, self.dest_acc
+            )
+            and TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR
         ):
             dest_acc = DestAccumulation.Yes
 
