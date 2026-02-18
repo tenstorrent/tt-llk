@@ -49,6 +49,8 @@ int main()
     volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(0x1FFFC);
     ;
 #endif
+    // Before setup
+    ckernel::store_blocking(mailbox, 0xBD);
     std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
 #ifndef ARCH_QUASAR
     ckernel::reset_cfg_state_id();
@@ -60,10 +62,15 @@ int main()
     llk_profiler::sync_threads();
 #endif
 
+    // Before Execution
+    ckernel::store_blocking(mailbox, 0xBF);
     {
         ZONE_SCOPED("KERNEL")
         run_kernel(__runtime_args_start);
+        ckernel::store_blocking(mailbox, 0xAF);
         ckernel::tensix_sync();
+        // Code Done
+        ckernel::store_blocking(mailbox, 0xCD);
     }
 
     ckernel::store_blocking(mailbox, 0xFF);

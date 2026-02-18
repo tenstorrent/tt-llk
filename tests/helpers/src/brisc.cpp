@@ -25,9 +25,14 @@ int main()
     LLK_ASSERT(ckernel::load_blocking(mailbox_math) == 0, "MATH is not zero initialized");
     LLK_ASSERT(ckernel::load_blocking(mailbox_pack) == 0, "PACK is not zero initialized");
 
+    // Before device_setup, the mailbox should be zero
+    ckernel::store_blocking(mailbox_brisc, 0xBD);
     // Setup the device and let triscs start running
     device_setup();
     clear_trisc_soft_reset();
+
+    // After Device_setup, the mailbox should be zero
+    ckernel::store_blocking(mailbox_brisc, 0xAD);
 
     // Wait for the TRISC cores to finish running
     while (ckernel::load_blocking(mailbox_unpack) != 0xFF)
@@ -37,6 +42,9 @@ int main()
     while (ckernel::load_blocking(mailbox_pack) != 0xFF)
         ;
 
+    // After Execution
+    ckernel::store_blocking(mailbox_brisc, 0xAE);
+
     LLK_ASSERT(ckernel::load_blocking(mailbox_unpack) == 0xFF, "UNPACK is not done");
     LLK_ASSERT(ckernel::load_blocking(mailbox_math) == 0xFF, "MATH is not done");
     LLK_ASSERT(ckernel::load_blocking(mailbox_pack) == 0xFF, "PACK is not done");
@@ -44,10 +52,16 @@ int main()
     // Set the TRISC cores to be in reset
     set_trisc_soft_reset();
 
+    // Before End
+    ckernel::store_blocking(mailbox_brisc, 0xBE);
+
     // Reset mailboxes fror trisc communication
     ckernel::store_blocking(mailbox_unpack, 0);
     ckernel::store_blocking(mailbox_math, 0);
     ckernel::store_blocking(mailbox_pack, 0);
+
+    // EnD
+    ckernel::store_blocking(mailbox_brisc, 0xED);
 
     // Signal to the host that we are done
     ckernel::store_blocking(mailbox_brisc, 0xFF);
