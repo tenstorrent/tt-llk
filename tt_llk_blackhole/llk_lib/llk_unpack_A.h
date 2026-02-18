@@ -206,6 +206,9 @@ inline void _llk_unpack_A_init_(
     LLK_ASSERT(transpose_of_faces == 0 || !unpack_to_dest || num_faces == 4, "32bit Transpose requires num_faces == 4 (32x32 only)");
     LLK_ASSERT(transpose_of_faces == 0 || num_faces == 4 || num_faces == 1, "16bit Transpose requires num_faces == 4 or 1 (32x32 and 16x16 only)");
 
+    // Set transpose register to prevent state pollution
+    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(within_face_16x16_transpose);
+
     // TODO NC: Find out why we need to disable src zero flags for uint16 dst format #960
     // bool disable_src_zero_flag_val = disable_src_zero_flag || (static_cast<uint>(unpack_dst_format) == static_cast<uint>(DataFormat::UInt16));
     // cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(disable_src_zero_flag_val ? 1 : 0);
