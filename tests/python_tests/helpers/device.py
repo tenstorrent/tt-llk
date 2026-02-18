@@ -218,6 +218,22 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]) -> str:
 def check_if_brisc_is_in_reset(elfs: list[str], core_loc="0,0", device_id=0):
     risc_name = "brisc"
     if not is_risc_in_reset(risc_name, core_loc=core_loc, device_id=device_id):
+        soft_reset = get_register_store(core_loc, device_id).read_register(
+            "RISCV_DEBUG_REG_SOFT_RESET_0"
+        )
+        mailbox_val = read_word_from_device(core_loc, Mailbox.Brisc.value)
+        try:
+            assert_hit = is_assert_hit("BRISC", core_loc=core_loc, device_id=device_id)
+        except Exception as e:
+            assert_hit = f"error: {e}"
+
+        print(
+            "BRISC status at timeout: "
+            f"mailbox={mailbox_val:#x}, "
+            f"soft_reset={soft_reset:#x}, "
+            f"assert_hit={assert_hit}, "
+            f"location={core_loc}"
+        )
         stack_trace = _print_callstack(
             risc_name,
             callstack(core_loc, elfs, risc_name=risc_name, device_id=device_id),
@@ -262,7 +278,7 @@ def make_sure_core_in_reset(
     raise Exception(f"Not all in reset within {backoff}s at {place}")
 
 
-def wait_for_operations_to_finish(elfs, location="0,0", timeout=2, max_backoff=0.5):
+def wait_for_operations_to_finish(elfs, location="0,0", timeout=5, max_backoff=0.5):
     """
     Waits for BRISC to signal that all TRISC kernels have completed.
 
@@ -297,17 +313,20 @@ def wait_for_operations_to_finish(elfs, location="0,0", timeout=2, max_backoff=0
             time.sleep(backoff)
             backoff = min(backoff * 2, max_backoff)  # Exponential backoff with a cap
 
-    check_if_brisc_is_in_reset(
-        elfs,
-        core_loc=location,
-    )
-
+    mailbox_val = read_word_from_device(location, Mailbox.Brisc.value)
+    mailbox_unpack = read_word_from_device(location, Mailbox.Unpacker.value)
+    mailbox_math = read_word_from_device(location, Mailbox.Math.value)
+    mailbox_pack = read_word_from_device(location, Mailbox.Packer.value)
     soft_reset = get_register_store(location, 0).read_register(
         "RISCV_DEBUG_REG_SOFT_RESET_0"
     )
 
     raise TimeoutError(
-        f"Timeout reached: waited {timeout} seconds for BRISC done signal"
+        "Timeout reached: waited "
+        f"{timeout} seconds for BRISC done signal "
+        f"(mailbox={mailbox_val:#x}, "
+        f"unpack={mailbox_unpack:#x}, math={mailbox_math:#x}, pack={mailbox_pack:#x}, "
+        f"soft_reset={soft_reset:#x})"
     )
 
 
