@@ -587,7 +587,6 @@ inline pack_config_t read_pack_config_helper(std::uint32_t reg_addr, const volat
 
     config.val[0] = cfg[reg_addr];
     config.val[1] = cfg[reg_addr + 1];
-    config.val[2] = cfg[reg_addr + 2];
 
     return config.f;
 }
