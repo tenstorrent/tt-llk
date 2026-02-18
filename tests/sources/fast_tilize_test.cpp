@@ -116,7 +116,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
                         }
                         else if (remaining_tiles == 3)
                         {
-                            _llk_unpack_fast_tilize_block_(L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_src, 3, 1, BLOCK_CT_DIM, params->num_faces);
+                            _llk_unpack_fast_tilize_block_(
+                                L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_src, 3, 1, BLOCK_CT_DIM, params->num_faces);
                         }
                         else
                         {
@@ -124,7 +125,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
                             _llk_unpack_fast_tilize_block_(
                                 L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_src, unit_dim, num_units, BLOCK_CT_DIM, params->num_faces);
                             _llk_unpack_fast_tilize_block_(
-                                
+
                                 L1_ADDRESS(params->buffer_A[0]), tile_index + remaining_tiles - 3, formats.unpack_src, 3, 1, BLOCK_CT_DIM, params->num_faces);
                         }
                         packed_tiles += remaining_tiles;

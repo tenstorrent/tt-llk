@@ -115,7 +115,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
         _llk_packer_wait_for_math_done_();
         for (int i = 0; i < tiles_from_dest; ++i)
         {
-            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false /* untilize */>(i, L1_ADDRESS(params->buffer_Res[params->OUTPUT_TILE_CNT - remaining_tiles + i]));
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false /* untilize */>(
+                i, L1_ADDRESS(params->buffer_Res[params->OUTPUT_TILE_CNT - remaining_tiles + i]));
         }
         _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         remaining_tiles -= tiles_from_dest;

@@ -37,7 +37,6 @@ from .device import (
     RiscCore,
     exalens_device_setup,
     reset_mailboxes,
-    reset_mailboxes,
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
 )

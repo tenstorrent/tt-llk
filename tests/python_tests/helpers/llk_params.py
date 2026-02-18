@@ -271,14 +271,12 @@ class StableSort(Enum):
 
 
 class MailboxesPerf(Enum):
-    Brisc = 0x1FFC0
     Unpacker = 0x1FFC4
     Math = 0x1FFC8
     Packer = 0x1FFCC
 
 
 class MailboxesDebug(Enum):
-    Brisc = 0x63FC0
     Unpacker = 0x63FC4
     Math = 0x63FC8
     Packer = 0x63FCC
