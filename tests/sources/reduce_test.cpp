@@ -100,8 +100,12 @@ void run_kernel(const volatile struct RuntimeParams *params)
     std::uint32_t tile_size = params->in0_tile_r_dim * params->in0_tile_c_dim;
     const bool partial_face = params->in0_face_r_dim < FACE_R_DIM;
 
+#ifdef ARCH_BLACKHOLE
     _llk_pack_init_<false, false>(
         formats.pack_dst, params->in0_face_r_dim, params->in0_tile_c_dim, params->num_faces_A, false /* partial_face [unused] */, is_narrow_tile);
+#else
+    _llk_pack_init_<false, false>(formats.pack_dst, params->in0_face_r_dim, params->in0_tile_c_dim, params->num_faces_A, partial_face, is_narrow_tile);
+#endif
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
