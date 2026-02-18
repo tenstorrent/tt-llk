@@ -90,6 +90,8 @@ extern buffer_ptr_t buffer;
 extern std::uint32_t write_idx;
 extern std::uint32_t open_zone_cnt;
 
+constexpr std::uint32_t SYNC_TIMEOUT_CYCLES = 10000000;
+
 __attribute__((always_inline)) inline void sync_threads()
 {
     auto& barrier = *barrier_ptr;
@@ -97,6 +99,9 @@ __attribute__((always_inline)) inline void sync_threads()
     // wait for all the threads to set the barrier
     barrier[TRISC_ID] = 1;
     asm volatile("fence" ::: "memory");
+
+    std::uint64_t start_time = ckernel::read_wall_clock();
+
     for (std::uint32_t i = 0; i < NUM_CORES; ++i)
     {
         if (i == TRISC_ID)
@@ -106,6 +111,14 @@ __attribute__((always_inline)) inline void sync_threads()
         while (barrier[i] != 1)
         {
             asm volatile("fence" ::: "memory");
+
+            // Check for timeout to prevent infinite hang
+            std::uint64_t elapsed = ckernel::read_wall_clock() - start_time;
+            if (elapsed > SYNC_TIMEOUT_CYCLES)
+            {
+                // Timeout: go without full sync rather than hang forever
+                return;
+            }
         }
     }
 }

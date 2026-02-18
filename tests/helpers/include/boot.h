@@ -71,6 +71,16 @@ inline void clear_trisc_soft_reset()
     volatile std::uint32_t* reset_before = reinterpret_cast<std::uint32_t*>(0x64FF0);
     volatile std::uint32_t* reset_after  = reinterpret_cast<std::uint32_t*>(0x64FF4);
 
+    // Initialize profiler barrier memory to zero before releasing TRISCs
+    constexpr std::uint32_t PROFILER_BARRIER_START = 0x16AFFC;
+    constexpr std::uint32_t PROFILER_NUM_CORES     = 3;
+    volatile std::uint32_t* barrier                = reinterpret_cast<volatile std::uint32_t*>(PROFILER_BARRIER_START);
+    for (std::uint32_t i = 0; i < PROFILER_NUM_CORES; ++i)
+    {
+        barrier[i] = 0;
+    }
+    asm volatile("fence" ::: "memory");
+
     std::uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
     *reset_before            = soft_reset;
 
