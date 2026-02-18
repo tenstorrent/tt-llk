@@ -478,10 +478,10 @@ inline unpack_tile_descriptor_t read_unpack_tile_descriptor_helper(std::uint32_t
 {
     unpack_tile_descriptor_u tile_descriptor = {.val = 0};
 
-    tile_descriptor.val[0] = cfg[reg_addr];
-    tile_descriptor.val[1] = cfg[reg_addr + 1];
-    tile_descriptor.val[2] = cfg[reg_addr + 2];
-    tile_descriptor.val[3] = cfg[reg_addr + 3];
+    for (std::uint32_t i = 0; i < TILE_DESC_SIZE; i++)
+    {
+        tile_descriptor.val[i] = cfg[reg_addr + i];
+    }
 
     return tile_descriptor.f;
 }
@@ -500,12 +500,12 @@ inline std::array<unpack_tile_descriptor_t, NUM_UNPACKERS> read_unpack_tile_desc
 
 inline unpack_config_t read_unpack_config_helper(std::uint32_t reg_addr, const volatile std::uint32_t tt_reg_ptr *cfg)
 {
-    unpack_config_u config;
+    unpack_config_u config = {.val = {}};
 
-    config.val[0] = cfg[reg_addr];
-    config.val[1] = cfg[reg_addr + 1];
-    config.val[2] = cfg[reg_addr + 2];
-    config.val[3] = cfg[reg_addr + 3];
+    for (std::uint32_t i = 0; i < CONFIG_SIZE; i++)
+    {
+        config.val[i] = cfg[reg_addr + i];
+    }
 
     return config.f;
 }

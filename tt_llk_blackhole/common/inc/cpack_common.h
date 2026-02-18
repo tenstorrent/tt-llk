@@ -21,7 +21,9 @@ using DataFormatType = std::underlying_type_t<DataFormat>;
 
 constexpr std::uint32_t replay_buf_offset = 16; // split replay buffer usage between fpu/sfpu
                                                 // fist 16 for sfpu, next 16 for fpu
-constexpr std::uint32_t NUM_PACKERS = 1;        // Number of packers
+constexpr std::uint32_t NUM_PACKERS        = 1; // Number of packers
+constexpr std::uint32_t PACK_CONFIG_SIZE   = 2; // Packer configuration size in dwords
+constexpr std::uint32_t PACK_CONFIG_OFFSET = 2; // Packer configuration offset in dwords
 
 // Pack config
 typedef struct
@@ -263,6 +265,7 @@ inline void set_packer_config(
     // THCON_SEC0_REG1_Unused1 = cfg_reg_array[1][117 +: 3];
     // THCON_SEC0_REG1_Exp_threshold = cfg_reg_array[1][120 +: 8];
     // for (uint i=0; i<4; i++) cfg[THCON_SEC0_REG1_Row_start_section_size_ADDR32+i]=config.val[i];
+    static_assert(PACK_CONFIG_OFFSET == 2 && PACK_CONFIG_SIZE == 2, "In case the writes below are changed, update read_pack_config_helper too.");
     cfg[THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 0] = config.val[0];
     cfg[THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 2] = config.val[2];
     // cfg[THCON_SEC0_REG1_Row_start_section_size_ADDR32+3]=config.val[3];
@@ -585,8 +588,9 @@ inline pack_config_t read_pack_config_helper(std::uint32_t reg_addr, const volat
 {
     pack_config_u config = {.val = 0};
 
+    static_assert(PACK_CONFIG_OFFSET == 2 && PACK_CONFIG_SIZE == 2, "Need to align the reads with the writes in set_packer_config.");
     config.val[0] = cfg[reg_addr];
-    config.val[1] = cfg[reg_addr + 1];
+    config.val[2] = cfg[reg_addr + 2];
 
     return config.f;
 }
@@ -598,6 +602,7 @@ inline std::array<pack_config_t, NUM_PACKERS> read_pack_config()
     // Get pointer to registers for current state ID
     volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer();
 
+    static_assert(NUM_PACKERS == 1, "NUM_PACKERS must be 1");
     config_vec[0] = read_pack_config_helper(THCON_SEC0_REG1_Row_start_section_size_ADDR32, cfg);
 
     return config_vec;
