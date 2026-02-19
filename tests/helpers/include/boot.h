@@ -77,18 +77,17 @@ inline void clear_trisc_soft_reset()
     volatile std::uint32_t* barrier                = reinterpret_cast<volatile std::uint32_t*>(PROFILER_BARRIER_START);
     for (std::uint32_t i = 0; i < PROFILER_NUM_CORES; ++i)
     {
-        barrier[i] = 0;
+        ckernel::store_blocking(&barrier[i], 0);
     }
-    asm volatile("fence" ::: "memory");
 
     std::uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
-    *reset_before            = soft_reset;
+    ckernel::store_blocking(reset_before, soft_reset);
 
     soft_reset &= ~TRISC_SOFT_RESET_MASK;
     ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
 
-    soft_reset   = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
-    *reset_after = soft_reset;
+    soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+    ckernel::store_blocking(reset_after, soft_reset);
 }
 
 inline void set_trisc_soft_reset()

@@ -97,8 +97,7 @@ __attribute__((always_inline)) inline void sync_threads()
     auto& barrier = *barrier_ptr;
 
     // wait for all the threads to set the barrier
-    barrier[TRISC_ID] = 1;
-    asm volatile("fence" ::: "memory");
+    ckernel::store_blocking(&barrier[TRISC_ID], 1);
 
     std::uint64_t start_time = ckernel::read_wall_clock();
 
@@ -108,10 +107,8 @@ __attribute__((always_inline)) inline void sync_threads()
         {
             continue;
         }
-        while (barrier[i] != 1)
+        while (ckernel::load_blocking(&barrier[i]) != 1)
         {
-            asm volatile("fence" ::: "memory");
-
             // Check for timeout to prevent infinite hang
             std::uint64_t elapsed = ckernel::read_wall_clock() - start_time;
             if (elapsed > SYNC_TIMEOUT_CYCLES)
@@ -130,7 +127,16 @@ __attribute__((always_inline)) inline void reset()
     write_idx     = 0;
     open_zone_cnt = 0;
 
-    memset(buffer[TRISC_ID], 0, BUFFER_LENGTH * sizeof(buffer[TRISC_ID][0]));
+    // Clear the barrier for this core
+    ckernel::store_blocking(&(*barrier_ptr)[TRISC_ID], 0);
+
+    // Clear the profiler buffer for this core
+    for (std::uint32_t i = 0; i < BUFFER_LENGTH; ++i)
+    {
+        buffer[TRISC_ID][i] = 0;
+    }
+    // Ensure all buffer writes are visible before sync
+    ckernel::store_blocking(&buffer[TRISC_ID][BUFFER_LENGTH - 1], 0);
 }
 
 __attribute__((always_inline)) inline bool is_buffer_full()
