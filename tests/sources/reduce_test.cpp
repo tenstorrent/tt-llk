@@ -23,7 +23,11 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const ckernel::TensorShape tensor_shape = {params->in0_face_r_dim, params->in0_face_c_dim, params->num_faces_r_dim_A, params->num_faces_c_dim_A};
+    const ckernel::TensorShape tensor_shape = {
+        static_cast<std::uint8_t>(params->in0_face_r_dim),
+        static_cast<std::uint8_t>(params->in0_face_c_dim),
+        static_cast<std::uint8_t>(params->num_faces_r_dim_A),
+        static_cast<std::uint8_t>(params->num_faces_c_dim_A)};
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src,
         formats.unpack_src,
@@ -55,7 +59,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     const bool is_int_fpu_en                = false;
     const bool enforce_fp32_accumulation    = false;
-    const ckernel::TensorShape tensor_shape = {params->in0_face_r_dim, params->in0_face_c_dim, params->num_faces_r_dim_A, params->num_faces_c_dim_A};
+    const ckernel::TensorShape tensor_shape = {
+        static_cast<std::uint8_t>(params->in0_face_r_dim),
+        static_cast<std::uint8_t>(params->in0_face_c_dim),
+        static_cast<std::uint8_t>(params->num_faces_r_dim_A),
+        static_cast<std::uint8_t>(params->num_faces_c_dim_A)};
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
@@ -105,7 +113,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_pack_init_<false, false>(
         formats.pack_dst, params->in0_face_r_dim, params->in0_tile_c_dim, params->num_faces_A, false /* partial_face [unused] */, is_narrow_tile);
 #else
-    _llk_pack_init_<false, false>(formats.pack_dst, params->in0_face_r_dim, params->in0_tile_c_dim, params->num_faces_A, partial_face, is_narrow_tile);
+    _llk_pack_init_<false, false>(formats.pack_dst, params->in0_face_r_dim, params->num_faces_A, partial_face, is_narrow_tile);
 #endif
 
 #ifdef ARCH_BLACKHOLE
