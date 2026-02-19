@@ -77,10 +77,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
 {
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 0 /* tile_size */);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
-    _llk_pack_untilize_init_<16, 16, false, false, TILE_C_DIM, true>(formats.pack_src, formats.pack_dst, 8, 2);
+    // Ugly but we are converting one 4 face tile into two 2 face tiles side by side
+    _llk_pack_untilize_init_<BLOCK_CT_DIM * 2, FULL_CT_DIM * 2, false, TILE_C_DIM, true>(
+        formats.pack_src, formats.pack_dst, params->in0_tile_r_dim, params->num_faces / 2);
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_untilize_<16, 16, false, false, TILE_C_DIM, 0, true>(L1_ADDRESS(buffer_Res[0]), formats.pack_dst, 8, 2, 0 /* tile_dst_rt_offset */);
+    _llk_pack_untilize_<BLOCK_CT_DIM * 2, FULL_CT_DIM * 2, false, 0, true>(
+        L1_ADDRESS(buffer_Res[0]), formats.pack_dst, params->in0_tile_r_dim, params->num_faces / 2, 0 /* tile_dst_rt_offset */);
     _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 
