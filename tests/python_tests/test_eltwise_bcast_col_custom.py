@@ -26,11 +26,11 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     BROADCAST_TYPE,
-    INPUT_DIMENSIONS,
     MATH_FIDELITY,
     MATH_OP,
     TILE_COUNT,
     TemplateParameter,
+    generate_input_dim,
 )
 from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
@@ -59,6 +59,9 @@ class CT_DIM(TemplateParameter):
     dest_acc=[DestAccumulation.No],
     math_fidelity=[
         MathFidelity.LoFi,
+        MathFidelity.HiFi2,
+        MathFidelity.HiFi3,
+        MathFidelity.HiFi4,
     ],
     broadcast_type=[BroadcastType.Column],
     input_dimensions_A=[[32, w] for w in range(32, 257, 32)],
@@ -80,6 +83,9 @@ def test_eltwise_bcast_col_custom(
         and cpp_source == "sources/multiple_tiles_eltwise_custom_test.cpp"
     ):
         pytest.skip("Custom test not supported on Wormhole")
+
+    if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
+        pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
 
     ct_dim = input_dimensions_A[1] // 32
     logger.info(
@@ -131,7 +137,7 @@ def test_eltwise_bcast_col_custom(
         formats,
         templates=[
             MATH_FIDELITY(math_fidelity),
-            INPUT_DIMENSIONS(input_dimensions_A, input_dimensions_B),
+            generate_input_dim(input_dimensions_A, input_dimensions_A),
             MATH_OP(mathop=mathop),
             BROADCAST_TYPE(broadcast_type),
             CT_DIM(ct_dim),
