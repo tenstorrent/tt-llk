@@ -27,7 +27,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef RUNTIME_FORMATS
     const volatile FormatConfig& formats = params->formats;
 #endif
-    const ckernel::TensorShape tensor_shape = {params->in0_face_r_dim, params->in0_face_c_dim, params->num_faces_r_dim_A, params->num_faces_c_dim_A};
+    const ckernel::TensorShape tensor_shape = {
+        static_cast<std::uint8_t>(params->in0_face_r_dim),
+        static_cast<std::uint8_t>(params->in0_face_c_dim),
+        static_cast<std::uint8_t>(params->num_faces_r_dim_A),
+        static_cast<std::uint8_t>(params->num_faces_c_dim_A)};
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src,
         formats.unpack_src,
@@ -65,7 +69,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
     bool is_narrow_tile                  = (params->num_faces_c_dim_A < params->num_faces_r_dim_A);
     const bool is_int_fpu_en                = false;
     const bool enforce_fp32_accumulation    = false;
-    const ckernel::TensorShape tensor_shape = {params->in0_face_r_dim, params->in0_face_c_dim, params->num_faces_r_dim_A, params->num_faces_c_dim_A};
+    const ckernel::TensorShape tensor_shape = {
+        static_cast<std::uint8_t>(params->in0_face_r_dim),
+        static_cast<std::uint8_t>(params->in0_face_c_dim),
+        static_cast<std::uint8_t>(params->num_faces_r_dim_A),
+        static_cast<std::uint8_t>(params->num_faces_c_dim_A)};
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
@@ -110,11 +118,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef RUNTIME_FORMATS
     const volatile FormatConfig& formats = params->formats;
 #endif
-    const std::uint8_t num_faces_c_dim =
-        (params->num_faces == ckernel::MAX_NUM_FACES_C_DIM || params->num_faces == ckernel::MAX_NUM_FACES) ? ckernel::MAX_NUM_FACES_C_DIM : 1;
-    const std::uint8_t num_faces_r_dim      = static_cast<std::uint8_t>(params->num_faces / num_faces_c_dim);
     const ckernel::TensorShape tensor_shape = {
-        static_cast<std::uint8_t>(params->TEST_FACE_R_DIM), static_cast<std::uint8_t>(params->TEST_FACE_C_DIM), num_faces_r_dim, num_faces_c_dim};
+        static_cast<std::uint8_t>(params->in0_face_r_dim), static_cast<std::uint8_t>(params->in0_face_c_dim), params->num_faces_r_dim_A, params->num_faces_c_dim_A};
 
     const std::uint32_t tile_size = tensor_shape.total_tensor_size();
     const std::uint32_t num_faces = tensor_shape.total_num_faces();
@@ -122,9 +127,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const bool narrow_tile        = tensor_shape.num_faces_c_dim == 1;
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(formats.pack_src, formats.pack_dst, tile_size, params->in0_face_r_dim, params->in0_tile_c_dim, params->num_faces_A, partial_face, is_narrow_tile);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(formats.pack_src, formats.pack_dst, tile_size, tensor_shape.face_r_dim, tensor_shape.face_c_dim, num_faces, partial_face, narrow_tile);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(formats.pack_src, formats.pack_dst, tile_size, params->in0_face_r_dim, params->num_faces_A, partial_face, is_narrow_tile);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(formats.pack_src, formats.pack_dst, tile_size, tensor_shape.face_r_dim, num_faces, partial_face, narrow_tile);
 #endif
 
 #ifdef ARCH_BLACKHOLE
@@ -138,7 +143,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(params->in0_face_r_dim, is_narrow_tile);
+    _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(tensor_shape.face_r_dim, narrow_tile);
 #endif
     int remaining_tiles = params->OUTPUT_TILE_CNT;
     while (remaining_tiles)
