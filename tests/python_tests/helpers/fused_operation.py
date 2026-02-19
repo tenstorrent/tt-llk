@@ -39,15 +39,6 @@ class FusedOperation:
     partial_face_A: bool = False
     partial_face_B: bool = False
     partial_face: bool = False
-    num_faces: int = 4
-    num_faces_A: int = 4
-    num_faces_B: int = 4
-    in0_tile_r_dim: int = 32
-    in0_tile_c_dim: int = 32
-    in1_tile_r_dim: int = 32
-    in1_tile_c_dim: int = 32
-    face_r_dim: int = 16
-    face_c_dim: int = 16
     dest_sync: DestSync = DestSync.Half
     dst_index: int = 0
     srca_reuse_count: int = 4
@@ -60,6 +51,18 @@ class FusedOperation:
         src_a = registry.get(mapping.src_a)
         src_b = registry.get(mapping.src_b)
         output = registry.get(mapping.output)
+
+        self.in0_tile_r_dim = src_a.tile_shape.total_row_dim()
+        self.in0_tile_c_dim = src_a.tile_shape.total_col_dim()
+        self.num_faces_A = src_a.tile_shape.total_num_faces()
+
+        self.in1_tile_r_dim = src_b.tile_shape.total_row_dim()
+        self.in1_tile_c_dim = src_b.tile_shape.total_col_dim()
+        self.num_faces_B = src_b.tile_shape.total_num_faces()
+
+        self.face_r_dim = output.tile_shape.face_r_dim
+        self.face_c_dim = output.tile_shape.face_c_dim
+        self.num_faces = output.tile_shape.total_num_faces()
 
         TILE_SIZES = {
             DataFormat.Bfp8_b: 68,
@@ -88,8 +91,8 @@ class FusedOperation:
         self.buffer_B_tile_size = format_tile_sizes[self.src_b.data_format]
         self.buffer_Res_tile_size = format_tile_sizes[self.output.data_format]
 
-        num_rows = 32
-        num_cols = 32
+        num_rows = output.tile_shape.total_row_dim()
+        num_cols = output.tile_shape.total_col_dim()
 
         validate_tile_dimensions(self.src_a.dimensions[0], num_rows)
         validate_tile_dimensions(self.src_a.dimensions[1], num_cols)
@@ -188,4 +191,5 @@ class FusedOperation:
             f"  Output: {self.output}\n"
             f"  Math Fidelity: {self.math_fidelity}\n"
             f"  Batch Size: {self.batch_size}\n"
+            f"  Tile Shape: {self.output.tile_shape}\n"
         )
