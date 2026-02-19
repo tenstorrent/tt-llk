@@ -158,6 +158,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
         }
     }
+    _llk_pack_untilize_uninit_(formats.pack_src);
 }
 
 #endif

@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .fused_math import ComputeNode
     from .block_data import BlockData
 
+from .fused_fpu import ReduceFpu
 from .chip_architecture import ChipArchitecture
 from .fused_loop import FusedLoop, LoopBlock, LoopTileByTile
 from .golden_generators import BroadcastGolden, TransposeGolden, get_golden_generator
@@ -327,21 +328,36 @@ class UnpackerAB(Unpacker):
         transpose_faces = compute_unit.unpack_transpose_faces.cpp_enum_value
         transpose_within_face = compute_unit.unpack_transpose_within_face.cpp_enum_value
 
-        if transpose_within_face != transpose_faces:
-            raise ValueError(
-                "UnpackerAB does not support different values for transpose_faces and transpose_within_face"
-            )
+        if isinstance(compute_unit.fpu, ReduceFpu):
+            if compute_unit.broadcast_type != BroadcastType.None_:
+                raise ValueError("ReduceFpu does not support broadcasted inputs.")
 
-        face_c_dim = operation.face_c_dim
-        num_faces_r_dim = operation.in0_tile_r_dim // face_r_dim
-        num_faces_c_dim = operation.in0_tile_c_dim // face_c_dim
-        transpose_value = "1" if compute_unit.unpack_transpose_faces.value else "0"
-        shape_var = f"tensor_shape_stage_{operation.stage_id}"
-        return (
-            f"const ckernel::TensorShape {shape_var} = "
-            f"{{{face_r_dim}, {face_c_dim}, {num_faces_r_dim}, {num_faces_c_dim}}};\n"
-            f"_llk_unpack_AB_init_<{broadcast_type}>({shape_var}, {transpose_value});\n"
-        )
+            reduce_dim = compute_unit.fpu.reduce_dim()
+            pool_type = compute_unit.fpu.pool_type()
+
+            # Create a temporary TensorShape object with Src_A tile dimensions
+            tile_shape = operation.src_a.tile_shape
+            shape_var = f"tensor_shape_stage_{operation.stage_id}"
+            return (
+                f"const ckernel::TensorShape {shape_var} = "
+                f"{{{tile_shape.face_r_dim}, {tile_shape.face_c_dim}, {tile_shape.num_faces_r_dim}, {tile_shape.num_faces_c_dim}}};\n"
+                f"_llk_unpack_AB_reduce_init_<{pool_type}, {reduce_dim}>(\n"
+                f"{shape_var});\n"
+            )
+        else:
+            if transpose_within_face != transpose_faces:
+                raise ValueError(
+                    "UnpackerAB does not support different values for transpose_faces and transpose_within_face"
+                )
+
+            tile_shape = operation.src_a.tile_shape
+            transpose_value = "1" if compute_unit.unpack_transpose_faces.value else "0"
+            shape_var = f"tensor_shape_stage_{operation.stage_id}"
+            return (
+                f"const ckernel::TensorShape {shape_var} = "
+                f"{{{tile_shape.face_r_dim}, {tile_shape.face_c_dim}, {tile_shape.num_faces_r_dim}, {tile_shape.num_faces_c_dim}}};\n"
+                f"_llk_unpack_AB_init_<{broadcast_type}>({shape_var}, {transpose_value});\n"
+            )
 
     def unpack(
         self,
