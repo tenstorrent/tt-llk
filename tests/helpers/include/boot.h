@@ -27,7 +27,8 @@ inline void device_setup()
     cfg_regs[TRISC_RESET_PC_OVERRIDE_Reset_PC_Override_en_ADDR32] = 0b111;
 #endif
 #if defined(ARCH_BLACKHOLE) && !defined(ARCH_QUASAR) // Ugly hack for now
-    ckernel::reg_write(RISCV_DEBUG_REG_DEST_CG_CTRL, 0);
+    volatile std::uint32_t* dest_cg_ctrl = reinterpret_cast<volatile std::uint32_t*>(RISCV_DEBUG_REG_DEST_CG_CTRL);
+    ckernel::store_blocking(dest_cg_ctrl, 0);
 #endif
 #if defined(ARCH_BLACKHOLE) || defined(ARCH_QUASAR)
     TTI_ZEROACC(ckernel::p_zeroacc::CLR_ALL, 0, 0, 1, 0);
@@ -80,13 +81,15 @@ inline void clear_trisc_soft_reset()
         ckernel::store_blocking(&barrier[i], 0);
     }
 
-    std::uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+    volatile std::uint32_t* p_reg = reinterpret_cast<volatile std::uint32_t*>(RISCV_DEBUG_REG_SOFT_RESET_0);
+
+    std::uint32_t soft_reset = ckernel::load_blocking(p_reg);
     ckernel::store_blocking(reset_before, soft_reset);
 
     soft_reset &= ~TRISC_SOFT_RESET_MASK;
-    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
+    ckernel::store_blocking(p_reg, soft_reset);
 
-    soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+    soft_reset = ckernel::load_blocking(p_reg);
     ckernel::store_blocking(reset_after, soft_reset);
 }
 
@@ -98,7 +101,9 @@ inline void set_trisc_soft_reset()
     constexpr std::uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
 #endif
 
-    std::uint32_t soft_reset = ckernel::reg_read(RISCV_DEBUG_REG_SOFT_RESET_0);
+    volatile std::uint32_t* p_reg = reinterpret_cast<volatile std::uint32_t*>(RISCV_DEBUG_REG_SOFT_RESET_0);
+
+    std::uint32_t soft_reset = ckernel::load_blocking(p_reg);
     soft_reset |= TRISC_SOFT_RESET_MASK;
-    ckernel::reg_write(RISCV_DEBUG_REG_SOFT_RESET_0, soft_reset);
+    ckernel::store_blocking(p_reg, soft_reset);
 }
