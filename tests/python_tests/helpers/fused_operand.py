@@ -8,6 +8,7 @@ from typing import Optional, Tuple
 import torch
 from helpers.llk_params import DataFormat, format_dict
 from helpers.stimuli_generator import generate_random_face
+from helpers.tile_shape import TileShape, construct_tile_shape
 from helpers.tilize_untilize import tilize_block
 
 
@@ -16,6 +17,7 @@ class Operand:
     name: str
     dimensions: Optional[Tuple[int, int]] = None
     data_format: Optional[DataFormat] = None
+    tile_shape: Optional[TileShape] = None
     l1_address: Optional[int] = None
     is_output: bool = False
     sfpu: bool = True
@@ -30,6 +32,8 @@ class Operand:
             raise ValueError(
                 f"Input operand '{self.name}' must have dimensions and data_format"
             )
+        if self.tile_shape is None:
+            self.tile_shape = construct_tile_shape((32, 32))
 
     def is_input(self) -> bool:
         return not self.is_output
@@ -44,9 +48,11 @@ class Operand:
             )
 
         height, width = self.dimensions[0], self.dimensions[1]
-        tile_count = (height // 32) * (width // 32)
+        tile_rows = self.tile_shape.total_row_dim()
+        tile_cols = self.tile_shape.total_col_dim()
+        tile_count = (height // tile_rows) * (width // tile_cols)
 
-        faces_needed = tile_count * 4
+        faces_needed = tile_count * self.tile_shape.total_num_faces()
         faces_data = []
 
         for _ in range(faces_needed):
@@ -55,7 +61,7 @@ class Operand:
                 const_value=const_value,
                 const_face=const_value is not None,
                 sfpu=self.sfpu,
-                face_r_dim=16,
+                face_r_dim=self.tile_shape.face_r_dim,
                 negative_values=False,
             )
             faces_data.extend(face.tolist())
@@ -118,8 +124,10 @@ class Operand:
     def tile_count(self) -> Optional[int]:
         if self._tile_count is None:
             if self.dimensions is not None:
-                self._tile_count = (self.dimensions[0] // 32) * (
-                    self.dimensions[1] // 32
+                tile_rows = self.tile_shape.total_row_dim()
+                tile_cols = self.tile_shape.total_col_dim()
+                self._tile_count = (self.dimensions[0] // tile_rows) * (
+                    self.dimensions[1] // tile_cols
                 )
             elif self.is_input():
                 self.generate_data()
@@ -175,7 +183,10 @@ class OperandMapping:
 
     def get_output_tile_count(self, operand_registry: "OperandRegistry") -> int:
         dims = self.resolve_output_dimensions(operand_registry)
-        return (dims[0] // 32) * (dims[1] // 32)
+        output_op = operand_registry.get(self.output)
+        tile_rows = output_op.tile_shape.total_row_dim()
+        tile_cols = output_op.tile_shape.total_col_dim()
+        return (dims[0] // tile_rows) * (dims[1] // tile_cols)
 
 
 class OperandRegistry:
@@ -260,14 +271,18 @@ class OperandRegistry:
         else:
             existing = self.operands[src_a]
             if list(existing.dimensions) != list(src_a_dims):
-                existing.dimensions = list(src_a_dims)
+                raise ValueError(
+                    f"Operand '{src_a}' already exists with dimensions {existing.dimensions}, got {src_a_dims}"
+                )
 
         if src_b not in self.operands:
             self.add_input(src_b, dimensions=src_b_dims, data_format=input_format)
         else:
             existing = self.operands[src_b]
             if list(existing.dimensions) != list(src_b_dims):
-                existing.dimensions = list(src_b_dims)
+                raise ValueError(
+                    f"Operand '{src_b}' already exists with dimensions {existing.dimensions}, got {src_b_dims}"
+                )
 
         if src_a_tensor is not None:
             self.operands[src_a].set_data(src_a_tensor)
