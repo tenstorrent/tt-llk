@@ -73,5 +73,5 @@ int main()
         ckernel::tensix_sync();
     }
 
-    *mailbox = 0xFF;
+    *mailbox = ckernel::KERNEL_COMPLETE;
 }
