@@ -14,22 +14,71 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_SYNC,
+    IN_TILE_DIMS,
     INPUT_DIMENSIONS,
     NUM_FACES,
-    TILE_COUNT,
 )
 from helpers.utils import passed_test
+
+
+def generate_specific_stimuli(input_dimensions, r_dim, format):
+    """Generate specific stimuli pattern for pack untilize test."""
+    valid_datum = 1.0
+    invalid_datum = -1.0
+    row_offset = 2 * input_dimensions[1]
+    face_offset = 16
+    num_faces = (input_dimensions[0] * input_dimensions[1]) // (16 * 16)
+    src_A = []
+    for i in range(num_faces):
+        for j in range(r_dim):
+            for k in range(16):
+                src_A.append(valid_datum * (row_offset * j + face_offset * i + k))
+        for j in range(16 - r_dim):
+            for k in range(16):
+                src_A.append(invalid_datum * (row_offset * j + face_offset * i + k))
+    src_A = torch.tensor(src_A, dtype=format_dict[format])
+    return src_A
+
+
+def generate_golden_output(src_A, input_dimensions, r_dim, format):
+    """Generate expected golden output for pack untilize test."""
+    golden = []
+    row_offset = 16
+    block_offset = 16 * 16
+    num_blocks = (input_dimensions[1] // 16) * 2
+    for i in range(r_dim):
+        for j in range(num_blocks):
+            for k in range(16):
+                golden.append(src_A[i * row_offset + j * block_offset + k])
+    golden_tensor = torch.tensor(golden, dtype=format_dict[format])
+    return golden_tensor
+
+
+def print_stimuli_and_golden(src_A, golden, input_dimensions, r_dim):
+    """Print stimuli and golden output for debugging."""
+    print("SrcA")
+    for i in range(0, len(src_A), 16):
+        row = (i // 16) % 16
+        face = (i // 256) % 4
+        tile = i // 1024
+        print(f"T{tile}F{face}R{row}\t", src_A[i : i + 16])
+    print("Golden")
+    for i in range(0, len(golden), 16):
+        segment = (i // 16) % ((input_dimensions[1] * 2) // 16)
+        row = i // (input_dimensions[1] * 2)
+        print(f"R{row}S{segment}\t", golden[i : i + 16])
 
 
 @skip_for_wormhole
 @parametrize(
     formats=input_output_formats([DataFormat.Float16_b]),
     dest_acc=[DestAccumulation.No],
-    input_dimensions=[[32, 256]],
+    input_dimensions=[[32, 32], [32, 64], [32, 128], [32, 256]],
+    r_dim=[1, 2, 4, 8, 16],
     dest_sync=[DestSync.Half],
 )
 def test_pack_untilize(
-    formats, dest_acc, input_dimensions, dest_sync, workers_tensix_coordinates
+    formats, dest_acc, input_dimensions, r_dim, dest_sync, workers_tensix_coordinates
 ):
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
@@ -40,42 +89,11 @@ def test_pack_untilize(
         sfpu=False,
     )
 
-    valid_datum = 1.0
-    invalid_datum = -1.0
-    row_offset = 512
-    face_offset = 16
-    num_faces = (32 * 256) // (16 * 16)
-    src_A = []
-    for i in range(num_faces):
-        for j in range(8):
-            for k in range(16):
-                src_A.append(valid_datum * (row_offset * j + face_offset * i + k))
-        for j in range(8):
-            for k in range(16):
-                src_A.append(invalid_datum * (row_offset * j + face_offset * i + k))
-
-    golden = []
-    row_offset = 16
-    block_offset = 16 * 16
-    for i in range(8):
-        for j in range(512 // 16):
-            for k in range(16):
-                golden.append(src_A[i * row_offset + j * block_offset + k])
-
-    print("SrcA")
-    for i in range(0, len(src_A), 16):
-        row = (i // 16) % 16
-        face = (i // 256) % 4
-        tile = i // 1024
-        print(f"T{tile}F{face}R{row}\t", src_A[i : i + 16])
-    print("Golden")
-    for i in range(0, len(golden), 16):
-        segment = (i // 16) % 32
-        row = i // 512
-        print(f"R{row}S{segment}\t", golden[i : i + 16])
-
-    src_A = torch.tensor(src_A, dtype=format_dict[formats.input_format])
-    golden_tensor = torch.tensor(golden, dtype=format_dict[formats.output_format])
+    # src_A = generate_specific_stimuli(input_dimensions, r_dim, formats.input_format)
+    golden_tensor = generate_golden_output(
+        src_A, input_dimensions, r_dim, formats.input_format
+    )
+    # print_stimuli_and_golden(src_A, golden_tensor, input_dimensions, r_dim)
 
     configuration = TestConfig(
         "sources/dense_pack_untilize_test.cpp",
@@ -84,11 +102,10 @@ def test_pack_untilize(
             INPUT_DIMENSIONS(
                 input_dimensions,
                 input_dimensions,
-                8,
             ),
             DEST_SYNC(dest_sync),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A), NUM_FACES(4)],
+        runtimes=[NUM_FACES(4), IN_TILE_DIMS(r_dim, 32, 32, 32)],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
@@ -105,7 +122,9 @@ def test_pack_untilize(
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
-    res_from_L1 = res_from_L1[0 : 8 * 512]
+    # Since we can't have 4 faces with r_dim smaller than 16, we assume r_dim 16
+    # for lower r_dims the bottom part of the row major data is just dont care so we truncate it here
+    res_from_L1 = res_from_L1[0 : r_dim * input_dimensions[1] * 2]
 
     assert len(res_from_L1) == len(
         golden_tensor
