@@ -132,8 +132,6 @@ generate_compile_flags() {
 
 -DENABLE_LLK_ASSERT
 
--DLLK_BOOT_MODE_BRISC
-
 -isystem
 $ROOT_DIR/tests/sfpi/compiler/lib/gcc/riscv-tt-elf/15.1.0/include/
 -isystem
