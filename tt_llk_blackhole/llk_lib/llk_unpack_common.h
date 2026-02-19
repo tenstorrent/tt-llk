@@ -85,6 +85,15 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
     const std::uint32_t unpack_num_faces  = 4)
 {
     LLK_ASSERT(unpack_num_faces == 1 || unpack_num_faces == 2 || unpack_num_faces == 4, "unpack_num_faces must be 1, 2, or 4");
+
+    LLK_ASSERT(
+        is_unpacker_to_register_conversion_supported(
+            static_cast<DataFormat>(unpack_src_format),
+            static_cast<DataFormat>(unpack_dst_format),
+            is_fp32_dest_acc_en,
+            is_32bit_input(unpack_src_format, unpack_dst_format)),
+        "Unsupported unpacker to register conversion.");
+
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK0);
     if constexpr (to_from_int8)
     {
@@ -133,6 +142,15 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     const std::uint32_t unpack_num_faces  = 4)
 {
     LLK_ASSERT(unpack_num_faces == 1 || unpack_num_faces == 2 || unpack_num_faces == 4, "unpack_num_faces must be 1, 2, or 4");
+
+    LLK_ASSERT(
+        is_unpacker_to_register_conversion_supported(
+            static_cast<DataFormat>(unpack_src_format),
+            static_cast<DataFormat>(unpack_dst_format),
+            is_fp32_dest_acc_en,
+            is_32bit_input(unpack_src_format, unpack_dst_format)),
+        "Unsupported unpacker to register conversion.");
+
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
     if constexpr (to_from_int8)
     {
