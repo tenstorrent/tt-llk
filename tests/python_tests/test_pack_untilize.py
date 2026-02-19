@@ -19,9 +19,46 @@ from helpers.test_variant_parameters import (
     DEST_SYNC,
     INPUT_DIMENSIONS,
     NUM_FACES,
+    ROW_NUM_DATUMS,
     TILE_COUNT,
 )
 from helpers.utils import passed_test
+
+
+# Narrow row option works only on FULL_CT_DIM = BLOCK_CT_DIM = 1.
+# This is not a test limitation but an api limitation.
+# How it works is it takes row_dimension datums from each row in dest.
+# It does that for each tile available and then either packs it tile after tile with garbage datums at the end of the tile
+# or it packs it densely without any garbage datums, which is what it currently does.
+def generate_narrow_row_golden(src_A, input_dimensions, row_dimension):
+    """
+    Generate golden tensor for narrow_row mode.
+    Takes first row_dimension elements from each row in Face 0 and Face 2 of each tile.
+    TODO: This currently only works for default tile dimensions. Once testing other tile dimensions, update accordingly.
+    """
+    tile_width = 32
+    tile_height = 32
+    tile_count = (input_dimensions[0] * input_dimensions[1]) // (
+        tile_width * tile_height
+    )
+    elements_per_tile = tile_width * tile_height
+    face_size = (
+        tile_height * tile_width // 4
+    )  # Each face is 1/4th of the tile (256 elements)
+
+    golden_parts = []
+    for tile_idx in range(tile_count):
+        tile_data = src_A[
+            tile_idx * elements_per_tile : (tile_idx + 1) * elements_per_tile
+        ]
+        face0 = tile_data[0:face_size].reshape(16, 16)
+        face2 = tile_data[2 * face_size : 3 * face_size].reshape(16, 16)
+        # Take first row_dimension elements from each row of Face 0 and Face 2
+        narrow_face0 = face0[:, :row_dimension].flatten()
+        narrow_face2 = face2[:, :row_dimension].flatten()
+        golden_parts.append(torch.cat([narrow_face0, narrow_face2]))
+
+    return torch.cat(golden_parts)
 
 
 @parametrize(
@@ -35,11 +72,23 @@ from helpers.utils import passed_test
         ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
-    input_dimensions=[[96, 288], [64, 64], [32, 128], [128, 128], [32, 64]],
+    input_dimensions=[[96, 288], [64, 64], [32, 128], [128, 128], [32, 64], [64, 32]],
     dest_sync=[DestSync.Half, DestSync.Full],
+    narrow_row=lambda input_dimensions: (
+        [True, False] if input_dimensions == [64, 32] else [False]
+    ),
+    row_dimension=lambda narrow_row, input_dimensions: (
+        [2, 8, 16] if narrow_row else [32]
+    ),  # This is a tile row dimension.
 )
 def test_pack_untilize(
-    formats, dest_acc, input_dimensions, dest_sync, workers_tensix_coordinates
+    formats,
+    dest_acc,
+    input_dimensions,
+    dest_sync,
+    narrow_row,
+    row_dimension,
+    workers_tensix_coordinates,
 ):
     if TestConfig.WITH_COVERAGE and input_dimensions == [96, 288]:
         pytest.skip(
@@ -81,9 +130,13 @@ def test_pack_untilize(
         sfpu=False,
     )
 
-    generate_golden = get_golden_generator(UntilizeGolden)
-
-    golden_tensor = generate_golden(src_A, formats.output_format, input_dimensions)
+    if narrow_row:
+        golden_tensor = generate_narrow_row_golden(
+            src_A, input_dimensions, row_dimension
+        )
+    else:
+        generate_golden = get_golden_generator(UntilizeGolden)
+        golden_tensor = generate_golden(src_A, formats.output_format, input_dimensions)
 
     unpack_to_dest = (
         formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
@@ -107,6 +160,7 @@ def test_pack_untilize(
                 block_ct_dim,
             ),
             DEST_SYNC(dest_sync),
+            ROW_NUM_DATUMS(row_dimension),
         ],
         runtimes=[TILE_COUNT(tile_cnt_A), NUM_FACES(4)],
         variant_stimuli=StimuliConfig(
@@ -125,6 +179,10 @@ def test_pack_untilize(
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
+
+    if narrow_row:
+        # Kernel is set to densely pack processed datums.
+        res_from_L1 = res_from_L1[: input_dimensions[0] * row_dimension]
 
     assert len(res_from_L1) == len(
         golden_tensor

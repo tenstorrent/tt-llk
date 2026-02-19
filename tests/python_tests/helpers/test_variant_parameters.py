@@ -318,6 +318,15 @@ class ADD_TOP_ROW(TemplateParameter):
         return f"constexpr bool ADD_TOP_ROW = {str(self.add_top_row).lower()};"
 
 
+# Used in pack_untilize tests for narrow_row option.
+@dataclass
+class ROW_NUM_DATUMS(TemplateParameter):
+    row_size: int = 0
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr std::uint32_t ROW_NUM_DATUMS = {self.row_size};"
+
+
 # === RUNTIME PARAMETER IMPLEMENTATIONS ===
 
 
