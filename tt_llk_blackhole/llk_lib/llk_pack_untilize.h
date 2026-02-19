@@ -139,8 +139,7 @@ template <
     std::uint32_t full_ct_dim    = block_ct_dim,
     bool diagonal                = false,
     bool narrow_row              = false,
-    std::uint32_t row_num_datums = TILE_C_DIM,
-    bool narrow_tile             = false>
+    std::uint32_t row_num_datums = TILE_C_DIM>
 inline void _llk_pack_untilize_init_(
     const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
@@ -154,7 +153,6 @@ inline void _llk_pack_untilize_init_(
         static_assert(row_num_datums < TILE_C_DIM, "row_num_datums must be set to less than TILE_C_DIM for narrow_row packing");
     }
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    LLK_ASSERT(narrow_tile == false, "narrow_tile is not supported");
 
     _llk_pack_untilize_configure_addrmod_<diagonal>();
 
