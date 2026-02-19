@@ -7,7 +7,6 @@ from functools import reduce
 from typing import List
 
 import pandas as pd
-import pytest
 from helpers.device import (
     collect_pipeline_results,
     write_pipeline_operands_to_l1,
@@ -207,8 +206,6 @@ class FuserConfig:
     def run_regular_test(self, location: str):
         from .fused_generator import FUSED_TESTS_DIR
         from .fused_golden import FusedGolden
-
-        
 
         cpp_path = FUSED_TESTS_DIR / f"{self.global_config.test_name}.cpp"
 
