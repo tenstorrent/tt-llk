@@ -292,7 +292,20 @@ def dump_tensix_state(elfs: list[str], location="0,0", device_id=0) -> str:
             except Exception as e:
                 stack_traces += f"\n[Failed to get {core} callstack: {e}]\n"
 
-    return "\n".join([header, separator] + rows) + stack_traces
+    # Read debug values written by clear_trisc_soft_reset() in boot.h
+    reset_before = read_word_from_device(location, 0x64FF0)
+    reset_after = read_word_from_device(location, 0x64FF4)
+    soft_reset_reg = get_register_store(location, device_id).read_register(
+        "RISCV_DEBUG_REG_SOFT_RESET_0"
+    )
+    debug_info = (
+        f"\n\nReset Debug Info:\n"
+        f"  reset_before (0x64FF0): {reset_before:#010x}\n"
+        f"  reset_after  (0x64FF4): {reset_after:#010x}\n"
+        f"  current SOFT_RESET_0:   {soft_reset_reg:#010x}"
+    )
+
+    return "\n".join([header, separator] + rows) + stack_traces + debug_info
 
 
 def make_sure_all_out_of_reset(location: str = "0,0", backoff=0.01):
