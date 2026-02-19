@@ -20,6 +20,11 @@ public:
         return base_addr + index * tile_size;
     }
 
+    [[nodiscard]] std::uint32_t get_tile_size() const volatile noexcept
+    {
+        return tile_size;
+    }
+
 private:
     std::uint32_t base_addr;
     std::uint32_t tile_size;

@@ -347,9 +347,15 @@ class UnpackerAB(Unpacker):
             reduce_dim = compute_unit.fpu.reduce_dim()
             pool_type = compute_unit.fpu.pool_type()
 
+            # Create a temporary TensorShape object with Src_A tile dimensions
+            tile_shape = operation.src_a.tile_shape
+            tensor_shape_instantiation: str = (
+                f"ckernel::TensorShape{{{tile_shape.face_r_dim}, {tile_shape.face_c_dim}, {tile_shape.num_faces_r_dim}, {tile_shape.num_faces_c_dim}}}"
+            )
+
             return (
                 f"_llk_unpack_AB_reduce_init_<{pool_type}, {reduce_dim}>(\n"
-                f"{face_r_dim}, {num_faces});\n"
+                f"{tensor_shape_instantiation});\n"
             )
         else:
             if transpose_within_face != transpose_faces:
