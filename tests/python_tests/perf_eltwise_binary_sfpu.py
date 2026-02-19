@@ -40,8 +40,8 @@ from helpers.test_variant_parameters import (
         ]
     ),
     approx_mode=[
-        ApproximationMode.Yes,
-        ApproximationMode.No,
+        ApproximationMode.Fast,
+        ApproximationMode.Precise,
     ],
     mathop=[
         MathOperation.SfpuElwadd,
@@ -132,8 +132,8 @@ def test_perf_eltwise_binary_sfpu_float(
         ]
     ),
     approx_mode=[
-        ApproximationMode.Yes,
-        ApproximationMode.No,
+        ApproximationMode.Fast,
+        ApproximationMode.Precise,
     ],
     mathop=[
         MathOperation.SfpuElwRightShift,
@@ -224,8 +224,8 @@ def test_perf_eltwise_binary_sfpu_int(
         same=True,
     ),
     approx_mode=[
-        ApproximationMode.Yes,
-        ApproximationMode.No,
+        ApproximationMode.Fast,
+        ApproximationMode.Precise,
     ],
     mathop=[
         MathOperation.SfpuAddTopRow,

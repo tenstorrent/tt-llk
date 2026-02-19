@@ -11,6 +11,7 @@
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
 #include "ckernel_sfpu_load_config.h"
+#include "llk_defs.h"
 #include "lltt.h"
 #include "sfpi.h"
 
@@ -405,7 +406,7 @@ inline void bitonic_topk_inc_x4_dest(std::uint32_t inc, bool cr)
     }
 }
 
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, bool STABLE_SORT = false>
+template <ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en, bool STABLE_SORT = false>
 inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, const int i_start_phase, const int i_end_step, const int i_start_step)
 {
     // If more than 1 phase is requested, do all the steps from all phases
@@ -574,7 +575,7 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
     topk_replay_init = -1;
 }
 
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, bool top_min, bool STABLE_SORT = false>
+template <ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en, bool top_min, bool STABLE_SORT = false>
 inline void _bitonic_topk_merge(const int m_iter, const int k)
 {
     std::uint32_t dst_addr_offset = 0;
@@ -626,7 +627,7 @@ inline void _bitonic_topk_merge(const int m_iter, const int k)
     }
 }
 
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, bool STABLE_SORT = false>
+template <ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en, bool STABLE_SORT = false>
 inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k, const int logk, const int skip_second)
 {
     // init replay buffer for rebuild iteration 'm_iter' if uninitialized

@@ -10,6 +10,7 @@
 #include "ckernel.h"
 #include "ckernel_addrmod.h"
 #include "ckernel_ops.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -17,7 +18,7 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
+template <ApproximationMode APPROX_MODE, int ITERATIONS, InstrModLoadStore INSTRUCTION_MODE, bool SIGN_MAGNITUDE_FORMAT>
 inline void _add_int_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 {
     // Operand A is input1 (int32/uint16/uint32)
