@@ -115,8 +115,15 @@ class StimuliConfig:
 
     def generate_runtime_operands_values(self, formats) -> list:
         # Use actual tile sizes based on tile_dimensions
+        # input_format represents both src formats if src_B is not provided explicitly.
+        # Otherwise it's srcA format.
         input_format = DataFormat.Float16_b if formats is None else formats.input_format
-        input_format_B = DataFormat.Float16_b if formats is None else formats.input_format_B
+        # If src_B format is not provided, default to src_A format for backward compatibility.
+        input_format_B = (
+            input_format
+            if formats is None or formats.input_format_B is None
+            else formats.input_format_B
+        )
         output_format = (
             DataFormat.Float16_b if formats is None else formats.output_format
         )
@@ -168,7 +175,9 @@ class StimuliConfig:
     def generate_stimuli_header_addresses(self, formats) -> list[str]:
         # Use actual tile sizes based on tile_dimensions
         input_format = DataFormat.Float16_b if formats is None else formats.input_format
-        input_format_B = DataFormat.Float16_b if formats is None else formats.input_format_B
+        input_format_B = (
+            DataFormat.Float16_b if formats is None else formats.input_format_B
+        )
         output_format = (
             DataFormat.Float16_b if formats is None else formats.output_format
         )

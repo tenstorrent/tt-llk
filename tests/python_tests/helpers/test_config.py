@@ -40,7 +40,7 @@ from .device import (
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
 )
-from .format_config import DataFormat, FormatConfig
+from .format_config import DataFormat
 from .llk_params import DestAccumulation, L1Accumulation, MailboxesDebug, MailboxesPerf
 from .stimuli_config import StimuliConfig
 from .test_variant_parameters import RuntimeParameter, TemplateParameter

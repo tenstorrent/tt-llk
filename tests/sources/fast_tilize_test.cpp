@@ -92,7 +92,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
                     std::uint32_t tile_index = read_offset + packed_tiles;
                     if (remaining_tiles > 2 * dest_size)
                     {
-                        _llk_unpack_fast_tilize_block_(L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_A_src, unit_dim, num_units, BLOCK_CT_DIM, params->num_faces);
+                        _llk_unpack_fast_tilize_block_(
+                            L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_A_src, unit_dim, num_units, BLOCK_CT_DIM, params->num_faces);
                         packed_tiles += dest_size;
                         remaining_tiles -= dest_size;
                     }
@@ -100,7 +101,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
                     {
                         std::uint32_t even_remainder = remaining_tiles / 2 + ((remaining_tiles / 2) % 2);
                         num_units                    = even_remainder / unit_dim;
-                        _llk_unpack_fast_tilize_block_(L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_A_src, unit_dim, num_units, BLOCK_CT_DIM, params->num_faces);
+                        _llk_unpack_fast_tilize_block_(
+                            L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_A_src, unit_dim, num_units, BLOCK_CT_DIM, params->num_faces);
                         packed_tiles += even_remainder;
                         remaining_tiles -= even_remainder;
                     }
