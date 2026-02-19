@@ -566,11 +566,14 @@ inline void _llk_unpack_fast_tilize_block_(
     const std::uint32_t unit_dim,
     const std::uint32_t num_units,
     const std::uint32_t full_dim,
-    const std::uint32_t num_faces = 4)
+    const std::uint32_t num_faces = 4,
+    const bool narrow_tile        = false)
 {
     LLK_ASSERT(num_faces == 2 || num_faces == 4, "num_faces must be 2 or 4");
     LLK_ASSERT(
         (unit_dim == 2 && num_faces == 2) || num_faces == 4, "16x32 tiny tiles are only supported for tensors with even-sized tile widths for fast_tilize");
+    LLK_ASSERT(FACE_R_DIM == 16, "Fast tilize does not support partial faces where face_r_dim < 16");
+    LLK_ASSERT(!narrow_tile, "Fast tilize does not support narrow tiles");
     volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer();
 
     std::uint32_t address = base_address + (SCALE_DATUM_SIZE(unpack_src_format, tile_index * TILE_C_DIM) >> 4); // move by tile width in 16B words
