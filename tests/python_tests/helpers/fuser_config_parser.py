@@ -54,44 +54,6 @@ FUSER_CONFIG_DIR = (
 )
 
 
-def _get_runtime_types():
-    return {
-        "DataFormat": DataFormat,
-        "DatacopyFpu": DatacopyFpu,
-        "EltwiseFpu": EltwiseFpu,
-        "MatmulFpu": MatmulFpu,
-        "ReduceFpu": ReduceFpu,
-        "ReduceBlockMaxFpu": ReduceBlockMaxFpu,
-        "ComputeNode": ComputeNode,
-        "ComputePipeline": ComputePipeline,
-        "OperandRegistry": OperandRegistry,
-        "FusedOperation": FusedOperation,
-        "Packer": Packer,
-        "BinarySfpu": BinarySfpu,
-        "UnarySfpu": UnarySfpu,
-        "UnpackerA": UnpackerA,
-        "UnpackerAB": UnpackerAB,
-        "UnpackerTilizeA": UnpackerTilizeA,
-        "MatmulUnpacker": MatmulUnpacker,
-        "ReduceBlockMaxUnpacker": ReduceBlockMaxUnpacker,
-        "ApproximationMode": ApproximationMode,
-        "BroadcastType": BroadcastType,
-        "DestAccumulation": DestAccumulation,
-        "DestSync": DestSync,
-        "EltwiseBinaryReuseDestType": EltwiseBinaryReuseDestType,
-        "MathFidelity": MathFidelity,
-        "MathOperation": MathOperation,
-        "ReducePool": ReducePool,
-        "Transpose": Transpose,
-        "FuserConfig": FuserConfig,
-        "GlobalConfig": GlobalConfig,
-    }
-
-
-def _enum_values(enum_cls: type) -> str:
-    return ", ".join(e.name for e in enum_cls)
-
-
 def format_validation_error(error: ValidationError) -> str:
     messages = []
     for err in error.errors():
@@ -119,24 +81,22 @@ def format_validation_error(error: ValidationError) -> str:
     return "\n".join(messages)
 
 
-class UnpackerEnum(str, Enum):
-    UnpackerA = "UnpackerA"
-    UnpackerAB = "UnpackerAB"
-    UnpackerTilizeA = "UnpackerTilizeA"
-    MatmulUnpacker = "MatmulUnpacker"
-    ReduceBlockMaxUnpacker = "ReduceBlockMaxUnpacker"
+class UnpackerEnum(Enum):
+    UnpackerA = UnpackerA
+    UnpackerAB = UnpackerAB
+    UnpackerTilizeA = UnpackerTilizeA
+    MatmulUnpacker = MatmulUnpacker
+    ReduceBlockMaxUnpacker = ReduceBlockMaxUnpacker
 
     def to_runtime(self) -> Type:
-        rt = _get_runtime_types()
-        return rt[self.value]
+        return self.value
 
 
-class PackerEnum(str, Enum):
-    Packer = "Packer"
+class PackerEnum(Enum):
+    Packer = Packer
 
     def to_runtime(self) -> Type:
-        rt = _get_runtime_types()
-        return rt[self.value]
+        return self.value
 
 
 class FpuOperationEnum(str, Enum):
@@ -165,8 +125,7 @@ class FpuOperationEnum(str, Enum):
         }
 
     def to_math_operation(self):
-        rt = _get_runtime_types()
-        return getattr(rt["MathOperation"], self.value)
+        return getattr(MathOperation, self.value)
 
 
 class UnaryOperationEnum(str, Enum):
@@ -197,8 +156,7 @@ class UnaryOperationEnum(str, Enum):
     Threshold = "Threshold"
 
     def to_math_operation(self):
-        rt = _get_runtime_types()
-        return getattr(rt["MathOperation"], self.value)
+        return getattr(MathOperation, self.value)
 
 
 class BinaryOperationEnum(str, Enum):
@@ -212,8 +170,7 @@ class BinaryOperationEnum(str, Enum):
     SfpuAddTopRow = "SfpuAddTopRow"
 
     def to_math_operation(self):
-        rt = _get_runtime_types()
-        return getattr(rt["MathOperation"], self.value)
+        return getattr(MathOperation, self.value)
 
 
 class FpuMathSchema(BaseModel):
@@ -228,12 +185,19 @@ class FpuMathSchema(BaseModel):
     unpack_transpose_within_face: Optional[Transpose] = None
     unpack_transpose_faces: Optional[Transpose] = None
 
+    @field_validator("unpacker", mode="before")
+    @classmethod
+    def parse_unpacker(cls, v):
+        if isinstance(v, UnpackerEnum):
+            return v
+        if isinstance(v, str) and v in UnpackerEnum.__members__:
+            return UnpackerEnum[v]
+        return v
+
     @model_validator(mode="after")
     def validate_fpu_config(self) -> "FpuMathSchema":
         if self.operation.is_reduce() and self.reduce_pool is None:
-            raise ValueError(
-                f"Reduce operations require reduce_pool: {_enum_values(ReducePool)}"
-            )
+            raise ValueError(f"Reduce operations require reduce_pool: {ReducePool}")
 
         if not self.operation.is_reduce() and self.reduce_pool is not None:
             raise ValueError(
@@ -290,20 +254,16 @@ class FpuMathSchema(BaseModel):
         return self
 
     def to_compute_node(self):
-        rt = _get_runtime_types()
-
         if self.operation.is_eltwise():
-            fpu = rt["EltwiseFpu"](self.operation.to_math_operation())
+            fpu = EltwiseFpu(self.operation.to_math_operation())
         elif self.operation.is_reduce():
-            fpu = rt["ReduceFpu"](
-                self.operation.to_math_operation(), pool=self.reduce_pool
-            )
+            fpu = ReduceFpu(self.operation.to_math_operation(), pool=self.reduce_pool)
         elif self.operation == FpuOperationEnum.Datacopy:
-            fpu = rt["DatacopyFpu"]()
+            fpu = DatacopyFpu()
         elif self.operation == FpuOperationEnum.Matmul:
-            fpu = rt["MatmulFpu"]()
+            fpu = MatmulFpu()
         elif self.operation == FpuOperationEnum.ReduceBlockMax:
-            fpu = rt["ReduceBlockMaxFpu"]()
+            fpu = ReduceBlockMaxFpu()
         else:
             raise ValueError(f"Unknown FPU operation: {self.operation}")
 
@@ -319,7 +279,7 @@ class FpuMathSchema(BaseModel):
         if self.reuse_dest:
             kwargs["reuse_dest"] = self.reuse_dest
 
-        return rt["ComputeNode"](fpu=fpu, sfpu=None, **kwargs)
+        return ComputeNode(fpu=fpu, sfpu=None, **kwargs)
 
 
 class UnarySfpuMathSchema(BaseModel):
@@ -333,16 +293,15 @@ class UnarySfpuMathSchema(BaseModel):
     fill_const_value: float = 1.0
 
     def to_compute_node(self):
-        rt = _get_runtime_types()
 
-        sfpu = rt["UnarySfpu"](
+        sfpu = UnarySfpu(
             self.operation.to_math_operation(),
             self.approximation_mode,
             self.iterations,
             self.dst_dest_tile_index,
             self.fill_const_value,
         )
-        return rt["ComputeNode"](unpacker=None, fpu=None, sfpu=sfpu)
+        return ComputeNode(unpacker=None, fpu=None, sfpu=sfpu)
 
 
 class BinarySfpuMathSchema(BaseModel):
@@ -357,9 +316,8 @@ class BinarySfpuMathSchema(BaseModel):
     dst_dest_tile_index: Annotated[int, Field(ge=0)] = 0
 
     def to_compute_node(self):
-        rt = _get_runtime_types()
 
-        sfpu = rt["BinarySfpu"](
+        sfpu = BinarySfpu(
             self.operation.to_math_operation(),
             self.approximation_mode,
             self.iterations,
@@ -367,7 +325,7 @@ class BinarySfpuMathSchema(BaseModel):
             self.src2_dest_tile_index,
             self.dst_dest_tile_index,
         )
-        return rt["ComputeNode"](unpacker=None, fpu=None, sfpu=sfpu)
+        return ComputeNode(unpacker=None, fpu=None, sfpu=sfpu)
 
 
 MathSchema = Annotated[
@@ -434,6 +392,15 @@ class OperationSchema(BaseModel):
                 pass
         return v
 
+    @field_validator("packer", mode="before")
+    @classmethod
+    def parse_packer(cls, v):
+        if isinstance(v, PackerEnum):
+            return v
+        if isinstance(v, str) and v in PackerEnum.__members__:
+            return PackerEnum[v]
+        return v
+
     @model_validator(mode="after")
     def validate_operation(self) -> "OperationSchema":
         has_matmul = any(
@@ -450,8 +417,6 @@ class OperationSchema(BaseModel):
         return self
 
     def to_fused_operation(self, operands):
-        rt = _get_runtime_types()
-
         operand_mapping = operands.create_mapping(
             src_a=self.src_a,
             src_b=self.src_b,
@@ -475,9 +440,9 @@ class OperationSchema(BaseModel):
         if self.batch_size:
             kwargs["batch_size"] = self.batch_size
 
-        return rt["FusedOperation"](
+        return FusedOperation(
             operand_mapping=operand_mapping,
-            math=rt["ComputePipeline"](math_ops),
+            math=ComputePipeline(math_ops),
             packer=self.packer.to_runtime(),
             **kwargs,
         )
@@ -500,14 +465,12 @@ class FuserConfigSchema(BaseModel):
         return self
 
     def to_fuser_config(self, test_name: str):
-        rt = _get_runtime_types()
-
-        operands = rt["OperandRegistry"]()
+        operands = OperandRegistry()
         pipeline = [op.to_fused_operation(operands) for op in self.operations]
 
-        return rt["FuserConfig"](
+        return FuserConfig(
             pipeline=pipeline,
-            global_config=rt["GlobalConfig"](
+            global_config=GlobalConfig(
                 dest_acc=self.dest_acc,
                 test_name=test_name,
                 loop_factor=self.loop_factor,
