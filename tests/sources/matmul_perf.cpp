@@ -162,6 +162,9 @@ void run_kernel()
             /* pack_dst_format */ formats.pack_dst,
             /* tile_size */ OUT_TILE_R_DIM * OUT_TILE_C_DIM,
             /* face_r_dim */ OUT_FACE_R_DIM,
+#ifdef ARCH_BLACKHOLE
+            /* tile_c_dim */ OUT_TILE_C_DIM,
+#endif
             /* num_faces */ NUM_FACES_OUT,
             /* partial_face */ PARTIAL_FACE_OUT,
             /* narrow_tile */ NARROW_TILE_OUT);
@@ -172,6 +175,9 @@ void run_kernel()
             /* write_tile_header */ false>(
             /* pack_dst_format */ formats.pack_dst,
             /* face_r_dim */ OUT_FACE_R_DIM,
+#ifdef ARCH_BLACKHOLE
+            /* tile_c_dim */ OUT_TILE_C_DIM,
+#endif
             /* num_faces */ NUM_FACES_OUT,
             /* partial_face */ PARTIAL_FACE_OUT,
             /* narrow_tile */ NARROW_TILE_OUT);
