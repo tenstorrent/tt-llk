@@ -63,7 +63,7 @@ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
 )
 def test_fast_tilize(formats, dest_acc, dimensions, workers_tensix_coordinates):
 
-    input_width, input_height = dimensions
+    input_height, input_width = dimensions
 
     if formats.input == DataFormat.Bfp8_b:
         pytest.skip("Bfp8_b input format is not supported for fast tilize")
