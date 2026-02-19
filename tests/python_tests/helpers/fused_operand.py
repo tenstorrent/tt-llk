@@ -8,6 +8,7 @@ from typing import Optional, Tuple
 import torch
 from helpers.llk_params import DataFormat, format_dict
 from helpers.stimuli_generator import generate_random_face
+from helpers.tile_constants import DEFAULT_TILE_C_DIM, DEFAULT_TILE_R_DIM
 from helpers.tile_shape import TileShape, construct_tile_shape
 from helpers.tilize_untilize import tilize_block
 
@@ -33,7 +34,9 @@ class Operand:
                 f"Input operand '{self.name}' must have dimensions and data_format"
             )
         if self.tile_shape is None:
-            self.tile_shape = construct_tile_shape((32, 32))
+            self.tile_shape = construct_tile_shape(
+                (DEFAULT_TILE_R_DIM, DEFAULT_TILE_C_DIM)
+            )
 
     def is_input(self) -> bool:
         return not self.is_output
