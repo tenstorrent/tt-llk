@@ -29,10 +29,12 @@ template <
     MathFidelity math_fidelity,
     bool is_int_fpu_en             = false,
     bool enforce_fp32_accumulation = false>
-inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = false, const std::uint32_t num_faces = 4)
+inline void _llk_math_reduce_(const std::uint32_t dst_index, const ckernel::TensorShape& tensor_shape)
 {
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    LLK_ASSERT(!(narrow_tile && num_faces == 4), "Reduce narrow tile requires num_faces 1 or 2; num_faces=4 is full-width 32x32");
+    validate_tensor_shape_tile_dependent_ops_(tensor_shape);
+    LLK_ASSERT(
+        !((tensor_shape.num_faces_c_dim < tensor_shape.num_faces_r_dim) /* narrow_tile */ && tensor_shape.total_num_faces() == 4),
+        "Reduce narrow tile requires num_faces 1 or 2; num_faces=4 is full-width 32x32");
     constexpr bool high_fidelity = is_high_fidelity(math_fidelity);
 
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
@@ -52,7 +54,7 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = 
         {
             TTI_GAPOOL(p_setrwc::CLR_AB, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
         }
-        if (num_faces > 1)
+        if (tensor_shape.total_num_faces() > 1)
         {
             if constexpr (type == PoolType::MAX)
             {
@@ -146,14 +148,14 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = 
                 TTI_ELWADD(0, 0, p_elwise::SRCB_NO_BCAST, ADDR_MOD_2, 0);
             }
 
-            if (num_faces == 2 && !narrow_tile)
+            if (tensor_shape.total_num_faces() == 2 && !(tensor_shape.num_faces_c_dim < tensor_shape.num_faces_r_dim) /* narrow_tile */)
             {
                 TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_BD);
             }
             else
             {
                 // Increment dest by 32 or 16 if narrow tile for the next accumulation
-                if (!narrow_tile)
+                if (!(tensor_shape.num_faces_c_dim < tensor_shape.num_faces_r_dim) /* narrow_tile */)
                 {
                     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
                     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
@@ -278,7 +280,11 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = 
     }
     else if constexpr (dim == ReduceDim::REDUCE_COL)
     {
-        const std::uint32_t num_row_tiles = narrow_tile ? 2 : ((num_faces > 1) ? num_faces / 2 : 1);
+        const std::uint32_t num_row_tiles =
+            (tensor_shape.num_faces_c_dim < tensor_shape.num_faces_r_dim) /* narrow_tile */ ? 2
+                                                                                            : ((tensor_shape.total_num_faces() > 1)
+                                                                                                   ? tensor_shape.total_num_faces() / 2
+                                                                                                   : 1);
         for (std::uint32_t row_tile = 0; row_tile < num_row_tiles; row_tile++)
         {
             // Just pool
@@ -297,7 +303,7 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = 
                     TTI_GAPOOL(p_setrwc::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0);
                 }
             }
-            if ((!narrow_tile) && (num_faces > 1))
+            if ((!(tensor_shape.num_faces_c_dim < tensor_shape.num_faces_r_dim) /* narrow_tile */) && (tensor_shape.total_num_faces() > 1))
             {
                 TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
                 TTI_SETRWC(p_setrwc::CLR_AB, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
@@ -324,7 +330,7 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, bool narrow_tile = 
     }
     else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
     {
-        for (std::uint32_t face_num = 0; face_num < (num_faces - 1); face_num++)
+        for (std::uint32_t face_num = 0; face_num < (tensor_shape.total_num_faces() - 1); face_num++)
         {
             // Wait and pool
             if constexpr (type == PoolType::MAX)
