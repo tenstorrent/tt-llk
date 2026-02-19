@@ -20,12 +20,14 @@ std::uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_AB_reduce.h"
 #include "llk_unpack_common.h"
 #include "params.h"
+#include "tensor_shape.h"
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
 #ifdef RUNTIME_FORMATS
     const volatile FormatConfig& formats = params->formats;
 #endif
+    const ckernel::TensorShape tensor_shape = {params->in0_face_r_dim, params->in0_face_c_dim, params->num_faces_r_dim_A, params->num_faces_c_dim_A};
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src,
         formats.unpack_src,
@@ -37,7 +39,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         params->num_faces_A,
         params->buffer_A.get_tile_size(),
         params->buffer_A.get_tile_size());
-    _llk_unpack_AB_reduce_init_<POOL_TYPE, REDUCE_DIM>(params->in0_face_r_dim, params->num_faces_A);
+    _llk_unpack_AB_reduce_init_<POOL_TYPE, REDUCE_DIM>(tensor_shape);
     for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
     {
         _llk_unpack_AB_reduce_<POOL_TYPE, REDUCE_DIM>(L1_ADDRESS(params->buffer_A[i]), L1_ADDRESS(params->buffer_B[0]));
@@ -51,6 +53,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #include "llk_math_common.h"
 #include "llk_math_reduce.h"
 #include "params.h"
+#include "tensor_shape.h"
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
@@ -60,6 +63,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const bool is_int_fpu_en             = false;
     const bool enforce_fp32_accumulation = false;
     bool is_narrow_tile                  = (params->num_faces_c_dim_A < params->num_faces_r_dim_A);
+    const bool is_int_fpu_en                = false;
+    const bool enforce_fp32_accumulation    = false;
+    const ckernel::TensorShape tensor_shape = {params->in0_face_r_dim, params->in0_face_c_dim, params->num_faces_r_dim_A, params->num_faces_c_dim_A};
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
@@ -70,8 +76,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
         {
-            _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en, enforce_fp32_accumulation>(
-                0, is_narrow_tile, params->num_faces_A);
+            _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en, enforce_fp32_accumulation>(0, tensor_shape);
         }
         _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
@@ -84,8 +89,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
             for (int i = 0; i < tiles_to_dest; ++i)
             {
-                _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en, enforce_fp32_accumulation>(
-                    i, is_narrow_tile, params->num_faces_A);
+                _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en, enforce_fp32_accumulation>(i, tensor_shape);
             }
             _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             remaining_tiles -= tiles_to_dest;
