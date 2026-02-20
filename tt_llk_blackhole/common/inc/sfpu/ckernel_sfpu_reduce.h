@@ -353,18 +353,19 @@ inline void perform_reduce_row_sum_tile(std::uint32_t tile_row_offset)
 }
 
 /**
- * @brief Sums column 0 from multiple tiles in a row into tile_0 column 0.
+ * @brief Accumulates partial row sums from all tiles in a row of tiles in tensor into tile 0 of that row.
  *
  * After per-tile row reduction, each tile has partial row sums in its column 0.
- * This function accumulates those sums across all tiles in the same row into the first tile of that row.
+ * This function accumulates those row sums across all tiles into tile_row_base (first tile in this row of tiles in tensor).
+ * Each tile already has 8 partial row-sum results in column 0 (written by perform_reduce_row_sum_tile):
+ * 2 face-pairs × 2 row-groups × 2 sums per group (first 4 rows and next 4 rows of each 8-row group) = 8.
+ * They are stored at row offsets 0, 4, 8, 12, 32, 36, 40, 44. Each result occupies 4 rows (one LREG).
  *
- * Strategy: Load and accumulate iteratively using only 2 LREGs.
- * - Load tile 0 into LREG0
- * - For each subsequent tile, load into LREG1 and add to LREG0
- * - Store result back to tile 0
- *
- * Row results are stored at offsets: 0, 4, 8, 12, 32, 36, 40, 44 (8 total per tile)
- * corresponding to the 8 groups of 4 rows processed by perform_reduce_row_sum_tile.
+ * We process these 8 results in two batches of 4. For each batch:
+ * - Load tile 0's four LREGs into LREG0-3 from the first batch's offsets.
+ * - For each other tile, load its four LREGs at the same offsets into LREG4-7 and add into LREG0-3.
+ * - Store LREG0-3 back to tile 0.
+ * LREG4-7 hold the other tiles' data so loads and adds can be pipelined without NOPs.
  *
  * @tparam INSTRUCTION_MODE The load/store instruction mode
  * @param tile_row_base Base address of the first tile in this row of tiles
@@ -376,34 +377,52 @@ inline void sum_first_columns_across_tiles(std::uint32_t tile_row_base, std::uin
     constexpr bool is_integer_mode =
         (INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::INT32_2S_COMP || INSTRUCTION_MODE == InstrModLoadStore::LO16);
 
-    // Row offsets where per-tile reduction results are stored
-    // note: tiles stored in tilized-mode in dest, we store results in column 0 for face 0 and face 2
-    // rows 0-12 occupy face 0, rows 32-44 occupy face 2 (since 16-31 is face 1)
+    // Row offset for each of the 8 partial row-sum results (face 0: 0,4,8,12; face 2: 32,36,40,44)
     constexpr std::uint32_t RESULT_ROWS[8] = {0, 4, 8, 12, 32, 36, 40, 44};
 
-    for (std::uint32_t r = 0; r < 8; r++)
+    for (std::uint32_t batch = 0; batch < 2; batch++)
     {
-        std::uint32_t row = RESULT_ROWS[r];
+        std::uint32_t base_idx = batch * 4;
 
-        // Load tile 0 into LREG0
-        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + row);
+        // Load tile 0's four LREGs at this batch's offsets (0,4,8,12 or 32,36,40,44) into LREG0-3
+        TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 0]);
+        TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 1]);
+        TT_SFPLOAD(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 2]);
+        TT_SFPLOAD(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 3]);
 
-        // Load remaining tiles one at a time and accumulate into LREG0
+        // Accumulate from remaining tiles
         for (std::uint32_t t = 1; t < block_ct_dim; t++)
         {
-            TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + t * ROWS_PER_TILE + row);
+            std::uint32_t tile_offset = tile_row_base + t * ROWS_PER_TILE;
+
+            // Load tile t's four LREGs at the same offsets into LREG4-7
+            TT_SFPLOAD(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, tile_offset + RESULT_ROWS[base_idx + 0]);
+            TT_SFPLOAD(p_sfpu::LREG5, INSTRUCTION_MODE, ADDR_MOD_7, tile_offset + RESULT_ROWS[base_idx + 1]);
+            TT_SFPLOAD(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, tile_offset + RESULT_ROWS[base_idx + 2]);
+            TT_SFPLOAD(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, tile_offset + RESULT_ROWS[base_idx + 3]);
+
+            // Add LREG4-7 into LREG0-3
             if constexpr (is_integer_mode)
             {
-                TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
+                TTI_SFPIADD(0, p_sfpu::LREG4, p_sfpu::LREG0, 4);
+                TTI_SFPIADD(0, p_sfpu::LREG5, p_sfpu::LREG1, 4);
+                TTI_SFPIADD(0, p_sfpu::LREG6, p_sfpu::LREG2, 4);
+                TTI_SFPIADD(0, p_sfpu::LREG7, p_sfpu::LREG3, 4);
             }
             else
             {
-                TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG1, p_sfpu::LREG0, 0);
+                TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG4, p_sfpu::LREG0, 0);
+                TTI_SFPADD(p_sfpu::LREG1, p_sfpu::LCONST_1, p_sfpu::LREG5, p_sfpu::LREG1, 0);
+                TTI_SFPADD(p_sfpu::LREG2, p_sfpu::LCONST_1, p_sfpu::LREG6, p_sfpu::LREG2, 0);
+                TTI_SFPADD(p_sfpu::LREG3, p_sfpu::LCONST_1, p_sfpu::LREG7, p_sfpu::LREG3, 0);
             }
         }
 
-        // Store final sum back to tile 0
-        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + row);
+        // Store LREG0-3 back to tile 0
+        TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 0]);
+        TT_SFPSTORE(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 1]);
+        TT_SFPSTORE(p_sfpu::LREG2, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 2]);
+        TT_SFPSTORE(p_sfpu::LREG3, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + RESULT_ROWS[base_idx + 3]);
     }
 }
 
