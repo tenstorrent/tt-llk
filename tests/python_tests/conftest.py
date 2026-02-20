@@ -14,6 +14,7 @@ from helpers.device import (
     _send_arc_message,
     make_sure_core_in_reset,
     reset_mailbox,
+    reset_trisc_debug_state,
     set_tensix_soft_reset,
 )
 from helpers.format_config import InputOutputFormat
@@ -118,6 +119,9 @@ def reset_cores_per_worker(worker_id):
     # Reset mailboxes for trisc communication
     for mailbox in [Mailbox.Brisc, Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer]:
         reset_mailbox(location, mailbox)
+
+    # Clear TRISC debug state for clean diagnostics
+    reset_trisc_debug_state(location)
 
     make_sure_core_in_reset(
         location=location, place=f"session init ({worker_id})", cores=ALL_CORES

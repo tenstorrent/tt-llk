@@ -267,6 +267,41 @@ CORE_MAILBOX = {
 }
 
 
+# Debug marker values matching trisc.cpp
+TRISC_DEBUG_MARKERS = {
+    0xDEAD0001: "ENTRY",
+    0xDEAD0002: "AFTER_SETUP",
+    0xDEAD0003: "AFTER_UNRESET",
+    0xDEAD0004: "BEFORE_INIT",
+    0xDEAD0005: "AFTER_INIT",
+    0xDEAD0006: "BEFORE_KERNEL",
+    0xDEAD0007: "AFTER_KERNEL",
+    0xDEAD0008: "AFTER_SYNC",
+    0xDEAD0009: "DONE",
+    0x00000000: "NEVER_WRITTEN",
+}
+
+# Debug state addresses for each TRISC (matching trisc.cpp)
+TRISC_DEBUG_ADDRS = {
+    "trisc0": 0x64FF8,
+    "trisc1": 0x64FFC,
+    "trisc2": 0x65000,
+}
+
+# Loop counter addresses to detect restarts (matching trisc.cpp)
+TRISC_LOOP_CNT_ADDRS = {
+    "trisc0": 0x65004,
+    "trisc1": 0x65008,
+    "trisc2": 0x6500C,
+}
+
+
+def _get_marker_name(value: int) -> str:
+    if value in TRISC_DEBUG_MARKERS:
+        return TRISC_DEBUG_MARKERS[value]
+    return f"UNKNOWN({value:#010x})"
+
+
 def dump_tensix_state(elfs: list[str], location="0,0", device_id=0) -> str:
     """Build a diagnostic summary of all cores: mailbox, reset state, assert hits, and callstacks."""
     assert_hits = get_risc_assert_hits(core_loc=location, device_id=device_id)
@@ -298,11 +333,46 @@ def dump_tensix_state(elfs: list[str], location="0,0", device_id=0) -> str:
     soft_reset_reg = get_register_store(location, device_id).read_register(
         "RISCV_DEBUG_REG_SOFT_RESET_0"
     )
+
+    # Read TRISC debug breadcrumbs to diagnose execution state
+    trisc_debug_states = {}
+    for core_name, addr in TRISC_DEBUG_ADDRS.items():
+        value = read_word_from_device(location, addr)
+        trisc_debug_states[core_name] = (value, _get_marker_name(value))
+
+    # Read loop counters to detect restarts
+    trisc_loop_counts = {}
+    for core_name, addr in TRISC_LOOP_CNT_ADDRS.items():
+        trisc_loop_counts[core_name] = read_word_from_device(location, addr)
+
+    # Read PC override registers to check if PC override is enabled
+    register_store = get_register_store(location, device_id)
+    chip_arch = get_chip_architecture()
+
+    pc_override_info = ""
+    try:
+        if chip_arch == ChipArchitecture.BLACKHOLE:
+            pc_override_en = register_store.read_register(
+                "RISCV_DEBUG_REG_TRISC_RESET_PC_OVERRIDE"
+            )
+            pc_override_info = f"  PC_OVERRIDE_EN (BH):    {pc_override_en:#010x}\n"
+    except Exception as e:
+        pc_override_info = f"  PC_OVERRIDE_EN: error reading ({e})\n"
+
     debug_info = (
         f"\n\nReset Debug Info:\n"
         f"  reset_before (0x64FF0): {reset_before:#010x}\n"
         f"  reset_after  (0x64FF4): {reset_after:#010x}\n"
-        f"  current SOFT_RESET_0:   {soft_reset_reg:#010x}"
+        f"  current SOFT_RESET_0:   {soft_reset_reg:#010x}\n"
+        f"{pc_override_info}"
+        f"\nTRISC Execution State (breadcrumbs):\n"
+        f"  trisc0 (0x64FF8): {trisc_debug_states['trisc0'][0]:#010x} ({trisc_debug_states['trisc0'][1]})\n"
+        f"  trisc1 (0x64FFC): {trisc_debug_states['trisc1'][0]:#010x} ({trisc_debug_states['trisc1'][1]})\n"
+        f"  trisc2 (0x65000): {trisc_debug_states['trisc2'][0]:#010x} ({trisc_debug_states['trisc2'][1]})\n"
+        f"\nTRISC Restart Counts (>1 means soft reset occurred):\n"
+        f"  trisc0: {trisc_loop_counts['trisc0']}\n"
+        f"  trisc1: {trisc_loop_counts['trisc1']}\n"
+        f"  trisc2: {trisc_loop_counts['trisc2']}"
     )
 
     return "\n".join([header, separator] + rows) + stack_traces + debug_info
@@ -394,6 +464,19 @@ def reset_mailbox(location: str = "0,0", mailbox: Mailbox = Mailbox.Brisc):
             f"Mailbox {mailbox.name} at {location} failed to reset: "
             f"expected 0, got {val:#x}"
         )
+
+
+def reset_trisc_debug_state(location: str = "0,0"):
+    """Clear TRISC debug breadcrumbs and loop counters before a test run."""
+    # Clear debug state markers
+    for addr in TRISC_DEBUG_ADDRS.values():
+        write_words_to_device(location=location, addr=addr, data=[0])
+    # Clear loop counters
+    for addr in TRISC_LOOP_CNT_ADDRS.values():
+        write_words_to_device(location=location, addr=addr, data=[0])
+    # Clear boot.h debug values
+    write_words_to_device(location=location, addr=0x64FF0, data=[0])  # reset_before
+    write_words_to_device(location=location, addr=0x64FF4, data=[0])  # reset_after
 
 
 def pull_coverage_stream_from_tensix(
