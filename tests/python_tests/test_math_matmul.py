@@ -165,7 +165,6 @@ def test_math_matmul(
         "sources/math_matmul_test.cpp",
         formats,
         templates=[
-            generate_input_dim(input_A_dimensions, input_B_dimensions),
             STOCHASTIC_ROUNDING(matmul_config.stochastic_rnd),
             MATH_FIDELITY(math_fidelity),
             THROTTLE_LEVEL(throttle),
