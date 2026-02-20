@@ -137,7 +137,7 @@ class TestConfig:
 
     # === Addresses ===
     RUNTIME_ADDRESS_NON_COVERAGE: ClassVar[int] = 0x20000
-    RUNTIME_ADDRESS_COVERAGE: ClassVar[int] = 0x64000
+    RUNTIME_ADDRESS_COVERAGE: ClassVar[int] = 0x6E000
     TRISC_PROFILER_BARRIER_ADDRESS: ClassVar[int] = 0x16AFF4
     TRISC_START_ADDRS: ClassVar[list[int]] = [0x16DFF0, 0x16DFF4, 0x16DFF8]
     THREAD_PERFORMANCE_DATA_BUFFER_LENGTH = 0x400
@@ -1131,10 +1131,11 @@ def process_coverage_run_artefacts() -> bool:
             if not stream_runs:
                 continue
 
-            merged_stream = b""
+            stream_parts = []
             for stream in stream_runs:
                 with open(stream, "rb") as fd:
-                    merged_stream += fd.read()
+                    stream_parts.append(fd.read())
+            merged_stream = b"".join(stream_parts)
 
             if merged_stream:
                 run_shell_command(
