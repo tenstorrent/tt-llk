@@ -98,7 +98,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
     // calling sfpu function from ckernel
     // this part is where parametrization of operation takes part
-    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, 32>(SFPU_UNARY_OPERATION);
+    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, 32, SFPU_UNARY_OPERATION>();
 
     _llk_math_eltwise_unary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

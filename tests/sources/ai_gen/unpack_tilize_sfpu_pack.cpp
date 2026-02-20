@@ -69,7 +69,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_eltwise_unary_sfpu_start_<DST_SYNC>(0);
 
     // Execute the specific SFPU operation
-    test_utils::call_sfpu_operation_32(SFPU_UNARY_OPERATION);
+    test_utils::call_sfpu_operation_32<SFPU_UNARY_OPERATION>();
 
     // Complete SFPU operation
     _llk_math_eltwise_unary_sfpu_done_();
