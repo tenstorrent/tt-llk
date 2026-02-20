@@ -430,6 +430,13 @@ def sweep_matmul(
                             math_matmul
                         )
                         for face_layout_config in face_layout_config_sweep:
+                            if (  # Don't add invalid variants
+                                dest_acc == DestAccumulation.No
+                                and fmt.input_format == DataFormat.Float16_b
+                                and fmt.output_format == DataFormat.Float16
+                            ):
+                                continue
+
                             base_matmul_dims = MatmulConfig(
                                 tile_dimensions=tile_dims,
                                 face_layout_config=face_layout_config,
@@ -531,6 +538,13 @@ def sweep_tiny_tiles_matmul(
                 max_dst_indices.append(max_dst_index)
 
             for max_dst_idx in max_dst_indices:
+                if (  # Don't add invalid variants
+                    config["dest_acc"] == DestAccumulation.No
+                    and config["fmt"].input_format == DataFormat.Float16_b
+                    and config["fmt"].output_format == DataFormat.Float16
+                ):
+                    continue
+
                 combinations.append(
                     MatmulConfig(
                         tile_dimensions=tile_dims,
