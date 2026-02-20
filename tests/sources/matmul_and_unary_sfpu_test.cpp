@@ -21,6 +21,7 @@ constexpr bool FAST_MODE               = false;
 constexpr bool STABLE_SORT             = false;
 constexpr bool CLAMP_NEGATIVE          = false;
 static constexpr bool DST_ACCUM_MODE   = is_fp32_dest_acc_en;
+static constexpr ckernel::DstSync DST_SYNC_MODE = ckernel::DstSync::SyncHalf;
 
 constexpr std::uint32_t buffer_A_tilized = 0x66000; // L1 address of buffer, placed so both coverage and non-coverage elfs don't run it over
 
@@ -99,7 +100,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     // calculation of sfpu operation on dest
     _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
-    CALL_SFPU_OPERATION_INIT();
+    CALL_SFPU_OPERATION_INIT
 
     CALL_SFPU_OPERATION(0, formats_array[run].math, VectorMode::RC)
 

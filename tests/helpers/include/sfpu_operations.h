@@ -30,7 +30,7 @@
  *   SFPU_UNARY_OPERATION, APPROX_MODE, is_fp32_dest_acc_en, FAST_MODE, CLAMP_NEGATIVE
  */
 // clang-format off
-#define CALL_SFPU_OPERATION_INIT() \
+#define CALL_SFPU_OPERATION_INIT \
 do { \
     if constexpr (SFPU_UNARY_OPERATION == SfpuType::acosh || \
                   SFPU_UNARY_OPERATION == SfpuType::asinh) \
@@ -85,7 +85,7 @@ do { \
     { \
         ckernel::sfpu::tanh_init<APPROX_MODE, is_fp32_dest_acc_en>(); \
     } \
-} while (false)
+} while (false);
 
 /**
  * Dispatches the per-tile SFPU calculate call via _llk_math_eltwise_unary_sfpu_params_,
@@ -132,13 +132,13 @@ do { \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::fill) \
     { \
         if ((math_format) == ckernel::to_underlying(DataFormat::Int32)) \
-            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::INT32, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5.0f); \
+            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::INT32, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5); \
         else if ((math_format) == ckernel::to_underlying(DataFormat::UInt16)) \
-            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::LO16, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5.0f); \
+            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::LO16, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5); \
         else if ((math_format) == ckernel::to_underlying(DataFormat::UInt32)) \
-            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::INT32, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5.0f); \
+            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::INT32, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5); \
         else \
-            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_fill_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 0.0f); \
+            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_fill_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 0); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::gelu) \
         _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_gelu_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
@@ -189,26 +189,6 @@ namespace test_utils
 {
 using namespace ckernel;
 using namespace ckernel::sfpu;
-
-/**
- * Convenience wrapper for kernels that apply a single SFPU unary op with
- * ITERATIONS=32 and all mode flags defaulting to false.
- *
- * @tparam SFPU_UNARY_OPERATION SFPU operation to execute (compile-time SfpuType constant)
- * @param  math_format          Runtime data format; selects integer vs float paths for fill/neg
- */
-template <SfpuType SFPU_UNARY_OPERATION>
-inline void call_sfpu_operation_32(std::uint32_t math_format = 0)
-{
-    constexpr bool APPROX_MODE         = false;
-    constexpr bool is_fp32_dest_acc_en = false;
-    constexpr int ITERATIONS           = 32;
-    constexpr bool FAST_MODE           = false;
-    constexpr bool STABLE_SORT         = false;
-    constexpr bool CLAMP_NEGATIVE      = false;
-    CALL_SFPU_OPERATION_INIT();
-    CALL_SFPU_OPERATION(0, math_format, 5.0f);
-}
 
 template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, std::uint32_t MATH_FORMAT = 0>
 void call_binary_sfpu_operation(const std::uint32_t dst_index_in0 = 0, const std::uint32_t dst_index_in1 = 1, const std::uint32_t dst_index_out = 0)

@@ -105,7 +105,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
         _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
-        CALL_SFPU_OPERATION_INIT();
+        CALL_SFPU_OPERATION_INIT
         PROFILER_SYNC();
     }
     {

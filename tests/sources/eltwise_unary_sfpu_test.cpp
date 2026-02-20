@@ -54,11 +54,12 @@ void run_kernel(const volatile struct RuntimeParams *params)
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-constexpr int ITERATIONS             = 32;
-constexpr bool FAST_MODE             = false;
-constexpr bool STABLE_SORT           = false;
-constexpr bool CLAMP_NEGATIVE        = false;
-static constexpr bool DST_ACCUM_MODE = is_fp32_dest_acc_en;
+constexpr int ITERATIONS                        = 32;
+constexpr bool FAST_MODE                        = false;
+constexpr bool STABLE_SORT                      = false;
+constexpr bool CLAMP_NEGATIVE                   = false;
+static constexpr bool DST_ACCUM_MODE            = is_fp32_dest_acc_en;
+static constexpr ckernel::DstSync DST_SYNC_MODE = DST_SYNC;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
@@ -75,7 +76,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();
 
     _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
-    CALL_SFPU_OPERATION_INIT();
+    CALL_SFPU_OPERATION_INIT
 
     for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
     {
