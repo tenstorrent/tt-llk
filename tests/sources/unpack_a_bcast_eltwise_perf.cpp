@@ -29,7 +29,14 @@ void run_kernel(const volatile struct RuntimeParams* params)
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<false>(
-            formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
+            formats.unpack_A_src,
+            formats.unpack_B_src,
+            formats.unpack_A_dst,
+            formats.unpack_B_dst,
+            FACE_R_DIM,
+            FACE_R_DIM,
+            4 /* num_faces */,
+            4 /* num_faces */);
         _llk_unpack_bcastA_B_init_();
         PROFILER_SYNC();
     }
@@ -47,7 +54,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             for (std::uint32_t i = 0; i < params->TILE_CNT / params->SRCA_REUSE_COUNT; i++)
             {
-                _llk_unpack_bcastA_B_(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i * params->SRCA_REUSE_COUNT]), params->SRCA_REUSE_COUNT);
+                _llk_unpack_bcastA_B_(L1_ADDRESS(params->buffer_A[i]), L1_ADDRESS(params->buffer_B[i * params->SRCA_REUSE_COUNT]), params->SRCA_REUSE_COUNT);
             }
         }
         PROFILER_SYNC();

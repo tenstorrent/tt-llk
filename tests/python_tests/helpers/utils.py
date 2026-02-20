@@ -255,7 +255,7 @@ def passed_test(
                 logger.error("\n{}", "\n".join(formatted_error))
 
         except RuntimeError:
-            logger.warning(
+            logger.error(
                 "Could not reshape to 32x32 matrix, showing linear indices: {}",
                 res_tensor.size()[0],
             )

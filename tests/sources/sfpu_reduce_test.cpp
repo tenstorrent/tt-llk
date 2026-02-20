@@ -25,14 +25,14 @@ std::uint32_t math_sync_tile_dst_index = 0;
 void run_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
+        formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-        0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
+        0, 0, FACE_R_DIM, 4, formats.unpack_A_src, formats.unpack_A_dst);
 
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            L1_ADDRESS(buffer_A[i]), formats.unpack_src, formats.unpack_dst);
+            L1_ADDRESS(params->buffer_A[i]), formats.unpack_A_src, formats.unpack_A_dst);
     }
 }
 
@@ -128,7 +128,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     {
         LLK_ASSERT(
             (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(params->buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

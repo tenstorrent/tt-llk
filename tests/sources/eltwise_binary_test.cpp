@@ -34,14 +34,14 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     // Configure hardware for unpacking, no broadcast, no transpose
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, face_r_dim, face_r_dim, num_faces, num_faces);
+        formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, face_r_dim, face_r_dim, num_faces, num_faces);
 
     _llk_unpack_AB_init_<BROADCAST_TYPE>(face_r_dim, num_faces, narrow_tile,
                                          transpose); // Enable face rearrangement for srcA
 
     for (int i = 0; i < num_tiles_in_block * num_blocks; ++i)
     {
-        _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
+        _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(params->buffer_A[i]), L1_ADDRESS(params->buffer_B[i]));
     }
 }
 
@@ -130,7 +130,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
             int res_tile_idx = (block * num_tiles_in_block) + tile;
             LLK_ASSERT(
                 (tile < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
-            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(tile, L1_ADDRESS(buffer_Res[res_tile_idx]));
+            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(tile, L1_ADDRESS(params->buffer_Res[res_tile_idx]));
         }
         _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
