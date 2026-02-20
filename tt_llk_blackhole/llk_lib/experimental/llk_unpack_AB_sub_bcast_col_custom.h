@@ -18,8 +18,9 @@
 using namespace ckernel;
 using namespace ckernel::unpacker;
 
+// SDPA-specific custom unpack path used to improve sub+bcast(col) performance.
 template <BroadcastType BType = BroadcastType::NONE>
-inline void _llk_unpack_AB_mop_config_(const std::uint32_t num_faces = 4, const bool narrow_tile = false)
+inline void _llk_unpack_AB_sub_bcast_col_mop_config_custom_(const std::uint32_t num_faces = 4, const bool narrow_tile = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
@@ -35,8 +36,10 @@ inline void _llk_unpack_AB_mop_config_(const std::uint32_t num_faces = 4, const 
     tmp.program();
 }
 
+// SDPA-specific custom init for the blocked sub+bcast(col) unpack flow.
 template <BroadcastType BType = BroadcastType::NONE, std::uint32_t ct_dim = 1>
-inline void _llk_unpack_AB_init_(const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, const bool narrow_tile = false)
+inline void _llk_unpack_AB_sub_bcast_col_init_custom_(
+    const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, const bool narrow_tile = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
@@ -44,11 +47,12 @@ inline void _llk_unpack_AB_init_(const std::uint32_t face_r_dim = FACE_R_DIM, co
     TTI_SETADCXX(p_setadc::UNP0, 1023, 0x0);
     TTI_SETADCXX(p_setadc::UNP1, 1023, 0x0);
 
-    _llk_unpack_AB_mop_config_<BType>(num_faces, narrow_tile);
+    _llk_unpack_AB_sub_bcast_col_mop_config_custom_<BType>(num_faces, narrow_tile);
 }
 
+// SDPA-specific custom blocked unpack: one SrcB tile + ct_dim SrcA tiles.
 template <BroadcastType BType = BroadcastType::NONE, std::uint32_t ct_dim = 1>
-inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t address_b)
+inline void _llk_unpack_AB_sub_bcast_col_custom_(const std::uint32_t address_a, const std::uint32_t address_b)
 {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
 
@@ -66,9 +70,6 @@ inline void _llk_unpack_AB_(const std::uint32_t address_a, const std::uint32_t a
 
     // Stall unpacker until pending CFG writes from Trisc have completed
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
-
-    // Run MOP
-    // ckernel::ckernel_template::run();
 
     constexpr std::uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00;
 

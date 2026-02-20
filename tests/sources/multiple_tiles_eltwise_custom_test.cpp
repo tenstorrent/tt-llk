@@ -15,7 +15,7 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
-#include "experimental/llk_unpack_AB_bcast_reuse.h"
+#include "experimental/llk_unpack_AB_sub_bcast_col_custom.h"
 #include "llk_unpack_common.h"
 #include "params.h"
 
@@ -23,9 +23,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /*num_faces */, 4 /* num_faces */);
-    _llk_unpack_AB_init_<BROADCAST_TYPE, CT_DIM>();
+    _llk_unpack_AB_sub_bcast_col_init_custom_<BROADCAST_TYPE, CT_DIM>();
 
-    _llk_unpack_AB_<BROADCAST_TYPE, CT_DIM>(L1_ADDRESS(params->buffer_A[0]), L1_ADDRESS(params->buffer_B[0]));
+    _llk_unpack_AB_sub_bcast_col_custom_<BROADCAST_TYPE, CT_DIM>(L1_ADDRESS(params->buffer_A[0]), L1_ADDRESS(params->buffer_B[0]));
 }
 
 #endif
@@ -40,12 +40,12 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BROADCAST_TYPE, MATH_FIDELITY>(4, 0);
+    _llk_math_eltwise_binary_init_custom_<ELTWISE_BINARY_OP, BROADCAST_TYPE, MATH_FIDELITY>(4, 0);
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
     // call custom LLK
-    _llk_math_eltwise_binary_bcast_reuse_<CT_DIM>();
+    _llk_math_eltwise_binary_bcast_reuse_custom_<CT_DIM>();
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
