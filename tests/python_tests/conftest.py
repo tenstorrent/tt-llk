@@ -106,6 +106,7 @@ def pytest_configure(config):
     # those messages in the terminal - integrating cleanly with pytest-sugar.
     if log_level is not None:
         config.option.log_cli_level = log_level
+        config.option.log_cli = True
 
     compile_producer = config.getoption("--compile-producer", default=False)
     compile_consumer = config.getoption("--compile-consumer", default=False)
