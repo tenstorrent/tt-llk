@@ -55,7 +55,7 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const cker
     // Broadcast Row with narrow tile: only 16x16 supported, not 32x16
     if constexpr (BType == BroadcastType::ROW)
     {
-        LLK_ASSERT(!(narrow_tile && num_faces == 2), "Broadcast Row with 32x16 narrow tile not supported");
+        LLK_ASSERT(!(num_faces_c_dim < num_faces_r_dim), "Broadcast Row with 32x16 narrow tile not supported");
     }
 
     static constexpr std::uint32_t unpack_srca = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
@@ -84,21 +84,9 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const cker
     if constexpr (BType == BroadcastType::COL)
     {
         // COL broadcast: First col in Src B face is broadcast across A faces in the same row
-        LLK_ASSERT(num_faces_c_dim == 2, "num_faces_c_dim has to be 2 for BroadcastType::COL, Can be fixed in future");
-        ckernel_template tmp(outerloop, innerloop, srca_op);
-        tmp.set_start_op(unpack_srcb);
-
-        set_end_op_with_transpose(
-            tmp, TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 2 /*this should be num_faces_c_dim, but can't pass it here until its compile time*/, 0b0001));
-
-        tmp.program();
-    }
-    else if constexpr (BType == BroadcastType::ROW)
-    {
-        // COL broadcast: First col in Src B face is broadcast across A faces in the same row
         LLK_ASSERT(
             num_faces_c_dim >= num_faces_r_dim,
-            "If num_faces_c_dim is less than num_faces_r_dim (i.e 32x16), then BROADCAST_TYPE::ROW is not supported, Can be fixed in the future");
+            "If num_faces_c_dim is less than num_faces_r_dim (i.e 32x16), then BROADCAST_TYPE::COL is not supported, Can be fixed in the future");
         ckernel_template tmp(outerloop, innerloop, srca_op);
         tmp.set_start_op(unpack_srcb);
 
@@ -112,6 +100,18 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces, const cker
             set_end_op_with_transpose(
                 tmp, TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 2 /*this should be num_faces_c_dim, but can't pass it here until its compile time*/, 0b0001));
         }
+
+        tmp.program();
+    }
+    else if constexpr (BType == BroadcastType::ROW)
+    {
+        // ROW broadcast: First row in Src B face is broadcast across A faces in the same column
+        LLK_ASSERT(
+            num_faces_c_dim >= num_faces_r_dim,
+            "If num_faces_c_dim is less than num_faces_r_dim (i.e 32x16), then BROADCAST_TYPE::ROW is not supported, Can be fixed in the future");
+        static constexpr std::uint32_t unpack_srcb_clear_z = TT_OP_SETADCZW(p_setadc::UNP_B, 0, 0, 0, 0, 0b0001);
+        ckernel_template tmp(outerloop, innerloop, unpack_srcb, srca_op);
+        set_end_op_with_transpose(tmp, unpack_srcb_clear_z);
 
         tmp.program();
     }

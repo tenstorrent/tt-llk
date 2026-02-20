@@ -449,20 +449,13 @@ template <
     EltwiseBinaryReuseDestType binary_reuse_dest>
 inline void _llk_math_eltwise_binary_with_dest_reuse_(const ckernel::TensorShape &tensor_shape, std::uint32_t dst_index, const bool clear_fp32_dst_acc)
 {
-    const std::uint32_t num_faces = tensor_shape.total_num_faces();
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-
-    // Broadcast Column: num_faces=1 is not supported on Blackhole (use 2 or 4 faces)
-    if constexpr (src_b_bcast_type == BroadcastType::COL)
-    {
-        LLK_ASSERT(num_faces != 1, "Broadcast Column: num_faces=1 is not supported on Blackhole (use 2 or 4)");
-    }
+    const std::uint32_t num_faces       = tensor_shape.total_num_faces();
+    const std::uint32_t num_faces_r_dim = tensor_shape.num_faces_r_dim;
+    const std::uint32_t num_faces_c_dim = tensor_shape.num_faces_c_dim;
 
     static_assert(binary_reuse_dest != EltwiseBinaryReuseDestType::NONE, "Use _llk_math_eltwise_binary_standard_ for no dest reuse");
     validate_tensor_shape_tile_dependent_ops_(tensor_shape);
 
-    const std::uint32_t num_faces_r_dim = tensor_shape.num_faces_r_dim;
-    const std::uint32_t num_faces_c_dim = tensor_shape.num_faces_c_dim;
     LLK_ASSERT(math_fidelity == MathFidelity::LoFi || eltwise_binary_type == ELWMUL, "Math fidelity larger than LoFi only works with Eltwise multiply");
     constexpr bool high_fidelity = is_high_fidelity(math_fidelity);
 
@@ -552,16 +545,6 @@ template <
     EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void _llk_math_eltwise_binary_init_(const ckernel::TensorShape &tensor_shape, const std::uint32_t acc_to_dest)
 {
-    LLK_ASSERT(
-        (eltwise_binary_type == ELWADD) || (eltwise_binary_type == ELWSUB) || (eltwise_binary_type == ELWMUL),
-        "eltwise_binary_type must be ELWADD, ELWSUB, or ELWMUL");
-
-    // Broadcast Column: x16 tiles not supported (num_faces=1 implies 16x16)
-    if constexpr (src_b_bcast_type == BroadcastType::COL)
-    {
-        LLK_ASSERT(num_faces != 1, "Broadcast Column: 16x16 tiles not supported in Blackhole");
-    }
-
     if constexpr (binary_reuse_dest == EltwiseBinaryReuseDestType::NONE)
     {
         _llk_math_eltwise_binary_standard_init_<eltwise_binary_type, src_b_bcast_type, math_fidelity>(tensor_shape, acc_to_dest);
