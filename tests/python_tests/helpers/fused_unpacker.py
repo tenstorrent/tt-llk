@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
     from .fused_math import ComputeNode
+    from .fused_loop import FusedLoop
 
 from .chip_architecture import ChipArchitecture
 from .fused_fpu import ReduceFpu
@@ -19,6 +20,8 @@ from .tilize_untilize import tilize_block, untilize_block
 
 
 class Unpacker:
+    loop: "FusedLoop"
+
     def init(
         self,
         operation: "FusedOperation",
@@ -77,6 +80,10 @@ class Unpacker:
 
 
 class MatmulUnpacker(Unpacker):
+    from .fused_loop import LoopBlock
+
+    loop: "FusedLoop" = LoopBlock()
+
     def get_headers(self) -> List[str]:
         return [
             "llk_unpack_AB_matmul.h",
@@ -91,10 +98,7 @@ class MatmulUnpacker(Unpacker):
     ) -> str:
         kt_dim = operation.kt_dim
         ct_dim = operation.ct_dim
-        if operation.batch_size == ct_dim:
-            rt_dim = 1
-        else:
-            rt_dim = operation.rt_dim
+        rt_dim = 1
         return f"_perf_unpack_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def perf_clear_valid(
@@ -105,10 +109,7 @@ class MatmulUnpacker(Unpacker):
     ) -> str:
         kt_dim = operation.kt_dim
         ct_dim = operation.ct_dim
-        if operation.batch_size == ct_dim:
-            rt_dim = 1
-        else:
-            rt_dim = operation.rt_dim
+        rt_dim = 1
         return f"_perf_math_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def golden(
@@ -146,11 +147,13 @@ class MatmulUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block_size_x: int = 1,
+        block_size_y: int = 1,
     ) -> str:
         face_r_dim = operation.face_r_dim
-        ct_dim = operation.ct_dim
+        ct_dim = block_size_x
+        rt_dim = block_size_y
         kt_dim = operation.kt_dim
-        batch_size = operation.batch_size
 
         transpose_faces = (
             "true" if compute_unit.unpack_transpose_faces.value else "false"
@@ -164,11 +167,6 @@ class MatmulUnpacker(Unpacker):
                 "MatmulUnpacker does not support different values for transpose_faces and transpose_within_face"
             )
 
-        if batch_size == ct_dim:
-            rt_dim = 1
-        else:
-            rt_dim = operation.rt_dim
-
         return f"    _llk_unpack_AB_matmul_init_<>({transpose_faces}, {ct_dim}, {rt_dim}, {kt_dim}, {face_r_dim}, {face_r_dim});\n"
 
     def unpack(
@@ -177,44 +175,37 @@ class MatmulUnpacker(Unpacker):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         tile_idx_expr: str = None,
+        block_size_x: int = 1,
+        block_size_y: int = 1,
     ) -> str:
         stage = operation.stage_id
-        ct_dim = operation.ct_dim
-        rt_dim = operation.rt_dim
+        ct_dim = block_size_x
+        rt_dim = block_size_y
         kt_dim = operation.kt_dim
-        batch_size = operation.batch_size
         unpack_tile_size_a = operation.tile_size_unpack_a
         unpack_tile_size_b = operation.tile_size_unpack_b
         full_ct_dim = operation.src_b.dimensions[1] // 32
 
-        if batch_size == ct_dim:
-            code = (
-                f"    {{\n"
-                f"        std::uint32_t mt = batch;\n"
-                f"        for (std::uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
-                f"            _llk_unpack_AB_matmul_<>(\n"
-                f"                L1_ADDRESS(buffer_A{stage}[0]), L1_ADDRESS(buffer_B{stage}[0]),\n"
-                f"                mt * {kt_dim} + kt, kt * {full_ct_dim},\n"
-                f"                {unpack_tile_size_a}, {unpack_tile_size_b}, false, false, {ct_dim}, 1, {kt_dim}\n"
-                f"            );\n"
-                f"        }}\n"
-                f"    }}\n"
-            )
-        else:
-            code = (
-                f"    for (std::uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
-                f"        _llk_unpack_AB_matmul_<>(\n"
-                f"            L1_ADDRESS(buffer_A{stage}[0]), L1_ADDRESS(buffer_B{stage}[0]),\n"
-                f"            kt, kt * {full_ct_dim},\n"
-                f"            {unpack_tile_size_a}, {unpack_tile_size_b}, false, false, {ct_dim}, {rt_dim}, {kt_dim}\n"
-                f"        );\n"
-                f"    }}\n"
-            )
-
-        return code
+        return (
+            f"    {{\n"
+            f"        std::uint32_t srca_tile_idx = ({tile_idx_expr}) % {full_ct_dim};\n"
+            f"        std::uint32_t srcb_tile_idx = ({tile_idx_expr}) / {full_ct_dim};\n"
+            f"        for (std::uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
+            f"            _llk_unpack_AB_matmul_<>(\n"
+            f"                L1_ADDRESS(buffer_A{stage}[0]), L1_ADDRESS(buffer_B{stage}[0]),\n"
+            f"                srca_tile_idx, srcb_tile_idx,\n"
+            f"                {unpack_tile_size_a}, {unpack_tile_size_b}, false, false, {ct_dim}, {rt_dim}, {kt_dim}\n"
+            f"            );\n"
+            f"        }}\n"
+            f"    }}\n"
+        )
 
 
 class UnpackerAB(Unpacker):
+    from .fused_loop import LoopTileByTile
+
+    loop: "FusedLoop" = LoopTileByTile()
+
     def get_headers(self) -> List[str]:
         return [
             "llk_unpack_AB.h",
@@ -372,6 +363,10 @@ class UnpackerAB(Unpacker):
 
 
 class UnpackerA(Unpacker):
+    from .fused_loop import LoopTileByTile
+
+    loop: "FusedLoop" = LoopTileByTile()
+
     def get_headers(self) -> List[str]:
         return [
             "llk_unpack_A.h",
@@ -522,6 +517,10 @@ class UnpackerA(Unpacker):
 
 
 class UnpackerTilizeA(Unpacker):
+    from .fused_loop import LoopTileByTile
+
+    loop: "FusedLoop" = LoopTileByTile()
+
     def get_headers(self) -> List[str]:
         return [
             "llk_unpack_common.h",
@@ -643,6 +642,10 @@ class UnpackerTilizeA(Unpacker):
 
 
 class ReduceBlockMaxUnpacker(Unpacker):
+    from .fused_loop import LoopTileByTile
+
+    loop: "FusedLoop" = LoopTileByTile()
+
     def init(
         self,
         operation: "FusedOperation",
