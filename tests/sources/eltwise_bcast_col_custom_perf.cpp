@@ -95,17 +95,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            // No dest sync (pack returns immediately in this mode).
-            // After the custom function, explicitly clear SrcA/SrcB valid bits so the
-            // unpack mock can proceed to the next iteration (custom math uses CLR_NONE).
+            // No dest sync in this mode (pack returns immediately).
+            // Custom blocked sub+bcast math consumes the valids produced by unpack mock.
             for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params->LOOP_FACTOR); loop++)
             {
                 _llk_math_eltwise_binary_bcast_reuse_custom_<CT_DIM>();
-                _perf_math_clear_valid(ckernel::SrcB);
-                for (std::uint32_t i = 0; i < CT_DIM; i++)
-                {
-                    _perf_math_clear_valid(ckernel::SrcA);
-                }
             }
         }
         else // L1_TO_L1
@@ -114,13 +108,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
                 _llk_math_eltwise_binary_bcast_reuse_custom_<CT_DIM>();
-                // Custom function uses CLR_NONE throughout; clear valid bits explicitly so
-                // unpack hardware can write new data in the next iteration.
-                _perf_math_clear_valid(ckernel::SrcB);
-                for (std::uint32_t i = 0; i < CT_DIM; i++)
-                {
-                    _perf_math_clear_valid(ckernel::SrcA);
-                }
                 _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
         }
