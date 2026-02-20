@@ -27,9 +27,12 @@ static constexpr ckernel::TensorShape DEFAULT_TENSOR_SHAPE = {FACE_R_DIM, FACE_C
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const std::uint32_t face_r_dim = DEFAULT_TENSOR_SHAPE.face_r_dim;
+    const std::uint32_t num_faces  = DEFAULT_TENSOR_SHAPE.total_num_faces();
+
     // Configure hardware for unpacking AB (two inputs for binary elementwise operation)
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
+        formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, face_r_dim, face_r_dim, num_faces, num_faces);
     _llk_unpack_AB_init_<>(DEFAULT_TENSOR_SHAPE);
 
     // Unpack one tile from each input buffer
