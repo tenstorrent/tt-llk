@@ -129,6 +129,7 @@ def test_eltwise_unary_sfpu_float(
         MathOperation.Threshold,
         MathOperation.ReluMax,
         MathOperation.ReluMin,
+        MathOperation.Tanh,
     ]:
         # SFPI Issue link: https://github.com/tenstorrent/tt-metal/issues/33268
         pytest.skip(

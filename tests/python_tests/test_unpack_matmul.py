@@ -95,9 +95,6 @@ def test_unpack_matmul(math_fidelity, matmul_config, workers_tensix_coordinates)
     partial_face_B = matmul_config.face_layout_config.partial_face_B
     transpose = matmul_config.face_layout_config.unpack_transpose_faces
 
-    if num_faces_A == 1 and num_faces_B == 1:
-        pytest.skip(reason="Can't have this combo as the assert will be hit")
-
     # Generate test data for all tiles with the right faces zeroed out
     src_A = generate_face_matmul_data(
         num_faces=num_faces_A,
