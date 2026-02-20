@@ -667,7 +667,9 @@ template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTIO
 inline void calculate_reduce_sum_avg(std::uint32_t block_ct_dim, std::uint32_t block_rt_dim)
 {
     // Compile-time assertions to restrict to currently supported operations
-    static_assert(reduce_dim == REDUCE_COL || reduce_dim == REDUCE_ROW, "Only column and row reduction are supported on SFPU");
+    static_assert(
+        reduce_dim == REDUCE_COL || (pool_type == PoolType::SUM && reduce_dim == REDUCE_ROW),
+        "Only column reduction (REDUCE_COL) is supported, except row reduction (REDUCE_ROW) is allowed only for SUM");
     static_assert(pool_type == SUM || pool_type == AVG, "Only SUM and AVG pool types are currently supported on SFPU");
 
     // Supported instruction modes for SFPU reduce sum/avg (integer and float)
@@ -742,7 +744,7 @@ template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
 inline void _calculate_reduce_(std::uint32_t block_rt_dim = 1, std::uint32_t block_ct_dim = 1)
 {
     static_assert(
-        reduce_dim == REDUCE_COL || pool_type == PoolType::SUM,
+        reduce_dim == REDUCE_COL || (pool_type == PoolType::SUM && reduce_dim == REDUCE_ROW),
         "Only column reduction (REDUCE_COL) is supported, except row reduction (REDUCE_ROW) is allowed only for SUM");
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
 
