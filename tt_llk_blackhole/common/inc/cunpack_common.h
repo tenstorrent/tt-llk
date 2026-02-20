@@ -254,12 +254,12 @@ inline bool is_unpacker_to_register_conversion_supported(
         // 1. Float32 (FP32, e8m23) in L1.
         //
         //    ISA conversions (Unpackers/FormatConversion.md):
-        //      SrcA/SrcB path (is_fp32_dest_acc_en=false):
+        //      SrcA/SrcB path:
         //        FP32 → TF32  (Tf32):      valid when is_fp32_dest_acc_en and !unpack_to_dest
         //                                   (TF32 is the SrcA/SrcB format in non-FP32-acc mode).
         //        FP32 → BF16  (Float16_b): always valid.
         //        FP32 → FP16  (Float16):   always valid.
-        //      Dst path (is_fp32_dest_acc_en=true):
+        //      Dst path:
         //        FP32 → FP32  (Float32):   identity.
         //        FP32 → BF16  (Float16_b): always valid.
         //        FP32 → FP16  (Float16):   always valid.
@@ -282,11 +282,11 @@ inline bool is_unpacker_to_register_conversion_supported(
         //    lower 13 mantissa bits zeroed.
         //
         //    ISA conversions:
-        //      SrcA/SrcB path (is_fp32_dest_acc_en=false):
+        //      SrcA/SrcB path:
         //        TF32 → TF32  (Tf32):      valid when !is_fp32_dest_acc_en.
         //        TF32 → BF16  (Float16_b): always valid.
         //        TF32 → FP16  (Float16):   always valid.
-        //      Dst path (is_fp32_dest_acc_en=true):
+        //      Dst path:
         //        TF32 → FP32  (Float32):   valid when is_fp32_dest_acc_en
         //                                   (Dst is in FP32 accumulation mode; TF32 bits are
         //                                   preserved as the mantissa zeros make it a valid FP32).
@@ -321,11 +321,11 @@ inline bool is_unpacker_to_register_conversion_supported(
         // 4. Float16_b (BF16, e8m7) in L1.
         //
         //    ISA conversions:
-        //      SrcA/SrcB path (!is_fp32_dest_acc_en):
+        //      SrcA/SrcB path:
         //        BF16 → TF32  (Tf32):      always valid for SrcA/SrcB (hardware supports this
         //                                   regardless of dest acc mode; TF32 is a SrcA/SrcB format).
         //        BF16 → BF16  (Float16_b): always valid (identity).
-        //      Dst path (is_fp32_dest_acc_en):
+        //      Dst path:
         //        BF16 → BF16  (Float16_b): always valid (identity).
         //    Note: FP16 is NOT a valid output for BF16 input — no cross-exponent-width conversion
         //    from 8-bit exponent BF16 to 5-bit exponent FP16 is supported by the unpacker.
@@ -370,11 +370,11 @@ inline bool is_unpacker_to_register_conversion_supported(
         //    The hardware reads the shared 8-bit exponent and per-datum mantissa bits,
         //    reconstructing BF16-equivalent data in the register.
         //
-        //    SrcA/SrcB path (!is_fp32_dest_acc_en):
+        //    SrcA/SrcB path:
         //      BFP8 → TF32  (Tf32):      always valid for SrcA/SrcB (hardware supports this
         //                                  regardless of dest acc mode; TF32 is a SrcA/SrcB format).
         //      BFP8 → BF16  (Float16_b): always valid.
-        //    Dst path (is_fp32_dest_acc_en):
+        //    Dst path:
         //      BFP8 → BF16  (Float16_b): always valid.
         //
         //    Config: InDataFormat = BFP8 (or BFP4/BFP2), OutDataFormat = BFP8 (or BFP4/BFP2).
@@ -433,14 +433,14 @@ inline bool is_unpacker_to_register_conversion_supported(
         // 11. Int8 (INT8, sign-magnitude 8-bit) in L1.
         //
         //     ISA conversions:
-        //       SrcA/SrcB path (!is_fp32_dest_acc_en):
+        //       SrcA/SrcB path:
         //         INT8 → TF32  (Tf32):      always valid for SrcA/SrcB (hardware supports this
         //                                    regardless of dest acc mode; TF32 is a SrcA/SrcB format).
         //                                    Uses InDataFormat=BFP8 with REG2_Force_shared_exp set
         //                                    and a fixed exponent supplied via FORCED_SHARED_EXP.
         //         INT8 → BF16  (Float16_b): always valid (same BFP8+force_shared_exp mechanism).
         //         INT8 → Integer "8" (Int8): always valid.
-        //       Dst path (is_fp32_dest_acc_en):
+        //       Dst path:
         //         INT8 → BF16  (Float16_b): always valid (BFP8+force_shared_exp).
         //         INT8 → Integer "8" (Int8): always valid.
         case DataFormat::Int8:
