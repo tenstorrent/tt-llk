@@ -37,7 +37,6 @@ from helpers.test_variant_parameters import (
     TILE_COUNT,
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
-    generate_input_dim,
 )
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
