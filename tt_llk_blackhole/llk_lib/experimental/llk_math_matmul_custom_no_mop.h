@@ -217,10 +217,10 @@ inline void matmul_configure_mop(
 }
 
 template <int Level>
-void run_throttled_sequence();
+void run_throttled_sequence_no_mop();
 
 template <>
-void run_throttled_sequence<1>()
+void run_throttled_sequence_no_mop<1>()
 {
     TTI_NOP;
     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
@@ -235,7 +235,7 @@ void run_throttled_sequence<1>()
 }
 
 template <>
-void run_throttled_sequence<2>()
+void run_throttled_sequence_no_mop<2>()
 {
     TTI_NOP;
     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
@@ -251,7 +251,7 @@ void run_throttled_sequence<2>()
 }
 
 template <>
-void run_throttled_sequence<3>()
+void run_throttled_sequence_no_mop<3>()
 {
     TTI_NOP;
     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
@@ -271,7 +271,7 @@ void run_throttled_sequence<3>()
 }
 
 template <>
-void run_throttled_sequence<4>()
+void run_throttled_sequence_no_mop<4>()
 {
     TTI_NOP;
     TTI_MVMUL(p_setrwc::CLR_NONE, 0, ADDR_MOD_0, 0);
@@ -285,7 +285,7 @@ void run_throttled_sequence<4>()
 }
 
 template <>
-void run_throttled_sequence<5>()
+void run_throttled_sequence_no_mop<5>()
 {
     TTI_NOP;
     TTI_NOP;
@@ -344,7 +344,7 @@ inline void matmul_configure_mop_throttled(
         ckernel::math::replay_buf_offset,
         replay_buf_len,
         // Lambda function to load reply buffer
-        [] { run_throttled_sequence<THROTTLE_LEVEL>(); });
+        [] { run_throttled_sequence_no_mop<THROTTLE_LEVEL>(); });
 
     // MOP template programming removed - will use direct replay calls
 }
