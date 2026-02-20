@@ -1128,18 +1128,24 @@ def process_coverage_run_artefacts() -> bool:
         for variant in compiled_variants:
             stream_runs = glob.glob(os.path.join(variant, "*.stream"))
 
-            for stream in stream_runs:
+            if not stream_runs:
+                continue
 
+            merged_stream = b""
+            for stream in stream_runs:
                 with open(stream, "rb") as fd:
-                    coverage_stream = fd.read()
+                    merged_stream += fd.read()
+
+            if merged_stream:
                 run_shell_command(
                     f"{TestConfig.GCOV_TOOL} merge-stream",
                     TestConfig.TESTS_WORKING_DIR,
-                    coverage_stream,
+                    merged_stream,
                     text=False,
                 )
 
-                info_hash = sha256(str(stream).encode()).hexdigest()
+                # Generate single .info file per variant
+                info_hash = sha256(str(variant).encode()).hexdigest()
                 command = (
                     f"lcov --gcov-tool {TestConfig.GCOV} --capture "
                     f"--directory {variant / 'obj/'} "
