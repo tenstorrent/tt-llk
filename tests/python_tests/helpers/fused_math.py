@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 from .fused_fpu import Fpu, MatmulFpu, ReduceFpu
 from .fused_sfpu import Sfpu
-from .fused_unpacker import MatmulUnpacker, Unpacker
+from .fused_unpacker import Unpacker, UnpackerA
 from .llk_params import (
     BroadcastType,
     DataCopyType,
@@ -67,34 +67,39 @@ class ComputeNode:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        batch_start,
-        batch_tile_cnt,
+        block_x,
+        block_y,
+        block_tiles_x,
+        block_tiles_y,
     ):
         if self.unpacker is None:
             return ""
 
-        if config.perf_run_type == PerfRunType.PACK_ISOLATE:
-            return ""
-
-        if config.perf_run_type == PerfRunType.MATH_ISOLATE:
-            if (
-                isinstance(self.unpacker, MatmulUnpacker)
-                or self.unpacker == MatmulUnpacker
-            ):
-                return self.unpacker().perf_set_valid(operation, config, self)
-            code = ""
-            for tile_idx in range(batch_tile_cnt):
-                code += self.unpacker().perf_set_valid(operation, config, self)
-            return code
+        # if config.perf_run_type == PerfRunType.PACK_ISOLATE:
+        #     return ""
+        #
+        # if config.perf_run_type == PerfRunType.MATH_ISOLATE:
+        #     if (
+        #         isinstance(self.unpacker, MatmulUnpacker)
+        #         or self.unpacker == MatmulUnpacker
+        #     ):
+        #         return self.unpacker().perf_set_valid(operation, config, self)
+        #     code = ""
+        #     for tile_idx in range(batch_tile_cnt):
+        #         code += self.unpacker().perf_set_valid(operation, config, self)
+        #     return code
 
         code = self.unpacker().init(operation, config, self)
-        if isinstance(self.unpacker, MatmulUnpacker) or self.unpacker == MatmulUnpacker:
-            tile_idx_expr = f"{batch_start}"
-            code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
-        else:
-            for tile_idx in range(batch_tile_cnt):
-                tile_idx_expr = f"{batch_start} + {tile_idx}"
-                code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
+        code += self.unpacker().loop.unpack_loop(
+            operation, config, self, block_x, block_y, block_tiles_x, block_tiles_y
+        )
+        # if isinstance(self.unpacker, MatmulUnpacker) or self.unpacker == MatmulUnpacker:
+        #     tile_idx_expr = f"{batch_start}"
+        #     code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
+        # else:
+        #     for tile_idx in range(batch_tile_cnt):
+        #         tile_idx_expr = f"{batch_start} + {tile_idx}"
+        #         code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
         code += self.unpacker().uninit(operation, config, self)
         return code
 
@@ -406,7 +411,7 @@ class ComputePipeline:
 
         return f"_llk_math_dest_section_done_<dest_sync{operation.stage_id}, {config.dest_acc.cpp_enum_value}>();\n"
 
-    def _batch_loop(
+    def _batch_loop_old(
         self, operation: "FusedOperation", config: "GlobalConfig", body_fn
     ) -> str:
         batch_size = operation.batch_size
@@ -426,6 +431,55 @@ class ComputePipeline:
             code += "{\n"
             code += body_fn(f"{num_full_batches * batch_size}", remaining_tiles)
             code += "}\n"
+
+        return code
+
+    def _batch_loop(
+        self, operation: "FusedOperation", config: "GlobalConfig", body_fn
+    ) -> str:
+        block_tiles_x = operation.block_tiles_x
+        block_tiles_y = operation.block_tiles_y
+        tile_count_x = operation.output.tile_count_x
+        tile_count_y = operation.output.tile_count_y
+
+        full_blocks_x = tile_count_x // block_tiles_x
+        full_blocks_y = tile_count_y // block_tiles_y
+        remaining_tiles_x = tile_count_x % block_tiles_x
+        remaining_tiles_y = tile_count_y % block_tiles_y
+
+        full_x_limit = full_blocks_x * block_tiles_x
+        full_y_limit = full_blocks_y * block_tiles_y
+
+        code = ""
+
+        if full_blocks_x > 0 and full_blocks_y > 0:
+            code += f"for (std::uint32_t block_x = 0; block_x < {full_x_limit}; block_x += {block_tiles_x}) {{\n"
+            code += f"for (std::uint32_t block_y = 0; block_y < {full_y_limit}; block_y += {block_tiles_y}) {{\n"
+            code += body_fn("block_x", "block_y", block_tiles_x, block_tiles_y)
+            code += "}\n"
+            code += "}\n"
+
+        if remaining_tiles_y > 0 and full_blocks_x > 0:
+            code += f"for (std::uint32_t block_x = 0; block_x < {full_x_limit}; block_x += {block_tiles_x}) {{\n"
+            code += body_fn(
+                "block_x", f"{full_y_limit}", block_tiles_x, remaining_tiles_y
+            )
+            code += "}\n"
+
+        if remaining_tiles_x > 0 and full_blocks_y > 0:
+            code += f"for (std::uint32_t block_y = 0; block_y < {full_y_limit}; block_y += {block_tiles_y}) {{\n"
+            code += body_fn(
+                f"{full_x_limit}", "block_y", remaining_tiles_x, block_tiles_y
+            )
+            code += "}\n"
+
+        if remaining_tiles_x > 0 and remaining_tiles_y > 0:
+            code += body_fn(
+                f"{full_x_limit}",
+                f"{full_y_limit}",
+                remaining_tiles_x,
+                remaining_tiles_y,
+            )
 
         return code
 
@@ -459,10 +513,12 @@ class ComputePipeline:
             code += f"for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
             code += "{\n"
 
-        def batch_body(batch_start, batch_tile_cnt):
+        def batch_body(block_x, block_y, block_tiles_x, block_tiles_y):
             body = self._wait_for_dest(operation, config)
             for compute_unit in self.operations:
-                body += compute_unit.math_calculate(operation, config, batch_tile_cnt)
+                body += compute_unit.math_calculate(
+                    operation, config, block_x, block_y, block_tiles_x, block_tiles_y
+                )
             body += self._dest_section_done(operation, config)
             return body
 
@@ -496,11 +552,11 @@ class ComputePipeline:
             code += f"for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
             code += "{\n"
 
-        def batch_body(batch_start, batch_tile_cnt):
+        def batch_body(block_x, block_y, block_tiles_x, block_tiles_y):
             body = ""
             for compute_unit in self.operations:
                 body += compute_unit.unpack(
-                    operation, config, batch_start, batch_tile_cnt
+                    operation, config, block_x, block_y, block_tiles_x, block_tiles_y
                 )
             return body
 

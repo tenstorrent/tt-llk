@@ -112,17 +112,14 @@ class MatmulFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block_size_x: int = 1,
+        block_size_y: int = 1,
     ) -> str:
         stage = operation.stage_id
-        batch_size = operation.batch_size
         math_fidelity = operation.math_fidelity.cpp_enum_value
-        ct_dim = operation.ct_dim
-        transpose = compute_unit.unpack_transpose_faces.cpp_enum_value
-
-        if batch_size == ct_dim:
-            rt_dim = 1
-        else:
-            rt_dim = operation.rt_dim
+        transpose = "true" if compute_unit.unpack_transpose_faces.value else "false"
+        ct_dim = block_size_x
+        rt_dim = block_size_y
 
         return (
             f"// Operation {stage}: Matmul FPU\n"
@@ -137,21 +134,18 @@ class MatmulFpu(Fpu):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         tile_idx: int,
+        block_size_x: int = 1,
+        block_size_y: int = 1,
     ) -> str:
-        batch_size = operation.batch_size
-        ct_dim = operation.ct_dim
+        ct_dim = block_size_x
+        rt_dim = block_size_y
         kt_dim = operation.kt_dim
         math_fidelity = operation.math_fidelity.cpp_enum_value
-
-        if batch_size == ct_dim:
-            rt_dim = 1
-        else:
-            rt_dim = operation.rt_dim
 
         return (
             f"for (std::uint32_t kt = 0; kt < {kt_dim}; kt++)\n"
             f"{{\n"
-            f"    _llk_math_matmul_<{math_fidelity}>(0, {ct_dim}, {rt_dim});\n"
+            f"    _llk_math_matmul_<{math_fidelity}>({tile_idx}, {ct_dim}, {rt_dim});\n"
             f"}}\n"
         )
 

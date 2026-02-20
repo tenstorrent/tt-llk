@@ -1,41 +1,41 @@
 operations:
-  - src_a: "input_A"
-    src_b: "input_B"
-    output: "output1"
-    src_b_const_value: 1.0
-    src_a_dims: [32, 32]
-    src_b_dims: [32, 32]
-    output_dims: [32, 32]
-    input_format: "Float16_b"
-    output_format: "Float16_b"
-    math:
-      - type: "Fpu"
-        operation: "Matmul"
-        unpacker: "MatmulUnpacker"
-    packer: "Packer"
-    math_fidelity: "LoFi"
-  - src_a: "input_A"
-    src_b: "input_B"
-    output: "output2"
-    src_b_const_value: 1.0
-    src_a_dims: [32, 32]
-    src_b_dims: [32, 32]
-    output_dims: [32, 32]
-    input_format: "Float16_b"
-    output_format: "Float16_b"
-    math:
-      - type: "Fpu"
-        operation: "ReduceBlockMax"
-        unpacker: "ReduceBlockMaxUnpacker"
-    packer: "Packer"
-    math_fidelity: "LoFi"
+  # - src_a: "input_A"
+  #   src_b: "input_B"
+  #   output: "output1"
+  #   src_b_const_value: 1.0
+  #   src_a_dims: [128, 128]
+  #   src_b_dims: [128, 128]
+  #   output_dims: [128, 128]
+  #   input_format: "Float16_b"
+  #   output_format: "Float16_b"
+  #   math:
+  #     - type: "Fpu"
+  #       operation: "Matmul"
+  #       unpacker: "MatmulUnpacker"
+  #   packer: "Packer"
+  #   math_fidelity: "LoFi"
+  # - src_a: "input_A"
+  #   src_b: "input_B"
+  #   output: "output2"
+  #   src_b_const_value: 1.0
+  #   src_a_dims: [128, 128]
+  #   src_b_dims: [128, 128]
+  #   output_dims: [128, 128]
+  #   input_format: "Float16_b"
+  #   output_format: "Float16_b"
+  #   math:
+  #     - type: "Fpu"
+  #       operation: "ReduceBlockMax"
+  #       unpacker: "ReduceBlockMaxUnpacker"
+  #   packer: "Packer"
+  #   math_fidelity: "LoFi"
   - src_a: "input_A"
     src_b: "input_B"
     output: "output3"
     src_b_const_value: 1.0
-    src_a_dims: [32, 32]
-    src_b_dims: [32, 32]
-    output_dims: [32, 32]
+    src_a_dims: [128, 128]
+    src_b_dims: [128, 128]
+    output_dims: [128, 128]
     input_format: "Float16_b"
     output_format: "Float16_b"
     math:
@@ -49,9 +49,9 @@ operations:
     src_b: "input_B"
     output: "output4"
     src_b_const_value: 1.0
-    src_a_dims: [32, 32]
-    src_b_dims: [32, 32]
-    output_dims: [32, 32]
+    src_a_dims: [128, 128]
+    src_b_dims: [128, 128]
+    output_dims: [128, 128]
     input_format: "Float16_b"
     output_format: "Float16_b"
     math:
