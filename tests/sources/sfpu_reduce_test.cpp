@@ -87,7 +87,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     else if (REDUCE_DIM == ReduceDim::REDUCE_ROW)
     {
         _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
-        ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(BLOCK_RT_DIM, BLOCK_CT_DIM);
+        ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>(BLOCK_CT_DIM, BLOCK_RT_DIM);
     }
 
 #ifdef ADD_TOP_ROW

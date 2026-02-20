@@ -735,13 +735,14 @@ inline void _init_reduce_(std::uint32_t block_ct_dim = 1)
  * @tparam pool_type The reduction operation, currently supported: (SUM, AVG, MAX, MIN)
  * @tparam reduce_dim The reduction dimension (currently only REDUCE_COL is supported)
  * @tparam format The data format, currently supported: (Int32, UInt32, UInt16, Float32, Float16_b)
- * @param block_rt_dim Block dimension (used for MAX/MIN reduction to specify block height, default is 1 for single tile)
+ * @param block_ct_dim Block dimension (used for SUM/AVG column reduction to specify number of columns, default is 1 for single tile)
+ * @param block_rt_dim Block dimension (used for MAX/MIN reduction to specify block height, or SUM row reduction; default is 1 for single tile)
  *
  * @note Constraints (unable to static assert for block_rt_dim runtime parameter)
  *       - MAX/MIN with Int32 format only supports block_rt_dim == 1 (single tile)
  */
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_(std::uint32_t block_rt_dim = 1, std::uint32_t block_ct_dim = 1)
+inline void _calculate_reduce_(std::uint32_t block_ct_dim = 1, std::uint32_t block_rt_dim = 1)
 {
     static_assert(
         reduce_dim == REDUCE_COL || (pool_type == PoolType::SUM && reduce_dim == REDUCE_ROW),
