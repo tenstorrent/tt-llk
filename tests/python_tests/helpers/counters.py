@@ -9,23 +9,18 @@ from ttexalens.tt_exalens_lib import read_words_from_device, write_words_to_devi
 
 from .test_config import TestConfig
 
-COUNTER_SLOT_COUNT = 86  # Max counters per thread
+COUNTER_SLOT_COUNT = 86  # Max counters
 COUNTER_DATA_WORD_COUNT = COUNTER_SLOT_COUNT * 2  # 2 words per counter (cycles + count)
+PERF_COUNTERS_BUFFER_SIZE = (86 + 172) * 4  # Config + Data words in bytes (1032 bytes)
+PERF_COUNTERS_LAST_STOPPER_SHIFT = 9
+PERF_COUNTERS_LAST_STOPPER_MASK = 0x3
 
-_THREAD_ADDRESSES = {
-    "UNPACK": (
-        TestConfig.PERF_COUNTER_UNPACK_CONFIG_ADDR,
-        TestConfig.PERF_COUNTER_UNPACK_DATA_ADDR,
-    ),
-    "MATH": (
-        TestConfig.PERF_COUNTER_MATH_CONFIG_ADDR,
-        TestConfig.PERF_COUNTER_MATH_DATA_ADDR,
-    ),
-    "PACK": (
-        TestConfig.PERF_COUNTER_PACK_CONFIG_ADDR,
-        TestConfig.PERF_COUNTER_PACK_DATA_ADDR,
-    ),
-}
+# Single shared buffer addresses (all threads use the same location)
+PERF_COUNTERS_CONFIG_ADDR = TestConfig.PERF_COUNTERS_BASE_ADDR
+PERF_COUNTERS_DATA_ADDR = TestConfig.PERF_COUNTERS_BASE_ADDR + (86 * 4)
+PERF_COUNTERS_SYNC_CTRL_ADDR = (
+    TestConfig.PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_BUFFER_SIZE
+)
 
 COUNTER_BANK_NAMES = {
     0: "INSTRN_THREAD",
@@ -220,92 +215,130 @@ def configure_counters(location: str = "0,0") -> None:
         )
         config_words.append(config_word)
 
-    # Pad and combine with zero data
+    # Pad config words to full slot count
     config_words.extend([0] * (COUNTER_SLOT_COUNT - len(config_words)))
-    combined_data = config_words + [0] * COUNTER_DATA_WORD_COUNT
 
-    # Write to all threads
-    for thread in ALL_THREADS:
-        config_addr, _ = _THREAD_ADDRESSES[thread]
-        write_words_to_device(location=location, addr=config_addr, data=combined_data)
+    # Write config to shared buffer
+    write_words_to_device(
+        location=location, addr=PERF_COUNTERS_CONFIG_ADDR, data=config_words
+    )
+
+    # Clear data buffer completely (remove any stale values from previous runs)
+    write_words_to_device(
+        location=location,
+        addr=PERF_COUNTERS_DATA_ADDR,
+        data=[0] * COUNTER_DATA_WORD_COUNT,
+    )
+
+    # Clear sync state before kernel runs (reset all flags)
+    write_words_to_device(
+        location=location, addr=PERF_COUNTERS_SYNC_CTRL_ADDR, data=[0]
+    )
 
 
-def read_counters(location: str = "0,0") -> pd.DataFrame:
+def read_counters(location: str = "0,0", debug: bool = False) -> pd.DataFrame:
     """
     Read performance counter results from all threads.
 
     Args:
         location: Tensix core coordinates (e.g., "0,0").
+        debug: Print debug information about sync state.
 
     Returns:
         DataFrame with columns: thread, bank, counter_name, counter_id, cycles, count, l1_mux
     """
     all_results = []
 
-    for thread in ALL_THREADS:
-        config_addr, data_addr = _THREAD_ADDRESSES[thread]
-
-        # Read metadata
-        metadata = read_words_from_device(
-            location=location, addr=config_addr, word_count=COUNTER_SLOT_COUNT
+    # Read from the single shared buffer (last stopper wrote here)
+    sync_ctrl = read_words_from_device(
+        location=location, addr=PERF_COUNTERS_SYNC_CTRL_ADDR, word_count=1
+    )
+    if not sync_ctrl:
+        raise RuntimeError(
+            "Perf counter sync control word not readable; counters may not have been stopped."
         )
 
-        if not metadata:
-            continue
+    if debug:
+        print(f"\n[DEBUG] Sync control word: 0x{sync_ctrl[0]:08x}")
+        print(f"[DEBUG]   Bits 0-2 (thread start): {(sync_ctrl[0] & 0x7):03b}")
+        print(f"[DEBUG]   Bits 3-5 (thread stop): {((sync_ctrl[0] >> 3) & 0x7):03b}")
+        print(f"[DEBUG]   Bit 6 (global started): {(sync_ctrl[0] >> 6) & 0x1}")
+        print(f"[DEBUG]   Bit 7 (global stopped): {(sync_ctrl[0] >> 7) & 0x1}")
+        print(f"[DEBUG]   Bits 9-10 (last stopper ID): {(sync_ctrl[0] >> 9) & 0x3}")
 
-        # Count valid configs (check bit 31)
-        valid_count = sum(1 for m in metadata if (m & 0x80000000) != 0)
+    last_id = (
+        sync_ctrl[0] >> PERF_COUNTERS_LAST_STOPPER_SHIFT
+    ) & PERF_COUNTERS_LAST_STOPPER_MASK
 
-        if valid_count == 0:
-            continue
-
-        # Read ONLY data for valid counters (no UNKNOWN counters)
-        data = read_words_from_device(
-            location=location, addr=data_addr, word_count=valid_count * 2
+    last_thread_map = {0: "UNPACK", 1: "MATH", 2: "PACK"}
+    if last_id not in last_thread_map:
+        raise RuntimeError(
+            f"Invalid last-stopper id {last_id}; sync_ctrl=0x{sync_ctrl[0]:08x}"
         )
 
-        if not data or len(data) < valid_count * 2:
-            continue
+    thread = last_thread_map[last_id]
 
-        data_idx = 0
-        for i in range(COUNTER_SLOT_COUNT):
-            config_word = metadata[i]
-            if (config_word & 0x80000000) == 0:  # Check valid bit
-                continue  # Unused slot
+    # Read metadata from shared buffer
+    metadata = read_words_from_device(
+        location=location, addr=PERF_COUNTERS_CONFIG_ADDR, word_count=COUNTER_SLOT_COUNT
+    )
 
-            # Decode metadata: [valid(31), l1_mux(17), counter_id(8-16), bank(0-7)]
-            bank_id = config_word & 0xFF
-            counter_id = (config_word >> 8) & 0x1FF  # 9 bits for counter_id
-            l1_mux = (config_word >> 17) & 0x1
+    if not metadata:
+        return pd.DataFrame(all_results)
 
-            bank_name = COUNTER_BANK_NAMES.get(bank_id, f"UNKNOWN_{bank_id}")
+    # Count valid configs (check bit 31)
+    valid_count = sum(1 for m in metadata if (m & 0x80000000) != 0)
 
-            # Get counter name
-            if bank_name == "L1":
-                counter_name = COUNTER_NAMES["L1"].get(
-                    (counter_id, l1_mux), f"L1_UNKNOWN_{counter_id}_{l1_mux}"
-                )
-            else:
-                counter_name = COUNTER_NAMES.get(bank_name, {}).get(
-                    counter_id, f"{bank_name}_UNKNOWN_{counter_id}"
-                )
+    if valid_count == 0:
+        return pd.DataFrame(all_results)
 
-            # Extract results using data_idx
-            cycles = data[data_idx * 2]
-            count = data[data_idx * 2 + 1]
-            data_idx += 1
+    # Read ONLY data for valid counters from shared buffer
+    data = read_words_from_device(
+        location=location, addr=PERF_COUNTERS_DATA_ADDR, word_count=valid_count * 2
+    )
 
-            all_results.append(
-                {
-                    "thread": thread,
-                    "bank": bank_name,
-                    "counter_name": counter_name,
-                    "counter_id": counter_id,
-                    "cycles": cycles,
-                    "count": count,
-                    "l1_mux": l1_mux if bank_name == "L1" else None,
-                }
+    if not data or len(data) < valid_count * 2:
+        return pd.DataFrame(all_results)
+
+    data_idx = 0
+    for i in range(COUNTER_SLOT_COUNT):
+        config_word = metadata[i]
+        if (config_word & 0x80000000) == 0:  # Check valid bit
+            continue  # Unused slot
+
+        # Decode metadata: [valid(31), l1_mux(17), counter_id(8-16), bank(0-7)]
+        bank_id = config_word & 0xFF
+        counter_id = (config_word >> 8) & 0x1FF  # 9 bits for counter_id
+        l1_mux = (config_word >> 17) & 0x1
+
+        bank_name = COUNTER_BANK_NAMES.get(bank_id, f"UNKNOWN_{bank_id}")
+
+        # Get counter name
+        if bank_name == "L1":
+            counter_name = COUNTER_NAMES["L1"].get(
+                (counter_id, l1_mux), f"L1_UNKNOWN_{counter_id}_{l1_mux}"
             )
+        else:
+            counter_name = COUNTER_NAMES.get(bank_name, {}).get(
+                counter_id, f"{bank_name}_UNKNOWN_{counter_id}"
+            )
+
+        # Extract results using data_idx
+        cycles = data[data_idx * 2]
+        count = data[data_idx * 2 + 1]
+        data_idx += 1
+
+        all_results.append(
+            {
+                "thread": thread,
+                "bank": bank_name,
+                "counter_name": counter_name,
+                "counter_id": counter_id,
+                "cycles": cycles,
+                "count": count,
+                "l1_mux": l1_mux if bank_name == "L1" else None,
+            }
+        )
 
     return pd.DataFrame(all_results)
 
