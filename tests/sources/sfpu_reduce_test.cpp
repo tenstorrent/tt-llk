@@ -61,7 +61,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params->TILE_CNT; ++i)
     {
         LLK_ASSERT(
             (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
@@ -75,10 +75,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     if (REDUCE_DIM == ReduceDim::REDUCE_COL)
     {
-        for (int i = 0; i < params->TILE_CNT; ++i)
+        for (std::uint32_t i = 0; i < params->TILE_CNT; ++i)
         {
             LLK_ASSERT(
-                (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
+                (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                "Block tile index exceeds maximum destination tiles");
             _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(i);
             ckernel::sfpu::_calculate_reduce_<POOL_TYPE, REDUCE_DIM, static_cast<DataFormat>(formats.math)>();
         }

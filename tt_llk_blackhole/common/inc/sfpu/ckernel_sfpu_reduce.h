@@ -8,6 +8,7 @@
 
 #include "ckernel_addrmod.h"
 #include "ckernel_instr_params.h"
+#include "llk_defs.h"
 #include "lltt.h"
 #include "sfpi.h"
 
@@ -165,12 +166,12 @@ inline void perform_reduce_col_sum_avg()
     constexpr bool is_integer_mode =
         (INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::INT32_2S_COMP || INSTRUCTION_MODE == InstrModLoadStore::LO16);
 
-    constexpr uint UPPER_FACE_ADDRS[NUM_FACES] = {0, 0, 16, 16};   // Face 0, 0, 1, 1
-    constexpr uint LOWER_FACE_ADDRS[NUM_FACES] = {32, 32, 48, 48}; // Face 2, 2, 3, 3
-    constexpr uint COLUMN_OFFSETS[NUM_FACES]   = {0, 2, 0, 2};     // even, odd, even, odd
+    constexpr std::uint32_t UPPER_FACE_ADDRS[NUM_FACES] = {0, 0, 16, 16};   // Face 0, 0, 1, 1
+    constexpr std::uint32_t LOWER_FACE_ADDRS[NUM_FACES] = {32, 32, 48, 48}; // Face 2, 2, 3, 3
+    constexpr std::uint32_t COLUMN_OFFSETS[NUM_FACES]   = {0, 2, 0, 2};     // even, odd, even, odd
     // Optimized approach: Process 4 iterations to handle all column combinations
     // This reduces operations by processing complementary face pairs simultaneously, less load/store operations
-    for (uint i = 0; i < NUM_FACES; i++)
+    for (std::uint32_t i = 0; i < NUM_FACES; i++)
     {
         // Iteration mapping - Process vertically aligned faces (0+2, 1+3) to optimize column operations:
         // i=0: even columns, left half  (faces 0 + 2, columns 0,2,4,6,8,10,12,14)
@@ -181,19 +182,18 @@ inline void perform_reduce_col_sum_avg()
         // This allows processing all 32 rows of a column at once (16 from upper face + 16 from lower face)
         // Reduces load/store operations by accumulating all rows into one LREG per column group
         // Final result stored in top row of upper face (first row in dest) - no intermediate storage needed
-        const uint upper_face_addr = UPPER_FACE_ADDRS[i];
-        const uint lower_face_addr = LOWER_FACE_ADDRS[i];
-        const uint column_offset   = COLUMN_OFFSETS[i];
+        const std::uint32_t upper_face_addr = UPPER_FACE_ADDRS[i];
+        const std::uint32_t lower_face_addr = LOWER_FACE_ADDRS[i];
+        const std::uint32_t column_offset   = COLUMN_OFFSETS[i];
         load_face_data<INSTRUCTION_MODE>(upper_face_addr, lower_face_addr, column_offset);
         // Perform column-wise summation (Blackhole uses replay buffer 6 for both int and float)
+        sum_columns<6>();
         if constexpr (is_integer_mode)
         {
-            sum_columns<6>();                                // Integer replay buffer
             TTI_SFPIADD(0, p_sfpu::LREG4, p_sfpu::LREG0, 4); // LREG0 = upper_face_sums + lower_face_sums (int)
         }
         else
         {
-            sum_columns<6>();                                                             // Float replay buffer (no NOPs needed for Blackhole)
             TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG4, p_sfpu::LREG0, 0); // LREG0 = upper + lower (float)
         }
         // Perform averaging if requested (different for int vs float)
@@ -233,7 +233,7 @@ inline void perform_reduce_col_sum_avg()
  * @tparam lreg_temp   A temporary LREG used for shifted copies
  * @tparam is_integer_mode True for integer types (uses SFPIADD), false for float (uses SFPADD)
  */
-template <uint lreg_result, uint lreg_temp, bool is_integer_mode>
+template <std::uint32_t lreg_result, std::uint32_t lreg_temp, bool is_integer_mode>
 inline void horizontal_reduce_to_column_zero()
 {
     // Step 1: Shift by 4 and add (reduces 8 -> 4 sums in columns 4-7)
@@ -301,7 +301,7 @@ inline void horizontal_reduce_to_column_zero()
 }
 
 template <InstrModLoadStore INSTRUCTION_MODE>
-inline void perform_reduce_row_sum_tile(uint tile_row_offset)
+inline void perform_reduce_row_sum_tile(std::uint32_t tile_row_offset)
 {
     // Determine if integer or float mode at compile time
     constexpr bool is_integer_mode =
@@ -309,18 +309,18 @@ inline void perform_reduce_row_sum_tile(uint tile_row_offset)
 
     // Process tile in 2 face-pairs: (f0+f1) for tile rows 0-15, (f2+f3) for tile rows 16-31
     // Each face-pair iteration processes 8 rows (two groups of 4 rows each)
-    for (uint face_pair = 0; face_pair < 2; face_pair++)
+    for (std::uint32_t face_pair = 0; face_pair < 2; face_pair++)
     {
         // Base offset for this face pair:
         // face_pair 0: faces 0+1 (dest indices 0-31)
         // face_pair 1: faces 2+3 (dest indices 32-63)
-        uint face_pair_base = face_pair * 2 * ROWS_PER_FACE;
+        std::uint32_t face_pair_base = face_pair * 2 * ROWS_PER_FACE;
 
-        for (uint row_group = 0; row_group < 2; row_group++)
+        for (std::uint32_t row_group = 0; row_group < 2; row_group++)
         {
             // Within each face, process rows in groups of 8 (two sub-groups of 4)
-            uint row_offset_first  = row_group * 8;        // 0 or 8
-            uint row_offset_second = row_offset_first + 4; // 4 or 12
+            std::uint32_t row_offset_first  = row_group * 8;        // 0 or 8
+            std::uint32_t row_offset_second = row_offset_first + 4; // 4 or 12
 
             // Load 4 rows from face 0 (or 2) and face 1 (or 3)
             TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + face_pair_base + row_offset_first);
@@ -369,7 +369,7 @@ inline void perform_reduce_row_sum_tile(uint tile_row_offset)
  * @param block_ct_dim Number of tiles along x axis of tensor (column tiles)
  */
 template <InstrModLoadStore INSTRUCTION_MODE>
-inline void sum_first_columns_across_tiles(uint tile_row_base, uint block_ct_dim)
+inline void sum_first_columns_across_tiles(std::uint32_t tile_row_base, std::uint32_t block_ct_dim)
 {
     constexpr bool is_integer_mode =
         (INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::INT32_2S_COMP || INSTRUCTION_MODE == InstrModLoadStore::LO16);
@@ -377,17 +377,17 @@ inline void sum_first_columns_across_tiles(uint tile_row_base, uint block_ct_dim
     // Row offsets where per-tile reduction results are stored
     // note: tiles stored in tilized-mode in dest, we store results in column 0 for face 0 and face 2
     // rows 0-12 occupy face 0, rows 32-44 occupy face 2 (since 16-31 is face 1)
-    constexpr uint RESULT_ROWS[8] = {0, 4, 8, 12, 32, 36, 40, 44};
+    constexpr std::uint32_t RESULT_ROWS[8] = {0, 4, 8, 12, 32, 36, 40, 44};
 
-    for (uint r = 0; r < 8; r++)
+    for (std::uint32_t r = 0; r < 8; r++)
     {
-        uint row = RESULT_ROWS[r];
+        std::uint32_t row = RESULT_ROWS[r];
 
         // Load tile 0 into LREG0
         TT_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + row);
 
         // Load remaining tiles one at a time and accumulate into LREG0
-        for (uint t = 1; t < block_ct_dim; t++)
+        for (std::uint32_t t = 1; t < block_ct_dim; t++)
         {
             TT_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_base + t * ROWS_PER_TILE + row);
             if constexpr (is_integer_mode)
@@ -406,16 +406,16 @@ inline void sum_first_columns_across_tiles(uint tile_row_base, uint block_ct_dim
 }
 
 template <InstrModLoadStore INSTRUCTION_MODE>
-inline void perform_reduce_row_sum(uint block_ct_dim, uint block_rt_dim)
+inline void perform_reduce_row_sum(std::uint32_t block_ct_dim, std::uint32_t block_rt_dim)
 {
-    for (uint i = 0; i < block_rt_dim; i++)
+    for (std::uint32_t i = 0; i < block_rt_dim; i++)
     {
-        uint tile_row_offset = ROWS_PER_TILE * block_ct_dim * i;
+        std::uint32_t tile_row_offset = ROWS_PER_TILE * block_ct_dim * i;
 
         // Step 1: Reduce each tile individually (horizontal reduction within each tile)
-        for (uint j = 0; j < block_ct_dim; j++)
+        for (std::uint32_t j = 0; j < block_ct_dim; j++)
         {
-            uint tile_offset = tile_row_offset + (ROWS_PER_TILE * j);
+            std::uint32_t tile_offset = tile_row_offset + (ROWS_PER_TILE * j);
             perform_reduce_row_sum_tile<INSTRUCTION_MODE>(tile_offset);
         }
 
@@ -434,50 +434,6 @@ constexpr bool is_supported_reduce_format(DataFormat format)
 {
     return format == DataFormat::Int32 || format == DataFormat::UInt32 || format == DataFormat::Float32 || format == DataFormat::Float16_b ||
            format == DataFormat::UInt16;
-}
-
-/**
- * @brief Return appropriate InstrModLoadStore based on DataFormat and PoolType
- * @tparam format The DataFormat enum value for supported formats: Int32, UInt32, UInt16, Float32, Float16_b
- * @tparam pool_type The PoolType enum value (MAX/MIN require INT32_2S_COMP for Int32 format)
- * @return The corresponding InstrModLoadStore enum values: INT32, INT32_2S_COMP, LO16, DEFAULT (FP32, FP16B)
- */
-template <DataFormat format, PoolType pool_type>
-constexpr InstrModLoadStore get_instruction_mode()
-{
-    if constexpr (format == DataFormat::Float32)
-    {
-        return InstrModLoadStore::DEFAULT;
-    }
-    else if constexpr (format == DataFormat::Float16_b)
-    {
-        return InstrModLoadStore::DEFAULT;
-    }
-    else if constexpr (format == DataFormat::Int32)
-    {
-        // For MAX and MIN operations, Int32 requires INT32_2S_COMP instruction mode for SFPSWAP instructions
-        if constexpr (pool_type == PoolType::MAX || pool_type == PoolType::MIN)
-        {
-            return InstrModLoadStore::INT32_2S_COMP;
-        }
-        else
-        {
-            return InstrModLoadStore::INT32;
-        }
-    }
-    else if constexpr (format == DataFormat::UInt32)
-    {
-        return InstrModLoadStore::INT32_2S_COMP;
-    }
-    else if constexpr (format == DataFormat::UInt16)
-    {
-        return InstrModLoadStore::LO16; // UInt16 uses LO16 mode for unsigned 16-bit
-    }
-    else
-    {
-        static_assert(false, "Unsupported DataFormat for reduce operation. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
-        return InstrModLoadStore::INT32; // Unreachable, but required for syntax
-    }
 }
 
 /**
@@ -813,18 +769,17 @@ inline void calculate_reduce_max_min(const std::uint32_t block_height)
  * @tparam INSTRUCTION_MODE The instruction mode for integer and float formats: INT32, INT32_2S_COMP, LO16, DEFAULT (FP32, FP16B)
  */
 template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTION_MODE>
-inline void calculate_reduce_sum_avg(uint block_ct_dim, uint block_rt_dim)
+inline void calculate_reduce_sum_avg(std::uint32_t block_ct_dim, std::uint32_t block_rt_dim)
 {
     // Compile-time assertions to restrict to currently supported operations
     static_assert(reduce_dim == REDUCE_COL || reduce_dim == REDUCE_ROW, "Only column and row reduction are supported on SFPU");
     static_assert(pool_type == SUM || pool_type == AVG, "Only SUM and AVG pool types are currently supported on SFPU");
 
-    // Determine if integer or float mode at compile time
-    constexpr bool is_integer_mode =
-        (INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::INT32_2S_COMP || INSTRUCTION_MODE == InstrModLoadStore::LO16);
-    constexpr bool is_float_mode = (INSTRUCTION_MODE == InstrModLoadStore::DEFAULT); // float must use DEFAULT instruction mode - HW handles FP32 vs. FP16_B
-
-    static_assert(is_integer_mode || is_float_mode, "INSTRUCTION_MODE must be one of: INT32, INT32_2S_COMP, LO16, DEFAULT");
+    // Supported instruction modes for SFPU reduce sum/avg (integer and float)
+    constexpr bool is_supported_reduce_instr_mode =
+        (INSTRUCTION_MODE == InstrModLoadStore::INT32 || INSTRUCTION_MODE == InstrModLoadStore::INT32_2S_COMP || INSTRUCTION_MODE == InstrModLoadStore::LO16 ||
+         INSTRUCTION_MODE == InstrModLoadStore::FP32 || INSTRUCTION_MODE == InstrModLoadStore::FP16B);
+    static_assert(is_supported_reduce_instr_mode, "INSTRUCTION_MODE must be one of: INT32, INT32_2S_COMP, LO16, FP32, FP16B");
 
     if constexpr (reduce_dim == REDUCE_COL)
     {
@@ -855,8 +810,10 @@ inline void _init_reduce_(std::uint32_t block_ct_dim = 1)
 {
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
 
-    // Determine InstrModLoadStore based on format in dst register and pool_type
-    constexpr InstrModLoadStore INSTRUCTION_MODE = get_instruction_mode<format, pool_type>();
+    // Determine InstrModLoadStore from llk_defs; Int32 MAX/MIN use INT32_2S_COMP for SFPSWAP
+    constexpr InstrModLoadStore INSTRUCTION_MODE = (format == DataFormat::Int32 && (pool_type == PoolType::MAX || pool_type == PoolType::MIN))
+                                                       ? InstrModLoadStore::INT32_2S_COMP
+                                                       : GetSfpLoadStoreInstrMod<format>();
 
     // Dispatch to appropriate PoolType init
     if constexpr (pool_type == PoolType::MAX || pool_type == PoolType::MIN)
@@ -894,15 +851,17 @@ inline void _init_reduce_(std::uint32_t block_ct_dim = 1)
  *       - MAX/MIN with Int32 format only supports block_rt_dim == 1 (single tile)
  */
 template <PoolType pool_type, ReduceDim reduce_dim, DataFormat format>
-inline void _calculate_reduce_(uint32_t block_rt_dim = 1, uint32_t block_ct_dim = 1)
+inline void _calculate_reduce_(std::uint32_t block_rt_dim = 1, std::uint32_t block_ct_dim = 1)
 {
     static_assert(
         reduce_dim == REDUCE_COL || pool_type == PoolType::SUM,
         "Only column reduction (REDUCE_COL) is supported, except row reduction (REDUCE_ROW) is allowed only for SUM");
     static_assert(is_supported_reduce_format(format), "Unsupported data format. Supported formats: Int32, UInt32, UInt16, Float32, Float16_b");
 
-    // Determine InstrModLoadStore based on format in dst register and pool_type
-    constexpr InstrModLoadStore INSTRUCTION_MODE = get_instruction_mode<format, pool_type>();
+    // Determine InstrModLoadStore from llk_defs; Int32 MAX/MIN use INT32_2S_COMP for SFPSWAP
+    constexpr InstrModLoadStore INSTRUCTION_MODE = (format == DataFormat::Int32 && (pool_type == PoolType::MAX || pool_type == PoolType::MIN))
+                                                       ? InstrModLoadStore::INT32_2S_COMP
+                                                       : GetSfpLoadStoreInstrMod<format>();
 
     // Dispatch to appropriate reduction kernel based on PoolType
     if constexpr (pool_type == PoolType::MAX || pool_type == PoolType::MIN)
