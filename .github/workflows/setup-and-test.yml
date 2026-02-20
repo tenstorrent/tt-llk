@@ -193,8 +193,8 @@ jobs:
         with:
           name: test-logs-${{ env.CHIP_ARCH }}-${{ matrix.test_group }}
           path: |
-            tests/python_tests/test_run.log
-            tests/python_tests/test_errors.log
+            tests/python_tests/test_run*.log
+            tests/python_tests/test_errors*.log
 
       - name: Upload JUnit report
         uses: actions/upload-artifact@v4

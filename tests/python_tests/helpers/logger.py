@@ -22,8 +22,10 @@ Log levels (from most to least verbose):
     TRACE -> DEBUG -> INFO -> SUCCESS -> WARNING -> ERROR -> CRITICAL
 
 Output behavior:
-    - Logs are always written to test_run.log (overwritten each session).
+    - Logs are written to test_run.log (overwritten each session).
     - Errors (ERROR+) are appended to test_errors.log (persists across runs).
+    - Under pytest-xdist, each worker writes to its own log files
+      (e.g. test_run_gw0.log, test_errors_gw0.log) to avoid clobbering.
     - Terminal output uses pytest's live logging (log_cli) which integrates
       with pytest-sugar. Use --loguru-level=INFO to see logs in the terminal.
 """
@@ -76,8 +78,17 @@ class _PropagateHandler(logging.Handler):
         logging.getLogger(record.name).handle(record)
 
 
+def _xdist_worker_suffix() -> str:
+    """Return a filename suffix like '_gw0' when running under pytest-xdist."""
+    worker = os.environ.get("PYTEST_XDIST_WORKER")
+    return f"_{worker}" if worker else ""
+
+
 def configure_logger(level: str = None):
     """Configure the loguru logger for the test session.
+
+    Under pytest-xdist each worker gets its own log files (e.g.
+    test_run_gw0.log) so parallel workers never clobber each other.
 
     Args:
         level: Log level string (TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL).
@@ -86,7 +97,11 @@ def configure_logger(level: str = None):
     logger.remove()
 
     if level is None:
-        level = os.environ.get("LOGURU_LEVEL", "INFO").upper()
+        level = os.environ.get("LOGURU_LEVEL", "INFO")
+
+    level = level.upper()
+
+    suffix = _xdist_worker_suffix()
 
     # Propagate to stdlib logging so pytest's --log-cli-level can display them.
     # pytest's live logging integrates properly with pytest-sugar.
@@ -94,7 +109,7 @@ def configure_logger(level: str = None):
 
     # Session log - full log for this run (overwritten each session)
     logger.add(
-        "test_run.log",
+        f"test_run{suffix}.log",
         format=_file_format,
         level=level,
         mode="w",
@@ -103,14 +118,16 @@ def configure_logger(level: str = None):
 
     # Persistent error log - appends ERROR+ across runs so failures aren't lost
     logger.add(
-        "test_errors.log",
+        f"test_errors{suffix}.log",
         format=_error_file_format,
         level="ERROR",
         mode="a",
         colorize=False,
     )
 
-    logger.debug("Logger configured with level={}", level)
+    logger.debug(
+        "Logger configured with level={}, worker={}", level, suffix or "controller"
+    )
 
 
 # Apply initial configuration (can be reconfigured later from conftest.py)
