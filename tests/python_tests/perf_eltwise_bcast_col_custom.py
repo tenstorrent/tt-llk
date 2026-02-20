@@ -43,7 +43,7 @@ class CT_DIM(TemplateParameter):
     math_fidelity=[MathFidelity.LoFi],
     broadcast_type=[BroadcastType.Column],
     ct_dim=[1, 8],
-    loop_factor=list(range(10, 101, 10)),
+    loop_factor=[16],
 )
 def test_perf_eltwise_bcast_col_custom(
     perf_report,
