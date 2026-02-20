@@ -3,7 +3,6 @@
 
 import logging
 import os
-import sys
 from pathlib import Path
 
 import pytest
@@ -96,6 +95,7 @@ def regenerate_cpp(request):
 
 
 def pytest_configure(config):
+    config.coverage_enabled = config.getoption("--coverage", default=False)
     compile_producer = config.getoption("--compile-producer", default=False)
     compile_consumer = config.getoption("--compile-consumer", default=False)
     TestConfig.setup_mode(compile_consumer, compile_producer)
@@ -372,6 +372,6 @@ skip_for_quasar = pytest.mark.skipif(
 )
 
 skip_for_coverage = pytest.mark.skipif(
-    "--coverage" in sys.argv or any("coverage" in arg for arg in sys.argv),
+    "config.coverage_enabled",
     reason="Coverage shouldn't be ran with this test",
 )
