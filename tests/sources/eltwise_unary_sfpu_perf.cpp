@@ -20,6 +20,7 @@ std::uint32_t unp_cfg_context                          = 0;
 std::uint32_t pack_sync_tile_dst_ptr                   = 0;
 std::uint32_t math_sync_tile_dst_index                 = 0;
 static constexpr int MAX_TILES_DEST                    = is_fp32_dest_acc_en ? 4 : 8;
+static constexpr bool DST_ACCUM_MODE                   = is_fp32_dest_acc_en;
 static constexpr ckernel::DstSync DST_SYNC_MODE        = ckernel::DstSync::SyncHalf;
 static constexpr ckernel::BroadcastType BROADCAST_TYPE = ckernel::BroadcastType::NONE;
 
@@ -193,7 +194,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                                 block_tile, formats.math, formats.math);
                         }
 
-                        CALL_SFPU_OPERATION(block_tile, formats.math);
+                        CALL_SFPU_OPERATION(static_cast<std::uint32_t>(block_tile), formats.math, VectorMode::RC)
                     }
                 }
             }
@@ -219,7 +220,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                             block_tile, formats.math, formats.math);
 
                         // Start SFPU operation
-                        CALL_SFPU_OPERATION(block_tile, formats.math);
+                        CALL_SFPU_OPERATION(static_cast<std::uint32_t>(block_tile), formats.math, VectorMode::RC)
                     }
 
                     _llk_math_dest_section_done_<DST_SYNC_MODE, is_fp32_dest_acc_en>();

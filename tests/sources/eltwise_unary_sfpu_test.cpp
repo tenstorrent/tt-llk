@@ -54,8 +54,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-constexpr int ITERATIONS   = 32;
-constexpr bool STABLE_SORT = false;
+constexpr int ITERATIONS             = 32;
+constexpr bool FAST_MODE             = false;
+constexpr bool STABLE_SORT           = false;
+constexpr bool CLAMP_NEGATIVE        = false;
+static constexpr bool DST_ACCUM_MODE = is_fp32_dest_acc_en;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
@@ -86,7 +89,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DST_SYNC, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                 block_tile, formats.math, formats.math);
 
-            CALL_SFPU_OPERATION(block_tile, formats.math);
+            CALL_SFPU_OPERATION(static_cast<std::uint32_t>(block_tile), formats.math, VectorMode::RC)
         }
 
         _llk_math_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();

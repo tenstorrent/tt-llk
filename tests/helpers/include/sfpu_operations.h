@@ -9,6 +9,7 @@
 #include "ckernel_sfpu.h"
 #include "ckernel_sfpu_add_top_row.h"
 #include "ckernel_sfpu_binary.h"
+#include "llk_assert.h"
 #include "llk_math_eltwise_unary_sfpu_params.h"
 #include "llk_sfpu_types.h"
 
@@ -34,35 +35,35 @@ do { \
     if constexpr (SFPU_UNARY_OPERATION == SfpuType::acosh || \
                   SFPU_UNARY_OPERATION == SfpuType::asinh) \
     { \
-        _init_inverse_hyperbolic_<APPROX_MODE>(); \
+        ckernel::sfpu::_init_inverse_hyperbolic_<APPROX_MODE>(); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::atanh) \
     { \
-        _init_atanh_<APPROX_MODE>(); \
+        ckernel::sfpu::_init_atanh_<APPROX_MODE>(); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::elu) \
     { \
-        _init_elu_<APPROX_MODE>(); \
+        ckernel::sfpu::_init_elu_<APPROX_MODE>(); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::exp2) \
     { \
-        _init_exp2_<APPROX_MODE>(); \
+        ckernel::sfpu::_init_exp2_<APPROX_MODE>(); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::exponential) \
     { \
-        _init_exponential_<APPROX_MODE, FAST_MODE, 0x3F800000 /* exp_base_scale_factor */, CLAMP_NEGATIVE>(); \
+        ckernel::sfpu::_init_exponential_<APPROX_MODE, FAST_MODE, 0x3F800000 /* exp_base_scale_factor */, CLAMP_NEGATIVE>(); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::gelu) \
     { \
-        _init_gelu_<APPROX_MODE>(); \
+        ckernel::sfpu::_init_gelu_<APPROX_MODE>(); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::hardsigmoid) \
     { \
-        _init_hardsigmoid_<APPROX_MODE>(); \
+        ckernel::sfpu::_init_hardsigmoid_<APPROX_MODE>(); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::log) \
     { \
-        _init_log_<APPROX_MODE>(); \
+        ckernel::sfpu::_init_log_<APPROX_MODE>(); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::log1p) \
     { \
@@ -70,15 +71,15 @@ do { \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::reciprocal) \
     { \
-        _init_reciprocal_<APPROX_MODE, is_fp32_dest_acc_en>(); \
+        ckernel::sfpu::_init_reciprocal_<APPROX_MODE, is_fp32_dest_acc_en, false>(); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::rsqrt) \
     { \
-        _init_rsqrt_<APPROX_MODE>(); \
+        ckernel::sfpu::_init_rsqrt_<APPROX_MODE, false>(); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::sqrt) \
     { \
-        _init_sqrt_<APPROX_MODE>(); \
+        ckernel::sfpu::_init_sqrt_<APPROX_MODE, false>(); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::tanh) \
     { \
@@ -111,76 +112,77 @@ do { \
 #define CALL_SFPU_OPERATION(dst_index, math_format, vector_mode) \
 do { \
     if constexpr (SFPU_UNARY_OPERATION == SfpuType::abs) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_abs_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), ITERATIONS); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_abs_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), ITERATIONS); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::acosh) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_acosh_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_acosh_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::asinh) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_asinh_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_asinh_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::atanh) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_atanh_<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_atanh_<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::celu) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Celu, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 10, 1.0f / 10.0f); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(static_cast<void(*)(std::uint32_t, std::uint32_t)>(ckernel::sfpu::_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Celu, ITERATIONS>), dst_index, static_cast<int>(vector_mode), static_cast<std::uint32_t>(10), static_cast<std::uint32_t>(0)); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::cosine) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_cosine_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), ITERATIONS); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_cosine_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), ITERATIONS); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::elu) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_elu_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 1); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_elu_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 1); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::exp2) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_exp2_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_exp2_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::exponential) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_exponential_<APPROX_MODE, false, ITERATIONS, FAST_MODE, false, CLAMP_NEGATIVE>, dst_index, static_cast<int>(vector_mode), p_sfpu::kCONST_1_FP16B); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_exponential_<APPROX_MODE, false, ITERATIONS, FAST_MODE, false, CLAMP_NEGATIVE>, dst_index, static_cast<int>(vector_mode), p_sfpu::kCONST_1_FP16B); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::fill) \
     { \
         if ((math_format) == ckernel::to_underlying(DataFormat::Int32)) \
-            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::INT32, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5.0f); \
+            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::INT32, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5.0f); \
         else if ((math_format) == ckernel::to_underlying(DataFormat::UInt16)) \
-            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::LO16, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5.0f); \
+            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::LO16, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5.0f); \
         else if ((math_format) == ckernel::to_underlying(DataFormat::UInt32)) \
-            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::INT32, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5.0f); \
+            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_fill_int_<APPROX_MODE, ckernel::InstrModLoadStore::INT32, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5.0f); \
         else \
-            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_fill_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), static_cast<float>(fill_const_value)); \
+            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_fill_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 0.0f); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::gelu) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_gelu_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_gelu_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::hardsigmoid) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(static_cast<void(*)()>(ckernel::sfpu::_calculate_activation_<APPROX_MODE, ckernel::ActivationType::Hardsigmoid, ITERATIONS>), dst_index, static_cast<int>(vector_mode)); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::log) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_log_<APPROX_MODE, false, ITERATIONS>, dst_index, static_cast<int>(vector_mode), ITERATIONS, 0); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_log_<APPROX_MODE, false, ITERATIONS>, dst_index, static_cast<int>(vector_mode), ITERATIONS, 0); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::log1p) \
         _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::calculate_log1p<APPROX_MODE, FAST_MODE, is_fp32_dest_acc_en, ITERATIONS>, dst_index); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::neg || SFPU_UNARY_OPERATION == SfpuType::negative) \
     { \
         if ((math_format) == ckernel::to_underlying(DataFormat::Int32)) \
-            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_negative_int_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
+            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_negative_int_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
         else \
-            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_negative_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
+            _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_negative_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
     } \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::reciprocal) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_reciprocal_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en>, dst_index, static_cast<int>(vector_mode), ITERATIONS); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_reciprocal_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en>, dst_index, static_cast<int>(vector_mode), ITERATIONS); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::rsqrt) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_rsqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, FAST_MODE>, dst_index, static_cast<int>(vector_mode), ITERATIONS); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_rsqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, FAST_MODE>, dst_index, static_cast<int>(vector_mode), ITERATIONS); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::silu) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_silu_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_silu_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::sine) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_sine_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), ITERATIONS); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_sine_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), ITERATIONS); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::sqrt) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_sqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, FAST_MODE>, dst_index, static_cast<int>(vector_mode), ITERATIONS); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_sqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, FAST_MODE>, dst_index, static_cast<int>(vector_mode), ITERATIONS); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::square) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_square_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_square_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::tanh) \
         _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::calculate_tanh<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::threshold) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_calculate_threshold_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5.0f, 10.0f); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_threshold_<APPROX_MODE, ITERATIONS, float>, dst_index, static_cast<int>(vector_mode), 5.0f, 10.0f); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::topk_local_sort) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_bitonic_topk_phases_steps<APPROX_MODE, is_fp32_dest_acc_en, STABLE_SORT>, dst_index, static_cast<int>(vector_mode), 0, 5, 0, 10, 0); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_bitonic_topk_phases_steps<APPROX_MODE, is_fp32_dest_acc_en, STABLE_SORT>, dst_index, static_cast<int>(vector_mode), 0, 5, 0, 10, 0); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::topk_merge) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_bitonic_topk_merge<APPROX_MODE, is_fp32_dest_acc_en, STABLE_SORT>, dst_index, static_cast<int>(vector_mode), 5, 10); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_bitonic_topk_merge<APPROX_MODE, is_fp32_dest_acc_en, STABLE_SORT>, dst_index, static_cast<int>(vector_mode), 5, 10); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::topk_rebuild) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_bitonic_topk_rebuild<APPROX_MODE, is_fp32_dest_acc_en, STABLE_SORT>, dst_index, static_cast<int>(vector_mode), 0, 5, 10, 3, 0); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_bitonic_topk_rebuild<APPROX_MODE, is_fp32_dest_acc_en, STABLE_SORT>, dst_index, static_cast<int>(vector_mode), 0, 5, 10, 3, 0); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::relu_max) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_relu_max_<sfpi::vFloat, APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5.0f); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_relu_max_<sfpi::vFloat, APPROX_MODE, ITERATIONS, float>, dst_index, static_cast<int>(vector_mode), 5.0f); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::relu_min) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(_relu_min_<sfpi::vFloat, APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode), 5.0f); \
-} while (false)
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_relu_min_<sfpi::vFloat, APPROX_MODE, ITERATIONS, float>, dst_index, static_cast<int>(vector_mode), 5.0f); \
+} while (false);
+
 // clang-format on
 
 namespace test_utils
