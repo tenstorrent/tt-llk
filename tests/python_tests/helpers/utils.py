@@ -269,7 +269,10 @@ def passed_test(
 
     pcc = calculate_pcc(res_tensor, golden_tensor)
 
-    logger.info("PCC: {:.6f} | format={}", pcc, output_data_format.name)
+    if print_pcc:
+        logger.info("PCC: {:.6f} | format={}", pcc, output_data_format.name)
+    else:
+        logger.debug("PCC: {:.6f} | format={}", pcc, output_data_format.name)
 
     target_pcc = 0.99
     # Once we iterate L1-L1 more than once the loss in precision is accumulated because the result from the first run is transferred as input to the next run
