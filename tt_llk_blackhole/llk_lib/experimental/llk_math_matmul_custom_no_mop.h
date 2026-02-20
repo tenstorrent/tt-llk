@@ -127,22 +127,12 @@ inline void matmul_configure_addrmod(
     }
 }
 
-inline void matmul_configure_addrmod_reinit()
+template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0>
+inline void matmul_configure_addrmod_reinit(const bool transpose = false)
 {
-    addr_mod_t {
-        //.srca = {.incr = srca_increment, .clr = 0, .cr = 0},
-        .srca = {.incr = 16, .clr = 0, .cr = 0},
-        .srcb = {.incr = 0, .clr = 0, .cr = 1},
-        .dest = {.incr = 8, .clr = 0, .cr = 0},
-    }
-        .set(ADDR_MOD_1);
-
-    addr_mod_t {
-        .srca = {.incr = 0, .clr = 0, .cr = 1},
-        .srcb = {.incr = 32, .clr = 0, .cr = 1},
-        .dest = {.incr = 8, .clr = 0, .cr = 0},
-    }
-        .set(ADDR_MOD_2);
+    // Reinit must restore the full matmul address-modifier contract used by replay.
+    // In particular, transpose affects ADDR_MOD_1/4 and fidelity/throttle use ADDR_MOD_5/6.
+    matmul_configure_addrmod<MATH_FIDELITY_DESC, THROTTLE_LEVEL>(transpose);
 }
 
 template <int NUM_FIDELITY_PHASES>
