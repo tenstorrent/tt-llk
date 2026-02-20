@@ -51,7 +51,7 @@ class FusedOperation:
     dst_index: int = 0
     srca_reuse_count: int = 4
     # batch_size: int = 0
-    block_size: Tuple[int, int] = None
+    block_size: Tuple[int, int] = (32, 32)
 
     def __post_init__(self):
         mapping = self.operand_mapping

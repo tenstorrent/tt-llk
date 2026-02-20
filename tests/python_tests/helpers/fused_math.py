@@ -10,9 +10,9 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
 
-from .fused_fpu import Fpu, MatmulFpu, ReduceFpu
+from .fused_fpu import Fpu, ReduceFpu
 from .fused_sfpu import Sfpu
-from .fused_unpacker import MatmulUnpacker, Unpacker, UnpackerA
+from .fused_unpacker import Unpacker, UnpackerA
 from .llk_params import (
     BroadcastType,
     DataCopyType,
@@ -77,8 +77,10 @@ class ComputeNode:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        batch_start,
-        batch_tile_cnt,
+        block_x,
+        block_y,
+        block_size_x,
+        block_size_y,
     ):
         if self.unpacker is None:
             return ""
@@ -87,29 +89,35 @@ class ComputeNode:
             return ""
 
         if config.perf_run_type == PerfRunType.MATH_ISOLATE:
-            if (
-                isinstance(self.unpacker, MatmulUnpacker)
-                or self.unpacker == MatmulUnpacker
-            ):
-                return self.unpacker().perf_set_valid(operation, config, self)
-            code = ""
-            for tile_idx in range(batch_tile_cnt):
-                code += self.unpacker().perf_set_valid(operation, config, self)
-            return code
+            return self.unpacker().perf_set_valid(
+                operation,
+                config,
+                self,
+                block_x,
+                block_y,
+                block_size_x,
+                block_size_y,
+            )
 
-        code = self.unpacker().init(operation, config, self)
-        if isinstance(self.unpacker, MatmulUnpacker) or self.unpacker == MatmulUnpacker:
-            tile_idx_expr = f"{batch_start}"
-            code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
-        else:
-            for tile_idx in range(batch_tile_cnt):
-                tile_idx_expr = f"{batch_start} + {tile_idx}"
-                code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
-        code += self.unpacker().uninit(operation, config, self)
+        code = self.unpacker().init(
+            operation, config, self, block_x, block_y, block_size_x, block_size_y
+        )
+        code += self.unpacker().unpack(
+            operation, config, self, block_x, block_y, block_size_x, block_size_y
+        )
+        code += self.unpacker().uninit(
+            operation, config, self, block_x, block_y, block_size_x, block_size_y
+        )
         return code
 
     def fpu_calculate(
-        self, operation: "FusedOperation", config: "GlobalConfig", batch_tile_cnt
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        block_x,
+        block_y,
+        block_size_x,
+        block_size_y,
     ):
         if self.fpu is None:
             return ""
@@ -121,21 +129,25 @@ class ComputeNode:
             PerfRunType.UNPACK_ISOLATE,
             PerfRunType.L1_CONGESTION,
         ):
-            code = ""
-            if isinstance(self.fpu, MatmulFpu):
-                code += self.unpacker().perf_clear_valid(operation, config, self)
-            else:
-                for tile_idx in range(batch_tile_cnt):
-                    code += self.unpacker().perf_clear_valid(operation, config, self)
-            return code
+            return self.unpacker().perf_clear_valid(
+                operation,
+                config,
+                self,
+                block_x,
+                block_y,
+                block_size_x,
+                block_size_y,
+            )
 
-        code = self.fpu.init(operation, config, self)
-        if isinstance(self.fpu, MatmulFpu):
-            code += self.fpu.calculate(operation, config, self, 0)
-        else:
-            for tile_idx in range(batch_tile_cnt):
-                code += self.fpu.calculate(operation, config, self, tile_idx)
-        code += self.fpu.uninit(operation, config, self)
+        code = self.fpu.init(
+            operation, config, self, block_x, block_y, block_size_x, block_size_y
+        )
+        code += self.fpu.calculate(
+            operation, config, self, block_x, block_y, block_size_x, block_size_y
+        )
+        code += self.fpu.uninit(
+            operation, config, self, block_x, block_y, block_size_x, block_size_y
+        )
         return code
 
     def sfpu_calculate(self, operation: "FusedOperation", config: "GlobalConfig"):
@@ -155,14 +167,26 @@ class ComputeNode:
         return code
 
     def math_calculate(
-        self, operation: "FusedOperation", config: "GlobalConfig", batch_tile_cnt
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        block_x,
+        block_y,
+        block_size_x,
+        block_size_y,
     ) -> str:
         if self.fpu is not None:
-            return self.fpu_calculate(operation, config, batch_tile_cnt)
-        elif self.sfpu is not None:
+            return self.fpu_calculate(
+                operation,
+                config,
+                block_x,
+                block_y,
+                block_size_x,
+                block_size_y,
+            )
+        if self.sfpu is not None:
             return self.sfpu_calculate(operation, config)
-        else:
-            raise ValueError("fpu and sfpu are not defined")
+        raise ValueError("fpu and sfpu are not defined")
 
     def golden(
         self,
@@ -197,11 +221,10 @@ class ComputeNode:
                 operation.output.data_format,
             ).flatten()
 
-            batch_size = operation.batch_size
+            batch_size = operation.block_tiles_x * operation.block_tiles_y
             tile_cnt = operation.output.tile_count
             tile_size = 1024
 
-            batch_start = 0
             for batch_start in range(0, tile_cnt, batch_size):
                 batch_end = min(batch_start + batch_size, tile_cnt)
                 batch_tile_cnt = batch_end - batch_start
@@ -233,10 +256,9 @@ class ComputeNode:
     def __str__(self):
         if self.fpu is not None:
             return f"{self.unpacker.__name__}, {self.fpu}"
-        elif self.sfpu:
+        if self.sfpu:
             return f"{self.sfpu}"
-        else:
-            return ""
+        return ""
 
 
 class ComputePipeline:
@@ -323,13 +345,13 @@ class ComputePipeline:
         unpack_b_dst = operation.unpack_a_out
 
         code = (
-            f"    // Operation {stage}: Fused Unpack\n"
-            f"    UNUSED const Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});\n"
-            f"    UNUSED const Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});\n"
-            f"    UNUSED const std::uint32_t unpack_a_src_format{stage} = ckernel::to_underlying(DataFormat::{unpack_a_src.name});\n"
-            f"    UNUSED const std::uint32_t unpack_a_dst_format{stage} = ckernel::to_underlying(DataFormat::{unpack_a_dst.name});\n"
-            f"    UNUSED const std::uint32_t unpack_b_src_format{stage} = ckernel::to_underlying(DataFormat::{unpack_b_src.name});\n"
-            f"    UNUSED const std::uint32_t unpack_b_dst_format{stage} = ckernel::to_underlying(DataFormat::{unpack_b_dst.name});\n"
+            f"// Operation {stage}: Fused Unpack\n"
+            f"UNUSED const Operand buffer_A{stage}({hex(buffer_A_address)}, {buffer_A_tile_size});\n"
+            f"UNUSED const Operand buffer_B{stage}({hex(buffer_B_address)}, {buffer_B_tile_size});\n"
+            f"UNUSED const std::uint32_t unpack_a_src_format{stage} = ckernel::to_underlying(DataFormat::{unpack_a_src.name});\n"
+            f"UNUSED const std::uint32_t unpack_a_dst_format{stage} = ckernel::to_underlying(DataFormat::{unpack_a_dst.name});\n"
+            f"UNUSED const std::uint32_t unpack_b_src_format{stage} = ckernel::to_underlying(DataFormat::{unpack_b_src.name});\n"
+            f"UNUSED const std::uint32_t unpack_b_dst_format{stage} = ckernel::to_underlying(DataFormat::{unpack_b_dst.name});\n"
         )
         return code
 
@@ -348,17 +370,17 @@ class ComputePipeline:
         if stage == 0:
             code = (
                 f"_llk_unpack_hw_configure_<{dest_acc}, false>(\n"
-                f"    unpack_a_src_format{stage}, unpack_b_src_format{stage}, unpack_a_dst_format{stage}, unpack_b_dst_format{stage},\n"
-                f"    {unpa_face_r_dim}, {unpb_face_r_dim}, {unpa_num_faces}, {unpb_num_faces}, {unpa_tile_size}, {unpb_tile_size}\n"
+                f"unpack_a_src_format{stage}, unpack_b_src_format{stage}, unpack_a_dst_format{stage}, unpack_b_dst_format{stage},\n"
+                f"{unpa_face_r_dim}, {unpb_face_r_dim}, {unpa_num_faces}, {unpb_num_faces}, {unpa_tile_size}, {unpb_tile_size}\n"
                 f");\n"
             )
         else:
             code = (
                 f"_llk_unpack_reconfig_data_format_srca_impl_<{dest_acc}, false>(\n"
-                f"    unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {unpa_tile_size}\n"
+                f"unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {unpa_tile_size}\n"
                 f");\n"
                 f"_llk_unpack_reconfig_data_format_srcb_impl_<{dest_acc}, false>(\n"
-                f"    unpack_b_src_format{stage}, unpack_b_dst_format{stage}, {unpb_tile_size}\n"
+                f"unpack_b_src_format{stage}, unpack_b_dst_format{stage}, {unpb_tile_size}\n"
                 f");\n"
             )
         return code
@@ -421,22 +443,47 @@ class ComputePipeline:
     ) -> str:
         code = ""
 
-        remaning_tiles_x = operation.output.tile_count_x % operation.block_tiles_x
-        remaning_tiles_y = operation.output.tile_count_y % operation.block_tiles_y
-        for x in range(0, operation.output.tile_count_x, operation.block_tiles_x):
-            for y in range(0, operation.output.tile_count_y, operation.block_tiles_y):
-                code += body_fn(x, y, operation.block_tiles_x, operation.block_tiles_y)
-            if remaning_tiles_y > 0:
-                y = operation.output.tile_count_y // operation.block_tiles_y
-                code += body_fn(x, y, operation.block_tiles_x, remaning_tiles_y)
+        block_tiles_x = operation.block_tiles_x
+        block_tiles_y = operation.block_tiles_y
+        tile_count_x = operation.output.tile_count_x
+        tile_count_y = operation.output.tile_count_y
 
-        if remaning_tiles_x > 0:
-            x = operation.output.tile_count_x // operation.block_tiles_x
-            for y in range(0, operation.output.tile_count_y, operation.block_tiles_y):
-                code += body_fn(x, y, remaning_tiles_x, operation.block_tiles_y)
-            if remaning_tiles_y > 0:
-                y = operation.output.tile_count_y // operation.block_tiles_y
-                code += body_fn(x, y, remaning_tiles_x, remaning_tiles_y)
+        full_blocks_x = tile_count_x // block_tiles_x
+        full_blocks_y = tile_count_y // block_tiles_y
+        remaining_tiles_x = tile_count_x % block_tiles_x
+        remaining_tiles_y = tile_count_y % block_tiles_y
+
+        full_x_limit = full_blocks_x * block_tiles_x
+        full_y_limit = full_blocks_y * block_tiles_y
+
+        if full_blocks_x > 0 and full_blocks_y > 0:
+            code += f"for (std::uint32_t block_x = 0; block_x < {full_x_limit}; block_x += {block_tiles_x}) {{\n"
+            code += f"for (std::uint32_t block_y = 0; block_y < {full_y_limit}; block_y += {block_tiles_y}) {{\n"
+            code += body_fn("block_x", "block_y", block_tiles_x, block_tiles_y)
+            code += "}\n"
+            code += "}\n"
+
+        if remaining_tiles_y > 0 and full_blocks_x > 0:
+            code += f"for (std::uint32_t block_x = 0; block_x < {full_x_limit}; block_x += {block_tiles_x}) {{\n"
+            code += body_fn(
+                "block_x", f"{full_y_limit}", block_tiles_x, remaining_tiles_y
+            )
+            code += "}\n"
+
+        if remaining_tiles_x > 0 and full_blocks_y > 0:
+            code += f"for (std::uint32_t block_y = 0; block_y < {full_y_limit}; block_y += {block_tiles_y}) {{\n"
+            code += body_fn(
+                f"{full_x_limit}", "block_y", remaining_tiles_x, block_tiles_y
+            )
+            code += "}\n"
+
+        if remaining_tiles_x > 0 and remaining_tiles_y > 0:
+            code += body_fn(
+                f"{full_x_limit}",
+                f"{full_y_limit}",
+                remaining_tiles_x,
+                remaining_tiles_y,
+            )
 
         return code
 
@@ -480,7 +527,7 @@ class ComputePipeline:
             body = self._wait_for_dest(operation, config)
             for compute_unit in self.operations:
                 body += compute_unit.math_calculate(
-                    operation, config, block_size_x, block_size_y
+                    operation, config, x, y, block_size_x, block_size_y
                 )
             body += self._dest_section_done(operation, config)
             return body
@@ -515,11 +562,11 @@ class ComputePipeline:
             code += f"for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
             code += "{\n"
 
-        def batch_body(batch_start, batch_tile_cnt):
+        def batch_body(x, y, block_size_x, block_size_y):
             body = ""
             for compute_unit in self.operations:
                 body += compute_unit.unpack(
-                    operation, config, batch_start, batch_tile_cnt
+                    operation, config, x, y, block_size_x, block_size_y
                 )
             return body
 
@@ -563,9 +610,9 @@ class ComputePipeline:
         ]
 
     def __str__(self):
-        str = ""
+        output = ""
         for op in self.operations:
-            str += "\n  "
-            str += op.__str__()
+            output += "\n  "
+            output += op.__str__()
 
-        return str
+        return output
