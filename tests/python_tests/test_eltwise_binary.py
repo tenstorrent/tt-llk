@@ -313,7 +313,7 @@ def test_eltwise_binary(
         EltwiseBinaryReuseDestType.DEST_TO_SRCB,
     ],
     formats=lambda: input_output_formats(
-        [DataFormat.Float16_b],
+        [DataFormat.Float16_b, DataFormat.Float32, DataFormat.Bfp8_b],
         same=True,
     ),
     math_fidelity=[MathFidelity.LoFi],
