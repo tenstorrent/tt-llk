@@ -137,7 +137,7 @@ class TestConfig:
 
     # === Addresses ===
     RUNTIME_ADDRESS_NON_COVERAGE: ClassVar[int] = 0x20000
-    RUNTIME_ADDRESS_COVERAGE: ClassVar[int] = 0x64000
+    RUNTIME_ADDRESS_COVERAGE: ClassVar[int] = 0x6E000
     TRISC_PROFILER_BARRIER_ADDRESS: ClassVar[int] = 0x16AFF4
     TRISC_START_ADDRS: ClassVar[list[int]] = [0x16DFF0, 0x16DFF4, 0x16DFF8]
     THREAD_PERFORMANCE_DATA_BUFFER_LENGTH = 0x400
@@ -1114,18 +1114,25 @@ def process_coverage_run_artefacts() -> bool:
         for variant in compiled_variants:
             stream_runs = glob.glob(os.path.join(variant, "*.stream"))
 
-            for stream in stream_runs:
+            if not stream_runs:
+                continue
 
+            stream_parts = []
+            for stream in stream_runs:
                 with open(stream, "rb") as fd:
-                    coverage_stream = fd.read()
+                    stream_parts.append(fd.read())
+            merged_stream = b"".join(stream_parts)
+
+            if merged_stream:
                 run_shell_command(
                     f"{TestConfig.GCOV_TOOL} merge-stream",
                     TestConfig.TESTS_WORKING_DIR,
-                    coverage_stream,
+                    merged_stream,
                     text=False,
                 )
 
-                info_hash = sha256(str(stream).encode()).hexdigest()
+                # Generate single .info file per variant
+                info_hash = sha256(str(variant).encode()).hexdigest()
                 command = (
                     f"lcov --gcov-tool {TestConfig.GCOV} --capture "
                     f"--directory {variant / 'obj/'} "
