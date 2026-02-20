@@ -49,22 +49,21 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_math_common.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_eltwise_unary_sfpu.h"
-#include "sfpu_operations.h"
 
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
 constexpr int ITERATIONS                        = 32;
-constexpr bool FAST_MODE                        = false;
 constexpr bool STABLE_SORT                      = false;
-constexpr bool CLAMP_NEGATIVE                   = false;
 static constexpr bool DST_ACCUM_MODE            = is_fp32_dest_acc_en;
 static constexpr ckernel::DstSync DST_SYNC_MODE = DST_SYNC;
 
+#include "sfpu_operations.h"
+
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const int MAX_TILES_DEST =
-        is_fp32_dest_acc_en ? (BIT32_DEST_REGISTER_HALF_SIZE / (TILE_NUM_FACES * FACE_R_DIM)) : (DEST_REGISTER_HALF_SIZE / (TILE_NUM_FACES * FACE_R_DIM));
+    const std::uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? (std::uint32_t)(BIT32_DEST_REGISTER_HALF_SIZE / (TILE_NUM_FACES * FACE_R_DIM))
+                                                             : (std::uint32_t)(DEST_REGISTER_HALF_SIZE / (TILE_NUM_FACES * FACE_R_DIM));
 
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
@@ -80,17 +79,17 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
     {
-        int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+        std::uint32_t block_tiles = std::min((std::uint32_t)(params->TILE_CNT - block_start), MAX_TILES_DEST);
 
         _llk_math_wait_for_dest_available_<DST_SYNC>();
-        for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+        for (std::uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
         {
             LLK_ASSERT((block_tile < get_dest_max_tiles<DST_SYNC, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "block_tile exceeds max dest tiles");
 
             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DST_SYNC, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                 block_tile, formats.math, formats.math);
 
-            CALL_SFPU_OPERATION(static_cast<std::uint32_t>(block_tile), formats.math, VectorMode::RC)
+            CALL_SFPU_OPERATION(block_tile, formats.math, VectorMode::None)
         }
 
         _llk_math_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();

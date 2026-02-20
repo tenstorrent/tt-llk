@@ -10,6 +10,7 @@
 #include "ckernel_sfpu_add_top_row.h"
 #include "ckernel_sfpu_binary.h"
 #include "llk_assert.h"
+#include "llk_math_eltwise_binary_sfpu_params.h"
 #include "llk_math_eltwise_unary_sfpu_params.h"
 #include "llk_sfpu_types.h"
 
@@ -128,7 +129,11 @@ do { \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::exp2) \
         _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_exp2_<APPROX_MODE, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::exponential) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_exponential_<APPROX_MODE, false, ITERATIONS, FAST_MODE, false, CLAMP_NEGATIVE>, dst_index, static_cast<int>(vector_mode), p_sfpu::kCONST_1_FP16B); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>( \
+            ckernel::sfpu::_calculate_exponential_<APPROX_MODE, false, ITERATIONS, FAST_MODE, false, CLAMP_NEGATIVE>, \
+            dst_index, \
+            (FAST_MODE && APPROX_MODE && CLAMP_NEGATIVE) ? static_cast<int>(VectorMode::RC) : static_cast<int>(vector_mode), \
+            p_sfpu::kCONST_1_FP16B); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::fill) \
     { \
         if ((math_format) == ckernel::to_underlying(DataFormat::Int32)) \
@@ -147,7 +152,7 @@ do { \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::log) \
         _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_calculate_log_<APPROX_MODE, false, ITERATIONS>, dst_index, static_cast<int>(vector_mode), ITERATIONS, 0); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::log1p) \
-        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::calculate_log1p<APPROX_MODE, FAST_MODE, is_fp32_dest_acc_en, ITERATIONS>, dst_index); \
+        _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::calculate_log1p<APPROX_MODE, FAST_MODE, is_fp32_dest_acc_en, ITERATIONS>, dst_index, static_cast<int>(vector_mode)); \
     else if constexpr (SFPU_UNARY_OPERATION == SfpuType::neg || SFPU_UNARY_OPERATION == SfpuType::negative) \
     { \
         if ((math_format) == ckernel::to_underlying(DataFormat::Int32)) \
@@ -183,48 +188,68 @@ do { \
         _llk_math_eltwise_unary_sfpu_params_<APPROX_MODE>(ckernel::sfpu::_relu_min_<sfpi::vFloat, APPROX_MODE, ITERATIONS, float>, dst_index, static_cast<int>(vector_mode), 5.0f); \
 } while (false);
 
-// clang-format on
+/**
+ * Runs the one-time per-operation binary SFPU initialisation.
+ * Call once before the tile loop, paired with CALL_BINARY_SFPU_OPERATION inside the loop.
+ *
+ * Required compile-time names in scope:
+ *   SFPU_BINARY_OPERATION, APPROX_MODE
+ */
+#define CALL_BINARY_SFPU_OPERATION_INIT \
+do { \
+    if constexpr (SFPU_BINARY_OPERATION == ckernel::BinaryOp::ADD || \
+                  SFPU_BINARY_OPERATION == ckernel::BinaryOp::SUB || \
+                  SFPU_BINARY_OPERATION == ckernel::BinaryOp::MUL || \
+                  SFPU_BINARY_OPERATION == ckernel::BinaryOp::DIV || \
+                  SFPU_BINARY_OPERATION == ckernel::BinaryOp::RSUB || \
+                  SFPU_BINARY_OPERATION == ckernel::BinaryOp::XLOGY || \
+                  SFPU_BINARY_OPERATION == ckernel::BinaryOp::POW) \
+    { \
+        ckernel::sfpu::_sfpu_binary_init_<APPROX_MODE, SFPU_BINARY_OPERATION>(); \
+    } \
+    else if constexpr (SFPU_BINARY_OPERATION == ckernel::BinaryOp::ADD_TOP_ROW) \
+    { \
+        ckernel::sfpu::_init_add_top_row_(); \
+    } \
+} while (false);
 
-namespace test_utils
-{
-using namespace ckernel;
-using namespace ckernel::sfpu;
-
-template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, std::uint32_t MATH_FORMAT = 0>
-void call_binary_sfpu_operation(const std::uint32_t dst_index_in0 = 0, const std::uint32_t dst_index_in1 = 1, const std::uint32_t dst_index_out = 0)
-{
-    switch (BINOP)
-    {
-        case BinaryOp::ADD:
-        case BinaryOp::SUB:
-        case BinaryOp::MUL:
-        case BinaryOp::DIV:
-        case BinaryOp::RSUB:
-        case BinaryOp::XLOGY:
-        case BinaryOp::POW:
-            _sfpu_binary_init_<APPROXIMATION_MODE, BINOP>();
-            _calculate_sfpu_binary_<APPROXIMATION_MODE, BINOP, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_out);
-            break;
-        case BinaryOp::RSHFT:
-            _calculate_binary_right_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
-            break;
-        case BinaryOp::LSHFT:
-            _calculate_binary_left_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
-            break;
-        case BinaryOp::LOGICAL_RSHFT:
-            _calculate_logical_right_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
-            break;
-        case BinaryOp::ADD_TOP_ROW:
-            _init_add_top_row_();
-            // Use actual format when compiling for ADD_TOP_ROW tests, otherwise use Float32 as safe default for static assert
-            {
-                constexpr DataFormat add_top_row_format = (BINOP == BinaryOp::ADD_TOP_ROW) ? static_cast<DataFormat>(MATH_FORMAT) : DataFormat::Float32;
-                _calculate_add_top_row_<add_top_row_format>(dst_index_in0, dst_index_in1, dst_index_out);
-            }
-            break;
-        default:
-            return;
-    }
-}
-
-} // namespace test_utils
+/**
+ * Dispatches the per-tile binary SFPU calculate call.
+ * Call inside the tile loop after CALL_BINARY_SFPU_OPERATION_INIT.
+ *
+ * Unlike unary ops (which process one face per call), binary calculate functions
+ * process the entire tile in a single call via their ITERATIONS loop. This macro
+ * therefore calls each function exactly once, wrapping it with the required
+ * _llk_math_eltwise_binary_sfpu_start_ / _done_ pair.
+ *
+ * Required compile-time names in scope:
+ *   SFPU_BINARY_OPERATION, APPROX_MODE, DST_SYNC_MODE, ITERATIONS, MATH_FORMAT
+ *
+ * @param dst_index_in0  Destination register index for first operand.
+ * @param dst_index_in1  Destination register index for second operand.
+ * @param dst_index_out  Destination register index for output.
+ */
+#define CALL_BINARY_SFPU_OPERATION(dst_index_in0, dst_index_in1, dst_index_out) \
+do { \
+    _llk_math_eltwise_binary_sfpu_start_<DST_SYNC_MODE>(dst_index_in0); \
+    if constexpr (SFPU_BINARY_OPERATION == ckernel::BinaryOp::ADD || \
+                  SFPU_BINARY_OPERATION == ckernel::BinaryOp::SUB || \
+                  SFPU_BINARY_OPERATION == ckernel::BinaryOp::MUL || \
+                  SFPU_BINARY_OPERATION == ckernel::BinaryOp::DIV || \
+                  SFPU_BINARY_OPERATION == ckernel::BinaryOp::RSUB || \
+                  SFPU_BINARY_OPERATION == ckernel::BinaryOp::XLOGY || \
+                  SFPU_BINARY_OPERATION == ckernel::BinaryOp::POW) \
+        ckernel::sfpu::_calculate_sfpu_binary_<APPROX_MODE, SFPU_BINARY_OPERATION, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_out); \
+    else if constexpr (SFPU_BINARY_OPERATION == ckernel::BinaryOp::RSHFT) \
+        ckernel::sfpu::_calculate_binary_right_shift_<APPROX_MODE, ITERATIONS, ckernel::InstrModLoadStore::INT32, false>(dst_index_in0, dst_index_in1, dst_index_out); \
+    else if constexpr (SFPU_BINARY_OPERATION == ckernel::BinaryOp::LSHFT) \
+        ckernel::sfpu::_calculate_binary_left_shift_<APPROX_MODE, ITERATIONS, ckernel::InstrModLoadStore::INT32, false>(dst_index_in0, dst_index_in1, dst_index_out); \
+    else if constexpr (SFPU_BINARY_OPERATION == ckernel::BinaryOp::LOGICAL_RSHFT) \
+        ckernel::sfpu::_calculate_logical_right_shift_<APPROX_MODE, ITERATIONS, ckernel::InstrModLoadStore::INT32, false>(dst_index_in0, dst_index_in1, dst_index_out); \
+    else if constexpr (SFPU_BINARY_OPERATION == ckernel::BinaryOp::ADD_TOP_ROW) \
+    { \
+        constexpr DataFormat add_top_row_format = static_cast<DataFormat>(MATH_FORMAT); \
+        ckernel::sfpu::_calculate_add_top_row_<add_top_row_format>(dst_index_in0, dst_index_in1, dst_index_out); \
+    } \
+    _llk_math_eltwise_binary_sfpu_done_(); \
+} while (false);

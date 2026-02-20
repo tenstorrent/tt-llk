@@ -9,9 +9,10 @@
 #include "llk_defs.h"
 
 // Globals
-std::uint32_t unp_cfg_context          = 0;
-std::uint32_t pack_sync_tile_dst_ptr   = 0;
-std::uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t unp_cfg_context                   = 0;
+std::uint32_t pack_sync_tile_dst_ptr            = 0;
+std::uint32_t math_sync_tile_dst_index          = 0;
+static constexpr ckernel::DstSync DST_SYNC_MODE = ckernel::DstSync::SyncHalf;
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -42,9 +43,12 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_math_eltwise_binary_sfpu.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "params.h"
-#include "sfpu_operations.h"
 
 using namespace ckernel::sfpu;
+
+constexpr int ITERATIONS             = 32;
+static constexpr bool DST_ACCUM_MODE = is_fp32_dest_acc_en;
+#include "sfpu_operations.h"
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
@@ -60,7 +64,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #endif
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (int i = 0; i < params->TILE_CNT; i++)
+    for (std::uint32_t i = 0; i < (std::uint32_t)(params->TILE_CNT); i++)
     {
         LLK_ASSERT(
             (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
@@ -69,14 +73,12 @@ void run_kernel(const volatile struct RuntimeParams *params)
     }
 
     _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
+    CALL_BINARY_SFPU_OPERATION_INIT
 
     // Note: argument passed to _llk_math_eltwise_binary_sfpu_start_ is dest index of first operand, and
     // argument passed of _calculate_sfpu_binary_ is dest index of the second operand
 
-    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
-    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, 32, formats.math>(0, 1, 0);
-
-    _llk_math_eltwise_binary_sfpu_done_();
+    CALL_BINARY_SFPU_OPERATION(0, 1, 0);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 

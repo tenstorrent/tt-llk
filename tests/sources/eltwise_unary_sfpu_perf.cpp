@@ -194,7 +194,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                                 block_tile, formats.math, formats.math);
                         }
 
-                        CALL_SFPU_OPERATION(static_cast<std::uint32_t>(block_tile), formats.math, VectorMode::RC)
+                        CALL_SFPU_OPERATION(static_cast<std::uint32_t>(block_tile), formats.math, VectorMode::None)
                     }
                 }
             }
@@ -220,7 +220,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                             block_tile, formats.math, formats.math);
 
                         // Start SFPU operation
-                        CALL_SFPU_OPERATION(static_cast<std::uint32_t>(block_tile), formats.math, VectorMode::RC)
+                        CALL_SFPU_OPERATION(static_cast<std::uint32_t>(block_tile), formats.math, VectorMode::None)
                     }
 
                     _llk_math_dest_section_done_<DST_SYNC_MODE, is_fp32_dest_acc_en>();
