@@ -187,7 +187,12 @@ def test_unpack_bcast(
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
     # Pretty red/green diff output via passed_test (tolerance-based)
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(
+        golden_tensor,
+        res_tensor,
+        formats.output_format,
+        tile_dimensions=tile_dimensions,
+    )
 
     # Datacopy/bcast should be bit-exact for float formats (no compute loss)
     if formats.input_format in (DataFormat.Float32, DataFormat.Float16_b):
