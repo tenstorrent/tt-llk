@@ -214,90 +214,95 @@ inline void perform_reduce_col_sum_avg()
 }
 
 /**
- * @brief Performs horizontal reduction across 8 SFPU column slices using SFPSHFT2.
+ * @brief Performs two horizontal reductions in parallel (LREG0/LREG1 and LREG4/LREG5), interleaving
+ *        instructions to hide SFPSHFT2 latency.
  *
- * Due to SFPU hardware architecture, arithmetic operations (SFPADD/SFPIADD) operate
- * on all 8 column slices in parallel but independently - column slices cannot directly communicate.
- * SFPSHFT2 is the only instruction that allows cross-column data movement.
+ * SFPU hardware operates on 8 column slices in parallel but independently; column slices cannot
+ * directly communicate. SFPSHFT2 is the only instruction that moves data across columns.
+ * This function reduces 8 partial sums (one per column) in each of two LREG pairs down to a single
+ * total sum in column 0 of each result (LREG0 and LREG4).
  *
- * This function reduces 8 partial sums (one per column) into a single total sum
- * placed in column 0 of the result LREG.
+ * Interleaving: SFPSHFT2 has 2-cycle latency and would normally require SFPNOP after each use.
+ * We run two reductions in lockstep (LREG0/LREG1 and LREG4/LREG5) so that the second SFPSHFT2
+ * fills the latency slot of the first, avoiding extra NOPs and reducing total cycle count.
  *
- * Algorithm (log2(8) = 3 stages):
- *   Stage 1: Shift by 4, add -> reduces 8 -> 4 sums in columns 4-7
- *   Stage 2: Shift by 2, add -> reduces 4 -> 2 sums in columns 6-7
- *   Stage 3: Shift by 1, add -> reduces 2 -> 1 sum in column 7
- *   Final:   Rotate by 1     -> moves result from column 7 to column 0
+ * Algorithm (log2(8) = 3 reduction stages + 1 rotate). Each stage: copy to temp, shift right
+ * by the appropriate amount so columns align, then add (SFPIADD or SFPADD) to fold halves together.
  *
- * @tparam lreg_result The LREG containing partial sums, will contain final result in column 0
- * @tparam lreg_temp   A temporary LREG used for shifted copies
+ *   Phase 1: Shift by 4 and add -> 8 partial sums (cols 0-7) become 4 sums (cols 4-7).
+ *   Phase 2: Shift by 2 and add -> 4 sums become 2 sums (cols 6-7).
+ *   Phase 3: Shift by 1 and add -> 2 sums become 1 sum (col 7).
+ *   Phase 4: Rotate right by 1  -> move the single sum from col 7 to col 0.
+ *
  * @tparam is_integer_mode True for integer types (uses SFPIADD), false for float (uses SFPADD)
  */
-template <std::uint32_t lreg_result, std::uint32_t lreg_temp, bool is_integer_mode>
-inline void horizontal_reduce_to_column_zero()
+template <bool is_integer_mode>
+inline void horizontal_reduce()
 {
-    // Step 1: Shift by 4 and add (reduces 8 -> 4 sums in columns 4-7)
-    TTI_SFPMOV(0, lreg_result, lreg_temp, 0); // Copy result to temp
-    TTI_SFPSHFT2(0, lreg_temp, lreg_temp, 4); // Shift right with zero fill
-    TTI_SFPNOP;
-    TTI_SFPNOP;
-    TTI_SFPSHFT2(0, lreg_temp, lreg_temp, 4);
-    TTI_SFPNOP;
-    TTI_SFPNOP;
-    TTI_SFPSHFT2(0, lreg_temp, lreg_temp, 4);
-    TTI_SFPNOP;
-    TTI_SFPNOP;
-    TTI_SFPSHFT2(0, lreg_temp, lreg_temp, 4);
-    TTI_SFPNOP;
-    TTI_SFPNOP;
+    // Phase 1: Shift by 4 and add -> 8 partial sums (cols 0-7) become 4 sums (cols 4-7).
+    TTI_SFPMOV(0, p_sfpu::LREG0, p_sfpu::LREG1, 0);
+    TTI_SFPMOV(0, p_sfpu::LREG4, p_sfpu::LREG5, 0);
+
+    // Four right-shifts-by-4 in lockstep for both pairs; second SFPSHFT2 hides first's latency
+    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
+
     if constexpr (is_integer_mode)
     {
-        TTI_SFPIADD(0, lreg_temp, lreg_result, 4); // result = result + temp (integer)
+        TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
+        TTI_SFPIADD(0, p_sfpu::LREG5, p_sfpu::LREG4, 4);
     }
     else
     {
-        TTI_SFPADD(lreg_result, p_sfpu::LCONST_1, lreg_temp, lreg_result, 0); // result = result * 1.0 + temp (float)
+        TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG1, p_sfpu::LREG0, 0); // lreg0 = lreg0 * 1.0 + lreg1 (float)
+        TTI_SFPADD(p_sfpu::LREG4, p_sfpu::LCONST_1, p_sfpu::LREG5, p_sfpu::LREG4, 0); // lreg4 = lreg4 * 1.0 + lreg5 (float)
     }
-    TTI_SFPNOP;
 
-    // Step 2: Shift by 2 and add (reduces to 2 sums in columns 6-7)
-    TTI_SFPMOV(0, lreg_result, lreg_temp, 0);
-    TTI_SFPSHFT2(0, lreg_temp, lreg_temp, 4);
-    TTI_SFPNOP;
-    TTI_SFPNOP;
-    TTI_SFPSHFT2(0, lreg_temp, lreg_temp, 4);
-    TTI_SFPNOP;
-    TTI_SFPNOP;
+    // Phase 2: Shift by 2 and add -> 4 sums become 2 sums (cols 6-7).
+    TTI_SFPMOV(0, p_sfpu::LREG0, p_sfpu::LREG1, 0);
+    TTI_SFPMOV(0, p_sfpu::LREG4, p_sfpu::LREG5, 0);
+    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
     if constexpr (is_integer_mode)
     {
-        TTI_SFPIADD(0, lreg_temp, lreg_result, 4);
+        TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
+        TTI_SFPIADD(0, p_sfpu::LREG5, p_sfpu::LREG4, 4);
     }
     else
     {
-        TTI_SFPADD(lreg_result, p_sfpu::LCONST_1, lreg_temp, lreg_result, 0);
+        TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG1, p_sfpu::LREG0, 0);
+        TTI_SFPADD(p_sfpu::LREG4, p_sfpu::LCONST_1, p_sfpu::LREG5, p_sfpu::LREG4, 0);
     }
-    TTI_SFPNOP;
 
-    // Step 3: Shift by 1 and add (final sum in column 7)
-    TTI_SFPMOV(0, lreg_result, lreg_temp, 0);
-    TTI_SFPSHFT2(0, lreg_temp, lreg_temp, 4);
-    TTI_SFPNOP;
-    TTI_SFPNOP;
+    // Phase 3: Shift by 1 and add -> 2 sums become 1 sum (col 7).
+    TTI_SFPMOV(0, p_sfpu::LREG0, p_sfpu::LREG1, 0);
+    TTI_SFPMOV(0, p_sfpu::LREG4, p_sfpu::LREG5, 0);
+    TTI_SFPSHFT2(0, p_sfpu::LREG1, p_sfpu::LREG1, 4);
+    TTI_SFPSHFT2(0, p_sfpu::LREG5, p_sfpu::LREG5, 4);
     if constexpr (is_integer_mode)
     {
-        TTI_SFPIADD(0, lreg_temp, lreg_result, 4);
+        TTI_SFPIADD(0, p_sfpu::LREG1, p_sfpu::LREG0, 4);
+        TTI_SFPIADD(0, p_sfpu::LREG5, p_sfpu::LREG4, 4);
     }
     else
     {
-        TTI_SFPADD(lreg_result, p_sfpu::LCONST_1, lreg_temp, lreg_result, 0);
+        TTI_SFPADD(p_sfpu::LREG0, p_sfpu::LCONST_1, p_sfpu::LREG1, p_sfpu::LREG0, 0); // lreg0 = lreg0 * 1.0 + lreg1 (float)
+        TTI_SFPADD(p_sfpu::LREG4, p_sfpu::LCONST_1, p_sfpu::LREG5, p_sfpu::LREG4, 0); // lreg4 = lreg4 * 1.0 + lreg5 (float)
     }
-    TTI_SFPNOP; // Wait for add to complete before rotate reads result
 
-    // Step 4: Rotate by 1 to move result from column 7 to column 0
-    TTI_SFPSHFT2(0, lreg_result, lreg_result, 3); // Rotate right (mode 3)
-    TTI_SFPNOP;
-    TTI_SFPNOP;
-    // lreg_result[0] = total sum
+    // Phase 4: Rotate right by 1 -> move single sum from col 7 to col 0 for store.
+    TTI_SFPSHFT2(0, p_sfpu::LREG0, p_sfpu::LREG0, 3);
+    TTI_SFPSHFT2(0, p_sfpu::LREG4, p_sfpu::LREG4, 3);
+    // LREG0[0 column slice] = sum of all elements in the first 4 rows of this 8-row block (first half)
+    // LREG4[0 column slice] = sum of all elements in the next 4 rows of this 8-row block (second half)
 }
 
 template <InstrModLoadStore INSTRUCTION_MODE>
@@ -338,11 +343,8 @@ inline void perform_reduce_row_sum_tile(std::uint32_t tile_row_offset)
             // After this: LREG0 contains sum of first 4 rows, LREG4 contains sum of next 4 rows
             lltt::replay(0, 6);
 
-            // Horizontal reduction: consolidate all 8 SFPU columns into column 0
-            // This is required because SFPU columns operate independently and cannot
-            // directly sum across columns without explicit cross-column data movement.
-            horizontal_reduce_to_column_zero<p_sfpu::LREG0, p_sfpu::LREG1, is_integer_mode>();
-            horizontal_reduce_to_column_zero<p_sfpu::LREG4, p_sfpu::LREG5, is_integer_mode>();
+            // Horizontal reduction: consolidate all 8 SFPU columns into column 0 (interleaved for latency hiding)
+            horizontal_reduce<is_integer_mode>();
 
             TT_SFPSTORE(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + face_pair_base + row_offset_first);
             TT_SFPSTORE(p_sfpu::LREG4, INSTRUCTION_MODE, ADDR_MOD_7, tile_row_offset + face_pair_base + row_offset_second);
