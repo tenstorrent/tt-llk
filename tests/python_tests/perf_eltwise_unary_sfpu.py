@@ -30,6 +30,13 @@ from helpers.test_variant_parameters import (
     UNPACK_TRANS_WITHIN_FACE,
 )
 
+SUPPORTED_FAST_MODE_OPS = [
+    MathOperation.Log1p,
+    MathOperation.Exp,
+    MathOperation.Rsqrt,
+    MathOperation.Sqrt,
+]
+
 
 @pytest.mark.perf
 @parametrize(
@@ -166,7 +173,12 @@ def test_perf_eltwise_unary_sfpu(
         ],
         templates=[
             MATH_OP(mathop=mathop),
-            APPROX_MODE(approx_mode),
+            APPROX_MODE(
+                approx_mode,
+                fast_mode,
+                True,
+                allow_fast=mathop in SUPPORTED_FAST_MODE_OPS,
+            ),
             ITERATIONS(iterations),
             FAST_MODE(fast_mode),
             STABLE_SORT(stable_sort),

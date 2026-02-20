@@ -121,6 +121,14 @@ enum class MathFidelity : std::uint8_t
     HiFi4 = 4
 };
 
+enum class ApproximationMode : std::uint8_t
+{
+    Precise                = 0,
+    Approximate            = 1,
+    FastApproximate        = 2,
+    FastApproximateClamped = 3,
+};
+
 constexpr bool UnpackToDestEn  = true;
 constexpr bool UnpackToDestDis = false;
 

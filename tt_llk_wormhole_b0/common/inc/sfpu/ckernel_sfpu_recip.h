@@ -6,6 +6,7 @@
 #pragma once
 
 #include "ckernel_sfpu_rsqrt_compat.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -75,7 +76,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat in)
     return y;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
+template <ckernel::ApproximationMode APPROX_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
 inline void _calculate_reciprocal_internal_(const int iterations)
 {
 #pragma GCC unroll 8
@@ -83,7 +84,7 @@ inline void _calculate_reciprocal_internal_(const int iterations)
     {
         sfpi::vFloat in = sfpi::dst_reg[0];
 
-        if constexpr (APPROXIMATION_MODE)
+        if constexpr (APPROX_MODE != ckernel::ApproximationMode::Precise)
         {
             sfpi::dst_reg[0] = _sfpu_reciprocal_<0>(in);
         }
@@ -104,20 +105,20 @@ inline void _calculate_reciprocal_internal_(const int iterations)
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en, bool legacy_compat = false>
+template <ckernel::ApproximationMode APPROX_MODE, int ITERATIONS, bool is_fp32_dest_acc_en, bool legacy_compat = false>
 inline void _calculate_reciprocal_(const int iterations)
 {
     if constexpr (legacy_compat)
     {
-        _calculate_reciprocal_compat_<APPROXIMATION_MODE, ITERATIONS, is_fp32_dest_acc_en>(iterations);
+        _calculate_reciprocal_compat_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en>(iterations);
     }
     else
     {
-        _calculate_reciprocal_internal_<APPROXIMATION_MODE, ITERATIONS, is_fp32_dest_acc_en>(iterations);
+        _calculate_reciprocal_internal_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en>(iterations);
     }
 }
 
-template <bool APPROXIMATION_MODE>
+template <ckernel::ApproximationMode APPROX_MODE>
 inline void _init_sfpu_reciprocal_()
 {
     // The polynomial y = k2 - k1*x + k0*x**2 minimises the maximum
@@ -127,12 +128,12 @@ inline void _init_sfpu_reciprocal_()
     sfpi::vConstFloatPrgm2 = 2.121212482452392578125f;
 }
 
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, bool legacy_compat = false>
+template <ckernel::ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en, bool legacy_compat = false>
 inline void _init_reciprocal_()
 {
     if constexpr (!legacy_compat)
     {
-        _init_sfpu_reciprocal_<APPROXIMATION_MODE>();
+        _init_sfpu_reciprocal_<APPROX_MODE>();
     }
 }
 

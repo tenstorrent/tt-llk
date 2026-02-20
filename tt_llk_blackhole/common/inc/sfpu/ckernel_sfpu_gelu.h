@@ -9,13 +9,14 @@
 #include "ckernel_sfpu_cdf.h"
 #include "ckernel_sfpu_exp.h"
 #include "ckernel_sfpu_load_config.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
 namespace ckernel::sfpu
 {
 
-template <bool APPROXIMATION_MODE>
+template <ckernel::ApproximationMode APPROX_MODE>
 inline sfpi::vFloat _calculate_gelu_core_(sfpi::vFloat in)
 {
     // SFPU microcode:
@@ -23,7 +24,7 @@ inline sfpi::vFloat _calculate_gelu_core_(sfpi::vFloat in)
     //   ? (1 + erf(x/sqrt(2)))
     //   : (1 + tanh( sqrt(2/pi) * (x + 0.044715*x^3) )
     sfpi::vFloat result;
-    if constexpr (APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE != ckernel::ApproximationMode::Precise)
     {
         result = in;
     }
@@ -51,7 +52,7 @@ inline void _calculate_gelu_appx_()
     for (int d = 0; d < ITERATIONS; d++)
     {
         // sfpi::vFloat in = sfpi::dst_reg[0];
-        // sfpi::vFloat result = calculate_gelu_core<APPROXIMATION_MODE>(in);
+        // sfpi::vFloat result = calculate_gelu_core<APPROX_MODE>(in);
 
         // sfpi::vFloat half_in = in * half;
         // result = lut(result, l0, l1, l2);
@@ -99,10 +100,10 @@ inline void _calculate_gelu_accurate_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ckernel::ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_gelu_()
 {
-    if constexpr (APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE != ckernel::ApproximationMode::Precise)
     {
         _calculate_gelu_appx_<ITERATIONS>();
     }
@@ -112,10 +113,10 @@ inline void _calculate_gelu_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ckernel::ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_gelu_derivative_()
 {
-    if constexpr (APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE != ckernel::ApproximationMode::Precise)
     {
         constexpr int lut_mode = 1; // SFPLUTFP32_MOD0_FP16_6ENTRY_TABLE1
 
@@ -163,12 +164,12 @@ inline void _calculate_gelu_derivative_()
             sfpi::vFloat neg_half_sq_in = in * in * -0.5f;
 
             // exp = e^(val)
-            sfpi::vFloat exp = _calculate_exponential_body_<false>(neg_half_sq_in);
+            sfpi::vFloat exp = _calculate_exponential_body_<ckernel::ApproximationMode::Precise>(neg_half_sq_in);
 
             // exp = exp * 1/sqrt(2*pi)
             sfpi::vFloat partial = exp * in * sfpi::s2vFloat16b(0.3989423F);
 
-            sfpi::vFloat result = _calculate_gelu_core_<true>(in);
+            sfpi::vFloat result = _calculate_gelu_core_<ckernel::ApproximationMode::Approximate>(in);
 
             result = lut(result, l0, l1, imm2);
 
@@ -181,7 +182,7 @@ inline void _calculate_gelu_derivative_()
     }
 }
 
-template <bool APPROXIMATION_MODE>
+template <ckernel::ApproximationMode APPROX_MODE>
 inline void _init_gelu_()
 {
     sfpi::vConstFloatPrgm0 = 0.5f;
@@ -214,7 +215,7 @@ inline void _init_gelu_()
     _sfpu_load_imm32_(6, 0x7c00afa4);
 }
 
-template <bool APPROXIMATION_MODE>
+template <ckernel::ApproximationMode APPROX_MODE>
 inline void _init_gelu_derivative_()
 {
     std::uint32_t imm0;
@@ -224,7 +225,7 @@ inline void _init_gelu_derivative_()
     std::uint32_t imm4;
     std::uint32_t imm5;
 
-    if constexpr (APPROXIMATION_MODE)
+    if constexpr (APPROX_MODE != ckernel::ApproximationMode::Precise)
     {
         // Using a 6 piece LUT to calculate and model gelu_derivative directly
         // x <= 0.5 --> 0.8x + 0.5
@@ -254,8 +255,8 @@ inline void _init_gelu_derivative_()
     }
     else
     {
-        // Initialisation for use of _calculate_exponential_body_<false>.
-        _init_exponential_<false, false, 0x3F800000>();
+        // Initialisation for use of _calculate_exponential_body_<Precise>.
+        _init_exponential_<ckernel::ApproximationMode::Precise, 0x3F800000>();
 
         imm0 = 0x28FF;
         imm1 = 0x3020;

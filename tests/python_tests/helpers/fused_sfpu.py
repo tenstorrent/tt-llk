@@ -24,6 +24,16 @@ from .llk_params import (
 
 
 class Sfpu:
+    def _approx_mode_cpp(self) -> str:
+        approx = getattr(self, "approx_mode", None)
+        if approx == ApproximationMode.FastApproximate:
+            return "ckernel::ApproximationMode::FastApproximate"
+        if approx == ApproximationMode.FastApproximateClamped:
+            return "ckernel::ApproximationMode::FastApproximateClamped"
+        if approx == ApproximationMode.Yes:
+            return "ckernel::ApproximationMode::Approximate"
+        return "ckernel::ApproximationMode::Precise"
+
     def init(
         self,
         operation: "FusedOperation",
@@ -148,7 +158,7 @@ class UnarySfpu(Sfpu):
 
         return (
             f"    _llk_math_eltwise_unary_sfpu_start_<dest_sync{stage}>({self.dest_idx});\n"
-            f"    test_utils::call_sfpu_operation<{approx_mode}, {dest_acc}, {self.iterations}>({op}, math_format{stage}, {self.fill_const_value});\n"
+            f"    test_utils::call_sfpu_operation<{self._approx_mode_cpp()}, {dest_acc}, {self.iterations}>({op}, math_format{stage}, {self.fill_const_value});\n"
             f"    _llk_math_eltwise_unary_sfpu_done_();\n"
         )
 
@@ -234,7 +244,7 @@ class BinarySfpu(Sfpu):
     ) -> str:
         stage = operation.stage_id
         op = f"ckernel::BinaryOp::{self.operation.cpp_enum_value}"
-        approx_mode = self.approx_mode.cpp_enum_value
+        approx_mode = self._approx_mode_cpp()
         iterations = self.iterations
         src1 = self.dst_index_in0
         src2 = self.dst_index_in1

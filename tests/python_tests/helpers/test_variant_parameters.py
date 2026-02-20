@@ -200,6 +200,9 @@ class MATH_FIDELITY(TemplateParameter):
 @dataclass
 class APPROX_MODE(TemplateParameter):
     approx_mode: ApproximationMode = ApproximationMode.No
+    fast_mode: FastMode | None = None
+    clamp_negative: bool | None = None
+    allow_fast: bool | None = None
 
     def covert_to_cpp(self) -> str:
         return f"constexpr bool APPROX_MODE = {self.approx_mode.cpp_enum_value};"
@@ -219,14 +222,6 @@ class FAST_MODE(TemplateParameter):
 
     def covert_to_cpp(self) -> str:
         return f"constexpr bool FAST_MODE = {str(self.fast_mode.value).lower()};"
-
-
-@dataclass
-class CLAMP_NEGATIVE(TemplateParameter):
-    clamp_negative: bool = True
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr bool CLAMP_NEGATIVE = {str(self.clamp_negative).lower()};"
 
 
 @dataclass

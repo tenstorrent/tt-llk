@@ -5,6 +5,7 @@
 #pragma once
 
 #include "ckernel_ops.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -12,7 +13,7 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ckernel::ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _cast_fp32_to_fp16a_(const int iterations)
 {
 #pragma GCC unroll 8
