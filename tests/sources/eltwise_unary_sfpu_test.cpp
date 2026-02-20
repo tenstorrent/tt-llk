@@ -86,7 +86,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DST_SYNC, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                 block_tile, formats.math, formats.math);
 
-            CALL_SFPU_OPERATION(formats.math, 5.0f)
+            CALL_SFPU_OPERATION(block_tile, formats.math);
         }
 
         _llk_math_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();

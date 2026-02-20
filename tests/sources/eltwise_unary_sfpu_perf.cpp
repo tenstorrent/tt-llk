@@ -193,7 +193,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                                 block_tile, formats.math, formats.math);
                         }
 
-                        CALL_SFPU_OPERATION(formats.math, 5.0f)
+                        CALL_SFPU_OPERATION(block_tile, formats.math);
                     }
                 }
             }
@@ -219,7 +219,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                             block_tile, formats.math, formats.math);
 
                         // Start SFPU operation
-                        CALL_SFPU_OPERATION(formats.math, 5.0f)
+                        CALL_SFPU_OPERATION(block_tile, formats.math);
                     }
 
                     _llk_math_dest_section_done_<DST_SYNC_MODE, is_fp32_dest_acc_en>();

@@ -100,7 +100,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
     CALL_SFPU_OPERATION_INIT();
 
-    CALL_SFPU_OPERATION(formats_array[run].math, 5.0f)
+    CALL_SFPU_OPERATION(0, formats_array[run].math);
 
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
