@@ -224,19 +224,25 @@ class EltwiseFpu(Fpu):
         compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
-        math_fidelity = operation.math_fidelity.cpp_enum_value
+        # LLK contract: eltwise add/sub only support LoFi fidelity.
+        # Clamp generated fidelity for non-mul ops to avoid runtime LLK_ASSERT.
+        math_fidelity = (
+            operation.math_fidelity.cpp_enum_value
+            if self.operation == MathOperation.Elwmul
+            else "MathFidelity::LoFi"
+        )
         op = self.operation.cpp_enum_value
-        num_faces = operation.num_faces
         face_r_dim = operation.face_r_dim
-        num_faces_c_dim = 2 if num_faces in (2, 4) else 1
-        num_faces_r_dim = num_faces // num_faces_c_dim
+        face_c_dim = operation.face_c_dim
+        num_faces_r_dim = operation.in0_tile_r_dim // face_r_dim
+        num_faces_c_dim = operation.in0_tile_c_dim // face_c_dim
         broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
         reuse_dest = f"EltwiseBinaryReuseDestType::{compute_unit.reuse_dest.value}"
 
         return (
             f"    // Operation {stage}: Eltwise {op} FPU\n"
             f"    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::{op}, {broadcast_type}, {math_fidelity}, {reuse_dest}>"
-            f"(ckernel::TensorShape{{{face_r_dim}, 16, {num_faces_r_dim}, {num_faces_c_dim}}}, 0);\n"
+            f"(ckernel::TensorShape{{{face_r_dim}, {face_c_dim}, {num_faces_r_dim}, {num_faces_c_dim}}}, 0);\n"
         )
 
     def calculate(
@@ -247,20 +253,25 @@ class EltwiseFpu(Fpu):
         tile_idx: int,
     ) -> str:
         stage = operation.stage_id
-        math_fidelity = operation.math_fidelity.cpp_enum_value
+        # Keep runtime math call fidelity consistent with init-time clamping.
+        math_fidelity = (
+            operation.math_fidelity.cpp_enum_value
+            if self.operation == MathOperation.Elwmul
+            else "MathFidelity::LoFi"
+        )
         dest_acc = config.dest_acc.value
         op = self.operation.cpp_enum_value
-        num_faces = operation.num_faces
         face_r_dim = operation.face_r_dim
-        num_faces_c_dim = 2 if num_faces in (2, 4) else 1
-        num_faces_r_dim = num_faces // num_faces_c_dim
+        face_c_dim = operation.face_c_dim
+        num_faces_r_dim = operation.in0_tile_r_dim // face_r_dim
+        num_faces_c_dim = operation.in0_tile_c_dim // face_c_dim
         broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
         reuse_dest = f"EltwiseBinaryReuseDestType::{compute_unit.reuse_dest.value}"
 
         return (
             f"    _llk_math_eltwise_binary_<{op}, {broadcast_type}, dest_sync{stage},\n"
             f"        {dest_acc}, {math_fidelity}, {reuse_dest}>"
-            f"(ckernel::TensorShape{{{face_r_dim}, 16, {num_faces_r_dim}, {num_faces_c_dim}}}, {tile_idx}, false\n"
+            f"(ckernel::TensorShape{{{face_r_dim}, {face_c_dim}, {num_faces_r_dim}, {num_faces_c_dim}}}, {tile_idx}, false\n"
             f"    );\n"
         )
 
