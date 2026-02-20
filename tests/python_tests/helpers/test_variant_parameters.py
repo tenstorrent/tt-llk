@@ -191,9 +191,35 @@ class MATH_FIDELITY(TemplateParameter):
 @dataclass
 class APPROX_MODE(TemplateParameter):
     approx_mode: ApproximationMode = ApproximationMode.No
+    fast_mode: FastMode | None = None
+    clamp_negative: bool | None = None
+    allow_fast: bool | None = None
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr bool APPROX_MODE = {self.approx_mode.value};"
+        enum_map = {
+            ApproximationMode.FastApproximate: "ckernel::ApproximationMode::FastApproximate",
+            ApproximationMode.FastApproximateClamped: "ckernel::ApproximationMode::FastApproximateClamped",
+            ApproximationMode.No: "ckernel::ApproximationMode::Precise",
+        }
+        cpp_enum = enum_map.get(self.approx_mode)
+        if self.allow_fast is False and cpp_enum in {
+            "ckernel::ApproximationMode::FastApproximate",
+            "ckernel::ApproximationMode::FastApproximateClamped",
+        }:
+            cpp_enum = "ckernel::ApproximationMode::Approximate"
+        if cpp_enum is None:
+            cpp_enum = (
+                "ckernel::ApproximationMode::FastApproximate"
+                if self.allow_fast is not False
+                and self.fast_mode == FastMode.Yes
+                and self.clamp_negative is False
+                else (
+                    "ckernel::ApproximationMode::FastApproximateClamped"
+                    if self.allow_fast is not False and self.fast_mode == FastMode.Yes
+                    else "ckernel::ApproximationMode::Approximate"
+                )
+            )
+        return f"constexpr ckernel::ApproximationMode APPROX_MODE = {cpp_enum};"
 
 
 @dataclass
@@ -210,14 +236,6 @@ class FAST_MODE(TemplateParameter):
 
     def covert_to_cpp(self) -> str:
         return f"constexpr bool FAST_MODE = {str(self.fast_mode.value).lower()};"
-
-
-@dataclass
-class CLAMP_NEGATIVE(TemplateParameter):
-    clamp_negative: bool = True
-
-    def covert_to_cpp(self) -> str:
-        return f"constexpr bool CLAMP_NEGATIVE = {str(self.clamp_negative).lower()};"
 
 
 @dataclass

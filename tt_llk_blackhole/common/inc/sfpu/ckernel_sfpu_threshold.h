@@ -18,7 +18,7 @@ namespace ckernel::sfpu
 template <typename T>
 constexpr bool is_supported_threshold_type_v = std::is_same_v<T, float> || std::is_same_v<T, std::uint32_t>;
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, typename T>
+template <ckernel::ApproximationMode APPROX_MODE, int ITERATIONS, typename T>
 inline void _calculate_threshold_(T threshold, T value)
 {
     static_assert(is_supported_threshold_type_v<T>, "Type T must be either float or uint32_t");

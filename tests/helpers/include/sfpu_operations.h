@@ -9,6 +9,7 @@
 #include "ckernel_sfpu.h"
 #include "ckernel_sfpu_add_top_row.h"
 #include "ckernel_sfpu_binary.h"
+#include "llk_defs.h"
 #include "llk_sfpu_types.h"
 
 // Metal SFPU operations from tt-metal repository
@@ -35,9 +36,10 @@ using namespace ckernel::sfpu;
  * @param operation The SFPU operation type to execute
  * @param math_format Optional math format for operations that need format-specific behavior
  */
-template <bool APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false, bool CLAMP_NEGATIVE = false>
+template <ckernel::ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false>
 void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, float fill_const_value = 5.0f)
 {
+    constexpr bool APPROXIMATION_MODE = (APPROX_MODE != ckernel::ApproximationMode::Precise);
     switch (operation)
     {
         case SfpuType::abs:
@@ -62,38 +64,50 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
             _calculate_cosine_<APPROX_MODE, ITERATIONS>(ITERATIONS);
             break;
         case SfpuType::elu:
-            _init_elu_<APPROX_MODE>();
-            _calculate_elu_<APPROX_MODE, ITERATIONS>(1);
+        {
+            constexpr ckernel::ApproximationMode ELU_MODE =
+                (APPROX_MODE == ckernel::ApproximationMode::FastApproximate || APPROX_MODE == ckernel::ApproximationMode::FastApproximateClamped)
+                    ? ckernel::ApproximationMode::Approximate
+                    : APPROX_MODE;
+            _init_elu_<ELU_MODE>();
+            _calculate_elu_<ELU_MODE, ITERATIONS>(1);
             break;
+        }
         case SfpuType::exp2:
-            _init_exp2_<APPROX_MODE>();
-            _calculate_exp2_<APPROX_MODE, ITERATIONS>();
+        {
+            constexpr ckernel::ApproximationMode EXP2_MODE =
+                (APPROX_MODE == ckernel::ApproximationMode::FastApproximate || APPROX_MODE == ckernel::ApproximationMode::FastApproximateClamped)
+                    ? ckernel::ApproximationMode::Approximate
+                    : APPROX_MODE;
+            _init_exp2_<EXP2_MODE>();
+            _calculate_exp2_<EXP2_MODE, ITERATIONS>();
             break;
+        }
         case SfpuType::exponential:
-            _init_exponential_<APPROX_MODE, FAST_MODE, 0x3F800000 /* exp_base_scale_factor */, CLAMP_NEGATIVE>();
-            if constexpr (FAST_MODE && APPROX_MODE && CLAMP_NEGATIVE)
+            _init_exponential_<APPROX_MODE, 0x3F800000 /* exp_base_scale_factor */>();
+            if constexpr (APPROX_MODE == ckernel::ApproximationMode::FastApproximateClamped)
             {
                 // In this case each call to _calculate_exponential_ processes 8 iterations
                 // and we iterate over 4 faces, so we process 32 iterations overall.
                 static_assert(ITERATIONS == 32);
                 for (int i = 0; i < 4; i++)
                 {
-                    _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */, CLAMP_NEGATIVE>(
+                    _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, false /* skip_positive_check */>(
                         p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
                     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
                     TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
                 }
             }
-            else if constexpr (FAST_MODE && APPROX_MODE)
+            else if constexpr (APPROX_MODE == ckernel::ApproximationMode::FastApproximate)
             {
                 // In this case each call to _calculate_exponential_ can process either 8 or 32 iterations.
                 static_assert(ITERATIONS == 8 || ITERATIONS == 32);
-                _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */, CLAMP_NEGATIVE>(
+                _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, false /* skip_positive_check */>(
                     p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
             }
             else
             {
-                _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, FAST_MODE, false /* skip_positive_check */, CLAMP_NEGATIVE>(
+                _calculate_exponential_<APPROX_MODE, false /* scale_en */, ITERATIONS, false /* skip_positive_check */>(
                     p_sfpu::kCONST_1_FP16B /* exp_base_scale_factor */);
             }
             break;
@@ -128,8 +142,8 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
             _calculate_log_<APPROX_MODE, false, ITERATIONS>(ITERATIONS, 0);
             break;
         case SfpuType::log1p:
-            log1p_init<APPROX_MODE, FAST_MODE, is_fp32_dest_acc_en>();
-            calculate_log1p<APPROX_MODE, FAST_MODE, is_fp32_dest_acc_en, ITERATIONS>();
+            log1p_init<APPROXIMATION_MODE, FAST_MODE, is_fp32_dest_acc_en>();
+            calculate_log1p<APPROXIMATION_MODE, FAST_MODE, is_fp32_dest_acc_en, ITERATIONS>();
             break;
         case SfpuType::neg:
         case SfpuType::negative:
@@ -148,7 +162,7 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
             break;
         case SfpuType::rsqrt:
             _init_rsqrt_<APPROX_MODE>();
-            _calculate_rsqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, FAST_MODE>(ITERATIONS);
+            _calculate_rsqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en>(ITERATIONS);
             break;
         case SfpuType::silu:
             _calculate_silu_<APPROX_MODE, ITERATIONS>();
@@ -158,14 +172,14 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
             break;
         case SfpuType::sqrt:
             _init_sqrt_<APPROX_MODE>();
-            _calculate_sqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en, FAST_MODE>(ITERATIONS);
+            _calculate_sqrt_<APPROX_MODE, ITERATIONS, is_fp32_dest_acc_en>(ITERATIONS);
             break;
         case SfpuType::square:
             _calculate_square_<APPROX_MODE, ITERATIONS>();
             break;
         case SfpuType::tanh:
-            tanh_init<APPROX_MODE, is_fp32_dest_acc_en>();
-            calculate_tanh<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>();
+            tanh_init<APPROXIMATION_MODE, is_fp32_dest_acc_en>();
+            calculate_tanh<APPROXIMATION_MODE, is_fp32_dest_acc_en, ITERATIONS>();
             break;
         case SfpuType::threshold:
             _calculate_threshold_<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);
@@ -202,7 +216,7 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
     }
 }
 
-template <bool APPROXIMATION_MODE, BinaryOp BINOP, int ITERATIONS = 32, std::uint32_t MATH_FORMAT = 0>
+template <ckernel::ApproximationMode APPROX_MODE, BinaryOp BINOP, int ITERATIONS = 32, std::uint32_t MATH_FORMAT = 0>
 void call_binary_sfpu_operation(const std::uint32_t dst_index_in0 = 0, const std::uint32_t dst_index_in1 = 1, const std::uint32_t dst_index_out = 0)
 {
     switch (BINOP)
@@ -214,17 +228,17 @@ void call_binary_sfpu_operation(const std::uint32_t dst_index_in0 = 0, const std
         case BinaryOp::RSUB:
         case BinaryOp::XLOGY:
         case BinaryOp::POW:
-            _sfpu_binary_init_<APPROXIMATION_MODE, BINOP>();
-            _calculate_sfpu_binary_<APPROXIMATION_MODE, BINOP, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_out);
+            _sfpu_binary_init_<APPROX_MODE, BINOP>();
+            _calculate_sfpu_binary_<APPROX_MODE, BINOP, ITERATIONS>(dst_index_in0, dst_index_in1, dst_index_out);
             break;
         case BinaryOp::RSHFT:
-            _calculate_binary_right_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
+            _calculate_binary_right_shift_<APPROX_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
             break;
         case BinaryOp::LSHFT:
-            _calculate_binary_left_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
+            _calculate_binary_left_shift_<APPROX_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
             break;
         case BinaryOp::LOGICAL_RSHFT:
-            _calculate_logical_right_shift_<APPROXIMATION_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
+            _calculate_logical_right_shift_<APPROX_MODE, ITERATIONS, INT32, false>(dst_index_in0, dst_index_in1, dst_index_out);
             break;
         case BinaryOp::ADD_TOP_ROW:
             _init_add_top_row_();

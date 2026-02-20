@@ -120,7 +120,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // Apply SFPU square to all tiles
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_math_eltwise_unary_sfpu_params_<false>(ckernel::sfpu::_calculate_square_, i, num_sfpu_iterations);
+        _llk_math_eltwise_unary_sfpu_params_<ckernel::ApproximationMode::Precise>(
+            ckernel::sfpu::_calculate_square_<ckernel::ApproximationMode::Approximate>, i, num_sfpu_iterations);
     }
 
     _llk_math_set_dvalid_<p_cleardvalid::SFPU>();

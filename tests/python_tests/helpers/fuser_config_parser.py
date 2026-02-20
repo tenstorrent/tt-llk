@@ -152,6 +152,8 @@ REDUCE_POOL_MAP: Dict[str, ReducePool] = {
 APPROXIMATION_MODE_MAP: Dict[str, ApproximationMode] = {
     "Yes": ApproximationMode.Yes,
     "No": ApproximationMode.No,
+    "FastApproximate": ApproximationMode.FastApproximate,
+    "FastApproximateClamped": ApproximationMode.FastApproximateClamped,
 }
 
 BROADCAST_TYPE_MAP: Dict[str, BroadcastType] = {
