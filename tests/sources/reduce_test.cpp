@@ -93,13 +93,18 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    _llk_pack_init_<false, false>(formats.pack_dst);
+    const std::uint32_t tile_size = 16 * 16 * 4;
+    const std::uint32_t num_faces = params->num_faces;
+    const bool partial_face       = params->TEST_FACE_R_DIM < FACE_R_DIM;
+    const bool narrow_tile        = (num_faces == 1);
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(formats.pack_src, formats.pack_dst, tile_size);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(formats.pack_src, formats.pack_dst, tile_size);
 #endif
+
+    _llk_pack_init_<false, false>(formats.pack_dst, params->TEST_FACE_R_DIM, num_faces, partial_face, narrow_tile);
 
     _llk_pack_reduce_mask_config_<false /* untilize */, REDUCE_DIM>();
 
