@@ -163,6 +163,291 @@ inline void packer_addr_counter_init()
     TTI_SETADCZW(0b100, 0, 0, 0, 0, 0b1111);
 }
 
+/**
+ * \brief Returns true if the packer supports converting register data to the given L1 format.
+ *
+ * The packer pipeline has two format conversions (ref: Packers/FormatConversion.md):
+ *   1. Early conversion: Dst register format → intermediate format.
+ *   2. Late conversion:  intermediate format (LateFromFormat) → L1 output format (LateToFormat).
+ *
+ * For floating-point and integer Dst formats (Float32 / Float16_b / Float16 / Int32), `in_reg`
+ * is the Dst register format. The function checks all L1 outputs reachable through any valid
+ * combination of early + late conversion.
+ *
+ * For block-float types used as intermediates (Bfp8 / Bfp8_b / etc.), `in_reg` is the
+ * intermediate format code written to the In_data_format (LateFromFormat) config field. The
+ * function then checks which L1 outputs are reachable via the late conversion alone.
+ *
+ * \param in_reg  Packer input format: either the Dst register format or the intermediate format
+ *                code (LateFromFormat / In_data_format config field).
+ * \param out_l1  Packer output (L1) data format (LateToFormat / Out_data_format config field).
+ * \return true if the in_reg -> out_l1 conversion is supported, false otherwise.
+ */
+inline bool is_packer_to_L1_conversion_supported(const DataFormat in_reg, const DataFormat out_l1)
+{
+    switch (in_reg)
+    {
+        // -------------------------------------------------------------------------
+        // 1. Float32 (FP32, e8m23, 8-bit exponent) in Dst register.
+        //
+        //    Early conversion options (Dst FP32 → intermediate):
+        //      FP32  (identity)           → Late from FP32 col:      Float32, Float16_b, Float16,
+        //                                                             Lf8, Bfp8_b, Bfp4_b, Bfp2_b,
+        //                                                             Bfp8, Bfp4, Bfp2.
+        //      TF32  (rounding)           → Late from combined col:  adds Tf32 in L1.
+        //      BF16  (rounding/trunc)     → Late from combined col:  same as TF32 path.
+        //      INT32 (bitcast)            → Late from INT32:         Int32.
+        //      INT8  (sign+mag extract)   → Late from INT8/UINT8:    Int8.
+        //      UINT8 (low 8b extract)     → Late from INT8/UINT8:    UInt8.
+        //
+        //    Union of all reachable L1 outputs:
+        //      Float32, Float16_b, Tf32, Float16, Lf8, Bfp8, Bfp4, Bfp2,
+        //      Bfp8_b, Bfp4_b, Bfp2_b, Int32, Int8, UInt8.
+        case DataFormat::Float32:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Int32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16_b:
+                case DataFormat::Float16:
+                case DataFormat::Lf8:
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp2:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2_b:
+                case DataFormat::Int8:
+                case DataFormat::UInt8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 2. Float16_b (BF16, e8m7, 8-bit exponent) in Dst register.
+        //
+        //    Early conversion options (Dst BF16 → intermediate):
+        //      BF16  (rounding/identity)  → Late from combined col:  Float32, Float16_b, Tf32,
+        //                                                             Float16, Lf8, Bfp8_b,
+        //                                                             Bfp4_b, Bfp2_b, Bfp8, Bfp4, Bfp2.
+        //      TF32  (rounding)           → Late from combined col:  same as BF16 path.
+        //      E8M6  (rounding)           → Late from combined col:  same as BF16 path.
+        //      INT8  (sign bit only)      → Late from INT8/UINT8:    Int8.
+        //                                   (UINT8 early not possible from BF16; not included.)
+        //
+        //    Union of all reachable L1 outputs:
+        //      Float32, Float16_b, Tf32, Float16, Lf8, Bfp8, Bfp4, Bfp2, Bfp8_b, Bfp4_b, Bfp2_b, Int8.
+        case DataFormat::Float16_b:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Lf8:
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp2:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2_b:
+                case DataFormat::Int8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 3. Float16 (FP16, e5m10, 5-bit exponent) in Dst register.
+        //
+        //    Early conversion options (Dst FP16 → intermediate):
+        //      FP16  (rounding/identity)  → Late from combined col:  Float32, Float16_b, Tf32,
+        //                                                             Float16, Lf8, Bfp8_b,
+        //                                                             Bfp4_b, Bfp2_b, Bfp8, Bfp4, Bfp2.
+        //      E5M7  (truncation)         → Late from combined col:  same as FP16 path.
+        //      E5M6  (rounding)           → Late from combined col:  same as FP16 path.
+        //      FP8   (truncation)         → Late from combined col:  same as FP16 path.
+        //      INT8  (sign bit only)      → Late from INT8/UINT8:    Int8.
+        //                                   (UINT8 early not possible from FP16; not included.)
+        //
+        //    Union of all reachable L1 outputs:
+        //      Float32, Float16_b, Tf32, Float16, Lf8, Bfp8, Bfp4, Bfp2, Bfp8_b, Bfp4_b, Bfp2_b, Int8.
+        case DataFormat::Float16:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16:
+                case DataFormat::Float16_b:
+                case DataFormat::Lf8:
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp2:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2_b:
+                case DataFormat::Int8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 4. Bfp8 / Bfp4 / Bfp2 (A-side block float: BFP8a/BFP4a/BFP2a, 5-bit exponent)
+        //    as packer intermediate format (LateFromFormat / In_data_format config field).
+        //
+        //    In the 4-bit format encoding, BFP8a code (0b0010) in LateFromFormat represents an
+        //    E5M7/E5M6-like per-datum format (same exponent/mantissa widths as BFP8a but with
+        //    per-datum exponent rather than one shared exponent per 16 datums). This is the
+        //    intermediate produced by the early conversion from Dst FP16
+        //    (IntermediateFormat = BFP8a with Read_raw = true/false for E5M7/E5M6 respectively).
+        //    Note: BFP4a and BFP2a codes are NOT valid as LateFromFormat per the ISA doc
+        //    (only valid in LateToFormat); Bfp4/Bfp2 are included here conservatively.
+        //
+        //    Late conversion: E5M7/E5M6 falls in the combined column
+        //    (TF32 or BF16 or E8M6 or FP16 or E5M7 or E5M6 or FP8).
+        //    Reachable L1 outputs: Float32, Float16_b, Tf32, Float16, Lf8,
+        //                          Bfp8_b, Bfp4_b, Bfp2_b, Bfp8, Bfp4, Bfp2.
+        //    No integer L1 outputs are reachable from these intermediates.
+        case DataFormat::Bfp8:
+        case DataFormat::Bfp4:
+        case DataFormat::Bfp2:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Float16_b:
+                case DataFormat::Tf32:
+                case DataFormat::Float16:
+                case DataFormat::Lf8:
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp2:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 5. Bfp8_b / Bfp4_b / Bfp2_b (B-side block float: BFP8/BFP4/BFP2, 8-bit exponent)
+        //    as packer intermediate format (LateFromFormat / In_data_format config field).
+        //
+        //    In the 4-bit format encoding, BFP8 code (0b0110) in LateFromFormat represents an
+        //    E8M6-like per-datum format (same exponent/mantissa widths as BFP8 but with per-datum
+        //    exponent; functionally similar to BF16 with a 6-bit mantissa). This intermediate is
+        //    produced by early conversion from Dst FP32 or BF16
+        //    (IntermediateFormat = BFP8 with Read_raw = false for E8M6).
+        //    Note: BFP4 and BFP2 codes are NOT valid as LateFromFormat per the ISA doc
+        //    (only valid in LateToFormat); Bfp4_b/Bfp2_b are included here conservatively.
+        //
+        //    Late conversion: E8M6/BFP8 code falls in the combined column
+        //    (TF32 or BF16 or E8M6 or FP16 or E5M7 or E5M6 or FP8).
+        //    Reachable L1 outputs: Float32, Float16_b, Tf32, Float16, Lf8,
+        //                          Bfp8_b, Bfp4_b, Bfp2_b, Bfp8, Bfp4, Bfp2.
+        //    No integer L1 outputs are reachable from these intermediates.
+        case DataFormat::Bfp8_b:
+        case DataFormat::Bfp4_b:
+        case DataFormat::Bfp2_b:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Float16_b:
+                case DataFormat::Tf32:
+                case DataFormat::Float16:
+                case DataFormat::Lf8:
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp2:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2_b:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 6. UInt32: opaque 32-bit pass-through. No format conversion defined in the ISA doc;
+        //    only an identity L1 output is allowed.
+        case DataFormat::UInt32:
+            return out_l1 == DataFormat::UInt32;
+
+        // -------------------------------------------------------------------------
+        // 7. UInt16 (INT16, opaque 16-bit) in Dst register or as intermediate.
+        //
+        //    Early: Dst INT16 → INT16 intermediate (identity).
+        //    Late:  INT16 intermediate → only INT16 (UInt16) in L1 (identity per ISA doc).
+        case DataFormat::UInt16:
+            return out_l1 == DataFormat::UInt16;
+
+        // -------------------------------------------------------------------------
+        // 8. Int32 (INT32, e0m31 sign-magnitude) in Dst register.
+        //
+        //    Early conversion options (Dst INT32 → intermediate):
+        //      FP32  (bitcast)            → Late from FP32 col:      Float32, Float16_b, Float16,
+        //                                                             Lf8, Bfp8_b, Bfp4_b, Bfp2_b,
+        //                                                             Bfp8, Bfp4, Bfp2.
+        //      TF32  (bitcast + round)    → Late from combined col:  adds Tf32 in L1.
+        //      BF16  (top 16b bitcast)    → Late from combined col:  same as TF32 path.
+        //      INT32 (identity)           → Late from INT32:         Int32.
+        //      INT8  (shift/round/sat)    → Late from INT8/UINT8:    Int8.
+        //      UINT8 (shift/round/sat)    → Late from INT8/UINT8:    UInt8.
+        //
+        //    Union of all reachable L1 outputs:
+        //      Float32, Float16_b, Tf32, Float16, Lf8, Bfp8, Bfp4, Bfp2,
+        //      Bfp8_b, Bfp4_b, Bfp2_b, Int32, Int8, UInt8.
+        case DataFormat::Int32:
+            switch (out_l1)
+            {
+                case DataFormat::Float32:
+                case DataFormat::Int32:
+                case DataFormat::Tf32:
+                case DataFormat::Float16_b:
+                case DataFormat::Float16:
+                case DataFormat::Lf8:
+                case DataFormat::Bfp8:
+                case DataFormat::Bfp4:
+                case DataFormat::Bfp2:
+                case DataFormat::Bfp8_b:
+                case DataFormat::Bfp4_b:
+                case DataFormat::Bfp2_b:
+                case DataFormat::Int8:
+                case DataFormat::UInt8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 9. Int8 / UInt8 (INT8/UINT8) as packer intermediate format.
+        //
+        //    These appear when the early conversion from Dst FP32 or INT32 produces an
+        //    INT8 or UINT8 intermediate (e.g. via sign/magnitude extraction or shift+saturate).
+        //
+        //    Late conversion (ISA doc): INT8/UINT8 → only INT8 or UINT8 in L1 (identity or bitcast).
+        //    No floating-point L1 outputs are reachable from INT8/UINT8 intermediates.
+        case DataFormat::Int8:
+        case DataFormat::UInt8:
+            switch (out_l1)
+            {
+                case DataFormat::Int8:
+                case DataFormat::UInt8:
+                    return true;
+                default:
+                    return false;
+            }
+
+        // -------------------------------------------------------------------------
+        // 10. Unknown or not-yet-handled formats.
+        default:
+            return false;
+    }
+}
+
 template <bool untilize = false, bool tilize = false>
 inline void set_packer_strides(const std::uint32_t pack_src_format, const std::uint32_t tile_c_dim)
 {
@@ -307,6 +592,9 @@ inline void reconfig_packer_data_format(
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     const std::uint32_t pack_output_src_format = static_cast<std::uint32_t>(pack_src_format) & 0xF;
     const std::uint32_t pack_output_dst_format = static_cast<std::uint32_t>(pack_dst_format) & 0xF;
+    LLK_ASSERT(
+        is_packer_to_L1_conversion_supported(static_cast<DataFormat>(pack_output_src_format), static_cast<DataFormat>(pack_output_dst_format)),
+        "Unsupported packer to L1 conversion.");
 
     // Configure packers
     pack_config_u config;
@@ -404,6 +692,9 @@ inline void configure_pack(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
+    LLK_ASSERT(
+        is_packer_to_L1_conversion_supported(static_cast<DataFormat>(pack_src_format & 0xF), static_cast<DataFormat>(pack_dst_format & 0xF)),
+        "Unsupported packer to L1 conversion.");
     // Get pointer to registers for current state ID
     volatile std::uint32_t* cfg = get_cfg_pointer();
 
