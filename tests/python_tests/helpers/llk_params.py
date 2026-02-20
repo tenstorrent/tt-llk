@@ -227,6 +227,8 @@ class Haloize(Enum):
 class ApproximationMode(Enum):
     Yes = "true"
     No = "false"
+    FastApproximate = "fast_approx"
+    FastApproximateClamped = "fast_approx_clamped"
 
 
 class Transpose(Enum):

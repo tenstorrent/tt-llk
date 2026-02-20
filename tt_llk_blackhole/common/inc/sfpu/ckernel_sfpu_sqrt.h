@@ -6,6 +6,7 @@
 #pragma once
 
 #include "ckernel_sfpu_rsqrt_compat.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
@@ -19,13 +20,16 @@ namespace sfpu
 // https://doi.org/10.1007/s11075-024-01932-7
 
 // Computes the square root or reciprocal square root of a positive floating point value x.
-template <bool APPROXIMATE = false, bool RECIPROCAL = false, bool FAST_APPROX = false>
+template <ckernel::ApproximationMode APPROX_MODE, bool RECIPROCAL = false>
 sfpi_inline sfpi::vFloat _calculate_sqrt_body_(const sfpi::vFloat x)
 {
+    constexpr bool FAST_APPROX =
+        APPROX_MODE == ckernel::ApproximationMode::FastApproximate || APPROX_MODE == ckernel::ApproximationMode::FastApproximateClamped;
+
     sfpi::vInt i   = sfpi::reinterpret<sfpi::vInt>(sfpi::reinterpret<sfpi::vUInt>(x) >> 1);
     sfpi::vFloat y = sfpi::reinterpret<sfpi::vFloat>(sfpi::vConstIntPrgm0 - i);
 
-    if constexpr (APPROXIMATE)
+    if constexpr (APPROX_MODE != ckernel::ApproximationMode::Precise)
     {
         // Algorithm SQRT_10-bits, with modifications for reciprocal.
         sfpi::vFloat c           = x * y;
@@ -114,13 +118,13 @@ sfpi_inline sfpi::vFloat _calculate_sqrt_body_(const sfpi::vFloat x)
     return y;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool RECIPROCAL, bool FAST_APPROX>
+template <ckernel::ApproximationMode APPROX_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool RECIPROCAL>
 inline void _calculate_sqrt_internal_(const int iterations)
 {
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        sfpi::vFloat tmp = _calculate_sqrt_body_<APPROXIMATION_MODE, RECIPROCAL, FAST_APPROX>(sfpi::dst_reg[0]);
+        sfpi::vFloat tmp = _calculate_sqrt_body_<APPROX_MODE, RECIPROCAL>(sfpi::dst_reg[0]);
         if constexpr (fp32_dest_acc_en)
         {
             sfpi::dst_reg[0] = tmp;
@@ -133,25 +137,25 @@ inline void _calculate_sqrt_internal_(const int iterations)
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool FAST_APPROX, bool legacy_compat = false>
+template <ckernel::ApproximationMode APPROX_MODE, int ITERATIONS, bool fp32_dest_acc_en, bool legacy_compat = false>
 inline void _calculate_sqrt_(int iterations)
 {
     if constexpr (legacy_compat)
     {
-        return _calculate_sqrt_compat_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_acc_en>(iterations);
+        return _calculate_sqrt_compat_<APPROX_MODE, ITERATIONS, fp32_dest_acc_en>(iterations);
     }
     else
     {
-        return _calculate_sqrt_internal_<APPROXIMATION_MODE, ITERATIONS, fp32_dest_acc_en, false, FAST_APPROX>(iterations);
+        return _calculate_sqrt_internal_<APPROX_MODE, ITERATIONS, fp32_dest_acc_en, false>(iterations);
     }
 }
 
-template <bool APPROXIMATION_MODE, bool legacy_compat = false>
+template <ckernel::ApproximationMode APPROX_MODE, bool legacy_compat = false>
 inline void _init_sqrt_()
 {
     if constexpr (!legacy_compat)
     {
-        if constexpr (APPROXIMATION_MODE)
+        if constexpr (APPROX_MODE != ckernel::ApproximationMode::Precise)
         {
             sfpi::vConstIntPrgm0   = 0x5f0b3892;
             sfpi::vConstFloatPrgm1 = 1.89099014875f;
