@@ -27,11 +27,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-<<<<<<< HEAD
-            L1_ADDRESS(params->buffer_A[i]), formats.unpack_src, formats.unpack_dst);
-=======
-            L1_ADDRESS(buffer_A[i]), formats.unpack_A_src, formats.unpack_A_dst);
->>>>>>> f20bd7ae (Finished refactoring test infra to add src_B format and refactored tests to fit new formats struct names.)
+            L1_ADDRESS(params->buffer_A[i]), formats.unpack_A_src, formats.unpack_A_dst);
     }
 }
 

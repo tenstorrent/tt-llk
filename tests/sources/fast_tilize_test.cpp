@@ -117,7 +117,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
                         else if (remaining_tiles == 3)
                         {
                             _llk_unpack_fast_tilize_block_(
-                                L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_src, 3, 1, BLOCK_CT_DIM, params->num_faces);
+                                L1_ADDRESS(params->buffer_A[0]), tile_index, formats.unpack_A_src, 3, 1, BLOCK_CT_DIM, params->num_faces);
                         }
                         else
                         {
