@@ -104,6 +104,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
         _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
+        CALL_SFPU_OPERATION_INIT();
         PROFILER_SYNC();
     }
     {
@@ -192,10 +193,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                                 block_tile, formats.math, formats.math);
                         }
 
-                        _llk_math_eltwise_unary_sfpu_start_<DST_SYNC_MODE>(/* dst_index */ block_tile);
-                        test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS, SFPU_UNARY_OPERATION, FAST_MODE, STABLE_SORT>(
-                            formats.math);
-                        _llk_math_eltwise_unary_sfpu_done_();
+                        CALL_SFPU_OPERATION(formats.math, 5.0f)
                     }
                 }
             }
@@ -221,10 +219,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                             block_tile, formats.math, formats.math);
 
                         // Start SFPU operation
-                        _llk_math_eltwise_unary_sfpu_start_<DST_SYNC_MODE>(/* dst_index */ block_tile);
-                        test_utils::
-                            call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS, SFPU_UNARY_OPERATION, formats.math, FAST_MODE, STABLE_SORT>();
-                        _llk_math_eltwise_unary_sfpu_done_();
+                        CALL_SFPU_OPERATION(formats.math, 5.0f)
                     }
 
                     _llk_math_dest_section_done_<DST_SYNC_MODE, is_fp32_dest_acc_en>();

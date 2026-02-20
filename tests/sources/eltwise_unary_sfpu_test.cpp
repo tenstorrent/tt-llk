@@ -54,7 +54,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 using namespace ckernel;
 using namespace ckernel::sfpu;
 
-const int iterations = 32;
+constexpr int ITERATIONS   = 32;
+constexpr bool STABLE_SORT = false;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
@@ -71,6 +72,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_math_pack_sync_init_<DST_SYNC, is_fp32_dest_acc_en>();
 
     _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
+    CALL_SFPU_OPERATION_INIT();
 
     for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
     {
@@ -84,15 +86,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DST_SYNC, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                 block_tile, formats.math, formats.math);
 
-            // calculation of sfpu operation on dest
-            _llk_math_eltwise_unary_sfpu_start_<DST_SYNC>(block_tile);
-            // calling sfpu function from ckernel
-            // this part is where parametrization of operation takes part
-            test_utils::
-                call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, iterations, SFPU_UNARY_OPERATION, FAST_MODE, false /* STABLE_SORT */, CLAMP_NEGATIVE>(
-                    formats.math);
-
-            _llk_math_eltwise_unary_sfpu_done_();
+            CALL_SFPU_OPERATION(formats.math, 5.0f)
         }
 
         _llk_math_dest_section_done_<DST_SYNC, is_fp32_dest_acc_en>();
