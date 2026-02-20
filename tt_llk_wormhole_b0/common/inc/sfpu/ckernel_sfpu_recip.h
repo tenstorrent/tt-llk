@@ -137,5 +137,12 @@ inline void _init_reciprocal_()
     }
 }
 
+template <bool APPROXIMATION_MODE, bool legacy_compat = false>
+inline void _init_reciprocal_()
+{
+    constexpr ckernel::ApproximationMode approx_mode = APPROXIMATION_MODE ? ckernel::ApproximationMode::Approximate : ckernel::ApproximationMode::Precise;
+    _init_reciprocal_<approx_mode, false, legacy_compat>();
+}
+
 } // namespace sfpu
 } // namespace ckernel
