@@ -113,6 +113,8 @@ inline void _llk_unpack_AB_init_(
 
 inline void _llk_unpack_AB_uninit_(const std::uint32_t face_r_dim = FACE_R_DIM)
 {
+    // Stalling SETADCXX done by THCON until UNPACK finished
+    TTI_STALLWAIT(p_stall::STALL_THCON, p_stall::UNPACK);
     TT_SETADCXX(p_setadc::UNP_AB, face_r_dim * FACE_C_DIM - 1, 0x0);
 }
 
@@ -243,6 +245,8 @@ inline void _llk_unpack_bcastA_B_init_()
 
 inline void _llk_unpack_bcastA_B_uninit_(const std::uint32_t y_stride = FACE_R_DIM * 2, const std::uint32_t face_r_dim = FACE_R_DIM)
 {
+    // Stalling cfg_reg_rmw_tensix done by CFG until UNPACK finished
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK);
     // Revisit default stride value in tt-llk#1015
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(y_stride);
     TT_SETADCXX(p_setadc::UNP_AB, face_r_dim * FACE_C_DIM - 1, 0x0);
