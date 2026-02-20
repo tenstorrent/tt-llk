@@ -19,7 +19,8 @@
 std::uint32_t unp_cfg_context                          = 0;
 std::uint32_t pack_sync_tile_dst_ptr                   = 0;
 std::uint32_t math_sync_tile_dst_index                 = 0;
-static constexpr int MAX_TILES_DEST                    = is_fp32_dest_acc_en ? 4 : 8;
+static constexpr std::uint32_t MAX_TILES_DEST          = is_fp32_dest_acc_en ? 4 : 8;
+static constexpr bool DST_ACCUM_MODE                   = is_fp32_dest_acc_en;
 static constexpr ckernel::DstSync DST_SYNC_MODE        = ckernel::DstSync::SyncHalf;
 static constexpr ckernel::BroadcastType BROADCAST_TYPE = ckernel::BroadcastType::NONE;
 
@@ -104,6 +105,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
         _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
+        CALL_BINARY_SFPU_OPERATION_INIT
         PROFILER_SYNC();
     }
     {
@@ -140,13 +142,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    std::uint32_t block_tiles = std::min((std::uint32_t)(params->TILE_CNT - block_start), MAX_TILES_DEST);
 
                     _llk_math_wait_for_dest_available_<DST_SYNC_MODE>();
 
-                    for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (std::uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
                         if constexpr (unpack_to_dest)
                         {
@@ -177,9 +179,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    std::uint32_t block_tiles = std::min((std::uint32_t)(params->TILE_CNT - block_start), MAX_TILES_DEST);
 
-                    for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (std::uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
                         // When data is not unpacked to dest, math needs to copy data from srcA to dest before starting SFPU operation.
                         // Otherwise, data is immediately ready in destination register.
@@ -192,9 +194,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                                 block_tile, formats.math, formats.math);
                         }
 
-                        _llk_math_eltwise_binary_sfpu_start_<DST_SYNC_MODE>(/* dst_index */ block_tile);
-                        test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, ITERATIONS>((block_tile + 1) % MAX_TILES_DEST, formats.math);
-                        _llk_math_eltwise_binary_sfpu_done_();
+                        CALL_BINARY_SFPU_OPERATION(block_tile, (block_tile + 1) % MAX_TILES_DEST, block_tile);
                     }
                 }
             }
@@ -205,12 +205,12 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    std::uint32_t block_tiles = std::min((std::uint32_t)(params->TILE_CNT - block_start), MAX_TILES_DEST);
 
                     _llk_math_wait_for_dest_available_<DST_SYNC_MODE>();
 
                     // Copy from srcA to dest
-                    for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
+                    for (std::uint32_t block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
                         LLK_ASSERT(
                             (block_tile < get_dest_max_tiles<DST_SYNC_MODE, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
@@ -219,9 +219,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                             block_tile, formats.math, formats.math);
 
                         // Start SFPU binary operation
-                        _llk_math_eltwise_binary_sfpu_start_<DST_SYNC_MODE>(/* dst_index */ block_tile);
-                        test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, ITERATIONS>((block_tile + 1) % MAX_TILES_DEST, formats.math);
-                        _llk_math_eltwise_binary_sfpu_done_();
+                        CALL_BINARY_SFPU_OPERATION(block_tile, (block_tile + 1) % MAX_TILES_DEST, block_tile);
                     }
 
                     _llk_math_dest_section_done_<DST_SYNC_MODE, is_fp32_dest_acc_en>();
@@ -264,11 +262,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    std::uint32_t block_tiles = std::min((std::uint32_t)(params->TILE_CNT - block_start), MAX_TILES_DEST);
 
-                    for (int block_tile = 0; block_tile < block_tiles; block_tile++)
+                    for (std::uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                     {
                         LLK_ASSERT(
                             (block_tile < get_dest_max_tiles<DST_SYNC_MODE, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
@@ -284,10 +282,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    std::uint32_t block_tiles = std::min((std::uint32_t)(params->TILE_CNT - block_start), MAX_TILES_DEST);
 
                     _llk_packer_wait_for_math_done_();
-                    for (int block_tile = 0; block_tile < block_tiles; block_tile++)
+                    for (std::uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                     {
                         LLK_ASSERT(
                             (block_tile < get_dest_max_tiles<DST_SYNC_MODE, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),

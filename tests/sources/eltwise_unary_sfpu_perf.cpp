@@ -20,6 +20,7 @@ std::uint32_t unp_cfg_context                          = 0;
 std::uint32_t pack_sync_tile_dst_ptr                   = 0;
 std::uint32_t math_sync_tile_dst_index                 = 0;
 static constexpr int MAX_TILES_DEST                    = is_fp32_dest_acc_en ? 4 : 8;
+static constexpr bool DST_ACCUM_MODE                   = is_fp32_dest_acc_en;
 static constexpr ckernel::DstSync DST_SYNC_MODE        = ckernel::DstSync::SyncHalf;
 static constexpr ckernel::BroadcastType BROADCAST_TYPE = ckernel::BroadcastType::NONE;
 
@@ -104,6 +105,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
         _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
+        CALL_SFPU_OPERATION_INIT
         PROFILER_SYNC();
     }
     {
@@ -192,10 +194,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                                 block_tile, formats.math, formats.math);
                         }
 
-                        _llk_math_eltwise_unary_sfpu_start_<DST_SYNC_MODE>(/* dst_index */ block_tile);
-                        test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS, FAST_MODE, STABLE_SORT>(
-                            SFPU_UNARY_OPERATION, formats.math);
-                        _llk_math_eltwise_unary_sfpu_done_();
+                        CALL_SFPU_OPERATION(static_cast<std::uint32_t>(block_tile), formats.math, VectorMode::None)
                     }
                 }
             }
@@ -221,10 +220,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                             block_tile, formats.math, formats.math);
 
                         // Start SFPU operation
-                        _llk_math_eltwise_unary_sfpu_start_<DST_SYNC_MODE>(/* dst_index */ block_tile);
-                        test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS, FAST_MODE, STABLE_SORT>(
-                            SFPU_UNARY_OPERATION, formats.math);
-                        _llk_math_eltwise_unary_sfpu_done_();
+                        CALL_SFPU_OPERATION(static_cast<std::uint32_t>(block_tile), formats.math, VectorMode::None)
                     }
 
                     _llk_math_dest_section_done_<DST_SYNC_MODE, is_fp32_dest_acc_en>();
