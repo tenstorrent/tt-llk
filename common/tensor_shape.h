@@ -73,6 +73,8 @@ struct __attribute__((packed)) TensorShape
 
 static_assert(sizeof(TensorShape) == 4, "TensorShape must be 4 bytes");
 
+constexpr TensorShape DEFAULT_TENSOR_SHAPE = {MAX_FACE_R_DIM, MAX_FACE_C_DIM, MAX_NUM_FACES_R_DIM, MAX_NUM_FACES_C_DIM};
+
 /**
  * @brief Operations that are dependent of face positioning within a tile will have this function called to validate the tensor shape.
  * Will start relaxing this constraint once we test larger tensor shapes

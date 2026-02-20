@@ -162,9 +162,14 @@ def test_eltwise_binary(
         tile_dimensions=tile_dimensions,
     )
 
+    effective_dest_acc = (
+        DestAccumulation.Yes
+        if formats.output_format == DataFormat.Float32
+        else dest_acc
+    )
     num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
         DestSync.Half,
-        dest_acc,
+        effective_dest_acc,
         formats,
         input_dimensions,
         tile_dimensions,
@@ -347,9 +352,14 @@ def test_eltwise_binary_dest_reuse(
     )
 
     # Compute block/tile counts for output (determines dest register blocking)
+    effective_dest_acc = (
+        DestAccumulation.Yes
+        if formats.output_format == DataFormat.Float32
+        else DestAccumulation.No
+    )
     output_num_blocks, output_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
         DestSync.Half,
-        DestAccumulation.No,
+        effective_dest_acc,
         formats,
         output_dimensions,
         tile_dimensions,

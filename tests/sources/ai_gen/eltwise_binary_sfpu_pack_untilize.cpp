@@ -16,8 +16,6 @@ std::uint32_t pack_sync_tile_dst_ptr   = 0;
 std::uint32_t math_sync_tile_dst_index = 0;
 
 using namespace ckernel;
-// Default 32x32 tile shape
-static constexpr ckernel::TensorShape DEFAULT_TENSOR_SHAPE = {FACE_R_DIM, FACE_C_DIM, MAX_NUM_FACES_R_DIM, MAX_NUM_FACES_C_DIM};
 
 // Constants for packer configuration
 const std::uint32_t ct_dim    = 1; // Only one column tile (32×32 tensor)
@@ -32,9 +30,12 @@ const std::uint32_t tile_size = 16 * 16 * 4; // bytes per face
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    const std::uint32_t face_r_dim = DEFAULT_TENSOR_SHAPE.face_r_dim;
+    const std::uint32_t num_faces  = DEFAULT_TENSOR_SHAPE.total_num_faces();
+
     // Configure unpacker for two-input AB operation (single tile each)
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
+        formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, face_r_dim, face_r_dim, num_faces, num_faces);
     _llk_unpack_AB_init_<>(DEFAULT_TENSOR_SHAPE);
 
     // Unpack one tile from each input buffer (A and B)

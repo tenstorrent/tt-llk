@@ -16,8 +16,6 @@ std::uint32_t pack_sync_tile_dst_ptr   = 0;
 std::uint32_t math_sync_tile_dst_index = 0;
 
 using namespace ckernel;
-// Default 32x32 tile shape
-static constexpr ckernel::TensorShape DEFAULT_TENSOR_SHAPE = {FACE_R_DIM, FACE_C_DIM, MAX_NUM_FACES_R_DIM, MAX_NUM_FACES_C_DIM};
 
 // -----------------------------------------------------------------------------
 // Test description:
