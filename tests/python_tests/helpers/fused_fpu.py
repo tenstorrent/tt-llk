@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from .fused_math import ComputeNode
 
 from .chip_architecture import ChipArchitecture
+from .fused_loop import FusedLoop, LoopBlock, LoopTileByTile
 from .llk_params import (
     BroadcastType,
     EltwiseBinaryReuseDestType,
@@ -32,6 +33,8 @@ from .tilize_untilize import tilize_block, untilize_block
 
 
 class Fpu:
+    loop: FusedLoop = FusedLoop()
+
     def init(
         self,
         operation: "FusedOperation",
@@ -76,6 +79,8 @@ class Fpu:
 
 
 class MatmulFpu(Fpu):
+    loop: FusedLoop = LoopBlock()
+
     def get_headers(self) -> List[str]:
         return [
             "llk_math_common.h",
@@ -151,6 +156,8 @@ class MatmulFpu(Fpu):
 
 
 class EltwiseFpu(Fpu):
+    loop: FusedLoop = LoopTileByTile()
+
     def __init__(self, operation: MathOperation):
         if not operation in MathOperation.get_fpu_binary_operations():
             raise ValueError(
@@ -256,6 +263,8 @@ class EltwiseFpu(Fpu):
 
 
 class ReduceFpu(Fpu):
+    loop: FusedLoop = LoopTileByTile()
+
     def __init__(self, operation: MathOperation, pool: ReducePool = ReducePool.Max):
         if operation not in MathOperation.get_reduce_operations():
             raise ValueError(f"Operation {operation} is not a valid REDUCE operation.")
@@ -397,6 +406,8 @@ class ReduceFpu(Fpu):
 
 
 class DatacopyFpu(Fpu):
+    loop: FusedLoop = LoopTileByTile()
+
     def get_headers(self) -> List[str]:
         return [
             "llk_math_common.h",

@@ -133,7 +133,8 @@ class FusedKernelGenerator:
         self.pack_gen = PackKernelGenerator(self.config)
 
     def generate_all(self) -> Dict[str, str]:
-        print(self.unpack_gen.generate())
+        # print(self.unpack_gen.generate())
+        print(self.math_gen.generate())
         return {
             "unpack": self.unpack_gen.generate(),
             "math": self.math_gen.generate(),
