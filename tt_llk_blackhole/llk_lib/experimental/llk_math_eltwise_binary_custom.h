@@ -190,10 +190,10 @@ template <
 inline void eltwise_binary_configure_mop_custom(const std::uint32_t acc_to_dest = 0, const std::uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    constexpr bool high_fidelity                = (fidelity != MathFidelity::LoFi);
-    constexpr std::uint32_t num_fidelity_phases = high_fidelity ? static_cast<std::uint32_t>(to_underlying(fidelity)) : 0;
-    const std::uint32_t addr_mod                = ADDR_MOD_7;
-    constexpr std::uint32_t innerloop           = 16 >> 3; // 8 rows per eltwise op at a time.
+    constexpr bool high_fidelity       = (fidelity != MathFidelity::LoFi);
+    constexpr auto num_fidelity_phases = high_fidelity ? ckernel::to_underlying(fidelity) : 0;
+    const std::uint32_t addr_mod       = ADDR_MOD_7;
+    constexpr std::uint32_t innerloop  = 16 >> 3; // 8 rows per eltwise op at a time.
 
     // The mop only runs for 2 outer loops and mop is called twice for col broadcast
     const std::uint32_t outerloop = (binary_reuse_dest != EltwiseBinaryReuseDestType::NONE) ? 1 : (bcast_type == BroadcastType::COL) ? 2 : num_faces;
