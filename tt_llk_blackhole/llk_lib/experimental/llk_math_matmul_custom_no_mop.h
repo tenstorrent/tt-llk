@@ -127,7 +127,7 @@ inline void matmul_configure_addrmod(
     }
 }
 
-template <int MATH_FIDELITY_DESC, int THROTTLE_LEVEL = 0>
+template <int MATH_FIDELITY_DESC = 0, int THROTTLE_LEVEL = 0>
 inline void matmul_configure_addrmod_reinit(const bool transpose = false)
 {
     // Reinit must restore the full matmul address-modifier contract used by replay.
