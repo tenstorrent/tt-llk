@@ -10,17 +10,17 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
     from .fused_math import ComputeNode
-    from .fused_loop import FusedLoop
 
 from .chip_architecture import ChipArchitecture
 from .fused_fpu import ReduceFpu
+from .fused_loop import FusedLoop, LoopBlock, LoopTileByTile
 from .golden_generators import BroadcastGolden, TransposeGolden, get_golden_generator
 from .llk_params import BroadcastType, Transpose
 from .tilize_untilize import tilize_block, untilize_block
 
 
 class Unpacker:
-    loop: "FusedLoop"
+    loop: FusedLoop = FusedLoop()
 
     def init(
         self,
@@ -80,9 +80,7 @@ class Unpacker:
 
 
 class MatmulUnpacker(Unpacker):
-    from .fused_loop import LoopBlock
-
-    loop: "FusedLoop" = LoopBlock()
+    loop: FusedLoop = LoopBlock()
 
     def get_headers(self) -> List[str]:
         return [
@@ -202,9 +200,7 @@ class MatmulUnpacker(Unpacker):
 
 
 class UnpackerAB(Unpacker):
-    from .fused_loop import LoopTileByTile
-
-    loop: "FusedLoop" = LoopTileByTile()
+    loop: FusedLoop = LoopTileByTile()
 
     def get_headers(self) -> List[str]:
         return [
@@ -363,9 +359,7 @@ class UnpackerAB(Unpacker):
 
 
 class UnpackerA(Unpacker):
-    from .fused_loop import LoopTileByTile
-
-    loop: "FusedLoop" = LoopTileByTile()
+    loop: FusedLoop = LoopTileByTile()
 
     def get_headers(self) -> List[str]:
         return [
@@ -517,9 +511,7 @@ class UnpackerA(Unpacker):
 
 
 class UnpackerTilizeA(Unpacker):
-    from .fused_loop import LoopTileByTile
-
-    loop: "FusedLoop" = LoopTileByTile()
+    loop: FusedLoop = LoopTileByTile()
 
     def get_headers(self) -> List[str]:
         return [
@@ -642,9 +634,7 @@ class UnpackerTilizeA(Unpacker):
 
 
 class ReduceBlockMaxUnpacker(Unpacker):
-    from .fused_loop import LoopTileByTile
-
-    loop: "FusedLoop" = LoopTileByTile()
+    loop: FusedLoop = LoopTileByTile()
 
     def init(
         self,
