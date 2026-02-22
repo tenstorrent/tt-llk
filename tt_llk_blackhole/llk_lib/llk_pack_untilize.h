@@ -143,7 +143,7 @@ template <
 inline void _llk_pack_untilize_init_(
     const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
-    static_assert(dense || (block_ct_dim <= 8), "block_ct_dim must less than or equal to 8 when not dense");
+    static_assert(dense || (block_ct_dim <= 8), "block_ct_dim must be less than or equal to 8 when not dense");
     static_assert(!dense || (block_ct_dim % 2 == 0 && block_ct_dim <= 16), "block_ct_dim must be even and less than or equal to 16 when dense");
     static_assert(!dense || !narrow_row, "When dense=true, narrow_row must be false");
     static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
@@ -207,7 +207,7 @@ inline void _llk_pack_untilize_(
     const std::uint32_t num_faces          = 4,
     const std::uint32_t tile_dst_rt_offset = 0)
 {
-    static_assert(dense || (block_ct_dim <= 8), "block_ct_dim must less than or equal to 8 when not dense");
+    static_assert(dense || (block_ct_dim <= 8), "block_ct_dim must be less than or equal to 8 when not dense");
     static_assert(!dense || (block_ct_dim % 2 == 0 && block_ct_dim <= 16), "block_ct_dim must be even and less than or equal to 16 when dense");
     static_assert(!dense || !narrow_row, "When dense=true, narrow_row must be false");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
