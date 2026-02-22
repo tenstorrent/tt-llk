@@ -2,9 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include <algorithm>
 #include <cstdint>
-#include <cstdio>
 
 #include "ckernel.h"
 #include "llk_assert.h"
@@ -70,8 +68,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 #include "params.h"
-
-constexpr std::uint32_t L1_ACCESS_ADDRESS_GRANULARITY = 16; // in bytes
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {

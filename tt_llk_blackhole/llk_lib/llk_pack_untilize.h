@@ -28,7 +28,7 @@ inline void _llk_pack_untilize_configure_addrmod_()
 
 /*
 block_ct_dim represents the number of input tiles in a block.
-dense is used with num_faces == 2 and even block ct_dim where two 16x32 (or smaller tiles) are packed in a since 32x32 tile region in dest
+dense is used with num_faces == 2 and even block_ct_dim, where two 16x32 (or smaller) tiles are packed in a single 32x32 tile region in dest.
 */
 template <std::uint32_t block_ct_dim, bool narrow_row = false, bool dense = false>
 inline void _llk_pack_untilize_mop_config_(
@@ -41,8 +41,8 @@ inline void _llk_pack_untilize_mop_config_(
     /*
     Outer loop iterates over the rows in the block, while the inner loop iterates
     over each tile in the block.
-    When dense, we use all 4 interfaces to pack out a row from 4 faces (2 tiles) that end up contiguous in L1
-    because offsets align well and it improves perf, thus we half the number of mop inner loop.
+    When dense, we use all 4 interfaces to pack out a row each from 4 faces (2 tiles) that end up contiguous in L1
+    because offsets align well and it improves perf, thus we halve the number of mop inner loops.
     */
     constexpr std::uint32_t MOP_INNER_LOOP = dense ? block_ct_dim / 2 : block_ct_dim;
     const std::uint32_t MOP_OUTER_LOOP     = face_r_dim;
@@ -155,7 +155,6 @@ inline void _llk_pack_untilize_init_(
         // Changed to check against TILE_C_DIM instead of FACE_C_DIM until tt-metal#24095 is investigated.
         static_assert(row_num_datums < TILE_C_DIM, "row_num_datums must be set to less than TILE_C_DIM for narrow_row packing");
     }
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
 
     _llk_pack_untilize_configure_addrmod_();
 

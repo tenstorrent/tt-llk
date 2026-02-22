@@ -21,7 +21,7 @@ from helpers.test_variant_parameters import (
 from helpers.utils import passed_test
 
 
-def generate_specific_stimuli(input_dimensions, r_dim, format):
+def generate_specific_stimuli(input_dimensions, r_dim, data_format):
     """Generate specific stimuli pattern for pack untilize test."""
     valid_datum = 1.0
     invalid_datum = -1.0
@@ -36,11 +36,11 @@ def generate_specific_stimuli(input_dimensions, r_dim, format):
         for j in range(16 - r_dim):
             for k in range(16):
                 src_A.append(invalid_datum * (row_offset * j + face_offset * i + k))
-    src_A = torch.tensor(src_A, dtype=format_dict[format])
+    src_A = torch.tensor(src_A, dtype=format_dict[data_format])
     return src_A
 
 
-def generate_golden_output(src_A, input_dimensions, r_dim, format):
+def generate_golden_output(src_A, input_dimensions, r_dim, data_format):
     """Generate expected golden output for pack untilize test."""
     golden = []
     row_offset = 16
@@ -50,7 +50,7 @@ def generate_golden_output(src_A, input_dimensions, r_dim, format):
         for j in range(num_blocks):
             for k in range(16):
                 golden.append(src_A[i * row_offset + j * block_offset + k])
-    golden_tensor = torch.tensor(golden, dtype=format_dict[format])
+    golden_tensor = torch.tensor(golden, dtype=format_dict[data_format])
     return golden_tensor
 
 
