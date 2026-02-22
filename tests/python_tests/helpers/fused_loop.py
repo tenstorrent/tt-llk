@@ -45,13 +45,19 @@ class FusedLoop:
         block_size_y: int,
     ) -> str:
         code = ""
-        for tile_x in range(block_size_x):
-            for tile_y in range(block_size_y):
-                dest_tile_id = f"({tile_x} * {block_size_y} + {tile_y})"
-                l1_tile_id = 0  # problem za marka iz buducnosti
-                code += operation.math.packer().pack(
-                    operation, config, dest_tile_id, l1_tile_id
-                )
+        code += (
+            f"for (std::uint32_t tile_x = 0; tile_x < {block_size_x}; tile_x++) {{\n"
+        )
+        code += (
+            f"for (std::uint32_t tile_y = 0; tile_y < {block_size_y}; tile_y++) {{\n"
+        )
+        code += f"std::uint32_t l1_tile_id = {operation.output.tile_count_x} * ({operation.block_tiles_y} * {block_y} + tile_y) + {operation.block_tiles_x} * {block_x} + tile_x;\n"
+        code += f"std::uint32_t dest_tile_id = tile_x * {block_size_y} + tile_y;\n"
+        code += operation.math.packer().pack(
+            operation, config, "dest_tile_id", "l1_tile_id"
+        )
+        code += "}\n"
+        code += "}\n"
         return code
 
 
@@ -126,9 +132,7 @@ class LoopTileByTile(FusedLoop):
         code += (
             f"for (std::uint32_t tile_y = 0; tile_y < {block_size_y}; tile_y++) {{\n"
         )
-        code += (
-            f"std::uint32_t tile_id = tile_x * {operation.block_tiles_y} + tile_y;\n"
-        )
+        code += f"std::uint32_t tile_id = tile_x * {block_size_y} + tile_y;\n"
         code += compute_unit.fpu.calculate(operation, config, compute_unit, "tile_id")
         code += "}\n"
         code += "}\n"
