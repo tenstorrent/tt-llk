@@ -15,8 +15,8 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_SYNC,
     IN_TILE_DIMS,
-    INPUT_DIMENSIONS,
     NUM_FACES,
+    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -99,7 +99,7 @@ def test_pack_untilize(
         "sources/dense_pack_untilize_test.cpp",
         formats,
         templates=[
-            INPUT_DIMENSIONS(
+            generate_input_dim(
                 input_dimensions,
                 input_dimensions,
             ),
