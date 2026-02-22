@@ -39,7 +39,6 @@ class FusedLoop:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        compute_unit: "ComputeNode",
         block_x: int,
         block_y: int,
         block_size_x: int,
@@ -50,8 +49,8 @@ class FusedLoop:
             for tile_y in range(block_size_y):
                 dest_tile_id = f"({tile_x} * {block_size_y} + {tile_y})"
                 l1_tile_id = 0  # problem za marka iz buducnosti
-                code += operation.packer.pack(
-                    operation, config, compute_unit, dest_tile_id, l1_tile_id
+                code += operation.math.packer().pack(
+                    operation, config, dest_tile_id, l1_tile_id
                 )
         return code
 

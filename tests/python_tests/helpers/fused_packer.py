@@ -12,11 +12,13 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
 
-from .fused_fpu import ReduceBlockMaxFpu, ReduceFpu
+from .fused_loop import FusedLoop
 from .llk_params import PerfRunType
 
 
 class Packer:
+    loop: FusedLoop = FusedLoop()
+
     def get_headers(self) -> List[str]:
         return [
             "llk_pack.h",
@@ -193,13 +195,6 @@ class Packer:
         else:
             raise ValueError("Unsupported architecture for packer")
 
-        if operation.math.has_fpu(ReduceFpu):
-            reduce_dim = operation.math.get_reduce_pack_mask()
-            code += f"    _llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
-        elif operation.math.has_fpu(ReduceBlockMaxFpu):
-            reduce_dim = "ckernel::ReduceDim::REDUCE_ROW"
-            code += f"    _llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
-
         return code
 
     def pack(
@@ -215,14 +210,7 @@ class Packer:
         return f"_llk_pack_<{dest_sync}, {dest_acc}, false>({dest_idx}, L1_ADDRESS(buffer_Res{stage}[{l1_idx}]));\n"
 
     def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        code = ""
-
-        if operation.math.has_fpu(ReduceFpu) or operation.math.has_fpu(
-            ReduceBlockMaxFpu
-        ):
-            code = "    _llk_pack_reduce_mask_clear_();\n"
-
-        return code
+        return ""
 
     def unpacker_sync(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         stage = operation.stage_id

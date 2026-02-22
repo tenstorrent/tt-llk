@@ -97,8 +97,7 @@ class PackKernelGenerator:
         # Collect all unique headers from all operations
         all_headers = set()
         for op in self.config.pipeline:
-            packer_instance = op.packer()
-            all_headers.update(packer_instance.get_headers())
+            all_headers.update(op.math.packer().get_headers())
 
         # Generate include statements
         includes = "\n".join([f'#include "{header}"' for header in sorted(all_headers)])
@@ -133,8 +132,6 @@ class FusedKernelGenerator:
         self.pack_gen = PackKernelGenerator(self.config)
 
     def generate_all(self) -> Dict[str, str]:
-        # print(self.unpack_gen.generate())
-        print(self.math_gen.generate())
         return {
             "unpack": self.unpack_gen.generate(),
             "math": self.math_gen.generate(),

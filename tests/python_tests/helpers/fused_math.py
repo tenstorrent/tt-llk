@@ -10,7 +10,9 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
 
-from .fused_fpu import Fpu, ReduceFpu
+from .chip_architecture import ChipArchitecture
+from .fused_fpu import Fpu, ReduceBlockMaxFpu, ReduceFpu
+from .fused_packer import Packer
 from .fused_sfpu import Sfpu
 from .fused_unpacker import Unpacker, UnpackerA
 from .llk_params import (
@@ -254,9 +256,11 @@ class ComputeNode:
 
 class ComputePipeline:
     operations: List[ComputeNode]
+    packer: Packer
 
-    def __init__(self, operations: List[ComputeNode]):
+    def __init__(self, operations: List[ComputeNode], packer: Packer):
         self.operations = operations
+        self.packer = packer
 
     def get_unpackers(self) -> List["Unpacker"]:
         unpackers: List["Unpacker"] = []
@@ -321,6 +325,55 @@ class ComputePipeline:
             return None
 
         return f"ReduceDim::{reduce_op.cpp_enum_value}"
+
+    def _batch_loop(
+        self, operation: "FusedOperation", config: "GlobalConfig", body_fn
+    ) -> str:
+        block_tiles_x = operation.block_tiles_x
+        block_tiles_y = operation.block_tiles_y
+        tile_count_x = operation.output.tile_count_x
+        tile_count_y = operation.output.tile_count_y
+
+        full_blocks_x = tile_count_x // block_tiles_x
+        full_blocks_y = tile_count_y // block_tiles_y
+        remaining_tiles_x = tile_count_x % block_tiles_x
+        remaining_tiles_y = tile_count_y % block_tiles_y
+
+        full_x_limit = full_blocks_x * block_tiles_x
+        full_y_limit = full_blocks_y * block_tiles_y
+
+        code = ""
+
+        if full_blocks_x > 0 and full_blocks_y > 0:
+            code += f"for (std::uint32_t block_x = 0; block_x < {full_x_limit}; block_x += {block_tiles_x}) {{\n"
+            code += f"for (std::uint32_t block_y = 0; block_y < {full_y_limit}; block_y += {block_tiles_y}) {{\n"
+            code += body_fn("block_x", "block_y", block_tiles_x, block_tiles_y)
+            code += "}\n"
+            code += "}\n"
+
+        if remaining_tiles_y > 0 and full_blocks_x > 0:
+            code += f"for (std::uint32_t block_x = 0; block_x < {full_x_limit}; block_x += {block_tiles_x}) {{\n"
+            code += body_fn(
+                "block_x", f"{full_y_limit}", block_tiles_x, remaining_tiles_y
+            )
+            code += "}\n"
+
+        if remaining_tiles_x > 0 and full_blocks_y > 0:
+            code += f"for (std::uint32_t block_y = 0; block_y < {full_y_limit}; block_y += {block_tiles_y}) {{\n"
+            code += body_fn(
+                f"{full_x_limit}", "block_y", remaining_tiles_x, block_tiles_y
+            )
+            code += "}\n"
+
+        if remaining_tiles_x > 0 and remaining_tiles_y > 0:
+            code += body_fn(
+                f"{full_x_limit}",
+                f"{full_y_limit}",
+                remaining_tiles_x,
+                remaining_tiles_y,
+            )
+
+        return code
 
     def unpack_operand_constants(
         self, operation: "FusedOperation", config: "GlobalConfig"
@@ -389,166 +442,6 @@ class ComputePipeline:
 
         return ""
 
-    def math_hw_configure(
-        self, operation: "FusedOperation", config: "GlobalConfig"
-    ) -> str:
-        stage = operation.stage_id
-        dest_acc = config.dest_acc.cpp_enum_value
-        if stage == 1:
-            code = f"_llk_math_hw_configure_<{dest_acc}>(math_format{stage}, math_format{stage});\n"
-        else:
-            code = f"_llk_math_reconfig_data_format_<{dest_acc}, false>(math_format{stage}, math_format{stage});\n"
-
-        code += f"_llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n"
-
-        return code
-
-    def _wait_for_dest(
-        self, operation: "FusedOperation", config: "GlobalConfig"
-    ) -> str:
-        if config.perf_run_type in (
-            PerfRunType.MATH_ISOLATE,
-            PerfRunType.UNPACK_ISOLATE,
-            PerfRunType.PACK_ISOLATE,
-            PerfRunType.L1_CONGESTION,
-        ):
-            return ""
-
-        return f"_llk_math_wait_for_dest_available_<dest_sync{operation.stage_id}>();\n"
-
-    def _dest_section_done(
-        self, operation: "FusedOperation", config: "GlobalConfig"
-    ) -> str:
-        if config.perf_run_type in (
-            PerfRunType.MATH_ISOLATE,
-            PerfRunType.UNPACK_ISOLATE,
-            PerfRunType.PACK_ISOLATE,
-            PerfRunType.L1_CONGESTION,
-        ):
-            return ""
-
-        return f"_llk_math_dest_section_done_<dest_sync{operation.stage_id}, {config.dest_acc.cpp_enum_value}>();\n"
-
-    def _batch_loop_old(
-        self, operation: "FusedOperation", config: "GlobalConfig", body_fn
-    ) -> str:
-        batch_size = operation.batch_size
-        tile_cnt = operation.output.tile_count
-
-        num_full_batches = tile_cnt // batch_size
-        remaining_tiles = tile_cnt % batch_size
-
-        code = ""
-
-        if num_full_batches > 0:
-            code += f"for (std::uint32_t batch = 0; batch < {num_full_batches}; ++batch) {{\n"
-            code += body_fn(f"batch * {batch_size}", batch_size)
-            code += "}\n"
-
-        if remaining_tiles > 0:
-            code += "{\n"
-            code += body_fn(f"{num_full_batches * batch_size}", remaining_tiles)
-            code += "}\n"
-
-        return code
-
-    def _batch_loop(
-        self, operation: "FusedOperation", config: "GlobalConfig", body_fn
-    ) -> str:
-        block_tiles_x = operation.block_tiles_x
-        block_tiles_y = operation.block_tiles_y
-        tile_count_x = operation.output.tile_count_x
-        tile_count_y = operation.output.tile_count_y
-
-        full_blocks_x = tile_count_x // block_tiles_x
-        full_blocks_y = tile_count_y // block_tiles_y
-        remaining_tiles_x = tile_count_x % block_tiles_x
-        remaining_tiles_y = tile_count_y % block_tiles_y
-
-        full_x_limit = full_blocks_x * block_tiles_x
-        full_y_limit = full_blocks_y * block_tiles_y
-
-        code = ""
-
-        if full_blocks_x > 0 and full_blocks_y > 0:
-            code += f"for (std::uint32_t block_x = 0; block_x < {full_x_limit}; block_x += {block_tiles_x}) {{\n"
-            code += f"for (std::uint32_t block_y = 0; block_y < {full_y_limit}; block_y += {block_tiles_y}) {{\n"
-            code += body_fn("block_x", "block_y", block_tiles_x, block_tiles_y)
-            code += "}\n"
-            code += "}\n"
-
-        if remaining_tiles_y > 0 and full_blocks_x > 0:
-            code += f"for (std::uint32_t block_x = 0; block_x < {full_x_limit}; block_x += {block_tiles_x}) {{\n"
-            code += body_fn(
-                "block_x", f"{full_y_limit}", block_tiles_x, remaining_tiles_y
-            )
-            code += "}\n"
-
-        if remaining_tiles_x > 0 and full_blocks_y > 0:
-            code += f"for (std::uint32_t block_y = 0; block_y < {full_y_limit}; block_y += {block_tiles_y}) {{\n"
-            code += body_fn(
-                f"{full_x_limit}", "block_y", remaining_tiles_x, block_tiles_y
-            )
-            code += "}\n"
-
-        if remaining_tiles_x > 0 and remaining_tiles_y > 0:
-            code += body_fn(
-                f"{full_x_limit}",
-                f"{full_y_limit}",
-                remaining_tiles_x,
-                remaining_tiles_y,
-            )
-
-        return code
-
-    def _math_constants(
-        self, operation: "FusedOperation", config: "GlobalConfig"
-    ) -> str:
-        stage = operation.stage_id
-        math_format = operation.output.data_format
-        dest_sync = operation.dest_sync.cpp_enum_value
-
-        code = f"// Operation {stage}: Math Setup\n"
-        code += f"const std::uint32_t math_format{stage} = ckernel::to_underlying(DataFormat::{math_format.name});\n"
-        code += f"constexpr DstSync dest_sync{stage} = {dest_sync};\n"
-
-        return code
-
-    def math_body(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
-        code = self._math_constants(operation, config)
-
-        if config.profiler_enabled:
-            code += "{\n"
-            code += 'ZONE_SCOPED("INIT")\n'
-
-        code += self.math_hw_configure(operation, config)
-
-        if config.profiler_enabled:
-            code += "PROFILER_SYNC();\n"
-            code += "}\n"
-            code += "{\n"
-            code += 'ZONE_SCOPED("TILE_LOOP")\n'
-            code += f"for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
-            code += "{\n"
-
-        def batch_body(block_x, block_y, block_tiles_x, block_tiles_y):
-            body = self._wait_for_dest(operation, config)
-            for compute_unit in self.operations:
-                body += compute_unit.math_calculate(
-                    operation, config, block_x, block_y, block_tiles_x, block_tiles_y
-                )
-            body += self._dest_section_done(operation, config)
-            return body
-
-        code += self._batch_loop(operation, config, batch_body)
-
-        if config.profiler_enabled:
-            code += "}\n"
-            code += "PROFILER_SYNC();\n"
-            code += "}\n"
-
-        return code
-
     def unpack_body(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
         code = self.unpack_operand_constants(operation, config)
 
@@ -586,6 +479,254 @@ class ComputePipeline:
             code += "}\n"
             code += "{\n"
             code += 'ZONE_SCOPED("INIT")\n'
+            code += "PROFILER_SYNC();\n"
+            code += "}\n"
+
+        return code
+
+    def math_hw_configure(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        stage = operation.stage_id
+        dest_acc = config.dest_acc.value
+        if stage == 0:
+            code = f"_llk_math_hw_configure_<{dest_acc}>(math_format{stage}, math_format{stage});\n"
+        else:
+            code = f"_llk_math_reconfig_data_format_<{dest_acc}, false>(math_format{stage}, math_format{stage});\n"
+
+        code += f"_llk_math_pack_sync_init_<dest_sync{stage}, {dest_acc}>();\n"
+
+        return code
+
+    def _math_wait_for_dest(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        if config.perf_run_type in (
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        ):
+            return ""
+
+        return f"_llk_math_wait_for_dest_available_<dest_sync{operation.stage_id}>();\n"
+
+    def _math_dest_section_done(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        if config.perf_run_type in (
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        ):
+            return ""
+
+        return f"_llk_math_dest_section_done_<dest_sync{operation.stage_id}, {config.dest_acc.value}>();\n"
+
+    def _math_constants(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        stage = operation.stage_id
+        math_format = operation.output.data_format
+        dest_sync = operation.dest_sync
+
+        dest_sync_map = {
+            DestSync.Half: "SyncHalf",
+            DestSync.Full: "SyncFull",
+        }
+        dest_sync_str = dest_sync_map.get(dest_sync, "SyncHalf")
+
+        code = f"// Operation {stage}: Math Setup\n"
+        code += f"const std::uint32_t math_format{stage} = ckernel::to_underlying(DataFormat::{math_format.name});\n"
+        code += f"constexpr DstSync dest_sync{stage} = DstSync::{dest_sync_str};\n"
+
+        return code
+
+    def math_body(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        code = self._math_constants(operation, config)
+
+        if config.profiler_enabled:
+            code += "{\n"
+            code += 'ZONE_SCOPED("INIT")\n'
+
+        code += self.math_hw_configure(operation, config)
+
+        if config.profiler_enabled:
+            code += "PROFILER_SYNC();\n"
+            code += "}\n"
+            code += "{\n"
+            code += 'ZONE_SCOPED("TILE_LOOP")\n'
+            code += f"for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
+            code += "{\n"
+
+        def batch_body(block_x, block_y, block_tiles_x, block_tiles_y):
+            body = self._math_wait_for_dest(operation, config)
+            for compute_unit in self.operations:
+                body += compute_unit.math_calculate(
+                    operation, config, block_x, block_y, block_tiles_x, block_tiles_y
+                )
+            body += self._math_dest_section_done(operation, config)
+            return body
+
+        code += self._batch_loop(operation, config, batch_body)
+
+        if config.profiler_enabled:
+            code += "}\n"
+            code += "PROFILER_SYNC();\n"
+            code += "}\n"
+
+        return code
+
+    def _packer_wait_for_math(self, config: "GlobalConfig") -> str:
+        if config.perf_run_type in (
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        ):
+            return ""
+
+        return "_llk_packer_wait_for_math_done_();\n"
+
+    def _packer_dest_section_done(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        if config.perf_run_type in (
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        ):
+            return ""
+
+        dest_sync = f"DstSync::Sync{operation.dest_sync.name}"
+        dest_acc = config.dest_acc.value
+        return f"_llk_pack_dest_section_done_<{dest_sync}, {dest_acc}>();\n"
+
+    def _pack_constants(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        stage = operation.stage_id
+        buffer_Res_tile_size = operation.buffer_Res_tile_size
+        pack_src = operation.pack_in
+        pack_dst = operation.pack_out
+        result_buffer_address = operation.output.l1_address
+
+        return (
+            f"// Operation {stage}: Packer\n"
+            f"const Operand buffer_Res{stage}({hex(result_buffer_address)}, {buffer_Res_tile_size});\n"
+            f"const std::uint32_t pack_src_format{stage} = ckernel::to_underlying(DataFormat::{pack_src.name});\n"
+            f"const std::uint32_t pack_dst_format{stage} = ckernel::to_underlying(DataFormat::{pack_dst.name});\n"
+        )
+
+    def pack_hw_configure(
+        self, operation: "FusedOperation", config: "GlobalConfig"
+    ) -> str:
+        stage = operation.stage_id
+        bh_tilize = "true" if operation.bh_tilize.value else "false"
+        dest_acc = config.dest_acc.value
+        pack_size = operation.tile_size_pack
+        face_r_dim = operation.face_r_dim
+        num_faces = operation.num_faces
+
+        if stage == 0:
+            if config.architecture == ChipArchitecture.BLACKHOLE:
+                code = (
+                    f"_llk_pack_hw_configure_<{dest_acc}, false, {bh_tilize}>(\n"
+                    f"pack_src_format{stage}, pack_dst_format{stage}, {pack_size}, {face_r_dim}, TILE_C_DIM, {num_faces}\n"
+                    f");\n"
+                )
+            elif config.architecture == ChipArchitecture.WORMHOLE:
+                code = (
+                    f"_llk_pack_hw_configure_<{dest_acc}, false>(\n"
+                    f"pack_src_format{stage}, pack_dst_format{stage}, {pack_size}, {face_r_dim}, {num_faces}\n"
+                    f");\n"
+                )
+        else:
+            code = (
+                f"_llk_pack_reconfig_data_format_<{dest_acc}, false>(\n"
+                f"pack_src_format{stage}, pack_dst_format{stage}, {pack_size}\n"
+                f");\n"
+            )
+
+        return code
+
+    def _pack_reduce_mask_config(self) -> str:
+        code = ""
+        if self.has_fpu(ReduceFpu):
+            reduce_dim = self.get_reduce_pack_mask()
+            code += f"_llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
+        elif self.has_fpu(ReduceBlockMaxFpu):
+            reduce_dim = "ckernel::ReduceDim::REDUCE_ROW"
+            code += f"_llk_pack_reduce_mask_config_<false, {reduce_dim}>();\n"
+        return code
+
+    def _pack_reduce_mask_clear(self) -> str:
+        code = ""
+
+        if self.has_fpu(ReduceFpu) or self.has_fpu(ReduceBlockMaxFpu):
+            code = "_llk_pack_reduce_mask_clear_();\n"
+
+        return code
+
+    def packer_sync_with_unpacker(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+    ) -> str:
+        stage = operation.stage_id
+        num_stages = operation.num_stages
+        code = ""
+
+        if stage < num_stages - 1:
+            code += "t6_semaphore_post<>(semaphore::PACK_DONE);\n\n"
+
+        return code
+
+    def pack_body(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+        code = self._pack_constants(operation, config)
+
+        if config.profiler_enabled:
+            code += "{\n"
+            code += 'ZONE_SCOPED("INIT")\n'
+
+        code += self.pack_hw_configure(operation, config)
+        code += self._pack_reduce_mask_config()
+        code += self.packer().init(operation, config)
+
+        if config.profiler_enabled:
+            code += "PROFILER_SYNC();\n"
+            code += "}\n"
+            code += "{\n"
+            code += 'ZONE_SCOPED("TILE_LOOP")\n'
+
+        if config.profiler_enabled:
+            code += f"for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
+            code += "{\n"
+
+        def batch_body(block_x, block_y, block_tiles_x, block_tiles_y):
+            body = self._packer_wait_for_math(config)
+            body += self.packer().loop.pack_loop(
+                operation, config, block_x, block_y, block_tiles_x, block_tiles_y
+            )
+            body += self._packer_dest_section_done(operation, config)
+            return body
+
+        code += self._batch_loop(operation, config, batch_body)
+
+        if config.profiler_enabled:
+            code += "}\n"
+            code += "PROFILER_SYNC();\n"
+            code += "}\n"
+            code += "{\n"
+            code += 'ZONE_SCOPED("INIT")\n'
+
+        code += self.packer_sync_with_unpacker(operation, config)
+        code += self.packer().uninit(operation, config)
+        code += self._pack_reduce_mask_clear()
+
+        if config.profiler_enabled:
             code += "PROFILER_SYNC();\n"
             code += "}\n"
 

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from dataclasses import dataclass
-from typing import Tuple, Type
+from typing import Tuple
 
 import torch
 
@@ -11,7 +11,6 @@ from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .format_config import DataFormat
 from .fused_math import ComputePipeline
 from .fused_operand import Operand, OperandMapping
-from .fused_packer import Packer
 from .fused_unpacker import UnpackerTilizeA
 from .llk_params import (
     DestSync,
@@ -26,7 +25,6 @@ from .matmul_sweep import validate_tile_dimensions
 @dataclass
 class FusedOperation:
     math: ComputePipeline
-    packer: Type[Packer]
     operand_mapping: OperandMapping
     stage_id: int = 0
     num_stages: int = 1
@@ -141,8 +139,7 @@ class FusedOperation:
         return self.math.math_body(self, config)
 
     def pack(self, config) -> str:
-        packer_instance = self.packer()
-        return packer_instance.exec(self, config)
+        return self.math.pack_body(self, config)
 
     def golden(self, config) -> torch.Tensor:
         # calculate l1 golden
@@ -153,7 +150,7 @@ class FusedOperation:
         tensor_b = self.src_b.raw_data.view(src_b_dims)
 
         l1_golden_tensor = self.math.golden(tensor_a, tensor_b, self, config)
-        l1_golden_tensor = self.packer().golden(l1_golden_tensor, self, config)
+        l1_golden_tensor = self.math.packer().golden(l1_golden_tensor, self, config)
 
         self.output.l1_golden = l1_golden_tensor.flatten()
 
@@ -164,7 +161,9 @@ class FusedOperation:
         master_golden_tensor = self.math.golden(
             golden_tensor_a, golden_tensor_b, self, config
         )
-        master_golden_tensor = self.packer().golden(master_golden_tensor, self, config)
+        master_golden_tensor = self.math.packer().golden(
+            master_golden_tensor, self, config
+        )
 
         self.output._master_golden = master_golden_tensor.flatten()
 
@@ -176,7 +175,6 @@ class FusedOperation:
             f"Operation {self.stage_id}\n"
             f"{'='*60}\n"
             f"  {self.math}\n"
-            f"  Packer: {self.packer.__name__}\n"
             f"  Src_A: {self.src_a}\n"
             f"  Src_B: {self.src_b}\n"
             f"  Output: {self.output}\n"
