@@ -23,13 +23,6 @@ constexpr int get_math_num_fidelity_phases(const MathFidelity math_fidelity)
     return ckernel::to_underlying(math_fidelity);
 }
 
-constexpr int get_math_fidelity_increment(const MathFidelity math_fidelity)
-{
-    // For high fidelity modes, increment by 1
-    static_cast<void>(math_fidelity);
-    return 1;
-}
-
 template <MathFidelity math_fidelity, int THROTTLE_LEVEL>
 inline void matmul_configure_addrmod(
     const bool transpose,
@@ -39,9 +32,8 @@ inline void matmul_configure_addrmod(
     const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
     const bool partial_face            = false)
 {
-    constexpr int num_fidelity_phases = get_math_num_fidelity_phases(math_fidelity);
-    constexpr bool high_fidelity      = (num_fidelity_phases > 0);
-    constexpr int fidelity_increment  = high_fidelity ? get_math_fidelity_increment(math_fidelity) : 0;
+    constexpr bool high_fidelity     = math_fidelity != MathFidelity::LoFi;
+    constexpr int fidelity_increment = high_fidelity ? 1 : 0;
 
     // MVMUL does D = B*A
 
@@ -136,7 +128,7 @@ inline void matmul_configure_addrmod_reinit(const bool transpose = false)
     matmul_configure_addrmod<math_fidelity, THROTTLE_LEVEL>(transpose);
 }
 
-template <int num_fidelity_phases>
+template <MathFidelity math_fidelity>
 inline void matmul_configure_mop(
     const std::uint32_t ct_dim,
     const std::uint32_t rt_dim,
@@ -154,7 +146,8 @@ inline void matmul_configure_mop(
     // Col major layout in dest only impacs destination address increment
     // if col major layout faces are ordered as f0,f2,f1,f3
 
-    constexpr bool high_fidelity = num_fidelity_phases > 0;
+    constexpr int num_fidelity_phases = get_math_num_fidelity_phases(math_fidelity);
+    constexpr bool high_fidelity      = math_fidelity != MathFidelity::LoFi;
 
     const bool reuse_a        = ct_dim >= rt_dim;
     const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
@@ -303,7 +296,7 @@ void run_throttled_sequence_no_mop<5>()
  * Level 4: throttle to 40% of max
  * Level 5: throttle to 33% of max
  */
-template <int num_fidelity_phases, int THROTTLE_LEVEL>
+template <MathFidelity math_fidelity, int THROTTLE_LEVEL>
 inline void matmul_configure_mop_throttled(
     const std::uint32_t ct_dim,
     const std::uint32_t rt_dim,
@@ -321,7 +314,8 @@ inline void matmul_configure_mop_throttled(
     // Col major layout in dest only impacts destination address increment
     // if col major layout faces are ordered as f0,f2,f1,f3
 
-    constexpr bool high_fidelity = num_fidelity_phases > 0;
+    constexpr int num_fidelity_phases = get_math_num_fidelity_phases(math_fidelity);
+    constexpr bool high_fidelity      = math_fidelity != MathFidelity::LoFi;
     static_assert((THROTTLE_LEVEL > 0) && (THROTTLE_LEVEL <= 5), "MM throttling only enabled for THROTTLE_LEVEL={1,2,3,4,5}");
     LLK_ASSERT(
         (in0_tile_r_dim == TILE_R_DIM) && (in0_tile_c_dim == TILE_C_DIM) && (in1_tile_r_dim == TILE_R_DIM) && (in1_tile_c_dim == TILE_C_DIM) && !partial_face,
@@ -352,16 +346,14 @@ inline void _llk_math_matmul_init_no_mop_(
     const std::uint32_t rt_dim         = 1)
 {
     matmul_configure_addrmod<math_fidelity, THROTTLE_LEVEL>(transpose, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
-
-    constexpr int num_fidelity_phases = get_math_num_fidelity_phases(math_fidelity);
     if constexpr (THROTTLE_LEVEL > 0)
     {
-        matmul_configure_mop_throttled<num_fidelity_phases, THROTTLE_LEVEL>(
+        matmul_configure_mop_throttled<math_fidelity, THROTTLE_LEVEL>(
             ct_dim, rt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     }
     else
     {
-        matmul_configure_mop<num_fidelity_phases>(ct_dim, rt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
+        matmul_configure_mop<math_fidelity>(ct_dim, rt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face);
     }
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
@@ -386,7 +378,7 @@ inline void _llk_math_matmul_no_mop_(
     const std::uint32_t t_dim         = reuse_a ? rt_dim : ct_dim;
     const std::uint32_t rut_dim       = reuse_a ? ct_dim : rt_dim; // reuse-dim
     constexpr int num_fidelity_phases = get_math_num_fidelity_phases(math_fidelity);
-    constexpr bool high_fidelity      = num_fidelity_phases > 0;
+    constexpr bool high_fidelity      = math_fidelity != MathFidelity::LoFi;
 
     // Compute replay buffer length based on tile dimensions (same logic as in matmul_configure_mop)
     std::uint32_t replay_buf_len;
