@@ -74,35 +74,26 @@ class ComputeNode:
         block_tiles_x,
         block_tiles_y,
     ):
+        code = ""
         if self.unpacker is None:
-            return ""
+            return code
 
-        # if config.perf_run_type == PerfRunType.PACK_ISOLATE:
-        #     return ""
-        #
-        # if config.perf_run_type == PerfRunType.MATH_ISOLATE:
-        #     if (
-        #         isinstance(self.unpacker, MatmulUnpacker)
-        #         or self.unpacker == MatmulUnpacker
-        #     ):
-        #         return self.unpacker().perf_set_valid(operation, config, self)
-        #     code = ""
-        #     for tile_idx in range(batch_tile_cnt):
-        #         code += self.unpacker().perf_set_valid(operation, config, self)
-        #     return code
+        if config.perf_run_type not in (
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.MATH_ISOLATE,
+        ):
+            code += self.unpacker().init(operation, config, self)
 
-        code = self.unpacker().init(operation, config, self)
         code += self.unpacker().loop.unpack_loop(
             operation, config, self, block_x, block_y, block_tiles_x, block_tiles_y
         )
-        # if isinstance(self.unpacker, MatmulUnpacker) or self.unpacker == MatmulUnpacker:
-        #     tile_idx_expr = f"{batch_start}"
-        #     code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
-        # else:
-        #     for tile_idx in range(batch_tile_cnt):
-        #         tile_idx_expr = f"{batch_start} + {tile_idx}"
-        #         code += self.unpacker().unpack(operation, config, self, tile_idx_expr)
-        code += self.unpacker().uninit(operation, config, self)
+
+        if config.perf_run_type not in (
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.MATH_ISOLATE,
+        ):
+            code += self.unpacker().uninit(operation, config, self)
+
         return code
 
     def fpu_calculate(
@@ -114,35 +105,28 @@ class ComputeNode:
         block_tiles_x,
         block_tiles_y,
     ):
+        code = ""
         if self.fpu is None:
-            return ""
+            return code
 
-        # if config.perf_run_type == PerfRunType.PACK_ISOLATE:
-        #     return ""
+        if config.perf_run_type not in (
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        ):
+            code += self.fpu.init(operation, config, self)
 
-        # if config.perf_run_type in (
-        #     PerfRunType.UNPACK_ISOLATE,
-        #     PerfRunType.L1_CONGESTION,
-        # ):
-        #     code = ""
-        #     if isinstance(self.fpu, MatmulFpu):
-        #         code += self.unpacker().perf_clear_valid(operation, config, self)
-        #     else:
-        #         for tile_idx in range(batch_tile_cnt):
-        #             code += self.unpacker().perf_clear_valid(operation, config, self)
-        #     return code
-
-        code = self.fpu.init(operation, config, self)
         code += self.fpu.loop.math_loop(
             operation, config, self, block_x, block_y, block_tiles_x, block_tiles_y
         )
 
-        # if isinstance(self.fpu, MatmulFpu):
-        #     code += self.fpu.calculate(operation, config, self, 0)
-        # else:
-        #     for tile_idx in range(batch_tile_cnt):
-        #         code += self.fpu.calculate(operation, config, self, tile_idx)
-        code += self.fpu.uninit(operation, config, self)
+        if config.perf_run_type not in (
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        ):
+            code += self.fpu.uninit(operation, config, self)
+
         return code
 
     def sfpu_calculate(self, operation: "FusedOperation", config: "GlobalConfig"):

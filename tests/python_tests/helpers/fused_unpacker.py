@@ -92,10 +92,12 @@ class MatmulUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block_size_x: int = 1,
+        block_size_y: int = 1,
     ) -> str:
         kt_dim = operation.kt_dim
-        ct_dim = operation.ct_dim
-        rt_dim = 1
+        ct_dim = block_size_x
+        rt_dim = block_size_y
         return f"_perf_unpack_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def perf_clear_valid(
@@ -103,10 +105,12 @@ class MatmulUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block_size_x: int = 1,
+        block_size_y: int = 1,
     ) -> str:
         kt_dim = operation.kt_dim
-        ct_dim = operation.ct_dim
-        rt_dim = 1
+        ct_dim = block_size_x
+        rt_dim = block_size_y
         return f"_perf_math_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def golden(

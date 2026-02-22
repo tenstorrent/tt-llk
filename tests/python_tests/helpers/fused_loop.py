@@ -9,6 +9,8 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
 
+from .llk_params import PerfRunType
+
 
 class FusedLoop:
     def unpack_loop(
@@ -73,6 +75,12 @@ class LoopBlock(FusedLoop):
         block_size_y: int,
     ) -> str:
         code = ""
+        if config.perf_run_type == PerfRunType.PACK_ISOLATE:
+            return code
+        if config.perf_run_type == PerfRunType.MATH_ISOLATE:
+            return compute_unit.unpacker().perf_set_valid(
+                operation, config, compute_unit, block_size_x, block_size_y
+            )
         code += f"std::uint32_t tile_id = {operation.output.tile_count_x} * ({operation.block_tiles_y} * {block_y}) + {operation.block_tiles_x} * {block_x};\n"
         code += compute_unit.unpacker().unpack(
             operation, config, compute_unit, "tile_id"
@@ -89,6 +97,15 @@ class LoopBlock(FusedLoop):
         block_size_x: int,
         block_size_y: int,
     ) -> str:
+        if config.perf_run_type == PerfRunType.PACK_ISOLATE:
+            return ""
+        if config.perf_run_type in (
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        ):
+            return compute_unit.unpacker().perf_clear_valid(
+                operation, config, compute_unit, block_size_x, block_size_y
+            )
         tile_id = 0
         return compute_unit.fpu.calculate(operation, config, compute_unit, tile_id)
 
@@ -105,16 +122,23 @@ class LoopTileByTile(FusedLoop):
         block_size_y: int,
     ) -> str:
         code = ""
+        if config.perf_run_type == PerfRunType.PACK_ISOLATE:
+            return code
         code += (
             f"for (std::uint32_t tile_x = 0; tile_x < {block_size_x}; tile_x++) {{\n"
         )
         code += (
             f"for (std::uint32_t tile_y = 0; tile_y < {block_size_y}; tile_y++) {{\n"
         )
-        code += f"std::uint32_t tile_id = {operation.output.tile_count_x} * ({operation.block_tiles_y} * {block_y} + tile_y) + {operation.block_tiles_x} * {block_x} + tile_x;\n"
-        code += compute_unit.unpacker().unpack(
-            operation, config, compute_unit, "tile_id"
-        )
+        if config.perf_run_type == PerfRunType.MATH_ISOLATE:
+            code += compute_unit.unpacker().perf_set_valid(
+                operation, config, compute_unit
+            )
+        else:
+            code += f"std::uint32_t tile_id = {operation.output.tile_count_x} * ({operation.block_tiles_y} * {block_y} + tile_y) + {operation.block_tiles_x} * {block_x} + tile_x;\n"
+            code += compute_unit.unpacker().unpack(
+                operation, config, compute_unit, "tile_id"
+            )
         code += "}\n"
         code += "}\n"
         return code
@@ -130,14 +154,26 @@ class LoopTileByTile(FusedLoop):
         block_size_y: int,
     ) -> str:
         code = ""
+        if config.perf_run_type == PerfRunType.PACK_ISOLATE:
+            return code
         code += (
             f"for (std::uint32_t tile_x = 0; tile_x < {block_size_x}; tile_x++) {{\n"
         )
         code += (
             f"for (std::uint32_t tile_y = 0; tile_y < {block_size_y}; tile_y++) {{\n"
         )
-        code += f"std::uint32_t tile_id = tile_x * {block_size_y} + tile_y;\n"
-        code += compute_unit.fpu.calculate(operation, config, compute_unit, "tile_id")
+        if config.perf_run_type in (
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.L1_CONGESTION,
+        ):
+            code += compute_unit.unpacker().perf_clear_valid(
+                operation, config, compute_unit
+            )
+        else:
+            code += f"std::uint32_t tile_id = tile_x * {block_size_y} + tile_y;\n"
+            code += compute_unit.fpu.calculate(
+                operation, config, compute_unit, "tile_id"
+            )
         code += "}\n"
         code += "}\n"
         return code
