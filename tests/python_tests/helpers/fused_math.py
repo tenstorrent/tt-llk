@@ -11,10 +11,10 @@ if TYPE_CHECKING:
     from .fuser_config import GlobalConfig
 
 from .chip_architecture import ChipArchitecture
-from .fused_fpu import Fpu, ReduceBlockMaxFpu, ReduceFpu
+from .fused_fpu import Fpu, MatmulFpu, ReduceBlockMaxFpu, ReduceFpu
 from .fused_packer import Packer
 from .fused_sfpu import Sfpu
-from .fused_unpacker import Unpacker, UnpackerA
+from .fused_unpacker import MatmulUnpacker, Unpacker, UnpackerA
 from .llk_params import (
     BroadcastType,
     DataCopyType,
@@ -74,24 +74,26 @@ class ComputeNode:
         block_tiles_x,
         block_tiles_y,
     ):
-        code = ""
         if self.unpacker is None:
-            return code
+            return ""
 
-        if config.perf_run_type not in (
+        code = ""
+        skip_init = config.perf_run_type in (
             PerfRunType.PACK_ISOLATE,
             PerfRunType.MATH_ISOLATE,
-        ):
-            code += self.unpacker().init(operation, config, self)
+        )
+        if not skip_init:
+            if self.unpacker == MatmulUnpacker:
+                code += self.unpacker().init(
+                    operation, config, self, block_tiles_x, block_tiles_y
+                )
+            else:
+                code += self.unpacker().init(operation, config, self)
 
         code += self.unpacker().loop.unpack_loop(
             operation, config, self, block_x, block_y, block_tiles_x, block_tiles_y
         )
-
-        if config.perf_run_type not in (
-            PerfRunType.PACK_ISOLATE,
-            PerfRunType.MATH_ISOLATE,
-        ):
+        if not skip_init:
             code += self.unpacker().uninit(operation, config, self)
 
         return code
@@ -105,26 +107,27 @@ class ComputeNode:
         block_tiles_x,
         block_tiles_y,
     ):
-        code = ""
         if self.fpu is None:
-            return code
+            return ""
 
-        if config.perf_run_type not in (
+        code = ""
+        skip_init = config.perf_run_type in (
             PerfRunType.UNPACK_ISOLATE,
             PerfRunType.PACK_ISOLATE,
             PerfRunType.L1_CONGESTION,
-        ):
-            code += self.fpu.init(operation, config, self)
+        )
+        if not skip_init:
+            if isinstance(self.fpu, MatmulFpu):
+                code += self.fpu.init(
+                    operation, config, self, block_tiles_x, block_tiles_y
+                )
+            else:
+                code += self.fpu.init(operation, config, self)
 
         code += self.fpu.loop.math_loop(
             operation, config, self, block_x, block_y, block_tiles_x, block_tiles_y
         )
-
-        if config.perf_run_type not in (
-            PerfRunType.UNPACK_ISOLATE,
-            PerfRunType.PACK_ISOLATE,
-            PerfRunType.L1_CONGESTION,
-        ):
+        if not skip_init:
             code += self.fpu.uninit(operation, config, self)
 
         return code

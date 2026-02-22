@@ -96,8 +96,8 @@ class MatmulUnpacker(Unpacker):
         block_size_y: int = 1,
     ) -> str:
         kt_dim = operation.kt_dim
-        ct_dim = block_size_x
-        rt_dim = block_size_y
+        rt_dim = block_size_x
+        ct_dim = block_size_y
         return f"_perf_unpack_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def perf_clear_valid(
@@ -109,8 +109,8 @@ class MatmulUnpacker(Unpacker):
         block_size_y: int = 1,
     ) -> str:
         kt_dim = operation.kt_dim
-        ct_dim = block_size_x
-        rt_dim = block_size_y
+        rt_dim = block_size_x
+        ct_dim = block_size_y
         return f"_perf_math_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def golden(
@@ -152,8 +152,8 @@ class MatmulUnpacker(Unpacker):
         block_size_y: int = 1,
     ) -> str:
         face_r_dim = operation.face_r_dim
-        ct_dim = block_size_x
-        rt_dim = block_size_y
+        rt_dim = block_size_x
+        ct_dim = block_size_y
         kt_dim = operation.kt_dim
 
         transpose_faces = compute_unit.unpack_transpose_faces.cpp_enum_value
@@ -176,8 +176,8 @@ class MatmulUnpacker(Unpacker):
         block_size_y: int = 1,
     ) -> str:
         stage = operation.stage_id
-        ct_dim = block_size_x
-        rt_dim = block_size_y
+        rt_dim = block_size_x
+        ct_dim = block_size_y
         kt_dim = operation.kt_dim
         unpack_tile_size_a = operation.tile_size_unpack_a
         unpack_tile_size_b = operation.tile_size_unpack_b

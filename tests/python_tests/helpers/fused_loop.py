@@ -53,7 +53,7 @@ class FusedLoop:
         code += (
             f"for (std::uint32_t tile_y = 0; tile_y < {block_size_y}; tile_y++) {{\n"
         )
-        code += f"std::uint32_t l1_tile_id = {operation.output.tile_count_x} * ({operation.block_tiles_y} * {block_y} + tile_y) + {operation.block_tiles_x} * {block_x} + tile_x;\n"
+        code += f"std::uint32_t l1_tile_id = {operation.output.tile_count_x} * ({block_y} + tile_y) + ({block_x} + tile_x);\n"
         code += f"std::uint32_t dest_tile_id = tile_x * {block_size_y} + tile_y;\n"
         code += operation.math.packer().pack(
             operation, config, "dest_tile_id", "l1_tile_id"
@@ -81,9 +81,9 @@ class LoopBlock(FusedLoop):
             return compute_unit.unpacker().perf_set_valid(
                 operation, config, compute_unit, block_size_x, block_size_y
             )
-        code += f"std::uint32_t tile_id = {operation.output.tile_count_x} * ({operation.block_tiles_y} * {block_y}) + {operation.block_tiles_x} * {block_x};\n"
+        code += f"std::uint32_t tile_id = {operation.output.tile_count_x} * {block_y} + {block_x};\n"
         code += compute_unit.unpacker().unpack(
-            operation, config, compute_unit, "tile_id"
+            operation, config, compute_unit, "tile_id", block_size_x, block_size_y
         )
         return code
 
@@ -107,7 +107,9 @@ class LoopBlock(FusedLoop):
                 operation, config, compute_unit, block_size_x, block_size_y
             )
         tile_id = 0
-        return compute_unit.fpu.calculate(operation, config, compute_unit, tile_id)
+        return compute_unit.fpu.calculate(
+            operation, config, compute_unit, tile_id, block_size_x, block_size_y
+        )
 
 
 class LoopTileByTile(FusedLoop):
@@ -135,7 +137,7 @@ class LoopTileByTile(FusedLoop):
                 operation, config, compute_unit
             )
         else:
-            code += f"std::uint32_t tile_id = {operation.output.tile_count_x} * ({operation.block_tiles_y} * {block_y} + tile_y) + {operation.block_tiles_x} * {block_x} + tile_x;\n"
+            code += f"std::uint32_t tile_id = {operation.output.tile_count_x} * ({block_y} + tile_y) + ({block_x} + tile_x);\n"
             code += compute_unit.unpacker().unpack(
                 operation, config, compute_unit, "tile_id"
             )

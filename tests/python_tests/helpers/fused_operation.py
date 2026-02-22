@@ -104,6 +104,14 @@ class FusedOperation:
         self.dest_tiles_w = self.output.dimensions[1] // num_cols
 
         if (
+            self.block_size[0] > self.output.dimensions[0]
+            or self.block_size[1] > self.output.dimensions[1]
+        ):
+            raise ValueError(
+                f"Block size {self.block_size} exceeds output dimensions {self.output.dimensions}"
+            )
+
+        if (
             get_chip_architecture() == ChipArchitecture.BLACKHOLE
             and self.math.has_unpacker(UnpackerTilizeA)
             and self.src_a.data_format != DataFormat.Bfp8_b
