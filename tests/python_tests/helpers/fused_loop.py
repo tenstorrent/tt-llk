@@ -72,8 +72,12 @@ class LoopBlock(FusedLoop):
         block_size_x: int,
         block_size_y: int,
     ) -> str:
-        tile_id = 0  # problem za marka iz buducnosti
-        return compute_unit.unpacker().unpack(operation, config, compute_unit, tile_id)
+        code = ""
+        code += f"std::uint32_t tile_id = {operation.output.tile_count_x} * ({operation.block_tiles_y} * {block_y}) + {operation.block_tiles_x} * {block_x};\n"
+        code += compute_unit.unpacker().unpack(
+            operation, config, compute_unit, "tile_id"
+        )
+        return code
 
     def math_loop(
         self,

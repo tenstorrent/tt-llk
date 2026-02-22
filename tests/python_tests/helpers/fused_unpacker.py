@@ -181,9 +181,11 @@ class MatmulUnpacker(Unpacker):
 
         return (
             f"    {{\n"
-            f"        std::uint32_t srca_tile_idx = ({tile_idx_expr}) % {full_ct_dim};\n"
-            f"        std::uint32_t srcb_tile_idx = ({tile_idx_expr}) / {full_ct_dim};\n"
+            f"        std::uint32_t row = ({tile_idx_expr}) / {full_ct_dim};\n"
+            f"        std::uint32_t col = ({tile_idx_expr}) % {full_ct_dim};\n"
             f"        for (std::uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
+            f"            std::uint32_t srca_tile_idx = row * {kt_dim} + kt;\n"
+            f"            std::uint32_t srcb_tile_idx = kt * {full_ct_dim} + col;\n"
             f"            _llk_unpack_AB_matmul_<>(\n"
             f"                L1_ADDRESS(buffer_A{stage}[0]), L1_ADDRESS(buffer_B{stage}[0]),\n"
             f"                srca_tile_idx, srcb_tile_idx,\n"

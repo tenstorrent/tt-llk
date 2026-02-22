@@ -53,8 +53,8 @@ operations:
         approximation_mode: false
         iterations: 32
         src1_dest_tile_index: 0
-        src2_dest_tile_index: 1
-        dst_dest_tile_index: 1
+        src2_dest_tile_index: 0
+        dst_dest_tile_index: 0
     packer: "Packer"
     math_fidelity: "LoFi"
     batch_size: 2

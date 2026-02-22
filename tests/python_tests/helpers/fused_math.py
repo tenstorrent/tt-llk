@@ -210,28 +210,71 @@ class ComputeNode:
                 tensor_dst,
                 operation.max_output_dimensions,
                 operation.output.data_format,
-            ).flatten()
+            )
 
-            batch_size = operation.batch_size
-            tile_cnt = operation.output.tile_count
-            tile_size = 1024
+            tile_count_x = operation.output.tile_count_x
+            tile_count_y = operation.output.tile_count_y
+            block_tiles_x = operation.block_tiles_x
+            block_tiles_y = operation.block_tiles_y
 
-            batch_start = 0
-            for batch_start in range(0, tile_cnt, batch_size):
-                batch_end = min(batch_start + batch_size, tile_cnt)
-                batch_tile_cnt = batch_end - batch_start
+            full_blocks_x = tile_count_x // block_tiles_x
+            full_blocks_y = tile_count_y // block_tiles_y
+            remaining_tiles_x = tile_count_x % block_tiles_x
+            remaining_tiles_y = tile_count_y % block_tiles_y
 
-                batch_start_elem = batch_start * tile_size
-                batch_end_elem = batch_end * tile_size
-                batch_tensor = tilized_dst[batch_start_elem:batch_end_elem].clone()
+            full_x_limit = full_blocks_x * block_tiles_x
+            full_y_limit = full_blocks_y * block_tiles_y
 
-                batch_dims = (batch_tile_cnt * 32, 32)
+            tile_size = tilized_dst.shape[1]
 
-                batch_tensor = self.sfpu.golden(
-                    batch_tensor, operation, config, self, batch_dims, batch_tile_cnt
+            def process_block(block_x, block_y, block_tiles_x_eff, block_tiles_y_eff):
+                block_tile_ids = []
+                for tile_x in range(block_tiles_x_eff):
+                    for tile_y in range(block_tiles_y_eff):
+                        tile_id = tile_count_x * (block_y + tile_y) + (block_x + tile_x)
+                        block_tile_ids.append(tile_id)
+
+                block_tile_cnt = len(block_tile_ids)
+                if block_tile_cnt == 0:
+                    return
+
+                block_tensor = tilized_dst[block_tile_ids, :].clone().flatten()
+                block_dims = (block_tile_cnt * 32, 32)
+
+                block_tensor = self.sfpu.golden(
+                    block_tensor,
+                    operation,
+                    config,
+                    self,
+                    block_dims,
+                    block_tile_cnt,
                 )
 
-                tilized_dst[batch_start_elem:batch_end_elem] = batch_tensor.flatten()
+                tilized_dst[block_tile_ids, :] = block_tensor.view(
+                    block_tile_cnt, tile_size
+                )
+
+            if full_blocks_x > 0 and full_blocks_y > 0:
+                for block_x in range(0, full_x_limit, block_tiles_x):
+                    for block_y in range(0, full_y_limit, block_tiles_y):
+                        process_block(block_x, block_y, block_tiles_x, block_tiles_y)
+
+            if remaining_tiles_y > 0 and full_blocks_x > 0:
+                for block_x in range(0, full_x_limit, block_tiles_x):
+                    process_block(
+                        block_x, full_y_limit, block_tiles_x, remaining_tiles_y
+                    )
+
+            if remaining_tiles_x > 0 and full_blocks_y > 0:
+                for block_y in range(0, full_y_limit, block_tiles_y):
+                    process_block(
+                        full_x_limit, block_y, remaining_tiles_x, block_tiles_y
+                    )
+
+            if remaining_tiles_x > 0 and remaining_tiles_y > 0:
+                process_block(
+                    full_x_limit, full_y_limit, remaining_tiles_x, remaining_tiles_y
+                )
 
             tensor_dst = untilize_block(
                 tilized_dst.flatten(),
