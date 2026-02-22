@@ -32,6 +32,7 @@ inline void matmul_configure_addrmod(
     const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
     const bool partial_face            = false)
 {
+    static_assert(THROTTLE_LEVEL >= 0 && THROTTLE_LEVEL <= 5, "THROTTLE_LEVEL must be in range [0, 5]");
     constexpr bool high_fidelity     = math_fidelity != MathFidelity::LoFi;
     constexpr int fidelity_increment = high_fidelity ? 1 : 0;
 

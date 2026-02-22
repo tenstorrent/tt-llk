@@ -265,8 +265,7 @@ inline void _llk_math_eltwise_binary_uninit_custom_()
     // No state to restore - all states are transient or default
 }
 
-template <std::uint32_t ct_dim = 1>
-inline void _llk_math_eltwise_binary_bcast_reuse_custom_()
+inline void _llk_math_eltwise_binary_bcast_reuse_custom_(const std::uint32_t ct_dim = 1)
 {
     addr_mod_t {
         .srca = {.incr = 8},

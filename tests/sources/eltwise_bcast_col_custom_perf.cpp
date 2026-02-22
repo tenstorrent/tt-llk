@@ -34,7 +34,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             FACE_R_DIM,
             4 /* num_faces */,
             4 /* num_faces */);
-        _llk_unpack_AB_sub_bcast_col_init_custom_<BROADCAST_TYPE, CT_DIM>();
+        _llk_unpack_AB_sub_bcast_col_init_custom_<BROADCAST_TYPE>();
         PROFILER_SYNC();
     }
     {
@@ -59,7 +59,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params->LOOP_FACTOR); loop++)
             {
-                _llk_unpack_AB_sub_bcast_col_custom_<BROADCAST_TYPE, CT_DIM>(PERF_ADDRESS(PERF_INPUT_A, 0), PERF_ADDRESS(PERF_INPUT_B, 0));
+                _llk_unpack_AB_sub_bcast_col_custom_<BROADCAST_TYPE>(PERF_ADDRESS(PERF_INPUT_A, 0), PERF_ADDRESS(PERF_INPUT_B, 0), CT_DIM);
             }
         }
         PROFILER_SYNC();
@@ -106,7 +106,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             // Custom blocked sub+bcast math consumes the valids produced by unpack mock.
             for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params->LOOP_FACTOR); loop++)
             {
-                _llk_math_eltwise_binary_bcast_reuse_custom_<CT_DIM>();
+                _llk_math_eltwise_binary_bcast_reuse_custom_(CT_DIM);
             }
         }
         else // L1_TO_L1
@@ -114,7 +114,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params->LOOP_FACTOR); loop++)
             {
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-                _llk_math_eltwise_binary_bcast_reuse_custom_<CT_DIM>();
+                _llk_math_eltwise_binary_bcast_reuse_custom_(CT_DIM);
                 _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
         }

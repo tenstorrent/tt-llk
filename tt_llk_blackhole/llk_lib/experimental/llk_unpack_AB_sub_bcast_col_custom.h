@@ -37,7 +37,7 @@ inline void _llk_unpack_AB_sub_bcast_col_mop_config_custom_(const std::uint32_t 
 }
 
 // SDPA-specific custom init for the blocked sub+bcast(col) unpack flow.
-template <BroadcastType BType = BroadcastType::NONE, std::uint32_t ct_dim = 1>
+template <BroadcastType BType = BroadcastType::NONE>
 inline void _llk_unpack_AB_sub_bcast_col_init_custom_(
     const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, const bool narrow_tile = false)
 {
@@ -51,8 +51,8 @@ inline void _llk_unpack_AB_sub_bcast_col_init_custom_(
 }
 
 // SDPA-specific custom blocked unpack: one SrcB tile + ct_dim SrcA tiles.
-template <BroadcastType BType = BroadcastType::NONE, std::uint32_t ct_dim = 1>
-inline void _llk_unpack_AB_sub_bcast_col_custom_(const std::uint32_t address_a, const std::uint32_t address_b)
+template <BroadcastType BType = BroadcastType::NONE>
+inline void _llk_unpack_AB_sub_bcast_col_custom_(const std::uint32_t address_a, const std::uint32_t address_b, const std::uint32_t ct_dim = 1)
 {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
 
