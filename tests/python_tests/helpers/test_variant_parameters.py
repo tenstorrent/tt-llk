@@ -6,7 +6,6 @@ import math
 from abc import ABC, abstractmethod
 from ctypes import c_uint32
 from dataclasses import dataclass
-from typing import Optional
 
 from .golden_generators import TILE_DIMENSIONS
 from .llk_params import (
@@ -313,35 +312,6 @@ class TOPK(TemplateParameter):
             "std::uint32_t TOPK_NUM_ITERATIONS;",
         ]
         return "\n".join(lines), "IV"
-
-
-@dataclass
-class INPUT_DIMENSIONS(TemplateParameter):
-    srcA: tuple[int, int]
-    srcB: tuple[int, int]
-    block_ct_dim: Optional[int] = None
-    block_rt_dim: Optional[int] = None
-
-    def covert_to_cpp(self) -> str:
-        num_rows, num_cols = 32, 32
-        validate_tile_dimensions(self.srcA[0], num_rows)
-        validate_tile_dimensions(self.srcA[1], num_cols)
-        validate_tile_dimensions(self.srcB[0], num_rows)
-        validate_tile_dimensions(self.srcB[1], num_cols)
-
-        full_ct_dim = self.srcB[1] // num_cols
-        full_rt_dim = self.srcA[0] // num_rows
-
-        block_ct_dim = full_ct_dim if self.block_ct_dim is None else self.block_ct_dim
-        block_rt_dim = full_rt_dim if self.block_rt_dim is None else self.block_rt_dim
-
-        lines: list[str] = [
-            f"constexpr std::uint32_t FULL_RT_DIM = {full_rt_dim};",
-            f"constexpr std::uint32_t FULL_CT_DIM = {full_ct_dim};",
-            f"constexpr std::uint32_t BLOCK_CT_DIM = {block_ct_dim};",  # RT + TP
-            f"constexpr std::uint32_t BLOCK_RT_DIM = {block_rt_dim};",  # RT + TP
-        ]
-        return "\n".join(lines)
 
 
 @dataclass

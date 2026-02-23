@@ -304,7 +304,6 @@ def test_topk_sfpu(
         test_name="sources/topk_test.cpp",
         formats=formats,
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
             DEST_SYNC(),
             TOPK(
                 topk_k=K,
@@ -313,6 +312,7 @@ def test_topk_sfpu(
             ),
         ],
         runtimes=[
+            INPUT_DIMENSIONS(input_dimensions[0] // 32, input_dimensions[1] // 32),
             TILE_COUNT(tile_cnt_A),
         ],
         variant_stimuli=StimuliConfig(
