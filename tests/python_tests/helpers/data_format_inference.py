@@ -89,7 +89,7 @@ def infer_unpack_out(
 
 
 def infer_pack_in(
-    input_format: DataFormat,
+    input_format: DataFormat,  # Parameter not used but kept for future use.
     output_format: DataFormat,
     unpack_out: DataFormat,
     is_fp32_dest_acc_en: DestAccumulation,
@@ -185,7 +185,14 @@ def infer_pack_in(
 
 
 def infer_math_format(a: DataFormat, b: DataFormat = None) -> DataFormat:
-    # If we have different formats for A and B, we need to determine the compatibility between them.
+    # Design rationale:
+    # - The only constraint enforced here is that both inputs belong to the same exponent "family"
+    #   (e.g. exponent-B vs. non-exponent-B). Mixing families is not supported and is rejected above.
+    # - Once formats are in the same family, the math pipeline can operate in either format; any
+    #   required conversions from L1 to the math format and back are already handled by unpack/pack.
+    # - Therefore, choosing `a` as the math format is always correct when the compatibility check
+    #   passes, and keeps the behavior deterministic and simple compared to the previous heuristic.
+
     if b is None:
         return a
 
@@ -219,7 +226,9 @@ def infer_data_formats(
         input_format_B: Optional input data format for src_B if different from src_A, used for testing specific scenarios with different A and B formats.
 
     Returns:
-        FormatConfig struct containing all formats (with same_src_format=True, so A and B formats match)
+        FormatConfig struct containing all inferred formats. The same_src_format field
+        will be True when src_A and src_B use the same input format (i.e., when
+        input_format_B is not provided or equals input_format), and False otherwise.
     """
 
     # Determine the intermediate formats
