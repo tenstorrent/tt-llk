@@ -10,11 +10,12 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
 
+from .block_data import BlockData
 from .chip_architecture import ChipArchitecture
-from .fused_fpu import Fpu, MatmulFpu, ReduceBlockMaxFpu, ReduceFpu
+from .fused_fpu import Fpu, ReduceBlockMaxFpu, ReduceFpu
 from .fused_packer import Packer
 from .fused_sfpu import Sfpu
-from .fused_unpacker import MatmulUnpacker, ReduceBlockMaxUnpacker, Unpacker, UnpackerA
+from .fused_unpacker import Unpacker, UnpackerA
 from .llk_params import (
     BroadcastType,
     DataCopyType,
@@ -69,10 +70,7 @@ class ComputeNode:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        block_x,
-        block_y,
-        block_tiles_x,
-        block_tiles_y,
+        block: BlockData,
     ):
         if self.unpacker is None:
             return ""
@@ -83,20 +81,11 @@ class ComputeNode:
             PerfRunType.MATH_ISOLATE,
         )
         if not skip_init:
-            if self.unpacker == MatmulUnpacker:
-                code += self.unpacker().init(
-                    operation, config, self, block_tiles_x, block_tiles_y
-                )
-            elif self.unpacker == ReduceBlockMaxUnpacker:
-                code += self.unpacker().init(operation, config, self, block_tiles_x)
-            else:
-                code += self.unpacker().init(operation, config, self)
+            code += self.unpacker().init(operation, config, self, block)
 
-        code += self.unpacker().loop.unpack_loop(
-            operation, config, self, block_x, block_y, block_tiles_x, block_tiles_y
-        )
+        code += self.unpacker().loop.unpack_loop(operation, config, self, block)
         if not skip_init:
-            code += self.unpacker().uninit(operation, config, self)
+            code += self.unpacker().uninit(operation, config, self, block)
 
         return code
 
@@ -104,10 +93,7 @@ class ComputeNode:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        block_x,
-        block_y,
-        block_tiles_x,
-        block_tiles_y,
+        block: BlockData,
     ):
         if self.fpu is None:
             return ""
@@ -119,24 +105,20 @@ class ComputeNode:
             PerfRunType.L1_CONGESTION,
         )
         if not skip_init:
-            if isinstance(self.fpu, MatmulFpu):
-                code += self.fpu.init(
-                    operation, config, self, block_tiles_x, block_tiles_y
-                )
-            elif isinstance(self.fpu, ReduceBlockMaxFpu):
-                code += self.fpu.init(operation, config, self, block_tiles_x)
-            else:
-                code += self.fpu.init(operation, config, self)
+            code += self.fpu.init(operation, config, self, block)
 
-        code += self.fpu.loop.math_loop(
-            operation, config, self, block_x, block_y, block_tiles_x, block_tiles_y
-        )
+        code += self.fpu.loop.math_loop(operation, config, self, block)
         if not skip_init:
-            code += self.fpu.uninit(operation, config, self)
+            code += self.fpu.uninit(operation, config, self, block)
 
         return code
 
-    def sfpu_calculate(self, operation: "FusedOperation", config: "GlobalConfig"):
+    def sfpu_calculate(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        block: BlockData,
+    ):
         if self.sfpu is None:
             return ""
 
@@ -147,26 +129,21 @@ class ComputeNode:
         ):
             return ""
 
-        code = self.sfpu.init(operation, config, self)
-        code += self.sfpu.calculate(operation, config, self)
-        code += self.sfpu.uninit(operation, config, self)
+        code = self.sfpu.init(operation, config, self, block)
+        code += self.sfpu.calculate(operation, config, self, block)
+        code += self.sfpu.uninit(operation, config, self, block)
         return code
 
     def math_calculate(
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
-        block_x,
-        block_y,
-        block_tiles_x,
-        block_tiles_y,
+        block: BlockData,
     ) -> str:
         if self.fpu is not None:
-            return self.fpu_calculate(
-                operation, config, block_x, block_y, block_tiles_x, block_tiles_y
-            )
+            return self.fpu_calculate(operation, config, block)
         elif self.sfpu is not None:
-            return self.sfpu_calculate(operation, config)
+            return self.sfpu_calculate(operation, config, block)
         else:
             raise ValueError("fpu and sfpu are not defined")
 
@@ -376,35 +353,48 @@ class ComputePipeline:
         full_x_limit = full_blocks_x * block_tiles_x
         full_y_limit = full_blocks_y * block_tiles_y
 
+        def make_block(block_x, block_y, block_tiles_x_eff, block_tiles_y_eff):
+            return BlockData(
+                block_x=block_x,
+                block_y=block_y,
+                block_tiles_x=block_tiles_x_eff,
+                block_tiles_y=block_tiles_y_eff,
+                tile_count_x=tile_count_x,
+                tile_count_y=tile_count_y,
+                full_x_limit=full_x_limit,
+                full_y_limit=full_y_limit,
+            )
+
         code = ""
 
         if full_blocks_x > 0 and full_blocks_y > 0:
             code += f"for (std::uint32_t block_x = 0; block_x < {full_x_limit}; block_x += {block_tiles_x}) {{\n"
             code += f"for (std::uint32_t block_y = 0; block_y < {full_y_limit}; block_y += {block_tiles_y}) {{\n"
-            code += body_fn("block_x", "block_y", block_tiles_x, block_tiles_y)
+            code += body_fn(
+                make_block("block_x", "block_y", block_tiles_x, block_tiles_y)
+            )
             code += "}\n"
             code += "}\n"
 
         if remaining_tiles_y > 0 and full_blocks_x > 0:
             code += f"for (std::uint32_t block_x = 0; block_x < {full_x_limit}; block_x += {block_tiles_x}) {{\n"
             code += body_fn(
-                "block_x", f"{full_y_limit}", block_tiles_x, remaining_tiles_y
+                make_block("block_x", full_y_limit, block_tiles_x, remaining_tiles_y)
             )
             code += "}\n"
 
         if remaining_tiles_x > 0 and full_blocks_y > 0:
             code += f"for (std::uint32_t block_y = 0; block_y < {full_y_limit}; block_y += {block_tiles_y}) {{\n"
             code += body_fn(
-                f"{full_x_limit}", "block_y", remaining_tiles_x, block_tiles_y
+                make_block(full_x_limit, "block_y", remaining_tiles_x, block_tiles_y)
             )
             code += "}\n"
 
         if remaining_tiles_x > 0 and remaining_tiles_y > 0:
             code += body_fn(
-                f"{full_x_limit}",
-                f"{full_y_limit}",
-                remaining_tiles_x,
-                remaining_tiles_y,
+                make_block(
+                    full_x_limit, full_y_limit, remaining_tiles_x, remaining_tiles_y
+                )
             )
 
         return code
@@ -497,12 +487,10 @@ class ComputePipeline:
             code += f"for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
             code += "{\n"
 
-        def batch_body(block_x, block_y, block_tiles_x, block_tiles_y):
+        def batch_body(block: BlockData):
             body = ""
             for compute_unit in self.operations:
-                body += compute_unit.unpack(
-                    operation, config, block_x, block_y, block_tiles_x, block_tiles_y
-                )
+                body += compute_unit.unpack(operation, config, block)
             return body
 
         code += self._batch_loop(operation, config, batch_body)
@@ -594,12 +582,10 @@ class ComputePipeline:
             code += f"for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
             code += "{\n"
 
-        def batch_body(block_x, block_y, block_tiles_x, block_tiles_y):
+        def batch_body(block: BlockData):
             body = self._math_wait_for_dest(operation, config)
             for compute_unit in self.operations:
-                body += compute_unit.math_calculate(
-                    operation, config, block_x, block_y, block_tiles_x, block_tiles_y
-                )
+                body += compute_unit.math_calculate(operation, config, block)
             body += self._math_dest_section_done(operation, config)
             return body
 
@@ -727,7 +713,7 @@ class ComputePipeline:
 
         code += self.pack_hw_configure(operation, config)
         code += self._pack_reduce_mask_config()
-        code += self.packer().init(operation, config)
+        code += self.packer().init(operation, config, None, None)
 
         if config.profiler_enabled:
             code += "PROFILER_SYNC();\n"
@@ -739,11 +725,9 @@ class ComputePipeline:
             code += f"for(int loop = 0; loop < {config.loop_factor}; loop++)\n"
             code += "{\n"
 
-        def batch_body(block_x, block_y, block_tiles_x, block_tiles_y):
+        def batch_body(block: BlockData):
             body = self._packer_wait_for_math(config)
-            body += self.packer().loop.pack_loop(
-                operation, config, block_x, block_y, block_tiles_x, block_tiles_y
-            )
+            body += self.packer().loop.pack_loop(operation, config, block)
             body += self._packer_dest_section_done(operation, config)
             return body
 
@@ -757,7 +741,7 @@ class ComputePipeline:
             code += 'ZONE_SCOPED("INIT")\n'
 
         code += self.packer_sync_with_unpacker(operation, config)
-        code += self.packer().uninit(operation, config)
+        code += self.packer().uninit(operation, config, None, None)
         code += self._pack_reduce_mask_clear()
 
         if config.profiler_enabled:

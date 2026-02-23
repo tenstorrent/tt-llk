@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 import torch
 
@@ -11,6 +11,8 @@ from .chip_architecture import ChipArchitecture
 if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
+    from .block_data import BlockData
+    from .fused_math import ComputeNode
 
 from .fused_loop import FusedLoop
 
@@ -33,7 +35,13 @@ class Packer:
     ) -> torch.Tensor:
         return tensor
 
-    def init(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def init(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: Optional["ComputeNode"],
+        block: Optional["BlockData"],
+    ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.cpp_enum_value
         bh_tilize = operation.bh_tilize.cpp_enum_value
@@ -63,6 +71,8 @@ class Packer:
         self,
         operation: "FusedOperation",
         config: "GlobalConfig",
+        compute_unit: Optional["ComputeNode"],
+        block: Optional["BlockData"],
         dest_idx,
         l1_idx,
     ) -> str:
@@ -71,5 +81,11 @@ class Packer:
         dest_sync = f"DstSync::Sync{operation.dest_sync.name}"
         return f"_llk_pack_<{dest_sync}, {dest_acc}, false>({dest_idx}, L1_ADDRESS(buffer_Res{stage}[{l1_idx}]));\n"
 
-    def uninit(self, operation: "FusedOperation", config: "GlobalConfig") -> str:
+    def uninit(
+        self,
+        operation: "FusedOperation",
+        config: "GlobalConfig",
+        compute_unit: Optional["ComputeNode"],
+        block: Optional["BlockData"],
+    ) -> str:
         return ""

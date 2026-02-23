@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import torch
 
@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
     from .fused_math import ComputeNode
+    from .block_data import BlockData
 
 from .chip_architecture import ChipArchitecture
 from .fused_loop import FusedLoop, LoopBlock, LoopTileByTile
@@ -40,6 +41,7 @@ class Fpu:
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         return ""
 
@@ -48,7 +50,9 @@ class Fpu:
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        tile_idx: int,
+        block: "BlockData",
+        tile_idx: Union[int, str],
+        dest_idx: Optional[Union[int, str]] = None,
     ) -> str:
         return ""
 
@@ -57,6 +61,7 @@ class Fpu:
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         return ""
 
@@ -117,14 +122,13 @@ class MatmulFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        block_size_x: int = 1,
-        block_size_y: int = 1,
+        block: "BlockData",
     ) -> str:
         stage = operation.stage_id
         math_fidelity = operation.math_fidelity.cpp_enum_value
         transpose = "true" if compute_unit.unpack_transpose_faces.value else "false"
-        rt_dim = block_size_x
-        ct_dim = block_size_y
+        rt_dim = block.block_tiles_x
+        ct_dim = block.block_tiles_y
 
         return (
             f"// Operation {stage}: Matmul FPU\n"
@@ -138,12 +142,12 @@ class MatmulFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        tile_idx: int,
-        block_size_x: int = 1,
-        block_size_y: int = 1,
+        block: "BlockData",
+        tile_idx: Union[int, str],
+        dest_idx: Optional[Union[int, str]] = None,
     ) -> str:
-        rt_dim = block_size_x
-        ct_dim = block_size_y
+        rt_dim = block.block_tiles_x
+        ct_dim = block.block_tiles_y
         kt_dim = operation.kt_dim
         math_fidelity = operation.math_fidelity.cpp_enum_value
 
@@ -209,6 +213,7 @@ class EltwiseFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         stage = operation.stage_id
         # LLK contract: eltwise add/sub only support LoFi fidelity.
@@ -237,7 +242,9 @@ class EltwiseFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        tile_idx: int,
+        block: "BlockData",
+        tile_idx: Union[int, str],
+        dest_idx: Optional[Union[int, str]] = None,
     ) -> str:
         stage = operation.stage_id
         # Keep runtime math call fidelity consistent with init-time clamping.
@@ -357,6 +364,7 @@ class ReduceFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         stage = operation.stage_id
         math_fidelity = operation.math_fidelity.cpp_enum_value
@@ -374,7 +382,9 @@ class ReduceFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        tile_idx: int,
+        block: "BlockData",
+        tile_idx: Union[int, str],
+        dest_idx: Optional[Union[int, str]] = None,
     ) -> str:
         math_fidelity = operation.math_fidelity.cpp_enum_value
         dest_acc = config.dest_acc.cpp_enum_value
@@ -393,6 +403,7 @@ class ReduceFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         unp_a_src_format = f"static_cast<std::underlying_type_t<DataFormat>>(DataFormat::{operation.src_a.data_format})"
 
@@ -444,6 +455,7 @@ class DatacopyFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.cpp_enum_value
@@ -476,7 +488,9 @@ class DatacopyFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        tile_idx: int,
+        block: "BlockData",
+        tile_idx: Union[int, str],
+        dest_idx: Optional[Union[int, str]] = None,
     ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.cpp_enum_value
@@ -507,6 +521,7 @@ class DatacopyFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         broadcast_type = compute_unit.broadcast_type.cpp_enum_value
         return f"_llk_math_eltwise_unary_datacopy_uninit_<{broadcast_type}, false>();\n"
@@ -518,8 +533,9 @@ class ReduceBlockMaxFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        ct_dim,
+        block: "BlockData",
     ) -> str:
+        ct_dim = block.block_tiles_x
         dest_acc = config.dest_acc.value
         return f"_llk_math_reduce_block_max_row_init_<{ct_dim}, {dest_acc}>();\n"
 
@@ -528,10 +544,11 @@ class ReduceBlockMaxFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        tile_idx: int,
-        dest_idx: int,
-        ct_dim,
+        block: "BlockData",
+        tile_idx: Union[int, str],
+        dest_idx: Union[int, str],
     ) -> str:
+        ct_dim = block.block_tiles_x
         dest_acc = config.dest_acc.value
         return (
             f"if (({tile_idx}) % {ct_dim} == 0 ) {{\n"
@@ -544,6 +561,7 @@ class ReduceBlockMaxFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         return "_llk_math_reduce_block_max_row_uninit_();\n"
 

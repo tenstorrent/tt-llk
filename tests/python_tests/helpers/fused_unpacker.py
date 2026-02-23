@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from .fused_operation import FusedOperation
     from .fuser_config import GlobalConfig
     from .fused_math import ComputeNode
+    from .block_data import BlockData
 
 from .chip_architecture import ChipArchitecture
 from .fused_loop import FusedLoop, LoopBlock, LoopTileByTile
@@ -26,6 +27,7 @@ class Unpacker:
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         return ""
 
@@ -34,6 +36,7 @@ class Unpacker:
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
         tile_idx_expr: str,
     ) -> str:
         return ""
@@ -43,6 +46,7 @@ class Unpacker:
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         return ""
 
@@ -51,6 +55,7 @@ class Unpacker:
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         num_faces = operation.num_faces
         return f"_perf_unpack_loop_set_valid<true, true>({num_faces});\n"
@@ -60,6 +65,7 @@ class Unpacker:
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         num_faces = operation.num_faces
         return f"_perf_math_loop_clear_valid<true, true>({num_faces});\n"
@@ -92,12 +98,11 @@ class MatmulUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        block_size_x: int = 1,
-        block_size_y: int = 1,
+        block: "BlockData",
     ) -> str:
         kt_dim = operation.kt_dim
-        rt_dim = block_size_x
-        ct_dim = block_size_y
+        rt_dim = block.block_tiles_x
+        ct_dim = block.block_tiles_y
         return f"_perf_unpack_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def perf_clear_valid(
@@ -105,12 +110,11 @@ class MatmulUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        block_size_x: int = 1,
-        block_size_y: int = 1,
+        block: "BlockData",
     ) -> str:
         kt_dim = operation.kt_dim
-        rt_dim = block_size_x
-        ct_dim = block_size_y
+        rt_dim = block.block_tiles_x
+        ct_dim = block.block_tiles_y
         return f"_perf_math_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def golden(
@@ -148,12 +152,11 @@ class MatmulUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        block_size_x: int = 1,
-        block_size_y: int = 1,
+        block: "BlockData",
     ) -> str:
         face_r_dim = operation.face_r_dim
-        rt_dim = block_size_x
-        ct_dim = block_size_y
+        rt_dim = block.block_tiles_x
+        ct_dim = block.block_tiles_y
         kt_dim = operation.kt_dim
 
         transpose_faces = compute_unit.unpack_transpose_faces.cpp_enum_value
@@ -171,13 +174,12 @@ class MatmulUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
         tile_idx_expr: str = None,
-        block_size_x: int = 1,
-        block_size_y: int = 1,
     ) -> str:
         stage = operation.stage_id
-        rt_dim = block_size_x
-        ct_dim = block_size_y
+        rt_dim = block.block_tiles_x
+        ct_dim = block.block_tiles_y
         kt_dim = operation.kt_dim
         unpack_tile_size_a = operation.tile_size_unpack_a
         unpack_tile_size_b = operation.tile_size_unpack_b
@@ -266,6 +268,7 @@ class UnpackerAB(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         num_faces = operation.num_faces
         if compute_unit.broadcast_type == BroadcastType.Scalar:
@@ -288,6 +291,7 @@ class UnpackerAB(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         num_faces = operation.num_faces
         if compute_unit.broadcast_type == BroadcastType.Scalar:
@@ -310,6 +314,7 @@ class UnpackerAB(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         face_r_dim = operation.face_r_dim
         broadcast_type = compute_unit.broadcast_type.cpp_enum_value
@@ -344,6 +349,7 @@ class UnpackerAB(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
         tile_idx_expr: str,
     ) -> str:
         stage = operation.stage_id
@@ -420,6 +426,7 @@ class UnpackerA(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         if compute_unit.broadcast_type == BroadcastType.Scalar:
             if config.architecture == ChipArchitecture.WORMHOLE:
@@ -442,6 +449,7 @@ class UnpackerA(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         if compute_unit.broadcast_type == BroadcastType.Scalar:
             if config.architecture == ChipArchitecture.WORMHOLE:
@@ -464,6 +472,7 @@ class UnpackerA(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         stage = operation.stage_id
         unpack_to_dest = "true" if operation.unpack_to_dest else "false"
@@ -485,6 +494,7 @@ class UnpackerA(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
         tile_idx_expr: str,
     ) -> str:
         stage = operation.stage_id
@@ -513,6 +523,7 @@ class UnpackerTilizeA(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         valid_cnt = 4 if config.architecture == ChipArchitecture.WORMHOLE else 1
         return f"_perf_unpack_loop_set_valid<true, true>({valid_cnt});\n"
@@ -522,6 +533,7 @@ class UnpackerTilizeA(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         valid_cnt = 4 if config.architecture == ChipArchitecture.WORMHOLE else 1
         return f"_perf_math_loop_clear_valid<true, true>({valid_cnt});\n"
@@ -548,6 +560,7 @@ class UnpackerTilizeA(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         stage = operation.stage_id
         face_r_dim = operation.face_r_dim
@@ -567,6 +580,7 @@ class UnpackerTilizeA(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
         tile_idx_expr: str,
     ) -> str:
         stage = operation.stage_id
@@ -603,6 +617,7 @@ class UnpackerTilizeA(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         stage = operation.stage_id
         face_r_dim = operation.face_r_dim
@@ -703,8 +718,9 @@ class ReduceBlockMaxUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        ct_dim,
+        block: "BlockData",
     ) -> str:
+        ct_dim = block.block_tiles_x
         dest_acc = config.dest_acc.value
         return f"_llk_unpack_AB_reduce_block_max_row_init_<{ct_dim}, {dest_acc}>();\n"
 
@@ -713,11 +729,12 @@ class ReduceBlockMaxUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
         gate_idx_expr: str,
         l1_idx_expr: str,
-        ct_dim,
     ) -> str:
         stage = operation.stage_id
+        ct_dim = block.block_tiles_x
         return (
             f"if (({gate_idx_expr}) % {ct_dim} == 0 ) {{\n"
             f"_llk_unpack_AB_reduce_block_max_row_(L1_ADDRESS(buffer_A{stage}[{l1_idx_expr}]), L1_ADDRESS(buffer_B{stage}[{l1_idx_expr}]));\n"
@@ -729,6 +746,7 @@ class ReduceBlockMaxUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         face_r_dim = operation.face_r_dim
         return f"_llk_unpack_AB_reduce_block_max_row_uninit_({face_r_dim}, {face_r_dim});\n"
@@ -738,8 +756,9 @@ class ReduceBlockMaxUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        ct_dim,
+        block: "BlockData",
     ) -> str:
+        ct_dim = block.block_tiles_x
         return (
             f"_perf_unpack_loop_set_valid<true, false>({ct_dim});\n"
             f"_perf_unpack_loop_set_valid<false, true>(1);\n"
@@ -750,8 +769,9 @@ class ReduceBlockMaxUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        ct_dim,
+        block: "BlockData",
     ) -> str:
+        ct_dim = block.block_tiles_x
         return (
             f"_perf_math_loop_clear_valid<true, false>({ct_dim});\n"
             f"_perf_math_loop_clear_valid<false, true>(1);\n"
