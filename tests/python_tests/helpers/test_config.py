@@ -16,6 +16,7 @@ from typing import ClassVar, List
 
 import numpy as np
 import pytest
+import torch
 from filelock import FileLock
 from ttexalens.tt_exalens_lib import (
     TTException,
@@ -28,6 +29,7 @@ from ttexalens.tt_exalens_lib import (
 )
 
 from . import device as device_module
+from . import golden_generators as golden_generators_module
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
@@ -69,6 +71,14 @@ class TestMode(Enum):
     DEFAULT = "Compile and consume sequentially"
     PRODUCE = "Just compile tests without executing them"
     CONSUME = "Just execute pre-compiled elfs"
+
+
+def generate_zero_matrix(*args, **kwargs):
+    return torch.zeros(1024, dtype=torch.bfloat16)
+
+
+def dummy_golden_generator(cls):
+    return generate_zero_matrix
 
 
 class TestConfig:
@@ -325,6 +335,7 @@ class TestConfig:
 
         if compile_producer:
             TestConfig.MODE = TestMode.PRODUCE
+            golden_generators_module.get_golden_generator = dummy_golden_generator
 
         if compile_consumer:
             TestConfig.MODE = TestMode.CONSUME
@@ -1083,7 +1094,7 @@ class TestConfig:
 
         return elfs
 
-    def run(self, location="0,0", delete_artefacts: bool = False):
+    def run(self, location="0,0"):
         self.generate_variant_hash()
         logger.info(
             "Running variant={} | location={}",
@@ -1109,9 +1120,6 @@ class TestConfig:
 
         if self.coverage_build == CoverageBuild.Yes:
             self.read_coverage_data_from_device(location)
-
-        if delete_artefacts:
-            shutil.rmtree(TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id)
 
         return self.variant_stimuli.collect_results(location)
 

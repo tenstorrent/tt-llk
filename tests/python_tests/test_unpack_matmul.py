@@ -21,7 +21,7 @@ from helpers.matmul_sweep import sweep_matmul, sweep_tiny_tiles_matmul
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import convert_to_l1_view, generate_face_matmul_data
-from helpers.test_config import TestConfig
+from helpers.test_config import TestConfig, TestMode
 from helpers.test_variant_parameters import (
     CRK_TILE_DIMM,
     DEST_INDEX,
@@ -35,7 +35,6 @@ from helpers.test_variant_parameters import (
     TILE_COUNT,
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
-    generate_input_dim,
 )
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test

@@ -27,7 +27,7 @@ from helpers.param_config import (
 )
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli_w_tile_dimensions
-from helpers.test_config import TestConfig
+from helpers.test_config import TestConfig, TestMode
 from helpers.test_variant_parameters import (
     BROADCAST_TYPE,
     DEST_SYNC,
@@ -208,7 +208,7 @@ def test_eltwise_binary(
     # Prepare golden src_A: apply tile-level transpose if enabled
     # Hardware does transpose_faces then transpose_within_faces during unpack
     golden_src_A = src_A_tilized_flat
-    if transpose_srca == Transpose.Yes:
+    if transpose_srca == Transpose.Yes and TestConfig.MODE != TestMode.PRODUCE:
         transpose_golden = get_golden_generator(TransposeGolden)
         # Apply face transpose (f0,f1,f2,f3 -> f0,f2,f1,f3)
         golden_src_A = transpose_golden.transpose_faces_multi_tile(
