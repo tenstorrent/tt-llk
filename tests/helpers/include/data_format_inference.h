@@ -4,13 +4,14 @@
 
 #pragma once
 
+#include <build.h>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
 #include <utility>
 
-#include "build.h"
 #include "tensix_types.h"
 
 #if (defined(ARCH_WORMHOLE) + defined(ARCH_BLACKHOLE) + defined(ARCH_QUASAR)) != 1

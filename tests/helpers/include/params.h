@@ -9,7 +9,8 @@
 #include <type_traits>
 
 // Include auto-generated build configuration
-#include "build.h"
+#include <build.h>
+
 #include "ckernel_defs.h"
 #include "ckernel_sfpu.h"
 #include "data_format_inference.h"
