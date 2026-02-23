@@ -357,9 +357,6 @@ def print_counters(results: pd.DataFrame) -> None:
     print("\n" + "=" * 100)
     print("PERFORMANCE COUNTER RESULTS")
     print("=" * 100)
-    print("NOTE: Each bank has one output register. Counters are read sequentially")
-    print("      after stopping. L1 mux0/mux1 cannot be measured simultaneously.")
-    print("=" * 100)
 
     for thread in ALL_THREADS:
         thread_df = results[results["thread"] == thread]
@@ -367,7 +364,7 @@ def print_counters(results: pd.DataFrame) -> None:
             continue
 
         print(f"\n{'─' * 100}")
-        print(f"  THREAD: {thread}")
+        print(f"  Last stopper: {thread} thread")
         print(f"{'─' * 100}")
 
         for bank in ["INSTRN_THREAD", "FPU", "TDMA_UNPACK", "L1", "TDMA_PACK"]:
