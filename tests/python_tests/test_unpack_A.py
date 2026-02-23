@@ -16,14 +16,20 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
+    BlocksCalculationAlgorithm,
     BroadcastType,
     DestAccumulation,
+    DestSync,
     EltwiseBinaryReuseDestType,
     StochasticRounding,
     Transpose,
     format_dict,
 )
-from helpers.param_config import generate_params, input_output_formats
+from helpers.param_config import (
+    generate_params,
+    get_num_blocks_and_num_tiles_in_block,
+    input_output_formats,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -31,7 +37,9 @@ from helpers.test_variant_parameters import (
     ACC_TO_DEST,
     BROADCAST_TYPE,
     DISABLE_SRC_ZERO_FLAG,
+    NUM_BLOCKS,
     NUM_FACES,
+    NUM_TILES_IN_BLOCK,
     PARTIAL_FACE,
     REUSE_DEST_TYPE,
     STOCHASTIC_ROUNDING,
@@ -73,6 +81,7 @@ within_face_16x16_transpose_values = [Transpose.No, Transpose.Yes]
 num_faces_values = [1, 2, 4]
 face_r_dim_values = [1, 2, 4, 8, 16]
 
+input_dimensions = [[r, 32] for r in face_r_dim_values] + [[32, 32]]
 
 # Use only cross_test_formats as it already includes same-format combinations
 test_formats = input_output_formats(supported_formats, False)
@@ -90,6 +99,7 @@ unpack_A_param_combinations = list(
         within_face_16x16_transpose_values,
         num_faces_values,
         face_r_dim_values,
+        input_dimensions,
     )
 )
 
@@ -117,6 +127,7 @@ for base_param in base_params:
         within_face_16x16_transpose = unpack_params[6]
         num_faces = unpack_params[7]
         face_r_dim = unpack_params[8]
+        input_dimensions = unpack_params[9]
 
         # Create complete parameter tuple matching test signature
         combined_params = (
@@ -131,6 +142,7 @@ for base_param in base_params:
             within_face_16x16_transpose,  # within_face_16x16_transpose
             num_faces,  # num_faces
             face_r_dim,  # face_r_dim
+            input_dimensions,  # input_dimensions
         )
         all_params.append(combined_params)
 
@@ -156,6 +168,7 @@ def filter_params_with_constraints(all_params):
             within_face_16x16_transpose,
             num_faces,
             face_r_dim,
+            input_dimensions,
         ) = params
 
         # Fast checks first: simple integer/enum comparisons
@@ -169,6 +182,9 @@ def filter_params_with_constraints(all_params):
                 or formats.output_format == DataFormat.Bfp8_b
             ):
                 continue
+
+        if face_r_dim < 16 and input_dimensions != [face_r_dim, 32]:
+            continue
 
         # User constraint: transpose_of_faces and within_face_16x16_transpose are mutually inclusive
         if transpose_of_faces != within_face_16x16_transpose:
@@ -284,6 +300,7 @@ def create_simple_ids(all_params):
         within_face_16x16_transpose = params[8]
         num_faces = params[9]
         face_r_dim = params[10]
+        input_dimensions = params[11]
 
         # Create a comprehensive but readable ID
         id_parts = [
@@ -298,6 +315,7 @@ def create_simple_ids(all_params):
             f"within_face_transpose_{within_face_16x16_transpose.name}",
             f"num_faces_{num_faces}",
             f"face_r_dim_{face_r_dim}",
+            f"input_dim_{input_dimensions[0]}x{input_dimensions[1]}",
         ]
 
         id_str = "-".join(id_parts)
@@ -314,7 +332,7 @@ param_ids = create_simple_ids(all_params)
 @pytest.mark.parametrize(
     "testname, formats, broadcast_type, disable_src_zero, acc_to_dest, "
     "stochastic_rnd, reuse_dest, transpose_of_faces, "
-    "within_face_16x16_transpose, num_faces, face_r_dim",
+    "within_face_16x16_transpose, num_faces, face_r_dim, input_dimensions",
     all_params,
     ids=param_ids,
 )
@@ -330,6 +348,7 @@ def test_unpack_comprehensive(
     within_face_16x16_transpose,
     num_faces,
     face_r_dim,
+    input_dimensions,
     workers_tensix_coordinates,
 ):
 
@@ -337,10 +356,8 @@ def test_unpack_comprehensive(
     # Configure input dimensions based on face_r_dim
     # For partial faces (face_r_dim < 16), use [face_r_dim x 32] input tensors
     if face_r_dim < 16:
-        input_dimensions = [face_r_dim, 32]  # [1x32], [2x32], [4x32], [8x32]
         partial_face = True
     else:
-        input_dimensions = [32, 32]
         partial_face = False
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
@@ -367,6 +384,7 @@ def test_unpack_comprehensive(
             formats.output_format,
             num_faces=num_faces,
             face_r_dim=face_r_dim,
+            tile_cnt=tile_cnt_A,
         )
     elif transpose_of_faces == Transpose.Yes:
         # Both transpose flags are ALWAYS on together (mutually inclusive constraint)
@@ -448,6 +466,20 @@ def test_unpack_comprehensive(
                 src_A, formats.output_format, num_faces, input_dimensions, face_r_dim
             )
 
+    tile_dimensions = [
+        32,
+        32,
+    ]  # Use full tile dimensions even for partial face tests since we don't do dense tile processing here.
+
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half,
+        DestAccumulation.No,
+        formats,
+        input_dimensions,
+        tile_dimensions,
+        BlocksCalculationAlgorithm.Standard,
+    )
+
     configuration = TestConfig(
         testname,
         formats,
@@ -470,6 +502,8 @@ def test_unpack_comprehensive(
             NUM_FACES(num_faces),
             TILE_COUNT(tile_cnt_A),
             TEST_FACE_DIMS(face_r_dim=face_r_dim),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
