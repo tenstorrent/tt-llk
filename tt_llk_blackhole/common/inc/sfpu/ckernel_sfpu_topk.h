@@ -187,12 +187,6 @@ TT_ALWAYS_INLINE void topk_cmp_swap_stable_min_to_vd()
     }
 }
 
-template <std::uint32_t VC, std::uint32_t VD, std::uint32_t MODE>
-TT_ALWAYS_INLINE void topk_cmp_swap_stable_min_to_vc()
-{
-    topk_cmp_swap_stable_directional<VC, VD, MODE, false>();
-}
-
 template <bool STABLE_SORT>
 inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_start)
 {
