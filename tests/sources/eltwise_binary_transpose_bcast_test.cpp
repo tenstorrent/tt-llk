@@ -27,7 +27,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // - srcA with transpose enabled
     // - srcB with column broadcast
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
+        formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
 
     // Initialize unpack with column broadcast on srcB and transpose on srcA
     _llk_unpack_AB_init_<BROADCAST_TYPE>(

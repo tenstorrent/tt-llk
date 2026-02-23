@@ -6,7 +6,6 @@ import glob
 import os
 import shutil
 import struct
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import fields
@@ -28,6 +27,7 @@ from ttexalens.tt_exalens_lib import (
     write_words_to_device,
 )
 
+from . import device as device_module
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import (
@@ -39,11 +39,8 @@ from .device import (
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
 )
-from .format_config import DataFormat, FormatConfig
-from .llk_params import (
-    DestAccumulation,
-    L1Accumulation,
-)
+from .format_config import DataFormat, InputOutputFormat
+from .llk_params import DestAccumulation, L1Accumulation, MailboxesDebug, MailboxesPerf
 from .stimuli_config import StimuliConfig
 from .test_variant_parameters import RuntimeParameter, TemplateParameter
 
@@ -58,6 +55,7 @@ class CoverageBuild(Enum):
     No = "false"
 
 
+from .logger import logger
 from .test_variant_parameters import (
     IN_TILE_DIMS,
     NUM_FACES,
@@ -139,7 +137,7 @@ class TestConfig:
 
     # === Addresses ===
     RUNTIME_ADDRESS_NON_COVERAGE: ClassVar[int] = 0x20000
-    RUNTIME_ADDRESS_COVERAGE: ClassVar[int] = 0x61000
+    RUNTIME_ADDRESS_COVERAGE: ClassVar[int] = 0x64000
     TRISC_PROFILER_BARRIER_ADDRESS: ClassVar[int] = 0x16AFF4
     TRISC_START_ADDRS: ClassVar[list[int]] = [0x16DFF0, 0x16DFF4, 0x16DFF8]
     THREAD_PERFORMANCE_DATA_BUFFER_LENGTH = 0x400
@@ -148,6 +146,38 @@ class TestConfig:
         0x16C000,  # Math
         0x16D000,  # Pack
     ]
+
+    # Performance counter L1 memory addresses
+    # NOTE: These addresses must match the values in tests/helpers/include/counters.h
+    # Layout: 86 config words (344 bytes) + 172 data words (688 bytes) = 1032 (0x408) bytes per thread
+    PERF_COUNTERS_BASE_ADDR: ClassVar[int] = 0x16A000
+    PERF_COUNTERS_SIZE: ClassVar[int] = 0xC18  # 3096 bytes for all 3 threads
+    _PERF_COUNTERS_CONFIG_WORDS: ClassVar[int] = 86
+    _PERF_COUNTERS_DATA_WORDS: ClassVar[int] = 172
+    _PERF_COUNTERS_THREAD_SIZE: ClassVar[int] = (
+        _PERF_COUNTERS_CONFIG_WORDS + _PERF_COUNTERS_DATA_WORDS
+    ) * 4  # 1032 bytes
+    # Computed addresses (UNPACK=thread 0, MATH=thread 1, PACK=thread 2)
+    PERF_COUNTER_UNPACK_CONFIG_ADDR: ClassVar[int] = PERF_COUNTERS_BASE_ADDR
+    PERF_COUNTER_UNPACK_DATA_ADDR: ClassVar[int] = (
+        PERF_COUNTERS_BASE_ADDR + _PERF_COUNTERS_CONFIG_WORDS * 4
+    )
+    PERF_COUNTER_MATH_CONFIG_ADDR: ClassVar[int] = (
+        PERF_COUNTERS_BASE_ADDR + _PERF_COUNTERS_THREAD_SIZE
+    )
+    PERF_COUNTER_MATH_DATA_ADDR: ClassVar[int] = (
+        PERF_COUNTERS_BASE_ADDR
+        + _PERF_COUNTERS_THREAD_SIZE
+        + _PERF_COUNTERS_CONFIG_WORDS * 4
+    )
+    PERF_COUNTER_PACK_CONFIG_ADDR: ClassVar[int] = (
+        PERF_COUNTERS_BASE_ADDR + 2 * _PERF_COUNTERS_THREAD_SIZE
+    )
+    PERF_COUNTER_PACK_DATA_ADDR: ClassVar[int] = (
+        PERF_COUNTERS_BASE_ADDR
+        + 2 * _PERF_COUNTERS_THREAD_SIZE
+        + _PERF_COUNTERS_CONFIG_WORDS * 4
+    )
 
     @staticmethod
     def setup_arch():
@@ -245,6 +275,7 @@ class TestConfig:
         debug_flag = "" if no_debug_symbols else "-g "
         TestConfig.OPTIONS_ALL = f"{debug_flag}-O3 -std=c++17 -ffast-math"
         TestConfig.WITH_COVERAGE = with_coverage
+        StimuliConfig.WITH_COVERAGE = with_coverage
 
         if detailed_artefacts:
             TestConfig.OPTIONS_ALL += (
@@ -258,6 +289,7 @@ class TestConfig:
             f"-I../{TestConfig.ARCH_LLK_ROOT}/llk_lib",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/common/inc",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/common/inc/sfpu",
+            "-I../common",
             f"-I{TestConfig.HEADER_DIR}",
             f"-Ihw_specific/{TestConfig.ARCH.value}",
             f"-Ihw_specific/{TestConfig.ARCH.value}/metal_sfpu",
@@ -272,6 +304,8 @@ class TestConfig:
         detailed_artefacts: bool = False,
         no_debug_symbols: bool = False,
     ):
+        device_module.Mailbox = MailboxesDebug if with_coverage else MailboxesPerf
+
         TestConfig.setup_arch()
         TestConfig.setup_paths(sources_path)
         TestConfig.setup_compilation_options(
@@ -303,7 +337,7 @@ class TestConfig:
     def __init__(
         self,
         test_name: str,
-        formats: FormatConfig = None,
+        formats: InputOutputFormat = None,
         templates: list[TemplateParameter] = [],
         runtimes: list[RuntimeParameter] = [],
         variant_stimuli: StimuliConfig = None,
@@ -339,7 +373,9 @@ class TestConfig:
         self.l1_acc = l1_acc
         self.skip_build_header = skip_build_header
 
-        self.process_runtime_args()
+        # We need to call this here because this function generates serialisation format need for writing RTs to L1,
+        # Which is needed by execution part of test infra
+        self.generate_runtime_args_struct()
 
         if (
             self.coverage_build == CoverageBuild.Yes
@@ -349,15 +385,26 @@ class TestConfig:
                 "You can't build profiler and coverage build at the same time, profiling tests will fail."
             )
 
-    def process_runtime_args(self):
-
+    def generate_runtime_args_struct(self):
         # Generate runtime parameter struct
         lines = [
-            "// Struct that has a runtme parameter layout",
+            "// Struct containing runtime parameter layout",
             "struct RuntimeParams {",
+            "std::uint32_t TILE_SIZE_PACK;",
+            "std::uint32_t TILE_SIZE_UNPACK_A;",
+            "std::uint32_t TILE_SIZE_UNPACK_B;",
         ]
 
-        self.runtime_format = "@"
+        self.runtime_format = "@III"  # tile size types for formatter
+
+        if self.variant_stimuli:
+            if TestConfig.WITH_COVERAGE:
+                self.variant_stimuli.coverage_addresses = True
+            stimuli_fields, stimuli_pack_format = (
+                self.variant_stimuli.generate_runtime_struct_fields()
+            )
+            lines.extend(stimuli_fields)
+            self.runtime_format += stimuli_pack_format
 
         for parameter in self.runtimes:
             field_str, param_field_types = parameter.convert_to_struct_fields()
@@ -366,13 +413,54 @@ class TestConfig:
 
         lines.append("};")
 
-        self.runtime_params_struct = lines
+        self.runtime_arguments_struct = lines
 
     def write_runtimes_to_L1(self, location: str = "0,0"):
-        if len(self.runtimes) == 0:
-            return
+        TILE_SIZES = {
+            DataFormat.Bfp8_b: 68,
+            DataFormat.Float32: 256,
+        }
 
-        argument_data = []
+        if self.formats is None:
+            pack_size, unpack_size_a, unpack_size_b = 128, 128, 128
+        else:
+            pack_size = TILE_SIZES.get(self.formats.output_format, 128)
+            unpack_size_a = TILE_SIZES.get(self.formats.input_format, 128)
+            unpack_size_b = TILE_SIZES.get(self.formats.input_format, 128)
+
+        if len(self.runtimes) > 0:
+            itd_param = next(
+                (param for param in self.runtimes if isinstance(param, IN_TILE_DIMS)),
+                None,
+            )
+            faces_param = next(
+                (param for param in self.runtimes if isinstance(param, NUM_FACES)), None
+            )
+            if itd_param and faces_param:
+                temp_num_faces_A = (
+                    faces_param.num_faces_A
+                    if faces_param.num_faces_A
+                    else faces_param.num_faces
+                )
+                if itd_param.in0_r_dim <= 16:
+                    pack_size = (pack_size // faces_param.num_faces) * (
+                        itd_param.in0_r_dim // self.variant_stimuli.face_r_dim
+                    )
+                    unpack_size_a = (unpack_size_a // temp_num_faces_A) * (
+                        itd_param.in0_r_dim // self.variant_stimuli.face_r_dim
+                    )
+
+        argument_data = [
+            pack_size,  # uint32_t TILE_SIZE_PACK;
+            unpack_size_a,  # uint32_t TILE_SIZE_UNPACK_A;
+            unpack_size_b,  # uint32_t TILE_SIZE_UNPACK_B;
+        ]
+
+        if self.variant_stimuli:
+            argument_data.extend(
+                self.variant_stimuli.generate_runtime_operands_values(self.formats)
+            )
+
         for param in self.runtimes:
             argument_data.extend(
                 [
@@ -404,7 +492,7 @@ class TestConfig:
         with open(lock_file, "w") as lock:
             fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
             try:
-                print(self.variant_id, file=sys.stderr)
+                logger.debug("Variant hash: {}", self.variant_id)
             finally:
                 fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
@@ -415,7 +503,7 @@ class TestConfig:
             "variant_stimuli",
             "run_configs",
             "variant_id",
-            "runtime_params_struct",
+            "runtime_arguments_struct",
             "runtime_format",
             "runtimes",
         ]
@@ -425,19 +513,6 @@ class TestConfig:
             for field_name, value in self.__dict__.items()
             if field_name not in NON_COMPILATION_ARGUMENTS
         ]
-
-        # Include stimuli address-related fields in hash since they affect compiled code
-        # The buffer addresses are compiled into the binary as constexpr values
-        if self.variant_stimuli is not None:
-            stimuli_hash_fields = [
-                str(self.variant_stimuli.tile_count_A),
-                str(self.variant_stimuli.tile_count_B),
-                str(self.variant_stimuli.tile_count_res),
-                str(self.variant_stimuli.buf_a_addr),
-                str(self.variant_stimuli.buf_b_addr),
-                str(self.variant_stimuli.buf_res_addr),
-            ]
-            temp_str.extend(stimuli_hash_fields)
 
         self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
@@ -533,10 +608,10 @@ class TestConfig:
             )
 
             # brisc.o : brisc.cpp
-
             if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
+                brisc_define_coverage = "-DCOVERAGE" if TestConfig.WITH_COVERAGE else ""
                 run_shell_command(
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {TestConfig.OPTIONS_ALL} {local_non_coverage} -c -o {shared_obj_dir / "brisc.o"} {TestConfig.RISCV_SOURCES / "brisc.cpp"}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_NON_COMPUTE} {brisc_define_coverage} {TestConfig.OPTIONS_ALL} {local_non_coverage} -c -o {shared_obj_dir / "brisc.o"} {TestConfig.RISCV_SOURCES / "brisc.cpp"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
@@ -605,7 +680,10 @@ class TestConfig:
         # Automatically enable dest_acc for outlier combinations
         if (
             is_format_combination_outlier(
-                self.formats.input_format, self.formats.output_format, self.dest_acc
+                self.formats.input_format,
+                self.formats.output_format,
+                self.dest_acc,
+                self.formats.input_format_B,
             )
             and TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR
         ):
@@ -631,6 +709,7 @@ class TestConfig:
             unpacking_to_dest=self.unpack_to_dest,
             chip_arch=TestConfig.CHIP_ARCH,
             disable_format_inference=self.disable_format_inference,
+            input_format_B=self.formats.input_format_B,
         )
 
         header_content.append(
@@ -654,8 +733,16 @@ class TestConfig:
                 f"ckernel::to_underlying(DataFormat::{fmt.unpack_A_src.name})"
                 for fmt in formats_config
             ]
+            unpack_b_in_values = [
+                f"ckernel::to_underlying(DataFormat::{fmt.unpack_B_src.name})"
+                for fmt in formats_config
+            ]
             unpack_a_out_values = [
                 f"ckernel::to_underlying(DataFormat::{fmt.unpack_A_dst.name})"
+                for fmt in formats_config
+            ]
+            unpack_b_out_values = [
+                f"ckernel::to_underlying(DataFormat::{fmt.unpack_B_dst.name})"
                 for fmt in formats_config
             ]
             math_values = [
@@ -674,7 +761,9 @@ class TestConfig:
             header_content.extend(
                 [
                     f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_IN_LIST = {{{', '.join(unpack_a_in_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_B_IN_LIST = {{{', '.join(unpack_b_in_values)}}};",
                     f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_A_OUT_LIST = {{{', '.join(unpack_a_out_values)}}};",
+                    f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> UNPACK_B_OUT_LIST = {{{', '.join(unpack_b_out_values)}}};",
                     f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> MATH_FORMAT_LIST = {{{', '.join(math_values)}}};",
                     f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_IN_LIST = {{{', '.join(pack_in_values)}}};",
                     f"constexpr std::array<std::underlying_type_t<DataFormat>, L1_to_L1_ITERATIONS> PACK_OUT_LIST = {{{', '.join(pack_out_values)}}};",
@@ -689,14 +778,14 @@ class TestConfig:
                 [
                     "// Format data for single L1-to-L1 iteration",
                     f"constexpr auto UNPACK_A_IN = ckernel::to_underlying(DataFormat::{formats_config.unpack_A_src.name});",
+                    f"constexpr auto UNPACK_B_IN = ckernel::to_underlying(DataFormat::{formats_config.unpack_B_src.name});",
                     f"constexpr auto UNPACK_A_OUT = ckernel::to_underlying(DataFormat::{formats_config.unpack_A_dst.name});",
+                    f"constexpr auto UNPACK_B_OUT = ckernel::to_underlying(DataFormat::{formats_config.unpack_B_dst.name});",
                     f"constexpr auto MATH_FORMAT = ckernel::to_underlying(DataFormat::{formats_config.math.name});",
                     f"constexpr auto PACK_IN = ckernel::to_underlying(DataFormat::{formats_config.pack_src.name});",
                     f"constexpr auto PACK_OUT = ckernel::to_underlying(DataFormat::{formats_config.pack_dst.name});",
                 ]
             )
-
-        header_content.append("")
 
         return header_content
 
@@ -725,11 +814,6 @@ class TestConfig:
             "// Basic configuration",
             "constexpr std::uint32_t TILE_SIZE_CNT = 0x1000;",
         ]
-
-        if self.variant_stimuli:
-            header_content.extend(
-                self.variant_stimuli.generate_stimuli_header_addresses(self.formats)
-            )
 
         TILE_SIZES = {
             DataFormat.Bfp8_b: 68,
@@ -777,7 +861,7 @@ class TestConfig:
             header_content.append(parameter.covert_to_cpp())
 
         header_content.extend(self.infer_data_formats())
-        header_content.extend(self.runtime_params_struct)
+        header_content.extend(self.runtime_arguments_struct)
 
         return "\n".join(header_content)
 
@@ -795,6 +879,7 @@ class TestConfig:
 
         # Fast path: if build is already complete, skip entirely
         if done_marker.exists():
+            logger.debug("Build already complete for {}", self.variant_id[:12])
             return
 
         # Acquire lock for this variant to prevent concurrent builds
@@ -918,18 +1003,7 @@ class TestConfig:
 
         reset_mailboxes(location)
 
-        # Perform soft reset
         set_tensix_soft_reset(1, location=location)
-        # soft_reset_value = (
-        #     get_register_store(location, 0).read_register(
-        #         "RISCV_DEBUG_REG_SOFT_RESET_0"
-        #     )
-        #     >> 11
-        # )
-        # if not soft_reset_value & 0xF == 0xF:
-        #     raise Exception(
-        #         f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
-        #     )
 
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
@@ -965,22 +1039,6 @@ class TestConfig:
                     ),
                     verify_write=False,
                 )
-
-        # Reset the profiler barrier
-        write_words_to_device(
-            location, TestConfig.TRISC_PROFILER_BARRIER_ADDRESS, [0, 0, 0]
-        )
-
-        # soft_reset_value = (
-        #     get_register_store(location, 0).read_register(
-        #         "RISCV_DEBUG_REG_SOFT_RESET_0"
-        #     )
-        #     >> 11
-        # )
-        # if not soft_reset_value & 0xF == 0xF:
-        #     raise Exception(
-        #         f"Cores are not in reset BEFORE elf load: {bin(soft_reset_value)}"
-        #     )
 
         match boot_mode:
             case BootMode.BRISC:
@@ -1025,14 +1083,25 @@ class TestConfig:
 
     def run(self, location="0,0", delete_artefacts: bool = False):
         self.generate_variant_hash()
+        logger.info(
+            "Running variant={} | location={}",
+            self.variant_id[:12],
+            location,
+        )
+
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
             self.build_elfs()
+
+        logger.debug(
+            "ELF directory: {}",
+            TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf",
+        )
 
         if TestConfig.MODE == TestMode.PRODUCE:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-        self.variant_stimuli.write(location)
         self.write_runtimes_to_L1(location)
+        self.variant_stimuli.write(location)
         elfs = self.run_elf_files(location)
         wait_for_tensix_operations_finished(elfs, location)
 
@@ -1079,7 +1148,7 @@ def process_coverage_run_artefacts() -> bool:
 
     worker_num = 20
 
-    print(f"Processing code coverage data")
+    logger.info("Processing code coverage data")
     with ThreadPoolExecutor(max_workers=worker_num) as executor:
         futures = [
             executor.submit(process_variants, work)
@@ -1091,12 +1160,14 @@ def process_coverage_run_artefacts() -> bool:
     end = time.time()
 
     if not Path(TestConfig.COVERAGE_INFO_DIR).is_dir():
-        print(f"{TestConfig.COVERAGE_INFO_DIR} does not exist. Early exit.")
+        logger.warning("{} does not exist. Early exit.", TestConfig.COVERAGE_INFO_DIR)
         return
 
     info_files = glob.glob(os.path.join(TestConfig.COVERAGE_INFO_DIR, "*.info"))
-    print(
-        f"Generated {len(info_files)} coverage .info files from streams in {end - start:.2f}s, unifying"
+    logger.info(
+        "Generated {} coverage .info files from streams in {:.2f}s, unifying",
+        len(info_files),
+        end - start,
     )
 
     # Reduce worker count to avoid workers having no files to process
@@ -1110,7 +1181,7 @@ def process_coverage_run_artefacts() -> bool:
         try:
             shutil.copyfile(str(info_files[0]), merged_path)
         except IndexError:
-            print("No worker files to be merged, exiting")
+            logger.warning("No worker files to be merged, exiting")
             return
         info_files.pop(0)
 
@@ -1121,8 +1192,9 @@ def process_coverage_run_artefacts() -> bool:
             result = run_shell_command(cmd, TestConfig.ARTEFACTS_DIR)
 
             if result.returncode:
-                print(f"Warning: Failed to merge {info_file}, skipping")
-                print(f"Error: {result.stderr}")
+                logger.warning(
+                    "Failed to merge {}, skipping: {}", info_file, result.stderr
+                )
 
     with ThreadPoolExecutor(max_workers=worker_num) as executor:
         futures = [
@@ -1141,8 +1213,9 @@ def process_coverage_run_artefacts() -> bool:
         result = run_shell_command(cmd, TestConfig.ARTEFACTS_DIR)
 
         if result.returncode:
-            print(f"Warning: Failed to merge {info_file}, skipping")
-            print(f"Error: {result.stderr}")
+            logger.warning(
+                "Failed to merge {}, skipping. Error: {}", info_file, result.stderr
+            )
 
     end = time.time()
-    print(f"Combined {len(info_files)} in {end - start:.2f}s")
+    logger.info("Combined {} coverage files in {:.2f}s", len(info_files), end - start)

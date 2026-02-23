@@ -26,24 +26,28 @@ std::uint32_t math_sync_tile_dst_index = 0;
 void run_kernel(const volatile struct RuntimeParams *params)
 {
     const std::uint32_t face_r_dim = params->TEST_FACE_R_DIM;
-    const std::uint32_t num_faces  = params->num_faces;
+    const std::uint32_t num_faces  = params->num_faces_r_dim_A * params->num_faces_c_dim_A;
+    const bool narrow_tile         = params->num_faces_c_dim_A < params->num_faces_r_dim_A;
     const std::uint32_t transpose  = params->UNPACK_TRANSPOSE_FACES;
     const int num_tiles_in_block   = params->NUM_TILES_IN_BLOCK;
     const int num_blocks           = params->NUM_BLOCKS;
 
     // Configure hardware for unpacking, no broadcast, no transpose
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, face_r_dim, face_r_dim, num_faces, num_faces);
+        formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, face_r_dim, face_r_dim, num_faces, num_faces);
 
-    _llk_unpack_AB_init_<BROADCAST_TYPE>(
-        face_r_dim,
-        num_faces,
-        false,      // narrow_tile
-        transpose); // Enable face rearrangement for srcA
+    _llk_unpack_AB_init_<BROADCAST_TYPE>(face_r_dim, num_faces, narrow_tile,
+                                         transpose); // Enable face rearrangement for srcA
 
-    for (int i = 0; i < num_tiles_in_block * num_blocks; ++i)
+#ifdef EN_DEST_REUSE
+    const int num_total_tiles = params->INPUT_NUM_TILES_IN_BLOCK * params->INPUT_NUM_BLOCKS;
+#else
+    const int num_total_tiles = params->NUM_TILES_IN_BLOCK * params->NUM_BLOCKS;
+#endif
+
+    for (int i = 0; i < num_total_tiles; ++i)
     {
-        _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]));
+        _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(params->buffer_A[i]), L1_ADDRESS(params->buffer_B[i]));
     }
 }
 
@@ -59,25 +63,41 @@ using namespace ckernel;
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
-    const std::uint32_t num_faces = params->num_faces;
-    const int num_tiles_in_block  = params->NUM_TILES_IN_BLOCK;
-    const int num_blocks          = params->NUM_BLOCKS;
+    const std::uint32_t num_faces = params->num_faces_r_dim_A * params->num_faces_c_dim_A;
 
-    // Initialize math for element-wise subtraction
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-    _llk_math_eltwise_binary_init_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE, MathFidelity::LoFi>(num_faces, 0);
 
-    // Perform element-wise subtraction
+    constexpr bool ACC_TO_DEST = false;
+#ifndef EN_DEST_REUSE
+    constexpr auto REUSE_DEST_TYPE = ckernel::EltwiseBinaryReuseDestType::NONE;
+#endif
+
+#ifdef EN_DEST_REUSE
+    const int tiles_in_block          = params->OUTPUT_NUM_TILES_IN_BLOCK;
+    const int num_tiles_accumulations = params->INPUT_NUM_TILES_IN_BLOCK / tiles_in_block;
+    const int num_blocks              = params->INPUT_NUM_BLOCKS;
+#else
+    const int tiles_in_block          = params->NUM_TILES_IN_BLOCK;
+    const int num_tiles_accumulations = 1;
+    const int num_blocks              = params->NUM_BLOCKS;
+#endif
+
+    _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BROADCAST_TYPE, MATH_FIDELITY, REUSE_DEST_TYPE>(num_faces, ACC_TO_DEST);
+
     for (int block = 0; block < num_blocks; block++)
     {
         _llk_math_wait_for_dest_available_<dest_sync>();
-        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        for (int n = 0; n < num_tiles_accumulations; n++)
         {
-            LLK_ASSERT(
-                (tile < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
-            _llk_math_eltwise_binary_<EltwiseBinaryType::ELWSUB, BROADCAST_TYPE, dest_sync, is_fp32_dest_acc_en, MathFidelity::LoFi>(
-                num_faces, tile /* dst_index */, false /* clear_fp32_dst_acc */);
+            for (int tile = 0; tile < tiles_in_block; tile++)
+            {
+                LLK_ASSERT(
+                    (tile < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                    "Block tile index exceeds maximum destination tiles");
+                _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BROADCAST_TYPE, dest_sync, is_fp32_dest_acc_en, MATH_FIDELITY, REUSE_DEST_TYPE>(
+                    num_faces, tile /* dst_index */, false /* clear_fp32_dst_acc */);
+            }
         }
         _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
@@ -95,35 +115,52 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     // Cache volatile values to ensure consistent reads
     const std::uint32_t face_r_dim = params->TEST_FACE_R_DIM;
-    const std::uint32_t num_faces  = params->num_faces;
+    const std::uint32_t num_faces  = params->num_faces_r_dim_A * params->num_faces_c_dim_A;
+    const bool narrow_tile         = params->num_faces_c_dim_A < params->num_faces_r_dim_A;
+    const bool partial_face        = face_r_dim < 16;
     const int num_tiles_in_block   = params->NUM_TILES_IN_BLOCK;
     const int num_blocks           = params->NUM_BLOCKS;
 
     const std::uint32_t tile_size = face_r_dim * 16 * num_faces;
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(formats.pack_src, formats.pack_dst, tile_size);
+    const std::uint32_t tile_c_dim = params->num_faces_c_dim_A * 16;
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(
+        formats.pack_src, formats.pack_dst, tile_size, face_r_dim, tile_c_dim, num_faces);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(formats.pack_src, formats.pack_dst, tile_size);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(
+        formats.pack_src, formats.pack_dst, tile_size, face_r_dim, num_faces, partial_face, narrow_tile);
 #endif
 
-    _llk_pack_init_<false /* untilize */, false /* zero_output */>(formats.pack_dst);
+#ifdef ARCH_BLACKHOLE
+    _llk_pack_init_<false /* untilize */, false /* zero_output */>(formats.pack_dst, face_r_dim, tile_c_dim, num_faces);
+#else
+    _llk_pack_init_<false /* untilize */, false /* zero_output */>(formats.pack_dst, face_r_dim, num_faces, partial_face, narrow_tile);
+#endif
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
 #else
-    _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>();
+    _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(face_r_dim, narrow_tile);
 #endif
 
-    for (int block = 0; block < num_blocks; block++)
+#ifdef EN_DEST_REUSE
+    const int output_tiles_in_block = params->OUTPUT_NUM_TILES_IN_BLOCK;
+    const int output_num_blocks     = params->OUTPUT_NUM_BLOCKS;
+#else
+    const int output_tiles_in_block = num_tiles_in_block;
+    const int output_num_blocks     = num_blocks;
+#endif
+
+    for (int block = 0; block < output_num_blocks; block++)
     {
         _llk_packer_wait_for_math_done_();
-        for (int tile = 0; tile < num_tiles_in_block; tile++)
+        for (int tile = 0; tile < output_tiles_in_block; tile++)
         {
-            int res_tile_idx = (block * num_tiles_in_block) + tile;
+            int res_tile_idx = (block * output_tiles_in_block) + tile;
             LLK_ASSERT(
                 (tile < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
-            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(tile, L1_ADDRESS(buffer_Res[res_tile_idx]));
+            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(tile, L1_ADDRESS(params->buffer_Res[res_tile_idx]));
         }
         _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }

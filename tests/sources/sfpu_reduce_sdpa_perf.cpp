@@ -32,9 +32,16 @@ void run_kernel(const volatile struct RuntimeParams* params)
         ZONE_SCOPED("INIT")
         // Configure unpacker for Float16_b format
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-            formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
+            formats.unpack_A_src,
+            formats.unpack_B_src,
+            formats.unpack_A_dst,
+            formats.unpack_B_dst,
+            FACE_R_DIM,
+            FACE_R_DIM,
+            4 /* num_faces */,
+            4 /* num_faces */);
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            0, 0, FACE_R_DIM, 4, formats.unpack_src, formats.unpack_dst);
+            0, 0, FACE_R_DIM, 4, formats.unpack_A_src, formats.unpack_A_dst);
         PROFILER_SYNC();
     }
     {
@@ -55,7 +62,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 for (int i = 0; i < params->TILE_CNT; ++i)
                 {
                     _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-                        PERF_ADDRESS(PERF_INPUT_A, i), formats.unpack_src, formats.unpack_dst);
+                        PERF_ADDRESS(PERF_INPUT_A, i), formats.unpack_A_src, formats.unpack_A_dst);
                 }
             }
         }
@@ -77,7 +84,7 @@ using namespace ckernel::sfpu;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    constexpr std::uint32_t block_height = BLOCK_RT_DIM;
+    const std::uint32_t block_height = BLOCK_RT_DIM;
 
     {
         ZONE_SCOPED("INIT")
@@ -122,7 +129,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     // Run the SFPU reduce SDPA calculation
                     // This is the core computation we want to measure
 
-                    _calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
+                    _calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(1, block_height);
 
                     // Clear the valid flag for source A
                     TTI_CLEARDVALID(1, 0);
@@ -157,8 +164,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
                     _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
 
                     // Call the SFPU SDPA reduce function
-                    constexpr std::uint32_t block_height = BLOCK_RT_DIM;
-                    _calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(block_height);
+                    const std::uint32_t block_height = BLOCK_RT_DIM;
+                    _calculate_reduce_<PoolType::MAX, REDUCE_COL, DataFormat::Float16_b>(1, block_height);
 
                     _llk_math_eltwise_unary_sfpu_done_();
                     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

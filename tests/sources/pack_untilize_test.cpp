@@ -42,21 +42,21 @@ constexpr static std::uint32_t format_size_in_bytes(std::uint32_t data_format)
 void run_kernel(const volatile struct RuntimeParams* params)
 {
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, params->num_faces, params->num_faces);
+        formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, params->num_faces, params->num_faces);
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-        0, 0, FACE_R_DIM, params->num_faces, formats.unpack_src, formats.unpack_dst);
+        0, 0, FACE_R_DIM, params->num_faces, formats.unpack_A_src, formats.unpack_A_dst);
 
     const std::uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM;
 
     for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
     {
-        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the column (dst reg)
+        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
         {
             for (std::uint32_t tile_index_within_block = 0; tile_index_within_block < BLOCK_CT_DIM; ++tile_index_within_block) // Loop over tiles in the block
             {
                 std::uint32_t tile_index_in_memory = rt * FULL_CT_DIM + block_num * BLOCK_CT_DIM + tile_index_within_block;
                 _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-                    L1_ADDRESS(buffer_A[tile_index_in_memory]), formats.unpack_src, formats.unpack_dst);
+                    L1_ADDRESS(params->buffer_A[tile_index_in_memory]), formats.unpack_A_src, formats.unpack_A_dst);
             }
         }
     }
@@ -91,7 +91,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
     {
-        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the column (dst reg)
+        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
         {
             _llk_math_wait_for_dest_available_<dest_sync>();
             for (std::uint32_t tile_index_within_block = 0; tile_index_within_block < BLOCK_CT_DIM; ++tile_index_within_block) // Loop over tiles in the block
@@ -125,7 +125,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const std::uint32_t block_stride_16B =
         (BLOCK_CT_DIM * ((params->num_faces > 2) ? params->num_faces / 2 : params->num_faces) * FACE_C_DIM * format_size_in_bytes(formats.pack_dst)) /
         L1_ACCESS_ADDRESS_GRANULARITY;
-    const std::uint32_t base_addr_16B = L1_ADDRESS(buffer_Res[0]);
+    const std::uint32_t base_addr_16B = L1_ADDRESS(params->buffer_Res[0]);
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, NUM_DATUMS_IN_TILE /* tile_size */);
@@ -140,7 +140,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
     {
-        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the column (dst reg)
+        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
         {
             std::uint32_t pack_addr_16B = base_addr_16B + rt * row_stride_16B + block_num * block_stride_16B;
 

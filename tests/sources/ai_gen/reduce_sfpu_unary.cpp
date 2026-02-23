@@ -46,13 +46,13 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     // Configure hardware for AB unpack (single tile per input)
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
+        formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
 
     // Initialise unpacker state machine
     _llk_unpack_AB_init_<>(FACE_R_DIM, 4, false, within_face_16x16_transpose);
 
     // Unpack the two input tiles (A & B) into the destination register file
-    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A[0]), L1_ADDRESS(buffer_B[0]));
+    _llk_unpack_AB_<>(L1_ADDRESS(params->buffer_A[0]), L1_ADDRESS(params->buffer_B[0]));
 }
 
 #endif // LLK_TRISC_UNPACK
@@ -134,7 +134,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncFull, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(buffer_Res[0]));
+    _llk_pack_<DstSync::SyncFull, is_fp32_dest_acc_en, false>(0, L1_ADDRESS(params->buffer_Res[0]));
     _llk_pack_dest_section_done_<DstSync::SyncFull, is_fp32_dest_acc_en>();
 
     _llk_pack_reduce_mask_clear_();

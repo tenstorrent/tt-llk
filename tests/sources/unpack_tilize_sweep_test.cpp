@@ -24,13 +24,13 @@ std::uint32_t math_sync_tile_dst_index = 0;
 void run_kernel(const volatile struct RuntimeParams *params)
 {
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, params->num_faces, params->num_faces);
+        formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, params->num_faces, params->num_faces);
     _llk_unpack_configure_stoch_rnd_<STOCHASTIC_RND>();
 
     // Initialize tilize unpacker
     _llk_unpack_tilize_init_(
-        formats.unpack_src,
-        formats.unpack_dst,
+        formats.unpack_A_src,
+        formats.unpack_A_dst,
         BLOCK_CT_DIM,
         FACE_R_DIM,
         params->NARROW_TILE // narrow_tile disabled for now
@@ -44,14 +44,14 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // Main tilize loop - handle different tile configurations
     for (std::uint32_t row = 0; row < BLOCK_RT_DIM; ++row)
     {
-        std::uint32_t tile_row_addr = L1_ADDRESS(buffer_A[read_offset]);
+        std::uint32_t tile_row_addr = L1_ADDRESS(params->buffer_A[read_offset]);
         for (std::uint32_t col = 0; col < BLOCK_CT_DIM; ++col)
         {
             _llk_unpack_tilize_(
                 tile_row_addr,
                 col,
-                formats.unpack_src,
-                formats.unpack_dst,
+                formats.unpack_A_src,
+                formats.unpack_A_dst,
                 block_ct_dim,
                 FACE_R_DIM,
                 num_faces,
@@ -130,7 +130,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     {
         LLK_ASSERT(
             (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(params->buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

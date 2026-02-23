@@ -28,6 +28,24 @@ inline void _llk_unpack_AB_mop_config_(const bool transpose_of_faces = false, co
         LLK_ASSERT(num_faces == 4, "num_faces must be 4 when transpose_of_faces is true");
     }
 
+    // Transpose + Broadcast Scalar not supported
+    if constexpr (BType == BroadcastType::SCALAR)
+    {
+        LLK_ASSERT(!transpose_of_faces, "Transpose with Broadcast Scalar not supported");
+    }
+
+    // Broadcast Column: x16 tiles not supported (BH requires num_faces_c_dim == 2 for COL broadcast)
+    if constexpr (BType == BroadcastType::COL)
+    {
+        LLK_ASSERT(!narrow_tile, "Broadcast Column: x16 tiles not supported (BH requires num_faces_c_dim == 2 for COL broadcast)");
+    }
+
+    // Broadcast Row with narrow tile: only 16x16 supported, not 32x16
+    if constexpr (BType == BroadcastType::ROW)
+    {
+        LLK_ASSERT(!(narrow_tile && num_faces == 2), "Broadcast Row with 32x16 narrow tile not supported");
+    }
+
     static constexpr std::uint32_t unpack_srca           = TT_OP_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr std::uint32_t unpack_srcb           = TT_OP_UNPACR(SrcB, 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
     static constexpr std::uint32_t unpack_srca_transpose = TT_OP_UNPACR(SrcA, 0b10, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
@@ -104,32 +122,6 @@ inline void _llk_unpack_AB_init_(
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(transpose); // transpose within the face
 
     config_unpacker_x_end<p_setadc::UNP_AB>(face_r_dim);
-
-    _llk_unpack_AB_mop_config_<BType>(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
-}
-
-template <ReduceDim dim, BroadcastType BType = BroadcastType::NONE, bool enforce_fp32_accumulation = false>
-inline void _llk_unpack_AB_reduce_init_(
-    const std::uint32_t face_r_dim,
-    const std::uint32_t num_faces,
-    const bool narrow_tile,
-    const std::uint32_t transpose,
-    const std::uint32_t within_face_16x16_transpose)
-{
-    LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-
-    if constexpr (enforce_fp32_accumulation)
-    {
-        // Set necessary config regs for MOVB2D hi16/lo16 to work
-        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1);
-    }
-
-    // REDUCE_ROW requires transpose itself; additionally, within_face_16x16_transpose flag could require transpose;
-    // if we have the flag set with REDUCE_ROW, we don't need to do anything
-    cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(ReduceDim::REDUCE_ROW == dim ? !within_face_16x16_transpose : within_face_16x16_transpose);
-
-    constexpr std::uint32_t UNP_SEL = p_setadc::UNP_AB;
-    config_unpacker_x_end<UNP_SEL>(face_r_dim);
 
     _llk_unpack_AB_mop_config_<BType>(transpose > 0, num_faces, narrow_tile); // transpose of faces 0,2,1,3
 }

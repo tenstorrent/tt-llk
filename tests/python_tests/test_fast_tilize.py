@@ -12,9 +12,10 @@ from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
-    INPUT_DIMENSIONS,
     LOOP_FACTOR,
+    NUM_FACES,
     TILE_COUNT,
+    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -48,7 +49,7 @@ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
         heights = [h for h in heights if h > 0 and h <= max_height]
         heights = list(set(heights))
         for height in heights:
-            dimensions.append((width, height))
+            dimensions.append((height, width))
     return dimensions
 
 
@@ -62,7 +63,7 @@ def generate_input_dimensions(max_size: int) -> list[tuple[int, int]]:
 )
 def test_fast_tilize(formats, dest_acc, dimensions, workers_tensix_coordinates):
 
-    input_width, input_height = dimensions
+    input_height, input_width = dimensions
 
     if formats.input == DataFormat.Bfp8_b:
         pytest.skip("Bfp8_b input format is not supported for fast tilize")
@@ -82,8 +83,8 @@ def test_fast_tilize(formats, dest_acc, dimensions, workers_tensix_coordinates):
     configuration = TestConfig(
         "sources/fast_tilize_test.cpp",
         formats,
-        templates=[INPUT_DIMENSIONS(input_dimensions, input_dimensions)],
-        runtimes=[TILE_COUNT(tile_cnt_A), LOOP_FACTOR(1)],
+        templates=[generate_input_dim(input_dimensions, input_dimensions)],
+        runtimes=[TILE_COUNT(tile_cnt_A), LOOP_FACTOR(1), NUM_FACES(4)],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,

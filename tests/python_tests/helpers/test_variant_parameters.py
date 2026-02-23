@@ -5,7 +5,6 @@
 from abc import ABC, abstractmethod
 from ctypes import c_uint32
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 from .llk_params import (
     FPU_BINARY_OPERATIONS,
@@ -112,6 +111,12 @@ class REUSE_DEST_TYPE(TemplateParameter):
 
     def covert_to_cpp(self) -> str:
         return f"constexpr auto REUSE_DEST_TYPE = ckernel::EltwiseBinaryReuseDestType::{self.reuse_dest_type.name};"
+
+
+@dataclass
+class EN_DEST_REUSE(TemplateParameter):
+    def covert_to_cpp(self) -> str:
+        return "#define EN_DEST_REUSE"
 
 
 def _generate_operation_constants(mathop: MathOperation) -> list[str]:
@@ -284,35 +289,6 @@ class REDUCE_POOL_TYPE(TemplateParameter):
 
 
 @dataclass
-class INPUT_DIMENSIONS(TemplateParameter):
-    srcA: Tuple[int, int]
-    srcB: Tuple[int, int]
-    block_ct_dim: Optional[int] = None
-    block_rt_dim: Optional[int] = None
-
-    def covert_to_cpp(self) -> str:
-        num_rows, num_cols = 32, 32
-        validate_tile_dimensions(self.srcA[0], num_rows)
-        validate_tile_dimensions(self.srcA[1], num_cols)
-        validate_tile_dimensions(self.srcB[0], num_rows)
-        validate_tile_dimensions(self.srcB[1], num_cols)
-
-        full_ct_dim = self.srcB[1] // num_cols
-        full_rt_dim = self.srcA[0] // num_rows
-
-        block_ct_dim = full_ct_dim if self.block_ct_dim is None else self.block_ct_dim
-        block_rt_dim = full_rt_dim if self.block_rt_dim is None else self.block_rt_dim
-
-        lines: list[str] = [
-            f"constexpr std::uint32_t FULL_RT_DIM = {full_rt_dim};",
-            f"constexpr std::uint32_t FULL_CT_DIM = {full_ct_dim};",
-            f"constexpr std::uint32_t BLOCK_CT_DIM = {block_ct_dim};",  # RT + TP
-            f"constexpr std::uint32_t BLOCK_RT_DIM = {block_rt_dim};",  # RT + TP
-        ]
-        return "\n".join(lines)
-
-
-@dataclass
 class ADD_TOP_ROW(TemplateParameter):
     add_top_row: bool
 
@@ -321,6 +297,53 @@ class ADD_TOP_ROW(TemplateParameter):
 
 
 # === RUNTIME PARAMETER IMPLEMENTATIONS ===
+
+
+def generate_input_dim(
+    srcA: tuple[int],
+    srcB: tuple[int],
+    block_ct_dim: int = None,
+    block_rt_dim: int = None,
+):
+    num_rows, num_cols = 32, 32
+    validate_tile_dimensions(srcA[0], num_rows)
+    validate_tile_dimensions(srcA[1], num_cols)
+    validate_tile_dimensions(srcB[0], num_rows)
+    validate_tile_dimensions(srcB[1], num_cols)
+
+    full_ct_dim = srcB[1] // num_cols
+    full_rt_dim = srcA[0] // num_rows
+
+    block_ct_dim = full_ct_dim if block_ct_dim is None else block_ct_dim
+    block_rt_dim = full_rt_dim if block_rt_dim is None else block_rt_dim
+
+    return INPUT_DIMENSIONS(full_rt_dim, full_ct_dim, block_ct_dim, block_rt_dim)
+
+
+@dataclass
+class INPUT_DIMENSIONS(RuntimeParameter):
+    full_rt_dim: int = 0
+    full_ct_dim: int = 0
+    block_ct_dim: int = 0
+    block_rt_dim: int = 0
+
+    def covert_to_cpp(self) -> str:
+        lines: list[str] = [
+            f"constexpr std::uint32_t FULL_RT_DIM = {self.full_rt_dim};",
+            f"constexpr std::uint32_t FULL_CT_DIM = {self.full_ct_dim};",
+            f"constexpr std::uint32_t BLOCK_CT_DIM = {self.block_ct_dim};",
+            f"constexpr std::uint32_t BLOCK_RT_DIM = {self.block_rt_dim};",
+        ]
+        return "\n".join(lines)
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        lines: list[str] = [
+            f"std::uint32_t FULL_RT_DIM;",
+            f"std::uint32_t FULL_CT_DIM;",
+            f"std::uint32_t BLOCK_CT_DIM;",
+            f"std::uint32_t BLOCK_RT_DIM;",
+        ]
+        return "\n".join(lines), "IIII"
 
 
 @dataclass
@@ -403,6 +426,52 @@ class TILE_COUNT(RuntimeParameter):
 
 
 @dataclass
+class INPUT_TILE_CNT(RuntimeParameter):
+    tile_cnt: int = 0
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int INPUT_TILE_CNT = {self.tile_cnt};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int INPUT_TILE_CNT;", "i"
+
+
+@dataclass
+class OUTPUT_TILE_CNT(RuntimeParameter):
+    tile_cnt: int = 0
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int OUTPUT_TILE_CNT = {self.tile_cnt};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int OUTPUT_TILE_CNT;", "i"
+
+
+@dataclass
+class REDUCE_TO_ONE(RuntimeParameter):
+    is_reduce_to_one: bool = False
+
+    def covert_to_cpp(self) -> str:
+        return (
+            f"constexpr bool IS_REDUCE_TO_ONE = {str(self.is_reduce_to_one).lower()};"
+        )
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "bool IS_REDUCE_TO_ONE;", "?"
+
+
+@dataclass
+class NUM_TILES_IN_BLOCK(RuntimeParameter):
+    num_tiles_in_block: int = 0
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr int NUM_TILES_IN_BLOCK = {self.num_tiles_in_block};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "int NUM_TILES_IN_BLOCK;", "i"
+
+
+@dataclass
 class SRCA_REUSE_COUNT(RuntimeParameter):
     srca_reuse_count: int = 0
 
@@ -478,23 +547,59 @@ class CRK_TILE_DIMM(RuntimeParameter):
 @dataclass
 class NUM_TILES_IN_BLOCK(RuntimeParameter):
     num_tiles_in_block: int = 1
+    input_num_tiles_in_block: int = None
+    output_num_tiles_in_block: int = None
+
+    def __post_init__(self):
+        if self.input_num_tiles_in_block is None:
+            self.input_num_tiles_in_block = self.num_tiles_in_block
+        if self.output_num_tiles_in_block is None:
+            self.output_num_tiles_in_block = self.num_tiles_in_block
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr int NUM_TILES_IN_BLOCK = {self.num_tiles_in_block};"
+        lines = [
+            f"constexpr int NUM_TILES_IN_BLOCK = {self.num_tiles_in_block};",
+            f"constexpr int INPUT_NUM_TILES_IN_BLOCK = {self.input_num_tiles_in_block};",
+            f"constexpr int OUTPUT_NUM_TILES_IN_BLOCK = {self.output_num_tiles_in_block};",
+        ]
+        return "\n".join(lines)
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return f"int NUM_TILES_IN_BLOCK;", "i"
+        lines = [
+            "int NUM_TILES_IN_BLOCK;",
+            "int INPUT_NUM_TILES_IN_BLOCK;",
+            "int OUTPUT_NUM_TILES_IN_BLOCK;",
+        ]
+        return "\n".join(lines), "iii"
 
 
 @dataclass
 class NUM_BLOCKS(RuntimeParameter):
     num_blocks: int = 1
+    input_num_blocks: int = None
+    output_num_blocks: int = None
+
+    def __post_init__(self):
+        if self.input_num_blocks is None:
+            self.input_num_blocks = self.num_blocks
+        if self.output_num_blocks is None:
+            self.output_num_blocks = self.num_blocks
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr int NUM_BLOCKS = {self.num_blocks};"
+        lines = [
+            f"constexpr int NUM_BLOCKS = {self.num_blocks};",
+            f"constexpr int INPUT_NUM_BLOCKS = {self.input_num_blocks};",
+            f"constexpr int OUTPUT_NUM_BLOCKS = {self.output_num_blocks};",
+        ]
+        return "\n".join(lines)
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return f"int NUM_BLOCKS;", "i"
+        lines = [
+            "int NUM_BLOCKS;",
+            "int INPUT_NUM_BLOCKS;",
+            "int OUTPUT_NUM_BLOCKS;",
+        ]
+        return "\n".join(lines), "iii"
 
 
 @dataclass
@@ -522,6 +627,62 @@ class NUM_FACES(RuntimeParameter):
     def convert_to_struct_fields(self) -> tuple[str, str]:
         lines: list[str] = ["int num_faces;", "int num_faces_A;", "int num_faces_B;"]
         return "\n".join(lines), "iii"
+
+
+@dataclass
+class NUM_FACES_R_DIM(RuntimeParameter):
+    num_faces_r_dim_A: int = 2  # Number of faces in row dimension for matrix A
+    num_faces_r_dim_B: int = 2  # Number of faces in row dimension for matrix B
+
+    def covert_to_cpp(self) -> str:
+        lines: list[str] = [
+            (
+                f"constexpr int num_faces_r_dim_A = {self.num_faces_r_dim_A};"
+                if self.num_faces_r_dim_A
+                else ""
+            ),
+            (
+                f"constexpr int num_faces_r_dim_B = {self.num_faces_r_dim_B};"
+                if self.num_faces_r_dim_B
+                else ""
+            ),
+        ]
+        return "\n".join(lines)
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        lines: list[str] = [
+            "int num_faces_r_dim_A;",
+            "int num_faces_r_dim_B;",
+        ]
+        return "\n".join(lines), "ii"
+
+
+@dataclass
+class NUM_FACES_C_DIM(RuntimeParameter):
+    num_faces_c_dim_A: int = 2  # Number of faces in column dimension for matrix A
+    num_faces_c_dim_B: int = 2  # Number of faces in column dimension for matrix B
+
+    def covert_to_cpp(self) -> str:
+        lines: list[str] = [
+            (
+                f"constexpr int num_faces_c_dim_A = {self.num_faces_c_dim_A};"
+                if self.num_faces_c_dim_A
+                else ""
+            ),
+            (
+                f"constexpr int num_faces_c_dim_B = {self.num_faces_c_dim_B};"
+                if self.num_faces_c_dim_B
+                else ""
+            ),
+        ]
+        return "\n".join(lines)
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        lines: list[str] = [
+            "int num_faces_c_dim_A;",
+            "int num_faces_c_dim_B;",
+        ]
+        return "\n".join(lines), "ii"
 
 
 @dataclass

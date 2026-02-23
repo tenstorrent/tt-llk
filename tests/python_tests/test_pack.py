@@ -28,11 +28,11 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     DEST_INDEX,
     DEST_SYNC,
-    INPUT_DIMENSIONS,
     NUM_FACES,
     RELU_CONFIG,
     TILE_COUNT,
     TILIZE,
+    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -219,7 +219,7 @@ def test_pack(
         "sources/pack_test.cpp",
         formats,
         templates=[
-            INPUT_DIMENSIONS(input_dimensions, input_dimensions),
+            generate_input_dim(input_dimensions, input_dimensions),
             TILIZE(),
             DEST_SYNC(dest_sync),
         ],
@@ -256,25 +256,23 @@ def test_pack(
         golden_tensor, res_tensor, formats.output_format, print_erros=False
     )
 
-    if not test_passed and relu_type in [
-        PackerReluType.MinThresholdRelu,
-        PackerReluType.MaxThresholdRelu,
-    ]:
-        # When a datum is extremely close to the ReLU threshold, differences can arise due to
-        # floating point precision limitations and rounding during format conversions.
-        # We check if all mismatches are within a small tolerance of the threshold. If so, we consider the test as passed.
-        is_tolerance_issue = is_relu_threshold_tolerance_issue(
+    if (
+        not test_passed
+        and relu_type
+        in [
+            PackerReluType.MinThresholdRelu,
+            PackerReluType.MaxThresholdRelu,
+        ]
+        and is_relu_threshold_tolerance_issue(
             golden_tensor,
             res_tensor,
             relu_config,
             data_formats.pack_src,
         )
-
-        if is_tolerance_issue:
-            print(
-                "Detected a packer ReLU threshold precision difference between hardware and software "
-                "the discrepancy is within tolerance and is considered acceptable."
-            )
-            test_passed = True
+    ):
+        # When a datum is extremely close to the ReLU threshold, differences can arise due to
+        # floating point precision limitations and rounding during format conversions.
+        # We check if all mismatches are within a small tolerance of the threshold. If so, we consider the test as passed.
+        test_passed = True
 
     assert test_passed
