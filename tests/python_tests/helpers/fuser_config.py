@@ -16,13 +16,12 @@ from ttexalens.tt_exalens_lib import read_words_from_device
 from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .data_format_inference import data_formats, is_format_combination_outlier
 from .device import wait_for_tensix_operations_finished
-from .format_config import DataFormat, FormatConfig
 from .fused_operation import FusedOperation
 from .llk_params import DestAccumulation, DestSync, PerfRunType
 from .logger import logger
 from .perf import PerfReport
 from .profiler import Profiler, ProfilerData
-from .test_config import BootMode, ProfilerBuild, TestConfig, TestMode
+from .test_config import ProfilerBuild, TestConfig, TestMode
 
 
 @dataclass
@@ -102,17 +101,6 @@ class FuserConfig:
     def create_test_config(self, cpp_path, profiler_enabled: bool) -> TestConfig:
         return TestConfig(
             test_name=cpp_path,
-            formats=FormatConfig(
-                unpack_A_src=DataFormat.Float16,
-                unpack_A_dst=DataFormat.Float16,
-                pack_src=DataFormat.Float16,
-                pack_dst=DataFormat.Float16,
-                math=DataFormat.Float16,
-            ),
-            templates=set(),
-            runtimes=set(),
-            variant_stimuli=None,
-            boot_mode=BootMode.DEFAULT,
             profiler_build=ProfilerBuild.Yes if profiler_enabled else ProfilerBuild.No,
             skip_build_header=True,
         )

@@ -119,17 +119,6 @@ class Operand:
             return self.raw_data
         return self._master_golden
 
-    # @property
-    # def tile_count(self) -> Optional[int]:
-    #     if self._tile_count is None:
-    #         if self.dimensions is not None:
-    #             self._tile_count = (self.dimensions[0] // 32) * (
-    #                 self.dimensions[1] // 32
-    #             )
-    #         elif self.is_input():
-    #             self.generate_data()
-    #     return self._tile_count
-
     def __str__(self) -> str:
         return f"{self.name}, {self.dimensions}, {self.data_format}, L1 Addr: {hex(self.l1_address)}"
 
