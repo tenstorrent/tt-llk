@@ -20,6 +20,12 @@ namespace sfpu
 {
 
 static std::int32_t topk_replay_init = 0;
+static bool topk_stable_descending_mode = false;
+
+ALWI void set_topk_stable_descending_mode(bool descending)
+{
+    topk_stable_descending_mode = descending;
+}
 
 inline void set_dst_write_addr(std::uint32_t addr)
 {
@@ -138,6 +144,55 @@ inline void bitonic_topk_store16(std::uint32_t dist0, std::uint32_t dist1)
     }
 }
 
+template <std::uint32_t VC, std::uint32_t VD, std::uint32_t MODE, bool INDEX_MIN_TO_VD>
+ALWI void topk_cmp_swap_stable_directional()
+{
+    constexpr std::uint32_t IDX_VC = p_sfpu::LREG4 + (VC & 0x3);
+    constexpr std::uint32_t IDX_VD = p_sfpu::LREG4 + (VD & 0x3);
+
+    // Primary key: value compare-exchange.
+    TTI_SFPSWAP(0, VC, VD, MODE);
+    TTI_SFPSWAP(0, VC, VD, MODE);
+
+    // Predicate lanes where compared values are exactly equal.
+    TTI_SFPENCC(3, 0, 0, 10);
+    TTI_SFPXOR(0, VC, VD, 0);
+    TTI_SFPSETCC(0, VD, 0, sfpi::SFPSETCC_MOD1_LREG_EQ0);
+
+    // Secondary key: index compare-exchange under tie mask.
+    if constexpr (INDEX_MIN_TO_VD)
+    {
+        TTI_SFPSWAP(0, IDX_VC, IDX_VD, MODE);
+    }
+    else
+    {
+        TTI_SFPSWAP(0, IDX_VD, IDX_VC, MODE);
+    }
+    TTI_SFPENCC(3, 0, 0, 10);
+
+    // Restore values after XOR scratch operation.
+    TTI_SFPXOR(0, VC, VD, 0);
+}
+
+template <std::uint32_t VC, std::uint32_t VD, std::uint32_t MODE>
+ALWI void topk_cmp_swap_stable_min_to_vd()
+{
+    if (topk_stable_descending_mode)
+    {
+        topk_cmp_swap_stable_directional<VC, VD, MODE, false>();
+    }
+    else
+    {
+        topk_cmp_swap_stable_directional<VC, VD, MODE, true>();
+    }
+}
+
+template <std::uint32_t VC, std::uint32_t VD, std::uint32_t MODE>
+ALWI void topk_cmp_swap_stable_min_to_vc()
+{
+    topk_cmp_swap_stable_directional<VC, VD, MODE, false>();
+}
+
 template <bool STABLE_SORT>
 inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_start)
 {
@@ -148,47 +203,67 @@ inline void bitonic_topk_ph3_st4_to_1(bool dir, bool &init_replay, int replay_st
         TTI_SFPNOP;
     }
 
-    constexpr int replay_count = STABLE_SORT ? 9 : 5;
-
-    if (init_replay)
+    if constexpr (STABLE_SORT)
     {
-        lltt::record<lltt::Exec>(replay_start, replay_count);
-
-        if constexpr (STABLE_SORT)
+        if (dir == (bool)SortDir::ArgMax)
         {
-            // Step 4
-            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
-            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
-            TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
-            TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
+            // First pass.
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX>();
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX>();
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX>();
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX>();
+            TTI_SFPTRANSP(0, 0, 0, 0);
 
-            // Step 3
-            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-            TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
-            TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
+            // Second pass.
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX>();
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX>();
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX>();
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX>();
+            TTI_SFPTRANSP(0, 0, 0, 0);
         }
         else
         {
-            // Step 4
-            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
-            TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
+            // First pass.
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX>();
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX>();
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX>();
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX>();
+            TTI_SFPTRANSP(0, 0, 0, 0);
 
-            // Step 3
-            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-            TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
+            // Second pass.
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX>();
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX>();
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX>();
+            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX>();
+            TTI_SFPTRANSP(0, 0, 0, 0);
         }
-
-        TTI_SFPTRANSP(0, 0, 0, 0);
-
         init_replay = false;
     }
     else
     {
+        constexpr int replay_count = 5;
+        if (init_replay)
+        {
+            lltt::record<lltt::Exec>(replay_start, replay_count);
+
+            // Step 4
+            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
+            TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
+
+            // Step 3
+            TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
+            TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
+
+            TTI_SFPTRANSP(0, 0, 0, 0);
+
+            init_replay = false;
+        }
+        else
+        {
+            lltt::replay(replay_start, replay_count);
+        }
         lltt::replay(replay_start, replay_count);
     }
-
-    lltt::replay(replay_start, replay_count);
 
     if (dir == (bool)SortDir::ArgMin)
     {
@@ -205,24 +280,18 @@ template <>
 inline void bitonic_topk_ph2_st3_to_1<true>()
 {
     // Step 3
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG3, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG3, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
+    topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX>();
+    topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG3, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX>();
 
     TTI_SFPTRANSP(0, 0, 0, 0);
 
     // Step 2
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ROWS_01_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ROWS_01_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ROWS_01_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ROWS_01_MAX);
+    topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ROWS_01_MAX>();
+    topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ROWS_01_MAX>();
 
     // Step 1
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ROWS_01_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ROWS_01_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ROWS_01_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ROWS_01_MAX);
+    topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ROWS_01_MAX>();
+    topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ROWS_01_MAX>();
 
     TTI_SFPTRANSP(0, 0, 0, 0);
 }
@@ -257,16 +326,12 @@ inline void bitonic_topk_ph1_st2_to_1<true>()
     TTI_SFPTRANSP(0, 0, 0, 0);
 
     // Step 2
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ROWS_02_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ROWS_02_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ROWS_02_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ROWS_02_MAX);
+    topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ROWS_02_MAX>();
+    topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ROWS_02_MAX>();
 
     // Step 1
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ROWS_02_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ROWS_02_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ROWS_02_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ROWS_02_MAX);
+    topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ROWS_02_MAX>();
+    topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG2, p_sfpu::LREG3, p_sfpswap::ROWS_02_MAX>();
 
     TTI_SFPTRANSP(0, 0, 0, 0);
 }
@@ -296,10 +361,8 @@ inline void bitonic_topk_ph0_st1_to_1<true>()
     TTI_SFPTRANSP(0, 0, 0, 0);
 
     // Step 1
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG3, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
-    TTI_SFPSWAP(0, p_sfpu::LREG3, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
+    topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX>();
+    topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG3, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX>();
 
     TTI_SFPTRANSP(0, 0, 0, 0);
 }
@@ -325,17 +388,13 @@ inline void bitonic_topk_step_N<true>(bool dir)
     // Step N
     if (dir == (bool)SortDir::ArgMax)
     {
-        TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
-        TTI_SFPSWAP(0, p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX);
-        TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
-        TTI_SFPSWAP(0, p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX);
+        topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG2, p_sfpswap::ALL_ROWS_MAX>();
+        topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG1, p_sfpu::LREG3, p_sfpswap::ALL_ROWS_MAX>();
     }
     else
     {
-        TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG0, p_sfpswap::ALL_ROWS_MAX);
-        TTI_SFPSWAP(0, p_sfpu::LREG2, p_sfpu::LREG0, p_sfpswap::ALL_ROWS_MAX);
-        TTI_SFPSWAP(0, p_sfpu::LREG3, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
-        TTI_SFPSWAP(0, p_sfpu::LREG3, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
+        topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG2, p_sfpu::LREG0, p_sfpswap::ALL_ROWS_MAX>();
+        topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG3, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX>();
     }
 }
 
@@ -432,16 +491,24 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                             {
                                 lltt::replay(0, 8);
                             }
-                            constexpr int replay_count = STABLE_SORT ? 6 : 4;
-                            if (init_phase)
+                            if constexpr (STABLE_SORT)
                             {
-                                lltt::record<lltt::Exec>(16, replay_count);
                                 bitonic_topk_ph0_st1_to_1<STABLE_SORT>();
                                 init_phase = false;
                             }
                             else
                             {
-                                lltt::replay(16, replay_count);
+                                constexpr int replay_count = 4;
+                                if (init_phase)
+                                {
+                                    lltt::record<lltt::Exec>(16, replay_count);
+                                    bitonic_topk_ph0_st1_to_1<STABLE_SORT>();
+                                    init_phase = false;
+                                }
+                                else
+                                {
+                                    lltt::replay(16, replay_count);
+                                }
                             }
                             if (init_store)
                             {
@@ -460,16 +527,24 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                         {
                             // Groups of 16 datums being sorted at the same time
                             lltt::replay(0, 8);
-                            constexpr int replay_count = STABLE_SORT ? 10 : 6;
-                            if (init_phase)
+                            if constexpr (STABLE_SORT)
                             {
-                                lltt::record<lltt::Exec>(16, replay_count);
                                 bitonic_topk_ph1_st2_to_1<STABLE_SORT>();
                                 init_phase = false;
                             }
                             else
                             {
-                                lltt::replay(16, replay_count);
+                                constexpr int replay_count = 6;
+                                if (init_phase)
+                                {
+                                    lltt::record<lltt::Exec>(16, replay_count);
+                                    bitonic_topk_ph1_st2_to_1<STABLE_SORT>();
+                                    init_phase = false;
+                                }
+                                else
+                                {
+                                    lltt::replay(16, replay_count);
+                                }
                             }
                             lltt::replay(8, 8);
                         }
@@ -478,16 +553,24 @@ inline void _bitonic_topk_phases_steps(const int idir, const int i_end_phase, co
                         for (int d = 0; d < 4; d++)
                         {
                             lltt::replay(0, 8);
-                            constexpr int replay_count = STABLE_SORT ? 14 : 9;
-                            if (init_phase)
+                            if constexpr (STABLE_SORT)
                             {
-                                lltt::record<lltt::Exec>(16, replay_count);
                                 bitonic_topk_ph2_st3_to_1<STABLE_SORT>();
                                 init_phase = false;
                             }
                             else
                             {
-                                lltt::replay(16, replay_count);
+                                constexpr int replay_count = 9;
+                                if (init_phase)
+                                {
+                                    lltt::record<lltt::Exec>(16, replay_count);
+                                    bitonic_topk_ph2_st3_to_1<STABLE_SORT>();
+                                    init_phase = false;
+                                }
+                                else
+                                {
+                                    lltt::replay(16, replay_count);
+                                }
                             }
                             lltt::replay(8, 8);
                         }
@@ -593,11 +676,24 @@ inline void _bitonic_topk_merge(const int m_iter, const int k)
                 for (std::uint32_t ii = 0; ii < inner_d; ii++)
                 {
                     bitonic_topk_load8<is_fp32_dest_acc_en>(dst_offset, ld_dist);
-                    TTI_SFPSWAP(0, top_min ? p_sfpu::LREG1 : p_sfpu::LREG0, top_min ? p_sfpu::LREG0 : p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
                     if constexpr (STABLE_SORT)
                     {
-                        // 1-cycle stall: second swap for index tracking on same LREGs
-                        TTI_SFPSWAP(0, top_min ? p_sfpu::LREG1 : p_sfpu::LREG0, top_min ? p_sfpu::LREG0 : p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
+                        if constexpr (top_min)
+                        {
+                            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG1, p_sfpu::LREG0, p_sfpswap::ALL_ROWS_MAX>();
+                        }
+                        else
+                        {
+                            topk_cmp_swap_stable_min_to_vd<p_sfpu::LREG0, p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX>();
+                        }
+                    }
+                    else
+                    {
+                        TTI_SFPSWAP(
+                            0,
+                            top_min ? p_sfpu::LREG1 : p_sfpu::LREG0,
+                            top_min ? p_sfpu::LREG0 : p_sfpu::LREG1,
+                            p_sfpswap::ALL_ROWS_MAX);
                     }
                     bitonic_topk_store8<is_fp32_dest_acc_en>(dst_offset, ld_dist);
                     datums_compared += 8;
@@ -875,6 +971,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
 inline void _init_topk()
 {
     topk_replay_init = 0;
+    topk_stable_descending_mode = false;
     _sfpu_load_config32_(0xF, 0x0, 0x4); // Set bit [2] of the SFPU_CONTROL_REG to enable index tracking mode
 }
 
