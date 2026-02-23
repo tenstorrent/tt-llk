@@ -138,9 +138,22 @@ class LoopTileByTile(FusedLoop):
             )
         else:
             code += f"std::uint32_t tile_id = {operation.output.tile_count_x} * ({block_y} + tile_y) + ({block_x} + tile_x);\n"
-            code += compute_unit.unpacker().unpack(
-                operation, config, compute_unit, "tile_id"
-            )
+            from .fused_unpacker import ReduceBlockMaxUnpacker
+
+            if compute_unit.unpacker == ReduceBlockMaxUnpacker:
+                code += "std::uint32_t gate_tile_id = tile_x;\n"
+                code += compute_unit.unpacker().unpack(
+                    operation,
+                    config,
+                    compute_unit,
+                    "gate_tile_id",
+                    "tile_id",
+                    block_size_x,
+                )
+            else:
+                code += compute_unit.unpacker().unpack(
+                    operation, config, compute_unit, "tile_id"
+                )
         code += "}\n"
         code += "}\n"
         return code
@@ -172,10 +185,26 @@ class LoopTileByTile(FusedLoop):
                 operation, config, compute_unit
             )
         else:
-            code += f"std::uint32_t tile_id = tile_x * {block_size_y} + tile_y;\n"
-            code += compute_unit.fpu.calculate(
-                operation, config, compute_unit, "tile_id"
-            )
+            from .fused_fpu import ReduceBlockMaxFpu
+
+            if isinstance(compute_unit.fpu, ReduceBlockMaxFpu):
+                code += "std::uint32_t gate_tile_id = tile_x;\n"
+                code += (
+                    f"std::uint32_t dest_tile_id = tile_x * {block_size_y} + tile_y;\n"
+                )
+                code += compute_unit.fpu.calculate(
+                    operation,
+                    config,
+                    compute_unit,
+                    "gate_tile_id",
+                    "dest_tile_id",
+                    block_size_x,
+                )
+            else:
+                code += f"std::uint32_t tile_id = tile_x * {block_size_y} + tile_y;\n"
+                code += compute_unit.fpu.calculate(
+                    operation, config, compute_unit, "tile_id"
+                )
         code += "}\n"
         code += "}\n"
         return code

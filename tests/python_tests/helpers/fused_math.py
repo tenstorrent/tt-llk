@@ -14,7 +14,7 @@ from .chip_architecture import ChipArchitecture
 from .fused_fpu import Fpu, MatmulFpu, ReduceBlockMaxFpu, ReduceFpu
 from .fused_packer import Packer
 from .fused_sfpu import Sfpu
-from .fused_unpacker import MatmulUnpacker, Unpacker, UnpackerA
+from .fused_unpacker import MatmulUnpacker, ReduceBlockMaxUnpacker, Unpacker, UnpackerA
 from .llk_params import (
     BroadcastType,
     DataCopyType,
@@ -87,6 +87,8 @@ class ComputeNode:
                 code += self.unpacker().init(
                     operation, config, self, block_tiles_x, block_tiles_y
                 )
+            elif self.unpacker == ReduceBlockMaxUnpacker:
+                code += self.unpacker().init(operation, config, self, block_tiles_x)
             else:
                 code += self.unpacker().init(operation, config, self)
 
@@ -121,6 +123,8 @@ class ComputeNode:
                 code += self.fpu.init(
                     operation, config, self, block_tiles_x, block_tiles_y
                 )
+            elif isinstance(self.fpu, ReduceBlockMaxFpu):
+                code += self.fpu.init(operation, config, self, block_tiles_x)
             else:
                 code += self.fpu.init(operation, config, self)
 

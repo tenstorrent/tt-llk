@@ -518,9 +518,9 @@ class ReduceBlockMaxFpu(Fpu):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        ct_dim,
     ) -> str:
-        ct_dim = operation.ct_dim
-        dest_acc = config.dest_acc.cpp_enum_value
+        dest_acc = config.dest_acc.value
         return f"_llk_math_reduce_block_max_row_init_<{ct_dim}, {dest_acc}>();\n"
 
     def calculate(
@@ -529,12 +529,15 @@ class ReduceBlockMaxFpu(Fpu):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         tile_idx: int,
+        dest_idx: int,
+        ct_dim,
     ) -> str:
-        ct_dim = operation.ct_dim
-        dest_acc = config.dest_acc.cpp_enum_value
-        if tile_idx % ct_dim != 0:
-            return ""
-        return f"_llk_math_reduce_block_max_row_<{ct_dim}, {dest_acc}>({tile_idx});\n"
+        dest_acc = config.dest_acc.value
+        return (
+            f"if (({tile_idx}) % {ct_dim} == 0 ) {{\n"
+            f"    _llk_math_reduce_block_max_row_<{ct_dim}, {dest_acc}>({dest_idx});\n"
+            f"}}"
+        )
 
     def uninit(
         self,
@@ -553,23 +556,77 @@ class ReduceBlockMaxFpu(Fpu):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        ct_dim = operation.ct_dim
         output_format = operation.output.data_format
-        dimensions = operation.max_output_dimensions
+
+        golden_tensor = torch.zeros_like(tensor_dst)
+        src_a_reduced_tensor = torch.zeros_like(tensor_a)
+        dest_golden_tensor = torch.zeros_like(tensor_dst)
+
+        tile_count_x = operation.output.tile_count_x
+        tile_count_y = operation.output.tile_count_y
+        block_tiles_x = operation.block_tiles_x
+        block_tiles_y = operation.block_tiles_y
+
+        full_blocks_x = tile_count_x // block_tiles_x
+        full_blocks_y = tile_count_y // block_tiles_y
+        remaining_tiles_x = tile_count_x % block_tiles_x
+        remaining_tiles_y = tile_count_y % block_tiles_y
+
+        full_x_limit = full_blocks_x * block_tiles_x
+        full_y_limit = full_blocks_y * block_tiles_y
 
         generate_golden = get_golden_generator(ReduceBlockMaxRowGolden)
-        src_a_reduced_tensor = generate_golden(
-            tensor_a, ct_dim, output_format, dimensions
-        ).flatten()
 
-        dest_golden_tensor = generate_golden(
-            tensor_dst, ct_dim, output_format, dimensions
-        ).flatten()
+        def process_block(block_x, block_y, block_tiles_x_eff, block_tiles_y_eff):
+            src_start_row = block_y * 32
+            src_end_row = (block_y + block_tiles_y_eff) * 32
+            start_col = block_x * 32
+            end_col = (block_x + block_tiles_x_eff) * 32
+            dst_start_row = block_y * 32
+            dst_end_row = (block_y + block_tiles_y_eff) * 32
+            block_dims = [block_tiles_y_eff * 32, block_tiles_x_eff * 32]
 
-        numel = min(src_a_reduced_tensor.numel(), dest_golden_tensor.numel())
-        golden_tensor = torch.zeros(numel)
+            src_a_reduced_tensor[dst_start_row:dst_end_row, start_col:end_col] = (
+                generate_golden(
+                    tensor_a[src_start_row:src_end_row, start_col:end_col].clone(),
+                    block_tiles_x_eff,
+                    output_format,
+                    block_dims,
+                )
+            )
 
-        for i in range(numel):
+            dest_golden_tensor[dst_start_row:dst_end_row, start_col:end_col] = (
+                generate_golden(
+                    tensor_dst[src_start_row:src_end_row, start_col:end_col].clone(),
+                    block_tiles_x_eff,
+                    output_format,
+                    block_dims,
+                )
+            )
+
+        if full_blocks_x > 0 and full_blocks_y > 0:
+            for block_x in range(0, full_x_limit, block_tiles_x):
+                for block_y in range(0, full_y_limit, block_tiles_y):
+                    process_block(block_x, block_y, block_tiles_x, block_tiles_y)
+
+        if remaining_tiles_y > 0 and full_blocks_x > 0:
+            for block_x in range(0, full_x_limit, block_tiles_x):
+                process_block(block_x, full_y_limit, block_tiles_x, remaining_tiles_y)
+
+        if remaining_tiles_x > 0 and full_blocks_y > 0:
+            for block_y in range(0, full_y_limit, block_tiles_y):
+                process_block(full_x_limit, block_y, remaining_tiles_x, block_tiles_y)
+
+        if remaining_tiles_x > 0 and remaining_tiles_y > 0:
+            process_block(
+                full_x_limit, full_y_limit, remaining_tiles_x, remaining_tiles_y
+            )
+
+        golden_tensor = golden_tensor.flatten()
+        src_a_reduced_tensor = src_a_reduced_tensor.flatten()
+        dest_golden_tensor = dest_golden_tensor.flatten()
+
+        for i in range(golden_tensor.numel()):
             golden_tensor[i] = max(src_a_reduced_tensor[i], dest_golden_tensor[i])
 
         return (tensor_a, tensor_b, golden_tensor)

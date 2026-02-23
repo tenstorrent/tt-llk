@@ -703,11 +703,9 @@ class ReduceBlockMaxUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        ct_dim,
     ) -> str:
-        ct_dim = operation.ct_dim
-        dest_acc = config.dest_acc.cpp_enum_value
-        if ct_dim > 4:
-            raise ValueError("ct_dim must be at most 4 when using Reduce Block Max")
+        dest_acc = config.dest_acc.value
         return f"_llk_unpack_AB_reduce_block_max_row_init_<{ct_dim}, {dest_acc}>();\n"
 
     def unpack(
@@ -715,14 +713,14 @@ class ReduceBlockMaxUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        tile_idx_expr: str,
+        gate_idx_expr: str,
+        l1_idx_expr: str,
+        ct_dim,
     ) -> str:
         stage = operation.stage_id
-        ct_dim = operation.ct_dim
-
         return (
-            f"if (({tile_idx_expr}) % {ct_dim} == 0 ) {{\n"
-            f"_llk_unpack_AB_reduce_block_max_row_(L1_ADDRESS(buffer_A{stage}[{tile_idx_expr}]), L1_ADDRESS(buffer_B{stage}[{tile_idx_expr}]));\n"
+            f"if (({gate_idx_expr}) % {ct_dim} == 0 ) {{\n"
+            f"_llk_unpack_AB_reduce_block_max_row_(L1_ADDRESS(buffer_A{stage}[{l1_idx_expr}]), L1_ADDRESS(buffer_B{stage}[{l1_idx_expr}]));\n"
             f"}}\n"
         )
 
@@ -740,8 +738,8 @@ class ReduceBlockMaxUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        ct_dim,
     ) -> str:
-        ct_dim = operation.ct_dim
         return (
             f"_perf_unpack_loop_set_valid<true, false>({ct_dim});\n"
             f"_perf_unpack_loop_set_valid<false, true>(1);\n"
@@ -752,8 +750,8 @@ class ReduceBlockMaxUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        ct_dim,
     ) -> str:
-        ct_dim = operation.ct_dim
         return (
             f"_perf_math_loop_clear_valid<true, false>({ct_dim});\n"
             f"_perf_math_loop_clear_valid<false, true>(1);\n"
