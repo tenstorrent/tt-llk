@@ -758,8 +758,8 @@ class ReduceBlockMaxUnpacker(Unpacker):
         tile_x_in_block = f"({tile_x_abs} - {block.block_x})"
         return (
             f"if (({tile_x_in_block}) % {ct_dim} == 0) {{\n"
-            f"    _perf_unpack_loop_set_valid<true, false>({ct_dim});\n"
             f"    _perf_unpack_loop_set_valid<false, true>(1);\n"
+            f"    _perf_unpack_loop_set_valid<true, false>({ct_dim});\n"
             f"}}\n"
         )
 
