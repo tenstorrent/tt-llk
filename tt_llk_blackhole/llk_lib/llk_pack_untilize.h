@@ -34,10 +34,10 @@ template <std::uint32_t block_ct_dim, bool narrow_row = false, bool dense = fals
 inline void _llk_pack_untilize_mop_config_(
     const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4, const std::uint32_t tile_dst_offset = 0)
 {
-    static_assert(!dense || (block_ct_dim % 2 == 0), "When dense=true, block_ct_dim must be even");
-    static_assert(!dense || (!narrow_row), "When dense=true, narrow_row must be false");
+    static_assert(!dense || (block_ct_dim % 2 == 0), "block_ct_dim must be even when dense");
+    static_assert(!dense || (!narrow_row), "narrow_row must be false when dense");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    LLK_ASSERT(!dense || (num_faces == 2), "When dense=true, num_faces must be 2");
+    LLK_ASSERT(!dense || (num_faces == 2), "num_faces must be 2 when dense");
     /*
     Outer loop iterates over the rows in the block, while the inner loop iterates
     over each tile in the block.
@@ -48,9 +48,9 @@ inline void _llk_pack_untilize_mop_config_(
     const std::uint32_t MOP_OUTER_LOOP     = face_r_dim;
 
     // For narrow row, the faces are stored in the first column of the tile, therefore requiring only one packer interface.
-    const std::uint32_t PACK_INTF_SEL =
-        (dense) ? p_pacr::ALL_INTF_ACTIVE
-                : ((narrow_row) ? p_pacr::SINGLE_INTF_ACTIVE : ((num_faces > 1) ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::SINGLE_INTF_ACTIVE));
+    const std::uint32_t PACK_INTF_SEL = (dense)                          ? p_pacr::ALL_INTF_ACTIVE
+                                        : (narrow_row || num_faces == 1) ? p_pacr::SINGLE_INTF_ACTIVE
+                                                                         : p_pacr::TWO_INTFS_ACTIVE;
     /*
     When using DST_STRIDED_MODE, each packer interface has a stride of 16*block_size,
     where block_size is set to be the size of a row within face.
@@ -143,12 +143,12 @@ template <
 inline void _llk_pack_untilize_init_(
     const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t face_r_dim = FACE_R_DIM, const std::uint32_t num_faces = 4)
 {
-    static_assert(dense || (block_ct_dim <= 8), "block_ct_dim must be less than or equal to 8 when not dense");
-    static_assert(!dense || (block_ct_dim % 2 == 0 && block_ct_dim <= 16), "block_ct_dim must be even and less than or equal to 16 when dense");
-    static_assert(!dense || !narrow_row, "When dense=true, narrow_row must be false");
+    static_assert(block_ct_dim <= (dense ? 16 : 8), "block_ct_dim must be <= 8 when not dense, <= 16 when dense");
+    static_assert(!dense || (block_ct_dim % 2 == 0), "block_ct_dim must be even when dense");
+    static_assert(!dense || (!narrow_row), "narrow_row must be false when dense");
     static_assert(full_ct_dim % block_ct_dim == 0, "full_ct_dim must be divisible by block_ct_dim");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    LLK_ASSERT(!dense || (num_faces == 2), "When dense=true, num_faces must be 2");
+    LLK_ASSERT(!dense || (num_faces == 2), "num_faces must be 2 when dense");
 
     if constexpr (narrow_row)
     {
@@ -207,11 +207,11 @@ inline void _llk_pack_untilize_(
     const std::uint32_t num_faces          = 4,
     const std::uint32_t tile_dst_rt_offset = 0)
 {
-    static_assert(dense || (block_ct_dim <= 8), "block_ct_dim must be less than or equal to 8 when not dense");
-    static_assert(!dense || (block_ct_dim % 2 == 0 && block_ct_dim <= 16), "block_ct_dim must be even and less than or equal to 16 when dense");
-    static_assert(!dense || !narrow_row, "When dense=true, narrow_row must be false");
+    static_assert(block_ct_dim <= (dense ? 16 : 8), "block_ct_dim must be <= 8 when not dense, <= 16 when dense");
+    static_assert(!dense || (block_ct_dim % 2 == 0), "block_ct_dim must be even when dense");
+    static_assert(!dense || (!narrow_row), "narrow_row must be false when dense");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    LLK_ASSERT(!dense || (num_faces == 2), "When dense=true, num_faces must be 2");
+    LLK_ASSERT(!dense || (num_faces == 2), "num_faces must be 2 when dense");
 
     /*
     full_ct_dim represents the number of input tiles.

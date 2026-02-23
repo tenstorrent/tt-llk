@@ -122,8 +122,9 @@ def test_pack_untilize(
     )
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
-    # Since we can't have 4 faces with r_dim smaller than 16, we assume r_dim 16
-    # for lower r_dims the bottom part of the row major data is just dont care so we truncate it here
+    # Since input and output shapes are identical we always specify r_dim of 16 for stimulus
+    # because stimulus must have 4 faces and 16 is only valid r_dim for 4 faces
+    # In output for smaller actual r_dims lower portion is unused and therefore truncated
     res_from_L1 = res_from_L1[0 : r_dim * input_dimensions[1] * 2]
 
     assert len(res_from_L1) == len(
