@@ -196,10 +196,12 @@ class MATH_FIDELITY(TemplateParameter):
 
 @dataclass
 class APPROX_MODE(TemplateParameter):
-    approx_mode: ApproximationMode = ApproximationMode.No
+    approx_mode: ApproximationMode = ApproximationMode.Precise
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr bool APPROX_MODE = {self.approx_mode.value};"
+        return (
+            f"constexpr auto APPROX_MODE = ApproximationMode::{self.approx_mode.value};"
+        )
 
 
 @dataclass

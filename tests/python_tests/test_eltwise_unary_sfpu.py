@@ -80,7 +80,7 @@ FLOAT_TEST_PARAMS = list(
             (fmt, approx, mathop, fast, dest)
             for fmt, approx, mathop, fast, dest in product(
                 FORMATS,
-                [ApproximationMode.No, ApproximationMode.Yes],
+                [ApproximationMode.Precise, ApproximationMode.Fast],
                 SUPPORTED_FAST_MODE_OPS,
                 [FastMode.No, FastMode.Yes],
                 [DestAccumulation.No, DestAccumulation.Yes],
@@ -90,7 +90,7 @@ FLOAT_TEST_PARAMS = list(
             (fmt, approx, mathop, FastMode.No, dest)
             for fmt, approx, mathop, dest in product(
                 FORMATS,
-                [ApproximationMode.No, ApproximationMode.Yes],
+                [ApproximationMode.Precise, ApproximationMode.Fast],
                 [op for op in ALL_MATHOPS if op not in SUPPORTED_FAST_MODE_OPS],
                 [DestAccumulation.No, DestAccumulation.Yes],
             )
@@ -137,7 +137,7 @@ def test_eltwise_unary_sfpu_float(
     if mathop == MathOperation.ReluMin:
         pytest.skip(reason="https://github.com/tenstorrent/tt-llk/issues/1120")
 
-    if mathop == MathOperation.Tanh and approx_mode == ApproximationMode.Yes:
+    if mathop == MathOperation.Tanh and approx_mode == ApproximationMode.Fast:
         pytest.skip(reason="Metal tanh does not support approximation mode")
 
     if TestConfig.WITH_COVERAGE and mathop == MathOperation.Gelu:
@@ -156,7 +156,7 @@ def test_eltwise_unary_sfpu_float(
             pytest.skip(reason="This combination is not supported on BH architecture")
 
     if (
-        approx_mode == ApproximationMode.Yes
+        approx_mode == ApproximationMode.Fast
         and mathop in [MathOperation.Exp, MathOperation.Exp2, MathOperation.Elu]
         and (
             formats.input_format == DataFormat.Bfp8_b
@@ -180,7 +180,7 @@ def test_eltwise_unary_sfpu_float(
 
 @parametrize(
     formats=input_output_formats([DataFormat.Int32]),
-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+    approx_mode=[ApproximationMode.Precise, ApproximationMode.Fast],
     mathop=[
         MathOperation.Neg,
         MathOperation.Fill,
@@ -324,7 +324,7 @@ def test_exponential_clamp_negative(
         formats,
         templates=[
             generate_input_dim(input_dimensions, input_dimensions),
-            APPROX_MODE(ApproximationMode.Yes),
+            APPROX_MODE(ApproximationMode.Fast),
             FAST_MODE(FastMode.Yes),
             CLAMP_NEGATIVE(clamp_negative),
             MATH_OP(mathop=MathOperation.Exp),

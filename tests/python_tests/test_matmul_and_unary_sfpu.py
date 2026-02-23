@@ -63,7 +63,7 @@ from helpers.utils import passed_test
         MathOperation.Sqrt,
         MathOperation.Square,
     ],
-    approx_mode=[ApproximationMode.No, ApproximationMode.Yes],
+    approx_mode=[ApproximationMode.Precise, ApproximationMode.Fast],
     dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
     math_fidelity=[
         MathFidelity.LoFi,

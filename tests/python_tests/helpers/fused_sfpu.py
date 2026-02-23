@@ -70,7 +70,7 @@ class UnarySfpu(Sfpu):
     def __init__(
         self,
         operation: MathOperation,
-        approx_mode: ApproximationMode = ApproximationMode.No,
+        approx_mode: ApproximationMode = ApproximationMode.Precise,
         iterations: int = 8,
         dest_idx: int = 0,
         fill_const_value=5,
@@ -159,7 +159,7 @@ class BinarySfpu(Sfpu):
     def __init__(
         self,
         operation: MathOperation,
-        approx_mode: ApproximationMode = ApproximationMode.No,
+        approx_mode: ApproximationMode = ApproximationMode.Precise,
         iterations: int = 8,
         dst_index_in0: int = 0,
         dst_index_in1: int = 1,

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -11,7 +12,7 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_negative_()
 {
 #pragma GCC unroll 8
@@ -23,7 +24,7 @@ inline void _calculate_negative_()
     }
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_negative_int_()
 {
 #pragma GCC unroll 8

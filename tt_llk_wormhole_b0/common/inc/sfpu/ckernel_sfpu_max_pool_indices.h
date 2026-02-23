@@ -8,6 +8,7 @@
 
 #include "ckernel_addrmod.h"
 #include "ckernel_instr_params.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -20,7 +21,7 @@ namespace sfpu
  *        Also places the index of the max value into the first row of the indices tile.
  *        Supports {FP32, FP16_B} for values, and {UINT16, INT32, UINT32} for indices, inferred from the Dest mode used.
  *        Can reduce up to 9 rows of a tile.
- * @tparam APPROXIMATION_MODE Whether to use the approximation mode (unused).
+ * @tparam APPROX_MODE Whether to use the approximation mode (unused).
  * @tparam is_fp32_dest_acc_en Whether Dest is in 32bit mode (true) or 16bit mode (false).
  * @tparam ITERATIONS The number of iterations to perform (unused).
  * @tparam layout Data layout format, either TILE (default) or ROW_MAJOR.
@@ -30,7 +31,7 @@ namespace sfpu
  * @param chunk The chunk index for large kernel accumulation.
  */
 template <
-    bool APPROXIMATION_MODE,
+    ApproximationMode APPROX_MODE,
     bool is_fp32_dest_acc_en,
     int ITERATIONS             = 8,
     ckernel::DataLayout layout = ckernel::DataLayout::TILE,
@@ -172,7 +173,7 @@ inline void _calculate_max_pool_with_indices_(const std::uint32_t values_tile_id
  *        Also places the index of the max value into the first row of the indices tile.
  *        Supports {FP32, FP16_B} for values, and {UINT16, INT32, UINT32} for indices, inferred from the Dest mode used.
  *        Can reduce up to 32 rows of a tile.
- * @tparam APPROXIMATION_MODE Whether to use the approximation mode (unused).
+ * @tparam APPROX_MODE Whether to use the approximation mode (unused).
  * @tparam is_fp32_dest_acc_en Whether Dest is in 32bit mode (true) or 16bit mode (false).
  * @tparam ITERATIONS The number of iterations to use for the MaxPool operation (unused).
  * @tparam accumulate Whether to accumulate results for large kernels (default is false).
@@ -183,7 +184,7 @@ inline void _calculate_max_pool_with_indices_(const std::uint32_t values_tile_id
  * Note this function is only implemented for ROW_MAJOR data layout, so when _init_max_pool_with_indices_ is called
  * it must be called with layout=DataLayout::ROW_MAJOR.
  */
-template <bool APPROXIMATION_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool accumulate = false>
+template <ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool accumulate = false>
 inline void _calculate_max_pool_with_indices_generic_(const std::uint32_t values_tile_idx, const std::uint32_t indices_tile_idx, const std::uint32_t chunk)
 {
     // size of each tile in Dest is 64 rows

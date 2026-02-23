@@ -70,7 +70,7 @@ all_params = [
     }
     for fmt in test_formats
     for dest_acc in [DestAccumulation.Yes, DestAccumulation.No]
-    for approx_mode in [ApproximationMode.No, ApproximationMode.Yes]
+    for approx_mode in [ApproximationMode.Precise, ApproximationMode.Fast]
     for un_op in unary_ops
     for dst_sync in [DstSync.SyncHalf, DstSync.SyncFull]
     for fidelity in [
@@ -125,7 +125,7 @@ def test_fused_tilize_sfpu_pack(config):
 
     # Skip approximation mode combinations that cause numerical instability
     # if (
-    #     approx_mode == ApproximationMode.Yes
+    #     approx_mode == ApproximationMode.Fast
     #     and unary_op in [MathOperation.Gelu, MathOperation.Silu]
     #     and formats.input_format == DataFormat.Float16
     # ):

@@ -13,6 +13,7 @@ For initial bring-up we limit the sweep to Float16_b format only – the most
 commonly used configuration – while still sweeping across reduce dimensions,
 pool types and a subset of unary ops.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -202,7 +203,7 @@ def test_reduce_sfpu_unary(config):
         "testname": "reduce_sfpu_unary",
         "formats": fmt,
         "dest_acc": DestAccumulation.No,
-        "approx_mode": ApproximationMode.No,
+        "approx_mode": ApproximationMode.Precise,
         "mathop": _reduce_to_mathop[reduce_dim],
         "unary_op": unary_op,
         "reduce_dim": reduce_dim,
