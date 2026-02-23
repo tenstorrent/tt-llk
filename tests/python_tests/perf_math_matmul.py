@@ -21,7 +21,6 @@ from helpers.test_variant_parameters import (
     DEST_INDEX,
     DEST_SYNC,
     IN_TILE_DIMS,
-    INPUT_DIMENSIONS,
     LOOP_FACTOR,
     MATH_FIDELITY,
     NUM_FACES,
@@ -127,7 +126,6 @@ def test_perf_math_matmul(
         formats,
         run_types,
         templates=[
-            INPUT_DIMENSIONS(in0_dimensions, in1_dimensions),
             MATH_FIDELITY(math_fidelity),
             DEST_SYNC(matmul_config.dest_sync),
             THROTTLE_LEVEL(throttle),

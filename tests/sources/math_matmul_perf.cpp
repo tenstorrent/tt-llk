@@ -30,10 +30,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-            formats.unpack_src,
-            formats.unpack_src,
-            formats.unpack_dst,
-            formats.unpack_dst,
+            formats.unpack_A_src,
+            formats.unpack_B_src,
+            formats.unpack_A_dst,
+            formats.unpack_B_dst,
             in1_tile_r_dim < FACE_R_DIM ? in1_tile_r_dim : FACE_R_DIM,
             in0_tile_r_dim < FACE_R_DIM ? in0_tile_r_dim : FACE_R_DIM,
             num_faces_B, // In1
@@ -70,8 +70,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 for (std::uint32_t j = 0; j < KT_DIM; j++)
                 {
                     _llk_unpack_AB_matmul_<>(
-                        L1_ADDRESS(buffer_A[0]),
-                        L1_ADDRESS(buffer_B[0]),
+                        L1_ADDRESS(params->buffer_A[0]),
+                        L1_ADDRESS(params->buffer_B[0]),
                         j,
                         j * CT_DIM,
                         TILE_SIZE_UNPACK_A,
