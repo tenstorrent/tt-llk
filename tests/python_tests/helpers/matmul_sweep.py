@@ -401,6 +401,13 @@ def sweep_matmul(
         )
 
         for dest_acc in dest_acc_modes:
+            if (  # Remove invalid variants
+                dest_acc == DestAccumulation.No
+                and fmt.input_format == DataFormat.Float16_b
+                and fmt.output_format == DataFormat.Float16
+            ):
+                continue
+
             max_tiles = 4 if dest_acc == DestAccumulation.Yes else base_max_tiles
 
             # Use cached or newly generated dimensions
@@ -427,7 +434,6 @@ def sweep_matmul(
                             math_matmul
                         )
                         for face_layout_config in face_layout_config_sweep:
-
                             base_matmul_dims = MatmulConfig(
                                 tile_dimensions=tile_dims,
                                 face_layout_config=face_layout_config,
@@ -470,6 +476,13 @@ def sweep_tiny_tiles_matmul(
         base_max_tiles = 8 if dest_sync == DestSync.Half else 16
         for fmt in formats_list:
             for dest_acc in dest_acc_modes:
+                if (  # Remove invalid variants
+                    dest_acc == DestAccumulation.No
+                    and fmt.input_format == DataFormat.Float16_b
+                    and fmt.output_format == DataFormat.Float16
+                ):
+                    continue
+
                 for stochastic_mode in all_stochastic_modes:
                     max_tiles = (
                         base_max_tiles // 2
