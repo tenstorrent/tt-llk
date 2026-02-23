@@ -36,10 +36,9 @@ using namespace ckernel::sfpu;
  * @param operation The SFPU operation type to execute
  * @param math_format Optional math format for operations that need format-specific behavior
  */
-template <ckernel::ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool FAST_MODE = false, bool STABLE_SORT = false>
+template <ckernel::ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en, int ITERATIONS, bool STABLE_SORT = false>
 void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, float fill_const_value = 5.0f)
 {
-    constexpr bool APPROXIMATION_MODE = (APPROX_MODE != ckernel::ApproximationMode::Precise);
     switch (operation)
     {
         case SfpuType::abs:
@@ -142,8 +141,8 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
             _calculate_log_<APPROX_MODE, false, ITERATIONS>(ITERATIONS, 0);
             break;
         case SfpuType::log1p:
-            log1p_init<APPROXIMATION_MODE, FAST_MODE, is_fp32_dest_acc_en>();
-            calculate_log1p<APPROXIMATION_MODE, FAST_MODE, is_fp32_dest_acc_en, ITERATIONS>();
+            log1p_init<APPROX_MODE, is_fp32_dest_acc_en>();
+            calculate_log1p<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>();
             break;
         case SfpuType::neg:
         case SfpuType::negative:
@@ -178,8 +177,8 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
             _calculate_square_<APPROX_MODE, ITERATIONS>();
             break;
         case SfpuType::tanh:
-            tanh_init<APPROXIMATION_MODE, is_fp32_dest_acc_en>();
-            calculate_tanh<APPROXIMATION_MODE, is_fp32_dest_acc_en, ITERATIONS>();
+            tanh_init<APPROX_MODE, is_fp32_dest_acc_en>();
+            calculate_tanh<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>();
             break;
         case SfpuType::threshold:
             _calculate_threshold_<APPROX_MODE, ITERATIONS>(5.0f, 10.0f);

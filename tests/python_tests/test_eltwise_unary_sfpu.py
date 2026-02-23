@@ -22,6 +22,7 @@ from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     APPROX_MODE,
+    CLAMP_NEGATIVE,
     FAST_MODE,
     MATH_OP,
     TILE_COUNT,
@@ -244,13 +245,9 @@ def eltwise_unary_sfpu(
         formats,
         templates=[
             generate_input_dim(input_dimensions, input_dimensions),
-            APPROX_MODE(
-                approx_mode,
-                fast_mode,
-                True,
-                allow_fast=mathop in SUPPORTED_FAST_MODE_OPS,
-            ),
+            APPROX_MODE(approx_mode),
             FAST_MODE(fast_mode),
+            CLAMP_NEGATIVE(True),
             MATH_OP(mathop=mathop),
         ],
         runtimes=[TILE_COUNT(tile_cnt_A)],
@@ -287,7 +284,7 @@ def eltwise_unary_sfpu(
     ), "Assert against golden failed"
 
 
-# Test exponential with fast approximate and clamped/unclamped modes
+# Test exponential with APPROX_MODE=true, FAST_MODE=true, and CLAMP_NEGATIVE=true/false
 @pytest.mark.parametrize("clamp_negative", [True, False])
 def test_exponential_clamp_negative(
     clamp_negative: bool,
@@ -327,10 +324,9 @@ def test_exponential_clamp_negative(
         formats,
         templates=[
             generate_input_dim(input_dimensions, input_dimensions),
-            APPROX_MODE(
-                ApproximationMode.Yes, FastMode.Yes, clamp_negative, allow_fast=True
-            ),
+            APPROX_MODE(ApproximationMode.Yes),
             FAST_MODE(FastMode.Yes),
+            CLAMP_NEGATIVE(clamp_negative),
             MATH_OP(mathop=MathOperation.Exp),
         ],
         runtimes=[TILE_COUNT(tile_cnt_A)],

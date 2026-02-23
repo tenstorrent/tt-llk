@@ -419,13 +419,6 @@ inline void _init_sfpu_reciprocal_()
     }
 }
 
-template <bool APPROXIMATION_MODE>
-inline void _init_sfpu_reciprocal_()
-{
-    constexpr ckernel::ApproximationMode approx_mode = APPROXIMATION_MODE ? ckernel::ApproximationMode::Approximate : ckernel::ApproximationMode::Precise;
-    _init_sfpu_reciprocal_<approx_mode>();
-}
-
 template <ckernel::ApproximationMode APPROX_MODE, bool is_fp32_dest_acc_en, bool legacy_compat = false>
 inline void _init_reciprocal_()
 {

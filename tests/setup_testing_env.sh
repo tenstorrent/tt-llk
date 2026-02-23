@@ -126,7 +126,7 @@ download_sfpu_files() {
 
     echo "Downloading SFPU files for ${chip_arch}..."
 
-	if git clone --depth 1 --filter=blob:none --sparse https://github.com/tenstorrent/tt-metal.git tt-metal-temp 2>/dev/null; then
+	if git clone --depth 1 --branch njokovic/approximation-mode --filter=blob:none --sparse https://github.com/tenstorrent/tt-metal.git tt-metal-temp 2>/dev/null; then
 		if git -C tt-metal-temp sparse-checkout set tt_metal/hw/ckernels/${ckernels_path}/metal/llk_api/llk_sfpu 2>/dev/null; then
 			cp tt-metal-temp/tt_metal/hw/ckernels/${ckernels_path}/metal/llk_api/llk_sfpu/*.h "${sfpu_dir}/" || \
 				echo "ERROR: Failed to copy SFPU headers" >&2
