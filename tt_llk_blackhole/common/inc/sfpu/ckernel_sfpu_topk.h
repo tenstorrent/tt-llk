@@ -19,10 +19,10 @@ namespace ckernel
 namespace sfpu
 {
 
-static std::int32_t topk_replay_init = 0;
+static std::int32_t topk_replay_init    = 0;
 static bool topk_stable_descending_mode = false;
 
-ALWI void set_topk_stable_descending_mode(bool descending)
+TT_ALWAYS_INLINE void set_topk_stable_descending_mode(bool descending)
 {
     topk_stable_descending_mode = descending;
 }
@@ -145,7 +145,7 @@ inline void bitonic_topk_store16(std::uint32_t dist0, std::uint32_t dist1)
 }
 
 template <std::uint32_t VC, std::uint32_t VD, std::uint32_t MODE, bool INDEX_MIN_TO_VD>
-ALWI void topk_cmp_swap_stable_directional()
+TT_ALWAYS_INLINE void topk_cmp_swap_stable_directional()
 {
     constexpr std::uint32_t IDX_VC = p_sfpu::LREG4 + (VC & 0x3);
     constexpr std::uint32_t IDX_VD = p_sfpu::LREG4 + (VD & 0x3);
@@ -175,7 +175,7 @@ ALWI void topk_cmp_swap_stable_directional()
 }
 
 template <std::uint32_t VC, std::uint32_t VD, std::uint32_t MODE>
-ALWI void topk_cmp_swap_stable_min_to_vd()
+TT_ALWAYS_INLINE void topk_cmp_swap_stable_min_to_vd()
 {
     if (topk_stable_descending_mode)
     {
@@ -188,7 +188,7 @@ ALWI void topk_cmp_swap_stable_min_to_vd()
 }
 
 template <std::uint32_t VC, std::uint32_t VD, std::uint32_t MODE>
-ALWI void topk_cmp_swap_stable_min_to_vc()
+TT_ALWAYS_INLINE void topk_cmp_swap_stable_min_to_vc()
 {
     topk_cmp_swap_stable_directional<VC, VD, MODE, false>();
 }
@@ -669,11 +669,7 @@ inline void _bitonic_topk_merge(const int m_iter, const int k)
                     }
                     else
                     {
-                        TTI_SFPSWAP(
-                            0,
-                            top_min ? p_sfpu::LREG1 : p_sfpu::LREG0,
-                            top_min ? p_sfpu::LREG0 : p_sfpu::LREG1,
-                            p_sfpswap::ALL_ROWS_MAX);
+                        TTI_SFPSWAP(0, top_min ? p_sfpu::LREG1 : p_sfpu::LREG0, top_min ? p_sfpu::LREG0 : p_sfpu::LREG1, p_sfpswap::ALL_ROWS_MAX);
                     }
                     bitonic_topk_store8<is_fp32_dest_acc_en>(dst_offset, ld_dist);
                     datums_compared += 8;
@@ -967,7 +963,7 @@ inline void _bitonic_topk_rebuild(const bool idir, const int m_iter, const int k
 
 inline void _init_topk()
 {
-    topk_replay_init = 0;
+    topk_replay_init            = 0;
     topk_stable_descending_mode = false;
     _sfpu_load_config32_(0xF, 0x0, 0x4); // Set bit [2] of the SFPU_CONTROL_REG to enable index tracking mode
 }
