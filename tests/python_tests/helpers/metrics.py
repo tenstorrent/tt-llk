@@ -16,6 +16,11 @@ Metrics calculated:
   * Higher ratio (closer to 1.0) = packer has data available, less dest stalling
   * Lower ratio = packer busy but waiting for destination to become valid
   * Only valid when using HW dvalid-based synchronization (not STALLWAIT)
+
+- FPU Execution Efficiency: Measures how efficiently FPU executes available instructions
+  * FPU_INSTRUCTION / FPU_INSTRN_AVAILABLE_1: Fraction of cycles with FPU work available where FPU executes
+  * Higher ratio (closer to 1.0) = FPU executes whenever work is available (efficient)
+  * Lower ratio = FPU instructions available but not executing (stalled in pipeline)
 """
 
 import pandas as pd
@@ -102,6 +107,16 @@ def compute_metrics(df: pd.DataFrame) -> dict:
     packer_busy = _avg_count(df, "TDMA_PACK", "PACKER_BUSY")
     pack_efficiency = _safe_div(packer_dest_available, packer_busy)
 
+    # === FPU Execution Efficiency ===
+    # Ratio of actual FPU executions to cycles where FPU instructions were available
+    # FPU_INSTRUCTION: Actual FPU instructions executed by the math engine
+    # FPU_INSTRN_AVAILABLE_1: Cycles where an FPU instruction from MATH thread could start
+    # Higher ratio (closer to 1.0) means FPU executes whenever FPU work is available (efficient)
+    # Lower ratio means FPU instructions are available but not executing (pipeline stalls)
+    fpu_instruction = _avg_count(df, "FPU", "FPU_INSTRUCTION")
+    fpu_instrn_available = _avg_count(df, "INSTRN_THREAD", "FPU_INSTRN_AVAILABLE_1")
+    fpu_efficiency = _safe_div(fpu_instruction, fpu_instrn_available)
+
     return {
         # Raw counts
         "srca_write_count": srca_write,
@@ -110,16 +125,20 @@ def compute_metrics(df: pd.DataFrame) -> dict:
         "unpack1_busy_count": unpack1_busy,
         "packer_dest_available_count": packer_dest_available,
         "packer_busy_count": packer_busy,
+        "fpu_instruction_count": fpu_instruction,
+        "fpu_instrn_available_count": fpu_instrn_available,
         # Efficiency ratios (0.0 - 1.0)
         "unpack0_efficiency": unpack0_efficiency,
         "unpack1_efficiency": unpack1_efficiency,
         "unpack_efficiency": unpack_efficiency,
         "pack_efficiency": pack_efficiency,
+        "fpu_efficiency": fpu_efficiency,
         # Efficiency percentages (0.0 - 100.0)
         "unpack0_efficiency_pct": _pct(unpack0_efficiency),
         "unpack1_efficiency_pct": _pct(unpack1_efficiency),
         "unpack_efficiency_pct": _pct(unpack_efficiency),
         "pack_efficiency_pct": _pct(pack_efficiency),
+        "fpu_efficiency_pct": _pct(fpu_efficiency),
     }
 
 
@@ -172,6 +191,19 @@ def print_metrics(results: pd.DataFrame) -> None:
     print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
     print(
         f"  {'Packer:':<30} {metrics['packer_dest_available_count']:>12.1f} {metrics['packer_busy_count']:>12.1f} {fmt(metrics['pack_efficiency']):>12}"
+    )
+
+    print(f"\n{'─' * 70}")
+    print("  FPU EXECUTION EFFICIENCY")
+    print(f"{'─' * 70}")
+    print("  Measures the fraction of FPU-available cycles where FPU executes.")
+    print("  Higher ratio (→1.0) = efficient, FPU executes when work available")
+    print("  Lower ratio (→0.0) = inefficient, FPU stalled despite available work")
+    print(f"{'─' * 70}")
+    print(f"  {'Metric':<30} {'FPU Instr':>12} {'Available':>12} {'Efficiency':>12}")
+    print(f"  {'─' * 30} {'─' * 12} {'─' * 12} {'─' * 12}")
+    print(
+        f"  {'Math FPU:':<30} {metrics['fpu_instruction_count']:>12.1f} {metrics['fpu_instrn_available_count']:>12.1f} {fmt(metrics['fpu_efficiency']):>12}"
     )
 
     print("\n" + "=" * 70 + "\n")
