@@ -683,7 +683,6 @@ class TestConfig:
                 self.formats.input_format,
                 self.formats.output_format,
                 self.dest_acc,
-                self.formats.input_format_B,
             )
             and TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR
         ):

@@ -50,7 +50,6 @@ class FuserConfig:
                 operation.src_a.data_format,
                 operation.output.data_format,
                 self.global_config.dest_acc,
-                None,  # No src_b in fuser operations yet
             ):
                 self.global_config.dest_acc = DestAccumulation.Yes
 

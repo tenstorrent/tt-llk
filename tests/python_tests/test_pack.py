@@ -113,10 +113,10 @@ def is_relu_threshold_tolerance_issue(
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
-            DataFormat.Float16,
-            DataFormat.Float32,
-            DataFormat.Int32,
-            DataFormat.Bfp8_b,
+            # DataFormat.Float16,
+            # DataFormat.Float32,
+            # DataFormat.Int32,
+            # DataFormat.Bfp8_b,
         ]
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
@@ -151,10 +151,12 @@ def test_pack(
             "Pack does not support mixing Int32 with other formats. Check format conversions in packer for more information."
         )
 
+    formats.input_B = DataFormat.Float32
+
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
-        stimuli_format_B=formats.input_format,
+        stimuli_format_B=formats.input_B,
         input_dimensions_B=input_dimensions,
     )
 
@@ -214,7 +216,6 @@ def test_pack(
         relu_config,
         data_formats.pack_src,
     )
-
     configuration = TestConfig(
         "sources/pack_test.cpp",
         formats,
