@@ -9,18 +9,19 @@ from ttexalens.tt_exalens_lib import read_words_from_device, write_words_to_devi
 
 from .test_config import TestConfig
 
-COUNTER_SLOT_COUNT = 86  # Max counters
-COUNTER_DATA_WORD_COUNT = COUNTER_SLOT_COUNT * 2  # 2 words per counter (cycles + count)
-PERF_COUNTERS_BUFFER_SIZE = (86 + 172) * 4  # Config + Data words in bytes (1032 bytes)
+# Derive all constants from TestConfig (single source of truth)
+COUNTER_SLOT_COUNT = TestConfig._PERF_COUNTERS_CONFIG_WORDS  # 86 config slots
+COUNTER_DATA_WORD_COUNT = (
+    TestConfig._PERF_COUNTERS_DATA_WORDS
+)  # 172 data words (86 * 2)
 PERF_COUNTERS_LAST_STOPPER_SHIFT = 9
 PERF_COUNTERS_LAST_STOPPER_MASK = 0x3
 
 # Single shared buffer addresses (all threads use the same location)
-PERF_COUNTERS_CONFIG_ADDR = TestConfig.PERF_COUNTERS_BASE_ADDR
-PERF_COUNTERS_DATA_ADDR = TestConfig.PERF_COUNTERS_BASE_ADDR + (86 * 4)
-PERF_COUNTERS_SYNC_CTRL_ADDR = (
-    TestConfig.PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_BUFFER_SIZE
-)
+# These are already computed in TestConfig - use them directly
+PERF_COUNTERS_CONFIG_ADDR = TestConfig.PERF_COUNTERS_CONFIG_ADDR
+PERF_COUNTERS_DATA_ADDR = TestConfig.PERF_COUNTERS_DATA_ADDR
+PERF_COUNTERS_SYNC_CTRL_ADDR = TestConfig.PERF_COUNTERS_SYNC_CTRL_ADDR
 
 COUNTER_BANK_NAMES = {
     0: "INSTRN_THREAD",
