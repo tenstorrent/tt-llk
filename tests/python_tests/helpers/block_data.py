@@ -10,9 +10,11 @@ from typing import Union
 class BlockData:
     block_x: Union[int, str]
     block_y: Union[int, str]
-    block_tiles_x: int
-    block_tiles_y: int
-    tile_count_x: int
-    tile_count_y: int
-    full_x_limit: int
-    full_y_limit: int
+    block_tiles_x: Union[int, str]
+    block_tiles_y: Union[int, str]
+    tile_count_x: Union[int, str]
+    tile_count_y: Union[int, str]
+    full_x_limit: Union[int, str]
+    full_y_limit: Union[int, str]
+    tile_id_global: Union[int, str]
+    tile_id_block: Union[int, str]

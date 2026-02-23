@@ -363,6 +363,8 @@ class ComputePipeline:
                 tile_count_y=tile_count_y,
                 full_x_limit=full_x_limit,
                 full_y_limit=full_y_limit,
+                tile_id_global="0",
+                tile_id_block="0",
             )
 
         code = ""

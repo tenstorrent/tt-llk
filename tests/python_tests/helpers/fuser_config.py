@@ -148,6 +148,7 @@ class FuserConfig:
             if TestConfig.MODE == TestMode.PRODUCE:
                 continue
 
+            logger.info("Running perf test for run type: {}", run_type.name)
             for run_index in range(run_count):
                 elfs = test_config.run_elf_files(location)
                 wait_for_tensix_operations_finished(elfs, location)

@@ -37,7 +37,6 @@ class Unpacker:
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         block: "BlockData",
-        tile_idx_expr: str,
     ) -> str:
         return ""
 
@@ -175,7 +174,6 @@ class MatmulUnpacker(Unpacker):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         block: "BlockData",
-        tile_idx_expr: str = None,
     ) -> str:
         stage = operation.stage_id
         rt_dim = block.block_tiles_x
@@ -187,8 +185,8 @@ class MatmulUnpacker(Unpacker):
 
         return (
             f"    {{\n"
-            f"        std::uint32_t row = ({tile_idx_expr}) / {full_ct_dim};\n"
-            f"        std::uint32_t col = ({tile_idx_expr}) % {full_ct_dim};\n"
+            f"        std::uint32_t row = ({block.tile_id_global}) / {full_ct_dim};\n"
+            f"        std::uint32_t col = ({block.tile_id_global}) % {full_ct_dim};\n"
             f"        for (std::uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
             f"            std::uint32_t srca_tile_idx = row * {kt_dim} + kt;\n"
             f"            std::uint32_t srcb_tile_idx = kt * {full_ct_dim} + col;\n"
@@ -350,11 +348,10 @@ class UnpackerAB(Unpacker):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         block: "BlockData",
-        tile_idx_expr: str,
     ) -> str:
         stage = operation.stage_id
-        broadcast_type = compute_unit.broadcast_type.cpp_enum_value
-        return f"_llk_unpack_AB_<{broadcast_type}>(L1_ADDRESS(buffer_A{stage}[{tile_idx_expr}]), L1_ADDRESS(buffer_B{stage}[{tile_idx_expr}]));\n"
+        broadcast_type = f"BroadcastType::{compute_unit.broadcast_type.value}"
+        return f"_llk_unpack_AB_<{broadcast_type}>(L1_ADDRESS(buffer_A{stage}[{block.tile_id_global}]), L1_ADDRESS(buffer_B{stage}[{block.tile_id_global}]));\n"
 
 
 class UnpackerA(Unpacker):
@@ -495,7 +492,6 @@ class UnpackerA(Unpacker):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         block: "BlockData",
-        tile_idx_expr: str,
     ) -> str:
         stage = operation.stage_id
         unpack_to_dest = "true" if operation.unpack_to_dest else "false"
@@ -504,7 +500,7 @@ class UnpackerA(Unpacker):
 
         return (
             f"_llk_unpack_A_<{broadcast_type}, false, {reuse_dest}, {unpack_to_dest}>(\n"
-            f"    L1_ADDRESS(buffer_A{stage}[{tile_idx_expr}]), unpack_a_src_format{stage}, unpack_a_dst_format{stage}\n"
+            f"    L1_ADDRESS(buffer_A{stage}[{block.tile_id_global}]), unpack_a_src_format{stage}, unpack_a_dst_format{stage}\n"
             f");\n"
         )
 
@@ -581,7 +577,6 @@ class UnpackerTilizeA(Unpacker):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         block: "BlockData",
-        tile_idx_expr: str,
     ) -> str:
         stage = operation.stage_id
         face_r_dim = operation.face_r_dim
@@ -593,8 +588,8 @@ class UnpackerTilizeA(Unpacker):
         if config.architecture == ChipArchitecture.BLACKHOLE:
             return (
                 f"{{\n"
-                f"    std::uint32_t row = ({tile_idx_expr}) / {block_ct_dim};\n"
-                f"    std::uint32_t col = ({tile_idx_expr}) % {block_ct_dim};\n"
+                f"    std::uint32_t row = ({block.tile_id_global}) / {block_ct_dim};\n"
+                f"    std::uint32_t col = ({block.tile_id_global}) % {block_ct_dim};\n"
                 f"    _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[row * {block_ct_dim}]), col, unpack_a_src_format{stage}, unpack_a_dst_format{stage});\n"
                 f"}}\n"
             )
@@ -603,8 +598,8 @@ class UnpackerTilizeA(Unpacker):
         elif config.architecture == ChipArchitecture.WORMHOLE:
             return (
                 f"{{\n"
-                f"    std::uint32_t row = ({tile_idx_expr}) / {block_ct_dim};\n"
-                f"    std::uint32_t col = ({tile_idx_expr}) % {block_ct_dim};\n"
+                f"    std::uint32_t row = ({block.tile_id_global}) / {block_ct_dim};\n"
+                f"    std::uint32_t col = ({block.tile_id_global}) % {block_ct_dim};\n"
                 f"    _llk_unpack_tilize_(L1_ADDRESS(buffer_A{stage}[row * {block_ct_dim}]), col, unpack_a_src_format{stage}, unpack_a_dst_format{stage}, {block_ct_dim}, {face_r_dim}, {num_faces}, false);\n"
                 f"}}\n"
             )
@@ -730,14 +725,14 @@ class ReduceBlockMaxUnpacker(Unpacker):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         block: "BlockData",
-        gate_idx_expr: str,
-        l1_idx_expr: str,
     ) -> str:
         stage = operation.stage_id
         ct_dim = block.block_tiles_x
+        tile_x_abs = f"(({block.tile_id_global}) % {block.tile_count_x})"
+        tile_x_in_block = f"({tile_x_abs} - {block.block_x})"
         return (
-            f"if (({gate_idx_expr}) % {ct_dim} == 0 ) {{\n"
-            f"_llk_unpack_AB_reduce_block_max_row_(L1_ADDRESS(buffer_A{stage}[{l1_idx_expr}]), L1_ADDRESS(buffer_B{stage}[{l1_idx_expr}]));\n"
+            f"if (({tile_x_in_block}) % {ct_dim} == 0 ) {{\n"
+            f"_llk_unpack_AB_reduce_block_max_row_(L1_ADDRESS(buffer_A{stage}[{block.tile_id_global}]), L1_ADDRESS(buffer_B{stage}[{block.tile_id_global}]));\n"
             f"}}\n"
         )
 
@@ -759,9 +754,13 @@ class ReduceBlockMaxUnpacker(Unpacker):
         block: "BlockData",
     ) -> str:
         ct_dim = block.block_tiles_x
+        tile_x_abs = f"(({block.tile_id_global}) % {block.tile_count_x})"
+        tile_x_in_block = f"({tile_x_abs} - {block.block_x})"
         return (
-            f"_perf_unpack_loop_set_valid<true, false>({ct_dim});\n"
-            f"_perf_unpack_loop_set_valid<false, true>(1);\n"
+            f"if (({tile_x_in_block}) % {ct_dim} == 0) {{\n"
+            f"    _perf_unpack_loop_set_valid<true, false>({ct_dim});\n"
+            f"    _perf_unpack_loop_set_valid<false, true>(1);\n"
+            f"}}\n"
         )
 
     def perf_clear_valid(
@@ -772,9 +771,12 @@ class ReduceBlockMaxUnpacker(Unpacker):
         block: "BlockData",
     ) -> str:
         ct_dim = block.block_tiles_x
+        tile_x_in_block = f"(({block.tile_id_block}) / {block.block_tiles_y})"
         return (
-            f"_perf_math_loop_clear_valid<true, false>({ct_dim});\n"
-            f"_perf_math_loop_clear_valid<false, true>(1);\n"
+            f"if (({tile_x_in_block}) % {ct_dim} == 0) {{\n"
+            f"    _perf_math_loop_clear_valid<true, false>({ct_dim});\n"
+            f"    _perf_math_loop_clear_valid<false, true>(1);\n"
+            f"}}\n"
         )
 
     def get_headers(self) -> List[str]:

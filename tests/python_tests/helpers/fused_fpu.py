@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, List, Tuple
 
 import torch
 
@@ -51,8 +51,6 @@ class Fpu:
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         block: "BlockData",
-        tile_idx: Union[int, str],
-        dest_idx: Optional[Union[int, str]] = None,
     ) -> str:
         return ""
 
@@ -143,8 +141,6 @@ class MatmulFpu(Fpu):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         block: "BlockData",
-        tile_idx: Union[int, str],
-        dest_idx: Optional[Union[int, str]] = None,
     ) -> str:
         rt_dim = block.block_tiles_x
         ct_dim = block.block_tiles_y
@@ -154,7 +150,7 @@ class MatmulFpu(Fpu):
         return (
             f"for (std::uint32_t kt = 0; kt < {kt_dim}; kt++)\n"
             f"{{\n"
-            f"    _llk_math_matmul_<{math_fidelity}>({tile_idx}, {ct_dim}, {rt_dim});\n"
+            f"    _llk_math_matmul_<{math_fidelity}>({block.tile_id_block}, {ct_dim}, {rt_dim});\n"
             f"}}\n"
         )
 
@@ -243,8 +239,6 @@ class EltwiseFpu(Fpu):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         block: "BlockData",
-        tile_idx: Union[int, str],
-        dest_idx: Optional[Union[int, str]] = None,
     ) -> str:
         stage = operation.stage_id
         # Keep runtime math call fidelity consistent with init-time clamping.
@@ -261,7 +255,7 @@ class EltwiseFpu(Fpu):
         return (
             f"    _llk_math_eltwise_binary_<{op}, {broadcast_type}, dest_sync{stage},\n"
             f"        {dest_acc}, {math_fidelity}, {reuse_dest}>"
-            f"(ckernel::TensorShape{{{face_r_dim}, {face_c_dim}, {num_faces_r_dim}, {num_faces_c_dim}}}, {tile_idx}, false\n"
+            f"(ckernel::TensorShape{{{face_r_dim}, {face_c_dim}, {num_faces_r_dim}, {num_faces_c_dim}}}, {block.tile_id_block}, false\n"
             f"    );\n"
         )
 
@@ -383,8 +377,6 @@ class ReduceFpu(Fpu):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         block: "BlockData",
-        tile_idx: Union[int, str],
-        dest_idx: Optional[Union[int, str]] = None,
     ) -> str:
         math_fidelity = operation.math_fidelity.cpp_enum_value
         dest_acc = config.dest_acc.cpp_enum_value
@@ -394,7 +386,7 @@ class ReduceFpu(Fpu):
 
         return (
             f"    _llk_math_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false, false>(\n"
-            f"        {tile_idx}, false, {num_faces}\n"
+            f"        {block.tile_id_block}, false, {num_faces}\n"
             f"    );\n"
         )
 
@@ -489,8 +481,6 @@ class DatacopyFpu(Fpu):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         block: "BlockData",
-        tile_idx: Union[int, str],
-        dest_idx: Optional[Union[int, str]] = None,
     ) -> str:
         stage = operation.stage_id
         dest_acc = config.dest_acc.cpp_enum_value
@@ -502,13 +492,13 @@ class DatacopyFpu(Fpu):
         if config.architecture == ChipArchitecture.BLACKHOLE:
             code = (
                 f"    _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {broadcast_type}, {unpack_to_dest}>(\n"
-                f"        {tile_idx}, math_format{stage}, math_format{stage}, {num_faces}\n"
+                f"        {block.tile_id_block}, math_format{stage}, math_format{stage}, {num_faces}\n"
                 f"    );\n"
             )
         elif config.architecture == ChipArchitecture.WORMHOLE:
             code = (
                 f"    _llk_math_eltwise_unary_datacopy_<{data_copy_type}, dest_sync{stage}, {dest_acc}, {broadcast_type}, {unpack_to_dest}>(\n"
-                f"        {tile_idx}, math_format{stage}, math_format{stage}\n"
+                f"        {block.tile_id_block}, math_format{stage}, math_format{stage}\n"
                 f"    );\n"
             )
         else:
@@ -545,14 +535,15 @@ class ReduceBlockMaxFpu(Fpu):
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
         block: "BlockData",
-        tile_idx: Union[int, str],
-        dest_idx: Union[int, str],
     ) -> str:
         ct_dim = block.block_tiles_x
         dest_acc = config.dest_acc.value
+        tile_x_in_block = f"(({block.tile_id_block}) / {block.block_tiles_y})"
+        tile_y_in_block = f"(({block.tile_id_block}) % {block.block_tiles_y})"
+        dest_expr = tile_y_in_block
         return (
-            f"if (({tile_idx}) % {ct_dim} == 0 ) {{\n"
-            f"    _llk_math_reduce_block_max_row_<{ct_dim}, {dest_acc}>({dest_idx});\n"
+            f"if (({tile_x_in_block}) % {ct_dim} == 0 ) {{\n"
+            f"    _llk_math_reduce_block_max_row_<{ct_dim}, {dest_acc}>({dest_expr});\n"
             f"}}"
         )
 
