@@ -267,6 +267,9 @@ inline void set_packer_config(
     cfg[THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 2] = config.val[2];
     // cfg[THCON_SEC0_REG1_Row_start_section_size_ADDR32+3]=config.val[3];
 
+    // Reset L1 accumulation flag
+    reconfigure_packer_l1_acc(0);
+
     dest_rd_ctrl_u dest_rd_ctrl;
     dest_rd_ctrl.val = 0;
 
@@ -571,12 +574,8 @@ inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
 
     // TTI_STALLWAIT(p_stall::STALL_PACK, p_stall::TRISC_CFG);
 
-    const std::uint32_t pack_l1_acc_disable_pack_zero_flag = pack_l1_acc ? (0b11) : (0b00);
-
-    cfg_reg_rmw_tensix<
-        THCON_SEC0_REG1_Pack_L1_Acc_ADDR32,
-        THCON_SEC0_REG1_Pack_L1_Acc_SHAMT,
-        THCON_SEC0_REG1_Disable_pack_zero_flags_MASK | THCON_SEC0_REG1_Pack_L1_Acc_MASK>(pack_l1_acc_disable_pack_zero_flag);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Disable_pack_zero_flags_RMW>(pack_l1_acc);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pack_L1_Acc_RMW>(pack_l1_acc);
 }
 
 // READERS FOR CONFIG STRUCTS
