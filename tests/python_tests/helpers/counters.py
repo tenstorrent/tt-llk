@@ -237,13 +237,12 @@ def configure_counters(location: str = "0,0") -> None:
     )
 
 
-def read_counters(location: str = "0,0", debug: bool = False) -> pd.DataFrame:
+def read_counters(location: str = "0,0") -> pd.DataFrame:
     """
     Read performance counter results from all threads.
 
     Args:
         location: Tensix core coordinates (e.g., "0,0").
-        debug: Print debug information about sync state.
 
     Returns:
         DataFrame with columns: thread, bank, counter_name, counter_id, cycles, count, l1_mux
@@ -259,22 +258,48 @@ def read_counters(location: str = "0,0", debug: bool = False) -> pd.DataFrame:
             "Perf counter sync control word not readable; counters may not have been stopped."
         )
 
-    if debug:
-        print(f"\n[DEBUG] Sync control word: 0x{sync_ctrl[0]:08x}")
-        print(f"[DEBUG]   Bits 0-2 (thread start): {(sync_ctrl[0] & 0x7):03b}")
-        print(f"[DEBUG]   Bits 3-5 (thread stop): {((sync_ctrl[0] >> 3) & 0x7):03b}")
-        print(f"[DEBUG]   Bit 6 (global started): {(sync_ctrl[0] >> 6) & 0x1}")
-        print(f"[DEBUG]   Bit 7 (global stopped): {(sync_ctrl[0] >> 7) & 0x1}")
-        print(f"[DEBUG]   Bits 9-10 (last stopper ID): {(sync_ctrl[0] >> 9) & 0x3}")
+    sync_word = sync_ctrl[0]
+
+    # Validate that counters were properly started and stopped
+    GLOBAL_STARTED_BIT = 1 << 6
+    GLOBAL_STOPPED_BIT = 1 << 7
+    ALL_STOP_BITS = 0x7 << 3  # Bits 3-5 should all be set
+
+    if sync_word == 0:
+        raise RuntimeError(
+            "Perf counter sync word is zero - counters were never started. "
+            "Ensure start_perf_counters() is called in all threads."
+        )
+
+    if not (sync_word & GLOBAL_STARTED_BIT):
+        raise RuntimeError(
+            f"Perf counters were never started (global started bit not set); sync_ctrl=0x{sync_word:08x}"
+        )
+
+    if not (sync_word & GLOBAL_STOPPED_BIT):
+        stop_bits = (sync_word >> 3) & 0x7
+        missing_threads = []
+        if not (stop_bits & 0x1):
+            missing_threads.append("UNPACK")
+        if not (stop_bits & 0x2):
+            missing_threads.append("MATH")
+        if not (stop_bits & 0x4):
+            missing_threads.append("PACK")
+
+        raise RuntimeError(
+            f"Perf counters were not stopped properly (global stopped bit not set). "
+            f"Missing stop_perf_counters() call from: {', '.join(missing_threads)}. "
+            f"sync_ctrl=0x{sync_word:08x}"
+        )
 
     last_id = (
-        sync_ctrl[0] >> PERF_COUNTERS_LAST_STOPPER_SHIFT
+        sync_word >> PERF_COUNTERS_LAST_STOPPER_SHIFT
     ) & PERF_COUNTERS_LAST_STOPPER_MASK
 
     last_thread_map = {0: "UNPACK", 1: "MATH", 2: "PACK"}
     if last_id not in last_thread_map:
         raise RuntimeError(
-            f"Invalid last-stopper id {last_id}; sync_ctrl=0x{sync_ctrl[0]:08x}"
+            f"Invalid last-stopper id {last_id}; sync_ctrl=0x{sync_word:08x}"
         )
 
     thread = last_thread_map[last_id]
