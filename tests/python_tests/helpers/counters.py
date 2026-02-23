@@ -190,7 +190,10 @@ def _build_all_counters() -> List[Dict]:
     return counters
 
 
-# Pre-built list of all 66 counters (computed once at module load)
+# Pre-built list of all counters (computed once at module load)
+# Total: 94 counters (61 INSTRN_THREAD + 3 FPU + 11 TDMA_UNPACK + 3 TDMA_PACK + 16 L1)
+# Note: L1 has 8 counter IDs × 2 mux settings = 16 entries, but only 8 L1 counters
+# can be active at once (determined by mux setting), so maximum concurrent counters = 86
 ALL_COUNTERS = _build_all_counters()
 
 # All threads that support performance counters
@@ -201,9 +204,13 @@ def configure_counters(location: str = "0,0") -> None:
     """
     Configure performance counters in the shared buffer for all threads (UNPACK, MATH, PACK).
 
-    Writes counter configuration to L1 memory that all threads access. The counters are
-    started/stopped by all threads via start_perf_counters()/stop_perf_counters(), but
-    only the last thread to finish (last stopper) reads the hardware and writes results.
+    Writes counter configuration to L1 memory that all threads access. Configures all 94
+    counter definitions (61 INSTRN_THREAD + 3 FPU + 11 TDMA_UNPACK + 3 TDMA_PACK + 16 L1).
+    Note: Only 86 slots are available in hardware; L1 counters (16 defs, 8 active at once)
+    require mux configuration before measurement starts.
+
+    The counters are started/stopped by all threads via start_perf_counters()/stop_perf_counters(),
+    but only the last thread to finish (last stopper) reads the hardware and writes results.
 
     Args:
         location: Tensix core coordinates (e.g., "0,0").

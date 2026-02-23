@@ -62,11 +62,16 @@ namespace llk_perf
 // Sync Control Word Bit Layout
 // ============================================================================
 
-// Bits 0-2: Thread start flags (UNPACK=0, MATH=1, PACK=2)
-// Bits 3-5: Thread stop flags
-// Bit 6: Global started flag
-// Bit 7: Global stopped flag
-// Bits 9-10: Last stopper thread ID
+// Bit 0: UNPACK thread started flag
+// Bit 1: MATH thread started flag
+// Bit 2: PACK thread started flag
+// Bit 3: UNPACK thread stopped flag
+// Bit 4: MATH thread stopped flag
+// Bit 5: PACK thread stopped flag
+// Bit 6: Global started flag (at least one thread started)
+// Bit 7: Global stopped flag (all threads stopped)
+// Bits 9-10: Last stopper thread ID (0=UNPACK, 1=MATH, 2=PACK)
+// Bits 8,11-31: Reserved
 
 constexpr std::uint32_t SYNC_START_MASK         = (1u << 0) | (1u << 1) | (1u << 2);
 constexpr std::uint32_t SYNC_STOP_MASK          = SYNC_START_MASK << 3;
