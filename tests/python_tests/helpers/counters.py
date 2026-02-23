@@ -199,7 +199,11 @@ ALL_THREADS = ["UNPACK", "MATH", "PACK"]
 
 def configure_counters(location: str = "0,0") -> None:
     """
-    Configure all performance counters on all threads (UNPACK, MATH, PACK).
+    Configure performance counters in the shared buffer for all threads (UNPACK, MATH, PACK).
+
+    Writes counter configuration to L1 memory that all threads access. The counters are
+    started/stopped by all threads via start_perf_counters()/stop_perf_counters(), but
+    only the last thread to finish (last stopper) reads the hardware and writes results.
 
     Args:
         location: Tensix core coordinates (e.g., "0,0").
@@ -239,13 +243,18 @@ def configure_counters(location: str = "0,0") -> None:
 
 def read_counters(location: str = "0,0") -> pd.DataFrame:
     """
-    Read performance counter results from all threads.
+    Read performance counter results from the shared buffer.
+
+    In the shared buffer architecture, whichever thread finishes last (the "last stopper")
+    reads the hardware counters and writes them to the shared buffer. This function returns
+    a single thread's snapshot - the results captured by the last stopper.
 
     Args:
         location: Tensix core coordinates (e.g., "0,0").
 
     Returns:
-        DataFrame with columns: thread, bank, counter_name, counter_id, cycles, count, l1_mux
+        DataFrame containing the last stopper's counter snapshot, with columns:
+        thread, bank, counter_name, counter_id, cycles, count, l1_mux
     """
     all_results = []
 
