@@ -92,18 +92,6 @@ constexpr std::uint32_t COUNTER_BANK_COUNT = 5;
 constexpr std::uint32_t COUNTER_SLOT_COUNT = 86;
 
 // ============================================================================
-// Counter Result Structure
-// ============================================================================
-
-struct counter_result
-{
-    std::uint32_t cycles;
-    std::uint32_t count;
-    counter_bank bank;
-    std::uint32_t counter_id;
-};
-
-// ============================================================================
 // Helper Functions
 // ============================================================================
 
