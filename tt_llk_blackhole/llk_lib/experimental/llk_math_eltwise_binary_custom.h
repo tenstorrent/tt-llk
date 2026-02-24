@@ -309,7 +309,7 @@ inline void _llk_math_eltwise_binary_bcast_reuse_custom_(const std::uint32_t ct_
         TTI_ELWSUB(p_setrwc::CLR_NONE, 0, p_elwise::SRCB_BCAST_COL, ADDR_MOD_6, 0); // 40 -> 64, no CLR_A
 
         // Reset srcB to 0 for next tile, but keep srcA advancing
-        TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB); // reset only srcB counter to 0
+        TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB);
     }
 
     // Final cleanup: reset both counters
