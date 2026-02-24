@@ -88,8 +88,8 @@ class FusedOperation:
         num_rows = 32
         num_cols = 32
 
-        self.block_tiles_x = self.block_size[0] // num_rows
-        self.block_tiles_y = self.block_size[1] // num_cols
+        self.block_tiles_x = self.block_size[1] // num_cols
+        self.block_tiles_y = self.block_size[0] // num_rows
 
         validate_tile_dimensions(self.src_a.dimensions[0], num_rows)
         validate_tile_dimensions(self.src_a.dimensions[1], num_cols)
@@ -99,9 +99,6 @@ class FusedOperation:
         self.rt_dim = self.output.dimensions[0] // num_rows
         self.ct_dim = self.output.dimensions[1] // num_cols
         self.kt_dim = self.src_a.dimensions[1] // num_cols
-
-        self.dest_tiles_h = self.output.dimensions[0] // num_rows
-        self.dest_tiles_w = self.output.dimensions[1] // num_cols
 
         if (
             self.block_size[0] > self.output.dimensions[0]

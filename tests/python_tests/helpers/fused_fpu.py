@@ -125,8 +125,8 @@ class MatmulFpu(Fpu):
         stage = operation.stage_id
         math_fidelity = operation.math_fidelity.cpp_enum_value
         transpose = "true" if compute_unit.unpack_transpose_faces.value else "false"
-        rt_dim = block.block_tiles_x
-        ct_dim = block.block_tiles_y
+        rt_dim = block.block_tiles_y
+        ct_dim = block.block_tiles_x
 
         return (
             f"// Operation {stage}: Matmul FPU\n"
@@ -142,8 +142,8 @@ class MatmulFpu(Fpu):
         compute_unit: "ComputeNode",
         block: "BlockData",
     ) -> str:
-        rt_dim = block.block_tiles_x
-        ct_dim = block.block_tiles_y
+        rt_dim = block.block_tiles_y
+        ct_dim = block.block_tiles_x
         kt_dim = operation.kt_dim
         math_fidelity = operation.math_fidelity.cpp_enum_value
 

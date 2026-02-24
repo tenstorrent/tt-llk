@@ -100,8 +100,8 @@ class MatmulUnpacker(Unpacker):
         block: "BlockData",
     ) -> str:
         kt_dim = operation.kt_dim
-        rt_dim = block.block_tiles_x
-        ct_dim = block.block_tiles_y
+        rt_dim = block.block_tiles_y
+        ct_dim = block.block_tiles_x
         return f"_perf_unpack_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def perf_clear_valid(
@@ -112,8 +112,8 @@ class MatmulUnpacker(Unpacker):
         block: "BlockData",
     ) -> str:
         kt_dim = operation.kt_dim
-        rt_dim = block.block_tiles_x
-        ct_dim = block.block_tiles_y
+        rt_dim = block.block_tiles_y
+        ct_dim = block.block_tiles_x
         return f"_perf_math_matmul_mock(1, {rt_dim}, {kt_dim}, {ct_dim});\n"
 
     def golden(
@@ -154,8 +154,8 @@ class MatmulUnpacker(Unpacker):
         block: "BlockData",
     ) -> str:
         face_r_dim = operation.face_r_dim
-        rt_dim = block.block_tiles_x
-        ct_dim = block.block_tiles_y
+        rt_dim = block.block_tiles_y
+        ct_dim = block.block_tiles_x
         kt_dim = operation.kt_dim
 
         transpose_faces = compute_unit.unpack_transpose_faces.cpp_enum_value
@@ -176,8 +176,8 @@ class MatmulUnpacker(Unpacker):
         block: "BlockData",
     ) -> str:
         stage = operation.stage_id
-        rt_dim = block.block_tiles_x
-        ct_dim = block.block_tiles_y
+        rt_dim = block.block_tiles_y
+        ct_dim = block.block_tiles_x
         kt_dim = operation.kt_dim
         unpack_tile_size_a = operation.tile_size_unpack_a
         unpack_tile_size_b = operation.tile_size_unpack_b
@@ -560,7 +560,7 @@ class UnpackerTilizeA(Unpacker):
     ) -> str:
         stage = operation.stage_id
         face_r_dim = operation.face_r_dim
-        block_ct_dim = operation.dest_tiles_w
+        block_ct_dim = operation.output.tile_count_x
         transpose_faces = compute_unit.unpack_transpose_faces.value
         transpose_within_face = compute_unit.unpack_transpose_within_face.value
         if compute_unit.broadcast_type != BroadcastType.None_:
@@ -581,7 +581,7 @@ class UnpackerTilizeA(Unpacker):
         stage = operation.stage_id
         face_r_dim = operation.face_r_dim
         num_faces = operation.num_faces
-        block_ct_dim = operation.dest_tiles_w
+        block_ct_dim = operation.output.tile_count_x
 
         # For tilize, we need to compute row/col from tile_idx
         # Blackhole

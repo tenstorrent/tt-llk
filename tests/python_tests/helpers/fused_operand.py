@@ -32,8 +32,8 @@ class Operand:
             raise ValueError(
                 f"Input operand '{self.name}' must have dimensions and data_format"
             )
-        self.tile_count_x = self.dimensions[0] // 32
-        self.tile_count_y = self.dimensions[1] // 32
+        self.tile_count_x = self.dimensions[1] // 32
+        self.tile_count_y = self.dimensions[0] // 32
         self.tile_count = self.tile_count_x * self.tile_count_y
 
     def is_input(self) -> bool:
