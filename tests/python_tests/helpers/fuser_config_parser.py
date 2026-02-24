@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+import re
 from enum import Enum
 from pathlib import Path
 from typing import Annotated, List, Literal, Optional, Type, Union
@@ -59,24 +60,19 @@ def format_validation_error(error: ValidationError) -> str:
     for err in error.errors():
         loc = ".".join(str(x) for x in err["loc"])
         msg = err["msg"]
-        inp = err.get("input")
 
         if "Input should be" in msg:
-            start = msg.find("'")
-            if start != -1:
-                valid_part = msg[start:].replace("'", "")
-                messages.append(f"'{loc}': got '{inp}', expected: {valid_part}")
-            else:
-                messages.append(f"'{loc}': {msg}")
+            inp = err.get("input")
+            valid_values = re.findall(r"'([^']+)'", msg)
+            expected = ", ".join(valid_values) if valid_values else msg
+            messages.append(f"'{loc}': got '{inp}', expected: {expected}")
         elif "Extra inputs are not permitted" in msg:
             messages.append(f"'{loc}': unknown field")
         elif "Field required" in msg:
             messages.append(f"'{loc}': required field missing")
-        elif "Value error" in msg:
-            custom_msg = msg.replace("Value error, ", "")
-            messages.append(f"'{loc}': {custom_msg}")
         else:
-            messages.append(f"'{loc}': {msg}")
+            clean_msg = msg.removeprefix("Value error, ")
+            messages.append(f"'{loc}': {clean_msg}")
 
     return "\n".join(messages)
 
