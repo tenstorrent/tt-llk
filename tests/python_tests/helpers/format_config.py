@@ -68,6 +68,7 @@ class DataFormat(Enum):
     UInt8 = DataFormatInfo("UInt8", 1)
     MxFp8R = DataFormatInfo("MxFp8R", 1)
     MxFp8P = DataFormatInfo("MxFp8P", 1)
+    Fp8_e4m3 = DataFormatInfo("Fp8_e4m3", 1)
 
     @property
     def size(self) -> int:

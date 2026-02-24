@@ -41,6 +41,11 @@ def pack_uint16(torch_tensor):
     return torch_tensor.cpu().numpy().astype(np.uint16).tobytes()
 
 
+def pack_fp8_e4m3(torch_tensor):
+    fp32_array = torch_tensor.cpu().to(torch.float32).numpy()
+    return fp32_array.astype(ml_dtypes.float8_e4m3fn).tobytes()
+
+
 def pack_int8(torch_tensor):
     return torch_tensor.cpu().numpy().astype(np.int8).tobytes()
 
