@@ -53,7 +53,7 @@
 //      * rebuild(m=1, skip_second=0) → merge(m=1) → rebuild(m=1, skip_second=1)
 //      * Pack only first tile (top-K result) to output buffer
 //
-// 5. Example for 32x256 matrix (8 value tiles, Wt=8, TOPK_NUM_ITERATIONS=3):
+// 5. Example for 32x512 matrix (8 value tiles, Wt=8, TOPK_NUM_ITERATIONS=3):
 //    - Iteration 0:
 //      * Unpack pairs (0,1), (2,3), (4,5), (6,7) with transpose
 //      * local_sort → merge(m=0)
