@@ -2,10 +2,12 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import math
 from abc import ABC, abstractmethod
 from ctypes import c_uint32
 from dataclasses import dataclass
 
+from .golden_generators import TILE_DIMENSIONS
 from .llk_params import (
     FPU_BINARY_OPERATIONS,
     REDUCE_OPERATIONS,
@@ -27,6 +29,7 @@ from .llk_params import (
     StableSort,
     StochasticRounding,
     Tilize,
+    TopKSortDirection,
     Transpose,
     UnpackerEngine,
 )
@@ -113,6 +116,12 @@ class REUSE_DEST_TYPE(TemplateParameter):
         return f"constexpr auto REUSE_DEST_TYPE = ckernel::EltwiseBinaryReuseDestType::{self.reuse_dest_type.name};"
 
 
+@dataclass
+class EN_DEST_REUSE(TemplateParameter):
+    def covert_to_cpp(self) -> str:
+        return "#define EN_DEST_REUSE"
+
+
 def _generate_operation_constants(mathop: MathOperation) -> list[str]:
     """Generate the appropriate operation constants based on the math operation type."""
     constants = []
@@ -193,7 +202,7 @@ class APPROX_MODE(TemplateParameter):
     approx_mode: ApproximationMode = ApproximationMode.No
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr bool APPROX_MODE = {self.approx_mode.value};"
+        return f"constexpr bool APPROX_MODE = {self.approx_mode.cpp_enum_value};"
 
 
 @dataclass
@@ -278,6 +287,31 @@ class REDUCE_POOL_TYPE(TemplateParameter):
 
     def covert_to_cpp(self) -> str:
         return f"constexpr auto POOL_TYPE = ckernel::PoolType::{self.reduce_pool_type.value};"
+
+
+@dataclass
+class TOPK(TemplateParameter):
+    topk_k: int = 0
+    topk_matrix_width: int = 0
+    topk_sort_direction: TopKSortDirection = TopKSortDirection.Descending
+
+    def covert_to_cpp(self) -> str:
+        lines: list[str] = [
+            f"constexpr std::uint32_t TOPK_K = {self.topk_k};",
+            f"constexpr std::uint32_t TOPK_LOGK = {int(math.log2(self.topk_k))};",
+            f"constexpr std::uint32_t TOPK_NUM_ITERATIONS = {int(math.log2(self.topk_matrix_width // TILE_DIMENSIONS[1] // 2))};",
+            f"constexpr std::uint32_t TOPK_SORT_DIRECTION = {self.topk_sort_direction.value};",
+        ]
+        return "\n".join(lines)
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        lines: list[str] = [
+            "std::uint32_t TOPK_K;",
+            "std::uint32_t TOPK_LOGK;",
+            "std::uint32_t TOPK_SORT_DIRECTION;",
+            "std::uint32_t TOPK_NUM_ITERATIONS;",
+        ]
+        return "\n".join(lines), "IV"
 
 
 @dataclass
@@ -539,23 +573,59 @@ class CRK_TILE_DIMM(RuntimeParameter):
 @dataclass
 class NUM_TILES_IN_BLOCK(RuntimeParameter):
     num_tiles_in_block: int = 1
+    input_num_tiles_in_block: int = None
+    output_num_tiles_in_block: int = None
+
+    def __post_init__(self):
+        if self.input_num_tiles_in_block is None:
+            self.input_num_tiles_in_block = self.num_tiles_in_block
+        if self.output_num_tiles_in_block is None:
+            self.output_num_tiles_in_block = self.num_tiles_in_block
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr int NUM_TILES_IN_BLOCK = {self.num_tiles_in_block};"
+        lines = [
+            f"constexpr int NUM_TILES_IN_BLOCK = {self.num_tiles_in_block};",
+            f"constexpr int INPUT_NUM_TILES_IN_BLOCK = {self.input_num_tiles_in_block};",
+            f"constexpr int OUTPUT_NUM_TILES_IN_BLOCK = {self.output_num_tiles_in_block};",
+        ]
+        return "\n".join(lines)
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return f"int NUM_TILES_IN_BLOCK;", "i"
+        lines = [
+            "int NUM_TILES_IN_BLOCK;",
+            "int INPUT_NUM_TILES_IN_BLOCK;",
+            "int OUTPUT_NUM_TILES_IN_BLOCK;",
+        ]
+        return "\n".join(lines), "iii"
 
 
 @dataclass
 class NUM_BLOCKS(RuntimeParameter):
     num_blocks: int = 1
+    input_num_blocks: int = None
+    output_num_blocks: int = None
+
+    def __post_init__(self):
+        if self.input_num_blocks is None:
+            self.input_num_blocks = self.num_blocks
+        if self.output_num_blocks is None:
+            self.output_num_blocks = self.num_blocks
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr int NUM_BLOCKS = {self.num_blocks};"
+        lines = [
+            f"constexpr int NUM_BLOCKS = {self.num_blocks};",
+            f"constexpr int INPUT_NUM_BLOCKS = {self.input_num_blocks};",
+            f"constexpr int OUTPUT_NUM_BLOCKS = {self.output_num_blocks};",
+        ]
+        return "\n".join(lines)
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return f"int NUM_BLOCKS;", "i"
+        lines = [
+            "int NUM_BLOCKS;",
+            "int INPUT_NUM_BLOCKS;",
+            "int OUTPUT_NUM_BLOCKS;",
+        ]
+        return "\n".join(lines), "iii"
 
 
 @dataclass
