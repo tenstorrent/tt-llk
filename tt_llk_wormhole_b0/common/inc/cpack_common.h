@@ -246,6 +246,9 @@ inline void set_packer_config(
     config.f.in_data_format    = pack_src_format;
     config.f.pack_per_xy_plane = 1;
 
+    config.f.exp_threshold_en = 0;
+    config.f.exp_threshold    = 0;
+
     // Workaround for bug in HW: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
     {
@@ -483,6 +486,9 @@ inline void reconfig_packer_data_format(
     set_packer_l1_offset(pack_dst_format, face_r_dim);
 
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
+
+    config.f.exp_threshold_en = 0;
+    config.f.exp_threshold    = 0;
 
     // Workaround for HW bug: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
