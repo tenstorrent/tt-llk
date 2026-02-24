@@ -288,9 +288,10 @@ def test_topk_sfpu(
         and get_chip_architecture() == ChipArchitecture.BLACKHOLE
     ):
         # For 32x1024 input on blackhole arch, we have observed some discrepancies in the topk values between hardware and golden.
+        # TODO: Fix issue #1344 on tt-llk.
         pytest.skip(
             "Skipping test for 32x1024 input on blackhole arch due to observed discrepancies."
-        )  # TODO fix this.
+        )
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -351,9 +352,7 @@ def test_topk_sfpu(
         golden_tensor
     ), "Result tensor and golden tensor are not of the same length"
 
-    if (
-        input_dimensions[1] == 128
-    ):  # TODO Fix indices repeating issue for wider matrices.
+    if input_dimensions[1] == 128:  # TODO: Fix issue #1344 on tt-llk.
         assert validate_topk_indices(
             res_tensor, golden_tensor, src_A, formats, input_dimensions, K
         )
