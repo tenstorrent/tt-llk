@@ -70,7 +70,7 @@ class Unpacker:
         return f"_perf_math_loop_clear_valid<true, true>({num_faces});\n"
 
     def get_headers(self) -> List[str]:
-        return ["perf.h"]
+        return []
 
     def golden(
         self,
@@ -716,7 +716,7 @@ class ReduceBlockMaxUnpacker(Unpacker):
         block: "BlockData",
     ) -> str:
         ct_dim = block.block_tiles_x
-        dest_acc = config.dest_acc.value
+        dest_acc = config.dest_acc.cpp_enum_value
         return f"_llk_unpack_AB_reduce_block_max_row_init_<{ct_dim}, {dest_acc}>();\n"
 
     def unpack(

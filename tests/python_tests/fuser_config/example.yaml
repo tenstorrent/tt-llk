@@ -26,8 +26,6 @@ operations:
         unpacker: "UnpackerAB"
     packer: "Packer"
     math_fidelity: "LoFi"
-    unpack_transpose_within_face: false
-    unpack_transpose_faces: false
     block_size: [64, 64]
 
   - src_a: "datacopy_output"

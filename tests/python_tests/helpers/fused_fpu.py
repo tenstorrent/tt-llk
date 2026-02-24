@@ -518,6 +518,8 @@ class DatacopyFpu(Fpu):
 
 
 class ReduceBlockMaxFpu(Fpu):
+    loop: FusedLoop = LoopTileByTile()
+
     def init(
         self,
         operation: "FusedOperation",
@@ -526,7 +528,7 @@ class ReduceBlockMaxFpu(Fpu):
         block: "BlockData",
     ) -> str:
         ct_dim = block.block_tiles_x
-        dest_acc = config.dest_acc.value
+        dest_acc = config.dest_acc.cpp_enum_value
         return f"_llk_math_reduce_block_max_row_init_<{ct_dim}, {dest_acc}>();\n"
 
     def calculate(
@@ -537,7 +539,7 @@ class ReduceBlockMaxFpu(Fpu):
         block: "BlockData",
     ) -> str:
         ct_dim = block.block_tiles_x
-        dest_acc = config.dest_acc.value
+        dest_acc = config.dest_acc.cpp_enum_value
         tile_x_in_block = f"(({block.tile_id_block}) / {block.block_tiles_y})"
         tile_y_in_block = f"(({block.tile_id_block}) % {block.block_tiles_y})"
         dest_expr = tile_y_in_block

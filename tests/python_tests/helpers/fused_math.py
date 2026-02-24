@@ -15,7 +15,7 @@ from .chip_architecture import ChipArchitecture
 from .fused_fpu import Fpu, ReduceBlockMaxFpu, ReduceFpu
 from .fused_packer import Packer
 from .fused_sfpu import Sfpu
-from .fused_unpacker import Unpacker, UnpackerA
+from .fused_unpacker import Unpacker
 from .llk_params import (
     BroadcastType,
     DataCopyType,
@@ -512,8 +512,8 @@ class ComputePipeline:
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
         stage = operation.stage_id
-        dest_acc = config.dest_acc.value
-        if stage == 0:
+        dest_acc = config.dest_acc.cpp_enum_value
+        if stage == 1:
             code = f"_llk_math_hw_configure_<{dest_acc}>(math_format{stage}, math_format{stage});\n"
         else:
             code = f"_llk_math_reconfig_data_format_<{dest_acc}, false>(math_format{stage}, math_format{stage});\n"
@@ -546,24 +546,19 @@ class ComputePipeline:
         ):
             return ""
 
-        return f"_llk_math_dest_section_done_<dest_sync{operation.stage_id}, {config.dest_acc.value}>();\n"
+        dest_acc = config.dest_acc.cpp_enum_value
+        return f"_llk_math_dest_section_done_<dest_sync{operation.stage_id}, {dest_acc}>();\n"
 
     def _math_constants(
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
         stage = operation.stage_id
         math_format = operation.output.data_format
-        dest_sync = operation.dest_sync
-
-        dest_sync_map = {
-            DestSync.Half: "SyncHalf",
-            DestSync.Full: "SyncFull",
-        }
-        dest_sync_str = dest_sync_map.get(dest_sync, "SyncHalf")
+        dest_sync = operation.dest_sync.cpp_enum_value
 
         code = f"// Operation {stage}: Math Setup\n"
         code += f"const std::uint32_t math_format{stage} = ckernel::to_underlying(DataFormat::{math_format.name});\n"
-        code += f"constexpr DstSync dest_sync{stage} = DstSync::{dest_sync_str};\n"
+        code += f"constexpr DstSync dest_sync{stage} = {dest_sync};\n"
 
         return code
 
@@ -622,8 +617,8 @@ class ComputePipeline:
         ):
             return ""
 
-        dest_sync = f"DstSync::Sync{operation.dest_sync.name}"
-        dest_acc = config.dest_acc.value
+        dest_sync = operation.dest_sync.cpp_enum_value
+        dest_acc = config.dest_acc.cpp_enum_value
         return f"_llk_pack_dest_section_done_<{dest_sync}, {dest_acc}>();\n"
 
     def _pack_constants(
@@ -646,13 +641,13 @@ class ComputePipeline:
         self, operation: "FusedOperation", config: "GlobalConfig"
     ) -> str:
         stage = operation.stage_id
-        bh_tilize = "true" if operation.bh_tilize.value else "false"
-        dest_acc = config.dest_acc.value
+        bh_tilize = operation.bh_tilize.cpp_enum_value
+        dest_acc = config.dest_acc.cpp_enum_value
         pack_size = operation.tile_size_pack
         face_r_dim = operation.face_r_dim
         num_faces = operation.num_faces
 
-        if stage == 0:
+        if stage == 1:
             if config.architecture == ChipArchitecture.BLACKHOLE:
                 code = (
                     f"_llk_pack_hw_configure_<{dest_acc}, false, {bh_tilize}>(\n"
@@ -701,7 +696,7 @@ class ComputePipeline:
         num_stages = operation.num_stages
         code = ""
 
-        if stage < num_stages - 1:
+        if stage < num_stages:
             code += "t6_semaphore_post<>(semaphore::PACK_DONE);\n\n"
 
         return code
