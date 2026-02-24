@@ -10,6 +10,8 @@ from conftest import skip_for_blackhole
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
+    ELEMENTS_PER_TILE,
+    TILE_DIMENSIONS,
     BroadcastGolden,
     DataCopyGolden,
     TransposeGolden,
@@ -37,6 +39,7 @@ from helpers.test_variant_parameters import (
     ACC_TO_DEST,
     BROADCAST_TYPE,
     DISABLE_SRC_ZERO_FLAG,
+    INPUT_DIMENSIONS,
     NUM_BLOCKS,
     NUM_FACES,
     NUM_TILES_IN_BLOCK,
@@ -81,8 +84,7 @@ within_face_16x16_transpose_values = [Transpose.No, Transpose.Yes]
 num_faces_values = [1, 2, 4]
 face_r_dim_values = [1, 2, 4, 8, 16]
 
-input_dimensions = [[r, 32] for r in face_r_dim_values] + [[32, 32]]
-
+input_dimensions = [[r, 32] for r in face_r_dim_values] + [[32, 32]] + [[256, 256]]
 # Use only cross_test_formats as it already includes same-format combinations
 test_formats = input_output_formats(supported_formats, False)
 
@@ -186,6 +188,13 @@ def filter_params_with_constraints(all_params):
         if face_r_dim < 16 and input_dimensions != [face_r_dim, 32]:
             continue
 
+        # Full face requires 32x32-multiple dimensions to avoid zero tiles
+        if face_r_dim == 16 and (
+            input_dimensions[0] % TILE_DIMENSIONS[0] != 0
+            or input_dimensions[1] % TILE_DIMENSIONS[1] != 0
+        ):
+            continue
+
         # User constraint: transpose_of_faces and within_face_16x16_transpose are mutually inclusive
         if transpose_of_faces != within_face_16x16_transpose:
             continue
@@ -268,6 +277,32 @@ def filter_params_with_constraints(all_params):
             and (reuse_none or reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCA)
             and transpose_of_faces == Transpose.Yes
             and within_face_16x16_transpose == Transpose.Yes
+        ):
+            continue
+
+        more_than_one_tile = (
+            input_dimensions[0] * input_dimensions[1]
+        ) > ELEMENTS_PER_TILE
+
+        # Block Bfp8_b transpose with acc_to_dest + DEST_TO_SRCA (hardware mismatch) (see #1348 issue in tt-llk).
+        if (
+            formats.input_format == DataFormat.Bfp8_b
+            and acc_to_dest
+            and reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCA
+            and transpose_of_faces == Transpose.Yes
+            and within_face_16x16_transpose == Transpose.Yes
+            and more_than_one_tile
+        ):
+            continue
+
+        # Block Bfp8_b transpose with acc_to_dest + reuse NONE (hardware mismatch) (see #1348 issue in tt-llk).
+        if (
+            formats.input_format == DataFormat.Bfp8_b
+            and acc_to_dest
+            and reuse_dest == EltwiseBinaryReuseDestType.NONE
+            and transpose_of_faces == Transpose.Yes
+            and within_face_16x16_transpose == Transpose.Yes
+            and more_than_one_tile
         ):
             continue
 
@@ -390,12 +425,28 @@ def test_unpack_comprehensive(
         # Both transpose flags are ALWAYS on together (mutually inclusive constraint)
         transpose_golden = get_golden_generator(TransposeGolden)
         # First apply within-face transpose, then face transpose
-        temp_tensor = transpose_golden.transpose_within_faces(
-            src_A, formats.output_format, input_dimensions, num_faces
-        )
-        golden_tensor = transpose_golden.transpose_faces(
-            temp_tensor, formats.output_format, input_dimensions, num_faces
-        )
+        if tile_cnt_A > 1:
+            tiles = torch.tensor(src_A, dtype=format_dict[formats.input_format]).view(
+                tile_cnt_A, ELEMENTS_PER_TILE
+            )
+            processed_tiles = []
+            for tile in tiles:
+                temp_tensor = transpose_golden.transpose_within_faces(
+                    tile, formats.output_format, input_dimensions, num_faces
+                )
+                processed_tiles.append(
+                    transpose_golden.transpose_faces(
+                        temp_tensor, formats.output_format, input_dimensions, num_faces
+                    )
+                )
+            golden_tensor = torch.cat(processed_tiles)
+        else:
+            temp_tensor = transpose_golden.transpose_within_faces(
+                src_A, formats.output_format, input_dimensions, num_faces
+            )
+            golden_tensor = transpose_golden.transpose_faces(
+                temp_tensor, formats.output_format, input_dimensions, num_faces
+            )
     else:
         # No transpose - handle based on reuse_dest behavior
         if reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCA and acc_to_dest:
@@ -421,44 +472,37 @@ def test_unpack_comprehensive(
                 )
                 face_size = face_r_dim * 16  # face_r_dim x 16 face
 
-                if num_faces == 1:
-                    # Single face with DEST_TO_SRCA + acc_to_dest:
-                    # Hardware processes first half of face, then reuses/duplicates for second half
-                    # DEST_TO_SRCA causes the first face_size/2 elements to be processed, then repeated
-                    input_face = input_tensor[:face_size].to(
-                        format_dict[formats.output_format]
-                    )
-                    half_face = face_size // 2
-                    first_half = input_face[
-                        :half_face
-                    ]  # First half of variable-sized face
-                    # Duplicate first half for second half due to DEST_TO_SRCA register reuse
-                    golden_tensor = torch.cat([first_half, first_half])
-                else:
-                    # Multiple faces: DEST_TO_SRCA applies duplication pattern within each face
-                    # Each face behaves like single face - first half duplicated for second half
+                def _dest_to_srca_tile(tile_tensor: torch.Tensor) -> torch.Tensor:
+                    if num_faces == 1:
+                        input_face = tile_tensor[:face_size].to(
+                            format_dict[formats.output_format]
+                        )
+                        half_face = face_size // 2
+                        first_half = input_face[:half_face]
+                        return torch.cat([first_half, first_half])
+
                     result = torch.zeros(
                         face_size * num_faces, dtype=format_dict[formats.output_format]
                     )
-
                     for face_idx in range(num_faces):
                         face_start = face_idx * face_size
                         face_end = face_start + face_size
-                        input_face = input_tensor[face_start:face_end].to(
+                        input_face = tile_tensor[face_start:face_end].to(
                             format_dict[formats.output_format]
                         )
-
-                        # Apply same duplication pattern as single face within each face
                         half_face = face_size // 2
-                        first_half = input_face[
-                            :half_face
-                        ]  # First half of variable-sized face
-                        face_output = torch.cat(
-                            [first_half, first_half]
-                        )  # Duplicate first half
+                        first_half = input_face[:half_face]
+                        face_output = torch.cat([first_half, first_half])
                         result[face_start:face_end] = face_output
+                    return result
 
-                    golden_tensor = result
+                if tile_cnt_A > 1:
+                    tiles = input_tensor.view(tile_cnt_A, ELEMENTS_PER_TILE)
+                    golden_tensor = torch.cat(
+                        [_dest_to_srca_tile(tile) for tile in tiles]
+                    )
+                else:
+                    golden_tensor = _dest_to_srca_tile(input_tensor)
         else:
             # Regular data copy for other reuse types or no acc_to_dest
             generate_golden = get_golden_generator(DataCopyGolden)
@@ -466,17 +510,21 @@ def test_unpack_comprehensive(
                 src_A, formats.output_format, num_faces, input_dimensions, face_r_dim
             )
 
-    tile_dimensions = [
-        32,
-        32,
-    ]  # Use full tile dimensions even for partial face tests since we don't do dense tile processing here.
-
+    # We use raw dimensions because we calculate num_blocks and num_tiles_in_block without dense tile processing in dest.
+    raw_dimensions = [
+        (
+            input_dimensions[0]
+            if input_dimensions[0] >= TILE_DIMENSIONS[0]
+            else TILE_DIMENSIONS[0]
+        ),
+        input_dimensions[1],
+    ]
     num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
         DestSync.Half,
-        DestAccumulation.No,
+        DestAccumulation.Yes if acc_to_dest else DestAccumulation.No,
         formats,
-        input_dimensions,
-        tile_dimensions,
+        raw_dimensions,
+        TILE_DIMENSIONS,  # Use full tile dimensions even for partial face tests since we don't do dense tile processing here.
         BlocksCalculationAlgorithm.Standard,
     )
 
@@ -504,6 +552,10 @@ def test_unpack_comprehensive(
             TEST_FACE_DIMS(face_r_dim=face_r_dim),
             NUM_TILES_IN_BLOCK(num_tiles_in_block),
             NUM_BLOCKS(num_blocks),
+            INPUT_DIMENSIONS(
+                raw_dimensions[0] // TILE_DIMENSIONS[0],
+                raw_dimensions[1] // TILE_DIMENSIONS[1],
+            ),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
