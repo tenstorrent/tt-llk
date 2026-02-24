@@ -546,7 +546,7 @@ class ReduceBlockMaxFpu(Fpu):
         return (
             f"if (({tile_x_in_block}) % {ct_dim} == 0 ) {{\n"
             f"    _llk_math_reduce_block_max_row_<{ct_dim}, {dest_acc}>({dest_expr});\n"
-            f"}}"
+            f"}}\n"
         )
 
     def uninit(

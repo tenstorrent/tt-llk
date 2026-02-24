@@ -187,6 +187,6 @@ class FusedOperation:
             f"  Src_B: {self.src_b}\n"
             f"  Output: {self.output}\n"
             f"  Math Fidelity: {self.math_fidelity}\n"
-            f"  Dest Sync: {self.dest_sync}"
+            f"  Dest Sync: {self.dest_sync}\n"
             f"  Block Size: {self.block_size}\n"
         )

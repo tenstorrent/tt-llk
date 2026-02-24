@@ -356,7 +356,7 @@ class OperationSchema(BaseModel):
     dest_sync: Optional[DestSync] = None
     block_size: Annotated[List[int], Field(min_length=2, max_length=2)] = [32, 32]
 
-    @field_validator("src_a_dims", "src_b_dims", "output_dims")
+    @field_validator("src_a_dims", "src_b_dims", "output_dims", "block_size")
     @classmethod
     def validate_dimensions(cls, v: List[int]) -> List[int]:
         for dim in v:
