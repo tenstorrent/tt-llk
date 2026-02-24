@@ -216,9 +216,11 @@ Configuration and data buffers in L1 use a **single shared buffer** accessed by 
 
 **Shared Buffer Semantics:**
 - All threads (UNPACK, MATH, PACK) call `start_perf_counters()` to set their start bits
+- The **first thread to call start** (when all start bits are 0) initializes hardware and is recorded as the "starter"
 - All threads call `stop_perf_counters()` to set their stop bits
-- The **last thread to call stop** ("last stopper") reads hardware counters and writes results to the shared data buffer
-- Python `read_counters()` returns the snapshot captured by the last stopper
+- The **last thread to call stop** (when all 3 stop bits become set) reads hardware counters, writes results to the shared data buffer, and is recorded as the "stopper"
+- Python `read_counters()` returns the snapshot captured by the stopper, along with both starter and stopper thread IDs
+- **No mutex required**: Each thread atomically sets its own bit; checks are simple bit masks
 - This reduces memory usage from 3096 bytes (3 × 1032) to 1036 bytes
 
 **Sync Control Word Format (0x16A408):**
@@ -233,9 +235,9 @@ Configuration and data buffers in L1 use a **single shared buffer** accessed by 
 | 5 | stopped_pack | PACK thread called stop_perf_counters() |
 | 6 | started_global | At least one thread started counters |
 | 7 | stopped_global | All threads stopped counters |
-| 8 | reserved | Reserved for future use |
-| 10:9 | last_stopper_id | Which thread was last to stop (0=UNPACK, 1=MATH, 2=PACK) |
-| 31:11 | reserved | Reserved for future use |
+| 9:8 | starter_id | Which thread started hardware (0=UNPACK, 1=MATH, 2=PACK) |
+| 11:10 | stopper_id | Which thread stopped hardware (0=UNPACK, 1=MATH, 2=PACK) |
+| 31:12 | reserved | Reserved for future use |
 
 **Config word encoding:** Each counter slot is a single 32-bit config word with the following format:
 
@@ -409,7 +411,7 @@ Location: `tests/python_tests/helpers/counters.py`
 | Function | Description |
 |----------|-------------|
 | `configure_counters(location="0,0")` | Write counter configuration to shared L1 buffer. Configures all 94 counter definitions (61 INSTRN_THREAD + 3 FPU + 11 TDMA_UNPACK + 3 TDMA_PACK + 16 L1). Note: Hardware has 86 slots; L1 counters are mux-dependent (8 active at once). Clears data buffer and sync control word. |
-| `read_counters(location="0,0")` | Read counter results from shared buffer. Returns DataFrame with columns: `thread`, `bank`, `counter_name`, `counter_id`, `cycles`, `count`, `l1_mux`. Validates sync state and identifies missing start/stop calls. |
+| `read_counters(location="0,0")` | Read counter results from shared buffer. Returns DataFrame with columns: `starter_thread`, `stopper_thread`, `bank`, `counter_name`, `counter_id`, `cycles`, `count`, `l1_mux`. Validates sync state and identifies missing start/stop calls. |
 | `print_counters(results)` | Print counter results in human-readable format with thread identification. |
 | `export_counters(results, filename, test_params, worker_id)` | Export counter DataFrame to CSV in `perf_data/` directory. |
 
@@ -419,6 +421,7 @@ The `read_counters()` function performs comprehensive validation:
 - **Zero sync word**: Detects if counters were never started (all threads forgot to call `start_perf_counters()`)
 - **Missing global start**: At least one thread must call `start_perf_counters()`
 - **Missing global stop**: All threads must call `stop_perf_counters()`. Reports which specific threads (UNPACK, MATH, PACK) are missing stop calls
+- **Invalid thread IDs**: Validates both starter and stopper thread IDs are in valid range (0-2)
 - **Error messages include sync_ctrl value**: All validation errors display the raw sync control word for debugging
 
 **Example validation error:**
@@ -455,8 +458,8 @@ The `PerfCounterManager` class manages performance counter lifecycle using a sin
 
 | Function | Description |
 |----------|-------------|
-| `llk_perf::start_perf_counters()` | Read config from shared L1 buffer and start all configured banks. Sets the thread's start bit in sync control word. **All threads must call this.** Thread-safe using mutex. |
-| `llk_perf::stop_perf_counters()` | Stop all configured banks and set the thread's stop bit. The last thread to call `stop_perf_counters()` reads hardware counters and writes results to the shared data buffer. **All threads must call this.** Thread-safe using mutex. |
+| `llk_perf::start_perf_counters()` | Read config from shared L1 buffer and start all configured banks. Atomically sets the thread's start bit in sync control word. First thread to call this (when all start bits are 0) initializes hardware and is recorded as the "starter". **All threads must call this.** Thread-safe via atomic bit operations (no mutex needed). |
+| `llk_perf::stop_perf_counters()` | Stop all configured banks and atomically set the thread's stop bit. Last thread to call this (when all 3 stop bits become set) reads hardware counters, writes results to the shared data buffer, and is recorded as the "stopper". **All threads must call this.** Thread-safe via atomic bit operations (no mutex needed). |
 
 **Example usage:**
 ```cpp

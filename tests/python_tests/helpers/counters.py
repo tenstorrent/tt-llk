@@ -14,8 +14,10 @@ COUNTER_SLOT_COUNT = TestConfig._PERF_COUNTERS_CONFIG_WORDS  # 86 config slots
 COUNTER_DATA_WORD_COUNT = (
     TestConfig._PERF_COUNTERS_DATA_WORDS
 )  # 172 data words (86 * 2)
-PERF_COUNTERS_LAST_STOPPER_SHIFT = 9
-PERF_COUNTERS_LAST_STOPPER_MASK = 0x3
+PERF_COUNTERS_STARTER_SHIFT = 8
+PERF_COUNTERS_STARTER_MASK = 0x3
+PERF_COUNTERS_STOPPER_SHIFT = 10
+PERF_COUNTERS_STOPPER_MASK = 0x3
 
 # Single shared buffer addresses (all threads use the same location)
 # These are already computed in TestConfig - use them directly
@@ -260,8 +262,8 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
         location: Tensix core coordinates (e.g., "0,0").
 
     Returns:
-        DataFrame containing the last stopper's counter snapshot, with columns:
-        thread, bank, counter_name, counter_id, cycles, count, l1_mux
+        DataFrame containing counter results, with columns:
+        starter_thread, stopper_thread, bank, counter_name, counter_id, cycles, count, l1_mux
     """
     all_results = []
 
@@ -308,17 +310,22 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
             f"sync_ctrl=0x{sync_word:08x}"
         )
 
-    last_id = (
-        sync_word >> PERF_COUNTERS_LAST_STOPPER_SHIFT
-    ) & PERF_COUNTERS_LAST_STOPPER_MASK
+    starter_id = (sync_word >> PERF_COUNTERS_STARTER_SHIFT) & PERF_COUNTERS_STARTER_MASK
+    stopper_id = (sync_word >> PERF_COUNTERS_STOPPER_SHIFT) & PERF_COUNTERS_STOPPER_MASK
 
-    last_thread_map = {0: "UNPACK", 1: "MATH", 2: "PACK"}
-    if last_id not in last_thread_map:
+    thread_map = {0: "UNPACK", 1: "MATH", 2: "PACK"}
+
+    if starter_id not in thread_map:
         raise RuntimeError(
-            f"Invalid last-stopper id {last_id}; sync_ctrl=0x{sync_word:08x}"
+            f"Invalid starter id {starter_id}; sync_ctrl=0x{sync_word:08x}"
+        )
+    if stopper_id not in thread_map:
+        raise RuntimeError(
+            f"Invalid stopper id {stopper_id}; sync_ctrl=0x{sync_word:08x}"
         )
 
-    thread = last_thread_map[last_id]
+    starter_thread = thread_map[starter_id]
+    stopper_thread = thread_map[stopper_id]
 
     # Read metadata from shared buffer
     metadata = read_words_from_device(
@@ -372,7 +379,8 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
 
         all_results.append(
             {
-                "thread": thread,
+                "starter_thread": starter_thread,
+                "stopper_thread": stopper_thread,
                 "bank": bank_name,
                 "counter_name": counter_name,
                 "counter_id": counter_id,
@@ -400,36 +408,36 @@ def print_counters(results: pd.DataFrame) -> None:
     print("PERFORMANCE COUNTER RESULTS")
     print("=" * 100)
 
-    for thread in ALL_THREADS:
-        thread_df = results[results["thread"] == thread]
-        if thread_df.empty:
-            continue
-
+    # Get starter and stopper from first row (same for all)
+    if not results.empty:
+        starter = results["starter_thread"].iloc[0]
+        stopper = results["stopper_thread"].iloc[0]
         print(f"\n{'─' * 100}")
-        print(f"  Last stopper: {thread} thread")
+        print(f"  Hardware started by: {starter} thread")
+        print(f"  Hardware stopped by: {stopper} thread")
         print(f"{'─' * 100}")
 
-        for bank in ["INSTRN_THREAD", "FPU", "TDMA_UNPACK", "L1", "TDMA_PACK"]:
-            bank_df = thread_df[thread_df["bank"] == bank]
-            if bank_df.empty:
-                continue
+    for bank in ["INSTRN_THREAD", "FPU", "TDMA_UNPACK", "L1", "TDMA_PACK"]:
+        bank_df = results[results["bank"] == bank]
+        if bank_df.empty:
+            continue
 
-            cycles = bank_df["cycles"].iloc[0] if len(bank_df) > 0 else 0
+        cycles = bank_df["cycles"].iloc[0] if len(bank_df) > 0 else 0
 
-            print(f"\n  ┌─ {bank} (cycles: {cycles:,})")
-            print(f"  │ {'Counter Name':<40} {'Count':>15} {'Rate':>12}")
-            print(f"  │ {'─' * 40} {'─' * 15} {'─' * 12}")
+        print(f"\n  ┌─ {bank} (cycles: {cycles:,})")
+        print(f"  │ {'Counter Name':<40} {'Count':>15} {'Rate':>12}")
+        print(f"  │ {'─' * 40} {'─' * 15} {'─' * 12}")
 
-            for _, row in bank_df.iterrows():
-                name = row["counter_name"]
-                # Add mux info for L1 counters
-                if pd.notna(row["l1_mux"]):
-                    name = f"{name} (mux{int(row['l1_mux'])})"
-                count = row["count"]
-                rate = (count / cycles) if cycles else 0.0
-                print(f"  │ {name:<40} {count:>15,} {rate:>12.4f}")
+        for _, row in bank_df.iterrows():
+            name = row["counter_name"]
+            # Add mux info for L1 counters
+            if pd.notna(row["l1_mux"]):
+                name = f"{name} (mux{int(row['l1_mux'])})"
+            count = row["count"]
+            rate = (count / cycles) if cycles else 0.0
+            print(f"  │ {name:<40} {count:>15,} {rate:>12.4f}")
 
-            print(f"  └{'─' * 70}")
+        print(f"  └{'─' * 70}")
 
     print("\n" + "=" * 100 + "\n")
 

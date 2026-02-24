@@ -8,7 +8,6 @@
 #include <cstdint>
 
 #include "ckernel.h"
-#include "ckernel_mutex_guard.h"
 
 namespace llk_perf
 {
@@ -70,15 +69,18 @@ namespace llk_perf
 // Bit 5: PACK thread stopped flag
 // Bit 6: Global started flag (at least one thread started)
 // Bit 7: Global stopped flag (all threads stopped)
-// Bits 9-10: Last stopper thread ID (0=UNPACK, 1=MATH, 2=PACK)
-// Bits 8,11-31: Reserved
+// Bits 8-9: Starter thread ID (0=UNPACK, 1=MATH, 2=PACK) - thread that initialized hardware
+// Bits 10-11: Stopper thread ID (0=UNPACK, 1=MATH, 2=PACK) - thread that read hardware
+// Bits 12-31: Reserved
 
-constexpr std::uint32_t SYNC_START_MASK         = (1u << 0) | (1u << 1) | (1u << 2);
-constexpr std::uint32_t SYNC_STOP_MASK          = SYNC_START_MASK << 3;
-constexpr std::uint32_t SYNC_STARTED_FLAG       = 1u << 6;
-constexpr std::uint32_t SYNC_STOPPED_FLAG       = 1u << 7;
-constexpr std::uint32_t SYNC_LAST_STOPPER_SHIFT = 9u;
-constexpr std::uint32_t SYNC_LAST_STOPPER_MASK  = 0x3u << SYNC_LAST_STOPPER_SHIFT;
+constexpr std::uint32_t SYNC_START_MASK    = (1u << 0) | (1u << 1) | (1u << 2);
+constexpr std::uint32_t SYNC_STOP_MASK     = SYNC_START_MASK << 3;
+constexpr std::uint32_t SYNC_STARTED_FLAG  = 1u << 6;
+constexpr std::uint32_t SYNC_STOPPED_FLAG  = 1u << 7;
+constexpr std::uint32_t SYNC_STARTER_SHIFT = 8u;
+constexpr std::uint32_t SYNC_STARTER_MASK  = 0x3u << SYNC_STARTER_SHIFT;
+constexpr std::uint32_t SYNC_STOPPER_SHIFT = 10u;
+constexpr std::uint32_t SYNC_STOPPER_MASK  = 0x3u << SYNC_STOPPER_SHIFT;
 
 // ============================================================================
 // Counter Bank Enumeration
@@ -339,65 +341,53 @@ public:
     PerfCounterManager& operator=(PerfCounterManager&&)      = delete;
 
     // Thread-safe start: each thread sets its start bit, first thread initializes hardware
-    // All sync control word updates happen inside mutex-protected critical section
     void start()
     {
-        ckernel::T6MutexLockGuard lock(ckernel::mutex::REG_RMW);
         volatile std::uint32_t* sync_ctrl = get_sync_ctrl_mem();
+        std::uint32_t state               = *sync_ctrl;
 
-        std::uint32_t state = *sync_ctrl;
+        // Check if we're the first thread (all start bits are 0)
+        bool is_first = (state & SYNC_START_MASK) == 0u;
 
-        // Set this thread's start bit (bit 0, 1, or 2) to indicate arrival
+        // Set this thread's start bit (bit 0, 1, or 2)
         state |= thread_info::get_thread_start_bit();
 
-        // First thread to arrive sees GLOBAL_STARTED unset and does hardware init
-        if ((state & SYNC_STARTED_FLAG) == 0u)
+        // If first thread, initialize hardware and record our ID
+        if (is_first)
         {
             start_hardware();
             state |= SYNC_STARTED_FLAG;
+            // Write starter thread ID to bits 8-9
+            state = (state & ~SYNC_STARTER_MASK) | (thread_info::get_thread_id() << SYNC_STARTER_SHIFT);
         }
 
-        // Write updated state back (with our start bit set)
         *sync_ctrl = state;
     }
 
     // Thread-safe stop: each thread sets its stop bit, last thread reads hardware
-    // Last stopper thread ID is written to sync control word for Python to identify
     void stop()
     {
-        bool should_stop_hardware = false;
+        volatile std::uint32_t* sync_ctrl = get_sync_ctrl_mem();
+        std::uint32_t state               = *sync_ctrl;
 
+        // Set this thread's stop bit (bit 3, 4, or 5)
+        state |= thread_info::get_thread_stop_bit();
+
+        // Check if all 3 threads have set their stop bits
+        bool all_threads_stopped = (state & SYNC_STOP_MASK) == SYNC_STOP_MASK;
+
+        // If all threads stopped, we're the last one - stop hardware and record our ID
+        if (all_threads_stopped)
         {
-            // CRITICAL SECTION: Determine if we're the last thread atomically
-            ckernel::T6MutexLockGuard lock(ckernel::mutex::REG_RMW);
-            volatile std::uint32_t* sync_ctrl = get_sync_ctrl_mem();
-            std::uint32_t state               = *sync_ctrl;
-
-            // Set this thread's stop bit (bit 3, 4, or 5) to indicate arrival
-            state |= thread_info::get_thread_stop_bit();
-
-            // Check if all 3 threads have set their stop bits
-            bool all_threads_stopped      = (state & SYNC_STOP_MASK) == SYNC_STOP_MASK;
-            bool already_stopped_globally = (state & SYNC_STOPPED_FLAG) != 0u;
-
-            // Last thread to arrive becomes the "last stopper" and reads hardware
-            if (!already_stopped_globally && all_threads_stopped)
-            {
-                state |= SYNC_STOPPED_FLAG;
-                // Write our thread ID (0-2) to bits 9-10 for Python to read
-                state                = (state & ~SYNC_LAST_STOPPER_MASK) | (thread_info::get_thread_id() << SYNC_LAST_STOPPER_SHIFT);
-                should_stop_hardware = true;
-            }
-
-            // Write updated state back (with our stop bit set and possibly last stopper ID)
+            state |= SYNC_STOPPED_FLAG;
+            // Write stopper thread ID to bits 10-11
+            state      = (state & ~SYNC_STOPPER_MASK) | (thread_info::get_thread_id() << SYNC_STOPPER_SHIFT);
             *sync_ctrl = state;
-        }
-        // CRITICAL SECTION ENDS - mutex released
-
-        // Only the last stopper thread executes this (outside mutex to avoid blocking others)
-        if (should_stop_hardware)
-        {
             stop_hardware();
+        }
+        else
+        {
+            *sync_ctrl = state;
         }
     }
 };
