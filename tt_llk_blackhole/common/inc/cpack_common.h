@@ -237,7 +237,7 @@ inline void set_packer_config(
     // Workaround for bug in HW: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
     {
-        if (IS_BFP_A_FORMAT(pack_output_dst_format))
+        if (IS_A_FORMAT(pack_output_dst_format))
         {
             exp_threshold_en  = 1;
             exp_threshold_val = 113;
@@ -384,7 +384,7 @@ inline void reconfig_packer_data_format(
     // Workaround for HW bug: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
     {
-        if (IS_BFP_A_FORMAT(pack_output_dst_format))
+        if (IS_A_FORMAT(pack_output_dst_format))
         {
             exp_threshold_en  = 1;
             exp_threshold_val = 113;
