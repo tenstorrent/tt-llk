@@ -449,18 +449,18 @@ def sweep_matmul(
 
                             combinations.append(base_matmul_dims)
 
-                            # if max_dst_index != 0 and math_matmul: # Issue #873: Double acc bug https://github.com/tenstorrent/tt-llk/issues/873
-                            #     # Create a new object with different dst_index since dataclass is immutable
-                            #     edge_case_dims = MatmulConfig(
-                            #         tile_dimensions=tile_dims,
-                            #         face_layout_config=face_layout_config,
-                            #         formats=fmt,
-                            #         stochastic_rnd=stochastic_mode,
-                            #         dst_index=max_dst_index,
-                            #         dest_sync=dest_sync,
-                            #         dest_acc=dest_acc,
-                            #     )
-                            #     combinations.append(edge_case_dims)
+                            if max_dst_index != 0 and math_matmul:
+                                # Create a new object with different dst_index since dataclass is immutable
+                                edge_case_dims = MatmulConfig(
+                                    tile_dimensions=tile_dims,
+                                    face_layout_config=face_layout_config,
+                                    formats=fmt,
+                                    stochastic_rnd=stochastic_mode,
+                                    dst_index=max_dst_index,
+                                    dest_sync=dest_sync,
+                                    dest_acc=dest_acc,
+                                )
+                                combinations.append(edge_case_dims)
 
     return combinations
 
@@ -534,8 +534,8 @@ def sweep_tiny_tiles_matmul(
                 tile_dims.tile_cnt,
             )
             max_dst_indices = [0]
-            # if math_matmul and max_dst_index != 0: # Issue #873: Double acc bug https://github.com/tenstorrent/tt-llk/issues/873
-            #     max_dst_indices.append(max_dst_index)
+            if math_matmul and max_dst_index != 0:
+                max_dst_indices.append(max_dst_index)
 
             for max_dst_idx in max_dst_indices:
                 # Don't add invalid variants. If these variants are added LLK_ASSERTs are hit in math_matmul and unpack_matmul tests.
