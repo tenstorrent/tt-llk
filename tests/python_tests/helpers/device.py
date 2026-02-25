@@ -253,10 +253,10 @@ def wait_for_tensix_operations_finished(
     end_time = start_time + timeout
     while time.time() < end_time:
         for mailbox in mailboxes - completed:
-            TensixDump._try_process_request(tensix_dumps, core_loc)
-
             if read_word_from_device(core_loc, mailbox.value) == KERNEL_COMPLETE:
                 completed.add(mailbox)
+
+        TensixDump.try_process_request(tensix_dumps, core_loc)
 
         if completed == mailboxes:
             return tensix_dumps

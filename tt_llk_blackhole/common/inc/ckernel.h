@@ -714,7 +714,7 @@ constexpr std::uint32_t get_dest_max_tiles()
 }
 
 /**
- * @brief Used to invalidate the the RISCV core's DCache.
+ * @brief Used to invalidate the RISCV core's DCache.
  * On Blackhole this happens as a side effect of the FENCE instruction.
  */
 inline void invalidate_data_cache()

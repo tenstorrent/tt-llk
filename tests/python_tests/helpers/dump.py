@@ -6,7 +6,7 @@ import difflib
 import json
 from dataclasses import asdict
 from enum import IntEnum
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from helpers.logger import logger
 from ttexalens.tt_exalens_lib import (
@@ -30,19 +30,7 @@ class TensixDump:
         write_words_to_device(location, cls.TENSIX_DUMP_MAILBOX_ADDRESS, initial)
 
     @classmethod
-    def try_receive_request(cls, location: str):
-        all_requested = [
-            cls.MailboxState.REQUESTED,
-            cls.MailboxState.REQUESTED,
-            cls.MailboxState.REQUESTED,
-        ]
-        mailbox = read_words_from_device(
-            location, cls.TENSIX_DUMP_MAILBOX_ADDRESS, word_count=3
-        )
-        return mailbox == all_requested
-
-    @classmethod
-    def _try_process_request(cls, dumps: list[any], location: str):
+    def try_process_request(cls, dumps: list[Any], location: str):
         is_requested = cls.try_receive_request(location)
 
         if not is_requested:
@@ -54,7 +42,19 @@ class TensixDump:
         return True
 
     @classmethod
-    def _fetch_state(cls, location: str) -> list[int]:
+    def _try_receive_request(cls, location: str):
+        all_requested = [
+            cls.MailboxState.REQUESTED,
+            cls.MailboxState.REQUESTED,
+            cls.MailboxState.REQUESTED,
+        ]
+        mailbox = read_words_from_device(
+            location, cls.TENSIX_DUMP_MAILBOX_ADDRESS, word_count=3
+        )
+        return mailbox == all_requested
+
+    @classmethod
+    def _fetch_state(cls, location: str) -> dict[str, Any]:
         return asdict(get_tensix_state(location, device_id=0))
 
     @classmethod
@@ -67,7 +67,7 @@ class TensixDump:
         return json.dumps(state, indent=4)
 
     @classmethod
-    def assert_equal(cls, left: dict, right: dict) -> bool:
+    def assert_equal(cls, left: dict, right: dict) -> None:
         if left == right:
             return
 
