@@ -136,6 +136,7 @@ def validate_topk_indices(
     original_input_tensor,
     formats,
     input_dimensions=[32, 128],
+    topk_stable_sort=False,
     K=32,
     atol=0.01,
 ):
@@ -212,10 +213,15 @@ def validate_topk_indices(
                 return False
 
             if result_index != golden_index:
-                if torch.isclose(
-                    torch.tensor(result_value), torch.tensor(golden_value), atol=atol
+                if (
+                    torch.isclose(
+                        torch.tensor(result_value),
+                        torch.tensor(golden_value),
+                        atol=atol,
+                    )
+                    and not topk_stable_sort
                 ):
-                    # When doing topk, we can encounter cases where the values are extremely close/same.
+                    # When doing topk without stable sort, we can encounter cases where the values are extremely close/same.
                     # in those cases golden has its own way of deciding which index to pick first, and hardware might pick a different one.
                     # What we get in the end is that the same values are in the topk, but maybe in a different order, which means different indices.
                     # This is not an issue, just the difference between golden and hardware when handling ties in values.
@@ -274,12 +280,14 @@ def get_value_tiles_from_topk_tensor(
     ],
     K=[32],  # TODO: Add more K values (like 16, 64).
     sort_direction=[TopKSortDirection.Descending, TopKSortDirection.Ascending],
+    stable_sort=[False, True],
 )
 def test_topk_sfpu(
     formats: InputOutputFormat,
     input_dimensions: list,
     K: int,
     sort_direction: TopKSortDirection,
+    stable_sort: bool,
     workers_tensix_coordinates: str,
 ):
 
@@ -321,6 +329,7 @@ def test_topk_sfpu(
                 topk_k=K,
                 topk_matrix_width=input_dimensions[1],
                 topk_sort_direction=sort_direction,
+                topk_stable_sort=stable_sort,
             ),
         ],
         runtimes=[
@@ -354,7 +363,7 @@ def test_topk_sfpu(
 
     if input_dimensions[1] == 128:  # TODO: Fix issue #1344 on tt-llk.
         assert validate_topk_indices(
-            res_tensor, golden_tensor, src_A, formats, input_dimensions, K
+            res_tensor, golden_tensor, src_A, formats, input_dimensions, stable_sort, K
         )
 
     # Get value tiles from result and golden tensors
