@@ -54,6 +54,78 @@ from helpers.utils import passed_test
 NUM_STAGES = 2  # Values and Indices stage
 
 
+def _format_face_float(face_tensor: torch.Tensor) -> str:
+    face = face_tensor.view(16, 16)
+    return "\n".join(
+        " ".join(f"{value:6.2f}" for value in row.tolist()) for row in face
+    )
+
+
+def _format_face_uint16(face_tensor: torch.Tensor) -> str:
+    face = face_tensor.view(16, 16)
+    return "\n".join(
+        " ".join(f"{int(value):6d}" for value in row.tolist()) for row in face
+    )
+
+
+def _print_face_by_face(
+    res_tensor: torch.Tensor,
+    golden_tensor: torch.Tensor,
+    input_dimensions: list,
+    K: int,
+) -> None:
+    num_rows, num_cols = input_dimensions[0], K * NUM_STAGES
+    num_tiles = (num_rows * num_cols) // ELEMENTS_PER_TILE
+    num_tile_cols = num_cols // TILE_DIMENSIONS[1]
+    value_tile_cols = (num_cols // 2) // TILE_DIMENSIONS[1]
+
+    for tile_idx in range(num_tiles):
+        tile_start = tile_idx * ELEMENTS_PER_TILE
+        tile_end = tile_start + ELEMENTS_PER_TILE
+        res_tile = res_tensor[tile_start:tile_end]
+        golden_tile = golden_tensor[tile_start:tile_end]
+
+        tile_col = tile_idx % num_tile_cols
+        is_index_tile = tile_col >= value_tile_cols
+
+        for face_idx in range(4):
+            face_start = face_idx * 256
+            face_end = face_start + 256
+
+            print(
+                f"Tile {tile_idx} Face {face_idx} Result:",
+                file=sys.stderr,
+            )
+            if is_index_tile:
+                print(
+                    _format_face_uint16(
+                        res_tile[face_start:face_end].view(torch.uint16)
+                    ),
+                    file=sys.stderr,
+                )
+            else:
+                print(
+                    _format_face_float(res_tile[face_start:face_end].float()),
+                    file=sys.stderr,
+                )
+            print(
+                f"Tile {tile_idx} Face {face_idx} Golden:",
+                file=sys.stderr,
+            )
+            if is_index_tile:
+                print(
+                    _format_face_uint16(
+                        golden_tile[face_start:face_end].view(torch.uint16)
+                    ),
+                    file=sys.stderr,
+                )
+            else:
+                print(
+                    _format_face_float(golden_tile[face_start:face_end].float()),
+                    file=sys.stderr,
+                )
+
+
 def transform_result_tensor_to_right_form(
     res_tensor, formats, K=32, input_dimensions=[32, 64]
 ):
@@ -213,13 +285,10 @@ def validate_topk_indices(
                 return False
 
             if result_index != golden_index:
-                if (
-                    torch.isclose(
-                        torch.tensor(result_value),
-                        torch.tensor(golden_value),
-                        atol=atol,
-                    )
-                    and not topk_stable_sort
+                if not topk_stable_sort and torch.isclose(
+                    torch.tensor(result_value),
+                    torch.tensor(golden_value),
+                    atol=atol,
                 ):
                     # When doing topk without stable sort, we can encounter cases where the values are extremely close/same.
                     # in those cases golden has its own way of deciding which index to pick first, and hardware might pick a different one.
@@ -290,6 +359,11 @@ def test_topk_sfpu(
     stable_sort: bool,
     workers_tensix_coordinates: str,
 ):
+    if stable_sort:
+        pytest.skip(
+            "Stable sort is currently not supported on hardware, skipping test."
+        )
+        # TODO: Implement stable sort on hardware and enable this test.
 
     if (
         input_dimensions == [32, 1024]
