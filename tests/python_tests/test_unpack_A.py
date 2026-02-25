@@ -304,9 +304,6 @@ def filter_params_with_constraints(all_params):
         ):
             continue
 
-        # All constraints passed, add to valid params
-        valid_params.append(params)
-
         # Skip specific test that fails on CI
         if (
             formats.input_format == DataFormat.Float16
@@ -323,6 +320,9 @@ def filter_params_with_constraints(all_params):
             and input_dimensions == [256, 256]
         ):
             continue
+
+        # All constraints passed, add to valid params
+        valid_params.append(params)
 
     return valid_params
 
