@@ -193,8 +193,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
                         }
 
                         _llk_math_eltwise_unary_sfpu_start_<DST_SYNC_MODE>(/* dst_index */ block_tile);
-                        test_utils::call_sfpu_operation<use_approximate_enum<APPROX_MODE, FAST_MODE>(), is_fp32_dest_acc_en, ITERATIONS, STABLE_SORT>(
-                            SFPU_UNARY_OPERATION, formats.math);
+                        test_utils::call_sfpu_operation<
+                            use_approximate_enum<APPROX_MODE != ckernel::ApproximationMode::Precise, FAST_MODE>(),
+                            is_fp32_dest_acc_en,
+                            ITERATIONS,
+                            STABLE_SORT>(SFPU_UNARY_OPERATION, formats.math);
                         _llk_math_eltwise_unary_sfpu_done_();
                     }
                 }
@@ -222,8 +225,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
                         // Start SFPU operation
                         _llk_math_eltwise_unary_sfpu_start_<DST_SYNC_MODE>(/* dst_index */ block_tile);
-                        test_utils::call_sfpu_operation<use_approximate_enum<APPROX_MODE, FAST_MODE>(), is_fp32_dest_acc_en, ITERATIONS, STABLE_SORT>(
-                            SFPU_UNARY_OPERATION, formats.math);
+                        test_utils::call_sfpu_operation<
+                            use_approximate_enum<APPROX_MODE != ckernel::ApproximationMode::Precise, FAST_MODE>(),
+                            is_fp32_dest_acc_en,
+                            ITERATIONS,
+                            STABLE_SORT>(SFPU_UNARY_OPERATION, formats.math);
                         _llk_math_eltwise_unary_sfpu_done_();
                     }
 

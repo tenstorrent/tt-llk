@@ -173,12 +173,7 @@ def test_perf_eltwise_unary_sfpu(
         ],
         templates=[
             MATH_OP(mathop=mathop),
-            APPROX_MODE(
-                approx_mode,
-                fast_mode,
-                True,
-                allow_fast=mathop in SUPPORTED_FAST_MODE_OPS,
-            ),
+            APPROX_MODE(approx_mode),
             ITERATIONS(iterations),
             FAST_MODE(fast_mode),
             STABLE_SORT(stable_sort),
