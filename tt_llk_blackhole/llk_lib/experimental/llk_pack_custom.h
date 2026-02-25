@@ -2,10 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// WARNING: Experimental API for SDPA optimizations only.
-// This header has no corresponding tests in the llk-test infrastructure.
-// Do not use outside of SDPA optimization workflows.
-
 #pragma once
 
 #include <cstdint>
@@ -20,6 +16,10 @@
 
 using namespace ckernel;
 using namespace ckernel::packer;
+
+// WARNING: Experimental API for SDPA optimizations only.
+// This header has no corresponding tests in the llk-test infrastructure.
+// Do not use outside of SDPA optimization workflows.
 
 template <bool untilize = false, bool zero_output = false, bool tilize = false>
 inline void _llk_pack_mop_config_custom_(
