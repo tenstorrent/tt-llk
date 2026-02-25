@@ -238,6 +238,7 @@ def pytest_runtest_makereport(item, call):
                     error_message = f"TENSIX TIMED OUT {test_file_and_func}{report.test_params} {exc_msg}"
                     report.longrepr = error_message
                 elif exc_type == AssertionError:
+                    print(f"hello? {call.excinfo.value}")
                     # Handle assertion failures
                     exc_msg = str(call.excinfo.value) if call.excinfo.value.args else ""
                     error_message = (

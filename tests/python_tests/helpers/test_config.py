@@ -1123,12 +1123,12 @@ class TestConfig:
         self.write_runtimes_to_L1(location)
         self.variant_stimuli.write(location)
         elfs = self.run_elf_files(location)
-        wait_for_tensix_operations_finished(elfs, location)
+        dumps = wait_for_tensix_operations_finished(elfs, location)
 
         if self.coverage_build == CoverageBuild.Yes:
             self.read_coverage_data_from_device(location)
 
-        return self.variant_stimuli.collect_results(location)
+        return (self.variant_stimuli.collect_results(location), dumps)
 
 
 def process_coverage_run_artefacts() -> bool:
