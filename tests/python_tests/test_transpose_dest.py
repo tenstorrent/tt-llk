@@ -217,7 +217,7 @@ def transpose_dest(
         unpack_to_dest=unpack_to_dest,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1, _ = configuration.run(workers_tensix_coordinates)
 
     assert len(res_from_L1) == len(
         golden_tensor
