@@ -49,7 +49,7 @@ struct PolynomialEvaluator
 
     // Base case: f(x) = 0 (empty polynomial)
     template <typename U>
-    sfpi_inline static constexpr auto eval(U x)
+    sfpi_inline static constexpr auto eval(U)
     {
         return U {0};
     }
