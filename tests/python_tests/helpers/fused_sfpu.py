@@ -26,10 +26,6 @@ from .llk_params import (
 class Sfpu:
     def _approx_mode_cpp(self) -> str:
         approx = getattr(self, "approx_mode", None)
-        if approx == ApproximationMode.FastApproximate:
-            return "ckernel::ApproximationMode::FastApproximate"
-        if approx == ApproximationMode.FastApproximateClamped:
-            return "ckernel::ApproximationMode::FastApproximateClamped"
         if approx == ApproximationMode.Yes:
             return "ckernel::ApproximationMode::Approximate"
         return "ckernel::ApproximationMode::Precise"
