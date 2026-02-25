@@ -182,11 +182,12 @@ class MatmulUnpacker(Unpacker):
         unpack_tile_size_a = operation.tile_size_unpack_a
         unpack_tile_size_b = operation.tile_size_unpack_b
         full_ct_dim = operation.src_b.dimensions[1] // 32
+        output_ct_dim = operation.output.tile_count_x
 
         return (
             f"    {{\n"
-            f"        std::uint32_t row = ({block.tile_id_global}) / {full_ct_dim};\n"
-            f"        std::uint32_t col = ({block.tile_id_global}) % {full_ct_dim};\n"
+            f"        std::uint32_t row = ({block.tile_id_global}) / {output_ct_dim};\n"
+            f"        std::uint32_t col = ({block.tile_id_global}) % {output_ct_dim};\n"
             f"        for (std::uint32_t kt = 0; kt < {kt_dim}; ++kt) {{\n"
             f"            std::uint32_t srca_tile_idx = row * {kt_dim} + kt;\n"
             f"            std::uint32_t srcb_tile_idx = kt * {full_ct_dim} + col;\n"

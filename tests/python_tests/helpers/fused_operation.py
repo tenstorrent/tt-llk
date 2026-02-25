@@ -96,8 +96,6 @@ class FusedOperation:
         validate_tile_dimensions(self.src_b.dimensions[0], num_rows)
         validate_tile_dimensions(self.src_b.dimensions[1], num_cols)
 
-        self.rt_dim = self.output.dimensions[0] // num_rows
-        self.ct_dim = self.output.dimensions[1] // num_cols
         self.kt_dim = self.src_a.dimensions[1] // num_cols
 
         if (
