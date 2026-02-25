@@ -249,14 +249,14 @@ void run_kernel(const volatile struct RuntimeParams *params)
     const bool is_int_fpu_en = false;
 
     /* TOPK api constants. */
-    constexpr bool APPROX             = false;
-    constexpr bool STABLE_SORT        = false;
-    constexpr std::uint32_t dst_index = 0;             // base DEST index for the 4-tile group.
-    const int end_phase               = TOPK_LOGK - 1; // same as other TopK call sites.
-    constexpr int start_phase         = 0;
-    constexpr int end_step            = 0;
-    constexpr int start_step          = 0;
-    constexpr int vector_mode         = (int)VectorMode::RC_custom;
+    constexpr ckernel::ApproximationMode APPROX = ckernel::ApproximationMode::Precise;
+    constexpr bool STABLE_SORT                  = false;
+    constexpr std::uint32_t dst_index           = 0;             // base DEST index for the 4-tile group.
+    const int end_phase                         = TOPK_LOGK - 1; // same as other TopK call sites.
+    constexpr int start_phase                   = 0;
+    constexpr int end_step                      = 0;
+    constexpr int start_step                    = 0;
+    constexpr int vector_mode                   = (int)VectorMode::RC_custom;
 
     const std::uint32_t math_data_types[NUM_STAGES] = {formats.math, ckernel::to_underlying(DataFormat::UInt16)};
 
