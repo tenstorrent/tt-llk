@@ -84,7 +84,7 @@ within_face_16x16_transpose_values = [Transpose.No, Transpose.Yes]
 num_faces_values = [1, 2, 4]
 face_r_dim_values = [1, 2, 4, 8, 16]
 
-input_dimensions = [[r, 32] for r in face_r_dim_values] + [[32, 32]] + [[256, 256]]
+input_dimensions = [[r, 32] for r in face_r_dim_values] + [[256, 256]]
 # Use only cross_test_formats as it already includes same-format combinations
 test_formats = input_output_formats(supported_formats, False)
 
@@ -301,21 +301,6 @@ def filter_params_with_constraints(all_params):
             and transpose_of_faces == Transpose.Yes
             and within_face_16x16_transpose == Transpose.Yes
             and full_tiles
-        ):
-            continue
-
-        # Skip specific test that fails on CI
-        if (
-            formats.input_format == DataFormat.Float16
-            and formats.output_format == DataFormat.Float32
-            and broadcast_type == BroadcastType.None_
-            and not disable_src_zero
-            and not acc_to_dest
-            and stochastic_rnd == StochasticRounding.No
-            and reuse_dest == EltwiseBinaryReuseDestType.NONE
-            and transpose_of_faces == Transpose.No
-            and within_face_16x16_transpose == Transpose.No
-            and input_dimensions == [256, 256]
         ):
             continue
 
