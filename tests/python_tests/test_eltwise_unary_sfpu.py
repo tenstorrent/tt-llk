@@ -8,15 +8,24 @@ import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture
 from helpers.format_config import DataFormat, InputOutputFormat
-from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
+from helpers.golden_generators import (
+    TILE_DIMENSIONS,
+    UnarySFPUGolden,
+    get_golden_generator,
+)
 from helpers.llk_params import (
     ApproximationMode,
+    BlocksCalculationAlgorithm,
     DestAccumulation,
     FastMode,
     MathOperation,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks_and_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -26,6 +35,7 @@ from helpers.test_variant_parameters import (
     FAST_MODE,
     MATH_OP,
     TILE_COUNT,
+    DestSync,
     generate_input_dim,
 )
 from helpers.utils import passed_test
@@ -104,12 +114,17 @@ FLOAT_TEST_PARAMS = list(
     "formats,approx_mode,mathop,fast_mode,dest_acc",
     FLOAT_TEST_PARAMS,
 )
+@pytest.mark.parametrize(
+    "input_dimensions",
+    [[64, 64], [128, 256]],
+)
 def test_eltwise_unary_sfpu_float(
     formats: list[InputOutputFormat],
     approx_mode: ApproximationMode,
     mathop: MathOperation,
     fast_mode: FastMode,
     dest_acc: DestAccumulation,
+    input_dimensions: list[int],
     workers_tensix_coordinates: str,
 ):
     if TestConfig.WITH_COVERAGE and mathop in [
@@ -174,6 +189,7 @@ def test_eltwise_unary_sfpu_float(
         approx_mode,
         mathop,
         fast_mode,
+        input_dimensions,
         workers_tensix_coordinates,
     )
 
@@ -187,6 +203,7 @@ def test_eltwise_unary_sfpu_float(
     ],
     fast_mode=[FastMode.No, FastMode.Yes],
     dest_acc=[DestAccumulation.Yes],
+    input_dimensions=[[128, 256]],
 )
 def test_eltwise_unary_sfpu_int(
     formats: list[InputOutputFormat],
@@ -194,6 +211,7 @@ def test_eltwise_unary_sfpu_int(
     mathop: MathOperation,
     fast_mode: FastMode,
     dest_acc: DestAccumulation,
+    input_dimensions: list[int],
     workers_tensix_coordinates: str,
 ):
     if formats.input_format == DataFormat.Int32:
@@ -206,6 +224,7 @@ def test_eltwise_unary_sfpu_int(
         approx_mode,
         mathop,
         fast_mode,
+        input_dimensions,
         workers_tensix_coordinates,
     )
 
@@ -217,11 +236,12 @@ def eltwise_unary_sfpu(
     approx_mode,
     mathop,
     fast_mode: FastMode,
+    input_dimensions: list[int],
     workers_tensix_coordinates,
 ):
+    print(input_dimensions)
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
-    input_dimensions = [64, 64]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -238,6 +258,15 @@ def eltwise_unary_sfpu(
         dest_acc,
         formats.input_format,
         input_dimensions,
+    )
+
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half,
+        dest_acc,
+        formats,
+        input_dimensions,
+        TILE_DIMENSIONS,
+        BlocksCalculationAlgorithm.Standard,
     )
 
     configuration = TestConfig(
