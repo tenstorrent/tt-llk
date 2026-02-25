@@ -334,7 +334,14 @@ def _generate_source_tensor(
         return torch.arange(1, num_elements + 1, dtype=dtype)
 
     src = []
-    for _ in range(faces_to_generate * tile_cnt):
+    # Generate enough faces to cover num_elements
+    # Each face has face_r_dim * FACE_C_DIM elements
+    elements_per_face = face_r_dim * FACE_C_DIM
+    faces_needed = (
+        num_elements + elements_per_face - 1
+    ) // elements_per_face  # Ceiling division
+
+    for _ in range(faces_needed):
         face = generate_random_face(
             stimuli_format=stimuli_format,
             const_value=const_value,
