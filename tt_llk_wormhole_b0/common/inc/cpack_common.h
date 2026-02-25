@@ -494,7 +494,7 @@ inline void reconfig_packer_data_format(
     // Workaround for HW bug: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
     {
-        if (IS_A_FORMAT(pack_dst_format))
+        if (IS_BFP_A_FORMAT(pack_dst_format))
         {
             config.f.exp_threshold_en = 1;
             config.f.exp_threshold    = 113;
