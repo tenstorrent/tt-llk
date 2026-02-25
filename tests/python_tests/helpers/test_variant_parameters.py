@@ -310,11 +310,11 @@ class TOPK(TemplateParameter):
         lines: list[str] = [
             "std::uint32_t TOPK_K;",
             "std::uint32_t TOPK_LOGK;",
-            "std::uint32_t TOPK_SORT_DIRECTION;",
             "std::uint32_t TOPK_NUM_ITERATIONS;",
+            "std::uint32_t TOPK_SORT_DIRECTION;",
             "bool TOPK_STABLE_SORT;",
         ]
-        return "\n".join(lines), "V"
+        return "\n".join(lines), "IIII?"
 
 
 @dataclass
