@@ -21,7 +21,7 @@ from helpers.matmul_sweep import sweep_matmul, sweep_tiny_tiles_matmul
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import convert_to_l1_view, generate_face_matmul_data
-from helpers.test_config import TestConfig, TestMode
+from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     CRK_TILE_DIMM,
     DEST_INDEX,
@@ -166,7 +166,6 @@ def test_unpack_matmul(math_fidelity, matmul_config, workers_tensix_coordinates)
         "sources/unpack_matmul_test.cpp",
         formats,
         templates=[
-            generate_input_dim(in0_dimensions, in1_dimensions),
             STOCHASTIC_ROUNDING(matmul_config.stochastic_rnd),
             MATH_FIDELITY(math_fidelity),
             THROTTLE_LEVEL(0),

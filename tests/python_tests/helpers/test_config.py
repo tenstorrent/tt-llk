@@ -73,12 +73,19 @@ class TestMode(Enum):
     CONSUME = "Just execute pre-compiled elfs"
 
 
-def generate_zero_matrix(*args, **kwargs):
-    return torch.zeros(1024, dtype=torch.bfloat16)
+class DummyGoldenGenerator:
+    def __call__(*args, **kwargs):
+        return torch.zeros(1024, dtype=torch.bfloat16)
+
+    def transpose_faces_multi_tile(*args, **kwargs):
+        return torch.zeros(1024, dtype=torch.bfloat16)
+
+    def transpose_within_faces_multi_tile(*args, **kwargs):
+        return torch.zeros(1024, dtype=torch.bfloat16)
 
 
 def dummy_golden_generator(cls):
-    return generate_zero_matrix
+    return DummyGoldenGenerator()
 
 
 class TestConfig:

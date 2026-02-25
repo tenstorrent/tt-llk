@@ -440,13 +440,6 @@ def sweep_matmul(
                             ):
                                 continue
 
-                            # We don't support matmul on 1 face tiles, would hit LLK_ASSERT if we passed this
-                            if (
-                                face_layout_config.num_faces_A == 1
-                                and face_layout_config.num_faces_B == 1
-                            ):
-                                continue
-
                             base_matmul_dims = MatmulConfig(
                                 tile_dimensions=tile_dims,
                                 face_layout_config=face_layout_config,
