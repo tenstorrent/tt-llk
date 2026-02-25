@@ -428,7 +428,7 @@
 #define TT_SEMPOST(sem_sel)       ckernel::instrn_buffer[0] = TT_OP_SEMPOST(sem_sel)
 #define TTI_SEMPOST(sem_sel)      INSTRUCTION_WORD(TT_OP_SEMPOST(sem_sel))
 
-#define TT_OP_SEMWAIT(stall_res, sem_sel, wait_sem_cond) TT_OP(0xa6, (((stall_res) << 15) + ((sem_sel) << 2) + ((wait_sem_cond) << 0)))
+#define TT_OP_SEMWAIT(stall_res, sem_sel, wait_sem_cond) TT_OP(0xa6, ((((stall_res) | p_stall::STALL_SYNC) << 15) + ((sem_sel) << 2) + ((wait_sem_cond) << 0)))
 #define TT_SEMWAIT_VALID(stall_res, sem_sel, wait_sem_cond) \
     (ckernel::is_valid(stall_res, 9) && ckernel::is_valid(sem_sel, 13) && ckernel::is_valid(wait_sem_cond, 2))
 #define TT_SEMWAIT(stall_res, sem_sel, wait_sem_cond)  ckernel::instrn_buffer[0] = TT_OP_SEMWAIT(stall_res, sem_sel, wait_sem_cond)
@@ -806,7 +806,7 @@
 #define TT_SHIFTXB(addr_mode, rot_shift, shift_row)  ckernel::instrn_buffer[0] = TT_OP_SHIFTXB(addr_mode, rot_shift, shift_row)
 #define TTI_SHIFTXB(addr_mode, rot_shift, shift_row) INSTRUCTION_WORD(TT_OP_SHIFTXB(addr_mode, rot_shift, shift_row))
 
-#define TT_OP_STALLWAIT(stall_res, wait_res)    TT_OP(0xa2, (((stall_res) << 15) + ((wait_res) << 0)))
+#define TT_OP_STALLWAIT(stall_res, wait_res)    TT_OP(0xa2, ((((stall_res) | p_stall::STALL_SYNC) << 15) + ((wait_res) << 0)))
 #define TT_STALLWAIT_VALID(stall_res, wait_res) (ckernel::is_valid(stall_res, 9) && ckernel::is_valid(wait_res, 15))
 #define TT_STALLWAIT(stall_res, wait_res)       ckernel::instrn_buffer[0] = TT_OP_STALLWAIT(stall_res, wait_res)
 #define TTI_STALLWAIT(stall_res, wait_res)      INSTRUCTION_WORD(TT_OP_STALLWAIT(stall_res, wait_res))
