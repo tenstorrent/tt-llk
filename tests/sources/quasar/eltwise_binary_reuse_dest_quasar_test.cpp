@@ -32,27 +32,27 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     // Configure Source A buffer descriptor (for datacopy to DEST in phase 1)
     buffer_descriptor_u bd_val_A {};
-    bd_val_A.f.l1_addr_16B = buffer_A[0] / 16;
-    bd_val_A.f.format      = static_cast<std::uint8_t>(formats.unpack_src);
+    bd_val_A.f.l1_addr_16B = params->buffer_A[0] / 16;
+    bd_val_A.f.format      = static_cast<std::uint8_t>(formats.unpack_A_src);
     bd_val_A.f.x_dim       = params->TEST_FACE_C_DIM;
     bd_val_A.f.y_dim       = params->TEST_FACE_R_DIM;
     bd_val_A.f.z_dim       = params->num_faces;
 
     td_val_A.buf_desc        = bd_val_A;
     td_val_A.buf_desc_id     = buf_desc_id_a;
-    td_val_A.reg_data_format = static_cast<std::uint8_t>(formats.unpack_dst);
+    td_val_A.reg_data_format = static_cast<std::uint8_t>(formats.unpack_A_dst);
 
     // Configure Source B buffer descriptor (CB operand for eltwise binary in phase 2)
     buffer_descriptor_u bd_val_B {};
-    bd_val_B.f.l1_addr_16B = buffer_B[0] / 16;
-    bd_val_B.f.format      = static_cast<std::uint8_t>(formats.unpack_src);
+    bd_val_B.f.l1_addr_16B = params->buffer_B[0] / 16;
+    bd_val_B.f.format      = static_cast<std::uint8_t>(formats.unpack_B_src);
     bd_val_B.f.x_dim       = params->TEST_FACE_C_DIM;
     bd_val_B.f.y_dim       = params->TEST_FACE_R_DIM;
     bd_val_B.f.z_dim       = params->num_faces;
 
     td_val_B.buf_desc        = bd_val_B;
     td_val_B.buf_desc_id     = buf_desc_id_b;
-    td_val_B.reg_data_format = static_cast<std::uint8_t>(formats.unpack_dst);
+    td_val_B.reg_data_format = static_cast<std::uint8_t>(formats.unpack_B_dst);
 
     // Configure both unpackers upfront (need both for reuse_dest phase)
     _configure_buf_desc_table_(td_val_A.buf_desc_id, td_val_A.buf_desc);
@@ -66,11 +66,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
         _llk_unpack_unary_operand_<p_unpacr::UNP_A>(i);
     }
 
-    // Unpack src_B with reuse_dest mode
-    // The reuse_dest MOP internally determines which unpacker reads from CB and which gets dummy dvalid:
-    //   DEST_TO_SRCA: UNP_B reads from CB (src_B), UNP_A gets dummy dvalid (filled by MOVD2A)
-    //   DEST_TO_SRCB: UNP_A reads from CB (src_B), UNP_B gets dummy dvalid (filled by MOVD2B)
-    _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, false /*transpose*/, false /*32b_dest*/, REUSE_DEST_TYPE>(buf_desc_id_b, 1, params->num_faces);
+    constexpr std::uint32_t buf_desc_id_phase2 = (REUSE_DEST_TYPE == EltwiseBinaryReuseDestType::DEST_TO_SRCB) ? buf_desc_id_a : buf_desc_id_b;
+    _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, false /*transpose*/, false /*32b_dest*/, REUSE_DEST_TYPE>(buf_desc_id_phase2, 1, params->num_faces);
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_unary_operand_<p_unpacr::UNP_A, REUSE_DEST_TYPE>(i);
@@ -104,10 +101,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
         _llk_math_eltwise_unary_datacopy_(params->num_faces * params->TEST_FACE_R_DIM, i);
     }
 
-    // Eltwise binary with reuse_dest
-    // DEST already contains src_A data from phase 1.
-    // MOVD copies DEST face → SrcA/SrcB (depending on reuse_dest type),
-    // while the other source is unpacked from CB (src_B).
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, MATH_FIDELITY, false /*EN_DI*/, REUSE_DEST_TYPE>(tile_shape);
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
@@ -133,7 +126,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
     buffer_descriptor_u bd_val {};
-    bd_val.f.l1_addr_16B = buffer_Res[0] / 16;
+    bd_val.f.l1_addr_16B = params->buffer_Res[0] / 16;
     bd_val.f.format      = static_cast<std::uint8_t>(formats.pack_dst);
     bd_val.f.x_dim       = params->TEST_FACE_C_DIM;
     bd_val.f.y_dim       = params->TEST_FACE_R_DIM;

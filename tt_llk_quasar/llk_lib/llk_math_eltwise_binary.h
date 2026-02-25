@@ -73,7 +73,9 @@ inline void _llk_math_eltwise_binary_mop_config_(const TileShape& tile_shape)
         (reuse_dest != EltwiseBinaryReuseDestType::NONE) ? tile_shape.face_r_dim : (tile_shape.num_faces * tile_shape.face_r_dim);
     constexpr bool math_fidelity_enable = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
     static_assert(!(math_fidelity_enable && ELTWISE_BINARY_TYPE != EltwiseBinaryType::ELWMUL), "Math fidelity larger than LoFi only works with Eltwise MUL");
-    const std::uint32_t EN_DST_ACC_EN = math_fidelity_enable;
+    // For reuse_dest + Elwmul we need dest accumulation (dest = old_dest + srcA*srcB) ; LoFi alone sets EN_DST_ACC_EN=0.
+    constexpr std::uint32_t EN_DST_ACC_EN =
+        (reuse_dest != EltwiseBinaryReuseDestType::NONE && ELTWISE_BINARY_TYPE == EltwiseBinaryType::ELWMUL) ? 1u : (math_fidelity_enable ? 1u : 0u);
 
     constexpr std::uint8_t addrmod_fid = math_fidelity_enable ? ADDR_MOD_2 : ADDR_MOD_0;
     constexpr static std::uint32_t eltwise_binary_op =
@@ -82,7 +84,7 @@ inline void _llk_math_eltwise_binary_mop_config_(const TileShape& tile_shape)
     if constexpr (reuse_dest != EltwiseBinaryReuseDestType::NONE)
     {
         // For reuse_dest: all iterations use the same instruction (ADDR_MOD_0, no CLR).
-        // CLR_AB is handled by end_op after the MOP completes (matching BH approach).
+        // CLR_AB is handled by end_op after the MOP completes
         // This avoids the last-iteration instruction replacement changing the addr_mod
         // for the second inner iteration, which would corrupt the source counter state.
         const std::uint32_t MOP_INNER_LOOP = (rows_per_mop_run >> math_rows_log2(ELTWISE_MATH_ROWS));
