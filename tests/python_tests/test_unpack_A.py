@@ -315,8 +315,6 @@ def filter_params_with_constraints(all_params):
             and reuse_dest == EltwiseBinaryReuseDestType.NONE
             and transpose_of_faces == Transpose.No
             and within_face_16x16_transpose == Transpose.No
-            and num_faces == 1
-            and face_r_dim == 16
             and input_dimensions == [256, 256]
         ):
             continue
