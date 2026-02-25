@@ -280,9 +280,7 @@ def filter_params_with_constraints(all_params):
         ):
             continue
 
-        more_than_one_tile = (
-            input_dimensions[0] * input_dimensions[1]
-        ) > ELEMENTS_PER_TILE
+        full_tiles = (input_dimensions[0] * input_dimensions[1]) >= ELEMENTS_PER_TILE
 
         # Block Bfp8_b transpose with acc_to_dest + DEST_TO_SRCA (hardware mismatch) (see #1348 issue in tt-llk).
         if (
@@ -291,7 +289,7 @@ def filter_params_with_constraints(all_params):
             and reuse_dest == EltwiseBinaryReuseDestType.DEST_TO_SRCA
             and transpose_of_faces == Transpose.Yes
             and within_face_16x16_transpose == Transpose.Yes
-            and more_than_one_tile
+            and full_tiles
         ):
             continue
 
@@ -302,7 +300,7 @@ def filter_params_with_constraints(all_params):
             and reuse_dest == EltwiseBinaryReuseDestType.NONE
             and transpose_of_faces == Transpose.Yes
             and within_face_16x16_transpose == Transpose.Yes
-            and more_than_one_tile
+            and full_tiles
         ):
             continue
 
@@ -388,12 +386,7 @@ def test_unpack_comprehensive(
 ):
 
     # torch.manual_seed(0.0)
-    # Configure input dimensions based on face_r_dim
-    # For partial faces (face_r_dim < 16), use [face_r_dim x 32] input tensors
-    if face_r_dim < 16:
-        partial_face = True
-    else:
-        partial_face = False
+    partial_face = face_r_dim < 16
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
