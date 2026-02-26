@@ -82,5 +82,6 @@ class TensixDump:
                 len(left_lines), len(right_lines)
             ),  # sstanisic todo: better way to force full diff ?
         )
-        logger.error(f"Assertion FAILED: Tensix dump mismatch:\n{''.join(diff)}")
-        raise AssertionError(f"Assertion FAILED: Tensix dump mismatch")
+        msg = f"Assertion FAILED: Tensix dump mismatch:\n{''.join(diff)}"
+        logger.opt(exception=True).error(msg)
+        raise AssertionError(msg)
