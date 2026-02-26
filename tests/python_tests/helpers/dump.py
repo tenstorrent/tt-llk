@@ -31,7 +31,7 @@ class TensixDump:
 
     @classmethod
     def try_process_request(cls, dumps: list[Any], location: str):
-        is_requested = cls.try_receive_request(location)
+        is_requested = cls._try_receive_request(location)
 
         if not is_requested:
             return False
