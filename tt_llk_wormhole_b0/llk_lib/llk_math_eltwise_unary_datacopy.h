@@ -384,11 +384,7 @@ inline void _llk_math_eltwise_unary_datacopy_init_(const std::uint32_t num_faces
 template <BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
 inline void _llk_math_eltwise_unary_datacopy_uninit_()
 {
-    // clear debug feature disable
-    if constexpr (src_b_bcast_type != BroadcastType::NONE && unpack_to_dest)
-    {
-        _llk_math_dbg_feature_enable_();
-    }
+
 }
 
 /*************************************************************************
