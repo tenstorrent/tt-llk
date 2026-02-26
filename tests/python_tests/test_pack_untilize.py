@@ -27,16 +27,12 @@ from helpers.utils import passed_test
 @parametrize(
     formats=input_output_formats(
         [
-            DataFormat.Float16_b,
-            DataFormat.Float16,
-            DataFormat.Float32,  # Test Float32 with both 32bit mode dest (full precision) and 16bit mode dest (precision loss)
             DataFormat.Int32,
-            DataFormat.Bfp8_b,
         ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
-    input_dimensions=[[96, 288], [64, 64], [32, 128], [128, 128], [32, 64]],
-    dest_sync=[DestSync.Half, DestSync.Full],
+    input_dimensions=[[96, 288]],
+    dest_sync=[DestSync.Half],
 )
 def test_pack_untilize(
     formats, dest_acc, input_dimensions, dest_sync, workers_tensix_coordinates

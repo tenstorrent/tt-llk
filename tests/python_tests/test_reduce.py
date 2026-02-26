@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+# SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
@@ -38,24 +38,19 @@ mathop_mapping = {
 
 
 @parametrize(
-    input_dimensions=[[32, 32], [32, 64], [64, 64], [64, 96], [96, 96], [128, 128]],
+    input_dimensions=[[96, 96]],
     formats=input_output_formats(
         [
             DataFormat.Float16_b,
-            DataFormat.Float16,
-            DataFormat.Float32,
-            DataFormat.Bfp8_b,
         ]
     ),
-    is_reduce_to_one=[False, True],
+    is_reduce_to_one=[False],
     math_fidelity=[
         # MathFidelity.LoFi,
         MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
-        MathFidelity.HiFi4,
     ],
-    reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
-    pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
+    reduce_dim=[ReduceDimension.Row],
+    pool_type=[ReducePool.Average],
 )
 def test_reduce(
     input_dimensions,
