@@ -634,6 +634,8 @@ class UnpackerTilizeA(Unpacker):
 
 
 class ReduceUnpacker(Unpacker):
+    loop: FusedLoop = LoopTileByTile()
+
     def get_headers(self) -> List[str]:
         return [
             "llk_unpack_AB.h",
@@ -657,6 +659,7 @@ class ReduceUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         num_faces = operation.num_faces
         face_r_dim = operation.face_r_dim
@@ -670,6 +673,7 @@ class ReduceUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         num_faces = operation.num_faces
         face_r_dim = operation.face_r_dim
@@ -683,6 +687,7 @@ class ReduceUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
+        block: "BlockData",
     ) -> str:
         face_r_dim = operation.face_r_dim
         num_faces = operation.num_faces
@@ -697,13 +702,13 @@ class ReduceUnpacker(Unpacker):
         operation: "FusedOperation",
         config: "GlobalConfig",
         compute_unit: "ComputeNode",
-        tile_idx_expr: str,
+        block: "BlockData",
     ) -> str:
         stage = operation.stage_id
 
         reduce_dim = compute_unit.fpu.reduce_dim()
         pool_type = compute_unit.fpu.pool_type()
-        return f"_llk_unpack_AB_reduce_<{pool_type}, {reduce_dim}>(L1_ADDRESS(buffer_A{stage}[{tile_idx_expr}]), L1_ADDRESS(buffer_B{stage}[{tile_idx_expr}]));\n"
+        return f"_llk_unpack_AB_reduce_<{pool_type}, {reduce_dim}>(L1_ADDRESS(buffer_A{stage}[{block.tile_id_global}]), L1_ADDRESS(buffer_B{stage}[{block.tile_id_global}]));\n"
 
 
 class ReduceBlockMaxUnpacker(Unpacker):

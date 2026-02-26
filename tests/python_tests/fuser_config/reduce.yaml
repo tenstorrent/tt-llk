@@ -15,4 +15,3 @@ operations:
         unpacker: "ReduceUnpacker"
     packer: "Packer"
     math_fidelity: "HiFi2"
-    batch_size: 1
