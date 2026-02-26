@@ -438,7 +438,11 @@ def data_formats(
             math_format = DataFormat.Float16_b
             pack_src_format = DataFormat.Float16_b
         elif input_format == DataFormat.Fp8_e4m3:
+<<<<<<< HEAD
             unpack_dst = DataFormat.Fp8_e4m3
+=======
+            unpack_dst = DataFormat.Float16
+>>>>>>> 726306fa (Fp8_e4m3 enabled)
             math_format = DataFormat.Float16
             pack_src_format = DataFormat.Float16
         else:
@@ -456,7 +460,11 @@ def data_formats(
         if input_format_B is not None and input_format_B.is_mx_format():
             unpack_B_dst_val = DataFormat.Float16_b
         elif input_format_B is not None and input_format_B == DataFormat.Fp8_e4m3:
+<<<<<<< HEAD
             unpack_B_dst_val = DataFormat.Fp8_e4m3
+=======
+            unpack_B_dst_val = DataFormat.Float16
+>>>>>>> 726306fa (Fp8_e4m3 enabled)
         elif input_format_B is not None:
             unpack_B_dst_val = input_format_B
         else:
