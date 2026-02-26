@@ -237,6 +237,22 @@ inline void _llk_math_reduce_block_max_row_init_()
     _llk_math_reduce_block_max_row_mop_config_<block_ct_dim, is_fp32_dest_acc_en>();
 }
 
+template <bool is_fp32_dest_acc_en = false>
+inline void _llk_math_reduce_block_max_row_reinit_()
+{
+    if constexpr (is_fp32_dest_acc_en)
+    {
+        _llk_math_dbg_feature_disable_();
+    }
+
+    reduce_max_row_configure_addrmod();
+
+    TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+
+    math::reset_counters(p_setrwc::SET_ABD_F);
+    _llk_math_reduce_block_max_row_mop_config_<8, is_fp32_dest_acc_en>();
+}
+
 inline void _llk_math_reduce_block_max_row_uninit_()
 {
     // No state to restore - all states are transient or default
