@@ -115,7 +115,7 @@ inline void _llk_unpack_AB_reduce_init_(const std::uint32_t face_r_dim, const st
     if constexpr (enforce_fp32_accumulation)
     {
         // Set necessary config regs for MOVB2D hi16/lo16 to work
-        cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1);
+        // cfg_reg_rmw_tensix<ALU_ACC_CTRL_Zero_Flag_disabled_src_RMW>(1);
     }
 
     // Enable transpose (haloize mode) if reducing along rows
