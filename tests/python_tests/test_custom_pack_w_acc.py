@@ -19,7 +19,6 @@ from helpers.test_variant_parameters import (
     TILIZE,
     generate_input_dim,
 )
-from helpers.utils import passed_test
 
 
 @parametrize(
@@ -51,7 +50,7 @@ def test_custom_pack_w_acc(
             input_dimensions[0] * input_dimensions[1],
             dtype=format_dict[formats.input_format],
         )
-        * 2
+        * 1
     )
 
     if tilize == Tilize.No:
@@ -94,11 +93,12 @@ def test_custom_pack_w_acc(
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
 
-    print(res_from_L1)
+    print(res_from_L1[0:1024].view(32, 32))
 
-    assert len(res_from_L1) == len(golden_tensor)
+    # assert len(res_from_L1) == len(golden_tensor)
+    assert 1 == 2
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    # assert passed_test(golden_tensor, res_tensor, formats.output_format)

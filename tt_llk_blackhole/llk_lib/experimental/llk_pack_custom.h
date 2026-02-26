@@ -114,15 +114,41 @@ inline void _llk_pack_mop_config_custom_(
 
 // NOTE: DO NOT TRY TO USE IN KERNELS OTHER THAN SDPA.CPP.
 // HIGHLY OPTIMIZED FOR A SPECIFIC USE CASE, NOT TESTED, DOES NOT RESPECT ANY CONTRACT OR PROGRAMMING MODEL.
-template <bool out_of_order_output = false, bool is_fp32_dest_acc_en = false>
+template <bool untilize = false, bool zero_output = false, bool tilize = false>
 inline void _llk_pack_w_acc_custom_(const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t num_tiles)
 {
+    constexpr std::uint32_t ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
+    const std::uint32_t PACK_INTF_SEL        = p_pacr::ALL_INTF_ACTIVE;
+
     program_packer_destination(address);
 
-    for (std::uint32_t i = 0; i < num_tiles; i++)
+    // for (std::uint32_t i = 0; i < num_tiles; i++)
+    // {
+    set_dst_write_addr(tile_index);
+    // ckernel::ckernel_template::run();
+
+    for (int j = 0; j < num_tiles; j++)
     {
-        set_dst_write_addr(tile_index + i);
-        ckernel::ckernel_template::run();
-        //     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); // reset z counters
+        for (int i = 0; i < 16; i++)
+        {
+            TTI_PACR(
+                p_pacr::CFG_CTXT_0,
+                p_pacr::NO_ROW_PAD_ZERO,
+                p_pacr::DST_ACCESS_NORMAL_MODE,
+                ADDR_MOD_0,
+                p_pacr::ADDR_CNT_CTXT_0,
+                ZERO_OUTPUT_FLAG,
+                PACK_INTF_SEL,
+                0,
+                0,
+                0,
+                0,
+                0);
+        }
+        TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b1000);
+        TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b1000);
     }
+
+    //     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101); // reset z counters
+    // }
 }

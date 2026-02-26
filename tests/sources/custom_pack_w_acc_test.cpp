@@ -123,6 +123,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
+    reconfigure_packer_l1_acc(0); // Disable accumulation
+
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, tilize_en>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, params->num_faces);
     _llk_pack_init_<false, false, tilize_en>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces);
@@ -144,17 +146,17 @@ void run_kernel(const volatile struct RuntimeParams *params)
         res_ptr[i] = 0;
     }
 
-    const std::uint32_t pack_tiles = 1;
+    const std::uint32_t pack_tiles = 8;
 
     reconfigure_packer_l1_acc(1); // Enable accumulation
 
     // Call custom packer mop config
-    _llk_pack_mop_config_custom_<false /*untilize*/, false /*zero_output*/, tilize_en>(
+    _llk_pack_mop_config_custom_<false /*untilize*/, false /*zero_output*/, false /*tilize_en*/>(
         formats.pack_dst, FACE_R_DIM, TILE_C_DIM, 4, false /*partial_face*/, false /*narrow_tile*/, pack_tiles);
 
     _llk_packer_wait_for_math_done_();
 
-    _llk_pack_w_acc_custom_<false /*untilize*/, false /*zero_output*/, tilize_en>(0, L1_ADDRESS(params->buffer_Res[0]), pack_tiles);
+    _llk_pack_w_acc_custom_<false /*untilize*/, false /*zero_output*/, tilize_en>(0, L1_ADDRESS(params->buffer_Res[0]), params->TILE_CNT);
 
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
