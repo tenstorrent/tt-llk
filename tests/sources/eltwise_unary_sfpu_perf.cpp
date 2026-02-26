@@ -23,7 +23,6 @@ static constexpr int MAX_TILES_DEST                    = is_fp32_dest_acc_en ? 4
 static constexpr ckernel::DstSync DST_SYNC_MODE        = ckernel::DstSync::SyncHalf;
 static constexpr bool DST_ACCUM_MODE                   = is_fp32_dest_acc_en;
 static constexpr ckernel::BroadcastType BROADCAST_TYPE = ckernel::BroadcastType::NONE;
-static constexpr bool CLAMP_NEGATIVE                   = false;
 
 #ifdef LLK_TRISC_UNPACK
 
