@@ -50,7 +50,7 @@ def test_custom_pack_w_acc(
             input_dimensions[0] * input_dimensions[1],
             dtype=format_dict[formats.input_format],
         )
-        * 1
+        * 3
     )
 
     if tilize == Tilize.No:
@@ -93,7 +93,11 @@ def test_custom_pack_w_acc(
 
     res_from_L1 = configuration.run(workers_tensix_coordinates)
 
-    print(res_from_L1[0:1024].view(32, 32))
+    for i in range(0, len(res_from_L1), 16):
+        row = (i // 16) % 16
+        face = (i // 256) % 4
+        tile = i // 1024
+        print(f"T{tile}F{face}R{row}\t", res_from_L1[i : i + 16])
 
     # assert len(res_from_L1) == len(golden_tensor)
     assert 1 == 2
