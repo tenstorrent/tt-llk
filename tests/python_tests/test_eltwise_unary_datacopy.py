@@ -47,6 +47,9 @@ def get_valid_tilize_datacopy(formats):
     if formats.input_format == DataFormat.Bfp8_b:
         return [Tilize.No]
 
+    if formats.input_format == DataFormat.Fp8_e4m3:
+        return [Tilize.No]
+
     return [Tilize.No, Tilize.Yes]
 
 
@@ -65,11 +68,7 @@ def get_valid_num_faces_datacopy(tilize):
 
 
 @parametrize(
-    formats=input_output_formats(
-        [
-            DataFormat.Fp8_e4m3,
-        ]
-    ),
+    formats=input_output_formats([DataFormat.Fp8_e4m3, DataFormat.Float16]),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     num_faces=lambda tilize: get_valid_num_faces_datacopy(tilize),
     tilize=lambda formats: get_valid_tilize_datacopy(formats),
