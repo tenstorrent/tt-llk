@@ -113,6 +113,8 @@ inline void _llk_pack_mop_config_custom_(
     tmp.program();
 }
 
+// NOTE: DO NOT TRY TO USE IN KERNELS OTHER THAN SDPA.CPP.
+// HIGHLY OPTIMIZED FOR A SPECIFIC USE CASE, NOT TESTED, DOES NOT RESPECT ANY CONTRACT OR PROGRAMMING MODEL.
 template <bool out_of_order_output = false, bool is_fp32_dest_acc_en = false>
 inline void _llk_pack_w_acc_custom_(const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t num_tiles)
 {
