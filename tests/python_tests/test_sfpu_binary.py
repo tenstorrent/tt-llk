@@ -10,7 +10,7 @@ from helpers.llk_params import DestAccumulation, MathOperation, format_dict
 from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
-from helpers.test_config import TestConfig, TestMode
+from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     APPROX_MODE,
     MATH_OP,
@@ -102,20 +102,17 @@ def test_sfpu_binary_add_top_row(formats, dest_acc, mathop, workers_tensix_coord
         sfpu=True,
     )
 
-    if TestConfig.MODE != TestMode.PRODUCE:
-        generate_golden = get_golden_generator(BinarySFPUGolden)
-        golden_tensor = generate_golden(
-            mathop,
-            src_A,
-            0,
-            1,
-            0,
-            1,
-            input_dimensions,
-            formats.output_format,
-        ).view(input_dimensions)
-    else:
-        golden_tensor = src_A
+    generate_golden = get_golden_generator(BinarySFPUGolden)
+    golden_tensor = generate_golden(
+        mathop,
+        src_A,
+        0,
+        1,
+        0,
+        1,
+        input_dimensions,
+        formats.output_format,
+    ).view(input_dimensions)
 
     configuration = TestConfig(
         "sources/sfpu_binary_test.cpp",
