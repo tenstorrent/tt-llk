@@ -59,39 +59,7 @@ operations:
     math_fidelity: "LoFi"
     block_size: [64, 64]
 
-  # - src_a: "tilized_output"
-  #   src_b: "X"
-  #   output: "reduced_output"
-  #   src_a_dims: [96, 128]
-  #   src_b_dims: [96, 128]
-  #   output_dims: [96, 128]
-  #   src_b_const_value: 1.0 # 0.03125 for Reduce Average
-  #   input_format: "Float16_b"
-  #   output_format: "Float16_b"
-  #   math:
-  #     - type: "Fpu"
-  #       operation: "ReduceRow"
-  #       reduce_pool: "MAX"
-  #       unpacker: "UnpackerAB"
-  #     - type: "Fpu"
-  #       operation: "ReduceRow"
-  #       reduce_pool: "SUM"
-  #       unpacker: "UnpackerAB"
-  #     # - type: "Fpu"
-  #     #   operation: "ReduceRow"
-  #     #   reduce_pool: "AVG"
-  #     #   unpacker: "UnpackerAB"
-  #     - type: "BinarySfpu"
-  #       operation: "SfpuElwadd"
-  #       approximation_mode: false
-  #       iterations: 8
-  #       src1_dest_tile_index: 0
-  #       src2_dest_tile_index: 0
-  #       dst_dest_tile_index: 0
-  #   packer: "Packer"
-  #   math_fidelity: "HiFi4"
-
-  - src_a: "reduced_output"
+  - src_a: "tilized_output"
     src_b: "input_B"
     output: "elwadd1"
     src_a_dims: [96, 128]
