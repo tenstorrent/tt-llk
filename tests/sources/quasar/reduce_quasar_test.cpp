@@ -136,3 +136,5 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_reduce_mask_clear_();
 }
 #endif
+
+#include "sfpu_stub.h"
