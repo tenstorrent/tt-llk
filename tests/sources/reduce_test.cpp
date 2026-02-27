@@ -33,14 +33,14 @@ void run_kernel(const volatile struct RuntimeParams* params)
         static_cast<std::uint8_t>(params->num_faces_r_dim_A),
         static_cast<std::uint8_t>(params->num_faces_c_dim_A)};
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src,
-        formats.unpack_src,
-        formats.unpack_dst,
-        formats.unpack_dst,
-        params->in0_face_r_dim,
-        params->in0_face_r_dim,
-        params->num_faces_A,
-        params->num_faces_A,
+        formats.unpack_A_src,
+        formats.unpack_A_src,
+        formats.unpack_A_dst,
+        formats.unpack_A_dst,
+        tensor_shape.face_r_dim,
+        tensor_shape.face_r_dim,
+        tensor_shape.total_num_faces(),
+        tensor_shape.total_num_faces(),
         params->buffer_A.get_tile_size(),
         params->buffer_A.get_tile_size());
     _llk_unpack_AB_reduce_init_<POOL_TYPE, REDUCE_DIM>(tensor_shape);
@@ -119,7 +119,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const volatile FormatConfig& formats = params->formats;
 #endif
     const ckernel::TensorShape tensor_shape = {
-        static_cast<std::uint8_t>(params->in0_face_r_dim), static_cast<std::uint8_t>(params->in0_face_c_dim), params->num_faces_r_dim_A, params->num_faces_c_dim_A};
+        static_cast<std::uint8_t>(params->in0_face_r_dim),
+        static_cast<std::uint8_t>(params->in0_face_c_dim),
+        params->num_faces_r_dim_A,
+        params->num_faces_c_dim_A};
 
     const std::uint32_t tile_size = tensor_shape.total_tensor_size();
     const std::uint32_t num_faces = tensor_shape.total_num_faces();
@@ -127,13 +130,16 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const bool narrow_tile        = tensor_shape.num_faces_c_dim == 1;
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(formats.pack_src, formats.pack_dst, tile_size, tensor_shape.face_r_dim, tensor_shape.face_c_dim, num_faces, partial_face, narrow_tile);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(
+        formats.pack_src, formats.pack_dst, tile_size, tensor_shape.face_r_dim, tensor_shape.face_c_dim, num_faces, partial_face, narrow_tile);
 #else
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(formats.pack_src, formats.pack_dst, tile_size, tensor_shape.face_r_dim, num_faces, partial_face, narrow_tile);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(
+        formats.pack_src, formats.pack_dst, tile_size, tensor_shape.face_r_dim, num_faces, partial_face, narrow_tile);
 #endif
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_init_<false, false>(formats.pack_dst, tensor_shape.face_r_dim, tensor_shape.total_col_dim(), num_faces, false /* partial_face [unused] */, narrow_tile);
+    _llk_pack_init_<false, false>(
+        formats.pack_dst, tensor_shape.face_r_dim, tensor_shape.total_col_dim(), num_faces, false /* partial_face [unused] */, narrow_tile);
 #else
     _llk_pack_init_<false, false>(formats.pack_dst, tensor_shape.face_r_dim, num_faces, partial_face, narrow_tile);
 #endif
