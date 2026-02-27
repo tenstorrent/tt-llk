@@ -12,7 +12,7 @@ def get_valid_dest_accumulation_modes(formats):
 
     - Dest accumulation must be ENABLED for the following format combinations:
         - Input format has B type exponent (bfp8_b, float16_b)
-        - Output format is A type exponent (float16)
+        - Output format is A type exponent (float16, fp8_e4m3)
         Reason: HW limitation, Packer cannot convert expB to expA, so we convert it to Float32 first as intermediate. (Source???)
     - Dest accumulation must be ENABLED for the following format combination:
         - Input format is 32bit integer format (int32, uint32)
@@ -23,10 +23,10 @@ def get_valid_dest_accumulation_modes(formats):
         So I'm not sure if they should also be handled here.
     """
 
-    if (
-        formats.input in [DataFormat.Bfp8_b, DataFormat.Float16_b]
-        and formats.output == DataFormat.Float16
-    ):
+    if formats.input in [
+        DataFormat.Bfp8_b,
+        DataFormat.Float16_b,
+    ] and formats.output in [DataFormat.Float16]:
         return [DestAccumulation.Yes]
 
     if formats.input in [DataFormat.Int32, DataFormat.UInt32]:

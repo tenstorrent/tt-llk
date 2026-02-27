@@ -203,12 +203,11 @@ constexpr DataFormat infer_pack_in()
         }
     }
 #if !defined(ARCH_QUASAR)
-    else if constexpr (INPUT == DataFormat::Float16 && OUTPUT == DataFormat::Bfp8_b && !FP32_ACC)
+    else if constexpr ((INPUT == DataFormat::Float16 || INPUT == DataFormat::Fp8_e4m3) && OUTPUT == DataFormat::Bfp8_b && !FP32_ACC)
     {
-        // When storing Float16 input in destination registers without FP32 accumulation,
-        // the packer cannot convert Float16_A directly to Block Float format (in this case Bfp8_B).
-        // The gasket will convert Float16_A to Bfp8_A before passing it to the packer,
-        // which then converts Bfp8_A to Bfp8_B.
+        // When DEST holds Float16 data without FP32 accumulation, the gasket converts
+        // Float16_A to Bfp8_A, then the packer converts Bfp8_A to Bfp8_B.
+        // Fp8_e4m3 input also results in Float16 in DEST (hardware decodes FP8 to Float16).
         return DataFormat::Bfp8;
     }
 #endif
@@ -245,14 +244,15 @@ constexpr FormatConfig infer_data_formats()
     // FP8 is a compressed L1 format; hardware unpacks it to Float16 (float16_a) in
     // source registers. The ALU and packer must see Float16, not Lf8/Fp8_e4m3.
     constexpr DataFormat math = (unpack_A_out == DataFormat::Fp8_e4m3) ? DataFormat::Float16 : unpack_A_out;
-    // FP8 overrides: Dstacc must describe what is actually in DEST, not the L1 format.
-    // 1) FP8 input: DEST holds Float16 (from FP8 decode), so pack_in = Float16.
-    // 2) FP8 output + dest_acc: DEST holds promoted data (Tf32); pack_in = math.
-    //    Pac_LF8_4b_exp (keyed off pack_dst) handles actual conversion to Fp8.
+    // FP8 output: gasket must produce Float16 for packer's Pac_LF8_4b_exp encode path.
+    // The gasket converts whatever is in DEST (Float16, Float16_b, Tf32, etc.) to Float16.
+    // FP8 input with non-FP8 output: infer_pack_in may return Fp8_e4m3 (the L1 format)
+    // via the default path, but DEST actually holds Float16 after FP8 decode. Override to
+    // Float16 unless infer_pack_in computed a specific intermediate (e.g. Bfp8 for Bfp8_b).
     constexpr DataFormat pack_in_raw = infer_pack_in<INPUT, OUTPUT, unpack_A_out, FP32_ACC, unpack_to_dest>();
-    constexpr DataFormat pack_in     = (math == DataFormat::Float16 && INPUT == DataFormat::Fp8_e4m3) ? DataFormat::Float16
-                                       : (OUTPUT == DataFormat::Fp8_e4m3 && FP32_ACC)                 ? math
-                                                                                                      : pack_in_raw;
+    constexpr DataFormat pack_in     = (OUTPUT == DataFormat::Fp8_e4m3)                          ? DataFormat::Float16
+                                       : (INPUT == DataFormat::Fp8_e4m3 && pack_in_raw == INPUT) ? DataFormat::Float16
+                                                                                                 : pack_in_raw;
 
     // Return a FormatConfig struct capturing all the inferred formats needed for this stage
     return get_data_formats(unpack_A_in, unpack_B_in, unpack_A_out, unpack_B_out, math, pack_in, pack_out);
