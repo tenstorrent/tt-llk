@@ -25,6 +25,7 @@ from helpers.fused_sfpu import BinarySfpu, UnarySfpu
 from helpers.fused_unpacker import (
     MatmulUnpacker,
     ReduceBlockMaxUnpacker,
+    ReduceUnpacker,
     UnpackerA,
     UnpackerAB,
     UnpackerTilizeA,
@@ -82,6 +83,7 @@ class UnpackerEnum(Enum):
     UnpackerAB = UnpackerAB
     UnpackerTilizeA = UnpackerTilizeA
     MatmulUnpacker = MatmulUnpacker
+    ReduceUnpacker = ReduceUnpacker
     ReduceBlockMaxUnpacker = ReduceBlockMaxUnpacker
 
     def to_runtime(self) -> Type:
@@ -215,9 +217,9 @@ class FpuMathSchema(BaseModel):
                         f"Matmul: unpacker must be MatmulUnpacker, got '{self.unpacker.value}'"
                     )
             elif self.operation.is_reduce():
-                if self.unpacker != UnpackerEnum.UnpackerAB:
+                if self.unpacker != UnpackerEnum.ReduceUnpacker:
                     raise ValueError(
-                        f"Reduce: unpacker must be UnpackerAB, got '{self.unpacker.value}'"
+                        f"Reduce: unpacker must be ReduceUnpacker, got '{self.unpacker.value}'"
                     )
             elif self.operation.is_eltwise():
                 if (
@@ -352,9 +354,9 @@ class OperationSchema(BaseModel):
     packer: PackerEnum = PackerEnum.Packer
     math_fidelity: MathFidelity = MathFidelity.LoFi
     dest_sync: Optional[DestSync] = None
-    batch_size: Annotated[int, Field(ge=0)] = 0
+    block_size: Annotated[List[int], Field(min_length=2, max_length=2)] = [32, 32]
 
-    @field_validator("src_a_dims", "src_b_dims", "output_dims")
+    @field_validator("src_a_dims", "src_b_dims", "output_dims", "block_size")
     @classmethod
     def validate_dimensions(cls, v: List[int]) -> List[int]:
         for dim in v:
@@ -433,13 +435,12 @@ class OperationSchema(BaseModel):
         }
         if self.dest_sync:
             kwargs["dest_sync"] = self.dest_sync
-        if self.batch_size:
-            kwargs["batch_size"] = self.batch_size
+        if self.block_size:
+            kwargs["block_size"] = self.block_size
 
         return FusedOperation(
             operand_mapping=operand_mapping,
-            math=ComputePipeline(math_ops),
-            packer=self.packer.to_runtime(),
+            math=ComputePipeline(math_ops, self.packer.to_runtime()),
             **kwargs,
         )
 
