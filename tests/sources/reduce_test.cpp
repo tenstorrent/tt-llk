@@ -64,9 +64,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef RUNTIME_FORMATS
     const volatile FormatConfig& formats = params->formats;
 #endif
-    const bool is_int_fpu_en             = false;
-    const bool enforce_fp32_accumulation = false;
-    bool is_narrow_tile                  = (params->num_faces_c_dim_A < params->num_faces_r_dim_A);
     const bool is_int_fpu_en                = false;
     const bool enforce_fp32_accumulation    = false;
     const ckernel::TensorShape tensor_shape = {
