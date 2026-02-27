@@ -98,7 +98,7 @@ inline std::uint32_t load_blocking(volatile std::uint32_t *ptr)
 {
     std::uint32_t val;
 
-    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/BabyRISCV/MemoryOrdering.md
+    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/BlackholeA0/TensixTile/BabyRISCV/MemoryOrdering.md
 
     // important note: FENCE on Wormhole is a NOP
     //
@@ -130,7 +130,7 @@ inline std::uint32_t load_blocking(volatile std::uint32_t *ptr)
  */
 inline void store_blocking(volatile std::uint32_t *ptr, std::uint32_t val)
 {
-    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/BabyRISCV/MemoryOrdering.md
+    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/BlackholeA0/TensixTile/BabyRISCV/MemoryOrdering.md
 
     // important note: FENCE on Wormhole is a NOP
     //
