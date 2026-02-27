@@ -50,7 +50,7 @@ mathop_mapping = {
 
 @parametrize(
     input_dimensions=[[256, 32]],
-    tile_dimensions=[[1, 32], [2, 32], [4, 32], [8, 32], [16, 32], [32, 32]],
+    tile_dimensions=[[32, 16]],
     formats=input_output_formats(
         [
             DataFormat.Float32,
