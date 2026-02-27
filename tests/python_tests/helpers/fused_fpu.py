@@ -392,7 +392,7 @@ class ReduceFpu(Fpu):
 
         return (
             f"    _llk_math_reduce_<{pool_type_cpp}, {reduce_dim_cpp}, {dest_acc}, {math_fidelity}, false, false>(\n"
-            f"        {tile_idx}, {tensor_shape_instantiation}\n"
+            f"        {block.tile_id_block}, {tensor_shape_instantiation}\n"
             f"    );\n"
         )
 
