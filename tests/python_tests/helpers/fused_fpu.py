@@ -540,9 +540,9 @@ class ReduceBlockMaxFpu(Fpu):
     ) -> str:
         ct_dim = block.block_tiles_x
         dest_acc = config.dest_acc.cpp_enum_value
-        tile_x_in_block = f"(({block.tile_id_block}) / {block.block_tiles_y})"
-        tile_y_in_block = f"(({block.tile_id_block}) % {block.block_tiles_y})"
-        dest_expr = tile_y_in_block
+        tile_x_in_block = f"(({block.tile_id_block}) % {block.block_tiles_x})"
+        tile_y_in_block = f"(({block.tile_id_block}) / {block.block_tiles_x})"
+        dest_expr = f"(({tile_y_in_block}) * {block.block_tiles_x})"
         return (
             f"if (({tile_x_in_block}) % {ct_dim} == 0 ) {{\n"
             f"    _llk_math_reduce_block_max_row_<{ct_dim}, {dest_acc}>({dest_expr});\n"

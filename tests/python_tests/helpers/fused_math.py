@@ -197,8 +197,8 @@ class ComputeNode:
 
             def process_block(block_x, block_y, block_tiles_x_eff, block_tiles_y_eff):
                 block_tile_ids = []
-                for tile_x in range(block_tiles_x_eff):
-                    for tile_y in range(block_tiles_y_eff):
+                for tile_y in range(block_tiles_y_eff):
+                    for tile_x in range(block_tiles_x_eff):
                         tile_id = tile_count_x * (block_y + tile_y) + (block_x + tile_x)
                         block_tile_ids.append(tile_id)
 

@@ -777,7 +777,7 @@ class ReduceBlockMaxUnpacker(Unpacker):
         block: "BlockData",
     ) -> str:
         ct_dim = block.block_tiles_x
-        tile_x_in_block = f"(({block.tile_id_block}) / {block.block_tiles_y})"
+        tile_x_in_block = f"(({block.tile_id_block}) % {block.block_tiles_x})"
         return (
             f"if (({tile_x_in_block}) % {ct_dim} == 0) {{\n"
             f"    _perf_math_loop_clear_valid<true, false>({ct_dim});\n"
