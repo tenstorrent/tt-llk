@@ -272,19 +272,10 @@ def infer_data_formats(
     )  # input to the packing stage, determines what gasket can convert from dest register
     # potentially different from unpack_out and pack_out depending on FP32 accumulation
 
-    # FP8 override: DEST holds Float16 data (from FP8 decode), so pack_src must reflect that
-    # for correct packer strides and ALU_FORMAT_SPEC_REG2_Dstacc configuration.
-    if input_format == DataFormat.Fp8_e4m3 and math == DataFormat.Float16:
+    # FP8 output: gasket must produce Float16 for packer's Pac_LF8_4b_exp encode path.
+    # The gasket converts whatever is in DEST (Float16, Float16_b, Tf32, etc.) to Float16.
+    if output_format == DataFormat.Fp8_e4m3:
         pack_in = DataFormat.Float16
-
-    # FP8 output override: when dest_acc=Yes, DEST holds promoted data (Tf32/Float32).
-    # Dstacc must describe what is in DEST (math fmt), not the L1 output format.
-    # Pac_LF8_4b_exp (keyed off pack_dst) handles the actual conversion to Fp8.
-    if (
-        output_format == DataFormat.Fp8_e4m3
-        and is_fp32_dest_acc_en == DestAccumulation.Yes
-    ):
-        pack_in = math
 
     # Return a FormatConfig struct capturing all the inferred formats needed for this stage
     # Set same_src_format based on whether A and B formats match
