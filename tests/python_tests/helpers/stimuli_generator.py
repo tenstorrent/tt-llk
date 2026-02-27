@@ -145,7 +145,7 @@ def generate_identity_face_tensor(
 
 
 def generate_incrementing_face_tensor(
-    stimuli_format: DataFormat, rows: int, cols: int
+    stimuli_format: DataFormat, rows: int, cols: int, offset: int = 0
 ) -> torch.Tensor:
     assert rows % 16 == 0 and cols % 16 == 0, "Matrix size must be divisible by 16"
 
@@ -159,7 +159,7 @@ def generate_incrementing_face_tensor(
     # Fill each face with its index
     for face_r in range(num_faces_row):
         for face_c in range(num_faces_col):
-            face_val = float(face_r * num_faces_col + face_c + 1)
+            face_val = float(face_r * num_faces_col + face_c + 1 + offset)
             r_start = face_r * face_height
             c_start = face_c * face_width
             matrix[r_start : r_start + face_height, c_start : c_start + face_width] = (
@@ -188,24 +188,31 @@ def generate_face_matmul_data(
             f"Input dimensions must be multiples of 32, got {input_dimensions}"
         )
 
-    # Calculate number of tiles needed
-    tile_cnt = input_dimensions[0] // 32 * input_dimensions[1] // 32
+    rt, ct = rows // 32, cols // 32
+    dtype = format_dict[stimuli_format]
 
-    # Create list to store tiles --> generate each tile with the right faces zeroed out
-    tiles = [
-        _mask_tile(
-            torch.rand(32, 32, dtype=format_dict[stimuli_format]),
-            num_faces,
-            not is_matrix_A,
-            face_r_dim,
-        ).flatten()
-        for _ in range(tile_cnt)
-    ]
+    # Pre-allocate tilized output (rt, ct, 4, 16, 16); fill tile-by-tile
+    tilized = torch.empty((rt, ct, 4, 16, 16), dtype=dtype)
 
-    # Concatenate all tiles
-    src = torch.cat(tiles)
+    for i in range(rt):
+        for j in range(ct):
+            tile_32x32 = torch.rand(32, 32, dtype=dtype)
+            masked = _mask_tile(tile_32x32, num_faces, not is_matrix_A, face_r_dim)
+            tilized[i, j, 0] = masked[0:16, 0:16]
+            tilized[i, j, 1] = masked[0:16, 16:32]
+            tilized[i, j, 2] = masked[16:32, 0:16]
+            tilized[i, j, 3] = masked[16:32, 16:32]
 
-    return src
+    # Convert tilized (rt, ct, 4, 16, 16) to row-major (rows, cols)
+    out = torch.empty((rows, cols), dtype=dtype)
+    for i in range(rt):
+        for j in range(ct):
+            out[i * 32 : i * 32 + 16, j * 32 : j * 32 + 16] = tilized[i, j, 0]
+            out[i * 32 : i * 32 + 16, j * 32 + 16 : j * 32 + 32] = tilized[i, j, 1]
+            out[i * 32 + 16 : i * 32 + 32, j * 32 : j * 32 + 16] = tilized[i, j, 2]
+            out[i * 32 + 16 : i * 32 + 32, j * 32 + 16 : j * 32 + 32] = tilized[i, j, 3]
+
+    return out
 
 
 def calculate_tile_and_face_counts(
