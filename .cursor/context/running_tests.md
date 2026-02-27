@@ -5,7 +5,7 @@
 </environment-setup>
 
 <running-test>
-    <optional-arguments description="It will collect coverage code data, insert after `pytest`">`--coverage`</oprinal-arguments>
+    <optional-arguments description="It will collect coverage code data, insert after `pytest`">`--coverage`</optional-arguments>
     <command executionPath="tests/python_tests" description="Compiles all the variants with given [test_name]">
         `pytest --compile-producer -n 10 -x ./test_name.py`
     </command>
