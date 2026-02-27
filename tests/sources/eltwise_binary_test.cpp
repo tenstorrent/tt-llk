@@ -47,8 +47,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
         tensor_shape.face_r_dim,
         tensor_shape.total_num_faces(),
         tensor_shape.total_num_faces(),
-        TILE_SIZE_UNPACK_A,
-        TILE_SIZE_UNPACK_B);
+        params->TILE_SIZE_UNPACK_A,
+        params->TILE_SIZE_UNPACK_B);
 
     _llk_unpack_AB_init_<BROADCAST_TYPE>(tensor_shape, transpose);
 
