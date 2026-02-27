@@ -688,19 +688,17 @@ class ReduceUnpacker(Unpacker):
         compute_unit: "ComputeNode",
         block: "BlockData",
     ) -> str:
-        face_r_dim = operation.face_r_dim
-        num_faces = operation.num_faces
-
         reduce_dim = compute_unit.fpu.reduce_dim()
         pool_type = compute_unit.fpu.pool_type()
 
         tile_shape = operation.src_a.tile_shape
-        shape_var = f"tensor_shape_stage_{operation.stage_id}"
+        tensor_shape_instantiation: str = (
+            f"ckernel::TensorShape{{{tile_shape.face_r_dim}, {tile_shape.face_c_dim}, {tile_shape.num_faces_r_dim}, {tile_shape.num_faces_c_dim}}}"
+        )
+
         return (
-            f"const ckernel::TensorShape {shape_var} = "
-            f"{{{tile_shape.face_r_dim}, {tile_shape.face_c_dim}, {tile_shape.num_faces_r_dim}, {tile_shape.num_faces_c_dim}}};\n"
             f"_llk_unpack_AB_reduce_init_<{pool_type}, {reduce_dim}>(\n"
-            f"{shape_var});\n"
+            f"{tensor_shape_instantiation});\n"
         )
 
     def unpack(
