@@ -12,9 +12,9 @@ if TYPE_CHECKING:
     from .fused_math import ComputeNode
     from .block_data import BlockData
 
-from .fused_fpu import ReduceFpu
 from .chip_architecture import ChipArchitecture
 from .fused_loop import FusedLoop, LoopBlock, LoopTileByTile
+from .fused_fpu import ReduceFpu
 from .golden_generators import BroadcastGolden, TransposeGolden, get_golden_generator
 from .llk_params import BroadcastType, Transpose
 from .tilize_untilize import tilize_block, untilize_block
