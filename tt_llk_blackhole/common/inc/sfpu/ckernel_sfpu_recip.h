@@ -217,7 +217,14 @@ inline void _calculate_reciprocal_internal_(const int iterations)
 {
     if constexpr (APPROXIMATION_MODE)
     {
-        _calculate_reciprocal_fast_7b_(iterations);
+        if constexpr (is_fp32_dest_acc_en)
+        {
+            _calculate_reciprocal_fast_8b_3c_(iterations);
+        }
+        else
+        {
+            _calculate_reciprocal_fast_7b_(iterations);
+        }
     }
     else if constexpr (is_fp32_dest_acc_en)
     {
@@ -425,7 +432,14 @@ inline void _init_reciprocal_()
     {
         if constexpr (APPROXIMATION_MODE)
         {
-            _init_reciprocal_fast_7b_();
+            if constexpr (is_fp32_dest_acc_en)
+            {
+                _init_reciprocal_fast_8b_3c_();
+            }
+            else
+            {
+                _init_reciprocal_fast_7b_();
+            }
         }
         else if constexpr (is_fp32_dest_acc_en)
         {
