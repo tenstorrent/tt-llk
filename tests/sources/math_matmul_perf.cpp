@@ -190,7 +190,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(
             formats.pack_src,
             formats.pack_dst,
-            TILE_SIZE_PACK,
+            params->TILE_SIZE_PACK,
             params->in0_tile_r_dim < FACE_R_DIM ? params->in0_tile_r_dim : FACE_R_DIM,
             params->num_faces,
             params->PARTIAL_FACE_PACK);
