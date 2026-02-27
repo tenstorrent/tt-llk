@@ -397,6 +397,10 @@ inline void reconfig_packer_data_format(
 
     // Set packer strides
     set_packer_strides(pack_output_src_format, tile_c_dim);
+
+    // TO DO: Enable support for this data format, without causing a race #1254
+    // Set Fp8 E4M3 mode for packer
+    // cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>((pack_dst_format & 0x1F) == static_cast<DataFormatType>(DataFormat::Fp8_e4m3) ? 1 : 0);
 }
 
 template <bool is_fp32_dest_acc_en, bool untilize = false, bool tilize = false>

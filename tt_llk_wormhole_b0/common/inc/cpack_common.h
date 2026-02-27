@@ -386,7 +386,8 @@ inline void reconfig_packer_data_format(
     const std::uint32_t tile_size  = 0,
     const std::uint32_t face_r_dim = FACE_R_DIM,
     const std::uint32_t num_faces  = 4,
-    const bool partial_face        = false)
+    const bool partial_face        = false,
+    const bool narrow_tile         = false)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // Configure packers
@@ -511,6 +512,14 @@ inline void reconfig_packer_data_format(
 
     // Set packer strides
     set_packer_strides(pack_src_format);
+
+    const std::uint32_t face_dim = face_r_dim * FACE_C_DIM;
+
+    // To untilize narrow tile (32x16) we just pack 2 faces back to back
+    // Number of datums to pack per row
+    const std::uint32_t pack_x_dim = (narrow_tile) ? face_dim : FACE_C_DIM;
+
+    TT_SETADCXX(p_setadc::PAC, pack_x_dim - 1, 0x0);
 }
 
 template <bool is_fp32_dest_acc_en, bool untilize>
