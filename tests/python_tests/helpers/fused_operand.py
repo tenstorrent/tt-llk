@@ -41,6 +41,11 @@ class Operand:
                 (DEFAULT_TILE_R_DIM, DEFAULT_TILE_C_DIM)
             )
 
+        if self.dimensions is not None:
+            self.tile_count_x = self.dimensions[1] // self.tile_shape.total_col_dim()
+            self.tile_count_y = self.dimensions[0] // self.tile_shape.total_row_dim()
+            self._tile_count = self.tile_count_x * self.tile_count_y
+
     def is_input(self) -> bool:
         return not self.is_output
 
