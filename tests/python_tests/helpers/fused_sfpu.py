@@ -147,7 +147,6 @@ class UnarySfpu(Sfpu):
 
         return (
             f"#ifdef DST_SYNC_MODE\n#undef DST_SYNC_MODE\n#define DST_SYNC_MODE dest_sync{stage}\n#endif\n"
-            f"#ifdef APPROX_MODE\n#undef APPROX_MODE\n#define APPROX_MODE {self.approx_mode.value}\n#endif\n"
             f"#undef ITERATIONS\n#define ITERATIONS {self.iterations}\n"
             f"    CALL_UNARY_SFPU_OPERATION_INIT({op});\n"
             f"    CALL_UNARY_SFPU_OPERATION({op}, {self.dest_idx}, math_format{stage}, VectorMode::None, {self.fill_const_value});\n"
@@ -248,7 +247,6 @@ class BinarySfpu(Sfpu):
 
         return (
             f"#ifdef DST_SYNC_MODE\n#undef DST_SYNC_MODE\n#define DST_SYNC_MODE dest_sync{stage}\n#endif\n"
-            f"#ifdef APPROX_MODE\n#undef APPROX_MODE\n#define APPROX_MODE {approx_mode}\n#endif\n"
             f"#undef ITERATIONS\n#define ITERATIONS {self.iterations}\n"
             f"    CALL_BINARY_SFPU_OPERATION_INIT({op});\n"
             f"    CALL_BINARY_SFPU_OPERATION({op}, math_format{stage}, {src1}, {src2}, {dst}, VectorMode::None);\n"

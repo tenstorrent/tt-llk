@@ -75,12 +75,12 @@ class MathKernelGenerator:
         constants = ""
         if "sdpa_reinits" not in str(test_name):
             constants = (
-                f"#define DST_SYNC_MODE ckernel::DstSync::SyncHalf\n"
-                f"#define DST_ACCUM_MODE false\n"
+                f"static constexpr ckernel::DstSync DST_SYNC_MODE = ckernel::DstSync::SyncHalf;\n"
+                f"static constexpr bool DST_ACCUM_MODE = false;\n"
                 f"static constexpr bool APPROX_MODE = false;\n"
                 f"static constexpr std::uint32_t ITERATIONS = 32;\n"
-                f"#define FAST_MODE false\n"
-                f"#define STABLE_SORT false\n"
+                f"static constexpr bool FAST_MODE = false;\n"
+                f"static constexpr bool STABLE_SORT = false;\n"
                 f"static constexpr bool CLAMP_NEGATIVE = false;\n"
             )
 
