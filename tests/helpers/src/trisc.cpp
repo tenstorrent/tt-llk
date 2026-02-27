@@ -47,6 +47,10 @@ constexpr std::uint32_t mailbox_offset = sizeof(std::uint32_t);
 constexpr std::uint32_t mailbox_offset = 2 * sizeof(std::uint32_t);
 #elif defined(LLK_TRISC_PACK)
 constexpr std::uint32_t mailbox_offset = 3 * sizeof(std::uint32_t);
+#elif defined(LLK_TRISC_SFPU)
+constexpr std::uint32_t mailbox_offset = 4 * sizeof(std::uint32_t);
+#else
+#error "No TRISC define set"
 #endif
 
 int main(void)
