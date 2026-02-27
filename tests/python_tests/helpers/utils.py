@@ -79,7 +79,6 @@ def print_faces(operand1, tile_shape=None):
     logger.debug("Tile faces:\n{}", "\n".join(lines))
 
 
-
 def run_shell_command(
     command: str, cwd: str | None = None, stdin_data: str | bytes = None, text=True
 ):
