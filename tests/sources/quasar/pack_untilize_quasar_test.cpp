@@ -127,3 +127,5 @@ void run_kernel(const volatile struct RuntimeParams *params)
 }
 
 #endif
+
+#include "sfpu_stub.h"

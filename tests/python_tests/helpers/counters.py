@@ -12,20 +12,37 @@ from .test_config import TestConfig
 COUNTER_SLOT_COUNT = 86  # Max counters per thread
 COUNTER_DATA_WORD_COUNT = COUNTER_SLOT_COUNT * 2  # 2 words per counter (cycles + count)
 
-_THREAD_ADDRESSES = {
-    "UNPACK": (
-        TestConfig.PERF_COUNTER_UNPACK_CONFIG_ADDR,
-        TestConfig.PERF_COUNTER_UNPACK_DATA_ADDR,
-    ),
-    "MATH": (
-        TestConfig.PERF_COUNTER_MATH_CONFIG_ADDR,
-        TestConfig.PERF_COUNTER_MATH_DATA_ADDR,
-    ),
-    "PACK": (
-        TestConfig.PERF_COUNTER_PACK_CONFIG_ADDR,
-        TestConfig.PERF_COUNTER_PACK_DATA_ADDR,
-    ),
-}
+
+def _get_thread_addresses():
+    """Thread addresses for perf counters; includes SFPU when using 4-TRISC."""
+    addrs = {
+        "UNPACK": (
+            TestConfig.PERF_COUNTER_UNPACK_CONFIG_ADDR,
+            TestConfig.PERF_COUNTER_UNPACK_DATA_ADDR,
+        ),
+        "MATH": (
+            TestConfig.PERF_COUNTER_MATH_CONFIG_ADDR,
+            TestConfig.PERF_COUNTER_MATH_DATA_ADDR,
+        ),
+        "PACK": (
+            TestConfig.PERF_COUNTER_PACK_CONFIG_ADDR,
+            TestConfig.PERF_COUNTER_PACK_DATA_ADDR,
+        ),
+    }
+    if hasattr(TestConfig, "PERF_COUNTER_SFPU_CONFIG_ADDR") and hasattr(
+        TestConfig, "PERF_COUNTER_SFPU_DATA_ADDR"
+    ):
+        addrs["SFPU"] = (
+            TestConfig.PERF_COUNTER_SFPU_CONFIG_ADDR,
+            TestConfig.PERF_COUNTER_SFPU_DATA_ADDR,
+        )
+    return addrs
+
+
+def _get_all_threads():
+    """Threads that support performance counters; matches KERNEL_COMPONENTS."""
+    return [c.upper() for c in TestConfig.KERNEL_COMPONENTS]
+
 
 COUNTER_BANK_NAMES = {
     0: "INSTRN_THREAD",
@@ -197,9 +214,6 @@ def _build_all_counters() -> List[Dict]:
 # Pre-built list of all 66 counters (computed once at module load)
 ALL_COUNTERS = _build_all_counters()
 
-# All threads that support performance counters
-ALL_THREADS = ["UNPACK", "MATH", "PACK"]
-
 
 def configure_counters(location: str = "0,0") -> None:
     """
@@ -225,8 +239,9 @@ def configure_counters(location: str = "0,0") -> None:
     combined_data = config_words + [0] * COUNTER_DATA_WORD_COUNT
 
     # Write to all threads
-    for thread in ALL_THREADS:
-        config_addr, _ = _THREAD_ADDRESSES[thread]
+    thread_addrs = _get_thread_addresses()
+    for thread in _get_all_threads():
+        config_addr, _ = thread_addrs[thread]
         write_words_to_device(location=location, addr=config_addr, data=combined_data)
 
 
@@ -242,8 +257,9 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
     """
     all_results = []
 
-    for thread in ALL_THREADS:
-        config_addr, data_addr = _THREAD_ADDRESSES[thread]
+    thread_addrs = _get_thread_addresses()
+    for thread in _get_all_threads():
+        config_addr, data_addr = thread_addrs[thread]
 
         # Read metadata
         metadata = read_words_from_device(
@@ -328,7 +344,7 @@ def print_counters(results: pd.DataFrame) -> None:
     print("      after stopping. L1 mux0/mux1 cannot be measured simultaneously.")
     print("=" * 100)
 
-    for thread in ALL_THREADS:
+    for thread in _get_all_threads():
         thread_df = results[results["thread"] == thread]
         if thread_df.empty:
             continue

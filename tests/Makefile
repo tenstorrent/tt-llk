@@ -119,6 +119,11 @@ DIS_TARGETS := $(DIS_DIR)/unpack.S \
 				$(DIS_DIR)/math.S \
 				$(DIS_DIR)/pack.S
 
+ifeq ($(ARCH),quasar)
+ELF_TARGETS += $(ELF_DIR)/sfpu.elf
+DIS_TARGETS += $(DIS_DIR)/sfpu.S
+endif
+
 ifneq ($(ARCH),quasar)
 ELF_TARGETS += $(SHARED_ELF_DIR)/brisc.elf
 
@@ -129,9 +134,11 @@ all: $(ELF_TARGETS)
 
 dis: $(DIS_TARGETS)
 
+PROFILER_SFPU_TARGET = $(if $(filter quasar,$(ARCH)),$(PROFILER_DIR)/sfpu.meta.bin,)
 profiler: $(PROFILER_DIR)/unpack.meta.bin \
 	  $(PROFILER_DIR)/math.meta.bin \
-	  $(PROFILER_DIR)/pack.meta.bin
+	  $(PROFILER_DIR)/pack.meta.bin \
+	  $(PROFILER_SFPU_TARGET)
 
 # =========================
 # Build Rules

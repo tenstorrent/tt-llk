@@ -212,6 +212,9 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]) -> str:
 
 def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
     trisc_cores = [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2]
+    if get_chip_architecture() == ChipArchitecture.QUASAR:
+        trisc_cores.append(RiscCore.TRISC3)
+
     assertion_hits = []
     temp_stack_traces = ""
     for core in trisc_cores:
@@ -239,6 +242,8 @@ def wait_for_tensix_operations_finished(
     """
 
     mailboxes = {Mailbox.Unpacker, Mailbox.Math, Mailbox.Packer}
+    if get_chip_architecture() == ChipArchitecture.QUASAR:
+        mailboxes.add(Mailbox.Sfpu)
     test_target = TestTargetConfig()
     timeout = 600 if test_target.run_simulator else timeout
 
@@ -279,7 +284,7 @@ def wait_for_tensix_operations_finished(
 
 
 def reset_mailboxes(location: str = "0,0"):
-    """Reset all core mailboxes (Unpacker, Math, Packer) before each test."""
+    """Reset all core mailboxes (Unpacker, Math, Packer, Sfpu) before each test."""
 
     mailboxes_start_value = min([core.value for core in Mailbox])
     write_words_to_device(

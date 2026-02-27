@@ -60,6 +60,10 @@ namespace llk_perf
 #define PERF_COUNTER_MATH_DATA_ADDR     (PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_THREAD_SIZE + PERF_COUNTERS_CONFIG_WORDS * 4)
 #define PERF_COUNTER_PACK_CONFIG_ADDR   (PERF_COUNTERS_BASE_ADDR + 2 * PERF_COUNTERS_THREAD_SIZE)
 #define PERF_COUNTER_PACK_DATA_ADDR     (PERF_COUNTERS_BASE_ADDR + 2 * PERF_COUNTERS_THREAD_SIZE + PERF_COUNTERS_CONFIG_WORDS * 4)
+#if defined(ARCH_QUASAR)
+#define PERF_COUNTER_SFPU_CONFIG_ADDR (PERF_COUNTERS_BASE_ADDR + 3 * PERF_COUNTERS_THREAD_SIZE)
+#define PERF_COUNTER_SFPU_DATA_ADDR   (PERF_COUNTERS_BASE_ADDR + 3 * PERF_COUNTERS_THREAD_SIZE + PERF_COUNTERS_CONFIG_WORDS * 4)
+#endif
 
 // Configuration word format: [valid(31), l1_mux(17), counter_sel(8-16), bank_id(0-7)]
 // Note: counter_sel uses 9 bits (bits 8-16) to support counter IDs up to 511
@@ -283,6 +287,8 @@ private:
         constexpr std::uint32_t addr = PERF_COUNTER_MATH_CONFIG_ADDR;
 #elif defined(LLK_TRISC_PACK)
         constexpr std::uint32_t addr = PERF_COUNTER_PACK_CONFIG_ADDR;
+#elif defined(LLK_TRISC_SFPU)
+        constexpr std::uint32_t addr = PERF_COUNTER_SFPU_CONFIG_ADDR;
 #else
         constexpr std::uint32_t addr = PERF_COUNTER_MATH_CONFIG_ADDR;
 #endif
@@ -297,6 +303,8 @@ private:
         constexpr std::uint32_t addr = PERF_COUNTER_MATH_DATA_ADDR;
 #elif defined(LLK_TRISC_PACK)
         constexpr std::uint32_t addr = PERF_COUNTER_PACK_DATA_ADDR;
+#elif defined(LLK_TRISC_SFPU)
+        constexpr std::uint32_t addr = PERF_COUNTER_SFPU_DATA_ADDR;
 #else
         constexpr std::uint32_t addr = PERF_COUNTER_MATH_DATA_ADDR;
 #endif

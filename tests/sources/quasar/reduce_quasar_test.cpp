@@ -129,3 +129,5 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_pack_reduce_mask_clear_();
 }
 #endif
+
+#include "sfpu_stub.h"

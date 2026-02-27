@@ -8,12 +8,18 @@ from dataclasses import asdict
 from enum import IntEnum
 from typing import Any, ClassVar
 
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.logger import logger
 from ttexalens.tt_exalens_lib import (
     get_tensix_state,
     read_words_from_device,
     write_words_to_device,
 )
+
+
+def _get_trisc_count():
+    """Quasar has 4 TRISCs; Wormhole and Blackhole have 3."""
+    return 4 if get_chip_architecture() == ChipArchitecture.QUASAR else 3
 
 
 class TensixDump:
@@ -26,7 +32,8 @@ class TensixDump:
 
     @classmethod
     def initialize(cls, location: str) -> None:
-        initial = [cls.MailboxState.DONE, cls.MailboxState.DONE, cls.MailboxState.DONE]
+        count = _get_trisc_count()
+        initial = [cls.MailboxState.DONE] * count
         write_words_to_device(location, cls.TENSIX_DUMP_MAILBOX_ADDRESS, initial)
 
     @classmethod
@@ -43,13 +50,10 @@ class TensixDump:
 
     @classmethod
     def _try_receive_request(cls, location: str):
-        all_requested = [
-            cls.MailboxState.REQUESTED,
-            cls.MailboxState.REQUESTED,
-            cls.MailboxState.REQUESTED,
-        ]
+        count = _get_trisc_count()
+        all_requested = [cls.MailboxState.REQUESTED] * count
         mailbox = read_words_from_device(
-            location, cls.TENSIX_DUMP_MAILBOX_ADDRESS, word_count=3
+            location, cls.TENSIX_DUMP_MAILBOX_ADDRESS, word_count=count
         )
         return mailbox == all_requested
 
@@ -59,7 +63,8 @@ class TensixDump:
 
     @classmethod
     def _send_done(cls, location: str):
-        done = [cls.MailboxState.DONE, cls.MailboxState.DONE, cls.MailboxState.DONE]
+        count = _get_trisc_count()
+        done = [cls.MailboxState.DONE] * count
         write_words_to_device(location, cls.TENSIX_DUMP_MAILBOX_ADDRESS, done)
 
     @classmethod
