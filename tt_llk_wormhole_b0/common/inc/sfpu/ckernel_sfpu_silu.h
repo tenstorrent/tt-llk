@@ -5,6 +5,7 @@
 #pragma once
 
 #include "ckernel_sfpu_polyval.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel::sfpu
@@ -25,7 +26,7 @@ inline sfpi::vFloat _sigmoid_piecewise_linear_positive_(sfpi::vFloat val)
     return result;
 }
 
-template <bool APPROXIMATION_MODE, int ITERATIONS>
+template <ckernel::ApproximationMode APPROX_MODE, int ITERATIONS>
 inline void _calculate_silu_()
 {
     // SFPU microcode

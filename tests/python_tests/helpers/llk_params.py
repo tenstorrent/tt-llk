@@ -243,15 +243,12 @@ class Haloize(Enum):
 
 
 class ApproximationMode(Enum):
-    Yes = True
-    No = False
+    No = "Precise"
+    Yes = "Approximate"
 
     @property
     def cpp_enum_value(self):
-        if self.value == True:
-            return "true"
-        else:
-            return "false"
+        return f"ckernel::ApproximationMode::{self.value}"
 
 
 class Transpose(Enum):

@@ -77,6 +77,36 @@ enum class MathFidelity : std::uint8_t
     HiFi4 = 4
 };
 
+enum class ApproximationMode : std::uint8_t
+{
+    Precise                = 0,
+    Approximate            = 1,
+    FastApproximate        = 2,
+    FastApproximateClamped = 3,
+};
+
+// Temporary function to convert boolean parameters to ApproximationMode until JIT and TTNN change from boolean to ApproximationMode enum
+template <bool APPROX, bool FAST_APPROX = false, bool CLAMP_NEGATIVE = false>
+constexpr ApproximationMode use_approximate_enum()
+{
+    if constexpr (!APPROX)
+    {
+        return ApproximationMode::Precise;
+    }
+    else if constexpr (!FAST_APPROX)
+    {
+        return ApproximationMode::Approximate;
+    }
+    else if constexpr (CLAMP_NEGATIVE)
+    {
+        return ApproximationMode::FastApproximateClamped;
+    }
+    else
+    {
+        return ApproximationMode::FastApproximate;
+    }
+}
+
 enum class StochRndType : std::uint8_t
 {
     None = 0,

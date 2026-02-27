@@ -17,7 +17,7 @@ operations:
         broadcast_type: "SCALAR"
       - type: "UnarySfpu"
         operation: "Fill"
-        approximation_mode: false
+        approximation_mode: "Precise"
         iterations: 32
         dst_dest_tile_index: 0
         fill_const_value: 1.0
@@ -42,15 +42,15 @@ operations:
         unpacker: "UnpackerTilizeA"
       - type: "UnarySfpu"
         operation: "Exp"
-        approximation_mode: false
+        approximation_mode: "Precise"
         iterations: 128
       - type: "UnarySfpu"
         operation: "Celu"
-        approximation_mode: false
+        approximation_mode: "Precise"
         iterations: 128
       - type: "BinarySfpu"
         operation: "SfpuElwadd"
-        approximation_mode: false
+        approximation_mode: "Precise"
         iterations: 32
         src1_dest_tile_index: 0
         src2_dest_tile_index: 1
@@ -83,7 +83,7 @@ operations:
       #   unpacker: "ReduceUnpacker"
       - type: "BinarySfpu"
         operation: "SfpuElwadd"
-        approximation_mode: false
+        approximation_mode: "Precise"
         iterations: 8
         src1_dest_tile_index: 0
         src2_dest_tile_index: 0
@@ -108,7 +108,7 @@ operations:
         unpack_transpose_faces: true
       - type: "UnarySfpu"
         operation: "Neg"
-        approximation_mode: false
+        approximation_mode: "Precise"
         iterations: 128
     packer: "Packer"
     math_fidelity: "LoFi"
@@ -128,11 +128,11 @@ operations:
         unpacker: "MatmulUnpacker"
       - type: "UnarySfpu"
         operation: "Abs"
-        approximation_mode: false
+        approximation_mode: "Precise"
         iterations: 128
       - type: "UnarySfpu"
         operation: "Sqrt"
-        approximation_mode: false
+        approximation_mode: "Precise"
         iterations: 128
     packer: "Packer"
     math_fidelity: "HiFi2"
@@ -152,11 +152,11 @@ operations:
         unpacker: "MatmulUnpacker"
       - type: "UnarySfpu"
         operation: "Sqrt"
-        approximation_mode: false
+        approximation_mode: "Precise"
         iterations: 32
       - type: "BinarySfpu"
         operation: "SfpuElwadd"
-        approximation_mode: false
+        approximation_mode: "Precise"
         iterations: 32
         src1_dest_tile_index: 0
         src2_dest_tile_index: 0

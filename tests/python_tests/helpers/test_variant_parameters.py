@@ -202,7 +202,7 @@ class APPROX_MODE(TemplateParameter):
     approx_mode: ApproximationMode = ApproximationMode.No
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr bool APPROX_MODE = {self.approx_mode.cpp_enum_value};"
+        return f"constexpr ckernel::ApproximationMode APPROX_MODE = {self.approx_mode.cpp_enum_value};"
 
 
 @dataclass

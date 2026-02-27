@@ -6,6 +6,7 @@
 
 #include "ckernel_addrmod.h"
 #include "ckernel_ops.h"
+#include "llk_defs.h"
 #include "sfpi.h"
 
 namespace ckernel
@@ -13,7 +14,7 @@ namespace ckernel
 namespace sfpu
 {
 
-template <bool APPROXIMATION_MODE /*unused*/, int ITERATIONS /*unused*/>
+template <ckernel::ApproximationMode APPROX_MODE /*unused*/, int ITERATIONS /*unused*/>
 inline void _calculate_cumsum_(const bool first)
 {
     if (first)
@@ -146,7 +147,7 @@ inline void _calculate_cumsum_(const bool first)
     TTI_SFPSTORE(7, 0, ADDR_MOD_7, 14 + 16 + 32);
 }
 
-template <bool APPROXIMATION_MODE /*unused*/>
+template <ckernel::ApproximationMode APPROX_MODE /*unused*/>
 inline void _cumsum_init_()
 {
     load_replay_buf(

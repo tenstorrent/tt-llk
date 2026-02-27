@@ -30,6 +30,13 @@ from helpers.test_variant_parameters import (
     UNPACK_TRANS_WITHIN_FACE,
 )
 
+SUPPORTED_FAST_MODE_OPS = [
+    MathOperation.Log1p,
+    MathOperation.Exp,
+    MathOperation.Rsqrt,
+    MathOperation.Sqrt,
+]
+
 
 @pytest.mark.perf
 @parametrize(
