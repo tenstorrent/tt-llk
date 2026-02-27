@@ -14,9 +14,11 @@ from typing import Any, ClassVar
 import pandas as pd
 import pytest
 
+from .counters import configure_counters, print_counters, read_counters
 from .device import BootMode, wait_for_tensix_operations_finished
 from .format_config import FormatConfig
 from .llk_params import DestAccumulation, L1Accumulation, PerfRunType
+from .metrics import print_metrics
 from .profiler import Profiler, ProfilerData
 from .stimuli_config import StimuliConfig
 from .test_config import ProfilerBuild, TestConfig, TestMode
@@ -281,6 +283,7 @@ class PerfConfig(TestConfig):
         disable_format_inference=False,
         dest_acc=DestAccumulation.No,
         l1_acc=L1Accumulation.No,
+        enable_counters=False,
     ):
         super().__init__(
             test_name,
@@ -300,6 +303,7 @@ class PerfConfig(TestConfig):
         self.passed_templates = templates
         self.passed_runtimes = runtimes
         self.current_run_type = None
+        self.enable_counters = enable_counters
 
         # TODO Add check here for all selected runs, to see if the profiler/counter supports them
 
@@ -352,6 +356,10 @@ class PerfConfig(TestConfig):
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
         PerfConfig.TEST_COUNTER += 1
+
+        # Configure counters once before all runs if enabled
+        if self.enable_counters:
+            configure_counters(location=location)
 
         for templates, runtimes, run_type in self.run_configs:
             self.current_run_type = run_type
@@ -407,3 +415,25 @@ class PerfConfig(TestConfig):
         combined = sweep.merge(run_results, how="cross")
 
         perf_report.append(combined)
+
+        # Read and print counters after all runs if enabled
+        if self.enable_counters:
+            print("\n" + "=" * 80)
+            print("PERFORMANCE COUNTERS RESULTS")
+            print("=" * 80)
+            try:
+                counter_results = read_counters(location=location)
+                if counter_results is not None and not counter_results.empty:
+                    print("\n--- Counter Data ---")
+                    print_counters(counter_results)
+
+                    print("\n--- Derived Metrics ---")
+                    print_metrics(counter_results)
+                else:
+                    print("No counter data collected")
+            except Exception as e:
+                print(f"Error reading counters: {e}")
+                import traceback
+
+                traceback.print_exc()
+            print("=" * 80 + "\n")
