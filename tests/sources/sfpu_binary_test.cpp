@@ -7,17 +7,19 @@
 
 #include "ckernel.h"
 #include "llk_defs.h"
+#include "params.h"
 
 // Globals
-std::uint32_t unp_cfg_context          = 0;
-std::uint32_t pack_sync_tile_dst_ptr   = 0;
-std::uint32_t math_sync_tile_dst_index = 0;
+std::uint32_t unp_cfg_context                   = 0;
+std::uint32_t pack_sync_tile_dst_ptr            = 0;
+std::uint32_t math_sync_tile_dst_index          = 0;
+static constexpr ckernel::DstSync DST_SYNC_MODE = ckernel::DstSync::SyncHalf;
+static constexpr bool DST_ACCUM_MODE            = is_fp32_dest_acc_en;
 
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"
 #include "llk_unpack_common.h"
-#include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
@@ -41,7 +43,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_math_common.h"
 #include "llk_math_eltwise_binary_sfpu.h"
 #include "llk_math_eltwise_unary_datacopy.h"
-#include "params.h"
 #include "sfpu_operations.h"
 
 using namespace ckernel::sfpu;
@@ -63,20 +64,19 @@ void run_kernel(const volatile struct RuntimeParams *params)
     for (int i = 0; i < params->TILE_CNT; i++)
     {
         LLK_ASSERT(
-            (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
+            (static_cast<std::uint32_t>(i) < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+            "Block tile index exceeds maximum destination tiles");
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
             i, formats.math, formats.math);
     }
 
     _llk_math_eltwise_binary_sfpu_init_<SfpuType::add1>();
+    CALL_BINARY_SFPU_OPERATION_INIT(SFPU_BINARY_OPERATION);
 
     // Note: argument passed to _llk_math_eltwise_binary_sfpu_start_ is dest index of first operand, and
     // argument passed of _calculate_sfpu_binary_ is dest index of the second operand
-
-    _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
-    test_utils::call_binary_sfpu_operation<APPROX_MODE, SFPU_BINARY_OPERATION, 32, formats.math>(0, 1, 0);
-
-    _llk_math_eltwise_binary_sfpu_done_();
+    static constexpr int ITERATIONS = 32;
+    CALL_BINARY_SFPU_OPERATION(SFPU_BINARY_OPERATION, MATH_FORMAT, 0, 1, 0, VectorMode::None);
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
@@ -86,7 +86,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 #include "llk_pack.h"
 #include "llk_pack_common.h"
-#include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams *params)
 {
@@ -108,7 +107,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
     for (int i = 0; i < params->TILE_CNT; i++)
     {
         LLK_ASSERT(
-            (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
+            (static_cast<std::uint32_t>(i) < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+            "Block tile index exceeds maximum destination tiles");
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(params->buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();

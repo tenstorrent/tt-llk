@@ -142,14 +142,14 @@ class UnarySfpu(Sfpu):
         compute_unit: "ComputeNode",
     ) -> str:
         stage = operation.stage_id
-        dest_acc = config.dest_acc.cpp_enum_value
-        approx_mode = self.approx_mode.cpp_enum_value
+        dest_acc = config.dest_acc.value
         op = f"SfpuType::{self.operation.cpp_enum_value}"
 
         return (
-            f"    _llk_math_eltwise_unary_sfpu_start_<dest_sync{stage}>({self.dest_idx});\n"
-            f"    test_utils::call_sfpu_operation<{approx_mode}, {dest_acc}, {self.iterations}>({op}, math_format{stage}, {self.fill_const_value});\n"
-            f"    _llk_math_eltwise_unary_sfpu_done_();\n"
+            f"#ifdef DST_SYNC_MODE\n#undef DST_SYNC_MODE\n#define DST_SYNC_MODE dest_sync{stage}\n#endif\n"
+            f"#undef ITERATIONS\n#define ITERATIONS {self.iterations}\n"
+            f"    CALL_UNARY_SFPU_OPERATION_INIT({op});\n"
+            f"    CALL_UNARY_SFPU_OPERATION({op}, {self.dest_idx}, math_format{stage}, VectorMode::None, {self.fill_const_value});\n"
         )
 
     def __str__(self) -> str:
@@ -234,7 +234,7 @@ class BinarySfpu(Sfpu):
     ) -> str:
         stage = operation.stage_id
         op = f"ckernel::BinaryOp::{self.operation.cpp_enum_value}"
-        approx_mode = self.approx_mode.cpp_enum_value
+        approx_mode = self.approx_mode.value
         iterations = self.iterations
         src1 = self.dst_index_in0
         src2 = self.dst_index_in1
@@ -246,9 +246,10 @@ class BinarySfpu(Sfpu):
             format = f"math_format{stage}"
 
         return (
-            f"    _llk_math_eltwise_binary_sfpu_start_<dest_sync{stage}>(0);\n"
-            f"    test_utils::call_binary_sfpu_operation<{approx_mode}, {op}, {iterations}, {format}>({src1}, {src2}, {dst});\n"
-            f"    _llk_math_eltwise_binary_sfpu_done_();\n"
+            f"#ifdef DST_SYNC_MODE\n#undef DST_SYNC_MODE\n#define DST_SYNC_MODE dest_sync{stage}\n#endif\n"
+            f"#undef ITERATIONS\n#define ITERATIONS {self.iterations}\n"
+            f"    CALL_BINARY_SFPU_OPERATION_INIT({op});\n"
+            f"    CALL_BINARY_SFPU_OPERATION({op}, math_format{stage}, {src1}, {src2}, {dst}, VectorMode::None);\n"
         )
 
     def __str__(self) -> str:

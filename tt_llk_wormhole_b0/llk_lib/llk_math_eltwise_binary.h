@@ -457,7 +457,6 @@ inline void _llk_math_eltwise_binary_with_dest_reuse_(const ckernel::TensorShape
     const std::uint32_t num_faces_r_dim = tensor_shape.num_faces_r_dim;
     const std::uint32_t num_faces_c_dim = tensor_shape.num_faces_c_dim;
     LLK_ASSERT(math_fidelity == MathFidelity::LoFi || eltwise_binary_type == ELWMUL, "Math fidelity larger than LoFi only works with Eltwise multiply");
-    constexpr bool high_fidelity = is_high_fidelity(math_fidelity);
 
     // Dest counter always jumps by 32x32 tile spacing regardless of actual tile size
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);

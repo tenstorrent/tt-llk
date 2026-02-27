@@ -40,7 +40,7 @@ class UnpackKernelGenerator:
             f"\n"
             f"{includes}\n"
             f"\n"
-            f"void run_kernel(const volatile struct RuntimeParams* params)\n"
+            f"void run_kernel(const volatile struct RuntimeParams*)\n"
             f"{{\n"
             f"{unpack_calls}"
             f"}}\n"
@@ -56,7 +56,7 @@ class MathKernelGenerator:
     def __init__(self, config: FuserConfig):
         self.config = config
 
-    def generate(self) -> str:
+    def generate(self, test_name: str = "") -> str:
         # Collect all unique headers from all operations
         all_headers = set()
         for op in self.config.pipeline:
@@ -71,13 +71,27 @@ class MathKernelGenerator:
             [op.do_math(self.config.global_config) for op in self.config.pipeline]
         )
 
+        # Skip compile-time constants for sdpa_reinits test
+        constants = ""
+        if "sdpa_reinits" not in str(test_name):
+            constants = (
+                f"static constexpr ckernel::DstSync DST_SYNC_MODE = ckernel::DstSync::SyncHalf;\n"
+                f"static constexpr bool DST_ACCUM_MODE = false;\n"
+                f"static constexpr bool APPROX_MODE = false;\n"
+                f"static constexpr std::uint32_t ITERATIONS = 32;\n"
+                f"static constexpr bool FAST_MODE = false;\n"
+                f"static constexpr bool STABLE_SORT = false;\n"
+                f"static constexpr bool CLAMP_NEGATIVE = false;\n"
+            )
+
         code = (
             f"\n"
             f"#ifdef LLK_TRISC_MATH\n"
             f"\n"
+            f"{constants}"
             f"{includes}\n"
             f"\n"
-            f"void run_kernel(const volatile struct RuntimeParams* params)\n"
+            f"void run_kernel(const volatile struct RuntimeParams*)\n"
             f"{{\n"
             f"{math_calls}"
             f"}}\n"
@@ -114,7 +128,7 @@ class PackKernelGenerator:
             f"\n"
             f"{includes}\n"
             f"\n"
-            f"void run_kernel(const volatile struct RuntimeParams* params)\n"
+            f"void run_kernel(const volatile struct RuntimeParams*)\n"
             f"{{\n"
             f"{pack_calls}"
             f"}}\n"
@@ -132,10 +146,10 @@ class FusedKernelGenerator:
         self.math_gen = MathKernelGenerator(self.config)
         self.pack_gen = PackKernelGenerator(self.config)
 
-    def generate_all(self) -> Dict[str, str]:
+    def generate_all(self, test_name: str = "") -> Dict[str, str]:
         return {
             "unpack": self.unpack_gen.generate(),
-            "math": self.math_gen.generate(),
+            "math": self.math_gen.generate(test_name),
             "pack": self.pack_gen.generate(),
         }
 
@@ -143,7 +157,7 @@ class FusedKernelGenerator:
         if not regenerate_cpp:
             return
 
-        kernels = self.generate_all()
+        kernels = self.generate_all(test_name)
 
         profiler_include = ""
         if self.config.global_config.profiler_enabled:

@@ -16,9 +16,13 @@ std::uint32_t unp_cfg_context          = 0;
 std::uint32_t pack_sync_tile_dst_ptr   = 0;
 std::uint32_t math_sync_tile_dst_index = 0;
 std::uint32_t tile_size                = 128;
-const int iterations                   = 32; // Dependent on size of input tensor (1024 currently). Could be made dynamic once tensor size becomes variable.
-
-constexpr std::uint32_t buffer_A_tilized = 0x66000; // L1 address of buffer, placed so both coverage and non-coverage elfs don't run it over
+const int ITERATIONS                   = 32; // Dependent on size of input tensor (1024 currently). Could be made dynamic once tensor size becomes variable.
+constexpr bool FAST_MODE               = false;
+constexpr bool STABLE_SORT             = false;
+constexpr bool CLAMP_NEGATIVE          = false;
+static constexpr ckernel::DstSync DST_SYNC_MODE = ckernel::DstSync::SyncHalf;
+static constexpr bool DST_ACCUM_MODE            = is_fp32_dest_acc_en;
+constexpr std::uint32_t buffer_A_tilized        = 0x66000; // L1 address of buffer, placed so both coverage and non-coverage elfs don't run it over
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -95,12 +99,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     // calculation of sfpu operation on dest
     _llk_math_eltwise_unary_sfpu_init_<SFPU_UNARY_OPERATION>();
-    _llk_math_eltwise_unary_sfpu_start_<DstSync::SyncHalf>(0);
+    CALL_UNARY_SFPU_OPERATION_INIT(SFPU_UNARY_OPERATION);
     // calling sfpu function from ckernel
-    // this part is where parametrization of operation takes part
-    test_utils::call_sfpu_operation<APPROX_MODE, is_fp32_dest_acc_en, 32>(SFPU_UNARY_OPERATION);
+    CALL_UNARY_SFPU_OPERATION(SFPU_UNARY_OPERATION, 0, formats_array[run].math, VectorMode::None, 5);
 
-    _llk_math_eltwise_unary_sfpu_done_();
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
