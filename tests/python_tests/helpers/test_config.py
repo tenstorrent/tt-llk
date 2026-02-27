@@ -233,6 +233,29 @@ class TestConfig:
                 TestConfig.ARCH_LLK_ROOT = "tt_llk_quasar"
                 TestConfig.ARCH = ChipArchitecture.QUASAR
                 TestConfig.DATA_FORMAT_ENUM = QUASAR_DATA_FORMAT_ENUM_VALUES
+                TestConfig.KERNEL_COMPONENTS = ["unpack", "math", "pack", "sfpu"]
+                TestConfig.TRISC_START_ADDRS = [
+                    0x16DFF0,
+                    0x16DFF4,
+                    0x16DFF8,
+                    0x16DFFC,
+                ]
+                TestConfig.THREAD_PERFORMANCE_DATA_BUFFER = [
+                    0x16B000,  # Unpack
+                    0x16C000,  # Math
+                    0x16D000,  # Pack
+                    0x16E000,  # SFPU
+                ]
+                TestConfig.PERF_COUNTERS_SIZE = 0x1020  # 4128 bytes for 4 threads
+                TestConfig.PERF_COUNTER_SFPU_CONFIG_ADDR = (
+                    TestConfig.PERF_COUNTERS_BASE_ADDR
+                    + 3 * TestConfig._PERF_COUNTERS_THREAD_SIZE
+                )
+                TestConfig.PERF_COUNTER_SFPU_DATA_ADDR = (
+                    TestConfig.PERF_COUNTERS_BASE_ADDR
+                    + 3 * TestConfig._PERF_COUNTERS_THREAD_SIZE
+                    + TestConfig._PERF_COUNTERS_CONFIG_WORDS * 4
+                )
             case _:
                 raise ValueError(
                     "Must provide CHIP_ARCH environment variable (wormhole / blackhole / quasar)"
@@ -1118,9 +1141,14 @@ class TestConfig:
                 set_tensix_soft_reset(0, [RiscCore.TRISC0], location)
             case BootMode.EXALENS:
                 exalens_device_setup(TestConfig.CHIP_ARCH, location)
-                set_tensix_soft_reset(
-                    0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
-                )
+                exalens_trisc_cores = [
+                    RiscCore.TRISC0,
+                    RiscCore.TRISC1,
+                    RiscCore.TRISC2,
+                ]
+                if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR:
+                    exalens_trisc_cores.append(RiscCore.TRISC3)
+                set_tensix_soft_reset(0, exalens_trisc_cores, location)
 
         return elfs
 

@@ -127,3 +127,5 @@ void run_kernel(RUNTIME_PARAMETERS params)
 }
 
 #endif
+
+#include "sfpu_stub.h"

@@ -165,3 +165,5 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 #endif
+
+#include "sfpu_stub.h"

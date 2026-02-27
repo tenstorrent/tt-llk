@@ -206,9 +206,6 @@ def _build_all_counters() -> List[Dict]:
 # can be active at once (determined by mux setting), so maximum concurrent counters = 86
 ALL_COUNTERS = _build_all_counters()
 
-# All threads that support performance counters
-ALL_THREADS = ["UNPACK", "MATH", "PACK"]
-
 
 def configure_counters(location: str = "0,0") -> None:
     """
