@@ -30,7 +30,9 @@ from helpers.test_variant_parameters import (
     IMPLIED_MATH_FORMAT,
     MATH_FIDELITY,
     MATH_OP,
+    NUM_BLOCKS,
     NUM_FACES,
+    NUM_TILES_IN_BLOCK,
     REUSE_DEST_TYPE,
     TEST_FACE_DIMS,
     TILE_COUNT,
@@ -137,6 +139,12 @@ def test_eltwise_binary_reuse_dest_quasar(
         ],
         runtimes=[
             TILE_COUNT(tile_cnt_A),
+            NUM_TILES_IN_BLOCK(
+                tile_cnt_A,
+                input_num_tiles_in_block=tile_cnt_A,
+                output_num_tiles_in_block=tile_cnt_A,
+            ),
+            NUM_BLOCKS(1, input_num_blocks=1, output_num_blocks=1),
             NUM_FACES(num_faces),
             TEST_FACE_DIMS(face_r_dim=face_r_dim, face_c_dim=FACE_C_DIM),
         ],
@@ -156,7 +164,7 @@ def test_eltwise_binary_reuse_dest_quasar(
         boot_mode=boot_mode,
     )
 
-    res_from_L1 = configuration.run()
+    res_from_L1 = configuration.run().result
 
     # Verify results match golden
     assert len(res_from_L1) == len(

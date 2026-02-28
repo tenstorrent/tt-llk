@@ -59,10 +59,12 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _configure_buf_desc_table_(td_val_B.buf_desc_id, td_val_B.buf_desc);
     _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val_A, td_val_B);
 
-    // Unpack src_A to SrcA for datacopy into DEST
+    // Unpack src_A to SrcA for datacopy into DEST (per-tile L1 address)
     _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, false /*transpose*/, false /*32b_dest*/>(buf_desc_id_a, 1);
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
+        bd_val_A.f.l1_addr_16B = params->buffer_A[i] / 16;
+        _configure_buf_desc_table_(buf_desc_id_a, bd_val_A);
         _llk_unpack_unary_operand_<p_unpacr::UNP_A>(i);
     }
 
@@ -70,6 +72,10 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, false /*transpose*/, false /*32b_dest*/, REUSE_DEST_TYPE>(buf_desc_id_phase2, 1, params->num_faces);
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
+        bd_val_A.f.l1_addr_16B = params->buffer_A[i] / 16;
+        _configure_buf_desc_table_(buf_desc_id_a, bd_val_A);
+        bd_val_B.f.l1_addr_16B = params->buffer_B[i] / 16;
+        _configure_buf_desc_table_(buf_desc_id_b, bd_val_B);
         _llk_unpack_unary_operand_<p_unpacr::UNP_A, REUSE_DEST_TYPE>(i);
     }
 }
@@ -94,20 +100,40 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     TileShape tile_shape = {.num_faces = params->num_faces, .face_r_dim = params->TEST_FACE_R_DIM, .face_c_dim = params->TEST_FACE_C_DIM, .narrow_tile = false};
 
-    // Datacopy src_A from SrcA to DEST
+    const int num_total_tiles = params->INPUT_NUM_TILES_IN_BLOCK * params->INPUT_NUM_BLOCKS;
+    const int tiles_in_block  = params->OUTPUT_NUM_TILES_IN_BLOCK;
+    const int num_tiles_accum = params->INPUT_NUM_TILES_IN_BLOCK / tiles_in_block;
+    const int num_blocks      = params->INPUT_NUM_BLOCKS;
+
+    // Datacopy src_A from SrcA to DEST (all input tiles)
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(params->num_faces * params->TEST_FACE_R_DIM, 1);
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (int i = 0; i < num_total_tiles; ++i)
     {
         _llk_math_eltwise_unary_datacopy_(params->num_faces * params->TEST_FACE_R_DIM, i);
     }
 
+    // Binary with reuse_dest: SrcA = DEST (from datacopy), SrcB = unpacked B. Compute op(SrcA, SrcB) -> DEST.
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, MATH_FIDELITY, false /*EN_DI*/, REUSE_DEST_TYPE>(tile_shape);
-    for (int i = 0; i < params->TILE_CNT; ++i)
-    {
-        _llk_math_eltwise_binary_<REUSE_DEST_TYPE>(i, params->num_faces);
-    }
 
-    _llk_math_set_dvalid_<p_cleardvalid::FPU>();
+    _llk_math_pack_sync_init_<dest_sync>();
+
+    for (int block = 0; block < num_blocks; block++)
+    {
+        _llk_math_wait_for_dest_available_();
+        for (int n = 0; n < num_tiles_accum; n++)
+        {
+            if (n == 1)
+            {
+                _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, MATH_FIDELITY, false /*EN_DI*/, REUSE_DEST_TYPE>(tile_shape);
+            }
+            for (int tile = 0; tile < tiles_in_block; tile++)
+            {
+                _llk_math_eltwise_binary_<REUSE_DEST_TYPE>(tile, params->num_faces);
+            }
+        }
+        _llk_math_dest_section_done_<dest_sync>();
+        _llk_math_set_dvalid_<p_cleardvalid::FPU>();
+    }
 }
 
 #endif
@@ -122,7 +148,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
 {
     std::uint32_t const buf_desc_id = 8;
 
-    // Setup synchronization - PACK waits for FPU to write to DEST
     set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
     buffer_descriptor_u bd_val {};
@@ -139,13 +164,15 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     _configure_buf_desc_table_(tdma_desc.buf_desc_id, tdma_desc.buf_desc);
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
-    _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, 1);
+    _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, params->TILE_CNT);
 
+    _llk_packer_wait_for_math_done_();
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
+        bd_val.f.l1_addr_16B = params->buffer_Res[i] / 16;
+        _configure_buf_desc_table_(buf_desc_id, bd_val);
         _llk_pack_<p_pacr::PACK0>(i, i);
     }
-
     _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 
