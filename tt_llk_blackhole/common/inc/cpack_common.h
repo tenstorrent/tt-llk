@@ -23,6 +23,9 @@ constexpr std::uint32_t replay_buf_offset = 16; // split replay buffer usage bet
                                                 // fist 16 for sfpu, next 16 for fpu
 constexpr std::uint32_t NUM_PACKERS = 1;        // Number of packers
 
+// Default math_format for packer config (expB); used when caller doesn't pass it.
+constexpr std::uint32_t PACK_MATH_FORMAT_DEFAULT = to_underlying(DataFormat::Float16_b);
+
 // Pack config
 typedef struct
 {
@@ -206,7 +209,11 @@ inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
 
 template <bool is_fp32_dest_acc_en>
 inline void set_packer_config(
-    const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t num_faces = 4, const bool partial_face = false)
+    const std::uint32_t pack_src_format,
+    const std::uint32_t pack_dst_format,
+    const std::uint32_t num_faces   = 4,
+    const bool partial_face         = false,
+    const std::uint32_t math_format = PACK_MATH_FORMAT_DEFAULT)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // Get pointer to registers for current state ID
@@ -291,8 +298,8 @@ inline void set_packer_config(
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_unsigned = 1;
     }
 
-    // Round to 10 bit mantissa from fp32 dest
-    if (is_fp32_dest_acc_en && (pack_src_format == to_underlying(DataFormat::Float16)))
+    if ((is_fp32_dest_acc_en || (!IS_A_FORMAT(math_format) && (pack_dst_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3))) &&
+        (pack_src_format == to_underlying(DataFormat::Float16)))
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Round_10b_mant = 1;
     }
@@ -311,7 +318,8 @@ inline void reconfig_packer_data_format(
     [[maybe_unused]] const std::uint32_t face_r_dim,
     const std::uint32_t tile_c_dim,
     const std::uint32_t num_faces,
-    const bool partial_face)
+    const bool partial_face,
+    const std::uint32_t math_format = PACK_MATH_FORMAT_DEFAULT)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     const std::uint32_t pack_output_src_format = static_cast<std::uint32_t>(pack_src_format) & 0xF;
@@ -355,8 +363,8 @@ inline void reconfig_packer_data_format(
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Read_unsigned = 1;
     }
-    // Round to 10 bit mantissa from fp32 dest
-    if (is_fp32_dest_acc_en && (pack_src_format == to_underlying(DataFormat::Float16)))
+    if ((is_fp32_dest_acc_en || (!IS_A_FORMAT(math_format) && (pack_dst_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3))) &&
+        (pack_src_format == to_underlying(DataFormat::Float16)))
     {
         dest_rd_ctrl.f.PCK_DEST_RD_CTRL_Round_10b_mant = 1;
     }
@@ -409,7 +417,8 @@ inline void configure_pack(
     const std::uint32_t num_faces           = 4,
     const bool partial_face                 = false,
     [[maybe_unused]] const bool narrow_tile = false,
-    const std::uint32_t relu_config         = 0)
+    const std::uint32_t relu_config         = 0,
+    const std::uint32_t math_format         = PACK_MATH_FORMAT_DEFAULT)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
@@ -427,6 +436,10 @@ inline void configure_pack(
     {
         cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>(1);
     }
+    else
+    {
+        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>(0);
+    }
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_output_src_format);
 
@@ -440,7 +453,7 @@ inline void configure_pack(
 
     t6_mutex_release(mutex::REG_RMW);
 
-    set_packer_config<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, num_faces, partial_face);
+    set_packer_config<is_fp32_dest_acc_en>(pack_src_format, pack_dst_format, num_faces, partial_face, math_format);
 
     // PACK_COUNTERS_SEC0_pack_per_xy_plane = cfg_reg_array[3][0 +: 8];
     // PACK_COUNTERS_SEC0_pack_reads_per_xy_plane = cfg_reg_array[3][8 +: 8];

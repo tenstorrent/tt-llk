@@ -47,6 +47,9 @@ def get_valid_tilize_datacopy(formats):
     if formats.input_format == DataFormat.Bfp8_b:
         return [Tilize.No]
 
+    if formats.input_format == DataFormat.Fp8_e4m3:
+        return [Tilize.No]
+
     return [Tilize.No, Tilize.Yes]
 
 
@@ -71,6 +74,7 @@ def get_valid_num_faces_datacopy(tilize):
             DataFormat.Float16,
             DataFormat.Float16_b,
             DataFormat.Bfp8_b,
+            DataFormat.Fp8_e4m3,
         ]
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
@@ -83,6 +87,13 @@ def get_valid_num_faces_datacopy(tilize):
 def test_unary_datacopy(
     formats, dest_acc, num_faces, tilize, dest_index, workers_tensix_coordinates
 ):
+
+    # skip if Fp8_e4m3 for wormhole
+    if (
+        get_chip_architecture() == ChipArchitecture.WORMHOLE
+        and formats.input_format == DataFormat.Fp8_e4m3
+    ):
+        pytest.skip("Fp8_e4m3 not supported on wormhole")
 
     input_dimensions = [64, 64]
 

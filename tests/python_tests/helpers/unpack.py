@@ -40,6 +40,14 @@ def unpack_uint16(packed_list):
     return np.frombuffer(bytes(packed_list), dtype=np.uint16).tolist()
 
 
+def unpack_fp8_e4m3(packed_list):
+    return (
+        np.frombuffer(bytes(packed_list), dtype=ml_dtypes.float8_e4m3fn)
+        .astype(np.float32)
+        .tolist()
+    )
+
+
 def unpack_int8(packed_list):
     return np.frombuffer(bytes(packed_list), dtype=np.int8).tolist()
 
@@ -201,6 +209,7 @@ _UNPACKERS = {
     DataFormat.Int32: unpack_int32,
     DataFormat.UInt32: unpack_uint32,
     DataFormat.UInt16: unpack_uint16,
+    DataFormat.Fp8_e4m3: unpack_fp8_e4m3,
     DataFormat.Int8: unpack_int8,
     DataFormat.UInt8: unpack_uint8,
 }
