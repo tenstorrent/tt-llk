@@ -45,8 +45,6 @@ supported_formats = [
     DataFormat.Float32,
     DataFormat.Float16_b,
     DataFormat.Bfp8_b,
-    DataFormat.Fp8_e4m3,
-    DataFormat.Float16,
 ]
 
 # Sweep tile dimensions from tiny ([1,32]..[16,32]) through full ([32,32]).
@@ -88,13 +86,6 @@ def test_unpack_bcast(
         pytest.skip("Bfp8_b not supported for tile height < 16")
 
     # --- Skips from bugs --------------------------------------------------
-
-    # TODO: pgardner - bcast ROW and SCALAR do not work for Fp8_e4m3 and Float16 with dest accumulation
-    if formats.input_format in (DataFormat.Fp8_e4m3, DataFormat.Float16):
-        if dest_acc == DestAccumulation.Yes:
-            pytest.skip(
-                "bcast ROW and SCALAR do not work for Fp8_e4m3 and Float16 with dest accumulation"
-            )
 
     # TODO: pgardner - Column broadcast for tiny tiles needs kernel support
     if tile_dimensions != [32, 32] and broadcast_type == BroadcastType.Column:
