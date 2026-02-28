@@ -64,10 +64,7 @@ supported_formats = [
         BroadcastType.Row,
         BroadcastType.Scalar,
     ],
-    dest_acc=[
-        DestAccumulation.Yes,
-        DestAccumulation.No,
-    ],
+    dest_acc=[DestAccumulation.Yes, DestAccumulation.No],
 )
 def test_unpack_bcast(
     tile_dimensions, formats, broadcast_type, dest_acc, workers_tensix_coordinates
@@ -81,15 +78,15 @@ def test_unpack_bcast(
     ):
         pytest.skip("32-bit formats require dest accumulation")
 
-    # Bfp8_b requires minimum 16 exponents per face
-    if tile_dimensions[0] < 16 and formats.input_format == DataFormat.Bfp8_b:
-        pytest.skip("Bfp8_b not supported for tile height < 16")
-
     # --- Skips from bugs --------------------------------------------------
 
     # TODO: pgardner - Column broadcast for tiny tiles needs kernel support
     if tile_dimensions != [32, 32] and broadcast_type == BroadcastType.Column:
         pytest.skip("Column broadcast not yet implemented for tiny tiles")
+
+    # TODO: pgardner - Bfp8_b requires minimum 16 exponents per face
+    if tile_dimensions[0] < 16 and formats.input_format == DataFormat.Bfp8_b:
+        pytest.skip("Bfp8_b not supported for tile height < 16")
 
     # TODO: pgardner - known WH issue with row broadcast + dest accumulation
     if (
