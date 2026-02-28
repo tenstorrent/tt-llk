@@ -41,6 +41,7 @@ from .device import (
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
 )
+from .dump import TensixDump
 from .format_config import (
     BLACKHOLE_DATA_FORMAT_ENUM_VALUES,
     FORMATS_CONFIG_STRUCT_COMPILETIME,
@@ -1019,6 +1020,7 @@ class TestConfig:
             raise ValueError("Quasar only supports TRISC boot mode")
 
         reset_mailboxes(location)
+        TensixDump.initialize(location)
 
         set_tensix_soft_reset(1, location=location)
 
