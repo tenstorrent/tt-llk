@@ -218,6 +218,8 @@ inline void configure_unpack_AB(
 {
     LLK_ASSERT(unpA_num_faces == 1 || unpA_num_faces == 2 || unpA_num_faces == 4, "unpA_num_faces must be 1, 2, or 4");
     LLK_ASSERT(unpB_num_faces == 1 || unpB_num_faces == 2 || unpB_num_faces == 4, "unpB_num_faces must be 1, 2, or 4");
+    LLK_ASSERT(
+        unpA_src_format != to_underlying(DataFormat::Fp8_e4m3) && unpB_src_format != to_underlying(DataFormat::Fp8_e4m3), "Fp8_e4m3 not supported on Wormhole");
     // Check that unpacker is done (all contexts freed up) before starting hw configuration
     wait_for_idle();
 
