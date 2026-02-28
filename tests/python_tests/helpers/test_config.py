@@ -41,6 +41,7 @@ from .device import (
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
 )
+from .dump import TensixDump
 from .format_config import (
     BLACKHOLE_DATA_FORMAT_ENUM_VALUES,
     FORMATS_CONFIG_STRUCT_COMPILETIME,
@@ -98,7 +99,7 @@ def dummy_golden_generator(cls):
 
 @dataclass
 class TestOutcome:
-    result: Any
+    result: Any | None = None
     dumps: Any | None = None
 
 
@@ -1019,6 +1020,7 @@ class TestConfig:
             raise ValueError("Quasar only supports TRISC boot mode")
 
         reset_mailboxes(location)
+        TensixDump.initialize(location)
 
         set_tensix_soft_reset(1, location=location)
 
@@ -1118,7 +1120,10 @@ class TestConfig:
             pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
         self.write_runtimes_to_L1(location)
-        self.variant_stimuli.write(location)
+
+        if self.variant_stimuli:
+            self.variant_stimuli.write(location)
+
         elfs = self.run_elf_files(location)
         dumps = wait_for_tensix_operations_finished(elfs, location)
 
@@ -1126,7 +1131,11 @@ class TestConfig:
             self.read_coverage_data_from_device(location)
 
         return TestOutcome(
-            result=self.variant_stimuli.collect_results(location),
+            result=(
+                self.variant_stimuli.collect_results(location)
+                if self.variant_stimuli
+                else None
+            ),
             dumps=dumps,
         )
 
