@@ -41,6 +41,7 @@ from .device import (
     set_tensix_soft_reset,
     wait_for_tensix_operations_finished,
 )
+from .dump import TensixDump
 from .format_config import (
     BLACKHOLE_DATA_FORMAT_ENUM_VALUES,
     FORMATS_CONFIG_STRUCT_COMPILETIME,
@@ -994,6 +995,7 @@ class TestConfig:
         # unsafe, ordering is not guaranteed :(
 
         reset_mailboxes(location)
+        TensixDump.initialize(location)
 
         VARIANT_ELF_DIR = (
             TestConfig.ARTEFACTS_DIR / self.test_name / self.variant_id / "elf"
