@@ -355,6 +355,7 @@ BLACKHOLE_DATA_FORMAT_ENUM_VALUES = {
     DataFormat.UInt16: 9,
     DataFormat.Int8: 14,
     DataFormat.UInt32: 24,
+    DataFormat.Fp8_e4m3: 26,
     DataFormat.UInt8: 30,
 }
 
