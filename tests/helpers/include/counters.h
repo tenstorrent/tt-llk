@@ -224,6 +224,22 @@ private:
         return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_SYNC_CTRL_ADDR);
     }
 
+    // Force L1 cache flush by doing uncached write followed by uncached read
+    // This ensures our write is visible to other cores in cache-incoherent system
+    inline void flush_l1_cache(volatile std::uint32_t* addr)
+    {
+        // Read-modify-write to force cache flush
+        // The asm volatile prevents compiler reordering
+        std::uint32_t tmp;
+        asm volatile(
+            "lw %0, 0(%1)\n" // Load from address
+            "sw %0, 0(%1)\n" // Store back same value (forces writeback)
+            "lw %0, 0(%1)\n" // Load again (forces cache line fetch)
+            : "=&r"(tmp)
+            : "r"(addr)
+            : "memory");
+    }
+
     // Initialize and start hardware counters (called by first thread only)
     // Reads config from L1, configures L1 MUX if needed, and starts each bank
     void start_hardware()
@@ -344,51 +360,167 @@ public:
     void start()
     {
         volatile std::uint32_t* sync_ctrl = get_sync_ctrl_mem();
-        std::uint32_t state               = *sync_ctrl;
+        const std::uint32_t thread_bit    = thread_info::get_thread_start_bit();
+        const std::uint32_t thread_id     = thread_info::get_thread_id();
 
-        // Check if we're the first thread (all start bits are 0)
-        bool is_first = (state & SYNC_START_MASK) == 0u;
+        // Memory fence BEFORE CAS loop to ensure we see latest writes from other threads
+        __sync_synchronize();
 
-        // Set this thread's start bit (bit 0, 1, or 2)
-        state |= thread_info::get_thread_start_bit();
+        // CAS loop: atomically set our start bit and determine if we're first
+        bool is_first         = false;
+        const int MAX_RETRIES = 1000; // Prevent infinite loops
+        int retry_count       = 0;
 
-        // If first thread, initialize hardware and record our ID
+        while (retry_count < MAX_RETRIES)
+        {
+            // Read current state with volatile to prevent caching
+            volatile std::uint32_t old_state = *sync_ctrl;
+
+            // Check if we're the first thread (no start bits set yet)
+            is_first = (old_state & SYNC_START_MASK) == 0u;
+
+            // Compute new state with our start bit set
+            volatile std::uint32_t new_state = old_state | thread_bit;
+
+            // If we're first, also set the global started flag and our thread ID
+            if (is_first)
+            {
+                new_state |= SYNC_STARTED_FLAG;
+                new_state = (new_state & ~SYNC_STARTER_MASK) | (thread_id << SYNC_STARTER_SHIFT);
+            }
+
+            // Read sync_ctrl again immediately before comparison
+            // This minimizes window where another thread can modify it
+            volatile std::uint32_t current_state = *sync_ctrl;
+            if (current_state == old_state)
+            {
+                // State hasn't changed - safe to write
+                *sync_ctrl = new_state;
+
+                // Force L1 cache flush to make write visible to other cores
+                flush_l1_cache(sync_ctrl);
+
+                // Verify write succeeded by reading back
+                volatile std::uint32_t verify = *sync_ctrl;
+                if ((verify & thread_bit) == thread_bit)
+                {
+                    // Our bit is set - success!
+                    break;
+                }
+            }
+
+            // CAS failed or verification failed - retry
+            retry_count++;
+        }
+
+        // If we won the race to be first, initialize hardware
         if (is_first)
         {
             start_hardware();
-            state |= SYNC_STARTED_FLAG;
-            // Write starter thread ID to bits 8-9
-            state = (state & ~SYNC_STARTER_MASK) | (thread_info::get_thread_id() << SYNC_STARTER_SHIFT);
         }
 
-        *sync_ctrl = state;
+        // Final memory barrier to ensure all writes are visible
+        __sync_synchronize();
     }
 
     // Thread-safe stop: each thread sets its stop bit, last thread reads hardware
     void stop()
     {
         volatile std::uint32_t* sync_ctrl = get_sync_ctrl_mem();
-        std::uint32_t state               = *sync_ctrl;
+        const std::uint32_t thread_bit    = thread_info::get_thread_stop_bit();
+        const std::uint32_t thread_id     = thread_info::get_thread_id();
 
-        // Set this thread's stop bit (bit 3, 4, or 5)
-        state |= thread_info::get_thread_stop_bit();
+        // Memory fence BEFORE CAS loop to ensure we see latest writes from other threads
+        __sync_synchronize();
 
-        // Check if all 3 threads have set their stop bits
-        bool all_threads_stopped = (state & SYNC_STOP_MASK) == SYNC_STOP_MASK;
+        // CAS loop: atomically set our stop bit and determine if we're last
+        bool is_last          = false;
+        const int MAX_RETRIES = 1000; // Prevent infinite loops
+        int retry_count       = 0;
 
-        // If all threads stopped, we're the last one - stop hardware and record our ID
-        if (all_threads_stopped)
+        // Set our stop bit WITHOUT checking if we're last
+        // This ensures all threads register their stop bits before anyone proceeds
+        while (retry_count < MAX_RETRIES)
         {
-            state |= SYNC_STOPPED_FLAG;
-            // Write stopper thread ID to bits 10-11
-            state      = (state & ~SYNC_STOPPER_MASK) | (thread_info::get_thread_id() << SYNC_STOPPER_SHIFT);
-            *sync_ctrl = state;
+            volatile std::uint32_t old_state = *sync_ctrl;
+
+            // Only set our bit, don't touch flags yet
+            volatile std::uint32_t new_state = old_state | thread_bit;
+
+            volatile std::uint32_t current_state = *sync_ctrl;
+            if (current_state == old_state)
+            {
+                *sync_ctrl = new_state;
+                flush_l1_cache(sync_ctrl);
+
+                volatile std::uint32_t verify = *sync_ctrl;
+                if ((verify & thread_bit) == thread_bit)
+                {
+                    break; // Our bit is successfully set
+                }
+            }
+            retry_count++;
+        }
+
+        // Simple delay for write propagation (100 cycles optimal from testing)
+        for (volatile int i = 0; i < 100; i++)
+            ;
+
+        // Strong memory barrier
+        __sync_synchronize();
+
+        // Check if we're the last thread (separate CAS loop for setting stopped flag)
+        retry_count = 0;
+        while (retry_count < MAX_RETRIES)
+        {
+            // Read current state with volatile to prevent caching
+            volatile std::uint32_t old_state = *sync_ctrl;
+
+            // Compute new state (our bit should already be set from above)
+            volatile std::uint32_t new_state = old_state;
+
+            // Check if we're the last thread (all 3 stop bits set and stopped flag not yet set)
+            is_last = ((new_state & SYNC_STOP_MASK) == SYNC_STOP_MASK) && !(old_state & SYNC_STOPPED_FLAG);
+
+            // If we're last, also set the global stopped flag and our thread ID
+            if (is_last)
+            {
+                new_state |= SYNC_STOPPED_FLAG;
+                new_state = (new_state & ~SYNC_STOPPER_MASK) | (thread_id << SYNC_STOPPER_SHIFT);
+            }
+
+            // CRITICAL: Read sync_ctrl again IMMEDIATELY before comparison
+            // This minimizes window where another thread can modify it
+            volatile std::uint32_t current_state = *sync_ctrl;
+            if (current_state == old_state)
+            {
+                // State hasn't changed - safe to write
+                *sync_ctrl = new_state;
+
+                // Force L1 cache flush to make write visible to other cores
+                flush_l1_cache(sync_ctrl);
+
+                // Verify write succeeded by reading back
+                volatile std::uint32_t verify = *sync_ctrl;
+                if ((verify & thread_bit) == thread_bit)
+                {
+                    // Our bit is set - success!
+                    break;
+                }
+            }
+
+            // CAS failed or verification failed - retry
+            retry_count++;
+        }
+
+        // If we won the race to be last, read hardware counters
+        if (is_last)
+        {
             stop_hardware();
         }
-        else
-        {
-            *sync_ctrl = state;
-        }
+
+        // Final memory barrier to ensure all writes are visible
+        __sync_synchronize();
     }
 };
 
