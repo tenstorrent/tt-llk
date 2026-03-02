@@ -161,6 +161,43 @@ inline void _llk_pack_set_l1_acc_(const bool l1_acc_en)
 }
 
 /**
+ * @brief Configure packer ReLU for the selected packer only (PACK_SEL = p_pacr::PACK0 or p_pacr::PACK1).
+ * @details Programs RELU_MODE and RELU_THRESHOLD via THCON_PACKER*_REG3_*_RMW (cfg_defines.h).
+ *
+ * Quasar layout (see tests/hw_specific/quasar/inc/cfg_defines.h):
+ *   - RELU_MODE: 2 bits (MASK 0x3) at REG3, Values 0, 1, 2,3 = NoRelu, ZeroRelu, MinThresholdRelu, MaxThresholdRelu.
+ *   - RELU_THRESHOLD: separate 32-bit register (MASK 0xffffffff). Format depends on pack input: FP16 path expects 16-bit
+ *     threshold in low 16 bits; FP32 path expects BF16/FP16 threshold in high 16 bits (threshold_bits << 16).
+ *
+ * @tparam PACK_SEL Which packer to configure (p_pacr::PACK0 or p_pacr::PACK1).
+ * @tparam is_fp32_dest_acc_en true when pack reads from FP32 dst register
+ * @param relu_config Packed ReLU config: (threshold_bits << 16) | (mode & 0x3).
+ */
+template <std::uint8_t PACK_SEL, bool is_fp32_dest_acc_en>
+inline void _llk_pack_relu_config_(const std::uint32_t relu_config)
+{
+    static_assert((PACK_SEL == p_pacr::PACK0) || (PACK_SEL == p_pacr::PACK1), "PACK_SEL can only be set to p_pacr::PACK0/PACK1");
+
+    const std::uint32_t mode           = relu_config & 0x3u; // RELU_MODE is 2 bits
+    const std::uint32_t threshold_bits = (relu_config >> 16) & 0xffffu;
+
+    // FP32 path: 32-bit register holds float; threshold in high 16 bits.
+    // FP16 path: HW compares 16-bit values; threshold in low 16 bits.
+    const std::uint32_t threshold_32 = is_fp32_dest_acc_en ? (threshold_bits << 16) : static_cast<std::uint32_t>(threshold_bits);
+
+    if constexpr (PACK_SEL == p_pacr::PACK0)
+    {
+        cfg_rmw(THCON_PACKER0_REG3_RELU_MODE_RMW, mode);
+        cfg_rmw(THCON_PACKER0_REG3_RELU_THRESHOLD_RMW, threshold_32);
+    }
+    else
+    {
+        cfg_rmw(THCON_PACKER1_REG3_RELU_MODE_RMW, mode);
+        cfg_rmw(THCON_PACKER1_REG3_RELU_THRESHOLD_RMW, threshold_32);
+    }
+}
+
+/**
  * All the following functions are added to enable Math <-> Pack synchronization
  * on destination register due to dest dvalid issue:
  * The following functions should be removed once the above issue is resolved

@@ -47,17 +47,22 @@ inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uin
 
 /**
  * @brief Initialization for pack of contiguous tiles
- * @details Sets up MOP for packing out tile by tile works for any pack resource
+ * @details Sets up MOP for packing out tile by tile works for any pack resource.
+ * Optionally programs packer ReLU (MODE and THRESHOLD) for the selected packer via cfg_rmw.
  * @tparam PACK_SEL: Selects which unpacker resource to use,
  * values = p_pacr::PACK0/PACK1
+ * @tparam is_fp32_dest_acc_en: true when pack reads from FP32 dst register;
+ * controls RELU_THRESHOLD register format (32-bit or 16-bit path).
  * @param buf_desc_id: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 16-31
  * @param num_tiles: number of tiles to pack at a time
+ * @param relu_config: optional pack ReLU config (0 = no ReLU);
  */
-template <std::uint8_t PACK_SEL>
-inline void _llk_pack_init_(const std::uint8_t buf_desc_id, const std::uint32_t num_tiles = NUM_TILES)
+template <std::uint8_t PACK_SEL, bool is_fp32_dest_acc_en = false>
+inline void _llk_pack_init_(const std::uint8_t buf_desc_id, const std::uint32_t num_tiles = NUM_TILES, const std::uint32_t relu_config = 0)
 {
     _llk_pack_mop_config_<PACK_SEL>(buf_desc_id, num_tiles);
+    _llk_pack_relu_config_<PACK_SEL, is_fp32_dest_acc_en>(relu_config);
 }
 
 /**
