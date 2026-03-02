@@ -26,6 +26,14 @@ inline void _llk_math_dbg_feature_enable_()
                                                        // workaround for bug tenstorrent/budabackend#1372
 }
 
+inline void _llk_math_set_fp32_dest_acc_(bool enable)
+{
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::MATH);
+    std::uint32_t v = enable ? 1u : 0u;
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(v);
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_SFPU_Fp32_enabled_RMW>(v);
+}
+
 template <bool is_fp32_dest_acc_en = false>
 inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const std::uint32_t srcb_data_format)
 {
@@ -37,9 +45,8 @@ inline void _llk_math_hw_configure_(const std::uint32_t srca_data_format, const 
         (srca_data_format == ckernel::to_underlying(DataFormat::Int32)) || (srcb_data_format == ckernel::to_underlying(DataFormat::Int32));
     cfg_reg_rmw_tensix<ALU_ACC_CTRL_INT8_math_enabled_RMW>(int8_math_enabled);
 
-    std::uint32_t fp32_dest_acc_en = is_fp32_dest_acc_en ? 1 : 0;
-    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(fp32_dest_acc_en);
-    cfg_reg_rmw_tensix<ALU_ACC_CTRL_SFPU_Fp32_enabled_RMW>(fp32_dest_acc_en);
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_Fp32_enabled_RMW>(is_fp32_dest_acc_en ? 1u : 0u);
+    cfg_reg_rmw_tensix<ALU_ACC_CTRL_SFPU_Fp32_enabled_RMW>(is_fp32_dest_acc_en ? 1u : 0u);
 
     // Workaround for HW bugs:
     // budabackend#1948: int32 dest and movd2a/b with int8 srcA/B
