@@ -49,7 +49,6 @@ mathop_mapping = {
 
 
 @parametrize(
-    input_dimensions=[[256, 32]],
     tile_dimensions=[[1, 32], [2, 32], [4, 32], [8, 32], [16, 32], [32, 32], [32, 16]],
     formats=input_output_formats(
         [
@@ -69,7 +68,6 @@ mathop_mapping = {
     ],
 )
 def test_reduce(
-    input_dimensions,
     formats,
     reduce_dim,
     pool_type,
@@ -86,6 +84,9 @@ def test_reduce(
         # especially if the sum/average of the dimension is not enough to increment to the next representable value in the output format.
         # To mitigate this, we use smaller input values which reduces the chance of large accumulation errors.
         input_dimensions = [128, 32]
+    else:
+        # If not reducing to one, we can use larger input dimensions to better test the reduction operation without excessive numerical errors in the accumulation.
+        input_dimensions = [256, 32]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli_w_tile_dimensions(
         stimuli_format_A=formats.input_format,
