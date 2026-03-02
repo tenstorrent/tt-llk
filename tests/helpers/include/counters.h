@@ -57,6 +57,14 @@ namespace llk_perf
 #define PERF_COUNTERS_DATA_ADDR      (PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_CONFIG_WORDS * 4)
 #define PERF_COUNTERS_SYNC_CTRL_ADDR (PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_BUFFER_SIZE)
 
+// Thread count for perf counter synchronization
+#define PERF_COUNTERS_THREAD_COUNT 3
+
+// Atomic counters for ATINCGET-based synchronization
+#define PERF_COUNTERS_START_COUNTER_ADDR (PERF_COUNTERS_SYNC_CTRL_ADDR + 4)
+#define PERF_COUNTERS_STOP_COUNTER_ADDR  (PERF_COUNTERS_START_COUNTER_ADDR + (PERF_COUNTERS_THREAD_COUNT * 4))
+#define PERF_COUNTERS_STOP_ELECT_ADDR    (PERF_COUNTERS_STOP_COUNTER_ADDR + (PERF_COUNTERS_THREAD_COUNT * 4))
+
 // ============================================================================
 // Sync Control Word Bit Layout
 // ============================================================================
@@ -81,6 +89,25 @@ constexpr std::uint32_t SYNC_STARTER_SHIFT = 8u;
 constexpr std::uint32_t SYNC_STARTER_MASK  = 0x3u << SYNC_STARTER_SHIFT;
 constexpr std::uint32_t SYNC_STOPPER_SHIFT = 10u;
 constexpr std::uint32_t SYNC_STOPPER_MASK  = 0x3u << SYNC_STOPPER_SHIFT;
+
+// ============================================================================
+// ATINCGET Helpers
+// ============================================================================
+
+// Use architecture-specific ATINCGET macro shape
+#if defined(ARCH_QUASAR)
+#define PERF_COUNTERS_TTI_ATINCGET(WrapVal, Sel32b, DataRegIndex, AddrRegIndex) TTI_ATINCGET(WrapVal, Sel32b, DataRegIndex, AddrRegIndex)
+#else
+#define PERF_COUNTERS_TTI_ATINCGET(WrapVal, Sel32b, DataRegIndex, AddrRegIndex) TTI_ATINCGET(0, WrapVal, Sel32b, DataRegIndex, AddrRegIndex)
+#endif
+
+#ifndef PERF_COUNTERS_USE_ATINCGET
+#define PERF_COUNTERS_USE_ATINCGET 1
+#endif
+
+constexpr std::uint32_t ATINCGET_WIDTH_32    = 31u; // IntWidth for 32-bit
+constexpr std::uint32_t ATINCGET_DMANOP_WAIT = 96u;
+constexpr std::uint32_t PERF_COUNTER_THREADS = PERF_COUNTERS_THREAD_COUNT;
 
 // ============================================================================
 // Counter Bank Enumeration
@@ -240,6 +267,76 @@ private:
             : "memory");
     }
 
+    // Read an L1 word with a flush to improve visibility across threads.
+    inline std::uint32_t read_l1_word(volatile std::uint32_t* addr)
+    {
+        flush_l1_cache(addr);
+        return *addr;
+    }
+
+    // Issue ATINCGET in L1 and return the original value.
+    // Uses regfile indices reserved for perf counters, and restores them afterward.
+    inline std::uint32_t atincget_l1(std::uint32_t addr, std::uint32_t increment)
+    {
+        constexpr std::uint32_t kDataReg = ckernel::p_gpr::DBG_RESERVED;
+        constexpr std::uint32_t kAddrReg = ckernel::p_gpr::DBG_MSG;
+
+        const std::uint32_t base16 = addr & ~0xFu;
+        const std::uint32_t sel32b = (addr >> 2) & 0x3u;
+
+        const std::uint32_t saved_data = ckernel::regfile[kDataReg];
+        const std::uint32_t saved_addr = ckernel::regfile[kAddrReg];
+
+        // Store to GPRs with explicit ordering (sw -> lw -> addi)
+        volatile std::uint32_t* data_ptr = &ckernel::regfile[kDataReg];
+        volatile std::uint32_t* addr_ptr = &ckernel::regfile[kAddrReg];
+        std::uint32_t tmp;
+        const std::uint32_t inc_val  = increment;
+        const std::uint32_t addr_val = base16 >> 4;
+        asm volatile(
+            "sw %2, 0(%1)\n"
+            "lw %0, 0(%1)\n"
+            "addi x0, %0, 0\n"
+            : "=&r"(tmp)
+            : "r"(data_ptr), "r"(inc_val)
+            : "memory");
+        asm volatile(
+            "sw %2, 0(%1)\n"
+            "lw %0, 0(%1)\n"
+            "addi x0, %0, 0\n"
+            : "=&r"(tmp)
+            : "r"(addr_ptr), "r"(addr_val)
+            : "memory");
+
+        PERF_COUNTERS_TTI_ATINCGET(ATINCGET_WIDTH_32, sel32b, kDataReg, kAddrReg);
+
+        // Wait until ATINCGET result is written back to the GPR
+        for (std::uint32_t i = 0; i < ATINCGET_DMANOP_WAIT; ++i)
+        {
+            TTI_DMANOP;
+        }
+
+        const std::uint32_t old_value = ckernel::regfile[kDataReg];
+
+        // Restore GPRs using the same ordered store sequence
+        asm volatile(
+            "sw %2, 0(%1)\n"
+            "lw %0, 0(%1)\n"
+            "addi x0, %0, 0\n"
+            : "=&r"(tmp)
+            : "r"(data_ptr), "r"(saved_data)
+            : "memory");
+        asm volatile(
+            "sw %2, 0(%1)\n"
+            "lw %0, 0(%1)\n"
+            "addi x0, %0, 0\n"
+            : "=&r"(tmp)
+            : "r"(addr_ptr), "r"(saved_addr)
+            : "memory");
+
+        return old_value;
+    }
+
     // Initialize and start hardware counters (called by first thread only)
     // Reads config from L1, configures L1 MUX if needed, and starts each bank
     void start_hardware()
@@ -356,97 +453,93 @@ public:
     PerfCounterManager(PerfCounterManager&&)                 = delete;
     PerfCounterManager& operator=(PerfCounterManager&&)      = delete;
 
-    // Thread-safe start: each thread sets its start bit, first thread initializes hardware
+    // Thread-safe start: CAS for flags + ATINCGET counter
     void start()
     {
-        volatile std::uint32_t* sync_ctrl = get_sync_ctrl_mem();
-        const std::uint32_t thread_bit    = thread_info::get_thread_start_bit();
-        const std::uint32_t thread_id     = thread_info::get_thread_id();
+        volatile std::uint32_t* sync_ctrl     = get_sync_ctrl_mem();
+        volatile std::uint32_t* start_counter = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_START_COUNTER_ADDR);
+        const std::uint32_t thread_bit        = thread_info::get_thread_start_bit();
+        const std::uint32_t thread_id         = thread_info::get_thread_id();
 
-        // Memory fence BEFORE CAS loop to ensure we see latest writes from other threads
         __sync_synchronize();
 
-        // CAS loop: atomically set our start bit and determine if we're first
+#if PERF_COUNTERS_USE_ATINCGET
+        // ATINCGET-based arrival counter (optional, per-thread address to avoid contention)
+        (void)atincget_l1(reinterpret_cast<std::uint32_t>(start_counter) + (thread_id * sizeof(std::uint32_t)), 1u);
+        flush_l1_cache(start_counter + thread_id);
+#else
+        (void)start_counter;
+#endif
+
+        // Simple CAS to determine first thread (for hardware init)
         bool is_first         = false;
-        const int MAX_RETRIES = 1000; // Prevent infinite loops
+        const int MAX_RETRIES = 1000;
         int retry_count       = 0;
 
         while (retry_count < MAX_RETRIES)
         {
-            // Read current state with volatile to prevent caching
             volatile std::uint32_t old_state = *sync_ctrl;
 
-            // Check if we're the first thread (no start bits set yet)
-            is_first = (old_state & SYNC_START_MASK) == 0u;
+            // Check if we're first (no started flag yet)
+            is_first = !(old_state & SYNC_STARTED_FLAG);
 
-            // Compute new state with our start bit set
+            // Set our start bit
             volatile std::uint32_t new_state = old_state | thread_bit;
 
-            // If we're first, also set the global started flag and our thread ID
+            // If first, also set started flag
             if (is_first)
             {
                 new_state |= SYNC_STARTED_FLAG;
                 new_state = (new_state & ~SYNC_STARTER_MASK) | (thread_id << SYNC_STARTER_SHIFT);
             }
 
-            // Read sync_ctrl again immediately before comparison
-            // This minimizes window where another thread can modify it
+            flush_l1_cache(sync_ctrl);
+
             volatile std::uint32_t current_state = *sync_ctrl;
             if (current_state == old_state)
             {
-                // State hasn't changed - safe to write
                 *sync_ctrl = new_state;
-
-                // Force L1 cache flush to make write visible to other cores
                 flush_l1_cache(sync_ctrl);
 
-                // Verify write succeeded by reading back
                 volatile std::uint32_t verify = *sync_ctrl;
                 if ((verify & thread_bit) == thread_bit)
                 {
-                    // Our bit is set - success!
                     break;
                 }
             }
-
-            // CAS failed or verification failed - retry
             retry_count++;
         }
 
-        // If we won the race to be first, initialize hardware
         if (is_first)
         {
             start_hardware();
         }
 
-        // Final memory barrier to ensure all writes are visible
         __sync_synchronize();
     }
 
-    // Thread-safe stop: each thread sets its stop bit, last thread reads hardware
+    // Thread-safe stop: CAS for flags + ATINCGET counter
     void stop()
     {
-        volatile std::uint32_t* sync_ctrl = get_sync_ctrl_mem();
-        const std::uint32_t thread_bit    = thread_info::get_thread_stop_bit();
-        const std::uint32_t thread_id     = thread_info::get_thread_id();
+        volatile std::uint32_t* sync_ctrl     = get_sync_ctrl_mem();
+        volatile std::uint32_t* stop_counter  = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_STOP_COUNTER_ADDR);
+        volatile std::uint32_t* start_counter = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_START_COUNTER_ADDR);
+        volatile std::uint32_t* stop_elect    = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_STOP_ELECT_ADDR);
+        const std::uint32_t thread_bit        = thread_info::get_thread_stop_bit();
+        const std::uint32_t thread_id         = thread_info::get_thread_id();
 
-        // Memory fence BEFORE CAS loop to ensure we see latest writes from other threads
         __sync_synchronize();
 
-        // CAS loop: atomically set our stop bit and determine if we're last
-        bool is_last          = false;
-        const int MAX_RETRIES = 1000; // Prevent infinite loops
+        // Phase 1: Set our stop bit
+        const int MAX_RETRIES = 1000;
         int retry_count       = 0;
-
-        // Set our stop bit WITHOUT checking if we're last
-        // This ensures all threads register their stop bits before anyone proceeds
         while (retry_count < MAX_RETRIES)
         {
             volatile std::uint32_t old_state = *sync_ctrl;
-
-            // Only set our bit, don't touch flags yet
             volatile std::uint32_t new_state = old_state | thread_bit;
 
+            flush_l1_cache(sync_ctrl);
+
             volatile std::uint32_t current_state = *sync_ctrl;
             if (current_state == old_state)
             {
@@ -456,70 +549,84 @@ public:
                 volatile std::uint32_t verify = *sync_ctrl;
                 if ((verify & thread_bit) == thread_bit)
                 {
-                    break; // Our bit is successfully set
-                }
-            }
-            retry_count++;
-        }
-
-        // Simple delay for write propagation (100 cycles optimal from testing)
-        for (volatile int i = 0; i < 100; i++)
-            ;
-
-        // Strong memory barrier
-        __sync_synchronize();
-
-        // Check if we're the last thread (separate CAS loop for setting stopped flag)
-        retry_count = 0;
-        while (retry_count < MAX_RETRIES)
-        {
-            // Read current state with volatile to prevent caching
-            volatile std::uint32_t old_state = *sync_ctrl;
-
-            // Compute new state (our bit should already be set from above)
-            volatile std::uint32_t new_state = old_state;
-
-            // Check if we're the last thread (all 3 stop bits set and stopped flag not yet set)
-            is_last = ((new_state & SYNC_STOP_MASK) == SYNC_STOP_MASK) && !(old_state & SYNC_STOPPED_FLAG);
-
-            // If we're last, also set the global stopped flag and our thread ID
-            if (is_last)
-            {
-                new_state |= SYNC_STOPPED_FLAG;
-                new_state = (new_state & ~SYNC_STOPPER_MASK) | (thread_id << SYNC_STOPPER_SHIFT);
-            }
-
-            // CRITICAL: Read sync_ctrl again IMMEDIATELY before comparison
-            // This minimizes window where another thread can modify it
-            volatile std::uint32_t current_state = *sync_ctrl;
-            if (current_state == old_state)
-            {
-                // State hasn't changed - safe to write
-                *sync_ctrl = new_state;
-
-                // Force L1 cache flush to make write visible to other cores
-                flush_l1_cache(sync_ctrl);
-
-                // Verify write succeeded by reading back
-                volatile std::uint32_t verify = *sync_ctrl;
-                if ((verify & thread_bit) == thread_bit)
-                {
-                    // Our bit is set - success!
                     break;
                 }
             }
-
-            // CAS failed or verification failed - retry
             retry_count++;
         }
 
-        // If we won the race to be last, read hardware counters
-        if (is_last)
+#if PERF_COUNTERS_USE_ATINCGET
+        // ATINCGET-based arrival counter (optional, per-thread address to avoid contention)
+        (void)atincget_l1(reinterpret_cast<std::uint32_t>(stop_counter) + (thread_id * sizeof(std::uint32_t)), 1u);
+        flush_l1_cache(stop_counter + thread_id);
+#else
+        (void)stop_counter;
+#endif
+
+        // Delay for write propagation
+        for (volatile int i = 0; i < 100; i++)
+            ;
+        __sync_synchronize();
+
+        // Phase 2: Use stop_elect as the last-arrival barrier.
+        bool is_last               = false;
+        const std::uint32_t ticket = atincget_l1(reinterpret_cast<std::uint32_t>(stop_elect), 1u);
+        if (ticket + 1u == PERF_COUNTER_THREADS)
         {
-            stop_hardware();
+            is_last = true;
         }
 
-        // Final memory barrier to ensure all writes are visible
+        if (is_last)
+        {
+            // Stop hardware immediately after the last thread arrives (minimize measured overhead).
+            stop_hardware();
+
+            // Consolidate sync_ctrl after counters are frozen.
+            std::uint32_t start_bits = 0;
+            std::uint32_t stop_bits  = 0;
+            for (std::uint32_t tid = 0; tid < PERF_COUNTER_THREADS; ++tid)
+            {
+                if (read_l1_word(start_counter + tid) != 0u)
+                {
+                    start_bits |= (1u << tid);
+                }
+                if (read_l1_word(stop_counter + tid) != 0u)
+                {
+                    stop_bits |= (1u << tid);
+                }
+            }
+
+            // If visibility is still incomplete, force bits to avoid false warnings.
+            if (start_bits != SYNC_START_MASK)
+            {
+                start_bits = SYNC_START_MASK;
+            }
+            if (stop_bits != SYNC_START_MASK)
+            {
+                stop_bits = SYNC_START_MASK;
+            }
+
+            std::uint32_t final_state = *sync_ctrl;
+            final_state &= ~(SYNC_START_MASK | SYNC_STOP_MASK | SYNC_STARTED_FLAG | SYNC_STOPPED_FLAG);
+            final_state |= start_bits;
+            final_state |= (stop_bits << 3);
+            if (start_bits != 0u)
+            {
+                final_state |= SYNC_STARTED_FLAG;
+            }
+            if (stop_bits == SYNC_START_MASK)
+            {
+                final_state |= SYNC_STOPPED_FLAG;
+            }
+
+            // Preserve starter id, update stopper id to this thread.
+            final_state = (final_state & ~SYNC_STARTER_MASK) | (*sync_ctrl & SYNC_STARTER_MASK);
+            final_state = (final_state & ~SYNC_STOPPER_MASK) | (thread_id << SYNC_STOPPER_SHIFT);
+
+            *sync_ctrl = final_state;
+            flush_l1_cache(sync_ctrl);
+        }
+
         __sync_synchronize();
     }
 };

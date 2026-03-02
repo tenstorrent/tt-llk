@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
@@ -24,6 +25,14 @@ PERF_COUNTERS_STOPPER_MASK = 0x3
 PERF_COUNTERS_CONFIG_ADDR = TestConfig.PERF_COUNTERS_CONFIG_ADDR
 PERF_COUNTERS_DATA_ADDR = TestConfig.PERF_COUNTERS_DATA_ADDR
 PERF_COUNTERS_SYNC_CTRL_ADDR = TestConfig.PERF_COUNTERS_SYNC_CTRL_ADDR
+PERF_COUNTERS_START_COUNTER_ADDR = TestConfig.PERF_COUNTERS_SYNC_CTRL_ADDR + 4
+PERF_COUNTERS_THREAD_COUNT = 3
+PERF_COUNTERS_STOP_COUNTER_ADDR = PERF_COUNTERS_START_COUNTER_ADDR + (
+    PERF_COUNTERS_THREAD_COUNT * 4
+)
+PERF_COUNTERS_STOP_ELECT_ADDR = PERF_COUNTERS_STOP_COUNTER_ADDR + (
+    PERF_COUNTERS_THREAD_COUNT * 4
+)
 
 COUNTER_BANK_NAMES = {
     0: "INSTRN_THREAD",
@@ -244,9 +253,11 @@ def configure_counters(location: str = "0,0") -> None:
         data=[0] * COUNTER_DATA_WORD_COUNT,
     )
 
-    # Clear sync state before kernel runs (reset all flags)
+    # Clear sync state and ATINCGET counters before kernel runs
     write_words_to_device(
-        location=location, addr=PERF_COUNTERS_SYNC_CTRL_ADDR, data=[0]
+        location=location,
+        addr=PERF_COUNTERS_SYNC_CTRL_ADDR,
+        data=[0] * (1 + PERF_COUNTERS_THREAD_COUNT * 2 + 1),
     )
 
 
@@ -269,7 +280,7 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
 
     # Read from the single shared buffer (last stopper wrote here)
     sync_ctrl = read_words_from_device(
-        location=location, addr=PERF_COUNTERS_SYNC_CTRL_ADDR, word_count=1
+        location=location, addr=PERF_COUNTERS_SYNC_CTRL_ADDR, word_count=3
     )
     if not sync_ctrl:
         raise RuntimeError(
@@ -277,6 +288,16 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
         )
 
     sync_word = sync_ctrl[0]
+
+    # Optional: log sync_ctrl values for aggregation across tests
+    sync_log = Path(TestConfig.LLK_ROOT) / "perf_data" / "sync_ctrl_values.txt"
+    try:
+        sync_log.parent.mkdir(parents=True, exist_ok=True)
+        with sync_log.open("a") as f:
+            f.write(f"0x{sync_word:08x}\n")
+    except Exception:
+        # Best-effort logging; do not fail tests if logging fails.
+        pass
 
     # Validate that counters were properly started and stopped
     GLOBAL_STARTED_BIT = 1 << 6
@@ -295,9 +316,10 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
             f"Perf counters were never started (global started bit not set); sync_ctrl=0x{sync_word:08x}"
         )
 
-    # Check that all three threads set their start bits
-    start_bits = sync_word & ALL_START_BITS
-    if start_bits != ALL_START_BITS:
+    # Validate that all three threads set their start bits.
+    # This is stricter than before and may surface cache-visibility issues.
+    start_bits = sync_word & 0x7
+    if start_bits != 0x7:
         missing_threads = []
         if not (start_bits & 0x1):
             missing_threads.append("UNPACK")
@@ -307,7 +329,7 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
             missing_threads.append("PACK")
 
         raise RuntimeError(
-            f"Not all threads called start_perf_counters(). "
+            f"Not all threads set their start bit in sync_ctrl. "
             f"Missing start from: {', '.join(missing_threads)}. "
             f"sync_ctrl=0x{sync_word:08x}"
         )
