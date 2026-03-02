@@ -554,7 +554,7 @@ def test_eltwise_binary_int8_format(
         BlocksCalculationAlgorithm.Standard,
     )
 
-    # Compute element-wise subtraction in tilized format
+    # Compute eltwise binary operation (add and sub) in tilized format
     binary_golden = get_golden_generator(EltwiseBinaryGolden)
 
     # Tilize inputs for device and golden calculation
@@ -621,7 +621,7 @@ def test_eltwise_binary_int8_format(
             stimuli_A,
             formats.input_format,
             stimuli_B,
-            formats.input_format,
+            formats.input_format_B,
             formats.output_format,
             tile_count_A=tile_cnt_A,
             tile_count_B=tile_cnt_B,

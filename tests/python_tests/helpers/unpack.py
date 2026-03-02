@@ -29,23 +29,7 @@ def unpack_fp32(packed_list):
 
 
 def unpack_int32(packed_list):
-    # INT32 uses sign-magnitude format in hardware (not two's complement)
-    # Format: bit 31 = sign, bits 30:0 = magnitude
-    bytes_data = bytes(packed_list)
-    uint32_array = np.frombuffer(bytes_data, dtype=np.uint32)
-
-    # Extract sign bit (bit 31) and magnitude (bits 30:0)
-    sign_mask = 0x80000000
-    magnitude_mask = 0x7FFFFFFF
-
-    # Work with Python int to avoid overflow, then convert to result
-    result = []
-    for val in uint32_array:
-        sign = (val & sign_mask) != 0
-        magnitude = int(val & magnitude_mask)
-        result.append(-magnitude if sign else magnitude)
-
-    return result
+    return np.frombuffer(bytes(packed_list), dtype=np.int32).tolist()
 
 
 def unpack_uint32(packed_list):
@@ -59,19 +43,10 @@ def unpack_uint16(packed_list):
 def unpack_int8(packed_list):
     # INT8 uses sign-magnitude format in hardware (not two's complement)
     # Format: bit 7 = sign, bits 6:0 = magnitude
-    bytes_data = bytes(packed_list)
-    uint8_array = np.frombuffer(bytes_data, dtype=np.uint8)
-    # Extract sign bit (bit 7) and magnitude (bits 6:0)
-    sign_mask = 0x80
-    magnitude_mask = 0x7F
-    # Work with Python int to avoid overflow, then convert to int8-compatible range
-    result = []
-    for val in uint8_array:
-        sign = (val & sign_mask) != 0
-        magnitude = int(val & magnitude_mask)
-        result.append(-magnitude if sign else magnitude)
-
-    return result
+    uint8_array = np.frombuffer(bytes(packed_list), dtype=np.uint8)
+    sign = (uint8_array & 0x80).astype(bool)
+    magnitude = (uint8_array & 0x7F).astype(np.int8)
+    return np.where(sign, -magnitude, magnitude).tolist()
 
 
 def unpack_uint8(packed_list):
