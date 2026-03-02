@@ -432,14 +432,7 @@ inline void configure_pack(
     t6_mutex_acquire(mutex::REG_RMW);
 
     // Set Fp8 E4M3 mode for packer
-    if ((pack_dst_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3))
-    {
-        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>(1);
-    }
-    else
-    {
-        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>(0);
-    }
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>(((pack_dst_format & 0x1F) == (std::uint32_t)DataFormat::Fp8_e4m3) ? 1 : 0);
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_output_src_format);
 
