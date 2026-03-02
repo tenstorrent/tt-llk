@@ -50,7 +50,7 @@ def test_custom_pack_w_acc(
             input_dimensions[0] * input_dimensions[1],
             dtype=format_dict[formats.input_format],
         )
-        * 3
+        * 2
     )
 
     if tilize == Tilize.No:
@@ -99,10 +99,10 @@ def test_custom_pack_w_acc(
         tile = i // 1024
         print(f"T{tile}F{face}R{row}\t", res_from_L1[i : i + 16])
 
-    # assert len(res_from_L1) == len(golden_tensor)
-    assert 1 == 2
+    assert len(res_from_L1) == len(golden_tensor)
+    # assert 1 == 2
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    # assert passed_test(golden_tensor, res_tensor, formats.output_format)
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)

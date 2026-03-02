@@ -36,25 +36,18 @@ inline void _llk_pack_mop_config_custom_(
     LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
 
     {
+        // Advance src and dst by 4 rows each PACR
         addr_mod_pack_t {
             .y_src = {.incr = 4},
             .y_dst = {.incr = 4},
         }
             .set(ADDR_MOD_0);
 
+        // End-of-tile for accumulation: keep advancing y_src, reset y_dst
+        // so the next tile accumulates to the same L1 destination
         addr_mod_pack_t {
-            .y_src = {.incr = 0, .clr = 1, .cr = 0},
+            .y_src = {.incr = 4, .clr = 0, .cr = 0},
             .y_dst = {.incr = 0, .clr = 1, .cr = 0},
-            .z_src = {.incr = 0, .clr = 0},
-            .z_dst = {.incr = 0, .clr = 0},
-        }
-            .set(ADDR_MOD_1);
-
-        // End-of-face: reset y_src for next face, advance y_dst in L1, increment face (z_src)
-        addr_mod_pack_t {
-            .y_src = {.incr = 0, .clr = 1},
-            .y_dst = {.incr = 4},
-            .z_src = {.incr = 1},
         }
             .set(ADDR_MOD_2);
     }
@@ -63,7 +56,7 @@ inline void _llk_pack_mop_config_custom_(
 
     const std::uint32_t PACK_INTF_SEL = face_r_dim == 1 ? p_pacr::SINGLE_INTF_ACTIVE : (face_r_dim == 2 ? p_pacr::TWO_INTFS_ACTIVE : p_pacr::ALL_INTF_ACTIVE);
 
-    const std::uint32_t MOP_INNER_LOOP = (face_r_dim < 4) ? 1 : (face_r_dim >> 2) * num_faces;
+    const std::uint32_t MOP_INNER_LOOP = 16;
     const std::uint32_t MOP_OUTER_LOOP = num_tiles;
 
     ckernel::ckernel_template tmp(
@@ -82,6 +75,7 @@ inline void _llk_pack_mop_config_custom_(
             0,
             0,
             0));
+    // End-of-tile: reset y_dst for accumulation and signal tile done (flush=1)
     tmp.set_last_inner_loop_instr(TT_OP_PACR(
         p_pacr::CFG_CTXT_0,
         p_pacr::NO_ROW_PAD_ZERO,
@@ -94,90 +88,17 @@ inline void _llk_pack_mop_config_custom_(
         0,
         0,
         0,
-        0));
-    tmp.set_last_outer_loop_instr(TT_OP_PACR(
-        p_pacr::CFG_CTXT_0,
-        p_pacr::NO_ROW_PAD_ZERO,
-        p_pacr::DST_ACCESS_NORMAL_MODE,
-        ADDR_MOD_1,
-        p_pacr::ADDR_CNT_CTXT_0,
-        ZERO_OUTPUT_FLAG,
-        PACK_INTF_SEL,
-        0,
-        0,
-        0,
-        0,
         1));
-
     tmp.program();
 }
 
 // NOTE: DO NOT TRY TO USE IN KERNELS OTHER THAN SDPA.CPP.
 // HIGHLY OPTIMIZED FOR A SPECIFIC USE CASE, NOT TESTED, DOES NOT RESPECT ANY CONTRACT OR PROGRAMMING MODEL.
 template <bool untilize = false, bool zero_output = false, bool tilize = false>
-inline void _llk_pack_w_acc_custom_(const std::uint32_t address, const std::uint32_t num_dest_tiles)
+inline void _llk_pack_w_acc_custom_(const std::uint32_t address)
 {
-    constexpr std::uint32_t ZERO_OUTPUT_FLAG = zero_output ? p_pacr::P_ZERO_OUTPUT_ENABLED : p_pacr::P_ZERO_OUTPUT_DISABLED;
-    const std::uint32_t PACK_INTF_SEL        = p_pacr::ALL_INTF_ACTIVE;
-
     set_dst_write_addr(0);               // select source tile (channel 0 W)
     program_packer_destination(address); // constant L1 output address
 
-    {
-        addr_mod_pack_t {
-            .y_src = {.incr = 4},
-            .y_dst = {.incr = 4},
-        }
-            .set(ADDR_MOD_0);
-
-        addr_mod_pack_t {
-            .y_src = {.incr = 0, .clr = 1, .cr = 0},
-            .y_dst = {.incr = 0, .clr = 1, .cr = 0},
-        }
-            .set(ADDR_MOD_1);
-
-        addr_mod_pack_t {
-            .y_src = {.incr = 4, .clr = 0, .cr = 0},
-            .y_dst = {.incr = 0, .clr = 1, .cr = 0},
-        }
-            .set(ADDR_MOD_2);
-    }
-
-    for (std::uint32_t tile_idx = 0; tile_idx < num_dest_tiles; ++tile_idx)
-    {
-        // Explicit PACR loop for one tile (16 rows)
-        for (int i = 0; i < 15; ++i)
-        {
-            TTI_PACR(
-                p_pacr::CFG_CTXT_0,
-                p_pacr::NO_ROW_PAD_ZERO,
-                p_pacr::DST_ACCESS_NORMAL_MODE,
-                ADDR_MOD_0,
-                p_pacr::ADDR_CNT_CTXT_0,
-                ZERO_OUTPUT_FLAG,
-                PACK_INTF_SEL,
-                0,
-                0,
-                0,
-                0,
-                0);
-        }
-        TTI_PACR(
-            p_pacr::CFG_CTXT_0,
-            p_pacr::NO_ROW_PAD_ZERO,
-            p_pacr::DST_ACCESS_NORMAL_MODE,
-            ADDR_MOD_2,
-            p_pacr::ADDR_CNT_CTXT_0,
-            ZERO_OUTPUT_FLAG,
-            PACK_INTF_SEL,
-            0,
-            0,
-            0,
-            0,
-            1);
-
-        // Reset L1-side (channel 1) counters to write to same L1 tile
-        // TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b1000); // Ch1_W = 0
-        // TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b1000); // Ch1_Y = 0 and Ch1_X = 0
-    }
+    ckernel::ckernel_template::run();
 }
