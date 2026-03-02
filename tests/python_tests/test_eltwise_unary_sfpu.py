@@ -115,6 +115,7 @@ def test_eltwise_unary_sfpu_float(
     if TestConfig.WITH_COVERAGE and mathop in [
         MathOperation.Acosh,
         MathOperation.Log,
+        MathOperation.Log1p,
         MathOperation.Reciprocal,
         MathOperation.Sin,
         MathOperation.Sqrt,
@@ -128,6 +129,7 @@ def test_eltwise_unary_sfpu_float(
         MathOperation.Threshold,
         MathOperation.ReluMax,
         MathOperation.ReluMin,
+        MathOperation.Tanh,
     ]:
         # SFPI Issue link: https://github.com/tenstorrent/tt-metal/issues/33268
         pytest.skip(
@@ -268,7 +270,7 @@ def eltwise_unary_sfpu(
         ),
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
     # res_from_L1 = res_from_L1[:1024]
     # golden_tensor = golden_tensor[:1024]
@@ -344,7 +346,7 @@ def test_exponential_clamp_negative(
         unpack_to_dest=False,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
     assert len(res_from_L1) == len(
         golden_tensor
