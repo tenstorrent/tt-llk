@@ -86,6 +86,12 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
 {
     LLK_ASSERT(unpack_num_faces == 1 || unpack_num_faces == 2 || unpack_num_faces == 4, "unpack_num_faces must be 1, 2, or 4");
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK0);
+
+    // Encompassing word shared by packer thread
+    t6_mutex_acquire(mutex::REG_RMW);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Unp_LF8_4b_exp_RMW>(((unpack_src_format & 0x1F) == (std::uint32_t)DataFormat::Fp8_e4m3) ? 1 : 0);
+    t6_mutex_release(mutex::REG_RMW);
+
     if constexpr (to_from_int8)
     {
         static_assert(is_fp32_dest_acc_en, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");
@@ -93,10 +99,6 @@ inline void _llk_unpack_reconfig_data_format_srca_impl_(
     }
 
     cfg_reg_rmw_tensix<THCON_SEC0_REG0_TileDescriptor_ADDR32, 0, 0x0f>(unpack_src_format);
-
-    // TO DO: Enable support for this data format, without causing a race #1254
-    // Set FP8 E4M3 mode, bit is accessible by unpacker/packer
-    // cfg_reg_rmw_tensix<THCON_SEC0_REG1_Unp_LF8_4b_exp_RMW>(((unpack_src_format & 0x1F) == (uint)DataFormat::Fp8_e4m3) ? 1 : 0);
 
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Out_data_format_RMW>(unpack_dst_format);
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_A)); // update gpr which holds tile size A
@@ -134,6 +136,12 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
 {
     LLK_ASSERT(unpack_num_faces == 1 || unpack_num_faces == 2 || unpack_num_faces == 4, "unpack_num_faces must be 1, 2, or 4");
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK1);
+
+    // Encompassing word shared by packer thread
+    t6_mutex_acquire(mutex::REG_RMW);
+    cfg_reg_rmw_tensix<THCON_SEC1_REG1_Unp_LF8_4b_exp_RMW>(((unpack_src_format & 0x1F) == (std::uint32_t)DataFormat::Fp8_e4m3) ? 1 : 0);
+    t6_mutex_release(mutex::REG_RMW);
+
     if constexpr (to_from_int8)
     {
         static_assert(is_fp32_dest_acc_en, "Reconfiguring unpack to/from Int8 formats requires FP32 Dest mode enabled");
@@ -141,10 +149,6 @@ inline void _llk_unpack_reconfig_data_format_srcb_impl_(
     }
 
     cfg_reg_rmw_tensix<THCON_SEC1_REG0_TileDescriptor_ADDR32, 0, 0x0f>(unpack_src_format);
-
-    // TO DO: Enable support for this data format, without causing a race #1254
-    // Set FP8 E4M3 mode, bit is accessible by unpacker/packer
-    // cfg_reg_rmw_tensix<THCON_SEC1_REG1_Unp_LF8_4b_exp_RMW>(((unpack_src_format & 0x1F) == (uint)DataFormat::Fp8_e4m3) ? 1 : 0);
 
     cfg_reg_rmw_tensix<THCON_SEC1_REG2_Out_data_format_RMW>(unpack_dst_format);
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_unpack::TILE_SIZE_B)); // update gpr which holds tile size B

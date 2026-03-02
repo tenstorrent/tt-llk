@@ -201,7 +201,11 @@ inline void set_packer_strides(const std::uint32_t pack_src_format, const std::u
 inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
 {
     cfg_reg_rmw_tensix<THCON_SEC0_REG1_Disable_pack_zero_flags_RMW>(pack_l1_acc);
+
+    // Encompassing word shared by unpacker thread
+    t6_mutex_acquire(mutex::REG_RMW);
     cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pack_L1_Acc_RMW>(pack_l1_acc);
+    t6_mutex_release(mutex::REG_RMW);
 }
 
 template <bool is_fp32_dest_acc_en>
@@ -245,7 +249,11 @@ inline void set_packer_config(
         constexpr std::uint32_t exp_threshold_rmw_mask = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
         std::uint32_t exp_threshold_rmw_data =
             (exp_threshold_val << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (exp_threshold_en << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
-        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
+
+        // Encompassing word shared by unpacker thread
+        t6_mutex_acquire(mutex::REG_RMW);
+        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Exp_threshold_en_ADDR32, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
+        t6_mutex_release(mutex::REG_RMW);
     }
 
     // Program:
@@ -390,7 +398,11 @@ inline void reconfig_packer_data_format(
         constexpr std::uint32_t exp_threshold_rmw_mask = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
         std::uint32_t exp_threshold_rmw_data =
             (exp_threshold_val << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (exp_threshold_en << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
-        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
+
+        // Encompassing word shared by unpacker thread
+        t6_mutex_acquire(mutex::REG_RMW);
+        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Exp_threshold_en_ADDR32, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
+        t6_mutex_release(mutex::REG_RMW);
     }
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_output_src_format);
