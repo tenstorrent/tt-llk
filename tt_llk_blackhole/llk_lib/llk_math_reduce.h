@@ -202,7 +202,7 @@ inline void _llk_math_reduce_(const std::uint32_t dst_index, const ckernel::Tens
     }
     else if constexpr (dim == ReduceDim::REDUCE_SCALAR)
     {
-        for (std::uint32_t face_num = 0; face_num < (tensor_shape.total_num_faces() - 1); face_num++)
+        for (std::uint32_t face_num = 0; face_num < static_cast<std::uint32_t>(tensor_shape.total_num_faces() - 1); face_num++)
         {
             // Wait and pool
             reduce_pool_op<type, high_fidelity, p_setrwc::CLR_AB, 4>();
