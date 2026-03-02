@@ -256,3 +256,7 @@ inline void _llk_math_transpose_dest_uninit_()
 {
     // No state to restore - all states are transient or default
 }
+
+#ifdef DISABLE_LOADMACRO
+#include "llk_math_transpose_dest_disable_loadmacro.h"
+#endif

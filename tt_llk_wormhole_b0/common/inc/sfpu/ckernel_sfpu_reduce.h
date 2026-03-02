@@ -794,3 +794,7 @@ inline void _calculate_reduce_(std::uint32_t block_ct_dim = 1, std::uint32_t blo
 
 } // namespace sfpu
 } // namespace ckernel
+
+#ifdef DISABLE_LOADMACRO
+#include "ckernel_sfpu_reduce_disable_loadmacro.h"
+#endif

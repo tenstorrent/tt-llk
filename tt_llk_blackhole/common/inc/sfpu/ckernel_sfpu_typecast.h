@@ -841,3 +841,7 @@ inline void _init_typecast_int32_to_uint16_()
 
 } // namespace sfpu
 } // namespace ckernel
+
+#ifdef DISABLE_LOADMACRO
+#include "ckernel_sfpu_typecast_disable_loadmacro.h"
+#endif

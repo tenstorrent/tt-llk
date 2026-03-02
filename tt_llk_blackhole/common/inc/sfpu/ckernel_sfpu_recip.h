@@ -444,3 +444,7 @@ inline void _init_reciprocal_()
 
 } // namespace sfpu
 } // namespace ckernel
+
+#ifdef DISABLE_LOADMACRO
+#include "ckernel_sfpu_recip_disable_loadmacro.h"
+#endif

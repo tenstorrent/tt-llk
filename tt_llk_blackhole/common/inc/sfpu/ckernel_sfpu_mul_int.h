@@ -144,3 +144,7 @@ inline void _init_mul_int_()
 
 } // namespace sfpu
 } // namespace ckernel
+
+#ifdef DISABLE_LOADMACRO
+#include "ckernel_sfpu_mul_int_disable_loadmacro.h"
+#endif
