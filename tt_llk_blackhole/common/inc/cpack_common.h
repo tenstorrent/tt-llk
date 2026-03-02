@@ -236,9 +236,6 @@ inline void set_packer_config(
     config.f.out_data_format = pack_output_dst_format;
     config.f.in_data_format  = pack_output_src_format;
 
-    // Stall to avoid clobbering current packer configuration
-    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
-
     // Workaround for bug in HW: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
     {
