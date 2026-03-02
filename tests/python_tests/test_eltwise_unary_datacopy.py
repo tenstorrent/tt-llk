@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.constraints import (
@@ -89,9 +90,9 @@ def test_unary_datacopy(
 ):
 
     # skip if Fp8_e4m3 for wormhole
-    if (
-        get_chip_architecture() == ChipArchitecture.WORMHOLE
-        and formats.input_format == DataFormat.Fp8_e4m3
+    if get_chip_architecture() == ChipArchitecture.WORMHOLE and (
+        formats.input_format == DataFormat.Fp8_e4m3
+        or formats.output_format == DataFormat.Fp8_e4m3
     ):
         pytest.skip("Fp8_e4m3 not supported on wormhole")
 
