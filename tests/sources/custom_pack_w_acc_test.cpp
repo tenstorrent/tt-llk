@@ -153,7 +153,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     _llk_packer_wait_for_math_done_();
 
-    _llk_pack_w_acc_custom_<false /*untilize*/, false /*zero_output*/, tilize_en>(L1_ADDRESS(params->buffer_Res[0]));
+    _llk_pack_w_acc_custom_<false /*untilize*/, false /*zero_output*/, tilize_en>(L1_ADDRESS(params->buffer_Res[0]), params->TILE_CNT);
 
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

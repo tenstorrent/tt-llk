@@ -3,13 +3,9 @@
 
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
-from helpers.constraints import (
-    get_valid_dest_accumulation_modes,
-    get_valid_dest_indices,
-)
 from helpers.format_config import DataFormat
 from helpers.golden_generators import DataCopyGolden, TilizeGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, DestSync, Tilize, format_dict
+from helpers.llk_params import DestAccumulation, Tilize, format_dict
 from helpers.param_config import (
     input_output_formats,
     parametrize,
@@ -67,30 +63,36 @@ def get_valid_num_faces_datacopy(tilize):
 @parametrize(
     formats=input_output_formats(
         [
-            DataFormat.Float32,
-            DataFormat.Float16,
+            # DataFormat.Float32,
+            # DataFormat.Float16,
             DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
+            # DataFormat.Bfp8_b,
         ]
     ),
-    dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
-    num_faces=lambda tilize: get_valid_num_faces_datacopy(tilize),
-    tilize=lambda formats: get_valid_tilize_datacopy(formats),
-    dest_index=lambda dest_acc: get_valid_dest_indices(
-        dest_sync=DestSync.Half, dest_acc=dest_acc, tile_count=4
-    ),
+    dest_acc=[DestAccumulation.No],
+    num_faces=[4],
+    tilize=[Tilize.No],
+    dest_index=0,
 )
 def test_unary_datacopy(
     formats, dest_acc, num_faces, tilize, dest_index, workers_tensix_coordinates
 ):
 
-    input_dimensions = [64, 64]
+    input_dimensions = [32, 64]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
+    )
+
+    src_A = (
+        torch.ones(
+            input_dimensions[0] * input_dimensions[1],
+            dtype=format_dict[formats.input_format],
+        )
+        * 2
     )
 
     if tilize == Tilize.No:

@@ -3,7 +3,6 @@
 
 import torch
 from helpers.format_config import DataFormat
-from helpers.golden_generators import DataCopyGolden, TilizeGolden, get_golden_generator
 from helpers.llk_params import DestAccumulation, Tilize, format_dict
 from helpers.param_config import (
     input_output_formats,
@@ -19,6 +18,7 @@ from helpers.test_variant_parameters import (
     TILIZE,
     generate_input_dim,
 )
+from helpers.utils import passed_test
 
 
 @parametrize(
@@ -36,7 +36,7 @@ def test_custom_pack_w_acc(
     formats, dest_acc, num_faces, tilize, dest_index, workers_tensix_coordinates
 ):
 
-    input_dimensions = [64, 128]
+    input_dimensions = [32, 64]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -45,22 +45,21 @@ def test_custom_pack_w_acc(
         input_dimensions_B=input_dimensions,
     )
 
-    src_A = (
-        torch.ones(
-            input_dimensions[0] * input_dimensions[1],
-            dtype=format_dict[formats.input_format],
-        )
-        * 2
-    )
+    # src_A = (
+    #     torch.ones(
+    #         input_dimensions[0] * input_dimensions[1],
+    #         dtype=format_dict[formats.input_format],
+    #     )
+    #     * 2
+    # )
 
-    if tilize == Tilize.No:
-        generate_golden = get_golden_generator(DataCopyGolden)
-        golden_tensor = generate_golden(
-            src_A, formats.output_format, num_faces, input_dimensions
-        )
-    else:
-        generate_golden = get_golden_generator(TilizeGolden)
-        golden_tensor = generate_golden(src_A, input_dimensions, formats.output_format)
+    torch_format = format_dict[formats.output_format]
+    tile_size = 1024
+    total_elements = tile_cnt_A * tile_size
+    tiles = src_A.reshape(tile_cnt_A, tile_size)
+    golden_tile = tiles.sum(dim=0).to(torch_format)
+    golden_tensor = torch.zeros(total_elements, dtype=torch_format)
+    golden_tensor[:tile_size] = golden_tile
 
     unpack_to_dest = (
         False
@@ -100,9 +99,7 @@ def test_custom_pack_w_acc(
         print(f"T{tile}F{face}R{row}\t", res_from_L1[i : i + 16])
 
     assert len(res_from_L1) == len(golden_tensor)
-    # assert 1 == 2
 
-    torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
