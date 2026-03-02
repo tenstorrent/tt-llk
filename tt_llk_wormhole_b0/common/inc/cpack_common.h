@@ -256,9 +256,6 @@ inline void set_packer_config(
         }
     }
 
-    // Stall to avoid clobbering current packer configuration
-    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
-
     // Program:
     // THCON_SEC0_REG1_Row_start_section_size = cfg_reg_array[1][0 +: 16];
     // THCON_SEC0_REG1_Exp_section_size = cfg_reg_array[1][16 +: 16];
