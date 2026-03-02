@@ -708,6 +708,8 @@ class NUM_FACES_C_DIM(RuntimeParameter):
         return "\n".join(lines), "ii"
 
 
+# NOTE: If IN_FACE_DIMS parameter is propagated throughout test-infra, it can replace
+# other variables used to pass input face dimensions (eg. TEST_FACE_DIMS).
 @dataclass
 class IN_FACE_DIMS(RuntimeParameter):
     in0_face_r_dim: int = 16
