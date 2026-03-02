@@ -44,6 +44,9 @@ using namespace ckernel::unpacker;
 template <PoolType pool_type, ReduceDim reduce_dim>
 inline void _llk_unpack_AB_reduce_mop_config_(const ckernel::TensorShape &tensor_shape)
 {
+    // Validate tensor shape for tile-dependent operations
+    validate_tensor_shape_tile_dependent_ops_(tensor_shape);
+
     // Data valid for clear instructions is set to 0 since the MATH kernel should not process this data.
     // pool_type == PoolType::MAX sets the clear value to neginf if the pool-type is MAX and 0 if the pool-type is AVG/SUM
     static constexpr std::uint32_t clear_pool_dep_srca =
