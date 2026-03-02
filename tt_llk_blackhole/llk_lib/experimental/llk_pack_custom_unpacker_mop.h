@@ -54,12 +54,9 @@ inline void _llk_pack_mop_config_(
 
     const std::uint32_t pacr_per_face = (face_r_dim < 4) ? 1 : face_r_dim >> 2;
 
-    // Record PACR instructions for one face into the replay buffer.
-    // Within a face: pacr_per_face - 1 PACRs with ADDR_MOD_0 (advance y += 4),
-    // then 1 PACR with ADDR_MOD_2 (clear y, increment z to move to next face).
-    const std::uint32_t replay_buf_len = pacr_per_face;
-
-    lltt::record<lltt::NoExec>(0, replay_buf_len);
+    // Buffer 0: intermediate face — ADDR_MOD_2 at end (clear y, increment z)
+    const std::uint32_t buf0_len = pacr_per_face;
+    lltt::record<lltt::NoExec>(0, buf0_len);
     for (std::uint32_t i = 0; i < pacr_per_face - 1; i++)
     {
         TTI_PACR(
@@ -76,21 +73,79 @@ inline void _llk_pack_mop_config_(
             0,
             0);
     }
+    TTI_PACR(
+        p_pacr::CFG_CTXT_0,
+        p_pacr::NO_ROW_PAD_ZERO,
+        p_pacr::DST_ACCESS_NORMAL_MODE,
+        ADDR_MOD_2,
+        p_pacr::ADDR_CNT_CTXT_0,
+        ZERO_OUTPUT_FLAG,
+        PACK_INTF_SEL,
+        0,
+        0,
+        p_pacr::NO_CTXT_CTRL,
+        0,
+        0);
 
-    // Each A slot replays the full face sequence. With halo enabled,
-    // one MOP iteration executes A0-A3 = 4 face replays = 1 tile.
-    // The zmask-based loop in _llk_pack_ repeats this for num_tiles.
-    const std::uint32_t replay = lltt::replay_insn(0, replay_buf_len);
+    // Buffer 1: last face — ADDR_MOD_1 at end (clear all) + close_tile
+    const std::uint32_t buf1_start = buf0_len;
+    const std::uint32_t buf1_len   = pacr_per_face;
+    lltt::record<lltt::NoExec>(buf1_start, buf1_len);
+    for (std::uint32_t i = 0; i < pacr_per_face - 1; i++)
+    {
+        TTI_PACR(
+            p_pacr::CFG_CTXT_0,
+            p_pacr::NO_ROW_PAD_ZERO,
+            p_pacr::DST_ACCESS_NORMAL_MODE,
+            ADDR_MOD_0,
+            p_pacr::ADDR_CNT_CTXT_0,
+            ZERO_OUTPUT_FLAG,
+            PACK_INTF_SEL,
+            0,
+            0,
+            p_pacr::NO_CTXT_CTRL,
+            0,
+            0);
+    }
+    TTI_PACR(
+        p_pacr::CFG_CTXT_0,
+        p_pacr::NO_ROW_PAD_ZERO,
+        p_pacr::DST_ACCESS_NORMAL_MODE,
+        ADDR_MOD_1,
+        p_pacr::ADDR_CNT_CTXT_0,
+        ZERO_OUTPUT_FLAG,
+        PACK_INTF_SEL,
+        0,
+        0,
+        p_pacr::NO_CTXT_CTRL,
+        0,
+        1);
+
+    const std::uint32_t replay_inter = lltt::replay_insn(0, buf0_len);
+    const std::uint32_t replay_last  = lltt::replay_insn(buf1_start, buf1_len);
+
+    std::uint32_t a0 = replay_last, a1 = TT_OP_NOP, a2 = TT_OP_NOP, a3 = TT_OP_NOP;
+    if (num_faces == 2)
+    {
+        a0 = replay_inter;
+        a1 = replay_last;
+    }
+    if (num_faces == 4)
+    {
+        a0 = replay_inter;
+        a1 = replay_inter;
+        a2 = replay_inter;
+        a3 = replay_last;
+    }
 
     ckernel::ckernel_unpack_template tmp(
-        false,                                 // unpackB
-        true,                                  // halo enable (A0-A3 all execute per iteration)
-        TT_OP_REPLAY(0, replay_buf_len, 0, 0), // A0 — face 0
-        TT_OP_REPLAY(0, replay_buf_len, 0, 0), // A1 — face 1
-        TT_OP_REPLAY(0, replay_buf_len, 0, 0), // A2 — face 2
-        TT_OP_REPLAY(0, replay_buf_len, 0, 0), // A3 — face 3
-        TT_OP_NOP,                             // skipA
-
+        false, // unpackB
+        true,  // halo enable (A0-A3 all execute per iteration)
+        a0,
+        a1,
+        a2,
+        a3,
+        TT_OP_NOP, // skipA
         TT_OP_NOP, // B
         TT_OP_NOP  // skipB
     );
@@ -138,16 +193,10 @@ inline void _llk_pack_uninit_()
 template <DstSync Dst, bool is_fp32_dest_acc_en>
 inline void _llk_pack_(const std::uint32_t tile_index, const std::uint32_t address, const std::uint32_t num_tiles = 1)
 {
-    set_dst_write_addr(tile_index);
-
     program_packer_destination(address);
+    set_dst_write_addr(0);
 
-    // zmask must have bits 0..num_tiles-1 set so every iteration takes
-    // the A0-A3 (replay) path rather than the skip path.
-    // const std::uint32_t zmask = (1u << num_tiles) ;
-    const std::uint32_t zmask = 0xFFFFFFFF;
-
-    ckernel::ckernel_unpack_template::run(static_cast<std::uint8_t>(num_tiles), zmask);
+    ckernel::ckernel_unpack_template::run(num_tiles, 0b0000);
 
     TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0101);
 }

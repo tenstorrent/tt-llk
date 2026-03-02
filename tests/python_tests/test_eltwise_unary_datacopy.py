@@ -78,7 +78,7 @@ def test_unary_datacopy(
     formats, dest_acc, num_faces, tilize, dest_index, workers_tensix_coordinates
 ):
 
-    input_dimensions = [32, 64]
+    input_dimensions = [64, 64]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
