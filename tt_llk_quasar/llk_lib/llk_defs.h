@@ -87,6 +87,15 @@ enum class StochRndType : std::uint8_t
     All  = 3,
 };
 
+// Packer ReLU modes; encoding matches relu_config (low 4 bits).
+enum class ReluType : std::uint8_t
+{
+    NO_RELU = 0,
+    ZERO_RELU,
+    MIN_THRESHOLD_RELU,
+    MAX_THRESHOLD_RELU,
+};
+
 } // namespace ckernel
 
 // Make SfpuType available in global namespace for compatibility with test infrastructure
