@@ -125,7 +125,7 @@ def configure_logger(level: str = None):
 
     # Silence noisy third-party stdlib loggers so only our own messages
     # (routed through loguru) appear in pytest's live logging output.
-    for name in ("filelock", "urllib3", "matplotlib", "numpy"):
+    for name in ("filelock", "matplotlib", "numpy"):
         logging.getLogger(name).setLevel(logging.WARNING)
 
     logger.debug(
