@@ -9,6 +9,7 @@
 
 #include "ckernel.h"
 #include "llk_defs.h"
+#include "llk_memory_checks.h"
 
 // Globals
 std::uint32_t unp_cfg_context          = 0;
@@ -29,6 +30,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
     tdma_descriptor_t td_val_A, td_val_B;
     const std::uint32_t buf_desc_id_a = 0;
     const std::uint32_t buf_desc_id_b = 1;
+    constexpr bool TRANSPOSE_EN       = false;
+    constexpr bool IS_32B_DEST_EN     = false;
 
     // Setup data valid scheme
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
@@ -36,7 +39,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     // Configure Source A buffer descriptor — BD base points to tile 0;
     // tile_idx=i in each unpack call offsets automatically: buffer_A[0] + i*stride = buffer_A[i]
     buffer_descriptor_u bd_val_A {};
-    bd_val_A.f.l1_addr_16B = params->buffer_A[0] / 16;
+    bd_val_A.f.l1_addr_16B = L1_ADDRESS(params->buffer_A[0]);
     bd_val_A.f.format      = static_cast<std::uint8_t>(formats.unpack_A_src);
     bd_val_A.f.x_dim       = params->TEST_FACE_C_DIM;
     bd_val_A.f.y_dim       = params->TEST_FACE_R_DIM;
@@ -48,7 +51,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     // Configure Source B buffer descriptor — BD base points to tile 0
     buffer_descriptor_u bd_val_B {};
-    bd_val_B.f.l1_addr_16B = params->buffer_B[0] / 16;
+    bd_val_B.f.l1_addr_16B = L1_ADDRESS(params->buffer_B[0]);
     bd_val_B.f.format      = static_cast<std::uint8_t>(formats.unpack_B_src);
     bd_val_B.f.x_dim       = params->TEST_FACE_C_DIM;
     bd_val_B.f.y_dim       = params->TEST_FACE_R_DIM;
@@ -62,17 +65,19 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _configure_buf_desc_table_(td_val_B.buf_desc_id, td_val_B.buf_desc);
     _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val_A, td_val_B);
 
-    _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, false /*transpose*/, false /*32b_dest*/>(buf_desc_id_a, 1);
+    _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, TRANSPOSE_EN, IS_32B_DEST_EN>(buf_desc_id_a, 1);
     for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
     {
         _llk_unpack_unary_operand_<p_unpacr::UNP_A>(i);
     }
 
     constexpr std::uint32_t buf_desc_id_phase2 = (REUSE_DEST_TYPE == EltwiseBinaryReuseDestType::DEST_TO_SRCB) ? buf_desc_id_a : buf_desc_id_b;
-    _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, false /*transpose*/, false /*32b_dest*/, REUSE_DEST_TYPE>(buf_desc_id_phase2, 1, params->num_faces);
+    // Phase 2: unpack the other operand. DEST_TO_SRCA → SrcB from buffer B (UNP_B); DEST_TO_SRCB → SrcA from buffer A (UNP_A).
+    constexpr std::uint32_t unp_sel_phase2 = (REUSE_DEST_TYPE == EltwiseBinaryReuseDestType::DEST_TO_SRCA) ? p_unpacr::UNP_B : p_unpacr::UNP_A;
+    _llk_unpack_unary_operand_init_<unp_sel_phase2, TRANSPOSE_EN, IS_32B_DEST_EN, REUSE_DEST_TYPE>(buf_desc_id_phase2, 1, params->num_faces);
     for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
     {
-        _llk_unpack_unary_operand_<p_unpacr::UNP_A, REUSE_DEST_TYPE>(i);
+        _llk_unpack_unary_operand_<unp_sel_phase2, REUSE_DEST_TYPE>(i);
     }
 }
 
@@ -154,7 +159,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
     buffer_descriptor_u bd_val {};
-    bd_val.f.l1_addr_16B = params->buffer_Res[0] / 16;
+    bd_val.f.l1_addr_16B = L1_ADDRESS(params->buffer_Res[0]);
     bd_val.f.format      = static_cast<std::uint8_t>(formats.pack_dst);
     bd_val.f.x_dim       = params->TEST_FACE_C_DIM;
     bd_val.f.y_dim       = params->TEST_FACE_R_DIM;
