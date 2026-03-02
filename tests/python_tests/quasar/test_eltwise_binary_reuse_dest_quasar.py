@@ -8,9 +8,6 @@
 import pytest
 import torch
 from helpers.format_config import DataFormat
-from helpers.golden_generators import (
-    TILE_DIM,
-)
 from helpers.llk_params import (
     DestAccumulation,
     DestSync,
@@ -26,7 +23,7 @@ from helpers.param_config import (
     parametrize,
 )
 from helpers.stimuli_config import StimuliConfig
-from helpers.stimuli_generator import generate_stimuli
+from helpers.stimuli_generator import generate_stimuli_w_tile_dimensions
 from helpers.test_config import BootMode, TestConfig
 from helpers.test_variant_parameters import (
     DEST_SYNC,
@@ -43,6 +40,7 @@ from helpers.test_variant_parameters import (
     generate_input_dim,
 )
 from helpers.tile_constants import FACE_C_DIM, get_tile_params
+from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
 
 INPUT_DIMENSIONS = [
@@ -57,6 +55,8 @@ OUTPUT_DIMENSIONS = [
     [64, 32],
     [128, 64],
 ]
+
+TILE_DIMENSIONS = [32, 32]
 
 
 @pytest.mark.quasar
@@ -92,11 +92,17 @@ def test_eltwise_binary_reuse_dest_quasar(
     if math_fidelity != MathFidelity.LoFi:
         pytest.skip("Quasar reuse_dest eltwise binary supports LoFi only")
 
-    tile_cnt_input = (input_dimensions[0] // TILE_DIM) * (
-        input_dimensions[1] // TILE_DIM
+    tile_rows, tile_cols = TILE_DIMENSIONS
+    face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(
+        [tile_rows, tile_cols]
     )
-    tile_cnt_output = (output_dimensions[0] // TILE_DIM) * (
-        output_dimensions[1] // TILE_DIM
+    num_faces = num_faces_r_dim * num_faces_c_dim
+
+    tile_cnt_input = (input_dimensions[0] // tile_rows) * (
+        input_dimensions[1] // tile_cols
+    )
+    tile_cnt_output = (output_dimensions[0] // tile_rows) * (
+        output_dimensions[1] // tile_cols
     )
 
     if tile_cnt_input % tile_cnt_output != 0:
@@ -108,13 +114,13 @@ def test_eltwise_binary_reuse_dest_quasar(
     if inner_dim == 1:
         pytest.skip("reuse_dest requires inner_dim > 1")
 
-    tile_dimensions = (TILE_DIM, TILE_DIM)
+    tile_dimensions_tuple = (tile_rows, tile_cols)
     output_num_blocks, output_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
         DestSync.Half,
         DestAccumulation.No,
         formats,
         output_dimensions,
-        tile_dimensions,
+        tile_dimensions_tuple,
         BlocksCalculationAlgorithm.Standard,
     )
     if output_num_blocks > 1:
@@ -125,27 +131,43 @@ def test_eltwise_binary_reuse_dest_quasar(
     input_tiles_in_block = inner_dim * output_tiles_in_block
     input_num_blocks = output_num_blocks
 
-    src_A, _, src_B, _ = generate_stimuli(
+    src_A, _, src_B, _ = generate_stimuli_w_tile_dimensions(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
-        output_format=formats.output_format,
+        tile_dimensions=[tile_rows, tile_cols],
     )
+    src_A_tilized = tilize_block(
+        src_A,
+        dimensions=input_dimensions,
+        stimuli_format=formats.input_format,
+        num_faces=num_faces,
+        tile_dimensions=[tile_rows, tile_cols],
+        face_r_dim=face_r_dim,
+    )
+    src_B_tilized = tilize_block(
+        src_B,
+        dimensions=input_dimensions,
+        stimuli_format=formats.input_format,
+        num_faces=num_faces,
+        tile_dimensions=[tile_rows, tile_cols],
+        face_r_dim=face_r_dim,
+    )
+    src_A_flat = src_A_tilized.flatten()
+    src_B_flat = src_B_tilized.flatten()
 
-    face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params((TILE_DIM, TILE_DIM))
-    num_faces = num_faces_r_dim * num_faces_c_dim
     tile_elements = num_faces * face_r_dim * FACE_C_DIM
     torch_format = format_dict[formats.output_format]
     src_A_t = (
-        src_A
-        if isinstance(src_A, torch.Tensor)
-        else torch.tensor(src_A, dtype=torch_format)
+        src_A_flat
+        if isinstance(src_A_flat, torch.Tensor)
+        else torch.tensor(src_A_flat, dtype=torch_format)
     )
     src_B_t = (
-        src_B
-        if isinstance(src_B, torch.Tensor)
-        else torch.tensor(src_B, dtype=torch_format)
+        src_B_flat
+        if isinstance(src_B_flat, torch.Tensor)
+        else torch.tensor(src_B_flat, dtype=torch_format)
     )
     golden_tensor = torch.zeros(tile_cnt_output * tile_elements, dtype=torch_format)
 
@@ -208,15 +230,18 @@ def test_eltwise_binary_reuse_dest_quasar(
             TEST_FACE_DIMS(face_r_dim=face_r_dim, face_c_dim=FACE_C_DIM),
         ],
         variant_stimuli=StimuliConfig(
-            src_A,
+            src_A_flat,
             formats.input_format,
-            src_B,
+            src_B_flat,
             formats.input_format,
             formats.output_format,
             tile_count_A=tile_cnt_input,
             tile_count_B=tile_cnt_input,
             tile_count_res=tile_cnt_output,
             num_faces=num_faces,
+            face_r_dim=face_r_dim,
+            tile_dimensions=[tile_rows, tile_cols],
+            use_dense_tile_dimensions=True,
         ),
         unpack_to_dest=False,
         dest_acc=DestAccumulation.No,

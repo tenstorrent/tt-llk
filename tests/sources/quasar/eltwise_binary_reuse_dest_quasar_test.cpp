@@ -121,7 +121,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
             }
             for (int tile = 0; tile < tiles_in_block; tile++)
             {
-                _llk_math_eltwise_binary_<REUSE_DEST_TYPE>(tile, params->num_faces);
+                const int global_tile_idx = block * tiles_in_block + tile;
+                _llk_math_eltwise_binary_<REUSE_DEST_TYPE>(global_tile_idx, params->num_faces);
             }
         }
         _llk_math_dest_section_done_<dest_sync>();
@@ -168,7 +169,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         for (int tile = 0; tile < output_tiles_in_block; tile++)
         {
             int res_tile_idx = (block * output_tiles_in_block) + tile;
-            _llk_pack_<p_pacr::PACK0>(tile, res_tile_idx);
+            _llk_pack_<p_pacr::PACK0>(res_tile_idx, res_tile_idx);
         }
         _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }
