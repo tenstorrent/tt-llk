@@ -7,6 +7,9 @@
 
 #ifdef LLK_TRISC_SFPU
 
+// build.h uses p_unpacr::UNP_A etc; bring ckernel namespace into scope
+using namespace ckernel;
+
 #include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams* params)
