@@ -30,7 +30,8 @@ void run_kernel(const volatile struct RuntimeParams *params)
     // Setup data valid scheme
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
-    // Configure Source A buffer descriptor (for datacopy to DEST in phase 1)
+    // Configure Source A buffer descriptor — BD base points to tile 0;
+    // tile_idx=i in each unpack call offsets automatically: buffer_A[0] + i*stride = buffer_A[i]
     buffer_descriptor_u bd_val_A {};
     bd_val_A.f.l1_addr_16B = params->buffer_A[0] / 16;
     bd_val_A.f.format      = static_cast<std::uint8_t>(formats.unpack_A_src);
@@ -42,7 +43,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     td_val_A.buf_desc_id     = buf_desc_id_a;
     td_val_A.reg_data_format = static_cast<std::uint8_t>(formats.unpack_A_dst);
 
-    // Configure Source B buffer descriptor (CB operand for eltwise binary in phase 2)
+    // Configure Source B buffer descriptor — BD base points to tile 0
     buffer_descriptor_u bd_val_B {};
     bd_val_B.f.l1_addr_16B = params->buffer_B[0] / 16;
     bd_val_B.f.format      = static_cast<std::uint8_t>(formats.unpack_B_src);
@@ -54,28 +55,24 @@ void run_kernel(const volatile struct RuntimeParams *params)
     td_val_B.buf_desc_id     = buf_desc_id_b;
     td_val_B.reg_data_format = static_cast<std::uint8_t>(formats.unpack_B_dst);
 
-    // Configure both unpackers upfront (need both for reuse_dest phase)
     _configure_buf_desc_table_(td_val_A.buf_desc_id, td_val_A.buf_desc);
     _configure_buf_desc_table_(td_val_B.buf_desc_id, td_val_B.buf_desc);
     _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val_A, td_val_B);
 
-    // Unpack src_A to SrcA for datacopy into DEST (per-tile L1 address)
+    // Phase 1: unpack src_A into SrcA for datacopy to DEST.
+    // BD_a base = buffer_A[0]; tile_idx=i reads buffer_A[i] via auto-offset.
     _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, false /*transpose*/, false /*32b_dest*/>(buf_desc_id_a, 1);
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        bd_val_A.f.l1_addr_16B = params->buffer_A[i] / 16;
-        _configure_buf_desc_table_(buf_desc_id_a, bd_val_A);
         _llk_unpack_unary_operand_<p_unpacr::UNP_A>(i);
     }
 
+    // Phase 2: unpack CB operand for eltwise binary with reuse_dest.
+    // BD_a base = buffer_A[0], BD_b base = buffer_B[0]; tile_idx=i offsets correctly.
     constexpr std::uint32_t buf_desc_id_phase2 = (REUSE_DEST_TYPE == EltwiseBinaryReuseDestType::DEST_TO_SRCB) ? buf_desc_id_a : buf_desc_id_b;
     _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, false /*transpose*/, false /*32b_dest*/, REUSE_DEST_TYPE>(buf_desc_id_phase2, 1, params->num_faces);
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        bd_val_A.f.l1_addr_16B = params->buffer_A[i] / 16;
-        _configure_buf_desc_table_(buf_desc_id_a, bd_val_A);
-        bd_val_B.f.l1_addr_16B = params->buffer_B[i] / 16;
-        _configure_buf_desc_table_(buf_desc_id_b, bd_val_B);
         _llk_unpack_unary_operand_<p_unpacr::UNP_A, REUSE_DEST_TYPE>(i);
     }
 }
@@ -167,13 +164,9 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, params->TILE_CNT);
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params->TILE_CNT; ++i)
-    {
-        bd_val.f.l1_addr_16B = params->buffer_Res[i] / 16;
-        _configure_buf_desc_table_(buf_desc_id, bd_val);
-        _llk_pack_<p_pacr::PACK0>(i, i);
-    }
+    _llk_pack_<p_pacr::PACK0>(0, 0);
     _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
+    _llk_packer_set_math_semaphore_();
 }
 
 #endif
