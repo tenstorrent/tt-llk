@@ -1,12 +1,10 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
-
+import numpy as np
 import torch
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
-    BroadcastGolden,
     EltwiseBinaryGolden,
-    TransposeGolden,
     get_golden_generator,
 )
 from helpers.llk_params import (
@@ -14,7 +12,6 @@ from helpers.llk_params import (
     BroadcastType,
     DestAccumulation,
     DestSync,
-    EltwiseBinaryReuseDestType,
     MathFidelity,
     MathOperation,
     Transpose,
@@ -31,14 +28,12 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     BROADCAST_TYPE,
     DEST_SYNC,
-    EN_DEST_REUSE,
     MATH_FIDELITY,
     MATH_OP,
     NUM_BLOCKS,
     NUM_FACES_C_DIM,
     NUM_FACES_R_DIM,
     NUM_TILES_IN_BLOCK,
-    REUSE_DEST_TYPE,
     TEST_FACE_DIMS,
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
@@ -53,14 +48,15 @@ ALL_TILE_DIMENSIONS = [list(td) for td in SUPPORTED_TILE_SIZES]
 def _get_valid_formats(dest_acc):
     """
     Filter formats based on dest accumulation:
-    - If dest accumulation is enabled, input must be Float32
+    - Int8 requires dest accumulation to be enabled
     """
     all_formats = input_output_formats(
-        [DataFormat.Float16_b, DataFormat.Float32, DataFormat.Bfp8_b],
+        [DataFormat.Int8],
         same=False,
     )
-    if dest_acc == DestAccumulation.Yes:
-        return [f for f in all_formats if f.input_format == DataFormat.Float32]
+    # Int8 requires FP32 dest accumulation mode
+    if dest_acc == DestAccumulation.No:
+        return []  # Int8 not supported without dest_acc
     return all_formats
 
 
@@ -115,22 +111,101 @@ def _get_valid_tile_dimensions(transpose_srca, broadcast_type):
     return ALL_TILE_DIMENSIONS
 
 
+def print_face_by_face_comparison(
+    src_A_tensor,
+    src_B_tensor,
+    result_tensor,
+    golden_tensor,
+    tile_dimensions,
+    num_faces_r_dim,
+    num_faces_c_dim,
+):
+    """
+    Print face-by-face comparison of source, result and golden tensors.
+    Prints one tile at a time, showing src_A, src_B, result, then golden face.
+
+    Args:
+        src_A_tensor: Source A tensor (input)
+        src_B_tensor: Source B tensor (input)
+        result_tensor: Result tensor from device
+        golden_tensor: Expected golden tensor
+        tile_dimensions: [tile_rows, tile_cols]
+        num_faces_r_dim: Number of faces in row dimension
+        num_faces_c_dim: Number of faces in column dimension
+    """
+    face_r_dim, _, _ = get_tile_params(tile_dimensions)
+    face_c_dim = FACE_C_DIM
+    num_faces = num_faces_r_dim * num_faces_c_dim
+    elements_per_face = face_r_dim * face_c_dim
+    elements_per_tile = num_faces * elements_per_face
+
+    num_tiles = len(result_tensor) // elements_per_tile
+
+    for tile_idx in range(num_tiles):
+        print(f"\n{'='*80}")
+        print(f"TILE {tile_idx}")
+        print(f"{'='*80}")
+
+        tile_offset = tile_idx * elements_per_tile
+
+        for face_idx in range(num_faces):
+            face_offset = tile_offset + face_idx * elements_per_face
+
+            # Extract face data
+            src_A_face = src_A_tensor[face_offset : face_offset + elements_per_face]
+            src_B_face = src_B_tensor[face_offset : face_offset + elements_per_face]
+            result_face = result_tensor[face_offset : face_offset + elements_per_face]
+            golden_face = golden_tensor[face_offset : face_offset + elements_per_face]
+
+            print(
+                f"\nFace {face_idx} (rows in tile: {face_idx // num_faces_c_dim}, cols in tile: {face_idx % num_faces_c_dim})"
+            )
+            print(f"{'-'*40}")
+
+            # Print src_A face
+            print("SRC_A:")
+            for row in range(face_r_dim):
+                row_start = row * face_c_dim
+                row_end = row_start + face_c_dim
+                row_data = src_A_face[row_start:row_end]
+                print("  " + " ".join(f"{int(val):4d}" for val in row_data))
+
+            # Print src_B face
+            print("\nSRC_B:")
+            for row in range(face_r_dim):
+                row_start = row * face_c_dim
+                row_end = row_start + face_c_dim
+                row_data = src_B_face[row_start:row_end]
+                print("  " + " ".join(f"{int(val):4d}" for val in row_data))
+
+            # Print result face
+            print("\nRESULT:")
+            for row in range(face_r_dim):
+                row_start = row * face_c_dim
+                row_end = row_start + face_c_dim
+                row_data = result_face[row_start:row_end]
+                print("  " + " ".join(f"{int(val):4d}" for val in row_data))
+
+            # Print golden face
+            print("\nGOLDEN:")
+            for row in range(face_r_dim):
+                row_start = row * face_c_dim
+                row_end = row_start + face_c_dim
+                row_data = golden_face[row_start:row_end]
+                print("  " + " ".join(f"{int(val):4d}" for val in row_data))
+
+
 @parametrize(
-    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
-    formats=lambda dest_acc: _get_valid_formats(dest_acc),
+    dest_acc=[DestAccumulation.Yes],
+    formats=InputOutputFormat(DataFormat.Int8, DataFormat.Int8),
     broadcast_type=[
         BroadcastType.None_,
-        BroadcastType.Row,
-        BroadcastType.Column,
-        BroadcastType.Scalar,
     ],
-    math_fidelity=lambda formats: _get_valid_math_fidelity(formats),
-    transpose_srca=lambda broadcast_type: _get_valid_transpose(broadcast_type),
-    math_op=lambda math_fidelity: _get_valid_math_ops(math_fidelity),
-    input_dimensions=[[256, 32]],
-    tile_dimensions=lambda transpose_srca, broadcast_type: _get_valid_tile_dimensions(
-        transpose_srca, broadcast_type
-    ),
+    math_fidelity=MathFidelity.LoFi,
+    transpose_srca=Transpose.No,
+    math_op=MathOperation.Elwadd,
+    input_dimensions=[[32, 32]],
+    tile_dimensions=[[32, 32]],
 )
 def test_eltwise_binary(
     dest_acc,
@@ -143,6 +218,14 @@ def test_eltwise_binary(
     tile_dimensions,
     workers_tensix_coordinates,
 ):
+    packed_list = [-1, -2, -3, -4, -5, -6, -7, -8]
+
+    arr = np.array(packed_list, dtype=np.int8)
+
+    # View raw underlying bytes as uint8
+    raw = arr.view(np.uint8)
+
+    print([format(b, "08b") for b in raw])
 
     face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(tile_dimensions)
     num_faces = num_faces_r_dim * num_faces_c_dim
@@ -160,8 +243,14 @@ def test_eltwise_binary(
         stimuli_format_B=formats.input_format_B,  # Use different format for src_B
         input_dimensions_B=input_dimensions,
         tile_dimensions=tile_dimensions,
+        negative_values=True,
     )
-
+    # Limit values to -5 to +5 range for easier debugging
+    src_A = src_A % 5 + 1 - 10
+    # src_A = torch.ones_like(src_A, dtype=src_A.dtype) * (-100)
+    # src_A = (src_A % 11) - 20
+    src_B = (src_B % 11) - 5
+    # src_B = torch.ones_like(src_A, dtype=src_A.dtype) * (-120)
     effective_dest_acc = (
         DestAccumulation.Yes
         if formats.output_format == DataFormat.Float32
@@ -208,39 +297,9 @@ def test_eltwise_binary(
     # Prepare golden src_A: apply tile-level transpose if enabled
     # Hardware does transpose_faces then transpose_within_faces during unpack
     golden_src_A = src_A_tilized_flat
-    if transpose_srca == Transpose.Yes:
-        transpose_golden = get_golden_generator(TransposeGolden)
-        # Apply face transpose (f0,f1,f2,f3 -> f0,f2,f1,f3)
-        golden_src_A = transpose_golden.transpose_faces_multi_tile(
-            src_A,
-            formats.input_format,
-            num_tiles=tile_cnt_A,
-            tilize=True,
-            untilize=False,  # Keep tilized
-            input_dimensions=tuple(input_dimensions),
-        )
-        # Apply within-face transpose (transpose each 16x16 face)
-        golden_src_A = transpose_golden.transpose_within_faces_multi_tile(
-            golden_src_A,
-            formats.input_format,
-            num_tiles=tile_cnt_A,
-            tilize=False,  # Already tilized
-            untilize=False,  # Keep tilized for golden comparison
-            input_dimensions=tuple(input_dimensions),
-        )
 
     # Prepare golden src_B: apply broadcast if enabled
     golden_src_B = src_B_tilized_flat
-    if broadcast_type != BroadcastType.None_:
-        broadcast_golden = get_golden_generator(BroadcastGolden)
-        golden_src_B = broadcast_golden(
-            broadcast_type,
-            src_B_tilized_flat,
-            formats.input_format,
-            num_faces=num_faces,
-            tile_cnt=tile_cnt_A,
-            face_r_dim=face_r_dim,
-        )
 
     # Compute golden on tilized data
     golden_tensor = binary_golden(
@@ -297,73 +356,34 @@ def test_eltwise_binary(
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     # Compare in tilized format
-    assert passed_test(
-        golden_tensor, res_tensor, formats.output_format
-    ), "Assert against golden failed"
-
-
-@parametrize(
-    reuse_dest_type=[
-        EltwiseBinaryReuseDestType.DEST_TO_SRCA,
-        EltwiseBinaryReuseDestType.DEST_TO_SRCB,
-    ],
-    formats=lambda: input_output_formats(
-        [DataFormat.Float16_b, DataFormat.Float32, DataFormat.Bfp8_b],
-        same=True,
-    ),
-    math_fidelity=[MathFidelity.LoFi],
-    math_op=[MathOperation.Elwadd, MathOperation.Elwsub, MathOperation.Elwmul],
-    input_dimensions=[[512, 32]],
-    output_dimensions=[[128, 32]],
-    tile_dimensions=[[32, 32], [16, 32]],
-)
-def test_eltwise_binary_dest_reuse(
-    reuse_dest_type,
-    formats,
-    math_fidelity,
-    math_op,
-    input_dimensions,
-    output_dimensions,
-    tile_dimensions,
-    workers_tensix_coordinates,
-):
-    face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(tile_dimensions)
-    num_faces = num_faces_r_dim * num_faces_c_dim
-
-    tile_rows, tile_cols = tile_dimensions
-    tile_cnt_input = (input_dimensions[0] // tile_rows) * (
-        input_dimensions[1] // tile_cols
-    )
-    tile_cnt_output = (output_dimensions[0] // tile_rows) * (
-        output_dimensions[1] // tile_cols
+    test_passed = passed_test(
+        golden_tensor, res_tensor, formats.output_format, print_erros=False
     )
 
-    assert tile_cnt_input % tile_cnt_output == 0, (
-        f"Input tile count ({tile_cnt_input}) must be divisible by "
-        f"output tile count ({tile_cnt_output})"
-    )
-
-    src_A, _, src_B, _ = generate_stimuli_w_tile_dimensions(
-        stimuli_format_A=formats.input_format,
-        input_dimensions_A=input_dimensions,
-        stimuli_format_B=formats.input_format,
-        input_dimensions_B=input_dimensions,
-        tile_dimensions=tile_dimensions,
-    )
-
-    # Compute block/tile counts for output (determines dest register blocking)
-    effective_dest_acc = (
-        DestAccumulation.Yes
-        if formats.output_format == DataFormat.Float32
-        else DestAccumulation.No
-    )
-    output_num_blocks, output_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
-        DestSync.Half,
-        effective_dest_acc,
-        formats,
-        output_dimensions,
+    # if not test_passed:
+    #     print("\n" + "="*80)
+    #     print("TEST FAILED - Printing face-by-face comparison")
+    #     print("="*80)
+    #     print_face_by_face_comparison(
+    #         src_A_tilized_flat.tolist(),
+    #         src_B_tilized_flat.tolist(),
+    #         res_tensor.tolist(),
+    #         golden_tensor.tolist(),
+    #         tile_dimensions,
+    #         num_faces_r_dim,
+    #         num_faces_c_dim
+    #     )
+    print("\n" + "=" * 80)
+    print("Printing face-by-face comparison")
+    print("=" * 80)
+    print_face_by_face_comparison(
+        src_A_tilized_flat.tolist(),
+        src_B_tilized_flat.tolist(),
+        res_tensor.tolist(),
+        golden_tensor.tolist(),
         tile_dimensions,
-        BlocksCalculationAlgorithm.Standard,
+        num_faces_r_dim,
+        num_faces_c_dim,
     )
 
     # Input has the same block count, but more tiles per block

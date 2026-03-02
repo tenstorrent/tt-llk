@@ -29,7 +29,23 @@ def unpack_fp32(packed_list):
 
 
 def unpack_int32(packed_list):
-    return np.frombuffer(bytes(packed_list), dtype=np.int32).tolist()
+    # INT32 uses sign-magnitude format in hardware (not two's complement)
+    # Format: bit 31 = sign, bits 30:0 = magnitude
+    bytes_data = bytes(packed_list)
+    uint32_array = np.frombuffer(bytes_data, dtype=np.uint32)
+
+    # Extract sign bit (bit 31) and magnitude (bits 30:0)
+    sign_mask = 0x80000000
+    magnitude_mask = 0x7FFFFFFF
+
+    # Work with Python int to avoid overflow, then convert to result
+    result = []
+    for val in uint32_array:
+        sign = (val & sign_mask) != 0
+        magnitude = int(val & magnitude_mask)
+        result.append(-magnitude if sign else magnitude)
+
+    return result
 
 
 def unpack_uint32(packed_list):
