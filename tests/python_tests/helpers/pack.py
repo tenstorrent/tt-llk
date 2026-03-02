@@ -30,7 +30,19 @@ def pack_fp32(torch_tensor):
 
 
 def pack_int32(torch_tensor):
-    return torch_tensor.cpu().numpy().astype(np.int32).tobytes()
+    # INT32 uses sign-magnitude format in hardware (not two's complement)
+    # Format: bit 31 = sign, bits 30:0 = magnitude
+    np_array = torch_tensor.cpu().numpy().astype(np.int32)
+    result = np.zeros_like(np_array, dtype=np.uint32)
+    # Positive values: sign=0, magnitude=value
+    positive_mask = np_array >= 0
+    result[positive_mask] = np_array[positive_mask].astype(np.uint32)
+    # Negative values: sign=1 (bit 31), magnitude=abs(value)
+    negative_mask = ~positive_mask
+    result[negative_mask] = 0x80000000 | np.abs(np_array[negative_mask]).astype(
+        np.uint32
+    )
+    return result.tobytes()
 
 
 def pack_uint32(torch_tensor):
@@ -42,7 +54,17 @@ def pack_uint16(torch_tensor):
 
 
 def pack_int8(torch_tensor):
-    return torch_tensor.cpu().numpy().astype(np.int8).tobytes()
+    # INT8 uses sign-magnitude format in hardware (not two's complement)
+    # Format: bit 7 = sign, bits 6:0 = magnitude
+    np_array = torch_tensor.cpu().numpy().astype(np.int8)
+    result = np.zeros_like(np_array, dtype=np.uint8)
+    # Positive values: sign=0, magnitude=value
+    positive_mask = np_array >= 0
+    result[positive_mask] = np_array[positive_mask].astype(np.uint8)
+    # Negative values: sign=1 (bit 7), magnitude=abs(value)
+    negative_mask = ~positive_mask
+    result[negative_mask] = 0x80 | np.abs(np_array[negative_mask]).astype(np.uint8)
+    return result.tobytes()
 
 
 def pack_uint8(torch_tensor):
