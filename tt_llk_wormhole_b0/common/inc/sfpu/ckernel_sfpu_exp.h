@@ -158,6 +158,7 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const std
     return result;
 }
 
+#ifndef DISABLE_SFPLOADMACRO
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK, bool CLAMP_NEGATIVE = true>
 void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
@@ -330,11 +331,13 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
         }
     }
 }
+#endif
 
 constexpr auto bits = [](float x) constexpr { return __builtin_bit_cast(std::uint32_t, x); };
 constexpr auto lo16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) & 0xFFFFu); };
 constexpr auto hi16 = [](float x) constexpr { return static_cast<std::uint16_t>(bits(x) >> 16); };
 
+#ifndef DISABLE_SFPLOADMACRO
 template <bool APPROXIMATION_MODE, bool FAST_APPROX, std::uint32_t scale /* 1.0f in FP32 */, bool CLAMP_NEGATIVE = true>
 inline void _init_exponential_()
 {
@@ -649,5 +652,6 @@ inline void _init_exponential_()
         _init_sfpu_reciprocal_<false>();
     }
 }
+#endif
 
 } // namespace ckernel::sfpu

@@ -15,6 +15,7 @@ namespace ckernel
 namespace sfpu
 {
 
+#ifndef DISABLE_SFPLOADMACRO
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _mul_int_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 {
@@ -99,7 +100,9 @@ inline void _mul_int_(const std::uint32_t dst_index_in0, const std::uint32_t dst
     TTI_SFPNOP;
     TTI_SFPNOP;
 }
+#endif
 
+#ifndef DISABLE_SFPLOADMACRO
 template <bool APPROXIMATION_MODE>
 inline void _init_mul_int_()
 {
@@ -171,6 +174,7 @@ inline void _init_mul_int_()
     // }
     TTI_SFPCONFIG(0xff0, 8, 1);
 }
+#endif
 
 } // namespace sfpu
 } // namespace ckernel

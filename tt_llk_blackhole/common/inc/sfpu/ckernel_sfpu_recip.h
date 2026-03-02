@@ -57,6 +57,7 @@ sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x)
     return y;
 }
 
+#ifndef DISABLE_SFPLOADMACRO
 // Approximate reciprocal, with throughput of 1c/32.
 inline void _calculate_reciprocal_fast_7b_(const int iterations)
 {
@@ -159,6 +160,7 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
 
     TTI_SFPNOP;
 }
+#endif
 
 // FP32 reciprocal, with throughput of 5c/32.
 inline void _calculate_reciprocal_fast_24b_5c_(const int iterations)
@@ -242,6 +244,7 @@ inline void _calculate_reciprocal_(const int iterations)
     }
 }
 
+#ifndef DISABLE_SFPLOADMACRO
 // ~7b precision; 1c/element
 inline void _init_reciprocal_fast_7b_()
 {
@@ -408,6 +411,7 @@ inline void _init_reciprocal_fast_24b_5c_()
             TTI_SFPLOADMACRO((3 << 2) | (z & 3), 0, ADDR_MOD_7, prev_offset | (z >> 2));
         });
 }
+#endif
 
 template <bool APPROXIMATION_MODE>
 inline void _init_sfpu_reciprocal_()

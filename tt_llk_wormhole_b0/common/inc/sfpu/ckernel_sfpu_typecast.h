@@ -15,6 +15,7 @@ namespace ckernel
 namespace sfpu
 {
 
+#ifndef DISABLE_SFPLOADMACRO
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_uint16_()
 {
@@ -41,7 +42,9 @@ inline void _calculate_typecast_fp32_to_uint16_()
     TTI_SFPNOP;
     TTI_SFPNOP;
 }
+#endif
 
+#ifndef DISABLE_SFPLOADMACRO
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint16_to_fp16b_()
 {
@@ -66,7 +69,9 @@ inline void _calculate_typecast_uint16_to_fp16b_()
     TTI_SFPNOP;
     TTI_SFPNOP;
 }
+#endif
 
+#ifndef DISABLE_SFPLOADMACRO
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_typecast_int32_to_fp16b_()
 {
@@ -112,6 +117,7 @@ inline void _calculate_typecast_int32_to_fp16b_()
     TTI_SFPNOP;
     TTI_SFPNOP;
 }
+#endif
 
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_int32_()
@@ -178,6 +184,7 @@ inline void _calculate_typecast_fp32_to_uint32_()
     }
 }
 
+#ifndef DISABLE_SFPLOADMACRO
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_typecast_fp32_to_fp16b_()
 {
@@ -471,7 +478,9 @@ inline void _calculate_typecast_int32_to_uint16_()
     TTI_SFPNOP;
     TTI_SFPNOP;
 }
+#endif
 
+#ifndef DISABLE_SFPLOADMACRO
 template <bool APPROXIMATION_MODE>
 inline void _init_typecast_fp32_to_fp16b_()
 {
@@ -871,6 +880,7 @@ inline void _init_typecast_int32_to_uint16_()
     // }
     TTI_SFPCONFIG(0x100 | InstrModLoadStore::LO16, 8, 1);
 }
+#endif
 
 } // namespace sfpu
 } // namespace ckernel

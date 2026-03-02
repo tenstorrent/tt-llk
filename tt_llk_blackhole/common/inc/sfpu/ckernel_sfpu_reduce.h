@@ -527,6 +527,7 @@ inline void init_reduce_max_min_int32()
  * @tparam pool_type The pool type (MAX or MIN) to determine swap direction
  * @param num_cols The number of columns to process (typically 32 for a single tile, or multiple of 32 for block operations)
  */
+#ifndef DISABLE_SFPLOADMACRO
 template <InstrModLoadStore INSTRUCTION_MODE, PoolType pool_type>
 inline void init_reduce_max_min(std::uint32_t num_cols)
 {
@@ -571,6 +572,7 @@ inline void init_reduce_max_min(std::uint32_t num_cols)
     TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_6, 0);
     TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_5, 0);
 }
+#endif
 
 /**
  * @brief Initialization for SFPU reduce SUM and AVG kernels.
