@@ -15,10 +15,30 @@ namespace ckernel
 namespace sfpu
 {
 
-#ifndef DISABLE_SFPLOADMACRO
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _mul_int_(const std::uint32_t dst_index_in0, const std::uint32_t dst_index_in1, const std::uint32_t dst_index_out)
 {
+#ifdef DISABLE_SFPLOADMACRO
+    // Non-LOADMACRO: use TTI_SFPMUL24 directly with explicit loads and stores.
+    const int offset0   = (dst_index_in0 * 32) << 1;
+    const int offset1   = (dst_index_in1 * 32) << 1;
+    const int offset_out = (dst_index_out * 32) << 1;
+
+    constexpr int a = p_sfpu::LREG0;
+    constexpr int b = p_sfpu::LREG1;
+
+#pragma GCC unroll 8
+    for (int d = 0; d < ITERATIONS; d++)
+    {
+        TT_SFPLOAD(a, LO16, ADDR_MOD_7, offset0);
+        TT_SFPLOAD(b, LO16, ADDR_MOD_7, offset1);
+        TTI_SFPMUL24(a, 0, b, a, 0);
+        TT_SFPSTORE(a, LO16, ADDR_MOD_6, offset_out);
+    }
+    TTI_SFPNOP;
+    TTI_SFPNOP;
+    TTI_SFPNOP;
+#else
     // This uses SFPLOADMACRO to achieve a throughput of 1, 2, or 3 cycles per
     // input row:
     //
@@ -99,13 +119,13 @@ inline void _mul_int_(const std::uint32_t dst_index_in0, const std::uint32_t dst
     TTI_SFPNOP;
     TTI_SFPNOP;
     TTI_SFPNOP;
-}
 #endif
+}
 
-#ifndef DISABLE_SFPLOADMACRO
 template <bool APPROXIMATION_MODE>
 inline void _init_mul_int_()
 {
+#ifndef DISABLE_SFPLOADMACRO
     // InstructionTemplate[0]
     TTI_SFPMUL24(p_sfpu::LREG0, 0, p_sfpu::LCONST_0, 12, 0);
 
@@ -139,8 +159,8 @@ inline void _init_mul_int_()
     //   UnitDelayKind: {1,1}, (WaitForElapsedInstructions=1)
     // }
     TTI_SFPCONFIG(0x330, 8, 1);
-}
 #endif
+}
 
 } // namespace sfpu
 } // namespace ckernel
