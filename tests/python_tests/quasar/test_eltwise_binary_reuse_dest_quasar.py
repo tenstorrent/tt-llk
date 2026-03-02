@@ -13,12 +13,15 @@ from helpers.golden_generators import (
 )
 from helpers.llk_params import (
     DestAccumulation,
+    DestSync,
     EltwiseBinaryReuseDestType,
     MathFidelity,
     MathOperation,
     format_dict,
 )
 from helpers.param_config import (
+    BlocksCalculationAlgorithm,
+    get_num_blocks_and_num_tiles_in_block,
     input_output_formats,
     parametrize,
 )
@@ -28,24 +31,31 @@ from helpers.test_config import BootMode, TestConfig
 from helpers.test_variant_parameters import (
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
+    INPUT_TILE_CNT,
     MATH_FIDELITY,
     MATH_OP,
     NUM_BLOCKS,
     NUM_FACES,
     NUM_TILES_IN_BLOCK,
+    OUTPUT_TILE_CNT,
     REUSE_DEST_TYPE,
     TEST_FACE_DIMS,
-    TILE_COUNT,
     generate_input_dim,
 )
 from helpers.tile_constants import FACE_C_DIM, get_tile_params
 from helpers.utils import passed_test
 
-REUSE_DEST_DIMENSIONS = [
-    [TILE_DIM, TILE_DIM],
-    [2 * TILE_DIM, TILE_DIM],
-    [TILE_DIM, 2 * TILE_DIM],
-    [2 * TILE_DIM, 2 * TILE_DIM],
+INPUT_DIMENSIONS = [
+    [512, 32],
+    [256, 32],
+    [128, 32],
+    [256, 64],
+]
+OUTPUT_DIMENSIONS = [
+    [128, 32],
+    [256, 32],
+    [64, 32],
+    [128, 64],
 ]
 
 
@@ -67,7 +77,8 @@ REUSE_DEST_DIMENSIONS = [
         EltwiseBinaryReuseDestType.DEST_TO_SRCB,
     ],
     math_fidelity=[MathFidelity.LoFi],
-    input_dimensions=REUSE_DEST_DIMENSIONS,
+    input_dimensions=INPUT_DIMENSIONS,
+    output_dimensions=OUTPUT_DIMENSIONS,
 )
 def test_eltwise_binary_reuse_dest_quasar(
     formats,
@@ -75,12 +86,46 @@ def test_eltwise_binary_reuse_dest_quasar(
     reuse_dest_type,
     math_fidelity,
     input_dimensions,
+    output_dimensions,
     boot_mode=BootMode.DEFAULT,
 ):
     if math_fidelity != MathFidelity.LoFi:
         pytest.skip("Quasar reuse_dest eltwise binary supports LoFi only")
 
-    src_A, tile_cnt_A, src_B, _ = generate_stimuli(
+    tile_cnt_input = (input_dimensions[0] // TILE_DIM) * (
+        input_dimensions[1] // TILE_DIM
+    )
+    tile_cnt_output = (output_dimensions[0] // TILE_DIM) * (
+        output_dimensions[1] // TILE_DIM
+    )
+
+    if tile_cnt_input % tile_cnt_output != 0:
+        pytest.skip(
+            f"Input tile count ({tile_cnt_input}) must be divisible by "
+            f"output tile count ({tile_cnt_output})"
+        )
+    inner_dim = tile_cnt_input // tile_cnt_output
+    if inner_dim == 1:
+        pytest.skip("reuse_dest requires inner_dim > 1")
+
+    tile_dimensions = (TILE_DIM, TILE_DIM)
+    output_num_blocks, output_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half,
+        DestAccumulation.No,
+        formats,
+        output_dimensions,
+        tile_dimensions,
+        BlocksCalculationAlgorithm.Standard,
+    )
+    if output_num_blocks > 1:
+        pytest.skip(
+            "Quasar reuse_dest kernel supports single output block only; "
+            "multi-block uses block-relative indexing and wrong accumulation"
+        )
+    input_tiles_in_block = inner_dim * output_tiles_in_block
+    input_num_blocks = output_num_blocks
+
+    src_A, _, src_B, _ = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
@@ -102,29 +147,38 @@ def test_eltwise_binary_reuse_dest_quasar(
         if isinstance(src_B, torch.Tensor)
         else torch.tensor(src_B, dtype=torch_format)
     )
-    golden_tensor = torch.zeros(tile_cnt_A * tile_elements, dtype=torch_format)
+    golden_tensor = torch.zeros(tile_cnt_output * tile_elements, dtype=torch_format)
 
-    for out_t in range(tile_cnt_A):
-        start = out_t * tile_elements
-        end = start + tile_elements
-        a_tile = src_A_t[start:end].to(torch_format)
-        b_tile = src_B_t[start:end].to(torch_format)
-        # Initial dest = A (from datacopy in kernel); inner_dim=1 for Quasar
-        dest = a_tile.clone()
+    for out_t in range(tile_cnt_output):
+        first_input_tile_idx = out_t
+        dest = src_A_t[
+            first_input_tile_idx
+            * tile_elements : (first_input_tile_idx + 1)
+            * tile_elements
+        ].to(torch_format)
 
-        if reuse_dest_type == EltwiseBinaryReuseDestType.DEST_TO_SRCA:
-            srcA, srcB = dest.clone(), b_tile
-        else:
-            srcA, srcB = a_tile, dest.clone()
+        for n in range(inner_dim):
+            input_tile_idx = n * tile_cnt_output + out_t
+            a_tile = src_A_t[
+                input_tile_idx * tile_elements : (input_tile_idx + 1) * tile_elements
+            ].to(torch_format)
+            b_tile = src_B_t[
+                input_tile_idx * tile_elements : (input_tile_idx + 1) * tile_elements
+            ].to(torch_format)
 
-        if mathop == MathOperation.Elwadd:
-            dest = srcA + srcB
-        elif mathop == MathOperation.Elwsub:
-            dest = srcA - srcB
-        elif mathop == MathOperation.Elwmul:
-            dest = dest + srcA * srcB
+            if reuse_dest_type == EltwiseBinaryReuseDestType.DEST_TO_SRCA:
+                srcA, srcB = dest.clone(), b_tile
+            else:
+                srcA, srcB = a_tile, dest.clone()
 
-        golden_tensor[start:end] = dest
+            if mathop == MathOperation.Elwadd:
+                dest = srcA + srcB
+            elif mathop == MathOperation.Elwsub:
+                dest = srcA - srcB
+            elif mathop == MathOperation.Elwmul:
+                dest = dest + srcA * srcB
+
+        golden_tensor[out_t * tile_elements : (out_t + 1) * tile_elements] = dest
 
     configuration = TestConfig(
         "sources/quasar/eltwise_binary_reuse_dest_quasar_test.cpp",
@@ -138,13 +192,18 @@ def test_eltwise_binary_reuse_dest_quasar(
             DEST_SYNC(),
         ],
         runtimes=[
-            TILE_COUNT(tile_cnt_A),
+            INPUT_TILE_CNT(tile_cnt_input),
+            OUTPUT_TILE_CNT(tile_cnt_output),
             NUM_TILES_IN_BLOCK(
-                tile_cnt_A,
-                input_num_tiles_in_block=tile_cnt_A,
-                output_num_tiles_in_block=tile_cnt_A,
+                output_tiles_in_block,
+                input_num_tiles_in_block=input_tiles_in_block,
+                output_num_tiles_in_block=output_tiles_in_block,
             ),
-            NUM_BLOCKS(1, input_num_blocks=1, output_num_blocks=1),
+            NUM_BLOCKS(
+                output_num_blocks,
+                input_num_blocks=input_num_blocks,
+                output_num_blocks=output_num_blocks,
+            ),
             NUM_FACES(num_faces),
             TEST_FACE_DIMS(face_r_dim=face_r_dim, face_c_dim=FACE_C_DIM),
         ],
@@ -154,9 +213,9 @@ def test_eltwise_binary_reuse_dest_quasar(
             src_B,
             formats.input_format,
             formats.output_format,
-            tile_count_A=tile_cnt_A,
-            tile_count_B=tile_cnt_A,
-            tile_count_res=tile_cnt_A,
+            tile_count_A=tile_cnt_input,
+            tile_count_B=tile_cnt_input,
+            tile_count_res=tile_cnt_output,
             num_faces=num_faces,
         ),
         unpack_to_dest=False,

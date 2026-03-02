@@ -59,19 +59,15 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _configure_buf_desc_table_(td_val_B.buf_desc_id, td_val_B.buf_desc);
     _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val_A, td_val_B);
 
-    // Phase 1: unpack src_A into SrcA for datacopy to DEST.
-    // BD_a base = buffer_A[0]; tile_idx=i reads buffer_A[i] via auto-offset.
     _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, false /*transpose*/, false /*32b_dest*/>(buf_desc_id_a, 1);
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
     {
         _llk_unpack_unary_operand_<p_unpacr::UNP_A>(i);
     }
 
-    // Phase 2: unpack CB operand for eltwise binary with reuse_dest.
-    // BD_a base = buffer_A[0], BD_b base = buffer_B[0]; tile_idx=i offsets correctly.
     constexpr std::uint32_t buf_desc_id_phase2 = (REUSE_DEST_TYPE == EltwiseBinaryReuseDestType::DEST_TO_SRCB) ? buf_desc_id_a : buf_desc_id_b;
     _llk_unpack_unary_operand_init_<p_unpacr::UNP_A, false /*transpose*/, false /*32b_dest*/, REUSE_DEST_TYPE>(buf_desc_id_phase2, 1, params->num_faces);
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
     {
         _llk_unpack_unary_operand_<p_unpacr::UNP_A, REUSE_DEST_TYPE>(i);
     }
@@ -161,11 +157,21 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
     _configure_buf_desc_table_(tdma_desc.buf_desc_id, tdma_desc.buf_desc);
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
-    _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, params->TILE_CNT);
+    _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, 1);
 
-    _llk_packer_wait_for_math_done_();
-    _llk_pack_<p_pacr::PACK0>(0, 0);
-    _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
+    const int output_tiles_in_block = params->OUTPUT_NUM_TILES_IN_BLOCK;
+    const int output_num_blocks     = params->OUTPUT_NUM_BLOCKS;
+
+    for (int block = 0; block < output_num_blocks; block++)
+    {
+        _llk_packer_wait_for_math_done_();
+        for (int tile = 0; tile < output_tiles_in_block; tile++)
+        {
+            int res_tile_idx = (block * output_tiles_in_block) + tile;
+            _llk_pack_<p_pacr::PACK0>(tile, res_tile_idx);
+        }
+        _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
+    }
     _llk_packer_set_math_semaphore_();
 }
 
