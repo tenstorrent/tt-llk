@@ -41,8 +41,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
         tensor_shape.face_r_dim,
         tensor_shape.total_num_faces(),
         tensor_shape.total_num_faces(),
-        params->buffer_A.get_tile_size(),
-        params->buffer_A.get_tile_size());
+        params->TILE_SIZE_UNPACK_A,
+        params->TILE_SIZE_UNPACK_B);
     _llk_unpack_AB_reduce_init_<POOL_TYPE, REDUCE_DIM>(tensor_shape);
     for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
     {
