@@ -719,6 +719,7 @@ inline void calculate_reduce_max_min_int32()
  * @param block_height The number of tiles in the vertical block to reduce (default is 1 for single tile).
  *                     For example, block_height=4 means reduce across 4 vertically stacked tiles (128 rows total).
  */
+#ifndef DISABLE_SFPLOADMACRO
 template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTION_MODE>
 inline void calculate_reduce_max_min(const std::uint32_t block_height)
 {
@@ -774,6 +775,7 @@ inline void calculate_reduce_max_min(const std::uint32_t block_height)
     TTI_SFPSTORE(p_sfpu::LREG6, INSTRUCTION_MODE, ADDR_MOD_7, 16);
     TTI_SFPSTORE(p_sfpu::LREG7, INSTRUCTION_MODE, ADDR_MOD_7, 18);
 }
+#endif
 
 /**
  * @brief Column-wise sum/average reduction kernel for SFPU reduce SUM and AVG operations.

@@ -163,6 +163,7 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
 #endif
 
 // FP32 reciprocal, with throughput of 5c/32.
+#ifndef DISABLE_SFPLOADMACRO
 inline void _calculate_reciprocal_fast_24b_5c_(const int iterations)
 {
     // Pseudocode:
@@ -213,6 +214,7 @@ inline void _calculate_reciprocal_fast_24b_5c_(const int iterations)
     TTI_SFPNOP;
     TTI_SFPNOP;
 }
+#endif
 
 template <bool APPROXIMATION_MODE, int ITERATIONS, bool is_fp32_dest_acc_en>
 inline void _calculate_reciprocal_internal_(const int iterations)
