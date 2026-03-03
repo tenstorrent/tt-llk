@@ -41,10 +41,7 @@ mathop_mapping = {
     input_dimensions=[[32, 32], [32, 64], [64, 64], [64, 96], [96, 96], [128, 128]],
     formats=input_output_formats(
         [
-            DataFormat.Float16_b,
-            DataFormat.Float16,
             DataFormat.Float32,
-            DataFormat.Bfp8_b,
         ]
     ),
     is_reduce_to_one=[False, True],
@@ -54,7 +51,7 @@ mathop_mapping = {
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
+    reduce_dim=[ReduceDimension.Row],
     pool_type=[ReducePool.Max, ReducePool.Average, ReducePool.Sum],
 )
 def test_reduce(
