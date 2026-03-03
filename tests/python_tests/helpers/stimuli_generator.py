@@ -197,15 +197,15 @@ def generate_face_matmul_data(
     rt, ct = rows // DEFAULT_TILE_R_DIM, cols // DEFAULT_TILE_C_DIM
     dtype = format_dict[stimuli_format]
 
-    out = torch.empty((rows, cols), dtype=dtype)
-    for i in range(rt):
-        for j in range(ct):
-            tile = torch.rand(DEFAULT_TILE_R_DIM, DEFAULT_TILE_C_DIM, dtype=dtype)
-            masked = _mask_tile(tile, num_faces, not is_matrix_A, face_r_dim)
-            out[
-                i * DEFAULT_TILE_R_DIM : (i + 1) * DEFAULT_TILE_R_DIM,
-                j * DEFAULT_TILE_C_DIM : (j + 1) * DEFAULT_TILE_C_DIM,
-            ] = masked
+    out = torch.rand(rt, ct, DEFAULT_TILE_R_DIM, DEFAULT_TILE_C_DIM, dtype=dtype)
+    mask = _mask_tile(
+        torch.ones(DEFAULT_TILE_R_DIM, DEFAULT_TILE_C_DIM, dtype=dtype),
+        num_faces,
+        not is_matrix_A,
+        face_r_dim,
+    )
+    out *= mask
+    out = out.permute(0, 2, 1, 3).reshape(rows, cols)
 
     return out
 
