@@ -135,15 +135,8 @@ inline T load_blocking(volatile T *ptr)
  * @param ptr address to write to
  * @param val value to write
  */
-template <
-    typename T,
-    typename U,
-    typename = std::enable_if_t<
-        std::is_trivially_copyable<T>::value &&
-        std::is_trivially_assignable<T&, U>::value
-    >
->
-inline void store_blocking(volatile T* ptr, U&& val)
+template <typename T, typename U, typename = std::enable_if_t<std::is_trivially_copyable<T>::value && std::is_trivially_assignable<T &, U>::value> >
+inline void store_blocking(volatile T *ptr, U &&val)
 {
     static_assert(sizeof(T) == sizeof(std::uint32_t), "store_blocking: operand must be 32-bit");
 
