@@ -70,7 +70,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 _llk_unpack_tilize_(L1_ADDRESS(params->buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, 0, FACE_R_DIM, 4, false);
             }
-            read_offset += BLOCK_RT_DIM;
+            read_offset += BLOCK_CT_DIM;
         }
     }
 }
