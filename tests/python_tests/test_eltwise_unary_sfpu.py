@@ -243,7 +243,6 @@ def eltwise_unary_sfpu(
     input_dimensions: list[int],
     workers_tensix_coordinates,
 ):
-    print(input_dimensions)
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
 
