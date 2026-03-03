@@ -258,6 +258,11 @@ def infer_data_formats(
         )
     )
 
+    # FP8 is a compressed L1 format; hardware unpacks it to Float16 (float16_a) in
+    # source registers. The ALU and packer must see Float16, not Lf8/Fp8_e4m3.
+    if math == DataFormat.Fp8_e4m3:
+        math = DataFormat.Float16
+
     pack_in = infer_pack_in(
         output_format,
         math,
@@ -266,6 +271,11 @@ def infer_data_formats(
         chip_arch,
     )  # input to the packing stage, determines what gasket can convert from dest register
     # potentially different from unpack_out and pack_out depending on FP32 accumulation
+
+    # FP8 output: gasket must produce Float16 for packer's Pac_LF8_4b_exp encode path.
+    # The gasket converts whatever is in DEST (Float16, Float16_b, Tf32, etc.) to Float16.
+    if output_format == DataFormat.Fp8_e4m3:
+        pack_in = DataFormat.Float16
 
     # Return a FormatConfig struct capturing all the inferred formats needed for this stage
     # Set same_src_format based on whether A and B formats match
