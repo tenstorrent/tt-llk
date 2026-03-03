@@ -13,6 +13,10 @@
 #include "sfpi.h"
 #include "sfpi_fp16.h"
 
+#ifdef DISABLE_SFPLOADMACRO
+#include "ckernel_sfpu_exp_disable_sfploadmacro.h"
+#endif
+
 namespace ckernel::sfpu
 {
 
@@ -656,7 +660,3 @@ inline void _init_exponential_()
 #endif
 
 } // namespace ckernel::sfpu
-
-#ifdef DISABLE_LOADMACRO
-#include "ckernel_sfpu_exp_disable_loadmacro.h"
-#endif

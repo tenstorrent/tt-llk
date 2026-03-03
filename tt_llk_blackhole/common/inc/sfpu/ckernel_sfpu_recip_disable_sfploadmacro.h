@@ -15,6 +15,13 @@ namespace ckernel
 namespace sfpu
 {
 
+// Forward declarations of functions defined later in ckernel_sfpu_recip.h
+template <int max_iter = 2>
+sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x);
+
+template <bool APPROXIMATION_MODE>
+inline void _init_sfpu_reciprocal_();
+
 // ~7b precision reciprocal; sequential per-element (no macro pipelining).
 inline void _calculate_reciprocal_fast_7b_(const int iterations)
 {

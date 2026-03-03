@@ -11,6 +11,10 @@
 #include "lltt.h"
 #include "sfpi.h"
 
+#ifdef DISABLE_SFPLOADMACRO
+#include "ckernel_sfpu_recip_disable_sfploadmacro.h"
+#endif
+
 namespace ckernel
 {
 namespace sfpu
@@ -446,7 +450,3 @@ inline void _init_reciprocal_()
 
 } // namespace sfpu
 } // namespace ckernel
-
-#ifdef DISABLE_LOADMACRO
-#include "ckernel_sfpu_recip_disable_loadmacro.h"
-#endif

@@ -15,6 +15,10 @@
 #include "llk_math_common.h"
 #include "lltt.h"
 
+#ifdef DISABLE_SFPLOADMACRO
+#include "llk_math_transpose_dest_disable_sfploadmacro.h"
+#endif
+
 using namespace ckernel;
 
 // local function declarations
@@ -238,7 +242,3 @@ inline void _llk_math_transpose_dest_uninit_()
 {
     // No state to restore - all states are transient or default
 }
-
-#ifdef DISABLE_LOADMACRO
-#include "llk_math_transpose_dest_disable_loadmacro.h"
-#endif

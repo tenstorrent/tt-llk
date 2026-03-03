@@ -4,8 +4,14 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace ckernel::sfpu
 {
+
+// Forward declaration of function defined later in ckernel_sfpu_exp.h
+template <bool APPROXIMATION_MODE, bool SCALE_EN, bool SKIP_POSITIVE_CHECK>
+inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const std::uint16_t exp_base_scale_factor);
 
 // Non-LOADMACRO _calculate_exponential_: falls back to the scalar piecewise implementation
 // for all template parameter combinations. The FAST_APPROX pipelined paths (replay-based)
