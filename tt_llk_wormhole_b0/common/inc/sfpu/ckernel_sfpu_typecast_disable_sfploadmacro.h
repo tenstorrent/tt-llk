@@ -25,7 +25,7 @@ inline void _calculate_typecast_fp32_to_uint16_()
     {
         TTI_SFPLOAD(v, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 0);
         TTI_SFPSWAP(0, p_sfpu::LCONST_0, v, 0xf); // v = max(v, 0.0)
-        TTI_SFP_STOCH_RND(0, 0, 0, 0, v, 6);       // v L16 = stochrnd_fp32_to_uint16(v)
+        TTI_SFP_STOCH_RND(0, 0, 0, 0, v, 6);      // v L16 = stochrnd_fp32_to_uint16(v)
         TTI_SFPSTORE(v, InstrModLoadStore::LO16, ADDR_MOD_2, 0);
     }
     TTI_SFPNOP;
@@ -41,8 +41,8 @@ inline void _calculate_typecast_uint16_to_fp16b_()
     for (int d = 0; d < ITERATIONS; d++)
     {
         TTI_SFPLOAD(v, InstrModLoadStore::LO16, ADDR_MOD_3, 0);
-        TTI_SFPCAST(v, v, 0);                       // v = float(v)
-        TTI_SFP_STOCH_RND(0, 0, 0, 0, v, 1);        // v L16 = stochrnd_fp32_to_fp16b(v)
+        TTI_SFPCAST(v, v, 0);                // v = float(v)
+        TTI_SFP_STOCH_RND(0, 0, 0, 0, v, 1); // v L16 = stochrnd_fp32_to_fp16b(v)
         TTI_SFPSTORE(v, InstrModLoadStore::DEFAULT, ADDR_MOD_2, 0);
     }
     TTI_SFPNOP;
@@ -64,13 +64,13 @@ inline void _calculate_typecast_int32_to_fp16b_()
     for (int d = 0; d < ITERATIONS; d++)
     {
         TTI_SFPLOAD(v, InstrModLoadStore::INT32, ADDR_MOD_3, 0);
-        TT_SFPABS(0, v, t, 0);                                           // t = abs(v)
-        TTI_SFPSHFT2(t, p_sfpu::LREG12, p_sfpu::LREG7, 5);             // L7 = t >> 31 (SHFT2_MOD1_SHFT_LREG)
-        TTI_SFPCAST(t, t, 0);                                            // t = float(t)
-        TT_SFPSETSGN(0, t, v, 0);                                        // v = setsgn(t, v)
-        TTI_SFPMAD(0, p_sfpu::LCONST_1, v, v, 4);                       // v = L[L7]*1.0 + v (SFPMAD_MOD1_INDIRECT_VA)
-        TTI_SFPNOP;                                                       // SFPMAD has 2-cycle latency
-        TTI_SFP_STOCH_RND(0, 0, 0, v, v, 1);                            // v L16 = stochrnd_fp32_to_fp16b(v)
+        TT_SFPABS(0, v, t, 0);                             // t = abs(v)
+        TTI_SFPSHFT2(t, p_sfpu::LREG12, p_sfpu::LREG7, 5); // L7 = t >> 31 (SHFT2_MOD1_SHFT_LREG)
+        TTI_SFPCAST(t, t, 0);                              // t = float(t)
+        TT_SFPSETSGN(0, t, v, 0);                          // v = setsgn(t, v)
+        TTI_SFPMAD(0, p_sfpu::LCONST_1, v, v, 4);          // v = L[L7]*1.0 + v (SFPMAD_MOD1_INDIRECT_VA)
+        TTI_SFPNOP;                                        // SFPMAD has 2-cycle latency
+        TTI_SFP_STOCH_RND(0, 0, 0, v, v, 1);               // v L16 = stochrnd_fp32_to_fp16b(v)
         TTI_SFPSTORE(v, InstrModLoadStore::DEFAULT, ADDR_MOD_2, 0);
     }
     TTI_SFPNOP;
@@ -91,9 +91,9 @@ inline void _calculate_typecast_fp32_to_fp16b_()
     {
         TTI_SFPLOAD(a, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 0);
         // a_hi = a >> 16 (upper 16 bits, used as round bit extraction)
-        TTI_SFPSHFT2(-16 & 0xfff, 0, a, 6);                           // a >>= 16 (SHFT2_MOD1_SHFT_IMM)
+        TTI_SFPSHFT2(-16 & 0xfff, 0, a, 6); // a >>= 16 (SHFT2_MOD1_SHFT_IMM)
         // round_bit = a & 1 (LSB of upper half)
-        TTI_SFPAND(0, p_sfpu::LREG12, a, 0);                            // a &= 1 (extract rounding bit)
+        TTI_SFPAND(0, p_sfpu::LREG12, a, 0); // a &= 1 (extract rounding bit)
         // b = original + 0x7fff
         TTI_SFPLOAD(b, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 0);     // reload original (no addr advance)
         TTI_SFPIADD(0, p_sfpu::LREG13, b, sfpi::SFPIADD_MOD1_CC_NONE); // b += 0x7fff
@@ -113,7 +113,7 @@ inline void _calculate_typecast_uint16_to_fp32_()
     for (int d = 0; d < ITERATIONS; d++)
     {
         TTI_SFPLOAD(v, InstrModLoadStore::LO16, ADDR_MOD_3, 0);
-        TTI_SFPCAST(v, v, 0);                         // v = float(v)
+        TTI_SFPCAST(v, v, 0); // v = float(v)
         TTI_SFPSTORE(v, InstrModLoadStore::FP32, ADDR_MOD_2, 0);
     }
     TTI_SFPNOP;
@@ -136,10 +136,10 @@ inline void _calculate_typecast_int32_to_fp32_()
     {
         TTI_SFPLOAD(v, InstrModLoadStore::INT32, ADDR_MOD_3, 0);
         TT_SFPABS(0, v, t, 0);
-        TTI_SFPSHFT2(t, p_sfpu::LREG12, p_sfpu::LREG7, 5);           // L7 = t >> 31
+        TTI_SFPSHFT2(t, p_sfpu::LREG12, p_sfpu::LREG7, 5); // L7 = t >> 31
         TTI_SFPCAST(t, t, 0);
         TT_SFPSETSGN(0, t, v, 0);
-        TTI_SFPMAD(0, p_sfpu::LCONST_1, v, v, 4);                     // v = L[L7]*1.0 + v
+        TTI_SFPMAD(0, p_sfpu::LCONST_1, v, v, 4); // v = L[L7]*1.0 + v
         TTI_SFPSTORE(v, InstrModLoadStore::FP32, ADDR_MOD_2, 0);
     }
     TTI_SFPNOP;
@@ -160,12 +160,12 @@ inline void _calculate_typecast_uint32_to_fp16b_()
     for (int d = 0; d < ITERATIONS; d++)
     {
         TTI_SFPLOAD(v, InstrModLoadStore::INT32, ADDR_MOD_3, 0);
-        TTI_SFPSHFT2(v, p_sfpu::LREG12, p_sfpu::LREG7, 5);           // L7 = v >> 31
-        TT_SFPSETSGN(0, v, v, 1);                                     // v = setsgn(v, 0) (clear sign bit)
+        TTI_SFPSHFT2(v, p_sfpu::LREG12, p_sfpu::LREG7, 5); // L7 = v >> 31
+        TT_SFPSETSGN(0, v, v, 1);                          // v = setsgn(v, 0) (clear sign bit)
         TTI_SFPCAST(v, v, 0);
-        TTI_SFPMAD(0, p_sfpu::LCONST_1, v, v, 4);                     // v = L[L7]*1.0 + v
-        TTI_SFPNOP;                                                     // SFPMAD has 2-cycle latency
-        TTI_SFP_STOCH_RND(0, 0, 0, v, v, 1);                          // v L16 = stochrnd_fp32_to_fp16b(v)
+        TTI_SFPMAD(0, p_sfpu::LCONST_1, v, v, 4); // v = L[L7]*1.0 + v
+        TTI_SFPNOP;                               // SFPMAD has 2-cycle latency
+        TTI_SFP_STOCH_RND(0, 0, 0, v, v, 1);      // v L16 = stochrnd_fp32_to_fp16b(v)
         TTI_SFPSTORE(v, InstrModLoadStore::DEFAULT, ADDR_MOD_2, 0);
     }
     TTI_SFPNOP;
@@ -188,10 +188,10 @@ inline void _calculate_typecast_uint32_to_fp32_()
     for (int d = 0; d < ITERATIONS; d++)
     {
         TTI_SFPLOAD(a, InstrModLoadStore::INT32, ADDR_MOD_3, 0);
-        TTI_SFPSHFT2(a, p_sfpu::LREG12, L7, 5);                       // L7 = a >> 31
-        TT_SFPSETSGN(0, a, a, 1);                                      // a = abs(a) (clear sign)
-        TTI_SFPCAST(a, b, 0);                                          // b = float(a)
-        TTI_SFPMAD(0, p_sfpu::LCONST_1, b, b, 4);                     // b = L[L7]*1.0 + b
+        TTI_SFPSHFT2(a, p_sfpu::LREG12, L7, 5);   // L7 = a >> 31
+        TT_SFPSETSGN(0, a, a, 1);                 // a = abs(a) (clear sign)
+        TTI_SFPCAST(a, b, 0);                     // b = float(a)
+        TTI_SFPMAD(0, p_sfpu::LCONST_1, b, b, 4); // b = L[L7]*1.0 + b
         TTI_SFPSTORE(b, InstrModLoadStore::FP32, ADDR_MOD_2, 0);
     }
     TTI_SFPNOP;
@@ -235,10 +235,10 @@ inline void _calculate_typecast_int32_to_uint16_()
     for (int d = 0; d < ITERATIONS; d++)
     {
         TTI_SFPLOAD(a, InstrModLoadStore::INT32, ADDR_MOD_3, 0);
-        TTI_SFPCAST(a, a, 0);                         // a = float(a)
-        TTI_SFPSWAP(0, p_sfpu::LCONST_0, a, 0xf);    // a = max(0.0, a)
+        TTI_SFPCAST(a, a, 0);                     // a = float(a)
+        TTI_SFPSWAP(0, p_sfpu::LCONST_0, a, 0xf); // a = max(0.0, a)
         TTI_SFPNOP;
-        TTI_SFP_STOCH_RND(0, 0, 0, 0, a, 6);          // a L16 = stochrnd_fp32_to_uint16(a)
+        TTI_SFP_STOCH_RND(0, 0, 0, 0, a, 6); // a L16 = stochrnd_fp32_to_uint16(a)
         TTI_SFPSTORE(a, InstrModLoadStore::LO16, ADDR_MOD_2, 0);
     }
     TTI_SFPNOP;

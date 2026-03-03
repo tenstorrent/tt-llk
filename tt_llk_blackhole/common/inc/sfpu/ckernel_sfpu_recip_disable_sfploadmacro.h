@@ -29,8 +29,8 @@ inline void _calculate_reciprocal_fast_7b_(const int iterations)
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        TTI_SFPLOAD(v, 0, ADDR_MOD_7, 0);   // load as SRCB format
-        TTI_SFPARECIP(0, v, v, 0);           // v = arecip(v)
+        TTI_SFPLOAD(v, 0, ADDR_MOD_7, 0);                       // load as SRCB format
+        TTI_SFPARECIP(0, v, v, 0);                              // v = arecip(v)
         TT_SFPSTORE(v, InstrModLoadStore::LO16, ADDR_MOD_6, 0); // store L16
     }
     TTI_SFPNOP;
@@ -50,17 +50,17 @@ inline void _calculate_reciprocal_fast_8b_3c_(const int iterations)
 #pragma GCC unroll 6
     for (int d = 0; d < iterations; d++)
     {
-        TTI_SFPLOAD(y, 0, ADDR_MOD_7, 0);               // y = load (SRCB mode)
+        TTI_SFPLOAD(y, 0, ADDR_MOD_7, 0);                        // y = load (SRCB mode)
         TTI_SFPMAD(p_sfpu::LCONST_0, p_sfpu::LCONST_0, y, x, 0); // x = 0*0 + y = y (copy)
-        TTI_SFPARECIP(0, y, y, 0);                       // y = arecip(y)
+        TTI_SFPARECIP(0, y, y, 0);                               // y = arecip(y)
         // Set bit 15 of y (equivalent to y |= 0x8000 in BF16 mantissa position)
-        TTI_SFPOR(0, p_sfpu::LREG0, y, 0);              // y |= L0
-        TTI_SFPMAD(x, y, p_sfpu::LCONST_neg1, y, 0);    // y = x*y - 1
+        TTI_SFPOR(0, p_sfpu::LREG0, y, 0);           // y |= L0
+        TTI_SFPMAD(x, y, p_sfpu::LCONST_neg1, y, 0); // y = x*y - 1
         // Extract upper 16 bits as correction: t = hi16(y) = y >> 16 via LO16 load of y
         TTI_SFPLOAD(x, InstrModLoadStore::LO16, ADDR_MOD_7, 0); // t = load LO16 of previous result (reuse x)
         // Actually we need hi16: use SFPSHFT2 to get upper 16 bits
-        TTI_SFPSHFT2(-16 & 0xfff, 0, y, 6);             // y >> 16 (SFPSHFT2_MOD1_SHFT_IMM)
-        TTI_SFPIADD(0, y, x, sfpi::SFPIADD_MOD1_CC_NONE); // x += y  (t = original_y + y>>16)
+        TTI_SFPSHFT2(-16 & 0xfff, 0, y, 6);                     // y >> 16 (SFPSHFT2_MOD1_SHFT_IMM)
+        TTI_SFPIADD(0, y, x, sfpi::SFPIADD_MOD1_CC_NONE);       // x += y  (t = original_y + y>>16)
         TT_SFPSTORE(x, InstrModLoadStore::LO16, ADDR_MOD_6, 0); // store L16
     }
     TTI_SFPNOP;

@@ -30,10 +30,10 @@ inline void _mul_int_(const std::uint32_t dst_index_in0, const std::uint32_t dst
     const int offset1    = (dst_index_in1 * 32) << 1;
     const int offset_out = (dst_index_out * 32) << 1;
 
-    constexpr int a  = p_sfpu::LREG0;  // a0 (lower byte of a)
-    constexpr int b  = p_sfpu::LREG1;  // b0 (lower byte of b)
-    constexpr int a1 = p_sfpu::LREG2;  // upper byte of a
-    constexpr int b1 = p_sfpu::LREG3;  // upper byte of b
+    constexpr int a  = p_sfpu::LREG0; // a0 (lower byte of a)
+    constexpr int b  = p_sfpu::LREG1; // b0 (lower byte of b)
+    constexpr int a1 = p_sfpu::LREG2; // upper byte of a
+    constexpr int b1 = p_sfpu::LREG3; // upper byte of b
 
 #pragma GCC unroll 8
     for (int d = 0; d < ITERATIONS; d++)
@@ -43,24 +43,24 @@ inline void _mul_int_(const std::uint32_t dst_index_in0, const std::uint32_t dst
         // a1 = a >> 8 (upper byte)
         TTI_SFPMOV(0, a, a1, 0);
         TTI_SFPSHFT(-8 & 0xfff, a1, a1, 1);
-        TTI_SFPAND(0, p_sfpu::LREG12, a1, 0);  // a1 &= 0xFF
-        TTI_SFPCAST(a1, a1, 0);                 // a1 = float(a1)
+        TTI_SFPAND(0, p_sfpu::LREG12, a1, 0); // a1 &= 0xFF
+        TTI_SFPCAST(a1, a1, 0);               // a1 = float(a1)
 
         // a0 = a & 0xFF (lower byte)
         TTI_SFPAND(0, p_sfpu::LREG12, a, 0);
-        TTI_SFPCAST(a, a, 0);                   // a0 = float(a0)
+        TTI_SFPCAST(a, a, 0); // a0 = float(a0)
 
         TT_SFPLOAD(b, LO16, ADDR_MOD_7, offset1);
 
         // b1 = b >> 8 (upper byte)
         TTI_SFPMOV(0, b, b1, 0);
         TTI_SFPSHFT(-8 & 0xfff, b1, b1, 1);
-        TTI_SFPAND(0, p_sfpu::LREG12, b1, 0);  // b1 &= 0xFF
-        TTI_SFPCAST(b1, b1, 0);                 // b1 = float(b1)
+        TTI_SFPAND(0, p_sfpu::LREG12, b1, 0); // b1 &= 0xFF
+        TTI_SFPCAST(b1, b1, 0);               // b1 = float(b1)
 
         // b0 = b & 0xFF (lower byte)
         TTI_SFPAND(0, p_sfpu::LREG12, b, 0);
-        TTI_SFPCAST(b, b, 0);                   // b0 = float(b0)
+        TTI_SFPCAST(b, b, 0); // b0 = float(b0)
 
         // hi0 = a0 * b1
         TTI_SFPMAD(a, b1, p_sfpu::LCONST_0, b1, 0);
@@ -76,7 +76,7 @@ inline void _mul_int_(const std::uint32_t dst_index_in0, const std::uint32_t dst
 
         // hi = hi0 + hi1, then shift left 8
         TTI_SFPIADD(0, b1, a1, sfpi::SFPIADD_MOD1_CC_NONE);
-        TTI_SFPSHFT(8, a1, a1, 1);              // hi <<= 8
+        TTI_SFPSHFT(8, a1, a1, 1); // hi <<= 8
 
         // result = lo + hi
         TTI_SFPIADD(0, a1, a, sfpi::SFPIADD_MOD1_CC_NONE);

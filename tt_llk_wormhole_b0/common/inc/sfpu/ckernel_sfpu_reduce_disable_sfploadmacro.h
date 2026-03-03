@@ -38,17 +38,17 @@ inline void init_reduce_max_min(std::uint32_t num_cols)
     // Record 11-instruction replay buffer replacing SFPLOADMACRO with
     // explicit SFPLOAD + SFPSWAP pairs.
     lltt::record<lltt::NoExec>(0, 11);
-    TTI_INCRWC(0, 4, 0, 0);                                                      // slot 0
-    TTI_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, 2);                 // slot 1: was SFPLOADMACRO(seq1, ..., 2)
-    TTI_SFPSWAP(0, p_sfpu::LREG5, p_sfpu::LREG1, 1);                             // slot 2: scheduled by seq1
-    TTI_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, 16);                // slot 3
-    TTI_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, 18);                // slot 4
-    TTI_SFPSWAP(0, p_sfpu::LREG7, p_sfpu::LREG1, 1);                             // slot 5
-    TTI_SFPSWAP(0, p_sfpu::LREG6, p_sfpu::LREG0, 1);                             // slot 6
-    TTI_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, 0);                 // slot 7: was SFPLOADMACRO(seq0, ..., 0)
-    TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG0, 1);                             // slot 8: scheduled by seq0
-    TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_6, 0);                              // slot 9: dummy increment
-    TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_5, 0);                              // slot 10: dummy increment
+    TTI_INCRWC(0, 4, 0, 0);                                       // slot 0
+    TTI_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, 2);  // slot 1: was SFPLOADMACRO(seq1, ..., 2)
+    TTI_SFPSWAP(0, p_sfpu::LREG5, p_sfpu::LREG1, 1);              // slot 2: scheduled by seq1
+    TTI_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, 16); // slot 3
+    TTI_SFPLOAD(p_sfpu::LREG1, INSTRUCTION_MODE, ADDR_MOD_3, 18); // slot 4
+    TTI_SFPSWAP(0, p_sfpu::LREG7, p_sfpu::LREG1, 1);              // slot 5
+    TTI_SFPSWAP(0, p_sfpu::LREG6, p_sfpu::LREG0, 1);              // slot 6
+    TTI_SFPLOAD(p_sfpu::LREG0, INSTRUCTION_MODE, ADDR_MOD_3, 0);  // slot 7: was SFPLOADMACRO(seq0, ..., 0)
+    TTI_SFPSWAP(0, p_sfpu::LREG4, p_sfpu::LREG0, 1);              // slot 8: scheduled by seq0
+    TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_6, 0);              // slot 9: dummy increment
+    TTI_SFPLOAD(8, INSTRUCTION_MODE, ADDR_MOD_5, 0);              // slot 10: dummy increment
 }
 
 template <PoolType pool_type, ReduceDim reduce_dim, InstrModLoadStore INSTRUCTION_MODE>
