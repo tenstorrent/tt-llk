@@ -48,8 +48,8 @@ inline void _llk_math_reduce_col_mop_config_(const TileShape& tile_shape)
     const std::uint32_t MOP_OUTER_LOOP          = 1;
     const std::uint32_t MOP_INNER_LOOP          = (tile_shape.num_faces >= 2) ? (tile_shape.num_faces >> 1) : tile_shape.num_faces;
     constexpr std::uint32_t NUM_FIDELITY_PHASES = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 0 : to_underlying(MATH_FIDELITY_TYPE) - 1;
-    constexpr bool RUN_FID_LOOPS       = (MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi && (POOL_TYPE == PoolType::AVG || POOL_TYPE == PoolType::SUM));
-    const std::uint32_t replay_buf_len = 2 + (2 * NUM_FIDELITY_PHASES);
+    constexpr bool RUN_FID_LOOPS           = (MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi && (POOL_TYPE == PoolType::AVG || POOL_TYPE == PoolType::SUM));
+    constexpr std::uint32_t replay_buf_len = 2 + (2 * NUM_FIDELITY_PHASES);
 
     load_replay_buf(
         0,
@@ -59,6 +59,7 @@ inline void _llk_math_reduce_col_mop_config_(const TileShape& tile_shape)
         0,
         []
         {
+            // <<< Starting Point = 0: For num_faces > 1 && !narrow_tile >>> //
             if constexpr (RUN_FID_LOOPS)
             {
                 for (std::uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
@@ -68,6 +69,7 @@ inline void _llk_math_reduce_col_mop_config_(const TileShape& tile_shape)
             }
             tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_SRCA_VLD, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0x0>();
 
+            // <<< Starting Point = NUM_FIDELITY_PHASES + 1: For num_faces = 1 || narrow_tile >>> //
             if constexpr (RUN_FID_LOOPS)
             {
                 for (std::uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
@@ -78,9 +80,30 @@ inline void _llk_math_reduce_col_mop_config_(const TileShape& tile_shape)
             tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_SRCA_VLD, p_gpool::DIM_16X16, ADDR_MOD_1, p_gpool::INDEX_DIS, 0x0>();
         });
 
-    ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0));
+    constexpr std::uint32_t pool_one_face_and_reset_dest_adc      = TT_OP_REPLAY(replay_buf_len / 2, replay_buf_len / 2, 0, 0, 0, 0);
+    constexpr std::uint32_t pool_two_faces_and_ping_pong_dest_adc = TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0);
 
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    if (tile_shape.num_faces == 1)
+    {
+        // Ensures only 1 pool instruction is issued for num_faces = 1 case.
+        // Calls pool instruction with addr_mod_1 to ensure dest counters are reset at the end of instruction.
+        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pool_one_face_and_reset_dest_adc);
+        temp.program_bank0_sw_cntl(instrn_buffer);
+    }
+    else if (tile_shape.narrow_tile)
+    {
+        // If the tile_shape is narrow, then there is only one column of faces. Both faces should be pooled to the same address.
+        // Since no increments of dest_addrs are required, calls pool instruction with addr_mod_1 to ensure dest counters are reset at the end of each tile.
+        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pool_one_face_and_reset_dest_adc, pool_one_face_and_reset_dest_adc);
+        temp.program_bank0_sw_cntl(instrn_buffer);
+    }
+    else
+    {
+        // In every other case, we should be incrementing dest_addr for every second face and resetting it for every first.
+        // Run the entire MOP to get this functionality.
+        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pool_two_faces_and_ping_pong_dest_adc);
+        temp.program_bank0_sw_cntl(instrn_buffer);
+    }
 }
 
 /**
@@ -104,9 +127,21 @@ inline void _llk_math_reduce_row_mop_config_(const TileShape& tile_shape)
     constexpr bool RUN_FID_LOOPS = (MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi && (POOL_TYPE == PoolType::AVG || POOL_TYPE == PoolType::SUM));
     constexpr std::uint32_t NUM_FIDELITY_PHASES = MATH_FIDELITY_TYPE == ckernel::MathFidelity::LoFi ? 0 : to_underlying(MATH_FIDELITY_TYPE) - 1;
     constexpr std::uint32_t MOP_OUTER_LOOP      = 1;
-    constexpr std::uint32_t MOP_INNER_LOOP      = 1;
-    // Replay buf max len is 32, NUM_FIDELITY_PHASES will be larger than 3, hypothetical limit of 19 + 12 = 31
-    constexpr std::uint32_t replay_buf_len = 19 + (4 * NUM_FIDELITY_PHASES);
+    const std::uint32_t MOP_INNER_LOOP          = (tile_shape.num_faces >= 2 && !tile_shape.narrow_tile) ? (tile_shape.num_faces >> 1) : tile_shape.num_faces;
+
+    // Constants to keep track of the starting point of segments for different tile shapes and num faces
+    constexpr std::uint32_t pool_two_faces_in_row_start   = 0;
+    constexpr std::uint32_t pool_one_face_in_row_start    = 1 + (NUM_FIDELITY_PHASES);
+    constexpr std::uint32_t intermediate_rwc_update_start = 8 + (2 * NUM_FIDELITY_PHASES);
+    constexpr std::uint32_t final_rwc_update_start        = 10 + (2 * NUM_FIDELITY_PHASES);
+
+    // Constants to keep track of the length of segments for different tile shapes and num faces
+    constexpr std::uint32_t pool_two_faces_in_row_len   = 8 + (2 * NUM_FIDELITY_PHASES);
+    constexpr std::uint32_t pool_one_face_in_row_len    = 7 + NUM_FIDELITY_PHASES;
+    constexpr std::uint32_t intermediate_rwc_update_len = 2;
+    constexpr std::uint32_t final_rwc_update_len        = 1;
+
+    constexpr std::uint32_t replay_buf_len = pool_two_faces_in_row_len + intermediate_rwc_update_len + final_rwc_update_len;
 
     load_replay_buf(
         0,
@@ -117,6 +152,7 @@ inline void _llk_math_reduce_row_mop_config_(const TileShape& tile_shape)
         [tile_shape]
         {
             // Each face is transposed in the unpacker, and then faces 0 & 1 are pooled together
+            // <<< Starting Point = 0: For num_faces > 1 && !narrow_tile >>> //
             if constexpr (RUN_FID_LOOPS)
             {
                 for (std::uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
@@ -126,6 +162,7 @@ inline void _llk_math_reduce_row_mop_config_(const TileShape& tile_shape)
             }
             tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_SRCA_VLD, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0>();
 
+            // <<< Starting Point = NUM_FIDELITY_PHASES + 1: For num_faces = 1 || narrow_tile >>> //
             if constexpr (RUN_FID_LOOPS)
             {
                 for (std::uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
@@ -150,53 +187,46 @@ inline void _llk_math_reduce_row_mop_config_(const TileShape& tile_shape)
             TTI_ELWADDDI(p_elwise::CLR_NONE, 0x0, p_movd2b::SRC_ROW32_OFFSET >> 2, 0x0, ADDR_MOD_1, 0x0);
             TTI_ELWADDDI(p_elwise::CLR_NONE, 0x0, p_movd2b::SRC_ROW32_OFFSET >> 2, 0x0, ADDR_MOD_1, 0x0);
 
-            // Increment dest by 32
+            // Increment dest by 3
+            // <<< Starting Point = (2 * NUM_FIDELITY_PHASES) + 7: For intermediate RWC update >>> //
             TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 32, p_setrwc::SET_D);
             TTI_SETRWC(p_setrwc::CLR_A, p_setrwc::CR_D, 0, p_setrwc::SET_B);
 
-            /////////////////////
-            // Second face Row //
-            /////////////////////
-            // Each face is transposed in the unpacker, and then faces 0 & 1 are pooled together
-            if constexpr (RUN_FID_LOOPS)
-            {
-                for (std::uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
-                {
-                    tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0>();
-                }
-            }
-            tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_SRCA_VLD, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0>();
-
-            if constexpr (RUN_FID_LOOPS)
-            {
-                for (std::uint32_t fid_phase_idx = 0; fid_phase_idx < NUM_FIDELITY_PHASES; fid_phase_idx++)
-                {
-                    tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_2, p_gpool::INDEX_DIS, 0>();
-                }
-            }
-            tti_pool_instr_func<POOL_TYPE, p_gpool::CLR_NONE, p_gpool::DIM_16X16, ADDR_MOD_0, p_gpool::INDEX_DIS, 0>();
-
-            // This will clear AB counters to 0, and cr d is 32
-            TTI_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 0, p_setrwc::SET_AB);
-
-            // Src B can only transpose rows [16-31], and output them at [32-47]
-            TTI_MOVD2B(0, p_movd2b::SRC_ROW32_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 1, 0);
-
-            // Required for accumulating on multiple tiles at a time, accumulation can only work
-            // on row not column
-            TTI_MOVD2B(0, p_movd2b::SRC_ROW32_OFFSET, ADDR_MOD_0, p_movd2b::MOV_1_ROW, 0, 0);
-
-            // Copy transposed rows in SrcB from [32 - 47] to dest rows [32 - 48]
-            TTI_ZEROSRC(0, 0, 0, 0, p_zerosrc::READ_BANK, p_zerosrc::CURR_BANK, p_zerosrc::CLR_A);
-            TTI_ELWADDDI(p_elwise::CLR_NONE, 0x0, p_movd2b::SRC_ROW32_OFFSET >> 2, 0x0, ADDR_MOD_1, 0x0);
-            TTI_ELWADDDI(p_elwise::CLR_NONE, 0x0, p_movd2b::SRC_ROW32_OFFSET >> 2, 0x0, ADDR_MOD_1, 0x0);
             // Set counters back to 0
+            // <<< Starting Point = (2 * NUM_FIDELITY_PHASES) + 9: For final RWC update >>> //
             TTI_SETRWC(p_setrwc::CLR_A, 0, 0, p_setrwc::SET_BD);
         });
 
-    ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, TT_OP_REPLAY(0, replay_buf_len, 0, 0, 0, 0));
+    constexpr std::uint32_t pool_one_face_in_row    = TT_OP_REPLAY(pool_one_face_in_row_start, pool_one_face_in_row_len, 0, 0, 0, 0);
+    constexpr std::uint32_t pool_two_faces_in_row   = TT_OP_REPLAY(pool_two_faces_in_row_start, pool_two_faces_in_row_len, 0, 0, 0, 0);
+    constexpr std::uint32_t intermediate_rwc_update = TT_OP_REPLAY(intermediate_rwc_update_start, intermediate_rwc_update_len, 0, 0, 0, 0);
+    constexpr std::uint32_t final_rwc_update        = TT_OP_REPLAY(final_rwc_update_start, final_rwc_update_len, 0, 0, 0, 0);
 
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    if (tile_shape.num_faces == 1)
+    {
+        // Ensures only 1 pool instruction is issued for num_faces = 1 case.
+        // Calls pool instruction with final_rwc_update to ensure dest counters are reset at the end of the tile.
+        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pool_one_face_in_row, final_rwc_update);
+        temp.program_bank0_sw_cntl(instrn_buffer);
+    }
+    else if (tile_shape.narrow_tile)
+    {
+        // If the tile_shape is narrow, then there are two rows of faces. Both faces should be pooled to the different address.
+        // Since increments increments of dest_addrs are required, MOP calls pool instruction with intermediate_rwc_update for first loop and changes to
+        // final_rwc_update to ensure dest counters are reset at the end each tile.
+        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pool_one_face_in_row, intermediate_rwc_update);
+        temp.set_last_inner_loop_instr(final_rwc_update);
+        temp.program_bank0_sw_cntl(instrn_buffer);
+    }
+    else
+    {
+        // In every other case, we should be incrementing dest_addr for every second face.
+        // Since increments increments of dest_addrs are required, MOP calls pool instruction with intermediate_rwc_update for first loop and changes to
+        // final_rwc_update to ensure dest counters are reset at the end each tile.
+        ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pool_two_faces_in_row, intermediate_rwc_update);
+        temp.set_last_inner_loop_instr(final_rwc_update);
+        temp.program_bank0_sw_cntl(instrn_buffer);
+    }
 }
 
 /**
