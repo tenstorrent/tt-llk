@@ -165,21 +165,11 @@ def test_eltwise_binary_reuse_dest_quasar(
         tile_dimensions=[tile_rows, tile_cols],
         face_r_dim=face_r_dim,
     )
-    src_A_flat = src_A_tilized.flatten()
-    src_B_flat = src_B_tilized.flatten()
+    src_A_t = src_A_tilized.flatten()
+    src_B_t = src_B_tilized.flatten()
 
     tile_elements = num_faces * face_r_dim * FACE_C_DIM
     torch_format = format_dict[formats.output_format]
-    src_A_t = (
-        src_A_flat
-        if isinstance(src_A_flat, torch.Tensor)
-        else torch.tensor(src_A_flat, dtype=torch_format)
-    )
-    src_B_t = (
-        src_B_flat
-        if isinstance(src_B_flat, torch.Tensor)
-        else torch.tensor(src_B_flat, dtype=torch_format)
-    )
     if formats.input_format.is_mx_format():
         src_A_t = quantize_mx_tensor_chunked(
             src_A_t.to(torch.bfloat16), formats.input_format
@@ -203,26 +193,26 @@ def test_eltwise_binary_reuse_dest_quasar(
     )
 
     for out_t in range(tile_cnt_output):
-        first_input_tile_idx = out_t
-        dest = src_A_t[
-            first_input_tile_idx
-            * tile_elements : (first_input_tile_idx + 1)
-            * tile_elements
-        ].to(internal_dtype)
+        block_idx = out_t // output_tiles_in_block
+        tile_in_block = out_t % output_tiles_in_block
+        out_start = out_t * tile_elements
+        dest = src_A_t[out_start : out_start + tile_elements].to(internal_dtype)
 
-        for n in range(inner_dim):
-            input_tile_idx = n * tile_cnt_output + out_t
-            a_tile = src_A_t[
-                input_tile_idx * tile_elements : (input_tile_idx + 1) * tile_elements
-            ].to(internal_dtype)
-            b_tile = src_B_t[
-                input_tile_idx * tile_elements : (input_tile_idx + 1) * tile_elements
-            ].to(internal_dtype)
-
-            if reuse_dest_type == EltwiseBinaryReuseDestType.DEST_TO_SRCA:
-                srcA, srcB = dest.clone(), b_tile
-            else:
-                srcA, srcB = a_tile, dest.clone()
+        for i in range(inner_dim):
+            input_tile_idx = (
+                block_idx * input_tiles_in_block
+                + i * output_tiles_in_block
+                + tile_in_block
+            )
+            start = input_tile_idx * tile_elements
+            end = start + tile_elements
+            a_tile = src_A_t[start:end].to(internal_dtype)
+            b_tile = src_B_t[start:end].to(internal_dtype)
+            srcA, srcB = (
+                (dest.clone(), b_tile)
+                if reuse_dest_type == EltwiseBinaryReuseDestType.DEST_TO_SRCA
+                else (a_tile, dest.clone())
+            )
 
             if mathop == MathOperation.Elwadd:
                 dest = srcA + srcB
@@ -231,10 +221,11 @@ def test_eltwise_binary_reuse_dest_quasar(
             elif mathop == MathOperation.Elwmul:
                 if eltwise_golden is not None:
                     mask_dtype = format_dict[math_format_for_fidelity]
-                    srcA_m = srcA.to(mask_dtype)
-                    srcB_m = srcB.to(mask_dtype)
                     srcA_m, srcB_m = eltwise_golden._apply_fidelity_masking(
-                        math_format_for_fidelity, srcA_m, srcB_m, 0
+                        math_format_for_fidelity,
+                        srcA.to(mask_dtype),
+                        srcB.to(mask_dtype),
+                        0,
                     )
                     product = (
                         (srcA_m.to(torch.float32) * srcB_m.to(torch.float32))
@@ -245,12 +236,9 @@ def test_eltwise_binary_reuse_dest_quasar(
                 else:
                     dest = dest + srcA * srcB
 
-        # Align with hardware: if output is MX, pack result so golden matches L1 content.
         if formats.output_format.is_mx_format():
             dest = quantize_mx_tensor_chunked(dest, formats.output_format)
-        golden_tensor[out_t * tile_elements : (out_t + 1) * tile_elements] = dest.to(
-            torch_format
-        )
+        golden_tensor[out_start : out_start + tile_elements] = dest.to(torch_format)
 
     configuration = TestConfig(
         "sources/quasar/eltwise_binary_reuse_dest_quasar_test.cpp",
@@ -280,9 +268,9 @@ def test_eltwise_binary_reuse_dest_quasar(
             TEST_FACE_DIMS(face_r_dim=face_r_dim, face_c_dim=FACE_C_DIM),
         ],
         variant_stimuli=StimuliConfig(
-            src_A_flat,
+            src_A_t,
             formats.input_format,
-            src_B_flat,
+            src_B_t,
             formats.input_format,
             formats.output_format,
             tile_count_A=tile_cnt_input,
