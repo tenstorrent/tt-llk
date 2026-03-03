@@ -32,7 +32,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
         params->TEST_FACE_R_DIM,
         params->num_faces,
         params->num_faces);
-    _llk_unpack_AB_reduce_init_<POOL_TYPE, REDUCE_DIM, false /* enforce_fp32_accumulation */>(params->TEST_FACE_R_DIM, params->num_faces);
+    _llk_unpack_AB_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en>(params->TEST_FACE_R_DIM, params->num_faces);
     for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
     {
         _llk_unpack_AB_reduce_<POOL_TYPE, REDUCE_DIM>(L1_ADDRESS(params->buffer_A[i]), L1_ADDRESS(params->buffer_B[0]));
@@ -50,7 +50,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 void run_kernel(const volatile struct RuntimeParams *params)
 {
     const bool is_int_fpu_en             = false;
-    const bool enforce_fp32_accumulation = false;
+    const bool enforce_fp32_accumulation = is_fp32_dest_acc_en;
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
