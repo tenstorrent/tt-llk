@@ -35,8 +35,7 @@ using namespace ckernel::unpacker;
  * @tparam pool_type The type of pooling operation (MAX, SUM, AVG)
  * @tparam reduce_dim The dimension along which to reduce (REDUCE_ROW, REDUCE_COL, REDUCE_SCALAR)
  *
- * @param face_r_dim The number of rows per face (must be either 1, 2, 4, 8, or 16)
- * @param num_faces The number of faces to process (must be 1, 2, or 4)
+ * @param tensor_shape The shape of the tensor, including face_r_dim and num_faces
  *
  * @note For tiny tiles (face_r_dim < 16), padding is applied to prevent incorrect outputs
  * @note For REDUCE_SCALAR operations, SrcA is cleared before unpacking because SrcA is clobbered in the Math kernel.
