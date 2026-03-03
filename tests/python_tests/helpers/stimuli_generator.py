@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import math
+
 import torch
 
 from .format_config import (
@@ -337,9 +339,7 @@ def _generate_source_tensor(
     # Generate enough faces to cover num_elements
     # Each face has face_r_dim * FACE_C_DIM elements
     elements_per_face = face_r_dim * FACE_C_DIM
-    faces_needed = (
-        num_elements + elements_per_face - 1
-    ) // elements_per_face  # Ceiling division
+    faces_needed = math.ceil(num_elements / elements_per_face)
 
     for _ in range(faces_needed):
         face = generate_random_face(
