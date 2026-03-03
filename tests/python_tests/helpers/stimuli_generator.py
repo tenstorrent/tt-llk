@@ -197,51 +197,15 @@ def generate_face_matmul_data(
     rt, ct = rows // DEFAULT_TILE_R_DIM, cols // DEFAULT_TILE_C_DIM
     dtype = format_dict[stimuli_format]
 
-    # Pre-allocate tilized output (rt, ct, num_faces, face_r, face_c); fill tile-by-tile
-    tilized = torch.empty(
-        (rt, ct, MAX_NUM_FACES, MAX_FACE_R_DIM, FACE_C_DIM), dtype=dtype
-    )
-
+    out = torch.empty((rows, cols), dtype=dtype)
     for i in range(rt):
         for j in range(ct):
             tile = torch.rand(DEFAULT_TILE_R_DIM, DEFAULT_TILE_C_DIM, dtype=dtype)
             masked = _mask_tile(tile, num_faces, not is_matrix_A, face_r_dim)
-            tilized[i, j, 0] = masked[0:MAX_FACE_R_DIM, 0:FACE_C_DIM]
-            tilized[i, j, 1] = masked[0:MAX_FACE_R_DIM, FACE_C_DIM:DEFAULT_TILE_C_DIM]
-            tilized[i, j, 2] = masked[MAX_FACE_R_DIM:DEFAULT_TILE_R_DIM, 0:FACE_C_DIM]
-            tilized[i, j, 3] = masked[
-                MAX_FACE_R_DIM:DEFAULT_TILE_R_DIM,
-                FACE_C_DIM:DEFAULT_TILE_C_DIM,
-            ]
-
-    # Convert tilized to row-major (rows, cols)
-    out = torch.empty((rows, cols), dtype=dtype)
-    for i in range(rt):
-        for j in range(ct):
             out[
-                i * DEFAULT_TILE_R_DIM : i * DEFAULT_TILE_R_DIM + MAX_FACE_R_DIM,
-                j * DEFAULT_TILE_C_DIM : j * DEFAULT_TILE_C_DIM + FACE_C_DIM,
-            ] = tilized[i, j, 0]
-            out[
-                i * DEFAULT_TILE_R_DIM : i * DEFAULT_TILE_R_DIM + MAX_FACE_R_DIM,
-                j * DEFAULT_TILE_C_DIM
-                + FACE_C_DIM : j * DEFAULT_TILE_C_DIM
-                + DEFAULT_TILE_C_DIM,
-            ] = tilized[i, j, 1]
-            out[
-                i * DEFAULT_TILE_R_DIM
-                + MAX_FACE_R_DIM : i * DEFAULT_TILE_R_DIM
-                + DEFAULT_TILE_R_DIM,
-                j * DEFAULT_TILE_C_DIM : j * DEFAULT_TILE_C_DIM + FACE_C_DIM,
-            ] = tilized[i, j, 2]
-            out[
-                i * DEFAULT_TILE_R_DIM
-                + MAX_FACE_R_DIM : i * DEFAULT_TILE_R_DIM
-                + DEFAULT_TILE_R_DIM,
-                j * DEFAULT_TILE_C_DIM
-                + FACE_C_DIM : j * DEFAULT_TILE_C_DIM
-                + DEFAULT_TILE_C_DIM,
-            ] = tilized[i, j, 3]
+                i * DEFAULT_TILE_R_DIM : (i + 1) * DEFAULT_TILE_R_DIM,
+                j * DEFAULT_TILE_C_DIM : (j + 1) * DEFAULT_TILE_C_DIM,
+            ] = masked
 
     return out
 
