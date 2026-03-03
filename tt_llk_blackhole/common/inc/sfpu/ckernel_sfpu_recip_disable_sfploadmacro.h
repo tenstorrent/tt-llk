@@ -16,7 +16,7 @@ namespace sfpu
 {
 
 // Forward declarations of functions defined later in ckernel_sfpu_recip.h
-template <int max_iter = 2>
+template <int max_iter>
 sfpi_inline sfpi::vFloat _sfpu_reciprocal_(const sfpi::vFloat x);
 
 template <bool APPROXIMATION_MODE>

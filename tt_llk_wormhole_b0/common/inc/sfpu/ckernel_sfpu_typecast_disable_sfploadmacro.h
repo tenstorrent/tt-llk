@@ -69,7 +69,8 @@ inline void _calculate_typecast_int32_to_fp16b_()
         TTI_SFPCAST(t, t, 0);                                            // t = float(t)
         TT_SFPSETSGN(0, t, v, 0);                                        // v = setsgn(t, v)
         TTI_SFPMAD(0, p_sfpu::LCONST_1, v, v, 4);                       // v = L[L7]*1.0 + v (SFPMAD_MOD1_INDIRECT_VA)
-        TTI_SFP_STOCH_RND(0, 0, 0, 0, v, 1);                            // v L16 = stochrnd_fp32_to_fp16b(v)
+        TTI_SFPNOP;                                                       // SFPMAD has 2-cycle latency
+        TTI_SFP_STOCH_RND(0, 0, 0, v, v, 1);                            // v L16 = stochrnd_fp32_to_fp16b(v)
         TTI_SFPSTORE(v, InstrModLoadStore::DEFAULT, ADDR_MOD_2, 0);
     }
     TTI_SFPNOP;
@@ -92,13 +93,11 @@ inline void _calculate_typecast_fp32_to_fp16b_()
         // a_hi = a >> 16 (upper 16 bits, used as round bit extraction)
         TTI_SFPSHFT2(-16 & 0xfff, 0, a, 6);                           // a >>= 16 (SHFT2_MOD1_SHFT_IMM)
         // round_bit = a & 1 (LSB of upper half)
-        TTI_SFPIADD(0, p_sfpu::LREG12, a, sfpi::SFPIADD_MOD1_CC_NONE); // a &= 1 via: reload same, but keep bit
+        TTI_SFPAND(0, p_sfpu::LREG12, a, 0);                            // a &= 1 (extract rounding bit)
         // b = original + 0x7fff
-        TTI_SFPLOAD(b, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 0);     // reload original
+        TTI_SFPLOAD(b, InstrModLoadStore::DEFAULT, ADDR_MOD_3, 0);     // reload original (no addr advance)
         TTI_SFPIADD(0, p_sfpu::LREG13, b, sfpi::SFPIADD_MOD1_CC_NONE); // b += 0x7fff
-        // store a (32-bit, just the rounding bit) then b L16 (truncated fp16b)
-        TTI_SFPSTORE(a, InstrModLoadStore::INT32, ADDR_MOD_2, 0);      // store rounding LSB (zeros upper bits)
-        TTI_SFPIADD(0, a, b, sfpi::SFPIADD_MOD1_CC_NONE);              // b += a (add round bit)
+        TTI_SFPIADD(0, a, b, sfpi::SFPIADD_MOD1_CC_NONE);              // b += round bit
         TTI_SFPSTORE(b, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);      // store fp16b
     }
     TTI_SFPNOP;
@@ -165,7 +164,8 @@ inline void _calculate_typecast_uint32_to_fp16b_()
         TT_SFPSETSGN(0, v, v, 1);                                     // v = setsgn(v, 0) (clear sign bit)
         TTI_SFPCAST(v, v, 0);
         TTI_SFPMAD(0, p_sfpu::LCONST_1, v, v, 4);                     // v = L[L7]*1.0 + v
-        TTI_SFP_STOCH_RND(0, 0, 0, 0, v, 1);                          // v L16 = stochrnd_fp32_to_fp16b(v)
+        TTI_SFPNOP;                                                     // SFPMAD has 2-cycle latency
+        TTI_SFP_STOCH_RND(0, 0, 0, v, v, 1);                          // v L16 = stochrnd_fp32_to_fp16b(v)
         TTI_SFPSTORE(v, InstrModLoadStore::DEFAULT, ADDR_MOD_2, 0);
     }
     TTI_SFPNOP;
@@ -212,51 +212,17 @@ inline void _calculate_typecast_uint16_to_uint32_()
     TTI_SFPNOP;
 }
 
-// uint32 → uint16: combine upper 16 bits (negated and shifted) with lower 16 bits
-// The LOADMACRO version loads hi16 = -(v>>16) and lo16 = v, combines them.
+// uint32 → uint16: load full 32-bit value, store lower 16 bits (truncation)
 template <bool APPROXIMATION_MODE, int ITERATIONS>
 inline void _calculate_typecast_uint32_to_uint16_()
 {
-    constexpr int a = p_sfpu::LREG0;
-    constexpr int b = p_sfpu::LREG2;
-
+    constexpr int v = p_sfpu::LREG0;
 #pragma GCC unroll 8
-    for (int d = 0; d < ITERATIONS + 1; d++)
+    for (int d = 0; d < ITERATIONS; d++)
     {
-        if (d < ITERATIONS)
-        {
-            TTI_SFPLOAD(a, InstrModLoadStore::LO16, ADDR_MOD_3, 0); // load hi16 of input (addr offset selects upper half)
-        }
-        else
-        {
-            TTI_SFPNOP;
-        }
-
-        if (d == 0)
-        {
-            TTI_SFPNOP;
-        }
-        else if (d < ITERATIONS)
-        {
-            // a = 0 - a (negate) via two's complement
-            TTI_SFPIADD(0, p_sfpu::LCONST_0, a, sfpi::SFPIADD_MOD1_ARG_2SCOMP_LREG_DST | sfpi::SFPIADD_MOD1_CC_NONE);
-            TTI_SFPSHFT2(-16 & 0xfff, 0, a, 6);                       // a >>= 16
-            // Load b = full 32-bit value, then OR with a
-            TTI_SFPLOAD(b, InstrModLoadStore::INT32, ADDR_MOD_3, 0);
-            TTI_SFPOR(0, a, b, 0);                                     // b |= a
-            TTI_SFPSTORE(b, InstrModLoadStore::LO16, ADDR_MOD_2, 0);
-        }
-        else
-        {
-            // Final drain: process last element
-            TTI_SFPIADD(0, p_sfpu::LCONST_0, a, sfpi::SFPIADD_MOD1_ARG_2SCOMP_LREG_DST | sfpi::SFPIADD_MOD1_CC_NONE);
-            TTI_SFPSHFT2(-16 & 0xfff, 0, a, 6);
-            TTI_SFPLOAD(b, InstrModLoadStore::INT32, ADDR_MOD_2, 0);
-            TTI_SFPOR(0, a, b, 0);
-            TTI_SFPSTORE(b, InstrModLoadStore::LO16, ADDR_MOD_2, 0);
-        }
+        TTI_SFPLOAD(v, InstrModLoadStore::INT32, ADDR_MOD_3, 0);
+        TTI_SFPSTORE(v, InstrModLoadStore::LO16, ADDR_MOD_2, 0);
     }
-    TTI_SFPNOP;
     TTI_SFPNOP;
 }
 
@@ -325,6 +291,7 @@ inline void _init_typecast_uint16_to_fp16b_()
 template <bool APPROXIMATION_MODE>
 inline void _init_typecast_uint32_to_fp16b_()
 {
+    sfpi::vConstIntPrgm0 = -31; // LREG12 = -31 for SFPSHFT2 shift amount
 }
 
 template <bool APPROXIMATION_MODE>
