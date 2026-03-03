@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+// SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -31,17 +31,14 @@ using namespace ckernel::unpacker;
  * This function should NOT be used as a substitute for native reduce unpacking LLK MOP configuration.
  * Use the standard _llk_unpack_AB_mop_config_ for general-purpose block reduction operations.
  */
-template <std::uint32_t block_ct_dim, bool respect_trigger = false>
-inline void _llk_unpack_AB_reduce_block_max_row_mop_config_()
+
+inline void _llk_unpack_AB_reduce_block_max_row_mop_config_runtime_(std::uint32_t block_ct_dim, bool respect_trigger = false)
 {
-    // Constraint on the outerloop and innerloop dim
-    static_assert(block_ct_dim < 128, "block_ct_dim must be less than 128");
-    // Single UNPACR because TTI_SETADCXX for UNP_A is 1023, increment Z counter to point to the next tile, set dvalid each time
     static constexpr std::uint32_t unpack_srca_op =
         TT_OP_UNPACR(SrcA, 0b00000001 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
-    constexpr std::uint32_t outerloop = respect_trigger ? (block_ct_dim / 2) : block_ct_dim;
-    const std::uint32_t innerloop     = 1; // Unpack tile by tile of the input operand into SrcA
+    const std::uint32_t outerloop = respect_trigger ? (block_ct_dim / 2) : block_ct_dim;
+    const std::uint32_t innerloop = 1;
     ckernel_template tmp(outerloop, innerloop, unpack_srca_op);
     tmp.program();
 }
@@ -61,8 +58,8 @@ inline void _llk_unpack_AB_reduce_block_max_row_mop_config_()
  * This function should NOT be used as a substitute for native reduce unpacking LLK initialization.
  * Use the standard _llk_unpack_AB_reduce_init_ for general-purpose reduction operations.
  */
-template <std::uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false, bool respect_trigger = false>
-inline void _llk_unpack_AB_reduce_block_max_row_init_()
+template <bool is_fp32_dest_acc_en = false>
+inline void _llk_unpack_AB_reduce_block_max_row_init_runtime_(std::uint32_t block_ct_dim, bool respect_trigger = false)
 {
     if constexpr (is_fp32_dest_acc_en)
     {
@@ -77,23 +74,18 @@ inline void _llk_unpack_AB_reduce_block_max_row_init_()
     TTI_SETADCXX(p_setadc::UNP_A, 4 * (FACE_R_DIM * FACE_C_DIM) - 1, 0x0); // Unpack a whole tile of an operand
 
     // save the following state that is going to be modified:
-    // tile x, y, and z dims for both unpackers
-    // CH1 Z stride for both unpackers
-    TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
+    // tile y and z dims for both unpackers
     TTI_RDCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
 
-    TTI_SETDMAREG(0, 1 * FACE_C_DIM * FACE_R_DIM, 0, LO_16(p_gpr_unpack::TMP0));
-    TTI_SETDMAREG(0, 1 * FACE_C_DIM * FACE_R_DIM, 0, HI_16(p_gpr_unpack::TMP0));
-    TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
     TTI_SETDMAREG(0, 4 /* y_dim */, 0, LO_16(p_gpr_unpack::TMP0));
     TTI_SETDMAREG(0, 1 /* z_dim */, 0, HI_16(p_gpr_unpack::TMP0));
     TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
 
-    _llk_unpack_AB_reduce_block_max_row_mop_config_<block_ct_dim, respect_trigger>(); // Unpack operand and scaler
+    _llk_unpack_AB_reduce_block_max_row_mop_config_runtime_(block_ct_dim, respect_trigger); // Unpack operand and scaler
 }
 
 /**
- * Performs unpacking for block-based reduce_max_row operation across multiple tiles.
+ * Performs unpacking for block-based reduce_max_row operation across multiple tiles (runtime version).
  *
  * This function works with the following assumptions:
  * - Scaler values are 1.0 and are contained inside F0 of the scaler tile
@@ -106,8 +98,7 @@ inline void _llk_unpack_AB_reduce_block_max_row_init_()
  * This function should NOT be used as a substitute for the native _llk_unpack_AB_ LLK.
  * Use the standard _llk_unpack_AB_ in a loop for general-purpose block reduction operations.
  */
-template <bool respect_trigger = false>
-inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, const std::uint32_t address_b)
+inline void _llk_unpack_AB_reduce_block_max_row_runtime_(const std::uint32_t address_a, const std::uint32_t address_b, bool respect_trigger = false)
 {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
 
@@ -128,7 +119,7 @@ inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, 
 
     TTI_UNPACR(SrcB, 0b00000000 /* Z_ch0_inc and Z_ch1_inc */, 0, 0, 0, 1, 1 /* Set Dvalid */, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
 
-    if constexpr (respect_trigger)
+    if (respect_trigger)
     {
         // MOP is programmed for half of block_ct_dim; run first half immediately
         ckernel::ckernel_template::run();
@@ -150,7 +141,7 @@ inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, 
 }
 
 /**
- * Uninitializes block-based reduce_max_row unpacker operation.
+ * Uninitializes block-based reduce_max_row unpacker operation (runtime version).
  * Restores the unpacker state that was saved during initialization.
  *
  * This function works with the following assumptions:
@@ -164,17 +155,15 @@ inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, 
  * This function should NOT be used as a substitute for native reduce unpacking cleanup.
  * Standard _llk_unpack_AB_reduce_init_ operations typically don't require explicit cleanup.
  */
-template <bool respect_trigger = false>
-inline void _llk_unpack_AB_reduce_block_max_row_uninit_(const std::uint32_t unpA_face_r_dim, const std::uint32_t unpB_face_r_dim)
+inline void _llk_unpack_AB_reduce_block_max_row_uninit_runtime_(
+    const std::uint32_t unpA_face_r_dim, const std::uint32_t unpB_face_r_dim, bool respect_trigger = false)
 {
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK);
-    TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_0, p_cfg::WRCFG_32b, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
     TTI_WRCFG(p_gpr_unpack::SR_UNPACK_UNTILIZER_STATE_1, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32 + 1);
-    // TODO NC: Issue tt-llk#1036 will make this transient
     TT_SETADCXX(p_setadc::UNP_A, unpA_face_r_dim * FACE_C_DIM - 1, 0x0);
     TT_SETADCXX(p_setadc::UNP_B, unpB_face_r_dim * FACE_C_DIM - 1, 0x0);
 
-    if constexpr (respect_trigger)
+    if (respect_trigger)
     {
         t6_semaphore_get(semaphore::FPU_SFPU);
     }
