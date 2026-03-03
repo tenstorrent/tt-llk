@@ -25,21 +25,26 @@ def flatten_list(sublists):
 
 
 def _mask_tile(
-    tile: torch.Tensor, num_faces: int, is_matrix_B: bool, face_r_dim: int = 16
+    tile: torch.Tensor,
+    num_faces: int,
+    is_matrix_B: bool,
+    face_r_dim: int = MAX_FACE_R_DIM,
 ) -> torch.Tensor:
     masked = tile.clone()
     if num_faces == 1:
         # Keep only f0
-        masked[:16, 16:] = 0  # Zero f1
+        masked[:MAX_FACE_R_DIM, FACE_C_DIM:] = 0  # Zero f1
         masked[face_r_dim:, :] = 0  # Zero f2, f3 and part of f0
     elif num_faces == 2:
         if is_matrix_B:
             # matrix B (In1/SrcA): keep partial f0, f2
-            if face_r_dim < 16:
-                masked[face_r_dim:16, :16] = 0  # Zero part of f0
-                masked[16 + face_r_dim :, :16] = 0  # Zero part of f2
-            masked[:16, 16:] = 0  # Zero f1
-            masked[16:, 16:] = 0  # Zero f3
+            if face_r_dim < MAX_FACE_R_DIM:
+                masked[face_r_dim:MAX_FACE_R_DIM, :FACE_C_DIM] = 0  # Zero part of f0
+                masked[MAX_FACE_R_DIM + face_r_dim :, :FACE_C_DIM] = (
+                    0  # Zero part of f2
+                )
+            masked[:MAX_FACE_R_DIM, FACE_C_DIM:] = 0  # Zero f1
+            masked[MAX_FACE_R_DIM:, FACE_C_DIM:] = 0  # Zero f3
         else:
             # matrix A (In0/SrcB): keep f0, f1
             masked[face_r_dim:, :] = 0  # Zero part of f0 and f1
@@ -172,45 +177,71 @@ def generate_incrementing_face_tensor(
 def generate_face_matmul_data(
     num_faces: int,
     stimuli_format: DataFormat,
-    input_dimensions=[32, 32],  # Add input_dimensions parameter
+    input_dimensions=[DEFAULT_TILE_R_DIM, DEFAULT_TILE_C_DIM],
     is_matrix_A=True,  # True for matrix A (SrcB), False for matrix B (SrcA)
-    face_r_dim=16,
+    face_r_dim=MAX_FACE_R_DIM,
 ) -> torch.Tensor:
 
     # Validate num_faces
-    if num_faces not in [1, 2, 4]:
-        raise ValueError(f"num_faces must be 1, 2, or 4, got {num_faces}")
+    if num_faces not in [1, 2, MAX_NUM_FACES]:
+        raise ValueError(f"num_faces must be 1, 2, or {MAX_NUM_FACES}, got {num_faces}")
 
     # Validate input_dimensions
     rows, cols = input_dimensions
-    if rows % 32 != 0 or cols % 32 != 0:
+    if rows % DEFAULT_TILE_R_DIM != 0 or cols % DEFAULT_TILE_C_DIM != 0:
         raise ValueError(
-            f"Input dimensions must be multiples of 32, got {input_dimensions}"
+            f"Input dimensions must be multiples of {DEFAULT_TILE_R_DIM}, "
+            f"got {input_dimensions}"
         )
 
-    rt, ct = rows // 32, cols // 32
+    rt, ct = rows // DEFAULT_TILE_R_DIM, cols // DEFAULT_TILE_C_DIM
     dtype = format_dict[stimuli_format]
 
-    # Pre-allocate tilized output (rt, ct, 4, 16, 16); fill tile-by-tile
-    tilized = torch.empty((rt, ct, 4, 16, 16), dtype=dtype)
+    # Pre-allocate tilized output (rt, ct, num_faces, face_r, face_c); fill tile-by-tile
+    tilized = torch.empty(
+        (rt, ct, MAX_NUM_FACES, MAX_FACE_R_DIM, FACE_C_DIM), dtype=dtype
+    )
 
     for i in range(rt):
         for j in range(ct):
-            tile_32x32 = torch.rand(32, 32, dtype=dtype)
-            masked = _mask_tile(tile_32x32, num_faces, not is_matrix_A, face_r_dim)
-            tilized[i, j, 0] = masked[0:16, 0:16]
-            tilized[i, j, 1] = masked[0:16, 16:32]
-            tilized[i, j, 2] = masked[16:32, 0:16]
-            tilized[i, j, 3] = masked[16:32, 16:32]
+            tile = torch.rand(DEFAULT_TILE_R_DIM, DEFAULT_TILE_C_DIM, dtype=dtype)
+            masked = _mask_tile(tile, num_faces, not is_matrix_A, face_r_dim)
+            tilized[i, j, 0] = masked[0:MAX_FACE_R_DIM, 0:FACE_C_DIM]
+            tilized[i, j, 1] = masked[0:MAX_FACE_R_DIM, FACE_C_DIM:DEFAULT_TILE_C_DIM]
+            tilized[i, j, 2] = masked[MAX_FACE_R_DIM:DEFAULT_TILE_R_DIM, 0:FACE_C_DIM]
+            tilized[i, j, 3] = masked[
+                MAX_FACE_R_DIM:DEFAULT_TILE_R_DIM,
+                FACE_C_DIM:DEFAULT_TILE_C_DIM,
+            ]
 
-    # Convert tilized (rt, ct, 4, 16, 16) to row-major (rows, cols)
+    # Convert tilized to row-major (rows, cols)
     out = torch.empty((rows, cols), dtype=dtype)
     for i in range(rt):
         for j in range(ct):
-            out[i * 32 : i * 32 + 16, j * 32 : j * 32 + 16] = tilized[i, j, 0]
-            out[i * 32 : i * 32 + 16, j * 32 + 16 : j * 32 + 32] = tilized[i, j, 1]
-            out[i * 32 + 16 : i * 32 + 32, j * 32 : j * 32 + 16] = tilized[i, j, 2]
-            out[i * 32 + 16 : i * 32 + 32, j * 32 + 16 : j * 32 + 32] = tilized[i, j, 3]
+            out[
+                i * DEFAULT_TILE_R_DIM : i * DEFAULT_TILE_R_DIM + MAX_FACE_R_DIM,
+                j * DEFAULT_TILE_C_DIM : j * DEFAULT_TILE_C_DIM + FACE_C_DIM,
+            ] = tilized[i, j, 0]
+            out[
+                i * DEFAULT_TILE_R_DIM : i * DEFAULT_TILE_R_DIM + MAX_FACE_R_DIM,
+                j * DEFAULT_TILE_C_DIM
+                + FACE_C_DIM : j * DEFAULT_TILE_C_DIM
+                + DEFAULT_TILE_C_DIM,
+            ] = tilized[i, j, 1]
+            out[
+                i * DEFAULT_TILE_R_DIM
+                + MAX_FACE_R_DIM : i * DEFAULT_TILE_R_DIM
+                + DEFAULT_TILE_R_DIM,
+                j * DEFAULT_TILE_C_DIM : j * DEFAULT_TILE_C_DIM + FACE_C_DIM,
+            ] = tilized[i, j, 2]
+            out[
+                i * DEFAULT_TILE_R_DIM
+                + MAX_FACE_R_DIM : i * DEFAULT_TILE_R_DIM
+                + DEFAULT_TILE_R_DIM,
+                j * DEFAULT_TILE_C_DIM
+                + FACE_C_DIM : j * DEFAULT_TILE_C_DIM
+                + DEFAULT_TILE_C_DIM,
+            ] = tilized[i, j, 3]
 
     return out
 
