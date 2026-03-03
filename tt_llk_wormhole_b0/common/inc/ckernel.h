@@ -89,7 +89,7 @@ namespace internal
  * @param ptr address to read from
  * @return value read from the address
  */
-template <typename T, typename = std::enable_if_t<std::is_trivially_copyable<T>::value>>
+template <typename T, typename = std::enable_if_t<std::is_trivially_copyable_v<T>>>
 inline T load_blocking(volatile T *ptr)
 {
     static_assert(sizeof(T) == sizeof(std::uint32_t), "load_blocking: operand must be 32-bit");
@@ -128,7 +128,7 @@ inline T load_blocking(volatile T *ptr)
  * @param ptr address to write to
  * @param val value to write
  */
-template <typename T, typename U, typename = std::enable_if_t<std::is_trivially_copyable<T>::value && std::is_trivially_assignable<T &, U>::value>>
+template <typename T, typename U, typename = std::enable_if_t<std::is_trivially_copyable_v<T> && std::is_trivially_assignable_v<T &, U>>>
 inline void store_blocking(volatile T *ptr, U &&val)
 {
     static_assert(sizeof(T) == sizeof(std::uint32_t), "store_blocking: operand must be 32-bit");
