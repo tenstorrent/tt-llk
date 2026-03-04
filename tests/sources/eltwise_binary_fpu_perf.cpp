@@ -30,6 +30,13 @@ static constexpr std::uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const std::uint8_t face_r_dim           = static_cast<std::uint8_t>(params->TEST_FACE_R_DIM);
+    const std::uint8_t face_c_dim           = static_cast<std::uint8_t>(params->TEST_FACE_C_DIM);
+    const std::uint8_t num_faces_r_dim      = static_cast<std::uint8_t>(params->num_faces_r_dim_A);
+    const std::uint8_t num_faces_c_dim      = static_cast<std::uint8_t>(params->num_faces_c_dim_A);
+    const ckernel::TensorShape tensor_shape = {face_r_dim, face_c_dim, num_faces_r_dim, num_faces_c_dim};
+    const std::uint32_t num_faces           = tensor_shape.total_num_faces();
+
     {
         ZONE_SCOPED("INIT")
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -37,11 +44,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
             formats.unpack_B_src,
             formats.unpack_A_dst,
             formats.unpack_B_dst,
-            FACE_R_DIM,
-            FACE_R_DIM,
-            /* num_faces */ 4,
-            /* num_faces */ 4);
-        _llk_unpack_AB_init_<>(DEFAULT_TENSOR_SHAPE);
+            tensor_shape.face_r_dim,
+            tensor_shape.face_r_dim,
+            num_faces,
+            num_faces,
+            TILE_SIZE_UNPACK_A,
+            TILE_SIZE_UNPACK_B);
+        _llk_unpack_AB_init_<>(tensor_shape);
         PROFILER_SYNC();
     }
     {
@@ -52,7 +61,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            return _perf_unpack_loop_set_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES);
+            return _perf_unpack_loop_set_valid<true, true>(params->TILE_CNT * num_faces);
         }
         else
         {
@@ -74,11 +83,18 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const std::uint8_t face_r_dim           = static_cast<std::uint8_t>(params->TEST_FACE_R_DIM);
+    const std::uint8_t face_c_dim           = static_cast<std::uint8_t>(params->TEST_FACE_C_DIM);
+    const std::uint8_t num_faces_r_dim      = static_cast<std::uint8_t>(params->num_faces_r_dim_A);
+    const std::uint8_t num_faces_c_dim      = static_cast<std::uint8_t>(params->num_faces_c_dim_A);
+    const ckernel::TensorShape tensor_shape = {face_r_dim, face_c_dim, num_faces_r_dim, num_faces_c_dim};
+    const std::uint32_t num_faces           = tensor_shape.total_num_faces();
+
     {
         ZONE_SCOPED("INIT")
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-        _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE>(DEFAULT_TENSOR_SHAPE, 0 /* acc_to_dest */);
+        _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE>(tensor_shape, 0 /* acc_to_dest */);
         PROFILER_SYNC();
     }
     {
@@ -89,7 +105,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            return _perf_math_loop_clear_valid<true, true>(params->TILE_CNT * TILE_NUM_FACES);
+            return _perf_math_loop_clear_valid<true, true>(params->TILE_CNT * num_faces);
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
@@ -99,8 +115,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
                 for (std::uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                 {
-                    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en>(
-                        DEFAULT_TENSOR_SHAPE, block_tile, false);
+                    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en>(tensor_shape, block_tile, false);
                 }
             }
         }
@@ -113,8 +128,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
                 for (std::uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
                 {
-                    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en>(
-                        DEFAULT_TENSOR_SHAPE, block_tile, false);
+                    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en>(tensor_shape, block_tile, false);
                 }
                 _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
             }
@@ -132,11 +146,45 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
+    const std::uint8_t face_r_dim           = static_cast<std::uint8_t>(params->TEST_FACE_R_DIM);
+    const std::uint8_t face_c_dim           = static_cast<std::uint8_t>(params->TEST_FACE_C_DIM);
+    const std::uint8_t num_faces_r_dim      = static_cast<std::uint8_t>(params->num_faces_r_dim_A);
+    const std::uint8_t num_faces_c_dim      = static_cast<std::uint8_t>(params->num_faces_c_dim_A);
+    const ckernel::TensorShape tensor_shape = {face_r_dim, face_c_dim, num_faces_r_dim, num_faces_c_dim};
+
+    const std::uint32_t tile_size = tensor_shape.total_tensor_size();
+    const std::uint32_t num_faces = tensor_shape.total_num_faces();
+    const bool partial_face       = tensor_shape.face_r_dim < FACE_R_DIM;
+    const bool narrow_tile        = (tensor_shape.num_faces_c_dim == 1);
+
     {
         ZONE_SCOPED("INIT")
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
-        _llk_pack_init_<false, false>(formats.pack_dst);
+#ifdef ARCH_BLACKHOLE
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(
+            formats.pack_src,
+            formats.pack_dst,
+            tile_size,
+            tensor_shape.face_r_dim,
+            tensor_shape.total_col_dim(),
+            num_faces,
+            partial_face,
+            false /* narrow_tile */);
+#else
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */>(
+            formats.pack_src, formats.pack_dst, tile_size, tensor_shape.face_r_dim, num_faces, partial_face, narrow_tile);
+#endif
+
+#ifdef ARCH_BLACKHOLE
+        _llk_pack_init_<false /* untilize */, false /* zero_output */>(formats.pack_dst, tensor_shape.face_r_dim, tensor_shape.total_col_dim(), num_faces);
+#else
+        _llk_pack_init_<false /* untilize */, false /* zero_output */>(formats.pack_dst, tensor_shape.face_r_dim, num_faces, partial_face, narrow_tile);
+#endif
+
+#ifdef ARCH_BLACKHOLE
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+#else
+        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, false /* untilize */>(tensor_shape.face_r_dim, narrow_tile);
+#endif
         PROFILER_SYNC();
     }
     {

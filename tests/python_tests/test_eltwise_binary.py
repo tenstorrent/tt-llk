@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
 import torch
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
@@ -17,6 +18,7 @@ from helpers.llk_params import (
     EltwiseBinaryReuseDestType,
     MathFidelity,
     MathOperation,
+    PerfRunType,
     Transpose,
     format_dict,
 )
@@ -25,6 +27,7 @@ from helpers.param_config import (
     input_output_formats,
     parametrize,
 )
+from helpers.perf import PerfConfig
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli_w_tile_dimensions
 from helpers.test_config import TestConfig
@@ -40,6 +43,7 @@ from helpers.test_variant_parameters import (
     NUM_TILES_IN_BLOCK,
     REUSE_DEST_TYPE,
     TEST_FACE_DIMS,
+    TILE_COUNT,
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
 )
@@ -492,3 +496,64 @@ def test_eltwise_binary_dest_reuse(
     assert passed_test(
         golden_tensor, res_tensor, formats.output_format
     ), "Assert against golden failed"
+
+
+@pytest.mark.perf
+@parametrize(
+    formats=input_output_formats([DataFormat.Bfp8_b, DataFormat.Float16_b]),
+    mathop=[MathOperation.Elwadd, MathOperation.Elwmul],
+    tile_count=16,
+    math_fidelity=[MathFidelity.LoFi],
+    dest_acc=DestAccumulation.No,
+    tile_dimensions=ALL_TILE_DIMENSIONS,
+)
+def test_perf_eltwise_binary(
+    perf_report,
+    formats,
+    mathop,
+    tile_count,
+    math_fidelity,
+    dest_acc,
+    tile_dimensions,
+    workers_tensix_coordinates,
+):
+    if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
+        pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
+
+    face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(tile_dimensions)
+    num_faces = num_faces_r_dim * num_faces_c_dim
+
+    configuration = PerfConfig(
+        "sources/eltwise_binary_fpu_perf.cpp",
+        formats,
+        run_types=[
+            PerfRunType.L1_TO_L1,
+            PerfRunType.UNPACK_ISOLATE,
+            PerfRunType.MATH_ISOLATE,
+            PerfRunType.PACK_ISOLATE,
+            # PerfRunType.L1_CONGESTION,
+        ],
+        templates=[MATH_FIDELITY(math_fidelity), MATH_OP(mathop=mathop)],
+        runtimes=[
+            TILE_COUNT(tile_count),
+            TEST_FACE_DIMS(face_r_dim=face_r_dim),
+            NUM_FACES_R_DIM(num_faces_r_dim),
+            NUM_FACES_C_DIM(num_faces_c_dim),
+        ],
+        variant_stimuli=StimuliConfig(
+            None,
+            formats.input_format,
+            None,
+            formats.input_format,
+            formats.output_format,
+            tile_count_A=tile_count,
+            tile_count_B=tile_count,
+            tile_count_res=tile_count,
+            num_faces=num_faces,
+            face_r_dim=face_r_dim,
+            tile_dimensions=tile_dimensions,
+        ),
+        dest_acc=dest_acc,
+    )
+
+    configuration.run(perf_report, location=workers_tensix_coordinates)
