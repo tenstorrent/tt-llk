@@ -301,12 +301,7 @@ inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpa
     switch_config_context(unp_cfg_context);
 }
 
-template <
-    BroadcastType BType                          = BroadcastType::NONE,
-    bool acc_to_dest                             = false,
-    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE,
-    bool unpack_to_dest                          = false>
-inline void _llk_unpack_A_custom_(const std::uint32_t address, const std::uint32_t unpack_src_format = 0, const std::uint32_t unpack_dst_format = 0)
+inline void _llk_unpack_A_custom_(const std::uint32_t address)
 {
     LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
     // Clear z/w start counters

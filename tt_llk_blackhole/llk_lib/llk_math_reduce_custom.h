@@ -75,37 +75,6 @@ inline void reduce_max_row_configure_addrmod()
         .set(ADDR_MOD_3);
 }
 
-inline void reduce_max_row_configure_addrmod_reinit()
-{
-    addr_mod_t {
-        .srca     = {.incr = 0, .clr = 0, .cr = 0},
-        .srcb     = {.incr = 0, .clr = 0, .cr = 0},
-        .dest     = {.incr = 0, .clr = 0, .cr = 0},
-        .fidelity = {.incr = 0, .clr = 1}}
-        .set(ADDR_MOD_6);
-
-    addr_mod_t {
-        .srca = {.incr = 16, .clr = 0, .cr = 1},
-        .srcb = {.incr = 0, .clr = 1, .cr = 0},
-        .dest = {.incr = 0, .clr = 0, .cr = 0},
-    }
-        .set(ADDR_MOD_1);
-
-    addr_mod_t {
-        .srca = {.incr = 0, .clr = 0, .cr = 0},
-        .srcb = {.incr = 0, .clr = 0, .cr = 0},
-        .dest = {.incr = 4, .clr = 0, .cr = 1},
-    }
-        .set(ADDR_MOD_2);
-
-    addr_mod_t {
-        .srca = {.incr = 0, .clr = 0, .cr = 0},
-        .srcb = {.incr = 0, .clr = 0, .cr = 0},
-        .dest = {.incr = 20, .clr = 0, .cr = 1},
-    }
-        .set(ADDR_MOD_3);
-}
-
 // Minimal reinit: ADDR_MOD_1 + ADDR_MOD_2 (clobbered by matmul) and ADDR_MOD_6
 // (clobbered by sub_exp runtime). Skips ADDR_MOD_3 which is preserved from the
 // previous reduce (matmul doesn't touch 3, sub_exp custom doesn't touch 3,
@@ -245,18 +214,18 @@ inline void _llk_math_reduce_block_max_row_mop_config_()
  * from the original _llk_math_reduce_block_max_row_mop_config_ call.
  * Use when the MOP was clobbered (e.g., by eltwise binary ops) but the replay buffer is intact.
  */
-template <std::uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
+template <std::uint32_t block_ct_dim>
 inline void _llk_math_reduce_block_max_row_mop_reprogram_only_()
 {
     static_assert(block_ct_dim < 128, "block_ct_dim must be less than 128");
 
-    static constexpr std::uint32_t outer_loop = block_ct_dim;
-    static constexpr std::uint32_t inner_loop = 4;
+    constexpr std::uint32_t outer_loop = block_ct_dim;
+    constexpr std::uint32_t inner_loop = 4;
 
-    static constexpr std::uint32_t start_op      = TT_OP_REPLAY(0, 2, 0, 0);
-    static constexpr std::uint32_t inner_loop_op = TT_OP_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
-    static constexpr std::uint32_t end_op_1      = TT_OP_REPLAY(0, 2, 0, 0);
-    static constexpr std::uint32_t end_op_2      = TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_ABD);
+    constexpr std::uint32_t start_op      = TT_OP_REPLAY(0, 2, 0, 0);
+    constexpr std::uint32_t inner_loop_op = TT_OP_SETRWC(p_setrwc::CLR_NONE, p_setrwc::CR_D, 8, 0, 0, p_setrwc::SET_D);
+    constexpr std::uint32_t end_op_1      = TT_OP_REPLAY(0, 2, 0, 0);
+    constexpr std::uint32_t end_op_2      = TT_OP_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_ABD);
 
     ckernel::ckernel_template mop_template(outer_loop, inner_loop, inner_loop_op);
     mop_template.set_start_op(start_op);

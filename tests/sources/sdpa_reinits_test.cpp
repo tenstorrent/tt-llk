@@ -144,7 +144,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_pack_sync_init_<dest_sync1, false>();
 
     // Custom addr_mod reinit for reduce_block_max_row (full init done in Operation 0)
-    reduce_max_row_configure_addrmod_reinit();
+    reduce_max_row_configure_addrmod();
 
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
@@ -182,9 +182,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     // Operation 3: Matmul FPU - Using experimental custom no-mop API
     // _llk_math_matmul_init_<0, 0>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, 1, 1);
 
-    // TEST MATMUL REINIT FOR JUST 2 ADDR_MODS AFTER ELTWISE BINARY
-    // SO THIS ELWSUB BINARY -> MATMUL REINIT STEP§
-    matmul_configure_addrmod_reinit();
+    // Lightweight matmul reinit after sub_exp: only restores ADDR_MOD_5
+    matmul_configure_addrmod_reinit_after_sub();
+    math::reset_counters(p_setrwc::SET_ABD_F);
 
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
