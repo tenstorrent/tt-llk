@@ -94,6 +94,13 @@ enum class ReluType : std::uint8_t
     MAX_THRESHOLD_RELU,
 };
 
+/** Packer ReLU config: mode + 16-bit threshold (bits 16–31 in HW). */
+struct ReluConfig
+{
+    ReluType mode           = ReluType::NO_RELU;
+    std::uint32_t threshold = 0;
+};
+
 } // namespace ckernel
 
 // Make SfpuType available in global namespace for compatibility with test infrastructure

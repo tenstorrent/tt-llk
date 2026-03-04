@@ -148,11 +148,15 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
         else 0.0
     )
 
-    relu_config = PackGolden.generate_relu_config(
+    relu_mode, relu_threshold_bits = PackGolden.get_relu_mode_and_threshold_bits(
         relu_type,
-        relu_threshold=tensor_average,
-        intermediate_format=data_formats.pack_src,
+        tensor_average,
+        data_formats.pack_src,
     )
+
+    relu_config = RELU_CONFIG(
+        relu_mode=relu_mode, relu_threshold=relu_threshold_bits
+    ).to_packed()
 
     golden_tensor = PackGolden.apply_relu(
         golden_tensor,
@@ -171,7 +175,7 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
             TEST_FACE_DIMS(),
             NUM_FACES(num_faces),
             TILE_COUNT(tile_cnt_A),
-            RELU_CONFIG(relu_config),
+            RELU_CONFIG(relu_mode=relu_mode, relu_threshold=relu_threshold_bits),
         ],
         variant_stimuli=StimuliConfig(
             src_A,

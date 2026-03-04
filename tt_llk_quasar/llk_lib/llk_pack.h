@@ -54,10 +54,10 @@ inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uin
  * @param buf_desc_id: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 16-31
  * @param num_tiles: number of tiles to pack at a time
- * @param relu_config Packed ReLU config: low 2 bits = mode; bits 16–31 = 16-bit threshold. Use 0 for no ReLU.
+ * @param relu_config ReLU config (mode + threshold).
  */
 template <std::uint8_t PACK_SEL, bool EN_32B_DEST = false>
-inline void _llk_pack_init_(const std::uint8_t buf_desc_id, const std::uint32_t num_tiles = NUM_TILES, const std::uint32_t relu_config = 0)
+inline void _llk_pack_init_(const std::uint8_t buf_desc_id, const std::uint32_t num_tiles = NUM_TILES, const ckernel::ReluConfig& relu_config = {})
 {
     _llk_pack_mop_config_<PACK_SEL>(buf_desc_id, num_tiles);
     _llk_pack_relu_config_<PACK_SEL, EN_32B_DEST>(relu_config);
