@@ -14,8 +14,7 @@ using namespace ckernel;
 /**
  * @brief MOP configuration for pack of contiguous tiles
  * @details Sets up MOP for packing out tile by tile works for any pack resource
- * @tparam PACK_SEL: Selects which unpacker resource to use,
- * values = p_pacr::PACK0/PACK1
+ * @tparam PACK_SEL: Selects which packer resource to use (p_pacr::PACK0 or p_pacr::PACK1).
  * @param buf_desc_id: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 16-31
  * @param num_tiles: number of tiles to pack at a time
@@ -49,20 +48,19 @@ inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uin
  * @brief Initialization for pack of contiguous tiles
  * @details Sets up MOP for packing out tile by tile works for any pack resource.
  * Optionally programs packer ReLU (MODE and THRESHOLD) for the selected packer via cfg_rmw.
- * @tparam PACK_SEL: Selects which unpacker resource to use,
- * values = p_pacr::PACK0/PACK1
- * @tparam is_fp32_dest_acc_en: true when pack reads from FP32 dst register;
+ * @tparam PACK_SEL: Selects which packer to use (p_pacr::PACK0 or p_pacr::PACK1).
+ * @tparam EN_32B_DEST: Set to true when pack reads from dst register in Float32;
  * controls RELU_THRESHOLD register format (32-bit or 16-bit path).
  * @param buf_desc_id: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 16-31
  * @param num_tiles: number of tiles to pack at a time
- * @param relu_config: optional pack ReLU config (0 = no ReLU);
+ * @param relu_config Packed ReLU config: low 2 bits = mode; bits 16–31 = 16-bit threshold. Use 0 for no ReLU.
  */
-template <std::uint8_t PACK_SEL, bool is_fp32_dest_acc_en = false>
+template <std::uint8_t PACK_SEL, bool EN_32B_DEST = false>
 inline void _llk_pack_init_(const std::uint8_t buf_desc_id, const std::uint32_t num_tiles = NUM_TILES, const std::uint32_t relu_config = 0)
 {
     _llk_pack_mop_config_<PACK_SEL>(buf_desc_id, num_tiles);
-    _llk_pack_relu_config_<PACK_SEL, is_fp32_dest_acc_en>(relu_config);
+    _llk_pack_relu_config_<PACK_SEL, EN_32B_DEST>(relu_config);
 }
 
 /**
