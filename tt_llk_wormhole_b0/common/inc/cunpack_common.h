@@ -436,7 +436,7 @@ inline void unpack_to_dest_tile_done(std::uint32_t &context_id)
     // Due to a hardware bug (TEN-3868), we need to have one unpack-to-srcA instruction after the last unpack-to-dest instruction.
     TTI_SETADCXX(p_setadc::UNP_A, FACE_C_DIM - 1, 0x0);
 
-#if TT_SIM
+#ifdef TT_SIM
 
     Compilation error
     
@@ -453,7 +453,7 @@ inline void unpack_to_dest_tile_done(std::uint32_t &context_id)
 
     TT_UNPACR(SrcA, 0, 0, context_id, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 1, 0, 0, 0, 1);
 
-#if TT_SIM
+#ifdef TT_SIM
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::STALL_UNPACK);
     TTI_WRCFG(p_gpr_unpack::TMP_HI, p_cfg::WRCFG_32b, THCON_SEC0_REG0_TileDescriptor_ADDR32);
     TTI_WRCFG(p_gpr_unpack::TMP_LO, p_cfg::WRCFG_32b, THCON_SEC0_REG2_Out_data_format_ADDR32);
