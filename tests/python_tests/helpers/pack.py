@@ -44,6 +44,10 @@ def pack_uint32(torch_tensor):
     return torch_tensor.cpu().numpy().astype(np.uint32).tobytes()
 
 
+def pack_int16(torch_tensor):
+    return torch_tensor.cpu().numpy().astype(np.int16).tobytes()
+
+
 def pack_uint16(torch_tensor):
     return torch_tensor.cpu().numpy().astype(np.uint16).tobytes()
 
