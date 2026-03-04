@@ -437,6 +437,9 @@ inline void unpack_to_dest_tile_done(std::uint32_t &context_id)
     TTI_SETADCXX(p_setadc::UNP_A, FACE_C_DIM - 1, 0x0);
 
 #if TT_SIM
+
+    Compilation error
+    
     // See issue tt-llk#1398: Analyze UNPACR Wormhole behavior when using data format invalid for SrcA.
 
     // Need to make sure the data formats used are valid in SrcA.
