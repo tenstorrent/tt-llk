@@ -85,7 +85,7 @@ enum class StochRndType : std::uint8_t
     All  = 3,
 };
 
-// Packer ReLU modes; encoding matches relu_config (low 4 bits).
+// Packer ReLU modes; encoding matches RELU_MODE (2 bits) in HW.
 enum class ReluType : std::uint8_t
 {
     NO_RELU = 0,
