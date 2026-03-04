@@ -10,7 +10,6 @@
 
 // Lightweight reinit after sub_exp: restores haloize, Z/W counters, x_end, kt_dim
 // but skips UNPACK MOP reprogramming (sub_exp custom doesn't clobber it).
-template <bool kernel_broadcast_a = false, bool kernel_broadcast_b = false>
 __attribute__((always_inline)) inline void _llk_unpack_AB_matmul_reinit_after_sub_(
     const std::uint32_t transpose       = 0,
     const std::uint32_t kt_dim          = 1,
