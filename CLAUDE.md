@@ -1,118 +1,64 @@
-# LLK CodeGen - Claude Code Instructions
+# CLAUDE.md
 
-## Project Overview
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-This is an **AI-powered LLK (Low-Level Kernel) code generation system** for Tenstorrent hardware. It uses Claude API to generate LLK code for Quasar (and future architectures) based on existing Wormhole/Blackhole implementations.
+## LLK CodeGen System
 
-## Key Documents
-
-- [PLAN.md](./PLAN.md) - Full implementation plan with architecture diagrams
-- [llk-codegen-architecture.excalidraw](./llk-codegen-architecture.excalidraw) - Visual architecture diagram (import into excalidraw.com)
-
-## Architecture Summary
-
-```
-User Request → Context Assembly → Claude API (with tools) → N Candidates
-                                       ↓
-                              Compile All N (parallel)
-                                       ↓
-                    ✅ Success → Functional Test → ✅ Validated LLK
-                    ❌ Errors → Regenerate (loop)
+To generate Quasar kernels, start Claude from the `codegen/` folder:
+```bash
+cd codegen
+claude
+> Generate gelu for Quasar
 ```
 
-### What Uses Claude API (LLM)
+See [codegen/CLAUDE.md](codegen/CLAUDE.md) for orchestrator details.
 
-| Component | Uses LLM? |
-|-----------|-----------|
-| Context Assembly | No (Python) |
-| Code Generator | **Yes** |
-| Compile Agent | No (SFPI compiler) |
-| Functional Test Agent | No (Quasar emulator) |
-| Improvement Suggester | **Yes** |
-
-## Project Structure
+## Repository Structure
 
 ```
-codegen/
-├── cli.py                      # CLI entry point
-├── config/                     # Configuration
-│   └── settings.py
-├── context/                    # Context assembly (no LLM)
-│   ├── assembly_parser.py      # Parse assembly.yaml
-│   ├── llk_examples.py         # Load WH/BH LLKs
-│   └── context_builder.py      # Build context string
-├── generator/                  # Code generation (uses Claude API)
-│   ├── claude_client.py        # Claude API wrapper
-│   ├── prompt_templates.py     # Prompts + tool definitions
-│   └── code_generator.py       # Main generation logic
-├── agents/                     # Validation agents (no LLM)
-│   ├── compile_agent.py        # SFPI compilation
-│   └── functional_agent.py     # Quasar emulator tests
-├── feedback/                   # Feedback loop
-│   ├── feedback_loop.py        # Orchestrator
-│   └── error_analyzer.py       # Parse errors
-└── library/                    # Validated LLK storage
+tt-llk/
+├── tt_llk_quasar/           # Quasar LLK implementations
+├── tt_llk_blackhole/        # Blackhole LLK (reference)
+├── tt_llk_wormhole_b0/      # Wormhole LLK (reference)
+├── codegen/                 # AI code generation system
+│   ├── CLAUDE.md            # Orchestrator instructions
+│   ├── agents/              # Agent playbooks
+│   ├── references/          # Knowledge base
+│   ├── artifacts/           # Generated artifacts
+│   └── scripts/             # Tools
+└── tests/                   # Test infrastructure
 ```
 
-## Key Files to Reference
+## Commands
+
+### Environment Setup
+```bash
+cd tests
+./setup_testing_env.sh
+```
+
+### Atlassian MCP (Optional)
+Pre-configured in `codegen/.mcp.json`. Authenticate on first use.
+
+### Compilation Check
+```bash
+cd codegen
+source ../tests/.venv/bin/activate
+PYTHONPATH=.. python scripts/check_compile.py ../tt_llk_quasar/common/inc/sfpu/ckernel_sfpu_{op}.h -v
+```
+
+### Run Tests
+```bash
+cd codegen
+source ../tests/.venv/bin/activate
+python scripts/run_test.py --list
+python scripts/run_test.py {test_name} -v
+```
+
+## Key Files
 
 | File | Purpose |
 |------|---------|
-| `tt_llk_quasar/instructions/assembly.yaml` | Quasar instruction set (277KB) |
+| `tt_llk_quasar/instructions/assembly.yaml` | Quasar ISA (277KB, use grep) |
 | `tt_llk_blackhole/common/inc/sfpu/*.h` | Reference SFPU implementations |
-| `tt_llk_wormhole_b0/llk_lib/*.h` | Reference LLK implementations |
-| `tests/python_tests/helpers/` | Test infrastructure to reuse |
-
-## Claude API Tools (Agentic Context)
-
-The Claude LLM can request additional context via tools:
-
-```python
-TOOLS = [
-    {
-        "name": "get_instruction_details",
-        "description": "Get details about a Quasar instruction from assembly.yaml",
-        "input_schema": {"instruction_name": "string"}
-    },
-    {
-        "name": "get_similar_impl",
-        "description": "Get similar LLK implementation from WH/BH",
-        "input_schema": {"operation": "string", "architecture": "string"}
-    }
-]
-```
-
-## Running the System
-
-```bash
-# Set API key
-export ANTHROPIC_API_KEY="your-key"
-
-# Generate a kernel
-python -m codegen.cli generate \
-    --arch quasar \
-    --op sfpu_sigmoid \
-    --reference blackhole \
-    --validate
-```
-
-## Development Guidelines
-
-1. **Modularity** - All components have clear interfaces, easy to swap
-2. **Configuration** - Use `config/settings.py` for all tunable parameters
-3. **Testing** - Add tests in `tests/` for each new component
-4. **Extensibility** - New context sources/validators can be registered
-
-## Phase 0 Target
-
-- **Goal**: E2E pipeline for simple SFPU operation (sigmoid/relu)
-- **Duration**: 2 weeks
-- **Success**: Code compiles + passes functional test in ≤5 iterations
-
-## Dependencies
-
-```
-anthropic>=0.20.0
-pyyaml>=6.0
-pytest>=7.0
-```
+| `tt_llk_quasar/common/inc/sfpu/*.h` | Quasar SFPU implementations |
