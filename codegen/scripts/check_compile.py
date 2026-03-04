@@ -17,10 +17,12 @@ import argparse
 import sys
 from pathlib import Path
 
-# Add parent to path
+# Add scripts directory to path for local imports
+sys.path.insert(0, str(Path(__file__).parent))
+# Add tt-llk root to path for codegen.config
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from codegen.agents.compile_agent import CompileAgent, CompileResult
+from compiler import CompileAgent, CompileResult
 
 
 def create_wrapper(filename: str, func_name: str, init_name: str | None) -> str:
