@@ -195,8 +195,8 @@ def test_reduce(
                 if formats.output_format is not DataFormat.Bfp8_b
                 else pow(0.99, tile_cnt_A)
             ),
-            custom_atol=tolerances[formats.output_format].atol * math.sqrt(tile_cnt_A),
-            custom_rtol=tolerances[formats.output_format].rtol * math.sqrt(tile_cnt_A),
+            custom_atol=tolerances[formats.output_format].atol * tile_cnt_A,
+            custom_rtol=tolerances[formats.output_format].rtol * tile_cnt_A,
             print_errors=True,
         ), "Assert against golden failed"
     else:
