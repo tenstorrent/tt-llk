@@ -300,3 +300,68 @@ inline void _llk_unpack_A_(const std::uint32_t address, const std::uint32_t unpa
     // Switch unpacker config context
     switch_config_context(unp_cfg_context);
 }
+
+template <
+    BroadcastType BType                          = BroadcastType::NONE,
+    bool acc_to_dest                             = false,
+    EltwiseBinaryReuseDestType binary_reuse_dest = EltwiseBinaryReuseDestType::NONE,
+    bool unpack_to_dest                          = false>
+inline void _llk_unpack_A_custom_(const std::uint32_t address, const std::uint32_t unpack_src_format = 0, const std::uint32_t unpack_dst_format = 0)
+{
+    // // Configure for unpack to dest
+    // set_dst_write_addr(unp_cfg_context, unpack_dst_format);
+
+    // // Program base address
+    // volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
+    // if (0 == unp_cfg_context)
+    // {
+    //     cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address;
+    // }
+    // else
+    // {
+    //     cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
+    // }
+    // // wait_for_dest_available();
+
+    // // Clear z/w start counters to reset to beginning of buffer
+    // // This is needed for each tile since we pass individual tile addresses
+    // TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
+
+    // // Set unpacker to process entire tile in one operation
+    // TTI_SETADCXX(p_setadc::UNP_A, 1023, 0x0);
+    // // Execute
+    // semaphore_post(semaphore::UNPACK_SYNC);
+    // cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
+    // TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+    // // Single UNPACR operation for full tile
+    // TTI_UNPACR(SrcA, 0b1, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+    // t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+    // unpack_to_dest_tile_done(unp_cfg_context);
+
+    LLK_ASSERT(is_valid_L1_address(address), "L1 address must be in valid L1 memory region");
+    // Clear z/w start counters
+    TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111);
+
+    // Program srcA and srcB base addresses
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+    const std::uint32_t upk1_reg           = (unp_cfg_context == 0) ? THCON_SEC1_REG3_Base_address_ADDR32 : THCON_SEC1_REG3_Base_cntx1_address_ADDR32;
+    cfg[upk1_reg]                          = address;
+
+    // Wait for free context
+    wait_for_next_context(2);
+
+    // Trisc::SEMPOST for context acquire
+    semaphore_post(semaphore::UNPACK_SYNC);
+
+    // Stall unpacker until pending CFG writes from Trisc have completed
+    TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+    TTI_SETADCXX(p_setadc::UNP_A, 1023, 0x0);
+    TTI_UNPACR(SrcA, 0b1 /*Z inc*/, 0, 0, 0, 0 /* Set OvrdThreadId*/, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+    // T6::SEMGET for context release
+    t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+    // Switch unpacker config context
+    switch_config_context(unp_cfg_context);
+}
