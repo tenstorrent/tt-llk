@@ -10,10 +10,8 @@
 
 // Uses ADDR_MOD_4 only ({srca=8, dest=8}), preserving matmul's ADDR_MOD 0,1,2
 // and reduce's ADDR_MOD 2,3. ADDR_MOD_4 is a "don't care" — matmul restores it
-// on next reinit.
-template <DataCopyType type, DstSync Dst, bool is_fp32_dest_acc_en, BroadcastType src_b_bcast_type = BroadcastType::NONE, bool unpack_to_dest = false>
-inline void _llk_math_eltwise_unary_datacopy_custom_(
-    const std::uint32_t dst_index, const std::uint32_t src_format, const std::uint32_t dst_format, const std::uint32_t num_faces = 4)
+// on next reinit. Assumes full 32x32 tile (4 faces, 8 rows each).
+inline void _llk_math_eltwise_unary_datacopy_custom_()
 {
     addr_mod_t {
         .srca = {.incr = 8},
@@ -25,13 +23,10 @@ inline void _llk_math_eltwise_unary_datacopy_custom_(
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
     math::reset_counters(p_setrwc::SET_ABD_F);
 
-    TTI_MOVA2D(0, 0, ADDR_MOD_4, p_mova2d::MOV_8_ROWS, 0);
-    TTI_MOVA2D(0, 0, ADDR_MOD_4, p_mova2d::MOV_8_ROWS, 0);
-    TTI_MOVA2D(0, 0, ADDR_MOD_4, p_mova2d::MOV_8_ROWS, 0);
-    TTI_MOVA2D(0, 0, ADDR_MOD_4, p_mova2d::MOV_8_ROWS, 0);
-    TTI_MOVA2D(0, 0, ADDR_MOD_4, p_mova2d::MOV_8_ROWS, 0);
-    TTI_MOVA2D(0, 0, ADDR_MOD_4, p_mova2d::MOV_8_ROWS, 0);
-    TTI_MOVA2D(0, 0, ADDR_MOD_4, p_mova2d::MOV_8_ROWS, 0);
-    TTI_MOVA2D(0, 0, ADDR_MOD_4, p_mova2d::MOV_8_ROWS, 0);
+#pragma GCC unroll 8
+    for (int i = 0; i < 8; i++)
+    {
+        TTI_MOVA2D(0, 0, ADDR_MOD_4, p_mova2d::MOV_8_ROWS, 0);
+    }
     TTI_SETRWC(p_setrwc::CLR_A, 0, 0, 0, 0, p_setrwc::SET_AB);
 }
