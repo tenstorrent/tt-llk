@@ -129,6 +129,21 @@ inline void matmul_configure_addrmod_reinit(const bool transpose = false)
     matmul_configure_addrmod_no_mop<math_fidelity, THROTTLE_LEVEL>(transpose);
 }
 
+// After sub_exp custom (which only clobbers ADDR_MOD 5,6,7), matmul only needs
+// ADDR_MOD_5 restored. ADDR_MOD 0,1,2,4 are preserved by the custom sub path.
+template <MathFidelity math_fidelity = MathFidelity::LoFi>
+inline void matmul_configure_addrmod_reinit_after_sub()
+{
+    constexpr int fidelity_increment = (math_fidelity != MathFidelity::LoFi) ? 1 : 0;
+    addr_mod_t {
+        .srca     = {.incr = 0, .clr = 1, .cr = 1},
+        .srcb     = {.incr = 0, .clr = 1, .cr = 1},
+        .dest     = {.incr = 0, .clr = 1, .cr = 1},
+        .fidelity = {.incr = fidelity_increment, .clr = 0},
+    }
+        .set(ADDR_MOD_5);
+}
+
 template <MathFidelity math_fidelity>
 inline void matmul_configure_mop_custom(
     const std::uint32_t ct_dim,
