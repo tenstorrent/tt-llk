@@ -121,23 +121,36 @@ def infer_pack_in(
 
     if is_quasar:
         if (
-            unpack_out in (DataFormat.Float16, DataFormat.Float16_b)
-            and output_format == DataFormat.Float32
+            not unpack_out.is_32_bit()
+            and output_format.is_32_bit()
             and is_fp32_dest_acc_en == DestAccumulation.No
         ):
             # When the dest register is in 32-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is valid
             # because pack_in=pack_out=Fp32, which is a supported packer conversion.
             # When dest register is in 16-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is not valid
             # because pack_in=Fp16/16_b and pack_out=Fp32, which is not a supported packer conversion.
+            # Similarly, input_fmt=Int8/UInt8 -> output_fmt=Int32 is not valid when the dest register is in 16-bit mode.
             raise ValueError(
-                f"Quasar packer does not support {unpack_out.name} to Float32 conversion when the dest register is in 16-bit mode"
+                f"Quasar packer does not support {unpack_out.name} to {output_format.name} conversion when the dest register is in 16-bit mode"
             )
         # When the dest register is in 32-bit mode, the packer input format is 32-bit
-        return (
-            DataFormat.Float32
-            if is_fp32_dest_acc_en == DestAccumulation.Yes
-            else unpack_out
-        )
+
+        if unpack_out.is_integer():
+            if unpack_out == DataFormat.Int16:
+                return DataFormat.Int16  # TODO: AM, or UInt16!!
+            # When the dest register is in 32-bit mode, the packer input format is 32-bit
+            return (
+                DataFormat.Int32
+                if is_fp32_dest_acc_en == DestAccumulation.Yes
+                else unpack_out
+            )
+        else:
+            # When the dest register is in 32-bit mode, the packer input format is 32-bit
+            return (
+                DataFormat.Float32
+                if is_fp32_dest_acc_en == DestAccumulation.Yes
+                else unpack_out
+            )
 
     # Wormhole + FP32 dest reg datums + Float16 output: keep Float32 for packer input for conversion to desired output format
     if (
