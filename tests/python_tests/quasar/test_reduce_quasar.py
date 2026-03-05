@@ -33,7 +33,6 @@ from helpers.test_variant_parameters import (
     TEST_FACE_DIMS,
     TILE_COUNT,
     UNPACKER_ENGINE_SEL,
-    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -76,7 +75,7 @@ def generate_pool_type_and_math_fidelity_combinations():
             DataFormat.Float16,
         ],
     ),
-    dest_acc=[DestAccumulation.No],
+    dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     reduce_dim=[ReduceDimension.Row, ReduceDimension.Column, ReduceDimension.Scalar],
     pool_type_and_math_fidelity=generate_pool_type_and_math_fidelity_combinations(),
     implied_math_format=[ImpliedMathFormat.No, ImpliedMathFormat.Yes],
@@ -127,7 +126,6 @@ def test_reduce_quasar(
         "sources/quasar/reduce_quasar_test.cpp",
         formats,
         templates=[
-            generate_input_dim(input_dimensions, input_dimensions),
             MATH_FIDELITY(math_fidelity),
             MATH_OP(mathop=mathop, pool_type=pool_type),
             UNPACKER_ENGINE_SEL(),
@@ -155,7 +153,7 @@ def test_reduce_quasar(
         dest_acc=dest_acc,
     )
 
-    res_from_L1 = configuration.run()
+    res_from_L1 = configuration.run().result
 
     assert len(res_from_L1) == len(
         golden_tensor

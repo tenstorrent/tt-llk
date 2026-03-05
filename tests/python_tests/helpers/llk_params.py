@@ -78,6 +78,7 @@ class MathOperation(Enum):
     Reciprocal = OpSpec("reciprocal", MathOpType.SFPU_UNARY)
     Relu = OpSpec("relu", MathOpType.SFPU_UNARY)
     Rsqrt = OpSpec("rsqrt", MathOpType.SFPU_UNARY)
+    Sigmoid = OpSpec("sigmoid", MathOpType.SFPU_UNARY)
     Sin = OpSpec("sine", MathOpType.SFPU_UNARY)
     Silu = OpSpec("silu", MathOpType.SFPU_UNARY)
     Sqrt = OpSpec("sqrt", MathOpType.SFPU_UNARY)
@@ -341,9 +342,9 @@ class MailboxesPerf(Enum):
 
 
 class MailboxesDebug(Enum):
-    Unpacker = 0x63FC4
-    Math = 0x63FC8
-    Packer = 0x63FCC
+    Unpacker = 0x6DFC4
+    Math = 0x6DFC8
+    Packer = 0x6DFCC
 
 
 format_tile_sizes = {

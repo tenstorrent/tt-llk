@@ -75,8 +75,11 @@ def unpack_tilize(
     configuration = TestConfig(
         "sources/unpack_tilize_test.cpp",
         formats,
-        templates=[generate_input_dim(input_dimensions, input_dimensions)],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        templates=[],
+        runtimes=[
+            generate_input_dim(input_dimensions, input_dimensions),
+            TILE_COUNT(tile_cnt_A),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
@@ -91,7 +94,7 @@ def unpack_tilize(
         **({"dest_acc": dest_acc} if dest_acc is not None else {}),
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
     assert len(res_from_L1) == len(
         golden_tensor

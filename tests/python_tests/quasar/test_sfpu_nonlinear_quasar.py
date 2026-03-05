@@ -29,7 +29,6 @@ from helpers.test_variant_parameters import (
     TEST_FACE_DIMS,
     TILE_COUNT,
     UNPACKER_ENGINE_SEL,
-    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -102,6 +101,8 @@ def generate_sfpu_nonlinear_combinations(
                         MathOperation.Reciprocal,
                         MathOperation.Sqrt,
                         MathOperation.Tanh,
+                        MathOperation.Sigmoid,
+                        MathOperation.Silu,
                     ]:
                         combinations.append(
                             (
@@ -262,6 +263,19 @@ def prepare_inputs_for_operation(
         max_val = 10.0
         src_A = min_val + src_A.to(torch.float32) * (max_val - min_val)
         src_A = src_A.to(torch_format)
+    elif mathop == MathOperation.Sigmoid:
+        # Scale to range [-10, 10] for sigmoid - covers meaningful range without saturation
+        min_val = -10.0
+        max_val = 10.0
+        src_A = min_val + src_A.to(torch.float32) * (max_val - min_val)
+        src_A = src_A.to(torch_format)
+    elif mathop == MathOperation.Silu:
+        # Scale to range including negative and positive values for SiLU testing
+        finfo = torch.finfo(torch_format)
+        min_val = -10.0  # avoid overflow with negative exponential in SiLU
+        max_val = finfo.max / 2  # Use half range to avoid extremes
+        src_A = min_val + src_A.to(torch.float32) * (max_val - min_val)
+        src_A = src_A.to(torch_format)
     # else: keep src_A as-is for other operations
 
     return src_A
@@ -284,7 +298,7 @@ SFPU_NONLINEAR_FORMATS = input_output_formats(
 )
 def test_sfpu_nonlinear_quasar(formats_dest_acc_implied_math_input_dims_mathop):
     """
-    Test nonlinear SFPU operations (exp, relu, reciprocal, sqrt, tanh) on Quasar architecture.
+    Test nonlinear SFPU operations (exp, relu, reciprocal, sqrt, tanh, sigmoid, silu) on Quasar architecture.
 
     This test parameterizes over multiple operations to avoid code duplication.
     """
@@ -324,7 +338,6 @@ def test_sfpu_nonlinear_quasar(formats_dest_acc_implied_math_input_dims_mathop):
         "sources/quasar/sfpu_nonlinear_quasar_test.cpp",
         formats,
         templates=[
-            generate_input_dim(input_dimensions, input_dimensions),
             MATH_OP(mathop=mathop),
             IMPLIED_MATH_FORMAT(implied_math_format),
             DATA_COPY_TYPE(DataCopyType.A2D),
@@ -354,7 +367,7 @@ def test_sfpu_nonlinear_quasar(formats_dest_acc_implied_math_input_dims_mathop):
         dest_acc=dest_acc,
     )
 
-    res_from_L1 = configuration.run()
+    res_from_L1 = configuration.run().result
 
     # Verify results match golden
     assert len(res_from_L1) == len(

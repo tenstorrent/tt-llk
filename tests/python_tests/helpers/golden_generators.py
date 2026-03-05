@@ -1278,6 +1278,7 @@ class UnarySFPUGolden:
             MathOperation.Exp: self._exp,
             MathOperation.Exp2: self._exp2,
             MathOperation.Hardsigmoid: self._hardsigmoid,
+            MathOperation.Sigmoid: self._sigmoid,
             MathOperation.Threshold: self._threshold,
             MathOperation.ReluMax: self._relu_max,
             MathOperation.ReluMin: self._relu_min,
@@ -1546,6 +1547,14 @@ class UnarySFPUGolden:
             else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.nn.functional.hardsigmoid(input_tensor).item()
+
+    def _sigmoid(self, x):
+        input_tensor = (
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
+        )
+        return torch.nn.functional.sigmoid(input_tensor).item()
 
     def _threshold(self, x, t=5, v=10):
         input_tensor = (
@@ -2274,14 +2283,15 @@ class TopKGolden:
             values = operand[operand_values_start_idx:operand_values_end_idx]
 
             # Get top-k values and their positions in the original array.
-            # largest=True means we want the largest k values.
-            # sorted=True means results are sorted in descending order.
-            topk_values, topk_positions = torch.topk(
+            # Use stable argsort so ties preserve original order.
+            # We always do stable sort, and within the test we can check that ties are handled correctly based on the original order of indices.
+            topk_positions = torch.argsort(
                 values,
-                K,
-                largest=(sort_direction == TopKSortDirection.Descending),
-                sorted=True,
-            )
+                descending=(sort_direction == TopKSortDirection.Descending),
+                stable=True,
+            )[:K]
+
+            topk_values = values[topk_positions]
 
             # Convert uint16 to int32 for indexing (PyTorch doesn't support uint16 indexing)
             topk_indices = uint16_indices.to(torch.int32)[topk_positions].to(

@@ -130,9 +130,9 @@ def test_unpack_tilize_comprehensive(
         formats,
         templates=[
             STOCHASTIC_ROUNDING(stoch_rnd_type),
-            generate_input_dim(input_dimensions, input_dimensions),
         ],
         runtimes=[
+            generate_input_dim(input_dimensions, input_dimensions),
             UNPACK_TRANS_FACES(Transpose.No),
             UNPACK_TRANS_WITHIN_FACE(transpose),
             NARROW_TILE(narrow_tile),
@@ -155,7 +155,7 @@ def test_unpack_tilize_comprehensive(
         dest_acc=dest_acc,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
     assert len(res_from_L1) == len(
         golden_tensor

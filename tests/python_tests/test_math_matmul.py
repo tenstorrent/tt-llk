@@ -37,7 +37,6 @@ from helpers.test_variant_parameters import (
     TILE_COUNT,
     UNPACK_TRANS_FACES,
     UNPACK_TRANS_WITHIN_FACE,
-    generate_input_dim,
 )
 from helpers.tilize_untilize import tilize_block
 from helpers.utils import passed_test
@@ -180,7 +179,6 @@ def test_math_matmul(
         "sources/math_matmul_test.cpp",
         formats,
         templates=[
-            generate_input_dim(in0_dimensions, in1_dimensions),
             STOCHASTIC_ROUNDING(matmul_config.stochastic_rnd),
             MATH_FIDELITY(math_fidelity),
             THROTTLE_LEVEL(throttle),
@@ -222,7 +220,7 @@ def test_math_matmul(
         ),
         dest_acc=matmul_config.dest_acc,
     )
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
     assert len(res_from_L1) == len(
         golden_tensor
@@ -242,8 +240,9 @@ def test_math_matmul(
         tile_cnt = matmul_config.tile_dimensions.output_tile_cnt
 
         # Compare each tile separately
+        TILE_R_DIM, TILE_C_DIM = 32, 32
         for i in range(tile_cnt):
-            start = i * num_elements_per_tile
+            start = i * (TILE_R_DIM * TILE_C_DIM)
             assert passed_test(
                 golden_tensor[
                     start : start + num_elements_per_tile

@@ -3,7 +3,6 @@
 
 import logging
 import os
-import sys
 from pathlib import Path
 
 import pytest
@@ -108,6 +107,7 @@ def pytest_configure(config):
         config.option.log_cli_level = log_level
         config.option.log_cli = True
 
+    config.coverage_enabled = config.getoption("--coverage", default=False)
     compile_producer = config.getoption("--compile-producer", default=False)
     compile_consumer = config.getoption("--compile-consumer", default=False)
     TestConfig.setup_mode(compile_consumer, compile_producer)
@@ -149,6 +149,22 @@ def pytest_configure(config):
             tt_exalens_init.init_ttexalens(use_4B_mode=False)
             # context.dma_read_threshold = 2000000
             # context.dma_write_threshold = 2000000
+
+
+def pytest_collection_modifyitems(config, items):
+    test_order_file = config.getoption("--test-order-file")
+
+    if not test_order_file:
+        return
+
+    if not os.path.exists(test_order_file):
+        raise FileNotFoundError(f"Test order file not found: {test_order_file}")
+
+    with open(test_order_file, "r") as f:
+        ordered_tests = [line.strip() for line in f if line.strip()]
+
+    items_dict = {item.nodeid: item for item in items}
+    items[:] = [items_dict[nodeid] for nodeid in ordered_tests if nodeid in items_dict]
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -314,7 +330,7 @@ def pytest_sessionfinish(session):
 # Define the possible custom command line options
 def pytest_addoption(parser):
     parser.addoption(
-        "--run_simulator", action="store_true", help="Run tests using the simulator."
+        "--run-simulator", action="store_true", help="Run tests using the simulator."
     )
     parser.addoption(
         "--port",
@@ -370,6 +386,13 @@ def pytest_addoption(parser):
         "Overrides LOGURU_LEVEL env var. Default: INFO",
     )
 
+    parser.addoption(
+        "--test-order-file",
+        action="store",
+        default=None,
+        help="Path to file containing ordered list of tests to run",
+    )
+
 
 # Skip decorators for specific architectures
 # These decorators can be used to skip tests based on the architecture
@@ -392,6 +415,6 @@ skip_for_quasar = pytest.mark.skipif(
 )
 
 skip_for_coverage = pytest.mark.skipif(
-    "--coverage" in sys.argv or any("coverage" in arg for arg in sys.argv),
+    "config.coverage_enabled",
     reason="Coverage shouldn't be ran with this test",
 )

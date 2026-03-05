@@ -243,7 +243,7 @@ def test_pack(
         unpack_to_dest=unpack_to_dest,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
     assert len(res_from_L1) == len(
         golden_tensor
@@ -253,7 +253,7 @@ def test_pack(
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     test_passed = passed_test(
-        golden_tensor, res_tensor, formats.output_format, print_erros=False
+        golden_tensor, res_tensor, formats.output_format, print_errors=False
     )
 
     if (

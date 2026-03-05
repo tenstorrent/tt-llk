@@ -112,7 +112,13 @@ def test_sfpu_binary_add_top_row(formats, dest_acc, mathop, workers_tensix_coord
         1,
         input_dimensions,
         formats.output_format,
-    ).view(input_dimensions)
+    )
+
+    golden_tensor = (
+        golden_tensor.view([32, 32])
+        if golden_tensor.shape == torch.Size([1024])
+        else golden_tensor.view(input_dimensions)
+    )
 
     configuration = TestConfig(
         "sources/sfpu_binary_test.cpp",
@@ -136,8 +142,9 @@ def test_sfpu_binary_add_top_row(formats, dest_acc, mathop, workers_tensix_coord
         dest_acc=dest_acc,
         unpack_to_dest=formats.input_format.is_32_bit(),
         disable_format_inference=True,
+        compile_time_formats=True,
     )
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format).view(input_dimensions)
@@ -206,8 +213,9 @@ def sfpu_binary(formats, dest_acc, mathop, workers_tensix_coordinates):
         ),
         dest_acc=dest_acc,
         unpack_to_dest=formats.input_format.is_32_bit(),
+        compile_time_formats=True,
     )
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format).flatten()

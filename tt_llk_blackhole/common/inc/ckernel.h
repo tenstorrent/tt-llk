@@ -4,6 +4,10 @@
 
 #pragma once
 
+#include <cstring>
+#include <utility>
+
+#include "ckernel.h"
 #include "ckernel_common_ops.h"
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
@@ -88,26 +92,89 @@ namespace internal
 {
 }
 
+/**
+ * @brief Issues a load transaction that will block the core until the transaction is completed.
+ * @tparam T 32-bit type to load
+ * @param ptr address to read from
+ * @return value read from the address
+ */
+template <typename T, typename = std::enable_if_t<std::is_trivially_copyable_v<T>>>
+inline T load_blocking(volatile T *ptr)
+{
+    static_assert(sizeof(T) == sizeof(std::uint32_t), "load_blocking: operand must be 32-bit");
+
+    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/BlackholeA0/TensixTile/BabyRISCV/MemoryOrdering.md
+
+    // this code provides a blocking load by doing the following:
+    // - issue a LOAD transaction to the address
+    //     - actual load that was requested
+    // - issue an instruction that requires the data from the LOAD transaction
+    //     - block the pipeline until the LOAD transaction completes
+    // - memory clobber
+    //     - prevent reordering of transactions that occur after the load before the load by the COMPILER
+
+    std::uint32_t raw;
+
+    asm volatile(
+        "lw %[raw], (%[ptr])\n\t"
+        "and x0, x0, %[raw]"
+        : [raw] "=r"(raw)
+        : [ptr] "r"(ptr)
+        : "memory");
+
+    T val;
+    std::memcpy(&val, &raw, sizeof(T));
+
+    return val;
+}
+
+/**
+ * @brief Issues a store transaction that will block the core until the transaction is completed.
+ * @tparam T 32-bit type to store
+ * @tparam U type of the value to store, must be trivially assignable to T
+ * @param ptr address to write to
+ * @param val value to write
+ */
+template <typename T, typename U, typename = std::enable_if_t<std::is_trivially_copyable_v<T> && std::is_trivially_assignable_v<T &, U>>>
+inline void store_blocking(volatile T *ptr, U &&val)
+{
+    static_assert(sizeof(T) == sizeof(std::uint32_t), "store_blocking: operand must be 32-bit");
+
+    T typed = static_cast<T>(std::forward<U>(val));
+
+    std::uint32_t raw;
+    std::memcpy(&raw, &typed, sizeof(raw));
+
+    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/BlackholeA0/TensixTile/BabyRISCV/MemoryOrdering.md
+
+    // this code provides a blocking store by doing the following:
+    // - issue a STORE transaction to the address
+    //     - actual store that was requested
+    //     - STORE to L1 will also flush the L0 (DCACHE) line, ensuring the subsequent LOAD will read from L1 memory
+    // - issue a LOAD transaction to the address
+    //     - must complete after the STORE transaction
+    // - issue an instruction that requires the data from the LOAD transaction
+    //     - block the pipeline until the LOAD transaction completes, ensuring that the STORE is complete
+    // - memory clobber
+    //     - prevent reordering of transactions that occur after the store before the store by the COMPILER
+
+    asm volatile(
+        "sw %[raw], (%[ptr])\n\t"
+        "lw %[raw], (%[ptr])\n\t"
+        "and x0, x0, %[raw]"
+        : [raw] "+r"(raw)
+        : [ptr] "r"(ptr)
+        : "memory");
+}
+
 inline void tensix_sync()
 {
-    volatile std::uint32_t foo     = 0;
-    volatile std::uint32_t *fooptr = &foo;
-    // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
-    pc_buf_base[1] = foo;
-
-    // Now read -- this read will block until we're idle
-    *fooptr = pc_buf_base[1];
+    store_blocking(&pc_buf_base[1], 0);
 }
 
 inline void mop_sync()
 {
-    volatile std::uint32_t foo     = 0;
-    volatile std::uint32_t *fooptr = &foo;
-    // Write to pc buffer to push all writes ahead of us.. otherwise, the pc buffer read can bypass older writes
-    pc_buf_base[2] = foo;
-
-    // Now read -- this read will block until mops are done
-    *fooptr = pc_buf_base[2];
+    store_blocking(&pc_buf_base[2], 0);
 }
 
 inline void sync_regfile_write(const std::uint32_t index);
@@ -711,6 +778,16 @@ constexpr std::uint32_t get_dest_max_tiles()
                                                                                 : (ACCUM_MODE ? DEST_REGISTER_FULL_SIZE >> 1 : DEST_REGISTER_FULL_SIZE);
 
     return DEST_REGISTER_SIZE >> DstTileSizeLog2[static_cast<int>(TILE_SHAPE)];
+}
+
+/**
+ * @brief Used to invalidate the RISCV core's DCache.
+ * On Blackhole this happens as a side effect of the FENCE instruction.
+ */
+inline void invalidate_data_cache()
+{
+    // clobber memory to prevent code reordering by the compiler.
+    asm volatile("fence" ::: "memory");
 }
 
 } // namespace ckernel

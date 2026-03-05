@@ -8,15 +8,24 @@ import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture
 from helpers.format_config import DataFormat, InputOutputFormat
-from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
+from helpers.golden_generators import (
+    TILE_DIMENSIONS,
+    UnarySFPUGolden,
+    get_golden_generator,
+)
 from helpers.llk_params import (
     ApproximationMode,
+    BlocksCalculationAlgorithm,
     DestAccumulation,
     FastMode,
     MathOperation,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks_and_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -25,7 +34,10 @@ from helpers.test_variant_parameters import (
     CLAMP_NEGATIVE,
     FAST_MODE,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
+    DestSync,
     generate_input_dim,
 )
 from helpers.utils import passed_test
@@ -104,17 +116,23 @@ FLOAT_TEST_PARAMS = list(
     "formats,approx_mode,mathop,fast_mode,dest_acc",
     FLOAT_TEST_PARAMS,
 )
+@pytest.mark.parametrize(
+    "input_dimensions",
+    [[64, 64], [128, 256]],
+)
 def test_eltwise_unary_sfpu_float(
     formats: list[InputOutputFormat],
     approx_mode: ApproximationMode,
     mathop: MathOperation,
     fast_mode: FastMode,
     dest_acc: DestAccumulation,
+    input_dimensions: list[int],
     workers_tensix_coordinates: str,
 ):
     if TestConfig.WITH_COVERAGE and mathop in [
         MathOperation.Acosh,
         MathOperation.Log,
+        MathOperation.Log1p,
         MathOperation.Reciprocal,
         MathOperation.Sin,
         MathOperation.Sqrt,
@@ -128,6 +146,7 @@ def test_eltwise_unary_sfpu_float(
         MathOperation.Threshold,
         MathOperation.ReluMax,
         MathOperation.ReluMin,
+        MathOperation.Tanh,
     ]:
         # SFPI Issue link: https://github.com/tenstorrent/tt-metal/issues/33268
         pytest.skip(
@@ -174,6 +193,7 @@ def test_eltwise_unary_sfpu_float(
         approx_mode,
         mathop,
         fast_mode,
+        input_dimensions,
         workers_tensix_coordinates,
     )
 
@@ -187,6 +207,7 @@ def test_eltwise_unary_sfpu_float(
     ],
     fast_mode=[FastMode.No, FastMode.Yes],
     dest_acc=[DestAccumulation.Yes],
+    input_dimensions=[[128, 256]],
 )
 def test_eltwise_unary_sfpu_int(
     formats: list[InputOutputFormat],
@@ -194,6 +215,7 @@ def test_eltwise_unary_sfpu_int(
     mathop: MathOperation,
     fast_mode: FastMode,
     dest_acc: DestAccumulation,
+    input_dimensions: list[int],
     workers_tensix_coordinates: str,
 ):
     if formats.input_format == DataFormat.Int32:
@@ -206,6 +228,7 @@ def test_eltwise_unary_sfpu_int(
         approx_mode,
         mathop,
         fast_mode,
+        input_dimensions,
         workers_tensix_coordinates,
     )
 
@@ -217,11 +240,11 @@ def eltwise_unary_sfpu(
     approx_mode,
     mathop,
     fast_mode: FastMode,
+    input_dimensions: list[int],
     workers_tensix_coordinates,
 ):
     torch.manual_seed(0)
     torch.set_printoptions(precision=10)
-    input_dimensions = [64, 64]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -240,6 +263,15 @@ def eltwise_unary_sfpu(
         input_dimensions,
     )
 
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half,
+        dest_acc,
+        formats,
+        input_dimensions,
+        TILE_DIMENSIONS,
+        BlocksCalculationAlgorithm.Standard,
+    )
+
     configuration = TestConfig(
         test_name,
         formats,
@@ -250,7 +282,11 @@ def eltwise_unary_sfpu(
             CLAMP_NEGATIVE(True),
             MATH_OP(mathop=mathop),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            TILE_COUNT(tile_cnt_A),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
@@ -268,7 +304,7 @@ def eltwise_unary_sfpu(
         ),
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
     # res_from_L1 = res_from_L1[:1024]
     # golden_tensor = golden_tensor[:1024]
@@ -319,6 +355,15 @@ def test_exponential_clamp_negative(
         input_dimensions,
     )
 
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half,
+        dest_acc,
+        formats,
+        input_dimensions,
+        TILE_DIMENSIONS,
+        BlocksCalculationAlgorithm.Standard,
+    )
+
     configuration = TestConfig(
         "sources/eltwise_unary_sfpu_test.cpp",
         formats,
@@ -329,7 +374,11 @@ def test_exponential_clamp_negative(
             CLAMP_NEGATIVE(clamp_negative),
             MATH_OP(mathop=MathOperation.Exp),
         ],
-        runtimes=[TILE_COUNT(tile_cnt_A)],
+        runtimes=[
+            TILE_COUNT(tile_cnt_A),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+        ],
         variant_stimuli=StimuliConfig(
             src_A,
             formats.input_format,
@@ -344,7 +393,7 @@ def test_exponential_clamp_negative(
         unpack_to_dest=False,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
     assert len(res_from_L1) == len(
         golden_tensor
