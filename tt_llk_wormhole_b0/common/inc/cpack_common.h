@@ -22,6 +22,8 @@ using DataFormatType = std::underlying_type_t<DataFormat>;
 constexpr std::uint32_t PACK_CNT    = 4;
 constexpr std::uint32_t NUM_PACKERS = 4; // Number of packers
 
+constexpr std::uint32_t DATA_FORMAT_BIT_COUNT = 4; // Number of bits used to represent data format in packer config
+
 constexpr std::uint32_t PACK_SEL(const std::uint32_t pack_count)
 {
     return (pack_count == 1) ? 0x1 : (pack_count == 2) ? 0x3 : (pack_count == 4) ? 0xF : 0x0;
@@ -42,12 +44,12 @@ typedef struct
     std::uint32_t uncompress              : 1;
     std::uint32_t add_l1_dest_addr_offset : 1;
     std::uint32_t reserved_0              : 2;
-    std::uint32_t out_data_format         : 4;
-    std::uint32_t in_data_format          : 4;
-    std::uint32_t reserved_1              : 4;
-    std::uint32_t src_if_sel              : 1;
-    std::uint32_t pack_per_xy_plane       : 7;
-    std::uint32_t l1_src_addr             : 8;
+    std::uint32_t out_data_format : DATA_FORMAT_BIT_COUNT;
+    std::uint32_t in_data_format : DATA_FORMAT_BIT_COUNT;
+    std::uint32_t reserved_1        : 4;
+    std::uint32_t src_if_sel        : 1;
+    std::uint32_t pack_per_xy_plane : 7;
+    std::uint32_t l1_src_addr       : 8;
     // word 3
     std::uint32_t downsample_mask                    : 16;
     std::uint32_t downsample_shift_count             : 3;
@@ -866,8 +868,9 @@ inline bool are_packers_configured_correctly(
         const std::uint32_t pack_src_format_i         = config_vec[i].in_data_format;
         const std::uint32_t pack_dst_format_i         = config_vec[i].out_data_format;
         const std::uint32_t pack_reads_per_xy_plane_i = counters_vec[i].pack_reads_per_xy_plane;
-        const bool isDataFormatCorrect                = (pack_src_format_i == pack_src_format && pack_dst_format_i == pack_dst_format);
-        const bool isFaceRDimCorrect                  = (program_type == PackerProgramType::ProgramByTile) ? true : (pack_reads_per_xy_plane_i == face_r_dim);
+        const bool isDataFormatCorrect                = (pack_src_format_i == (pack_src_format & ((1 << DATA_FORMAT_BIT_COUNT) - 1))) &&
+                                         (pack_dst_format_i == (pack_dst_format & ((1 << DATA_FORMAT_BIT_COUNT) - 1)));
+        const bool isFaceRDimCorrect = (program_type == PackerProgramType::ProgramByTile) ? true : (pack_reads_per_xy_plane_i == face_r_dim);
         if (!isDataFormatCorrect || !isFaceRDimCorrect)
         {
             return false;

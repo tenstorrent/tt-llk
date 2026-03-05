@@ -13,15 +13,17 @@
 
 namespace ckernel::unpacker
 {
-constexpr std::uint32_t TILE_DESC_SIZE = 2; // Unpacker descriptor size in dwords
-constexpr std::uint32_t CONFIG_SIZE    = 2; // Unpacker configuration size in dwords
-constexpr std::uint32_t NUM_UNPACKERS  = 2; // Number of unpackers
+constexpr std::uint32_t TILE_DESC_SIZE        = 2;                                // Unpacker descriptor size in dwords
+constexpr std::uint32_t CONFIG_SIZE           = 2;                                // Unpacker configuration size in dwords
+constexpr std::uint32_t NUM_UNPACKERS         = 2;                                // Number of unpackers
+constexpr std::uint32_t DATA_FORMAT_BIT_COUNT = 4;                                // Number of bits used to represent data format in unpacker config
+constexpr std::uint32_t DATA_FORMAT_MASK      = (1 << DATA_FORMAT_BIT_COUNT) - 1; // Mask to extract data format bits
 
 // Unpack tile descriptor
 typedef struct
 {
     // word 0
-    std::uint32_t in_data_format     : 4;
+    std::uint32_t in_data_format : DATA_FORMAT_BIT_COUNT;
     std::uint32_t uncompressed       : 1;
     std::uint32_t reserved_0         : 3;
     std::uint32_t blobs_per_xy_plane : 4;
@@ -51,7 +53,7 @@ typedef union
 typedef struct
 {
     // word 0
-    std::uint32_t out_data_format           : 4;
+    std::uint32_t out_data_format : DATA_FORMAT_BIT_COUNT;
     std::uint32_t throttle_mode             : 2;
     std::uint32_t context_count             : 2;
     std::uint32_t haloize_mode              : 1; // this controls xy transpose on unpacker
@@ -223,10 +225,10 @@ inline void configure_unpack_AB(
     // Reset address counters
     unpacker_addr_counter_init();
 
-    const std::uint32_t unpA_src_format_masked = static_cast<std::uint32_t>(unpA_src_format) & 0x0F;
-    const std::uint32_t unpB_src_format_masked = static_cast<std::uint32_t>(unpB_src_format) & 0x0F;
-    const std::uint32_t unpA_dst_format_masked = static_cast<std::uint32_t>(unpA_dst_format) & 0x0F;
-    const std::uint32_t unpB_dst_format_masked = static_cast<std::uint32_t>(unpB_dst_format) & 0x0F;
+    const std::uint32_t unpA_src_format_masked = static_cast<std::uint32_t>(unpA_src_format) & DATA_FORMAT_MASK;
+    const std::uint32_t unpB_src_format_masked = static_cast<std::uint32_t>(unpB_src_format) & DATA_FORMAT_MASK;
+    const std::uint32_t unpA_dst_format_masked = static_cast<std::uint32_t>(unpA_dst_format) & DATA_FORMAT_MASK;
+    const std::uint32_t unpB_dst_format_masked = static_cast<std::uint32_t>(unpB_dst_format) & DATA_FORMAT_MASK;
 
     // Get pointer to registers for current state ID
     volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer();
@@ -420,8 +422,8 @@ inline void config_unpacker_x_end(const std::uint32_t face_r_dim)
 
 inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
-    const std::uint32_t input_df  = unpack_src_format & 0xF;
-    const std::uint32_t output_df = unpack_dst_format & 0xF;
+    const std::uint32_t input_df  = unpack_src_format & DATA_FORMAT_MASK;
+    const std::uint32_t output_df = unpack_dst_format & DATA_FORMAT_MASK;
     return ((input_df == to_underlying(DataFormat::Int32)) || (input_df == to_underlying(DataFormat::Float32))) &&
            ((output_df == to_underlying(DataFormat::Int32)) || (output_df == to_underlying(DataFormat::Float32)));
 }
@@ -571,7 +573,8 @@ inline bool is_unpacker_A_configured_correctly(
     const std::uint32_t tile_descriptor_cntx0_out_data_format = config_vec[0].out_data_format;
     const std::uint32_t tile_descriptor_cntx0_z_dim           = tile_descriptor_cntx0.z_dim;
     const bool isDataFormatCorrect =
-        (tile_descriptor_cntx0_in_data_format == (unpA_src_format & 0x0F) && tile_descriptor_cntx0_out_data_format == (unpA_dst_format & 0x0F));
+        (tile_descriptor_cntx0_in_data_format == (unpA_src_format & DATA_FORMAT_MASK) &&
+         tile_descriptor_cntx0_out_data_format == (unpA_dst_format & DATA_FORMAT_MASK));
 
     if constexpr (program_type == UnpackerProgramType::ProgramByTile)
     {
@@ -631,8 +634,9 @@ inline bool are_unpacker_AB_configured_correctly(
     const std::uint32_t tile_descriptor_cntx0_in_data_format = tile_descriptor_cntx0.in_data_format;
     const std::uint32_t tile_descriptor_cntx1_in_data_format = tile_descriptor_cntx1.in_data_format;
     const bool areDataFormatsCorrect =
-        (tile_descriptor_cntx0_in_data_format == (unpA_src_format & 0x0F) && config_cntx0_out_data_format == (unpA_dst_format & 0x0F)) &&
-        (tile_descriptor_cntx1_in_data_format == (unpB_src_format & 0x0F) && config_cntx1_out_data_format == (unpB_dst_format & 0x0F));
+        (tile_descriptor_cntx0_in_data_format == (unpA_src_format & DATA_FORMAT_MASK) &&
+         config_cntx0_out_data_format == (unpA_dst_format & DATA_FORMAT_MASK)) &&
+        (tile_descriptor_cntx1_in_data_format == (unpB_src_format & DATA_FORMAT_MASK) && config_cntx1_out_data_format == (unpB_dst_format & DATA_FORMAT_MASK));
 
     if constexpr (program_type == UnpackerProgramType::ProgramByTile)
     {
