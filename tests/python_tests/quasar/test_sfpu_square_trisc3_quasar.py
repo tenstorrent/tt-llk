@@ -13,7 +13,6 @@ from helpers.golden_generators import UnarySFPUGolden, get_golden_generator
 from helpers.llk_params import (
     DataCopyType,
     DestAccumulation,
-    ImpliedMathFormat,
     MathOperation,
     UnpackerEngine,
     format_dict,
@@ -36,41 +35,14 @@ from helpers.test_variant_parameters import (
 from helpers.utils import passed_test
 from test_sfpu_square_quasar import (
     SFPU_SQUARE_FORMATS,
-    _is_invalid_quasar_combination,
+    generate_sfpu_square_combinations,
     prepare_square_inputs,
 )
 
 
-def generate_sfpu_square_trisc3_combinations(formats_list):
-    """
-    TRISC3 SFPU: restrict to single-tile (32x32) only.
-
-    Multi-tile (64x64, 32x64, etc.) fails with wrong values when SFPU runs on
-    TRISC3 while UNPACK/MATH run on other TRISCs. Root cause TBD - see GitHub
-    issue #1414: https://github.com/tenstorrent/tt-llk/issues/1414
-    """
-    combinations = []
-    for fmt in formats_list:
-        in_fmt = fmt.input_format
-        dest_acc_modes = (
-            (DestAccumulation.Yes,)
-            if in_fmt.is_32_bit()
-            else (DestAccumulation.No, DestAccumulation.Yes)
-        )
-        for dest_acc in dest_acc_modes:
-            if _is_invalid_quasar_combination(fmt, dest_acc):
-                continue
-            for implied_math_format in [ImpliedMathFormat.No]:
-                for input_dimensions in [[32, 32]]:  # Single-tile only
-                    combinations.append(
-                        (fmt, dest_acc, implied_math_format, input_dimensions)
-                    )
-    return combinations
-
-
 @pytest.mark.quasar
 @parametrize(
-    formats_dest_acc_implied_math_input_dims=generate_sfpu_square_trisc3_combinations(
+    formats_dest_acc_implied_math_input_dims=generate_sfpu_square_combinations(
         SFPU_SQUARE_FORMATS
     ),
 )
