@@ -165,7 +165,20 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_hw_configure_<false>(math_format0, math_format0);
     _llk_math_pack_sync_init_<dest_sync0, false>();
 
-    /* Initial initializatiom block*/
+    /* Initial initialization block
+
+    IT IS OF GREAT IMPORTANCE TO FOLLOW THE ORDER OF INITIALIZATION AS DESCRIBED BELOW.
+
+     * Order matters: each init overwrites ADDR_MODs of the previous.
+     * reduce first  → programs MOP + replay[0-14] + ADDR_MOD 1,2,3,6
+     * matmul second → replay[16-31] + ADDR_MOD 0,1,2,4,5 (overwrites reduce's 1,2)
+     * sub last      → ADDR_MOD 7 only (doesn't disturb matmul or reduce)
+     *
+     * Result: ADDR_MOD 0,1,2,4,5 = matmul; 3 = reduce; 6 = reduce; 7 = sub
+     * First op is sub, which self-configures 5,6,7 at execute time.
+     */
+
+    _llk_math_reduce_block_max_row_init_<1, false>();
 
     _llk_math_matmul_init_no_mop_<ckernel::MathFidelity::LoFi, 0>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, 1, 1);
 
@@ -220,7 +233,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr DstSync dest_sync3     = DstSync::SyncHalf;
     _llk_math_reconfig_data_format_<false, false>(math_format3, math_format3);
     _llk_math_pack_sync_init_<dest_sync3, false>();
-    _llk_math_reduce_block_max_row_init_<1, false>();
+
+    reduce_max_row_configure_addrmod_reinit_minimal();
 
     _llk_math_wait_for_dest_available_<dest_sync3>();
 
