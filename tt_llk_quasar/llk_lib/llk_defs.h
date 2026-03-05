@@ -97,6 +97,41 @@ enum class ReluType : std::uint8_t
 /** Packer ReLU config: mode + 16-bit threshold (bits 16–31 in HW). */
 struct ReluConfig
 {
+    static constexpr ReluConfig none()
+    {
+        return {ReluType::NO_RELU};
+    }
+
+    static constexpr ReluConfig zero()
+    {
+        return {ReluType::ZERO_RELU};
+    }
+
+    static constexpr ReluConfig min_threshold(std::uint32_t t)
+    {
+        return {ReluType::MIN_THRESHOLD_RELU, t};
+    }
+
+    static constexpr ReluConfig max_threshold(std::uint32_t t)
+    {
+        return {ReluType::MAX_THRESHOLD_RELU, t};
+    }
+
+    constexpr ReluType get_mode() const
+    {
+        return mode;
+    }
+
+    constexpr std::uint32_t get_threshold() const
+    {
+        return threshold;
+    }
+
+private:
+    constexpr ReluConfig(ReluType m, std::uint32_t t = 0) : mode(m), threshold(t)
+    {
+    }
+
     ReluType mode           = ReluType::NO_RELU;
     std::uint32_t threshold = 0;
 };

@@ -57,7 +57,8 @@ inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uin
  * @param relu_config ReLU config (mode + threshold).
  */
 template <std::uint8_t PACK_SEL, bool EN_32B_DEST = false>
-inline void _llk_pack_init_(const std::uint8_t buf_desc_id, const std::uint32_t num_tiles = NUM_TILES, const ckernel::ReluConfig& relu_config = {})
+inline void _llk_pack_init_(
+    const std::uint8_t buf_desc_id, const std::uint32_t num_tiles = NUM_TILES, const ckernel::ReluConfig& relu_config = ckernel::ReluConfig::none())
 {
     _llk_pack_mop_config_<PACK_SEL>(buf_desc_id, num_tiles);
     _llk_pack_relu_config_<PACK_SEL, EN_32B_DEST>(relu_config);
