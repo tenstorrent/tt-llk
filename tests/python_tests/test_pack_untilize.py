@@ -3,6 +3,7 @@
 
 import pytest
 import torch
+from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.constraints import get_valid_dest_accumulation_modes
 from helpers.data_format_inference import infer_data_formats
 from helpers.format_config import DataFormat
@@ -84,6 +85,17 @@ def test_pack_untilize(
         pytest.skip(
             "Due to hardware limitation, cannot convert 8-bit exponent datums to Float16 without storing them as intermediate Float32 in dest register. Therefore using dest_acc=No is not supported in this case."
         )
+
+    # TODO: Checkout issue #1405 on tt-llk.
+    if (
+        get_chip_architecture() == ChipArchitecture.WORMHOLE
+        and formats.input_format
+        in (DataFormat.Float16_b, DataFormat.Float16, DataFormat.Bfp8_b)
+        and formats.output_format == DataFormat.Float32
+        and dest_acc == DestAccumulation.No
+        and input_dimensions == [64, 512]
+    ):
+        pytest.skip("Wormhole pack_untilize does not support this format combination.")
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
