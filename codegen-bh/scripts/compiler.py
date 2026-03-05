@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""Compile agent for SFPI compilation of generated LLK code."""
+"""Compile agent for SFPI compilation of generated Blackhole LLK code."""
 
 import subprocess
 from dataclasses import dataclass, field
@@ -56,18 +56,16 @@ class CompileResult:
 
 
 class CompileAgent:
-    """Agent for compiling generated LLK code using SFPI compiler."""
+    """Agent for compiling generated Blackhole LLK code using SFPI compiler."""
 
-    # Architecture to compiler flags mapping (from tests/Makefile and test_config.py)
+    # Architecture to compiler flags mapping
     ARCH_FLAGS = {
-        # Quasar: uses BH cpu for now, per Makefile comment "until there is official support"
-        "quasar": ["-mcpu=tt-bh-tensix", "-DARCH_QUASAR"],
         "blackhole": ["-mcpu=tt-bh-tensix", "-DARCH_BLACKHOLE"],
         "wormhole": ["-mcpu=tt-wh-tensix", "-DARCH_WORMHOLE"],
     }
 
-    def __init__(self, arch: str = "quasar"):
-        if arch not in settings.supported_architectures:
+    def __init__(self, arch: str = "blackhole"):
+        if arch not in ["blackhole", "wormhole"]:
             raise ValueError(f"Unsupported architecture: {arch}")
 
         self.arch = arch
@@ -166,13 +164,15 @@ class CompileAgent:
     def _create_wrapper(self, code: str, filename: str) -> str:
         """Create a wrapper .cpp file that includes the generated header.
 
-        This wrapper mimics how the test infrastructure includes and uses SFPU functions.
+        This wrapper mimics how the test infrastructure includes and uses Blackhole SFPU functions.
+        Blackhole uses the SFPI C++ library style.
         """
-        return f"""// Auto-generated compile test wrapper
+        return f"""// Auto-generated compile test wrapper for Blackhole
 // Mimics the test infrastructure includes
 
-#include "ckernel_trisc_common.h"
-#include "cmath_common.h"
+#include "sfpi.h"
+#include "sfpi_fp16.h"
+#include "ckernel_sfpu_load_config.h"
 #include "{filename}"
 
 using namespace ckernel;
@@ -182,8 +182,9 @@ using namespace ckernel::sfpu;
 namespace {{
     void force_compile_sigmoid() {{
         // Instantiate the calculate function with both approximation modes
-        _calculate_sigmoid_<true>(16);
-        _calculate_sigmoid_<false>(16);
+        // Blackhole uses ITERATIONS as second template parameter
+        _calculate_sigmoid_<true, 8>(16);
+        _calculate_sigmoid_<false, 8>(16);
     }}
 
     void force_compile_init() {{
