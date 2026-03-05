@@ -26,11 +26,9 @@ from helpers.stimuli_generator import generate_stimuli_w_tile_dimensions
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
     IN_FACE_DIMS,
-    IN_TILE_DIMS,
     INPUT_TILE_CNT,
     MATH_FIDELITY,
     MATH_OP,
-    NUM_FACES,
     NUM_FACES_C_DIM,
     NUM_FACES_R_DIM,
     NUM_TILES_IN_BLOCK,
@@ -92,7 +90,7 @@ def test_reduce(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
-        input_dimensions_B=[32, 32],
+        input_dimensions_B=tile_dimensions,
         tile_dimensions=tile_dimensions,
     )
 
@@ -100,16 +98,17 @@ def test_reduce(
         ReducePool.Max,
         ReducePool.Sum,
     ]:  # result in srcA should be divided by 1
-        src_B = torch.full((1024,), 1)
+        src_B = torch.full((tile_shape.total_tile_size(),), 1)
     else:
         # reduce average divides by length of elements in array we reduce
         if reduce_dim == ReduceDimension.Row:
-            src_B = torch.full((1024,), 1 / tile_dimensions[1])
+            src_B = torch.full((tile_shape.total_tile_size(),), 1 / tile_dimensions[1])
         elif reduce_dim == ReduceDimension.Column:
-            src_B = torch.full((1024,), 1 / tile_dimensions[0])
+            src_B = torch.full((tile_shape.total_tile_size(),), 1 / tile_dimensions[0])
         else:  # Scalar
             src_B = torch.full(
-                (1024,), 1 / math.sqrt(tile_dimensions[0] * tile_dimensions[1])
+                (tile_shape.total_tile_size(),),
+                1 / math.sqrt(tile_dimensions[0] * tile_dimensions[1]),
             )
 
     generate_golden = get_golden_generator(ReduceGolden)
@@ -148,13 +147,16 @@ def test_reduce(
             MATH_FIDELITY(math_fidelity),
         ],
         runtimes=[
-            IN_FACE_DIMS(tile_shape.face_r_dim, tile_shape.face_c_dim),
-            IN_TILE_DIMS(tile_dimensions[0], tile_dimensions[1]),
+            IN_FACE_DIMS(
+                tile_shape.face_r_dim,
+                tile_shape.face_c_dim,
+                tile_shape.face_r_dim,
+                tile_shape.face_c_dim,
+            ),
             INPUT_TILE_CNT(tile_cnt_A),
             OUTPUT_TILE_CNT(output_tile_count),
             NUM_TILES_IN_BLOCK(num_tiles_in_block),
             REDUCE_TO_ONE(is_reduce_to_one),
-            NUM_FACES(num_faces_A=tile_shape.total_num_faces(), num_faces_B=4),
             NUM_FACES_R_DIM(tile_shape.num_faces_r_dim),
             NUM_FACES_C_DIM(tile_shape.num_faces_c_dim),
         ],
