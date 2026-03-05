@@ -9,6 +9,7 @@
 #include "ckernel.h"
 #include "llk_defs.h"
 #include "tensor_shape.h"
+#include "sfpu_stub.h"
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -134,5 +135,3 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_reduce_mask_clear_();
 }
 #endif
-
-#include "sfpu_stub.h"

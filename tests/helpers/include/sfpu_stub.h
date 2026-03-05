@@ -3,9 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Stub for SFPU TRISC when test does not use the 4-TRISC SFPU pipeline.
-// Include at end of Quasar test sources.
+// Include in Quasar test sources.
 
-#ifdef LLK_TRISC_SFPU
+#pragma once
+
+#ifdef LLK_TRISC_ISOLATE_SFPU
 
 // build.h uses p_unpacr::UNP_A etc; bring ckernel namespace into scope
 using namespace ckernel;
