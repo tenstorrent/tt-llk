@@ -234,7 +234,7 @@ private:
     PerfCounterManager() = default;
 
     // Get pointer to L1 config buffer (86 words of counter metadata)
-    volatile std::uint32_t* get_config_mem()
+    const volatile std::uint32_t* get_config_mem()
     {
         return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_CONFIG_ADDR);
     }
@@ -341,8 +341,8 @@ private:
     // Reads config from L1, configures L1 MUX if needed, and starts each bank
     void start_hardware()
     {
-        volatile std::uint32_t* config_mem = get_config_mem();
-        std::uint32_t started_mask         = 0;
+        const volatile std::uint32_t* config_mem = get_config_mem();
+        std::uint32_t started_mask               = 0;
 
         for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
         {
@@ -352,7 +352,7 @@ private:
                 continue;
             }
 
-            const std::uint8_t bank_id   = metadata & 0xFF;
+            const std::uint8_t bank_id   = static_cast<std::uint8_t>(metadata);
             const std::uint32_t bank_bit = 1u << bank_id;
 
             if (started_mask & bank_bit)
@@ -360,7 +360,7 @@ private:
                 continue;
             }
 
-            counter_bank bank = static_cast<counter_bank>(bank_id);
+            const counter_bank bank = static_cast<counter_bank>(bank_id);
 
             // Configure L1 MUX if needed
             if (bank == counter_bank::l1)
@@ -385,8 +385,8 @@ private:
     // Stops each bank, configures counter selectors, reads cycle/count pairs, writes to L1
     void stop_hardware()
     {
-        volatile std::uint32_t* config_mem = get_config_mem();
-        volatile std::uint32_t* data_mem   = get_data_mem();
+        const volatile std::uint32_t* config_mem = get_config_mem();
+        volatile std::uint32_t* data_mem         = get_data_mem();
 
         std::uint32_t stopped_mask = 0;
         std::uint32_t result_idx   = 0;
@@ -399,12 +399,12 @@ private:
                 continue;
             }
 
-            const std::uint8_t bank_id     = metadata & 0xFF;
+            const std::uint8_t bank_id     = static_cast<std::uint8_t>(metadata);
             const std::uint16_t counter_id = (metadata >> 8) & 0x1FF;
             const std::uint8_t l1_mux      = (metadata >> 17) & 0x1;
             const std::uint32_t bank_bit   = 1u << bank_id;
 
-            counter_bank bank = static_cast<counter_bank>(bank_id);
+            const counter_bank bank = static_cast<counter_bank>(bank_id);
 
             // Stop bank on first encounter
             if (!(stopped_mask & bank_bit))
