@@ -1041,7 +1041,11 @@ class DataCopyGolden:
             # Hardware saturates (clamps) values instead of wrapping around
             if data_format.is_integer():
                 iinfo = torch.iinfo(torch_format)
-                min_val, max_val = iinfo.min, iinfo.max
+                is_unsigned = str(data_format).startswith("U")
+                if is_unsigned:
+                    min_val, max_val = iinfo.min, iinfo.max
+                else:
+                    min_val, max_val = iinfo.min + 1, iinfo.max
 
                 # Convert to intermediate type (int64 or int32) to avoid overflow during clamping
                 # Use int64 to safely handle UInt32 values
