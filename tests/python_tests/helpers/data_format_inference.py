@@ -135,8 +135,6 @@ def infer_pack_in(
             )
 
         if unpack_out.is_integer():
-            if unpack_out == DataFormat.Int16:
-                return DataFormat.Int16  # TODO: AM, or UInt16!!
             # When the dest register is in 32-bit mode, the packer input format is 32-bit
             return (
                 DataFormat.Int32
