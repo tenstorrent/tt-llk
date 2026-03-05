@@ -263,7 +263,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr DstSync dest_sync5     = DstSync::SyncHalf;
     _llk_math_reconfig_data_format_<false, false>(math_format5, math_format5);
     _llk_math_pack_sync_init_<dest_sync5, false>();
-    _llk_math_matmul_init_no_mop_<ckernel::MathFidelity::LoFi, 0>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, 1, 1);
+
+    matmul_configure_addrmod_reinit();
+
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
         _llk_math_wait_for_dest_available_<dest_sync5>();
