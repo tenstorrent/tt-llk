@@ -20,8 +20,8 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
+#include "experimental/llk_unpack_AB_sub_bcast_col_custom.h"
 #include "llk_unpack_A.h"
-#include "llk_unpack_AB.h"
 #include "llk_unpack_AB_matmul.h"
 #include "llk_unpack_AB_reduce_custom.h"
 #include "llk_unpack_common.h"
@@ -39,8 +39,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_unpack_hw_configure_<false, false>(unpack_a_src_format0, unpack_b_src_format0, unpack_a_dst_format0, unpack_b_dst_format0, 16, 16, 4, 4, 128, 128);
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
-        _llk_unpack_AB_init_<BroadcastType::COL>(DEFAULT_TENSOR_SHAPE);
-        _llk_unpack_AB_<BroadcastType::COL>(L1_ADDRESS(buffer_A0[batch * 1 + 0]), L1_ADDRESS(buffer_B0[batch * 1 + 0]));
+        _llk_unpack_AB_sub_bcast_col_init_custom_<BroadcastType::COL>(16, 4, false);
+        _llk_unpack_AB_sub_bcast_col_custom_<BroadcastType::COL>(L1_ADDRESS(buffer_A0[batch * 1 + 0]), L1_ADDRESS(buffer_B0[batch * 1 + 0]), 1);
+        _llk_unpack_AB_sub_bcast_col_uninit_custom_();
     }
 
     // Operation 1: Matmul (no MOP)
@@ -117,8 +118,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     t6_semaphore_get<>(semaphore::PACK_DONE);
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
-        _llk_unpack_AB_init_<BroadcastType::COL>(DEFAULT_TENSOR_SHAPE);
-        _llk_unpack_AB_<BroadcastType::COL>(L1_ADDRESS(buffer_A4[batch * 1 + 0]), L1_ADDRESS(buffer_B4[batch * 1 + 0]));
+        _llk_unpack_AB_sub_bcast_col_init_custom_<BroadcastType::COL>(16, 4, false);
+        _llk_unpack_AB_sub_bcast_col_custom_<BroadcastType::COL>(L1_ADDRESS(buffer_A4[batch * 1 + 0]), L1_ADDRESS(buffer_B4[batch * 1 + 0]), 1);
+        _llk_unpack_AB_sub_bcast_col_uninit_custom_();
     }
 
     // Operation 5: Matmul (no MOP)
@@ -149,28 +151,28 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 #ifdef LLK_TRISC_MATH
 
+#include "experimental/llk_math_eltwise_binary_custom.h"
 #include "experimental/llk_math_matmul_custom_no_mop.h"
 #include "llk_math_common.h"
-#include "llk_math_eltwise_binary.h"
 #include "llk_math_eltwise_unary_datacopy.h"
 #include "llk_math_reduce_custom.h"
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-    // Operation 0: Elwsub with column broadcast
+    // Operation 0: Custom Elwsub with column broadcast
     const std::uint32_t math_format0 = ckernel::to_underlying(DataFormat::Float16_b);
     constexpr DstSync dest_sync0     = DstSync::SyncHalf;
     _llk_math_hw_configure_<false>(math_format0, math_format0);
     _llk_math_pack_sync_init_<dest_sync0, false>();
-    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::ELWSUB, BroadcastType::COL, ckernel::MathFidelity::LoFi, EltwiseBinaryReuseDestType::NONE>(
-        DEFAULT_TENSOR_SHAPE, 0);
-    for (std::uint32_t batch = 0; batch < 1; ++batch)
-    {
-        _llk_math_wait_for_dest_available_<dest_sync0>();
-        _llk_math_eltwise_binary_<ELWSUB, BroadcastType::COL, dest_sync0, false, ckernel::MathFidelity::LoFi, EltwiseBinaryReuseDestType::NONE>(
-            DEFAULT_TENSOR_SHAPE, 0, false);
-        _llk_math_dest_section_done_<dest_sync0, false>();
-    }
+    _llk_math_eltwise_binary_init_custom_<
+        ckernel::EltwiseBinaryType::ELWSUB,
+        BroadcastType::COL,
+        ckernel::MathFidelity::LoFi,
+        EltwiseBinaryReuseDestType::NONE>(4, 0);
+
+    _llk_math_wait_for_dest_available_<dest_sync0>();
+    _llk_math_eltwise_binary_bcast_reuse_custom_(1);
+    _llk_math_dest_section_done_<dest_sync0, false>();
 
     // Operation 1: Matmul (no MOP)
     const std::uint32_t math_format1 = ckernel::to_underlying(DataFormat::Float16_b);
@@ -194,12 +196,15 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_reconfig_data_format_<false, false>(math_format2, math_format2);
     _llk_math_pack_sync_init_<dest_sync2, false>();
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, false, BroadcastType::NONE, false, false>(4, math_format2);
+
+    _llk_math_wait_for_dest_available_<dest_sync2>();
+
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
-        _llk_math_wait_for_dest_available_<dest_sync2>();
         _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync2, false, BroadcastType::NONE, false>(0, math_format2, math_format2, 4);
-        _llk_math_dest_section_done_<dest_sync2, false>();
     }
+
+    _llk_math_dest_section_done_<dest_sync2, false>();
 
     // Operation 3: ReduceBlockMax
     const std::uint32_t math_format3 = ckernel::to_underlying(DataFormat::Float16_b);
@@ -207,28 +212,31 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_reconfig_data_format_<false, false>(math_format3, math_format3);
     _llk_math_pack_sync_init_<dest_sync3, false>();
     _llk_math_reduce_block_max_row_init_<1, false>();
+
+    _llk_math_wait_for_dest_available_<dest_sync3>();
+
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
-        _llk_math_wait_for_dest_available_<dest_sync3>();
         _llk_math_reduce_block_max_row_<1, false>(0);
-        _llk_math_dest_section_done_<dest_sync3, false>();
     }
+
+    _llk_math_dest_section_done_<dest_sync3, false>();
     _llk_math_reduce_block_max_row_uninit_();
 
-    // Operation 4: Elwsub with column broadcast
+    // Operation 4: Custom Elwsub with column broadcast
     const std::uint32_t math_format4 = ckernel::to_underlying(DataFormat::Float16_b);
     constexpr DstSync dest_sync4     = DstSync::SyncHalf;
     _llk_math_reconfig_data_format_<false, false>(math_format4, math_format4);
     _llk_math_pack_sync_init_<dest_sync4, false>();
-    _llk_math_eltwise_binary_init_<ckernel::EltwiseBinaryType::ELWSUB, BroadcastType::COL, ckernel::MathFidelity::LoFi, EltwiseBinaryReuseDestType::NONE>(
-        DEFAULT_TENSOR_SHAPE, 0);
-    for (std::uint32_t batch = 0; batch < 1; ++batch)
-    {
-        _llk_math_wait_for_dest_available_<dest_sync4>();
-        _llk_math_eltwise_binary_<ELWSUB, BroadcastType::COL, dest_sync4, false, ckernel::MathFidelity::LoFi, EltwiseBinaryReuseDestType::NONE>(
-            DEFAULT_TENSOR_SHAPE, 0, false);
-        _llk_math_dest_section_done_<dest_sync4, false>();
-    }
+    _llk_math_eltwise_binary_init_custom_<
+        ckernel::EltwiseBinaryType::ELWSUB,
+        BroadcastType::COL,
+        ckernel::MathFidelity::LoFi,
+        EltwiseBinaryReuseDestType::NONE>(4, 0);
+
+    _llk_math_wait_for_dest_available_<dest_sync4>();
+    _llk_math_eltwise_binary_bcast_reuse_custom_(1);
+    _llk_math_dest_section_done_<dest_sync4, false>();
 
     // Operation 5: Matmul (no MOP)
     const std::uint32_t math_format5 = ckernel::to_underlying(DataFormat::Float16_b);
