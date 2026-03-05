@@ -925,10 +925,11 @@ class TestConfig:
                     if self.coverage_build == CoverageBuild.Yes
                     else f""
                 )
+                trisc_define = "ISOLATE_SFPU" if name == "sfpu" else name.upper()
                 compile_command = (
                     f"{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{TestConfig.TESTS_WORKING_DIR} "
                     f"-I{TestConfig.RISCV_SOURCES} -I{VARIANT_DIR} {local_options_compile} {optional_kernel_flags} "
-                    f"-DLLK_TRISC_{name.upper()} {TestConfig.OPTIONS_LINK} {COVERAGES_DEPS} "
+                    f"-DLLK_TRISC_{trisc_define} {TestConfig.OPTIONS_LINK} {COVERAGES_DEPS} "
                     f"-T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / name}.ld -T{TestConfig.LINKER_SCRIPTS}/sections.ld "
                     f"-x c++ - -lc -o {VARIANT_ELF_DIR / name}.elf"
                 )

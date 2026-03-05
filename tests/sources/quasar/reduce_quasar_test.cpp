@@ -8,6 +8,7 @@
 
 #include "ckernel.h"
 #include "llk_defs.h"
+#include "sfpu_stub.h"
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -138,5 +139,3 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_pack_reduce_mask_clear_();
 }
 #endif
-
-#include "sfpu_stub.h"
