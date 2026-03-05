@@ -62,11 +62,7 @@ inline void device_setup()
 
 inline void clear_trisc_soft_reset()
 {
-#ifdef ARCH_QUASAR
-    constexpr std::uint32_t TRISC_SOFT_RESET_MASK = 0x7800;
-#else
     constexpr std::uint32_t TRISC_SOFT_RESET_MASK = 0x7000;
-#endif
 
     volatile std::uint32_t* reset_before = reinterpret_cast<std::uint32_t*>(0x64FF0);
     volatile std::uint32_t* reset_after  = reinterpret_cast<std::uint32_t*>(0x64FF4);

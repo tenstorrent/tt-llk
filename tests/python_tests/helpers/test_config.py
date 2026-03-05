@@ -731,8 +731,9 @@ class TestConfig:
                 if not self.compile_time_formats:
                     optional_kernel_flags += " -DRUNTIME_FORMATS"
 
+                trisc_define = "ISOLATE_SFPU" if name == "sfpu" else name.upper()
                 run_shell_command(  # main_%.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {optional_kernel_flags} -DLLK_TRISC_{name.upper()} -c -o {shared_obj_dir / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {optional_kernel_flags} -DLLK_TRISC_{trisc_define} -c -o {shared_obj_dir / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
@@ -952,8 +953,9 @@ class TestConfig:
                 if not self.compile_time_formats:
                     optional_kernel_flags += " -DRUNTIME_FORMATS"
 
+                trisc_define = "ISOLATE_SFPU" if name == "sfpu" else name.upper()
                 run_shell_command(  # kernel_%.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {optional_kernel_flags} -DLLK_TRISC_{name.upper()} -c -o {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {TestConfig.TESTS_WORKING_DIR / self.test_name}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {optional_kernel_flags} -DLLK_TRISC_{trisc_define} -c -o {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {TestConfig.TESTS_WORKING_DIR / self.test_name}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 

@@ -9,6 +9,7 @@
 #include "ckernel.h"
 #include "llk_defs.h"
 #include "llk_memory_checks.h"
+#include "sfpu_stub.h"
 
 // Globals
 std::uint32_t unp_cfg_context          = 0;
@@ -130,5 +131,3 @@ void run_kernel(const volatile struct RuntimeParams* params)
 }
 
 #endif
-
-#include "sfpu_stub.h"

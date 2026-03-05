@@ -52,7 +52,7 @@ int main()
     constexpr std::uint32_t mailbox_offset = 2 * sizeof(std::uint32_t);
 #elif defined(LLK_TRISC_PACK)
     constexpr std::uint32_t mailbox_offset = 3 * sizeof(std::uint32_t);
-#elif defined(LLK_TRISC_SFPU)
+#elif defined(LLK_TRISC_ISOLATE_SFPU)
     constexpr std::uint32_t mailbox_offset = 4 * sizeof(std::uint32_t);
 #endif
 

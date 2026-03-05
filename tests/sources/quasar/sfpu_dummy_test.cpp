@@ -40,7 +40,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
 }
 #endif
 
-#ifdef LLK_TRISC_SFPU
+#ifdef LLK_TRISC_ISOLATE_SFPU
 
 #include "params.h"
 
