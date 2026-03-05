@@ -139,7 +139,6 @@ def test_sfpu_reduce(
     )
 
     # STIMULI GENERATION
-    tile_cnt = input_dimensions[0] * input_dimensions[1] // ELEMENTS_PER_TILE
     src_A = torch.randint(
         low=min_value,
         high=max_value,

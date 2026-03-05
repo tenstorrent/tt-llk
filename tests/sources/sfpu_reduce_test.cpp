@@ -107,7 +107,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         // Row reduction requires all tiles in destination at once
         LLK_ASSERT(num_blocks == 1, "Row reduction requires all tiles in one block");
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        for (std::uint32_t i = 0; i < params->TILE_CNT; ++i)
+        for (std::uint32_t i = 0; i < num_tiles_in_block * num_blocks; ++i)
         {
             LLK_ASSERT(
                 (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
@@ -124,7 +124,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_math_eltwise_binary_sfpu_start_<DstSync::SyncHalf>(0);
         ckernel::sfpu::_init_add_top_row_();
 
-        for (int i = 1; i < params->TILE_CNT; ++i)
+        for (int i = 1; i < num_tiles_in_block * num_blocks; ++i)
         {
             LLK_ASSERT(
                 (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
