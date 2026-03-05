@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
@@ -288,16 +287,6 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
         )
 
     sync_word = sync_ctrl[0]
-
-    # Optional: log sync_ctrl values for aggregation across tests
-    sync_log = Path(TestConfig.LLK_ROOT) / "perf_data" / "sync_ctrl_values.txt"
-    try:
-        sync_log.parent.mkdir(parents=True, exist_ok=True)
-        with sync_log.open("a") as f:
-            f.write(f"0x{sync_word:08x}\n")
-    except Exception:
-        # Best-effort logging; do not fail tests if logging fails.
-        pass
 
     # Validate that counters were properly started and stopped
     GLOBAL_STARTED_BIT = 1 << 6
