@@ -59,18 +59,15 @@ def test_sdpa_reinits(
     """
     Test for SDPA reinits operations using sources/sdpa_reinits_test.cpp
 
-    This test validates a sequence of 4 operations with reinitializations:
-    1. Operation 0: Matmul(A, B) -> output1 at 0x1b000
-    2. Operation 1: ReduceBlockMax(A) -> output2 at 0x1b800
-    3. Operation 2: Elwsub(A, B) with column broadcast -> output3 at 0x1c000
-    4. Operation 3: Matmul(A, B) -> output4 at 0x1c800
-
-    The test exercises reinitializations between different operation types
-    to ensure proper hardware reconfiguration.
+    This test validates a sequence of 6 operations with full reinitializations:
+    0. Elwsub(A, B) with column broadcast -> output0 at 0x1b000
+    1. Matmul(A, B) no MOP               -> output1 at 0x1b800
+    2. Datacopy(A)                        -> output2 at 0x1c000
+    3. ReduceBlockMax(A)                  -> output3 at 0x1c800
+    4. Elwsub(A, B) with column broadcast -> output4 at 0x1d000
+    5. Matmul(A, B) no MOP               -> output5 at 0x1d800
     """
 
-    # Generate input stimuli
-    # Note: src_b_const_value: 1.0 in YAML means src_B is constant 1.0, not random
     src_A, tile_cnt_A, _, _ = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
@@ -78,7 +75,6 @@ def test_sdpa_reinits(
         input_dimensions_B=input_dimensions,
     )
 
-    # src_B is constant 1.0 as per YAML config (src_b_const_value: 1.0)
     src_B = torch.ones(
         input_dimensions[0],
         input_dimensions[1],
@@ -86,7 +82,6 @@ def test_sdpa_reinits(
     )
     tile_cnt_B = (input_dimensions[0] // 32) * (input_dimensions[1] // 32)
 
-    # Tilize inputs for hardware
     tilized_A = tilize_block(
         src_A, dimensions=input_dimensions, stimuli_format=formats.input_format
     )
@@ -94,10 +89,29 @@ def test_sdpa_reinits(
         src_B, dimensions=input_dimensions, stimuli_format=formats.input_format
     )
 
-    # GOLDEN GENERATION - All 4 operations as defined in sdpa_reinits.yaml
+    # GOLDEN GENERATION - 6 operations
     # ========================================================================
 
-    # Operation 0: Matmul(A, B) -> output1
+    # Operation 0: Elwsub(A, B) with column broadcast -> output0
+    broadcast_golden = get_golden_generator(BroadcastGolden)
+    src_B_broadcasted = broadcast_golden(
+        BroadcastType.Column,
+        tilized_B.flatten(),
+        formats.input_format,
+        num_faces=4,
+        tile_cnt=tile_cnt_A,
+        face_r_dim=16,
+    )
+    binary_golden = get_golden_generator(EltwiseBinaryGolden)
+    golden_output0 = binary_golden(
+        MathOperation.Elwsub,
+        tilized_A.flatten(),
+        src_B_broadcasted,
+        formats.output_format,
+        math_fidelity,
+    )
+
+    # Operation 1: Matmul(A, B) -> output1
     matmul_golden = get_golden_generator(MatmulGolden)
     golden_output1 = matmul_golden(
         src_A,
@@ -109,61 +123,31 @@ def test_sdpa_reinits(
         tilize=True,
     )
 
-    # Operation 1: ReduceBlockMax(A) -> output2
-    # For ReduceBlockMax, we need to compute max per row in tilized space
-    # The hardware reads tilized data and outputs max in column 0 of each row within the tile
+    # Operation 2: Datacopy(A) -> output2
+    golden_output2 = tilized_A.flatten()
+
+    # Operation 3: ReduceBlockMax(A) -> output3
     src_A_untilized = untilize_block(
         tilized_A.flatten(), formats.input_format, input_dimensions
     )
-
-    # Compute reduce: for each row, find max across the row (first ct_dim*32 elements)
-    golden_output2_untilized = torch.zeros_like(src_A_untilized)
+    golden_output3_untilized = torch.zeros_like(src_A_untilized)
     for row in range(input_dimensions[0]):
-        golden_output2_untilized[row, 0] = torch.max(src_A_untilized[row, :])
-
-    # Tilize the result to match hardware output format
-    golden_output2 = tilize_block(
-        golden_output2_untilized,
+        golden_output3_untilized[row, 0] = torch.max(src_A_untilized[row, :])
+    golden_output3 = tilize_block(
+        golden_output3_untilized,
         dimensions=input_dimensions,
         stimuli_format=formats.output_format,
     ).flatten()
 
-    # Operation 2: Elwsub(A, B) with column broadcast -> output3
-    # First broadcast src_B for column broadcast, then apply eltwise sub
-    broadcast_golden = get_golden_generator(BroadcastGolden)
-    src_B_broadcasted = broadcast_golden(
-        BroadcastType.Column,
-        tilized_B.flatten(),
-        formats.input_format,
-        num_faces=4,
-        tile_cnt=tile_cnt_A,
-        face_r_dim=16,
-    )
-    binary_golden = get_golden_generator(EltwiseBinaryGolden)
-    golden_output3 = binary_golden(
-        MathOperation.Elwsub,
-        tilized_A.flatten(),
-        src_B_broadcasted,
-        formats.output_format,
-        math_fidelity,
-    )
+    # Operation 4: Elwsub(A, B) with column broadcast -> output4 (same as op 0)
+    golden_output4 = golden_output0.clone()
 
-    # Operation 3: Matmul(A, B) -> output4
-    golden_output4 = matmul_golden(
-        src_A,
-        src_B,
-        formats.output_format,
-        math_fidelity,
-        input_A_dimensions=input_dimensions,
-        input_B_dimensions=input_dimensions,
-        tilize=True,
-    )
+    # Operation 5: Matmul(A, B) -> output5 (same as op 1)
+    golden_output5 = golden_output1.clone()
 
-    # Calculate tile count
     tile_rows, tile_cols = input_dimensions
     output_tile_cnt = (tile_rows // 32) * (tile_cols // 32)
 
-    # Build the test
     configuration = TestConfig(
         "sources/sdpa_reinits_test.cpp",
         formats,
@@ -178,12 +162,11 @@ def test_sdpa_reinits(
             NUM_FACES(),
             TILE_COUNT(output_tile_cnt),
         ],
-        variant_stimuli=None,  # We'll write stimuli manually
+        variant_stimuli=None,
         dest_acc=dest_acc,
         unpack_to_dest=False,
     )
 
-    # Build ELFs
     configuration.generate_variant_hash()
     if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
         configuration.build_elfs()
@@ -191,15 +174,15 @@ def test_sdpa_reinits(
     if TestConfig.MODE == TestMode.PRODUCE:
         pytest.skip(TestConfig.SKIP_JUST_FOR_COMPILE_MARKER)
 
-    # Manually write stimuli to the addresses the CPP file expects
     BUFFER_A_ADDR = 0x1A000
     BUFFER_B_ADDR = 0x1A800
-    BUFFER_RES0_ADDR = 0x1B000  # Operation 0 output (Matmul)
-    BUFFER_RES1_ADDR = 0x1B800  # Operation 1 output (ReduceBlockMax)
-    BUFFER_RES2_ADDR = 0x1C000  # Operation 2 output (Elwsub)
-    BUFFER_RES3_ADDR = 0x1C800  # Operation 3 output (Matmul)
+    BUFFER_RES0_ADDR = 0x1B000  # Operation 0 output (Elwsub)
+    BUFFER_RES1_ADDR = 0x1B800  # Operation 1 output (Matmul)
+    BUFFER_RES2_ADDR = 0x1C000  # Operation 2 output (Datacopy)
+    BUFFER_RES3_ADDR = 0x1C800  # Operation 3 output (ReduceBlockMax)
+    BUFFER_RES4_ADDR = 0x1D000  # Operation 4 output (Elwsub)
+    BUFFER_RES5_ADDR = 0x1D800  # Operation 5 output (Matmul)
 
-    # Write input data to device
     write_to_device(
         workers_tensix_coordinates, BUFFER_A_ADDR, pack_bfp16(tilized_A.flatten())
     )
@@ -207,16 +190,14 @@ def test_sdpa_reinits(
         workers_tensix_coordinates, BUFFER_B_ADDR, pack_bfp16(tilized_B.flatten())
     )
 
-    # Run the test - all 4 operations execute in sequence with reinits
     elfs = configuration.run_elf_files(workers_tensix_coordinates)
     wait_for_tensix_operations_finished(elfs, workers_tensix_coordinates)
 
-    # Read and validate all 4 outputs
-    tile_size = 2048  # Float16_b tile size
+    tile_size = 2048
     read_bytes_cnt = tile_size * output_tile_cnt
     torch_format = format_dict[formats.output_format]
 
-    # Validate Operation 0: Matmul
+    # Validate Operation 0: Elwsub with column broadcast
     read_data0 = read_from_device(
         workers_tensix_coordinates, BUFFER_RES0_ADDR, num_bytes=read_bytes_cnt
     )
@@ -224,10 +205,10 @@ def test_sdpa_reinits(
         read_data0, formats.output_format, output_tile_cnt, False, 4, 16
     )
     res_tensor_0 = torch.tensor(res_from_L1_0, dtype=torch_format)
-    if not passed_test(golden_output1, res_tensor_0, formats.output_format):
-        assert False, "Operation 0 (Matmul) failed"
+    if not passed_test(golden_output0, res_tensor_0, formats.output_format):
+        assert False, "Operation 0 (Elwsub) failed"
 
-    # Validate Operation 1: ReduceBlockMax
+    # Validate Operation 1: Matmul
     read_data1 = read_from_device(
         workers_tensix_coordinates, BUFFER_RES1_ADDR, num_bytes=read_bytes_cnt
     )
@@ -235,10 +216,10 @@ def test_sdpa_reinits(
         read_data1, formats.output_format, output_tile_cnt, False, 4, 16
     )
     res_tensor_1 = torch.tensor(res_from_L1_1, dtype=torch_format)
-    if not passed_test(golden_output2, res_tensor_1, formats.output_format):
-        assert False, "Operation 1 (ReduceBlockMax) failed"
+    if not passed_test(golden_output1, res_tensor_1, formats.output_format):
+        assert False, "Operation 1 (Matmul) failed"
 
-    # Validate Operation 2: Elwsub with column broadcast
+    # Validate Operation 2: Datacopy
     read_data2 = read_from_device(
         workers_tensix_coordinates, BUFFER_RES2_ADDR, num_bytes=read_bytes_cnt
     )
@@ -246,10 +227,10 @@ def test_sdpa_reinits(
         read_data2, formats.output_format, output_tile_cnt, False, 4, 16
     )
     res_tensor_2 = torch.tensor(res_from_L1_2, dtype=torch_format)
-    if not passed_test(golden_output3, res_tensor_2, formats.output_format):
-        assert False, "Operation 2 (Elwsub) failed"
+    if not passed_test(golden_output2, res_tensor_2, formats.output_format):
+        assert False, "Operation 2 (Datacopy) failed"
 
-    # Validate Operation 3: Matmul (final operation after all reinits)
+    # Validate Operation 3: ReduceBlockMax
     read_data3 = read_from_device(
         workers_tensix_coordinates, BUFFER_RES3_ADDR, num_bytes=read_bytes_cnt
     )
@@ -257,5 +238,27 @@ def test_sdpa_reinits(
         read_data3, formats.output_format, output_tile_cnt, False, 4, 16
     )
     res_tensor_3 = torch.tensor(res_from_L1_3, dtype=torch_format)
-    if not passed_test(golden_output4, res_tensor_3, formats.output_format):
-        assert False, "Operation 3 (Matmul) failed"
+    if not passed_test(golden_output3, res_tensor_3, formats.output_format):
+        assert False, "Operation 3 (ReduceBlockMax) failed"
+
+    # Validate Operation 4: Elwsub with column broadcast
+    read_data4 = read_from_device(
+        workers_tensix_coordinates, BUFFER_RES4_ADDR, num_bytes=read_bytes_cnt
+    )
+    res_from_L1_4 = unpack_res_tiles(
+        read_data4, formats.output_format, output_tile_cnt, False, 4, 16
+    )
+    res_tensor_4 = torch.tensor(res_from_L1_4, dtype=torch_format)
+    if not passed_test(golden_output4, res_tensor_4, formats.output_format):
+        assert False, "Operation 4 (Elwsub) failed"
+
+    # Validate Operation 5: Matmul
+    read_data5 = read_from_device(
+        workers_tensix_coordinates, BUFFER_RES5_ADDR, num_bytes=read_bytes_cnt
+    )
+    res_from_L1_5 = unpack_res_tiles(
+        read_data5, formats.output_format, output_tile_cnt, False, 4, 16
+    )
+    res_tensor_5 = torch.tensor(res_from_L1_5, dtype=torch_format)
+    if not passed_test(golden_output5, res_tensor_5, formats.output_format):
+        assert False, "Operation 5 (Matmul) failed"
