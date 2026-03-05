@@ -64,7 +64,7 @@ class DataFormat(Enum):
     Tf32 = DataFormatInfo("Tf32", 3)
     UInt32 = DataFormatInfo("UInt32", 4)  # WH/BH specific
     Int16 = DataFormatInfo("Int16", 2)  # QSR specific
-    UInt16 = DataFormatInfo("UInt16", 2)
+    UInt16 = DataFormatInfo("UInt16", 2)  # WH/BH specific
     Int8 = DataFormatInfo("Int8", 1)
     UInt8 = DataFormatInfo("UInt8", 1)
     MxFp8R = DataFormatInfo("MxFp8R", 1)  # QSR specific

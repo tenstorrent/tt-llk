@@ -14,6 +14,32 @@ from .chip_architecture import ChipArchitecture, get_chip_architecture
 from .format_config import DataFormat, FormatConfig
 from .llk_params import DestAccumulation
 
+VALID_QUASAR_SRC_REG_FORMATS = [
+    DataFormat.Float16_b,
+    DataFormat.Float16,
+    DataFormat.Float32,
+    DataFormat.Tf32,
+    DataFormat.Int32,
+    DataFormat.Int8,
+    DataFormat.UInt8,
+    DataFormat.Int16,
+]
+
+VALID_QUASAR_DEST_REG_FORMATS = [
+    DataFormat.Float16_b,
+    DataFormat.Float16,
+    DataFormat.Float32,
+    DataFormat.Int32,
+    DataFormat.Int8,
+    DataFormat.UInt8,
+    DataFormat.Int16,
+]
+
+
+def _check_register_format(data_format: DataFormat, valid_formats: list, role: str):
+    if data_format not in valid_formats:
+        raise ValueError(f"Inferred {role} format {data_format.name} is not supported")
+
 
 def is_format_combination_outlier(
     input_format: DataFormat,
@@ -120,11 +146,7 @@ def infer_pack_in(
     # For MX formats, unpack_out is already Float16_b (handled in infer_unpack_out).
 
     if is_quasar:
-        if (
-            not unpack_out.is_32_bit()
-            and output_format.is_32_bit()
-            and is_fp32_dest_acc_en == DestAccumulation.No
-        ):
+        if output_format.is_32_bit() and is_fp32_dest_acc_en == DestAccumulation.No:
             # When the dest register is in 32-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is valid
             # because pack_in=pack_out=Fp32, which is a supported packer conversion.
             # When dest register is in 16-bit mode, input_fmt=Fp16/16_b -> output_fmt=Fp32 is not valid
@@ -135,6 +157,13 @@ def infer_pack_in(
             )
 
         if unpack_out.is_integer():
+            if (
+                unpack_out == DataFormat.Int16
+                and is_fp32_dest_acc_en == DestAccumulation.Yes
+            ):
+                raise ValueError(
+                    f"If the input format is Int16, 32-bit dest is not supported and the packer input format must be Int16"
+                )
             # When the dest register is in 32-bit mode, the packer input format is 32-bit
             return (
                 DataFormat.Int32
@@ -273,6 +302,18 @@ def infer_data_formats(
         input_format_B = input_format
 
     same_src_format = input_format == input_format_B
+
+    # Check if unpack_out (src reg) and pack_in (dest reg) formats are valid for Quasar
+    if chip_arch == ChipArchitecture.QUASAR:
+        _check_register_format(
+            unpack_out_A, VALID_QUASAR_SRC_REG_FORMATS, "unpack_out (src register)"
+        )
+        _check_register_format(
+            unpack_out_B, VALID_QUASAR_SRC_REG_FORMATS, "unpack_out (src register)"
+        )
+        _check_register_format(
+            pack_in, VALID_QUASAR_DEST_REG_FORMATS, "pack_in (dest register)"
+        )
 
     return FormatConfig(
         unpack_A_src=input_format,

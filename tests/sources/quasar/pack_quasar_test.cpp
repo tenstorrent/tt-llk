@@ -32,11 +32,12 @@ void run_kernel(const volatile struct RuntimeParams* params)
     {
         set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::UNPACK, dest_dvalid_client::PACK});
 
-        if (is_fp32_dest_acc_en && static_cast<DataFormat>(formats.pack_src) == DataFormat::Float32)
+        DataFormat pack_src_format = static_cast<DataFormat>(formats.pack_src);
+        if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Float32)
         {
             _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>();
         }
-        else if (is_fp32_dest_acc_en && static_cast<DataFormat>(formats.pack_src) == DataFormat::Int32)
+        else if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Int32)
         {
             _llk_math_upk_to_dest_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>();
         }
@@ -100,20 +101,19 @@ void run_kernel(const volatile struct RuntimeParams* params)
     {
         set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
-        if (is_fp32_dest_acc_en && static_cast<DataFormat>(formats.pack_src) == DataFormat::Float32)
+        DataFormat math_format     = static_cast<DataFormat>(formats.math);
+        DataFormat pack_src_format = static_cast<DataFormat>(formats.pack_src);
+        if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Float32)
         {
-            _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>(
-                static_cast<DataFormat>(formats.math), static_cast<DataFormat>(formats.math));
+            _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, true /*fp32_dest*/, false /*int32_dest*/>(math_format, math_format);
         }
-        else if (is_fp32_dest_acc_en && static_cast<DataFormat>(formats.pack_src) == DataFormat::Int32)
+        else if (is_fp32_dest_acc_en && pack_src_format == DataFormat::Int32)
         {
-            _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>(
-                static_cast<DataFormat>(formats.math), static_cast<DataFormat>(formats.math));
+            _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, true /*int32_dest*/>(math_format, math_format);
         }
         else
         {
-            _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>(
-                static_cast<DataFormat>(formats.math), static_cast<DataFormat>(formats.math));
+            _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /*fp32_dest*/, false /*int32_dest*/>(math_format, math_format);
         }
 
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(
