@@ -136,10 +136,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         set_up_dest_dvalid_per_thread<dest_dvalid_client::SFPU>({dest_dvalid_client::FPU, dest_dvalid_client::SFPU, dest_dvalid_client::PACK});
     }
 
-    DataFormat src_format = static_cast<DataFormat>(formats.math);
-    _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, false /*is_int_fpu_en*/>(src_format, src_format);
-
-    const int num_sfpu_iterations = params->TEST_FACE_R_DIM / ckernel::math::SFP_ROWS;
+    const int num_sfpu_iterations = params->TEST_FACE_R_DIM >> 1; // SFP_ROWS == 2
 
     _llk_math_eltwise_unary_sfpu_init_();
 
@@ -182,7 +179,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
 
     buffer_descriptor_u bd_val = {0};
-    bd_val.f.l1_addr_16B       = params->buffer_Res[0] / 16;
+    bd_val.f.l1_addr_16B       = L1_ADDRESS(params->buffer_Res[0]);
     bd_val.f.format            = static_cast<std::uint8_t>(formats.pack_dst);
     bd_val.f.x_dim             = params->TEST_FACE_C_DIM;
     bd_val.f.y_dim             = params->TEST_FACE_R_DIM;
