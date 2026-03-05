@@ -2,9 +2,10 @@
 --extra-index-url https://test.pypi.org/simple/
 --extra-index-url https://download.pytorch.org/whl/cpu
 
-# tt packages from test.pypi.org
-tt-exalens==0.3.6
-tt-umd==0.9.1
+# tt packages from local builds
+# remove when changes are merged.
+tt-exalens @ file:///home/sstanisic/local/tt-exalens
+tt-umd @ file:///home/sstanisic/local/tt-umd
 
 # tt-smi from pypi
 tt-smi==3.1.1
