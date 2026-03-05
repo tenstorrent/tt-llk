@@ -44,6 +44,7 @@ from helpers.utils import passed_test
         [128, 32],
         [32, 128],
         [64, 128],
+        [128, 256],
     ],
 )
 def test_unp_bcast_sub_sdpa(
