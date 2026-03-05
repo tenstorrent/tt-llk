@@ -206,9 +206,12 @@ def passed_test(
 
     tolerance = get_tolerance(output_data_format)
 
-    if custom_atol:
+    if custom_atol is not None and custom_atol >= 0:
+        logger.info("Overriding atol from {} to {}", tolerance.atol, custom_atol)
         tolerance = tolerance._replace(atol=custom_atol)
-    if custom_rtol:
+
+    if custom_rtol is not None and custom_rtol >= 0:
+        logger.info("Overriding rtol from {} to {}", tolerance.rtol, custom_rtol)
         tolerance = tolerance._replace(rtol=custom_rtol)
 
     golden_tensor = golden_tensor.type(format_dict[output_data_format])
@@ -255,7 +258,7 @@ def passed_test(
                         for col in range(tile_shape.total_col_dim()):
                             colour = RED if error_tile[row, col] else background
                             row_values.append(
-                                f"{colour}{tile_data[row, col]:7.2f}{RESET}{' ' if col == (DEFAULT_TILE_C_DIM // 2) - 1 else '' }"
+                                f"{colour}{tile_data[row, col]:7.2f}{RESET}{' ' if col == tile_shape.face_c_dim - 1 else '' }"
                             )
 
                         tile_lines.append(f"{(row+1):02d}. {''.join(row_values)}")
@@ -325,7 +328,11 @@ def passed_test(
     if output_data_format == DataFormat.Bfp8_b:
         target_pcc = pow(0.99, L1_to_L1_iterations)
 
-    target_pcc = custom_pcc_threshold if custom_pcc_threshold else target_pcc
+    if custom_pcc_threshold is not None:
+        logger.info(
+            "Overriding PCC threshold from {} to {}", target_pcc, custom_pcc_threshold
+        )
+        target_pcc = custom_pcc_threshold
 
     return is_within_tolerance and (pcc > target_pcc)
 
