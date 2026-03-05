@@ -1048,9 +1048,11 @@ class DataCopyGolden:
                     min_val, max_val = iinfo.min + 1, iinfo.max
 
                 # Convert to intermediate type (int64 or int32) to avoid overflow during clamping
-                # Use int64 to safely handle UInt32 values
+                # Use int64 when source can hold values outside int32 range (e.g. UInt32 is torch.int64)
                 intermediate_type = (
-                    torch.int64 if result.dtype == torch.uint32 else torch.int32
+                    torch.int64
+                    if result.dtype in (torch.uint32, torch.int64)
+                    else torch.int32
                 )
                 result = result.to(intermediate_type)
 
