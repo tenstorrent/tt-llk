@@ -37,6 +37,7 @@ from .pack import (
     pack_fp16,
     pack_fp32,
     pack_int8,
+    pack_int16,
     pack_int32,
     pack_uint8,
     pack_uint16,

@@ -305,12 +305,19 @@ def infer_data_formats(
 
     # Check if unpack_out (src reg) and pack_in (dest reg) formats are valid for Quasar
     if chip_arch == ChipArchitecture.QUASAR:
-        _check_register_format(
-            unpack_out_A, VALID_QUASAR_SRC_REG_FORMATS, "unpack_out (src register)"
-        )
-        _check_register_format(
-            unpack_out_B, VALID_QUASAR_SRC_REG_FORMATS, "unpack_out (src register)"
-        )
+        if unpacking_to_dest:
+            _check_register_format(
+                unpack_out_A,
+                VALID_QUASAR_DEST_REG_FORMATS,
+                "unpack_out with unpacking to dest (dest register)",
+            )
+        else:
+            _check_register_format(
+                unpack_out_A, VALID_QUASAR_SRC_REG_FORMATS, "unpack_out (src register)"
+            )
+            _check_register_format(
+                unpack_out_B, VALID_QUASAR_SRC_REG_FORMATS, "unpack_out (src register)"
+            )
         _check_register_format(
             pack_in, VALID_QUASAR_DEST_REG_FORMATS, "pack_in (dest register)"
         )
