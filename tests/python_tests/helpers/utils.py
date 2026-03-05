@@ -37,6 +37,7 @@ tolerances = {
     DataFormat.MxFp8P: Tolerance(atol=0.2, rtol=0.3),
 }
 
+
 def print_faces(operand1, tile_shape=None):
     if tile_shape is None:
         tile_shape = construct_tile_shape((DEFAULT_TILE_R_DIM, DEFAULT_TILE_C_DIM))
