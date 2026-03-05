@@ -7,11 +7,17 @@ from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat
 from helpers.llk_params import (
     DestAccumulation,
+    DestSync,
     MathFidelity,
     MathOperation,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    BlocksCalculationAlgorithm,
+    get_num_blocks_and_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -19,6 +25,8 @@ from helpers.test_variant_parameters import (
     DEST_SYNC,
     MATH_FIDELITY,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     SRCA_REUSE_COUNT,
     TILE_COUNT,
     generate_input_dim,
@@ -44,7 +52,8 @@ from helpers.utils import passed_test
         [128, 32],
         [32, 128],
         [64, 128],
-        [128, 256],
+        [128, 128],
+        [256, 128],
     ],
 )
 def test_unp_bcast_sub_sdpa(
@@ -63,6 +72,16 @@ def test_unp_bcast_sub_sdpa(
 
     if input_tiles % srca_reuse_count != 0:
         pytest.skip("Input tiles must be divisible by reuse factor")
+
+    # Calculate blocks
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half,
+        dest_acc,
+        formats,
+        input_dimensions,
+        tile_dimensions=[32, 32],
+        blocks_algorithm=BlocksCalculationAlgorithm.Standard,
+    )
 
     if mathop != MathOperation.Elwmul and math_fidelity != MathFidelity.LoFi:
         pytest.skip("Fidelity does not affect Elwadd and Elwsub operations")
@@ -135,6 +154,8 @@ def test_unp_bcast_sub_sdpa(
         runtimes=[
             TILE_COUNT(tile_cnt_A),
             SRCA_REUSE_COUNT(srca_reuse_count),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
