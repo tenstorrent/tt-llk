@@ -20,8 +20,7 @@ inline void _calculate_silu_sfp_rows_()
 
     // Calculate sigmoid using lreg[0] as src, lreg[1] as work register, and lreg[2] as dest (since we need the original value for the final multiply)
     _calculate_sigmoid_regs_(p_sfpu::LREG0, p_sfpu::LREG1, p_sfpu::LREG2);
-    TTI_SFPMUL(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LCONST_0, p_sfpu::LREG1, 0); // Multiply lreg[0] * lreg[2], store result in lreg[1], takes 2 cycles
-    TTI_NOP;
+    TTI_SFPMUL(p_sfpu::LREG0, p_sfpu::LREG2, p_sfpu::LCONST_0, p_sfpu::LREG1, 0); // Multiply lreg[0] * lreg[2], store result in lreg[1]
 
     TTI_SFPSTORE(p_sfpu::LREG1, 0, ADDR_MOD_7, 0, 0); // store from lreg[1] into dest register
 }
