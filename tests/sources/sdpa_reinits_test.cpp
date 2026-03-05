@@ -251,11 +251,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr DstSync dest_sync4     = DstSync::SyncHalf;
     _llk_math_reconfig_data_format_<false, false>(math_format4, math_format4);
     _llk_math_pack_sync_init_<dest_sync4, false>();
-    _llk_math_eltwise_binary_init_custom_<
-        ckernel::EltwiseBinaryType::ELWSUB,
-        BroadcastType::COL,
-        ckernel::MathFidelity::LoFi,
-        EltwiseBinaryReuseDestType::NONE>(4, 0);
+
+    // NO ELTWISE BINARY INIT HERE BECAUSE IT IS DONE IN THE INITIALIZATION BLOCK
 
     _llk_math_wait_for_dest_available_<dest_sync4>();
     _llk_math_eltwise_binary_bcast_reuse_custom_(1);
