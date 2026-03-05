@@ -131,9 +131,8 @@ def infer_pack_in(
             # because pack_in=Fp16/16_b and pack_out=Fp32, which is not a supported packer conversion.
             # Similarly, input_fmt=Int8/UInt8 -> output_fmt=Int32 is not valid when the dest register is in 16-bit mode.
             raise ValueError(
-                f"Quasar packer does not support {unpack_out.name} to {output_format.name} conversion when the dest register is in 16-bit mode"
+                f"Quasar packer does not support {input_format.name} to {output_format.name} conversion when the dest register is in 16-bit mode"
             )
-        # When the dest register is in 32-bit mode, the packer input format is 32-bit
 
         if unpack_out.is_integer():
             if unpack_out == DataFormat.Int16:
@@ -388,14 +387,18 @@ def data_formats(
             )
         ]  # No final config for single iteration
 
-    intermediate_config = infer_data_formats(
-        input_format,
-        input_format,
-        is_fp32_dest_acc_en,
-        unpacking_to_dest,
-        chip_arch,
-        input_format_B,
-    )
+    if num_iterations > 1:
+        intermediate_config = infer_data_formats(
+            input_format,
+            input_format,
+            is_fp32_dest_acc_en,
+            unpacking_to_dest,
+            chip_arch,
+            input_format_B,
+        )
+    else:
+        intermediate_config = None
+
     final_config = infer_data_formats(
         input_format,
         output_format,
