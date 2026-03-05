@@ -8,6 +8,7 @@
 
 #include "ckernel.h"
 #include "llk_defs.h"
+#include "sfpu_stub.h"
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -136,5 +137,3 @@ void run_kernel(RUNTIME_PARAMETERS params)
 }
 
 #endif
-
-#include "sfpu_stub.h"
