@@ -55,7 +55,7 @@ from helpers.utils import passed_test
         MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
-    input_dimensions=[[32, 32], [64, 64], [128, 64]],
+    input_dimensions=[[32, 32], [64, 64], [64, 128]],
 )
 def test_tilize_calculate_untilize_L1(
     formats,
