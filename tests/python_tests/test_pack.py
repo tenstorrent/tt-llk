@@ -10,14 +10,17 @@ Tests the LLK pack kernel with:
 - Destination sync modes (SyncHalf for double-buffering, SyncFull for single-buffering)
 """
 
+from typing import List
+
 import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.constraints import (
     get_valid_dest_accumulation_modes,
+    get_valid_dest_indices,
 )
 from helpers.data_format_inference import infer_data_formats
-from helpers.format_config import DataFormat
+from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
     FACES_PER_TILE,
     TILE_DIMENSIONS,
@@ -125,6 +128,28 @@ def is_relu_threshold_tolerance_issue(
     return acceptable.all().item()
 
 
+def get_dest_indices_helper(
+    dest_sync: DestSync,
+    dest_acc: DestAccumulation,
+    formats: InputOutputFormat,
+    input_dimensions: List[int],
+):
+    _, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        dest_sync,
+        dest_acc,
+        formats,
+        input_dimensions,
+        TILE_DIMENSIONS,
+        BlocksCalculationAlgorithm.Standard,
+    )
+
+    return get_valid_dest_indices(
+        dest_sync=dest_sync,
+        dest_acc=dest_acc,
+        tile_count=num_tiles_in_block,
+    )
+
+
 @parametrize(
     formats=input_output_formats(
         [
@@ -144,7 +169,9 @@ def is_relu_threshold_tolerance_issue(
         PackerReluType.MaxThresholdRelu,
     ],
     dest_sync=[DestSync.Half, DestSync.Full],
-    dest_index=0,
+    dest_index=lambda dest_acc, dest_sync, formats, input_dimensions: get_dest_indices_helper(
+        dest_sync, dest_acc, formats, input_dimensions
+    ),
 )
 def test_pack(
     formats,
@@ -235,6 +262,14 @@ def test_pack(
         TILE_DIMENSIONS,
         BlocksCalculationAlgorithm.Standard,
     )
+
+    if dest_index != 0:
+        num_tiles_in_block = num_tiles_in_block - dest_index
+        if num_tiles_in_block <= 0 or tile_cnt_A % num_tiles_in_block != 0:
+            pytest.skip(
+                f"Dest index {dest_index} is not valid for tile count {tile_cnt_A} and num_tiles_in_block {num_tiles_in_block}."
+            )
+        num_blocks = tile_cnt_A // num_tiles_in_block
 
     configuration = TestConfig(
         "sources/pack_test.cpp",
