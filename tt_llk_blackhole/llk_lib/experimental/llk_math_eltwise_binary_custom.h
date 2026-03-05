@@ -111,5 +111,5 @@ inline void _llk_math_eltwise_binary_bcast_reuse_custom_(const std::uint32_t ct_
     }
 
     // Final cleanup: reset both counters
-    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_AB);
+    TTI_SETRWC(p_setrwc::CLR_B, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
 }

@@ -164,11 +164,18 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr DstSync dest_sync0     = DstSync::SyncHalf;
     _llk_math_hw_configure_<false>(math_format0, math_format0);
     _llk_math_pack_sync_init_<dest_sync0, false>();
+
+    /* Initial initializatiom block*/
+
+    _llk_math_matmul_init_no_mop_<ckernel::MathFidelity::LoFi, 0>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, 1, 1);
+
     _llk_math_eltwise_binary_init_custom_<
         ckernel::EltwiseBinaryType::ELWSUB,
         BroadcastType::COL,
         ckernel::MathFidelity::LoFi,
         EltwiseBinaryReuseDestType::NONE>(4, 0);
+
+    /* End of initial initialization block*/
 
     _llk_math_wait_for_dest_available_<dest_sync0>();
     _llk_math_eltwise_binary_bcast_reuse_custom_(1);
@@ -179,7 +186,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr DstSync dest_sync1     = DstSync::SyncHalf;
     _llk_math_reconfig_data_format_<false, false>(math_format1, math_format1);
     _llk_math_pack_sync_init_<dest_sync1, false>();
-    _llk_math_matmul_init_no_mop_<ckernel::MathFidelity::LoFi, 0>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, 1, 1);
+
+    matmul_configure_addrmod_reinit_after_sub();
+    // math::reset_counters(p_setrwc::SET_ABD_F); -> This was needed and now is added as part of _llk_math_eltwise_binary_bcast_reuse_custom_
+
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
         _llk_math_wait_for_dest_available_<dest_sync1>();
