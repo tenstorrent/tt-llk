@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """
-Check LLK kernel compilation.
+Check Blackhole LLK kernel compilation.
 
 Usage:
-    # Check a specific file (from codegen/ directory)
-    PYTHONPATH=.. python scripts/check_compile.py ../tt_llk_quasar/common/inc/sfpu/ckernel_sfpu_sigmoid.h
+    # Check a specific file (from codegen-bh/ directory)
+    PYTHONPATH=.. python scripts/check_compile.py ../tt_llk_blackhole/common/inc/sfpu/ckernel_sfpu_sigmoid.h
 
     # Check with custom function names
     PYTHONPATH=.. python scripts/check_compile.py my_kernel.h --func _calculate_foo_ --init _init_foo_
@@ -26,7 +26,7 @@ from compiler import CompileAgent, CompileResult
 
 
 def create_wrapper(filename: str, func_name: str, init_name: str | None) -> str:
-    """Create a test wrapper for the given function."""
+    """Create a test wrapper for the given function (Blackhole SFPI style)."""
     init_calls = ""
     if init_name:
         init_calls = f"""
@@ -35,9 +35,11 @@ def create_wrapper(filename: str, func_name: str, init_name: str | None) -> str:
         {init_name}<false>();
     }}"""
 
-    return f"""// Auto-generated compile test wrapper
-#include "ckernel_trisc_common.h"
-#include "cmath_common.h"
+    # Blackhole uses sfpi:: style includes
+    return f"""// Auto-generated compile test wrapper for Blackhole
+#include "sfpi.h"
+#include "sfpi_fp16.h"
+#include "ckernel_sfpu_load_config.h"
 #include "{filename}"
 
 using namespace ckernel;
@@ -45,8 +47,8 @@ using namespace ckernel::sfpu;
 
 namespace {{
     void force_compile() {{
-        {func_name}<true>(16);
-        {func_name}<false>(16);
+        {func_name}<true, 8>(16);
+        {func_name}<false, 8>(16);
     }}
 {init_calls}
 }}
@@ -55,7 +57,7 @@ namespace {{
 
 def check_file(
     filepath: Path,
-    arch: str = "quasar",
+    arch: str = "blackhole",
     func_name: str | None = None,
     init_name: str | None = None,
 ) -> CompileResult:
@@ -86,10 +88,12 @@ def check_file(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Check LLK kernel compilation")
+    parser = argparse.ArgumentParser(
+        description="Check Blackhole LLK kernel compilation"
+    )
     parser.add_argument("file", type=Path, help="Path to LLK header file")
     parser.add_argument(
-        "--arch", default="quasar", choices=["quasar", "blackhole", "wormhole"]
+        "--arch", default="blackhole", choices=["blackhole", "wormhole"]
     )
     parser.add_argument("--func", help="Main function name (e.g., _calculate_sigmoid_)")
     parser.add_argument("--init", help="Init function name (e.g., _init_sigmoid_)")
@@ -108,10 +112,10 @@ def main():
     result = check_file(args.file, args.arch, args.func, args.init)
 
     if result.success:
-        print("✓ Compilation successful!")
+        print("Compilation successful!")
         sys.exit(0)
     else:
-        print(f"✗ Compilation failed ({len(result.errors)} errors)")
+        print(f"Compilation failed ({len(result.errors)} errors)")
         print()
 
         if args.verbose:
