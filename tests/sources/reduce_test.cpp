@@ -34,9 +34,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         static_cast<std::uint8_t>(params->num_faces_c_dim_A)};
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_A_src,
-        formats.unpack_A_src,
+        formats.unpack_B_src,
         formats.unpack_A_dst,
-        formats.unpack_A_dst,
+        formats.unpack_B_dst,
         tensor_shape.face_r_dim,
         tensor_shape.face_r_dim,
         tensor_shape.total_num_faces(),
