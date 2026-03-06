@@ -166,7 +166,23 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     _configure_buf_desc_table_(tdma_desc.buf_desc_id, tdma_desc.buf_desc);
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
-    const ckernel::ReluConfig relu_config {static_cast<ckernel::ReluType>(params->RELU_CONFIG & 0x3u), (params->RELU_CONFIG >> 16) & 0xFFFFu};
+    const auto relu_mode                  = static_cast<ckernel::ReluType>(params->RELU_CONFIG & 0x3u);
+    const auto relu_threshold             = (params->RELU_CONFIG >> 16) & 0xFFFFu;
+    const ckernel::ReluConfig relu_config = [relu_mode, relu_threshold]()
+    {
+        switch (relu_mode)
+        {
+            case ckernel::ReluType::NO_RELU:
+                return ckernel::ReluConfig::none();
+            case ckernel::ReluType::ZERO_RELU:
+                return ckernel::ReluConfig::zero();
+            case ckernel::ReluType::MIN_THRESHOLD_RELU:
+                return ckernel::ReluConfig::min_threshold(relu_threshold);
+            case ckernel::ReluType::MAX_THRESHOLD_RELU:
+                return ckernel::ReluConfig::max_threshold(relu_threshold);
+        }
+        return ckernel::ReluConfig::none();
+    }();
     _llk_pack_init_<p_pacr::PACK0, is_fp32_dest_acc_en>(buf_desc_id, num_tiles_per_pack, relu_config);
     _llk_pack_<p_pacr::PACK0>(0, 0);
     _llk_pack_dest_dvalid_section_done_<dest_sync, is_fp32_dest_acc_en>();
