@@ -242,15 +242,8 @@ class TestConfig:
                     0x16D000,  # Pack
                     0x16E000,  # SFPU
                 ]
-                TestConfig.PERF_COUNTERS_SIZE = 0x1020  # 4128 bytes for 4 threads
-                TestConfig.PERF_COUNTER_SFPU_CONFIG_ADDR = (
-                    TestConfig.PERF_COUNTERS_BASE_ADDR
-                    + 3 * TestConfig._PERF_COUNTERS_THREAD_SIZE
-                )
-                TestConfig.PERF_COUNTER_SFPU_DATA_ADDR = (
-                    TestConfig.PERF_COUNTERS_BASE_ADDR
-                    + 3 * TestConfig._PERF_COUNTERS_THREAD_SIZE
-                    + TestConfig._PERF_COUNTERS_CONFIG_WORDS * 4
+                TestConfig.TRISC_PROFILER_BARRIER_ADDRESS = (
+                    0x16AFF0  # BARRIER_START for 4 cores
                 )
             case _:
                 raise ValueError(
