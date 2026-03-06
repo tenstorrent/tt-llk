@@ -36,6 +36,44 @@ VALID_QUASAR_DEST_REG_FORMATS = [
 ]
 
 
+def validate_quasar_data_formats(
+    unpack_out_A: DataFormat,
+    unpack_out_B: DataFormat,
+    pack_in: DataFormat,
+    unpacking_to_dest: bool,
+):
+    """
+    Checks if the given unpack_out and pack_in formats are supported as source or destination register formats on the Quasar architecture.
+
+    Args:
+        unpack_out_A: The unpack_out_A data format, also the source register A format, or destination register format if unpacking to dest
+        unpack_out_B: The unpack_out_B data format, also the source register B format
+        pack_in: The pack_in data format, also the destination register format
+        unpacking_to_dest: Flag indicating if unpacking targets the destination register
+
+    Returns:
+        None if the formats are valid; raises a ValueError otherwise
+    """
+    if unpacking_to_dest:
+        if unpack_out_A not in VALID_QUASAR_DEST_REG_FORMATS:
+            raise ValueError(
+                f"Unpack_out_A format {unpack_out_A.name} is not a supported Dest register format"
+            )
+    else:
+        if unpack_out_A not in VALID_QUASAR_SRC_REG_FORMATS:
+            raise ValueError(
+                f"Unpack_out_A format {unpack_out_A.name} is not a supported SrcA register format"
+            )
+        if unpack_out_B not in VALID_QUASAR_SRC_REG_FORMATS:
+            raise ValueError(
+                f"Unpack_out_B format {unpack_out_B.name} is not a supported SrcB register format"
+            )
+        if pack_in not in VALID_QUASAR_DEST_REG_FORMATS:
+            raise ValueError(
+                f"Pack_in format {pack_in.name} is not a supported Dest register format"
+            )
+
+
 def _check_register_format(data_format: DataFormat, valid_formats: list, role: str):
     if data_format not in valid_formats:
         raise ValueError(f"Inferred {role} format {data_format.name} is not supported")
@@ -303,23 +341,10 @@ def infer_data_formats(
 
     same_src_format = input_format == input_format_B
 
-    # Check if unpack_out (src reg) and pack_in (dest reg) formats are valid for Quasar
+    # Check if unpack_out (src or dest reg) and pack_in (dest reg) formats are valid for Quasar
     if chip_arch == ChipArchitecture.QUASAR:
-        if unpacking_to_dest:
-            _check_register_format(
-                unpack_out_A,
-                VALID_QUASAR_DEST_REG_FORMATS,
-                "unpack_out with unpacking to dest (dest register)",
-            )
-        else:
-            _check_register_format(
-                unpack_out_A, VALID_QUASAR_SRC_REG_FORMATS, "unpack_out (src register)"
-            )
-            _check_register_format(
-                unpack_out_B, VALID_QUASAR_SRC_REG_FORMATS, "unpack_out (src register)"
-            )
-        _check_register_format(
-            pack_in, VALID_QUASAR_DEST_REG_FORMATS, "pack_in (dest register)"
+        validate_quasar_data_formats(
+            unpack_out_A, unpack_out_B, pack_in, unpacking_to_dest
         )
 
     return FormatConfig(
