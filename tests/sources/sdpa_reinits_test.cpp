@@ -77,9 +77,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_unpack_reconfig_data_format_srcb_impl_<false, false>(unpack_b_src_format2, unpack_b_dst_format2, 128);
     t6_semaphore_wait_on_zero<p_stall::STALL_SYNC>(semaphore::PACK_DONE);
     t6_semaphore_get<>(semaphore::PACK_DONE);
-
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
+        _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, false>(0, 0, 16, 4, unpack_a_src_format2, unpack_a_dst_format2);
         _llk_unpack_A_custom_(L1_ADDRESS(buffer_A2[batch * 1 + 0]));
     }
 
@@ -164,7 +164,20 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_hw_configure_<false>(math_format0, math_format0);
     _llk_math_pack_sync_init_<dest_sync0, false>();
 
-    /* Initial initializatiom block*/
+    /* Initial initialization block
+
+    IT IS OF GREAT IMPORTANCE TO FOLLOW THE ORDER OF INITIALIZATION AS DESCRIBED BELOW.
+
+     * Order matters: each init overwrites ADDR_MODs of the previous.
+     * reduce first  → programs MOP + replay[0-14] + ADDR_MOD 1,2,3,6
+     * matmul second → replay[16-31] + ADDR_MOD 0,1,2,4,5 (overwrites reduce's 1,2)
+     * sub last      → ADDR_MOD 7 only (doesn't disturb matmul or reduce)
+     *
+     * Result: ADDR_MOD 0,1,2,4,5 = matmul; 3 = reduce; 6 = reduce; 7 = sub
+     * First op is sub, which self-configures 5,6,7 at execute time.
+     */
+
+    _llk_math_reduce_block_max_row_init_<1, false>();
 
     _llk_math_matmul_init_no_mop_<ckernel::MathFidelity::LoFi, 0>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, 1, 1);
 
@@ -199,7 +212,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_math_dest_section_done_<dest_sync1, false>();
     }
 
-    // Operation 2: Datacopy (custom)
+    // Operation 2: Datacopy (unpack-to-dest custom)
     const std::uint32_t math_format2 = ckernel::to_underlying(DataFormat::Float16_b);
     constexpr DstSync dest_sync2     = DstSync::SyncHalf;
     _llk_math_reconfig_data_format_<false, false>(math_format2, math_format2);
@@ -207,14 +220,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     _llk_math_wait_for_dest_available_<dest_sync2>();
 
-    math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(0);
-
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
-        _llk_math_eltwise_unary_datacopy_custom_();
+        _llk_math_eltwise_unary_datacopy_custom_(0);
     }
 
-    math::clear_dst_reg_addr();
     _llk_math_dest_section_done_<dest_sync2, false>();
 
     // Operation 3: ReduceBlockMax
@@ -222,7 +232,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr DstSync dest_sync3     = DstSync::SyncHalf;
     _llk_math_reconfig_data_format_<false, false>(math_format3, math_format3);
     _llk_math_pack_sync_init_<dest_sync3, false>();
-    _llk_math_reduce_block_max_row_init_<1, false>();
+
+    reduce_max_row_configure_addrmod_reinit_minimal();
 
     _llk_math_wait_for_dest_available_<dest_sync3>();
 
@@ -239,11 +250,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr DstSync dest_sync4     = DstSync::SyncHalf;
     _llk_math_reconfig_data_format_<false, false>(math_format4, math_format4);
     _llk_math_pack_sync_init_<dest_sync4, false>();
-    _llk_math_eltwise_binary_init_custom_<
-        ckernel::EltwiseBinaryType::ELWSUB,
-        BroadcastType::COL,
-        ckernel::MathFidelity::LoFi,
-        EltwiseBinaryReuseDestType::NONE>(4, 0);
+
+    // NO ELTWISE BINARY INIT HERE BECAUSE IT IS DONE IN THE INITIALIZATION BLOCK
 
     _llk_math_wait_for_dest_available_<dest_sync4>();
     _llk_math_eltwise_binary_bcast_reuse_custom_(1);
@@ -254,7 +262,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr DstSync dest_sync5     = DstSync::SyncHalf;
     _llk_math_reconfig_data_format_<false, false>(math_format5, math_format5);
     _llk_math_pack_sync_init_<dest_sync5, false>();
-    _llk_math_matmul_init_no_mop_<ckernel::MathFidelity::LoFi, 0>(TILE_R_DIM, TILE_C_DIM, TILE_R_DIM, TILE_C_DIM, false, 0, 1, 1);
+
+    matmul_configure_addrmod_reinit();
+
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
         _llk_math_wait_for_dest_available_<dest_sync5>();
