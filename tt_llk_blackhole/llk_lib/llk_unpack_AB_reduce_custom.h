@@ -61,7 +61,7 @@ inline void _llk_unpack_AB_reduce_block_max_row_mop_config_()
  * This function should NOT be used as a substitute for native reduce unpacking LLK initialization.
  * Use the standard _llk_unpack_AB_reduce_init_ for general-purpose reduction operations.
  */
-template <std::uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false>
+template <std::uint32_t block_ct_dim, bool is_fp32_dest_acc_en = false, bool respect_trigger = false>
 inline void _llk_unpack_AB_reduce_block_max_row_init_()
 {
     if constexpr (is_fp32_dest_acc_en)
@@ -106,6 +106,7 @@ inline void _llk_unpack_AB_reduce_block_max_row_init_()
  * This function should NOT be used as a substitute for the native _llk_unpack_AB_ LLK.
  * Use the standard _llk_unpack_AB_ in a loop for general-purpose block reduction operations.
  */
+template <bool respect_trigger = false>
 inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, const std::uint32_t address_b)
 {
     TTI_SETADCZW(0b011, 0, 0, 0, 0, 0b1111); // reset counters
@@ -152,6 +153,7 @@ inline void _llk_unpack_AB_reduce_block_max_row_(const std::uint32_t address_a, 
  * This function should NOT be used as a substitute for native reduce unpacking cleanup.
  * Standard _llk_unpack_AB_reduce_init_ operations typically don't require explicit cleanup.
  */
+template <bool respect_trigger = false>
 inline void _llk_unpack_AB_reduce_block_max_row_uninit_(const std::uint32_t unpA_face_r_dim, const std::uint32_t unpB_face_r_dim)
 {
     TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::UNPACK);
