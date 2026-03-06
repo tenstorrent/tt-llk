@@ -226,7 +226,7 @@ def test_pack(
         runtimes=[
             TILE_COUNT(tile_cnt_A),
             DEST_INDEX(dest_index),
-            RELU_CONFIG(relu_config),
+            RELU_CONFIG.from_packed(relu_config),
             NUM_FACES(num_faces=4),
         ],
         variant_stimuli=StimuliConfig(

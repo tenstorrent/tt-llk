@@ -5,12 +5,19 @@ from typing import List
 
 import pytest
 import torch
+from helpers.data_format_inference import infer_data_formats
 from helpers.format_config import DataFormat, FormatConfig
 from helpers.golden_generators import (
     DataCopyGolden,
+    PackGolden,
     get_golden_generator,
 )
-from helpers.llk_params import DestAccumulation, ImpliedMathFormat, format_dict
+from helpers.llk_params import (
+    DestAccumulation,
+    ImpliedMathFormat,
+    PackerReluType,
+    format_dict,
+)
 from helpers.param_config import (
     generate_unary_input_dimensions,
     input_output_formats,
@@ -23,10 +30,12 @@ from helpers.test_variant_parameters import (
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
     NUM_FACES,
+    RELU_CONFIG,
     TEST_FACE_DIMS,
     TILE_COUNT,
 )
 from helpers.utils import passed_test
+from test_pack import is_relu_threshold_tolerance_issue
 
 
 def generate_qsr_pack_combinations(
@@ -37,7 +46,7 @@ def generate_qsr_pack_combinations(
 
     Args: Input-output format pairs
 
-    Returns: List of (format, dest_acc, input_dimensions) tuples
+    Returns: List of (format, dest_acc, input_dimensions, relu_type) tuples
     """
     dimensions_cache = {
         DestAccumulation.No: tuple(
@@ -47,6 +56,13 @@ def generate_qsr_pack_combinations(
             generate_unary_input_dimensions(DestAccumulation.Yes)
         ),
     }
+
+    relu_types = [
+        PackerReluType.NoRelu,
+        PackerReluType.ZeroRelu,
+        PackerReluType.MinThresholdRelu,
+        PackerReluType.MaxThresholdRelu,
+    ]
 
     combinations = []
 
@@ -68,7 +84,8 @@ def generate_qsr_pack_combinations(
                 # This combination is not supported in the Quasar Packer format conversions
                 continue
             for dimensions in dimensions_cache[dest_acc]:
-                combinations.append((fmt, dest_acc, dimensions))
+                for relu_type in relu_types:
+                    combinations.append((fmt, dest_acc, dimensions, relu_type))
 
     return combinations
 
@@ -87,7 +104,7 @@ PACK_FORMATS = input_output_formats(
     formats_dest_acc_input_dims=generate_qsr_pack_combinations(PACK_FORMATS),
 )
 def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
-    (formats, dest_acc, input_dimensions) = formats_dest_acc_input_dims[0]
+    (formats, dest_acc, input_dimensions, relu_type) = formats_dest_acc_input_dims[0]
 
     src_A, tile_cnt_A, src_B, _ = generate_stimuli(
         stimuli_format_A=formats.input_format,
@@ -105,6 +122,48 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
         input_dimensions=input_dimensions,
     )
 
+    # Same method as test_pack.py for original ReLu testing and threshold tolerance issue
+    unpack_to_dest = (
+        formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+    )
+    data_formats = infer_data_formats(
+        input_format=formats.input_format,
+        output_format=formats.output_format,
+        is_fp32_dest_acc_en=dest_acc,
+        unpacking_to_dest=unpack_to_dest,
+    )
+
+    if data_formats.pack_src.is_integer() and relu_type in [
+        PackerReluType.MinThresholdRelu,
+        PackerReluType.MaxThresholdRelu,
+    ]:
+        pytest.skip(
+            "Pack source format cannot be an integer format with ReLu Type: "
+            + str(relu_type)
+        )
+
+    tensor_average = (
+        torch.mean(golden_tensor).item()
+        if not formats.output_format.is_integer()
+        else 0.0
+    )
+
+    relu_mode, relu_threshold_bits = PackGolden.get_relu_mode_and_threshold_bits(
+        relu_type,
+        tensor_average,
+        data_formats.pack_src,
+    )
+
+    relu_config = RELU_CONFIG(
+        relu_mode=relu_mode, relu_threshold=relu_threshold_bits
+    ).to_packed()
+
+    golden_tensor = PackGolden.apply_relu(
+        golden_tensor,
+        relu_config,
+        data_formats.pack_src,
+    )
+
     configuration = TestConfig(
         "sources/quasar/pack_quasar_test.cpp",
         formats,
@@ -116,6 +175,7 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
             TEST_FACE_DIMS(),
             NUM_FACES(num_faces),
             TILE_COUNT(tile_cnt_A),
+            RELU_CONFIG(relu_mode=relu_mode, relu_threshold=relu_threshold_bits),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
@@ -128,9 +188,7 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
             tile_count_res=tile_cnt_A,
             num_faces=num_faces,
         ),
-        unpack_to_dest=(
-            formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-        ),
+        unpack_to_dest=unpack_to_dest,
         dest_acc=dest_acc,
         boot_mode=boot_mode,
     )
@@ -144,6 +202,27 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(
-        golden_tensor, res_tensor, formats.output_format
-    ), "Assert against golden failed"
+    test_passed = passed_test(
+        golden_tensor, res_tensor, formats.output_format, print_erros=False
+    )
+
+    # Same method as test_pack.py for original ReLu testing and threshold tolerance issue
+    # Could be adjusted to have Golden model HW behaviour for pack ReLu activation which applies ReLu on datum format in dst and then converts to output format
+    # Check issue/request: https://github.com/tenstorrent/tt-llk/issues/1391
+    if (
+        not test_passed
+        and relu_type
+        in [
+            PackerReluType.MinThresholdRelu,
+            PackerReluType.MaxThresholdRelu,
+        ]
+        and is_relu_threshold_tolerance_issue(
+            golden_tensor,
+            res_tensor,
+            relu_config,
+            data_formats.pack_src,
+        )
+    ):
+        test_passed = True
+
+    assert test_passed, "Assert against golden failed"
