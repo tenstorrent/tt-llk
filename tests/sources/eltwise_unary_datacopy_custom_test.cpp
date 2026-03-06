@@ -23,10 +23,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const volatile FormatConfig& formats = params->formats;
 #endif
     _llk_unpack_hw_configure_<false>(formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4, 4);
-    _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, false>(0, 0, FACE_R_DIM, 4, formats.unpack_A_src, formats.unpack_A_dst);
+    // _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, false>(0, 0, FACE_R_DIM, 4, formats.unpack_A_src,
+    // formats.unpack_A_dst);
 
-    const std::uint32_t num_tiles = params->NUM_BLOCKS * params->NUM_TILES_IN_BLOCK;
-    for (std::uint32_t i = 0; i < num_tiles; ++i)
+    for (std::uint32_t i = 0; i < params->TILE_CNT; ++i)
     {
         _llk_unpack_A_custom_(L1_ADDRESS(params->buffer_A[i]));
     }
@@ -48,15 +48,12 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_pack_sync_init_<DstSync::SyncHalf, false>();
     _llk_math_hw_configure_<false>(formats.math, formats.math);
 
-    for (std::uint32_t block_num = 0; block_num < params->NUM_BLOCKS; ++block_num)
+    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+    for (std::uint32_t tile_num = 0; tile_num < params->TILE_CNT; ++tile_num)
     {
-        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        for (std::uint32_t tile_num = 0; tile_num < params->NUM_TILES_IN_BLOCK; ++tile_num)
-        {
-            _llk_math_eltwise_unary_datacopy_custom_();
-        }
-        _llk_math_dest_section_done_<DstSync::SyncHalf, false>();
+        _llk_math_eltwise_unary_datacopy_custom_();
     }
+    _llk_math_dest_section_done_<DstSync::SyncHalf, false>();
 }
 
 #endif
@@ -82,14 +79,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
 #endif
 
-    for (std::uint32_t block_num = 0; block_num < params->NUM_BLOCKS; ++block_num)
+    _llk_packer_wait_for_math_done_();
+    for (std::uint32_t tile_num = 0; tile_num < params->TILE_CNT; ++tile_num)
     {
-        _llk_packer_wait_for_math_done_();
-        for (std::uint32_t tile_num = 0; tile_num < params->NUM_TILES_IN_BLOCK; ++tile_num)
-        {
-            _llk_pack_<DstSync::SyncHalf, false, false>(tile_num, L1_ADDRESS(params->buffer_Res[block_num * params->NUM_TILES_IN_BLOCK + tile_num]));
-        }
-        _llk_pack_dest_section_done_<DstSync::SyncHalf, false>();
+        _llk_pack_<DstSync::SyncHalf, false, false>(tile_num, L1_ADDRESS(params->buffer_Res[tile_num]));
     }
+    _llk_pack_dest_section_done_<DstSync::SyncHalf, false>();
 }
 #endif

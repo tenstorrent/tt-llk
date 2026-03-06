@@ -35,6 +35,10 @@ def test_unary_datacopy_custom(formats, dest_acc, workers_tensix_coordinates):
         input_dimensions_B=input_dimensions,
     )
 
+    # Set src_A to a tensor where the first row is all 1s, the second all 2s, ..., the 32nd all 32s, using torch
+    src_A_torch = torch.arange(1, 33, dtype=torch.float32).unsqueeze(1).repeat(1, 32)
+    src_A = src_A_torch.flatten()
+
     generate_golden = get_golden_generator(DataCopyGolden)
     golden_tensor = generate_golden(
         src_A, formats.output_format, num_faces, input_dimensions
@@ -62,7 +66,7 @@ def test_unary_datacopy_custom(formats, dest_acc, workers_tensix_coordinates):
         unpack_to_dest=False,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
 
     assert len(res_from_L1) == len(golden_tensor)
 
