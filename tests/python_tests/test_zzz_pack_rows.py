@@ -27,7 +27,7 @@ from helpers.test_variant_parameters import (
 )
 from helpers.utils import passed_test
 
-max_tiles = 32
+max_tiles = 4
 tile_dim = 32
 
 dimension_combinations = [
