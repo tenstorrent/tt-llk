@@ -183,16 +183,14 @@ inline void _llk_pack_relu_config_(const ckernel::ReluConfig& relu_config = cker
     constexpr std::uint32_t packer_relu_mode_mask = (PACK_SEL == p_pacr::PACK0) ? THCON_PACKER0_REG3_RELU_MODE_MASK : THCON_PACKER1_REG3_RELU_MODE_MASK;
     constexpr std::uint32_t packer_relu_threshold_mask =
         (PACK_SEL == p_pacr::PACK0) ? THCON_PACKER0_REG3_RELU_THRESHOLD_MASK : THCON_PACKER1_REG3_RELU_THRESHOLD_MASK;
-    constexpr std::uint32_t packed_relu_threshold_shift =
-        (PACK_SEL == p_pacr::PACK0) ? THCON_PACKER0_REG3_RELU_THRESHOLD_MASK_SHIFT : THCON_PACKER1_REG3_RELU_THRESHOLD_MASK_SHIFT;
 
     // Program using PACK0 register masks for both packers, since register values are identical to PACK1, avoiding duplicated code
     const std::uint32_t mode = static_cast<std::uint32_t>(relu_config.get_mode()) & packer_relu_mode_mask;
     std::uint32_t threshold  = static_cast<std::uint32_t>(relu_config.get_threshold()) & packer_relu_threshold_mask;
 
-    // FP32 path: 32-bit register holds float; threshold in high 16 bits.
+    // FP32 path: 32-bit register holds float; threshold in high 16 bits must shift left by 16 bits.
     // FP16 path: HW compares 16-bit values; threshold in low 16 bits.
-    threshold = EN_32B_DEST ? (threshold << packed_relu_threshold_shift) : threshold;
+    threshold = EN_32B_DEST ? (threshold << 16) : threshold;
 
     // Branch on PACK_SEL since each *_RMW macro expands to (addr, shamt, mask); a ternary would see a comma expression
     // and not a single value, so we must call cfg_rmw with the correct macro per packer.
