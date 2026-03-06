@@ -117,7 +117,7 @@ constexpr auto to_underlying(T t) noexcept
     return static_cast<std::underlying_type_t<T>>(t);
 }
 
-inline std::uint32_t masked_data_format(std::uint32_t data_format)
+inline constexpr static std::uint32_t masked_data_format(std::uint32_t data_format)
 {
     return data_format & DATA_FORMAT_CONFIG_MASK;
 }
