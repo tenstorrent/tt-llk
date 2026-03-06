@@ -537,16 +537,19 @@ class TestConfig:
             )
 
         for param in self.runtimes:
-            argument_data.extend(
-                [
-                    (
-                        getattr(param, f.name).value
-                        if issubclass(f.type, Enum)
-                        else getattr(param, f.name)
-                    )
-                    for f in fields(param)
-                ]
-            )
+            if hasattr(param, "get_struct_values"):
+                argument_data.extend(param.get_struct_values())
+            else:
+                argument_data.extend(
+                    [
+                        (
+                            getattr(param, f.name).value
+                            if issubclass(f.type, Enum)
+                            else getattr(param, f.name)
+                        )
+                        for f in fields(param)
+                    ]
+                )
 
         serialised_data = struct.pack(self.runtime_format, *argument_data)
 

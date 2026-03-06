@@ -24,6 +24,7 @@ from .llk_params import (
     MathFidelity,
     MathOperation,
     NarrowTile,
+    PackerReluType,
     PerfRunType,
     ReducePool,
     StableSort,
@@ -756,10 +757,26 @@ class IN_TILE_DIMS(RuntimeParameter):
 
 @dataclass
 class RELU_CONFIG(RuntimeParameter):
-    relu_config: int = 0
+    """Packer ReLU config: mode + threshold bits (passed separately; packed for C struct)."""
+
+    relu_mode: PackerReluType = PackerReluType.NoRelu
+    relu_threshold: int = 0  # 16-bit threshold bits (bits 16–31 in HW)
+
+    @classmethod
+    def from_packed(cls, packed: int) -> "RELU_CONFIG":
+        return cls(
+            relu_mode=PackerReluType(packed & 0x3),
+            relu_threshold=(packed >> 16) & 0xFFFF,
+        )
+
+    def to_packed(self) -> int:
+        return (self.relu_mode.value & 0x3) | ((self.relu_threshold & 0xFFFF) << 16)
+
+    def get_struct_values(self) -> list:
+        return [self.to_packed()]
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr int RELU_CONFIG = {self.relu_config};"
+        return f"constexpr int RELU_CONFIG = {self.to_packed()};"
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         return "int RELU_CONFIG;", "i"
