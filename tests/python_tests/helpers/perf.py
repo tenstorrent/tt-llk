@@ -363,10 +363,6 @@ class PerfConfig(TestConfig):
 
         PerfConfig.TEST_COUNTER += 1
 
-        # Configure counters once before all runs if enabled
-        if self.enable_counters:
-            configure_counters(location=location)
-
         for templates, runtimes, run_type in self.run_configs:
             self.current_run_type = run_type
             self.templates = templates
@@ -374,6 +370,9 @@ class PerfConfig(TestConfig):
             self.generate_variant_hash()
             variant_raw_data = []
             for run_index in range(run_count):
+                if self.enable_counters:
+                    configure_counters(location=location)
+
                 self.write_runtimes_to_L1(location)
                 elfs = self.run_elf_files(location)
                 wait_for_tensix_operations_finished(elfs, location)
@@ -381,7 +380,25 @@ class PerfConfig(TestConfig):
                 profiler_data = Profiler.get_data(
                     self.test_name, self.variant_id, location
                 )
-                # TODO You add additional data collections you want here
+
+                if self.enable_counters:
+                    try:
+                        counter_results = read_counters(location=location)
+                        if counter_results is not None and not counter_results.empty:
+                            # Attach counter results to profiler data or accumulate them?
+                            counter_results["run_index"] = run_index
+                            # Using print since we don't have a specific dataframe merger natively for counters yet
+                            # but keeping the output organized per-run
+                            print(
+                                f"\n[{run_type.name} - run {run_index}] Performance Counters:"
+                            )
+                            print_counters(counter_results)
+                            print(
+                                f"\n[{run_type.name} - run {run_index}] Derived Metrics:"
+                            )
+                            print_metrics(counter_results)
+                    except Exception as e:
+                        print(f"\nError reading counters: {e}")
 
                 # Tag profiler data with run index for proper L1-to-L1 pairing
                 profiler_data.df["run_index"] = run_index
@@ -429,25 +446,3 @@ class PerfConfig(TestConfig):
         combined = sweep.merge(run_results, how="cross")
 
         perf_report.append(combined)
-
-        # Read and print counters after all runs if enabled
-        if self.enable_counters:
-            print("\n" + "=" * 80)
-            print("PERFORMANCE COUNTERS RESULTS")
-            print("=" * 80)
-            try:
-                counter_results = read_counters(location=location)
-                if counter_results is not None and not counter_results.empty:
-                    print("\n--- Counter Data ---")
-                    print_counters(counter_results)
-
-                    print("\n--- Derived Metrics ---")
-                    print_metrics(counter_results)
-                else:
-                    print("No counter data collected")
-            except Exception as e:
-                print(f"Error reading counters: {e}")
-                import traceback
-
-                traceback.print_exc()
-            print("=" * 80 + "\n")
