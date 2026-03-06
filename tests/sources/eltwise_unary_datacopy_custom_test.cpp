@@ -13,7 +13,7 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
-#include "llk_unpack_A.h"
+#include "experimental/llk_unpack_A.h"
 #include "llk_unpack_common.h"
 #include "params.h"
 

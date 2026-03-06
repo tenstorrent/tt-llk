@@ -20,8 +20,8 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
+#include "experimental/llk_unpack_A.h"
 #include "experimental/llk_unpack_AB_sub_bcast_col_custom.h"
-#include "llk_unpack_A.h"
 #include "llk_unpack_AB_matmul.h"
 #include "llk_unpack_AB_reduce_custom.h"
 #include "llk_unpack_common.h"
@@ -79,7 +79,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     t6_semaphore_get<>(semaphore::PACK_DONE);
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
-        _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, false>(0, 0, 16, 4, unpack_a_src_format2, unpack_a_dst_format2);
+        // _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, false>(0, 0, 16, 4, unpack_a_src_format2, unpack_a_dst_format2);
         _llk_unpack_A_custom_(L1_ADDRESS(buffer_A2[batch * 1 + 0]));
     }
 
