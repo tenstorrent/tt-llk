@@ -21,6 +21,7 @@ inline void _llk_math_eltwise_unary_datacopy_custom_(const std::uint32_t dest_in
         .set(ADDR_MOD_4);
 
     TTI_SETC16(CLR_DVALID_SrcA_Disable_ADDR32, 0);
+    TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_ABD_F);
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dest_index);
 
 #pragma GCC unroll 8
