@@ -198,6 +198,17 @@ inline void set_packer_strides(const std::uint32_t pack_src_format, const std::u
     }
 }
 
+inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
+{
+    // Stall to avoid clobbering current packer configuration
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
+
+    // While packing, if all datums of a face are 0s, the packer will automatically set the zflags. For L1 accumulation mode, even if we pack out an entire face
+    // of 0s, because the data we are accumulating with is unknown, we don't want to set the zflags.
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Disable_pack_zero_flags_RMW>(pack_l1_acc);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pack_L1_Acc_RMW>(pack_l1_acc);
+}
+
 template <bool is_fp32_dest_acc_en>
 inline void set_packer_config(
     const std::uint32_t pack_src_format, const std::uint32_t pack_dst_format, const std::uint32_t num_faces = 4, const bool partial_face = false)
@@ -225,22 +236,24 @@ inline void set_packer_config(
     config.f.out_data_format = pack_output_dst_format;
     config.f.in_data_format  = pack_output_src_format;
 
+    std::uint32_t exp_threshold_en  = 0;
+    std::uint32_t exp_threshold_val = 0;
+
     // Workaround for bug in HW: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
     {
-        std::uint32_t exp_threshold_en  = 0;
-        std::uint32_t exp_threshold_val = 0;
         if (IS_BFP_A_FORMAT(pack_output_dst_format))
         {
             exp_threshold_en  = 1;
             exp_threshold_val = 113;
         }
-        // EXP threshold is updated in the config word 3 which has a bit programmed by the unpacker as well
-        constexpr std::uint32_t exp_threshold_rmw_mask = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
-        std::uint32_t exp_threshold_rmw_data =
-            (exp_threshold_val << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (exp_threshold_en << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
-        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
     }
+
+    // EXP threshold is updated in the config word 3 which has a bit programmed by the unpacker as well
+    constexpr std::uint32_t exp_threshold_rmw_mask = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
+    std::uint32_t exp_threshold_rmw_data =
+        (exp_threshold_val << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (exp_threshold_en << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
 
     // Program:
     // THCON_SEC0_REG1_Row_start_section_size = cfg_reg_array[1][0 +: 16];
@@ -266,6 +279,9 @@ inline void set_packer_config(
     cfg[THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 0] = config.val[0];
     cfg[THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 2] = config.val[2];
     // cfg[THCON_SEC0_REG1_Row_start_section_size_ADDR32+3]=config.val[3];
+
+    // Reset L1 accumulation flag
+    reconfigure_packer_l1_acc(0);
 
     dest_rd_ctrl_u dest_rd_ctrl;
     dest_rd_ctrl.val = 0;
@@ -365,24 +381,28 @@ inline void reconfig_packer_data_format(
         TTI_WRCFG(p_gpr::ZERO, p_cfg::WRCFG_32b, THCON_SEC0_REG1_Row_start_section_size_ADDR32);
     }
 
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Pac_LF8_4b_exp_RMW>((pack_dst_format & 0x1F) == static_cast<DataFormatType>(DataFormat::Fp8_e4m3) ? 1 : 0);
+
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
+
+    std::uint32_t exp_threshold_en  = 0;
+    std::uint32_t exp_threshold_val = 0;
 
     // Workaround for HW bug: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
     {
-        std::uint32_t exp_threshold_en  = 0;
-        std::uint32_t exp_threshold_val = 0;
         if (IS_BFP_A_FORMAT(pack_output_dst_format))
         {
             exp_threshold_en  = 1;
             exp_threshold_val = 113;
         }
-        // EXP threshold is updated in the config word 3 which has a bit programmed by the unpacker as well
-        constexpr std::uint32_t exp_threshold_rmw_mask = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
-        std::uint32_t exp_threshold_rmw_data =
-            (exp_threshold_val << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (exp_threshold_en << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
-        cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
     }
+
+    // EXP threshold is updated in the config word 3 which has a bit programmed by the unpacker as well
+    constexpr std::uint32_t exp_threshold_rmw_mask = THCON_SEC0_REG1_Exp_threshold_en_MASK | THCON_SEC0_REG1_Exp_threshold_MASK;
+    std::uint32_t exp_threshold_rmw_data =
+        (exp_threshold_val << THCON_SEC0_REG1_Exp_threshold_SHAMT) | (exp_threshold_en << THCON_SEC0_REG1_Exp_threshold_en_SHAMT);
+    cfg_reg_rmw_tensix<THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3, 0, exp_threshold_rmw_mask>(exp_threshold_rmw_data);
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_output_src_format);
 
@@ -552,31 +572,6 @@ inline void program_packer_dest_offset_registers(std::uint32_t dest_tile_offset)
     TTI_WRCFG(p_gpr_pack::TEMP_TILE_OFFSET, p_cfg::WRCFG_32b, PCK0_ADDR_BASE_REG_0_Base_ADDR32);
     TTI_DMANOP;
     TTI_DMANOP;
-}
-
-inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
-{
-    // assumes all configured packers have these fields as common values
-    //  pack_config_u pack_config;
-    //  pack_config.val[3] = 0;
-    //  pack_config.f.pack_l1_acc_disable_pack_zero_flag = pack_l1_acc ? (0b11) : (0b00);
-
-    // TT_SETDMAREG(0, pack_config.val[3] & 0xffff, 0, LO_16(p_gpr_pack::TMP0));
-    // TT_SETDMAREG(0, (pack_config.val[3] >> 16) & 0xffff, 0, HI_16(p_gpr_pack::TMP0));
-    // TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG1_Pack_L1_Acc_ADDR32);
-    // TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG8_Pack_L1_Acc_ADDR32);
-    // TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, THCON_SEC1_REG1_Pack_L1_Acc_ADDR32);
-    // TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, THCON_SEC1_REG8_Pack_L1_Acc_ADDR32);
-    // TTI_DMANOP;TTI_DMANOP;
-
-    // TTI_STALLWAIT(p_stall::STALL_PACK, p_stall::TRISC_CFG);
-
-    const std::uint32_t pack_l1_acc_disable_pack_zero_flag = pack_l1_acc ? (0b11) : (0b00);
-
-    cfg_reg_rmw_tensix<
-        THCON_SEC0_REG1_Pack_L1_Acc_ADDR32,
-        THCON_SEC0_REG1_Pack_L1_Acc_SHAMT,
-        THCON_SEC0_REG1_Disable_pack_zero_flags_MASK | THCON_SEC0_REG1_Pack_L1_Acc_MASK>(pack_l1_acc_disable_pack_zero_flag);
 }
 
 // READERS FOR CONFIG STRUCTS

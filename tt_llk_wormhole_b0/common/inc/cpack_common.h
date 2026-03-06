@@ -246,10 +246,13 @@ inline void set_packer_config(
     config.f.in_data_format    = pack_src_format;
     config.f.pack_per_xy_plane = 1;
 
+    config.f.exp_threshold_en = 0;
+    config.f.exp_threshold    = 0;
+
     // Workaround for bug in HW: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
     {
-        if (IS_A_FORMAT(pack_dst_format))
+        if (IS_BFP_A_FORMAT(pack_dst_format))
         {
             config.f.exp_threshold_en = 1;
             config.f.exp_threshold    = 113;
@@ -484,28 +487,25 @@ inline void reconfig_packer_data_format(
 
     TT_SETDMAREG(0, LOWER_HALFWORD(tile_size), 0, LO_16(p_gpr_pack::TILE_HEADER));
 
+    config.val[3]             = 0;
+    config.f.exp_threshold_en = 0;
+    config.f.exp_threshold    = 0;
+
     // Workaround for HW bug: tenstorrent/budabackend#1394
     if constexpr (is_fp32_dest_acc_en)
     {
         if (IS_BFP_A_FORMAT(pack_dst_format))
         {
-            config.val[3]             = 0; // Only need to modify word[2][15:0]
             config.f.exp_threshold_en = 1;
             config.f.exp_threshold    = 113;
-            TT_SETDMAREG(0, UPPER_HALFWORD(config.val[3]), 0, HI_16(p_gpr_pack::TMP_HI));
-            TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
-            TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG1_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
-            TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG8_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
-            TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG8_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
-        }
-        else
-        {
-            TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr::ZERO);
-            TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG1_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr::ZERO);
-            TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG8_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr::ZERO);
-            TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG8_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr::ZERO);
         }
     }
+
+    TT_SETDMAREG(0, UPPER_HALFWORD(config.val[3]), 0, HI_16(p_gpr_pack::TMP_HI));
+    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG1_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
+    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG1_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
+    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC0_REG8_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
+    TTI_REG2FLOP(1, 0, 0, 0, THCON_SEC1_REG8_Row_start_section_size_ADDR32 + 3 - THCON_CFGREG_BASE_ADDR32, p_gpr_pack::TMP_HI);
 
     cfg_reg_rmw_tensix<ALU_FORMAT_SPEC_REG2_Dstacc_RMW>(pack_src_format);
 
@@ -709,21 +709,11 @@ inline void program_packer_dest_offset_registers(std::uint32_t dest_tile_offset)
 
 inline void reconfigure_packer_l1_acc(const std::uint32_t pack_l1_acc)
 {
-    // assumes all configured packers have these fields as common values
-    //  pack_config_u pack_config;
-    //  pack_config.val[3] = 0;
-    //  pack_config.f.pack_l1_acc_disable_pack_zero_flag = pack_l1_acc ? (0b11) : (0b00);
+    // Stall to avoid clobbering current packer configuration
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
 
-    // TT_SETDMAREG(0, pack_config.val[3] & 0xffff, 0, LO_16(p_gpr_pack::TMP0));
-    // TT_SETDMAREG(0, (pack_config.val[3] >> 16) & 0xffff, 0, HI_16(p_gpr_pack::TMP0));
-    // TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG1_Pack_L1_Acc_ADDR32);
-    // TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG8_Pack_L1_Acc_ADDR32);
-    // TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, THCON_SEC1_REG1_Pack_L1_Acc_ADDR32);
-    // TTI_WRCFG(p_gpr_pack::TMP0, p_cfg::WRCFG_32b, THCON_SEC1_REG8_Pack_L1_Acc_ADDR32);
-    // TTI_DMANOP;TTI_DMANOP;
-
-    // TTI_STALLWAIT(p_stall::STALL_PACK, p_stall::TRISC_CFG);
-
+    // While packing, if all datums of a face are 0s, the packer will automatically set the zflags. For L1 accumulation mode, even if we pack out an entire face
+    // of 0s, because the data we are accumulating with is unknown, we don't want to set the zflags.
     const std::uint32_t pack_l1_acc_disable_pack_zero_flag = pack_l1_acc ? (0b11) : (0b00);
 
     cfg_reg_rmw_tensix<
