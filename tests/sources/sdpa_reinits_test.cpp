@@ -80,7 +80,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     for (std::uint32_t batch = 0; batch < 1; ++batch)
     {
-        cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0); // Disable haloize mode
         _llk_unpack_A_custom_(L1_ADDRESS(buffer_A2[batch * 1 + 0]));
     }
 
