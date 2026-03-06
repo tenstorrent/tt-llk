@@ -43,7 +43,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             _llk_unpack_tilize_(L1_ADDRESS(params->buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, block_ct_dim, FACE_R_DIM, 4, false);
         }
-        read_offset += params->BLOCK_RT_DIM;
+        read_offset += params->BLOCK_CT_DIM;
     }
 }
 

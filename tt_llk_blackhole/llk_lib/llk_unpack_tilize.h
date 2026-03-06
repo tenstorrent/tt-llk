@@ -67,7 +67,11 @@ inline void _llk_unpack_tilize_init_(
     config.f.out_data_format = unpack_dst_format;
     config.f.throttle_mode   = 2;
     config.f.tileize_mode    = 1;
-    config.f.shift_amount    = (SCALE_DATUM_SIZE(unpack_src_format, block_c_dim)) >> 4;
+    // For 8-bit formats, hardware has 4x multiplier on shift_amount in tilize mode
+    // Stride needs to skip 2 rows (32 bytes for Int8), so shift_amount = 32/4 = 8
+    // SCALE_DATUM_SIZE(Int8, 16) = 16, so we need 16 >> 1 = 8
+    const bool is_8bit_format = (unpack_src_format == to_underlying(DataFormat::Int8)) || (unpack_src_format == to_underlying(DataFormat::UInt8));
+    config.f.shift_amount     = (SCALE_DATUM_SIZE(unpack_src_format, block_c_dim)) >> (is_8bit_format ? 5 : 4);
 
     TT_SETDMAREG(0, LOWER_HALFWORD(config.val[0]), 0, LO_16(p_gpr_unpack::TMP0));
     TT_SETDMAREG(0, UPPER_HALFWORD(config.val[0]), 0, HI_16(p_gpr_unpack::TMP0));
