@@ -20,8 +20,8 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
-#include "experimental/llk_unpack_A.h"
 #include "experimental/llk_unpack_AB_sub_bcast_col_custom.h"
+#include "experimental/llk_unpack_A_custom.h"
 #include "llk_unpack_AB_matmul.h"
 #include "llk_unpack_AB_reduce_custom.h"
 #include "llk_unpack_common.h"
