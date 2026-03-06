@@ -14,11 +14,9 @@
 
 namespace ckernel::unpacker
 {
-constexpr std::uint32_t TILE_DESC_SIZE        = 2;                                // Unpacker descriptor size in dwords
-constexpr std::uint32_t CONFIG_SIZE           = 2;                                // Unpacker configuration size in dwords
-constexpr std::uint32_t NUM_UNPACKERS         = 2;                                // Number of unpackers
-constexpr std::uint32_t DATA_FORMAT_BIT_COUNT = 4;                                // Number of bits used to represent data format in unpacker config
-constexpr std::uint32_t DATA_FORMAT_MASK      = (1 << DATA_FORMAT_BIT_COUNT) - 1; // Mask to extract data format bits
+constexpr std::uint32_t TILE_DESC_SIZE = 2; // Unpacker descriptor size in dwords
+constexpr std::uint32_t CONFIG_SIZE    = 2; // Unpacker configuration size in dwords
+constexpr std::uint32_t NUM_UNPACKERS  = 2; // Number of unpackers
 
 // Unpack tile descriptor
 typedef struct
@@ -407,8 +405,8 @@ inline void config_unpacker_x_end(const std::uint32_t face_r_dim)
 
 inline constexpr bool is_32bit_input(const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format)
 {
-    const std::uint32_t input_df  = unpack_src_format & DATA_FORMAT_MASK;
-    const std::uint32_t output_df = unpack_dst_format & DATA_FORMAT_MASK;
+    const std::uint32_t input_df  = masked_data_format(unpack_src_format);
+    const std::uint32_t output_df = masked_data_format(unpack_dst_format);
     return ((input_df == to_underlying(DataFormat::Int32)) || (input_df == to_underlying(DataFormat::Float32))) &&
            ((output_df == to_underlying(DataFormat::Int32)) || (output_df == to_underlying(DataFormat::Float32)));
 }
@@ -563,8 +561,8 @@ inline bool is_unpacker_A_configured_correctly(
     const std::uint32_t tile_descriptor_cntx0_out_data_format = config_vec[0].out_data_format;
     const std::uint32_t tile_descriptor_cntx0_z_dim           = tile_descriptor_cntx0.z_dim;
     const bool isDataFormatCorrect =
-        (tile_descriptor_cntx0_in_data_format == (unpA_src_format & DATA_FORMAT_MASK) &&
-         tile_descriptor_cntx0_out_data_format == (unpA_dst_format & DATA_FORMAT_MASK));
+        (tile_descriptor_cntx0_in_data_format == masked_data_format(unpA_src_format) &&
+         tile_descriptor_cntx0_out_data_format == masked_data_format(unpA_dst_format));
 
     if constexpr (program_type == UnpackerProgramType::ProgramByTile)
     {
@@ -624,9 +622,8 @@ inline bool are_unpacker_AB_configured_correctly(
     const std::uint32_t tile_descriptor_cntx0_in_data_format = tile_descriptor_cntx0.in_data_format;
     const std::uint32_t tile_descriptor_cntx1_in_data_format = tile_descriptor_cntx1.in_data_format;
     const bool areDataFormatsCorrect =
-        (tile_descriptor_cntx0_in_data_format == (unpA_src_format & DATA_FORMAT_MASK) &&
-         config_cntx0_out_data_format == (unpA_dst_format & DATA_FORMAT_MASK)) &&
-        (tile_descriptor_cntx1_in_data_format == (unpB_src_format & DATA_FORMAT_MASK) && config_cntx1_out_data_format == (unpB_dst_format & DATA_FORMAT_MASK));
+        (tile_descriptor_cntx0_in_data_format == masked_data_format(unpA_src_format) && config_cntx0_out_data_format == masked_data_format(unpA_dst_format)) &&
+        (tile_descriptor_cntx1_in_data_format == masked_data_format(unpB_src_format) && config_cntx1_out_data_format == masked_data_format(unpB_dst_format));
 
     if constexpr (program_type == UnpackerProgramType::ProgramByTile)
     {

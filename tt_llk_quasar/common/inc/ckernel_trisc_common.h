@@ -37,6 +37,9 @@ static constexpr std::uint32_t NUM_TILES = 1;
 static constexpr std::uint32_t DEST_REGISTER_FULL_SIZE = 64 * FACE_R_DIM;
 static constexpr std::uint32_t DEST_REGISTER_HALF_SIZE = DEST_REGISTER_FULL_SIZE >> 1;
 
+constexpr std::uint32_t DATA_FORMAT_BIT_COUNT   = 4;                                // Number of bits used to represent data format in unpacker/packer config
+constexpr std::uint32_t DATA_FORMAT_CONFIG_MASK = (1 << DATA_FORMAT_BIT_COUNT) - 1; // Mask to extract data format bits
+
 // Points to the config space
 std::uint32_t volatile* const cfg = (std::uint32_t volatile*)TENSIX_CFG_BASE;
 // Points to the buffer table
@@ -143,9 +146,14 @@ inline std::uint32_t _get_dest_buffer_base_()
     return (dest_bank_id) ? DEST_REGISTER_HALF_SIZE : 0x0;
 }
 
+inline std::uint32_t masked_data_format(std::uint32_t data_format)
+{
+    return data_format & DATA_FORMAT_CONFIG_MASK;
+}
+
 constexpr static std::uint32_t SCALE_DATUM_SIZE(std::uint32_t format, std::uint32_t datum_count)
 {
-    switch (format & 0xF)
+    switch (masked_data_format(format))
     {
         case (to_underlying(DataFormat::Int32)):
         case (to_underlying(DataFormat::Float32)):

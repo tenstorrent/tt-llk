@@ -23,8 +23,6 @@ constexpr std::uint32_t replay_buf_offset = 16; // split replay buffer usage bet
                                                 // fist 16 for sfpu, next 16 for fpu
 constexpr std::uint32_t NUM_PACKERS = 1;        // Number of packers
 
-constexpr std::uint32_t DATA_FORMAT_BIT_COUNT = 4; // Number of bits used to represent data format in packer config
-
 // Pack config
 typedef struct
 {
@@ -219,8 +217,8 @@ inline void set_packer_config(
     // Get pointer to registers for current state ID
     volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer();
 
-    const std::uint32_t pack_output_src_format = static_cast<std::uint32_t>(pack_src_format) & 0xF;
-    const std::uint32_t pack_output_dst_format = static_cast<std::uint32_t>(pack_dst_format) & 0xF;
+    const std::uint32_t pack_output_src_format = masked_data_format(pack_src_format);
+    const std::uint32_t pack_output_dst_format = masked_data_format(pack_dst_format);
 
     // Set packer config
     pack_config_u config;
@@ -323,8 +321,8 @@ inline void reconfig_packer_data_format(
     const bool partial_face)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    const std::uint32_t pack_output_src_format = static_cast<std::uint32_t>(pack_src_format) & 0xF;
-    const std::uint32_t pack_output_dst_format = static_cast<std::uint32_t>(pack_dst_format) & 0xF;
+    const std::uint32_t pack_output_src_format = masked_data_format(pack_src_format);
+    const std::uint32_t pack_output_dst_format = masked_data_format(pack_dst_format);
 
     // Configure packers
     pack_config_u config;
@@ -429,7 +427,7 @@ inline void configure_pack(
     // Get pointer to registers for current state ID
     volatile std::uint32_t* cfg = get_cfg_pointer();
 
-    const std::uint32_t pack_output_src_format = static_cast<std::uint32_t>(pack_src_format) & 0xF;
+    const std::uint32_t pack_output_src_format = masked_data_format(pack_src_format);
 
     set_packer_strides<untilize, tilize>(pack_src_format, tile_c_dim);
 
@@ -699,8 +697,8 @@ inline bool are_packers_configured_correctly(
         const std::uint32_t pack_src_format_i         = config_vec[i].in_data_format;
         const std::uint32_t pack_dst_format_i         = config_vec[i].out_data_format;
         const std::uint32_t pack_reads_per_xy_plane_i = counters_vec[i].pack_reads_per_xy_plane;
-        const bool isDataFormatCorrect                = (pack_src_format_i == (pack_src_format & ((1 << DATA_FORMAT_BIT_COUNT) - 1))) &&
-                                         (pack_dst_format_i == (pack_dst_format & ((1 << DATA_FORMAT_BIT_COUNT) - 1)));
+        const bool isDataFormatCorrect =
+            (pack_src_format_i == masked_data_format(pack_src_format)) && (pack_dst_format_i == masked_data_format(pack_dst_format));
         const bool isFaceRDimCorrect = (program_type == PackerProgramType::ProgramByTile) ? true : (pack_reads_per_xy_plane_i == face_r_dim);
         if (!isDataFormatCorrect || !isFaceRDimCorrect)
         {
