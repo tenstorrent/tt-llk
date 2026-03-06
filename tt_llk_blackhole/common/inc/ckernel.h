@@ -105,7 +105,7 @@ inline volatile void *memcpy_blocking(volatile void *dst, const volatile void *s
     // I'm prioritizing correctness and simplicity over complexity and performance at this point.
     // Therefore this is definitely slow. I don't expect this to become a bottleneck, so we can optimize it later.
 
-    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/BabyRISCV/MemoryOrdering.md
+    // https://github.com/tenstorrent/tt-isa-documentation/tree/main/BlackholeA0/TensixTile/BabyRISCV/MemoryOrdering.md
 
     // this code provides a blocking memcpy by doing the following:
     // - issue a LOAD from src[i]
