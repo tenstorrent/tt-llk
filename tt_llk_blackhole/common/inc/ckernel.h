@@ -95,9 +95,9 @@ namespace internal
 /**
  * @brief Copies data from src -> dest, blocking until the copy is completed.
  * @note Addresses are marked volatile because it's assumed that this function is used for sync between threads.
- * @param dest volatile destination address
+ * @param dst volatile destination address
  * @param src volatile source address
- * @param count number of bytes to copy
+ * @param len number of bytes to copy
  * @return pointer to the destination
  */
 inline volatile void *memcpy_blocking(volatile void *dst, const volatile void *src, std::size_t len)
