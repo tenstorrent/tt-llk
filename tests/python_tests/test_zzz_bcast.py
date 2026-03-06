@@ -51,7 +51,7 @@ supported_formats = [
     # DataFormat.Int32,
     # DataFormat.UInt32,
     # DataFormat.UInt16,
-    DataFormat.Float32,
+    # DataFormat.Float32,
     DataFormat.Float16_b,
     DataFormat.Bfp8_b,
 ]
