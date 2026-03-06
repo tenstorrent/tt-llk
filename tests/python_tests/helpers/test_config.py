@@ -592,6 +592,11 @@ class TestConfig:
             for field_name, value in self.__dict__.items()
             if field_name not in NON_COMPILATION_ARGUMENTS
         ]
+        # Include runtime params that affect the generated header (e.g. RELU_CONFIG -> RELU_CONFIG_EXPR)
+        for param in self.runtimes:
+            if hasattr(param, "relu_config_cpp_expr"):
+                temp_str.append(param.relu_config_cpp_expr())
+                break
 
         self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
@@ -865,6 +870,13 @@ class TestConfig:
 
         for parameter in self.templates:
             header_content.append(parameter.covert_to_cpp())
+
+        for param in self.runtimes:
+            if hasattr(param, "relu_config_cpp_expr"):
+                header_content.append(
+                    f"#define RELU_CONFIG_EXPR {param.relu_config_cpp_expr()}"
+                )
+                break
 
         if self.compile_time_formats:
             header_content.extend(self.generate_compile_time_data_formats())

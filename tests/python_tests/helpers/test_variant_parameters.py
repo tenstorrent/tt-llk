@@ -778,6 +778,18 @@ class RELU_CONFIG(RuntimeParameter):
     def covert_to_cpp(self) -> str:
         return f"constexpr int RELU_CONFIG = {self.to_packed()};"
 
+    def relu_config_cpp_expr(self) -> str:
+        """C++ expression for ckernel::ReluConfig (for generated header RELU_CONFIG_EXPR)."""
+        if self.relu_mode == PackerReluType.NoRelu:
+            return "ckernel::ReluConfig::none()"
+        if self.relu_mode == PackerReluType.ZeroRelu:
+            return "ckernel::ReluConfig::zero()"
+        if self.relu_mode == PackerReluType.MinThresholdRelu:
+            return f"ckernel::ReluConfig::min_threshold({self.relu_threshold}u)"
+        if self.relu_mode == PackerReluType.MaxThresholdRelu:
+            return f"ckernel::ReluConfig::max_threshold({self.relu_threshold}u)"
+        return "ckernel::ReluConfig::none()"
+
     def convert_to_struct_fields(self) -> tuple[str, str]:
         return "int RELU_CONFIG;", "i"
 
