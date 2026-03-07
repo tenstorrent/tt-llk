@@ -229,6 +229,22 @@ class TestConfig:
                 TestConfig.ARCH_LLK_ROOT = "tt_llk_quasar"
                 TestConfig.ARCH = ChipArchitecture.QUASAR
                 TestConfig.DATA_FORMAT_ENUM = QUASAR_DATA_FORMAT_ENUM_VALUES
+                TestConfig.KERNEL_COMPONENTS = ["unpack", "math", "pack", "sfpu"]
+                TestConfig.TRISC_START_ADDRS = [
+                    0x16DFF0,
+                    0x16DFF4,
+                    0x16DFF8,
+                    0x16DFFC,
+                ]
+                TestConfig.THREAD_PERFORMANCE_DATA_BUFFER = [
+                    0x16B000,  # Unpack
+                    0x16C000,  # Math
+                    0x16D000,  # Pack
+                    0x16E000,  # SFPU
+                ]
+                TestConfig.TRISC_PROFILER_BARRIER_ADDRESS = (
+                    0x16AFF0  # BARRIER_START for 4 cores
+                )
             case _:
                 raise ValueError(
                     "Must provide CHIP_ARCH environment variable (wormhole / blackhole / quasar)"
@@ -708,8 +724,9 @@ class TestConfig:
                 if not self.compile_time_formats:
                     optional_kernel_flags += " -DRUNTIME_FORMATS"
 
+                trisc_define = "ISOLATE_SFPU" if name == "sfpu" else name.upper()
                 run_shell_command(  # main_%.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {optional_kernel_flags} -DLLK_TRISC_{name.upper()} -c -o {shared_obj_dir / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} {local_options_compile} {optional_kernel_flags} -DLLK_TRISC_{trisc_define} -c -o {shared_obj_dir / f"main_{name}.o"} {TestConfig.RISCV_SOURCES / "trisc.cpp"}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
@@ -929,8 +946,9 @@ class TestConfig:
                 if not self.compile_time_formats:
                     optional_kernel_flags += " -DRUNTIME_FORMATS"
 
+                trisc_define = "ISOLATE_SFPU" if name == "sfpu" else name.upper()
                 run_shell_command(  # kernel_%.o
-                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {optional_kernel_flags} -DLLK_TRISC_{name.upper()} -c -o {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {TestConfig.TESTS_WORKING_DIR / self.test_name}""",
+                    f"""{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{VARIANT_DIR} {local_options_compile} {optional_kernel_flags} -DLLK_TRISC_{trisc_define} -c -o {VARIANT_OBJ_DIR / f"kernel_{name}.o"} {TestConfig.TESTS_WORKING_DIR / self.test_name}""",
                     TestConfig.TESTS_WORKING_DIR,
                 )
 
@@ -1082,9 +1100,14 @@ class TestConfig:
                 set_tensix_soft_reset(0, [RiscCore.TRISC0], location)
             case BootMode.EXALENS:
                 exalens_device_setup(TestConfig.CHIP_ARCH, location)
-                set_tensix_soft_reset(
-                    0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
-                )
+                exalens_trisc_cores = [
+                    RiscCore.TRISC0,
+                    RiscCore.TRISC1,
+                    RiscCore.TRISC2,
+                ]
+                if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR:
+                    exalens_trisc_cores.append(RiscCore.TRISC3)
+                set_tensix_soft_reset(0, exalens_trisc_cores, location)
 
         return elfs
 
