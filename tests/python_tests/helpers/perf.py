@@ -14,9 +14,11 @@ from typing import Any, ClassVar
 import pandas as pd
 import pytest
 
+from .counters import configure_counters, print_counters, read_counters
 from .device import BootMode, wait_for_tensix_operations_finished
 from .format_config import FormatConfig
 from .llk_params import DestAccumulation, L1Accumulation, PerfRunType
+from .metrics import print_metrics
 from .profiler import Profiler, ProfilerData
 from .stimuli_config import StimuliConfig
 from .test_config import ProfilerBuild, TestConfig, TestMode
@@ -283,6 +285,7 @@ class PerfConfig(TestConfig):
         l1_acc=L1Accumulation.No,
         skip_build_header: bool = False,
         compile_time_formats: bool = False,
+        enable_counters=False,
     ):
         super().__init__(
             test_name,
@@ -304,6 +307,7 @@ class PerfConfig(TestConfig):
         self.passed_templates = templates
         self.passed_runtimes = runtimes
         self.current_run_type = None
+        self.enable_counters = enable_counters
 
         # TODO Add check here for all selected runs, to see if the profiler/counter supports them
 
@@ -366,6 +370,9 @@ class PerfConfig(TestConfig):
             self.generate_variant_hash()
             variant_raw_data = []
             for run_index in range(run_count):
+                if self.enable_counters:
+                    configure_counters(location=location)
+
                 self.write_runtimes_to_L1(location)
                 elfs = self.run_elf_files(location)
                 wait_for_tensix_operations_finished(elfs, location)
@@ -373,7 +380,25 @@ class PerfConfig(TestConfig):
                 profiler_data = Profiler.get_data(
                     self.test_name, self.variant_id, location
                 )
-                # TODO You add additional data collections you want here
+
+                if self.enable_counters:
+                    try:
+                        counter_results = read_counters(location=location)
+                        if counter_results is not None and not counter_results.empty:
+                            # Attach counter results to profiler data or accumulate them?
+                            counter_results["run_index"] = run_index
+                            # Using print since we don't have a specific dataframe merger natively for counters yet
+                            # but keeping the output organized per-run
+                            print(
+                                f"\n[{run_type.name} - run {run_index}] Performance Counters:"
+                            )
+                            print_counters(counter_results)
+                            print(
+                                f"\n[{run_type.name} - run {run_index}] Derived Metrics:"
+                            )
+                            print_metrics(counter_results)
+                    except Exception as e:
+                        print(f"\nError reading counters: {e}")
 
                 # Tag profiler data with run index for proper L1-to-L1 pairing
                 profiler_data.df["run_index"] = run_index

@@ -19,19 +19,18 @@ PERF_COUNTERS_STARTER_MASK = 0x3
 PERF_COUNTERS_STOPPER_SHIFT = 10
 PERF_COUNTERS_STOPPER_MASK = 0x3
 
+
 # Single shared buffer addresses (all threads use the same location)
-# These are already computed in TestConfig - use them directly
-PERF_COUNTERS_CONFIG_ADDR = TestConfig.PERF_COUNTERS_CONFIG_ADDR
-PERF_COUNTERS_DATA_ADDR = TestConfig.PERF_COUNTERS_DATA_ADDR
-PERF_COUNTERS_SYNC_CTRL_ADDR = TestConfig.PERF_COUNTERS_SYNC_CTRL_ADDR
-PERF_COUNTERS_START_COUNTER_ADDR = TestConfig.PERF_COUNTERS_SYNC_CTRL_ADDR + 4
-PERF_COUNTERS_THREAD_COUNT = 3
-PERF_COUNTERS_STOP_COUNTER_ADDR = PERF_COUNTERS_START_COUNTER_ADDR + (
-    PERF_COUNTERS_THREAD_COUNT * 4
-)
-PERF_COUNTERS_STOP_ELECT_ADDR = PERF_COUNTERS_STOP_COUNTER_ADDR + (
-    PERF_COUNTERS_THREAD_COUNT * 4
-)
+def get_counters_addr(zone: int):
+    base_addr = (
+        TestConfig.PERF_COUNTERS_BASE_ADDR + zone * TestConfig.PERF_COUNTERS_ZONE_SIZE
+    )
+    return {
+        "config": base_addr,
+        "data": base_addr + TestConfig._PERF_COUNTERS_CONFIG_WORDS * 4,
+        "sync": base_addr + TestConfig._PERF_COUNTERS_BUFFER_SIZE,
+    }
+
 
 COUNTER_BANK_NAMES = {
     0: "INSTRN_THREAD",
@@ -228,36 +227,36 @@ def configure_counters(location: str = "0,0") -> None:
     # Encode counter configurations
     config_words = []
     for counter in ALL_COUNTERS:
-        bank_id = _BANK_NAME_TO_ID[counter["bank"]]
-        l1_mux = counter.get("l1_mux", 0)
-        counter_id = counter["counter_id"]
-        # Config word format: [valid(31), l1_mux(17), counter_sel(8-16), bank_id(0-7)]
-        config_word = (
-            (1 << 31) | (l1_mux << 17) | (counter_id << 8) | bank_id  # Valid bit
-        )
-        config_words.append(config_word)
+        valid_bit = 1 << 31
+        l1_mux = counter.get("l1_mux", 0) & 0x1
+        l1_mux_shifted = l1_mux << 17
+        counter_id_shifted = (counter["counter_id"] & 0x1FF) << 8
+        bank_id = _BANK_NAME_TO_ID[counter["bank"]] & 0xFF
+        config_words.append(valid_bit | l1_mux_shifted | counter_id_shifted | bank_id)
 
     # Pad config words to full slot count
     config_words.extend([0] * (COUNTER_SLOT_COUNT - len(config_words)))
 
-    # Write config to shared buffer
-    write_words_to_device(
-        location=location, addr=PERF_COUNTERS_CONFIG_ADDR, data=config_words
-    )
+    for zone in range(TestConfig.PERF_COUNTERS_MAX_ZONES):
+        addrs = get_counters_addr(zone)
+        # Write config to shared buffer
+        write_words_to_device(
+            location=location, addr=addrs["config"], data=config_words
+        )
 
-    # Clear data buffer completely (remove any stale values from previous runs)
-    write_words_to_device(
-        location=location,
-        addr=PERF_COUNTERS_DATA_ADDR,
-        data=[0] * COUNTER_DATA_WORD_COUNT,
-    )
+        # Clear data buffer completely (remove any stale values from previous runs)
+        write_words_to_device(
+            location=location,
+            addr=addrs["data"],
+            data=[0] * COUNTER_DATA_WORD_COUNT,
+        )
 
-    # Clear sync state and ATINCGET counters before kernel runs
-    write_words_to_device(
-        location=location,
-        addr=PERF_COUNTERS_SYNC_CTRL_ADDR,
-        data=[0] * (1 + PERF_COUNTERS_THREAD_COUNT * 2 + 1),
-    )
+        # Clear sync state and ATINCGET counters before kernel runs
+        write_words_to_device(
+            location=location,
+            addr=addrs["sync"],
+            data=[0] * (1 + 3 * 2 + 1),
+        )
 
 
 def read_counters(location: str = "0,0") -> pd.DataFrame:
@@ -277,16 +276,18 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
     """
     all_results = []
 
-    # Read from the single shared buffer (last stopper wrote here)
-    sync_ctrl = read_words_from_device(
-        location=location, addr=PERF_COUNTERS_SYNC_CTRL_ADDR, word_count=3
-    )
-    if not sync_ctrl:
-        raise RuntimeError(
-            "Perf counter sync control word not readable; counters may not have been stopped."
-        )
+    zone_names = {0: "INIT", 1: "TILE_LOOP"}
 
-    sync_word = sync_ctrl[0]
+    for zone in range(TestConfig.PERF_COUNTERS_MAX_ZONES):
+        addrs = get_counters_addr(zone)
+        # Read from the single shared buffer (last stopper wrote here)
+        sync_ctrl = read_words_from_device(
+            location=location, addr=addrs["sync"], word_count=3
+        )
+        if not sync_ctrl:
+            continue
+
+        sync_word = sync_ctrl[0]
 
     # Validate that counters were properly started and stopped
     GLOBAL_STARTED_BIT = 1 << 6
