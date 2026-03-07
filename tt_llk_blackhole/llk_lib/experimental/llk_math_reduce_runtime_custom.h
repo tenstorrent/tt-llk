@@ -336,3 +336,16 @@ inline void _llk_math_reduce_block_max_row_runtime_(const std::uint32_t dst_inde
         lltt::replay(2, 13);
     }
 }
+
+/**
+ * Reinitializes the block-based reduce_max_row operation after a matmul.
+ *
+ * This LLK API function is used only to re-initialize the address modifiers after a
+ * matmul operation in an SDPA inner loop. Please don't use this function as a substitute for
+ * the native llk_math_reduce_block_max_row_init LLK. This function is highly specialized
+ * for a certain use case and the LLK team does not guarantee any degree of generality.
+ */
+inline void _llk_math_reduce_block_max_row_reinit_runtime_()
+{
+    reduce_max_row_configure_addrmod_reinit_runtime();
+}
