@@ -36,8 +36,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 #ifdef LLK_TRISC_MATH
 
+#include "experimental/llk_math_eltwise_unary_datacopy_custom.h"
 #include "llk_math_common.h"
-#include "llk_math_eltwise_unary_datacopy_custom.h"
 #include "params.h"
 
 void run_kernel(const volatile struct RuntimeParams* params)
