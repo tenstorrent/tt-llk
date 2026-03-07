@@ -15,6 +15,10 @@
 #include "llk_math_common.h"
 #include "lltt.h"
 
+#ifdef DISABLE_SFPLOADMACRO
+#include "llk_math_transpose_dest_disable_sfploadmacro.h"
+#endif
+
 using namespace ckernel;
 
 // local function declarations
@@ -104,6 +108,7 @@ inline void transpose_dest_configure_addrmod()
         .set(ADDR_MOD_3);
 }
 
+#ifndef DISABLE_SFPLOADMACRO
 template <bool transpose_of_faces, bool is_32bit>
 inline void transpose_dest_configure_mop()
 {
@@ -222,6 +227,7 @@ inline void transpose_dest_configure_mop()
         tmp.program();
     }
 }
+#endif
 
 template <bool transpose_of_faces = true, bool is_32bit = false>
 inline void _llk_math_transpose_dest_init_()
