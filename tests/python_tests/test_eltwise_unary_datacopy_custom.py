@@ -62,7 +62,8 @@ def test_unary_datacopy_custom(formats, dest_acc, workers_tensix_coordinates):
         unpack_to_dest=False,
     )
 
-    res_from_L1 = configuration.run(workers_tensix_coordinates)
+    outcome = configuration.run(workers_tensix_coordinates)
+    res_from_L1 = outcome.result
 
     assert len(res_from_L1) == len(golden_tensor)
 
