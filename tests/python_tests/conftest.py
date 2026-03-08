@@ -5,6 +5,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -321,12 +322,30 @@ def pytest_configure(config):
                     returncode=1,
                 )
 
+            # Temporarily enable console logging so ExalensServer startup
+            # messages are visible (pytest's log_cli isn't active yet).
+            _console = logging.StreamHandler(sys.stderr)
+            _console.setLevel(logging.INFO)
+            _console.setFormatter(
+                logging.Formatter(
+                    config.getini("log_cli_format"),
+                    datefmt=config.getini("log_date_format"),
+                )
+            )
+            root = logging.getLogger()
+            _prev_root_level = root.level
+            root.setLevel(logging.INFO)
+            root.addHandler(_console)
+
             global _exalens_server
             _exalens_server = ExalensServer(
                 simulator_path=simulator_path,
                 port=test_target.simulator_port,
             )
             _exalens_server.start()
+
+            root.removeHandler(_console)
+            root.setLevel(_prev_root_level)
 
             tt_exalens_init.init_ttexalens_remote(
                 port=test_target.simulator_port, use_4B_mode=False
