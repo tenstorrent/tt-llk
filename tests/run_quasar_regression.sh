@@ -13,7 +13,7 @@ set -euo pipefail
 # ──────────────────────────────────────────────────────────────
 SIMULATOR_BUILD_PATH="${SIMULATOR_BUILD_PATH:-/localdev/fvranic/tt-umd-simulators/build/emu-quasar-1x3}"
 EXALENS_PORT="${EXALENS_PORT:-5556}"
-export NNG_SOCKET_ADDR="${NNG_SOCKET_ADDR:-tcp://tensix-l-05:53018}"
+export NNG_SOCKET_ADDR="${NNG_SOCKET_ADDR:-tcp://tensix-l-04:53018}"
 export NNG_SOCKET_LOCAL_PORT="${NNG_SOCKET_LOCAL_PORT:-5555}"
 
 EXALENS_READY_TIMEOUT=600
@@ -27,6 +27,7 @@ QUASAR_TEST_DIR="${SCRIPT_DIR}/python_tests/quasar"
 
 EXALENS_PID=""
 EXALENS_LOG=""
+EXALENS_FIFO=""
 
 # ──────────────────────────────────────────────────────────────
 # Usage
@@ -105,8 +106,16 @@ cleanup() {
     if [[ -n "$EXALENS_PID" ]] && kill -0 "$EXALENS_PID" 2>/dev/null; then
         echo ""
         echo ">>> Stopping tt-exalens (PID $EXALENS_PID)..."
-        kill "$EXALENS_PID" 2>/dev/null || true
+        echo "exit" >&3 2>/dev/null || true
+        exec 3>&- 2>/dev/null || true
+        sleep 1
+        if kill -0 "$EXALENS_PID" 2>/dev/null; then
+            kill "$EXALENS_PID" 2>/dev/null || true
+        fi
         wait "$EXALENS_PID" 2>/dev/null || true
+    fi
+    if [[ -n "$EXALENS_FIFO" ]]; then
+        rm -f "$EXALENS_FIFO"
     fi
     if [[ -n "$EXALENS_LOG" && -f "$EXALENS_LOG" ]]; then
         if [[ $exit_code -ne 0 ]]; then
@@ -125,7 +134,7 @@ trap cleanup EXIT INT TERM
 export CHIP_ARCH=quasar
 
 echo "============================================================"
-echo " Quasar Regression Runner"
+echo " Quasar LLK Regression Runner"
 echo "============================================================"
 echo " Simulator build : $SIMULATOR_BUILD_PATH"
 echo " NNG_SOCKET_ADDR : $NNG_SOCKET_ADDR"
@@ -140,14 +149,18 @@ echo ""
 # Start tt-exalens server in the background
 # ──────────────────────────────────────────────────────────────
 EXALENS_LOG=$(mktemp /tmp/tt-exalens-XXXXXX.log)
+EXALENS_FIFO=$(mktemp -u /tmp/tt-exalens-XXXXXX.fifo)
+mkfifo "$EXALENS_FIFO"
 
 echo ">>> Starting tt-exalens server..."
 tt-exalens \
     --port="$EXALENS_PORT" \
     --server \
     -s "$SIMULATOR_BUILD_PATH" \
-    >"$EXALENS_LOG" 2>&1 &
+    <"$EXALENS_FIFO" >"$EXALENS_LOG" 2>&1 &
 EXALENS_PID=$!
+
+exec 3>"$EXALENS_FIFO"
 
 echo ">>> Waiting for tt-exalens to become ready (timeout: ${EXALENS_READY_TIMEOUT}s)..."
 elapsed=0
