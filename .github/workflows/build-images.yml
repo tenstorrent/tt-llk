@@ -2,6 +2,12 @@ name: 🐳️ Docker setup and build
 
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: "Git ref (branch/tag/SHA) to checkout. Defaults to the workflow trigger ref."
+        required: false
+        type: string
+        default: ''
     outputs:
       docker-image:
         description: "The built Docker image"
@@ -17,6 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref }}
           fetch-depth: 200
 
       - name: Log in to Docker registry

@@ -45,6 +45,11 @@ on:
         required: false
         default: "WARNING"
         type: string
+      ref:
+        description: "Git ref (branch/tag/SHA) to checkout. Defaults to the workflow trigger ref."
+        required: false
+        type: string
+        default: ''
 
 permissions:
   checks: write
@@ -77,6 +82,8 @@ jobs:
       # Step 1: Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       # Step 2: Install SFPI
       - name: Install SFPI
@@ -236,6 +243,8 @@ jobs:
           echo "CHIP_ARCH=$CHIP_ARCH" >> $GITHUB_ENV
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v4
         with:

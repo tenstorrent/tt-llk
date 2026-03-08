@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: "3.10"
+      ref:
+        description: "Git ref (branch/tag/SHA) to checkout. Defaults to the workflow trigger ref."
+        required: false
+        type: string
+        default: ''
 
 jobs:
   pre-commit:
@@ -17,6 +22,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref }}
           fetch-depth: 0
 
       - name: Set up Python

@@ -25,6 +25,11 @@ on:
         required: false
         default: 80
         type: number
+      ref:
+        description: "Git ref (branch/tag/SHA) to checkout. Defaults to the workflow trigger ref."
+        required: false
+        type: string
+        default: ''
 
 permissions:
   checks: write
@@ -57,6 +62,8 @@ jobs:
       # Step 1: Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       # Step 2: Install SFPI
       - name: Install SFPI
