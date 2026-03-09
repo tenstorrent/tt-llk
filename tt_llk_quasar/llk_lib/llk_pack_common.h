@@ -184,7 +184,7 @@ inline void _llk_pack_relu_config_(const ckernel::ReluConfig& relu_config = cker
     constexpr std::uint32_t packer_relu_threshold_mask =
         (PACK_SEL == p_pacr::PACK0) ? THCON_PACKER0_REG3_RELU_THRESHOLD_MASK : THCON_PACKER1_REG3_RELU_THRESHOLD_MASK;
 
-    // Program using PACK0 register masks for both packers, since register values are identical to PACK1, avoiding duplicated code
+    // Apply packer-specific masks and extract mode and threshold.
     const std::uint32_t mode = static_cast<std::uint32_t>(relu_config.get_mode()) & packer_relu_mode_mask;
     std::uint32_t threshold  = static_cast<std::uint32_t>(relu_config.get_threshold()) & packer_relu_threshold_mask;
 
