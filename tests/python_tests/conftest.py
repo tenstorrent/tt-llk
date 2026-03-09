@@ -6,7 +6,6 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
 from typing import Optional
@@ -61,10 +60,8 @@ class ExalensServer:
                 returncode=1,
             )
 
-        log_fd, self._log_path = tempfile.mkstemp(
-            prefix="tt-exalens-", suffix=".log", dir="/tmp"
-        )
-        log_file = os.fdopen(log_fd, "w")
+        self._log_path = os.path.join(os.getcwd(), "tt-exalens.log")
+        log_file = open(self._log_path, "w")
 
         logger.info(
             "Starting tt-exalens server (port={}, simulator={}, "
@@ -74,6 +71,7 @@ class ExalensServer:
             os.environ.get("NNG_SOCKET_ADDR", "<not set>"),
             os.environ.get("NNG_SOCKET_LOCAL_PORT", "<not set>"),
         )
+        logger.info("tt-exalens output: {}", self._log_path)
 
         self._process = subprocess.Popen(
             [
@@ -173,9 +171,6 @@ class ExalensServer:
                     self._process.wait()
 
             logger.info("tt-exalens stopped.")
-
-        if self._log_path and os.path.exists(self._log_path):
-            os.unlink(self._log_path)
 
         self._process = None
 
