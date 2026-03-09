@@ -238,7 +238,7 @@ def _print_callstack(risc_name: str, callstack: list[CallstackEntry]) -> str:
 def handle_if_assert_hit(elfs: list[str], core_loc="0,0", device_id=0):
     assertion_hits = []
     temp_stack_traces = ""
-    for core in ALL_CORES:
+    for core in [RiscCore.TRISC0.name, RiscCore.TRISC1.name, RiscCore.TRISC2.name]:
         risc_name = str(core)
         if is_assert_hit(risc_name, core_loc=core_loc, device_id=device_id):
             temp_stack_traces += _print_callstack(
