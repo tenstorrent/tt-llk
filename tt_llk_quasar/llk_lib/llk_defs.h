@@ -119,6 +119,11 @@ struct ReluConfig
         return {ReluType::MAX_THRESHOLD_RELU, t};
     }
 
+    static constexpr ReluConfig from_packed(std::uint32_t packed)
+    {
+        return {static_cast<ReluType>(packed & 0x3), (packed >> 16) & 0xFFFF};
+    }
+
     constexpr ReluType get_mode() const
     {
         return mode;

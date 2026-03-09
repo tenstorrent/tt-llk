@@ -537,19 +537,16 @@ class TestConfig:
             )
 
         for param in self.runtimes:
-            if hasattr(param, "get_struct_values"):
-                argument_data.extend(param.get_struct_values())
-            else:
-                argument_data.extend(
-                    [
-                        (
-                            getattr(param, f.name).value
-                            if issubclass(f.type, Enum)
-                            else getattr(param, f.name)
-                        )
-                        for f in fields(param)
-                    ]
-                )
+            argument_data.extend(
+                [
+                    (
+                        getattr(param, f.name).value
+                        if issubclass(f.type, Enum)
+                        else getattr(param, f.name)
+                    )
+                    for f in fields(param)
+                ]
+            )
 
         serialised_data = struct.pack(self.runtime_format, *argument_data)
 
@@ -592,11 +589,6 @@ class TestConfig:
             for field_name, value in self.__dict__.items()
             if field_name not in NON_COMPILATION_ARGUMENTS
         ]
-        # Include runtime params that affect the generated header (e.g. RELU_CONFIG -> relu_config declaration)
-        for param in self.runtimes:
-            if hasattr(param, "relu_config_cpp_expr"):
-                temp_str.append(param.relu_config_cpp_expr())
-                break
 
         self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
@@ -870,11 +862,6 @@ class TestConfig:
 
         for parameter in self.templates:
             header_content.append(parameter.covert_to_cpp())
-
-        for param in self.runtimes:
-            if hasattr(param, "relu_config_cpp_expr"):
-                header_content.append(param.relu_config_cpp_expr())
-                break
 
         if self.compile_time_formats:
             header_content.extend(self.generate_compile_time_data_formats())

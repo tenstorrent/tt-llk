@@ -24,7 +24,6 @@ from .llk_params import (
     MathFidelity,
     MathOperation,
     NarrowTile,
-    PackerReluType,
     PerfRunType,
     ReducePool,
     StableSort,
@@ -33,7 +32,6 @@ from .llk_params import (
     TopKSortDirection,
     Transpose,
     UnpackerEngine,
-    pack_relu_config,
 )
 from .matmul_sweep import validate_tile_dimensions
 
@@ -758,38 +756,12 @@ class IN_TILE_DIMS(RuntimeParameter):
 
 @dataclass
 class RELU_CONFIG(RuntimeParameter):
-    """Packer ReLU config: mode + threshold bits (passed separately; packed for C struct)."""
+    """Packer ReLU config: packed 32-bit value (mode in low 2 bits, threshold in bits 16–31)."""
 
-    relu_mode: PackerReluType = PackerReluType.NoRelu
-    relu_threshold: int = 0  # 16-bit threshold bits (bits 16–31 in HW)
-
-    @classmethod
-    def from_packed(cls, packed: int) -> "RELU_CONFIG":
-        return cls(
-            relu_mode=PackerReluType(packed & 0x3),
-            relu_threshold=(packed >> 16) & 0xFFFF,
-        )
-
-    def to_packed(self) -> int:
-        return pack_relu_config(self.relu_mode, self.relu_threshold)
-
-    def get_struct_values(self) -> list:
-        return [self.to_packed()]
+    relu_config: int = 0
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr int RELU_CONFIG = {self.to_packed()};"
-
-    def relu_config_cpp_expr(self) -> str:
-        """C++ declaration for relu_config."""
-        if self.relu_mode == PackerReluType.NoRelu:
-            return "const auto relu_config = ckernel::ReluConfig::none();"
-        if self.relu_mode == PackerReluType.ZeroRelu:
-            return "const auto relu_config = ckernel::ReluConfig::zero();"
-        if self.relu_mode == PackerReluType.MinThresholdRelu:
-            return f"const auto relu_config = ckernel::ReluConfig::min_threshold({self.relu_threshold}u);"
-        if self.relu_mode == PackerReluType.MaxThresholdRelu:
-            return f"const auto relu_config = ckernel::ReluConfig::max_threshold({self.relu_threshold}u);"
-        return "const auto relu_config = ckernel::ReluConfig::none();"
+        return f"constexpr int RELU_CONFIG = {self.relu_config};"
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         return "int RELU_CONFIG;", "i"
