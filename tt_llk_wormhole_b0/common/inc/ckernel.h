@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <cstring>
+#include <utility>
+
 #include "ckernel_common_ops.h"
 #include "ckernel_instr_params.h"
 #include "ckernel_ops.h"
@@ -81,13 +84,15 @@ namespace internal
 }
 
 /**
- * @brief Issues a load transaction that will block the core until the transaction is completed
+ * @brief Issues a load transaction that will block the core until the transaction is completed.
+ * @tparam T 32-bit type to load
  * @param ptr address to read from
  * @return value read from the address
  */
-inline std::uint32_t load_blocking(volatile std::uint32_t *ptr)
+template <typename T, typename = std::enable_if_t<std::is_trivially_copyable_v<T>>>
+inline T load_blocking(volatile T *ptr)
 {
-    std::uint32_t val;
+    static_assert(sizeof(T) == sizeof(std::uint32_t), "load_blocking: operand must be 32-bit");
 
     // https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/BabyRISCV/MemoryOrdering.md
 
@@ -101,24 +106,38 @@ inline std::uint32_t load_blocking(volatile std::uint32_t *ptr)
     // - memory clobber
     //     - prevent reordering of transactions that occur after the load before the load by the COMPILER
 
-    asm volatile(
-        "lw %[val], (%[ptr])\n\t"
-        "and x0, x0, %[val]"
-        : [val] "=r"(val)
-        : [ptr] "r"(ptr));
+    std::uint32_t raw;
 
-    asm volatile("" : ::"memory");
+    asm volatile(
+        "lw %[raw], (%[ptr])\n\t"
+        "and %[raw], %[raw], %[raw]"
+        : [raw] "=r"(raw)
+        : [ptr] "r"(ptr)
+        : "memory");
+
+    T val;
+    std::memcpy(&val, &raw, sizeof(T)); // trickery to return T loaded into register
 
     return val;
 }
 
 /**
- * @brief Issues a store transaction that will block the core until the transaction is completed
+ * @brief Issues a store transaction that will block the core until the transaction is completed.
+ * @tparam T 32-bit type to store
+ * @tparam U type of the value to store, must be trivially assignable to T
  * @param ptr address to write to
- * @param val value that will be written to the address
+ * @param val value to write
  */
-inline void store_blocking(volatile std::uint32_t *ptr, std::uint32_t val)
+template <typename T, typename U, typename = std::enable_if_t<std::is_trivially_copyable_v<T> && std::is_trivially_assignable_v<T &, U>>>
+inline void store_blocking(volatile T *ptr, U &&val)
 {
+    static_assert(sizeof(T) == sizeof(std::uint32_t), "store_blocking: operand must be 32-bit");
+
+    T typed = static_cast<T>(std::forward<U>(val));
+
+    std::uint32_t raw;
+    std::memcpy(&raw, &typed, sizeof(raw));
+
     // https://github.com/tenstorrent/tt-isa-documentation/tree/main/WormholeB0/TensixTile/BabyRISCV/MemoryOrdering.md
 
     // important note: FENCE on Wormhole is a NOP
@@ -134,13 +153,12 @@ inline void store_blocking(volatile std::uint32_t *ptr, std::uint32_t val)
     //     - prevent reordering of transactions that occur after the store before the store by the COMPILER
 
     asm volatile(
-        "sw %[val], (%[ptr])\n\t"
-        "lw %[val], (%[ptr])\n\t"
-        "and x0, x0, %[val]"
-        : [val] "+r"(val)
-        : [ptr] "r"(ptr));
-
-    asm volatile("" : ::"memory");
+        "sw %[raw], (%[ptr])\n\t"
+        "lw %[raw], (%[ptr])\n\t"
+        "andi %[raw], %[raw], 0\n\t"
+        : [raw] "+r"(raw)
+        : [ptr] "r"(ptr)
+        : "memory");
 }
 
 inline void tensix_sync()
@@ -169,19 +187,44 @@ inline void mmio_register_write(register_space_e space, std::uint32_t addr, std:
     reg_base[regaddr]           = data;
 }
 
+// SemaphoreAccess layout in RISCV T0/T1/T2 address space (starting at PC_BUF_BASE):
+//
+//   uint32_t Padding[PC_BUF_SEMAPHORE_BASE];
+//   uint32_t SemaphoreAccess[8];  // Not a plain variable; has exotic read/write behaviours (see below).
+//
+// Reads:  return Semaphores[i].Value;
+//
+// Writes: atomic {
+//           if (new_val & 1)  { if (Value > 0)  Value -= 1; }  // SEMGET
+//           else              { if (Value < 15) Value += 1; }  // SEMPOST
+//         }
+
 inline std::uint8_t semaphore_read(const std::uint8_t index)
 {
+    LLK_ASSERT(index < semaphore::NUM_SEMAPHORES, "Semaphore index out of bounds");
     return pc_buf_base[PC_BUF_SEMAPHORE_BASE + index];
 }
 
+// Releases one token on the semaphore (SEMPOST).
+// Writes 0 (LSB clear) to SemaphoreAccess[index], triggering the hardware to atomically increment
+// Semaphores[index].Value by 1. The value is capped at 15; writing when already at 15 would silently
+// have no effect, so the assert guards against that misuse.
 inline void semaphore_post(const std::uint8_t index)
 {
-    pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 0;
+    LLK_ASSERT(index < semaphore::NUM_SEMAPHORES, "Semaphore index out of bounds.");
+    LLK_ASSERT(semaphore_read(index) < semaphore::SEMAPHORE_MAX_VALUE, "Semaphore must not be already at max value.");
+    pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 0; // LSB clear → SEMPOST: increment (cap at 15)
 }
 
+// Acquires one token from the semaphore (SEMGET).
+// Writes 1 (LSB set) to SemaphoreAccess[index], triggering the hardware to atomically decrement
+// Semaphores[index].Value by 1. The value is floored at 0; writing when already at 0 would silently
+// have no effect, so the assert guards against that misuse.
 inline void semaphore_get(const std::uint8_t index)
 {
-    pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 1;
+    LLK_ASSERT(index < semaphore::NUM_SEMAPHORES, "Semaphore index out of bounds.");
+    LLK_ASSERT(semaphore_read(index) > 0, "Semaphore must not be already at 0.");
+    pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 1; // LSB set → SEMGET: decrement (only if > 0)
 }
 
 // Tensix thread semaphore post optionally stalled

@@ -154,7 +154,7 @@ inline void _llk_math_eltwise_di_binary_mop_config_(const TileShape& tile_shape)
                     p_elwise::SRCB_NO_BCAST,
                     ((REPLAY_BUF_LEN - 1) * ELTWISE_MATH_ROWS) >> 2,  // Srcb addr
                     ((REPLAY_BUF_LEN - 1) * ELTWISE_MATH_ROWS) >> 2,  // Srca addr
-                    ADDR_MOD_1,                                       // Increment Fidelty
+                    ADDR_MOD_1,                                       // Increment Fidelity
                     ((REPLAY_BUF_LEN - 1) * ELTWISE_MATH_ROWS) >> 2); // Dest addr
             }
             else
@@ -165,7 +165,7 @@ inline void _llk_math_eltwise_di_binary_mop_config_(const TileShape& tile_shape)
                     p_elwise::SRCB_NO_BCAST,
                     ((REPLAY_BUF_LEN - 1) * ELTWISE_MATH_ROWS) >> 2,  // Srcb addr
                     ((REPLAY_BUF_LEN - 1) * ELTWISE_MATH_ROWS) >> 2,  // Srca addr
-                    ADDR_MOD_1,                                       // Increment Fidelty
+                    ADDR_MOD_1,                                       // Increment Fidelity
                     ((REPLAY_BUF_LEN - 1) * ELTWISE_MATH_ROWS) >> 2); // Dest addr
             }
         });

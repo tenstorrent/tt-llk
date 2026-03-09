@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+# SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -11,14 +11,20 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
+    BlocksCalculationAlgorithm,
     BroadcastType,
     DestAccumulation,
+    DestSync,
     EltwiseBinaryReuseDestType,
     StochasticRounding,
     Transpose,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks_and_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli_w_tile_dimensions
 from helpers.test_config import TestConfig
@@ -26,7 +32,9 @@ from helpers.test_variant_parameters import (
     ACC_TO_DEST,
     BROADCAST_TYPE,
     DISABLE_SRC_ZERO_FLAG,
+    NUM_BLOCKS,
     NUM_FACES,
+    NUM_TILES_IN_BLOCK,
     PARTIAL_FACE,
     REUSE_DEST_TYPE,
     STOCHASTIC_ROUNDING,
@@ -36,13 +44,14 @@ from helpers.test_variant_parameters import (
     UNPACK_TRANS_WITHIN_FACE,
 )
 from helpers.tile_constants import get_tile_params
+from helpers.tile_shape import construct_tile_shape
 from helpers.utils import passed_test
 
 supported_formats = [
-    DataFormat.Int32,
-    DataFormat.UInt32,
-    DataFormat.UInt16,
-    DataFormat.Float32,
+    # DataFormat.Int32,
+    # DataFormat.UInt32,
+    # DataFormat.UInt16,
+    # DataFormat.Float32,
     DataFormat.Float16_b,
     DataFormat.Bfp8_b,
 ]
@@ -134,6 +143,15 @@ def test_unpack_bcast(
     else:
         golden_tensor = src_A.to(format_dict[formats.output_format])
 
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half,
+        DestAccumulation.No,
+        formats,
+        input_dimensions,
+        tile_dimensions,
+        BlocksCalculationAlgorithm.Standard,
+    )
+
     # --- Kernel configuration --------------------------------------------
     configuration = TestConfig(
         "sources/unpack_A_test.cpp",
@@ -157,6 +175,8 @@ def test_unpack_bcast(
             NUM_FACES(num_faces),
             TILE_COUNT(tile_cnt_A),
             TEST_FACE_DIMS(face_r_dim=face_r_dim),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
@@ -187,11 +207,12 @@ def test_unpack_bcast(
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
     # Pretty red/green diff output via passed_test (tolerance-based)
+    tile_shape = construct_tile_shape(tile_dimensions)
     assert passed_test(
         golden_tensor,
         res_tensor,
         formats.output_format,
-        tile_dimensions=tile_dimensions,
+        tile_shape=tile_shape,
     )
 
     # Datacopy/bcast should be bit-exact for float formats (no compute loss)

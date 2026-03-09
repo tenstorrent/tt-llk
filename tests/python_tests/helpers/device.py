@@ -37,6 +37,7 @@ from .pack import (
     pack_fp16,
     pack_fp32,
     pack_int8,
+    pack_int16,
     pack_int32,
     pack_uint8,
     pack_uint16,
@@ -259,6 +260,7 @@ def wait_for_tensix_operations_finished(
         TensixDump.try_process_request(tensix_dumps, core_loc)
 
         if completed == mailboxes:
+            set_tensix_soft_reset(1, location=core_loc)
             return tensix_dumps
 
         # Disable any waiting if running on simulator
@@ -345,6 +347,7 @@ def write_pipeline_operands_to_l1(
             DataFormat.Bfp8_b: pack_bfp8_b,
             DataFormat.Int32: pack_int32,
             DataFormat.UInt32: pack_uint32,
+            DataFormat.Int16: pack_int16,
             DataFormat.UInt16: pack_uint16,
             DataFormat.Int8: pack_int8,
             DataFormat.UInt8: pack_uint8,
