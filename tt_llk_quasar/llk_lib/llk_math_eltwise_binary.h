@@ -71,13 +71,13 @@ inline void _llk_math_eltwise_binary_mop_config_(const TileShape& tile_shape)
 {
     const std::uint32_t rows_per_mop_run =
         (reuse_dest != EltwiseBinaryReuseDestType::NONE) ? tile_shape.face_r_dim : (tile_shape.num_faces * tile_shape.face_r_dim);
-    constexpr bool math_fidelity_enable = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
-    static_assert(!(math_fidelity_enable && ELTWISE_BINARY_TYPE != EltwiseBinaryType::ELWMUL), "Math fidelity larger than LoFi only works with Eltwise MUL");
+    constexpr bool high_fidelity = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
+    static_assert(!(high_fidelity && ELTWISE_BINARY_TYPE != EltwiseBinaryType::ELWMUL), "Math fidelity larger than LoFi only works with Eltwise MUL");
     // For reuse_dest + Elwmul we need dest accumulation (dest = old_dest + srcA*srcB) ; LoFi alone sets EN_DST_ACC_EN=0.
     constexpr std::uint32_t EN_DST_ACC_EN =
-        (reuse_dest != EltwiseBinaryReuseDestType::NONE && ELTWISE_BINARY_TYPE == EltwiseBinaryType::ELWMUL) ? 1u : (math_fidelity_enable ? 1u : 0u);
+        (reuse_dest != EltwiseBinaryReuseDestType::NONE && ELTWISE_BINARY_TYPE == EltwiseBinaryType::ELWMUL) ? 1u : (high_fidelity ? 1u : 0u);
 
-    constexpr std::uint8_t addrmod_fid = math_fidelity_enable ? ADDR_MOD_2 : ADDR_MOD_0;
+    constexpr std::uint8_t addrmod_fid = high_fidelity ? ADDR_MOD_2 : ADDR_MOD_0;
     constexpr static std::uint32_t eltwise_binary_op =
         eltwise_binary_func<ELTWISE_BINARY_TYPE, p_elwise::CLR_NONE, EN_DST_ACC_EN, p_elwise::SRCB_NO_BCAST, addrmod_fid>();
 
@@ -102,7 +102,7 @@ inline void _llk_math_eltwise_binary_mop_config_(const TileShape& tile_shape)
         ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, eltwise_binary_op);
         temp.set_last_outer_loop_instr(eltwise_binary_op_clr_valid);
 
-        if (math_fidelity_enable)
+        if (high_fidelity)
         {
             constexpr static std::uint32_t eltwise_binary_op_clr_fidelity =
                 eltwise_binary_func<ELTWISE_BINARY_TYPE, p_elwise::CLR_NONE, EN_DST_ACC_EN, p_elwise::SRCB_NO_BCAST, ADDR_MOD_0>();
@@ -122,9 +122,9 @@ inline void _llk_math_eltwise_di_binary_mop_config_(const TileShape& tile_shape)
     const std::uint32_t total_num_rows_per_tile = tile_shape.num_faces * tile_shape.face_r_dim;
     const std::uint32_t REPLAY_BUF_LEN          = (total_num_rows_per_tile >> math_rows_log2(ELTWISE_MATH_ROWS));
     const std::uint32_t MOP_INNER_LOOP          = to_underlying(MATH_FIDELITY_TYPE) + 1;
-    constexpr bool math_fidelity_enable         = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
-    static_assert(!(math_fidelity_enable && ELTWISE_BINARY_TYPE != EltwiseBinaryType::ELWMUL), "Math fidelity larger than LoFi only works with Eltwise MUL");
-    const std::uint32_t EN_DST_ACC_EN = math_fidelity_enable;
+    constexpr bool high_fidelity                = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
+    static_assert(!(high_fidelity && ELTWISE_BINARY_TYPE != EltwiseBinaryType::ELWMUL), "Math fidelity larger than LoFi only works with Eltwise MUL");
+    const std::uint32_t EN_DST_ACC_EN = high_fidelity;
 
     load_replay_buf(
         0u,
@@ -146,7 +146,7 @@ inline void _llk_math_eltwise_di_binary_mop_config_(const TileShape& tile_shape)
                     (i * ELTWISE_MATH_ROWS) >> 2); // Dest addr
             }
 
-            if (math_fidelity_enable)
+            if (high_fidelity)
             {
                 eltwise_di_binary_func<ELTWISE_BINARY_TYPE>(
                     p_elwise::CLR_NONE,
@@ -172,7 +172,7 @@ inline void _llk_math_eltwise_di_binary_mop_config_(const TileShape& tile_shape)
 
     ckernel_template temp(1 /* outer loop */, MOP_INNER_LOOP, TT_OP_REPLAY(0, REPLAY_BUF_LEN, 0, 0, 0, 0));
 
-    if (math_fidelity_enable)
+    if (high_fidelity)
     {
         temp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, p_setrwc::SET_ABD_F));
     }
@@ -189,7 +189,7 @@ inline void _llk_math_eltwise_di_binary_mop_config_(const TileShape& tile_shape)
 template <ckernel::MathFidelity MATH_FIDELITY_TYPE>
 inline void _llk_math_eltwise_binary_addrmod_()
 {
-    constexpr bool math_fidelity_enable = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
+    constexpr bool high_fidelity = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
 
     // For ELWADD/SUB/MUL, can increment source
     //  and dest registers
@@ -197,14 +197,13 @@ inline void _llk_math_eltwise_binary_addrmod_()
         .srca     = {.incr = ELTWISE_MATH_ROWS},
         .srcb     = {.incr = ELTWISE_MATH_ROWS},
         .dest     = {.incr = ELTWISE_MATH_ROWS},
-        .fidelity = {.incr = 0, .clr = math_fidelity_enable}}
+        .fidelity = {.incr = 0, .clr = high_fidelity}}
         .set(ADDR_MOD_0);
 
     // Reset Src counters, inc dest
-    addr_mod_t {.srca = {.clr = 1}, .srcb = {.clr = 1}, .dest = {.incr = ELTWISE_MATH_ROWS}, .fidelity = {.incr = 0, .clr = math_fidelity_enable}}.set(
-        ADDR_MOD_1);
+    addr_mod_t {.srca = {.clr = 1}, .srcb = {.clr = 1}, .dest = {.incr = ELTWISE_MATH_ROWS}, .fidelity = {.incr = 0, .clr = high_fidelity}}.set(ADDR_MOD_1);
 
-    if constexpr (math_fidelity_enable)
+    if constexpr (high_fidelity)
     {
         addr_mod_t {.srca = {.incr = 0}, .srcb = {.incr = 0}, .dest = {.incr = 0}, .fidelity = {.incr = 1}}.set(ADDR_MOD_2);
     }
@@ -216,8 +215,8 @@ inline void _llk_math_eltwise_binary_addrmod_()
 template <ckernel::MathFidelity MATH_FIDELITY_TYPE>
 inline void _llk_math_eltwise_di_binary_addrmod_()
 {
-    constexpr bool math_fidelity_enable        = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
-    constexpr std::uint32_t fidelity_increment = math_fidelity_enable ? 1 : 0;
+    constexpr bool high_fidelity               = MATH_FIDELITY_TYPE != ckernel::MathFidelity::LoFi;
+    constexpr std::uint32_t fidelity_increment = high_fidelity ? 1 : 0;
     addr_mod_t {
         .srca     = {.incr = 0, .clr = 0, .cr = 0},
         .srcb     = {.incr = 0, .clr = 0, .cr = 0},
