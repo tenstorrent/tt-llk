@@ -37,6 +37,7 @@ class ExalensServer:
         self._port = port
         self._process: Optional[subprocess.Popen] = None
         self._log_path: Optional[str] = None
+        self._log_read_offset = 0
 
     def start(self) -> None:
         if not os.path.isdir(self._simulator_path):
@@ -85,6 +86,7 @@ class ExalensServer:
             stdout=log_file,
             stderr=subprocess.STDOUT,
         )
+        log_file.close()
 
         self._wait_until_ready()
 
@@ -131,7 +133,10 @@ class ExalensServer:
             return False
         try:
             with open(self._log_path, "r") as f:
-                return self.READY_PATTERN in f.read()
+                f.seek(self._log_read_offset)
+                new_data = f.read()
+                self._log_read_offset = f.tell()
+                return self.READY_PATTERN in new_data
         except OSError:
             return False
 
@@ -317,30 +322,34 @@ def pytest_configure(config):
                     returncode=1,
                 )
 
-            # Temporarily enable console logging so ExalensServer startup
-            # messages are visible (pytest's log_cli isn't active yet).
-            _console = logging.StreamHandler(sys.stderr)
-            _console.setLevel(logging.INFO)
-            _console.setFormatter(
-                logging.Formatter(
-                    config.getini("log_cli_format"),
-                    datefmt=config.getini("log_date_format"),
+            # Only the controller process starts the server; xdist workers
+            # just connect to the already-running instance.
+            if not hasattr(config, "workerinput"):
+                # Temporarily enable console logging so ExalensServer startup
+                # messages are visible (pytest's log_cli isn't active yet).
+                _console = logging.StreamHandler(sys.stderr)
+                _console.setLevel(logging.INFO)
+                _console.setFormatter(
+                    logging.Formatter(
+                        config.getini("log_cli_format"),
+                        datefmt=config.getini("log_date_format"),
+                    )
                 )
-            )
-            root = logging.getLogger()
-            _prev_root_level = root.level
-            root.setLevel(logging.INFO)
-            root.addHandler(_console)
+                root = logging.getLogger()
+                _prev_root_level = root.level
+                root.setLevel(logging.INFO)
+                root.addHandler(_console)
 
-            global _exalens_server
-            _exalens_server = ExalensServer(
-                simulator_path=simulator_path,
-                port=test_target.simulator_port,
-            )
-            _exalens_server.start()
-
-            root.removeHandler(_console)
-            root.setLevel(_prev_root_level)
+                try:
+                    global _exalens_server
+                    _exalens_server = ExalensServer(
+                        simulator_path=simulator_path,
+                        port=test_target.simulator_port,
+                    )
+                    _exalens_server.start()
+                finally:
+                    root.removeHandler(_console)
+                    root.setLevel(_prev_root_level)
 
             tt_exalens_init.init_ttexalens_remote(
                 port=test_target.simulator_port, use_4B_mode=False
