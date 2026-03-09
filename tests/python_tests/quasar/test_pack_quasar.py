@@ -97,7 +97,7 @@ def generate_qsr_pack_combinations(
         ),
     }
 
-    relu_types = [
+    all_relu_types = [
         PackerReluType.NoRelu,
         PackerReluType.ZeroRelu,
         PackerReluType.MinThresholdRelu,
@@ -111,6 +111,13 @@ def generate_qsr_pack_combinations(
         if not is_supported_format_conversion(in_fmt, out_fmt):
             continue
 
+        # Threshold ReLU modes are not supported for integer pack_src formats
+        # (mirroring the pytest.skip guard in the test body).
+        relu_types = (
+            [PackerReluType.NoRelu, PackerReluType.ZeroRelu]
+            if in_fmt.is_integer()
+            else all_relu_types
+        )
         for dest_acc in get_dest_acc_modes(in_fmt):
             if is_supported_dest_mode_dependent_conversion(in_fmt, out_fmt, dest_acc):
                 for dimensions in dimensions_cache[dest_acc]:
@@ -166,15 +173,6 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
         is_fp32_dest_acc_en=dest_acc,
         unpacking_to_dest=unpack_to_dest,
     )
-
-    if data_formats.pack_src.is_integer() and relu_type in [
-        PackerReluType.MinThresholdRelu,
-        PackerReluType.MaxThresholdRelu,
-    ]:
-        pytest.skip(
-            "Pack source format cannot be an integer format with ReLu Type: "
-            + str(relu_type)
-        )
 
     tensor_average = (
         torch.mean(golden_tensor).item()
