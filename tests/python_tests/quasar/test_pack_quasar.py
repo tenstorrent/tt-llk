@@ -35,7 +35,7 @@ from helpers.test_variant_parameters import (
     TILE_COUNT,
 )
 from helpers.utils import passed_test
-from test_pack import is_relu_threshold_tolerance_issue
+from test_zzz_pack import is_relu_threshold_tolerance_issue
 
 
 def generate_qsr_pack_combinations(
@@ -237,7 +237,7 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     test_passed = passed_test(
-        golden_tensor, res_tensor, formats.output_format, print_erros=False
+        golden_tensor, res_tensor, formats.output_format, print_errors=False
     )
 
     # Same method as test_pack.py for original ReLu testing and threshold tolerance issue

@@ -259,7 +259,7 @@ def test_pack(
         runtimes=[
             TILE_COUNT(tile_cnt_A),
             DEST_INDEX(dest_index),
-            RELU_CONFIG.from_packed(relu_config),,
+            RELU_CONFIG.from_packed(relu_config),
             NUM_FACES(num_faces=FACES_PER_TILE),
             NUM_BLOCKS(num_blocks),
             NUM_TILES_IN_BLOCK(num_tiles_in_block),
