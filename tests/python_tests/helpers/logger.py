@@ -96,7 +96,7 @@ def configure_logger(level: str = None):
     """
     logger.remove()
 
-    level = (level or os.getenv("LOGURU_LEVEL", "CRITICAL")).upper()
+    level = (level or os.getenv("LOGURU_LEVEL", "INFO")).upper()
 
     suffix = _xdist_worker_suffix()
 

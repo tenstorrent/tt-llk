@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
 import os
 from pathlib import Path
 
@@ -124,8 +125,17 @@ def pytest_configure(config):
     # Create directories from all processes - lock in create_directories handles race
     TestConfig.create_build_directories()
 
+    log_file = "pytest_errors.log"
     if not hasattr(config, "workerinput"):
         check_hardware_headers()
+        if os.path.exists(log_file):
+            os.remove(log_file)
+
+    logging.basicConfig(
+        filename=log_file,
+        level=logging.ERROR,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+    )
 
     initialize_test_target_from_pytest(config)
     test_target = TestTargetConfig()
