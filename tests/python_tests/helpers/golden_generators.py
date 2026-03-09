@@ -17,6 +17,7 @@ from helpers.llk_params import (
     ReducePool,
     TopKSortDirection,
     format_dict,
+    pack_relu_config,
 )
 from helpers.pack import pack_mxfp8p, pack_mxfp8r
 from helpers.tilize_untilize import tilize_block, untilize_block
@@ -1146,7 +1147,7 @@ class PackGolden:
         mode, threshold_bits = PackGolden.get_relu_mode_and_threshold_bits(
             relu_type, relu_threshold, intermediate_format
         )
-        return (mode.value & 0x3) | ((threshold_bits & 0xFFFF) << 16)
+        return pack_relu_config(mode, threshold_bits)
 
     @staticmethod
     def _encode_threshold_to_bits(

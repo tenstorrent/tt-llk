@@ -33,6 +33,7 @@ from .llk_params import (
     TopKSortDirection,
     Transpose,
     UnpackerEngine,
+    pack_relu_config,
 )
 from .matmul_sweep import validate_tile_dimensions
 
@@ -770,7 +771,7 @@ class RELU_CONFIG(RuntimeParameter):
         )
 
     def to_packed(self) -> int:
-        return (self.relu_mode.value & 0x3) | ((self.relu_threshold & 0xFFFF) << 16)
+        return pack_relu_config(self.relu_mode, self.relu_threshold)
 
     def get_struct_values(self) -> list:
         return [self.to_packed()]
