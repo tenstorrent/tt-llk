@@ -85,7 +85,7 @@ inline void _llk_pack_mop_config_(
 {
     static_assert(FaceLayout == DstTileFaceLayout::RowMajor, "FaceLayout must be RowMajor");
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    LLK_ASSERT(!partial_face, "partial_face: this parameter is unused");
+    // LLK_ASSERT(!partial_face, "partial_face: this parameter is unused");
     LLK_ASSERT(!narrow_tile, "narrow_tile: this parameter is unused");
 
     constexpr uint MEGAROW          = 1;

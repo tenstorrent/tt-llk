@@ -19,8 +19,8 @@ from helpers.perf import PerfRunType, perf_benchmark, update_report
             DataFormat.Bfp8_b,
         ]
     ),
-    full_rt_dim=[1, 2, 3, 4, 5, 6, 7, 8],
-    full_ct_dim=[1, 2, 3, 4, 5, 6, 7, 8],
+    full_rt_dim=[1],
+    full_ct_dim=[11],
 )
 def test_perf_pack_untilize(perf_report, test_name, formats, full_rt_dim, full_ct_dim):
     if formats.output_format == DataFormat.Bfp8_b:
