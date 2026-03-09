@@ -592,7 +592,7 @@ class TestConfig:
             for field_name, value in self.__dict__.items()
             if field_name not in NON_COMPILATION_ARGUMENTS
         ]
-        # Include runtime params that affect the generated header (e.g. RELU_CONFIG -> RELU_CONFIG_EXPR)
+        # Include runtime params that affect the generated header (e.g. RELU_CONFIG -> relu_config declaration)
         for param in self.runtimes:
             if hasattr(param, "relu_config_cpp_expr"):
                 temp_str.append(param.relu_config_cpp_expr())
@@ -873,9 +873,7 @@ class TestConfig:
 
         for param in self.runtimes:
             if hasattr(param, "relu_config_cpp_expr"):
-                header_content.append(
-                    f"#define RELU_CONFIG_EXPR {param.relu_config_cpp_expr()}"
-                )
+                header_content.append(param.relu_config_cpp_expr())
                 break
 
         if self.compile_time_formats:
