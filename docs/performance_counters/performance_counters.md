@@ -208,8 +208,8 @@ Use these to measure compute utilization: `FPU_OR_SFPU_INSTRN / cycles`. Note th
 
 Configuration and data buffers in L1 use a **single shared buffer** accessed by all TRISC threads (UNPACK, MATH, PACK, SFPU). The layout is architecture-dependent:
 
-- **Wormhole/Blackhole (3 TRISCs):** UNPACK, MATH, PACK
-- **Quasar (4 TRISCs):** UNPACK, MATH, PACK, SFPU
+- **Wormhole/Blackhole (3 TRISCs):** UNPACK, FPU/SFPU, PACK
+- **Quasar (4 TRISCs):** UNPACK, FPU/SFPU (SFPU optional), PACK, isolated SFPU
 
 Base layout: 86 config words (344 bytes) + 172 data words (688 bytes) + sync region. The sync region size depends on thread count (see below).
 
