@@ -10,6 +10,61 @@
 #include "cfg_defines.h"
 #include "ckernel.h"
 
+// C-runtime related linker symbols
+extern volatile char __ldm_bss_start[], __ldm_bss_end[];
+extern volatile char __loader_init_start[], __loader_init_end[];
+extern volatile char __ldm_data_start[], __ldm_data_end[];
+extern const std::uint32_t __stack_top[];
+extern void (*__init_array_start[])(void);
+extern void (*__init_array_end[])(void);
+
+TT_ALWAYS_INLINE void do_crt0()
+{
+    asm volatile(
+        ".option push\n"
+        ".option norelax\n"
+        "la gp, __global_pointer$\n"
+        ".option pop" ::
+            : "memory");
+
+    // Set stack pointer
+    asm volatile("la sp, %0" : : "i"(__stack_top) : "memory");
+
+    // Initialize .bss
+    for (volatile char* temp_byte = __ldm_bss_start; temp_byte < __ldm_bss_end; temp_byte++)
+    {
+        *temp_byte = 0;
+    }
+
+    // Copy .loader_init to .ldm_data
+    if ((std::uint32_t)__loader_init_start != (std::uint32_t)__loader_init_end)
+    {
+        volatile char* src_byte = __loader_init_start;
+        volatile char* dst_byte = __ldm_data_start;
+
+        while (dst_byte < __ldm_data_end)
+        {
+            *(volatile std::uint32_t*)dst_byte = *(volatile std::uint32_t*)src_byte;
+            src_byte += 4;
+            dst_byte += 4;
+        }
+    }
+
+    // Execute global constructors
+    for (void (**temp_constructor)(void) = __init_array_start; temp_constructor < __init_array_end; temp_constructor++)
+    {
+        (*temp_constructor)();
+    }
+}
+
+void _init(void)
+{
+}
+
+void _fini(void)
+{
+}
+
 inline void device_setup()
 {
 #if defined(ARCH_WORMHOLE)
