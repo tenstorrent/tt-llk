@@ -4,6 +4,8 @@
 
 #pragma once
 
+#define TT_LLK_SFPU_EXP
+
 #include <cstdint>
 #include <limits>
 
