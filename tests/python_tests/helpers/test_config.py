@@ -183,7 +183,9 @@ class TestConfig:
     # NOTE: These addresses must match the values in tests/helpers/include/counters.h
     # Buffer layout: 86 config words + 172 data words + sync control words
     PERF_COUNTERS_BASE_ADDR: ClassVar[int] = 0x16A000
-    PERF_COUNTERS_MAX_ZONES: ClassVar[int] = 2
+    PERF_COUNTERS_MAX_ZONES: ClassVar[int] = (
+        8  # Support up to 8 MEASURE_PERF_COUNTERS calls
+    )
     _PERF_COUNTERS_CONFIG_WORDS: ClassVar[int] = 86
     _PERF_COUNTERS_DATA_WORDS: ClassVar[int] = 172
     _PERF_COUNTERS_BUFFER_SIZE: ClassVar[int] = (

@@ -9,6 +9,10 @@ from ttexalens.tt_exalens_lib import read_words_from_device, write_words_to_devi
 
 from .test_config import TestConfig
 
+# ============================================================================
+# Constants and Configuration
+# ============================================================================
+
 # Derive all constants from TestConfig (single source of truth)
 COUNTER_SLOT_COUNT = TestConfig._PERF_COUNTERS_CONFIG_WORDS  # 86 config slots
 COUNTER_DATA_WORD_COUNT = (
@@ -20,8 +24,15 @@ PERF_COUNTERS_STOPPER_SHIFT = 10
 PERF_COUNTERS_STOPPER_MASK = 0x3
 
 
-# Single shared buffer addresses (all threads use the same location)
+# Helper function to get L1 addresses for a zone
 def get_counters_addr(zone: int):
+    """
+    Get L1 memory addresses for counter buffers for a specific zone.
+
+    Zones are auto-assigned by MEASURE_PERF_COUNTERS() in declaration order:
+      Zone 0 = first call (typically "INIT" or "KERNEL")
+      Zone 1 = second call (typically "TILE_LOOP")
+    """
     base_addr = (
         TestConfig.PERF_COUNTERS_BASE_ADDR + zone * TestConfig.PERF_COUNTERS_ZONE_SIZE
     )
@@ -209,7 +220,7 @@ ALL_COUNTERS = _build_all_counters()
 ALL_THREADS = ["UNPACK", "MATH", "PACK"]
 
 
-def configure_counters(location: str = "0,0") -> None:
+def configure_counters(location: str = "0,0", num_zones: int = None) -> None:
     """
     Configure performance counters in the shared buffer for all threads (UNPACK, MATH, PACK).
 
@@ -218,12 +229,17 @@ def configure_counters(location: str = "0,0") -> None:
     Note: Only 86 slots are available in hardware; L1 counters (16 defs, 8 active at once)
     require mux configuration before measurement starts.
 
-    The counters are started/stopped by all threads via start_perf_counters()/stop_perf_counters(),
+    The counters are started/stopped by all threads via MEASURE_PERF_COUNTERS("name"),
     but only the last thread to finish (last stopper) reads the hardware and writes results.
 
     Args:
         location: Tensix core coordinates (e.g., "0,0").
+        num_zones: Maximum number of zones to pre-configure. If None, uses TestConfig.PERF_COUNTERS_MAX_ZONES.
     """
+    # Use TestConfig constant if not specified
+    if num_zones is None:
+        num_zones = TestConfig.PERF_COUNTERS_MAX_ZONES
+
     # Encode counter configurations
     config_words = []
     for counter in ALL_COUNTERS:
@@ -237,8 +253,9 @@ def configure_counters(location: str = "0,0") -> None:
     # Pad config words to full slot count
     config_words.extend([0] * (COUNTER_SLOT_COUNT - len(config_words)))
 
-    for zone in range(TestConfig.PERF_COUNTERS_MAX_ZONES):
-        addrs = get_counters_addr(zone)
+    # Configure all possible zones (C++ __COUNTER__ determines actual usage)
+    for zone_id in range(num_zones):
+        addrs = get_counters_addr(zone_id)
         # Write config to shared buffer
         write_words_to_device(
             location=location, addr=addrs["config"], data=config_words
@@ -263,31 +280,38 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
     """
     Read performance counter results from the shared buffer.
 
+    Auto-detects which zones were used by checking for valid sync words.
     In the shared buffer architecture, whichever thread finishes last (the "last stopper")
-    reads the hardware counters and writes them to the shared buffer. This function returns
-    a single thread's snapshot - the results captured by the last stopper.
+    reads the hardware counters and writes them to the shared buffer.
 
     Args:
         location: Tensix core coordinates (e.g., "0,0").
 
     Returns:
         DataFrame containing counter results, with columns:
-        starter_thread, stopper_thread, bank, counter_name, counter_id, cycles, count, l1_mux
+        zone, starter_thread, stopper_thread, bank, counter_name, counter_id, cycles, count, l1_mux
     """
     all_results = []
 
-    zone_names = {0: "INIT", 1: "TILE_LOOP"}
+    # Auto-detect zones by checking sync words (stop when we hit an uninitialized zone)
+    max_zones = TestConfig.PERF_COUNTERS_MAX_ZONES
+    for zone_id in range(max_zones):
+        # Zone name is just the zone number
+        zone_name = f"ZONE_{zone_id}"
 
-    for zone in range(TestConfig.PERF_COUNTERS_MAX_ZONES):
-        addrs = get_counters_addr(zone)
+        addrs = get_counters_addr(zone_id)
         # Read from the single shared buffer (last stopper wrote here)
         sync_ctrl = read_words_from_device(
             location=location, addr=addrs["sync"], word_count=3
         )
         if not sync_ctrl:
-            continue
+            break  # Stop if we can't read memory
 
         sync_word = sync_ctrl[0]
+
+        # Skip zones that were never initialized (sync_word == 0)
+        if sync_word == 0:
+            break  # Stop at first uninitialized zone (rest will be uninitialized too)
 
         # Validate that counters were properly started and stopped
         GLOBAL_STARTED_BIT = 1 << 6
@@ -295,15 +319,9 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
         ALL_START_BITS = 0x7  # Bits 0-2 should all be set
         ALL_STOP_BITS = 0x7 << 3  # Bits 3-5 should all be set
 
-        if sync_word == 0:
-            raise RuntimeError(
-                "Perf counter sync word is zero - counters were never started. "
-                "Ensure start_perf_counters() is called in all threads."
-            )
-
         if not (sync_word & GLOBAL_STARTED_BIT):
             raise RuntimeError(
-                f"Perf counters were never started (global started bit not set); sync_ctrl=0x{sync_word:08x}"
+                f"Zone {zone_id}: Perf counters were never started (global started bit not set); sync_ctrl=0x{sync_word:08x}"
             )
 
         # Validate that all three threads set their start bits.
@@ -399,7 +417,6 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
             continue
 
         data_idx = 0
-        zone_name = zone_names.get(zone, f"ZONE_{zone}")
         for i in range(COUNTER_SLOT_COUNT):
             config_word = metadata[i]
             if (config_word & 0x80000000) == 0:  # Check valid bit

@@ -637,12 +637,6 @@ public:
 // Public API
 // ============================================================================
 
-enum class PerfCounterZone : std::uint32_t
-{
-    INIT      = 0,
-    TILE_LOOP = 1
-};
-
 // Start performance counters (call from all threads)
 inline void start_perf_counters(std::uint32_t zone)
 {
@@ -788,20 +782,39 @@ constexpr std::uint32_t AVAILABLE_MATH             = 272;
 
 namespace llk_perf
 {
-struct perf_counter_scoped
+// Template-based RAII wrapper for automatic counter start/stop
+template <std::uint32_t zone_id>
+class perf_counter_scoped
 {
-    std::uint32_t zone;
+public:
+    perf_counter_scoped(const perf_counter_scoped&)            = delete;
+    perf_counter_scoped(perf_counter_scoped&&)                 = delete;
+    perf_counter_scoped& operator=(const perf_counter_scoped&) = delete;
+    perf_counter_scoped& operator=(perf_counter_scoped&&)      = delete;
 
-    perf_counter_scoped(std::uint32_t z) : zone(z)
+    inline __attribute__((always_inline)) perf_counter_scoped()
     {
-        start_perf_counters(z);
+        start_perf_counters(zone_id);
     }
 
     ~perf_counter_scoped()
     {
-        stop_perf_counters(zone);
+        stop_perf_counters(zone_id);
     }
 };
 } // namespace llk_perf
 
-#define PERF_COUNTERS_SCOPED(zone) const auto _perf_counter_scoped_ = llk_perf::perf_counter_scoped(zone);
+// Auto-incrementing zone assignment using __COUNTER__
+// Each MEASURE_PERF_COUNTERS() call automatically gets the next zone number
+// First call = Zone 0, second call = Zone 1, etc.
+//
+// Perf tests:
+//   MEASURE_PERF_COUNTERS("INIT")      -> Zone 0
+//   MEASURE_PERF_COUNTERS("TILE_LOOP") -> Zone 1
+//
+// Normal tests:
+//   MEASURE_PERF_COUNTERS("KERNEL")    -> Zone 0
+#define MEASURE_PERF_COUNTERS(zone_name) const auto _perf_counter_scoped_##__COUNTER__ = llk_perf::perf_counter_scoped<__COUNTER__>();
+
+// Legacy numeric API (still supported)
+#define PERF_COUNTERS_SCOPED(zone) const auto _perf_counter_scoped_ = llk_perf::perf_counter_scoped<zone>();
