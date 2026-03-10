@@ -40,6 +40,9 @@ class TestTargetConfig:
         """Update only the simulator related settings from pytest config"""
         self.run_simulator = config.getoption("--run-simulator", default=False)
         self.simulator_port = config.getoption("--port", default=5555)
+        self.reset_simulator_per_test = config.getoption(
+            "--reset-simulator-per-test", default=False
+        )
 
 
 def initialize_test_target_from_pytest(config):
