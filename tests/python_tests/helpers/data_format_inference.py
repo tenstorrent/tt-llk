@@ -333,7 +333,7 @@ def infer_data_formats(
     pack_in = infer_pack_in(
         input_format,
         output_format,
-        unpack_out_A,
+        math,
         is_fp32_dest_acc_en,
         unpacking_to_dest,
         chip_arch,
@@ -438,7 +438,7 @@ def data_formats(
             math_format = DataFormat.Float16_b
             pack_src_format = DataFormat.Float16_b
         elif input_format == DataFormat.Fp8_e4m3:
-            unpack_dst = DataFormat.Float16
+            unpack_dst = DataFormat.Fp8_e4m3
             math_format = DataFormat.Float16
             pack_src_format = DataFormat.Float16
         else:
@@ -456,7 +456,7 @@ def data_formats(
         if input_format_B is not None and input_format_B.is_mx_format():
             unpack_B_dst_val = DataFormat.Float16_b
         elif input_format_B is not None and input_format_B == DataFormat.Fp8_e4m3:
-            unpack_B_dst_val = DataFormat.Float16
+            unpack_B_dst_val = DataFormat.Fp8_e4m3
         elif input_format_B is not None:
             unpack_B_dst_val = input_format_B
         else:

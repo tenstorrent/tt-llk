@@ -221,9 +221,7 @@ inline void set_packer_config(
     const std::uint32_t pack_output_dst_format = masked_data_format(pack_dst_format);
     // Gasket converts Float16_b -> Float16 before the packer, so hardware in_data_format must be Float16 for Fp8 output.
     const std::uint32_t pack_hw_src_format =
-        ((pack_dst_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3))
-            ? to_underlying(DataFormat::Float16)
-            : pack_output_src_format;
+        ((pack_dst_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3)) ? to_underlying(DataFormat::Float16) : pack_output_src_format;
 
     // Set packer config
     pack_config_u config;
@@ -329,9 +327,7 @@ inline void reconfig_packer_data_format(
     const std::uint32_t pack_output_dst_format = masked_data_format(pack_dst_format);
     // Gasket converts Float16_b -> Float16 before the packer, so hardware in_data_format must be Float16 for Fp8 output.
     const std::uint32_t pack_hw_src_format =
-        ((pack_dst_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3))
-            ? to_underlying(DataFormat::Float16)
-            : pack_output_src_format;
+        ((pack_dst_format & 0x1F) == to_underlying(DataFormat::Fp8_e4m3)) ? to_underlying(DataFormat::Float16) : pack_output_src_format;
 
     // Configure packers
     pack_config_u config;
