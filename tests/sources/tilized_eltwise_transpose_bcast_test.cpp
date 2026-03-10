@@ -66,7 +66,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
         _llk_math_eltwise_binary_bcastB_row_as_col_(i);
     }
 
-    _llk_math_eltwise_binary_bcastB_row_as_col_uninit_();
     _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
 

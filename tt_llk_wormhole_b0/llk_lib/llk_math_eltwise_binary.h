@@ -893,12 +893,5 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_(std::uint32_t dst_index)
 
     // run the MOP
     ckernel_template::run();
-
-    math::clear_dst_reg_addr();
-}
-
-inline void _llk_math_eltwise_binary_bcastB_row_as_col_uninit_()
-{
-    // Clear any pending dvalid signals
-    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0);
+    TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_D); // clear dest address and AB dvalids ( resolve hang)
 }
