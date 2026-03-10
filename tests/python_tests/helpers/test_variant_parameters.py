@@ -775,7 +775,7 @@ class NUM_ROWS_TO_PACK(RuntimeParameter):
         return f"constexpr std::uint32_t NUM_ROWS_TO_PACK = {self.num_rows_to_pack};"
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "uint32_t NUM_ROWS_TO_PACK;", "I"
+        return "std::uint32_t NUM_ROWS_TO_PACK;", "I"
 
 
 @dataclass
@@ -790,7 +790,7 @@ class ROW_INDEX(RuntimeParameter):
     row_index: int = 0
 
     def covert_to_cpp(self) -> str:
-        return f"constexpr uint32_t ROW_INDEX = {self.row_index};"
+        return f"constexpr std::uint32_t ROW_INDEX = {self.row_index};"
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "uint32_t ROW_INDEX;", "I"
+        return "std::uint32_t ROW_INDEX;", "I"

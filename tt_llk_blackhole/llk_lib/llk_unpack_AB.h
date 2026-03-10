@@ -252,8 +252,8 @@ inline void _llk_unpackA_bcastB_row_as_col_init_()
     cfg_reg_rmw_tensix<UNP1_ADDR_CTRL_XY_REG_0_Ystride_RMW>(0);
     TTI_SETADCXX(p_setadc::UNP_B, FACE_R_DIM - 1, 0);
 
-    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00; // no increment
-    constexpr uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
+    constexpr std::uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_0 = 0b00'00'00'00; // no increment
+    constexpr std::uint8_t ADDRMOD_CH1Y_1_CH1Z_0_CH0Y_0_CH0Z_0 = 0b01'00'00'00; // Increment CH1_Y by 1 Y_STRIDE
 
     if constexpr (transpose_of_faces)
     {
@@ -309,7 +309,7 @@ inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const
     const std::uint32_t address_b_adjusted = address_b + row_offset_16B;
 
     // Program srcA and srcB base addresses
-    volatile uint tt_reg_ptr *cfg = get_cfg_pointer();
+    volatile std::uint32_t tt_reg_ptr *cfg = get_cfg_pointer();
     wait_for_next_context(2);
 
     if (0 == unp_cfg_context)
@@ -326,8 +326,8 @@ inline void _llk_unpackA_bcastB_row_as_col_(const std::uint32_t address_a, const
     t6_semaphore_post(semaphore::UNPACK_SYNC);
     TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
 
-    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1 = 0b00'00'00'01; // Increment CH0_Z only
-    constexpr uint8_t ADDRMOD_CH1Y_0_CH1Z_1_CH0Y_0_CH0Z_1 = 0b00'01'00'01; // Increment CH1_Z and CH0_Z
+    constexpr std::uint8_t ADDRMOD_CH1Y_0_CH1Z_0_CH0Y_0_CH0Z_1 = 0b00'00'00'01; // Increment CH0_Z only
+    constexpr std::uint8_t ADDRMOD_CH1Y_0_CH1Z_1_CH0Y_0_CH0Z_1 = 0b00'01'00'01; // Increment CH1_Z and CH0_Z
 
     if constexpr (transpose_of_faces)
     {

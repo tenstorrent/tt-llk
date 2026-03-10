@@ -758,10 +758,10 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_configure_mop()
 {
     // Without transpose: 13 instructions
     // With transpose: 17 instructions (extra srcA jumps and manipulations between faces)
-    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 17 : 13;
+    constexpr std::uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 17 : 13;
 
-    uint32_t innerloop           = 1;
-    constexpr uint32_t outerloop = 1;
+    std::uint32_t innerloop           = 1;
+    constexpr std::uint32_t outerloop = 1;
 
     ckernel_template tmp(outerloop, innerloop, TT_OP_REPLAY(0, REPLAY_BUFFER_SIZE, 0, 0));
     tmp.set_end_op(TT_OP_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, p_setrwc::SET_AB)); // Clearing src A and B dvalid
@@ -773,11 +773,11 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
 {
     // Without transpose: 13 instructions
     // With transpose: 17 instructions (extra srcA jumps and manipulations between faces)
-    constexpr uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 17 : 13;
+    constexpr std::uint32_t REPLAY_BUFFER_SIZE = transpose_faces ? 17 : 13;
 
     _llk_math_eltwise_binary_bcastB_row_as_col_configure_addrmod();
 
-    auto eltwise_op = [](uint8_t addr_mod)
+    auto eltwise_op = [](std::uint8_t addr_mod)
     {
         if constexpr (eltwise_binary_type == EltwiseBinaryType::ELWSUB)
         {
@@ -886,7 +886,7 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
 
-inline void _llk_math_eltwise_binary_bcastB_row_as_col_(uint32_t dst_index)
+inline void _llk_math_eltwise_binary_bcastB_row_as_col_(std::uint32_t dst_index)
 {
     math::set_dst_write_addr<DstTileShape::Tile32x32, UnpackDestination::SrcRegs>(dst_index);
     TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_AB); // clear all counters
