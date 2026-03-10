@@ -16,7 +16,6 @@
 // 1. Include the metal header below: #include "metal_sfpu/<operation>.h"
 // 2. Add the operation enum to SfpuType in llk_sfpu_types.h
 // 3. Add the case statement in call_sfpu_operation() switch below
-// Skip metal exp when ckernel_sfpu.h already provided third_party exp (_init_exponential_ / _calculate_exponential_)
 #ifndef TT_LLK_SFPU_EXP
 #include "metal_sfpu/ckernel_sfpu_exp.h"
 #endif
