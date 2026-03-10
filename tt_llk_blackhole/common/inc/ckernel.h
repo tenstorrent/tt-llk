@@ -93,6 +93,40 @@ namespace internal
 }
 
 /**
+ * @brief forces the compiler to read the reference from memory.
+ * @tparam T type of the object to clobber
+ * @param ref reference to the object to clobber
+ * @return reference to the object
+ *
+ * Common use is to poll a value until it changes
+ */
+template <typename T>
+inline T &force_load(T &ref)
+{
+    // "=m" output constraint: tells compiler this asm writes to ref (memory)
+    // Effect: compiler assumes ref's memory has been modified, invalidating any cached register value
+    // Result: next read of ref must reload from memory, defeating register caching and load hoisting
+    asm volatile("" : "=m"(ref));
+    return ref;
+}
+
+/**
+ * @brief forces the compiler to write the reference from memory before the next instruction.
+ * @tparam T type of the object to store
+ * @param ref reference to the object to store
+ * @return reference to the object
+ */
+template <typename T>
+inline T &force_store(T &ref)
+{
+    // "m" input constraint: tells compiler this asm reads from ref
+    // Effect: compiler must flush any pending writes to ref before this point
+    // Result: all prior stores to ref are committed to memory, defeating dead store elimination and store sinking
+    asm volatile("" : : "m"(ref));
+    return ref;
+}
+
+/**
  * @brief Copies data from src -> dest, blocking until the copy is completed.
  * @note Addresses are marked volatile because it's assumed that this function is used for sync between threads.
  * @param dest volatile destination address

@@ -35,8 +35,6 @@ private:
 
         void push(const void* inputv, std::size_t size)
         {
-            LLK_ASSERT(size <= BUFFER_SIZE - 1, "llk::message_queue::push() -> message exceeds buffer capacity");
-
             const char* input            = reinterpret_cast<const char*>(inputv);
             std::uint32_t write_idx_next = (write_idx + size) % BUFFER_SIZE;
 
@@ -46,7 +44,7 @@ private:
                 asm volatile("nop; nop; nop; nop; nop; nop; nop; nop;");
             }
 
-            const std::size_t head = std::min<std::uint32_t>(size, wrap() - write_idx);
+            const std::size_t head = std::min<std::uint32_t>(size, BUFFER_SIZE - write_idx);
             ckernel::memcpy_blocking(&buffer[write_idx], input, head);
             ckernel::memcpy_blocking(&buffer[0], &input[head], size - head);
             ckernel::store_blocking(&write_idx, write_idx_next);
@@ -54,11 +52,10 @@ private:
 
         void peek(void* outputv, std::size_t size)
         {
-            LLK_ASSERT(size <= size(), "llk::message_queue::peek() -> message exceeds buffer size");
-
             char* output = reinterpret_cast<char*>(outputv);
+            return
 
-            const std::size_t head = std::min(size, wrap() - read_idx);
+                const std::size_t head = std::min<std::uint32_t>(size, BUFFER_SIZE - read_idx);
             ckernel::memcpy_blocking(output, &buffer[read_idx], head);
             ckernel::memcpy_blocking(&output[head], &buffer[0], size - head);
         }
