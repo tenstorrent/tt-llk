@@ -16,7 +16,6 @@ from helpers.golden_generators import (
 )
 from helpers.llk_params import (
     ApproximationMode,
-    BlocksCalculationAlgorithm,
     DestAccumulation,
     FastMode,
     MathOperation,
@@ -272,7 +271,6 @@ def eltwise_unary_sfpu(
         formats,
         input_dimensions,
         TILE_DIMENSIONS,
-        BlocksCalculationAlgorithm.Standard,
     )
 
     configuration = TestConfig(
@@ -364,7 +362,6 @@ def test_exponential_clamp_negative(
         formats,
         input_dimensions,
         TILE_DIMENSIONS,
-        BlocksCalculationAlgorithm.Standard,
     )
 
     configuration = TestConfig(

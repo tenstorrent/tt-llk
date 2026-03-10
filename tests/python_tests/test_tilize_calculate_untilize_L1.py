@@ -11,7 +11,6 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
-    BlocksCalculationAlgorithm,
     DestAccumulation,
     MathFidelity,
     MathOperation,
@@ -101,7 +100,6 @@ def test_tilize_calculate_untilize_L1(
         formats,
         input_dimensions,
         TILE_DIMENSIONS,
-        BlocksCalculationAlgorithm.Tilize,
     )
 
     configuration = TestConfig(

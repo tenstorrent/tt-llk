@@ -4,13 +4,27 @@
 import pytest
 import torch
 from helpers.format_config import DataFormat
-from helpers.golden_generators import UntilizeGolden, get_golden_generator
-from helpers.llk_params import format_dict
-from helpers.param_config import input_output_formats, parametrize
+from helpers.golden_generators import (
+    TILE_DIMENSIONS,
+    UntilizeGolden,
+    get_golden_generator,
+)
+from helpers.llk_params import (
+    DestAccumulation,
+    DestSync,
+    format_dict,
+)
+from helpers.param_config import (
+    get_num_blocks_and_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
     generate_input_dim,
 )
@@ -26,15 +40,14 @@ from helpers.utils import passed_test
             DataFormat.Bfp8_b,
         ]
     ),
+    input_dimensions=[[32, 32], [64, 128], [64, 512]],
 )
-def test_unpack_untilize(formats, workers_tensix_coordinates):
-    formats = formats[0]
+def test_unpack_untilize(formats, input_dimensions, workers_tensix_coordinates):
     if formats.input_format == DataFormat.Bfp8_b:
         pytest.skip(
             "BFP8 format is not supported for unpack_untilize operation for multiple tiles"
         )
 
-    input_dimensions = [32, 128]
     if formats.input_format == DataFormat.Float32:
         input_dimensions = [
             32,
@@ -46,6 +59,14 @@ def test_unpack_untilize(formats, workers_tensix_coordinates):
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
+    )
+
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half,
+        DestAccumulation.No,
+        formats,
+        input_dimensions,
+        TILE_DIMENSIONS,
     )
 
     generate_golden = get_golden_generator(UntilizeGolden)
@@ -61,6 +82,8 @@ def test_unpack_untilize(formats, workers_tensix_coordinates):
         ],
         runtimes=[
             TILE_COUNT(tile_cnt_A),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
         ],
         variant_stimuli=StimuliConfig(
             src_A,

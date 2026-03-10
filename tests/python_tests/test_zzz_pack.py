@@ -27,7 +27,6 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
-    BlocksCalculationAlgorithm,
     DestAccumulation,
     DestSync,
     PackerReluType,
@@ -237,7 +236,6 @@ def test_pack(
         formats,
         input_dimensions,
         TILE_DIMENSIONS,
-        BlocksCalculationAlgorithm.Standard,
     )
 
     if dest_index != 0:

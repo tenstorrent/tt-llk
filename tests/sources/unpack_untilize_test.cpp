@@ -33,8 +33,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
         formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
     _llk_unpack_untilize_init_(formats.unpack_A_dst, tile_size, FACE_R_DIM);
 
-    _llk_unpack_untilize_pass_<true>(L1_ADDRESS(params->buffer_A[0]), BLOCK_CT_DIM);
-    _llk_unpack_untilize_pass_<false>(L1_ADDRESS(params->buffer_A[0]), BLOCK_CT_DIM);
+    for (std::uint32_t row = 0; row < FULL_RT_DIM; ++row)
+    {
+        std::uint32_t tile_row_addr = L1_ADDRESS(params->buffer_A[row * FULL_CT_DIM]);
+
+        _llk_unpack_untilize_pass_<true>(tile_row_addr, FULL_CT_DIM);
+        _llk_unpack_untilize_pass_<false>(tile_row_addr, FULL_CT_DIM);
+    }
 }
 
 #endif
@@ -60,17 +65,26 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #else
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats.math);
 #endif
+
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
+
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (int block = 0; block < num_blocks; block++)
     {
-        LLK_ASSERT(
-            (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(i, formats.math, formats.math);
+        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+        for (int tile = 0; tile < num_tiles_in_block; ++tile)
+        {
+            LLK_ASSERT(
+                (tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                "Block tile index exceeds maximum destination tiles");
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
+                tile, formats.math, formats.math);
+        }
+        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif
@@ -86,7 +100,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef RUNTIME_FORMATS
     const volatile FormatConfig& formats = params->formats;
 #endif
-    const bool UNTILIZE = false;
+    const bool UNTILIZE          = false;
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks         = params->NUM_BLOCKS;
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -102,14 +118,19 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>();
 #endif
 
-    _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params->TILE_CNT; ++i)
+    for (int block = 0; block < num_blocks; block++)
     {
-        LLK_ASSERT(
-            (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(params->buffer_Res[i]));
+        _llk_packer_wait_for_math_done_();
+        for (int tile = 0; tile < num_tiles_in_block; ++tile)
+        {
+            int res_tile_idx = (block * num_tiles_in_block) + tile;
+            LLK_ASSERT(
+                (tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                "Block tile index exceeds maximum destination tiles");
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(tile, L1_ADDRESS(params->buffer_Res[res_tile_idx]));
+        }
+        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif

@@ -7,7 +7,6 @@ from typing import List
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import TILE_DIMENSIONS
 from helpers.llk_params import (
-    BlocksCalculationAlgorithm,
     DestAccumulation,
     DestSync,
     MathFidelity,
@@ -96,7 +95,6 @@ def get_valid_dest_indices(
         formats,
         input_dimensions,
         TILE_DIMENSIONS,
-        BlocksCalculationAlgorithm.Standard,
     )
 
     start_index = 0

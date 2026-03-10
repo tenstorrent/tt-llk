@@ -22,7 +22,6 @@ from helpers.llk_params import (
     format_dict,
 )
 from helpers.param_config import (
-    BlocksCalculationAlgorithm,
     get_num_blocks_and_num_tiles_in_block,
     input_output_formats,
     parametrize,
@@ -132,8 +131,8 @@ def test_eltwise_binary_reuse_dest_quasar(
         formats,
         output_dimensions,
         tile_dimensions_tuple,
-        BlocksCalculationAlgorithm.Standard,
     )
+
     if output_num_blocks > 1:
         pytest.skip(
             "Quasar reuse_dest kernel supports single output block only; "

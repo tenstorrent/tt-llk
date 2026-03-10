@@ -10,7 +10,6 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
-    BlocksCalculationAlgorithm,
     BroadcastType,
     DestAccumulation,
     DestSync,
@@ -173,7 +172,6 @@ def test_eltwise_binary(
         formats,
         input_dimensions,
         tile_dimensions,
-        BlocksCalculationAlgorithm.Standard,
     )
 
     # Compute element-wise subtraction in tilized format
@@ -363,7 +361,6 @@ def test_eltwise_binary_dest_reuse(
         formats,
         output_dimensions,
         tile_dimensions,
-        BlocksCalculationAlgorithm.Standard,
     )
 
     # Input has the same block count, but more tiles per block
@@ -553,7 +550,6 @@ def test_eltwise_binary_int8_format(
         formats,
         input_dimensions,
         tile_dimensions,
-        BlocksCalculationAlgorithm.Standard,
     )
 
     # Compute eltwise binary operation (add and sub) in tilized format
