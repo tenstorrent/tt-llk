@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 
@@ -17,22 +18,64 @@ class message_queue
 {
 public:
     static constexpr std::size_t QUEUE_COUNT = 16;
-    static constexpr std::size_t QUEUE_DEPTH = 2;
 
 private:
-    struct ring_t
+    struct stream_t
     {
-        // SPSC RINGBUFFER
+        // SPSC RINGBUFFER QUEUE
+
+        static constexpr std::uint32_t BUFFER_SIZE = 8;
+
+        // manually clobber the values based on the type of access
+        // for push clobber read_idx
+        // for pop  clobber read_idx, buffer
         volatile std::uint32_t write_idx;
         volatile std::uint32_t read_idx;
-        volatile std::uint32_t queue[QUEUE_DEPTH];
+        volatile std::uint8_t buffer[BUFFER_SIZE];
+
+        void push(const void* inputv, std::size_t size)
+        {
+            LLK_ASSERT(size <= BUFFER_SIZE - 1, "llk::message_queue::push() -> message exceeds buffer capacity");
+
+            const char* input            = reinterpret_cast<const char*>(inputv);
+            std::uint32_t write_idx_next = (write_idx + size) % BUFFER_SIZE;
+
+            while (BUFFER_SIZE - 1 - write_idx < size)
+            {
+                ckernel::invalidate_data_cache();
+                asm volatile("nop; nop; nop; nop; nop; nop; nop; nop;");
+            }
+
+            const std::size_t head = std::min<std::uint32_t>(size, wrap() - write_idx);
+            ckernel::memcpy_blocking(&buffer[write_idx], input, head);
+            ckernel::memcpy_blocking(&buffer[0], &input[head], size - head);
+            ckernel::store_blocking(&write_idx, write_idx_next);
+        }
+
+        void peek(void* outputv, std::size_t size)
+        {
+            LLK_ASSERT(size <= size(), "llk::message_queue::peek() -> message exceeds buffer size");
+
+            char* output = reinterpret_cast<char*>(outputv);
+
+            const std::size_t head = std::min(size, wrap() - read_idx);
+            ckernel::memcpy_blocking(output, &buffer[read_idx], head);
+            ckernel::memcpy_blocking(&output[head], &buffer[0], size - head);
+        }
+
+        void pop(std::size_t size)
+        {
+            ckernel::store_blocking(&read_idx, (std::uint32_t)((read_idx + size) % wrap()));
+        }
     };
+
+    static_assert(sizeof(queue_t) == 16, "queue_t size mismatch");
 
     // todo: assert on alignment and size;
 
     struct queue_store_t
     {
-        volatile ring_t ring[QUEUE_COUNT];
+        volatile queue_t queue[QUEUE_COUNT];
 
         static volatile queue_store_t& get_instance()
         {
@@ -42,15 +85,10 @@ private:
         }
     };
 
-    static std::size_t get_free_slots(const volatile ring_t& ring)
-    {
-        const std::size_t used = (QUEUE_DEPTH + ring.write_idx - ring.read_idx) % QUEUE_DEPTH;
-        return (QUEUE_DEPTH - 1) - used;
-    }
-
 public:
-    enum class message_t : std::uint32_t
+    enum class message_t : char
     {
+        INT_SKIP = 0,           // push: wrap the buffer.
         RT_DEV_EXEC_KERNEL_REQ, // req: device to start executing the kernel.
         DEV_RT_EXEC_KERNEL_DONE,
         HOST_DEV_DUMP_T6_REQ,
@@ -59,21 +97,7 @@ public:
 
     void push(std::size_t queue_id, const message_t message)
     {
-        auto& ring       = queue_store_t::get_instance().ring[queue_id];
-        auto write_idx_p = &ring.write_idx;
-        auto queue_p     = &ring.queue[0];
-
-        // sstanisic todo: fix the single slot message constraint before merge.
-        static_assert(sizeof(message_t) == sizeof(std::uint32_t), "couldn't be bothered yet.");
-        std::uint32_t write_idx_next = *write_idx_p + 1;
-        while (get_free_slots(ring) < 1)
-        {
-            ckernel::invalidate_data_cache();
-            asm volatile("nop; nop; nop; nop; nop; nop; nop; nop;");
-        }
-
-        ckernel::store_blocking(&queue[write_idx], ckernel::to_underlying(message));
-        ckernel::store_blocking(write_idx_p, write_idx_next);
+        auto& queue = queue_store_t::get_instance().queue[queue_id];
     }
 
     host_message pop()
