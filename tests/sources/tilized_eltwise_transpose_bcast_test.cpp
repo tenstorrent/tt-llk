@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
+// SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -39,8 +39,6 @@ void run_kernel(const volatile struct RuntimeParams *params)
     {
         _llk_unpackA_bcastB_row_as_col_<UNPACK_TRANSPOSE_FACES>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]), params->ROW_INDEX);
     }
-
-    _llk_unpackA_bcastB_row_as_col_uninit_();
 }
 
 #endif

@@ -689,7 +689,7 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
     Dummy SFPLOAD with no effect to move srcB counter to be 16 since transpose is done on rows 16 - 31.
     Main thing is ADDR_MOD_2 that has srcB increment of 16
     */
-    TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_2, 0);
+    TTI_ZEROACC(p_zeroacc::CLR_16, 0, 0, ADDR_MOD_2, 0xff);
 
     if constexpr (transpose_faces)
     {
@@ -710,7 +710,7 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
 
         // Jump srcA from 16 to 32 to skip F1 and access F2
         // Use ADDR_MOD_3 which has srcA incr=0, dest incr=16
-        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0); // srcA: 16->32, dest stays at 16
+        TTI_ZEROACC(p_zeroacc::CLR_16, 0, 0, ADDR_MOD_3, 0xff);
 
         // F2 (srcA at 32-47) - F1 (srcB) → dest 16-31
         eltwise_op(ADDR_MOD_0); // srcA: 32->40, dest: 16->24
@@ -724,13 +724,13 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_init_()
         // Jump srcA back from 48 to 16 to access F1
         // Reset srcA to 16, dest stays at 32
         TTI_SETRWC(p_setrwc::CLR_NONE, 0, 0, 0, 0, p_setrwc::SET_A); // srcA: 48->0
-        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0);     // srcA: 0->16, dest stays at 32
+        TTI_ZEROACC(p_zeroacc::CLR_16, 0, 0, ADDR_MOD_3, 0xff);
 
         // F1 (srcA at 16-31) - F2 (srcB) → dest 32-47
         eltwise_op(ADDR_MOD_0); // srcA: 16->24, dest: 32->40
         eltwise_op(ADDR_MOD_1); // srcA: 24->32, dest: 40->48
 
-        TTI_SFPLOAD(8, InstrModLoadStore::FP16B, ADDR_MOD_3, 0); // srcA: 32->48, dest stays at 48
+        TTI_ZEROACC(p_zeroacc::CLR_16, 0, 0, ADDR_MOD_3, 0xff);
 
         // F3 (srcA at 48-63) - F3 (srcB) → dest 48-63
         eltwise_op(ADDR_MOD_0); // srcA: 48->56, dest: 48->56
@@ -786,35 +786,6 @@ inline void _llk_math_eltwise_binary_bcastB_row_as_col_(uint32_t dst_index)
 
 inline void _llk_math_eltwise_binary_bcastB_row_as_col_uninit_()
 {
-    // Reset address modifiers to defaults
-    addr_mod_t {
-        .srca = {.incr = 8},
-        .srcb = {.incr = 8},
-        .dest = {.incr = 8},
-    }
-        .set(ADDR_MOD_0);
-
-    addr_mod_t {
-        .srca = {.incr = 8},
-        .srcb = {.incr = 8},
-        .dest = {.incr = 8},
-    }
-        .set(ADDR_MOD_1);
-
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 0},
-    }
-        .set(ADDR_MOD_2);
-
-    addr_mod_t {
-        .srca = {.incr = 0},
-        .srcb = {.incr = 0},
-        .dest = {.incr = 0},
-    }
-        .set(ADDR_MOD_3);
-
     // Clear any pending dvalid signals
     TTI_SETRWC(p_setrwc::CLR_AB, 0, 0, 0, 0, 0);
 }
