@@ -134,6 +134,7 @@ def test_perf_pack_dest_bank(
         dest_acc=dest_acc,
         l1_acc=l1_acc,
         unpack_to_dest=unpack_to_dest,
+        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)

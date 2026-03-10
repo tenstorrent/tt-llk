@@ -167,7 +167,8 @@ def test_perf_math_matmul(
             tile_count_B=matmul_config.tile_dimensions.tile_cnt_in1,
             tile_count_res=matmul_config.tile_dimensions.output_tile_cnt,
         ),
-        dest_acc=matmul_config.dest_acc,
+        dest_acc=dest_acc,
+        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)

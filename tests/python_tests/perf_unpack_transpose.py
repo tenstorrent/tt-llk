@@ -66,6 +66,7 @@ def test_perf_unpack_transpose(
             tile_count_B=tile_count,
             tile_count_res=tile_count,
         ),
+        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)

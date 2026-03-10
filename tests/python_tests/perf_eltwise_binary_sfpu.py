@@ -117,6 +117,7 @@ def test_perf_eltwise_binary_sfpu_float(
         ),
         unpack_to_dest=unpack_to_dest,
         dest_acc=dest_acc,
+        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)
@@ -205,6 +206,7 @@ def test_perf_eltwise_binary_sfpu_int(
         ),
         unpack_to_dest=unpack_to_dest,
         dest_acc=dest_acc,
+        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)
@@ -302,6 +304,7 @@ def test_perf_eltwise_binary_sfpu_add_top_row(
         ),
         unpack_to_dest=unpack_to_dest,
         dest_acc=dest_acc,
+        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)

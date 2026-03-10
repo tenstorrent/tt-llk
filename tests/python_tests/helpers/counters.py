@@ -376,9 +376,8 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
 
     # Read metadata from shared buffer
     metadata = read_words_from_device(
-        location=location, addr=PERF_COUNTERS_CONFIG_ADDR, word_count=COUNTER_SLOT_COUNT
+        location=location, addr=addrs["config"], word_count=COUNTER_SLOT_COUNT
     )
-
     if not metadata:
         return pd.DataFrame(all_results)
 
@@ -390,9 +389,8 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
 
     # Read ONLY data for valid counters from shared buffer
     data = read_words_from_device(
-        location=location, addr=PERF_COUNTERS_DATA_ADDR, word_count=valid_count * 2
+        location=location, addr=addrs["data"], word_count=valid_count * 2
     )
-
     if not data or len(data) < valid_count * 2:
         return pd.DataFrame(all_results)
 

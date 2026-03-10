@@ -190,6 +190,7 @@ def test_perf_eltwise_unary_sfpu(
         ),
         unpack_to_dest=unpack_to_dest,
         dest_acc=dest_acc,
+        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)

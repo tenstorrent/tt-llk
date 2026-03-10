@@ -120,6 +120,7 @@ def test_perf_matmul(perf_report, combos, math_fidelity, workers_tensix_coordina
             tile_count_res=variant_tile_count,
         ),
         dest_acc=dest_acc,
+        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)

@@ -88,6 +88,7 @@ def test_perf_pack_untilize(
             tile_count_res=tile_count,
         ),
         unpack_to_dest=formats.input_format.is_32_bit(),
+        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)

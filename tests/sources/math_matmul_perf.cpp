@@ -8,6 +8,7 @@
 
 #include "ckernel.h"
 #include "ckernel_defs.h"
+#include "counters.h"
 #include "llk_defs.h"
 #include "params.h"
 #include "perf.h"
@@ -32,6 +33,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
+        PERF_COUNTERS_SCOPED(0);
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_A_src,
             formats.unpack_B_src,
@@ -58,6 +60,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
+        PERF_COUNTERS_SCOPED(1);
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             return;
@@ -105,6 +108,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
+        PERF_COUNTERS_SCOPED(0);
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
         _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
         // Use tile dimensions from runtime params for tiny tiles support
@@ -122,6 +126,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
+        PERF_COUNTERS_SCOPED(1);
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             return;
@@ -170,6 +175,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
+        PERF_COUNTERS_SCOPED(0);
 #ifdef ARCH_BLACKHOLE
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
             formats.pack_src,
@@ -202,6 +208,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
+        PERF_COUNTERS_SCOPED(1);
         if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE || PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
         {
             return;

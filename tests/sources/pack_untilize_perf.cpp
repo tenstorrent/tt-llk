@@ -7,6 +7,7 @@
 #include <cstdio>
 
 #include "ckernel.h"
+#include "counters.h"
 #include "llk_defs.h"
 #include "params.h"
 #include "perf.h"
@@ -42,6 +43,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
+        PERF_COUNTERS_SCOPED(0);
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             0, 0, FACE_R_DIM, 4, formats.unpack_A_src, formats.unpack_A_dst);
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -58,6 +60,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
+        PERF_COUNTERS_SCOPED(1);
         if (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             return;
@@ -93,6 +96,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("INIT")
+        PERF_COUNTERS_SCOPED(0);
 
 #ifdef ARCH_BLACKHOLE
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(4, formats.math);
@@ -109,6 +113,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
+        PERF_COUNTERS_SCOPED(1);
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
@@ -179,6 +184,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("INIT")
+        PERF_COUNTERS_SCOPED(0);
 
 #ifdef ARCH_BLACKHOLE
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -194,6 +200,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
+        PERF_COUNTERS_SCOPED(1);
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {

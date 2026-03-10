@@ -89,6 +89,7 @@ def test_perf_eltwise_bcast_col_custom(
             tile_count_res=ct_dim,
         ),
         dest_acc=dest_acc,
+        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)

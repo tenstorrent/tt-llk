@@ -93,6 +93,7 @@ def test_fast_tilize_perf(
         ),
         dest_acc=dest_acc,
         compile_time_formats=True,
+        enable_counters=True,
     )
 
     configuration.run(perf_report, run_count=2, location=workers_tensix_coordinates)

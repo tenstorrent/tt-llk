@@ -84,6 +84,7 @@ def _perf_unpack_tilize(
             tile_count_res=tile_count,
         ),
         unpack_to_dest=formats.input_format == DataFormat.Int32,
+        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)

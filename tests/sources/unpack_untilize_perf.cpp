@@ -8,6 +8,7 @@
 
 #include "build.h"
 #include "ckernel.h"
+#include "counters.h"
 #include "llk_defs.h"
 #include "params.h"
 #include "perf.h"
@@ -43,6 +44,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("INIT")
+        PERF_COUNTERS_SCOPED(0);
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_A_src,
             formats.unpack_B_src,
@@ -58,6 +60,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
+        PERF_COUNTERS_SCOPED(1);
 
         for (std::uint32_t tile = 0; tile < params->TILE_CNT; tile += FULL_CT_DIM)
         {
@@ -86,6 +89,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
+        PERF_COUNTERS_SCOPED(0);
 
 #ifdef ARCH_BLACKHOLE
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(4, formats.math);
@@ -99,6 +103,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
+        PERF_COUNTERS_SCOPED(1);
 
         for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
         {
@@ -138,6 +143,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("INIT")
+        PERF_COUNTERS_SCOPED(0);
 
 #ifdef ARCH_BLACKHOLE
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -153,6 +159,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
+        PERF_COUNTERS_SCOPED(1);
 
         for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
         {

@@ -53,17 +53,19 @@ namespace llk_perf
 #define PERF_COUNTERS_DATA_WORDS   172 // Counter data (cycles + count per slot)
 #define PERF_COUNTERS_BUFFER_SIZE  ((PERF_COUNTERS_CONFIG_WORDS + PERF_COUNTERS_DATA_WORDS) * 4)
 
-#define PERF_COUNTERS_CONFIG_ADDR    (PERF_COUNTERS_BASE_ADDR)
-#define PERF_COUNTERS_DATA_ADDR      (PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_CONFIG_WORDS * 4)
-#define PERF_COUNTERS_SYNC_CTRL_ADDR (PERF_COUNTERS_BASE_ADDR + PERF_COUNTERS_BUFFER_SIZE)
+#define PERF_COUNTERS_ZONE_SIZE ((PERF_COUNTERS_BUFFER_SIZE) + 40) // +40 for sync words
+
+#define PERF_COUNTERS_CONFIG_ADDR(zone)    (PERF_COUNTERS_BASE_ADDR + (zone) * PERF_COUNTERS_ZONE_SIZE)
+#define PERF_COUNTERS_DATA_ADDR(zone)      (PERF_COUNTERS_CONFIG_ADDR(zone) + PERF_COUNTERS_CONFIG_WORDS * 4)
+#define PERF_COUNTERS_SYNC_CTRL_ADDR(zone) (PERF_COUNTERS_CONFIG_ADDR(zone) + PERF_COUNTERS_BUFFER_SIZE)
 
 // Thread count for perf counter synchronization
 #define PERF_COUNTERS_THREAD_COUNT 3
 
 // Atomic counters for ATINCGET-based synchronization
-#define PERF_COUNTERS_START_COUNTER_ADDR (PERF_COUNTERS_SYNC_CTRL_ADDR + 4)
-#define PERF_COUNTERS_STOP_COUNTER_ADDR  (PERF_COUNTERS_START_COUNTER_ADDR + (PERF_COUNTERS_THREAD_COUNT * 4))
-#define PERF_COUNTERS_STOP_ELECT_ADDR    (PERF_COUNTERS_STOP_COUNTER_ADDR + (PERF_COUNTERS_THREAD_COUNT * 4))
+#define PERF_COUNTERS_START_COUNTER_ADDR(zone) (PERF_COUNTERS_SYNC_CTRL_ADDR(zone) + 4)
+#define PERF_COUNTERS_STOP_COUNTER_ADDR(zone)  (PERF_COUNTERS_START_COUNTER_ADDR(zone) + (PERF_COUNTERS_THREAD_COUNT * 4))
+#define PERF_COUNTERS_STOP_ELECT_ADDR(zone)    (PERF_COUNTERS_STOP_COUNTER_ADDR(zone) + (PERF_COUNTERS_THREAD_COUNT * 4))
 
 // ============================================================================
 // Sync Control Word Bit Layout
@@ -234,21 +236,21 @@ private:
     PerfCounterManager() = default;
 
     // Get pointer to L1 config buffer (86 words of counter metadata)
-    const volatile std::uint32_t* get_config_mem()
+    const volatile std::uint32_t* get_config_mem(std::uint32_t zone)
     {
-        return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_CONFIG_ADDR);
+        return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_CONFIG_ADDR(zone));
     }
 
     // Get pointer to L1 data buffer (172 words: cycles + count per counter)
-    volatile std::uint32_t* get_data_mem()
+    volatile std::uint32_t* get_data_mem(std::uint32_t zone)
     {
-        return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_DATA_ADDR);
+        return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_DATA_ADDR(zone));
     }
 
     // Get pointer to sync control word (thread coordination flags)
-    volatile std::uint32_t* get_sync_ctrl_mem()
+    volatile std::uint32_t* get_sync_ctrl_mem(std::uint32_t zone)
     {
-        return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_SYNC_CTRL_ADDR);
+        return reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_SYNC_CTRL_ADDR(zone));
     }
 
     // Force L1 cache flush by doing uncached write followed by uncached read
@@ -339,9 +341,9 @@ private:
 
     // Initialize and start hardware counters (called by first thread only)
     // Reads config from L1, configures L1 MUX if needed, and starts each bank
-    void start_hardware()
+    void start_hardware(std::uint32_t zone)
     {
-        const volatile std::uint32_t* config_mem = get_config_mem();
+        const volatile std::uint32_t* config_mem = get_config_mem(zone);
         std::uint32_t started_mask               = 0;
 
         for (std::uint32_t i = 0; i < COUNTER_SLOT_COUNT; i++)
@@ -383,10 +385,10 @@ private:
 
     // Stop hardware counters and read all results (called by last thread only)
     // Stops each bank, configures counter selectors, reads cycle/count pairs, writes to L1
-    void stop_hardware()
+    void stop_hardware(std::uint32_t zone)
     {
-        const volatile std::uint32_t* config_mem = get_config_mem();
-        volatile std::uint32_t* data_mem         = get_data_mem();
+        const volatile std::uint32_t* config_mem = get_config_mem(zone);
+        volatile std::uint32_t* data_mem         = get_data_mem(zone);
 
         std::uint32_t stopped_mask = 0;
         std::uint32_t result_idx   = 0;
@@ -454,10 +456,10 @@ public:
     PerfCounterManager& operator=(PerfCounterManager&&)      = delete;
 
     // Thread-safe start: CAS for flags + ATINCGET counter
-    void start()
+    void start(std::uint32_t zone)
     {
-        volatile std::uint32_t* sync_ctrl     = get_sync_ctrl_mem();
-        volatile std::uint32_t* start_counter = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_START_COUNTER_ADDR);
+        volatile std::uint32_t* sync_ctrl     = get_sync_ctrl_mem(zone);
+        volatile std::uint32_t* start_counter = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_START_COUNTER_ADDR(zone));
         const std::uint32_t thread_bit        = thread_info::get_thread_start_bit();
         const std::uint32_t thread_id         = thread_info::get_thread_id();
 
@@ -512,19 +514,19 @@ public:
 
         if (is_first)
         {
-            start_hardware();
+            start_hardware(zone);
         }
 
         __sync_synchronize();
     }
 
     // Thread-safe stop: CAS for flags + ATINCGET counter
-    void stop()
+    void stop(std::uint32_t zone)
     {
-        volatile std::uint32_t* sync_ctrl     = get_sync_ctrl_mem();
-        volatile std::uint32_t* stop_counter  = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_STOP_COUNTER_ADDR);
-        volatile std::uint32_t* start_counter = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_START_COUNTER_ADDR);
-        volatile std::uint32_t* stop_elect    = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_STOP_ELECT_ADDR);
+        volatile std::uint32_t* sync_ctrl     = get_sync_ctrl_mem(zone);
+        volatile std::uint32_t* stop_counter  = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_STOP_COUNTER_ADDR(zone));
+        volatile std::uint32_t* start_counter = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_START_COUNTER_ADDR(zone));
+        volatile std::uint32_t* stop_elect    = reinterpret_cast<volatile std::uint32_t*>(PERF_COUNTERS_STOP_ELECT_ADDR(zone));
         const std::uint32_t thread_bit        = thread_info::get_thread_stop_bit();
         const std::uint32_t thread_id         = thread_info::get_thread_id();
 
@@ -579,7 +581,7 @@ public:
         if (is_last)
         {
             // Stop hardware immediately after the last thread arrives (minimize measured overhead).
-            stop_hardware();
+            stop_hardware(zone);
 
             // Consolidate sync_ctrl after counters are frozen.
             std::uint32_t start_bits = 0;
@@ -635,16 +637,22 @@ public:
 // Public API
 // ============================================================================
 
-// Start performance counters (call from all threads)
-inline void start_perf_counters()
+enum class PerfCounterZone : std::uint32_t
 {
-    PerfCounterManager::instance().start();
+    INIT      = 0,
+    TILE_LOOP = 1
+};
+
+// Start performance counters (call from all threads)
+inline void start_perf_counters(std::uint32_t zone)
+{
+    PerfCounterManager::instance().start(zone);
 }
 
 // Stop performance counters (call from all threads)
-inline void stop_perf_counters()
+inline void stop_perf_counters(std::uint32_t zone)
 {
-    PerfCounterManager::instance().stop();
+    PerfCounterManager::instance().stop(zone);
 }
 
 // ============================================================================
@@ -777,3 +785,23 @@ constexpr std::uint32_t AVAILABLE_MATH             = 272;
 } // namespace counter_id
 
 } // namespace llk_perf
+
+namespace llk_perf
+{
+struct perf_counter_scoped
+{
+    std::uint32_t zone;
+
+    perf_counter_scoped(std::uint32_t z) : zone(z)
+    {
+        start_perf_counters(z);
+    }
+
+    ~perf_counter_scoped()
+    {
+        stop_perf_counters(zone);
+    }
+};
+} // namespace llk_perf
+
+#define PERF_COUNTERS_SCOPED(zone) const auto _perf_counter_scoped_ = llk_perf::perf_counter_scoped(zone);

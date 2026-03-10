@@ -77,6 +77,7 @@ def test_perf_col_tile_sdpa(
             tile_count_res=tile_count,
         ),
         dest_acc=dest_acc,
+        enable_counters=True,
     )
 
     configuration.run(
