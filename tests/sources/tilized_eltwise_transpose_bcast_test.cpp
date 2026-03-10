@@ -20,24 +20,19 @@ std::uint32_t math_sync_tile_dst_index = 0;
 #include "llk_unpack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    // Configure hardware for unpacking
-    // Both srcA and srcB are already tilized in L1
-    // srcB will have column broadcast applied
+#ifdef RUNTIME_FORMATS
+    const volatile FormatConfig& formats = params->formats;
+#endif
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-        formats.unpack_src, formats.unpack_src, formats.unpack_dst, formats.unpack_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
+        formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
 
-    // Initialize unpacker with optional srcA transpose
-    // UNPACK_TRANSPOSE_FACES and UNPACK_TRANSPOSE_WITHIN_FACE control srcA transpose
     _llk_unpackA_bcastB_row_as_col_init_<UNPACK_TRANSPOSE_FACES, UNPACK_TRANSPOSE_WITHIN_FACE>();
 
-    // Unpack tiles: srcA (optionally transposed), srcB with row broadcast from selected row_index
-    // row_index 0-15: broadcast from F0Rn/F1Rn (top half of tile)
-    // row_index 16-31: broadcast from F2R(n-16)/F3R(n-16) (bottom half of tile)
     for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        _llk_unpackA_bcastB_row_as_col_<UNPACK_TRANSPOSE_FACES>(L1_ADDRESS(buffer_A[i]), L1_ADDRESS(buffer_B[i]), params->ROW_INDEX);
+        _llk_unpackA_bcastB_row_as_col_<UNPACK_TRANSPOSE_FACES>(L1_ADDRESS(params->buffer_A[i]), L1_ADDRESS(params->buffer_B[i]), params->ROW_INDEX);
     }
 }
 
@@ -51,9 +46,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
 
 using namespace ckernel;
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
-    // Initialize math for element-wise binary operation with column broadcast
+#ifdef RUNTIME_FORMATS
+    const volatile FormatConfig& formats = params->formats;
+#endif
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
@@ -81,8 +78,11 @@ void run_kernel(const volatile struct RuntimeParams *params)
 #include "llk_pack_common.h"
 #include "params.h"
 
-void run_kernel(const volatile struct RuntimeParams *params)
+void run_kernel(const volatile struct RuntimeParams* params)
 {
+#ifdef RUNTIME_FORMATS
+    const volatile FormatConfig& formats = params->formats;
+#endif
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
 #else
@@ -100,7 +100,7 @@ void run_kernel(const volatile struct RuntimeParams *params)
     _llk_packer_wait_for_math_done_();
     for (int i = 0; i < params->TILE_CNT; i++)
     {
-        _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(i, L1_ADDRESS(buffer_Res[i]));
+        _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(i, L1_ADDRESS(params->buffer_Res[i]));
     }
     _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
 }
