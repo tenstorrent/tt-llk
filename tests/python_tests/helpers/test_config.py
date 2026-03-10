@@ -181,27 +181,22 @@ class TestConfig:
 
     # Performance counter L1 memory addresses
     # NOTE: These addresses must match the values in tests/helpers/include/counters.h
-    # Single shared buffer layout: 86 config words + 172 data words + 1 sync control word
+    # Buffer layout: 86 config words + 172 data words + sync control words
     PERF_COUNTERS_BASE_ADDR: ClassVar[int] = 0x16A000
+    PERF_COUNTERS_MAX_ZONES: ClassVar[int] = 2
     _PERF_COUNTERS_CONFIG_WORDS: ClassVar[int] = 86
     _PERF_COUNTERS_DATA_WORDS: ClassVar[int] = 172
     _PERF_COUNTERS_BUFFER_SIZE: ClassVar[int] = (
         _PERF_COUNTERS_CONFIG_WORDS + _PERF_COUNTERS_DATA_WORDS
     ) * 4  # 1032 bytes (0x408)
 
-    # Shared buffer addresses (all threads use same buffer)
-    PERF_COUNTERS_CONFIG_ADDR: ClassVar[int] = PERF_COUNTERS_BASE_ADDR
-    PERF_COUNTERS_DATA_ADDR: ClassVar[int] = (
-        PERF_COUNTERS_BASE_ADDR + _PERF_COUNTERS_CONFIG_WORDS * 4
-    )
-    PERF_COUNTERS_SYNC_CTRL_ADDR: ClassVar[int] = (
-        PERF_COUNTERS_BASE_ADDR + _PERF_COUNTERS_BUFFER_SIZE
-    )
+    # Size of one full zone including sync words (1032 + 40 = 1072)
+    PERF_COUNTERS_ZONE_SIZE: ClassVar[int] = _PERF_COUNTERS_BUFFER_SIZE + 40
 
-    # Total size for memory reservation
+    # Total size for memory reservation across all zones
     PERF_COUNTERS_SIZE: ClassVar[int] = (
-        _PERF_COUNTERS_BUFFER_SIZE + 4
-    )  # +4 for sync control word
+        PERF_COUNTERS_MAX_ZONES * PERF_COUNTERS_ZONE_SIZE
+    )
 
     @staticmethod
     def setup_arch():
