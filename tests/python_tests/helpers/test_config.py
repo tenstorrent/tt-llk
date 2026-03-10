@@ -85,6 +85,12 @@ class DummyGoldenGenerator:
     def __call__(*args, **kwargs):
         return torch.zeros(1024, dtype=torch.bfloat16)
 
+    def transpose_faces(*args, **kwargs):
+        return torch.zeros(1024, dtype=torch.bfloat16)
+
+    def transpose_within_faces(*args, **kwargs):
+        return torch.zeros(1024, dtype=torch.bfloat16)
+
     def transpose_faces_multi_tile(*args, **kwargs):
         return torch.zeros(1024, dtype=torch.bfloat16)
 
