@@ -490,14 +490,8 @@ def print_counters(results: pd.DataFrame) -> None:
 
 def _print_zone_counters(results: pd.DataFrame) -> None:
     """Helper to print counters for a single zone."""
-    # Get starter and stopper from first row (same for all)
     if not results.empty:
-        starter = results["starter_thread"].iloc[0]
-        stopper = results["stopper_thread"].iloc[0]
         print(f"\n{'─' * 100}")
-        print(f"  Hardware started by: {starter} thread")
-        print(f"  Hardware stopped by: {stopper} thread")
-        print(f"{'─' * 100}")
 
     for bank in ["INSTRN_THREAD", "FPU", "TDMA_UNPACK", "L1", "TDMA_PACK"]:
         bank_df = results[results["bank"] == bank]
