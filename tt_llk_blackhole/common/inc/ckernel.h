@@ -215,7 +215,7 @@ inline std::uint8_t semaphore_read(const std::uint8_t index)
 inline void semaphore_post(const std::uint8_t index)
 {
     LLK_ASSERT(index < semaphore::NUM_SEMAPHORES, "Semaphore index out of bounds.");
-    LLK_ASSERT(semaphore_read(index) < semaphore::SEMAPHORE_MAX_VALUE, "Semaphore must not be already at max value.");
+    LLK_ASSERT_SEM(semaphore_read(index) < semaphore::SEMAPHORE_MAX_VALUE, "Semaphore must not be already at max value.");
     pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 0; // LSB clear → SEMPOST: increment (cap at 15)
 }
 
@@ -226,7 +226,7 @@ inline void semaphore_post(const std::uint8_t index)
 inline void semaphore_get(const std::uint8_t index)
 {
     LLK_ASSERT(index < semaphore::NUM_SEMAPHORES, "Semaphore index out of bounds.");
-    LLK_ASSERT(semaphore_read(index) > 0, "Semaphore must not be already at 0.");
+    LLK_ASSERT_SEM(semaphore_read(index) > 0, "Semaphore must not be already at 0.");
     pc_buf_base[PC_BUF_SEMAPHORE_BASE + index] = 1; // LSB set → SEMGET: decrement (only if > 0)
 }
 

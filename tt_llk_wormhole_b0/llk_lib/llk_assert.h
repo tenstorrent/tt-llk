@@ -4,6 +4,8 @@
 
 #pragma once
 
+#define LLK_ASSERT(condition, message) ((void)sizeof((condition)))
+
 #ifdef ENABLE_LLK_ASSERT
 
 #ifdef ENV_LLK_INFRA
@@ -11,14 +13,14 @@
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
 #define UNREACHABLE()       __builtin_unreachable()
 
-#define LLK_ASSERT(condition, message) \
-    do                                 \
-    {                                  \
-        if (UNLIKELY(!(condition)))    \
-        {                              \
-            asm volatile("ebreak");    \
-            UNREACHABLE();             \
-        }                              \
+#define LLK_ASSERT_SEM(condition, message) \
+    do                                     \
+    {                                      \
+        if (UNLIKELY(!(condition)))        \
+        {                                  \
+            asm volatile("ebreak");        \
+            UNREACHABLE();                 \
+        }                                  \
     } while (0)
 
 #else
@@ -26,7 +28,7 @@
 // Assume we are executing in tt-metal and we have assert already available.
 #include "api/debug/assert.h"
 
-#define LLK_ASSERT(condition, message) ASSERT(condition)
+#define LLK_ASSERT_SEM(condition, message) ASSERT(condition)
 
 #endif // ENV_LLK_INFRA
 
@@ -34,6 +36,6 @@
 
 // sizeof creates an unevaluated context: the condition is fully compiled
 // (type-checked, name-resolved) but never executed at runtime.
-#define LLK_ASSERT(condition, message) ((void)sizeof((condition)))
+#define LLK_ASSERT_SEM(condition, message) ((void)sizeof((condition)))
 
 #endif // ENABLE_LLK_ASSERT
