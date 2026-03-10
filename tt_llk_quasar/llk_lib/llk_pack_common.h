@@ -9,6 +9,7 @@
 #include "ckernel_trisc_common.h"
 #include "cpack_common.h"
 #include "llk_defs.h"
+
 using namespace ckernel;
 using namespace ckernel::trisc;
 
