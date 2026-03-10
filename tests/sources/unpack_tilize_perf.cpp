@@ -41,7 +41,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     constexpr std::uint32_t src = 0x65000;
     {
         ZONE_SCOPED("INIT")
-        PERF_COUNTERS_SCOPED(0);
+        MEASURE_PERF_COUNTERS("INIT");
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_A_src,
             formats.unpack_B_src,
@@ -57,7 +57,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
-        PERF_COUNTERS_SCOPED(1);
+        MEASURE_PERF_COUNTERS("TILE_LOOP");
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             return;
@@ -98,7 +98,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("INIT")
-        PERF_COUNTERS_SCOPED(0);
+        MEASURE_PERF_COUNTERS("INIT");
         // copy srca to dest
 #ifdef ARCH_BLACKHOLE
         // set tilize flag to true
@@ -113,7 +113,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
-        PERF_COUNTERS_SCOPED(1);
+        MEASURE_PERF_COUNTERS("TILE_LOOP");
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
@@ -196,7 +196,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("INIT")
-        PERF_COUNTERS_SCOPED(0);
+        MEASURE_PERF_COUNTERS("INIT");
 
 #ifdef ARCH_BLACKHOLE
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -211,7 +211,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        PERF_COUNTERS_SCOPED(1);
+        MEASURE_PERF_COUNTERS("TILE_LOOP");
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
         {

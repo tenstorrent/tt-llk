@@ -8,6 +8,7 @@
 
 #include "ckernel.h"
 #include "ckernel_debug.h"
+#include "counters.h"
 #include "llk_defs.h"
 
 // Globals
@@ -33,8 +34,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
         formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
     _llk_unpack_untilize_init_(formats.unpack_A_dst, tile_size, FACE_R_DIM);
 
-    _llk_unpack_untilize_pass_<true>(L1_ADDRESS(params->buffer_A[0]), BLOCK_CT_DIM);
-    _llk_unpack_untilize_pass_<false>(L1_ADDRESS(params->buffer_A[0]), BLOCK_CT_DIM);
+    {
+        MEASURE_PERF_COUNTERS("KERNEL");
+        _llk_unpack_untilize_pass_<true>(L1_ADDRESS(params->buffer_A[0]), BLOCK_CT_DIM);
+        _llk_unpack_untilize_pass_<false>(L1_ADDRESS(params->buffer_A[0]), BLOCK_CT_DIM);
+    }
 }
 
 #endif
@@ -64,11 +68,16 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
-    for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        LLK_ASSERT(
-            (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(i, formats.math, formats.math);
+        MEASURE_PERF_COUNTERS("KERNEL");
+        for (int i = 0; i < params->TILE_CNT; ++i)
+        {
+            LLK_ASSERT(
+                (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                "Block tile index exceeds maximum destination tiles");
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
+                i, formats.math, formats.math);
+        }
     }
     _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
@@ -103,11 +112,15 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params->TILE_CNT; ++i)
     {
-        LLK_ASSERT(
-            (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(params->buffer_Res[i]));
+        MEASURE_PERF_COUNTERS("KERNEL");
+        for (int i = 0; i < params->TILE_CNT; ++i)
+        {
+            LLK_ASSERT(
+                (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                "Block tile index exceeds maximum destination tiles");
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(params->buffer_Res[i]));
+        }
     }
     _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }

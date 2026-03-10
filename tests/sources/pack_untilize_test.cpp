@@ -7,6 +7,7 @@
 #include <cstdio>
 
 #include "ckernel.h"
+#include "counters.h"
 #include "llk_assert.h"
 #include "llk_defs.h"
 
@@ -51,15 +52,19 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     const std::uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM;
 
-    for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
     {
-        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
+        MEASURE_PERF_COUNTERS("KERNEL");
+        for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
         {
-            for (std::uint32_t tile_index_within_block = 0; tile_index_within_block < BLOCK_CT_DIM; ++tile_index_within_block) // Loop over tiles in the block
+            for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
             {
-                std::uint32_t tile_index_in_memory = rt * FULL_CT_DIM + block_num * BLOCK_CT_DIM + tile_index_within_block;
-                _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-                    L1_ADDRESS(params->buffer_A[tile_index_in_memory]), formats.unpack_A_src, formats.unpack_A_dst);
+                for (std::uint32_t tile_index_within_block = 0; tile_index_within_block < BLOCK_CT_DIM;
+                     ++tile_index_within_block) // Loop over tiles in the block
+                {
+                    std::uint32_t tile_index_in_memory = rt * FULL_CT_DIM + block_num * BLOCK_CT_DIM + tile_index_within_block;
+                    _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
+                        L1_ADDRESS(params->buffer_A[tile_index_in_memory]), formats.unpack_A_src, formats.unpack_A_dst);
+                }
             }
         }
     }
@@ -95,20 +100,24 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     const std::uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM;
 
-    for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
     {
-        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
+        MEASURE_PERF_COUNTERS("KERNEL");
+        for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
         {
-            _llk_math_wait_for_dest_available_<dest_sync>();
-            for (std::uint32_t tile_index_within_block = 0; tile_index_within_block < BLOCK_CT_DIM; ++tile_index_within_block) // Loop over tiles in the block
+            for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
             {
-                LLK_ASSERT(
-                    (tile_index_within_block < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
-                    "Block tile index exceeds maximum destination tiles");
-                _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-                    tile_index_within_block, formats.math, formats.math);
+                _llk_math_wait_for_dest_available_<dest_sync>();
+                for (std::uint32_t tile_index_within_block = 0; tile_index_within_block < BLOCK_CT_DIM;
+                     ++tile_index_within_block) // Loop over tiles in the block
+                {
+                    LLK_ASSERT(
+                        (tile_index_within_block < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                        "Block tile index exceeds maximum destination tiles");
+                    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, dest_sync, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                        tile_index_within_block, formats.math, formats.math);
+                }
+                _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
             }
-            _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
         }
     }
 }
@@ -147,15 +156,18 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     const std::uint32_t num_blocks_per_col = FULL_CT_DIM / BLOCK_CT_DIM;
 
-    for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
     {
-        for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
+        MEASURE_PERF_COUNTERS("KERNEL");
+        for (std::uint32_t rt = 0; rt < FULL_RT_DIM; rt++) // Loop over all tiles vertically
         {
-            std::uint32_t pack_addr_16B = base_addr_16B + rt * row_stride_16B + block_num * block_stride_16B;
+            for (std::uint32_t block_num = 0; block_num < num_blocks_per_col; ++block_num) // Loop over blocks in the tile-row.
+            {
+                std::uint32_t pack_addr_16B = base_addr_16B + rt * row_stride_16B + block_num * block_stride_16B;
 
-            _llk_packer_wait_for_math_done_();
-            _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM>(pack_addr_16B, formats.pack_dst, FACE_R_DIM, params->num_faces, 0 /* tile_dst_rt_offset */);
-            _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
+                _llk_packer_wait_for_math_done_();
+                _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM>(pack_addr_16B, formats.pack_dst, FACE_R_DIM, params->num_faces, 0 /* tile_dst_rt_offset */);
+                _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
+            }
         }
     }
 }

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+from helpers import counters, metrics
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
     BroadcastGolden,
@@ -287,7 +288,11 @@ def test_eltwise_binary(
         unpack_to_dest=False,
     )
 
+    counters.configure_counters(location=workers_tensix_coordinates)
     res_from_L1 = configuration.run(workers_tensix_coordinates).result
+    counter_results = counters.read_counters(location=workers_tensix_coordinates)
+    counters.print_counters(counter_results)
+    metrics.print_metrics(counter_results)
 
     assert len(res_from_L1) == len(
         golden_tensor
@@ -481,7 +486,11 @@ def test_eltwise_binary_dest_reuse(
         unpack_to_dest=False,
     )
 
+    counters.configure_counters(location=workers_tensix_coordinates)
     res_from_L1 = configuration.run(workers_tensix_coordinates).result
+    counter_results = counters.read_counters(location=workers_tensix_coordinates)
+    counters.print_counters(counter_results)
+    metrics.print_metrics(counter_results)
 
     assert len(res_from_L1) == len(
         golden_tensor
@@ -637,7 +646,11 @@ def test_eltwise_binary_int8_format(
         unpack_to_dest=False,
     )
 
+    counters.configure_counters(location=workers_tensix_coordinates)
     res_from_L1 = configuration.run(workers_tensix_coordinates).result
+    counter_results = counters.read_counters(location=workers_tensix_coordinates)
+    counters.print_counters(counter_results)
+    metrics.print_metrics(counter_results)
 
     assert len(res_from_L1) == len(
         golden_tensor

@@ -79,7 +79,6 @@ def test_perf_math_transpose(
             if formats.input_format.is_32_bit()
             else DestAccumulation.No
         ),
-        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)

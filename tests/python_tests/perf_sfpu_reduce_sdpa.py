@@ -90,7 +90,6 @@ def test_perf_sfpu_reduce_sdpa(
         ),
         unpack_to_dest=False,  # Must be False since math kernel does A2D copy
         dest_acc=dest_acc,
-        enable_counters=True,
     )
 
     configuration.run(perf_report, location=workers_tensix_coordinates)
