@@ -111,58 +111,69 @@ class ExalensServer:
         shutdown_requested = False
         elapsed = 0
         while elapsed < self.READY_TIMEOUT_S:
-            if self._process.poll() is not None:
-                log_tail = self._read_log_tail(50)
-                logger.error(
-                    "tt-exalens exited prematurely (code {}).\nLog output:\n{}",
-                    self._process.returncode,
-                    log_tail,
-                )
-                pytest.exit(returncode=1)
-
-            if self._log_contains_ready_pattern():
-                logger.info(
-                    "tt-exalens ready (PID {}, took ~{}s)",
-                    self._process.pid,
-                    elapsed,
-                )
-                if shutdown_requested:
-                    logger.info("Gracefully stopping tt-exalens to release emulator...")
-                    self.stop()
-                    pytest.exit(
-                        "Interrupted by user during tt-exalens startup.",
-                        returncode=1,
-                    )
-                return
-
-            emu_errors = self._check_emulator_log()
-            if emu_errors:
-                logger.error(
-                    "Emulator reported errors during tt-exalens startup:\n{}",
-                    emu_errors,
-                )
-                self.stop()
-                pytest.exit(returncode=1)
-
             try:
+                if self._process.poll() is not None:
+                    log_tail = self._read_log_tail(50)
+                    logger.error(
+                        "tt-exalens exited prematurely (code {}).\nLog output:\n{}",
+                        self._process.returncode,
+                        log_tail,
+                    )
+                    pytest.exit(returncode=1)
+
+                if self._log_contains_ready_pattern():
+                    logger.info(
+                        "tt-exalens ready (PID {}, took ~{}s)",
+                        self._process.pid,
+                        elapsed,
+                    )
+                    if shutdown_requested:
+                        logger.info(
+                            "Gracefully stopping tt-exalens to release emulator..."
+                        )
+                        self.stop()
+                        pytest.exit(
+                            "Interrupted by user during tt-exalens startup.",
+                            returncode=1,
+                        )
+                    return
+
+                emu_errors = self._check_emulator_log()
+                if emu_errors:
+                    logger.error(
+                        "Emulator reported errors during tt-exalens startup:\n{}",
+                        emu_errors,
+                    )
+                    self.stop()
+                    pytest.exit(returncode=1)
+
                 time.sleep(self.POLL_INTERVAL_S)
             except KeyboardInterrupt:
-                shutdown_requested = True
-                logger.warning(
-                    "Ctrl+C received — waiting for tt-exalens to become ready "
-                    "before shutting down (to release emulator resources)..."
-                )
+                if not shutdown_requested:
+                    shutdown_requested = True
+                    logger.warning(
+                        "Ctrl+C received — waiting for tt-exalens to become ready "
+                        "before shutting down (to release emulator resources)..."
+                    )
 
             elapsed += self.POLL_INTERVAL_S
             if elapsed % 10 == 0:
                 logger.info("    ... still waiting ({}s elapsed)", elapsed)
 
         log_tail = self._read_log_tail(50)
-        logger.error(
-            "tt-exalens did not become ready within {}s.\nLog output:\n{}",
-            self.READY_TIMEOUT_S,
-            log_tail,
-        )
+        if shutdown_requested:
+            logger.error(
+                "tt-exalens did not become ready after Ctrl+C; "
+                "giving up after {}s.\nLog output:\n{}",
+                self.READY_TIMEOUT_S,
+                log_tail,
+            )
+        else:
+            logger.error(
+                "tt-exalens did not become ready within {}s.\nLog output:\n{}",
+                self.READY_TIMEOUT_S,
+                log_tail,
+            )
         self.stop()
         pytest.exit(returncode=1)
 
@@ -247,6 +258,10 @@ class ExalensServer:
     @property
     def running(self) -> bool:
         return self._process is not None and self._process.poll() is None
+
+    @property
+    def ever_started(self) -> bool:
+        return self._started_before
 
 
 _exalens_server: Optional[ExalensServer] = None
@@ -547,11 +562,14 @@ def pytest_runtest_setup(item):
 
     test_target = TestTargetConfig()
 
-    if not _exalens_server.running and not _exalens_server._started_before:
+    if not _exalens_server.running and not _exalens_server.ever_started:
         _exalens_server.start()
         tt_exalens_init.init_ttexalens_remote(
             port=test_target.simulator_port, use_4B_mode=False
         )
+    elif not _exalens_server.running:
+        logger.error("tt-exalens server is no longer running unexpectedly.")
+        pytest.exit(returncode=1)
     elif _reset_simulator_pending:
         _reset_simulator_pending = False
         tt_exalens_init.cleanup_global_context()
