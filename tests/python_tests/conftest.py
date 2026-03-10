@@ -95,6 +95,7 @@ class ExalensServer:
             stdin=subprocess.PIPE,
             stdout=log_file,
             stderr=subprocess.STDOUT,
+            start_new_session=True,
         )
         log_file.close()
 
@@ -107,6 +108,7 @@ class ExalensServer:
             "Waiting for tt-exalens to become ready (timeout: {}s)...",
             self.READY_TIMEOUT_S,
         )
+        shutdown_requested = False
         elapsed = 0
         while elapsed < self.READY_TIMEOUT_S:
             if self._process.poll() is not None:
@@ -124,6 +126,13 @@ class ExalensServer:
                     self._process.pid,
                     elapsed,
                 )
+                if shutdown_requested:
+                    logger.info("Gracefully stopping tt-exalens to release emulator...")
+                    self.stop()
+                    pytest.exit(
+                        "Interrupted by user during tt-exalens startup.",
+                        returncode=1,
+                    )
                 return
 
             emu_errors = self._check_emulator_log()
@@ -135,7 +144,15 @@ class ExalensServer:
                 self.stop()
                 pytest.exit(returncode=1)
 
-            time.sleep(self.POLL_INTERVAL_S)
+            try:
+                time.sleep(self.POLL_INTERVAL_S)
+            except KeyboardInterrupt:
+                shutdown_requested = True
+                logger.warning(
+                    "Ctrl+C received — waiting for tt-exalens to become ready "
+                    "before shutting down (to release emulator resources)..."
+                )
+
             elapsed += self.POLL_INTERVAL_S
             if elapsed % 10 == 0:
                 logger.info("    ... still waiting ({}s elapsed)", elapsed)
