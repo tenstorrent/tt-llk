@@ -13,7 +13,6 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
-    BlocksCalculationAlgorithm,
     DestAccumulation,
     DestSync,
     format_dict,
@@ -128,7 +127,6 @@ def test_pack_untilize(
         formats,
         input_dimensions,
         TILE_DIMENSIONS,
-        BlocksCalculationAlgorithm.Untilize,
     )
 
     configuration = TestConfig(

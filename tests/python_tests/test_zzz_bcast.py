@@ -11,7 +11,6 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
-    BlocksCalculationAlgorithm,
     BroadcastType,
     DestAccumulation,
     DestSync,
@@ -149,7 +148,6 @@ def test_unpack_bcast(
         formats,
         input_dimensions,
         tile_dimensions,
-        BlocksCalculationAlgorithm.Standard,
     )
 
     # --- Kernel configuration --------------------------------------------

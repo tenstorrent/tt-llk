@@ -18,7 +18,6 @@ from helpers.golden_generators import (
     get_golden_generator,
 )
 from helpers.llk_params import (
-    BlocksCalculationAlgorithm,
     BroadcastType,
     DestAccumulation,
     DestSync,
@@ -518,7 +517,6 @@ def test_unpack_comprehensive(
         formats,
         raw_dimensions,
         TILE_DIMENSIONS,  # Use full tile dimensions even for partial face tests since we don't do dense tile processing here.
-        BlocksCalculationAlgorithm.Standard,
     )
 
     configuration = TestConfig(
