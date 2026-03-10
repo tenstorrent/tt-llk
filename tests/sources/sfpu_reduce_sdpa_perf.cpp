@@ -9,7 +9,6 @@
 
 #include "ckernel.h"
 #include "ckernel_defs.h"
-#include "counters.h"
 #include "llk_defs.h"
 #include "params.h"
 #include "perf.h"
@@ -34,7 +33,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
-        PERF_COUNTERS_SCOPED(0);
         // Configure unpacker for Float16_b format
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_A_src,
@@ -51,7 +49,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        PERF_COUNTERS_SCOPED(1);
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             return;
@@ -97,7 +94,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("INIT")
-        PERF_COUNTERS_SCOPED(0);
         // Initialize datacopy from srcA to dest
 #ifdef ARCH_BLACKHOLE
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, false>(4, formats.math);
@@ -117,7 +113,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        PERF_COUNTERS_SCOPED(1);
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             return;
@@ -201,7 +196,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
-        PERF_COUNTERS_SCOPED(0);
         // Configure packer hardware
 #ifdef ARCH_BLACKHOLE
         _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -221,7 +215,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        PERF_COUNTERS_SCOPED(1);
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             return;

@@ -8,7 +8,6 @@
 #include "build.h"
 #include "ckernel.h"
 #include "ckernel_defs.h"
-#include "counters.h"
 #include "llk_defs.h"
 #include "params.h"
 #include "perf.h"
@@ -36,7 +35,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
-        PERF_COUNTERS_SCOPED(0);
 
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             params->UNPACK_TRANSPOSE_FACES, false, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_A_src, formats.unpack_A_dst);
@@ -47,7 +45,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
-        PERF_COUNTERS_SCOPED(1);
 
         for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
         {
@@ -83,7 +80,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
-        PERF_COUNTERS_SCOPED(0);
 
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
@@ -92,7 +88,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     {
         ZONE_SCOPED("TILE_LOOP")
-        PERF_COUNTERS_SCOPED(1);
 
         for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
         {
@@ -144,7 +139,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
-        PERF_COUNTERS_SCOPED(0);
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
         _llk_pack_init_<false, false>(formats.pack_dst);
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -152,7 +146,6 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        PERF_COUNTERS_SCOPED(1);
 
         for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
         {
