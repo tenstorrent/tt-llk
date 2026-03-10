@@ -214,8 +214,8 @@ def compute_metrics(df: pd.DataFrame) -> dict:
     }
 
 
-def print_metrics(results: pd.DataFrame) -> None:
-    """Print performance metrics to console."""
+def _print_zone_metrics(results: pd.DataFrame) -> None:
+    """Print metrics for a single zone (results should already be filtered)."""
     metrics = compute_metrics(results)
 
     if not metrics:
@@ -227,10 +227,6 @@ def print_metrics(results: pd.DataFrame) -> None:
         if value is None:
             return "N/A"
         return f"{value:.{decimals}f}"
-
-    print("\n" + "=" * 70)
-    print("PERFORMANCE METRICS")
-    print("=" * 70)
 
     print(f"\n{'─' * 70}")
     print("  UNPACKER WRITE EFFICIENCY")
@@ -323,7 +319,33 @@ def print_metrics(results: pd.DataFrame) -> None:
         f"  {'Combined Average:':<30} {'':<12} {'':<12} {fmt(metrics['unpack_to_math_flow']):>12}"
     )
 
-    print("\n" + "=" * 70 + "\n")
+
+def print_metrics(results: pd.DataFrame) -> None:
+    """Print performance metrics to console, grouped by zone if available."""
+    if results.empty:
+        print("No metrics to display.")
+        return
+
+    print("\n" + "=" * 70)
+    print("PERFORMANCE METRICS")
+    print("=" * 70)
+
+    # Check if zone column exists
+    if "zone" in results.columns:
+        zones = results["zone"].unique()
+        for i, zone in enumerate(sorted(zones)):
+            if i > 0:
+                print()  # Blank line between zones
+
+            print("\n" + "═" * 70)
+            print(f"ZONE: {zone}")
+            print("═" * 70)
+
+            zone_data = results[results["zone"] == zone]
+            _print_zone_metrics(zone_data)
+    else:
+        # No zone column, print metrics for all data combined
+        _print_zone_metrics(results)
 
 
 def export_metrics(
