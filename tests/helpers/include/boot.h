@@ -18,7 +18,11 @@ extern const std::uint32_t __stack_top[];
 extern void (*__init_array_start[])(void);
 extern void (*__init_array_end[])(void);
 
-TT_ALWAYS_INLINE void do_crt0()
+// TODO @ajankovicTT find out why GCC generates unwinding tables on coverage,
+// even though -fno-asynchronous-unwind-tables -fno-exceptions flags are set
+void* __gxx_personality_v0;
+
+__attribute__((no_profile_instrument_function)) TT_ALWAYS_INLINE void do_crt0()
 {
     asm volatile(
         ".option push\n"

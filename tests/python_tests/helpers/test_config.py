@@ -309,8 +309,12 @@ class TestConfig:
                 "-save-temps=obj -fdump-tree-all -fdump-rtl-all -v"
             )
 
-        TestConfig.OPTIONS_LINK = "-fexceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace"
-        TestConfig.INITIAL_OPTIONS_COMPILE = f"-nostdlib -fno-use-cxa-atexit -Wall -fno-exceptions -fno-rtti -Wunused-parameter -Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -Wmaybe-uninitialized -DTENSIX_FIRMWARE -DENV_LLK_INFRA -DENABLE_LLK_ASSERT {TestConfig.ARCH_DEFINE}"
+        TestConfig.OPTIONS_LINK = "-Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles -Wl,--trace"
+        TestConfig.INITIAL_OPTIONS_COMPILE = (
+            "-nostdlib -fno-use-cxa-atexit -Wall -fno-asynchronous-unwind-tables -fno-exceptions -fno-rtti -Wunused-parameter "
+            "-Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -Wmaybe-uninitialized "
+            f"-DTENSIX_FIRMWARE -DENV_LLK_INFRA -DENABLE_LLK_ASSERT {TestConfig.ARCH_DEFINE}"
+        )
         TestConfig.INCLUDES = [
             "-Isfpi/include",
             f"-I../{TestConfig.ARCH_LLK_ROOT}/llk_lib",
@@ -882,26 +886,32 @@ class TestConfig:
                 else TestConfig.SHARED_OBJ_DIR
             )
 
-            COVERAGE_DEPS = ""
-            if self.coverage_build == CoverageBuild.Yes:
-                COVERAGE_DEPS = f"-Wl,--start-group {shared_obj_dir}/coverage.o -lgcov -lc -Wl,--end-group"
-
             def build_kernel_part(name: str):
                 optional_kernel_flags = ""
                 if TestConfig.CHIP_ARCH != ChipArchitecture.QUASAR:
-                    optional_kernel_flags = f"-DCOMPILE_FOR_TRISC={TestConfig.KERNEL_COMPONENTS.index(name)}"
+                    optional_kernel_flags = "-DCOMPILE_FOR_TRISC=" + str(
+                        TestConfig.KERNEL_COMPONENTS.index(name)
+                    )
 
                 if not self.compile_time_formats:
                     optional_kernel_flags += " -DRUNTIME_FORMATS"
 
+                COVERAGES_DEPS = (
+                    f"-Wl,--start-group {shared_obj_dir}/coverage.o -lgcov -Wl,--end-group "
+                    if self.coverage_build == CoverageBuild.Yes
+                    else f""
+                )
                 compile_command = (
                     f"{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{TestConfig.TESTS_WORKING_DIR} "
-                    f"-I{TestConfig.RISCV_SOURCES} -I{VARIANT_DIR} {local_options_compile} {optional_kernel_flags} -DLLK_TRISC_{name.upper()} {TestConfig.OPTIONS_LINK} "
-                    f'{COVERAGE_DEPS} -T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / name}.ld -T{TestConfig.LINKER_SCRIPTS / "sections.ld"} '
-                    f'-x c++ - -o {VARIANT_ELF_DIR / f"{name}.elf"}'
+                    f"-I{TestConfig.RISCV_SOURCES} -I{VARIANT_DIR} {local_options_compile} {optional_kernel_flags} "
+                    f"-DLLK_TRISC_{name.upper()} {TestConfig.OPTIONS_LINK} {COVERAGES_DEPS} "
+                    f"-T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / name}.ld -T{TestConfig.LINKER_SCRIPTS}/sections.ld "
+                    f"-x c++ - -lc -o {VARIANT_ELF_DIR / name}.elf"
                 )
 
-                run_shell_command(  # %.elf : path/to/kernel/test.cpp trisc.cpp [coverage.o]
+                logger.trace(compile_command)
+
+                run_shell_command(  # %.elf : path/to/kernel/test.cpp trisc.cpp [coverage.o libgcov.a]
                     compile_command,
                     TestConfig.TESTS_WORKING_DIR,
                     (f"#include  <{self.test_name}>\n" "#include  <trisc.cpp>\n"),
@@ -954,6 +964,8 @@ class TestConfig:
             stream_name = "deafult_stream_name.stream"
         else:
             stream_name = f"{sha256(str(' | '.join([str(run_arg) for run_arg in self.runtimes])).encode()).hexdigest()}.stream"
+
+        logger.trace(stream_name)
 
         with open(
             VARIANT_DIR / stream_name,
@@ -1122,7 +1134,7 @@ def process_coverage_run_artefacts() -> bool:
                 info_hash = sha256(str(variant).encode()).hexdigest()
                 command = (
                     f"lcov --gcov-tool {TestConfig.GCOV} --capture "
-                    f"--directory {variant / 'obj/'} "
+                    f"--directory {variant}/elf/ "
                     f"--output-file {TestConfig.COVERAGE_INFO_DIR}/{info_hash}.info "
                     "--rc lcov_branch_coverage=1"
                 )

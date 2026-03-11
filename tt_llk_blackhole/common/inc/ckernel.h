@@ -27,6 +27,7 @@
 #define LIKELY(condition)   __builtin_expect(static_cast<bool>(condition), 1)
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
 #define UNREACHABLE()       __builtin_unreachable()
+#define RUNTIME_PARAMETERS  const volatile struct RuntimeParams *
 
 #define UNROLL_LOOP(factor) GCC unroll factor
 
