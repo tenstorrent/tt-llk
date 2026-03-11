@@ -782,5 +782,5 @@ class NUM_ROWS_TO_PACK(RuntimeParameter):
 class TILE_DST_CT_OFFSET(TemplateParameter):
     offset: int = 0
 
-    def covert_to_cpp(self) -> str:
+    def convert_to_cpp(self) -> str:
         return f"constexpr std::uint32_t TILE_DST_CT_OFFSET = {self.offset};"
