@@ -33,9 +33,10 @@ inline void matmul_configure_addrmod(
     const bool partial_face                = false,
     const std::uint32_t fidelity_increment = is_high_fidelity(math_fidelity) ? 1 : 0)
 {
-    const bool is_in0_16x32 = (in0_tile_r_dim <= FACE_R_DIM) && (in0_tile_c_dim > FACE_C_DIM);
-    const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
-    const bool is_in1_32x16 = (in1_tile_r_dim > FACE_R_DIM) && (in1_tile_c_dim <= FACE_C_DIM);
+    const bool is_in0_16x32          = (in0_tile_r_dim <= FACE_R_DIM) && (in0_tile_c_dim > FACE_C_DIM);
+    const bool is_in0_32x16          = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
+    const bool is_in1_32x16          = (in1_tile_r_dim > FACE_R_DIM) && (in1_tile_c_dim <= FACE_C_DIM);
+    const auto fidelity_increment_u8 = static_cast<std::uint8_t>(fidelity_increment);
 
     // MVMUL does D = B*A
 
@@ -56,7 +57,7 @@ inline void matmul_configure_addrmod(
         .srca     = {.incr = 0, .clr = 1, .cr = 1},
         .srcb     = {.incr = 0, .clr = 1, .cr = 1},
         .dest     = {.incr = 0, .clr = 1, .cr = 1},
-        .fidelity = {.incr = fidelity_increment, .clr = 0},
+        .fidelity = {.incr = fidelity_increment_u8, .clr = 0},
     }
         .set(ADDR_MOD_5);
 
