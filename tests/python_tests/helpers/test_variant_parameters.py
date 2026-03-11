@@ -820,3 +820,14 @@ class TILE_DST_CT_OFFSET(TemplateParameter):
 
     def convert_to_cpp(self) -> str:
         return f"constexpr std::uint32_t TILE_DST_CT_OFFSET = {self.offset};"
+
+
+@dataclass
+class CONFIGURE_TEST_RUN_IDX(RuntimeParameter):
+    configure_test_run_idx: int = 0
+
+    def covert_to_cpp(self) -> str:
+        return f"constexpr std::uint32_t CONFIGURE_TEST_RUN_IDX = {self.configure_test_run_idx};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "std::uint32_t CONFIGURE_TEST_RUN_IDX;", "I"
