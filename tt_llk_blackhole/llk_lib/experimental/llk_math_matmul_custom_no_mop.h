@@ -19,6 +19,37 @@ using namespace ckernel;
 static std::uint32_t matmul_no_mop_runtime_fidelity_phase_count = 1;
 static std::uint32_t matmul_no_mop_runtime_fidelity_increment   = 0;
 
+template <std::uint32_t fidelity_increment>
+inline void set_matmul_no_mop_addrmod_5()
+{
+    addr_mod_t {
+        .srca     = {.incr = 0, .clr = 1, .cr = 1},
+        .srcb     = {.incr = 0, .clr = 1, .cr = 1},
+        .dest     = {.incr = 0, .clr = 1, .cr = 1},
+        .fidelity = {.incr = fidelity_increment, .clr = 0},
+    }
+        .set(ADDR_MOD_5);
+}
+
+inline void set_matmul_no_mop_addrmod_5(const std::uint32_t fidelity_increment)
+{
+    switch (fidelity_increment)
+    {
+        case 0:
+            set_matmul_no_mop_addrmod_5<0>();
+            break;
+        case 1:
+            set_matmul_no_mop_addrmod_5<1>();
+            break;
+        case 2:
+            set_matmul_no_mop_addrmod_5<2>();
+            break;
+        default:
+            LLK_ASSERT(false && "Unsupported runtime fidelity increment");
+            break;
+    }
+}
+
 template <MathFidelity math_fidelity, int THROTTLE_LEVEL>
 inline void matmul_configure_addrmod_no_mop(
     const bool transpose,
@@ -46,13 +77,7 @@ inline void matmul_configure_addrmod_no_mop(
         .set(ADDR_MOD_0);
 
     // reset all, increment fidelity if we have more fidelity phases
-    addr_mod_t {
-        .srca     = {.incr = 0, .clr = 1, .cr = 1},
-        .srcb     = {.incr = 0, .clr = 1, .cr = 1},
-        .dest     = {.incr = 0, .clr = 1, .cr = 1},
-        .fidelity = {.incr = fidelity_increment, .clr = 0},
-    }
-        .set(ADDR_MOD_5);
+    set_matmul_no_mop_addrmod_5(fidelity_increment);
 
     if constexpr (THROTTLE_LEVEL)
     {
@@ -132,13 +157,7 @@ template <MathFidelity math_fidelity = MathFidelity::LoFi, int throttle_level = 
 inline void matmul_configure_addrmod_reinit_after_sub()
 {
     static_assert(throttle_level == 0, "matmul_configure_addrmod_reinit_after_sub only supports THROTTLE_LEVEL == 0");
-    addr_mod_t {
-        .srca     = {.incr = 0, .clr = 1, .cr = 1},
-        .srcb     = {.incr = 0, .clr = 1, .cr = 1},
-        .dest     = {.incr = 0, .clr = 1, .cr = 1},
-        .fidelity = {.incr = matmul_no_mop_runtime_fidelity_increment, .clr = 0},
-    }
-        .set(ADDR_MOD_5);
+    set_matmul_no_mop_addrmod_5(matmul_no_mop_runtime_fidelity_increment);
 }
 
 template <MathFidelity math_fidelity>
