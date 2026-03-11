@@ -369,6 +369,7 @@ class PerfConfig(TestConfig):
             self.runtimes = runtimes
             self.generate_variant_hash()
             variant_raw_data = []
+            variant_counter_results = []
             for run_index in range(run_count):
                 if self.enable_counters:
                     configure_counters(location=location)
@@ -387,6 +388,7 @@ class PerfConfig(TestConfig):
                         if counter_results is not None and not counter_results.empty:
                             # Attach counter results to profiler data or accumulate them?
                             counter_results["run_index"] = run_index
+                            variant_counter_results.append(counter_results)
                             # Using print since we don't have a specific dataframe merger natively for counters yet
                             # but keeping the output organized per-run
                             print(
@@ -406,6 +408,42 @@ class PerfConfig(TestConfig):
 
             get_stats = Profiler.STATS_FUNCTION[run_type]
             results.append(get_stats(ProfilerData.concat(variant_raw_data)))
+
+            if variant_counter_results:
+                from .metrics import compute_metrics
+
+                all_counters = pd.concat(variant_counter_results, ignore_index=True)
+                zones = (
+                    all_counters["zone"].unique()
+                    if "zone" in all_counters.columns
+                    else ["ZONE_0"]
+                )
+
+                zone_metrics_list = []
+                # Map ZONE_0 -> INIT and ZONE_1 -> TILE_LOOP so it matches the profiler markers exactly on outer join
+                zone_to_marker = {"ZONE_0": "INIT", "ZONE_1": "TILE_LOOP"}
+
+                for zone in sorted(zones):
+                    zone_data = (
+                        all_counters[all_counters["zone"] == zone]
+                        if "zone" in all_counters.columns
+                        else all_counters
+                    )
+                    metrics = compute_metrics(zone_data)
+
+                    if not metrics:
+                        continue
+
+                    marker_name = zone_to_marker.get(zone, zone)
+                    row = {"marker": marker_name}
+                    for k, v in metrics.items():
+                        # Prefix with run_type to avoid column collisions between different run types
+                        row[f"{run_type.name}_{k}"] = v
+
+                    zone_metrics_list.append(row)
+
+                if zone_metrics_list:
+                    results.append(pd.DataFrame(zone_metrics_list))
 
         # Merge results with validation
         # how="outer" keeps all markers (some may not appear in all run types)
