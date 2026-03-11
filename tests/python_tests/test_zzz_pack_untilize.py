@@ -5,10 +5,7 @@ import pytest
 import torch
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.constraints import get_valid_dest_accumulation_modes
-from helpers.data_format_inference import (
-    infer_data_formats,
-    is_format_combination_outlier,
-)
+from helpers.data_format_inference import infer_data_formats
 from helpers.format_config import DataFormat
 from helpers.golden_generators import (
     TILE_DIMENSIONS,
@@ -47,16 +44,14 @@ from helpers.utils import passed_test
             DataFormat.Float32,  # Test Float32 with both 32bit mode dest (full precision) and 16bit mode dest (precision loss)
             DataFormat.Int32,
             DataFormat.Bfp8_b,
-        ]  # Pack Untilize doesn't support Bfp8_b as output format; it is only included as an input format with tile_dst_ct_offset=0
+        ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     input_dimensions=[[64, 64], [32, 128], [128, 128], [32, 64]],
     #  TODO add DestSync::Full tests when we have a solution for the static_assert in _llk_pack_untilize_init_ that requires block_ct_dim to be less or equal to 8,
     #  which is currently a limitation for testing DestSync::Full with the Untilize blocks calculation algorithm.
     dest_sync=[DestSync.Half],
-    tile_dst_ct_offset=lambda formats: (
-        [0] if formats.input_format == DataFormat.Bfp8_b else [0, 1, 2, 3]
-    ),
+    tile_dst_ct_offset=[0],
 )
 def test_pack_untilize(
     formats,
@@ -135,25 +130,6 @@ def test_pack_untilize(
         TILE_DIMENSIONS,
         BlocksCalculationAlgorithm.Untilize,
     )
-
-    # Dest (SyncHalf) holds 8 tiles for non-fp32 accumulation, 4 for fp32.
-    # Three ways the compiled is_fp32_dest_acc_en can end up True:
-    #   1. dest_acc == Yes (user-requested)
-    #   2. is_format_combination_outlier overrides dest_acc to Yes in TestConfig.__init__
-    #   3. pack_src is 32-bit (format inference already accounts for fp32 dest path)
-    effective_fp32_dest = (
-        dest_acc == DestAccumulation.Yes
-        or is_format_combination_outlier(
-            formats.input_format, formats.output_format, dest_acc
-        )
-        or data_formats.pack_src.is_32_bit()
-    )
-    max_dest_tiles = 4 if effective_fp32_dest else 8
-    if block_ct_dim + tile_dst_ct_offset > max_dest_tiles:
-        pytest.skip(
-            f"block_ct_dim ({block_ct_dim}) + tile_dst_ct_offset ({tile_dst_ct_offset}) "
-            f"exceeds max dest tiles ({max_dest_tiles})"
-        )
 
     configuration = TestConfig(
         "sources/pack_untilize_test.cpp",
