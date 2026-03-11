@@ -2,12 +2,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include "stream.h"
-
 #include <cstdint>
 #include <numeric>
 
 #include "ckernel.h"
+#include "stream.h"
 
 // Globals required by LLK infrastructure
 std::uint32_t unp_cfg_context          = 0;
