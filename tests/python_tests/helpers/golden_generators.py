@@ -739,20 +739,19 @@ class TransposeGolden:
         )
 
 
-def _bfp8b_to_float16b(operand, dimensions):
-    """Convert bfloat16 values through the Bfp8_b block representation back to float16_b,
-    then untilize from face order to row-major.
+def _bfp8b_to_float16b(operand, dimensions=None):
+    """Convert bfloat16 values through the Bfp8_b block representation back to float16_b.
 
-    The test writes Bfp8_b data to L1 without tilizing, so the hardware sees
-    the flat tensor in face order (elements 0-255 = face0, 256-511 = face1, …).
-    This function models the full hardware decode path:
+    For each 16-element block, find the shared exponent (max across block).
+    For each element, extract sign + 7-bit mantissa (implicit 1 at bit 6,
+    top 6 stored mantissa bits), right-shift by the exponent delta, and
+    reconstruct the float16_b value.
 
-    1. For each 16-element block, find the shared exponent (max across block).
-    2. For each element, extract sign + 7-bit mantissa (implicit 1 at bit 6,
-       top 6 stored mantissa bits), right-shift by the exponent delta, and
-       reconstruct the float16_b value.
-    3. Untilize the resulting tile data from face order to row-major so the
-       golden can do a standard matmul.
+    If *dimensions* is provided the data is also untilized from face order to
+    row-major.  This is needed when the test writes Bfp8_b to L1 without
+    tilizing first (e.g. test_matmul), so the golden must undo the face layout
+    before doing the matmul.  Tests that already tilize their inputs before
+    writing to L1 should pass dimensions=None to skip this step.
     """
     BFP8_BLOCK = 16
     flat = operand.flatten().to(torch.float32)
@@ -782,11 +781,14 @@ def _bfp8b_to_float16b(operand, dimensions):
 
     quantized = result.to(torch.bfloat16)
 
-    return untilize_block(
-        quantized,
-        stimuli_format=DataFormat.Float16_b,
-        dimensions=dimensions,
-    ).flatten()
+    if dimensions is not None:
+        quantized = untilize_block(
+            quantized,
+            stimuli_format=DataFormat.Float16_b,
+            dimensions=dimensions,
+        ).flatten()
+
+    return quantized
 
 
 @register_golden
@@ -803,13 +805,16 @@ class MatmulGolden(FidelityMasking):
         tilize: bool = False,
         input_A_format: DataFormat = None,
         input_B_format: DataFormat = None,
+        bfp8b_untilize: bool = False,
     ):
         torch_format = format_dict[data_format]
 
         if input_A_format == DataFormat.Bfp8_b:
-            operand1 = _bfp8b_to_float16b(operand1, input_A_dimensions)
+            dims = input_A_dimensions if bfp8b_untilize else None
+            operand1 = _bfp8b_to_float16b(operand1, dims)
         if input_B_format == DataFormat.Bfp8_b:
-            operand2 = _bfp8b_to_float16b(operand2, input_B_dimensions)
+            dims = input_B_dimensions if bfp8b_untilize else None
+            operand2 = _bfp8b_to_float16b(operand2, dims)
 
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)

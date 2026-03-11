@@ -118,6 +118,7 @@ def test_matmul_custom(
         tilize=True,
         input_A_format=formats.input_format,
         input_B_format=formats.input_format,
+        bfp8b_untilize=True,
     )
 
     if formats.input_format != DataFormat.Bfp8_b:
