@@ -46,7 +46,7 @@ class TemplateParameter(ABC):
 
 
 @dataclass
-class RuntimeParameter:
+class RuntimeParameter(ABC):
 
     @abstractmethod
     def convert_to_cpp(self) -> str:
