@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-#include "ckernel_defs.h"
+#include "../common/inc/ckernel_defs.h"
 
 namespace ckernel
 {

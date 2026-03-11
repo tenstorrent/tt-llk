@@ -45,7 +45,7 @@ inline void set_matmul_no_mop_addrmod_5(const std::uint32_t fidelity_increment)
             set_matmul_no_mop_addrmod_5<2>();
             break;
         default:
-            LLK_ASSERT(false && "Unsupported runtime fidelity increment");
+            LLK_ASSERT(false, "Unsupported runtime fidelity increment");
             break;
     }
 }
