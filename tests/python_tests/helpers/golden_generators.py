@@ -740,46 +740,37 @@ class TransposeGolden:
 
 
 def _bfp8b_to_float16b(operand, dimensions=None):
-    """Convert bfloat16 values through the Bfp8_b block representation back to float16_b.
-
-    For each 16-element block, find the shared exponent (max across block).
-    For each element, extract sign + 7-bit mantissa (implicit 1 at bit 6,
-    top 6 stored mantissa bits), right-shift by the exponent delta, and
-    reconstruct the float16_b value.
-
-    If *dimensions* is provided the data is also untilized from face order to
-    row-major.  This is needed when the test writes Bfp8_b to L1 without
-    tilizing first (e.g. test_matmul), so the golden must undo the face layout
-    before doing the matmul.  Tests that already tilize their inputs before
-    writing to L1 should pass dimensions=None to skip this step.
-    """
     BFP8_BLOCK = 16
     flat = operand.flatten().to(torch.float32)
-    result = torch.zeros_like(flat)
+    n = flat.numel()
 
-    for blk in range(0, flat.numel(), BFP8_BLOCK):
-        block = flat[blk : blk + BFP8_BLOCK]
+    # Reinterpret float32 bits as int32 (zero-copy)
+    u32 = flat.view(torch.int32)
+    bf16_bits = (u32 >> 16) & 0xFFFF
 
-        bf16_bits = []
-        for v in block:
-            u32 = struct.unpack("<I", struct.pack("<f", float(v)))[0]
-            bf16_bits.append((u32 >> 16) & 0xFFFF)
+    signs = (bf16_bits >> 15) & 1
+    exps = (bf16_bits >> 7) & 0xFF
+    mants = ((bf16_bits & 0x7F) >> 1) | 0x40
 
-        signs = [(b >> 15) & 1 for b in bf16_bits]
-        exps = [(b >> 7) & 0xFF for b in bf16_bits]
-        mants = [((b & 0x7F) >> 1) | 0x40 for b in bf16_bits]
+    # Reshape into (num_blocks, 16) for block-wise max
+    exps_blocks = exps.view(-1, BFP8_BLOCK)
+    mants_blocks = mants.view(-1, BFP8_BLOCK)
+    signs_blocks = signs.view(-1, BFP8_BLOCK)
 
-        shared_exp = max(exps)
+    # Shared exponent = max per block, broadcast back
+    shared_exps = exps_blocks.max(dim=1, keepdim=True).values
 
-        for j in range(len(block)):
-            delta = shared_exp - exps[j]
-            shifted = mants[j] >> delta
-            value = shifted * (2.0 ** (shared_exp - 127 - 6))
-            if signs[j]:
-                value = -value
-            result[blk + j] = value
+    # Right-shift mantissa by per-element delta
+    deltas = shared_exps - exps_blocks
+    shifted = mants_blocks >> deltas
 
-    quantized = result.to(torch.bfloat16)
+    # Scale: 2^(shared_exp - 127 - 6)
+    values = shifted.float() * torch.exp2((shared_exps - 133).float())
+
+    # Apply sign
+    values = torch.where(signs_blocks.bool(), -values, values)
+
+    quantized = values.flatten()[:n].to(torch.bfloat16)
 
     if dimensions is not None:
         quantized = untilize_block(
