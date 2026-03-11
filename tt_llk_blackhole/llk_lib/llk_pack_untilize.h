@@ -225,9 +225,9 @@ inline void _llk_pack_untilize_(
     // MOP START_OP resets W to this value at the start of each outer loop iteration (row).
     // The first INCADCZW in the inner loop then advances W to tile_dst_offset for the first tile.
     // SETADCZW's Ch0_W field is only 3 bits (0-7), so SETADC is used to carry the full 4-bit W value.
-    TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001);                                          // reset ch0 z counter
+    TTI_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0001);                                         // reset ch0 z counter
     TT_SETADC(p_setadc::PAC, p_setadc::CH_0, p_setadc::SET_W, (15 + tile_dst_offset) & 0xF); // set ch0 w counter, establishing W_Cr
-    TT_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0011);                                          // reset ch0 xy counters
+    TTI_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0011);                                         // reset ch0 xy counters
 
     // Iterate over top, then over bottom faces in the block (if num_faces > 2)
     for (std::uint32_t face = 0; face < num_faces_per_rdim_tile; face++)
