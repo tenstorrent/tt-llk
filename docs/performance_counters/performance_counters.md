@@ -225,7 +225,7 @@ The sync region also includes per-thread ATINCGET counters (start + stop) and a 
 - All threads (UNPACK, MATH, PACK, and SFPU on Quasar) call `start_perf_counters()` to set their start bits
 - The **first thread to call start** (when all start bits are 0) initializes hardware and is recorded as the "starter"
 - All threads call `stop_perf_counters()` to set their stop bits
-- The **last thread to call stop** (when all 4 stop bits become set) reads hardware counters, writes results to the shared data buffer, and is recorded as the "stopper"
+- The **last thread to call stop** (when all 3 stop bits become set on Wormhole/Blackhole, or all 4 on Quasar) reads hardware counters, writes results to the shared data buffer, and is recorded as the "stopper"
 - Python `read_counters()` returns the snapshot captured by the stopper, along with both starter and stopper thread IDs
 - **No mutex required**: Each thread atomically sets its own bit; checks are simple bit masks
 - **Reduces memory usage**: One shared config+data buffer instead of per-thread buffers (e.g. 1032 vs 3×1032 bytes for config+data on 3 TRISCs)

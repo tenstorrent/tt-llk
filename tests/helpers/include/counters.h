@@ -77,28 +77,15 @@ namespace llk_perf
 // Sync control word bit layout (layout differs for 3 vs 4 TRISCs):
 // 3 TRISCs: Bits 0-2 start, 3-5 stop, 6 started, 7 stopped, 8-9 starter, 10-11 stopper
 // 4 TRISCs: Bits 0-3 start, 4-7 stop, 8 started, 9 stopped, 10-11 starter, 12-13 stopper
-
-#if PERF_COUNTERS_THREAD_COUNT == 4
-constexpr std::uint32_t SYNC_START_MASK     = (1u << 0) | (1u << 1) | (1u << 2) | (1u << 3);
-constexpr std::uint32_t SYNC_STOP_MASK      = SYNC_START_MASK << 4;
-constexpr std::uint32_t SYNC_STARTED_FLAG   = 1u << 8;
-constexpr std::uint32_t SYNC_STOPPED_FLAG   = 1u << 9;
-constexpr std::uint32_t SYNC_STARTER_SHIFT  = 10u;
+constexpr std::uint32_t SYNC_START_MASK     = (1u << PERF_COUNTERS_THREAD_COUNT) - 1u;
+constexpr std::uint32_t SYNC_STOP_BIT_SHIFT = PERF_COUNTERS_THREAD_COUNT;
+constexpr std::uint32_t SYNC_STOP_MASK      = SYNC_START_MASK << SYNC_STOP_BIT_SHIFT;
+constexpr std::uint32_t SYNC_STARTED_FLAG   = 1u << (2u * PERF_COUNTERS_THREAD_COUNT);
+constexpr std::uint32_t SYNC_STOPPED_FLAG   = 1u << (2u * PERF_COUNTERS_THREAD_COUNT + 1u);
+constexpr std::uint32_t SYNC_STARTER_SHIFT  = 2u * PERF_COUNTERS_THREAD_COUNT + 2u;
 constexpr std::uint32_t SYNC_STARTER_MASK   = 0x3u << SYNC_STARTER_SHIFT;
-constexpr std::uint32_t SYNC_STOPPER_SHIFT  = 12u;
+constexpr std::uint32_t SYNC_STOPPER_SHIFT  = SYNC_STARTER_SHIFT + 2u;
 constexpr std::uint32_t SYNC_STOPPER_MASK   = 0x3u << SYNC_STOPPER_SHIFT;
-constexpr std::uint32_t SYNC_STOP_BIT_SHIFT = 4u;
-#else
-constexpr std::uint32_t SYNC_START_MASK     = (1u << 0) | (1u << 1) | (1u << 2);
-constexpr std::uint32_t SYNC_STOP_MASK      = SYNC_START_MASK << 3;
-constexpr std::uint32_t SYNC_STARTED_FLAG   = 1u << 6;
-constexpr std::uint32_t SYNC_STOPPED_FLAG   = 1u << 7;
-constexpr std::uint32_t SYNC_STARTER_SHIFT  = 8u;
-constexpr std::uint32_t SYNC_STARTER_MASK   = 0x3u << SYNC_STARTER_SHIFT;
-constexpr std::uint32_t SYNC_STOPPER_SHIFT  = 10u;
-constexpr std::uint32_t SYNC_STOPPER_MASK   = 0x3u << SYNC_STOPPER_SHIFT;
-constexpr std::uint32_t SYNC_STOP_BIT_SHIFT = 3u;
-#endif
 
 // ============================================================================
 // ATINCGET Helpers
@@ -217,7 +204,7 @@ constexpr std::uint32_t get_thread_id()
 #elif defined(LLK_TRISC_ISOLATE_SFPU)
     return 3u;
 #else
-    return 1u;
+#error "No TRISC define set"
 #endif
 }
 
