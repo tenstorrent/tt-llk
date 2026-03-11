@@ -84,11 +84,12 @@ inline void _llk_pack_untilize_mop_config_(const std::uint32_t face_r_dim = FACE
     Since there are two inner loop operations, the instruction set by set_last_inner_loop_instr
     will replace the second inner loop operation (in the last iteration, call the PACR instruction
     with the Last bit set to 1 instead of 0 to close the row).
-    The W counter CR shadow is established by SETADCZW in _llk_pack_untilize_ before run() is called.
+    The W counter CR shadow (W_Cr) is established by TT_SETADC(...SET_W...) in _llk_pack_untilize_
+    before run() is called; the SETADCZW there only initializes Z.
     ADDRCRZW with increment 0 resets W to the stored W_Cr value at the start of each outer loop
     iteration (row), without needing tile_dst_offset baked into this MOP template.
     */
-    tmp.set_start_op(TT_OP_ADDRCRZW(p_setadc::PAC, 0, 0, 0, 0, 0b0010)); // W = W_Cr (restore W to start of block)
+    tmp.set_start_op(TT_OP_ADDRCRZW(p_setadc::PAC, 0, 0, 0, 0, 0b0010 /*CH0_W*/)); // W = W_Cr (restore W to start of block)
 
     const std::uint32_t replay_buf_len = 4;
     load_replay_buf(

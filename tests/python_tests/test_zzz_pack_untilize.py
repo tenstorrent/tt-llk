@@ -51,7 +51,7 @@ from helpers.utils import passed_test
     #  TODO add DestSync::Full tests when we have a solution for the static_assert in _llk_pack_untilize_init_ that requires block_ct_dim to be less or equal to 8,
     #  which is currently a limitation for testing DestSync::Full with the Untilize blocks calculation algorithm.
     dest_sync=[DestSync.Half],
-    tile_dst_ct_offset=[0],
+    tile_dst_ct_offset=[0],  # Non-zero offsets are tracked in #1449
 )
 def test_pack_untilize(
     formats,
