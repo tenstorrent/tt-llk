@@ -739,6 +739,56 @@ class TransposeGolden:
         )
 
 
+def _bfp8b_to_float16b(operand, dimensions):
+    """Convert bfloat16 values through the Bfp8_b block representation back to float16_b,
+    then untilize from face order to row-major.
+
+    The test writes Bfp8_b data to L1 without tilizing, so the hardware sees
+    the flat tensor in face order (elements 0-255 = face0, 256-511 = face1, …).
+    This function models the full hardware decode path:
+
+    1. For each 16-element block, find the shared exponent (max across block).
+    2. For each element, extract sign + 7-bit mantissa (implicit 1 at bit 6,
+       top 6 stored mantissa bits), right-shift by the exponent delta, and
+       reconstruct the float16_b value.
+    3. Untilize the resulting tile data from face order to row-major so the
+       golden can do a standard matmul.
+    """
+    BFP8_BLOCK = 16
+    flat = operand.flatten().to(torch.float32)
+    result = torch.zeros_like(flat)
+
+    for blk in range(0, flat.numel(), BFP8_BLOCK):
+        block = flat[blk : blk + BFP8_BLOCK]
+
+        bf16_bits = []
+        for v in block:
+            u32 = struct.unpack("<I", struct.pack("<f", float(v)))[0]
+            bf16_bits.append((u32 >> 16) & 0xFFFF)
+
+        signs = [(b >> 15) & 1 for b in bf16_bits]
+        exps = [(b >> 7) & 0xFF for b in bf16_bits]
+        mants = [((b & 0x7F) >> 1) | 0x40 for b in bf16_bits]
+
+        shared_exp = max(exps)
+
+        for j in range(len(block)):
+            delta = shared_exp - exps[j]
+            shifted = mants[j] >> delta
+            value = shifted * (2.0 ** (shared_exp - 127 - 6))
+            if signs[j]:
+                value = -value
+            result[blk + j] = value
+
+    quantized = result.to(torch.bfloat16)
+
+    return untilize_block(
+        quantized,
+        stimuli_format=DataFormat.Float16_b,
+        dimensions=dimensions,
+    ).flatten()
+
+
 @register_golden
 class MatmulGolden(FidelityMasking):
 
@@ -751,8 +801,15 @@ class MatmulGolden(FidelityMasking):
         input_A_dimensions=None,
         input_B_dimensions=None,
         tilize: bool = False,
+        input_A_format: DataFormat = None,
+        input_B_format: DataFormat = None,
     ):
         torch_format = format_dict[data_format]
+
+        if input_A_format == DataFormat.Bfp8_b:
+            operand1 = _bfp8b_to_float16b(operand1, input_A_dimensions)
+        if input_B_format == DataFormat.Bfp8_b:
+            operand2 = _bfp8b_to_float16b(operand2, input_B_dimensions)
 
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
