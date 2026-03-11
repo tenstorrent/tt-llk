@@ -116,6 +116,21 @@ struct p_srcb
     constexpr static std::uint32_t BACKWARD_PASS = 0x1;
 };
 
+constexpr static std::uint32_t SETADC_CH0(std::uint32_t cnt)
+{
+    return cnt;
+}
+
+constexpr static std::uint32_t SETADC_CH1(std::uint32_t cnt)
+{
+    return cnt << 2;
+}
+
+constexpr static std::uint32_t SETADC_CH01(std::uint32_t cnt)
+{
+    return cnt << 2 | cnt;
+}
+
 struct p_setadc
 {
     constexpr static std::uint32_t UNP0   = 0b001;
@@ -129,6 +144,15 @@ struct p_setadc
     constexpr static std::uint32_t SET_Y = 1;
     constexpr static std::uint32_t SET_Z = 2;
     constexpr static std::uint32_t SET_W = 3;
+
+    // Added here to match Wormhole B0
+    // This allows reuse of Wormhole code in some optimizations
+    constexpr static std::uint32_t X  = 1;
+    constexpr static std::uint32_t Y  = 2;
+    constexpr static std::uint32_t XY = 3;
+    constexpr static std::uint32_t Z  = 1;
+    constexpr static std::uint32_t W  = 2;
+    constexpr static std::uint32_t ZW = 3;
 
     constexpr static std::uint32_t CH_0 = 0;
     constexpr static std::uint32_t CH_1 = 1;
