@@ -157,6 +157,7 @@ class TestConfig:
     SHARED_ARTEFACTS_AVAILABLE: ClassVar[bool] = False
     PROFILER_SHARED_ARTEFACTS_AVAILABLE: ClassVar[bool] = False
     KERNEL_COMPONENTS: ClassVar[list[str]] = ["unpack", "math", "pack"]
+    TRISC_COUNT: ClassVar[int] = 3
 
     # === Runtime static variables, for keeping context of multiple test runs
     CURRENT_LOADED_CONFIG: ClassVar[str] = "uninitialised"
@@ -249,6 +250,7 @@ class TestConfig:
                 TestConfig.TRISC_PROFILER_BARRIER_ADDRESS = (
                     0x16AFF0  # BARRIER_START for 4 cores
                 )
+                TestConfig.TRISC_COUNT = 4
             case _:
                 raise ValueError(
                     "Must provide CHIP_ARCH environment variable (wormhole / blackhole / quasar)"
@@ -989,7 +991,7 @@ class TestConfig:
                     (f"#include  <{self.test_name}>\n" "#include  <trisc.cpp>\n"),
                 )
 
-            with ThreadPoolExecutor(max_workers=3) as executor:
+            with ThreadPoolExecutor(max_workers=TestConfig.TRISC_COUNT) as executor:
                 futures = [
                     executor.submit(build_kernel_part, name)
                     for name in TestConfig.KERNEL_COMPONENTS
