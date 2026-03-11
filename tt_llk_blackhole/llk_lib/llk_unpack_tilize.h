@@ -50,7 +50,7 @@ inline void _llk_unpack_tilize_init_(
 {
     LLK_ASSERT(face_r_dim == 2 || face_r_dim == 4 || face_r_dim == 8 || face_r_dim == 16, "face_r_dim must be 2, 4, 8, or 16 for tilize");
     LLK_ASSERT(num_faces == 2 || num_faces == 4, "num_faces must be 2 or 4 for tilize");
-    LLK_ASSERT(unpack_src_format != to_underlying(DataFormat::Fp8_e4m3), "Fp8_e4m3 not supported for tilize");
+    // LLK_ASSERT(unpack_src_format != to_underlying(DataFormat::Fp8_e4m3), "Fp8_e4m3 not supported for tilize");
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
     const std::uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
@@ -68,7 +68,15 @@ inline void _llk_unpack_tilize_init_(
     config.f.out_data_format = unpack_dst_format;
     config.f.throttle_mode   = 2;
     config.f.tileize_mode    = 1;
-    config.f.shift_amount    = (SCALE_DATUM_SIZE(unpack_src_format, block_c_dim)) >> 4;
+    // HW tilize mode applies a 2x multiplier to the L1 row stride for 1-byte formats
+    // (e.g. Fp8_e4m3/Lf8). Compensate by halving shift_amount so the effective stride
+    // equals one row of L1 data.
+    std::uint32_t shift = (SCALE_DATUM_SIZE(unpack_src_format, block_c_dim)) >> 4;
+    if (SCALE_DATUM_SIZE(unpack_src_format, 2) == 2)
+    {
+        shift >>= 1;
+    }
+    config.f.shift_amount = shift;
 
     TT_SETDMAREG(0, LOWER_HALFWORD(config.val[0]), 0, LO_16(p_gpr_unpack::TMP0));
     TT_SETDMAREG(0, UPPER_HALFWORD(config.val[0]), 0, HI_16(p_gpr_unpack::TMP0));
@@ -249,7 +257,12 @@ inline void _llk_unpack_tilizeA_B_init_(
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
     // Sets the block_c_dim for unpack to use to increment the L1 address
-    const std::uint32_t c_dim_size = SCALE_DATUM_SIZE(unpack_src_format, ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM)) >> 4;
+    // HW tilize mode applies a 2x multiplier to the L1 row stride for 1-byte formats
+    std::uint32_t c_dim_size = SCALE_DATUM_SIZE(unpack_src_format, ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM)) >> 4;
+    if (SCALE_DATUM_SIZE(unpack_src_format, 2) == 2)
+    {
+        c_dim_size >>= 1;
+    }
 
     // This sets the scratch register that CFGSHIFTMASK instruction uses to increment the L1 address
     TT_SETDMAREG(0, LOWER_HALFWORD(c_dim_size), 0, LO_16(p_gpr_unpack::TMP0));
