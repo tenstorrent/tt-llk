@@ -27,13 +27,12 @@ static std::uint32_t matmul_runtime_fidelity_increment   = 0;
 template <MathFidelity math_fidelity, int THROTTLE_LEVEL>
 inline void matmul_configure_addrmod(
     const bool transpose,
-    const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
-    const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
-    const bool partial_face            = false,
-    const std::uint32_t fidelity_increment =
-        is_high_fidelity(math_fidelity) ? 1 : 0)
+    const std::uint32_t in0_tile_r_dim     = TILE_R_DIM,
+    const std::uint32_t in0_tile_c_dim     = TILE_C_DIM,
+    const std::uint32_t in1_tile_r_dim     = TILE_R_DIM,
+    const std::uint32_t in1_tile_c_dim     = TILE_C_DIM,
+    const bool partial_face                = false,
+    const std::uint32_t fidelity_increment = is_high_fidelity(math_fidelity) ? 1 : 0)
 {
     const bool is_in0_16x32 = (in0_tile_r_dim <= FACE_R_DIM) && (in0_tile_c_dim > FACE_C_DIM);
     const bool is_in0_32x16 = (in0_tile_r_dim > FACE_R_DIM) && (in0_tile_c_dim <= FACE_C_DIM);
@@ -304,13 +303,12 @@ template <MathFidelity math_fidelity>
 inline void matmul_configure_mop(
     const std::uint32_t ct_dim,
     const std::uint32_t rt_dim,
-    const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
-    const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
-    const bool partial_face            = false,
-    const std::uint32_t fidelity_phase_count =
-        is_high_fidelity(math_fidelity) ? to_underlying(math_fidelity) : 1)
+    const std::uint32_t in0_tile_r_dim       = TILE_R_DIM,
+    const std::uint32_t in0_tile_c_dim       = TILE_C_DIM,
+    const std::uint32_t in1_tile_r_dim       = TILE_R_DIM,
+    const std::uint32_t in1_tile_c_dim       = TILE_C_DIM,
+    const bool partial_face                  = false,
+    const std::uint32_t fidelity_phase_count = is_high_fidelity(math_fidelity) ? to_underlying(math_fidelity) : 1)
 {
     // in0 - loaded to SrcB
     // in1 - loaded to SrcA
@@ -599,13 +597,12 @@ template <MathFidelity math_fidelity, int THROTTLE_LEVEL>
 inline void matmul_configure_mop_throttled(
     const std::uint32_t ct_dim,
     const std::uint32_t rt_dim,
-    const std::uint32_t in0_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
-    const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
-    const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
-    const bool partial_face            = false,
-    const std::uint32_t fidelity_phase_count =
-        is_high_fidelity(math_fidelity) ? to_underlying(math_fidelity) : 1)
+    const std::uint32_t in0_tile_r_dim       = TILE_R_DIM,
+    const std::uint32_t in0_tile_c_dim       = TILE_C_DIM,
+    const std::uint32_t in1_tile_r_dim       = TILE_R_DIM,
+    const std::uint32_t in1_tile_c_dim       = TILE_C_DIM,
+    const bool partial_face                  = false,
+    const std::uint32_t fidelity_phase_count = is_high_fidelity(math_fidelity) ? to_underlying(math_fidelity) : 1)
 {
     // in0 - loaded to SrcB
     // in1 - loaded to SrcA
@@ -639,7 +636,7 @@ inline void matmul_configure_mop_throttled(
         run_throttled_sequence<THROTTLE_LEVEL, high_fidelity>(t_dim, reuse_a);
     }
 
-    const std::uint32_t outer_loops = (THROTTLE_LEVEL > 3) ? 2 : (high_fidelity ? fidelity_phase_count : 1);
+    const std::uint32_t outer_loops            = (THROTTLE_LEVEL > 3) ? 2 : (high_fidelity ? fidelity_phase_count : 1);
     const std::uint32_t inner_loops            = (!is_in1_16x32) ? 2 : 1;
     constexpr std::uint32_t loop_instruction_0 = (THROTTLE_LEVEL == 5)   ? lltt::replay_insn(ckernel::math::replay_buf_offset + 1, 8)
                                                  : (THROTTLE_LEVEL == 4) ? lltt::replay_insn(ckernel::math::replay_buf_offset + 2, 6)
@@ -689,12 +686,12 @@ inline void _llk_math_matmul_init_(
     const std::uint32_t in0_tile_c_dim = TILE_C_DIM,
     const std::uint32_t in1_tile_r_dim = TILE_R_DIM,
     const std::uint32_t in1_tile_c_dim = TILE_C_DIM,
-    const std::uint32_t in0_dst_format = static_cast<std::uint32_t>(DataFormat::Float16_b),
-    const std::uint32_t in1_dst_format = static_cast<std::uint32_t>(DataFormat::Float16_b),
     const bool partial_face            = false,
     const std::uint32_t transpose      = 0,
     const std::uint32_t ct_dim         = 1,
-    const std::uint32_t rt_dim         = 1)
+    const std::uint32_t rt_dim         = 1,
+    const std::uint32_t in0_dst_format = static_cast<std::uint32_t>(DataFormat::Float16_b),
+    const std::uint32_t in1_dst_format = static_cast<std::uint32_t>(DataFormat::Float16_b))
 {
     // 16x16 inputs not supported - no dedicated math path; falls to 32x32 default which is incorrect for < 4 faces
     LLK_ASSERT(
@@ -704,19 +701,11 @@ inline void _llk_math_matmul_init_(
     LLK_ASSERT(
         !(transpose && (in1_tile_r_dim == TILE_R_DIM) && (in1_tile_c_dim == FACE_C_DIM)), "in1=32x16 not supported with transpose (no addr_mod handling)");
 
-    matmul_runtime_fidelity_phase_count =
-        get_matmul_fidelity_phase_count(math_fidelity, in0_dst_format, in1_dst_format);
-    matmul_runtime_fidelity_increment =
-        get_matmul_fidelity_increment(math_fidelity, in0_dst_format, in1_dst_format);
+    matmul_runtime_fidelity_phase_count = get_matmul_fidelity_phase_count(math_fidelity, in0_dst_format, in1_dst_format);
+    matmul_runtime_fidelity_increment   = get_matmul_fidelity_increment(math_fidelity, in0_dst_format, in1_dst_format);
 
     matmul_configure_addrmod<math_fidelity, THROTTLE_LEVEL>(
-        transpose,
-        in0_tile_r_dim,
-        in0_tile_c_dim,
-        in1_tile_r_dim,
-        in1_tile_c_dim,
-        partial_face,
-        matmul_runtime_fidelity_increment);
+        transpose, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face, matmul_runtime_fidelity_increment);
     const bool reuse_a        = ct_dim >= rt_dim;
     const std::uint32_t t_dim = reuse_a ? rt_dim : ct_dim;
     if (t_dim > 1)
@@ -738,26 +727,12 @@ inline void _llk_math_matmul_init_(
     if constexpr (THROTTLE_LEVEL > 0)
     {
         matmul_configure_mop_throttled<math_fidelity, THROTTLE_LEVEL>(
-            ct_dim,
-            rt_dim,
-            in0_tile_r_dim,
-            in0_tile_c_dim,
-            in1_tile_r_dim,
-            in1_tile_c_dim,
-            partial_face,
-            matmul_runtime_fidelity_phase_count);
+            ct_dim, rt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face, matmul_runtime_fidelity_phase_count);
     }
     else
     {
         matmul_configure_mop<math_fidelity>(
-            ct_dim,
-            rt_dim,
-            in0_tile_r_dim,
-            in0_tile_c_dim,
-            in1_tile_r_dim,
-            in1_tile_c_dim,
-            partial_face,
-            matmul_runtime_fidelity_phase_count);
+            ct_dim, rt_dim, in0_tile_r_dim, in0_tile_c_dim, in1_tile_r_dim, in1_tile_c_dim, partial_face, matmul_runtime_fidelity_phase_count);
     }
     math::reset_counters(p_setrwc::SET_ABD_F);
 }
