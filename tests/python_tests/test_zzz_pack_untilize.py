@@ -55,7 +55,7 @@ from helpers.utils import passed_test
     #  which is currently a limitation for testing DestSync::Full with the Untilize blocks calculation algorithm.
     dest_sync=[DestSync.Half],
     tile_dst_ct_offset=lambda formats: (
-        [0] if formats.input_format == DataFormat.Bfp8_b else [0, 1, 2, 4]
+        [0] if formats.input_format == DataFormat.Bfp8_b else [0, 1, 2, 3]
     ),
 )
 def test_pack_untilize(
