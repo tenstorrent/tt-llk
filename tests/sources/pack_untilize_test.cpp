@@ -154,8 +154,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
             std::uint32_t pack_addr_16B = base_addr_16B + rt * row_stride_16B + block_num * block_stride_16B;
 
             _llk_packer_wait_for_math_done_();
+#ifdef ARCH_BLACKHOLE
             _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM, false, TILE_DST_CT_OFFSET>(
                 pack_addr_16B, formats.pack_dst, FACE_R_DIM, params->num_faces, 0 /* tile_dst_rt_offset */);
+#else
+            _llk_pack_untilize_<BLOCK_CT_DIM, FULL_CT_DIM, false, false, TILE_C_DIM, TILE_DST_CT_OFFSET>(
+                pack_addr_16B, formats.pack_dst, FACE_R_DIM, params->num_faces, 0 /* tile_dst_rt_offset */);
+#endif
             _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
         }
     }
