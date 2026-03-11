@@ -435,7 +435,12 @@ inline void unpack_to_dest_tile_done(std::uint32_t &context_id)
 
     // Due to a hardware bug (TEN-3868), we need to have one unpack-to-srcA instruction after the last unpack-to-dest instruction.
     TTI_SETADCXX(p_setadc::UNP_A, FACE_C_DIM - 1, 0x0);
-    TT_UNPACR(SrcA, 0, 0, context_id, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 1, 0, 0, 0, 1);
+
+    // Workaround for assert in ttsim: UndefinedBehavior: tensix_execute_unpacr: unpack_to_dst=0 ...
+    // If the data format being currently unpacked to the destination is not suitable for a source reg, e.g. float32,
+    // this unpacr incstruction will cause undefined behavior and consequently an assert in ttsim.
+    // TT_UNPACR(SrcA, 0, 0, context_id, 0, 1 /* Set OvrdThreadId*/, 0 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 1, 0, 0, 0, 1);
+
     TTI_SETADCXX(p_setadc::UNP_A, FACE_R_DIM * FACE_C_DIM - 1, 0x0);
 }
 
