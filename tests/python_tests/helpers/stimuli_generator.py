@@ -66,7 +66,7 @@ def generate_random_face(
     if stimuli_format in [DataFormat.MxFp8R, DataFormat.MxFp8P]:
         # MXFP8 optimized stimuli generation
         return _generate_mxfp8_face(stimuli_format, size, const_face, const_value, sfpu)
-    elif stimuli_format != DataFormat.Bfp8_b:
+    elif stimuli_format not in (DataFormat.Bfp8_b, DataFormat.Bfp4_b):
         if stimuli_format.is_integer():
             if const_face:
                 srcA_face = (
@@ -302,7 +302,7 @@ def calculate_tile_and_face_counts_w_tile_dimensions(
 
 def _get_dtype_for_format(stimuli_format: DataFormat) -> torch.dtype:
     """Get the torch dtype for a given data format."""
-    if stimuli_format == DataFormat.Bfp8_b:
+    if stimuli_format in (DataFormat.Bfp8_b, DataFormat.Bfp4_b):
         return torch.bfloat16
     return format_dict[stimuli_format]
 

@@ -83,7 +83,12 @@ def reassemble_float_after_fidelity(data_format, sgn1, sgn2, exp1, exp2, mant1, 
     exponent1 = exp1.to(torch.int16)
     exponent2 = exp2.to(torch.int16)
 
-    if data_format in [DataFormat.Float16_b, DataFormat.Bfp8_b, DataFormat.Float32]:
+    if data_format in [
+        DataFormat.Float16_b,
+        DataFormat.Bfp8_b,
+        DataFormat.Bfp4_b,
+        DataFormat.Float32,
+    ]:
         exponent1 = exponent1 - 127
         exponent2 = exponent2 - 127
     elif data_format == DataFormat.Float16:
@@ -245,6 +250,7 @@ class SrcFormatModel:
         """Returns tuple (matrix_sign, matrix_exponent, matrix_mantissa)"""
         CONVERSION_MAP = {
             DataFormat.Bfp8_b: SrcFormatModel._bfp8b_to_tf32,
+            DataFormat.Bfp4_b: SrcFormatModel._bfp4b_to_tf32,
             DataFormat.Float16_b: SrcFormatModel._fp16b_to_tf32,
             DataFormat.Float16: SrcFormatModel._fp16_to_tf32,
             DataFormat.Float32: SrcFormatModel._fp32_to_tf32,
@@ -266,6 +272,14 @@ class SrcFormatModel:
         tensor: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """PyTorch doesn't natively support bfp8, so it's implemented as bfloat16 in test infra"""
+
+        return SrcFormatModel._fp16b_to_tf32(tensor)
+
+    @staticmethod
+    def _bfp4b_to_tf32(
+        tensor: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """PyTorch doesn't natively support bfp4, so it's implemented as bfloat16 in test infra"""
 
         return SrcFormatModel._fp16b_to_tf32(tensor)
 
