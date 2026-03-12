@@ -326,6 +326,8 @@ def passed_test(
     #     values with less precision (Bfp8_b) and drops below 99% in that case
     if output_data_format == DataFormat.Bfp8_b:
         target_pcc = pow(0.99, L1_to_L1_iterations)
+    elif output_data_format == DataFormat.Bfp4_b:
+        target_pcc = 0.98
 
     if custom_pcc_threshold is not None:
         logger.info(

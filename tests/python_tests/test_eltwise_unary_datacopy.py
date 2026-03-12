@@ -78,8 +78,7 @@ def get_valid_num_faces_datacopy(tilize):
     if tilize == Tilize.Yes:
         return [4]
 
-    # return [1, 2, 4]
-    return [4]
+    return [1, 2, 4]
 
 
 @parametrize(
@@ -87,7 +86,7 @@ def get_valid_num_faces_datacopy(tilize):
         [
             # DataFormat.Float32,
             # DataFormat.Float16,
-            # DataFormat.Float16_b,
+            DataFormat.Float16_b,
             DataFormat.Bfp8_b,
             DataFormat.Bfp4_b,
         ]
@@ -95,7 +94,7 @@ def get_valid_num_faces_datacopy(tilize):
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     num_faces=lambda tilize: get_valid_num_faces_datacopy(tilize),
     tilize=lambda formats: get_valid_tilize_datacopy(formats),
-    input_dimensions=[[64, 64], [32, 256], [128, 256]],
+    input_dimensions=[[32, 32], [64, 64], [32, 256], [128, 256]],
 )
 def test_unary_datacopy(
     formats, dest_acc, num_faces, tilize, input_dimensions, workers_tensix_coordinates
@@ -118,7 +117,11 @@ def test_unary_datacopy(
     if tilize == Tilize.No:
         generate_golden = get_golden_generator(DataCopyGolden)
         golden_tensor = generate_golden(
-            src_A, formats.output_format, num_faces, input_dimensions
+            src_A,
+            formats.output_format,
+            num_faces,
+            input_dimensions,
+            input_format=formats.input_format,
         )
     else:
         generate_golden = get_golden_generator(TilizeGolden)

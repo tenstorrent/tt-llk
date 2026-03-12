@@ -201,10 +201,11 @@ def unpack_bfp4_b(bfp4_block, sfpu=False, num_faces=4, face_r_dim=16):
     # print(f"{'='*60}\n")
 
     # Expand packed bytes into individual 4-bit datums
+    # Hardware BFP4_b convention: low nibble = first element, high nibble = second
     mantissas = []
     for byte_val in packed_mantissas:
-        mantissas.append((byte_val >> 4) & 0x0F)
         mantissas.append(byte_val & 0x0F)
+        mantissas.append((byte_val >> 4) & 0x0F)
 
     unpacked_bfp4 = {}
 
@@ -353,25 +354,25 @@ def unpack_res_tiles(
     else:
         unpack_func = _UNPACKERS[output_format]
 
-    print(f"\n{'#'*60}")
-    print(f"[DEBUG unpack_res_tiles] format={output_format}, tile_count={tile_count}")
-    print(
-        f"[DEBUG unpack_res_tiles] num_faces={num_faces}, face_r_dim={face_r_dim}, sfpu={sfpu}"
-    )
-    print(
-        f"[DEBUG unpack_res_tiles] tile_stride_bytes={tile_stride_bytes}, elements_per_tile_needed={elements_per_tile_needed}"
-    )
-    print(f"[DEBUG unpack_res_tiles] total packed_list length={len(packed_list)}")
-    print(f"[DEBUG unpack_res_tiles] unpack_func={unpack_func.__name__}")
-    all_zero = all(b == 0 for b in packed_list)
-    non_zero_count = sum(1 for b in packed_list if b != 0)
-    print(
-        f"[DEBUG unpack_res_tiles] raw L1 data: all_zero={all_zero}, non_zero_bytes={non_zero_count}/{len(packed_list)}"
-    )
-    print(
-        f"[DEBUG unpack_res_tiles] first 128 raw bytes from L1: {list(packed_list[:128])}"
-    )
-    print(f"{'#'*60}\n")
+    # print(f"\n{'#'*60}")
+    # print(f"[DEBUG unpack_res_tiles] format={output_format}, tile_count={tile_count}")
+    # print(
+    #     f"[DEBUG unpack_res_tiles] num_faces={num_faces}, face_r_dim={face_r_dim}, sfpu={sfpu}"
+    # )
+    # print(
+    #     f"[DEBUG unpack_res_tiles] tile_stride_bytes={tile_stride_bytes}, elements_per_tile_needed={elements_per_tile_needed}"
+    # )
+    # print(f"[DEBUG unpack_res_tiles] total packed_list length={len(packed_list)}")
+    # print(f"[DEBUG unpack_res_tiles] unpack_func={unpack_func.__name__}")
+    # all_zero = all(b == 0 for b in packed_list)
+    # non_zero_count = sum(1 for b in packed_list if b != 0)
+    # print(
+    #     f"[DEBUG unpack_res_tiles] raw L1 data: all_zero={all_zero}, non_zero_bytes={non_zero_count}/{len(packed_list)}"
+    # )
+    # print(
+    #     f"[DEBUG unpack_res_tiles] first 128 raw bytes from L1: {list(packed_list[:128])}"
+    # )
+    # print(f"{'#'*60}\n")
 
     unpacked_data = []
 
