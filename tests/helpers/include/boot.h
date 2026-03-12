@@ -35,22 +35,20 @@ __attribute__((no_profile_instrument_function)) TT_ALWAYS_INLINE void do_crt0()
     asm volatile("la sp, %0" : : "i"(__stack_top) : "memory");
 
     // Initialize .bss
-    for (volatile char* temp_byte = __ldm_bss_start; temp_byte < __ldm_bss_end; temp_byte++)
+    for (volatile std::uint32_t* p = (volatile std::uint32_t*)__ldm_bss_start; p < (volatile std::uint32_t*)__ldm_bss_end; p++)
     {
-        *temp_byte = 0;
+        *p = 0;
     }
 
     // Copy .loader_init to .ldm_data
     if ((std::uint32_t)__loader_init_start != (std::uint32_t)__loader_init_end)
     {
-        volatile char* src_byte = __loader_init_start;
-        volatile char* dst_byte = __ldm_data_start;
-
-        while (dst_byte < __ldm_data_end)
+        volatile std::uint32_t* src = (volatile std::uint32_t*)__loader_init_start;
+        volatile std::uint32_t* dst = (volatile std::uint32_t*)__ldm_data_start;
+        volatile std::uint32_t* end = (volatile std::uint32_t*)__ldm_data_end;
+        while (dst < end)
         {
-            *(volatile std::uint32_t*)dst_byte = *(volatile std::uint32_t*)src_byte;
-            src_byte += 4;
-            dst_byte += 4;
+            *dst++ = *src++;
         }
     }
 
