@@ -28,8 +28,6 @@ std::uint32_t open_zone_cnt = 0;
 
 #endif
 
-extern const volatile struct RuntimeParams __runtime_args_start[];
-
 // Mailbox addresses
 #ifdef COVERAGE
 extern "C"
@@ -42,41 +40,24 @@ constexpr std::uint32_t mailboxes_start = 0x1FFC0;
 #endif
 
 #if defined(LLK_TRISC_UNPACK)
-constexpr std::uint32_t mailbox_offset = sizeof(std::uint32_t);
+extern void (*kernel_main)(void)[] = void(*__kernel_main_unpack[])(void);
 #elif defined(LLK_TRISC_MATH)
-constexpr std::uint32_t mailbox_offset = 2 * sizeof(std::uint32_t);
+extern void (*kernel_main)(void)[] = void(*__kernel_main_unpack[])(void);
 #elif defined(LLK_TRISC_PACK)
-constexpr std::uint32_t mailbox_offset = 3 * sizeof(std::uint32_t);
+extern void (*kernel_main)(void)[] = __kernel_main_pack;
 #endif
 
-int main(void)
+__attribute__((no_profile_instrument_function)) int main(void)
 {
-    volatile std::uint32_t* const mailbox = reinterpret_cast<volatile std::uint32_t*>(mailboxes_start + mailbox_offset);
+    volatile std::uint32_t temp_var = 0;
 
-#if defined(LLK_TRISC_UNPACK) && defined(LLK_BOOT_MODE_TRISC)
-    device_setup();
-    clear_trisc_soft_reset(); // Release the rest of the triscs
-#endif
-
-    std::fill(ckernel::regfile, ckernel::regfile + 64, 0);
-
-#ifndef ARCH_QUASAR
-    ckernel::reset_cfg_state_id();
-    ckernel::reset_dest_offset_id();
-#endif
-
-#if defined(LLK_PROFILER)
-    llk_profiler::reset();
-    llk_profiler::sync_threads();
-#endif
-
+    while (temp_var == 0)
     {
-        ZONE_SCOPED("KERNEL")
-        run_kernel(__runtime_args_start);
-        ckernel::tensix_sync();
+        kernel_main();
+#ifdef COVERAGE
+        gcov_dump();
+#endif
     }
-
-    *mailbox = ckernel::KERNEL_COMPLETE;
 }
 
 extern "C" __attribute__((section(".init"), naked, noreturn, no_profile_instrument_function)) std::uint32_t _start()
@@ -84,10 +65,6 @@ extern "C" __attribute__((section(".init"), naked, noreturn, no_profile_instrume
     do_crt0();
 
     main();
-
-#ifdef COVERAGE
-    gcov_dump();
-#endif
 
     for (;;)
     {
