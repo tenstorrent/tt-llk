@@ -284,6 +284,12 @@ class PerfConfig(TestConfig):
         skip_build_header: bool = False,
         compile_time_formats: bool = False,
     ):
+
+        if TestConfig.SPEED_OF_LIGHT:
+            templates += runtimes
+            runtimes = []
+            compile_time_formats = True
+
         super().__init__(
             test_name,
             formats,

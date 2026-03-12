@@ -27,8 +27,8 @@ static constexpr std::uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     {
         ZONE_SCOPED("INIT")
@@ -39,21 +39,12 @@ void run_kernel(const volatile struct RuntimeParams* params)
             formats.unpack_B_dst,
             FACE_R_DIM,
             FACE_R_DIM,
-            params->num_faces_A,
-            params->num_faces_B,
-            params->TILE_SIZE_UNPACK_A,
-            params->TILE_SIZE_UNPACK_B);
+            params.num_faces_A,
+            params.num_faces_B,
+            params.TILE_SIZE_UNPACK_A,
+            params.TILE_SIZE_UNPACK_B);
         _llk_unpack_AB_matmul_init_<>(
-            params->UNPACK_TRANSPOSE_FACES,
-            params->CT_DIM,
-            params->RT_DIM,
-            params->KT_DIM,
-            FACE_R_DIM,
-            FACE_R_DIM,
-            TILE_NUM_FACES,
-            TILE_NUM_FACES,
-            false,
-            false);
+            params.UNPACK_TRANSPOSE_FACES, params.CT_DIM, params.RT_DIM, params.KT_DIM, FACE_R_DIM, FACE_R_DIM, TILE_NUM_FACES, TILE_NUM_FACES, false, false);
         PROFILER_SYNC();
     }
     {
@@ -64,26 +55,26 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            return _perf_unpack_matmul_mock(params->LOOP_FACTOR, params->RT_DIM, params->KT_DIM, params->CT_DIM);
+            return _perf_unpack_matmul_mock(params.LOOP_FACTOR, params.RT_DIM, params.KT_DIM, params.CT_DIM);
         }
         else
         {
-            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+            for (std::uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
             {
-                for (std::uint32_t j = 0; j < params->KT_DIM; j++)
+                for (std::uint32_t j = 0; j < params.KT_DIM; j++)
                 {
                     _llk_unpack_AB_matmul_<>(
                         PERF_ADDRESS(PERF_INPUT_A, j),
                         PERF_ADDRESS(PERF_INPUT_B, j),
                         j,
-                        j * params->CT_DIM,
-                        params->TILE_SIZE_UNPACK_A,
-                        params->TILE_SIZE_UNPACK_B,
+                        j * params.CT_DIM,
+                        params.TILE_SIZE_UNPACK_A,
+                        params.TILE_SIZE_UNPACK_B,
                         /* partial face */ false,
                         /* partial face */ false,
-                        params->CT_DIM,
-                        params->RT_DIM,
-                        params->KT_DIM);
+                        params.CT_DIM,
+                        params.RT_DIM,
+                        params.KT_DIM);
                 }
             }
         }
@@ -100,8 +91,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     {
         ZONE_SCOPED("INIT")
@@ -114,8 +105,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
             /* tile B */ TILE_C_DIM,
             /* partial face */ false,
             /* transpose */ false,
-            params->CT_DIM,
-            params->RT_DIM);
+            params.CT_DIM,
+            params.RT_DIM);
 
         PROFILER_SYNC();
     }
@@ -127,38 +118,38 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            return _perf_math_matmul_mock(params->LOOP_FACTOR, params->RT_DIM, params->KT_DIM, params->CT_DIM);
+            return _perf_math_matmul_mock(params.LOOP_FACTOR, params.RT_DIM, params.KT_DIM, params.CT_DIM);
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+            for (std::uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
             {
                 LLK_ASSERT(
-                    (get_dest_max_matmul_tiles(0, params->CT_DIM, params->RT_DIM) <
+                    (get_dest_max_matmul_tiles(0, params.CT_DIM, params.RT_DIM) <
                      get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                     "Block tile index exceeds maximum destination tiles for matmul");
 
-                for (std::uint32_t j = 0; j < params->KT_DIM; j++)
+                for (std::uint32_t j = 0; j < params.KT_DIM; j++)
                 {
                     _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(
-                        /* dest_index */ 0, params->CT_DIM, params->RT_DIM);
+                        /* dest_index */ 0, params.CT_DIM, params.RT_DIM);
                 }
             }
         }
         else
         {
-            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+            for (std::uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
             {
                 LLK_ASSERT(
-                    (get_dest_max_matmul_tiles(0, params->CT_DIM, params->RT_DIM) <
+                    (get_dest_max_matmul_tiles(0, params.CT_DIM, params.RT_DIM) <
                      get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                     "Block tile index exceeds maximum destination tiles for matmul");
 
                 _llk_math_wait_for_dest_available_<dest_sync>();
-                for (std::uint32_t j = 0; j < params->KT_DIM; j++)
+                for (std::uint32_t j = 0; j < params.KT_DIM; j++)
                 {
                     _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(
-                        /* dest_index */ 0, params->CT_DIM, params->RT_DIM);
+                        /* dest_index */ 0, params.CT_DIM, params.RT_DIM);
                 }
                 _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
             }
@@ -176,8 +167,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     {
         ZONE_SCOPED("INIT")
@@ -196,9 +187,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+            for (std::uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
             {
-                for (std::uint32_t tile = 0; tile < params->CT_DIM * params->RT_DIM; tile++)
+                for (std::uint32_t tile = 0; tile < params.CT_DIM * params.RT_DIM; tile++)
                 {
                     const std::uint32_t tile_index = tile % MAX_TILES_DEST;
                     LLK_ASSERT(
@@ -210,10 +201,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else
         {
-            for (std::uint32_t loop = 0; loop < params->LOOP_FACTOR; loop++)
+            for (std::uint32_t loop = 0; loop < params.LOOP_FACTOR; loop++)
             {
                 _llk_packer_wait_for_math_done_();
-                for (std::uint32_t tile = 0; tile < params->CT_DIM * params->RT_DIM; tile++)
+                for (std::uint32_t tile = 0; tile < params.CT_DIM * params.RT_DIM; tile++)
                 {
                     const std::uint32_t tile_index = tile % MAX_TILES_DEST;
                     LLK_ASSERT(

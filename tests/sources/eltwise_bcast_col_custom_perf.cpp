@@ -23,8 +23,8 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     {
         ZONE_SCOPED("INIT")
@@ -49,7 +49,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             // Per block: signal 1 SrcB + CT_DIM SrcA valids
-            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params->LOOP_FACTOR); loop++)
+            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params.LOOP_FACTOR); loop++)
             {
                 _perf_unpack_set_valid(ckernel::SrcB);
                 for (std::uint32_t i = 0; i < CT_DIM; i++)
@@ -60,7 +60,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else
         {
-            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params->LOOP_FACTOR); loop++)
+            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params.LOOP_FACTOR); loop++)
             {
                 _llk_unpack_AB_sub_bcast_col_custom_<BROADCAST_TYPE>(PERF_ADDRESS(PERF_INPUT_A, 0), PERF_ADDRESS(PERF_INPUT_B, 0), CT_DIM);
             }
@@ -78,8 +78,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     {
         ZONE_SCOPED("INIT")
@@ -97,7 +97,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             // Mock: drain the 1 SrcB + CT_DIM SrcA valids per block
-            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params->LOOP_FACTOR); loop++)
+            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params.LOOP_FACTOR); loop++)
             {
                 _perf_math_clear_valid(ckernel::SrcB);
                 for (std::uint32_t i = 0; i < CT_DIM; i++)
@@ -110,14 +110,14 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             // No dest sync in this mode (pack returns immediately).
             // Custom blocked sub+bcast math consumes the valids produced by unpack mock.
-            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params->LOOP_FACTOR); loop++)
+            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params.LOOP_FACTOR); loop++)
             {
                 _llk_math_eltwise_binary_bcast_reuse_custom_(CT_DIM);
             }
         }
         else // L1_TO_L1
         {
-            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params->LOOP_FACTOR); loop++)
+            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params.LOOP_FACTOR); loop++)
             {
                 _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
                 _llk_math_eltwise_binary_bcast_reuse_custom_(CT_DIM);
@@ -137,8 +137,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     {
         ZONE_SCOPED("INIT")
@@ -156,7 +156,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         else if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             // No wait_for_math_done (math returns/mocks immediately in these modes)
-            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params->LOOP_FACTOR); loop++)
+            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params.LOOP_FACTOR); loop++)
             {
                 for (std::uint32_t i = 0; i < CT_DIM; i++)
                 {
@@ -166,7 +166,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else // L1_TO_L1
         {
-            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params->LOOP_FACTOR); loop++)
+            for (std::uint32_t loop = 0; loop < static_cast<std::uint32_t>(params.LOOP_FACTOR); loop++)
             {
                 _llk_packer_wait_for_math_done_();
                 for (std::uint32_t i = 0; i < CT_DIM; i++)

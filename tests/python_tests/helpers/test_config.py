@@ -163,6 +163,7 @@ class TestConfig:
     MODE: ClassVar[TestMode] = TestMode.DEFAULT
     SKIP_JUST_FOR_COMPILE_MARKER: ClassVar[str] = "SKIPPED_JUST_FOR_COMPILE"
     _BUILD_DIRS_CREATED: ClassVar[bool] = False
+    SPEED_OF_LIGHT: ClassVar[bool] = False
 
     # When the infrastructure itself needs to be tested, some functionality like compiling the artefacts and writing them
     # to tmpfs can be skipped (eg. object, elf and coverage data files etc.). This flag is used to skip such code to enable fast execution of infra tests.
@@ -299,11 +300,13 @@ class TestConfig:
         with_coverage: bool = False,
         detailed_artefacts: bool = False,
         no_debug_symbols: bool = False,
+        speed_of_light: bool = False,
     ):
         debug_flag = "" if no_debug_symbols else "-g "
         TestConfig.OPTIONS_ALL = f"{debug_flag}-O3 -std=c++17 -ffast-math"
         TestConfig.WITH_COVERAGE = with_coverage
         StimuliConfig.WITH_COVERAGE = with_coverage
+        TestConfig.SPEED_OF_LIGHT = speed_of_light
 
         if detailed_artefacts:
             TestConfig.OPTIONS_ALL += (
@@ -314,7 +317,8 @@ class TestConfig:
         TestConfig.INITIAL_OPTIONS_COMPILE = (
             "-nostdlib -fno-use-cxa-atexit -Wall -fno-asynchronous-unwind-tables -fno-exceptions -fno-rtti -Wunused-parameter "
             "-Wfloat-equal -Wpointer-arith -Wnull-dereference -Wredundant-decls -Wuninitialized -Wmaybe-uninitialized "
-            f"-DTENSIX_FIRMWARE -DENV_LLK_INFRA -DENABLE_LLK_ASSERT {TestConfig.ARCH_DEFINE}"
+            f"-DTENSIX_FIRMWARE -DENV_LLK_INFRA -DENABLE_LLK_ASSERT {TestConfig.ARCH_DEFINE} "
+            f"{'-DSPEED_OF_LIGHT' if TestConfig.SPEED_OF_LIGHT else ''}"
         )
         TestConfig.INCLUDES = [
             "-Isfpi/include",
@@ -335,13 +339,14 @@ class TestConfig:
         with_coverage: bool = False,
         detailed_artefacts: bool = False,
         no_debug_symbols: bool = False,
+        speed_of_light: bool = False,
     ):
         device_module.Mailbox = MailboxesDebug if with_coverage else MailboxesPerf
 
         TestConfig.setup_arch()
         TestConfig.setup_paths(sources_path)
         TestConfig.setup_compilation_options(
-            with_coverage, detailed_artefacts, no_debug_symbols
+            with_coverage, detailed_artefacts, no_debug_symbols, speed_of_light
         )
 
     @staticmethod

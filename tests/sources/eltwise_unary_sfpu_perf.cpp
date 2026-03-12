@@ -30,8 +30,8 @@ static constexpr ckernel::BroadcastType BROADCAST_TYPE = ckernel::BroadcastType:
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     const EltwiseBinaryReuseDestType reuse_dest_type = EltwiseBinaryReuseDestType::NONE;
 
@@ -39,17 +39,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
         ZONE_SCOPED("INIT")
 
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
-            formats.unpack_A_src,
-            formats.unpack_B_src,
-            formats.unpack_A_dst,
-            formats.unpack_B_dst,
-            FACE_R_DIM,
-            FACE_R_DIM,
-            params->num_faces,
-            params->num_faces);
+            formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, params.num_faces, params.num_faces);
 
         _llk_unpack_A_init_<BROADCAST_TYPE, is_fp32_dest_acc_en, reuse_dest_type, unpack_to_dest>(
-            params->UNPACK_TRANSPOSE_FACES, params->UNPACK_TRANSPOSE_WITHIN_FACE, FACE_R_DIM, params->num_faces, formats.unpack_A_src, formats.unpack_A_dst);
+            params.UNPACK_TRANSPOSE_FACES, params.UNPACK_TRANSPOSE_WITHIN_FACE, FACE_R_DIM, params.num_faces, formats.unpack_A_src, formats.unpack_A_dst);
         PROFILER_SYNC();
     }
     {
@@ -69,14 +62,14 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 _perf_unpack_loop_set_valid<
                     /* src A */ true,
                     /* src B */ is_fp32_dest_acc_en>(
-                    /* iterations*/ params->num_faces * params->TILE_CNT * params->LOOP_FACTOR);
+                    /* iterations*/ params.num_faces * params.TILE_CNT * params.LOOP_FACTOR);
             }
         }
         else if constexpr (PERF_RUN_TYPE != PerfRunType::PACK_ISOLATE) // UNPACK_ISOLATE, L1_TO_L1, L1_CONGESTION
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
             {
-                for (int i = 0; i < params->TILE_CNT; ++i)
+                for (int i = 0; i < params.TILE_CNT; ++i)
                 {
                     _llk_unpack_A_<BROADCAST_TYPE, is_fp32_dest_acc_en, reuse_dest_type, unpack_to_dest>(
                         PERF_ADDRESS(PERF_INPUT_A, /* tile_idx */ i), formats.unpack_A_src, formats.unpack_A_dst);
@@ -97,15 +90,15 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     const DataCopyType data_copy_type = DataCopyType::A2D;
 
     {
         ZONE_SCOPED("INIT")
 
-        _llk_math_eltwise_unary_datacopy_init_<data_copy_type, is_fp32_dest_acc_en>(params->num_faces, formats.math);
+        _llk_math_eltwise_unary_datacopy_init_<data_copy_type, is_fp32_dest_acc_en>(params.num_faces, formats.math);
         _llk_math_pack_sync_init_<DST_SYNC_MODE, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
@@ -117,9 +110,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
             {
-                for (int i = 0; i < params->TILE_CNT; ++i)
+                for (int i = 0; i < params.TILE_CNT; ++i)
                 {
                     // For unpack isolate scenario, math should only perform necessary synchronization and nothing else.
                     if constexpr (unpack_to_dest)
@@ -137,18 +130,18 @@ void run_kernel(const volatile struct RuntimeParams* params)
                         _perf_math_loop_clear_valid<
                             /* src A */ true,
                             /* src B */ true>(
-                            /* iterations*/ params->num_faces);
+                            /* iterations*/ params.num_faces);
                     }
                 }
             }
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    int block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
                     _llk_math_wait_for_dest_available_<DST_SYNC_MODE>();
 
@@ -169,7 +162,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
                             _perf_math_loop_clear_valid<
                                 /* src A */ true,
                                 /* src B */ true>(
-                                /* iterations*/ params->num_faces);
+                                /* iterations*/ params.num_faces);
                         }
                     }
 
@@ -179,11 +172,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    int block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
                     for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
@@ -208,11 +201,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_TO_L1)
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    int block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
                     _llk_math_wait_for_dest_available_<DST_SYNC_MODE>();
 
@@ -250,19 +243,19 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     {
         ZONE_SCOPED("INIT")
 
         // Configure packer hardware
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, FACE_R_DIM * FACE_C_DIM * params->num_faces);
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, FACE_R_DIM * FACE_C_DIM * params.num_faces);
 
 #ifdef ARCH_BLACKHOLE
-        _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces);
+        _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params.num_faces);
 #else
-        _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, params->num_faces);
+        _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, params.num_faces);
 #endif
         // Initialize destination for packing
         _llk_pack_dest_init_<DST_SYNC_MODE, is_fp32_dest_acc_en>();
@@ -274,11 +267,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    int block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
                     for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
                     {
@@ -292,11 +285,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else if constexpr (PERF_RUN_TYPE == PerfRunType::L1_TO_L1 || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (int loop = 0; loop < params->LOOP_FACTOR; ++loop)
+            for (int loop = 0; loop < params.LOOP_FACTOR; ++loop)
             {
-                for (int block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+                for (int block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
                 {
-                    int block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+                    int block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
                     _llk_packer_wait_for_math_done_();
                     for (int block_tile = 0; block_tile < block_tiles; ++block_tile)
