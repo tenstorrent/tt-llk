@@ -292,14 +292,14 @@ class StimuliConfig:
                     list(original_data), dtype=torch.bfloat16
                 )
                 matches = torch.allclose(unpacked, original_tensor, atol=0.5)
-                print(
-                    f"\n[DEBUG ROUND-TRIP tile {ind}] pack({pack_function.__name__}) → unpack round-trip:"
-                )
-                print(f"  original first 8:  {original_tensor[:8].tolist()}")
-                print(f"  unpacked first 8:  {unpacked[:8].tolist()}")
-                print(f"  packed bytes[0..16]: {list(packed_data[:16])}")
-                print(f"  packed bytes[64..80]: {list(packed_data[64:80])}")
-                print(f"  round-trip match (atol=0.5): {matches}")
+                # print(
+                #     f"\n[DEBUG ROUND-TRIP tile {ind}] pack({pack_function.__name__}) → unpack round-trip:"
+                # )
+                # print(f"  original first 8:  {original_tensor[:8].tolist()}")
+                # print(f"  unpacked first 8:  {unpacked[:8].tolist()}")
+                # print(f"  packed bytes[0..16]: {list(packed_data[:16])}")
+                # print(f"  packed bytes[64..80]: {list(packed_data[64:80])}")
+                # print(f"  round-trip match (atol=0.5): {matches}")
 
     @staticmethod
     def write_matrix_w_tile_dimensions(
