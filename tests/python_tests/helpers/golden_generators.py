@@ -1146,6 +1146,26 @@ class DataCopyGolden:
 
             result = result.to(torch_format)
 
+        # BFP4_b has very low precision (3-bit mantissa). The golden must reflect
+        # the quantization loss from the BFP4_b pack→unpack round-trip so it matches
+        # what the HW produces after packing to L1 and reading back.
+        if data_format == DataFormat.Bfp4_b:
+            from .pack import pack_bfp4_b
+            from .unpack import unpack_bfp4_b
+
+            quantized_tiles = []
+            for tile_idx in range(tile_cnt):
+                tile_start = tile_idx * elements_per_tile_needed
+                tile_data = result[tile_start : tile_start + elements_per_tile_needed]
+                packed = pack_bfp4_b(
+                    tile_data, num_faces=num_faces, face_r_dim=face_r_dim
+                )
+                unpacked = unpack_bfp4_b(
+                    packed, num_faces=num_faces, face_r_dim=face_r_dim
+                )
+                quantized_tiles.append(unpacked)
+            result = torch.cat(quantized_tiles)
+
         return result
 
 

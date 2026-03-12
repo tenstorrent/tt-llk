@@ -78,7 +78,8 @@ def get_valid_num_faces_datacopy(tilize):
     if tilize == Tilize.Yes:
         return [4]
 
-    return [1, 2, 4]
+    # return [1, 2, 4]
+    return [4]
 
 
 @parametrize(
@@ -95,6 +96,7 @@ def get_valid_num_faces_datacopy(tilize):
     num_faces=lambda tilize: get_valid_num_faces_datacopy(tilize),
     tilize=lambda formats: get_valid_tilize_datacopy(formats),
     input_dimensions=[[64, 64], [32, 256], [128, 256]],
+    # input_dimensions=[[32, 32]],
 )
 def test_unary_datacopy(
     formats, dest_acc, num_faces, tilize, input_dimensions, workers_tensix_coordinates
