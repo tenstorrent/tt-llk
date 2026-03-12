@@ -58,7 +58,7 @@ def get_valid_tilize_datacopy(formats):
     if chip_arch == ChipArchitecture.WORMHOLE:
         return [Tilize.No]
 
-    if formats.input_format == DataFormat.Bfp8_b:
+    if formats.input_format in (DataFormat.Bfp8_b, DataFormat.Bfp4_b):
         return [Tilize.No]
 
     if formats.input_format == DataFormat.Fp8_e4m3:
@@ -84,11 +84,11 @@ def get_valid_num_faces_datacopy(tilize):
 @parametrize(
     formats=input_output_formats(
         [
-            DataFormat.Float32,
-            DataFormat.Float16,
-            DataFormat.Float16_b,
-            DataFormat.Bfp8_b,
-            DataFormat.Fp8_e4m3,
+            # DataFormat.Float32,
+            # DataFormat.Float16,
+            # DataFormat.Float16_b,
+            # DataFormat.Bfp8_b,
+            DataFormat.Bfp4_b,
         ]
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),

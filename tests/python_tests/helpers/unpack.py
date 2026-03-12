@@ -139,6 +139,63 @@ def unpack_bfp8_b(bfp8_block, sfpu=False, num_faces=4, face_r_dim=16):
     return torch.tensor(bfloat16_values, dtype=torch.bfloat16)
 
 
+def bfp4_to_float_block(exponent, bfp4_mantissas, unpacked_bfp4):
+    bfloat16_values = []
+    exponent = exponent - 127
+
+    for mantissa in bfp4_mantissas:
+        if (exponent, mantissa) in unpacked_bfp4:
+            bfloat16_values.append(unpacked_bfp4[(exponent, mantissa)])
+            continue
+
+        sign_mantissa = str(format(mantissa, "04b"))
+        sign = int(sign_mantissa[0], 2)
+        mantissa_value = sign_mantissa[1:]
+        fract_value = 0.0
+        for i in range(len(mantissa_value)):
+            if mantissa_value[i] == "1":
+                fract_value += 1 / (2 ** (i))
+
+        value = ((-1.0) ** sign) * (2**exponent) * fract_value
+        bfloat16_values.append(value)
+        unpacked_bfp4[(exponent, mantissa)] = value
+
+    return bfloat16_values
+
+
+def unpack_bfp4_b(bfp4_block, sfpu=False, num_faces=4, face_r_dim=16):
+    actual_exponents = face_r_dim * num_faces
+
+    exponents_in_packed = max(actual_exponents, MIN_BFP_EXPONENTS)
+
+    if not sfpu:
+        all_exponents = bfp4_block[:exponents_in_packed]
+        packed_mantissas = bfp4_block[exponents_in_packed:]
+        exponents = all_exponents[:actual_exponents]
+    else:
+        exponents = bfp4_block[:16]
+        packed_mantissas = bfp4_block[16 : 16 + actual_exponents * 8]
+
+    # Expand packed bytes into individual 4-bit datums
+    mantissas = []
+    for byte_val in packed_mantissas:
+        mantissas.append((byte_val >> 4) & 0x0F)
+        mantissas.append(byte_val & 0x0F)
+
+    unpacked_bfp4 = {}
+
+    bfloat16_values = []
+    for i in range(len(exponents)):
+        exponent = exponents[i]
+        bfp4_mantissas = mantissas[i * 16 : (i + 1) * 16]
+        block_bfloat16_values = bfp4_to_float_block(
+            exponent, bfp4_mantissas, unpacked_bfp4
+        )
+        bfloat16_values.extend(block_bfloat16_values)
+
+    return torch.tensor(bfloat16_values, dtype=torch.bfloat16)
+
+
 # ============================================================================
 # MX (Microscaling) Format Support - OCP Specification
 # ============================================================================
@@ -263,6 +320,8 @@ def unpack_res_tiles(
 
     if output_format == DataFormat.Bfp8_b:
         unpack_func = unpack_bfp16 if sfpu else unpack_bfp8_b
+    elif output_format == DataFormat.Bfp4_b:
+        unpack_func = unpack_bfp16 if sfpu else unpack_bfp4_b
     elif output_format == DataFormat.MxFp8R:
         unpack_func = unpack_mxfp8r
     elif output_format == DataFormat.MxFp8P:
@@ -278,7 +337,7 @@ def unpack_res_tiles(
         end_idx = start_idx + elements_per_tile_needed
         tile_data = packed_list[start_idx:end_idx]
 
-        if unpack_func == unpack_bfp8_b:
+        if unpack_func in (unpack_bfp8_b, unpack_bfp4_b):
             unpacked_tile = unpack_func(
                 tile_data, sfpu=sfpu, num_faces=num_faces, face_r_dim=face_r_dim
             )
