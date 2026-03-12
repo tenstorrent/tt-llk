@@ -813,8 +813,7 @@ class TestConfig:
                 else ""
             ),
             '#include "tensix_types.h"',
-            "#define RUNTIME_PARAMETERS  const volatile struct RuntimeParams*",
-            "",
+            "#define RUNTIME_PARAMETERS  const struct RuntimeParams&",
             f"constexpr bool l1_acc_en = {self.l1_acc.value};",
             f"constexpr bool unpack_to_dest = {str(self.unpack_to_dest).lower()};",
         ] + (
