@@ -23,7 +23,7 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(RUNTIME_PARAMETERS params)
 {
-#ifdef RUNTIME_FORMATS
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
 
@@ -66,7 +66,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
 void run_kernel(RUNTIME_PARAMETERS params)
 {
-#ifdef RUNTIME_FORMATS
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
 
@@ -97,7 +97,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
 void run_kernel(RUNTIME_PARAMETERS params)
 {
-#ifdef RUNTIME_FORMATS
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
 #ifdef ARCH_BLACKHOLE

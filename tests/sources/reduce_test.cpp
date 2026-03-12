@@ -24,8 +24,8 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     const ckernel::TensorShape tensor_shape = {
         static_cast<std::uint8_t>(params->in0_face_r_dim),
@@ -46,7 +46,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_unpack_AB_reduce_init_<POOL_TYPE, REDUCE_DIM>(tensor_shape);
     for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
     {
-        _llk_unpack_AB_reduce_<POOL_TYPE, REDUCE_DIM>(L1_ADDRESS(params->buffer_A[i]), L1_ADDRESS(params->buffer_B[0]));
+        _llk_unpack_AB_reduce_<POOL_TYPE, REDUCE_DIM>(L1_ADDRESS(params.buffer_A[i]), L1_ADDRESS(params.buffer_B[0]));
     }
 }
 
@@ -61,8 +61,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     const bool is_int_fpu_en                = false;
     const bool enforce_fp32_accumulation    = false;
@@ -76,7 +76,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
     _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, false>();
 
-    if (params->IS_REDUCE_TO_ONE)
+    if (params.IS_REDUCE_TO_ONE)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
         for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
@@ -87,10 +87,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     else
     {
-        int remaining_tiles = params->INPUT_TILE_CNT;
+        int remaining_tiles = params.INPUT_TILE_CNT;
         while (remaining_tiles)
         {
-            int tiles_to_dest = std::min(remaining_tiles, static_cast<int>(params->NUM_TILES_IN_BLOCK));
+            int tiles_to_dest = std::min(remaining_tiles, static_cast<int>(params.NUM_TILES_IN_BLOCK));
             _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
             for (int i = 0; i < tiles_to_dest; ++i)
             {
@@ -112,8 +112,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     const ckernel::TensorShape tensor_shape = {
         static_cast<std::uint8_t>(params->in0_face_r_dim),
@@ -151,12 +151,12 @@ void run_kernel(const volatile struct RuntimeParams* params)
     int remaining_tiles = params->OUTPUT_TILE_CNT;
     while (remaining_tiles)
     {
-        int tiles_from_dest = std::min(remaining_tiles, static_cast<int>(params->NUM_TILES_IN_BLOCK));
+        int tiles_from_dest = std::min(remaining_tiles, static_cast<int>(params.NUM_TILES_IN_BLOCK));
         _llk_packer_wait_for_math_done_();
         for (int i = 0; i < tiles_from_dest; ++i)
         {
             _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false /* untilize */>(
-                i, L1_ADDRESS(params->buffer_Res[params->OUTPUT_TILE_CNT - remaining_tiles + i]));
+                i, L1_ADDRESS(params.buffer_Res[params.OUTPUT_TILE_CNT - remaining_tiles + i]));
         }
         _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         remaining_tiles -= tiles_from_dest;

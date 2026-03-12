@@ -26,16 +26,16 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     // Cache volatile values to local variables first
-    const std::uint8_t face_r_dim           = static_cast<std::uint8_t>(params->TEST_FACE_R_DIM);
-    const std::uint8_t face_c_dim           = static_cast<std::uint8_t>(params->TEST_FACE_C_DIM);
-    const std::uint8_t num_faces_r_dim      = static_cast<std::uint8_t>(params->num_faces_r_dim_A);
-    const std::uint8_t num_faces_c_dim      = static_cast<std::uint8_t>(params->num_faces_c_dim_A);
+    const std::uint8_t face_r_dim           = static_cast<std::uint8_t>(params.TEST_FACE_R_DIM);
+    const std::uint8_t face_c_dim           = static_cast<std::uint8_t>(params.TEST_FACE_C_DIM);
+    const std::uint8_t num_faces_r_dim      = static_cast<std::uint8_t>(params.num_faces_r_dim_A);
+    const std::uint8_t num_faces_c_dim      = static_cast<std::uint8_t>(params.num_faces_c_dim_A);
     const ckernel::TensorShape tensor_shape = {face_r_dim, face_c_dim, num_faces_r_dim, num_faces_c_dim};
-    const std::uint32_t transpose           = params->UNPACK_TRANSPOSE_FACES;
+    const std::uint32_t transpose           = params.UNPACK_TRANSPOSE_FACES;
 
     // Configure hardware for unpacking, no broadcast, no transpose
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -47,20 +47,20 @@ void run_kernel(const volatile struct RuntimeParams* params)
         tensor_shape.face_r_dim,
         tensor_shape.total_num_faces(),
         tensor_shape.total_num_faces(),
-        params->TILE_SIZE_UNPACK_A,
-        params->TILE_SIZE_UNPACK_B);
+        params.TILE_SIZE_UNPACK_A,
+        params.TILE_SIZE_UNPACK_B);
 
     _llk_unpack_AB_init_<BROADCAST_TYPE>(tensor_shape, transpose);
 
 #ifdef EN_DEST_REUSE
-    const int num_total_tiles = params->INPUT_NUM_TILES_IN_BLOCK * params->INPUT_NUM_BLOCKS;
+    const int num_total_tiles = params.INPUT_NUM_TILES_IN_BLOCK * params.INPUT_NUM_BLOCKS;
 #else
-    const int num_total_tiles = params->NUM_TILES_IN_BLOCK * params->NUM_BLOCKS;
+    const int num_total_tiles = params.NUM_TILES_IN_BLOCK * params.NUM_BLOCKS;
 #endif
 
     for (int i = 0; i < num_total_tiles; ++i)
     {
-        _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(params->buffer_A[i]), L1_ADDRESS(params->buffer_B[i]));
+        _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(params.buffer_A[i]), L1_ADDRESS(params.buffer_B[i]));
     }
 }
 
@@ -76,14 +76,14 @@ using namespace ckernel;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     // Cache volatile values to local variables first
-    const std::uint8_t face_r_dim      = static_cast<std::uint8_t>(params->TEST_FACE_R_DIM);
-    const std::uint8_t face_c_dim      = static_cast<std::uint8_t>(params->TEST_FACE_C_DIM);
-    const std::uint8_t num_faces_r_dim = static_cast<std::uint8_t>(params->num_faces_r_dim_A);
-    const std::uint8_t num_faces_c_dim = static_cast<std::uint8_t>(params->num_faces_c_dim_A);
+    const std::uint8_t face_r_dim      = static_cast<std::uint8_t>(params.TEST_FACE_R_DIM);
+    const std::uint8_t face_c_dim      = static_cast<std::uint8_t>(params.TEST_FACE_C_DIM);
+    const std::uint8_t num_faces_r_dim = static_cast<std::uint8_t>(params.num_faces_r_dim_A);
+    const std::uint8_t num_faces_c_dim = static_cast<std::uint8_t>(params.num_faces_c_dim_A);
     const TensorShape tensor_shape     = {face_r_dim, face_c_dim, num_faces_r_dim, num_faces_c_dim};
     constexpr bool ACC_TO_DEST         = false;
 
@@ -92,13 +92,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
 #ifdef EN_DEST_REUSE
-    const int tiles_in_block          = params->OUTPUT_NUM_TILES_IN_BLOCK;
-    const int num_tiles_accumulations = params->INPUT_NUM_TILES_IN_BLOCK / tiles_in_block;
-    const int num_blocks              = params->INPUT_NUM_BLOCKS;
+    const int tiles_in_block          = params.OUTPUT_NUM_TILES_IN_BLOCK;
+    const int num_tiles_accumulations = params.INPUT_NUM_TILES_IN_BLOCK / tiles_in_block;
+    const int num_blocks              = params.INPUT_NUM_BLOCKS;
 #else
-    const int tiles_in_block          = params->NUM_TILES_IN_BLOCK;
+    const int tiles_in_block          = params.NUM_TILES_IN_BLOCK;
     const int num_tiles_accumulations = 1;
-    const int num_blocks              = params->NUM_BLOCKS;
+    const int num_blocks              = params.NUM_BLOCKS;
     constexpr auto REUSE_DEST_TYPE    = ckernel::EltwiseBinaryReuseDestType::NONE;
 #endif
 
@@ -133,17 +133,17 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     // Cache volatile values to local variables first
-    const std::uint8_t face_r_dim           = static_cast<std::uint8_t>(params->TEST_FACE_R_DIM);
-    const std::uint8_t face_c_dim           = static_cast<std::uint8_t>(params->TEST_FACE_C_DIM);
-    const std::uint8_t num_faces_r_dim      = static_cast<std::uint8_t>(params->num_faces_r_dim_A);
-    const std::uint8_t num_faces_c_dim      = static_cast<std::uint8_t>(params->num_faces_c_dim_A);
+    const std::uint8_t face_r_dim           = static_cast<std::uint8_t>(params.TEST_FACE_R_DIM);
+    const std::uint8_t face_c_dim           = static_cast<std::uint8_t>(params.TEST_FACE_C_DIM);
+    const std::uint8_t num_faces_r_dim      = static_cast<std::uint8_t>(params.num_faces_r_dim_A);
+    const std::uint8_t num_faces_c_dim      = static_cast<std::uint8_t>(params.num_faces_c_dim_A);
     const ckernel::TensorShape tensor_shape = {face_r_dim, face_c_dim, num_faces_r_dim, num_faces_c_dim};
-    const int num_tiles_in_block            = params->NUM_TILES_IN_BLOCK;
-    const int num_blocks                    = params->NUM_BLOCKS;
+    const int num_tiles_in_block            = params.NUM_TILES_IN_BLOCK;
+    const int num_blocks                    = params.NUM_BLOCKS;
 
     const std::uint32_t tile_size = tensor_shape.total_tensor_size();
 
@@ -173,8 +173,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
 
 #ifdef EN_DEST_REUSE
-    const int output_tiles_in_block = params->OUTPUT_NUM_TILES_IN_BLOCK;
-    const int output_num_blocks     = params->OUTPUT_NUM_BLOCKS;
+    const int output_tiles_in_block = params.OUTPUT_NUM_TILES_IN_BLOCK;
+    const int output_num_blocks     = params.OUTPUT_NUM_BLOCKS;
 #else
     const int output_tiles_in_block = num_tiles_in_block;
     const int output_num_blocks     = num_blocks;
@@ -189,7 +189,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             LLK_ASSERT(
                 (static_cast<std::uint32_t>(tile) < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                 "Block tile index exceeds maximum destination tiles");
-            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(tile, L1_ADDRESS(params->buffer_Res[res_tile_idx]));
+            _llk_pack_<dest_sync, is_fp32_dest_acc_en, false /* untilize */>(tile, L1_ADDRESS(params.buffer_Res[res_tile_idx]));
         }
         _llk_pack_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
     }

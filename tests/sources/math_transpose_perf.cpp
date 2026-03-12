@@ -30,14 +30,14 @@ static constexpr std::uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     {
         ZONE_SCOPED("INIT")
 
         _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
-            params->UNPACK_TRANSPOSE_FACES, false, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_A_src, formats.unpack_A_dst);
+            params.UNPACK_TRANSPOSE_FACES, false, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_A_src, formats.unpack_A_dst);
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, TILE_NUM_FACES, TILE_NUM_FACES);
         PROFILER_SYNC();
@@ -46,9 +46,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     {
         ZONE_SCOPED("TILE_LOOP")
 
-        for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+        for (std::uint32_t block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
         {
-            std::uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+            std::uint32_t block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
             for (std::uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
             {
@@ -75,8 +75,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     {
         ZONE_SCOPED("INIT")
@@ -89,9 +89,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     {
         ZONE_SCOPED("TILE_LOOP")
 
-        for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+        for (std::uint32_t block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
         {
-            std::uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+            std::uint32_t block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
             _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
@@ -134,8 +134,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 void run_kernel(const volatile struct RuntimeParams* params)
 {
-#ifdef RUNTIME_FORMATS
-    const volatile FormatConfig& formats = params->formats;
+#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+    const volatile FormatConfig& formats = params.formats;
 #endif
     {
         ZONE_SCOPED("INIT")
@@ -147,9 +147,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     {
         ZONE_SCOPED("TILE_LOOP")
 
-        for (std::uint32_t block_start = 0; block_start < params->TILE_CNT; block_start += MAX_TILES_DEST)
+        for (std::uint32_t block_start = 0; block_start < params.TILE_CNT; block_start += MAX_TILES_DEST)
         {
-            std::uint32_t block_tiles = std::min(params->TILE_CNT - block_start, MAX_TILES_DEST);
+            std::uint32_t block_tiles = std::min(params.TILE_CNT - block_start, MAX_TILES_DEST);
 
             _llk_packer_wait_for_math_done_();
             for (std::uint32_t block_tile = 0; block_tile < block_tiles; block_tile++)
