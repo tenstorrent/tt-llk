@@ -84,7 +84,7 @@ def get_valid_num_faces_datacopy(tilize):
 @parametrize(
     formats=input_output_formats(
         [
-            # DataFormat.Float32,
+            DataFormat.Float32,
             # DataFormat.Float16,
             DataFormat.Float16_b,
             DataFormat.Bfp8_b,
