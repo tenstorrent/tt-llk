@@ -1082,6 +1082,7 @@ class DataCopyGolden:
         num_faces: int = 4,
         input_dimensions: list[int] = [32, 32],
         face_r_dim: int = 16,  # Default to 16 for backward compatibility
+        input_format=None,
     ):
         torch_format = format_dict[data_format]
 
@@ -1100,6 +1101,30 @@ class DataCopyGolden:
         # Convert input to tensor if needed
         if not isinstance(operand1, torch.Tensor):
             operand1 = torch.tensor(operand1, dtype=torch_format)
+
+        # When the input format is Bfp4_b the hardware unpacker reads already-quantized
+        # values (shared exponent + 3-bit mantissa per element). Simulate the
+        # full pack→unpack round-trip including the nibble swap: the packer stores
+        # even elements in the high nibble and odd in the low nibble, but the
+        # unpacker reads low nibble first, swapping each adjacent pair.
+        if input_format == DataFormat.Bfp4_b:
+            from .pack import float_to_bfp4_block
+            from .unpack import bfp4_to_float_block
+
+            flat = operand1.flatten()
+            quantized = []
+            for blk in range(len(flat) // 16):
+                block = flat[blk * 16 : (blk + 1) * 16]
+                shared_exp, bfp4_mantissas = float_to_bfp4_block(block)
+                block_floats = bfp4_to_float_block(shared_exp, bfp4_mantissas, {})
+                for i in range(0, len(block_floats), 2):
+                    quantized.append(
+                        block_floats[i + 1]
+                        if i + 1 < len(block_floats)
+                        else block_floats[i]
+                    )
+                    quantized.append(block_floats[i])
+            operand1 = torch.tensor(quantized, dtype=operand1.dtype)
 
         # Determine actual tile size from input:
         # If input is sized for partial faces (num_faces < 4), use elements_per_tile_needed
@@ -1147,23 +1172,27 @@ class DataCopyGolden:
             result = result.to(torch_format)
 
         # BFP4_b has very low precision (3-bit mantissa). The golden must reflect
-        # the quantization loss from the BFP4_b pack→unpack round-trip so it matches
-        # what the HW produces after packing to L1 and reading back.
+        # the quantization loss so it matches what the HW produces after packing
+        # to L1 and reading back. The HW output packer uses even→low/odd→high
+        # nibble convention, and unpack_bfp4_b reads low nibble first, so elements
+        # come back in the original order — no nibble swap needed here.
         if data_format == DataFormat.Bfp4_b:
-            from .pack import pack_bfp4_b
-            from .unpack import unpack_bfp4_b
+            from .pack import float_to_bfp4_block
+            from .unpack import bfp4_to_float_block
 
             quantized_tiles = []
             for tile_idx in range(tile_cnt):
                 tile_start = tile_idx * elements_per_tile_needed
                 tile_data = result[tile_start : tile_start + elements_per_tile_needed]
-                packed = pack_bfp4_b(
-                    tile_data, num_faces=num_faces, face_r_dim=face_r_dim
+                quantized_values = []
+                for blk in range(len(tile_data) // 16):
+                    block = tile_data[blk * 16 : (blk + 1) * 16]
+                    shared_exp, bfp4_mantissas = float_to_bfp4_block(block)
+                    block_floats = bfp4_to_float_block(shared_exp, bfp4_mantissas, {})
+                    quantized_values.extend(block_floats)
+                quantized_tiles.append(
+                    torch.tensor(quantized_values, dtype=torch.bfloat16)
                 )
-                unpacked = unpack_bfp4_b(
-                    packed, num_faces=num_faces, face_r_dim=face_r_dim
-                )
-                quantized_tiles.append(unpacked)
             result = torch.cat(quantized_tiles)
 
         return result
