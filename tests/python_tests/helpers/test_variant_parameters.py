@@ -717,7 +717,7 @@ class IN_FACE_DIMS(RuntimeParameter):
     in1_face_r_dim: int = 16
     in1_face_c_dim: int = 16
 
-    def covert_to_cpp(self) -> str:
+    def convert_to_cpp(self) -> str:
         lines: list[str] = [
             f"constexpr int in0_face_r_dim = {self.in0_face_r_dim};",
             f"constexpr int in0_face_c_dim = {self.in0_face_c_dim};",
