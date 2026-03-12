@@ -168,22 +168,22 @@ def unpack_bfp4_b(bfp4_block, sfpu=False, num_faces=4, face_r_dim=16):
 
     exponents_in_packed = max(actual_exponents, MIN_BFP_EXPONENTS)
 
-    print(f"\n{'='*60}")
-    print(
-        f"[DEBUG unpack_bfp4_b] CALLED with num_faces={num_faces}, face_r_dim={face_r_dim}, sfpu={sfpu}"
-    )
-    print(
-        f"[DEBUG unpack_bfp4_b] actual_exponents={actual_exponents}, exponents_in_packed={exponents_in_packed}"
-    )
-    print(f"[DEBUG unpack_bfp4_b] total raw bytes received: {len(bfp4_block)}")
-    print(f"[DEBUG unpack_bfp4_b] first 64 raw bytes: {list(bfp4_block[:64])}")
-    if len(bfp4_block) > 64:
-        print(f"[DEBUG unpack_bfp4_b] bytes 64..128: {list(bfp4_block[64:128])}")
-    all_zero = all(b == 0 for b in bfp4_block)
-    non_zero_count = sum(1 for b in bfp4_block if b != 0)
-    print(
-        f"[DEBUG unpack_bfp4_b] all_zero={all_zero}, non_zero_bytes={non_zero_count}/{len(bfp4_block)}"
-    )
+    # print(f"\n{'='*60}")
+    # print(
+    #     f"[DEBUG unpack_bfp4_b] CALLED with num_faces={num_faces}, face_r_dim={face_r_dim}, sfpu={sfpu}"
+    # )
+    # print(
+    #     f"[DEBUG unpack_bfp4_b] actual_exponents={actual_exponents}, exponents_in_packed={exponents_in_packed}"
+    # )
+    # print(f"[DEBUG unpack_bfp4_b] total raw bytes received: {len(bfp4_block)}")
+    # print(f"[DEBUG unpack_bfp4_b] first 64 raw bytes: {list(bfp4_block[:64])}")
+    # if len(bfp4_block) > 64:
+    #     print(f"[DEBUG unpack_bfp4_b] bytes 64..128: {list(bfp4_block[64:128])}")
+    # all_zero = all(b == 0 for b in bfp4_block)
+    # non_zero_count = sum(1 for b in bfp4_block if b != 0)
+    # print(
+    #     f"[DEBUG unpack_bfp4_b] all_zero={all_zero}, non_zero_bytes={non_zero_count}/{len(bfp4_block)}"
+    # )
 
     if not sfpu:
         all_exponents = bfp4_block[:exponents_in_packed]
@@ -193,12 +193,12 @@ def unpack_bfp4_b(bfp4_block, sfpu=False, num_faces=4, face_r_dim=16):
         exponents = bfp4_block[:16]
         packed_mantissas = bfp4_block[16 : 16 + actual_exponents * 8]
 
-    print(f"[DEBUG unpack_bfp4_b] exponents (first 16): {list(exponents[:16])}")
-    print(f"[DEBUG unpack_bfp4_b] packed_mantissas length: {len(packed_mantissas)}")
-    print(
-        f"[DEBUG unpack_bfp4_b] packed_mantissas first 32 bytes: {list(packed_mantissas[:32])}"
-    )
-    print(f"{'='*60}\n")
+    # print(f"[DEBUG unpack_bfp4_b] exponents (first 16): {list(exponents[:16])}")
+    # print(f"[DEBUG unpack_bfp4_b] packed_mantissas length: {len(packed_mantissas)}")
+    # print(
+    #     f"[DEBUG unpack_bfp4_b] packed_mantissas first 32 bytes: {list(packed_mantissas[:32])}"
+    # )
+    # print(f"{'='*60}\n")
 
     # Expand packed bytes into individual 4-bit datums
     mantissas = []

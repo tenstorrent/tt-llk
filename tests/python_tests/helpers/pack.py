@@ -247,18 +247,18 @@ def pack_bfp4_b(tensor, block_size=16, num_faces=4, face_r_dim=16):
         packed_mantissas.append((high << 4) | low)
 
     result = exponents + packed_mantissas
-    print(f"\n{'='*60}")
-    print(f"[DEBUG pack_bfp4_b] num_faces={num_faces}, face_r_dim={face_r_dim}")
-    print(
-        f"[DEBUG pack_bfp4_b] elements_to_pack={elements_to_pack}, num_blocks={num_blocks}"
-    )
-    print(f"[DEBUG pack_bfp4_b] exponents ({len(exponents)}): {exponents[:16]}")
-    print(
-        f"[DEBUG pack_bfp4_b] packed_mantissas first 32 bytes: {packed_mantissas[:32]}"
-    )
-    print(f"[DEBUG pack_bfp4_b] total packed bytes: {len(result)}")
-    print(f"[DEBUG pack_bfp4_b] full packed data first 64 bytes: {result[:64]}")
-    print(f"{'='*60}\n")
+    # print(f"\n{'='*60}")
+    # print(f"[DEBUG pack_bfp4_b] num_faces={num_faces}, face_r_dim={face_r_dim}")
+    # print(
+    #     f"[DEBUG pack_bfp4_b] elements_to_pack={elements_to_pack}, num_blocks={num_blocks}"
+    # )
+    # print(f"[DEBUG pack_bfp4_b] exponents ({len(exponents)}): {exponents[:16]}")
+    # print(
+    #     f"[DEBUG pack_bfp4_b] packed_mantissas first 32 bytes: {packed_mantissas[:32]}"
+    # )
+    # print(f"[DEBUG pack_bfp4_b] total packed bytes: {len(result)}")
+    # print(f"[DEBUG pack_bfp4_b] full packed data first 64 bytes: {result[:64]}")
+    # print(f"{'='*60}\n")
     return result
 
 
