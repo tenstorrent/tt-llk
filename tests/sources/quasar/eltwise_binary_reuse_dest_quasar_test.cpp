@@ -25,7 +25,7 @@ std::uint32_t math_sync_tile_dst_index = 0;
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     tdma_descriptor_t td_val_A, td_val_B;
     const std::uint32_t buf_desc_id_a = 0;
@@ -95,7 +95,7 @@ using namespace ckernel;
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     set_up_dest_dvalid_per_thread<dest_dvalid_client::FPU>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
 
@@ -152,7 +152,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     std::uint32_t const buf_desc_id = 8;
 

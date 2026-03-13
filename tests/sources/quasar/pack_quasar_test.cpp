@@ -20,7 +20,7 @@
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     const std::uint32_t SELECTED_UNPACKER = unpack_to_dest ? p_unpacr::UNP_DEST : p_unpacr::UNP_A;
     tdma_descriptor_t td_val;
@@ -95,7 +95,7 @@ using namespace ckernel;
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     if constexpr (!unpack_to_dest)
     {
@@ -137,7 +137,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     std::uint32_t const buf_desc_id        = 8;
     const std::uint32_t num_tiles_per_pack = params.TILE_CNT;

@@ -25,7 +25,7 @@ std::uint32_t math_sync_tile_dst_index = 0;
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
@@ -57,7 +57,7 @@ using namespace ckernel::sfpu;
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
@@ -150,7 +150,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);

@@ -18,7 +18,7 @@
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     // Setup data valid scheme
     set_up_dest_dvalid_per_thread<dest_dvalid_client::UNPACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});
@@ -58,7 +58,7 @@ using namespace ckernel;
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
 #ifdef FORMAT_INT32
     const bool is_int_fpu_en = true;
@@ -93,7 +93,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     // Setup data valid scheme
     set_up_dest_dvalid_per_thread<dest_dvalid_client::PACK>({dest_dvalid_client::FPU, dest_dvalid_client::PACK});

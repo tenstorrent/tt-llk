@@ -711,7 +711,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--speed-of-light",
         action="store_true",
-        default=None,
+        default=False,
         help="Should tests be compiled with everything runtime, converted to compile-time",
     )
 

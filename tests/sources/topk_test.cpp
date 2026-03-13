@@ -117,7 +117,7 @@ const int NUM_TILES_PER_STAGE = 2;
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     // Each tile-row is processed separately so we do the topk pipeline on each tile-row independently.
     const int NUM_TOPK_PIPELINE_EXECUTIONS = params.FULL_RT_DIM;
@@ -237,7 +237,7 @@ using namespace ckernel;
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     // Each tile-row is processed separately so we do the topk pipeline on each tile-row independently.
     const int NUM_TOPK_PIPELINE_EXECUTIONS = params.FULL_RT_DIM;
@@ -402,7 +402,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     // Each tile-row is processed separately so we do the topk pipeline on each tile-row independently.
     const int NUM_TOPK_PIPELINE_EXECUTIONS = params.FULL_RT_DIM;

@@ -30,7 +30,7 @@ constexpr std::uint32_t buffer_A_tilized = 0x66000; // L1 address of buffer, pla
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig* formats_array = params.formats;
+    const FormatConfig& formats_array = params.formats;
 #endif
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -75,7 +75,7 @@ using namespace ckernel::sfpu;
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig* formats_array = params.formats;
+    const FormatConfig& formats_array = params.formats;
 #endif
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
     _llk_math_matmul_init_<MATH_FIDELITY>();
@@ -121,7 +121,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig* formats_array = params.formats;
+    const FormatConfig& formats_array = params.formats;
 #endif
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
 #ifdef ARCH_BLACKHOLE

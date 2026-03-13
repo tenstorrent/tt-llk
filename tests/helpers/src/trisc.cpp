@@ -50,9 +50,7 @@ constexpr std::uint32_t mailbox_offset = 3 * sizeof(std::uint32_t);
 void copy_runtimes_from_L1(struct RuntimeParams* temp_args)
 {
     extern const volatile struct RuntimeParams __runtime_args_start[];
-    struct RuntimeParams* src = (struct RuntimeParams*)__runtime_args_start;
-    asm volatile("" : : "m"(*src) : "memory");
-    *temp_args = *src; // memcpy(temp_args, src, sizeof(struct RuntimeParams));
+    ckernel::memcpy_blocking(temp_args, __runtime_args_start, sizeof(struct RuntimeParams));
 }
 
 int main(void)

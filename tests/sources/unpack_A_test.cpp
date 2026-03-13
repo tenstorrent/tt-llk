@@ -26,7 +26,7 @@ std::uint32_t math_sync_tile_dst_index = 0;
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
     const std::uint32_t num_blocks         = params.NUM_BLOCKS;
@@ -76,7 +76,7 @@ using namespace ckernel;
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
     const std::uint32_t num_blocks         = params.NUM_BLOCKS;
@@ -121,7 +121,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const volatile FormatConfig& formats = params.formats;
+    const FormatConfig& formats = params.formats;
 #endif
     const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
     const std::uint32_t num_blocks         = params.NUM_BLOCKS;

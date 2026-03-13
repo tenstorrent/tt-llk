@@ -766,10 +766,10 @@ class IN_TILE_DIMS(RuntimeParameter):
 
     def convert_to_cpp(self) -> str:
         lines: list[str] = [
-            f"const std::uint32_t in0_tile_r_dim = {self.in0_r_dim};",
-            f"const std::uint32_t in0_tile_c_dim = {self.in0_c_dim};",
-            f"const std::uint32_t in1_tile_r_dim = {self.in1_r_dim};",
-            f"const std::uint32_t in1_tile_c_dim = {self.in1_c_dim};",
+            f"constexpr std::uint32_t in0_tile_r_dim = {self.in0_r_dim};",
+            f"constexpr std::uint32_t in0_tile_c_dim = {self.in0_c_dim};",
+            f"constexpr std::uint32_t in1_tile_r_dim = {self.in1_r_dim};",
+            f"constexpr std::uint32_t in1_tile_c_dim = {self.in1_c_dim};",
         ]
         return "\n".join(lines)
 

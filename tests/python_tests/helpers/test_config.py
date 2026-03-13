@@ -452,7 +452,7 @@ class TestConfig:
                 self.formats_config[0].input_format, 128
             )
             self.unpack_size_b = TILE_SIZES.get(
-                self.formats_config[0].input_format, 128
+                self.formats_config[0].input_format_B, 128
             )
         else:
             self.formats_config = None
@@ -613,7 +613,6 @@ class TestConfig:
             "passed_templates",
             "passed_runtimes",
             "current_run_type",
-            "run_configs",
         ]
 
         if not TestConfig.SPEED_OF_LIGHT:
