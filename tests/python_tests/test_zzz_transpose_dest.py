@@ -147,6 +147,8 @@ def transpose_dest(
     if dest_acc == DestAccumulation.Yes and formats.input_format != DataFormat.Int32:
         pytest.skip("32-bit dest tests fail for Float formats due to bit No.11 issue.")
 
+    # These input dimensions are enough since dest register has a limit on how many tiles it can hold.
+    # Testing more tiles than dest size makes no sense since transpoze is done on a whole matrix at once.
     input_dimensions = [64, 64]
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(

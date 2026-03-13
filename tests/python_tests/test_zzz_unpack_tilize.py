@@ -61,7 +61,7 @@ def unpack_tilize(
     validate_lossless=False,
     dest_acc=None,
 ):
-    input_dimensions = [64, 64]
+    input_dimensions = [64, 128]
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
