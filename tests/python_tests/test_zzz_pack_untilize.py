@@ -125,7 +125,9 @@ def test_pack_untilize(
         dest_sync,
         dest_acc,
         formats,
-        input_dimensions,
+        # We put 32 here since pack_untilize works on dest register where we have maximum number of tiles set.
+        # Therefore we cannot use the full_ct_dim.
+        [32, input_dimensions[1]],
         TILE_DIMENSIONS,
     )
 
