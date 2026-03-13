@@ -60,6 +60,20 @@ def check_bfp8_b(operand: list) -> list:
     return operand
 
 
+def check_bfp4_b(operand: list) -> list:
+    """Check if datum is BFP4_B there is a +/- inf then zero out entire row of 16 elements because they inherit the same exponent and therefore get zeroed out in tensix."""
+    not_finite = [math.inf, -math.inf]
+    for i, x in enumerate(operand):
+        if x in not_finite or math.isnan(x):
+            for col in range(16):
+                row = i // 16
+                index = row * 16 + col
+                if not (operand[index] in not_finite or math.isnan(operand[index])):
+                    operand[index] = 0.0
+
+    return operand
+
+
 def convert_nan_to_inf(operand: list) -> list:
     return [math.inf if math.isnan(x) else x for x in operand]
 
@@ -1541,12 +1555,6 @@ class UnarySFPUGolden:
             + TILE_SIZE * iterations
         ] = torch.tensor(op_res, dtype=format_dict[dst_format])
 
-        if not skip_tilize:
-            result = untilize_block(result, input_format, dimensions).flatten()
-
-        if self.data_format == DataFormat.Bfp8_b:
-            check_bfp8_b(result)
-
         if self.data_format == DataFormat.Bfp4_b:
             from .pack import float_to_bfp4_block
             from .unpack import bfp4_to_float_block
@@ -1559,6 +1567,15 @@ class UnarySFPUGolden:
                 block_floats = bfp4_to_float_block(shared_exp, bfp4_mantissas, {})
                 quantized.extend(block_floats)
             result = torch.tensor(quantized, dtype=result.dtype)
+
+        if not skip_tilize:
+            result = untilize_block(result, input_format, dimensions).flatten()
+
+        if self.data_format == DataFormat.Bfp8_b:
+            check_bfp8_b(result)
+
+        if self.data_format == DataFormat.Bfp4_b:
+            check_bfp4_b(result)
 
         match (dst_format, data_format):
             # in the following cases, nans are preserved
