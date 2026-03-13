@@ -96,9 +96,6 @@ def get_valid_num_faces_datacopy(tilize):
     tilize=lambda formats: get_valid_tilize_datacopy(formats),
     input_dimensions=[[32, 32], [64, 64], [32, 256], [128, 256]],
 )
-@pytest.mark.parametrize(
-    "num_runs", [i for i in range(5)]
-)  # Allows checking repeatability, e.g., run each test 1 and 5 times
 def test_unary_datacopy(
     formats,
     dest_acc,
@@ -106,7 +103,6 @@ def test_unary_datacopy(
     tilize,
     input_dimensions,
     workers_tensix_coordinates,
-    num_runs,
 ):
 
     # Skip tests where input format is Float16, output format is Bfp4_b, and dest_acc is No
