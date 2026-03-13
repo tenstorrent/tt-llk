@@ -34,7 +34,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_unpack_tilize_init_(
         formats.unpack_A_src,
         formats.unpack_A_dst,
-        params->FULL_CT_DIM,
+        params->BLOCK_CT_DIM,
         FACE_R_DIM,
         params.NARROW_TILE // narrow_tile disabled for now
     );
@@ -54,13 +54,12 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
     // Main tilize loop - handle different tile configurations
-    for (std::uint32_t row = 0; row < params->FULL_RT_DIM; ++row)
+    for (std::uint32_t row = 0; row < params->BLOCK_RT_DIM; ++row)
     {
-        std::uint32_t tile_row_addr = L1_ADDRESS(params->buffer_A[read_offset]);
-        for (std::uint32_t col = 0; col < params->FULL_CT_DIM; ++col)
+        for (std::uint32_t col = 0; col < params->BLOCK_CT_DIM; ++col)
         {
             _llk_unpack_tilize_(
-                tile_row_addr,
+                L1_ADDRESS(params->buffer_A[read_offset]),
                 col,
                 formats.unpack_A_src,
                 formats.unpack_A_dst,
@@ -70,7 +69,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
                 false // narrow_tile disabled for now
             );
         }
-        read_offset += params->FULL_CT_DIM;
+        read_offset += params->BLOCK_CT_DIM;
     }
 }
 
