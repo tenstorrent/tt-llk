@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import math
 import os
 import subprocess
 from collections import namedtuple
@@ -185,6 +186,55 @@ def calculate_pcc(golden, input):
     return pcc_result
 
 
+def _bfp4_block_aware_compare(
+    golden: torch.Tensor, result: torch.Tensor
+) -> torch.Tensor:
+    """Compare two BFP4_b tensors allowing 1-ULP difference per 16-element block.
+
+    BFP4_b shares an exponent across each 16-element block, so the ULP size
+    depends on the block's max magnitude.  When the golden and hardware compute
+    an SFPU operation at different intermediate precisions (bfloat16 vs FP32),
+    values on a quantization boundary can land one step apart.  This function
+    tolerates exactly that: |result - golden| <= 1 BFP4 ULP for the block.
+    """
+    BLOCK = 16
+    BFP4_MANTISSA_BITS = 3
+
+    g = golden.float().flatten()
+    r = result.float().flatten()
+    is_valid = torch.ones(g.shape, dtype=torch.bool)
+
+    for blk_start in range(0, len(g), BLOCK):
+        blk_end = min(blk_start + BLOCK, len(g))
+        g_blk = g[blk_start:blk_end]
+        r_blk = r[blk_start:blk_end]
+
+        both_nan = torch.isnan(g_blk) & torch.isnan(r_blk)
+
+        finite_vals = torch.cat(
+            [
+                g_blk[torch.isfinite(g_blk)].abs(),
+                r_blk[torch.isfinite(r_blk)].abs(),
+            ]
+        )
+        if finite_vals.numel() == 0:
+            is_valid[blk_start:blk_end] = True
+            continue
+
+        block_max = finite_vals.max().item()
+        if block_max == 0:
+            is_valid[blk_start:blk_end] = (g_blk == r_blk) | both_nan
+            continue
+
+        block_exp = math.floor(math.log2(block_max))
+        one_ulp = 2.0 ** (block_exp - BFP4_MANTISSA_BITS + 1)
+
+        diff = (g_blk - r_blk).abs()
+        is_valid[blk_start:blk_end] = (diff <= one_ulp) | both_nan
+
+    return is_valid
+
+
 def passed_test(
     golden_tensor,
     res_tensor,
@@ -220,12 +270,15 @@ def passed_test(
     golden_tensor = golden_tensor.type(format_dict[output_data_format])
     res_tensor = res_tensor.type(format_dict[output_data_format])
 
-    is_close = torch.isclose(
-        golden_tensor, res_tensor, rtol=tolerance.rtol, atol=tolerance.atol
-    )
-    is_nan = torch.isnan(golden_tensor) & torch.isnan(res_tensor)
+    if output_data_format == DataFormat.Bfp4_b:
+        is_valid = _bfp4_block_aware_compare(golden_tensor, res_tensor)
+    else:
+        is_close = torch.isclose(
+            golden_tensor, res_tensor, rtol=tolerance.rtol, atol=tolerance.atol
+        )
+        is_nan = torch.isnan(golden_tensor) & torch.isnan(res_tensor)
+        is_valid = is_close | is_nan
 
-    is_valid = is_close | is_nan
     is_within_tolerance = torch.all(is_valid)
 
     if print_errors:

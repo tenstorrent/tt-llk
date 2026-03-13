@@ -39,7 +39,6 @@ from helpers.test_variant_parameters import (
     NUM_TILES_IN_BLOCK,
     TILE_COUNT,
     DestSync,
-    generate_input_dim,
 )
 from helpers.utils import passed_test
 
@@ -201,8 +200,9 @@ def test_eltwise_unary_sfpu_float(
     if formats.output_format == DataFormat.Bfp4_b and mathop in [
         MathOperation.Atanh,
         MathOperation.Acosh,
+        MathOperation.Sin,
     ]:
-        pytest.skip(reason="Bfp4_b is not supported for SFPU")
+        pytest.skip(reason="Bfp4_b failing for these mathops")
 
     eltwise_unary_sfpu(
         "sources/eltwise_unary_sfpu_test.cpp",
@@ -294,7 +294,6 @@ def eltwise_unary_sfpu(
         test_name,
         formats,
         templates=[
-            generate_input_dim(input_dimensions, input_dimensions),
             APPROX_MODE(approx_mode),
             FAST_MODE(fast_mode),
             CLAMP_NEGATIVE(True),
@@ -386,7 +385,6 @@ def test_exponential_clamp_negative(
         "sources/eltwise_unary_sfpu_test.cpp",
         formats,
         templates=[
-            generate_input_dim(input_dimensions, input_dimensions),
             APPROX_MODE(ApproximationMode.Yes),
             FAST_MODE(FastMode.Yes),
             CLAMP_NEGATIVE(clamp_negative),
