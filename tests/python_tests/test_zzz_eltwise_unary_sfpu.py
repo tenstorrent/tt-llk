@@ -79,8 +79,8 @@ ALL_MATHOPS = [
 
 FORMATS = input_output_formats(
     [
-        # DataFormat.Float32,
-        # DataFormat.Float16,
+        DataFormat.Float32,
+        DataFormat.Float16,
         DataFormat.Float16_b,
         DataFormat.Bfp8_b,
         DataFormat.Bfp4_b,
