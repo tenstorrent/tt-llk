@@ -28,10 +28,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const volatile FormatConfig& formats = params.formats;
 #endif
     const ckernel::TensorShape tensor_shape = {
-        static_cast<std::uint8_t>(params->in0_face_r_dim),
-        static_cast<std::uint8_t>(params->in0_face_c_dim),
-        static_cast<std::uint8_t>(params->num_faces_r_dim_A),
-        static_cast<std::uint8_t>(params->num_faces_c_dim_A)};
+        static_cast<std::uint8_t>(params.in0_face_r_dim),
+        static_cast<std::uint8_t>(params.in0_face_c_dim),
+        static_cast<std::uint8_t>(params.num_faces_r_dim_A),
+        static_cast<std::uint8_t>(params.num_faces_c_dim_A)};
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
         formats.unpack_A_src,
         formats.unpack_B_src,
@@ -41,10 +41,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
         tensor_shape.face_r_dim,
         tensor_shape.total_num_faces(),
         tensor_shape.total_num_faces(),
-        params->TILE_SIZE_UNPACK_A,
-        params->TILE_SIZE_UNPACK_B);
+        params.TILE_SIZE_UNPACK_A,
+        params.TILE_SIZE_UNPACK_B);
     _llk_unpack_AB_reduce_init_<POOL_TYPE, REDUCE_DIM>(tensor_shape);
-    for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
+    for (int i = 0; i < params.INPUT_TILE_CNT; ++i)
     {
         _llk_unpack_AB_reduce_<POOL_TYPE, REDUCE_DIM>(L1_ADDRESS(params.buffer_A[i]), L1_ADDRESS(params.buffer_B[0]));
     }
@@ -67,10 +67,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const bool is_int_fpu_en                = false;
     const bool enforce_fp32_accumulation    = false;
     const ckernel::TensorShape tensor_shape = {
-        static_cast<std::uint8_t>(params->in0_face_r_dim),
-        static_cast<std::uint8_t>(params->in0_face_c_dim),
-        static_cast<std::uint8_t>(params->num_faces_r_dim_A),
-        static_cast<std::uint8_t>(params->num_faces_c_dim_A)};
+        static_cast<std::uint8_t>(params.in0_face_r_dim),
+        static_cast<std::uint8_t>(params.in0_face_c_dim),
+        static_cast<std::uint8_t>(params.num_faces_r_dim_A),
+        static_cast<std::uint8_t>(params.num_faces_c_dim_A)};
 
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
@@ -79,7 +79,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     if (params.IS_REDUCE_TO_ONE)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        for (int i = 0; i < params->INPUT_TILE_CNT; ++i)
+        for (int i = 0; i < params.INPUT_TILE_CNT; ++i)
         {
             _llk_math_reduce_<POOL_TYPE, REDUCE_DIM, is_fp32_dest_acc_en, MATH_FIDELITY, is_int_fpu_en, enforce_fp32_accumulation>(0, tensor_shape);
         }
@@ -116,15 +116,18 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const volatile FormatConfig& formats = params.formats;
 #endif
     const ckernel::TensorShape tensor_shape = {
-        static_cast<std::uint8_t>(params->in0_face_r_dim),
-        static_cast<std::uint8_t>(params->in0_face_c_dim),
-        static_cast<std::uint8_t>(params->num_faces_r_dim_A),
-        static_cast<std::uint8_t>(params->num_faces_c_dim_A)};
+        static_cast<std::uint8_t>(params.in0_face_r_dim),
+        static_cast<std::uint8_t>(params.in0_face_c_dim),
+        static_cast<std::uint8_t>(params.num_faces_r_dim_A),
+        static_cast<std::uint8_t>(params.num_faces_c_dim_A)};
 
     const std::uint32_t tile_size = tensor_shape.total_tensor_size();
     const std::uint32_t num_faces = tensor_shape.total_num_faces();
     const bool partial_face       = tensor_shape.face_r_dim < FACE_R_DIM;
-    const bool narrow_tile        = tensor_shape.num_faces_c_dim == 1;
+
+#ifdef ARCH_WORMHOLE
+    const bool narrow_tile = tensor_shape.num_faces_c_dim == 1;
+#endif
 
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false /* untilize */, false /* tilize */>(
@@ -148,7 +151,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, false /* untilize */>(tensor_shape.face_r_dim, narrow_tile);
 #endif
 
-    int remaining_tiles = params->OUTPUT_TILE_CNT;
+    int remaining_tiles = params.OUTPUT_TILE_CNT;
     while (remaining_tiles)
     {
         int tiles_from_dest = std::min(remaining_tiles, static_cast<int>(params.NUM_TILES_IN_BLOCK));
