@@ -1498,6 +1498,19 @@ class UnarySFPUGolden:
 
         result = tensor.clone().flatten()
 
+        if input_format == DataFormat.Bfp4_b:
+            from .pack import float_to_bfp4_block
+            from .unpack import bfp4_to_float_block
+
+            flat = result.flatten()
+            quantized = []
+            for blk in range(len(flat) // 16):
+                block = flat[blk * 16 : (blk + 1) * 16]
+                shared_exp, bfp4_mantissas = float_to_bfp4_block(block)
+                block_floats = bfp4_to_float_block(shared_exp, bfp4_mantissas, {})
+                quantized.extend(block_floats)
+            result = torch.tensor(quantized, dtype=result.dtype)
+
         if not skip_tilize:
             result = tilize_block(result, dimensions, input_format).flatten()
 
@@ -1534,6 +1547,19 @@ class UnarySFPUGolden:
         if self.data_format == DataFormat.Bfp8_b:
             check_bfp8_b(result)
 
+        if self.data_format == DataFormat.Bfp4_b:
+            from .pack import float_to_bfp4_block
+            from .unpack import bfp4_to_float_block
+
+            flat = result.flatten()
+            quantized = []
+            for blk in range(len(flat) // 16):
+                block = flat[blk * 16 : (blk + 1) * 16]
+                shared_exp, bfp4_mantissas = float_to_bfp4_block(block)
+                block_floats = bfp4_to_float_block(shared_exp, bfp4_mantissas, {})
+                quantized.extend(block_floats)
+            result = torch.tensor(quantized, dtype=result.dtype)
+
         match (dst_format, data_format):
             # in the following cases, nans are preserved
             case (DataFormat.Float16, DataFormat.Float16):
@@ -1554,6 +1580,8 @@ class UnarySFPUGolden:
                 case DataFormat.Float32:
                     result = convert_inf_to_value(result, 131008.0)
                 case DataFormat.Bfp8_b:
+                    result = convert_inf_to_value(result, 130048.0)
+                case DataFormat.Bfp4_b:
                     result = convert_inf_to_value(result, 130048.0)
 
         return torch.tensor(result, dtype=format_dict[data_format])
