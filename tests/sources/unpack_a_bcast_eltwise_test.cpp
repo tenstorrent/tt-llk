@@ -31,7 +31,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_unpack_bcastA_B_init_();
 
     // Single call works on 1 tile that goes to srcA and then reuses it for 4 srcB tiles that are changeable
-    for (int i = 0; i < params.TILE_CNT / params.SRCA_REUSE_COUNT; i++)
+    for (std::uint32_t i = 0; i < params.TILE_CNT / params.SRCA_REUSE_COUNT; i++)
     {
         _llk_unpack_bcastA_B_(L1_ADDRESS(params.buffer_A[i]), L1_ADDRESS(params.buffer_B[i * params.SRCA_REUSE_COUNT]), params.SRCA_REUSE_COUNT);
     }
@@ -56,7 +56,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     _llk_math_wait_for_dest_available_<dest_sync>();
 
-    for (int i = 0; i < params.TILE_CNT / params.SRCA_REUSE_COUNT; i++)
+    for (std::uint32_t i = 0; i < params.TILE_CNT / params.SRCA_REUSE_COUNT; i++)
     {
         const std::uint32_t tile_index = i * params.SRCA_REUSE_COUNT;
         LLK_ASSERT((tile_index < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "tile_index exceeds max dest tiles");
@@ -94,7 +94,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params.TILE_CNT; i++)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; i++)
     {
         LLK_ASSERT((i < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "i exceeds max dest tiles");
         _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(params.buffer_Res[i]));

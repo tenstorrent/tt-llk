@@ -67,7 +67,7 @@ using namespace ckernel;
 
 // using namespace sfpu;
 
-void run_kernel(const volatile struct RuntimeParams*)
+void run_kernel(RUNTIME_PARAMETERS)
 {
     using DataFormatUT = std::underlying_type_t<DataFormat>;
     auto to_ufmt       = [](DataFormat fmt) constexpr { return static_cast<DataFormatUT>(fmt); };

@@ -42,10 +42,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
 #ifndef SPEED_OF_LIGHT
-    const std::uint32_t TILE_SIZE_UNPACK_A = params.TILE_SIZE_UNPACK_A;
-    const std::uint32_t TILE_SIZE_UNPACK_B = params.TILE_SIZE_UNPACK_B;
-    const std::uint32_t TILE_SIZE_PACK     = params.TILE_SIZE_PACK;
-
     const std::uint32_t LOOP_FACTOR = params.LOOP_FACTOR;
     const std::uint32_t TILE_CNT    = params.TILE_CNT;
 #endif
@@ -74,7 +70,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
         for (std::uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
         {
-            for (int i = 0; i < TILE_CNT; ++i)
+            for (std::uint32_t i = 0; i < TILE_CNT; ++i)
             {
                 _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
                     PERF_ADDRESS(PERF_INPUT_A, i), formats.unpack_A_src, formats.unpack_A_dst);
@@ -100,10 +96,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
 #ifndef SPEED_OF_LIGHT
-    const std::uint32_t TILE_SIZE_UNPACK_A = params.TILE_SIZE_UNPACK_A;
-    const std::uint32_t TILE_SIZE_UNPACK_B = params.TILE_SIZE_UNPACK_B;
-    const std::uint32_t TILE_SIZE_PACK     = params.TILE_SIZE_PACK;
-
     const std::uint32_t LOOP_FACTOR = params.LOOP_FACTOR;
     const std::uint32_t TILE_CNT    = params.TILE_CNT;
 #endif
@@ -195,10 +187,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
 #ifndef SPEED_OF_LIGHT
-    const std::uint32_t TILE_SIZE_UNPACK_A = params.TILE_SIZE_UNPACK_A;
-    const std::uint32_t TILE_SIZE_UNPACK_B = params.TILE_SIZE_UNPACK_B;
-    const std::uint32_t TILE_SIZE_PACK     = params.TILE_SIZE_PACK;
-
     const std::uint32_t LOOP_FACTOR = params.LOOP_FACTOR;
     const std::uint32_t TILE_CNT    = params.TILE_CNT;
 #endif

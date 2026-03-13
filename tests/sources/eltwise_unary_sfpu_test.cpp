@@ -34,7 +34,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_unpack_A_init_<BroadcastType::NONE, false /* is_fp32_dest_acc_en - why true does not work? */, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0 /* transpose_of_faces */, 0 /* within_face_16x16_transpose */, FACE_R_DIM, TILE_NUM_FACES, formats.unpack_A_src, formats.unpack_A_dst);
 
-    for (int i = 0; i < params.NUM_BLOCKS * params.NUM_TILES_IN_BLOCK; ++i)
+    for (std::uint32_t i = 0; i < params.NUM_BLOCKS * params.NUM_TILES_IN_BLOCK; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false /* is_fp32_dest_acc_en - why true does not work? */, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(params.buffer_A[i]), formats.unpack_A_src, formats.unpack_A_dst);
@@ -79,7 +79,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     for (int block_start = 0; block_start < params.NUM_BLOCKS; block_start++)
     {
         _llk_math_wait_for_dest_available_<DST_SYNC>();
-        for (int block_tile = 0; block_tile < params.NUM_TILES_IN_BLOCK; ++block_tile)
+        for (std::uint32_t block_tile = 0; block_tile < params.NUM_TILES_IN_BLOCK; ++block_tile)
         {
             _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DST_SYNC, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
                 block_tile, formats.math, formats.math);
@@ -126,7 +126,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     for (int block_start = 0; block_start < params.NUM_BLOCKS; block_start++)
     {
         _llk_packer_wait_for_math_done_();
-        for (int block_tile = 0; block_tile < params.NUM_TILES_IN_BLOCK; ++block_tile)
+        for (std::uint32_t block_tile = 0; block_tile < params.NUM_TILES_IN_BLOCK; ++block_tile)
         {
             _llk_pack_<DST_SYNC, is_fp32_dest_acc_en, /* untilize */ false>(
                 block_tile, L1_ADDRESS(params.buffer_Res[block_start * params.NUM_TILES_IN_BLOCK + block_tile]));

@@ -81,7 +81,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     TileShape tile_shape = {.num_faces = params.num_faces, .face_r_dim = params.TEST_FACE_R_DIM, .face_c_dim = params.TEST_FACE_C_DIM, .narrow_tile = false};
     _llk_math_eltwise_binary_broadcast_init_<ELTWISE_BINARY_OP, BROADCAST_TYPE, MATH_FIDELITY>(tile_shape);
 
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         _llk_math_eltwise_binary_broadcast_(i);
     }

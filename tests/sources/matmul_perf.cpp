@@ -35,10 +35,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const std::uint32_t LOOP_FACTOR        = params.LOOP_FACTOR;
     const std::uint32_t TILE_SIZE_UNPACK_A = params.TILE_SIZE_UNPACK_A;
     const std::uint32_t TILE_SIZE_UNPACK_B = params.TILE_SIZE_UNPACK_B;
-    const std::uint32_t TILE_SIZE_PACK     = params.TILE_SIZE_PACK;
-    const int num_faces                    = params.num_faces;
-    const int num_faces_A                  = params.num_faces_A;
-    const int num_faces_B                  = params.num_faces_B;
+    const std::uint32_t num_faces_A        = params.num_faces_A;
+    const std::uint32_t num_faces_B        = params.num_faces_B;
 
     std::uint32_t CT_DIM              = params.CT_DIM;
     std::uint32_t RT_DIM              = params.RT_DIM;
@@ -111,18 +109,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
 #ifndef SPEED_OF_LIGHT
-    const std::uint32_t LOOP_FACTOR        = params.LOOP_FACTOR;
-    const std::uint32_t TILE_SIZE_UNPACK_A = params.TILE_SIZE_UNPACK_A;
-    const std::uint32_t TILE_SIZE_UNPACK_B = params.TILE_SIZE_UNPACK_B;
-    const std::uint32_t TILE_SIZE_PACK     = params.TILE_SIZE_PACK;
-    const int num_faces                    = params.num_faces;
-    const int num_faces_A                  = params.num_faces_A;
-    const int num_faces_B                  = params.num_faces_B;
-
-    std::uint32_t CT_DIM              = params.CT_DIM;
-    std::uint32_t RT_DIM              = params.RT_DIM;
-    std::uint32_t KT_DIM              = params.KT_DIM;
-    const bool UNPACK_TRANSPOSE_FACES = params.UNPACK_TRANSPOSE_FACES;
+    const std::uint32_t LOOP_FACTOR = params.LOOP_FACTOR;
+    std::uint32_t CT_DIM            = params.CT_DIM;
+    std::uint32_t RT_DIM            = params.RT_DIM;
+    std::uint32_t KT_DIM            = params.KT_DIM;
 #endif
 
     {
@@ -201,18 +191,9 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
 #ifndef SPEED_OF_LIGHT
-    const std::uint32_t LOOP_FACTOR        = params.LOOP_FACTOR;
-    const std::uint32_t TILE_SIZE_UNPACK_A = params.TILE_SIZE_UNPACK_A;
-    const std::uint32_t TILE_SIZE_UNPACK_B = params.TILE_SIZE_UNPACK_B;
-    const std::uint32_t TILE_SIZE_PACK     = params.TILE_SIZE_PACK;
-    const int num_faces                    = params.num_faces;
-    const int num_faces_A                  = params.num_faces_A;
-    const int num_faces_B                  = params.num_faces_B;
-
-    std::uint32_t CT_DIM              = params.CT_DIM;
-    std::uint32_t RT_DIM              = params.RT_DIM;
-    std::uint32_t KT_DIM              = params.KT_DIM;
-    const bool UNPACK_TRANSPOSE_FACES = params.UNPACK_TRANSPOSE_FACES;
+    const std::uint32_t LOOP_FACTOR = params.LOOP_FACTOR;
+    std::uint32_t CT_DIM            = params.CT_DIM;
+    std::uint32_t RT_DIM            = params.RT_DIM;
 #endif
 
     {

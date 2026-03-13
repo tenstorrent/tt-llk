@@ -140,7 +140,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en, false>();
 #endif
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params.TILE_CNT; i++)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; i++)
     {
         LLK_ASSERT((i < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "i exceeds max dest tiles");
         _llk_pack_<dest_sync, is_fp32_dest_acc_en, false>(params.DST_INDEX + i, L1_ADDRESS(params.buffer_Res[i]));

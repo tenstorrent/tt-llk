@@ -57,7 +57,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _configure_buf_desc_table_(td_val_B.buf_desc_id, td_val_B.buf_desc);
     _llk_unpack_configure_binary_<p_unpacr::UNP_A, p_unpacr::UNP_B>(td_val_A, td_val_B);
     _llk_unpack_reduce_init_<REDUCE_DIM>(buf_desc_id_a, buf_desc_id_b, tile_shape_A, 1 /*num_tiles_per_unpack*/);
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         _llk_unpack_reduce_(i, 0);
     }
@@ -87,7 +87,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, false /* int32 dest */>(src_format, src_format);
 
     _llk_math_reduce_init_<POOL_TYPE, REDUCE_DIM, MATH_FIDELITY>(tile_shape_A);
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         _llk_math_reduce_(i);
     }
@@ -128,7 +128,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_hw_configure_<p_pacr::PACK0>(tdma_desc);
     _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, 1 /*num_tiles_per_pack*/);
     _llk_pack_reduce_mask_config_<REDUCE_DIM>();
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         _llk_pack_<p_pacr::PACK0>(i, i);
     }

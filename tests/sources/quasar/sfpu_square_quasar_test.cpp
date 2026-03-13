@@ -105,7 +105,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     DataFormat src_format = static_cast<DataFormat>(formats.math);
     _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, is_int_fpu_en>(src_format, src_format);
 
-    const int num_sfpu_iterations = params.TEST_FACE_R_DIM / ckernel::math::SFP_ROWS;
+    const std::uint32_t num_sfpu_iterations = params.TEST_FACE_R_DIM / ckernel::math::SFP_ROWS;
 
     if (!unpack_to_dest)
     {
@@ -113,7 +113,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
         _llk_math_eltwise_unary_datacopy_init_<DATA_COPY_TYPE, is_fp32_dest_acc_en>(num_rows, 1);
 
         // Datacopy all tiles from SRC to DEST
-        for (int i = 0; i < params.TILE_CNT; ++i)
+        for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
         {
             _llk_math_eltwise_unary_datacopy_(num_rows, i);
         }
@@ -124,7 +124,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_math_eltwise_unary_sfpu_init_();
 
     // Apply SFPU square to all tiles
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         _llk_math_eltwise_unary_sfpu_params_<false>(ckernel::sfpu::_calculate_square_, i, num_sfpu_iterations);
     }

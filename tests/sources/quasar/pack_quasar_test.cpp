@@ -118,7 +118,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
         _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en>(
             params.num_faces * params.TEST_FACE_R_DIM /*num_rows_per_matrix*/, 1 /*num_matrices*/);
-        for (int i = 0; i < params.TILE_CNT; ++i)
+        for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
         {
             _llk_math_eltwise_unary_datacopy_(params.num_faces * params.TEST_FACE_R_DIM /*num_rows_per_tile*/, i);
         }

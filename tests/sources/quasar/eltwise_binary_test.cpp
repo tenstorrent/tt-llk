@@ -65,7 +65,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_unpack_binary_operands_init_(buf_desc_id_a, buf_desc_id_b, 1);
 
     // Unpack all tiles for both operands
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         _llk_unpack_binary_operands_(i, i);
     }
@@ -104,7 +104,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, MATH_FIDELITY>(tile_shape);
 
     // Perform eltwise binary operation for each tile
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         _llk_math_eltwise_binary_(i);
     }
@@ -152,7 +152,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_init_<p_pacr::PACK0>(buf_desc_id, 1);
 
     // Pack all result tiles
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         _llk_pack_<p_pacr::PACK0>(i, i);
     }

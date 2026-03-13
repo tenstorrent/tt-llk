@@ -33,16 +33,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
 #ifndef SPEED_OF_LIGHT
-    const std::uint32_t TILE_SIZE_UNPACK_A = params.TILE_SIZE_UNPACK_A;
-    const std::uint32_t TILE_SIZE_UNPACK_B = params.TILE_SIZE_UNPACK_B;
-    const std::uint32_t TILE_SIZE_PACK     = params.TILE_SIZE_PACK;
-    const int num_faces                    = params.num_faces;
-    const int num_faces_A                  = params.num_faces_A;
-    const int num_faces_B                  = params.num_faces_B;
-
     const std::uint32_t TILE_CNT = params.TILE_CNT;
-    const int DST_INDEX          = params.DST_INDEX;
-    const int L1_ACC             = params.L1_ACC;
 #endif
     {
         ZONE_SCOPED("INIT")
@@ -112,17 +103,9 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
 #ifndef SPEED_OF_LIGHT
-    const std::uint32_t TILE_SIZE_UNPACK_A = params.TILE_SIZE_UNPACK_A;
-    const std::uint32_t TILE_SIZE_UNPACK_B = params.TILE_SIZE_UNPACK_B;
-    const std::uint32_t TILE_SIZE_PACK     = params.TILE_SIZE_PACK;
-    const int num_faces                    = params.num_faces;
-    const int num_faces_A                  = params.num_faces_A;
-    const int num_faces_B                  = params.num_faces_B;
-
     const std::uint32_t TILE_CNT = params.TILE_CNT;
-    const int DST_INDEX          = params.DST_INDEX;
-    const int L1_ACC             = params.L1_ACC;
 #endif
+
     {
         ZONE_SCOPED("INIT")
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -214,15 +197,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
 #ifndef SPEED_OF_LIGHT
-    const std::uint32_t TILE_SIZE_UNPACK_A = params.TILE_SIZE_UNPACK_A;
-    const std::uint32_t TILE_SIZE_UNPACK_B = params.TILE_SIZE_UNPACK_B;
-    const std::uint32_t TILE_SIZE_PACK     = params.TILE_SIZE_PACK;
-    const int num_faces                    = params.num_faces;
-    const int num_faces_A                  = params.num_faces_A;
-    const int num_faces_B                  = params.num_faces_B;
-
+    const int num_faces          = params.num_faces;
     const std::uint32_t TILE_CNT = params.TILE_CNT;
-    const int DST_INDEX          = params.DST_INDEX;
     const int L1_ACC             = params.L1_ACC;
 #endif
     {
@@ -248,7 +224,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
         }
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
-            for (int loop = 0; loop < LOOP_FACTOR; ++loop)
+            for (std::uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
                 for (std::uint32_t tile = 0; tile < TILE_CNT; tile++)
                 {
@@ -260,7 +236,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
         }
         else
         {
-            for (int loop = 0; loop < LOOP_FACTOR; ++loop)
+            for (std::uint32_t loop = 0; loop < LOOP_FACTOR; ++loop)
             {
                 for (std::uint32_t block_start = 0; block_start < TILE_CNT; block_start += MAX_TILES_DEST)
                 {

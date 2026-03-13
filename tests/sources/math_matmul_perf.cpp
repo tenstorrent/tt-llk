@@ -32,25 +32,17 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
 #ifndef SPEED_OF_LIGHT
-    const int in0_tile_r_dim = params.in0_tile_r_dim;
-    const int in0_tile_c_dim = params.in0_tile_c_dim;
-    const int in1_tile_r_dim = params.in1_tile_r_dim;
-    const int in1_tile_c_dim = params.in1_tile_c_dim;
+    const std::uint32_t in0_tile_r_dim = params.in0_tile_r_dim;
+    const std::uint32_t in1_tile_r_dim = params.in1_tile_r_dim;
 
-    const bool PARTIAL_FACE_A    = params.PARTIAL_FACE_A;
-    const bool PARTIAL_FACE_PACK = params.PARTIAL_FACE_PACK;
-    const bool PARTIAL_FACE_B    = params.PARTIAL_FACE_B;
-    const bool PARTIAL_FACE_MATH = params.PARTIAL_FACE_MATH;
+    const bool PARTIAL_FACE_A = params.PARTIAL_FACE_A;
+    const bool PARTIAL_FACE_B = params.PARTIAL_FACE_B;
 
     const std::uint32_t LOOP_FACTOR        = params.LOOP_FACTOR;
     const std::uint32_t TILE_SIZE_UNPACK_A = params.TILE_SIZE_UNPACK_A;
     const std::uint32_t TILE_SIZE_UNPACK_B = params.TILE_SIZE_UNPACK_B;
-    const std::uint32_t TILE_SIZE_PACK     = params.TILE_SIZE_PACK;
-    const int num_faces                    = params.num_faces;
-    const int num_faces_A                  = params.num_faces_A;
-    const int num_faces_B                  = params.num_faces_B;
-
-    const int DST_INDEX = params.DST_INDEX;
+    const std::uint32_t num_faces_A        = params.num_faces_A;
+    const std::uint32_t num_faces_B        = params.num_faces_B;
 
     const std::uint32_t CT_DIM        = params.CT_DIM;
     const std::uint32_t RT_DIM        = params.RT_DIM;
@@ -135,32 +127,20 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
 #ifndef SPEED_OF_LIGHT
-    const int in0_tile_r_dim = params.in0_tile_r_dim;
-    const int in0_tile_c_dim = params.in0_tile_c_dim;
-    const int in1_tile_r_dim = params.in1_tile_r_dim;
-    const int in1_tile_c_dim = params.in1_tile_c_dim;
+    const std::uint32_t in0_tile_r_dim = params.in0_tile_r_dim;
+    const std::uint32_t in0_tile_c_dim = params.in0_tile_c_dim;
+    const std::uint32_t in1_tile_r_dim = params.in1_tile_r_dim;
+    const std::uint32_t in1_tile_c_dim = params.in1_tile_c_dim;
 
-    const bool PARTIAL_FACE_A    = params.PARTIAL_FACE_A;
-    const bool PARTIAL_FACE_PACK = params.PARTIAL_FACE_PACK;
-    const bool PARTIAL_FACE_B    = params.PARTIAL_FACE_B;
     const bool PARTIAL_FACE_MATH = params.PARTIAL_FACE_MATH;
 
-    const std::uint32_t LOOP_FACTOR        = params.LOOP_FACTOR;
-    const std::uint32_t TILE_SIZE_UNPACK_A = params.TILE_SIZE_UNPACK_A;
-    const std::uint32_t TILE_SIZE_UNPACK_B = params.TILE_SIZE_UNPACK_B;
-    const std::uint32_t TILE_SIZE_PACK     = params.TILE_SIZE_PACK;
-    const int num_faces                    = params.num_faces;
-    const int num_faces_A                  = params.num_faces_A;
-    const int num_faces_B                  = params.num_faces_B;
-
-    const int DST_INDEX = params.DST_INDEX;
+    const std::uint32_t LOOP_FACTOR = params.LOOP_FACTOR;
+    const int DST_INDEX             = params.DST_INDEX;
 
     const std::uint32_t CT_DIM        = params.CT_DIM;
     const std::uint32_t RT_DIM        = params.RT_DIM;
     const std::uint32_t KT_DIM        = params.KT_DIM;
     const bool UNPACK_TRANSPOSE_FACES = params.UNPACK_TRANSPOSE_FACES;
-    const Operand& buffer_A           = params.buffer_A;
-    const Operand& buffer_B           = params.buffer_B;
 #endif
 
     {
@@ -223,30 +203,14 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
 #ifndef SPEED_OF_LIGHT
-    const int in0_tile_r_dim = params.in0_tile_r_dim;
-    const int in0_tile_c_dim = params.in0_tile_c_dim;
-    const int in1_tile_r_dim = params.in1_tile_r_dim;
-    const int in1_tile_c_dim = params.in1_tile_c_dim;
-
-    const bool PARTIAL_FACE_A    = params.PARTIAL_FACE_A;
-    const bool PARTIAL_FACE_PACK = params.PARTIAL_FACE_PACK;
-    const bool PARTIAL_FACE_B    = params.PARTIAL_FACE_B;
-    const bool PARTIAL_FACE_MATH = params.PARTIAL_FACE_MATH;
-
-    const std::uint32_t LOOP_FACTOR        = params.LOOP_FACTOR;
-    const std::uint32_t TILE_SIZE_UNPACK_A = params.TILE_SIZE_UNPACK_A;
-    const std::uint32_t TILE_SIZE_UNPACK_B = params.TILE_SIZE_UNPACK_B;
-    const std::uint32_t TILE_SIZE_PACK     = params.TILE_SIZE_PACK;
-    const int num_faces                    = params.num_faces;
-    const int num_faces_A                  = params.num_faces_A;
-    const int num_faces_B                  = params.num_faces_B;
-
-    const int DST_INDEX = params.DST_INDEX;
-
-    const std::uint32_t CT_DIM        = params.CT_DIM;
-    const std::uint32_t RT_DIM        = params.RT_DIM;
-    const std::uint32_t KT_DIM        = params.KT_DIM;
-    const bool UNPACK_TRANSPOSE_FACES = params.UNPACK_TRANSPOSE_FACES;
+    const std::uint32_t in0_tile_r_dim = params.in0_tile_r_dim;
+    const bool PARTIAL_FACE_PACK       = params.PARTIAL_FACE_PACK;
+    const std::uint32_t LOOP_FACTOR    = params.LOOP_FACTOR;
+    const std::uint32_t TILE_SIZE_PACK = params.TILE_SIZE_PACK;
+    const int num_faces                = params.num_faces;
+    const int DST_INDEX                = params.DST_INDEX;
+    const std::uint32_t CT_DIM         = params.CT_DIM;
+    const std::uint32_t RT_DIM         = params.RT_DIM;
 #endif
 
     {

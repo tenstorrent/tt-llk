@@ -29,12 +29,12 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         params.UNPACK_TRANSPOSE_FACES, 0, FACE_R_DIM, params.num_faces, formats.unpack_A_src, formats.unpack_A_dst);
 
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(params.buffer_A[i]), formats.unpack_A_src, formats.unpack_A_dst);
     }
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         _llk_unpack_set_srcb_dummy_valid_();
     }
@@ -67,7 +67,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         LLK_ASSERT(
             (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
@@ -82,7 +82,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     _llk_math_transpose_dest_init_<MATH_TRANSPOSE_FACES, is32>();
 
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         LLK_ASSERT(
             (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
@@ -118,7 +118,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         LLK_ASSERT(
             (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
