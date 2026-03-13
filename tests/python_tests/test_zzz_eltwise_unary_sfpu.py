@@ -81,7 +81,7 @@ FORMATS = input_output_formats(
     [
         # DataFormat.Float32,
         # DataFormat.Float16,
-        # DataFormat.Float16_b,
+        DataFormat.Float16_b,
         DataFormat.Bfp8_b,
         DataFormat.Bfp4_b,
     ]
@@ -270,6 +270,8 @@ def eltwise_unary_sfpu(
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
     )
+
+    print(f"\n=== Stimuli (src_A) ===\n{src_A}\n")
 
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
