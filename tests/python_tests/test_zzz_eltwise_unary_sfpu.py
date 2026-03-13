@@ -83,7 +83,7 @@ FORMATS = input_output_formats(
         # DataFormat.Float32,
         # DataFormat.Float16,
         # DataFormat.Float16_b,
-        # DataFormat.Bfp8_b,
+        DataFormat.Bfp8_b,
         DataFormat.Bfp4_b,
     ]
 )
@@ -198,7 +198,7 @@ def test_eltwise_unary_sfpu_float(
     ):
         pytest.skip(reason="Float16 to Bfp4_b with dest_acc=No is not supported")
 
-    if formats.input_format == DataFormat.Bfp4_b and mathop in [
+    if formats.output_format == DataFormat.Bfp4_b and mathop in [
         MathOperation.Atanh,
         MathOperation.Acosh,
     ]:
