@@ -35,6 +35,7 @@ tolerances = {
     DataFormat.Bfp8_b: Tolerance(atol=0.1, rtol=0.2),
     DataFormat.MxFp8R: Tolerance(atol=0.2, rtol=0.3),
     DataFormat.MxFp8P: Tolerance(atol=0.2, rtol=0.3),
+    DataFormat.Fp8_e4m3: Tolerance(atol=0.2, rtol=0.2),
 }
 
 
@@ -261,11 +262,7 @@ def passed_test(
                             row_values.append(
                                 f"{colour}{tile_data[row, col]:7.2f}{RESET}{' ' if col == tile_shape.face_c_dim - 1 else '' }"
                             )
-
                         tile_lines.append(f"{(row+1):02d}. {''.join(row_values)}")
-
-                        if row == (tile_shape.face_r_dim - 1):
-                            tile_lines.append("")
                     return tile_lines
 
                 formatted_error = []
