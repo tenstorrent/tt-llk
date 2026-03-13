@@ -16,7 +16,7 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 #ifdef LLK_TRISC_UNPACK
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     std::int32_t* A = reinterpret_cast<std::int32_t*>(params.buffer_A[0]);
     std::int32_t* B = reinterpret_cast<std::int32_t*>(params.buffer_B[0]);
@@ -29,7 +29,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 #ifdef LLK_TRISC_MATH
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     std::int32_t* A = reinterpret_cast<std::int32_t*>(params.buffer_A[1]);
     std::int32_t* B = reinterpret_cast<std::int32_t*>(params.buffer_B[1]);
@@ -42,7 +42,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
 #ifdef LLK_TRISC_PACK
 
-void run_kernel(const volatile struct RuntimeParams* params)
+void run_kernel(RUNTIME_PARAMETERS params)
 {
     std::int32_t* A = reinterpret_cast<std::int32_t*>(params.buffer_A[2]);
     std::int32_t* B = reinterpret_cast<std::int32_t*>(params.buffer_B[2]);
