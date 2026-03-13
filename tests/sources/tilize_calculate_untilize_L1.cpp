@@ -44,7 +44,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #ifdef ARCH_BLACKHOLE
     const std::uint32_t block_ct_dim = 0;
 #else
-    const std::uint32_t block_ct_dim = BLOCK_CT_DIM;
+    const std::uint32_t block_ct_dim = params->BLOCK_CT_DIM;
 #endif
 
     const int num_blocks         = params->NUM_BLOCKS;
