@@ -1667,12 +1667,14 @@ class UnarySFPUGolden:
             return self.handle_infinite_numbers(float("nan"))
         if x == 0.0:
             return self.handle_infinite_numbers(float("inf"))
-        return 1 / math.sqrt(x)
+        val = torch.tensor(x, dtype=torch.float32)
+        return torch.rsqrt(val).item()
 
     def _sqrt(self, x):
         if x < 0.0:
             return math.nan
-        return math.sqrt(x)
+        val = torch.tensor(x, dtype=torch.float32)
+        return torch.sqrt(val).item()
 
     def _tanh(self, x):
         return math.tanh(x)
@@ -1746,9 +1748,7 @@ class UnarySFPUGolden:
 
     def _hardsigmoid(self, x):
         input_tensor = (
-            x
-            if isinstance(x, torch.Tensor)
-            else torch.tensor(x, dtype=format_dict[self.data_format])
+            x if isinstance(x, torch.Tensor) else torch.tensor(x, dtype=torch.float32)
         )
         return torch.nn.functional.hardsigmoid(input_tensor).item()
 

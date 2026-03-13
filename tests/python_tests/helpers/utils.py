@@ -187,15 +187,16 @@ def calculate_pcc(golden, input):
 
 
 def _bfp4_block_aware_compare(
-    golden: torch.Tensor, result: torch.Tensor
+    golden: torch.Tensor, result: torch.Tensor, max_ulp_diff: int = 2
 ) -> torch.Tensor:
-    """Compare two BFP4_b tensors allowing 1-ULP difference per 16-element block.
+    """Compare two BFP4_b tensors allowing small ULP differences per 16-element block.
 
     BFP4_b shares an exponent across each 16-element block, so the ULP size
-    depends on the block's max magnitude.  When the golden and hardware compute
-    an SFPU operation at different intermediate precisions (bfloat16 vs FP32),
-    values on a quantization boundary can land one step apart.  This function
-    tolerates exactly that: |result - golden| <= 1 BFP4 ULP for the block.
+    depends on the block's max magnitude.  The SFPU hardware computes in FP32
+    with internal approximations (e.g. Newton-Raphson for rsqrt) that can
+    differ slightly from the golden model.  After Bfp4 quantization (3-bit
+    mantissa), these small intermediate differences can shift a value by up
+    to ``max_ulp_diff`` quantization steps.
     """
     BLOCK = 16
     BFP4_MANTISSA_BITS = 3
@@ -230,7 +231,7 @@ def _bfp4_block_aware_compare(
         one_ulp = 2.0 ** (block_exp - BFP4_MANTISSA_BITS + 1)
 
         diff = (g_blk - r_blk).abs()
-        is_valid[blk_start:blk_end] = (diff <= one_ulp) | both_nan
+        is_valid[blk_start:blk_end] = (diff <= max_ulp_diff * one_ulp) | both_nan
 
     return is_valid
 
