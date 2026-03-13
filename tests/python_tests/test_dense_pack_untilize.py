@@ -73,7 +73,7 @@ def print_stimuli_and_golden(src_A, golden, input_dimensions, r_dim):
 @parametrize(
     formats=input_output_formats([DataFormat.Float16_b]),
     dest_acc=[DestAccumulation.No],
-    input_dimensions=[[32, 32], [32, 64], [32, 128], [32, 256]],
+    input_dimensions=[[32, 32], [32, 64], [32, 128], [32, 256], [64, 256]],
     r_dim=[1, 2, 4, 8, 16],
     dest_sync=[DestSync.Half],
 )

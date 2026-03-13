@@ -136,5 +136,5 @@ def test_tilize_calculate_untilize_L1(
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
     assert passed_test(
-        golden_tensor, res_tensor, formats.output_format, print_erros=False
+        golden_tensor, res_tensor, formats.output_format
     ), "Test failed: Result does not match golden tensor"

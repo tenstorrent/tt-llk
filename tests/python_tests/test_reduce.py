@@ -8,7 +8,6 @@ import torch
 from helpers.format_config import DataFormat, is_dest_acc_needed
 from helpers.golden_generators import ReduceGolden, get_golden_generator
 from helpers.llk_params import (
-    BlocksCalculationAlgorithm,
     DestAccumulation,
     DestSync,
     MathFidelity,
@@ -142,7 +141,6 @@ def test_reduce(
         formats,
         input_dimensions,
         tile_dimensions,
-        BlocksCalculationAlgorithm.Standard,
     )
 
     configuration = TestConfig(
