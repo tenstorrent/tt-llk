@@ -165,38 +165,47 @@ def pack_bfp8_b(tensor, block_size=16, num_faces=4, face_r_dim=16):
 
 
 def float_to_bfp4_block(block):
-    def bfloat16_to_binary(value):
-        float_value = struct.unpack("<I", struct.pack("<f", value))[0]
-        bfloat16_value = (float_value & 0xFFFF0000) >> 16
-        return f"{(bfloat16_value >> 8) & 0xFF:08b}{bfloat16_value & 0xFF:08b}"
+    """Quantize a 16-element block to BFP4_b (shared exponent + 4-bit sign-magnitude per element).
 
+    Uses the full FP32 mantissa (23 bits + implicit leading 1) so that the
+    shift-then-truncate behaviour matches the hardware packer, which operates
+    on full-precision values from the dest register.
+    """
     exponents = []
-    mantissas = []
+    mantissas_full = []
     signs = []
-    max_exponent = -float("inf")
+    max_exponent = 0
 
     for value in block:
-        binary_str = bfloat16_to_binary(value)
-        sign = binary_str[0]
-        signs.append(int(sign, 2))
-        exponent = int(binary_str[1:9], 2)
-        mantissa = binary_str[9:11]
-        mantissa = "1" + mantissa
-        exponents.append(exponent)
-        mantissas.append(mantissa)
-        max_exponent = max(max_exponent, exponent)
+        float_val = float(value)
+        if float_val == 0.0:
+            signs.append(0)
+            exponents.append(0)
+            mantissas_full.append(0)
+        else:
+            fp32_bits = struct.unpack("<I", struct.pack("<f", float_val))[0]
+            sign = (fp32_bits >> 31) & 1
+            exponent = (fp32_bits >> 23) & 0xFF
+            raw_mantissa = fp32_bits & 0x7FFFFF
+            mantissa_with_implicit = (1 << 23) | raw_mantissa
+            signs.append(sign)
+            exponents.append(exponent)
+            mantissas_full.append(mantissa_with_implicit)
+            max_exponent = max(max_exponent, exponent)
 
     shared_exponent = max_exponent
 
-    mantissas_explicit = [int(mantissa, 2) for mantissa in mantissas]
-
     bfp4_mantissas = []
     for i in range(len(block)):
-        exponent_delta = shared_exponent - exponents[i]
-        mantissa = mantissas_explicit[i] >> exponent_delta
-        mantissa = mantissa & 0x7
-        mantissa = (signs[i] << 3) | mantissa
-        bfp4_mantissas.append(mantissa)
+        if float(block[i]) == 0.0:
+            bfp4_mantissas.append(0)
+        else:
+            exponent_delta = shared_exponent - exponents[i]
+            shifted = mantissas_full[i] >> exponent_delta
+            # Truncate to 3 magnitude bits (the top 3 bits of the shifted 24-bit mantissa)
+            # The implicit 1 is at bit 23; after shift, the top 3 data bits are at [23:21]
+            truncated = (shifted >> 21) & 0x7
+            bfp4_mantissas.append((signs[i] << 3) | truncated)
 
     return shared_exponent, bfp4_mantissas
 
@@ -242,8 +251,8 @@ def pack_bfp4_b(tensor, block_size=16, num_faces=4, face_r_dim=16):
 
     packed_mantissas = []
     for i in range(0, len(all_mantissas), 2):
-        high = all_mantissas[i]
-        low = all_mantissas[i + 1] if (i + 1) < len(all_mantissas) else 0
+        low = all_mantissas[i]
+        high = all_mantissas[i + 1] if (i + 1) < len(all_mantissas) else 0
         packed_mantissas.append((high << 4) | low)
 
     result = exponents + packed_mantissas

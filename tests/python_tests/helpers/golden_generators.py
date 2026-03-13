@@ -1104,9 +1104,7 @@ class DataCopyGolden:
 
         # When the input format is Bfp4_b the hardware unpacker reads already-quantized
         # values (shared exponent + 3-bit mantissa per element). Simulate the
-        # full pack→unpack round-trip including the nibble swap: the packer stores
-        # even elements in the high nibble and odd in the low nibble, but the
-        # unpacker reads low nibble first, swapping each adjacent pair.
+        # full pack→unpack round-trip so quantization loss is reflected in the golden.
         if input_format == DataFormat.Bfp4_b:
             from .pack import float_to_bfp4_block
             from .unpack import bfp4_to_float_block
@@ -1117,13 +1115,7 @@ class DataCopyGolden:
                 block = flat[blk * 16 : (blk + 1) * 16]
                 shared_exp, bfp4_mantissas = float_to_bfp4_block(block)
                 block_floats = bfp4_to_float_block(shared_exp, bfp4_mantissas, {})
-                for i in range(0, len(block_floats), 2):
-                    quantized.append(
-                        block_floats[i + 1]
-                        if i + 1 < len(block_floats)
-                        else block_floats[i]
-                    )
-                    quantized.append(block_floats[i])
+                quantized.extend(block_floats)
             operand1 = torch.tensor(quantized, dtype=operand1.dtype)
 
         # Determine actual tile size from input:

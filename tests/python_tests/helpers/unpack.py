@@ -144,6 +144,13 @@ def bfp4_to_float_block(exponent, bfp4_mantissas, unpacked_bfp4):
     exponent = exponent - 127
 
     for mantissa in bfp4_mantissas:
+        # Zero mantissa (magnitude bits all zero) always decodes as 0.0
+        # regardless of exponent, matching hardware behaviour.
+        if (mantissa & 0x7) == 0:
+            bfloat16_values.append(0.0)
+            unpacked_bfp4[(exponent, mantissa)] = 0.0
+            continue
+
         if (exponent, mantissa) in unpacked_bfp4:
             bfloat16_values.append(unpacked_bfp4[(exponent, mantissa)])
             continue
