@@ -519,17 +519,12 @@ class PARTIAL_FACE(RuntimeParameter):
     partial_face_math: bool = False
 
     def convert_to_cpp(self) -> str:
-        lines: list[str] = []
-
-        lines.append(f"constexpr bool PARTIAL_FACE_A = {str(self.partial_a).lower()};")
-        lines.append(
-            f"constexpr bool PARTIAL_FACE_PACK = {str(self.partial_face_pack).lower()};"
-        )
-
-        lines.append(f"constexpr bool PARTIAL_FACE_B = {str(self.partial_b).lower()};")
-        lines.append(
-            f"constexpr bool PARTIAL_FACE_MATH = {str(self.partial_face_math).lower()};"
-        )
+        lines: list[str] = [
+            f"constexpr bool PARTIAL_FACE_A = {str(self.partial_a).lower()};",
+            f"constexpr bool PARTIAL_FACE_PACK = {str(self.partial_face_pack).lower()};",
+            f"constexpr bool PARTIAL_FACE_B = {str(self.partial_b).lower()};",
+            f"constexpr bool PARTIAL_FACE_MATH = {str(self.partial_face_math).lower()};",
+        ]
 
         return "\n".join(lines)
 
@@ -634,16 +629,8 @@ class NUM_FACES(RuntimeParameter):
     def convert_to_cpp(self) -> str:
         lines: list[str] = [
             f"constexpr int num_faces = {self.num_faces};",
-            (
-                f"constexpr int num_faces_A = {self.num_faces_A};"
-                if self.num_faces_A
-                else ""
-            ),
-            (
-                f"constexpr int num_faces_B = {self.num_faces_B};"
-                if self.num_faces_B
-                else ""
-            ),
+            f"constexpr int num_faces_A = {self.num_faces_A};",
+            f"constexpr int num_faces_B = {self.num_faces_B};",
         ]
         return "\n".join(lines)
 
@@ -765,10 +752,10 @@ class IN_TILE_DIMS(RuntimeParameter):
 
     def convert_to_cpp(self) -> str:
         lines: list[str] = [
-            f"constexpr int in0_tile_r_dim = {self.in0_r_dim};",
-            f"constexpr int in0_tile_c_dim = {self.in0_c_dim};",
-            f"constexpr int in1_tile_r_dim = {self.in1_r_dim};",
-            f"constexpr int in1_tile_c_dim = {self.in1_c_dim};",
+            f"const int in0_tile_r_dim = {self.in0_r_dim};",
+            f"const int in0_tile_c_dim = {self.in0_c_dim};",
+            f"const int in1_tile_r_dim = {self.in1_r_dim};",
+            f"const int in1_tile_c_dim = {self.in1_c_dim};",
         ]
         return "\n".join(lines)
 

@@ -9,6 +9,7 @@
 #include "ckernel.h"
 #include "llk_defs.h"
 #include "llk_memory_checks.h"
+#include "params.h"
 
 // Globals
 std::uint32_t unp_cfg_context          = 0;
@@ -19,11 +20,10 @@ std::uint32_t math_sync_tile_dst_index = 0;
 
 #include "llk_unpack_AB_matmul.h"
 #include "llk_unpack_common.h"
-#include "params.h"
 
 void run_kernel(RUNTIME_PARAMETERS params)
 {
-#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+#ifdef RUNTIME_FORMATS
     const FormatConfig& formats = params.formats;
 #endif
 
@@ -62,11 +62,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
 #include "llk_math_common.h"
 #include "llk_math_matmul.h"
-#include "params.h"
 
 void run_kernel(RUNTIME_PARAMETERS params)
 {
-#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+#ifdef RUNTIME_FORMATS
     const FormatConfig& formats = params.formats;
 #endif
 
@@ -93,11 +92,10 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
 #include "llk_pack.h"
 #include "llk_pack_common.h"
-#include "params.h"
 
 void run_kernel(RUNTIME_PARAMETERS params)
 {
-#if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
+#ifdef RUNTIME_FORMATS
     const FormatConfig& formats = params.formats;
 #endif
 #ifdef ARCH_BLACKHOLE

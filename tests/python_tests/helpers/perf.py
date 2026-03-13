@@ -7,7 +7,6 @@ import os
 import re
 from dataclasses import fields
 from functools import reduce
-from hashlib import sha256
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -284,12 +283,6 @@ class PerfConfig(TestConfig):
         skip_build_header: bool = False,
         compile_time_formats: bool = False,
     ):
-
-        if TestConfig.SPEED_OF_LIGHT:
-            templates += runtimes
-            runtimes = []
-            compile_time_formats = True
-
         super().__init__(
             test_name,
             formats,
@@ -321,28 +314,6 @@ class PerfConfig(TestConfig):
             )
             for run_type in run_types
         ]
-
-    def generate_variant_hash(self):
-        NON_COMPILATION_ARGUMENTS = [
-            "variant_stimuli",
-            "run_configs",
-            "variant_id",
-            "runtime_arguments_struct",
-            "runtime_format",
-            "runtimes",
-            "formats_config" if not self.compile_time_formats else "",
-            "passed_templates",
-            "passed_runtimes",
-            "current_run_type",
-        ]
-
-        temp_str = [
-            str(value)
-            for field_name, value in self.__dict__.items()
-            if field_name not in NON_COMPILATION_ARGUMENTS
-        ]
-
-        self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
     @staticmethod
     def _dataclass_name_and_values(obj):
