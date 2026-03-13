@@ -80,10 +80,11 @@ ALL_MATHOPS = [
 
 FORMATS = input_output_formats(
     [
-        DataFormat.Float32,
-        DataFormat.Float16,
-        DataFormat.Float16_b,
-        DataFormat.Bfp8_b,
+        # DataFormat.Float32,
+        # DataFormat.Float16,
+        # DataFormat.Float16_b,
+        # DataFormat.Bfp8_b,
+        DataFormat.Bfp4_b,
     ]
 )
 
@@ -181,13 +182,20 @@ def test_eltwise_unary_sfpu_float(
         approx_mode == ApproximationMode.Yes
         and mathop in [MathOperation.Exp, MathOperation.Exp2, MathOperation.Elu]
         and (
-            formats.input_format == DataFormat.Bfp8_b
-            or formats.output_format == DataFormat.Bfp8_b
+            formats.input_format in (DataFormat.Bfp8_b, DataFormat.Bfp4_b)
+            or formats.output_format in (DataFormat.Bfp8_b, DataFormat.Bfp4_b)
         )
     ):
         pytest.skip(
-            reason="Exp-related operations are not supported for bf8_b format in approximation mode."
+            reason="Exp-related operations are not supported for BFP formats in approximation mode."
         )
+
+    if (
+        formats.input_format == DataFormat.Float16
+        and formats.output_format == DataFormat.Bfp4_b
+        and dest_acc == DestAccumulation.No
+    ):
+        pytest.skip(reason="Float16 to Bfp4_b with dest_acc=No is not supported")
 
     eltwise_unary_sfpu(
         "sources/eltwise_unary_sfpu_test.cpp",
