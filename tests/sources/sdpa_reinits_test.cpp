@@ -10,6 +10,7 @@
 #include "ckernel_sfpu.h"
 #include "llk_defs.h"
 #include "operand.h"
+#include "params.h"
 #include "tensix_types.h"
 #include "tensor_shape.h"
 

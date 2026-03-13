@@ -34,7 +34,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
         0, 0, FACE_R_DIM, 4, formats.unpack_A_src, formats.unpack_A_dst);
 
     // Unpack tiles from L1 to source register A
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(params.buffer_A[i]), formats.unpack_A_src, formats.unpack_A_dst);
@@ -71,7 +71,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     // Wait for destination to be available
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
     // Process each tile
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         LLK_ASSERT(
             (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
@@ -133,7 +133,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     // Wait for math to finish and pack tiles back to L1
 
-    for (int i = 0; i < params.TILE_CNT; ++i)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
     {
         LLK_ASSERT(
             (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");

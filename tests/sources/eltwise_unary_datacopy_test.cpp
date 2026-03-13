@@ -36,7 +36,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
         const std::uint32_t num_tiles = params.NUM_BLOCKS * params.NUM_TILES_IN_BLOCK;
 
-        for (int i = 0; i < num_tiles; ++i)
+        for (std::uint32_t i = 0; i < num_tiles; ++i)
         {
             _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
                 L1_ADDRESS(params.buffer_A[i]), formats.unpack_A_src, formats.unpack_A_dst);
@@ -95,7 +95,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     for (int block_num = 0; block_num < params.NUM_BLOCKS; ++block_num)
     {
         _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-        for (int tile_num = 0; tile_num < params.NUM_TILES_IN_BLOCK; ++tile_num)
+        for (std::uint32_t tile_num = 0; tile_num < params.NUM_TILES_IN_BLOCK; ++tile_num)
         {
             LLK_ASSERT(
                 (params.DST_INDEX + tile_num < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
@@ -138,7 +138,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     for (int block_num = 0; block_num < params.NUM_BLOCKS; ++block_num)
     {
         _llk_packer_wait_for_math_done_();
-        for (int tile_num = 0; tile_num < params.NUM_TILES_IN_BLOCK; ++tile_num)
+        for (std::uint32_t tile_num = 0; tile_num < params.NUM_TILES_IN_BLOCK; ++tile_num)
         {
             LLK_ASSERT(
                 (params.DST_INDEX + tile_num < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),

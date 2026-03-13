@@ -32,9 +32,9 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_unpack_A_init_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
         0, 0, FACE_R_DIM, 4, formats.unpack_A_src, formats.unpack_A_dst);
 
-    const int num_total_tiles = params.NUM_TILES_IN_BLOCK * params.NUM_BLOCKS;
+    const std::uint32_t num_total_tiles = params.NUM_TILES_IN_BLOCK * params.NUM_BLOCKS;
 
-    for (int tile = 0; tile < num_total_tiles; ++tile)
+    for (std::uint32_t tile = 0; tile < num_total_tiles; ++tile)
     {
         _llk_unpack_A_<BroadcastType::NONE, false, EltwiseBinaryReuseDestType::NONE, unpack_to_dest>(
             L1_ADDRESS(params.buffer_A[tile]), formats.unpack_A_src, formats.unpack_A_dst);
@@ -68,8 +68,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
-    const int num_blocks         = params.NUM_BLOCKS;
-    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
+    const std::uint32_t num_blocks         = params.NUM_BLOCKS;
+    const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
 
     _llk_math_eltwise_unary_sfpu_init_<SfpuType::reduce>();
     ckernel::sfpu::_init_reduce_<POOL_TYPE, static_cast<DataFormat>(formats.math)>();
@@ -77,7 +77,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     if (REDUCE_DIM == ReduceDim::REDUCE_COL)
     {
         // Column reduction can be done block by block
-        for (int block = 0; block < num_blocks; ++block)
+        for (std::uint32_t block = 0; block < num_blocks; ++block)
         {
             _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
             for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
@@ -166,15 +166,15 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_dest_init_<DstSync::SyncHalf, false, false>();
 #endif
 
-    const int num_blocks         = params.NUM_BLOCKS;
-    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
+    const std::uint32_t num_blocks         = params.NUM_BLOCKS;
+    const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
 
-    for (int block = 0; block < num_blocks; ++block)
+    for (std::uint32_t block = 0; block < num_blocks; ++block)
     {
         _llk_packer_wait_for_math_done_();
-        for (int tile = 0; tile < num_tiles_in_block; ++tile)
+        for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
         {
-            int res_tile_idx = (block * num_tiles_in_block) + tile;
+            std::uint32_t res_tile_idx = (block * num_tiles_in_block) + tile;
             LLK_ASSERT(
                 (tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                 "Block tile index exceeds maximum destination tiles");

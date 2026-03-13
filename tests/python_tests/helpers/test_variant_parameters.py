@@ -502,10 +502,12 @@ class NUM_TILES_IN_BLOCK(RuntimeParameter):
     num_tiles_in_block: int = 0
 
     def convert_to_cpp(self) -> str:
-        return f"constexpr int NUM_TILES_IN_BLOCK = {self.num_tiles_in_block};"
+        return (
+            f"constexpr std::uint32_t NUM_TILES_IN_BLOCK = {self.num_tiles_in_block};"
+        )
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        return "int NUM_TILES_IN_BLOCK;", "i"
+        return "std::uint32_t NUM_TILES_IN_BLOCK;", "I"
 
 
 @dataclass
@@ -584,19 +586,19 @@ class NUM_TILES_IN_BLOCK(RuntimeParameter):
 
     def convert_to_cpp(self) -> str:
         lines = [
-            f"constexpr int NUM_TILES_IN_BLOCK = {self.num_tiles_in_block};",
-            f"constexpr int INPUT_NUM_TILES_IN_BLOCK = {self.input_num_tiles_in_block};",
-            f"constexpr int OUTPUT_NUM_TILES_IN_BLOCK = {self.output_num_tiles_in_block};",
+            f"constexpr std::uint32_t NUM_TILES_IN_BLOCK = {self.num_tiles_in_block};",
+            f"constexpr std::uint32_t INPUT_NUM_TILES_IN_BLOCK = {self.input_num_tiles_in_block};",
+            f"constexpr std::uint32_t OUTPUT_NUM_TILES_IN_BLOCK = {self.output_num_tiles_in_block};",
         ]
         return "\n".join(lines)
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         lines = [
-            "int NUM_TILES_IN_BLOCK;",
-            "int INPUT_NUM_TILES_IN_BLOCK;",
-            "int OUTPUT_NUM_TILES_IN_BLOCK;",
+            "std::uint32_t NUM_TILES_IN_BLOCK;",
+            "std::uint32_t INPUT_NUM_TILES_IN_BLOCK;",
+            "std::uint32_t OUTPUT_NUM_TILES_IN_BLOCK;",
         ]
-        return "\n".join(lines), "iii"
+        return "\n".join(lines), "III"
 
 
 @dataclass
@@ -636,15 +638,19 @@ class NUM_FACES(RuntimeParameter):
 
     def convert_to_cpp(self) -> str:
         lines: list[str] = [
-            f"constexpr int num_faces = {self.num_faces};",
-            f"constexpr int num_faces_A = {self.num_faces_A};",
-            f"constexpr int num_faces_B = {self.num_faces_B};",
+            f"constexpr std::uint32_t num_faces = {self.num_faces};",
+            f"constexpr std::uint32_t num_faces_A = {self.num_faces_A};",
+            f"constexpr std::uint32_t num_faces_B = {self.num_faces_B};",
         ]
         return "\n".join(lines)
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
-        lines: list[str] = ["int num_faces;", "int num_faces_A;", "int num_faces_B;"]
-        return "\n".join(lines), "iii"
+        lines: list[str] = [
+            "std::uint32_t num_faces;",
+            "std::uint32_t num_faces_A;",
+            "std::uint32_t num_faces_B;",
+        ]
+        return "\n".join(lines), "III"
 
 
 @dataclass
@@ -738,17 +744,17 @@ class TEST_FACE_DIMS(RuntimeParameter):
 
     def convert_to_cpp(self) -> str:
         lines: list[str] = [
-            f"constexpr int TEST_FACE_R_DIM = {self.face_r_dim};",
-            f"constexpr int TEST_FACE_C_DIM = {self.face_c_dim};",
+            f"constexpr std::uint32_t TEST_FACE_R_DIM = {self.face_r_dim};",
+            f"constexpr std::uint32_t TEST_FACE_C_DIM = {self.face_c_dim};",
         ]
         return "\n".join(lines)
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         lines: list[str] = [
-            "int TEST_FACE_R_DIM;",
-            "int TEST_FACE_C_DIM;",
+            "std::uint32_t TEST_FACE_R_DIM;",
+            "std::uint32_t TEST_FACE_C_DIM;",
         ]
-        return "\n".join(lines), "ii"
+        return "\n".join(lines), "II"
 
 
 @dataclass
@@ -760,21 +766,21 @@ class IN_TILE_DIMS(RuntimeParameter):
 
     def convert_to_cpp(self) -> str:
         lines: list[str] = [
-            f"const int in0_tile_r_dim = {self.in0_r_dim};",
-            f"const int in0_tile_c_dim = {self.in0_c_dim};",
-            f"const int in1_tile_r_dim = {self.in1_r_dim};",
-            f"const int in1_tile_c_dim = {self.in1_c_dim};",
+            f"const std::uint32_t in0_tile_r_dim = {self.in0_r_dim};",
+            f"const std::uint32_t in0_tile_c_dim = {self.in0_c_dim};",
+            f"const std::uint32_t in1_tile_r_dim = {self.in1_r_dim};",
+            f"const std::uint32_t in1_tile_c_dim = {self.in1_c_dim};",
         ]
         return "\n".join(lines)
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         lines: list[str] = [
-            "int in0_tile_r_dim;",
-            "int in0_tile_c_dim;",
-            "int in1_tile_r_dim;",
-            "int in1_tile_c_dim;",
+            "std::uint32_t in0_tile_r_dim;",
+            "std::uint32_t in0_tile_c_dim;",
+            "std::uint32_t in1_tile_r_dim;",
+            "std::uint32_t in1_tile_c_dim;",
         ]
-        return "\n".join(lines), "iiii"
+        return "\n".join(lines), "IIII"
 
 
 @dataclass

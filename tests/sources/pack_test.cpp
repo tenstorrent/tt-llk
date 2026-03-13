@@ -69,13 +69,13 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 
-    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params.NUM_BLOCKS;
+    const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
+    const std::uint32_t num_blocks         = params.NUM_BLOCKS;
 
-    for (int block = 0; block < num_blocks; ++block)
+    for (std::uint32_t block = 0; block < num_blocks; ++block)
     {
         _llk_math_wait_for_dest_available_<dest_sync>();
-        for (int tile = 0; tile < num_tiles_in_block; ++tile)
+        for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
         {
             LLK_ASSERT(
                 ((params.DST_INDEX + tile) < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
@@ -115,15 +115,15 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_pack_init_<false, false>(formats.pack_dst, FACE_R_DIM, params.num_faces);
     _llk_pack_dest_init_<dest_sync, is_fp32_dest_acc_en>();
 #endif
-    const int num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
-    const int num_blocks         = params.NUM_BLOCKS;
+    const std::uint32_t num_tiles_in_block = params.NUM_TILES_IN_BLOCK;
+    const std::uint32_t num_blocks         = params.NUM_BLOCKS;
 
-    for (int block = 0; block < num_blocks; ++block)
+    for (std::uint32_t block = 0; block < num_blocks; ++block)
     {
         _llk_packer_wait_for_math_done_();
-        for (int tile = 0; tile < num_tiles_in_block; ++tile)
+        for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
         {
-            int res_tile_idx = block * num_tiles_in_block + tile;
+            std::uint32_t res_tile_idx = block * num_tiles_in_block + tile;
             LLK_ASSERT(
                 ((params.DST_INDEX + tile) < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                 "Block tile index exceeds maximum destination tiles");

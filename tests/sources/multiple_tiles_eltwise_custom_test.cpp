@@ -87,7 +87,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_packer_wait_for_math_done_();
 
     // pack the result
-    for (int i = 0; i < params.TILE_CNT; i++)
+    for (std::uint32_t i = 0; i < params.TILE_CNT; i++)
     {
         _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, false>(i, L1_ADDRESS(params.buffer_Res[i]));
     }
