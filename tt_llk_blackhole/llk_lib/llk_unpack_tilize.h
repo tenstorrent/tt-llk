@@ -203,7 +203,7 @@ inline void _llk_unpack_tilize_uninit_(const std::uint32_t unpack_dst_format, co
  *************************************************************************/
 
 // TODO: add support for all the template parameters
-template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false>
+template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false, bool zero_srcB = false>
 inline void _llk_unpack_tilizeA_B_mop_config_(const bool narrow_tile = false, const std::uint32_t num_faces = 4)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
@@ -245,7 +245,7 @@ inline void _llk_unpack_tilizeA_B_mop_config_(const bool narrow_tile = false, co
     tmp.program();
 }
 
-template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false>
+template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false, bool zero_srcB = false>
 inline void _llk_unpack_tilizeA_B_init_(
     const std::uint32_t unpack_src_format,
     const std::uint32_t unpack_dst_format,
@@ -277,10 +277,10 @@ inline void _llk_unpack_tilizeA_B_init_(
     cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(unpA_ch1_y_stride);
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
-    _llk_unpack_tilizeA_B_mop_config_<neginf_srcA, reload_srcB, zero_srcA, zero_srcA_reduce>(narrow_tile, num_faces);
+    _llk_unpack_tilizeA_B_mop_config_<neginf_srcA, reload_srcB, zero_srcA, zero_srcA_reduce, zero_srcB>(narrow_tile, num_faces);
 }
 
-template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false>
+template <bool neginf_srcA = false, std::uint32_t reload_srcB = false, bool zero_srcA = false, bool zero_srcA_reduce = false, bool zero_srcB = false>
 inline void _llk_unpack_tilizeA_B_(
     std::uint32_t unpA_src_format,
     std::uint32_t face_r_dim,
@@ -338,10 +338,19 @@ inline void _llk_unpack_tilizeA_B_(
 
         // Reset Y counters for SrcA
         TTI_SETADCXY(p_setadc::UNP_A, 0, 0, 0, 0, 0b1010);
-        // Unpack SrcB 16x16 face & Set Data Valid
 
-        // If reload_srcB, only first face needs to be loaded, otherwise CH0_Z+=1
-        TTI_UNPACR(SrcB, reload_srcB ? 0b0 : 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        if constexpr (zero_srcB)
+        {
+            // For datacopy with is_fp32_dest_acc_en: ELWADD computes SrcA+SrcB->Dest,
+            // so SrcB must be zero for a pure copy. Matches _llk_unpack_tilize_ behavior.
+            TTI_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
+        }
+        else
+        {
+            // Unpack SrcB 16x16 face & Set Data Valid
+            // If reload_srcB, only first face needs to be loaded, otherwise CH0_Z+=1
+            TTI_UNPACR(SrcB, reload_srcB ? 0b0 : 0b1, 0, 0, 0, 1, 1, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+        }
 
         // Unpacks face_r_dim-1 rows of 1x16 datums to SrcA
         if (run_r_dim_loop)

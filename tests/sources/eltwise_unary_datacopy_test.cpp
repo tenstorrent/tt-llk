@@ -67,7 +67,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
         {
             // HW tileize_mode=1 has broken inter-face column offset for 1-byte formats.
             // Use SW-driven tilizeA_B path which computes per-face addresses explicitly.
-            _llk_unpack_tilizeA_B_init_(formats.unpack_A_src, formats.unpack_A_dst, false, BLOCK_CT_DIM, params->num_faces, FACE_R_DIM, FACE_R_DIM);
+            // zero_srcB=true: ELWADD (used when is_fp32_dest_acc_en) needs SrcB=0 for datacopy.
+            _llk_unpack_tilizeA_B_init_<false, false, false, false, true>(
+                formats.unpack_A_src, formats.unpack_A_dst, false, BLOCK_CT_DIM, params->num_faces, FACE_R_DIM, FACE_R_DIM);
 
             std::uint32_t read_offset = 0;
 
@@ -75,7 +77,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
             {
                 for (std::uint32_t j = 0; j < BLOCK_CT_DIM; j++)
                 {
-                    _llk_unpack_tilizeA_B_(
+                    _llk_unpack_tilizeA_B_<false, false, false, false, true>(
                         formats.unpack_A_src,
                         FACE_R_DIM,
                         false,
@@ -194,7 +196,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef ARCH_BLACKHOLE
     if constexpr (tilize_en)
     {
-        const bool is_fp8 = (formats.pack_dst == to_underlying(DataFormat::Fp8_e4m3));
+        const bool is_fp8 = (formats.unpack_A_src == to_underlying(DataFormat::Fp8_e4m3));
         if (is_fp8)
         {
             // FP8 tilize uses SW-driven tilizeA_B which produces standard face-order dest layout.
