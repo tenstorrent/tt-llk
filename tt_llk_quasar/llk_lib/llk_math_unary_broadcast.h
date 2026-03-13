@@ -236,9 +236,10 @@ inline void _llk_math_eltwise_unary_broadcast_d2b_mop_config_(const TileShape& t
  * @brief Sets up initialization for elementwise unary broadcast operation
  * @tparam BROADCAST_TYPE: Sets the broadcast type, values = [COL, ROW, SCALAR]
  * @tparam unpack_to_dest: If true, unpacker writes directly to dest register (workaround for 32-bit formats)
+ * @tparam is_fp32_dest_acc_en: If true, dest accumulation uses float32 (for compatibility with test harness)
  * @param tile_shape: Contains all the information of the tile shape: num faces, face row/col dim, etc
  */
-template <BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false>
+template <BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false, bool is_fp32_dest_acc_en = false>
 inline void _llk_math_eltwise_unary_broadcast_init_(const TileShape& tile_shape)
 {
     _llk_math_eltwise_unary_broadcast_addrmod_<BROADCAST_TYPE>();
@@ -254,12 +255,14 @@ inline void _llk_math_eltwise_unary_broadcast_init_(const TileShape& tile_shape)
  * @brief Perform an elementwise unary broadcast operation
  * @tparam BROADCAST_TYPE: Sets the broadcast type, values = [COL, ROW, SCALAR]
  * @tparam unpack_to_dest: If true, unpacker writes directly to dest register (workaround for 32-bit formats)
+ * @tparam is_fp32_dest_acc_en: If true, dest accumulation uses float32 (for compatibility with test harness)
  * @param tile_idx: Tile index into the destination register.
  * If dest reg in float16 mode -> values = [0 - 8] in double buffering mode, values = [0 - 16] in full mode
  * If dest reg in float32 mode -> values = [0 - 4] in double buffering mode, values = [0 - 8] in full mode
+ * @param tile_shape: Tile shape (for compatibility with test harness; unused in thin path)
  */
-template <BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false>
-inline void _llk_math_eltwise_unary_broadcast_(const std::uint32_t tile_idx)
+template <BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false, bool is_fp32_dest_acc_en = false>
+inline void _llk_math_eltwise_unary_broadcast_(const std::uint32_t tile_idx, const TileShape& /*tile_shape*/)
 {
     if constexpr (unpack_to_dest)
     {

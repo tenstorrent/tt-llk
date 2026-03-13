@@ -15,8 +15,9 @@ using namespace ckernel;
  *                 When unpack_to_dest=true, internally uses p_unpacr::UNP_A regardless of UNP_SEL value.
  * @tparam BROADCAST_TYPE Broadcast type, values = [SCALAR, COL, ROW]
  * @tparam unpack_to_dest If true, unpack to dest using UNPACKER0 (p_unpacr::UNP_A); otherwise unpack to srcB using UNPACKER1 (p_unpacr::UNP_B)
+ * @tparam is_fp32_dest_acc_en If true, math dest is in Float32/Int32 mode (aligns with BH and other Quasar LLKs)
  */
-template <std::uint32_t UNP_SEL, BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false>
+template <std::uint32_t UNP_SEL, BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false, bool is_fp32_dest_acc_en = false>
 inline void _llk_unpack_unary_broadcast_operands_mop_config_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles)
 {
     static_assert(
@@ -24,12 +25,11 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const std::uint32_t
         "UNP_SEL must be p_unpacr::UNP_B when unpack_to_dest is false - movA2D broadcast is not working on Quasar");
     static_assert((BROADCAST_TYPE != BroadcastType::NONE), "Broadcast type cannot be NONE for this operation");
 
-    const std::uint32_t MOP_OUTER_LOOP     = num_tiles;
-    constexpr std::uint32_t MOP_INNER_LOOP = 1;
-    constexpr static std::uint32_t replay_buf_len =
-        (BROADCAST_TYPE == BroadcastType::SCALAR)
-            ? 1
-            : ((BROADCAST_TYPE == BroadcastType::ROW && !unpack_to_dest) ? 4 : ((BROADCAST_TYPE == BroadcastType::COL && !unpack_to_dest) ? 4 : 2));
+    const std::uint32_t MOP_OUTER_LOOP            = num_tiles;
+    constexpr std::uint32_t MOP_INNER_LOOP        = 1;
+    constexpr static std::uint32_t replay_buf_len = BROADCAST_TYPE == BroadcastType::SCALAR ? 1u
+                                                    : BROADCAST_TYPE == BroadcastType::ROW  ? 4u
+                                                                                            : (unpack_to_dest ? 2u : 4u);
 
     constexpr std::uint32_t unpack_tile_inc = TT_OP_NOP;
 
@@ -107,10 +107,10 @@ inline void _llk_unpack_unary_broadcast_operands_mop_config_(const std::uint32_t
 /**
  * @brief Initialization for unpack of unary operations with broadcasts
  */
-template <std::uint32_t UNP_SEL, BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false>
+template <std::uint32_t UNP_SEL, BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false, bool is_fp32_dest_acc_en = false>
 inline void _llk_unpack_unary_broadcast_operands_init_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles)
 {
-    _llk_unpack_unary_broadcast_operands_mop_config_<UNP_SEL, BROADCAST_TYPE, unpack_to_dest>(buf_desc_id, num_tiles);
+    _llk_unpack_unary_broadcast_operands_mop_config_<UNP_SEL, BROADCAST_TYPE, unpack_to_dest, is_fp32_dest_acc_en>(buf_desc_id, num_tiles);
 }
 
 /**
