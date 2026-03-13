@@ -83,7 +83,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_pack_untilize_init_<ct_dim>(formats.pack_dst, FACE_R_DIM, 4);
 #endif
     _llk_packer_wait_for_math_done_();
-    c<ct_dim>(L1_ADDRESS(params->buffer_Res[0]), formats.pack_dst, FACE_R_DIM, 4, 0);
+    _llk_pack_untilize_<ct_dim>(L1_ADDRESS(params->buffer_Res[0]), formats.pack_dst, FACE_R_DIM, 4, 0);
     _llk_pack_dest_section_done_<sync, is_fp32_dest_acc_en>();
 }
 
