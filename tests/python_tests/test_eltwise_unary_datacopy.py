@@ -85,7 +85,7 @@ def get_valid_num_faces_datacopy(tilize):
     formats=input_output_formats(
         [
             DataFormat.Float32,
-            # DataFormat.Float16,
+            DataFormat.Float16,
             DataFormat.Float16_b,
             DataFormat.Bfp8_b,
             DataFormat.Bfp4_b,
@@ -109,12 +109,15 @@ def test_unary_datacopy(
     num_runs,
 ):
 
-    # skip if Fp8_e4m3 for wormhole
-    if get_chip_architecture() == ChipArchitecture.WORMHOLE and (
-        formats.input_format == DataFormat.Fp8_e4m3
-        or formats.output_format == DataFormat.Fp8_e4m3
+    # Skip tests where input format is Float16, output format is Bfp4_b, and dest_acc is No
+    if (
+        formats.input_format == DataFormat.Float16
+        and formats.output_format == DataFormat.Bfp4_b
+        and dest_acc == DestAccumulation.No
     ):
-        pytest.skip("Fp8_e4m3 not supported on wormhole")
+        pytest.skip(
+            "Skipping test: conversion from Float16 to Bfp4_b with dest_acc=No is not supported/desired."
+        )
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
