@@ -179,27 +179,68 @@ def test_unary_datacopy(
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
 
 
-def test_unary_datacopy_fp8_tilize_debug(workers_tensix_coordinates):
-    """FP8 tilize debug test with column-varying data to detect face column offset issues.
+FP8_FACE_VALUES = [
+    0.125,
+    0.25,
+    0.5,
+    1.0,
+    2.0,
+    4.0,
+    8.0,
+    16.0,
+    32.0,
+    64.0,
+    128.0,
+    0.0625,
+    0.03125,
+    0.015625,
+    3.0,
+    6.0,
+]
 
-    Input (row-major in L1, 32x32 = 1024 elements):
-      Rows 0-15,  cols 0-15:  0.125
-      Rows 0-15,  cols 16-31: 0.25
-      Rows 16-31, cols 0-15:  0.5
-      Rows 16-31, cols 16-31: 1.0
 
-    After tilize the faces should be:
-      Face 0 (rows 0-15,  cols 0-15):  all 0.125
-      Face 1 (rows 0-15,  cols 16-31): all 0.25
-      Face 2 (rows 16-31, cols 0-15):  all 0.5
-      Face 3 (rows 16-31, cols 16-31): all 1.0
+def _build_fp8_tilize_stimuli(input_dimensions):
+    """Build row-major stimuli with a unique FP8-exact value per face quadrant.
+
+    Each 16x16 face within each tile gets a distinct value from FP8_FACE_VALUES
+    so that any face-offset bug is immediately visible in the output.
+
+    Face layout within a tile (32x32):
+      Face 0: rows 0-15,  cols 0-15   Face 1: rows 0-15,  cols 16-31
+      Face 2: rows 16-31, cols 0-15   Face 3: rows 16-31, cols 16-31
+    """
+    rows, cols = input_dimensions
+    num_tile_cols = cols // 32
+    total_faces = num_tile_cols * 4
+    assert total_faces <= len(
+        FP8_FACE_VALUES
+    ), f"Need {total_faces} unique values but only have {len(FP8_FACE_VALUES)}"
+
+    data = torch.empty(rows * cols, dtype=torch.bfloat16)
+    for r in range(rows):
+        face_row = 0 if r < 16 else 1
+        for c in range(cols):
+            tile_col = c // 32
+            face_col = 0 if (c % 32) < 16 else 1
+            face_idx = face_row * 2 + face_col
+            global_idx = tile_col * 4 + face_idx
+            data[r * cols + c] = FP8_FACE_VALUES[global_idx]
+    return data
+
+
+@pytest.mark.parametrize("input_dimensions", [[32, 32], [32, 64], [32, 128]])
+def test_unary_datacopy_fp8_tilize_debug(input_dimensions, workers_tensix_coordinates):
+    """FP8 tilize debug test with unique value per face quadrant.
+
+    Detects HW tileize_mode inter-face column offset bugs for 1-byte formats.
+    Each 16x16 face in every tile gets a distinct FP8-exact value so that any
+    face reading from the wrong L1 address is immediately apparent.
     """
     from helpers.param_config import InputOutputFormat
 
     input_format = DataFormat.Fp8_e4m3
     output_format = DataFormat.Fp8_e4m3
     formats = InputOutputFormat(input_format, output_format)
-    input_dimensions = [32, 32]
     tilize = Tilize.Yes
     num_faces = 4
     dest_acc = DestAccumulation.No
@@ -207,22 +248,11 @@ def test_unary_datacopy_fp8_tilize_debug(workers_tensix_coordinates):
     if get_chip_architecture() == ChipArchitecture.WORMHOLE:
         pytest.skip("Fp8_e4m3 not supported on wormhole")
 
-    top_row = torch.cat(
-        [
-            torch.full((16,), 0.125, dtype=torch.bfloat16),
-            torch.full((16,), 0.25, dtype=torch.bfloat16),
-        ]
-    )
-    bot_row = torch.cat(
-        [
-            torch.full((16,), 0.5, dtype=torch.bfloat16),
-            torch.full((16,), 1.0, dtype=torch.bfloat16),
-        ]
-    )
-    src_A = torch.cat([top_row.repeat(16), bot_row.repeat(16)])
-    tile_cnt_A = 1
+    src_A = _build_fp8_tilize_stimuli(input_dimensions)
+    num_tile_cols = input_dimensions[1] // 32
+    tile_cnt_A = num_tile_cols
     src_B = src_A.clone()
-    tile_cnt_B = 1
+    tile_cnt_B = tile_cnt_A
 
     generate_golden = get_golden_generator(TilizeGolden)
     golden_tensor = generate_golden(src_A, input_dimensions, output_format)
@@ -262,6 +292,7 @@ def test_unary_datacopy_fp8_tilize_debug(workers_tensix_coordinates):
             tile_count_B=tile_cnt_B,
             tile_count_res=tile_cnt_A,
             num_faces=num_faces,
+            write_full_tiles=True,
         ),
         dest_acc=dest_acc,
         unpack_to_dest=unpack_to_dest,
@@ -269,7 +300,10 @@ def test_unary_datacopy_fp8_tilize_debug(workers_tensix_coordinates):
 
     fc = configuration.formats_config[0]
     print(f"\n{'='*60}")
-    print(f"FP8 TILIZE DEBUG")
+    print(
+        f"FP8 TILIZE DEBUG - {input_dimensions[0]}x{input_dimensions[1]} "
+        f"({num_tile_cols} tile(s))"
+    )
     print(f"  unpack_A_src = {fc.unpack_A_src}")
     print(f"  unpack_A_dst = {fc.unpack_A_dst}")
     print(f"  math         = {fc.math}")
@@ -282,23 +316,25 @@ def test_unary_datacopy_fp8_tilize_debug(workers_tensix_coordinates):
     torch_format = format_dict[output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    print(f"\nGolden ({len(golden_tensor)} elements):")
-    for face in range(4):
-        start = face * 256
-        vals = golden_tensor[start : start + 256]
-        unique = torch.unique(vals)
-        print(f"  Face {face} [{start}:{start+256}]: unique values = {unique.tolist()}")
+    all_ok = True
+    for tile in range(num_tile_cols):
+        print(f"\n--- Tile {tile} ---")
+        for face in range(4):
+            idx = tile * 1024 + face * 256
+            g_uniq = torch.unique(golden_tensor[idx : idx + 256]).tolist()
+            a_uniq = torch.unique(res_tensor[idx : idx + 256]).tolist()
+            expected = FP8_FACE_VALUES[tile * 4 + face]
+            status = "OK" if a_uniq == g_uniq else "MISMATCH"
+            if status == "MISMATCH":
+                all_ok = False
+            print(
+                f"  Face {face}: expected={expected:<8g}  "
+                f"golden={g_uniq}  actual={a_uniq}  [{status}]"
+            )
 
-    print(f"\nActual ({len(res_tensor)} elements):")
-    for face in range(4):
-        start = face * 256
-        vals = res_tensor[start : start + 256]
-        unique = torch.unique(vals)
-        print(f"  Face {face} [{start}:{start+256}]: unique values = {unique.tolist()}")
-
-    print(f"\nFirst 32 golden: {golden_tensor[:32].tolist()}")
-    print(f"First 32 actual: {res_tensor[:32].tolist()}")
-    print(f"{'='*60}")
+    print(f"\n{'='*60}")
 
     assert len(res_from_L1) == len(golden_tensor)
-    assert passed_test(golden_tensor, res_tensor, output_format)
+    assert passed_test(
+        golden_tensor, res_tensor, output_format
+    ), f"FP8 tilize face mismatch for {input_dimensions}"

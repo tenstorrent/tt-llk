@@ -40,6 +40,14 @@ def tilize_block(
     Returns:
         Tilized tensor with tiles laid out sequentially
     """
+    # Handle dimensions passed as single-element tuple, e.g. ([32, 128],) from parametrize
+    if (
+        len(dimensions) == 1
+        and isinstance(dimensions[0], (list, tuple))
+        and len(dimensions[0]) == 2
+    ):
+        dimensions = list(dimensions[0])
+
     if input_tensor.numel() != dimensions[0] * dimensions[1]:
         raise ValueError(
             f"Cannot reshape tensor of size {input_tensor.numel()} to shape {dimensions}."
@@ -373,6 +381,14 @@ def untilize_block(
     # Default dimensions to standard 32x32
     if dimensions is None:
         dimensions = [DEFAULT_TILE_R_DIM, DEFAULT_TILE_C_DIM]
+
+    # Handle dimensions passed as single-element tuple, e.g. ([32, 128],) from parametrize
+    if (
+        len(dimensions) == 1
+        and isinstance(dimensions[0], (list, tuple))
+        and len(dimensions[0]) == 2
+    ):
+        dimensions = list(dimensions[0])
 
     # Default to standard 32x32 tiles
     if tile_dimensions is None:

@@ -60,17 +60,51 @@ void run_kernel(const volatile struct RuntimeParams* params)
             FACE_R_DIM,
             params->num_faces,
             params->num_faces);
-        _llk_unpack_tilize_init_(formats.unpack_A_src, formats.unpack_A_dst, BLOCK_CT_DIM, FACE_R_DIM, false);
 
-        std::uint32_t read_offset = 0;
+        const bool is_fp8 = (formats.unpack_A_src == to_underlying(DataFormat::Fp8_e4m3));
 
-        for (std::uint32_t i = 0; i < BLOCK_RT_DIM; i++)
+        if (is_fp8)
         {
-            for (std::uint32_t j = 0; j < BLOCK_CT_DIM; j++)
+            // HW tileize_mode=1 has broken inter-face column offset for 1-byte formats.
+            // Use SW-driven tilizeA_B path which computes per-face addresses explicitly.
+            _llk_unpack_tilizeA_B_init_(formats.unpack_A_src, formats.unpack_A_dst, false, BLOCK_CT_DIM, params->num_faces, FACE_R_DIM, FACE_R_DIM);
+
+            std::uint32_t read_offset = 0;
+
+            for (std::uint32_t i = 0; i < BLOCK_RT_DIM; i++)
             {
-                _llk_unpack_tilize_(L1_ADDRESS(params->buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, 0, FACE_R_DIM, 4, false);
+                for (std::uint32_t j = 0; j < BLOCK_CT_DIM; j++)
+                {
+                    _llk_unpack_tilizeA_B_(
+                        formats.unpack_A_src,
+                        FACE_R_DIM,
+                        false,
+                        L1_ADDRESS(params->buffer_A[read_offset]),
+                        L1_ADDRESS(params->buffer_B[0]),
+                        j,
+                        0,
+                        BLOCK_CT_DIM,
+                        params->num_faces);
+                }
+                read_offset += BLOCK_CT_DIM;
             }
-            read_offset += BLOCK_CT_DIM;
+
+            _llk_unpack_tilizeA_B_uninit_(formats.unpack_A_dst, FACE_R_DIM);
+        }
+        else
+        {
+            _llk_unpack_tilize_init_(formats.unpack_A_src, formats.unpack_A_dst, BLOCK_CT_DIM, FACE_R_DIM, false);
+
+            std::uint32_t read_offset = 0;
+
+            for (std::uint32_t i = 0; i < BLOCK_RT_DIM; i++)
+            {
+                for (std::uint32_t j = 0; j < BLOCK_CT_DIM; j++)
+                {
+                    _llk_unpack_tilize_(L1_ADDRESS(params->buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, 0, FACE_R_DIM, 4, false);
+                }
+                read_offset += BLOCK_CT_DIM;
+            }
         }
     }
 }
@@ -98,8 +132,26 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, tilize_en, is_int_fpu_en>(
-        params->num_faces, formats.math);
+    if constexpr (tilize_en)
+    {
+        const bool is_fp8 = (formats.unpack_A_src == to_underlying(DataFormat::Fp8_e4m3));
+        if (is_fp8)
+        {
+            // tilizeA_B synchronizes per-face; use tilize=false to get outerloop=num_faces
+            _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(
+                params->num_faces, formats.math);
+        }
+        else
+        {
+            _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, true, is_int_fpu_en>(
+                params->num_faces, formats.math);
+        }
+    }
+    else
+    {
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(
+            params->num_faces, formats.math);
+    }
 #else
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(params->num_faces, formats.math);
 #endif
@@ -140,8 +192,29 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const volatile FormatConfig& formats = params->formats;
 #endif
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, tilize_en>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, params->num_faces);
-    _llk_pack_init_<false, false, tilize_en>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces);
+    if constexpr (tilize_en)
+    {
+        const bool is_fp8 = (formats.pack_dst == to_underlying(DataFormat::Fp8_e4m3));
+        if (is_fp8)
+        {
+            // FP8 tilize uses SW-driven tilizeA_B which produces standard face-order dest layout.
+            // Packer must use non-tilize mode to match.
+            _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
+                formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, params->num_faces);
+            _llk_pack_init_<false, false, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces);
+        }
+        else
+        {
+            _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, true>(
+                formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, params->num_faces);
+            _llk_pack_init_<false, false, true>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces);
+        }
+    }
+    else
+    {
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, params->num_faces);
+        _llk_pack_init_<false, false, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces);
+    }
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, params->num_faces);
