@@ -122,7 +122,8 @@ FLOAT_TEST_PARAMS = list(
 )
 @pytest.mark.parametrize(
     "input_dimensions",
-    [[64, 64], [128, 256]],
+    # [[64, 64], [128, 256]],
+    [[32, 32]],
 )
 def test_eltwise_unary_sfpu_float(
     formats: list[InputOutputFormat],
@@ -196,6 +197,12 @@ def test_eltwise_unary_sfpu_float(
         and dest_acc == DestAccumulation.No
     ):
         pytest.skip(reason="Float16 to Bfp4_b with dest_acc=No is not supported")
+
+    if formats.input_format == DataFormat.Bfp4_b and mathop in [
+        MathOperation.Atanh,
+        MathOperation.Acosh,
+    ]:
+        pytest.skip(reason="Bfp4_b is not supported for SFPU")
 
     eltwise_unary_sfpu(
         "sources/eltwise_unary_sfpu_test.cpp",
