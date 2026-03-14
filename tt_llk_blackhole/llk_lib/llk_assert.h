@@ -11,14 +11,14 @@
 #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
 #define UNREACHABLE()       __builtin_unreachable()
 
-#define LLK_ASSERT(condition, message) \
-    do                                 \
-    {                                  \
-        if (UNLIKELY(!(condition)))    \
-        {                              \
-            asm volatile("ebreak");    \
-            UNREACHABLE();             \
-        }                              \
+#define LLK_ASSERT(condition, message)                                \
+    do                                                                \
+    {                                                                 \
+        if (UNLIKELY(!(condition)))                                   \
+        {                                                             \
+            asm volatile("ebreak" : : "i"(&__FILE__), "i"(__LINE__)); \
+            UNREACHABLE();                                            \
+        }                                                             \
     } while (0)
 
 #else
