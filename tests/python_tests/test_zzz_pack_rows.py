@@ -4,9 +4,12 @@
 import pytest
 import torch
 from helpers.format_config import DataFormat
-from helpers.golden_generators import PackRowsGolden, get_golden_generator
+from helpers.golden_generators import (
+    TILE_DIMENSIONS,
+    PackRowsGolden,
+    get_golden_generator,
+)
 from helpers.llk_params import (
-    BlocksCalculationAlgorithm,
     DestAccumulation,
     DestSync,
     format_dict,
@@ -27,7 +30,7 @@ from helpers.test_variant_parameters import (
 )
 from helpers.utils import passed_test
 
-max_tiles = 4
+max_tiles = 20
 tile_dim = 32
 
 dimension_combinations = [
@@ -64,8 +67,7 @@ def test_pack_rows(
             dest_acc,
             formats,
             dimensions,
-            [32, 32],  # tile_dimensions (pack_rows uses 32x32 tiles)
-            BlocksCalculationAlgorithm.Standard,
+            TILE_DIMENSIONS,
         )
     except ValueError as e:
         # Skip test cases where tile count is not evenly divisible by block size

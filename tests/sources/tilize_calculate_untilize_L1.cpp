@@ -19,8 +19,8 @@ using namespace ckernel;
 
 // TODO: CLEANUP
 
-constexpr std::uint32_t buffer_A_tilized = 0x16000;
-constexpr std::uint32_t buffer_B_tilized = 0x17000;
+constexpr std::uint32_t buffer_A_tilized = 0x30000; // 192KB from start
+constexpr std::uint32_t buffer_B_tilized = 0x50000; // 320KB from start
 
 #ifdef LLK_TRISC_UNPACK
 
@@ -39,8 +39,11 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef ARCH_BLACKHOLE
     const std::uint32_t block_ct_dim = 0;
 #else
-    const std::uint32_t block_ct_dim = BLOCK_CT_DIM;
+    const std::uint32_t block_ct_dim = params->BLOCK_CT_DIM;
 #endif
+
+    const int num_blocks         = params->NUM_BLOCKS;
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
 
     int run = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
     _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
@@ -53,13 +56,47 @@ void run_kernel(const volatile struct RuntimeParams* params)
         4 /* num_faces */,
         4 /* num_faces */);
 
-    _llk_unpack_tilize_init_(formats_array[run].unpack_A_src, formats_array[run].unpack_A_dst, 1, FACE_R_DIM, false);
-    _llk_unpack_tilize_(
-        L1_ADDRESS(params->buffer_A[0]), 0, formats_array[run].unpack_A_src, formats_array[run].unpack_A_dst, block_ct_dim, FACE_R_DIM, 4, false);
+    _llk_unpack_tilize_init_(formats_array[run].unpack_A_src, formats_array[run].unpack_A_dst, params->BLOCK_CT_DIM, FACE_R_DIM, false);
 
-    _llk_unpack_tilize_init_(formats_array[run].unpack_B_src, formats_array[run].unpack_B_dst, 1, FACE_R_DIM, false);
-    _llk_unpack_tilize_(
-        L1_ADDRESS(params->buffer_B[0]), 0, formats_array[run].unpack_B_src, formats_array[run].unpack_B_dst, block_ct_dim, FACE_R_DIM, 4, false);
+    std::uint32_t read_offset = 0;
+
+    for (std::uint32_t i = 0; i < params->BLOCK_RT_DIM; i++)
+    {
+        for (std::uint32_t j = 0; j < params->BLOCK_CT_DIM; j++)
+        {
+            _llk_unpack_tilize_(
+                L1_ADDRESS(params->buffer_A[read_offset]),
+                j,
+                formats_array[run].unpack_A_src,
+                formats_array[run].unpack_A_dst,
+                block_ct_dim,
+                FACE_R_DIM,
+                4,
+                false);
+        }
+        read_offset += params->BLOCK_CT_DIM;
+    }
+
+    _llk_unpack_tilize_init_(formats_array[run].unpack_B_src, formats_array[run].unpack_B_dst, params->BLOCK_CT_DIM, FACE_R_DIM, false);
+
+    read_offset = 0;
+
+    for (std::uint32_t i = 0; i < params->BLOCK_RT_DIM; i++)
+    {
+        for (std::uint32_t j = 0; j < params->BLOCK_CT_DIM; j++)
+        {
+            _llk_unpack_tilize_(
+                L1_ADDRESS(params->buffer_B[read_offset]),
+                j,
+                formats_array[run].unpack_B_src,
+                formats_array[run].unpack_B_dst,
+                block_ct_dim,
+                FACE_R_DIM,
+                4,
+                false);
+        }
+        read_offset += params->BLOCK_CT_DIM;
+    }
 
     /*
     In this test we fuse two LLK pipeline runs, one is to unpack untilized buffers/operands from L1 (39-45) and pack them in tilized format(130-145).
@@ -91,7 +128,13 @@ void run_kernel(const volatile struct RuntimeParams* params)
         4 /* num_faces */,
         4 /* num_faces */);
     _llk_unpack_AB_init_<>(DEFAULT_TENSOR_SHAPE);
-    _llk_unpack_AB_<>(L1_ADDRESS(buffer_A_tilized), L1_ADDRESS(buffer_B_tilized));
+
+    const int num_tiles                 = num_blocks * num_tiles_in_block;
+    const std::uint32_t tile_size_bytes = SCALE_DATUM_SIZE(formats_array[run].unpack_A_src, TILE_R_DIM * TILE_C_DIM);
+    for (int tile = 0; tile < num_tiles; ++tile)
+    {
+        _llk_unpack_AB_<>(L1_ADDRESS(buffer_A_tilized + tile * tile_size_bytes), L1_ADDRESS(buffer_B_tilized + tile * tile_size_bytes));
+    }
 }
 
 #endif
@@ -116,6 +159,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const std::uint32_t res_dst_index       = 0;
     int run                                 = 0; // first L1-to-L1 run, we access the first set of formats_array in our array
 
+    const int num_blocks         = params->NUM_BLOCKS;
+    const int num_tiles_in_block = params->NUM_TILES_IN_BLOCK;
+
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     const bool TILIZE = true;
@@ -127,23 +173,48 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats_array[run].math, formats_array[run].math);
 
-    // copy tilized inputs to dest indexes 0 and 1
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
-        operand_A_dst_index, formats_array[run].math, formats_array[run].math);
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    // copy tilized inputs.
+    for (int block = 0; block < num_blocks; ++block)
+    {
+        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+        for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
+        {
+            LLK_ASSERT(
+                (tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                "Block tile index exceeds maximum destination tiles");
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                tile, formats_array[run].math, formats_array[run].math);
+        }
+        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    }
 
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, false>(
-        operand_B_dst_index, formats_array[run].math, formats_array[run].math);
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    for (int block = 0; block < num_blocks; ++block)
+    {
+        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+        for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
+        {
+            LLK_ASSERT(
+                (tile < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                "Block tile index exceeds maximum destination tiles");
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                tile, formats_array[run].math, formats_array[run].math);
+        }
+        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    }
 
     run = 1; // second L1-to-L1 run, we access the second set of formats_array in our array
     _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE>(DEFAULT_TENSOR_SHAPE, 0 /* acc_to_dest */);
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en>(
-        DEFAULT_TENSOR_SHAPE, res_dst_index, false /* clear_fp32_dst_acc */);
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+
+    for (int block = 0; block < num_blocks; ++block)
+    {
+        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+        for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
+        {
+            _llk_math_eltwise_binary_<ELTWISE_BINARY_OP, BroadcastType::NONE, DstSync::SyncHalf, is_fp32_dest_acc_en>(
+                DEFAULT_TENSOR_SHAPE, tile, false /* clear_fp32_dst_acc */);
+        }
+        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    }
 }
 
 #endif
@@ -164,6 +235,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
     const std::uint32_t res_dst_index       = 0;
     const bool UNTILIZE                     = false;
     int run                                 = 0;
+    const int num_blocks                    = params->NUM_BLOCKS;
+    const int num_tiles_in_block            = params->NUM_TILES_IN_BLOCK;
+
+    const std::uint32_t tile_size_bytes = SCALE_DATUM_SIZE(formats_array[run].pack_dst, TILE_R_DIM * TILE_C_DIM);
 
 #ifdef ARCH_BLACKHOLE
     const bool TILIZE = true;
@@ -176,25 +251,46 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>();
 #endif
 
-    _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(operand_A_dst_index, L1_ADDRESS(buffer_A_tilized));
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    for (int block = 0; block < num_blocks; ++block)
+    {
+        _llk_packer_wait_for_math_done_();
+        for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
+        {
+            const int tile_index = block * num_tiles_in_block + tile;
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(tile, L1_ADDRESS(buffer_A_tilized + tile_index * tile_size_bytes));
+        }
+        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    }
 
-    _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(operand_B_dst_index, L1_ADDRESS(buffer_B_tilized));
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>(); // Packer will execute _llk_pack_dest_section_done_ function which ensures the write
-                                                                            // to L1 is fully is complete.
+    for (int block = 0; block < num_blocks; ++block)
+    {
+        _llk_packer_wait_for_math_done_();
+        for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
+        {
+            const int tile_index = block * num_tiles_in_block + tile;
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(tile, L1_ADDRESS(buffer_B_tilized + tile_index * tile_size_bytes));
+        }
+        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    }
+
     t6_semaphore_post<>(semaphore::PACK_DONE); // The packer signals to the unpacker that it has finished writing to L1 by posting (incrementing) the semaphore.
                                                // Now unpacker's wait condition is satisfied, allowing it to begin processing data from L1.
     run = 1;                                   // second L1-to-L1 run, we access the second set of formats_array in our array
+
 #ifdef ARCH_BLACKHOLE
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, !TILIZE>(formats_array[run].pack_src, formats_array[run].pack_dst, 16 * 16 * 4);
     _llk_pack_init_<UNTILIZE, false, !TILIZE>(formats_array[run].pack_dst);
 #endif
 
-    _llk_packer_wait_for_math_done_();
-    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(res_dst_index, L1_ADDRESS(params->buffer_Res[0]));
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    for (int block = 0; block < num_blocks; ++block)
+    {
+        _llk_packer_wait_for_math_done_();
+        for (std::uint32_t tile = 0; tile < num_tiles_in_block; ++tile)
+        {
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(tile, L1_ADDRESS(params->buffer_Res[block * num_tiles_in_block + tile]));
+        }
+        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+    }
 }
 
 #endif

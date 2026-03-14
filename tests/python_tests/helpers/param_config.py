@@ -16,7 +16,7 @@ from .format_config import (
     InputOutputFormat,
 )
 from .golden_generators import TILE_DIMENSIONS
-from .llk_params import BlocksCalculationAlgorithm, DestAccumulation, DestSync
+from .llk_params import DestAccumulation, DestSync
 
 checked_formats_and_dest_acc = {}
 
@@ -470,7 +470,6 @@ def get_num_blocks_and_num_tiles_in_block(
     formats: InputOutputFormat,
     input_dimensions: List[int],
     tile_dimensions: List[int] = None,
-    blocks_algorithm: BlocksCalculationAlgorithm = BlocksCalculationAlgorithm.Standard,
 ) -> Tuple[int, int]:
     """
     Calculate the number of blocks and tiles per block needed to process an input matrix.
@@ -485,8 +484,6 @@ def get_num_blocks_and_num_tiles_in_block(
         formats: Input and output data formats, which impact destination register capacity
         input_dimensions: Input matrix dimensions in elements [rows, cols]
         tile_dimensions: Tile dimensions in elements [rows, cols]. Defaults to [32, 32]
-        blocks_algorithm: Algorithm for block calculation. Standard uses total tiles,
-                         while other algorithms (e.g., for untilize/tilize) may use only one tile-row
 
     Returns:
         Tuple of (num_blocks, num_tiles_in_block):
@@ -524,31 +521,20 @@ def get_num_blocks_and_num_tiles_in_block(
         num_cols_tensor // num_cols_tile
     )
 
-    # For untilize and tilize we use only one tile-row for calculating block parameters.
-    # This is because untilize and tilize only operate on one tile-row at a time,
-    # so the number of tiles in a block is determined by how many tiles can fit in one tile-row of the input matrix,
-    # rather than the total number of tiles in the input matrix.
-    num_tiles_for_calculation = (
-        num_tiles_in_input
-        if blocks_algorithm == BlocksCalculationAlgorithm.Standard
-        or blocks_algorithm == BlocksCalculationAlgorithm.Tilize
-        else num_tiles_in_input // (num_rows_tensor // num_rows_tile)
-    )
-
     # Our LLK api contract is bounded to always iterate over blocks of same size.
     # It is possible to use blocks of different sizes, but it's not recommended.
     if (
-        num_tiles_for_calculation > max_tiles_in_dest
-        and num_tiles_for_calculation % max_tiles_in_dest != 0
+        num_tiles_in_input > max_tiles_in_dest
+        and num_tiles_in_input % max_tiles_in_dest != 0
     ):
         raise ValueError(
             f"Input dimensions {input_dimensions} with tile size {tile_dimensions} "
-            f"and {blocks_algorithm.name} block calculation algorithm result in {num_tiles_in_input} tiles, "
+            f"result in {num_tiles_in_input} tiles, "
             f"which cannot be evenly divided into blocks of size {max_tiles_in_dest} tiles."
         )
 
-    num_blocks = math.ceil(num_tiles_for_calculation / max_tiles_in_dest)
+    num_blocks = math.ceil(num_tiles_in_input / max_tiles_in_dest)
 
-    num_tiles_in_block = math.ceil(num_tiles_for_calculation / num_blocks)
+    num_tiles_in_block = math.ceil(num_tiles_in_input / num_blocks)
 
     return num_blocks, num_tiles_in_block

@@ -3,13 +3,23 @@
 import pytest
 import torch
 from helpers.format_config import DataFormat
-from helpers.golden_generators import TilizeGolden, get_golden_generator
-from helpers.llk_params import DestAccumulation, format_dict
-from helpers.param_config import input_output_formats, parametrize
+from helpers.golden_generators import (
+    TILE_DIMENSIONS,
+    TilizeGolden,
+    get_golden_generator,
+)
+from helpers.llk_params import DestAccumulation, DestSync, format_dict
+from helpers.param_config import (
+    get_num_blocks_and_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import (
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     TILE_COUNT,
     generate_input_dim,
 )
@@ -72,6 +82,14 @@ def unpack_tilize(
     generate_golden = get_golden_generator(TilizeGolden)
     golden_tensor = generate_golden(src_A, input_dimensions, formats.output_format)
 
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half,
+        dest_acc,
+        formats,
+        input_dimensions,
+        TILE_DIMENSIONS,
+    )
+
     configuration = TestConfig(
         "sources/unpack_tilize_test.cpp",
         formats,
@@ -79,6 +97,8 @@ def unpack_tilize(
         runtimes=[
             generate_input_dim(input_dimensions, input_dimensions),
             TILE_COUNT(tile_cnt_A),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
         ],
         variant_stimuli=StimuliConfig(
             src_A,

@@ -14,7 +14,6 @@ from helpers.golden_generators import (
 )
 from helpers.llk_params import (
     ApproximationMode,
-    BlocksCalculationAlgorithm,
     DestAccumulation,
     DestSync,
     MathOperation,
@@ -39,7 +38,7 @@ from helpers.test_variant_parameters import (
 from helpers.tilize_untilize import tilize_block, untilize_block
 from helpers.utils import passed_test
 
-max_tiles = 4
+max_tiles = 16
 
 dimension_combinations = [
     [m, n]
@@ -74,7 +73,6 @@ def is_valid_reduce_dimension(mathop, dest_acc, formats, dim):
             formats,
             dim,
             TILE_DIMENSIONS,
-            BlocksCalculationAlgorithm.Standard,
         )
         if mathop == MathOperation.ReduceColumn:
             return True
@@ -135,7 +133,6 @@ def test_sfpu_reduce(
         formats,
         dimension_combinations,
         TILE_DIMENSIONS,
-        BlocksCalculationAlgorithm.Standard,
     )
 
     # STIMULI GENERATION
