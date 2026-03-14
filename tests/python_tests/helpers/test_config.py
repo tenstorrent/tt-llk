@@ -156,6 +156,7 @@ class TestConfig:
     SHARED_ARTEFACTS_AVAILABLE: ClassVar[bool] = False
     PROFILER_SHARED_ARTEFACTS_AVAILABLE: ClassVar[bool] = False
     KERNEL_COMPONENTS: ClassVar[list[str]] = ["unpack", "math", "pack"]
+    TRISC_COUNT: ClassVar[int] = 3
 
     # === Runtime static variables, for keeping context of multiple test runs
     CURRENT_LOADED_CONFIG: ClassVar[str] = "uninitialised"
@@ -229,6 +230,23 @@ class TestConfig:
                 TestConfig.ARCH_LLK_ROOT = "tt_llk_quasar"
                 TestConfig.ARCH = ChipArchitecture.QUASAR
                 TestConfig.DATA_FORMAT_ENUM = QUASAR_DATA_FORMAT_ENUM_VALUES
+                TestConfig.KERNEL_COMPONENTS = ["unpack", "math", "pack", "sfpu"]
+                TestConfig.TRISC_START_ADDRS = [
+                    0x16DFF0,
+                    0x16DFF4,
+                    0x16DFF8,
+                    0x16DFFC,
+                ]
+                TestConfig.THREAD_PERFORMANCE_DATA_BUFFER = [
+                    0x16B000,  # Unpack
+                    0x16C000,  # Math
+                    0x16D000,  # Pack
+                    0x16E000,  # SFPU
+                ]
+                TestConfig.TRISC_PROFILER_BARRIER_ADDRESS = (
+                    0x16AFF0  # BARRIER_START for 4 cores
+                )
+                TestConfig.TRISC_COUNT = 4
             case _:
                 raise ValueError(
                     "Must provide CHIP_ARCH environment variable (wormhole / blackhole / quasar)"
@@ -902,10 +920,11 @@ class TestConfig:
                     if self.coverage_build == CoverageBuild.Yes
                     else f""
                 )
+                trisc_define = "ISOLATE_SFPU" if name == "sfpu" else name.upper()
                 compile_command = (
                     f"{TestConfig.GXX} {TestConfig.ARCH_COMPUTE} {TestConfig.OPTIONS_ALL} -I{TestConfig.TESTS_WORKING_DIR} "
                     f"-I{TestConfig.RISCV_SOURCES} -I{VARIANT_DIR} {local_options_compile} {optional_kernel_flags} "
-                    f"-DLLK_TRISC_{name.upper()} {TestConfig.OPTIONS_LINK} {COVERAGES_DEPS} "
+                    f"-DLLK_TRISC_{trisc_define} {TestConfig.OPTIONS_LINK} {COVERAGES_DEPS} "
                     f"-T{local_memory_layout_ld} -T{TestConfig.LINKER_SCRIPTS / name}.ld -T{TestConfig.LINKER_SCRIPTS}/sections.ld "
                     f"-x c++ - -lc -o {VARIANT_ELF_DIR / name}.elf"
                 )
@@ -918,7 +937,7 @@ class TestConfig:
                     (f"#include  <{self.test_name}>\n" "#include  <trisc.cpp>\n"),
                 )
 
-            with ThreadPoolExecutor(max_workers=3) as executor:
+            with ThreadPoolExecutor(max_workers=TestConfig.TRISC_COUNT) as executor:
                 futures = [
                     executor.submit(build_kernel_part, name)
                     for name in TestConfig.KERNEL_COMPONENTS
@@ -1063,9 +1082,14 @@ class TestConfig:
                 set_tensix_soft_reset(0, [RiscCore.TRISC0], location)
             case BootMode.EXALENS:
                 exalens_device_setup(TestConfig.CHIP_ARCH, location)
-                set_tensix_soft_reset(
-                    0, [RiscCore.TRISC0, RiscCore.TRISC1, RiscCore.TRISC2], location
-                )
+                exalens_trisc_cores = [
+                    RiscCore.TRISC0,
+                    RiscCore.TRISC1,
+                    RiscCore.TRISC2,
+                ]
+                if TestConfig.CHIP_ARCH == ChipArchitecture.QUASAR:
+                    exalens_trisc_cores.append(RiscCore.TRISC3)
+                set_tensix_soft_reset(0, exalens_trisc_cores, location)
 
         return elfs
 
