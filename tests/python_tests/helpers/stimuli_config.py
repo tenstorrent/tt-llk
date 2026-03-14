@@ -152,41 +152,16 @@ class StimuliConfig:
 
         return lines, pack_formats
 
-    def generate_stimuli_header_addresses(self, formats) -> list[str]:
-        # Use actual tile sizes based on tile_dimensions
-        input_format = DataFormat.Float16_b if formats is None else formats.input_format
-        input_format_B = (
-            DataFormat.Float16_b if formats is None else formats.input_format_B
-        )
-        output_format = (
-            DataFormat.Float16_b if formats is None else formats.output_format
-        )
-
-        buf_a_tile_size = calculate_tile_size_bytes(
-            input_format, self.tile_dimensions, format_tile_sizes
-        )
-        buf_b_tile_size = calculate_tile_size_bytes(
-            input_format, self.tile_dimensions, format_tile_sizes
-        )
-        buf_res_tile_size = calculate_tile_size_bytes(
-            output_format, self.tile_dimensions, format_tile_sizes
-        )
-        if self.operand_res_tile_size is not None:
-            buf_res_tile_size = self.operand_res_tile_size
-
+    def generate_stimuli_header_addresses(self) -> list[str]:
         lines: list[str] = [
-            f"constexpr Operand buffer_A({hex(self.buf_a_addr)}, {buf_a_tile_size});",
-            f"constexpr Operand buffer_B({hex(self.buf_b_addr)}, {buf_b_tile_size});",
-            f"constexpr Operand buffer_Res({hex(self.buf_res_addr)}, {buf_res_tile_size});",
+            f"constexpr Operand buffer_A({hex(self.buf_a_addr)}, {self.tile_size_A_bytes});",
+            f"constexpr Operand buffer_B({hex(self.buf_b_addr)}, {self.tile_size_B_bytes});",
+            f"constexpr Operand buffer_Res({hex(self.buf_res_addr)}, {self.buf_res_tile_size});",
         ]
 
         if self.buffer_C is not None:
-            buf_c_tile_size = calculate_tile_size_bytes(
-                input_format, self.tile_dimensions, format_tile_sizes
-            )
-
             lines.append(
-                f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {buf_c_tile_size});"
+                f"constexpr Operand buffer_C({hex(self.buf_c_addr)}, {self.tile_size_C_bytes});"
             )
 
         return lines
