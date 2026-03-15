@@ -101,8 +101,6 @@ class DataFormat(Enum):
         return self in {
             DataFormat.Float16,
             DataFormat.Bfp8,
-            # DataFormat.Bfp4,
-            # DataFormat.Bfp2,
         }
 
     def is_exponent_B(self) -> bool:
