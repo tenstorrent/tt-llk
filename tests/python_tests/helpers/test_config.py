@@ -99,8 +99,8 @@ def dummy_golden_generator(cls):
 
 @dataclass
 class TestOutcome:
-    result: Any | None = None
-    dumps: Any | None = None
+    result: Any = None
+    dumps: Any = None
 
 
 class TestConfig:
