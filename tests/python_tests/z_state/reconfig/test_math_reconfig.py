@@ -13,7 +13,7 @@ from helpers.test_config import TestConfig
 from helpers.test_variant_parameters import CONFIGURE_TEST_RUN_IDX, TO_FROM_INT8
 
 
-def gen_valid_formats(
+def generate_valid_formats(
     formats: list[DataFormat],
 ) -> list[tuple[DataFormat, DataFormat, DataFormat, DataFormat]]:
     groups = [
@@ -33,21 +33,19 @@ def gen_valid_formats(
 def get_valid_to_from_int8(
     formats: tuple[DataFormat, DataFormat, DataFormat, DataFormat],
 ) -> bool:
-    if any(f.is_integer() for f in formats):
-        return True
-
-    return False
+    return any(f.is_integer() for f in formats)
 
 
 def get_valid_dest_acc(to_from_int8: bool) -> bool:
-    if to_from_int8:
-        return DestAccumulation.Yes
-
-    return [DestAccumulation.No, DestAccumulation.Yes]
+    return (
+        [DestAccumulation.Yes]
+        if to_from_int8
+        else [DestAccumulation.No, DestAccumulation.Yes]
+    )
 
 
 @parametrize(
-    formats=gen_valid_formats(
+    formats=generate_valid_formats(
         [
             DataFormat.Float16,
             DataFormat.Float16_b,
