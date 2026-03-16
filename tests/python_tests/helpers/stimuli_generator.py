@@ -102,15 +102,9 @@ def generate_random_face(
             if stimuli_format == DataFormat.Bfp8_b:
                 integer_part = torch.randint(low, 3, (size,))
                 fraction = torch.randint(0, 16, (size,)).to(dtype=torch.bfloat16) / 16.0
-            else:  # Bfp4_b has 4-bit mantissa
+            else:  # Bfp4_b has 3-bit mantissa
                 integer_part = torch.randint(low, 3, (size,))
-                possible_fractions = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
-                fraction = torch.tensor(
-                    possible_fractions[
-                        torch.randint(0, len(possible_fractions), (1,)).item()
-                    ],
-                    dtype=torch.bfloat16,
-                )
+                fraction = torch.randint(0, 8, (size,)).to(dtype=torch.bfloat16) / 8.0
 
             srcA_face = integer_part.to(dtype=torch.bfloat16) + fraction
 

@@ -1838,58 +1838,58 @@ class EltwiseBinaryGolden(FidelityMasking):
         if op not in self.ops:
             raise ValueError(f"Unsupported Eltwise operation: {op}")
 
-        # Quantize MX format operands to match what hardware sees after unpack
-        # This simulates the quantization that occurs during pack→unpack roundtrip
-        # Only quantize if input_format is explicitly provided and is MX format.
-        # If input_format is None, operands are in an unknown format and should not be quantized.
-        if input_format is not None and input_format.is_mx_format():
+        # Step 1: Quantize inputs to match what hardware sees after unpack from L1.
+        # This simulates the pack→unpack roundtrip for each format.
+        if input_format is not None and input_format == DataFormat.Bfp4_b:
+            operand1 = _bfp4b_to_float16b(operand1)
+            operand2 = _bfp4b_to_float16b(operand2)
+            math_format_for_fidelity = DataFormat.Float16_b
+        elif input_format is not None and input_format == DataFormat.Bfp8_b:
+            operand1 = _bfp8b_to_float16b(operand1)
+            operand2 = _bfp8b_to_float16b(operand2)
+            math_format_for_fidelity = DataFormat.Float16_b
+        elif input_format is not None and input_format.is_mx_format():
             operand1 = quantize_mx_tensor_chunked(operand1, input_format)
             operand2 = quantize_mx_tensor_chunked(operand2, input_format)
-            # Keep as bfloat16 for math (hardware sees bfloat16 after unpacking MX)
-            t1 = operand1
-            t2 = operand2
-            # For fidelity masking, use bfloat16 format
             math_format_for_fidelity = DataFormat.Float16_b
         else:
-            t1 = to_tensor(operand1, data_format)
-            t2 = to_tensor(operand2, data_format)
+            operand1 = to_tensor(operand1, data_format)
+            operand2 = to_tensor(operand2, data_format)
             math_format_for_fidelity = data_format
 
+        t1, t2 = operand1, operand2
+
+        # Step 2: Compute the operation (with fidelity masking for Elwmul).
         MATH_FIDELITY_TO_ITER_COUNT = {
             MathFidelity.LoFi: 0,
             MathFidelity.HiFi2: 1,
             MathFidelity.HiFi3: 2,
             MathFidelity.HiFi4: 3,
         }
-
         fidelity_iter_count = MATH_FIDELITY_TO_ITER_COUNT[math_fidelity]
 
-        res = 0
-
-        # If multiply is chosen apply fidelity
         if op == MathOperation.Elwmul:
-            res = None
+            result = None
             for fidelity_iter in range(fidelity_iter_count + 1):
                 t1, t2 = self._apply_fidelity_masking(
                     math_format_for_fidelity, t1, t2, fidelity_iter
                 )
                 phase_result = self.ops[op](t1, t2)
-
                 if fidelity_iter == 0:
-                    res = phase_result
+                    result = phase_result
                 else:
-                    res += phase_result
-
-            result = res
+                    result += phase_result
         else:
             result = self.ops[op](t1, t2)
 
-        if data_format.is_mx_format():
-            if op == MathOperation.Elwmul:
-                result = result.to(torch.bfloat16)
-            result = quantize_mx_tensor_chunked(result, data_format)
+        # Step 3: Quantize output to match what hardware packs back into L1.
+        if data_format == DataFormat.Bfp4_b:
+            result = _bfp4b_to_float16b(result.to(torch.bfloat16))
+        elif data_format == DataFormat.Bfp8_b:
+            result = _bfp8b_to_float16b(result.to(torch.bfloat16))
+        elif data_format.is_mx_format():
+            result = quantize_mx_tensor_chunked(result.to(torch.bfloat16), data_format)
         else:
-            # Convert to output format when output is non-MX
             result = to_tensor(result, data_format)
 
         return result
