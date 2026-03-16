@@ -13,16 +13,85 @@ using namespace ckernel;
 /**
  * @brief MOP configuration for unpack of unary operations
  * @details Sets up MOP for unpacking a single operand by tiles
+ * Specialized for tiny-tile unpack where each face is a separate tile in HW.
+ * Works for any unpack resource
+ * @tparam UNP_SEL: Selects which unpacker resource to use,
+ * values = p_unpacr::UNP_A/p_unpacr::UNP_B/p_unpacr::UNP_DEST
+ * @tparam IS_32b_DEST_EN: Set to True to enable using Math destination Register in 32-bit mode
+ * @param buf_desc_id: The buffer descriptor ID where the buffer information is
+ * stored in the buffer descriptor table, values = 0 - 16
+ * @param num_tiles: number of tiles to unpack at a time for a single operand
+ * @param num_faces: number of faces in the tiles to unpack
+ */
+template <std::uint32_t UNP_SEL, bool IS_32b_DEST_EN>
+inline void _llk_unpack_unary_operand_tiny_tile_mop_config_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles, const std::uint32_t num_faces)
+{
+    static_assert(
+        (UNP_SEL == p_unpacr::UNP_A) || (UNP_SEL == p_unpacr::UNP_B) || (UNP_SEL == p_unpacr::UNP_DEST),
+        "UNP_SEL can only be set to p_unpacr::UNP_A/UNP_B/UNP_DEST");
+
+    const std::uint32_t MOP_OUTER_LOOP = num_tiles;
+    const std::uint32_t MOP_INNER_LOOP = num_faces;
+
+    // For UNP_A/UNP_B: Dst Tile Idx Inc = 0 so each face overwrites the same SrcA/B tile slot.
+    // Dvalid is set per face so math can consume each face before the next one arrives.
+    // For UNP_DEST: Dst Tile Idx Inc = 1 to place faces at consecutive dest positions (no math involved).
+    std::uint32_t unpack_tile_instrn;
+    std::uint32_t unpack_tile_w_dvalid_instrn;
+    std::uint32_t reset_dest_tile_cnt_instrn =
+        TT_OP_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL == p_unpacr::UNP_DEST ? p_unpacr::UNP_A : UNP_SEL, 0);
+
+    if constexpr (UNP_SEL == p_unpacr::UNP_A)
+    {
+        unpack_tile_instrn          = TT_OP_UNPACR0_TILE_INC(1 /*Dst Tile Idx*/, 1 /*Src Tile Idx*/, buf_desc_id, 0 /*Set Dvalid*/);
+        unpack_tile_w_dvalid_instrn = TT_OP_UNPACR0_TILE_INC(1 /*Dst Tile Idx*/, 1 /*Src Tile Idx*/, buf_desc_id, 1 /*Set Dvalid*/);
+    }
+    else if constexpr (UNP_SEL == p_unpacr::UNP_B)
+    {
+        unpack_tile_instrn          = TT_OP_UNPACR1_TILE_INC(1 /*Dst Tile Idx*/, 1 /*Src Tile Idx*/, buf_desc_id, 0 /*Set Dvalid*/);
+        unpack_tile_w_dvalid_instrn = TT_OP_UNPACR1_TILE_INC(1 /*Dst Tile Idx*/, 1 /*Src Tile Idx*/, buf_desc_id, 1 /*Set Dvalid*/);
+    }
+    else if constexpr (UNP_SEL == p_unpacr::UNP_DEST)
+    {
+        unpack_tile_instrn = TT_OP_UNPACR_DEST_TILE_INC(1, 1 /*Src Tile Idx*/, buf_desc_id, 0 /*Set Dvalid*/);
+    }
+
+    ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, unpack_tile_instrn);
+
+    if constexpr (UNP_SEL != p_unpacr::UNP_DEST)
+    {
+        // TODO: Figure out why setting unpack_tile_w_dvalid_instrn using set_last_outer_loop_instr did not work
+        temp.set_inner_loop_len(MOP_INNER_LOOP - 1); // Inner loop iterates over num_faces-1 where the dvalid unpacking is done as the END_OP
+        temp.set_end_ops(unpack_tile_w_dvalid_instrn, reset_dest_tile_cnt_instrn);
+    }
+
+    // If IS_32b_DEST_EN and UNP_SEL = UNP_A, zero out the SRCB reg
+    // The only test in which there is a unary upk to SRCA with 32b DF is the datacopy kernel, which uses ELWADD
+    if constexpr (UNP_SEL == p_unpacr::UNP_A && IS_32b_DEST_EN)
+    {
+        temp.set_start_op(TT_OP_UNPACR_NOP(p_unpacr::UNP_B, 1 /*Dvalid*/, 0, 0, 0 /*clear to 0*/, 0 /*clear to 0*/));
+    }
+    else if constexpr (UNP_SEL == p_unpacr::UNP_B && IS_32b_DEST_EN)
+    {
+        temp.set_start_op(TT_OP_UNPACR_NOP(p_unpacr::UNP_A, 1 /*Dvalid*/, 0, 0, 0 /*clear to 0*/, 0 /*clear to 0*/));
+    }
+
+    temp.program_bank0_sw_cntl(instrn_buffer);
+}
+
+/**
+ * @brief MOP configuration for unpack of unary operations
+ * @details Sets up MOP for unpacking a single operand by tiles
  * works for any unpack resource
  * @tparam UNP_SEL: Selects which unpacker resource to use,
  * values = p_unpacr::UNP_A/p_unpacr::UNP_B/p_unpacr::UNP_DEST
  * @tparam IS_32b_DEST_EN: Set to True to enable using Math destination Register in 32-bit mode
  * @param buf_desc_id: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 0 - 16
- * @param num_tiles: number of tiles to unpack at a time for a single operand, default 1 tile of 32x32
+ * @param num_tiles: number of tiles to unpack at a time for a single operand
  */
 template <std::uint32_t UNP_SEL, bool IS_32b_DEST_EN>
-inline void _llk_unpack_unary_operand_mop_config_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles)
+inline void _llk_unpack_unary_operand_full_tile_mop_config_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles)
 {
     static_assert(
         (UNP_SEL == p_unpacr::UNP_A) || (UNP_SEL == p_unpacr::UNP_B) || (UNP_SEL == p_unpacr::UNP_DEST),
@@ -69,10 +138,13 @@ inline void _llk_unpack_unary_operand_mop_config_(const std::uint32_t buf_desc_i
  * @param buf_desc_id: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 0 - 16
  * @param num_tiles: number of tiles to unpack at a time for a single operand, default 1 tile of 32x32
+ * @note Does NOT support tiny-tiles
  */
 template <std::uint32_t UNP_SEL, bool IS_32b_DEST_EN>
 inline void _llk_unpack_unary_operand_transpose_mop_config_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles)
 {
+    // TODO: Add a runtime assert to check that num_faces == NUM_FACES, as the current transpose implementation only supports regular tile dimensions with 4
+    // faces
     static_assert((UNP_SEL == p_unpacr::UNP_A) || (UNP_SEL == p_unpacr::UNP_B), "UNP_SEL can only be p_unpacr::UNP_A or p_unpacr::UNP_B for unpack transpose");
 
     const std::uint32_t MOP_OUTER_LOOP = num_tiles;
@@ -130,6 +202,7 @@ inline void _llk_unpack_unary_operand_transpose_mop_config_(const std::uint32_t 
  * @tparam reuse_dest: Which source register is reused from dest (DEST_TO_SRCA or DEST_TO_SRCB)
  * @param buf_desc_id: The buffer descriptor ID for the CB source
  * @param num_tiles: number of tiles to unpack
+ * @param num_faces: number of faces in the tiles to unpack
  */
 template <std::uint32_t UNP_SEL, EltwiseBinaryReuseDestType reuse_dest>
 inline void _llk_unpack_unary_operand_reuse_dest_mop_config_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles, const std::uint32_t num_faces)
@@ -147,17 +220,28 @@ inline void _llk_unpack_unary_operand_reuse_dest_mop_config_(const std::uint32_t
     // Unpack one face from CB with auto-increment of src face index.
     // Dst_Face_Idx_Inc=0: always write to face 0 position (FPU reads from 0 after CLR_AB).
     // Src_Face_Idx_Inc=1: advance through L1 tile faces 0→1→2→3 (wraps back to 0).
-    const std::uint32_t face_inc_op = (CB_UNP == p_unpacr::UNP_A)
-                                          ? TT_OP_UNPACR0_FACE_INC(0 /*Dst_Face_Inc*/, 1 /*Src_Face_Inc*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/)
-                                          : TT_OP_UNPACR1_FACE_INC(0 /*Dst_Face_Inc*/, 1 /*Src_Face_Inc*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
-
-    // MOP: outer=num_tiles, inner=num_faces
-    // Each inner iteration: NOP (dvalid for dummy src) + FACE_INC (unpack face + inc src face)
-    // END_OP: increment CB tile counter after all faces of a tile are processed
-    ckernel_template temp(num_tiles, num_faces, nop_op, face_inc_op);
-    temp.set_end_op(TT_OP_INC_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, CB_UNP, 1));
-
-    temp.program_bank0_sw_cntl(instrn_buffer);
+    if (num_faces == NUM_FACES) // Using regular tile dimensions
+    {
+        const std::uint32_t face_inc_op = (CB_UNP == p_unpacr::UNP_A)
+                                              ? TT_OP_UNPACR0_FACE_INC(0 /*Dst_Face_Inc*/, 1 /*Src_Face_Inc*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/)
+                                              : TT_OP_UNPACR1_FACE_INC(0 /*Dst_Face_Inc*/, 1 /*Src_Face_Inc*/, 0, 0, buf_desc_id, 1 /*SetDatValid*/);
+        // MOP: outer=num_tiles, inner=num_faces
+        // Each inner iteration: NOP (dvalid for dummy src) + FACE_INC (unpack face + inc src face)
+        // END_OP: increment CB tile counter after all faces of a tile are processed
+        ckernel_template temp(num_tiles, num_faces, nop_op, face_inc_op);
+        temp.set_end_op(TT_OP_INC_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, CB_UNP, 1));
+        temp.program_bank0_sw_cntl(instrn_buffer);
+    }
+    else // Using tiny-tiles
+    {
+        const std::uint32_t face_inc_op = (CB_UNP == p_unpacr::UNP_A)
+                                              ? TT_OP_UNPACR0_TILE_INC(0 /*Dst_Tile_Idx_Inc*/, 1 /*Src_Tile_Idx_Inc*/, buf_desc_id, 1 /*SetDatValid*/)
+                                              : TT_OP_UNPACR1_TILE_INC(0 /*Dst_Tile_Idx_Inc*/, 1 /*Src_Tile_Idx_Inc*/, buf_desc_id, 1 /*SetDatValid*/);
+        // MOP: outer=num_tiles, inner=num_faces
+        // Each inner iteration: NOP (dvalid for dummy src) + FACE_INC (unpack face + inc src face)
+        ckernel_template temp(num_tiles, num_faces, nop_op, face_inc_op);
+        temp.program_bank0_sw_cntl(instrn_buffer);
+    }
 }
 
 /**
@@ -170,6 +254,7 @@ inline void _llk_unpack_unary_operand_reuse_dest_mop_config_(const std::uint32_t
  * @param buf_desc_id: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 0 - 16
  * @param num_tiles: number of tiles to unpack at a time for a single operand, default 1 tile of 32x32
+ * @param num_faces: number of faces per tile to unpack, default is 4
  */
 template <std::uint32_t UNP_SEL, bool TRANSPOSE_EN, bool IS_32b_DEST_EN, EltwiseBinaryReuseDestType reuse_dest = EltwiseBinaryReuseDestType::NONE>
 inline void _llk_unpack_unary_operand_init_(
@@ -196,7 +281,14 @@ inline void _llk_unpack_unary_operand_init_(
     }
     else
     {
-        _llk_unpack_unary_operand_mop_config_<UNP_SEL, IS_32b_DEST_EN>(buf_desc_id, num_tiles);
+        if (num_faces == NUM_FACES) // Using regular tile dimensions
+        {
+            _llk_unpack_unary_operand_full_tile_mop_config_<UNP_SEL, IS_32b_DEST_EN>(buf_desc_id, num_tiles);
+        }
+        else // Using tiny-tiles
+        {
+            _llk_unpack_unary_operand_tiny_tile_mop_config_<UNP_SEL, IS_32b_DEST_EN>(buf_desc_id, num_tiles, num_faces);
+        }
     }
 }
 
@@ -208,7 +300,7 @@ inline void _llk_unpack_unary_operand_init_(
  * @param l1_tile_idx: Index into the L1 buffer for a tile
  */
 template <std::uint32_t UNP_SEL, EltwiseBinaryReuseDestType reuse_dest = EltwiseBinaryReuseDestType::NONE>
-inline void _llk_unpack_unary_operand_(const std::uint32_t l1_tile_idx)
+inline void _llk_unpack_unary_operand_(const std::uint32_t l1_tile_idx, const std::uint32_t num_faces, std::uint32_t c_dim_faces)
 {
     // RT: for the best performance, setting counters should be placed in a REPLAY buffer
     // in the mop_config, but for back compatibility with APIs, the counter functions must
@@ -218,15 +310,22 @@ inline void _llk_unpack_unary_operand_(const std::uint32_t l1_tile_idx)
     {
         // For reuse_dest, set source counter for the unpacker that reads from the Circular Buffer.
         // The other source register is filled by MOVD2A/B on the math side.
+        // For tiny-tiles, each face is considered a separate tile in HW. We need to multiply the tile idx by c_dim_faces to get the correct SW defined tile
+        // offset.
         constexpr std::uint32_t CB_UNP = (reuse_dest == EltwiseBinaryReuseDestType::DEST_TO_SRCA) ? p_unpacr::UNP_B : p_unpacr::UNP_A;
-        TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, CB_UNP, l1_tile_idx);
+        TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, CB_UNP, (num_faces == NUM_FACES) ? l1_tile_idx : l1_tile_idx * c_dim_faces);
         TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, CB_UNP, 0);
     }
     else
     {
         // Reset Dest counters for Unpacker to 0
         // Set Source counter to L1 base + offset
-        TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL == p_unpacr::UNP_DEST ? p_unpacr::UNP_A : UNP_SEL, l1_tile_idx);
+        // For tiny-tiles, each face is considered a separate tile in HW. We need to multiply the tile idx by c_dim_faces to get the correct SW defined tile
+        // offset.
+        TT_SET_SRC_TILE_FACE_ROW_IDX(
+            p_set_inc_sel::TILE_SEL,
+            UNP_SEL == p_unpacr::UNP_DEST ? p_unpacr::UNP_A : UNP_SEL,
+            (num_faces == NUM_FACES) ? l1_tile_idx : l1_tile_idx * c_dim_faces);
         TTI_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, UNP_SEL == p_unpacr::UNP_DEST ? p_unpacr::UNP_A : UNP_SEL, 0);
     }
 
