@@ -68,18 +68,18 @@ ALL_MATHOPS = [
     MathOperation.Elu,
     MathOperation.Exp,
     # MathOperation.Log1p,
-    # MathOperation.Sqrt,
     # MathOperation.Rsqrt,
     # MathOperation.Hardsigmoid,
     MathOperation.Exp2,
     MathOperation.Threshold,
     MathOperation.ReluMax,
     MathOperation.ReluMin,
+    # MathOperation.Sqrt,
 ]
 
 FORMATS = input_output_formats(
     [
-        # DataFormat.Float32,
+        DataFormat.Float32,
         # DataFormat.Float16,
         DataFormat.Float16_b,
         DataFormat.Bfp8_b,

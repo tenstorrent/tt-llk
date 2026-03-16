@@ -1521,6 +1521,8 @@ class UnarySFPUGolden:
             raise ValueError(f"Invalid iterations: {iterations}")
 
         result = tensor.clone().flatten()
+        if data_format == DataFormat.Bfp4_b:
+            result = result.to(torch.float32)
 
         if not skip_tilize:
             result = tilize_block(result, dimensions, input_format).flatten()
@@ -1547,10 +1549,15 @@ class UnarySFPUGolden:
             ]
         ]
 
+        op_dtype = (
+            torch.float32
+            if data_format == DataFormat.Bfp4_b
+            else format_dict[dst_format]
+        )
         result[
             ELEMENTS_PER_TILE * dest_idx : ELEMENTS_PER_TILE * dest_idx
             + TILE_SIZE * iterations
-        ] = torch.tensor(op_res, dtype=format_dict[dst_format])
+        ] = torch.tensor(op_res, dtype=op_dtype)
 
         if not skip_tilize:
             result = untilize_block(result, input_format, dimensions).flatten()
