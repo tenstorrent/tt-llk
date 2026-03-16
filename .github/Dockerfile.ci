@@ -6,7 +6,7 @@ ENV GITHUB_ACTIONS="true" \
     PYTEST_RUN_PATH="tests/python_tests"
 
 # Copy only necessary files
-COPY tests/requirements.txt /tmp/requirements_tests.txt
+COPY tests/requirements-base.txt /tmp/requirements_base.txt
 COPY .github/scripts/install-tests-dependencies.sh /tmp/scripts/
 
 # Install all dependencies in a single layer and clean up
