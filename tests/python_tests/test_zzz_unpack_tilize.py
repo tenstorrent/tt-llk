@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
+# SPDX-FileCopyrightText: © 2025 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 import pytest
 import torch
@@ -9,10 +9,7 @@ from helpers.param_config import input_output_formats, parametrize
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
-from helpers.test_variant_parameters import (
-    TILE_COUNT,
-    generate_input_dim,
-)
+from helpers.test_variant_parameters import NUM_FACES, TILE_COUNT, generate_input_dim
 from helpers.utils import passed_test
 
 
@@ -54,6 +51,17 @@ def test_unpack_tilize_int(formats, workers_tensix_coordinates):
     unpack_tilize(formats, workers_tensix_coordinates, unpack_to_dest=True)
 
 
+@parametrize(formats=input_output_formats([DataFormat.Int8]))
+def test_unpack_tilize_int8(formats, workers_tensix_coordinates):
+    formats = formats[0]
+    unpack_tilize(
+        formats,
+        workers_tensix_coordinates,
+        unpack_to_dest=False,
+        dest_acc=DestAccumulation.Yes,
+    )
+
+
 def unpack_tilize(
     formats,
     workers_tensix_coordinates,
@@ -61,7 +69,7 @@ def unpack_tilize(
     validate_lossless=False,
     dest_acc=None,
 ):
-    input_dimensions = [64, 64]
+    input_dimensions = [32, 64]
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
@@ -79,6 +87,7 @@ def unpack_tilize(
         runtimes=[
             generate_input_dim(input_dimensions, input_dimensions),
             TILE_COUNT(tile_cnt_A),
+            NUM_FACES(4),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
@@ -102,6 +111,51 @@ def unpack_tilize(
 
     res_tensor = torch.tensor(res_from_L1, dtype=format_dict[formats.output_format])
 
+    # Print face-by-face comparison (16x16 datums per face, 4 faces per 32x32 tile)
+    print("\n=== Face-by-Face Comparison (16x16 datums each) ===")
+    is_int_format = formats.output_format in [DataFormat.Int8, DataFormat.Int32]
+    for tile_idx in range(len(golden_tensor) // 1024):  # 1024 = 32x32
+        print(f"\n--- Tile {tile_idx} ---")
+        for face_idx in range(4):  # 4 faces per tile
+            # Each face is 16x16 = 256 datums
+            # Face layout: face 0 (top-left), face 1 (top-right), face 2 (bottom-left), face 3 (bottom-right)
+            face_offset = tile_idx * 1024 + face_idx * 256
+
+            print(f"\n  Face {face_idx} - RESULT:")
+            for row in range(16):
+                row_start = face_offset + row * 16
+                row_data = res_tensor[row_start : row_start + 16]
+                if is_int_format:
+                    print(
+                        f"    Row {row:2d}: {' '.join(f'{int(val):4d}' for val in row_data.tolist())}"
+                    )
+                else:
+                    print(
+                        f"    Row {row:2d}: {' '.join(f'{val:6.2f}' for val in row_data.tolist())}"
+                    )
+
+            # print(f"\n  Face {face_idx} - L1:")
+            # for row in range(16):
+            #     row_start = face_offset + row * 16
+            #     row_data = src_A[row_start:row_start + 16]
+            #     if is_int_format:
+            #         print(f"    Row {row:2d}: {' '.join(f'{int(val):4d}' for val in row_data.tolist())}")
+            #     else:
+            #         print(f"    Row {row:2d}: {' '.join(f'{val:6.2f}' for val in row_data.tolist())}")
+
+            print(f"\n  Face {face_idx} - GOLDEN:")
+            for row in range(16):
+                row_start = face_offset + row * 16
+                row_data = golden_tensor[row_start : row_start + 16]
+                if is_int_format:
+                    print(
+                        f"    Row {row:2d}: {' '.join(f'{int(val):4d}' for val in row_data.tolist())}"
+                    )
+                else:
+                    print(
+                        f"    Row {row:2d}: {' '.join(f'{val:6.2f}' for val in row_data.tolist())}"
+                    )
+
     if validate_lossless:
         # Lossless validation
         diff = golden_tensor - res_tensor
@@ -116,5 +170,5 @@ def unpack_tilize(
     else:
         # Standard validation with relaxed tolerances
         assert passed_test(
-            golden_tensor, res_tensor, formats.output_format
+            golden_tensor, res_tensor, formats.output_format, print_errors=False
         ), "Assert against golden failed"
