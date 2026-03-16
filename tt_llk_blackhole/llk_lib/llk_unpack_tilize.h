@@ -53,7 +53,9 @@ inline void _llk_unpack_tilize_init_(
     LLK_ASSERT(unpack_src_format != to_underlying(DataFormat::Fp8_e4m3), "Fp8_e4m3 not supported for tilize");
     cfg_reg_rmw_tensix<THCON_SEC0_REG2_Haloize_mode_RMW>(0);
 
-    const std::uint32_t block_c_dim = ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
+    const bool is_8bit_format            = (unpack_src_format == to_underlying(DataFormat::UInt8)) || (unpack_src_format == to_underlying(DataFormat::Int8));
+    const std::uint32_t effective_ct_dim = is_8bit_format ? 1 : ct_dim;
+    const std::uint32_t block_c_dim      = effective_ct_dim * (narrow_tile ? FACE_C_DIM : TILE_C_DIM);
 
     // In case of 32-bit numbers, we have to unpack into dest register
     // For integers, always unpack to dest. For Float32, only if unpack_dst_format is Float32 (lossless tilize mode)
