@@ -31,7 +31,7 @@ class Stream:
     _BUFFER_OFFSET = 8
 
     def __init__(self, address: int, buffer_size: int, location: str = "0,0"):
-        """Attach to an existing stream_t laid out at *address* on the device.
+        """Attach to an existing Stream laid out at *address* on the device.
 
         Args:
             address: L1 device address of the stream.
