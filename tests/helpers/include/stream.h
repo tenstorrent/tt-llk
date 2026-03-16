@@ -102,7 +102,7 @@ public:
             ckernel::memcpy_blocking(&buffer[write_idx], &input[offset], head);
             ckernel::memcpy_blocking(&buffer[0], &input[offset + head], chunk - head);
 
-            ckernel::force_store(write_idx, static_cast<std::uint32_t>((write_idx + chunk) % BUFFER_SIZE));
+            ckernel::force_store(write_idx, (write_idx + chunk) % BUFFER_SIZE);
 
             offset += chunk;
             remaining -= chunk;
