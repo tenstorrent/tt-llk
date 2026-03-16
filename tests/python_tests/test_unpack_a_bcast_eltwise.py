@@ -5,13 +5,19 @@ import pytest
 import torch
 from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat
+from helpers.golden_generators import TILE_DIMENSIONS
 from helpers.llk_params import (
     DestAccumulation,
+    DestSync,
     MathFidelity,
     MathOperation,
     format_dict,
 )
-from helpers.param_config import input_output_formats, parametrize
+from helpers.param_config import (
+    get_num_blocks_and_num_tiles_in_block,
+    input_output_formats,
+    parametrize,
+)
 from helpers.stimuli_config import StimuliConfig
 from helpers.stimuli_generator import generate_stimuli
 from helpers.test_config import TestConfig
@@ -19,6 +25,8 @@ from helpers.test_variant_parameters import (
     DEST_SYNC,
     MATH_FIDELITY,
     MATH_OP,
+    NUM_BLOCKS,
+    NUM_TILES_IN_BLOCK,
     SRCA_REUSE_COUNT,
     TILE_COUNT,
     generate_input_dim,
@@ -121,6 +129,11 @@ def test_unp_bcast_sub_sdpa(
         : 1024 * reuse_factor
     ]
 
+    # Calculate num_blocks and num_tiles_in_block
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half, dest_acc, formats, input_dimensions, TILE_DIMENSIONS
+    )
+
     configuration = TestConfig(
         "sources/unpack_a_bcast_eltwise_test.cpp",
         formats,
@@ -135,6 +148,8 @@ def test_unp_bcast_sub_sdpa(
         runtimes=[
             TILE_COUNT(tile_cnt_A),
             SRCA_REUSE_COUNT(srca_reuse_count),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+            NUM_BLOCKS(num_blocks),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
