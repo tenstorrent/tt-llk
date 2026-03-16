@@ -15,7 +15,7 @@ namespace llk
 {
 
 template <std::uint32_t BUFFER_SIZE>
-class stream_t
+class Stream
 {
     // these not volatile because we use force_load/force_store explicitly
     std::uint32_t write_idx;
@@ -65,11 +65,11 @@ class stream_t
     }
 
 public:
-    stream_t()                           = delete;
-    stream_t(const stream_t&)            = delete;
-    stream_t(stream_t&&)                 = delete;
-    stream_t& operator=(const stream_t&) = delete;
-    stream_t& operator=(stream_t&&)      = delete;
+    Stream()                         = delete;
+    Stream(const Stream&)            = delete;
+    Stream(Stream&&)                 = delete;
+    Stream& operator=(const Stream&) = delete;
+    Stream& operator=(Stream&&)      = delete;
 
     /**
      * @brief Initialize the stream. Should be called only once, before all operations.
