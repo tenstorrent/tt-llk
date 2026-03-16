@@ -850,13 +850,14 @@ constexpr std::uint32_t get_dest_max_tiles()
 }
 
 /**
- * @brief Forces the compiler to read @p ref from memory upon next access.
+ * @brief Forces the compiler to load @p ref from memory.
  *
- * @note compiler barrier only - does not emit any instructions or affect hardware caches.
+ * @note Does NOT enforce ordering in code or memory.
+ * @note Guarantees that a load will be performed.
  *
  * @tparam T type of the referenced object
- * @param ref reference to invalidate
- * @return reference to the object
+ * @param ref to load from memory
+ * @return loaded value
  *
  * @par Example
  * Consumer waits for producer to create entries in a ringbuffer.
@@ -866,7 +867,7 @@ constexpr std::uint32_t get_dest_max_tiles()
  * @endcode
  */
 template <typename T>
-[[nodiscard]] inline T &force_load(T &ref)
+[[nodiscard]] inline T force_load(T &ref)
 {
     // "=m" output constraint: tells the compiler that ref may have been modified by external code
     // Effect: prevents the compiler from reusing a stale register-cached value.
@@ -877,7 +878,8 @@ template <typename T>
 /**
  * @brief Assigns @p val to @p ref and prevents the compiler from eliminating or deferring the store.
  *
- * @note Enforced at the compiler level only - does not emit a hardware fence or affect caches.
+ * @note Does NOT enforce ordering in code or memory.
+ * @note Guarantees that a store will be performed.
  *
  * @tparam T type of the referenced object
  * @tparam U type of the value to store
