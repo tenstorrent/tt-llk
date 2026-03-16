@@ -68,15 +68,7 @@ inline void _llk_unpack_tilize_init_(
     config.f.out_data_format = unpack_dst_format;
     config.f.throttle_mode   = 2;
     config.f.tileize_mode    = 1;
-    // HW tilize mode applies a 2x multiplier to the L1 row stride for 1-byte formats
-    // (e.g. Fp8_e4m3/Lf8). Compensate by halving shift_amount so the effective stride
-    // equals one row of L1 data.
-    std::uint32_t shift = (SCALE_DATUM_SIZE(unpack_src_format, block_c_dim)) >> 4;
-    if (SCALE_DATUM_SIZE(unpack_src_format, 2) == 2)
-    {
-        shift >>= 1;
-    }
-    config.f.shift_amount = shift;
+    config.f.shift_amount    = (SCALE_DATUM_SIZE(unpack_src_format, block_c_dim)) >> 4;
 
     TT_SETDMAREG(0, LOWER_HALFWORD(config.val[0]), 0, LO_16(p_gpr_unpack::TMP0));
     TT_SETDMAREG(0, UPPER_HALFWORD(config.val[0]), 0, HI_16(p_gpr_unpack::TMP0));
@@ -256,10 +248,8 @@ inline void _llk_unpack_tilizeA_B_init_(
     const std::uint32_t unpB_face_r_dim = FACE_R_DIM)
 {
     LLK_ASSERT(num_faces == 1 || num_faces == 2 || num_faces == 4, "num_faces must be 1, 2, or 4");
-    // Row stride in 16B words for CFGSHIFTMASK. Unlike _llk_unpack_tilize_init_ (which
-    // sets tileize_mode=1 and thus gets a HW 2x multiplier on the stride), the tilizeA_B
-    // path leaves tileize_mode=0 so the stride is used at face value -- no halving needed.
-    std::uint32_t c_dim_size = SCALE_DATUM_SIZE(unpack_src_format, ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM)) >> 4;
+    // Sets the block_c_dim for unpack to use to increment the L1 address
+    const std::uint32_t c_dim_size = SCALE_DATUM_SIZE(unpack_src_format, ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM)) >> 4;
 
     // This sets the scratch register that CFGSHIFTMASK instruction uses to increment the L1 address
     TT_SETDMAREG(0, LOWER_HALFWORD(c_dim_size), 0, LO_16(p_gpr_unpack::TMP0));
@@ -341,8 +331,8 @@ inline void _llk_unpack_tilizeA_B_(
 
         if constexpr (zero_srcB)
         {
-            // For datacopy with is_fp32_dest_acc_en: ELWADD computes SrcA+SrcB->Dest,
-            // so SrcB must be zero for a pure copy. Matches _llk_unpack_tilize_ behavior.
+            // For datacopy with is_fp32_dest_acc_en: ELWADD computes SrcA+SrcB->Dest, so SrcB must be zero for a pure copy
+            // This path is intended to be used for 8bit dataformats, since there is a HW bug in the _llk_unpack_tilize_ path
             TTI_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
         }
         else
