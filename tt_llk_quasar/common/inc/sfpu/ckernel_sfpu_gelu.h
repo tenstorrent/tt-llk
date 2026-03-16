@@ -64,7 +64,6 @@ inline void _init_gelu_()
 }
 
 // Calculates GELU for number of rows of output SFPU ops (Quasar = 2 rows)
-template <bool INITIALIZE_CONSTANTS>
 inline void _calculate_gelu_sfp_rows_()
 {
     TTI_SFPLOAD(p_sfpu::LREG3, p_sfpu::sfpmem::DEFAULT, ADDR_MOD_7, 0, 0); // load from dest into lreg[3], uses ADDR_MOD_7 (set to all zeroes)
@@ -79,7 +78,7 @@ inline void _calculate_gelu_(const int iterations)
 #pragma GCC unroll 8
     for (int d = 0; d < iterations; d++)
     {
-        _calculate_gelu_sfp_rows_<false>();
+        _calculate_gelu_sfp_rows_();
         ckernel::math::_incr_counters_<0x0, 0x0, ckernel::math::SFP_ROWS, 0x0>(); // does the dest_reg++ (increments by 2 rows)
     }
 }
