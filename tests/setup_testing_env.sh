@@ -205,6 +205,9 @@ main() {
         exit 1
     fi
 
+    # Install TT packages (tt-exalens, tt-umd, tt-smi) now
+    install_tt_packages
+
     # Get chip architecture
     local chip_arch
     if [[ -n "${CHIP_ARCH:-}" ]]; then
@@ -222,9 +225,6 @@ main() {
 
     # Setup pre-commit hooks
     setup_precommit
-
-    # Install volatile TT packages (tt-exalens, tt-umd, tt-smi)
-    install_tt_packages
 
     # shellcheck source=/dev/null
     eval local $($version_file SHELL txz)
