@@ -29,6 +29,9 @@ void run_kernel(RUNTIME_PARAMETERS params)
         formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
     _llk_unpack_tilize_init_(formats.unpack_A_src, formats.unpack_A_dst, params.BLOCK_CT_DIM, FACE_R_DIM, false);
 
+    // _llk_unpack_tilizeA_B_init_<false, false, false, false, true>(
+    //             formats.unpack_A_src, formats.unpack_A_dst, false, params->BLOCK_CT_DIM, params->num_faces, FACE_R_DIM, FACE_R_DIM);
+
     std::uint32_t read_offset = 0;
 
 #ifdef ARCH_BLACKHOLE
@@ -41,10 +44,30 @@ void run_kernel(RUNTIME_PARAMETERS params)
     {
         for (std::uint32_t j = 0; j < params.BLOCK_CT_DIM; j++)
         {
-            _llk_unpack_tilize_(L1_ADDRESS(params.buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, block_ct_dim, FACE_R_DIM, 4, false);
+            _llk_unpack_tilize_(
+                L1_ADDRESS(params->buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, params->BLOCK_CT_DIM, FACE_R_DIM, 4, false);
         }
         read_offset += params.BLOCK_RT_DIM;
     }
+
+    // for (std::uint32_t i = 0; i < params->BLOCK_RT_DIM; i++)
+    // {
+    //     for (std::uint32_t j = 0; j < params->BLOCK_CT_DIM; j++)
+    //     {
+    //         _llk_unpack_tilizeA_B_<false, false, false, false, true>(
+    //             formats.unpack_A_src,
+    //             FACE_R_DIM,
+    //             false,
+    //             L1_ADDRESS(params->buffer_A[read_offset]),
+    //             L1_ADDRESS(params->buffer_B[0]),
+    //             j,
+    //             0,
+    //             params->BLOCK_CT_DIM,
+    //             params->num_faces);
+    //     }
+    //     read_offset += params->BLOCK_CT_DIM;
+    // }
+    // _llk_unpack_tilizeA_B_uninit_(formats.unpack_A_dst, FACE_R_DIM);
 }
 
 #endif
@@ -70,7 +93,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
     // set tilize flag to true
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, TILIZE, is_int_fpu_en>(4, formats.math);
+    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, !TILIZE, is_int_fpu_en>(4, formats.math);
 #else
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats.math);
 #endif
@@ -102,8 +125,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     const bool UNTILIZE = false;
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, TILIZE>(formats.pack_dst);
+    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, !TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+    _llk_pack_init_<UNTILIZE, false, !TILIZE>(formats.pack_dst);
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
