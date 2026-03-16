@@ -19,6 +19,11 @@ std::uint32_t tile_size                = 128;
 constexpr std::uint32_t buffer_A_tilized = 0x1e000;
 constexpr std::uint32_t buffer_B_tilized = 0x1f000;
 
+// Translation of these lines:
+// const FormatConfig(&formats_array)[2] = params.formats;
+// to English:
+// Constant reference to an array of 2 FormatConfig objects
+
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_AB_matmul.h"

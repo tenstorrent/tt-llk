@@ -22,6 +22,11 @@ using namespace ckernel;
 constexpr std::uint32_t buffer_A_tilized = 0x16000;
 constexpr std::uint32_t buffer_B_tilized = 0x17000;
 
+// Translation of these lines:
+// const FormatConfig(&formats_array)[2] = params.formats;
+// to English:
+// Constant reference to an array of 2 FormatConfig objects
+
 #ifdef LLK_TRISC_UNPACK
 
 #include "llk_unpack_A.h"

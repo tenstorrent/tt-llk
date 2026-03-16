@@ -284,6 +284,8 @@ class PerfConfig(TestConfig):
         compile_time_formats: bool = False,
     ):
 
+        # Initialize passed templates and runtimes here so we don't get variant hash issues
+        # when we reasign them in run method of PerfConfig
         self.passed_templates = templates.copy()
         self.passed_runtimes = runtimes.copy()
         self.current_run_type = None
@@ -320,12 +322,14 @@ class PerfConfig(TestConfig):
         """Return (name, value) pairs for dataclass fields, used as columns for the report."""
         return [(f.name, getattr(obj, f.name)) for f in fields(obj)]
 
-    def run(self, perf_report: PerfReport, run_count=5, location="0,0"):
+    def run(self, perf_report: PerfReport, run_count=2, location="0,0"):
         results = []
 
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
             for templates, runtimes, run_type in self.run_configs:
                 self.current_run_type = run_type
+                # We need to manually assign different modified templates here if the speed of light is set,
+                # because we run TestConfig constructor only once
                 if TestConfig.SPEED_OF_LIGHT:
                     self.templates = templates + runtimes
                     self.runtimes = []
@@ -343,6 +347,8 @@ class PerfConfig(TestConfig):
 
         for templates, runtimes, run_type in self.run_configs:
             self.current_run_type = run_type
+            # We need to manually assign different modified templates here if the speed of light is set,
+            # because we run TestConfig constructor only once
             if TestConfig.SPEED_OF_LIGHT:
                 self.templates = templates + runtimes
                 self.runtimes = []
@@ -361,6 +367,7 @@ class PerfConfig(TestConfig):
                 profiler_data = Profiler.get_data(
                     self.test_name, self.variant_id, location
                 )
+
                 # TODO You add additional data collections you want here
 
                 # Tag profiler data with run index for proper L1-to-L1 pairing

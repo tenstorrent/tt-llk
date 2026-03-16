@@ -631,8 +631,6 @@ class TestConfig:
             if field_name not in NON_COMPILATION_ARGUMENTS
         ]
 
-        # logger.trace(str(" | ".join(temp_str)))
-
         self.variant_id = sha256(str(" | ".join(temp_str)).encode()).hexdigest()
 
     def resolve_compile_options(self) -> tuple[str, str, str]:
