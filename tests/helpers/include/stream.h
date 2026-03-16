@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 #include "ckernel.h"
 #include "llk_assert.h"
@@ -110,19 +111,16 @@ public:
 
     /**
      * @brief Peek at the next char in the stream without consuming it.
-     * @param output the next char in the stream
-     * @return true if a char is available, false otherwise
+     * @return the next char if available, std::nullopt otherwise
      */
-    bool peek(char& output) const
+    [[nodiscard]] std::optional<char> peek()
     {
-        std::uint32_t avail = consumer_poll_avail();
-        if (avail > 0)
+        if (consumer_poll_avail() > 0)
         {
-            output = buffer[read_idx];
-            return true;
+            return buffer[read_idx];
         }
 
-        return false;
+        return std::nullopt;
     }
 
     /**
