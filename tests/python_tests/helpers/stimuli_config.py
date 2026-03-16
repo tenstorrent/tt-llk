@@ -123,6 +123,35 @@ class StimuliConfig:
                 stimuli_res_format, self.tile_dimensions, format_tile_sizes
             )
 
+    def __str__(self) -> str:
+        lines = (
+            "StimuliConfig:"
+            f"  buffer_A: {self.buffer_A}"
+            f"  stimuli_A_format: {self.stimuli_A_format}"
+            f"  tile_count_A: {self.tile_count_A}"
+            f"  buffer_B: {self.buffer_B}"
+            f"  stimuli_B_format: {self.stimuli_B_format}"
+            f"  tile_count_B: {self.tile_count_B}"
+            f"  buffer_C: {self.buffer_C}"
+            f"  stimuli_C_format: {self.stimuli_C_format}"
+            f"  tile_count_C: {self.tile_count_C}"
+            f"  stimuli_res_format: {self.stimuli_res_format}"
+            f"  tile_count_res: {self.tile_count_res}"
+            f"  num_faces: {self.num_faces}"
+            f"  face_r_dim: {self.face_r_dim}"
+            f"  tile_dimensions: {self.tile_dimensions}"
+            f"  sfpu: {self.sfpu}"
+            f"  write_full_tiles: {self.write_full_tiles}"
+            f"  use_dense_tile_dimensions: {self.use_dense_tile_dimensions}"
+            f"  operand_res_tile_size: {self.operand_res_tile_size}"
+            f"  buf_a_addr: 0x{self.buf_a_addr:08X}"
+            f"  buf_b_addr: 0x{self.buf_b_addr:08X}"
+            f"  buf_res_addr: 0x{self.buf_res_addr:08X}"
+        )
+        if self.buffer_C is not None:
+            lines += f"  buf_c_addr: 0x{self.buf_c_addr:08X}"
+        return lines
+
     def generate_runtime_operands_values(self) -> list:
         values = [
             self.buf_a_addr,

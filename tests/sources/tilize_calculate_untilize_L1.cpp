@@ -33,7 +33,7 @@ constexpr std::uint32_t buffer_B_tilized = 0x17000;
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const FormatConfig& formats_array = params.formats;
+    const FormatConfig(&formats_array)[2] = params.formats;
 #endif
 
 #ifdef ARCH_BLACKHOLE
@@ -108,7 +108,7 @@ using namespace ckernel;
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const FormatConfig& formats_array = params.formats;
+    const FormatConfig(&formats_array)[2] = params.formats;
 #endif
     const bool is_int_fpu_en                = false;
     const std::uint32_t operand_A_dst_index = 1;
@@ -157,7 +157,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
-    const FormatConfig& formats_array = params.formats;
+    const FormatConfig(&formats_array)[2] = params.formats;
 #endif
     const std::uint32_t operand_A_dst_index = 1;
     const std::uint32_t operand_B_dst_index = 2;

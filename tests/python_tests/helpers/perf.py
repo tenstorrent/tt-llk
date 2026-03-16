@@ -283,6 +283,21 @@ class PerfConfig(TestConfig):
         skip_build_header: bool = False,
         compile_time_formats: bool = False,
     ):
+
+        self.passed_templates = templates.copy()
+        self.passed_runtimes = runtimes.copy()
+        self.current_run_type = None
+
+        # TODO Add check here for all selected runs, to see if the profiler/counter supports them
+        self.run_configs = [
+            (
+                templates.copy() + [PERF_RUN_TYPE(run_type)],
+                runtimes.copy(),
+                run_type,
+            )
+            for run_type in run_types
+        ]
+
         super().__init__(
             test_name,
             formats,
@@ -300,34 +315,24 @@ class PerfConfig(TestConfig):
             compile_time_formats,
         )
 
-        self.passed_templates = templates
-        self.passed_runtimes = runtimes
-        self.current_run_type = None
-
-        # TODO Add check here for all selected runs, to see if the profiler/counter supports them
-
-        self.run_configs = [
-            (
-                templates.copy() + [PERF_RUN_TYPE(run_type)],
-                runtimes.copy(),
-                run_type,
-            )
-            for run_type in run_types
-        ]
-
     @staticmethod
     def _dataclass_name_and_values(obj):
         """Return (name, value) pairs for dataclass fields, used as columns for the report."""
         return [(f.name, getattr(obj, f.name)) for f in fields(obj)]
 
-    def run(self, perf_report: PerfReport, run_count=2, location="0,0"):
+    def run(self, perf_report: PerfReport, run_count=5, location="0,0"):
         results = []
 
         if TestConfig.MODE in [TestMode.PRODUCE, TestMode.DEFAULT]:
             for templates, runtimes, run_type in self.run_configs:
                 self.current_run_type = run_type
-                self.templates = templates
-                self.runtimes = runtimes
+                if TestConfig.SPEED_OF_LIGHT:
+                    self.templates = templates + runtimes
+                    self.runtimes = []
+                    self.compile_time_formats = True
+                else:
+                    self.templates = templates
+                    self.runtimes = runtimes
                 self.generate_variant_hash()
                 self.build_elfs()
 
@@ -338,9 +343,15 @@ class PerfConfig(TestConfig):
 
         for templates, runtimes, run_type in self.run_configs:
             self.current_run_type = run_type
-            self.templates = templates
-            self.runtimes = runtimes
+            if TestConfig.SPEED_OF_LIGHT:
+                self.templates = templates + runtimes
+                self.runtimes = []
+                self.compile_time_formats = True
+            else:
+                self.templates = templates
+                self.runtimes = runtimes
             self.generate_variant_hash()
+
             variant_raw_data = []
             for run_index in range(run_count):
                 self.write_runtimes_to_L1(location)
