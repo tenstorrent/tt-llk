@@ -129,7 +129,7 @@ def _get_valid_tile_dimensions(transpose_srca, broadcast_type):
     # transpose_srca=lambda broadcast_type: _get_valid_transpose(broadcast_type),
     transpose_srca=Transpose.No,
     math_op=lambda math_fidelity: _get_valid_math_ops(math_fidelity),
-    input_dimensions=[[32, 32]],
+    input_dimensions=[[32, 32], [64, 32], [32, 64], [256, 32]],
     tile_dimensions=[[32, 32]],
 )
 def test_eltwise_binary(

@@ -1832,30 +1832,49 @@ class EltwiseBinaryGolden(FidelityMasking):
             MathOperation.Elwmul: self._mul,
         }
 
+    def _quantize_input(self, operand, fmt, data_format):
+        """Quantize a single operand to match what hardware sees after unpack."""
+        if fmt is None:
+            return to_tensor(operand, data_format)
+        if fmt == DataFormat.Bfp4_b:
+            return _bfp4b_to_float16b(operand)
+        if fmt == DataFormat.Bfp8_b:
+            return _bfp8b_to_float16b(operand)
+        if fmt.is_mx_format():
+            return quantize_mx_tensor_chunked(operand, fmt)
+        return to_tensor(operand, data_format)
+
     def __call__(
-        self, op, operand1, operand2, data_format, math_fidelity, input_format=None
+        self,
+        op,
+        operand1,
+        operand2,
+        data_format,
+        math_fidelity,
+        input_format=None,
+        input_format_B=None,
     ):
         if op not in self.ops:
             raise ValueError(f"Unsupported Eltwise operation: {op}")
 
-        # Step 1: Quantize inputs to match what hardware sees after unpack from L1.
-        # This simulates the pack→unpack roundtrip for each format.
-        if input_format is not None and input_format == DataFormat.Bfp4_b:
-            operand1 = _bfp4b_to_float16b(operand1)
-            operand2 = _bfp4b_to_float16b(operand2)
-            math_format_for_fidelity = DataFormat.Float16_b
-        elif input_format is not None and input_format == DataFormat.Bfp8_b:
-            operand1 = _bfp8b_to_float16b(operand1)
-            operand2 = _bfp8b_to_float16b(operand2)
-            math_format_for_fidelity = DataFormat.Float16_b
-        elif input_format is not None and input_format.is_mx_format():
-            operand1 = quantize_mx_tensor_chunked(operand1, input_format)
-            operand2 = quantize_mx_tensor_chunked(operand2, input_format)
-            math_format_for_fidelity = DataFormat.Float16_b
-        else:
-            operand1 = to_tensor(operand1, data_format)
-            operand2 = to_tensor(operand2, data_format)
-            math_format_for_fidelity = data_format
+        # If input_format_B is not provided, it defaults to input_format.
+        if input_format_B is None:
+            input_format_B = input_format
+
+        # Step 1: Quantize each input independently to match what hardware sees
+        # after unpacking from L1. Each operand uses its own format.
+        operand1 = self._quantize_input(operand1, input_format, data_format)
+        operand2 = self._quantize_input(operand2, input_format_B, data_format)
+
+        # Use bfloat16 for fidelity masking when any input is a block-float format.
+        uses_block_float = any(
+            fmt is not None
+            and (fmt in (DataFormat.Bfp4_b, DataFormat.Bfp8_b) or fmt.is_mx_format())
+            for fmt in (input_format, input_format_B)
+        )
+        math_format_for_fidelity = (
+            DataFormat.Float16_b if uses_block_float else data_format
+        )
 
         t1, t2 = operand1, operand2
 
