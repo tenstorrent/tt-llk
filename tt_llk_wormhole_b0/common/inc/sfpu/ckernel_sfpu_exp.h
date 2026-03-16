@@ -28,7 +28,7 @@ namespace ckernel::sfpu
  * If that was not the case, we would have had to shift by `exp - 23` instead of `exp`
  * This saves 1 SFPADDI instruction.
  */
-sfpi_inline sfpi::vInt _float_to_int32_for_exp21f_(sfpi::vFloat val)
+sfpi_inline sfpi::vInt _float_to_int32_for_exp_21f_(sfpi::vFloat val)
 {
     sfpi::vInt exp = sfpi::exexp(val);
     sfpi::vInt man = sfpi::exman8(val); // get mantissa with implicit bit (man in [1; 2])
@@ -50,7 +50,7 @@ sfpi_inline sfpi::vInt _float_to_int32_for_exp21f_(sfpi::vFloat val)
  *      ( https://doi.org/10.1109/MSP.2022.3157460 )
  */
 template <bool is_fp32_dest_acc_en>
-sfpi_inline sfpi::vFloat _sfpu_exp_21f_(sfpi::vFloat val)
+sfpi_inline sfpi::vFloat _sfpu_exp_21f_bf16_(sfpi::vFloat val)
 {
     // This function computes exp(x) by leveraging mathematic properties of exp(x):
     // That is, exp(x) = 2**(x / ln2) = 2**(x_i) * 2**(x_f) where
@@ -78,7 +78,7 @@ sfpi_inline sfpi::vFloat _sfpu_exp_21f_(sfpi::vFloat val)
     sfpi::vec_min_max(threshold_low, xlog2);
     sfpi::vec_min_max(xlog2, threshold_high);
 
-    sfpi::vInt z = _float_to_int32_for_exp21f_(xlog2);
+    sfpi::vInt z = _float_to_int32_for_exp_21f_(xlog2);
 
     sfpi::vInt exponential_part = exexp_nodebias(sfpi::reinterpret<sfpi::vFloat>(z)); // Extract exponent ( = 2**(integer part of val/ln2))
     sfpi::vInt fractional_part  = sfpi::exman9(sfpi::reinterpret<sfpi::vFloat>(z));   // Extract mantissa ( = leftover part, in [0; 1])
@@ -106,7 +106,7 @@ sfpi_inline sfpi::vFloat _sfpu_exp_21f_(sfpi::vFloat val)
 
 // Utility function to round a float to a 32-bit integer while also calculating the
 // integer part of the rounded value
-sfpi_inline sfpi::vFloat _sfpu_round_nearest_int32_(sfpi::vFloat z, sfpi::vInt& k_int)
+sfpi_inline sfpi::vFloat _sfpu_round_to_nearest_int32_(sfpi::vFloat z, sfpi::vInt& k_int)
 {
     // From Hacker's Delight: round-to-nearest-even method
     // float -> int32 (round to nearest even): n = (x + float(c231)) - int32(c231)
@@ -135,7 +135,7 @@ sfpi_inline sfpi::vFloat _sfpu_round_nearest_int32_(sfpi::vFloat z, sfpi::vInt& 
  * @param val The input value (sfpi::vFloat vector), can be any floating point number
  * @return sfpi::vFloat Result of exp(val)
  */
-sfpi_inline sfpi::vFloat _sfpu_exp_f32_accurate_(sfpi::vFloat val)
+sfpi_inline sfpi::vFloat _sfpu_exp_fp32_accurate_(sfpi::vFloat val)
 {
     sfpi::vFloat result = sfpi::vConst0;
 
@@ -178,7 +178,7 @@ sfpi_inline sfpi::vFloat _sfpu_exp_f32_accurate_(sfpi::vFloat val)
     {
         // Round z to nearest integer using round-to-nearest-even
         sfpi::vInt k_int;
-        sfpi::vFloat k = _sfpu_round_nearest_int32_(z, k_int);
+        sfpi::vFloat k = _sfpu_round_to_nearest_int32_(z, k_int);
 
         // Step 2: Cody-Waite range reduction
         // Compute r = x - k*ln(2) in extended precision
@@ -240,20 +240,20 @@ sfpi_inline sfpi::vFloat _sfpu_exp_f32_accurate_(sfpi::vFloat val)
 }
 
 template <bool is_fp32_dest_acc_en>
-sfpi_inline sfpi::vFloat _sfpu_exp_improved_(sfpi::vFloat val);
+sfpi_inline sfpi::vFloat _sfpu_exp_accurate_(sfpi::vFloat val);
 
 // is_fp32_dest_acc_en == false
 template <>
-sfpi_inline sfpi::vFloat _sfpu_exp_improved_<false>(sfpi::vFloat val)
+sfpi_inline sfpi::vFloat _sfpu_exp_accurate_<false>(sfpi::vFloat val)
 {
-    return _sfpu_exp_21f_<false>(val);
+    return _sfpu_exp_21f_bf16_<false>(val);
 }
 
 // is_fp32_dest_acc_en == true
 template <>
-sfpi_inline sfpi::vFloat _sfpu_exp_improved_<true>(sfpi::vFloat val)
+sfpi_inline sfpi::vFloat _sfpu_exp_accurate_<true>(sfpi::vFloat val)
 {
-    return _sfpu_exp_f32_accurate_(val);
+    return _sfpu_exp_fp32_accurate_(val);
 }
 
 sfpi_inline sfpi::vFloat _sfpu_exp_(sfpi::vFloat val)
