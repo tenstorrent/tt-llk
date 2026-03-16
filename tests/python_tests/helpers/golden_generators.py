@@ -912,87 +912,31 @@ class MatmulGolden(FidelityMasking):
                     f"Matrix dimensions incompatible: A[{M},{K1}] × B[{K2},{N}]"
                 )
 
-            output_dimensions = [M, N]
+        if data_format.is_integer():
+            t1 = t1.view(M, K1).to(torch.float32)
+            t2 = t2.view(K2, N).to(torch.float32)
+            res = torch.matmul(t1, t2).view(M * N).to(torch_format)
+        else:
+            MATH_FIDELITY_TO_ITER_COUNT = {
+                MathFidelity.LoFi: 0,
+                MathFidelity.HiFi2: 1,
+                MathFidelity.HiFi3: 2,
+                MathFidelity.HiFi4: 3,
+            }
 
-        MATH_FIDELITY_TO_ITER_COUNT = {
-            MathFidelity.LoFi: 0,
-            MathFidelity.HiFi2: 1,
-            MathFidelity.HiFi3: 2,
-            MathFidelity.HiFi4: 3,
-        }
+            fidelity_iter_count = MATH_FIDELITY_TO_ITER_COUNT[math_fidelity]
 
-        fidelity_iter_count = MATH_FIDELITY_TO_ITER_COUNT[math_fidelity]
-
-        res = 0
-
-        if fidelity_iter_count == 0:
-
-            t1, t2 = self._apply_fidelity_masking(data_format, t1, t2, 0)
-            t1, t2 = t1.view(M, K1), t2.view(K2, N)
-            res = (
-                torch.matmul(t1, t2)
-                .view(output_dimensions[0] * output_dimensions[1])
-                .to(torch_format)
-            )
-
-        elif fidelity_iter_count == 1:
-
-            t1, t2 = self._apply_fidelity_masking(data_format, t1, t2, 0)
-            t1, t2 = t1.view(M, K1), t2.view(K2, N)
-            res = (
-                torch.matmul(t1, t2)
-                .view(output_dimensions[0] * output_dimensions[1])
-                .to(torch_format)
-            )
-
-            t1 = to_tensor(operand1, data_format)
-            t2 = to_tensor(operand2, data_format)
-            t1, t2 = self._apply_fidelity_masking(data_format, t1, t2, 1)
-            t1, t2 = t1.view(M, K1), t2.view(K2, N)
-            res += (
-                torch.matmul(t1, t2)
-                .view(output_dimensions[0] * output_dimensions[1])
-                .to(torch_format)
-            )
-
-        elif fidelity_iter_count == 2:
-
-            t1, t2 = self._apply_fidelity_masking(data_format, t1, t2, 0)
-            t1, t2 = t1.view(M, K1), t2.view(K2, N)
-            res = (
-                torch.matmul(t1, t2)
-                .view(output_dimensions[0] * output_dimensions[1])
-                .to(torch_format)
-            )
-
-            t1 = to_tensor(operand1, data_format)
-            t2 = to_tensor(operand2, data_format)
-            t1, t2 = self._apply_fidelity_masking(data_format, t1, t2, 1)
-            t1, t2 = t1.view(M, K1), t2.view(K2, N)
-            res += (
-                torch.matmul(t1, t2)
-                .view(output_dimensions[0] * output_dimensions[1])
-                .to(torch_format)
-            )
-
-            t1 = to_tensor(operand1, data_format)
-            t2 = to_tensor(operand2, data_format)
-            t1, t2 = self._apply_fidelity_masking(data_format, t1, t2, 2)
-            t1, t2 = t1.view(M, K1), t2.view(K2, N)
-            res += (
-                torch.matmul(t1, t2)
-                .view(output_dimensions[0] * output_dimensions[1])
-                .to(torch_format)
-            )
-
-        elif fidelity_iter_count == 3:
-
-            t1, t2 = t1.view(M, K1), t2.view(K2, N)
-            res = (
-                torch.matmul(t1, t2)
-                .view(output_dimensions[0] * output_dimensions[1])
-                .to(torch_format)
-            )
+            if fidelity_iter_count == 3:
+                t1, t2 = t1.view(M, K1), t2.view(K2, N)
+                res = torch.matmul(t1, t2).view(M * N).to(torch_format)
+            else:
+                res = torch.zeros(M * N, dtype=torch_format)
+                for phase in range(fidelity_iter_count + 1):
+                    t1 = to_tensor(operand1, data_format)
+                    t2 = to_tensor(operand2, data_format)
+                    t1, t2 = self._apply_fidelity_masking(data_format, t1, t2, phase)
+                    t1, t2 = t1.view(M, K1), t2.view(K2, N)
+                    res += torch.matmul(t1, t2).view(M * N).to(torch_format)
 
         if tilize:
             res = tilize_block(
