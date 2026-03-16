@@ -16,7 +16,9 @@
 // 1. Include the metal header below: #include "metal_sfpu/<operation>.h"
 // 2. Add the operation enum to SfpuType in llk_sfpu_types.h
 // 3. Add the case statement in call_sfpu_operation() switch below
+#ifndef TT_LLK_SFPU_EXP
 #include "metal_sfpu/ckernel_sfpu_exp.h"
+#endif
 #include "metal_sfpu/ckernel_sfpu_log1p.h"
 #include "metal_sfpu/ckernel_sfpu_tanh.h"
 
@@ -62,8 +64,7 @@ void call_sfpu_operation(SfpuType operation, std::uint32_t math_format = 0, floa
             _calculate_cosine_<APPROX_MODE, ITERATIONS>(ITERATIONS);
             break;
         case SfpuType::elu:
-            _init_elu_<APPROX_MODE>();
-            _calculate_elu_<APPROX_MODE, ITERATIONS>(1);
+            _calculate_elu_<APPROX_MODE, is_fp32_dest_acc_en, ITERATIONS>(1);
             break;
         case SfpuType::exp2:
             _init_exp2_<APPROX_MODE>();
