@@ -18,14 +18,15 @@ using namespace ckernel;
  * @param buf_desc_id: The buffer descriptor ID where the buffer information is
  * stored in the buffer descriptor table, values = 16-31
  * @param num_tiles: number of tiles to pack at a time
+ * @param num_faces: number of faces in the tiles to unpack
  */
 template <std::uint8_t PACK_SEL>
-inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uint32_t num_tiles)
+inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uint32_t num_tiles, const std::uint32_t num_faces)
 {
     static_assert((PACK_SEL == p_pacr::PACK0) || (PACK_SEL == p_pacr::PACK1), "PACK_SEL can only be set to p_pacr::PACK0/PACK1");
 
-    const std::uint32_t MOP_OUTER_LOOP = 1;
-    const std::uint32_t MOP_INNER_LOOP = num_tiles;
+    const std::uint32_t MOP_OUTER_LOOP = num_tiles;
+    const std::uint32_t MOP_INNER_LOOP = (num_faces == NUM_FACES) ? 1 : num_faces;
 
     // RT: Use defines to remove these constexpr, and replace with a single TT_OP_PACR_FACE_INC
     std::uint32_t pack_instrn;
@@ -40,7 +41,6 @@ inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uin
     }
 
     ckernel_template temp(MOP_OUTER_LOOP, MOP_INNER_LOOP, pack_instrn);
-
     temp.program_bank0_sw_cntl(instrn_buffer);
 }
 
@@ -58,9 +58,12 @@ inline void _llk_pack_mop_config_(const std::uint8_t buf_desc_id, const std::uin
  */
 template <std::uint8_t PACK_SEL, bool EN_32B_DEST = false>
 inline void _llk_pack_init_(
-    const std::uint8_t buf_desc_id, const std::uint32_t num_tiles = NUM_TILES, const ckernel::ReluConfig& relu_config = ckernel::ReluConfig::none())
+    const std::uint8_t buf_desc_id,
+    const std::uint32_t num_tiles          = NUM_TILES,
+    const std::uint32_t num_faces          = NUM_FACES,
+    const ckernel::ReluConfig& relu_config = ckernel::ReluConfig::none())
 {
-    _llk_pack_mop_config_<PACK_SEL>(buf_desc_id, num_tiles);
+    _llk_pack_mop_config_<PACK_SEL>(buf_desc_id, num_tiles, num_faces);
     _llk_pack_relu_config_<PACK_SEL, EN_32B_DEST>(relu_config);
 }
 
@@ -75,9 +78,7 @@ inline void _llk_pack_init_(
  */
 template <std::uint8_t PACK_SEL>
 inline void _llk_pack_(
-    const std::uint32_t start_math_dest_tile_idx, const std::uint32_t start_l1_tile_idx
-
-)
+    const std::uint32_t start_math_dest_tile_idx, const std::uint32_t start_l1_tile_idx, const std::uint32_t num_faces, const std::uint32_t c_dim_faces)
 {
     //(TODO) RT: for the best performance, setting counters should be placed in a REPLAY buffer
     // in the mop_config, but for back compatibility with APIs, the counter functions must
@@ -85,9 +86,18 @@ inline void _llk_pack_(
 
     // Set Source (math destination) counter to face index offset
     // Set dst (l1 output) counter to face index offset
-    TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_math_dest_tile_idx);
-    TT_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_l1_tile_idx);
-
+    if (num_faces == NUM_FACES) // Using full tiles
+    {
+        TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_math_dest_tile_idx);
+        TT_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_l1_tile_idx);
+    }
+    else // Using tiny-tiles
+    {
+        // For tiny-tiles, each face is considered a separate tile in HW. We need to multiply the tile idx by c_dim_faces to get the correct SW defined tile
+        // offset.
+        TT_SET_SRC_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_math_dest_tile_idx * c_dim_faces);
+        TT_SET_DST_TILE_FACE_ROW_IDX(p_set_inc_sel::TILE_SEL, PACK_SEL, start_l1_tile_idx * c_dim_faces);
+    }
     // Runs MOP
     ckernel::ckernel_template::run_bank0_sw_cntl(instrn_buffer);
 }

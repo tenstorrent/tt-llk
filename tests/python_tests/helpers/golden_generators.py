@@ -1067,38 +1067,36 @@ class DataCopyGolden:
         data_format,
         num_faces: int = 4,
         input_dimensions: list[int] = [32, 32],
-        face_r_dim: int = 16,  # Default to 16 for backward compatibility
+        face_r_dim: int = 16,
+        tile_shape=None,
     ):
         torch_format = format_dict[data_format]
 
-        height, width = input_dimensions[0], input_dimensions[1]
-
-        # Handle partial faces (face_r_dim < 16) as single tiles
-        if face_r_dim < 16:
-            tile_cnt = 1
+        # Derive tile geometry from TileShape if provided, else from legacy params
+        if tile_shape is not None:
+            tile_r = tile_shape.total_row_dim()
+            tile_c = tile_shape.total_col_dim()
+            elements_per_tile_needed = tile_shape.total_tile_size()
         else:
-            tile_cnt = (height // 32) * (width // 32)
+            tile_r = 32
+            tile_c = 32
+            elements_per_tile_needed = face_r_dim * FACE_DIM * num_faces
 
-        # Calculate elements based on variable face dimensions
-        # Each face is face_r_dim × 16, and we have num_faces
-        elements_per_tile_needed = face_r_dim * FACE_DIM * num_faces
+        height, width = input_dimensions[0], input_dimensions[1]
+        tile_cnt = (height // tile_r) * (width // tile_c)
 
         # Convert input to tensor if needed
         if not isinstance(operand1, torch.Tensor):
             operand1 = torch.tensor(operand1, dtype=torch_format)
 
-        # Determine actual tile size from input:
-        # If input is sized for partial faces (num_faces < 4), use elements_per_tile_needed
-        # Otherwise use full tile size
+        # Input may be laid out as full 32×32 tile slots or pre-sized for this tile shape
         total_elements = operand1.numel()
-        expected_partial_size = tile_cnt * elements_per_tile_needed
+        expected_exact_size = tile_cnt * elements_per_tile_needed
 
-        if total_elements == expected_partial_size:
-            # Input is already sized for num_faces, just pass through
+        if total_elements == expected_exact_size:
             tile_size = elements_per_tile_needed
         else:
-            # Input has full tiles, need to select elements
-            tile_size = height * width // tile_cnt if tile_cnt > 0 else height * width
+            tile_size = total_elements // tile_cnt
 
         reshaped = operand1.view(tile_cnt, tile_size)
         selected = reshaped[:, :elements_per_tile_needed]
