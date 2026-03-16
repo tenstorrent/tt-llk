@@ -270,13 +270,13 @@ FORMATS_CONFIG_STRUCT_RUNTIME = [
     """
 struct FormatConfig
 {
-    std::uint32_t unpack_A_src;
-    std::uint32_t unpack_B_src;
-    std::uint32_t unpack_A_dst;
-    std::uint32_t unpack_B_dst;
-    std::uint32_t math;
-    std::uint32_t pack_src;
-    std::uint32_t pack_dst;
+    std::uint32_t unpack_A_src = 0;
+    std::uint32_t unpack_B_src = 0;
+    std::uint32_t unpack_A_dst = 0;
+    std::uint32_t unpack_B_dst = 0;
+    std::uint32_t math = 0;
+    std::uint32_t pack_src = 0;
+    std::uint32_t pack_dst = 0;
 
     FormatConfig(
         std::uint32_t unpack_A_src_,

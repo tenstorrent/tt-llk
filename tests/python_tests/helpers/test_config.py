@@ -612,7 +612,6 @@ class TestConfig:
             "passed_templates",
             "passed_runtimes",
             "current_run_type",
-            "run_configs",
         ]
 
         if not TestConfig.SPEED_OF_LIGHT:
