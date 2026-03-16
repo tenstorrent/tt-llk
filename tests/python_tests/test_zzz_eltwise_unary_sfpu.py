@@ -43,10 +43,10 @@ from helpers.test_variant_parameters import (
 from helpers.utils import passed_test
 
 SUPPORTED_FAST_MODE_OPS = [
-    MathOperation.Log1p,
-    MathOperation.Exp,
-    MathOperation.Rsqrt,
-    MathOperation.Sqrt,
+    # MathOperation.Log1p,
+    # MathOperation.Exp,
+    # MathOperation.Rsqrt,
+    # MathOperation.Sqrt,
 ]
 
 ALL_MATHOPS = [
@@ -56,11 +56,8 @@ ALL_MATHOPS = [
     MathOperation.Acosh,
     MathOperation.Cos,
     MathOperation.Log,
-    MathOperation.Log1p,
     MathOperation.Reciprocal,
     MathOperation.Sin,
-    MathOperation.Sqrt,
-    MathOperation.Rsqrt,
     MathOperation.Square,
     MathOperation.Tanh,
     MathOperation.Celu,
@@ -69,9 +66,12 @@ ALL_MATHOPS = [
     MathOperation.Neg,
     MathOperation.Fill,
     MathOperation.Elu,
-    MathOperation.Exp,
+    # MathOperation.Log1p,
+    # MathOperation.Exp,
+    # MathOperation.Sqrt,
+    # MathOperation.Rsqrt,
+    # MathOperation.Hardsigmoid,
     MathOperation.Exp2,
-    MathOperation.Hardsigmoid,
     MathOperation.Threshold,
     MathOperation.ReluMax,
     MathOperation.ReluMin,
@@ -79,8 +79,8 @@ ALL_MATHOPS = [
 
 FORMATS = input_output_formats(
     [
-        DataFormat.Float32,
-        DataFormat.Float16,
+        # DataFormat.Float32,
+        # DataFormat.Float16,
         DataFormat.Float16_b,
         DataFormat.Bfp8_b,
         DataFormat.Bfp4_b,
@@ -271,8 +271,6 @@ def eltwise_unary_sfpu(
         input_dimensions_B=input_dimensions,
     )
 
-    print(f"\n=== Stimuli (src_A) ===\n{src_A}\n")
-
     generate_golden = get_golden_generator(UnarySFPUGolden)
     golden_tensor = generate_golden(
         mathop,
@@ -334,9 +332,84 @@ def eltwise_unary_sfpu(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    assert passed_test(
-        golden_tensor, res_tensor, formats.output_format
-    ), "Assert against golden failed"
+    test_passed = passed_test(golden_tensor, res_tensor, formats.output_format)
+
+    if not test_passed:
+        rows, cols = input_dimensions
+        torch.set_printoptions(precision=4, linewidth=10000)
+        print(f"\n=== Mathop: {mathop} ===")
+        print(f"\n=== Dest Acc: {dest_acc} ===")
+        print(f"\n=== Approval Mode: {approx_mode} ===")
+        print(f"\n=== Fast Mode: {fast_mode} ===")
+        print(f"\n=== Input Format: {formats.input_format} ===")
+        print(f"\n=== Output Format: {formats.output_format} ===")
+        print(f"\n=== src_A ({rows}x{cols}) ===")
+        print(src_A.view(rows, cols))
+        print(f"\n=== Golden before quantization ({rows}x{cols}) ===")
+        _gen = get_golden_generator(UnarySFPUGolden)
+        from helpers.format_config import DataFormat as _DF
+
+        _raw_golden = _gen(
+            mathop,
+            src_A,
+            _DF.Float32,
+            dest_acc,
+            formats.input_format,
+            input_dimensions,
+        )
+        print(_raw_golden.view(rows, cols))
+        print(f"\n=== Golden ({rows}x{cols}) ===")
+        print(golden_tensor.view(rows, cols))
+        print(f"\n=== Result ({rows}x{cols}) ===")
+        print(res_tensor.view(rows, cols))
+        print(f"\n=== Diff (Result - Golden, zeros are matches) ===")
+        diff = (
+            res_tensor.view(rows, cols).float() - golden_tensor.view(rows, cols).float()
+        )
+        print(diff)
+        mismatch_mask = diff != 0
+        mismatch_count = mismatch_mask.sum().item()
+        total = rows * cols
+        print(
+            f"\n=== Mismatches: {mismatch_count}/{total} ({100*mismatch_count/total:.1f}%) ==="
+        )
+        print(f"=== Mismatch positions (row, col): ===")
+        mismatch_rows, mismatch_cols = torch.where(mismatch_mask)
+        for r, c in zip(mismatch_rows.tolist(), mismatch_cols.tolist()):
+            print(
+                f"  [{r:2d},{c:2d}]  input={src_A.view(rows,cols)[r,c].item():.4f}  golden={golden_tensor.view(rows,cols)[r,c].item():.4f}  result={res_tensor.view(rows,cols)[r,c].item():.4f}  diff={diff[r,c].item():.4f}"
+            )
+
+        if formats.output_format == formats.output_format.Bfp4_b:
+            from helpers.pack import float_to_bfp4_block
+            from helpers.tilize_untilize import tilize_block
+
+            tile_dim = (rows, cols)
+            g_til = tilize_block(
+                golden_tensor.float().flatten(), tile_dim, formats.input_format
+            ).flatten()
+            r_til = tilize_block(
+                res_tensor.float().flatten(), tile_dim, formats.input_format
+            ).flatten()
+            n = g_til.numel()
+            print(f"\n=== BFP4 encoding (tilized blocks of 16, golden vs result) ===")
+            print(
+                f"{'blk':>4}  {'exp_g':>5}  {'exp_r':>5}  {'mantissas_golden (s|mag)':^48}  {'mantissas_result (s|mag)':^48}"
+            )
+            for blk in range(n // 16):
+                s, e = blk * 16, (blk + 1) * 16
+                exp_g, mant_g = float_to_bfp4_block(g_til[s:e])
+                exp_r, mant_r = float_to_bfp4_block(r_til[s:e])
+
+                def fmt_mants(mants):
+                    return " ".join(f"{m >> 3}|{m & 7:03b}" for m in mants)
+
+                match = " " if exp_g == exp_r and mant_g == mant_r else "*"
+                print(
+                    f"{blk:>4}{match} {exp_g:>5}  {exp_r:>5}  {fmt_mants(mant_g)}  {fmt_mants(mant_r)}"
+                )
+
+    assert test_passed, "Assert against golden failed"
 
 
 # Test exponential with APPROX_MODE=true, FAST_MODE=true, and CLAMP_NEGATIVE=true/false

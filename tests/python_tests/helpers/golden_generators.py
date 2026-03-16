@@ -61,10 +61,11 @@ def check_bfp8_b(operand: list) -> list:
 
 
 def check_bfp4_b(operand: list) -> list:
-    """Check if datum is BFP4_B there is a +/- inf then zero out entire row of 16 elements because they inherit the same exponent and therefore get zeroed out in tensix."""
+    """Check if datum is BFP4_B: if there is a +/- inf then zero out entire row of 16 elements because they share the same exponent and therefore get zeroed out in tensix."""
     not_finite = [math.inf, -math.inf]
     for i, x in enumerate(operand):
         if x in not_finite or math.isnan(x):
+            # Zero out the entire row of 16 elements
             for col in range(16):
                 row = i // 16
                 index = row * 16 + col
@@ -264,7 +265,7 @@ class SrcFormatModel:
         """Returns tuple (matrix_sign, matrix_exponent, matrix_mantissa)"""
         CONVERSION_MAP = {
             DataFormat.Bfp8_b: SrcFormatModel._bfp8b_to_tf32,
-            DataFormat.Bfp4_b: SrcFormatModel._bfp4b_to_tf32,
+            DataFormat.Bfp4_b: SrcFormatModel._bfp8b_to_tf32,
             DataFormat.Float16_b: SrcFormatModel._fp16b_to_tf32,
             DataFormat.Float16: SrcFormatModel._fp16_to_tf32,
             DataFormat.Float32: SrcFormatModel._fp32_to_tf32,
@@ -286,14 +287,6 @@ class SrcFormatModel:
         tensor: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """PyTorch doesn't natively support bfp8, so it's implemented as bfloat16 in test infra"""
-
-        return SrcFormatModel._fp16b_to_tf32(tensor)
-
-    @staticmethod
-    def _bfp4b_to_tf32(
-        tensor: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """PyTorch doesn't natively support bfp4, so it's implemented as bfloat16 in test infra"""
 
         return SrcFormatModel._fp16b_to_tf32(tensor)
 
@@ -826,6 +819,51 @@ def _bfp8b_to_float16b(operand, dimensions=None):
     return quantized
 
 
+def _bfp4b_to_float16b(operand, dimensions=None):
+    BFP4_BLOCK = 16
+    flat = operand.flatten().to(torch.float32)
+    n = flat.numel()
+
+    # Reinterpret float32 bits as int32 (zero-copy)
+    u32 = flat.view(torch.int32)
+    bf16_bits = (u32 >> 16) & 0xFFFF
+
+    signs = (bf16_bits >> 15) & 1
+    exps = (bf16_bits >> 7) & 0xFF
+    # bfp4_b has 3 mantissa bits: 1 implicit leading bit + 2 explicit bits.
+    # Take the top 2 bits of the 7-bit bfloat16 mantissa, then set the implicit leading bit.
+    mants = ((bf16_bits & 0x7F) >> 5) | 0x4
+
+    # Reshape into (num_blocks, 16) for block-wise max
+    exps_blocks = exps.view(-1, BFP4_BLOCK)
+    mants_blocks = mants.view(-1, BFP4_BLOCK)
+    signs_blocks = signs.view(-1, BFP4_BLOCK)
+
+    # Shared exponent = max per block, broadcast back
+    shared_exps = exps_blocks.max(dim=1, keepdim=True).values
+
+    # Right-shift mantissa by per-element delta
+    deltas = shared_exps - exps_blocks
+    shifted = mants_blocks >> deltas
+
+    # Scale: 2^(shared_exp - 127 - 2)
+    values = shifted.float() * torch.exp2((shared_exps - 129).float())
+
+    # Apply sign
+    values = torch.where(signs_blocks.bool(), -values, values)
+
+    quantized = values.flatten()[:n].to(torch.bfloat16)
+
+    if dimensions is not None:
+        quantized = untilize_block(
+            quantized,
+            stimuli_format=DataFormat.Float16_b,
+            dimensions=dimensions,
+        ).flatten()
+
+    return quantized
+
+
 @register_golden
 class MatmulGolden(FidelityMasking):
 
@@ -849,6 +887,12 @@ class MatmulGolden(FidelityMasking):
         if input_B_format == DataFormat.Bfp8_b:
             dims = input_B_dimensions if tilize else None
             operand2 = _bfp8b_to_float16b(operand2, dims)
+        if input_A_format == DataFormat.Bfp4_b:
+            dims = input_A_dimensions if tilize else None
+            operand1 = _bfp4b_to_float16b(operand1, dims)
+        if input_B_format == DataFormat.Bfp4_b:
+            dims = input_B_dimensions if tilize else None
+            operand2 = _bfp4b_to_float16b(operand2, dims)
 
         t1 = to_tensor(operand1, data_format)
         t2 = to_tensor(operand2, data_format)
@@ -1096,7 +1140,6 @@ class DataCopyGolden:
         num_faces: int = 4,
         input_dimensions: list[int] = [32, 32],
         face_r_dim: int = 16,  # Default to 16 for backward compatibility
-        input_format=None,
     ):
         torch_format = format_dict[data_format]
 
@@ -1115,22 +1158,6 @@ class DataCopyGolden:
         # Convert input to tensor if needed
         if not isinstance(operand1, torch.Tensor):
             operand1 = torch.tensor(operand1, dtype=torch_format)
-
-        # When the input format is Bfp4_b the hardware unpacker reads already-quantized
-        # values (shared exponent + 3-bit mantissa per element). Simulate the
-        # full pack→unpack round-trip so quantization loss is reflected in the golden.
-        if input_format == DataFormat.Bfp4_b:
-            from .pack import float_to_bfp4_block
-            from .unpack import bfp4_to_float_block
-
-            flat = operand1.flatten()
-            quantized = []
-            for blk in range(len(flat) // 16):
-                block = flat[blk * 16 : (blk + 1) * 16]
-                shared_exp, bfp4_mantissas = float_to_bfp4_block(block)
-                block_floats = bfp4_to_float_block(shared_exp, bfp4_mantissas, {})
-                quantized.extend(block_floats)
-            operand1 = torch.tensor(quantized, dtype=operand1.dtype)
 
         # Determine actual tile size from input:
         # If input is sized for partial faces (num_faces < 4), use elements_per_tile_needed
@@ -1176,30 +1203,6 @@ class DataCopyGolden:
                 result = torch.clamp(result, min_val, max_val)
 
             result = result.to(torch_format)
-
-        # BFP4_b has very low precision (3-bit mantissa). The golden must reflect
-        # the quantization loss so it matches what the HW produces after packing
-        # to L1 and reading back. The HW output packer uses even→low/odd→high
-        # nibble convention, and unpack_bfp4_b reads low nibble first, so elements
-        # come back in the original order — no nibble swap needed here.
-        if data_format == DataFormat.Bfp4_b:
-            from .pack import float_to_bfp4_block
-            from .unpack import bfp4_to_float_block
-
-            quantized_tiles = []
-            for tile_idx in range(tile_cnt):
-                tile_start = tile_idx * elements_per_tile_needed
-                tile_data = result[tile_start : tile_start + elements_per_tile_needed]
-                quantized_values = []
-                for blk in range(len(tile_data) // 16):
-                    block = tile_data[blk * 16 : (blk + 1) * 16]
-                    shared_exp, bfp4_mantissas = float_to_bfp4_block(block)
-                    block_floats = bfp4_to_float_block(shared_exp, bfp4_mantissas, {})
-                    quantized_values.extend(block_floats)
-                quantized_tiles.append(
-                    torch.tensor(quantized_values, dtype=torch.bfloat16)
-                )
-            result = torch.cat(quantized_tiles)
 
         return result
 
@@ -1481,6 +1484,10 @@ class UnarySFPUGolden:
         if operation not in self.ops:
             raise ValueError(f"Unsupported operation: {operation}")
 
+        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
+        if input_format == DataFormat.Bfp4_b:
+            operand1 = _bfp4b_to_float16b(operand1)
+
         # Special handling for Column and Row reduction which needs to process the entire tensor
         if operation in [MathOperation.ReduceColumn, MathOperation.ReduceRow]:
             return self.ops[operation](operand1, reduce_pool)
@@ -1512,19 +1519,6 @@ class UnarySFPUGolden:
 
         result = tensor.clone().flatten()
 
-        if input_format == DataFormat.Bfp4_b:
-            from .pack import float_to_bfp4_block
-            from .unpack import bfp4_to_float_block
-
-            flat = result.flatten()
-            quantized = []
-            for blk in range(len(flat) // 16):
-                block = flat[blk * 16 : (blk + 1) * 16]
-                shared_exp, bfp4_mantissas = float_to_bfp4_block(block)
-                block_floats = bfp4_to_float_block(shared_exp, bfp4_mantissas, {})
-                quantized.extend(block_floats)
-            result = torch.tensor(quantized, dtype=result.dtype)
-
         if not skip_tilize:
             result = tilize_block(result, dimensions, input_format).flatten()
 
@@ -1555,19 +1549,6 @@ class UnarySFPUGolden:
             + TILE_SIZE * iterations
         ] = torch.tensor(op_res, dtype=format_dict[dst_format])
 
-        if self.data_format == DataFormat.Bfp4_b:
-            from .pack import float_to_bfp4_block
-            from .unpack import bfp4_to_float_block
-
-            flat = result.flatten()
-            quantized = []
-            for blk in range(len(flat) // 16):
-                block = flat[blk * 16 : (blk + 1) * 16]
-                shared_exp, bfp4_mantissas = float_to_bfp4_block(block)
-                block_floats = bfp4_to_float_block(shared_exp, bfp4_mantissas, {})
-                quantized.extend(block_floats)
-            result = torch.tensor(quantized, dtype=result.dtype)
-
         if not skip_tilize:
             result = untilize_block(result, input_format, dimensions).flatten()
 
@@ -1576,6 +1557,9 @@ class UnarySFPUGolden:
 
         if self.data_format == DataFormat.Bfp4_b:
             check_bfp4_b(result)
+
+        if data_format == DataFormat.Bfp4_b:
+            result = _bfp4b_to_float16b(torch.tensor(result, dtype=torch.bfloat16))
 
         match (dst_format, data_format):
             # in the following cases, nans are preserved
@@ -1667,14 +1651,12 @@ class UnarySFPUGolden:
             return self.handle_infinite_numbers(float("nan"))
         if x == 0.0:
             return self.handle_infinite_numbers(float("inf"))
-        val = torch.tensor(x, dtype=torch.float32)
-        return torch.rsqrt(val).item()
+        return 1 / math.sqrt(x)
 
     def _sqrt(self, x):
         if x < 0.0:
             return math.nan
-        val = torch.tensor(x, dtype=torch.float32)
-        return torch.sqrt(val).item()
+        return math.sqrt(x)
 
     def _tanh(self, x):
         return math.tanh(x)
@@ -1748,7 +1730,9 @@ class UnarySFPUGolden:
 
     def _hardsigmoid(self, x):
         input_tensor = (
-            x if isinstance(x, torch.Tensor) else torch.tensor(x, dtype=torch.float32)
+            x
+            if isinstance(x, torch.Tensor)
+            else torch.tensor(x, dtype=format_dict[self.data_format])
         )
         return torch.nn.functional.hardsigmoid(input_tensor).item()
 
@@ -1957,7 +1941,10 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
                 dst_idx,
             )
 
-        if not skip_tilize and data_format != DataFormat.Bfp8_b:
+        if not skip_tilize and data_format not in (
+            DataFormat.Bfp8_b,
+            DataFormat.Bfp4_b,
+        ):
             result = tilize_block(tensor.flatten(), dimensions, data_format).flatten()
         else:
             result = tensor.flatten().clone()
@@ -2006,7 +1993,10 @@ class BinarySFPUGolden(EltwiseBinaryGolden):
 
             result[dst_row_start : dst_row_start + elements_per_row] = result_row
 
-        if not skip_tilize and data_format != DataFormat.Bfp8_b:
+        if not skip_tilize and data_format not in (
+            DataFormat.Bfp8_b,
+            DataFormat.Bfp4_b,
+        ):
             result = untilize_block(result, data_format, dimensions)
 
         return result

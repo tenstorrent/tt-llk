@@ -202,8 +202,6 @@ def float_to_bfp4_block(block):
         else:
             exponent_delta = shared_exponent - exponents[i]
             shifted = mantissas_full[i] >> exponent_delta
-            # Truncate to 3 magnitude bits (the top 3 bits of the shifted 24-bit mantissa)
-            # The implicit 1 is at bit 23; after shift, the top 3 data bits are at [23:21]
             truncated = (shifted >> 21) & 0x7
             bfp4_mantissas.append((signs[i] << 3) | truncated)
 

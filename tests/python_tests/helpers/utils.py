@@ -197,18 +197,34 @@ def _bfp4_block_aware_compare(
     differ slightly from the golden model.  After Bfp4 quantization (3-bit
     mantissa), these small intermediate differences can shift a value by up
     to ``max_ulp_diff`` quantization steps.
+
+    The comparison must use tilized block grouping because the hardware BFP4
+    packer operates on tilized data — each 16-element row within a face shares
+    one exponent.  The golden and result arrive untilized, so we tilize them
+    before the block-wise check and map the validity mask back.
     """
+    from helpers.tilize_untilize import tilize_block, untilize_block
+
     BLOCK = 16
     BFP4_MANTISSA_BITS = 3
+    TILE_SIZE = 1024
 
-    g = golden.float().flatten()
-    r = result.float().flatten()
-    is_valid = torch.ones(g.shape, dtype=torch.bool)
+    g_flat = golden.float().flatten()
+    r_flat = result.float().flatten()
+    n = g_flat.numel()
 
-    for blk_start in range(0, len(g), BLOCK):
-        blk_end = min(blk_start + BLOCK, len(g))
-        g_blk = g[blk_start:blk_end]
-        r_blk = r[blk_start:blk_end]
+    num_tiles = n // TILE_SIZE
+    tile_dim = (32 * num_tiles, 32) if num_tiles > 0 else (32, 32)
+
+    g_til = tilize_block(g_flat, tile_dim, DataFormat.Float32).flatten()
+    r_til = tilize_block(r_flat, tile_dim, DataFormat.Float32).flatten()
+
+    is_valid_til = torch.ones(n, dtype=torch.bool)
+
+    for blk_start in range(0, n, BLOCK):
+        blk_end = min(blk_start + BLOCK, n)
+        g_blk = g_til[blk_start:blk_end]
+        r_blk = r_til[blk_start:blk_end]
 
         both_nan = torch.isnan(g_blk) & torch.isnan(r_blk)
 
@@ -219,19 +235,25 @@ def _bfp4_block_aware_compare(
             ]
         )
         if finite_vals.numel() == 0:
-            is_valid[blk_start:blk_end] = True
+            is_valid_til[blk_start:blk_end] = True
             continue
 
         block_max = finite_vals.max().item()
         if block_max == 0:
-            is_valid[blk_start:blk_end] = (g_blk == r_blk) | both_nan
+            is_valid_til[blk_start:blk_end] = (g_blk == r_blk) | both_nan
             continue
 
         block_exp = math.floor(math.log2(block_max))
         one_ulp = 2.0 ** (block_exp - BFP4_MANTISSA_BITS + 1)
 
         diff = (g_blk - r_blk).abs()
-        is_valid[blk_start:blk_end] = (diff <= max_ulp_diff * one_ulp) | both_nan
+        is_valid_til[blk_start:blk_end] = (diff <= max_ulp_diff * one_ulp) | both_nan
+
+    is_valid = (
+        untilize_block(is_valid_til.float(), DataFormat.Float32, tile_dim)
+        .flatten()
+        .bool()
+    )
 
     return is_valid
 
