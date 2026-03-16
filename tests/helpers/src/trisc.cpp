@@ -81,7 +81,7 @@ int main(void)
 
     {
         ZONE_SCOPED("KERNEL")
-        run_kernel(temp_args);
+        run_kernel<big_beautiful_struct>(temp_args);
         ckernel::tensix_sync();
     }
 

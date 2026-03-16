@@ -25,6 +25,7 @@ static constexpr std::uint32_t MAX_TILES_DEST = is_fp32_dest_acc_en ? 4 : 8;
 #include "llk_unpack_AB_matmul.h"
 #include "llk_unpack_common.h"
 
+template <const CompileTimeArgumens cparams>
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
@@ -46,7 +47,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     {
         ZONE_SCOPED("INIT")
-        _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
+        _llk_unpack_hw_configure_<cparams.is_fp32_dest_acc_en>(
             formats.unpack_A_src,
             formats.unpack_B_src,
             formats.unpack_A_dst,
@@ -62,11 +63,11 @@ void run_kernel(RUNTIME_PARAMETERS params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
+        if constexpr (cparams.PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             return;
         }
-        else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
+        else if constexpr (cparams.PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             return _perf_unpack_matmul_mock(LOOP_FACTOR, RT_DIM, KT_DIM, CT_DIM);
         }
@@ -102,6 +103,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #include "llk_math_common.h"
 #include "llk_math_matmul.h"
 
+template <const CompileTimeArgumens cparams>
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
@@ -117,9 +119,9 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     {
         ZONE_SCOPED("INIT")
-        _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
-        _llk_math_pack_sync_init_<dest_sync, is_fp32_dest_acc_en>();
-        _llk_math_matmul_init_<MATH_FIDELITY, THROTTLE_LEVEL>(
+        _llk_math_hw_configure_<cparams.is_fp32_dest_acc_en>(formats.math, formats.math);
+        _llk_math_pack_sync_init_<cparams.dest_sync, cparams.is_fp32_dest_acc_en>();
+        _llk_math_matmul_init_<cparams.MATH_FIDELITY, cparams.THROTTLE_LEVEL>(
             /* tile A */ TILE_R_DIM,
             /* tile A */ TILE_C_DIM,
             /* tile B */ TILE_R_DIM,
@@ -133,15 +135,15 @@ void run_kernel(RUNTIME_PARAMETERS params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
+        if constexpr (cparams.PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             return;
         }
-        else if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
+        else if constexpr (cparams.PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || cparams.PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             return _perf_math_matmul_mock(LOOP_FACTOR, RT_DIM, KT_DIM, CT_DIM);
         }
-        else if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
+        else if constexpr (cparams.PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             for (std::uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
             {
@@ -151,7 +153,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
                 for (std::uint32_t j = 0; j < KT_DIM; j++)
                 {
-                    _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(
+                    _llk_math_matmul_<cparams.MATH_FIDELITY, cparams.THROTTLE_LEVEL>(
                         /* dest_index */ 0, CT_DIM, RT_DIM);
                 }
             }
@@ -164,13 +166,13 @@ void run_kernel(RUNTIME_PARAMETERS params)
                     (get_dest_max_matmul_tiles(0, CT_DIM, RT_DIM) < get_dest_max_tiles<dest_sync, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                     "Block tile index exceeds maximum destination tiles for matmul");
 
-                _llk_math_wait_for_dest_available_<dest_sync>();
+                _llk_math_wait_for_dest_available_<cparams.dest_sync>();
                 for (std::uint32_t j = 0; j < KT_DIM; j++)
                 {
-                    _llk_math_matmul_<MATH_FIDELITY, THROTTLE_LEVEL>(
+                    _llk_math_matmul_<cparams.MATH_FIDELITY, cparams.THROTTLE_LEVEL>(
                         /* dest_index */ 0, CT_DIM, RT_DIM);
                 }
-                _llk_math_dest_section_done_<dest_sync, is_fp32_dest_acc_en>();
+                _llk_math_dest_section_done_<cparams.dest_sync, cparams.is_fp32_dest_acc_en>();
             }
         }
         PROFILER_SYNC();
@@ -184,6 +186,7 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #include "llk_pack.h"
 #include "llk_pack_common.h"
 
+template <const CompileTimeArgumens cparams>
 void run_kernel(RUNTIME_PARAMETERS params)
 {
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
@@ -198,20 +201,20 @@ void run_kernel(RUNTIME_PARAMETERS params)
 
     {
         ZONE_SCOPED("INIT")
-        _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_C_DIM * TILE_R_DIM);
+        _llk_pack_hw_configure_<cparams.is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_C_DIM * TILE_R_DIM);
         _llk_pack_init_<
             /* untilize */ false,
             /* zero_output */ false>(formats.pack_dst);
-        _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+        _llk_pack_dest_init_<DstSync::SyncHalf, cparams.is_fp32_dest_acc_en>();
         PROFILER_SYNC();
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        if constexpr (PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE || PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
+        if constexpr (cparams.PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE || cparams.PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE)
         {
             return;
         }
-        else if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
+        else if constexpr (cparams.PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE || cparams.PERF_RUN_TYPE == PerfRunType::L1_CONGESTION)
         {
             for (std::uint32_t loop = 0; loop < LOOP_FACTOR; loop++)
             {
@@ -219,9 +222,9 @@ void run_kernel(RUNTIME_PARAMETERS params)
                 {
                     const std::uint32_t tile_index = tile % MAX_TILES_DEST;
                     LLK_ASSERT(
-                        (tile_index < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                        (tile_index < get_dest_max_tiles<DstSync::SyncHalf, cparams.is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                         "Block tile index exceeds maximum destination tiles for matmul");
-                    _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile_index, PERF_ADDRESS(PERF_OUTPUT, tile_index));
+                    _llk_pack_<DstSync::SyncHalf, cparams.is_fp32_dest_acc_en>(tile_index, PERF_ADDRESS(PERF_OUTPUT, tile_index));
                 }
             }
         }
@@ -234,11 +237,11 @@ void run_kernel(RUNTIME_PARAMETERS params)
                 {
                     const std::uint32_t tile_index = tile % MAX_TILES_DEST;
                     LLK_ASSERT(
-                        (tile_index < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                        (tile_index < get_dest_max_tiles<DstSync::SyncHalf, cparams.is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
                         "Block tile index exceeds maximum destination tiles for matmul");
                     _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en>(tile_index, PERF_ADDRESS(PERF_OUTPUT, tile_index));
                 }
-                _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
+                _llk_pack_dest_section_done_<DstSync::SyncHalf, cparams.is_fp32_dest_acc_en>();
             }
         }
         PROFILER_SYNC();
