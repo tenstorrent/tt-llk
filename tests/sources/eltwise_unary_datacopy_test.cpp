@@ -61,9 +61,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
             params->num_faces,
             params->num_faces);
 
-        const bool is_fp8 = (formats.unpack_A_src == to_underlying(DataFormat::Fp8_e4m3));
+        const bool is_fp8_tilize = (formats.unpack_A_src == to_underlying(DataFormat::Fp8_e4m3));
 
-        if (is_fp8)
+        if (is_fp8_tilize)
         {
             // HW tileize_mode=1 has broken inter-face column offset for 1-byte formats.
             // Use SW-driven tilizeA_B path which computes per-face addresses explicitly.
@@ -136,10 +136,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef ARCH_BLACKHOLE
     if constexpr (tilize_en)
     {
-        const bool is_fp8 = (formats.unpack_A_src == to_underlying(DataFormat::Fp8_e4m3));
-        if (is_fp8)
+        const bool is_fp8_tilize = (formats.unpack_A_src == to_underlying(DataFormat::Fp8_e4m3));
+        if (is_fp8_tilize)
         {
-            // tilizeA_B synchronizes per-face; use tilize=false to get outerloop=num_faces
             _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(
                 params->num_faces, formats.math);
         }
@@ -196,11 +195,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #ifdef ARCH_BLACKHOLE
     if constexpr (tilize_en)
     {
-        const bool is_fp8 = (formats.unpack_A_src == to_underlying(DataFormat::Fp8_e4m3));
-        if (is_fp8)
+        const bool is_fp8_tilize = (formats.unpack_A_src == to_underlying(DataFormat::Fp8_e4m3));
+        if (is_fp8_tilize)
         {
-            // FP8 tilize uses SW-driven tilizeA_B which produces standard face-order dest layout.
-            // Packer must use non-tilize mode to match.
             _llk_pack_hw_configure_<is_fp32_dest_acc_en, false, false>(
                 formats.pack_src, formats.pack_dst, 16 * 16 * 4, FACE_R_DIM, TILE_C_DIM, params->num_faces);
             _llk_pack_init_<false, false, false>(formats.pack_dst, FACE_R_DIM, TILE_C_DIM, params->num_faces);
