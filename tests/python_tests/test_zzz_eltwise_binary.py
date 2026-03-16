@@ -57,8 +57,8 @@ def _get_valid_formats(dest_acc):
     """
     all_formats = input_output_formats(
         # [DataFormat.Float16_b, DataFormat.Float32, DataFormat.Bfp8_b, DataFormat.Bfp4_b],
-        [DataFormat.Bfp4_b],
-        same=True,
+        [DataFormat.Bfp4_b, DataFormat.Bfp8_b, DataFormat.Float16_b],
+        same=False,
     )
     if dest_acc == DestAccumulation.Yes:
         return [f for f in all_formats if f.input_format == DataFormat.Float32]
@@ -121,12 +121,13 @@ def _get_valid_tile_dimensions(transpose_srca, broadcast_type):
     formats=lambda dest_acc: _get_valid_formats(dest_acc),
     broadcast_type=[
         BroadcastType.None_,
-        # BroadcastType.Row,
+        BroadcastType.Row,
         # BroadcastType.Column,
         # BroadcastType.Scalar,
     ],
     math_fidelity=lambda formats: _get_valid_math_fidelity(formats),
-    transpose_srca=lambda broadcast_type: _get_valid_transpose(broadcast_type),
+    # transpose_srca=lambda broadcast_type: _get_valid_transpose(broadcast_type),
+    transpose_srca=Transpose.No,
     math_op=lambda math_fidelity: _get_valid_math_ops(math_fidelity),
     input_dimensions=[[32, 32]],
     tile_dimensions=[[32, 32]],
@@ -178,11 +179,11 @@ def test_eltwise_binary(
     # src_A = torch.ones(input_dimensions[0], input_dimensions[1], dtype=torch.bfloat16) * 2.5
     # src_B = torch.ones(input_dimensions[0], input_dimensions[1], dtype=torch.bfloat16) * 1.25
 
-    print("src_A:")
-    print(src_A.view(input_dimensions[0], input_dimensions[1]))
-    print("src_B:")
-    print(src_B.view(input_dimensions[0], input_dimensions[1]))
-    print("--------------------------------" * 5)
+    # print("src_A:")
+    # print(src_A.view(input_dimensions[0], input_dimensions[1]))
+    # print("src_B:")
+    # print(src_B.view(input_dimensions[0], input_dimensions[1]))
+    # print("--------------------------------" * 5)
 
     # Compute element-wise subtraction in tilized format
     binary_golden = get_golden_generator(EltwiseBinaryGolden)
