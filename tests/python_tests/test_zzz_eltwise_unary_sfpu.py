@@ -66,8 +66,8 @@ ALL_MATHOPS = [
     MathOperation.Neg,
     MathOperation.Fill,
     MathOperation.Elu,
+    MathOperation.Exp,
     # MathOperation.Log1p,
-    # MathOperation.Exp,
     # MathOperation.Sqrt,
     # MathOperation.Rsqrt,
     # MathOperation.Hardsigmoid,
@@ -198,8 +198,6 @@ def test_eltwise_unary_sfpu_float(
         pytest.skip(reason="Float16 to Bfp4_b with dest_acc=No is not supported")
 
     if formats.output_format == DataFormat.Bfp4_b and mathop in [
-        MathOperation.Atanh,
-        MathOperation.Acosh,
         MathOperation.Sin,
     ]:
         pytest.skip(reason="Bfp4_b failing for these mathops")

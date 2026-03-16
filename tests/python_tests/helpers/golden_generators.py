@@ -824,29 +824,32 @@ def _bfp4b_to_float16b(operand, dimensions=None):
     flat = operand.flatten().to(torch.float32)
     n = flat.numel()
 
-    # Reinterpret float32 bits as int32 (zero-copy)
+    # Reinterpret float32 bits as int32 (zero-copy) — match hardware packer which
+    # operates on the full fp32 dest register value, not the truncated bfloat16.
     u32 = flat.view(torch.int32)
-    bf16_bits = (u32 >> 16) & 0xFFFF
 
-    signs = (bf16_bits >> 15) & 1
-    exps = (bf16_bits >> 7) & 0xFF
+    signs = (u32 >> 31) & 1
+    exps = (u32 >> 23) & 0xFF
     # bfp4_b has 3 mantissa bits: 1 implicit leading bit + 2 explicit bits.
-    # Take the top 2 bits of the 7-bit bfloat16 mantissa, then set the implicit leading bit.
-    mants = ((bf16_bits & 0x7F) >> 5) | 0x4
+    # Hardware takes bits 23:21 of the 24-bit mantissa (with implicit leading 1),
+    # i.e. (mantissa_with_implicit >> 21) & 0x7.
+    mants = ((u32 & 0x7FFFFF) >> 21) | 0x4
 
     # Reshape into (num_blocks, 16) for block-wise max
     exps_blocks = exps.view(-1, BFP4_BLOCK)
     mants_blocks = mants.view(-1, BFP4_BLOCK)
     signs_blocks = signs.view(-1, BFP4_BLOCK)
 
-    # Shared exponent = max per block, broadcast back
+    # Shared exponent = max per block (same as hardware packer)
     shared_exps = exps_blocks.max(dim=1, keepdim=True).values
 
     # Right-shift mantissa by per-element delta
     deltas = shared_exps - exps_blocks
     shifted = mants_blocks >> deltas
 
-    # Scale: 2^(shared_exp - 127 - 2)
+    # Unpack: fract_value = bit2*(1/1) + bit1*(1/2) + bit0*(1/4)
+    # = shifted * 2^(shared_exp - 127 - 2) where bit2 is the implicit leading 1
+    # Scale: 2^(shared_exp - 127 - 2) = 2^(shared_exp - 129)
     values = shifted.float() * torch.exp2((shared_exps - 129).float())
 
     # Apply sign
@@ -1558,9 +1561,6 @@ class UnarySFPUGolden:
         if self.data_format == DataFormat.Bfp4_b:
             check_bfp4_b(result)
 
-        if data_format == DataFormat.Bfp4_b:
-            result = _bfp4b_to_float16b(torch.tensor(result, dtype=torch.bfloat16))
-
         match (dst_format, data_format):
             # in the following cases, nans are preserved
             case (DataFormat.Float16, DataFormat.Float16):
@@ -1572,6 +1572,17 @@ class UnarySFPUGolden:
             # otherwise, nans are converted to `inf` or a special value
             case _:
                 result = convert_nan_to_inf(result)
+
+        if data_format == DataFormat.Bfp4_b:
+            result_t = (
+                torch.tensor(result, dtype=torch.float32)
+                if not isinstance(result, torch.Tensor)
+                else result.float()
+            )
+            tilized = tilize_block(
+                result_t.flatten(), dimensions, DataFormat.Float16_b
+            ).flatten()
+            result = _bfp4b_to_float16b(tilized, dimensions)
 
         # depending on `data_format`, `inf` values may get converted when unpacked to L1.
         if dst_format == DataFormat.Float16:
