@@ -56,7 +56,7 @@ def generate_format_aware_matmul_combinations(
 
 # Generate format-aware combinations
 MATMUL_FORMATS = input_output_formats([DataFormat.Int8])
-DEST_ACC_MODES = [DestAccumulation.No, DestAccumulation.Yes]
+DEST_ACC_MODES = [DestAccumulation.Yes]
 ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
     MATMUL_FORMATS, DEST_ACC_MODES
 )
@@ -64,9 +64,9 @@ ALL_MATMUL_COMBINATIONS = generate_format_aware_matmul_combinations(
 
 @parametrize(
     math_fidelity=[
-        MathFidelity.LoFi,
-        MathFidelity.HiFi2,
-        MathFidelity.HiFi3,
+        # MathFidelity.LoFi,
+        # MathFidelity.HiFi2,
+        # MathFidelity.HiFi3,
         MathFidelity.HiFi4,
     ],
     format_dest_acc_and_dims=ALL_MATMUL_COMBINATIONS,

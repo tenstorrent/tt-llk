@@ -826,7 +826,11 @@ class MatmulGolden(FidelityMasking):
         if data_format.is_integer():
             t1 = t1.view(M, K1).to(torch.float32)
             t2 = t2.view(K2, N).to(torch.float32)
-            res = torch.matmul(t1, t2).view(M * N).to(torch_format)
+            # need to clamp the result to the data format range, otherwise float32 -> int8 will not work correctly
+            # also int8 on hw is sign+magnitude, so we need to clamp to -127, 127
+            res = torch.clamp(torch.matmul(t1, t2).view(M * N), min=-127, max=127).to(
+                torch_format
+            )
         else:
             MATH_FIDELITY_TO_ITER_COUNT = {
                 MathFidelity.LoFi: 0,
