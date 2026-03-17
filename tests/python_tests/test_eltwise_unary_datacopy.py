@@ -61,9 +61,6 @@ def get_valid_tilize_datacopy(formats):
     if formats.input_format == DataFormat.Bfp8_b:
         return [Tilize.No]
 
-    if formats.input_format == DataFormat.Fp8_e4m3:
-        return [Tilize.No]
-
     return [Tilize.No, Tilize.Yes]
 
 

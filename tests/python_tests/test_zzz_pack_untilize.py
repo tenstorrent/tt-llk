@@ -35,17 +35,21 @@ from helpers.test_variant_parameters import (
 )
 from helpers.utils import passed_test
 
+# Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test.
+# Fp8_e4m3 is gated to Blackhole only (not supported on Wormhole).
+PACK_UNTILIZE_FORMATS = [
+    DataFormat.Float16_b,
+    DataFormat.Float16,
+    DataFormat.Float32,  # Test Float32 with both 32bit mode dest (full precision) and 16bit mode dest (precision loss)
+    DataFormat.Int32,
+    DataFormat.Bfp8_b,
+]
+if get_chip_architecture() == ChipArchitecture.BLACKHOLE:
+    PACK_UNTILIZE_FORMATS.append(DataFormat.Fp8_e4m3)
+
 
 @parametrize(
-    formats=input_output_formats(
-        [
-            DataFormat.Float16_b,
-            DataFormat.Float16,
-            DataFormat.Float32,  # Test Float32 with both 32bit mode dest (full precision) and 16bit mode dest (precision loss)
-            DataFormat.Int32,
-            DataFormat.Bfp8_b,
-        ]  # Pack Untilize doesn't work for block float formats (Bfp8_b); we only include as input format in our test
-    ),
+    formats=input_output_formats(PACK_UNTILIZE_FORMATS),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     input_dimensions=[[64, 64], [32, 128], [128, 128], [32, 64]],
     #  TODO add DestSync::Full tests when we have a solution for the static_assert in _llk_pack_untilize_init_ that requires block_ct_dim to be less or equal to 8,
