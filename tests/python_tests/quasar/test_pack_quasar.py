@@ -24,16 +24,19 @@ from helpers.param_config import (
     parametrize,
 )
 from helpers.stimuli_config import StimuliConfig
-from helpers.stimuli_generator import generate_stimuli
+from helpers.stimuli_generator import generate_stimuli_w_tile_dimensions
 from helpers.test_config import BootMode, TestConfig
 from helpers.test_variant_parameters import (
     DEST_SYNC,
     IMPLIED_MATH_FORMAT,
+    IN_FACE_DIMS,
     NUM_FACES,
     RELU_CONFIG,
     TEST_FACE_DIMS,
     TILE_COUNT,
 )
+from helpers.tile_constants import SUPPORTED_TILE_SIZES
+from helpers.tile_shape import construct_tile_shape
 from helpers.utils import passed_test
 from test_zzz_pack import is_relu_threshold_tolerance_issue
 
@@ -88,15 +91,6 @@ def generate_qsr_pack_combinations(
             return False
         return True
 
-    dimensions_cache = {
-        DestAccumulation.No: tuple(
-            generate_unary_input_dimensions(DestAccumulation.No)
-        ),
-        DestAccumulation.Yes: tuple(
-            generate_unary_input_dimensions(DestAccumulation.Yes)
-        ),
-    }
-
     all_relu_types = [
         PackerReluType.NoRelu,
         PackerReluType.ZeroRelu,
@@ -120,9 +114,15 @@ def generate_qsr_pack_combinations(
         )
         for dest_acc in get_dest_acc_modes(in_fmt):
             if is_supported_dest_mode_dependent_conversion(in_fmt, out_fmt, dest_acc):
-                for dimensions in dimensions_cache[dest_acc]:
-                    for relu_type in relu_types:
-                        combinations.append((fmt, dest_acc, dimensions, relu_type))
+                for tile_dims in SUPPORTED_TILE_SIZES:
+                    tile_shape = construct_tile_shape(tile_dims)
+                    for dimensions in generate_unary_input_dimensions(
+                        dest_acc, tile_shape=tile_shape
+                    ):
+                        for relu_type in relu_types:
+                            combinations.append(
+                                (fmt, dest_acc, dimensions, relu_type, tile_dims)
+                            )
 
     return combinations
 
@@ -145,21 +145,28 @@ PACK_FORMATS = input_output_formats(
     formats_dest_acc_input_dims=generate_qsr_pack_combinations(PACK_FORMATS),
 )
 def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
-    (formats, dest_acc, input_dimensions, relu_type) = formats_dest_acc_input_dims[0]
+    (formats, dest_acc, input_dimensions, relu_type, tile_dimensions) = (
+        formats_dest_acc_input_dims[0]
+    )
 
-    src_A, tile_cnt_A, src_B, _ = generate_stimuli(
+    tile_shape = construct_tile_shape(tile_dimensions)
+
+    src_A, tile_cnt_A, src_B, _ = generate_stimuli_w_tile_dimensions(
         stimuli_format_A=formats.input_format,
         input_dimensions_A=input_dimensions,
         stimuli_format_B=formats.input_format,
         input_dimensions_B=input_dimensions,
+        tile_dimensions=tile_dimensions,
     )
 
-    num_faces = 4
+    num_faces = tile_shape.total_num_faces()
+
     generate_golden = get_golden_generator(DataCopyGolden)
     golden_tensor = generate_golden(
         src_A,
         formats.output_format,
         num_faces=num_faces,
+        face_r_dim=tile_shape.face_r_dim,
         input_dimensions=input_dimensions,
     )
 
@@ -200,10 +207,11 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
             DEST_SYNC(),
         ],
         runtimes=[
-            TEST_FACE_DIMS(),
+            TEST_FACE_DIMS(tile_shape.face_r_dim),
             NUM_FACES(num_faces),
             TILE_COUNT(tile_cnt_A),
             RELU_CONFIG(relu_config),
+            IN_FACE_DIMS(tile_shape.num_faces_r_dim, tile_shape.num_faces_c_dim),
         ],
         variant_stimuli=StimuliConfig(
             src_A,
@@ -215,6 +223,9 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
             tile_count_B=tile_cnt_A,
             tile_count_res=tile_cnt_A,
             num_faces=num_faces,
+            face_r_dim=tile_shape.face_r_dim,
+            tile_dimensions=tile_dimensions,
+            use_dense_tile_dimensions=True,
         ),
         unpack_to_dest=unpack_to_dest,
         dest_acc=dest_acc,
@@ -231,7 +242,11 @@ def test_pack_quasar(formats_dest_acc_input_dims, boot_mode=BootMode.DEFAULT):
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
     test_passed = passed_test(
-        golden_tensor, res_tensor, formats.output_format, print_errors=False
+        golden_tensor,
+        res_tensor,
+        formats.output_format,
+        print_errors=False,
+        tile_shape=tile_shape,
     )
 
     # Same method as test_pack.py for original ReLu testing and threshold tolerance issue
