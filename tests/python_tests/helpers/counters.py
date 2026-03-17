@@ -311,7 +311,7 @@ def read_counters(location: str = "0,0") -> pd.DataFrame:
 
         # Skip zones that were never initialized (sync_word == 0)
         if sync_word == 0:
-            break  # Stop at first uninitialized zone (rest will be uninitialized too)
+            continue  # Zone may be unused; keep scanning for later valid zones
 
         # Validate that counters were properly started and stopped
         GLOBAL_STARTED_BIT = 1 << 6
