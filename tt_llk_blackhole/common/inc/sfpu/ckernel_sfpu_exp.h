@@ -410,29 +410,17 @@ namespace exp_fast_approx_detail
 template <int DEST_BASE>
 sfpi_inline void loadmacro_sanitize_block_()
 {
-    TTI_SFPLOADMACRO(
-        4,
-        0,
-        ADDR_MOD_7,
-        DEST_BASE + 0); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value
-    TTI_SFPNOP;         // NOP is necessary because the SWAP operation takes 2 cycles and unfortunately is not pipelined
-    TTI_SFPLOADMACRO(
-        5,
-        0,
-        ADDR_MOD_7,
-        DEST_BASE + 2); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value
+    TTI_SFPLOADMACRO(4, 0, ADDR_MOD_7,
+                     DEST_BASE + 0); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value
+    TTI_SFPNOP;                      // NOP is necessary because the SWAP operation takes 2 cycles and unfortunately is not pipelined
+    TTI_SFPLOADMACRO(5, 0, ADDR_MOD_7,
+                     DEST_BASE + 2); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value
     TTI_SFPNOP;
-    TTI_SFPLOADMACRO(
-        6,
-        0,
-        ADDR_MOD_7,
-        DEST_BASE + 4); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value
+    TTI_SFPLOADMACRO(6, 0, ADDR_MOD_7,
+                     DEST_BASE + 4); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value
     TTI_SFPNOP;
-    TTI_SFPLOADMACRO(
-        7,
-        0,
-        ADDR_MOD_7,
-        DEST_BASE + 6); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value
+    TTI_SFPLOADMACRO(7, 0, ADDR_MOD_7,
+                     DEST_BASE + 6); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value
 }
 
 template <int DEST_BASE>
@@ -464,6 +452,9 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
 #else
         static_assert(ITERATIONS == 4 || ITERATIONS == 8, "Fast-approx LOADMACRO exp supports 4 or 8 iterations.");
 
+        // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is more negative than that, swap the
+        // input value with -88.5 and store back to DEST.
+        //  - in other words, after the sanitize step, the values in DEST will be in the range {-88.5 , +inf}
         exp_fast_approx_detail::loadmacro_sanitize_block_<0>();
         if constexpr (ITERATIONS == 8)
         {

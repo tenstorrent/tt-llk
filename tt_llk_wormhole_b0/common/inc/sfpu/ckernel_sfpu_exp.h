@@ -404,29 +404,17 @@ namespace exp_fast_approx_detail
 template <int DEST_BASE>
 sfpi_inline void loadmacro_sanitize_block_()
 {
-    TTI_SFPLOADMACRO(
-        4,
-        0,
-        3,
-        DEST_BASE + 0); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value
-    TTI_SFPNOP;         // NOP is necessary because the SWAP operation takes 2 cycles and unfortunately is not pipelined
-    TTI_SFPLOADMACRO(
-        5,
-        0,
-        3,
-        DEST_BASE + 2); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value
+    TTI_SFPLOADMACRO(4, 0, 3,
+                     DEST_BASE + 0); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value
+    TTI_SFPNOP;                      // NOP is necessary because the SWAP operation takes 2 cycles and unfortunately is not pipelined
+    TTI_SFPLOADMACRO(5, 0, 3,
+                     DEST_BASE + 2); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value
     TTI_SFPNOP;
-    TTI_SFPLOADMACRO(
-        6,
-        0,
-        3,
-        DEST_BASE + 4); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value
+    TTI_SFPLOADMACRO(6, 0, 3,
+                     DEST_BASE + 4); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value
     TTI_SFPNOP;
-    TTI_SFPLOADMACRO(
-        7,
-        0,
-        3,
-        DEST_BASE + 6); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value
+    TTI_SFPLOADMACRO(7, 0, 3,
+                     DEST_BASE + 6); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value
 }
 
 template <int DEST_BASE>
