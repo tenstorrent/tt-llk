@@ -514,6 +514,25 @@ public:
 
         if (is_first)
         {
+            // Before starting hardware, wait for previous zone's stop_hardware() to
+            // finish reading counter values. Without this barrier, start_hardware()
+            // would clear the shared hardware counter banks while the previous zone's
+            // last thread is still reading them, causing both zones to report identical
+            // (corrupted) values.
+            if (zone > 0)
+            {
+                volatile std::uint32_t* prev_sync = get_sync_ctrl_mem(zone - 1);
+                constexpr int BARRIER_MAX_RETRIES = 1000;
+                for (int i = 0; i < BARRIER_MAX_RETRIES; ++i)
+                {
+                    flush_l1_cache(prev_sync);
+                    if (*prev_sync & SYNC_STOPPED_FLAG)
+                    {
+                        break;
+                    }
+                }
+            }
+
             start_hardware(zone);
         }
 
