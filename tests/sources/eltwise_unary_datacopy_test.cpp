@@ -61,8 +61,8 @@ void run_kernel(const volatile struct RuntimeParams* params)
             params->num_faces,
             params->num_faces);
 
+#ifdef ARCH_BLACKHOLE
         const bool is_fp8_tilize = (formats.unpack_A_src == to_underlying(DataFormat::Fp8_e4m3));
-
         if (is_fp8_tilize)
         {
             // HW tileize_mode=1 has broken inter-face column offset for 1-byte formats.
@@ -95,6 +95,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
         }
         else
         {
+#endif
             _llk_unpack_tilize_init_(formats.unpack_A_src, formats.unpack_A_dst, BLOCK_CT_DIM, FACE_R_DIM, false);
 
             std::uint32_t read_offset = 0;
@@ -107,7 +108,9 @@ void run_kernel(const volatile struct RuntimeParams* params)
                 }
                 read_offset += BLOCK_CT_DIM;
             }
+#ifdef ARCH_BLACKHOLE
         }
+#endif
     }
 }
 
