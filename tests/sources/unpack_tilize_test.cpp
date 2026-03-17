@@ -29,10 +29,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
         formats.unpack_A_src, formats.unpack_B_src, formats.unpack_A_dst, formats.unpack_B_dst, FACE_R_DIM, FACE_R_DIM, 4 /* num_faces */, 4 /* num_faces */);
     _llk_unpack_tilize_init_(formats.unpack_A_src, formats.unpack_A_dst, params.BLOCK_CT_DIM, FACE_R_DIM, false);
 
-    // _llk_unpack_tilizeA_B_init_<false, false, false, false, true>(
-    //             formats.unpack_A_src, formats.unpack_A_dst, false, params->BLOCK_CT_DIM, params->num_faces, FACE_R_DIM, FACE_R_DIM);
-
     std::uint32_t read_offset = 0;
+    const bool is_int8        = (formats.unpack_A_src == to_underlying(DataFormat::Int8)) || (formats.unpack_A_src == to_underlying(DataFormat::UInt8));
 
 #ifdef ARCH_BLACKHOLE
     const std::uint32_t block_ct_dim = 0;
@@ -44,35 +42,21 @@ void run_kernel(RUNTIME_PARAMETERS params)
     {
         for (std::uint32_t j = 0; j < params.BLOCK_CT_DIM; j++)
         {
-            _llk_unpack_tilize_(
-                L1_ADDRESS(params->buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, params->BLOCK_CT_DIM, FACE_R_DIM, 4, false);
+            if (is_int8)
+            {
+                _llk_unpack_tilize_int8_workaround_(L1_ADDRESS(params->buffer_A[read_offset]), j, formats.unpack_A_src, FACE_R_DIM, 4, params->BLOCK_CT_DIM);
+            }
+            else
+            {
+                _llk_unpack_tilize_(
+                    L1_ADDRESS(params->buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, block_ct_dim, FACE_R_DIM, 4, false);
+            }
         }
         read_offset += params.BLOCK_RT_DIM;
     }
-
-    // for (std::uint32_t i = 0; i < params->BLOCK_RT_DIM; i++)
-    // {
-    //     for (std::uint32_t j = 0; j < params->BLOCK_CT_DIM; j++)
-    //     {
-    //         _llk_unpack_tilizeA_B_<false, false, false, false, true>(
-    //             formats.unpack_A_src,
-    //             FACE_R_DIM,
-    //             false,
-    //             L1_ADDRESS(params->buffer_A[read_offset]),
-    //             L1_ADDRESS(params->buffer_B[0]),
-    //             j,
-    //             0,
-    //             params->BLOCK_CT_DIM,
-    //             params->num_faces);
-    //     }
-    //     read_offset += params->BLOCK_CT_DIM;
-    // }
-    // _llk_unpack_tilizeA_B_uninit_(formats.unpack_A_dst, FACE_R_DIM);
 }
 
 #endif
-
-const bool TILIZE = true;
 
 #ifdef LLK_TRISC_MATH
 
@@ -87,26 +71,41 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
-    const bool is_int_fpu_en = false;
+    const bool is_int_fpu_en  = false;
+    const bool tilize_runtime = !(formats.unpack_A_src == to_underlying(DataFormat::Int8) || formats.unpack_A_dst == to_underlying(DataFormat::UInt8));
 
     _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
 // copy srca to dest
 #ifdef ARCH_BLACKHOLE
-    // set tilize flag to true
-    _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, !TILIZE, is_int_fpu_en>(4, formats.math);
+    if (tilize_runtime)
+    {
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, true, is_int_fpu_en>(4, formats.math);
+    }
+    else
+    {
+        _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, false, is_int_fpu_en>(4, formats.math);
+    }
 #else
     _llk_math_eltwise_unary_datacopy_init_<DataCopyType::A2D, is_fp32_dest_acc_en, BroadcastType::NONE, is_int_fpu_en>(4, formats.math);
 #endif
     _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
-    _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
-    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
+
+    const int tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks     = params->NUM_BLOCKS;
+
+    for (int block = 0; block < num_blocks; ++block)
     {
-        LLK_ASSERT(
-            (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
-        _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
-            i, formats.math, formats.math);
+        _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
+        for (int tile = 0; tile < tiles_in_block; ++tile)
+        {
+            LLK_ASSERT(
+                (static_cast<std::uint32_t>(tile) < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                "Block tile index exceeds maximum destination tiles");
+            _llk_math_eltwise_unary_datacopy_<DataCopyType::A2D, DstSync::SyncHalf, is_fp32_dest_acc_en, BroadcastType::NONE, unpack_to_dest>(
+                tile, formats.math, formats.math);
+        }
+        _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
-    _llk_math_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif
@@ -122,11 +121,20 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #if defined(RUNTIME_FORMATS) && !defined(SPEED_OF_LIGHT)
     const FormatConfig& formats = params.formats;
 #endif
-    const bool UNTILIZE = false;
+    const bool UNTILIZE       = false;
+    const bool tilize_runtime = !(formats.unpack_A_src == to_underlying(DataFormat::Int8) || formats.unpack_A_dst == to_underlying(DataFormat::UInt8));
 
 #ifdef ARCH_BLACKHOLE
-    _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, !TILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
-    _llk_pack_init_<UNTILIZE, false, !TILIZE>(formats.pack_dst);
+    if (tilize_runtime)
+    {
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, true>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+        _llk_pack_init_<UNTILIZE, false, true>(formats.pack_dst);
+    }
+    else
+    {
+        _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE, false>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
+        _llk_pack_init_<UNTILIZE, false, false>(formats.pack_dst);
+    }
     _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 #else
     _llk_pack_hw_configure_<is_fp32_dest_acc_en, UNTILIZE>(formats.pack_src, formats.pack_dst, 16 * 16 * 4);
@@ -135,13 +143,22 @@ void run_kernel(RUNTIME_PARAMETERS params)
 #endif
 
     _llk_packer_wait_for_math_done_();
-    for (std::uint32_t i = 0; i < params.TILE_CNT; ++i)
+    const int tiles_in_block = params->NUM_TILES_IN_BLOCK;
+    const int num_blocks     = params->NUM_BLOCKS;
+
+    for (int block = 0; block < num_blocks; ++block)
     {
-        LLK_ASSERT(
-            (i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "Block tile index exceeds maximum destination tiles");
-        _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(i, L1_ADDRESS(params.buffer_Res[i]));
+        _llk_packer_wait_for_math_done_();
+        for (int tile = 0; tile < tiles_in_block; ++tile)
+        {
+            const int res_tile_idx = (block * tiles_in_block) + tile;
+            LLK_ASSERT(
+                (static_cast<std::uint32_t>(tile) < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()),
+                "Block tile index exceeds maximum destination tiles");
+            _llk_pack_<DstSync::SyncHalf, is_fp32_dest_acc_en, UNTILIZE>(tile, L1_ADDRESS(params->buffer_Res[res_tile_idx]));
+        }
+        _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
     }
-    _llk_pack_dest_section_done_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
 }
 
 #endif
