@@ -10,12 +10,11 @@
 using namespace ckernel;
 
 /**
- * @brief MOP configuration for unpack of unary operations with broadcasts
- * @tparam UNP_SEL Unpacker resource selector. When unpack_to_dest=false, must be p_unpacr::UNP_B (see static_assert).
- *                 When unpack_to_dest=true, internally uses p_unpacr::UNP_A regardless of UNP_SEL value.
- * @tparam BROADCAST_TYPE Broadcast type, values = [SCALAR, COL, ROW]
- * @tparam unpack_to_dest If true, unpack to dest using UNPACKER0 (p_unpacr::UNP_A); otherwise unpack to srcB using UNPACKER1 (p_unpacr::UNP_B)
- * @tparam is_fp32_dest_acc_en If true, math dest is in Float32/Int32 mode (aligns with BH and other Quasar LLKs)
+ * @brief MOP config for unpack of unary broadcast operands.
+ * @tparam UNP_SEL Unpacker resource (UNP_B when unpack_to_dest=false; UNP_A when true).
+ * @tparam BROADCAST_TYPE SCALAR, COL, or ROW.
+ * @tparam unpack_to_dest Unpack to dest (UNP_A) or srcB (UNP_B).
+ * @tparam is_fp32_dest_acc_en Math dest in Float32/Int32 mode.
  */
 template <std::uint32_t UNP_SEL, BroadcastType BROADCAST_TYPE, bool unpack_to_dest = false, bool is_fp32_dest_acc_en = false>
 inline void _llk_unpack_unary_broadcast_operands_mop_config_(const std::uint32_t buf_desc_id, const std::uint32_t num_tiles)
@@ -114,7 +113,7 @@ inline void _llk_unpack_unary_broadcast_operands_init_(const std::uint32_t buf_d
 }
 
 /**
- * @brief Unpacks unary operands with broadcast support
+ * @brief Unpacks unary broadcast operands.
  */
 template <std::uint32_t UNP_SEL, bool unpack_to_dest = false>
 inline void _llk_unpack_unary_broadcast_operands_(const std::uint32_t start_l1_tile_idx)
