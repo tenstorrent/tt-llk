@@ -1498,10 +1498,6 @@ class UnarySFPUGolden:
         if operation not in self.ops:
             raise ValueError(f"Unsupported operation: {operation}")
 
-        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
-        if input_format == DataFormat.Bfp4_b:
-            operand1 = _bfp4b_to_float16b(operand1)
-
         # Special handling for Column and Row reduction which needs to process the entire tensor
         if operation in [MathOperation.ReduceColumn, MathOperation.ReduceRow]:
             return self.ops[operation](operand1, reduce_pool)
@@ -1532,8 +1528,6 @@ class UnarySFPUGolden:
             raise ValueError(f"Invalid iterations: {iterations}")
 
         result = tensor.clone().flatten()
-        if data_format == DataFormat.Bfp4_b:
-            result = result.to(torch.float32)
 
         if not skip_tilize:
             result = tilize_block(result, dimensions, input_format).flatten()
@@ -1560,24 +1554,16 @@ class UnarySFPUGolden:
             ]
         ]
 
-        op_dtype = (
-            torch.float32
-            if data_format == DataFormat.Bfp4_b
-            else format_dict[dst_format]
-        )
         result[
             ELEMENTS_PER_TILE * dest_idx : ELEMENTS_PER_TILE * dest_idx
             + TILE_SIZE * iterations
-        ] = torch.tensor(op_res, dtype=op_dtype)
+        ] = torch.tensor(op_res, dtype=format_dict[dst_format])
 
         if not skip_tilize:
             result = untilize_block(result, input_format, dimensions).flatten()
 
         if self.data_format == DataFormat.Bfp8_b:
             check_bfp8_b(result)
-
-        if self.data_format == DataFormat.Bfp4_b:
-            check_bfp4_b(result)
 
         match (dst_format, data_format):
             # in the following cases, nans are preserved
@@ -1591,17 +1577,6 @@ class UnarySFPUGolden:
             case _:
                 result = convert_nan_to_inf(result)
 
-        if data_format == DataFormat.Bfp4_b:
-            result_t = (
-                torch.tensor(result, dtype=torch.float32)
-                if not isinstance(result, torch.Tensor)
-                else result.float()
-            )
-            tilized = tilize_block(
-                result_t.flatten(), dimensions, DataFormat.Float16_b
-            ).flatten()
-            result = _bfp4b_to_float16b(tilized, dimensions)
-
         # depending on `data_format`, `inf` values may get converted when unpacked to L1.
         if dst_format == DataFormat.Float16:
             match data_format:
@@ -1610,8 +1585,6 @@ class UnarySFPUGolden:
                 case DataFormat.Float32:
                     result = convert_inf_to_value(result, 131008.0)
                 case DataFormat.Bfp8_b:
-                    result = convert_inf_to_value(result, 130048.0)
-                case DataFormat.Bfp4_b:
                     result = convert_inf_to_value(result, 130048.0)
 
         return torch.tensor(result, dtype=format_dict[data_format])
