@@ -30,7 +30,6 @@ void run_kernel(RUNTIME_PARAMETERS params)
     _llk_unpack_tilize_init_(formats.unpack_A_src, formats.unpack_A_dst, params.BLOCK_CT_DIM, FACE_R_DIM, false);
 
     std::uint32_t read_offset = 0;
-    const bool is_int8        = (formats.unpack_A_src == to_underlying(DataFormat::Int8)) || (formats.unpack_A_src == to_underlying(DataFormat::UInt8));
 
 #ifdef ARCH_BLACKHOLE
     const std::uint32_t block_ct_dim = 0;
@@ -42,6 +41,8 @@ void run_kernel(RUNTIME_PARAMETERS params)
     {
         for (std::uint32_t j = 0; j < params.BLOCK_CT_DIM; j++)
         {
+#ifdef ARCH_BLACKHOLE
+            const bool is_int8 = (formats.unpack_A_src == to_underlying(DataFormat::Int8)) || (formats.unpack_A_src == to_underlying(DataFormat::UInt8));
             if (is_int8)
             {
                 _llk_unpack_tilize_int8_workaround_(L1_ADDRESS(params.buffer_A[read_offset]), j, formats.unpack_A_src, FACE_R_DIM, 4, params.BLOCK_CT_DIM);
@@ -51,6 +52,9 @@ void run_kernel(RUNTIME_PARAMETERS params)
                 _llk_unpack_tilize_(
                     L1_ADDRESS(params.buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, block_ct_dim, FACE_R_DIM, 4, false);
             }
+#else
+            _llk_unpack_tilize_(L1_ADDRESS(params.buffer_A[read_offset]), j, formats.unpack_A_src, formats.unpack_A_dst, block_ct_dim, FACE_R_DIM, 4, false);
+#endif
         }
         read_offset += params.BLOCK_RT_DIM;
     }
