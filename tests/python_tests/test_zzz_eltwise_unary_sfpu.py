@@ -97,11 +97,11 @@ FORMATS_INCLUDE_BFP4_B = input_output_formats(
 
 MATHOPS_INCLUDE_BFP4_B = [
     MathOperation.Abs,
-    # MathOperation.Atanh,
-    # MathOperation.Asinh,
-    # MathOperation.Acosh,
-    # MathOperation.Cos,
-    # MathOperation.Log,
+    MathOperation.Atanh,
+    MathOperation.Asinh,
+    MathOperation.Acosh,
+    MathOperation.Cos,
+    MathOperation.Log,
     # MathOperation.Log1p,
     # MathOperation.Reciprocal,
     # MathOperation.Sin,
@@ -189,7 +189,7 @@ def test_eltwise_unary_sfpu_float(
     ]:
         # SFPI Issue link: https://github.com/tenstorrent/tt-metal/issues/33268
         pytest.skip(
-            reason="When these SPFU ops get compiled with coverage, `#pragma GCC unroll X` marked loops get compiled to invalid assembly"
+            reason="When these SFPU ops get compiled with coverage, `#pragma GCC unroll X` marked loops get compiled to invalid assembly"
         )
 
     if mathop == MathOperation.ReluMin:
@@ -309,7 +309,7 @@ def test_eltwise_unary_sfpu_float_bfp4_b(
     ]:
         # SFPI Issue link: https://github.com/tenstorrent/tt-metal/issues/33268
         pytest.skip(
-            reason="When these SPFU ops get compiled with coverage, `#pragma GCC unroll X` marked loops get compiled to invalid assembly"
+            reason="When these SFPU ops get compiled with coverage, `#pragma GCC unroll X` marked loops get compiled to invalid assembly"
         )
 
     if (
