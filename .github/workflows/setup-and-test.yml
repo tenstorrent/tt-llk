@@ -40,7 +40,7 @@ on:
         required: false
         default: true
         type: boolean
-      speed_of_light:
+      compile_time_args:
         description: "Convert every runtime argument into compile time argument and compile all variants like that"
         required: false
         default: false
@@ -131,7 +131,7 @@ jobs:
           fi
 
           SPEED_OF_LIGHT_FLAG=""
-          if [[ "${{ inputs.speed_of_light }}" == "true" ]]; then
+          if [[ "${{ inputs.compile_time_args }}" == "true" ]]; then
             SPEED_OF_LIGHT_FLAG="--speed-of-light"
           fi
 
