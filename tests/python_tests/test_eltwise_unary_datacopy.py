@@ -82,8 +82,6 @@ def get_valid_num_faces_datacopy(tilize):
     return [1, 2, 4]
 
 
-# No BH testing done for now
-@skip_for_blackhole
 @parametrize(
     formats=input_output_formats(
         [
@@ -185,6 +183,8 @@ def test_unary_datacopy(
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
 
 
+# No BH testing done for now
+@skip_for_blackhole
 @parametrize(
     formats=input_output_formats(
         [
@@ -197,8 +197,7 @@ def test_unary_datacopy(
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     num_faces=4,
     tilize=Tilize.No,
-    # input_dimensions=[[64, 64], [32, 256], [128, 256]],
-    input_dimensions=[[32, 32]],
+    input_dimensions=[[32, 32], [64, 64], [32, 256], [128, 256]],
 )
 def test_unary_datacopy_bfp4_b(
     formats, dest_acc, num_faces, tilize, input_dimensions, workers_tensix_coordinates
