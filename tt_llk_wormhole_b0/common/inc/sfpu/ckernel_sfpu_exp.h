@@ -399,6 +399,46 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const std
     return result;
 }
 
+namespace exp_fast_approx_detail
+{
+template <int DEST_BASE>
+sfpi_inline void loadmacro_sanitize_block_()
+{
+    TTI_SFPLOADMACRO(
+        4,
+        0,
+        3,
+        DEST_BASE + 0); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value
+    TTI_SFPNOP;         // NOP is necessary because the SWAP operation takes 2 cycles and unfortunately is not pipelined
+    TTI_SFPLOADMACRO(
+        5,
+        0,
+        3,
+        DEST_BASE + 2); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value
+    TTI_SFPNOP;
+    TTI_SFPLOADMACRO(
+        6,
+        0,
+        3,
+        DEST_BASE + 4); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value
+    TTI_SFPNOP;
+    TTI_SFPLOADMACRO(
+        7,
+        0,
+        3,
+        DEST_BASE + 6); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value
+}
+
+template <int DEST_BASE>
+sfpi_inline void loadmacro_compute_block_()
+{
+    TTI_SFPLOADMACRO(0, 0, 3, DEST_BASE + 0); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[0]
+    TTI_SFPLOADMACRO(1, 0, 3, DEST_BASE + 2); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[1]
+    TTI_SFPLOADMACRO(2, 0, 3, DEST_BASE + 4); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[2]
+    TTI_SFPLOADMACRO(3, 0, 3, DEST_BASE + 6); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[3]
+}
+} // namespace exp_fast_approx_detail
+
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK, bool CLAMP_NEGATIVE = true>
 void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
@@ -416,146 +456,28 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
             sfpi::dst_reg++;
         }
 #else
-        // Code below is hand-unrolled for 4 or 8 iterations.
         static_assert(ITERATIONS == 4 || ITERATIONS == 8, "Fast-approx LOADMACRO exp supports 4 or 8 iterations.");
 
+        exp_fast_approx_detail::loadmacro_sanitize_block_<0>();
         if constexpr (ITERATIONS == 8)
         {
-            // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is more negative than that, swap the
-            // input value with -88.5 and store back to DEST
-            //  - in other words, after the sanitize step, the values in DEST will be in the range {-88.5 , +inf}
-
-            // Macro Sequence Register 1 configured to read back in the original values from dest, sanitize them to a range we can handle, and then store them
-            // back to dest
-            //  LD     : bring in the original value from DEST (y)
-            //  MAD    : unused
-            //  ROUND  : unused
-            //  SIMPLE : SWAP the larger value of y and -88.5 into the LREG
-            //  STORE  : store the sanitized value back to dest
-            TTI_SFPLOADMACRO(
-                4,
-                0,
-                3,
-                0);     // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value - Dest offset  0 is targeting the even columns for rows   3: 0
-            TTI_SFPNOP; // NOP is necessary because the SWAP operation takes 2 cycles and unfortunately is not pipelined
-            TTI_SFPLOADMACRO(
-                5,
-                0,
-                3,
-                2); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value - Dest offset  2 is targeting the odd  columns for rows   3: 0
             TTI_SFPNOP;
-            TTI_SFPLOADMACRO(
-                6,
-                0,
-                3,
-                4); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value - Dest offset  4 is targeting the even columns for rows   7: 4
-            TTI_SFPNOP;
-            TTI_SFPLOADMACRO(
-                7,
-                0,
-                3,
-                6); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value - Dest offset  6 is targeting the odd  columns for rows   7: 4
-            TTI_SFPNOP;
-            TTI_SFPLOADMACRO(
-                4,
-                0,
-                3,
-                8); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value - Dest offset  8 is targeting the even columns for rows  11: 8
-            TTI_SFPNOP;
-            TTI_SFPLOADMACRO(
-                5,
-                0,
-                3,
-                10); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value - Dest offset 10 is targeting the even columns for rows  11: 8
-            TTI_SFPNOP;
-            TTI_SFPLOADMACRO(
-                6,
-                0,
-                3,
-                12); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value - Dest offset 12 is targeting the odd  columns for rows  15:12
-            TTI_SFPNOP;
-            TTI_SFPLOADMACRO(
-                7,
-                0,
-                3,
-                14); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value - Dest offset 14 is targeting the even columns for rows  15:12
-            // NOP not needed in this spot because the next LoadMacro is a computational macro which doesn't immediately use the SIMPLE unit
-
-            // Macro Sequence Register 0 configured to read back in the sanitized values and calculate the approximate exponential value
-            //  LD     : the sanitized value from DEST (y)
-            //  MAD    : compute (A * y) + (B-C)  , where A = (2^8)/ln(2) , B = 127 * (2^8) , C = Adjustment parameter of roughly 11.2 to minimize error
-            //  ROUND  : convert the MAD result from FP32 to a 16-bit unsigned integer using stochastic rounding
-            //  SIMPLE : shift the 16-bit integer to the left by 15 bits to place the MSB of the computed value into the MSB of the exponent bits of the fp32
-            // format
-            //  STORE  : store the shifted value back to dest
-            TTI_SFPLOADMACRO(0, 0, 3, 0);  // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[0] for loading and intermediate results - Dest
-                                           // offset  0 is targeting the even columns for rows   3: 0
-            TTI_SFPLOADMACRO(1, 0, 3, 2);  // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[1] for loading and intermediate results - Dest
-                                           // offset  2 is targeting the odd  columns for rows   3: 0
-            TTI_SFPLOADMACRO(2, 0, 3, 4);  // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[2] for loading and intermediate results - Dest
-                                           // offset  4 is targeting the even columns for rows   7: 4
-            TTI_SFPLOADMACRO(3, 0, 3, 6);  // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[3] for loading and intermediate results - Dest
-                                           // offset  6 is targeting the odd  columns for rows   7: 4
-            TTI_SFPLOADMACRO(0, 0, 3, 8);  // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[0] for loading and intermediate results - Dest
-                                           // offset  8 is targeting the even columns for rows  11: 8
-            TTI_SFPLOADMACRO(1, 0, 3, 10); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[1] for loading and intermediate results - Dest
-                                           // offset 10 is targeting the even columns for rows  11: 8
-            TTI_SFPLOADMACRO(2, 0, 3, 12); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[2] for loading and intermediate results - Dest
-                                           // offset 12 is targeting the odd  columns for rows  15:12
-            TTI_SFPLOADMACRO(3, 0, 3, 14); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[3] for loading and intermediate results - Dest
-                                           // offset 14 is targeting the even columns for rows  15:12
-            // NOP needed to allow time for the final Computation Loadmacro to complete before returning to the Sanitation Loadmacro at the top for the next
-            // iteration
-            //  - to be completely safe, use 3 NOP; in practice 1 seems to be enough, probably because the overhead of the DEST INCRW stuff introduces 2 cycles of
-            //  delay
-            TTI_SFPNOP;
-            // TTI_SFPNOP;
-            // TTI_SFPNOP;
+            exp_fast_approx_detail::loadmacro_sanitize_block_<8>();
         }
-        else
+
+        exp_fast_approx_detail::loadmacro_compute_block_<0>();
+        if constexpr (ITERATIONS == 8)
         {
-            // 4-iteration (half-face) version.
-            TTI_SFPLOADMACRO(
-                4,
-                0,
-                3,
-                0);     // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value - Dest offset  0 is targeting the even columns for rows   3: 0
-            TTI_SFPNOP; // NOP is necessary because the SWAP operation takes 2 cycles and unfortunately is not pipelined
-            TTI_SFPLOADMACRO(
-                5,
-                0,
-                3,
-                2); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value - Dest offset  2 is targeting the odd  columns for rows   3: 0
-            TTI_SFPNOP;
-            TTI_SFPLOADMACRO(
-                6,
-                0,
-                3,
-                4); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value - Dest offset  4 is targeting the even columns for rows   7: 4
-            TTI_SFPNOP;
-            TTI_SFPLOADMACRO(
-                7,
-                0,
-                3,
-                6); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value - Dest offset  6 is targeting the odd  columns for rows   7: 4
-            // NOP not needed in this spot because the next LoadMacro is a computational macro which doesn't immediately use the SIMPLE unit
-
-            TTI_SFPLOADMACRO(0, 0, 3, 0); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[0] for loading and intermediate results - Dest
-                                          // offset  0 is targeting the even columns for rows   3: 0
-            TTI_SFPLOADMACRO(1, 0, 3, 2); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[1] for loading and intermediate results - Dest
-                                          // offset  2 is targeting the odd  columns for rows   3: 0
-            TTI_SFPLOADMACRO(2, 0, 3, 4); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[2] for loading and intermediate results - Dest
-                                          // offset  4 is targeting the even columns for rows   7: 4
-            TTI_SFPLOADMACRO(3, 0, 3, 6); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[3] for loading and intermediate results - Dest
-                                          // offset  6 is targeting the odd  columns for rows   7: 4
-            // NOP needed to allow time for the final Computation Loadmacro to complete before returning to the Sanitation Loadmacro at the top for the next
-            // iteration
-            //  - to be completely safe, use 3 NOP; in practice 1 seems to be enough, probably because the overhead of the DEST INCRW stuff introduces 2 cycles of
-            //  delay
-            TTI_SFPNOP;
-            // TTI_SFPNOP;
-            // TTI_SFPNOP;
+            exp_fast_approx_detail::loadmacro_compute_block_<8>();
         }
+
+        // NOP needed to allow time for the final Computation Loadmacro to complete before returning to the Sanitation Loadmacro at the top for the next
+        // iteration
+        //  - to be completely safe, use 3 NOP; in practice 1 seems to be enough, probably because the overhead of the DEST INCRW stuff introduces 2 cycles of
+        //  delay
+        TTI_SFPNOP;
+        // TTI_SFPNOP;
+        // TTI_SFPNOP;
 #endif
     }
 #ifdef DISABLE_SFPLOADMACRO
