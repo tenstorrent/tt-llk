@@ -50,7 +50,14 @@ Agent tool:
     Read and follow codegen-bh/agents/llk-analyzer.md to analyze the "{op}" kernel.
     Kernel type: {kernel_type}
     Reference path: tt_llk_wormhole_b0/{kernel_path}
+    Target path: tt_llk_blackhole/{kernel_path}
     Output your analysis to: codegen-bh/artifacts/{op}_analysis.md
+
+    CRITICAL: Before reading the WH reference, you MUST read the BH integration points:
+    1. Test harness: Find and read tests/sources/*{op}*.cpp (look for #ifdef ARCH_BLACKHOLE)
+    2. Parent file: Read the BH file that #includes this kernel (e.g., tt_llk_blackhole/llk_lib/llk_{type}.h)
+    3. Closest existing BH kernel: Read the most similar existing BH kernel of this type line-by-line
+    Document the BH-expected API (function signatures, template params, BH-only features, WH-only features to drop).
 ```
 
 Wait for completion. Agent returns summary of analysis.
@@ -67,6 +74,11 @@ Agent tool:
     Kernel type: {kernel_type}
     Analysis: codegen-bh/artifacts/{op}_analysis.md
     Output your spec to: codegen-bh/artifacts/{op}_spec.md
+
+    CRITICAL: Design from BH patterns, not WH patterns. The analysis contains
+    BH-expected API from the test harness and parent file - template params and
+    function signatures MUST match those, not the WH reference.
+    Verify init/uninit symmetry: uninit must restore what init changes.
 ```
 
 Wait for completion. Agent returns summary of spec.
@@ -84,6 +96,13 @@ Agent tool:
     Spec: codegen-bh/artifacts/{op}_spec.md
     Output to: tt_llk_blackhole/{kernel_path}
     Run compilation check after writing.
+
+    CRITICAL: Before writing code, verify EVERY function signature against:
+    1. The BH test harness (tests/sources/*{op}*.cpp, #ifdef ARCH_BLACKHOLE branch)
+    2. The BH parent file (tt_llk_blackhole/llk_lib/llk_{type}.h)
+    3. The closest existing BH kernel of this type
+    If the spec conflicts with BH sources, BH sources WIN.
+    Do NOT port WH features that BH test/parent don't reference.
 ```
 
 Wait for completion. Agent returns compilation result (PASSED or FAILED).

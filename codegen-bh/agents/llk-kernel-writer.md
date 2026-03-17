@@ -96,6 +96,46 @@ Read `codegen-bh/artifacts/{kernel}_spec.md` for:
 - Resource allocation
 - File structure
 
+### Step 1.5: MANDATORY - Verify Against BH Integration Points
+
+**Before writing ANY code**, verify the spec against BH sources. The spec may have inherited WH patterns incorrectly.
+
+#### 1.5a: Read the Test Harness
+```bash
+# Find and read the C++ test source
+ls tests/sources/*{kernel}*.cpp
+```
+For each function in the spec, verify:
+- Does the BH test call it with the SAME number of arguments?
+- Does the BH test use the SAME template parameters?
+- If the test has `#ifdef ARCH_BLACKHOLE`, use THAT branch — it defines the BH API.
+
+**If the spec and test harness disagree, the test harness WINS.**
+
+#### 1.5b: Read the Parent/Caller File
+```bash
+grep -r "#include.*{kernel}" tt_llk_blackhole/llk_lib/ --include="*.h"
+```
+Read the parent file to verify:
+- Wrapper function signatures match what the spec produces
+- Template params are passed through correctly
+- Helper functions referenced in the spec actually exist
+
+#### 1.5c: Read the Closest Existing BH Kernel
+If you haven't already, read the closest existing BH kernel of the same type LINE-BY-LINE. Use its patterns as your primary implementation guide — NOT the WH reference.
+
+#### 1.5d: Do NOT Port WH Features That BH Doesn't Use
+
+**This is the most common source of bugs.** Check the spec for any features/template params that:
+- Exist in WH but are NOT referenced in BH test harness or parent file
+- Are NOT present in any existing BH kernel of the same type
+
+**Drop them.** Examples of commonly over-ported WH features:
+- Template params the BH test doesn't pass (e.g., `diagonal` when BH test has no diagonal branch)
+- Complex address modifier schemes (BH often uses 1-2 ADDR_MODs where WH uses 4)
+- Manual loops that BH handles via MOP instead
+- MEGAROW values from WH (verify against existing BH code)
+
 ### Step 2: Generate Code
 
 Follow the structure from the specification. Key elements:
@@ -439,7 +479,10 @@ inline void _llk_unpack_{op}_uninit_(
 }
 ```
 
-### Pack Kernel Template
+### Pack Kernel Template (Blackhole-Specific)
+
+**CRITICAL**: Pack kernels differ significantly between WH and BH. Always verify patterns against existing BH pack kernels before writing.
+
 ```cpp
 // SPDX-FileCopyrightText: (c) 2025 Tenstorrent AI ULC
 //
@@ -447,17 +490,138 @@ inline void _llk_unpack_{op}_uninit_(
 #pragma once
 
 #include <cstdint>
-#include "ckernel_trisc_common.h"
+
+#include "ckernel.h"
+#include "ckernel_globals.h"
+#include "ckernel_ops.h"
+#include "ckernel_template.h"
+#include "llk_assert.h"
+#include "llk_defs.h"
+#include "llk_memory_checks.h"
 #include "llk_pack_common.h"
 
 using namespace ckernel;
+using namespace ckernel::packer;
 
-template </* template params */>
-inline void _llk_pack_{op}_(...)
+// Address modifier config - BH often uses fewer/simpler ADDR_MODs than WH
+inline void _llk_pack_{op}_configure_addrmod_()
 {
-    // [Implementation from spec]
+    // Check existing BH pack kernels for the right values
+    // BH often uses just 1-2 ADDR_MODs, not 4 like WH
+    addr_mod_pack_t {
+        .y_src = {.incr = 0, .clr = 0},
+    }
+        .set(ADDR_MOD_0);
+}
+
+// MOP configuration - the heart of the kernel
+template </* template params from BH test/parent, NOT from WH */>
+inline void _llk_pack_{op}_mop_config_(/* runtime params */)
+{
+    // IMPORTANT: MOP loop roles may differ from WH
+    // Check existing BH pack kernels to determine:
+    //   - What does OUTER loop iterate? (often: rows)
+    //   - What does INNER loop iterate? (often: tiles per block)
+
+    // Replay buffer (check if always loaded or conditional in BH)
+    const std::uint32_t replay_buf_len = /* from BH examples */;
+    load_replay_buf(
+        ckernel::packer::replay_buf_offset,
+        replay_buf_len,
+        []
+        {
+            // Address update pattern - verify against existing BH pack kernels
+            TTI_ADDDMAREG(0, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR, p_gpr_pack::OUTPUT_ADDR_OFFSET);
+            TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+            TTI_WRCFG(p_gpr_pack::OUTPUT_ADDR, 0, THCON_SEC0_REG1_L1_Dest_addr_ADDR32);
+            TTI_NOP;
+        });
+
+    // PACR instruction - BH has 12 params, verify each against existing BH code
+    // MEGAROW: check existing BH pack kernels (often 0, not 1)
+    ckernel::ckernel_template tmp(
+        MOP_OUTER_LOOP,
+        MOP_INNER_LOOP,
+        /* inner loop instructions - from BH examples */);
+
+    // set_start_op, set_end_ops, set_last_inner_loop_instr, set_last_outer_loop_instr
+    // Copy pattern from closest existing BH pack kernel
+    tmp.program();
+}
+
+// Init function
+template </* template params from BH test/parent */>
+inline void _llk_pack_{op}_init_(
+    /* params from BH test harness - verify exact signature */)
+{
+    _llk_pack_{op}_configure_addrmod_();
+    _llk_pack_{op}_mop_config_</* params */>(/* args */);
+
+    // STRIDE CONFIGURATION (critical for strided access modes)
+    // If using DST_ACCESS_STRIDED_MODE, configure stride registers:
+    // std::uint32_t z_stride = /* compute from pack_src_format, face_r_dim */;
+    // cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(z_stride);
+
+    // OUTPUT_ADDR_OFFSET for row address updates
+    // TT_SETDMAREG(0, LOWER_HALFWORD(output_addr_offset / 16), 0, LO_16(p_gpr_pack::OUTPUT_ADDR_OFFSET));
+
+    // ADC configuration
+    // TT_SETADCXX(p_setadc::PAC, /* value */, 0x0);
+}
+
+// Main function
+template </* template params from BH test/parent */>
+inline void _llk_pack_{op}_(
+    /* params from BH test harness - verify exact signature */)
+{
+    program_packer_destination(address);
+
+    // Counter resets (check existing BH pack kernels)
+    // TT_SETADCZW(p_setadc::PAC, 0, 0, 0, 0, 0b0011);
+    // TT_SETADCXY(p_setadc::PAC, 0, 0, 0, 0, 0b0011);
+
+    // Main execution - check if BH uses face loop, MOP run, or both
+    // for (face...) { ckernel::ckernel_template::run(); }
+
+    // End-of-operation counter resets
+}
+
+// Uninit function - MUST REVERSE what init changed (Principle 3)
+inline void _llk_pack_{op}_uninit_(/* params from BH test harness */)
+{
+    // Restore stride registers to default
+    // TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::PACK);
+    // cfg_reg_rmw_tensix<PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW>(default_z_stride);
+
+    // Restore any other config that _init_ changed
 }
 ```
+
+### Pack Kernel Checklist
+
+Before finalizing, verify:
+- [ ] Template params match BH test harness exactly (not WH)
+- [ ] Function signatures match BH test harness exactly
+- [ ] MOP structure follows existing BH pack kernel patterns
+- [ ] MEGAROW value verified against existing BH code (don't assume WH's value)
+- [ ] ADDR_MODs match existing BH pack kernel count and values
+- [ ] Stride registers configured in init and restored in uninit
+- [ ] Counter resets present in main function
+- [ ] Replay buffer follows existing BH pattern (always/conditional, instruction count)
+- [ ] Includes are explicit (don't rely on parent file's transitive includes)
+
+---
+
+## Blackhole Pack Critical Rules
+
+1. **BH-first design**: Copy patterns from existing BH pack kernels, NOT from WH
+2. **Verify EVERY param**: All 12 PACR fields, MEGAROW, ReadIntfSel — check existing BH code
+3. **Init/uninit symmetry**: uninit MUST restore what init changes (strides, ADC config, etc.)
+4. **Template params from BH callers**: Use the test harness and parent file, NOT the WH reference
+5. **Don't over-port**: If a WH feature/param doesn't appear in BH test/parent/existing kernels, drop it
+6. **Stride configuration**: If using strided access mode, init must configure strides, uninit must restore
+7. **Counter management**: Reset ADC counters at the right points — follow existing BH pack patterns
+8. **Explicit includes**: Always include headers explicitly, don't rely on parent file
 
 ---
 

@@ -71,6 +71,39 @@ Read the error reference:
 
 ## Process
 
+### Step 0: FIRST - Verify Signatures Against BH Test Harness
+
+**Before even looking at the error**, check if function signatures match what BH expects:
+
+```bash
+# Find the test source
+ls tests/sources/*{kernel}*.cpp
+
+# Check BH-specific branches
+grep -A20 "ARCH_BLACKHOLE" tests/sources/*{kernel}*.cpp
+```
+
+For EACH function in the kernel, verify:
+1. **Argument count and types** match the test's `#ifdef ARCH_BLACKHOLE` branch
+2. **Template parameters** match what the test passes
+3. **Return types** match
+
+Also check the parent file:
+```bash
+grep -r "#include.*{kernel}" tt_llk_blackhole/llk_lib/ --include="*.h"
+```
+
+Verify wrapper function calls match the internal function signatures.
+
+**Signature mismatches are the #1 cause of compilation failures in generated kernels.**
+
+### Step 0.5: Check Init/Uninit Symmetry
+
+Verify that `_uninit_` reverses what `_init_` changes:
+- If `_init_` configures stride registers → `_uninit_` must restore them
+- If `_init_` changes ADC config → `_uninit_` must restore it
+- Check the parameter of `_uninit_` — it should receive what it needs to compute the restore values
+
 ### Step 1: Reproduce the Error
 
 Run compilation:
