@@ -42,7 +42,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_unpack_AB_matmul_init_<>(0, params->CT_DIM, params->RT_DIM, params->KT_DIM, FACE_R_DIM, FACE_R_DIM, 4, 4, false, false);
 
     {
-        MEASURE_PERF_COUNTERS("KERNEL");
+        MEASURE_PERF_COUNTERS(PERF_ZONE_KERNEL);
         for (std::uint32_t j = 0; j < params->KT_DIM; j++)
         {
             _llk_unpack_AB_matmul_<>(
@@ -87,7 +87,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_math_wait_for_dest_available_<DstSync::SyncHalf>();
 
     {
-        MEASURE_PERF_COUNTERS("KERNEL");
+        MEASURE_PERF_COUNTERS(PERF_ZONE_KERNEL);
         for (std::uint32_t j = 0; j < params->KT_DIM; j++)
         {
             _llk_math_matmul_<MATH_FIDELITY>(0, params->CT_DIM, params->RT_DIM);
@@ -121,7 +121,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     _llk_packer_wait_for_math_done_();
 
     {
-        MEASURE_PERF_COUNTERS("KERNEL");
+        MEASURE_PERF_COUNTERS(PERF_ZONE_KERNEL);
         for (int i = 0; i < params->TILE_CNT; i++)
         {
             LLK_ASSERT((i < get_dest_max_tiles<DstSync::SyncHalf, is_fp32_dest_acc_en, DstTileShape::Tile32x32>()), "i exceeds max dest tiles");

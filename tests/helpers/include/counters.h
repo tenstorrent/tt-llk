@@ -804,17 +804,25 @@ public:
 };
 } // namespace llk_perf
 
-// Auto-incrementing zone assignment using __COUNTER__
-// Each MEASURE_PERF_COUNTERS() call automatically gets the next zone number
-// First call = Zone 0, second call = Zone 1, etc.
+// Zone ID constants for performance counter measurement
+// Use these with MEASURE_PERF_COUNTERS to ensure consistent zone IDs
+// regardless of other __COUNTER__ usage in the translation unit
+constexpr std::uint32_t PERF_ZONE_INIT      = 0;
+constexpr std::uint32_t PERF_ZONE_TILE_LOOP = 1;
+constexpr std::uint32_t PERF_ZONE_KERNEL    = 0; // Alias for single-zone tests
+
+// Measure performance counters for a specific zone.
+// Zone IDs must be explicit because __COUNTER__ is shared with other macros
+// (e.g., PROFILER_META/ZONE_SCOPED), making auto-increment unreliable.
 //
-// Perf tests:
-//   MEASURE_PERF_COUNTERS("INIT")      -> Zone 0
-//   MEASURE_PERF_COUNTERS("TILE_LOOP") -> Zone 1
+// Perf tests (two zones):
+//   MEASURE_PERF_COUNTERS(PERF_ZONE_INIT)      -> Zone 0
+//   MEASURE_PERF_COUNTERS(PERF_ZONE_TILE_LOOP) -> Zone 1
 //
-// Normal tests:
-//   MEASURE_PERF_COUNTERS("KERNEL")    -> Zone 0
-#define MEASURE_PERF_COUNTERS(zone_name) const auto _perf_counter_scoped_##__COUNTER__ = llk_perf::perf_counter_scoped<__COUNTER__>();
+// Normal tests (single zone):
+//   MEASURE_PERF_COUNTERS(PERF_ZONE_KERNEL)    -> Zone 0
+#define MEASURE_PERF_COUNTERS(zone_id) MEASURE_PERF_COUNTERS_IMPL(zone_id)
+#define MEASURE_PERF_COUNTERS_IMPL(n)  const auto _perf_counter_scoped_##n = llk_perf::perf_counter_scoped<n>();
 
 // Legacy numeric API (still supported)
 #define PERF_COUNTERS_SCOPED(zone) const auto _perf_counter_scoped_ = llk_perf::perf_counter_scoped<zone>();

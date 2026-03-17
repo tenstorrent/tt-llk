@@ -36,7 +36,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
-        MEASURE_PERF_COUNTERS("INIT");
+        MEASURE_PERF_COUNTERS(PERF_ZONE_INIT);
         _llk_unpack_hw_configure_<is_fp32_dest_acc_en>(
             formats.unpack_A_src,
             formats.unpack_B_src,
@@ -51,7 +51,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        MEASURE_PERF_COUNTERS("TILE_LOOP");
+        MEASURE_PERF_COUNTERS(PERF_ZONE_TILE_LOOP);
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             return;
@@ -85,7 +85,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
-        MEASURE_PERF_COUNTERS("INIT");
+        MEASURE_PERF_COUNTERS(PERF_ZONE_INIT);
         _llk_math_pack_sync_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
         _llk_math_hw_configure_<is_fp32_dest_acc_en>(formats.math, formats.math);
         _llk_math_eltwise_binary_init_<ELTWISE_BINARY_OP, BroadcastType::NONE>(DEFAULT_TENSOR_SHAPE, 0 /* acc_to_dest */);
@@ -93,7 +93,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        MEASURE_PERF_COUNTERS("TILE_LOOP");
+        MEASURE_PERF_COUNTERS(PERF_ZONE_TILE_LOOP);
         if constexpr (PERF_RUN_TYPE == PerfRunType::PACK_ISOLATE)
         {
             return;
@@ -148,7 +148,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
     {
         ZONE_SCOPED("INIT")
-        MEASURE_PERF_COUNTERS("INIT");
+        MEASURE_PERF_COUNTERS(PERF_ZONE_INIT);
         _llk_pack_hw_configure_<is_fp32_dest_acc_en>(formats.pack_src, formats.pack_dst, TILE_WIDTH * TILE_HEIGHT);
         _llk_pack_init_<false, false>(formats.pack_dst);
         _llk_pack_dest_init_<DstSync::SyncHalf, is_fp32_dest_acc_en>();
@@ -156,7 +156,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
     }
     {
         ZONE_SCOPED("TILE_LOOP")
-        MEASURE_PERF_COUNTERS("TILE_LOOP");
+        MEASURE_PERF_COUNTERS(PERF_ZONE_TILE_LOOP);
         if constexpr (PERF_RUN_TYPE == PerfRunType::UNPACK_ISOLATE || PERF_RUN_TYPE == PerfRunType::MATH_ISOLATE)
         {
             return;

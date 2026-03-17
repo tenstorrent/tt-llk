@@ -60,7 +60,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
 
     {
-        MEASURE_PERF_COUNTERS("KERNEL");
+        MEASURE_PERF_COUNTERS(PERF_ZONE_KERNEL);
         for (int i = 0; i < num_total_tiles; ++i)
         {
             _llk_unpack_AB_<BROADCAST_TYPE>(L1_ADDRESS(params->buffer_A[i]), L1_ADDRESS(params->buffer_B[i]));
@@ -110,7 +110,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     // Perform element-wise operation
     {
-        MEASURE_PERF_COUNTERS("KERNEL");
+        MEASURE_PERF_COUNTERS(PERF_ZONE_KERNEL);
         for (int block = 0; block < num_blocks; block++)
         {
             _llk_math_wait_for_dest_available_<dest_sync>();
@@ -188,7 +188,7 @@ void run_kernel(const volatile struct RuntimeParams* params)
 #endif
 
     {
-        MEASURE_PERF_COUNTERS("KERNEL");
+        MEASURE_PERF_COUNTERS(PERF_ZONE_KERNEL);
         for (int block = 0; block < output_num_blocks; block++)
         {
             _llk_packer_wait_for_math_done_();
