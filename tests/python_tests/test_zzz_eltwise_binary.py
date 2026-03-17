@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: © 2026 Tenstorrent AI ULC
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
 import torch
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
@@ -57,7 +58,12 @@ def _get_valid_formats(dest_acc):
     """
     all_formats = input_output_formats(
         # [DataFormat.Float16_b, DataFormat.Float32, DataFormat.Bfp8_b, DataFormat.Bfp4_b],
-        [DataFormat.Bfp4_b, DataFormat.Bfp8_b, DataFormat.Float16_b],
+        [
+            DataFormat.Bfp4_b,
+            DataFormat.Bfp8_b,
+            DataFormat.Float16_b,
+            DataFormat.Float32,
+        ],
         same=False,
     )
     if dest_acc == DestAccumulation.Yes:
@@ -122,7 +128,7 @@ def _get_valid_tile_dimensions(transpose_srca, broadcast_type):
     broadcast_type=[
         BroadcastType.None_,
         BroadcastType.Row,
-        # BroadcastType.Column,
+        BroadcastType.Column,
         # BroadcastType.Scalar,
     ],
     math_fidelity=lambda formats: _get_valid_math_fidelity(formats),
@@ -143,6 +149,9 @@ def test_eltwise_binary(
     tile_dimensions,
     workers_tensix_coordinates,
 ):
+
+    if formats.output_format == DataFormat.Bfp4_b:
+        pytest.skip("Bfp4_b is not supported as output format for eltwise binary")
 
     face_r_dim, num_faces_r_dim, num_faces_c_dim = get_tile_params(tile_dimensions)
     num_faces = num_faces_r_dim * num_faces_c_dim
@@ -306,12 +315,12 @@ def test_eltwise_binary(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    print(
-        f"res_tensor.view(input_dimensions[0], input_dimensions[1]) \n : {res_tensor.view(input_dimensions[0], input_dimensions[1])} \n "
-    )
-    print(
-        f"golden_tensor.view(input_dimensions[0], input_dimensions[1]) \n : {golden_tensor.view(input_dimensions[0], input_dimensions[1])} \n "
-    )
+    # print(
+    #     f"res_tensor.view(input_dimensions[0], input_dimensions[1]) \n : {res_tensor.view(input_dimensions[0], input_dimensions[1])} \n "
+    # )
+    # print(
+    #     f"golden_tensor.view(input_dimensions[0], input_dimensions[1]) \n : {golden_tensor.view(input_dimensions[0], input_dimensions[1])} \n "
+    # )
 
     # Compare in tilized format
     assert passed_test(

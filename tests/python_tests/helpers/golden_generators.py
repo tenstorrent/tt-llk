@@ -1043,6 +1043,17 @@ class BroadcastGolden:
         else:
             input_flat = torch.tensor(operand, dtype=torch_format).flatten()
 
+        # For block-floating-point formats, quantize the input tile-by-tile BEFORE
+        # extracting broadcast values.  The hardware unpacks src_B from its block-float
+        # encoding before applying the broadcast, so the shared-exponent quantization
+        # is determined by the original (non-broadcast) 16-element rows of the tile.
+        # If we quantized after broadcasting we would get wrong shared exponents because
+        # all 16 repeated copies of the same value form a trivial block.
+        if data_format == DataFormat.Bfp4_b:
+            input_flat = _bfp4b_to_float16b(input_flat)
+        elif data_format == DataFormat.Bfp8_b:
+            input_flat = _bfp8b_to_float16b(input_flat)
+
         # Calculate output size based on variable face dimensions
         elements_per_tile = face_r_dim * FACE_DIM * num_faces
 
