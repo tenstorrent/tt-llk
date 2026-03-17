@@ -162,7 +162,7 @@ inline sfpi::vFloat _calculate_exponential_piecewise_(sfpi::vFloat in, const std
 template <bool APPROXIMATION_MODE, bool SCALE_EN, int ITERATIONS, bool FAST_APPROX, bool SKIP_POSITIVE_CHECK, bool CLAMP_NEGATIVE = true>
 void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f in BF16 */)
 {
-    if constexpr (FAST_APPROX && APPROXIMATION_MODE && CLAMP_NEGATIVE)
+    if constexpr (FAST_APPROX && APPROXIMATION_MODE && CLAMP_NEGATIVE && ITERATIONS == 8)
     {
         // Sanitize the input values by loading from DEST, comparing against the value -88.5, and if the input value is more negative than that, swap the input
         // value with -88.5 and store back to DEST
@@ -254,6 +254,57 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
         // TTI_SFPNOP;
         // TTI_SFPNOP;
     }
+    else if constexpr (FAST_APPROX && APPROXIMATION_MODE && CLAMP_NEGATIVE && ITERATIONS == 4)
+    {
+        // =======================================================================
+        // 4-element (half-face) version using LOADMACRO with CLAMP_NEGATIVE.
+        // Processes dest offsets 0,2,4,6 = rows 0:7 (8 rows x 16 cols = half face).
+        //
+        // Same two-phase structure as the 8-element version but limited to the
+        // first 4 LOADMACRO pairs (half of a full face).
+        // =======================================================================
+
+        // Phase 1: Sanitize — clamp values to >= -88.5 and store back to DEST.
+        TTI_SFPLOADMACRO(
+            4,
+            0,
+            ADDR_MOD_7,
+            0);     // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[0] for loaded value - Dest offset  0 is targeting the even columns for rows  3: 0
+        TTI_SFPNOP; // NOP is necessary because the SWAP operation takes 2 cycles and unfortunately is not pipelined
+        TTI_SFPLOADMACRO(
+            5,
+            0,
+            ADDR_MOD_7,
+            2); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[1] for loaded value - Dest offset  2 is targeting the odd  columns for rows  3: 0
+        TTI_SFPNOP;
+        TTI_SFPLOADMACRO(
+            6,
+            0,
+            ADDR_MOD_7,
+            4); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[2] for loaded value - Dest offset  4 is targeting the even columns for rows  7: 4
+        TTI_SFPNOP;
+        TTI_SFPLOADMACRO(
+            7,
+            0,
+            ADDR_MOD_7,
+            6); // MACRO Sequence Register 1: LD, SWAP, STORE - uses LREG[3] for loaded value - Dest offset  6 is targeting the odd  columns for rows  7: 4
+        // NOP not needed here because the next LoadMacro is a computational macro which doesn't immediately use the SIMPLE unit
+
+        // Phase 2: Compute — load sanitized values, compute approximate exp, store result.
+        TTI_SFPLOADMACRO(
+            0, 0, ADDR_MOD_7, 0); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[0] - Dest offset  0: even cols rows  3: 0
+        TTI_SFPLOADMACRO(
+            1, 0, ADDR_MOD_7, 2); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[1] - Dest offset  2: odd  cols rows  3: 0
+        TTI_SFPLOADMACRO(
+            2, 0, ADDR_MOD_7, 4); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[2] - Dest offset  4: even cols rows  7: 4
+        TTI_SFPLOADMACRO(
+            3, 0, ADDR_MOD_7, 6); // MACRO Sequence Register 0: LD, MAD, ROUND, SHIFT and STORE - uses LREG[3] - Dest offset  6: odd  cols rows  7: 4
+        TTI_SFPNOP;
+    }
+    else if constexpr (FAST_APPROX && APPROXIMATION_MODE && CLAMP_NEGATIVE)
+    {
+        static_assert(ITERATIONS == 4 || ITERATIONS == 8, "FAST_APPROX+CLAMP_NEGATIVE exponential only supports 4 or 8 iterations.");
+    }
     else if constexpr (FAST_APPROX && APPROXIMATION_MODE && ITERATIONS == 8)
     {
         // =======================================================================
@@ -281,6 +332,36 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
         TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[6]
         TTI_SFPNOP;
         TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[7]
+        TTI_SFPNOP;
+        TTI_SFPNOP;
+    }
+    else if constexpr (FAST_APPROX && APPROXIMATION_MODE && ITERATIONS == 4)
+    {
+        // =======================================================================
+        // 4-element (half-face) version using replay buffer.
+        // Total: ~12 cycles for 4 elements = 3 cycles/element
+        //
+        // Uses 1 replay of 8 instructions (4 LM + 4 SHFT2 pairs).
+        // First 2 SHFT2s are dummy (timing placeholders), then 2 real SHFT2s.
+        // Drain phase handles final 2 SHFT2s for elements 2 and 3.
+        // =======================================================================
+
+        // Configure ADDR_MOD_7 for auto-increment (dest += 2 per LOADMACRO).
+        addr_mod_t {
+            .srca = {.incr = 0},
+            .srcb = {.incr = 0},
+            .dest = {.incr = 2},
+        }
+            .set(ADDR_MOD_7);
+
+        // Single replay of 8 instructions = 4 LM + 4 SHFT2 (2 dummy + 2 real).
+        lltt::replay(0, 8);
+
+        // Drain: SHFT2[2-3] for elements 2 and 3.
+        TTI_SFPNOP;
+        TTI_SFPSHFT2(p_sfpu::LREG2, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[2]
+        TTI_SFPNOP;
+        TTI_SFPSHFT2(p_sfpu::LREG3, p_sfpu::LREG14, p_sfpu::LREG4, 5); // SHFT2[3]
         TTI_SFPNOP;
         TTI_SFPNOP;
     }
@@ -317,7 +398,7 @@ void _calculate_exponential_(const std::uint16_t exp_base_scale_factor /* 1.0f i
     }
     else if constexpr (FAST_APPROX && APPROXIMATION_MODE)
     {
-        static_assert(ITERATIONS == 8 || ITERATIONS == 32, "This version of exponential only supports 8 or 32 iterations.");
+        static_assert(ITERATIONS == 4 || ITERATIONS == 8 || ITERATIONS == 32, "This version of exponential only supports 4, 8, or 32 iterations.");
     }
     else
     {
