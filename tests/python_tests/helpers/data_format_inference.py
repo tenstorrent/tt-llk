@@ -138,6 +138,10 @@ def infer_unpack_out(
     if input_format.is_mx_format():
         return DataFormat.Float16_b
 
+    # Int32 in L1 unpacked to src registers: use Tf32 in src (unpack-to-dest path is not used for Int32 tilize).
+    if input_format == DataFormat.Int32 and not unpacking_to_dest:
+        return DataFormat.Tf32
+
     if input_format == DataFormat.Float32 and not unpacking_to_dest:
         # When input format in L1 is Float32 + unpacking to src registers (instead of directly to dest register)
         # Source registers can store 19-bit values, so we truncate Float32 to Tf32 if we know dest will be 32-bit format
@@ -193,6 +197,14 @@ def infer_pack_in(
             raise ValueError(
                 f"Quasar packer does not support {input_format.name} to {output_format.name} conversion when the dest register is in 16-bit mode"
             )
+
+        # Int32 output with Tf32 in regs: dest holds Tf32, pack converts Tf32 -> Int32
+        if (
+            unpack_out == DataFormat.Tf32
+            and output_format == DataFormat.Int32
+            and is_fp32_dest_acc_en == DestAccumulation.Yes
+        ):
+            return DataFormat.Tf32
 
         if unpack_out.is_integer():
             if (

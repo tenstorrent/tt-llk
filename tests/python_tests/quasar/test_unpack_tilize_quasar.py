@@ -67,10 +67,12 @@ def generate_unpack_tilize_combinations(
         if in_fmt != fmt.output_format:
             continue
 
-        if in_fmt.is_32_bit():
-            continue  # Tilize 32b data into dest not yet supported
-
-        dest_acc_modes = (DestAccumulation.No, DestAccumulation.Yes)
+        # 32b uses unpack_to_dest (dest_acc Yes)
+        dest_acc_modes = (
+            (DestAccumulation.No,)
+            if not in_fmt.is_32_bit()
+            else (DestAccumulation.Yes,)
+        )
         unpacker_engines = (UnpackerEngine.UnpA, UnpackerEngine.UnpB)
 
         for dest_acc in dest_acc_modes:
@@ -83,8 +85,8 @@ def generate_unpack_tilize_combinations(
 
 UNPACK_TILIZE_FORMATS = input_output_formats(
     [
-        DataFormat.Float16_b,
-        DataFormat.Float16,
+        # DataFormat.Int16,
+        DataFormat.Int32,
     ]
 )
 ALL_UNPACK_TILIZE_COMBINATIONS = generate_unpack_tilize_combinations(
@@ -150,11 +152,8 @@ def test_unpack_tilize_quasar(
             tile_count_res=tile_cnt_A,
             num_faces=4,
         ),
-        # Determine unpack_to_dest based on format and accumulation mode
-        # This follows the same logic as pack_test
-        unpack_to_dest=(
-            formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
-        ),
+        # Int32 uses Tf32 in src registers (format inference), not unpack-to-dest
+        unpack_to_dest=False,
         dest_acc=dest_acc,
         boot_mode=boot_mode,
     )
