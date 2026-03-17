@@ -3,7 +3,6 @@
 
 import pytest
 import torch
-from conftest import skip_for_blackhole
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.constraints import (
     get_valid_dest_accumulation_modes,
@@ -183,12 +182,10 @@ def test_unary_datacopy(
     assert passed_test(golden_tensor, res_tensor, formats.output_format)
 
 
-# No BH testing done for now
-@skip_for_blackhole
 @parametrize(
     formats=input_output_formats(
         [
-            # DataFormat.Float32,
+            DataFormat.Float32,
             DataFormat.Float16_b,
             DataFormat.Bfp8_b,
             DataFormat.Bfp4_b,
