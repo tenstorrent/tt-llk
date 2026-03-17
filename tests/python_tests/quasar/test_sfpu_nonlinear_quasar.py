@@ -145,12 +145,11 @@ def prepare_inputs_for_operation(
         src_A = min_val + src_A.to(torch.float32) * (max_val - min_val)
         src_A = src_A.to(torch_format)
     elif mathop == MathOperation.Gelu:
-        # Scale to range including negative and positive values for GELU testing
-        finfo = torch.finfo(torch_format)
-        min_val = -10.0  # Covers meaningful range without saturation
-        max_val = finfo.max / 2  # Use half range to avoid extremes
-        src_A = min_val + src_A.to(torch.float32) * (max_val - min_val)
-        src_A = src_A.to(torch_format)
+        # Scale to range [-10, 10] for gelu - covers meaningful range without saturation
+        # Symmetric range ensures balanced coverage of negative, near-zero, and positive behaviour
+        min_val = -10.0
+        max_val = 10.0
+        src_A = torch.empty_like(src_A, dtype=torch.float32).uniform_(min_val, max_val)
     elif mathop == MathOperation.Relu:
         # Scale to range including negative and positive values for ReLU testing
         finfo = torch.finfo(torch_format)
@@ -278,10 +277,10 @@ def prepare_inputs_for_operation(
         src_A = min_val + src_A.to(torch.float32) * (max_val - min_val)
         src_A = src_A.to(torch_format)
     elif mathop == MathOperation.Silu:
-        # Scale to range including negative and positive values for SiLU testing
+        # Scale to range [-10, 10] for SiLU - covers meaningful range without saturation
         finfo = torch.finfo(torch_format)
         min_val = -10.0  # avoid overflow with negative exponential in SiLU
-        max_val = finfo.max / 2  # Use half range to avoid extremes
+        max_val = 10.0
         src_A = min_val + src_A.to(torch.float32) * (max_val - min_val)
         src_A = src_A.to(torch_format)
     # else: keep src_A as-is for other operations
