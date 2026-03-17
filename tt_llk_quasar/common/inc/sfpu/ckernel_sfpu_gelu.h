@@ -26,13 +26,8 @@ inline void _init_gelu_()
     // 3.0 > x >= 2.0
     // lreg11_lo =  0.5402 (0x3852)
     // lreg14_lo = -0.1194 (0xAFA4)
-    TTI_SFPLOADI(0x0, 0x8, 0x3800);
-    TTI_SFPLOADI(0x0, 0xA, 0x3852);
-    TTI_SFPCONFIG(0x0000, 0xB, 0x0); // Write into lreg[11] from values loaded into lreg[0]
-
-    TTI_SFPLOADI(0x0, 0x8, 0x7C00);
-    TTI_SFPLOADI(0x0, 0xA, 0xAFA4);
-    TTI_SFPCONFIG(0x0000, 0xE, 0x0);
+    _sfpu_load_config32_(0xB, 0x3800, 0x3852);
+    _sfpu_load_config32_(0xE, 0x7C00, 0xAFA4);
 
     // 2.0 > x >= 1.5
     // lreg10_hi =  0.6099 (0x38E1)
@@ -40,13 +35,8 @@ inline void _init_gelu_()
     // 1.5 > x >= 1.0
     // lreg10_lo =  0.6189 (0x38F3)
     // lreg13_lo = -0.2797 (0xB479)
-    TTI_SFPLOADI(0x0, 0x8, 0x38E1);
-    TTI_SFPLOADI(0x0, 0xA, 0x38F3);
-    TTI_SFPCONFIG(0x0000, 0xA, 0x0);
-
-    TTI_SFPLOADI(0x0, 0x8, 0xB437);
-    TTI_SFPLOADI(0x0, 0xA, 0xB479);
-    TTI_SFPCONFIG(0x0000, 0xD, 0x0);
+    _sfpu_load_config32_(0xA, 0x38E1, 0x38F3);
+    _sfpu_load_config32_(0xD, 0xB437, 0xB479);
 
     // 1.0 > x >= 0.5
     // lreg9_hi  =  0.4939 (0x37E7)
@@ -54,13 +44,8 @@ inline void _init_gelu_()
     // 0.5 > x >= 0.0
     // lreg9_lo  =  0.1928 (0x322B)
     // lreg12_lo = -0.0150 (0xA3AE)
-    TTI_SFPLOADI(0x0, 0x8, 0x37E7);
-    TTI_SFPLOADI(0x0, 0xA, 0x322B);
-    TTI_SFPCONFIG(0x0000, 0x9, 0x0);
-
-    TTI_SFPLOADI(0x0, 0x8, 0xB122);
-    TTI_SFPLOADI(0x0, 0xA, 0xA3AE);
-    TTI_SFPCONFIG(0x0000, 0xC, 0x0);
+    _sfpu_load_config32_(0x9, 0x37E7, 0x322B);
+    _sfpu_load_config32_(0xC, 0xB122, 0xA3AE);
 }
 
 // Calculates GELU for number of rows of output SFPU ops (Quasar = 2 rows)
