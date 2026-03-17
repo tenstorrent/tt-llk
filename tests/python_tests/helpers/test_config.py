@@ -184,7 +184,7 @@ class TestConfig:
     # Buffer layout: 86 config words + 172 data words + sync control words
     PERF_COUNTERS_BASE_ADDR: ClassVar[int] = 0x16A000
     PERF_COUNTERS_MAX_ZONES: ClassVar[int] = (
-        8  # Support up to 8 MEASURE_PERF_COUNTERS calls
+        3  # Max zones that fit before dump mailbox at 0x16AFE4 (must match counters.h)
     )
     _PERF_COUNTERS_CONFIG_WORDS: ClassVar[int] = 86
     _PERF_COUNTERS_DATA_WORDS: ClassVar[int] = 172

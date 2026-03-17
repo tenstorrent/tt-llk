@@ -48,12 +48,14 @@ namespace llk_perf
 
 // SOURCE OF TRUTH: tests/python_tests/helpers/test_config.py (TestConfig class)
 // Must be below profiler buffers which start at 0x16B000
+// Memory budget: 0x16A000 to 0x16AFE3 (dump mailbox at 0x16AFE4) = 4068 bytes
 #define PERF_COUNTERS_BASE_ADDR    0x16A000
 #define PERF_COUNTERS_CONFIG_WORDS 86  // Counter configuration slots
 #define PERF_COUNTERS_DATA_WORDS   172 // Counter data (cycles + count per slot)
 #define PERF_COUNTERS_BUFFER_SIZE  ((PERF_COUNTERS_CONFIG_WORDS + PERF_COUNTERS_DATA_WORDS) * 4)
 
 #define PERF_COUNTERS_ZONE_SIZE ((PERF_COUNTERS_BUFFER_SIZE) + 40) // +40 for sync words
+#define PERF_COUNTERS_MAX_ZONES 3                                  // Max zones that fit before dump mailbox at 0x16AFE4
 
 #define PERF_COUNTERS_CONFIG_ADDR(zone)    (PERF_COUNTERS_BASE_ADDR + (zone) * PERF_COUNTERS_ZONE_SIZE)
 #define PERF_COUNTERS_DATA_ADDR(zone)      (PERF_COUNTERS_CONFIG_ADDR(zone) + PERF_COUNTERS_CONFIG_WORDS * 4)
@@ -805,6 +807,8 @@ namespace llk_perf
 template <std::uint32_t zone_id>
 class perf_counter_scoped
 {
+    static_assert(zone_id < PERF_COUNTERS_MAX_ZONES, "zone_id exceeds PERF_COUNTERS_MAX_ZONES — would overflow into dump mailbox / profiler memory");
+
 public:
     perf_counter_scoped(const perf_counter_scoped&)            = delete;
     perf_counter_scoped(perf_counter_scoped&&)                 = delete;

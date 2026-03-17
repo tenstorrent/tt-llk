@@ -240,6 +240,16 @@ def configure_counters(location: str = "0,0", num_zones: int = None) -> None:
     if num_zones is None:
         num_zones = TestConfig.PERF_COUNTERS_MAX_ZONES
 
+    # Validate that zones fit within the available L1 region (before dump mailbox at 0x16AFE4)
+    end_addr = (
+        TestConfig.PERF_COUNTERS_BASE_ADDR
+        + num_zones * TestConfig.PERF_COUNTERS_ZONE_SIZE
+    )
+    assert end_addr <= 0x16AFE4, (
+        f"Perf counter zones overflow into dump mailbox: "
+        f"{num_zones} zones end at 0x{end_addr:X}, mailbox at 0x16AFE4"
+    )
+
     # Encode counter configurations
     config_words = []
     for counter in ALL_COUNTERS:
