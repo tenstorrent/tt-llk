@@ -20,139 +20,15 @@ using namespace ckernel;
 using namespace ckernel::unpacker;
 
 inline void _llk_unpack_tilize_init_int8_workaround_(
-    const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t ct_dim, const std::uint32_t num_faces)
-{
-    const std::uint32_t c_dim_size = SCALE_DATUM_SIZE(unpack_src_format, ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM)) >> 4;
-
-    TT_SETDMAREG(0, LOWER_HALFWORD(c_dim_size), 0, LO_16(p_gpr_unpack::TMP0));
-    TT_SETDMAREG(0, UPPER_HALFWORD(c_dim_size), 0, HI_16(p_gpr_unpack::TMP0));
-    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-    TTI_WRCFG(p_gpr_unpack::TMP0, 0, SCRATCH_SEC0_val_ADDR32);
-    TTI_NOP;
-
-    // Unpack 1 row of 1x16 at a time for SrcA
-    config_unpacker_x_end<p_setadc::UNP_A>(1);
-
-    // Set Y stride for SrcA to be one 1x16 row of datums
-    std::uint32_t unpA_ch1_y_stride = SCALE_DATUM_SIZE(unpack_dst_format, FACE_C_DIM);
-    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(unpA_ch1_y_stride);
-
-    // Disable tilize mode for int8/uint8
-    unpack_config_u config   = {0};
-    config.f.out_data_format = unpack_dst_format;
-    config.f.throttle_mode   = 2;
-    config.f.tileize_mode    = 0;
-
-    TT_SETDMAREG(0, LOWER_HALFWORD(config.val[0]), 0, LO_16(p_gpr_unpack::TMP0));
-    TT_SETDMAREG(0, UPPER_HALFWORD(config.val[0]), 0, HI_16(p_gpr_unpack::TMP0));
-    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
-    TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG2_Out_data_format_ADDR32);
-}
-
+    const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t ct_dim, const std::uint32_t num_faces);
 inline void _llk_unpack_tilize_int8_workaround_(
     const std::uint32_t base_address,
     const std::uint32_t tile_index,
     const std::uint32_t unpack_src_format,
     const std::uint32_t face_r_dim,
     const std::uint32_t num_faces,
-    const std::uint32_t block_ct_dim)
-{
-    const std::uint32_t offset_address_a = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << 1;
-    const std::uint32_t address_a        = base_address + offset_address_a;
-    const std::uint32_t block_c_dim      = block_ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM) * face_r_dim;
-    const bool run_r_dim_loop            = (face_r_dim > 1);
-
-    volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
-
-    // Clear z/w start counters for SrcA
-    TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b1111);
-
-    for (std::uint32_t n = 0; n < num_faces; n++)
-    {
-        std::uint32_t address_face_a = (n % 2 == 0) ? address_a : (address_a + (SCALE_DATUM_SIZE(unpack_src_format, FACE_C_DIM) >> 4));
-        address_face_a += (n >= 2) ? ((SCALE_DATUM_SIZE(unpack_src_format, block_c_dim)) >> 4) : 0;
-
-        // Wait for free context
-        wait_for_next_context(2);
-
-        LLK_ASSERT(is_valid_L1_address(address_face_a), "L1 base_address must be in valid L1 memory region");
-
-        if (0 == unp_cfg_context)
-        {
-            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_face_a;
-        }
-        else
-        {
-            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_face_a;
-        }
-
-        // Trisc::SEMPOST for context acquire
-        semaphore_post(semaphore::UNPACK_SYNC);
-
-        // Stall unpacker until pending CFG writes from Trisc have completed
-        TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
-
-        // Reset Y counters for SrcA
-        TTI_SETADCXY(p_setadc::UNP_A, 0, 0, 0, 0, 0b1010);
-
-        // Set DVALID via SrcB NOP to keep unpack/math handshake consistent
-        TTI_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
-
-        // Unpacks face_r_dim-1 rows of 1x16 datums to SrcA
-        if (run_r_dim_loop)
-        {
-            ckernel_unpack_template::run(face_r_dim - 1, unp_cfg_context == 0 ? 0 : 0xffff);
-        }
-
-        // Unpack last SrcA row of a 16x16 face and SetDvalid
-        TTI_UNPACR(SrcA, 0b0, 0, 0, 0, 1, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-
-        // T6::SEMGET for context release
-        t6_semaphore_get(semaphore::UNPACK_SYNC);
-
-        // Switch unpacker config context
-        switch_config_context(unp_cfg_context);
-    }
-}
-
-inline void _llk_unpack_tilize_mop_config_int8_workaround()
-{
-    const std::uint32_t replay_buf_run_len  = 6;
-    const std::uint32_t replay_buf_half_len = replay_buf_run_len >> 1;
-
-    load_replay_buf(
-        0,
-        replay_buf_run_len,
-        []
-        {
-            // Unpacks 1x16 row of datums to SrcA
-            TTI_UNPACR(SrcA, 0b01000000 /*CH1_Y+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-
-            // THCON_SEC0_REG3_Base_address_ADDR32 =  THCON_SEC0_REG3_Base_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32
-            TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0b11, THCON_SEC0_REG3_Base_address_ADDR32);
-            TTI_NOP;
-
-            // Unpacks 1x16 row of datums to SrcA
-            TTI_UNPACR(SrcA, 0b01000000 /*CH1_Y+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
-
-            // THCON_SEC0_REG3_Base_cntx1_address_ADDR32 =  THCON_SEC0_REG3_Base_cntx1_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32
-            TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0b11, THCON_SEC0_REG3_Base_cntx1_address_ADDR32);
-            TTI_NOP;
-        });
-
-    ckernel_unpack_template tmp = ckernel_unpack_template(
-        false,                                     // src B
-        false,                                     // halo - just used for 4 unpacks
-        lltt::replay_insn(0, replay_buf_half_len), // runs when context is 0
-        0,
-        0,
-        0,
-        lltt::replay_insn(replay_buf_half_len, replay_buf_half_len), // runs when context is 1
-        0,
-        0);
-
-    tmp.program();
-}
+    const std::uint32_t block_ct_dim);
+inline void _llk_unpack_tilize_mop_config_int8_workaround();
 
 inline void _llk_unpack_tilize_mop_config_([[maybe_unused]] const bool narrow_tile = false, const bool unpack_to_dest = false)
 {
@@ -530,4 +406,139 @@ inline void _llk_unpack_tilizeA_B_uninit_(const std::uint32_t unpack_dst_format,
     // GPR preloaded with  16 | (16 << 16)}
     TTI_WRCFG(p_gpr_unpack::FACE_DIM_16x16, 0, THCON_SEC0_REG5_Tile_x_dim_cntx0_ADDR32);
     TTI_NOP;
+}
+
+inline void _llk_unpack_tilize_init_int8_workaround_(
+    const std::uint32_t unpack_src_format, const std::uint32_t unpack_dst_format, const std::uint32_t ct_dim, const std::uint32_t num_faces)
+{
+    const std::uint32_t c_dim_size = SCALE_DATUM_SIZE(unpack_src_format, ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM)) >> 4;
+
+    TT_SETDMAREG(0, LOWER_HALFWORD(c_dim_size), 0, LO_16(p_gpr_unpack::TMP0));
+    TT_SETDMAREG(0, UPPER_HALFWORD(c_dim_size), 0, HI_16(p_gpr_unpack::TMP0));
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+    TTI_WRCFG(p_gpr_unpack::TMP0, 0, SCRATCH_SEC0_val_ADDR32);
+    TTI_NOP;
+
+    // Unpack 1 row of 1x16 at a time for SrcA
+    config_unpacker_x_end<p_setadc::UNP_A>(1);
+
+    // Set Y stride for SrcA to be one 1x16 row of datums
+    std::uint32_t unpA_ch1_y_stride = SCALE_DATUM_SIZE(unpack_dst_format, FACE_C_DIM);
+    cfg_reg_rmw_tensix<UNP0_ADDR_CTRL_XY_REG_1_Ystride_RMW>(unpA_ch1_y_stride);
+
+    // Disable tilize mode for int8/uint8
+    unpack_config_u config   = {0};
+    config.f.out_data_format = unpack_dst_format;
+    config.f.throttle_mode   = 2;
+    config.f.tileize_mode    = 0;
+
+    TT_SETDMAREG(0, LOWER_HALFWORD(config.val[0]), 0, LO_16(p_gpr_unpack::TMP0));
+    TT_SETDMAREG(0, UPPER_HALFWORD(config.val[0]), 0, HI_16(p_gpr_unpack::TMP0));
+    TTI_STALLWAIT(p_stall::STALL_CFG, p_stall::THCON);
+    TTI_WRCFG(p_gpr_unpack::TMP0, p_cfg::WRCFG_32b, THCON_SEC0_REG2_Out_data_format_ADDR32);
+}
+
+inline void _llk_unpack_tilize_int8_workaround_(
+    const std::uint32_t base_address,
+    const std::uint32_t tile_index,
+    const std::uint32_t unpack_src_format,
+    const std::uint32_t face_r_dim,
+    const std::uint32_t num_faces,
+    const std::uint32_t block_ct_dim)
+{
+    const std::uint32_t offset_address_a = SCALE_DATUM_SIZE(unpack_src_format, tile_index) << 1;
+    const std::uint32_t address_a        = base_address + offset_address_a;
+    const std::uint32_t block_c_dim      = block_ct_dim * ((num_faces == 1) ? FACE_C_DIM : TILE_C_DIM) * face_r_dim;
+    const bool run_r_dim_loop            = (face_r_dim > 1);
+
+    volatile std::uint32_t tt_reg_ptr* cfg = get_cfg_pointer(); // get pointer to registers for current state ID
+
+    // Clear z/w start counters for SrcA
+    TTI_SETADCZW(p_setadc::UNP_A, 0, 0, 0, 0, 0b1111);
+
+    for (std::uint32_t n = 0; n < num_faces; n++)
+    {
+        std::uint32_t address_face_a = (n % 2 == 0) ? address_a : (address_a + (SCALE_DATUM_SIZE(unpack_src_format, FACE_C_DIM) >> 4));
+        address_face_a += (n >= 2) ? ((SCALE_DATUM_SIZE(unpack_src_format, block_c_dim)) >> 4) : 0;
+
+        // Wait for free context
+        wait_for_next_context(2);
+
+        LLK_ASSERT(is_valid_L1_address(address_face_a), "L1 base_address must be in valid L1 memory region");
+
+        if (0 == unp_cfg_context)
+        {
+            cfg[THCON_SEC0_REG3_Base_address_ADDR32] = address_face_a;
+        }
+        else
+        {
+            cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address_face_a;
+        }
+
+        // Trisc::SEMPOST for context acquire
+        semaphore_post(semaphore::UNPACK_SYNC);
+
+        // Stall unpacker until pending CFG writes from Trisc have completed
+        TTI_STALLWAIT(p_stall::STALL_UNPACK, p_stall::TRISC_CFG);
+
+        // Reset Y counters for SrcA
+        TTI_SETADCXY(p_setadc::UNP_A, 0, 0, 0, 0, 0b1010);
+
+        // Set DVALID via SrcB NOP to keep unpack/math handshake consistent
+        TTI_UNPACR_NOP(SrcB, 0, 0, p_unpacr_nop::SET_DVALID, 0, 0, 0, 0, p_unpacr_nop::UNP_ZEROSRC);
+
+        // Unpacks face_r_dim-1 rows of 1x16 datums to SrcA
+        if (run_r_dim_loop)
+        {
+            ckernel_unpack_template::run(face_r_dim - 1, unp_cfg_context == 0 ? 0 : 0xffff);
+        }
+
+        // Unpack last SrcA row of a 16x16 face and SetDvalid
+        TTI_UNPACR(SrcA, 0b0, 0, 0, 0, 1, 1 /*Set Dvalid*/, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+        // T6::SEMGET for context release
+        t6_semaphore_get(semaphore::UNPACK_SYNC);
+
+        // Switch unpacker config context
+        switch_config_context(unp_cfg_context);
+    }
+}
+
+inline void _llk_unpack_tilize_mop_config_int8_workaround()
+{
+    const std::uint32_t replay_buf_run_len  = 6;
+    const std::uint32_t replay_buf_half_len = replay_buf_run_len >> 1;
+
+    load_replay_buf(
+        0,
+        replay_buf_run_len,
+        []
+        {
+            // Unpacks 1x16 row of datums to SrcA
+            TTI_UNPACR(SrcA, 0b01000000 /*CH1_Y+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+            // THCON_SEC0_REG3_Base_address_ADDR32 =  THCON_SEC0_REG3_Base_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32
+            TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0b11, THCON_SEC0_REG3_Base_address_ADDR32);
+            TTI_NOP;
+
+            // Unpacks 1x16 row of datums to SrcA
+            TTI_UNPACR(SrcA, 0b01000000 /*CH1_Y+=1*/, 0, 0, 0, 1, 0, p_unpacr::RAREFYB_DISABLE, 0, 0, 0, 0, 1);
+
+            // THCON_SEC0_REG3_Base_cntx1_address_ADDR32 =  THCON_SEC0_REG3_Base_cntx1_address_ADDR32 +  SCRATCH_SEC0_val_ADDR32
+            TTI_CFGSHIFTMASK(1, 0b011, 32 - 1, 0, 0b11, THCON_SEC0_REG3_Base_cntx1_address_ADDR32);
+            TTI_NOP;
+        });
+
+    ckernel_unpack_template tmp = ckernel_unpack_template(
+        false,                                     // src B
+        false,                                     // halo - just used for 4 unpacks
+        lltt::replay_insn(0, replay_buf_half_len), // runs when context is 0
+        0,
+        0,
+        0,
+        lltt::replay_insn(replay_buf_half_len, replay_buf_half_len), // runs when context is 1
+        0,
+        0);
+
+    tmp.program();
 }
