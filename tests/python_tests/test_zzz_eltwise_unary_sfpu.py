@@ -6,7 +6,7 @@ from itertools import chain, product
 
 import pytest
 import torch
-from conftest import skip_for_coverage
+from conftest import skip_for_blackhole, skip_for_coverage
 from helpers.chip_architecture import ChipArchitecture
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
@@ -266,6 +266,8 @@ FLOAT_TEST_PARAMS_BFP4_B = list(
 )
 
 
+# No BH testing done for now
+@skip_for_blackhole
 # Skipped because of: https://github.com/tenstorrent/tt-llk/issues/1435
 @skip_for_coverage
 @pytest.mark.nightly

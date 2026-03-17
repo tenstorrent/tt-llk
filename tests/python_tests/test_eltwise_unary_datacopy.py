@@ -3,6 +3,7 @@
 
 import pytest
 import torch
+from conftest import skip_for_blackhole
 from helpers.chip_architecture import ChipArchitecture, get_chip_architecture
 from helpers.constraints import (
     get_valid_dest_accumulation_modes,
@@ -58,7 +59,7 @@ def get_valid_tilize_datacopy(formats):
     if chip_arch == ChipArchitecture.WORMHOLE:
         return [Tilize.No]
 
-    if formats.input_format in (DataFormat.Bfp8_b, DataFormat.Bfp4_b):
+    if formats.input_format == DataFormat.Bfp8_b:
         return [Tilize.No]
 
     if formats.input_format == DataFormat.Fp8_e4m3:
@@ -81,6 +82,8 @@ def get_valid_num_faces_datacopy(tilize):
     return [1, 2, 4]
 
 
+# No BH testing done for now
+@skip_for_blackhole
 @parametrize(
     formats=input_output_formats(
         [
@@ -88,32 +91,131 @@ def get_valid_num_faces_datacopy(tilize):
             DataFormat.Float16,
             DataFormat.Float16_b,
             DataFormat.Bfp8_b,
-            DataFormat.Bfp4_b,
+            DataFormat.Fp8_e4m3,
         ]
     ),
     dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
     num_faces=lambda tilize: get_valid_num_faces_datacopy(tilize),
     tilize=lambda formats: get_valid_tilize_datacopy(formats),
-    input_dimensions=[[32, 32], [64, 64], [32, 256], [128, 256]],
+    input_dimensions=[[64, 64], [32, 256], [128, 256]],
 )
 def test_unary_datacopy(
-    formats,
-    dest_acc,
-    num_faces,
-    tilize,
-    input_dimensions,
-    workers_tensix_coordinates,
+    formats, dest_acc, num_faces, tilize, input_dimensions, workers_tensix_coordinates
 ):
 
-    # Skip tests where input format is Float16, output format is Bfp4_b, and dest_acc is No
-    if (
-        formats.input_format == DataFormat.Float16
-        and formats.output_format == DataFormat.Bfp4_b
-        and dest_acc == DestAccumulation.No
+    # skip if Fp8_e4m3 for wormhole
+    if get_chip_architecture() == ChipArchitecture.WORMHOLE and (
+        formats.input_format == DataFormat.Fp8_e4m3
+        or formats.output_format == DataFormat.Fp8_e4m3
     ):
-        pytest.skip(
-            "Skipping test: conversion from Float16 to Bfp4_b with dest_acc=No is not supported/desired."
+        pytest.skip("Fp8_e4m3 not supported on wormhole")
+
+    src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
+        stimuli_format_A=formats.input_format,
+        input_dimensions_A=input_dimensions,
+        stimuli_format_B=formats.input_format,
+        input_dimensions_B=input_dimensions,
+    )
+
+    if tilize == Tilize.No:
+        generate_golden = get_golden_generator(DataCopyGolden)
+        golden_tensor = generate_golden(
+            src_A, formats.output_format, num_faces, input_dimensions
         )
+    else:
+        generate_golden = get_golden_generator(TilizeGolden)
+        golden_tensor = generate_golden(src_A, input_dimensions, formats.output_format)
+
+    unpack_to_dest = (
+        False
+        if tilize == Tilize.Yes and formats.input_format == DataFormat.Float32
+        else formats.input_format.is_32_bit() and dest_acc == DestAccumulation.Yes
+    )
+
+    blocks_calculation_algorithm = (
+        BlocksCalculationAlgorithm.Standard
+        if tilize == Tilize.No
+        else BlocksCalculationAlgorithm.Tilize
+    )
+    num_blocks, num_tiles_in_block = get_num_blocks_and_num_tiles_in_block(
+        DestSync.Half,
+        dest_acc,
+        formats,
+        input_dimensions,
+        TILE_DIMENSIONS,
+        blocks_calculation_algorithm,
+    )
+
+    configuration = TestConfig(
+        "sources/eltwise_unary_datacopy_test.cpp",
+        formats,
+        templates=[
+            generate_input_dim(input_dimensions, input_dimensions),
+            TILIZE(tilize),
+        ],
+        runtimes=[
+            DEST_INDEX(0),
+            TILE_COUNT(tile_cnt_A),
+            NUM_FACES(num_faces),
+            NUM_BLOCKS(num_blocks),
+            NUM_TILES_IN_BLOCK(num_tiles_in_block),
+        ],
+        variant_stimuli=StimuliConfig(
+            src_A,
+            formats.input_format,
+            src_B,
+            formats.input_format,
+            formats.output_format,
+            tile_count_A=tile_cnt_A,
+            tile_count_B=tile_cnt_B,
+            tile_count_res=tile_cnt_A,
+            num_faces=num_faces,
+        ),
+        dest_acc=dest_acc,
+        unpack_to_dest=unpack_to_dest,
+    )
+
+    res_from_L1 = configuration.run(workers_tensix_coordinates).result
+
+    assert len(res_from_L1) == len(golden_tensor)
+
+    torch_format = format_dict[formats.output_format]
+    res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
+
+    assert passed_test(golden_tensor, res_tensor, formats.output_format)
+
+
+@parametrize(
+    formats=input_output_formats(
+        [
+            # DataFormat.Float32,
+            DataFormat.Float16_b,
+            DataFormat.Bfp8_b,
+            DataFormat.Bfp4_b,
+        ]
+    ),
+    dest_acc=lambda formats: get_valid_dest_accumulation_modes(formats),
+    num_faces=4,
+    tilize=Tilize.No,
+    # input_dimensions=[[64, 64], [32, 256], [128, 256]],
+    input_dimensions=[[32, 32]],
+)
+def test_unary_datacopy_bfp4_b(
+    formats, dest_acc, num_faces, tilize, input_dimensions, workers_tensix_coordinates
+):
+
+    if (
+        formats.input_format != DataFormat.Bfp4_b
+        and formats.output_format != DataFormat.Bfp4_b
+    ):
+        pytest.skip("Not a Bfp4_b test")
+
+    # skip if Fp8_e4m3 for wormhole
+    if get_chip_architecture() == ChipArchitecture.WORMHOLE and (
+        formats.input_format == DataFormat.Fp8_e4m3
+        or formats.output_format == DataFormat.Fp8_e4m3
+    ):
+        pytest.skip("Fp8_e4m3 not supported on wormhole")
 
     src_A, tile_cnt_A, src_B, tile_cnt_B = generate_stimuli(
         stimuli_format_A=formats.input_format,

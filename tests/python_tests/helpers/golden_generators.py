@@ -1154,8 +1154,13 @@ class DataCopyGolden:
         num_faces: int = 4,
         input_dimensions: list[int] = [32, 32],
         face_r_dim: int = 16,  # Default to 16 for backward compatibility
+        input_format=None,
     ):
         torch_format = format_dict[data_format]
+
+        # Quantize input to match what hardware actually unpacks from bfp4_b L1 memory
+        if input_format == DataFormat.Bfp4_b:
+            operand1 = _bfp4b_to_float16b(operand1)
 
         height, width = input_dimensions[0], input_dimensions[1]
 
@@ -1217,6 +1222,19 @@ class DataCopyGolden:
                 result = torch.clamp(result, min_val, max_val)
 
             result = result.to(torch_format)
+
+        # Apply bfp4_b output quantization round-trip to match hardware behaviour
+        if data_format == DataFormat.Bfp4_b:
+            result_t = (
+                result.float()
+                if isinstance(result, torch.Tensor)
+                else torch.tensor(result, dtype=torch.float32)
+            )
+            tilized = tilize_block(
+                result_t.flatten(), input_dimensions, DataFormat.Float16_b
+            ).flatten()
+            result = _bfp4b_to_float16b(tilized, input_dimensions)
+            return result.to(torch_format)
 
         return result
 

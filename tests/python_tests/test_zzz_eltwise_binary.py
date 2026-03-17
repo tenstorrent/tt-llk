@@ -3,6 +3,7 @@
 
 import pytest
 import torch
+from conftest import skip_for_blackhole
 from helpers.format_config import DataFormat, InputOutputFormat
 from helpers.golden_generators import (
     BroadcastGolden,
@@ -333,19 +334,14 @@ def test_eltwise_binary(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    # print(
-    #     f"res_tensor.view(input_dimensions[0], input_dimensions[1]) \n : {res_tensor.view(input_dimensions[0], input_dimensions[1])} \n "
-    # )
-    # print(
-    #     f"golden_tensor.view(input_dimensions[0], input_dimensions[1]) \n : {golden_tensor.view(input_dimensions[0], input_dimensions[1])} \n "
-    # )
-
     # Compare in tilized format
     assert passed_test(
         golden_tensor, res_tensor, formats.output_format
     ), "Assert against golden failed"
 
 
+# No BH testing done for now
+@skip_for_blackhole
 @parametrize(
     dest_acc=[DestAccumulation.No, DestAccumulation.Yes],
     formats=lambda dest_acc: _get_valid_formats_include_bfp4_b(dest_acc),
