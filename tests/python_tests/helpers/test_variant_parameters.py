@@ -824,3 +824,25 @@ class CONFIGURE_TEST_RUN_IDX(RuntimeParameter):
 
     def convert_to_struct_fields(self) -> tuple[str, str]:
         return "std::uint32_t CONFIGURE_TEST_RUN_IDX;", "I"
+
+
+@dataclass
+class STREAMS_IS_HOST_PRODUCER(RuntimeParameter):
+    streams_is_host_producer: bool = False
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr bool STREAMS_IS_HOST_PRODUCER = {self.streams_is_host_producer};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "bool STREAMS_IS_HOST_PRODUCER;", "?"
+
+
+@dataclass
+class STREAMS_IS_HOST_CONSUMER(RuntimeParameter):
+    streams_is_host_consumer: bool = False
+
+    def convert_to_cpp(self) -> str:
+        return f"constexpr bool STREAMS_IS_HOST_CONSUMER = {self.streams_is_host_consumer};"
+
+    def convert_to_struct_fields(self) -> tuple[str, str]:
+        return "bool STREAMS_IS_HOST_CONSUMER;", "?"
