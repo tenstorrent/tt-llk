@@ -274,6 +274,7 @@ def _stop_exalens_server():
     """atexit handler to ensure the tt-exalens server is stopped on process exit."""
     if _exalens_server is not None:
         _exalens_server.stop()
+        _exalens_server = None
 
 
 def _fatal_signal_handler(signum, frame):
