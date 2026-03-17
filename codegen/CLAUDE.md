@@ -196,20 +196,142 @@ Wait for test results. Agent returns PASSED, FAILED, or NOT_AVAILABLE.
 
 **If FAILED**: Go back to Step 5 (debugger) with the test failure details, then re-run Step 6.
 
-### Step 7: Report Completion
+### Step 7: Save Pre-Prettification Backup (if tests passed)
 
-After all agents complete:
+Before prettifying, **save a copy** of the working kernel so we can revert if needed:
+
+```bash
+cp tt_llk_{target_arch}/{kernel_path} codegen/artifacts/{op}_pre_prettify_backup.h
 ```
-Kernel Type: {kernel_type}
-Target Architecture: {target_arch}
-Generated: tt_llk_{target_arch}/{kernel_path}
-Compilation: PASSED/FAILED
+
+### Step 8: Prettify Kernel
+
+Spawn an agent:
+```
+Agent tool:
+  subagent_type: "general-purpose"
+  description: "Prettify {op} kernel"
+  prompt: |
+    Read and follow codegen/agents/llk-prettifier.md to refactor the "{op}" kernel.
+    Kernel: {op}
+    Kernel type: {kernel_type}
+    Target architecture: {target_arch}
+    Kernel path: tt_llk_{target_arch}/{kernel_path}
+    Refactor the code for maintainability and reuse while preserving behavior.
+```
+
+Wait for completion. Agent returns compilation result (PASSED or FAILED).
+
+### Step 9: Compile Prettified Kernel
+
+If the prettifier did NOT already report PASSED compilation, run compilation check:
+```
+Agent tool:
+  subagent_type: "general-purpose"
+  description: "Compile prettified {op}"
+  prompt: |
+    Run compilation check on the prettified kernel:
+      cd codegen
+      source ../tests/.venv/bin/activate
+      PYTHONPATH=.. python scripts/check_compile.py tt_llk_{target_arch}/{kernel_path} -v
+    Report PASSED or FAILED with full error output.
+```
+
+**If FAILED**: Go to **Step 10** (debug). Set `prettify_debug_attempts = 0`.
+
+**If PASSED**: Go to **Step 11** (test).
+
+### Step 10: Debug Prettified Kernel (if compilation failed)
+
+Spawn the debugger:
+```
+Agent tool:
+  subagent_type: "general-purpose"
+  description: "Debug prettified {op} kernel"
+  prompt: |
+    Read and follow codegen/agents/llk-debugger.md to fix compilation errors.
+    Kernel: {op}
+    Kernel type: {kernel_type}
+    Target architecture: {target_arch}
+    Kernel path: tt_llk_{target_arch}/{kernel_path}
+    Architecture research: codegen/artifacts/{op}_arch_research.md
+    This kernel was recently refactored (prettified) and compilation broke.
+    Max 3 fix attempts. Report when compilation passes or if stuck.
+```
+
+Increment `prettify_debug_attempts`.
+
+**If PASSED**: Go to **Step 11** (test).
+
+**If STUCK** and `prettify_debug_attempts < 2`: Go to **Step 10** again.
+
+**If STUCK** and `prettify_debug_attempts >= 2`: **Revert** — restore the backup:
+```bash
+cp codegen/artifacts/{op}_pre_prettify_backup.h tt_llk_{target_arch}/{kernel_path}
+```
+Report `Prettified: SKIPPED (compilation could not be fixed)`. Go to **Step 12** (report).
+
+### Step 11: Test Prettified Kernel
+
+Run functional tests on the prettified kernel:
+```
+Agent tool:
+  subagent_type: "general-purpose"
+  model: "haiku"
+  description: "Test prettified {op} kernel"
+  prompt: |
+    Read and follow codegen/agents/llk-tester.md to run functional tests.
+    Kernel: {op}
+    Kernel type: {kernel_type}
+    CHIP_ARCH: {target_arch}
+    This is a re-validation after prettification/refactoring.
+
+    IMPORTANT: You MUST set CHIP_ARCH={target_arch} when running tests. Example:
+      cd codegen
+      source ../tests/.venv/bin/activate
+      CHIP_ARCH={target_arch} python scripts/run_functional_test.py {op} --quick -v
+
+    If quick passes, run full tests:
+      CHIP_ARCH={target_arch} python scripts/run_functional_test.py {op} -v
+
+    If tests FAIL, report the failure details.
+```
+
+**If PASSED**: Prettification is complete. Go to **Step 12** (report).
+
+**If FAILED**: The refactoring broke behavior. Go to **Step 10** (debug) with the test failure details appended to the prompt. The debugger should fix the functional issue, then loop back to **Step 11**.
+
+**If FAILED after 2 full debug→test cycles**: **Revert** — restore the backup:
+```bash
+cp codegen/artifacts/{op}_pre_prettify_backup.h tt_llk_{target_arch}/{kernel_path}
+```
+Report `Prettified: SKIPPED (tests failed after refactoring)`. Go to **Step 12** (report).
+
+### Step 12: Report Completion
+
+After all agents complete, write the summary to `codegen/artifacts/{op}_report.md` AND print it directly to the terminal so the user sees it:
+
+```
+========================================
+  LLK CodeGen — Generation Complete
+========================================
+Kernel Type:      {kernel_type}
+Target Arch:      {target_arch}
+Generated File:   tt_llk_{target_arch}/{kernel_path}
+Compilation:      PASSED/FAILED
 Functional Tests: PASSED/FAILED/NOT_AVAILABLE
+Prettified:       YES/SKIPPED
+----------------------------------------
 Artifacts:
   - codegen/artifacts/{op}_arch_research.md
   - codegen/artifacts/{op}_analysis.md
   - codegen/artifacts/{op}_spec.md
+========================================
 ```
+
+This conclusion MUST be both:
+1. **Written to file**: `codegen/artifacts/{op}_report.md`
+2. **Output as text** in your response so the user sees it directly in the terminal
 
 ---
 
@@ -224,6 +346,9 @@ Each stage produces artifacts that the next stage consumes:
 | Planner -> Writer | `artifacts/{op}_spec.md` | target_file_path, instruction_sequence (pseudocode), resource_allocation, includes |
 | Writer -> Debugger | kernel file + error output | Full compiler stderr passed in prompt |
 | Writer/Debugger -> Tester | compiled kernel file | File must exist and compile successfully |
+| Tester -> Backup + Prettifier | tested kernel file | Backup saved to `artifacts/{op}_pre_prettify_backup.h`, then refactored |
+| Prettifier -> Compiler -> Debugger (loop) | prettified kernel file | Must compile; if fails, debug up to 2 cycles or revert |
+| Compiler/Debugger -> Tester (loop) | compiling kernel file | Must pass functional tests; if fails, debug up to 2 cycles or revert |
 
 ---
 
