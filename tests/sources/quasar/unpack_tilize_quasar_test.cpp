@@ -95,9 +95,10 @@ void run_kernel(const volatile struct RuntimeParams* params)
 
     DataFormat src_format = static_cast<DataFormat>(formats.math);
 #ifdef RUNTIME_FORMATS
+    // When math format is Int32, dest is Int32 (not FP32); do not enable both EN_FP32 and EN_INT32.
     if (src_format == DataFormat::Int32)
     {
-        _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, is_fp32_dest_acc_en, true>(src_format, src_format);
+        _llk_math_srcAB_hw_configure_<IMPLIED_MATH_FORMAT, false /* EN_FP32_MATH_FORMAT */, true>(src_format, src_format);
     }
     else
     {

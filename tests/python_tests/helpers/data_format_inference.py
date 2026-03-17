@@ -337,6 +337,17 @@ def infer_data_formats(
     # The data format used for mathematical computations, desired format in dest register (typically matches unpack_out if both regs have same format)
     math = infer_math_format(unpack_out_A, unpack_out_B)
 
+    # Int32 unpack_tilize: unpack to Tf32 in src regs for tilize, but dest and math remain Int32
+    _chip_arch = chip_arch if chip_arch is not None else get_chip_architecture()
+    if (
+        _chip_arch == ChipArchitecture.QUASAR
+        and input_format == DataFormat.Int32
+        and output_format == DataFormat.Int32
+        and not unpacking_to_dest
+        and unpack_out_A == DataFormat.Tf32
+    ):
+        math = DataFormat.Int32
+
     # FP8 is a compressed L1 format; hardware unpacks it to Float16 (float16_a) in
     # source registers. The ALU and packer must see Float16, not Lf8/Fp8_e4m3.
     if math == DataFormat.Fp8_e4m3:
