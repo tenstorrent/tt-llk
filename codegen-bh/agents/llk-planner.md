@@ -95,6 +95,68 @@ Create a specification at: `codegen-bh/artifacts/{kernel}_spec.md`
 
 ---
 
+## CRITICAL DESIGN PRINCIPLES
+
+### Principle 1: BH-First Design (NOT WH Translation)
+
+**Use WH only for SEMANTICS (what the kernel does), NEVER for IMPLEMENTATION (how it does it).**
+
+The most common failure mode is treating the WH reference as an implementation blueprint and translating its patterns to BH. Instead:
+1. Understand WHAT the kernel does from WH (its purpose, input/output contract)
+2. Look at HOW existing BH kernels of the same type solve similar problems
+3. Design the BH implementation to follow BH patterns, not WH patterns
+
+**WRONG**: "WH uses 4 ADDR_MODs with incr/cr/clr, so BH needs the same"
+**RIGHT**: "Let me check how existing BH pack kernels configure ADDR_MODs — they use fewer/simpler configs"
+
+**WRONG**: "WH has a manual row loop in the main function, so BH should too"
+**RIGHT**: "Let me check if existing BH kernels handle rows via MOP outer loop instead"
+
+**WRONG**: "WH has MEGAROW=1, so BH should too"
+**RIGHT**: "Let me check what MEGAROW value existing BH pack kernels actually use"
+
+### Principle 2: Template Params Come from BH, Not WH
+
+Template parameters MUST match what BH callers expect. The analysis document's "BH Expected API" section (from test harness + parent file) is the source of truth.
+
+- If WH has a template param that BH test/parent don't reference → **DROP it** (e.g., `diagonal`)
+- If BH test/parent have a param WH doesn't → **ADD it** (e.g., `dense`)
+- If param exists in both but with different meaning → **Follow BH's meaning**
+
+### Principle 3: Init/Uninit Symmetry
+
+`_uninit_` MUST reverse what `_init_` changes. For every HW register or configuration that `_init_` modifies, document:
+1. What was changed (register name, old value → new value)
+2. How `_uninit_` restores the default
+
+Common things `_init_` changes that `_uninit_` must restore:
+- **Stride registers** (z_stride, y_stride) → restore default stride values
+- **ADC x-end** configuration → restore to `face_r_dim * FACE_C_DIM - 1`
+- **Tile dimension** config → restore standard tile dimensions
+- **Special mode flags** → clear any mode-specific flags
+
+If `_init_` calls `cfg_reg_rmw_tensix<SomeReg>(special_value)`, then `_uninit_` must call `cfg_reg_rmw_tensix<SomeReg>(default_value)`.
+
+### Principle 4: Study Closest BH Kernel Line-by-Line
+
+Before designing, the analysis should include patterns from the closest existing BH kernel. If it doesn't, read it yourself. Extract:
+- **MOP structure**: What do outer/inner loops represent?
+- **Replay buffer**: Always loaded or conditional? How many instructions? Replayed from MOP end_ops or from manual code?
+- **Address modifiers**: How many? How configured?
+- **Counter resets**: What counters are reset where?
+- **Stride configuration**: What strides are programmed in init?
+- **State tracking**: Any static variables for caching state?
+
+### Principle 5: Function Signature Verification
+
+Before writing the spec, verify EVERY function signature against:
+1. The BH test harness (`tests/sources/*{kernel}*.cpp`, look for `#ifdef ARCH_BLACKHOLE`)
+2. The BH parent file (e.g., `llk_pack.h` wrappers that call the internal `_llk_*` functions)
+
+The test harness is the ultimate authority on what signatures BH expects.
+
+---
+
 ## Required Reading
 
 Before planning, read these reference documents:
@@ -259,12 +321,70 @@ else
     cfg[THCON_SEC0_REG3_Base_cntx1_address_ADDR32] = address;
 ```
 
-#### For Pack Kernels
+#### For Pack Kernels (CRITICAL - Major BH/WH Differences)
 
-- Check for instruction compatibility
-- Verify resource availability
-- Plan tile processing order
-- Check for replay buffer patterns in existing pack kernels
+**Pack kernels have significant architectural differences between BH and WH. Do NOT translate WH pack patterns directly.**
+
+**Step 1: Read ALL Existing BH Pack Kernels**
+```bash
+ls tt_llk_blackhole/llk_lib/llk_pack*.h
+```
+Read each one. Focus on the closest match to your kernel. Extract every pattern from Step 1.5c of the analysis.
+
+**Step 2: Determine MOP Execution Model from BH Examples**
+
+The MOP outer/inner loop roles may differ from WH. From existing BH pack kernels, determine:
+- What does the OUTER loop iterate over? (rows? tiles per block?)
+- What does the INNER loop iterate over? (tiles? rows?)
+- Is `MOP_OUTER_LOOP` a runtime value (e.g., `face_r_dim`) or compile-time?
+- What instructions form the inner loop body?
+- What do `set_start_op`, `set_end_ops`, `set_last_inner_loop_instr`, `set_last_outer_loop_instr` do?
+- Is row/face iteration done by MOP or by manual loops in the main function?
+
+**Do NOT assume WH's loop structure carries over.** If WH iterates rows manually in `_llk_pack_{op}_()` but BH handles rows in the MOP outer loop, follow BH.
+
+**Step 3: Plan PACR Instruction Parameters**
+
+BH PACR has 12 parameters. For each, check existing BH pack kernels:
+- `MEGAROW`: Existing BH kernels often use 0, not 1 — verify, don't assume WH's value
+- `DstAccessMode`: `DST_ACCESS_STRIDED_MODE` for untilize, check others
+- `ReadIntfSel`: Based on packer interface count
+- `Flush` and `Last` bits: When set (end of row, end of block)?
+
+**Step 4: Plan Address Modifier Configuration**
+
+BH often uses FEWER address modifiers than WH. Check existing BH pack kernels:
+- How many ADDR_MODs are configured?
+- What are the `.y_src` incr/clr/cr values?
+- Don't port WH's multi-ADDR_MOD scheme unless BH actually uses it
+
+**Step 5: Plan Replay Buffer**
+
+From existing BH pack kernels:
+- Is the replay buffer always loaded (in `_mop_config_`) or conditional?
+- How many instructions?
+- Is it replayed from MOP `set_end_ops` or from manual code in the main function?
+- What instructions does it contain? (ADDDMAREG, STALLWAIT, WRCFG, NOP — check BH examples)
+
+**Step 6: Plan Stride Configuration**
+
+If using strided access modes:
+- What stride registers does `_init_` need to configure? (e.g., `PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW`)
+- How is the stride value computed from `pack_src_format`, `face_r_dim`, `FACE_C_DIM`?
+- What does `_uninit_` need to restore? (init/uninit symmetry — Principle 3)
+
+**Step 7: Plan Counter Management**
+
+From existing BH pack kernels:
+- What ADC counters are reset at the start of the main function? (`TT_SETADCZW`, `TT_SETADCXY`)
+- What counters are reset at the end?
+- Are counter values set via `TT_SETADC` in MOP `set_start_op`?
+
+**Step 8: Plan State Tracking**
+
+Check if existing BH pack kernels use static variables:
+- `tile_dst_offset_state` for caching MOP configuration
+- If state changes, does the kernel re-call `_mop_config_` to reconfigure?
 
 ### Step 4: Design Resource Allocation
 
@@ -350,6 +470,25 @@ namespace sfpu
 | LREG0 | 0x... | A0, A1 |
 | LREG4 | 0x... | B0, B1 |
 | ... | ... | ... |
+
+## Init/Uninit Symmetry
+| What _init_ Changes | Register/Config | How _uninit_ Restores |
+|---------------------|-----------------|----------------------|
+| [e.g., z_stride] | `PCK0_ADDR_CTRL_ZW_REG_0_Zstride_RMW` | Restore default stride |
+| [e.g., ADC x-end] | `TT_SETADCXX` | Restore `face_r_dim * FACE_C_DIM - 1` |
+
+## Function Signatures (verified against BH test + parent file)
+| Function | Template Params | Runtime Params | Source |
+|----------|-----------------|----------------|--------|
+| `_llk_{op}_init_` | [from BH] | [from BH] | test line N |
+| `_llk_{op}_` | [from BH] | [from BH] | test line M |
+| `_llk_{op}_uninit_` | N/A | [from BH] | test line K |
+
+## WH Features NOT Being Ported
+[List WH features/params explicitly being omitted and why]
+
+## BH Features NOT in WH
+[List BH-only features being added and why]
 
 ## Potential Issues
 - [Concerns]

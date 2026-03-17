@@ -302,15 +302,19 @@ inline void _init_gelu_()
 
 ## Key Translation Rules
 
+### For SFPU Kernels
 1. **Most code is portable**: The SFPI library is shared between Wormhole and Blackhole.
-
 2. **Use Blackhole enhancements when available**: Prefer `lut2` over `lut` for better accuracy.
-
 3. **Leverage macro instructions**: For high-performance operations, use Blackhole's macro instruction support.
+4. **Check instruction availability**: Some instructions (like `SFPARECIP`) are Blackhole-only.
 
-4. **Test on both architectures**: Some edge cases may behave differently.
-
-5. **Check instruction availability**: Some instructions (like `SFPARECIP`) are Blackhole-only.
+### For ALL Kernel Types (CRITICAL)
+1. **BH-first design**: Start from existing BH patterns, use WH only for understanding semantics.
+2. **Template params from BH**: Derive template params from BH test harness + parent file, NOT from WH.
+3. **Init/uninit symmetry**: `_uninit_` must reverse what `_init_` changes.
+4. **Don't over-port**: Drop WH features not referenced in BH test/parent (e.g., `diagonal` mode, extra ADDR_MODs).
+5. **Verify against existing BH kernels**: Read the closest BH kernel of the same type line-by-line.
+6. **Test harness is the API contract**: The test file defines what signatures BH expects.
 
 ---
 

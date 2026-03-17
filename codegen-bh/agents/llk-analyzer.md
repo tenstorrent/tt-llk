@@ -88,6 +88,67 @@ Create an analysis document at: `codegen-bh/artifacts/{kernel}_analysis.md`
 
 ---
 
+## Step 1.5: MANDATORY - Read BH Integration Points BEFORE Analyzing WH
+
+**Before reading the WH reference**, read the Blackhole integration points to understand what BH actually expects. This prevents porting WH features that don't exist in BH.
+
+### 1.5a: Read the Test Harness
+
+Find and read the test file for this kernel:
+```bash
+# Find C++ test sources (primary - these define expected function signatures)
+ls tests/sources/*{kernel}*.cpp
+
+# Find Python test files
+ls tests/python_tests/test_{kernel}*.py
+```
+
+From the C++ test source, extract:
+- **Function signatures in the `#ifdef ARCH_BLACKHOLE` branch**: What parameters does each function take? What template params?
+- **BH-only features**: Does BH add any parameters WH doesn't have? (e.g., `dense` mode, extra format args)
+- **WH-only features**: Does the `#else` (WH) branch have params/features the BH branch omits?
+- **Calling order**: How are init/main/uninit functions called?
+
+### 1.5b: Read the Parent/Caller File
+
+Find the file that `#include`s this kernel:
+```bash
+grep -r "llk_{type}_{op}" tt_llk_blackhole/llk_lib/ --include="*.h" | grep include
+```
+
+Read the parent file and extract:
+- **Wrapper functions**: What wrappers exist around the `_llk_*` internal functions?
+- **Template params passed through**: What template params does the wrapper expose? These define what the kernel MUST accept.
+- **Helper functions available**: What helpers does the parent file provide (e.g., `program_packer_destination`, `set_dst_write_addr`)?
+- **What other kernels of this type does the parent include?**: Read those for BH patterns.
+
+### 1.5c: Read the Closest Existing BH Kernel of the Same Type
+
+**This is not a grep — read the FULL file line-by-line.**
+
+```bash
+# For pack kernels: read ALL existing BH pack kernels
+ls tt_llk_blackhole/llk_lib/llk_pack*.h
+
+# For unpack kernels
+ls tt_llk_blackhole/llk_lib/llk_unpack*.h
+
+# For math kernels
+ls tt_llk_blackhole/llk_lib/llk_math*.h
+```
+
+Find the closest existing BH kernel to the one you're analyzing (e.g., for `pack_untilize`, read `llk_pack_rows.h` or `llk_pack.h`). Document:
+- **MOP structure**: What do outer/inner loops iterate over?
+- **Instruction parameters**: Exact PACR/UNPACR field values used
+- **Address modifiers**: How many? What values?
+- **Replay buffer**: Present? Always loaded or conditional? How many instructions?
+- **Stride configuration**: Any `cfg_reg_rmw_tensix` calls for stride registers?
+- **Counter resets**: What ADC counters are reset where?
+- **State tracking**: Any `static` variables?
+- **Init/uninit symmetry**: What does init change that uninit restores?
+
+---
+
 ## Step 2: Read and Analyze
 
 Read the reference file and identify:
@@ -167,11 +228,28 @@ When analyzing, **document the EXACT syntax** used in existing Blackhole kernels
 
 ---
 
-## Step 2.5: CRITICAL - Find Similar Blackhole Implementations First
+## Step 2.5: CRITICAL - Deep-Read Existing Blackhole Implementations
 
-**Before proceeding with Wormhole analysis, ALWAYS search for similar existing Blackhole implementations.**
+**If you haven't already done thorough reading in Step 1.5c, do it now.** This is not optional grepping — you must READ the closest BH kernel of the same type line-by-line and document its patterns.
 
-Blackhole patterns often differ significantly from Wormhole. Check these:
+Blackhole patterns often differ FUNDAMENTALLY from Wormhole. A BH kernel of the same type (pack, unpack, math) is far more authoritative than the WH reference you're porting from.
+
+### What to Extract from Existing BH Kernels
+
+For each existing BH kernel of the same type:
+1. **Function count and signatures** (including template params)
+2. **MOP structure** — what outer/inner loops represent, what instructions they contain
+3. **MEGAROW value** — don't assume WH's value carries over
+4. **Address modifier count and values** — BH often uses fewer/simpler configs
+5. **Replay buffer pattern** — always loaded or conditional? instruction count?
+6. **Stride configuration** — what stride registers are programmed? (z_stride, y_stride)
+7. **Counter management** — what resets happen where?
+8. **Init/uninit symmetry** — what does init configure that uninit must restore?
+9. **Features ABSENT from BH** — if a WH feature (e.g., `diagonal` mode) has no trace in ANY existing BH kernel of this type, it likely doesn't belong in BH
+
+**BH patterns take PRECEDENCE over WH patterns. When BH and WH disagree, follow BH.**
+
+Check these:
 
 ### For Unpack Kernels
 ```bash
@@ -249,6 +327,35 @@ Create `codegen-bh/artifacts/{kernel}_analysis.md`:
 
 ## Dependencies
 - [File/function dependencies]
+
+## BH Expected API (from test harness and parent file)
+
+### Function Signatures Expected by BH
+[Extract from test file's #ifdef ARCH_BLACKHOLE branch and parent file wrappers]
+- `_llk_{op}_init_<Params>(args)` -- from test line N / parent file line M
+- `_llk_{op}_(args)` -- from test line N / parent file line M
+- `_llk_{op}_uninit_(args)` -- from test line N / parent file line M
+
+### Template Parameters in BH vs WH
+| Parameter | In WH? | In BH? | Notes |
+|-----------|--------|--------|-------|
+| `param1` | Yes | Yes | Same meaning |
+| `diagonal` | Yes | **No** | WH-only, drop it |
+| `dense` | No | **Yes** | BH-only, must add |
+
+### WH Features NOT Present in BH
+[List any WH features, modes, or template params that BH test/parent don't reference]
+
+### BH Features NOT Present in WH
+[List any BH-only features discovered in test harness or parent file]
+
+## Closest Existing BH Kernel Patterns
+[Patterns extracted from the closest BH kernel of the same type - Step 1.5c]
+- MOP structure: [outer loop = ?, inner loop = ?]
+- ADDR_MODs used: [count and values]
+- Replay buffer: [always/conditional, instruction count]
+- Stride config: [what registers are programmed]
+- Init/uninit symmetry: [what init changes, what uninit restores]
 
 ## Blackhole Translation Notes
 [Challenges or considerations for implementation]
