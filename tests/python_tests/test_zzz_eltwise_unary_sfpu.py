@@ -39,14 +39,15 @@ from helpers.test_variant_parameters import (
     NUM_TILES_IN_BLOCK,
     TILE_COUNT,
     DestSync,
+    generate_input_dim,
 )
 from helpers.utils import passed_test
 
 SUPPORTED_FAST_MODE_OPS = [
-    # MathOperation.Log1p,
-    # MathOperation.Exp,
-    # MathOperation.Rsqrt,
-    # MathOperation.Sqrt,
+    MathOperation.Log1p,
+    MathOperation.Exp,
+    MathOperation.Rsqrt,
+    MathOperation.Sqrt,
 ]
 
 ALL_MATHOPS = [
@@ -56,8 +57,11 @@ ALL_MATHOPS = [
     MathOperation.Acosh,
     MathOperation.Cos,
     MathOperation.Log,
+    MathOperation.Log1p,
     MathOperation.Reciprocal,
     MathOperation.Sin,
+    MathOperation.Sqrt,
+    MathOperation.Rsqrt,
     MathOperation.Square,
     MathOperation.Tanh,
     MathOperation.Celu,
@@ -67,25 +71,57 @@ ALL_MATHOPS = [
     MathOperation.Fill,
     MathOperation.Elu,
     MathOperation.Exp,
-    # MathOperation.Log1p,
-    # MathOperation.Rsqrt,
-    # MathOperation.Hardsigmoid,
     MathOperation.Exp2,
+    MathOperation.Hardsigmoid,
     MathOperation.Threshold,
     MathOperation.ReluMax,
     MathOperation.ReluMin,
-    # MathOperation.Sqrt,
 ]
 
 FORMATS = input_output_formats(
     [
         DataFormat.Float32,
-        # DataFormat.Float16,
+        DataFormat.Float16,
+        DataFormat.Float16_b,
+        DataFormat.Bfp8_b,
+    ]
+)
+
+FORMATS_INCLUDE_BFP4_B = input_output_formats(
+    [
         DataFormat.Float16_b,
         DataFormat.Bfp8_b,
         DataFormat.Bfp4_b,
     ]
 )
+
+MATHOPS_INCLUDE_BFP4_B = [
+    MathOperation.Abs,
+    # MathOperation.Atanh,
+    # MathOperation.Asinh,
+    # MathOperation.Acosh,
+    # MathOperation.Cos,
+    # MathOperation.Log,
+    # MathOperation.Log1p,
+    # MathOperation.Reciprocal,
+    # MathOperation.Sin,
+    # MathOperation.Sqrt,
+    # MathOperation.Rsqrt,
+    MathOperation.Square,
+    MathOperation.Tanh,
+    MathOperation.Celu,
+    MathOperation.Silu,
+    MathOperation.Gelu,
+    MathOperation.Neg,
+    MathOperation.Fill,
+    MathOperation.Elu,
+    # MathOperation.Exp,
+    # MathOperation.Exp2,
+    # MathOperation.Hardsigmoid,
+    MathOperation.Threshold,
+    MathOperation.ReluMax,
+    MathOperation.ReluMin,
+]
 
 FLOAT_TEST_PARAMS = list(
     chain(
@@ -121,8 +157,7 @@ FLOAT_TEST_PARAMS = list(
 )
 @pytest.mark.parametrize(
     "input_dimensions",
-    # [[64, 64], [128, 256]],
-    [[32, 32]],
+    [[64, 64], [128, 256]],
 )
 def test_eltwise_unary_sfpu_float(
     formats: list[InputOutputFormat],
@@ -182,25 +217,125 @@ def test_eltwise_unary_sfpu_float(
         approx_mode == ApproximationMode.Yes
         and mathop in [MathOperation.Exp, MathOperation.Exp2, MathOperation.Elu]
         and (
-            formats.input_format in (DataFormat.Bfp8_b, DataFormat.Bfp4_b)
-            or formats.output_format in (DataFormat.Bfp8_b, DataFormat.Bfp4_b)
+            formats.input_format == DataFormat.Bfp8_b
+            or formats.output_format == DataFormat.Bfp8_b
         )
     ):
         pytest.skip(
-            reason="Exp-related operations are not supported for BFP formats in approximation mode."
+            reason="Exp-related operations are not supported for bf8_b format in approximation mode."
+        )
+
+    eltwise_unary_sfpu(
+        "sources/eltwise_unary_sfpu_test.cpp",
+        formats,
+        dest_acc,
+        approx_mode,
+        mathop,
+        fast_mode,
+        input_dimensions,
+        workers_tensix_coordinates,
+    )
+
+
+FLOAT_TEST_PARAMS_BFP4_B = list(
+    chain(
+        (
+            (fmt, approx, mathop, fast, dest)
+            for fmt, approx, mathop, fast, dest in product(
+                FORMATS_INCLUDE_BFP4_B,
+                [ApproximationMode.No, ApproximationMode.Yes],
+                [op for op in SUPPORTED_FAST_MODE_OPS if op in MATHOPS_INCLUDE_BFP4_B],
+                [FastMode.No, FastMode.Yes],
+                [DestAccumulation.No, DestAccumulation.Yes],
+            )
+        ),
+        (
+            (fmt, approx, mathop, FastMode.No, dest)
+            for fmt, approx, mathop, dest in product(
+                FORMATS_INCLUDE_BFP4_B,
+                [ApproximationMode.No, ApproximationMode.Yes],
+                [
+                    op
+                    for op in MATHOPS_INCLUDE_BFP4_B
+                    if op not in SUPPORTED_FAST_MODE_OPS
+                ],
+                [DestAccumulation.No, DestAccumulation.Yes],
+            )
+        ),
+    )
+)
+
+
+# Skipped because of: https://github.com/tenstorrent/tt-llk/issues/1435
+@skip_for_coverage
+@pytest.mark.nightly
+@pytest.mark.parametrize(
+    "formats,approx_mode,mathop,fast_mode,dest_acc",
+    FLOAT_TEST_PARAMS_BFP4_B,
+)
+@pytest.mark.parametrize(
+    "input_dimensions",
+    [[64, 64], [128, 256]],
+)
+def test_eltwise_unary_sfpu_float_bfp4_b(
+    formats: list[InputOutputFormat],
+    approx_mode: ApproximationMode,
+    mathop: MathOperation,
+    fast_mode: FastMode,
+    dest_acc: DestAccumulation,
+    input_dimensions: list[int],
+    workers_tensix_coordinates: str,
+):
+    if TestConfig.WITH_COVERAGE and mathop in [
+        MathOperation.Acosh,
+        MathOperation.Log,
+        MathOperation.Log1p,
+        MathOperation.Reciprocal,
+        MathOperation.Sin,
+        MathOperation.Sqrt,
+        MathOperation.Rsqrt,
+        MathOperation.Square,
+        MathOperation.Celu,
+        MathOperation.Silu,
+        MathOperation.Neg,
+        MathOperation.Exp2,
+        MathOperation.Hardsigmoid,
+        MathOperation.Threshold,
+        MathOperation.ReluMax,
+        MathOperation.ReluMin,
+        MathOperation.Tanh,
+    ]:
+        # SFPI Issue link: https://github.com/tenstorrent/tt-metal/issues/33268
+        pytest.skip(
+            reason="When these SPFU ops get compiled with coverage, `#pragma GCC unroll X` marked loops get compiled to invalid assembly"
         )
 
     if (
-        formats.input_format == DataFormat.Float16
-        and formats.output_format == DataFormat.Bfp4_b
-        and dest_acc == DestAccumulation.No
+        formats.input_format != DataFormat.Bfp4_b
+        and formats.input_format_B != DataFormat.Bfp4_b
     ):
-        pytest.skip(reason="Float16 to Bfp4_b with dest_acc=No is not supported")
+        pytest.skip(reason="Not a Bfp4_b test")
 
-    if formats.output_format == DataFormat.Bfp4_b and mathop in [
-        MathOperation.Sin,
-    ]:
-        pytest.skip(reason="Bfp4_b failing for these mathops")
+    if mathop == MathOperation.ReluMin:
+        pytest.skip(reason="https://github.com/tenstorrent/tt-llk/issues/1120")
+
+    if mathop == MathOperation.Tanh and approx_mode == ApproximationMode.Yes:
+        pytest.skip(reason="Metal tanh does not support approximation mode")
+
+    if TestConfig.WITH_COVERAGE and mathop == MathOperation.Gelu:
+        # Issue link: https://github.com/tenstorrent/tt-llk/issues/883
+        pytest.skip(
+            reason="Compilation error when this mathop gets compiled with coverage"
+        )
+
+    if (
+        dest_acc == DestAccumulation.No
+        and TestConfig.CHIP_ARCH == ChipArchitecture.BLACKHOLE
+    ):
+        if formats.input_format == DataFormat.Float16 or formats == InputOutputFormat(
+            DataFormat.Float32, DataFormat.Float16
+        ):
+            pytest.skip(reason="This combination is not supported on BH architecture")
 
     eltwise_unary_sfpu(
         "sources/eltwise_unary_sfpu_test.cpp",
@@ -292,6 +427,7 @@ def eltwise_unary_sfpu(
         test_name,
         formats,
         templates=[
+            generate_input_dim(input_dimensions, input_dimensions),
             APPROX_MODE(approx_mode),
             FAST_MODE(fast_mode),
             CLAMP_NEGATIVE(True),
@@ -330,84 +466,9 @@ def eltwise_unary_sfpu(
     torch_format = format_dict[formats.output_format]
     res_tensor = torch.tensor(res_from_L1, dtype=torch_format)
 
-    test_passed = passed_test(golden_tensor, res_tensor, formats.output_format)
-
-    if not test_passed:
-        rows, cols = input_dimensions
-        torch.set_printoptions(precision=4, linewidth=10000)
-        print(f"\n=== Mathop: {mathop} ===")
-        print(f"\n=== Dest Acc: {dest_acc} ===")
-        print(f"\n=== Approval Mode: {approx_mode} ===")
-        print(f"\n=== Fast Mode: {fast_mode} ===")
-        print(f"\n=== Input Format: {formats.input_format} ===")
-        print(f"\n=== Output Format: {formats.output_format} ===")
-        print(f"\n=== src_A ({rows}x{cols}) ===")
-        print(src_A.view(rows, cols))
-        print(f"\n=== Golden before quantization ({rows}x{cols}) ===")
-        _gen = get_golden_generator(UnarySFPUGolden)
-        from helpers.format_config import DataFormat as _DF
-
-        _raw_golden = _gen(
-            mathop,
-            src_A,
-            _DF.Float32,
-            dest_acc,
-            formats.input_format,
-            input_dimensions,
-        )
-        print(_raw_golden.view(rows, cols))
-        print(f"\n=== Golden ({rows}x{cols}) ===")
-        print(golden_tensor.view(rows, cols))
-        print(f"\n=== Result ({rows}x{cols}) ===")
-        print(res_tensor.view(rows, cols))
-        print(f"\n=== Diff (Result - Golden, zeros are matches) ===")
-        diff = (
-            res_tensor.view(rows, cols).float() - golden_tensor.view(rows, cols).float()
-        )
-        print(diff)
-        mismatch_mask = diff != 0
-        mismatch_count = mismatch_mask.sum().item()
-        total = rows * cols
-        print(
-            f"\n=== Mismatches: {mismatch_count}/{total} ({100*mismatch_count/total:.1f}%) ==="
-        )
-        print(f"=== Mismatch positions (row, col): ===")
-        mismatch_rows, mismatch_cols = torch.where(mismatch_mask)
-        for r, c in zip(mismatch_rows.tolist(), mismatch_cols.tolist()):
-            print(
-                f"  [{r:2d},{c:2d}]  input={src_A.view(rows,cols)[r,c].item():.4f}  golden={golden_tensor.view(rows,cols)[r,c].item():.4f}  result={res_tensor.view(rows,cols)[r,c].item():.4f}  diff={diff[r,c].item():.4f}"
-            )
-
-        if formats.output_format == formats.output_format.Bfp4_b:
-            from helpers.pack import float_to_bfp4_block
-            from helpers.tilize_untilize import tilize_block
-
-            tile_dim = (rows, cols)
-            g_til = tilize_block(
-                golden_tensor.float().flatten(), tile_dim, formats.input_format
-            ).flatten()
-            r_til = tilize_block(
-                res_tensor.float().flatten(), tile_dim, formats.input_format
-            ).flatten()
-            n = g_til.numel()
-            print(f"\n=== BFP4 encoding (tilized blocks of 16, golden vs result) ===")
-            print(
-                f"{'blk':>4}  {'exp_g':>5}  {'exp_r':>5}  {'mantissas_golden (s|mag)':^48}  {'mantissas_result (s|mag)':^48}"
-            )
-            for blk in range(n // 16):
-                s, e = blk * 16, (blk + 1) * 16
-                exp_g, mant_g = float_to_bfp4_block(g_til[s:e])
-                exp_r, mant_r = float_to_bfp4_block(r_til[s:e])
-
-                def fmt_mants(mants):
-                    return " ".join(f"{m >> 3}|{m & 7:03b}" for m in mants)
-
-                match = " " if exp_g == exp_r and mant_g == mant_r else "*"
-                print(
-                    f"{blk:>4}{match} {exp_g:>5}  {exp_r:>5}  {fmt_mants(mant_g)}  {fmt_mants(mant_r)}"
-                )
-
-    assert test_passed, "Assert against golden failed"
+    assert passed_test(
+        golden_tensor, res_tensor, formats.output_format
+    ), "Assert against golden failed"
 
 
 # Test exponential with APPROX_MODE=true, FAST_MODE=true, and CLAMP_NEGATIVE=true/false
@@ -458,6 +519,7 @@ def test_exponential_clamp_negative(
         "sources/eltwise_unary_sfpu_test.cpp",
         formats,
         templates=[
+            generate_input_dim(input_dimensions, input_dimensions),
             APPROX_MODE(ApproximationMode.Yes),
             FAST_MODE(FastMode.Yes),
             CLAMP_NEGATIVE(clamp_negative),
