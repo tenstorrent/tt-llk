@@ -75,7 +75,7 @@ def check_file(
 
     # Override the wrapper creation
     original_wrapper = agent._create_wrapper
-    agent._create_wrapper = lambda code, filename: create_wrapper(
+    agent._create_wrapper = lambda code, filename, op_name=None: create_wrapper(
         filename, func_name, init_name
     )
 
@@ -101,6 +101,22 @@ def main():
     if not args.file.exists():
         print(f"Error: File not found: {args.file}")
         sys.exit(1)
+
+    # Warn if file path doesn't match specified architecture
+    arch_dir_map = {
+        "quasar": "tt_llk_quasar",
+        "blackhole": "tt_llk_blackhole",
+        "wormhole": "tt_llk_wormhole_b0",
+    }
+    expected_dir = arch_dir_map.get(args.arch, "")
+    file_str = str(args.file.resolve())
+    for other_arch, other_dir in arch_dir_map.items():
+        if other_dir in file_str and other_arch != args.arch:
+            print(
+                f"Warning: File is in {other_dir}/ but compiling for --arch {args.arch}"
+            )
+            print(f"  Did you mean --arch {other_arch}?")
+            break
 
     print(f"Checking: {args.file}")
     print(f"Architecture: {args.arch}")

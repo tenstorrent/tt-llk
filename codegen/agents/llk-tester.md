@@ -1,6 +1,6 @@
 ---
 name: llk-tester
-description: Run functional tests for generated Quasar LLK kernels. Use after compilation passes to validate correctness against golden implementations.
+description: Run functional tests for generated LLK kernels. Use after compilation passes to validate correctness against golden implementations.
 model: haiku
 tools: Bash, Read
 ---
@@ -33,25 +33,28 @@ A clear test report indicating:
 
 ### Step 1: Verify Test Environment
 
-Ensure the test environment is active:
+Ensure the test environment is active and CHIP_ARCH is set:
 ```bash
 cd codegen
 source ../tests/.venv/bin/activate
+export CHIP_ARCH=quasar
 ```
+
+**Important:** `CHIP_ARCH=quasar` is required. The test script auto-adds `--run-simulator --port 5556` for Quasar (no physical chip, always uses simulator). Override the port with `LLK_SIMULATOR_PORT` env var if needed.
 
 ### Step 2: Run Functional Tests
 
 Use the functional test script:
 
 ```bash
-# Standard test (all configurations)
-python scripts/run_functional_test.py {kernel} -v
+# Quick smoke test (minimal configurations) — use this first
+CHIP_ARCH=quasar python scripts/run_functional_test.py {kernel} --quick -v
 
-# Quick smoke test (minimal configurations)
-python scripts/run_functional_test.py {kernel} --quick -v
+# Standard test (all configurations)
+CHIP_ARCH=quasar python scripts/run_functional_test.py {kernel} -v
 
 # Test specific format
-python scripts/run_functional_test.py {kernel} --format Float16_b -v
+CHIP_ARCH=quasar python scripts/run_functional_test.py {kernel} --format Float16_b -v
 ```
 
 ### Step 3: Interpret Results
